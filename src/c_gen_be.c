@@ -3877,6 +3877,18 @@ parameters.
 #if !C_GEN_BE_GENERATES_ANSI_C
       }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#if MICROSOFT_KEYWORDS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+      /* Microsoft-specific keywords. */
+      if (variable->dllimport_used)   write_tok_str("__declspec(dllimport) ");
+      /* Dump some qualifiers only on the last declaration of the variable,
+         since that's the definition if there is one. */
+      if (dump_initializers || init_con == NULL) {
+        if (variable->dllexport_used) write_tok_str("__declspec(dllexport) ");
+      }  /* if */
+      if(variable->thread_used) write_tok_str("__declspec(thread) ");
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #if C_GEN_BE_GENERATES_ANSI_C
       if (variable->initialization_rewritten_as_assignment ||
           (init_kind == (an_init_kind)initk_dynamic && init_con == NULL)) {
@@ -4796,6 +4808,17 @@ if this routine has a body (dump nothing if it has no body).
       }  /* if */
     }  /* if */
     dump_storage_class(storage_class);
+#if MICROSOFT_KEYWORDS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+    /* Microsoft-specific keywords. */
+    if (rout->dllimport_used)   write_tok_str("__declspec(dllimport) ");
+    if (is_definition) {
+      if (rout->dllexport_used) write_tok_str("__declspec(dllexport) ");
+      if (rout->naked_used)     write_tok_str("__declspec(naked) ");
+      if (rout->microsoft_inline_used) write_tok_str("__inline ");
+    }  /* if */
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #if GCC_IS_C_GEN_BE_TARGET
     /* gcc will be used to compile this generated code, so we know how to
        indicate an inline function. */
