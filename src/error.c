@@ -877,19 +877,22 @@ error code.
       m = "base class is inaccessible";
       break;
     case ec_not_member_of_a_direct_base_class:
-      m = "not a member of a class from which \"%s\" is directly derived";
+      m = "name is not a member of a direct base class";
       break;
-    case ec_private_access_declaration_not_allowed:
-      m = "access adjustment of \"private\" not allowed";
+    case ec_access_adjustment_in_private_section:
+      m = "access adjustment in a \"private\" section is not allowed";
       break;
     case ec_increasing_access_not_allowed:
-      m = "increasing the access of an inherited member is not allowed";
+      m = "increasing an inherited member's access is not allowed";
       break;
     case ec_restricting_access_not_allowed:
-      m = "restricting access of an inherited member is not allowed";
+      m = "restricting an inherited member's access is not allowed";
       break;
     case ec_improperly_terminated_macro_call:
       m = "improperly terminated macro invocation";
+      break;
+    case ec_dominated_reference_not_allowed:
+      m = "dominated base class member name is not allowed";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
