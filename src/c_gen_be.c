@@ -1229,7 +1229,7 @@ variable.
   a_variable_ptr		var = NULL;
   an_entry_description_ptr	entry_descr;
 
-  if (rout_ptr == curr_scope->assoc_routine) {
+  if (rout_ptr == curr_scope->variant.routine.ptr) {
     /* rout_ptr references the main entry to the function.  The variable
        pointer is stored in the scope. */
     var = curr_scope->function_result_var;
@@ -1335,7 +1335,7 @@ scope).  If names_only is TRUE, dump just the parameter names.
   a_variable_ptr            formal_param;
 
 #ifdef FFE
-  if (scope->assoc_routine == routine) {
+  if (scope->variant.routine.ptr == routine) {
     /* The routine is the primary entry of the scope. */
     formal_param = scope->parameters;
     epp = NULL;
@@ -1357,10 +1357,10 @@ scope).  If names_only is TRUE, dump just the parameter names.
     }  /* if */
   }  /* if */
 #else /* !defined(FFE) */
-  formal_param = scope->parameters;
+  formal_param = scope->variant.routine.parameters;
 #endif /* ifdef FFE */
 #ifdef CFE
-  implicit_this_param = (scope->this_param_variable != NULL);
+  implicit_this_param = (scope->variant.routine.this_param_variable != NULL);
   if (names_only && formal_param == NULL && !implicit_this_param &&
       routine->type->variant.routine.extra_info->prototyped) {
     /* Void parameter list -- i.e., no parameters. */
@@ -1382,10 +1382,10 @@ scope).  If names_only is TRUE, dump just the parameter names.
     if (implicit_this_param) {
       /* C++ member function implicit "this" parameter. */
       if (names_only) {
-        dump_var_name(scope->this_param_variable);
+        dump_var_name(scope->variant.routine.this_param_variable);
         if (formal_param != NULL) fprintf(f_C_output, ", ");
       } else {
-        dump_param_variable(scope->this_param_variable,
+        dump_param_variable(scope->variant.routine.this_param_variable,
                             /*ignore_storage_class=*/FALSE);
       }  /* if */
     }  /* if */
@@ -4955,7 +4955,7 @@ is TRUE.
           type->kind == (a_type_kind)tk_union) {
         if (type->variant.class_struct_union.extra_info != NULL) {
           for (var_ptr = type->variant.class_struct_union.extra_info->
-                                                           static_data_members;
+                                                        assoc_scope->variables;
                var_ptr != NULL;
                var_ptr = var_ptr->next) {
             dump_variable(var_ptr, dump_vars_without_initializers,
@@ -4990,9 +4990,10 @@ separated by commas.
   }  /* if */
   /* Do the function result variable for character functions. */
   if (is_char_or_char_array(
-                    scope->assoc_routine->type->variant.routine.return_type)) {
+              scope->variant.routine.ptr->type->variant.routine.return_type)) {
     if (names_only) (void)fprintf(f_C_output, ",");
-    dump_char_routine_func_result_var_params(scope->assoc_routine, names_only);
+    dump_char_routine_func_result_var_params(scope->variant.routine.ptr,
+                                             names_only);
   }  /* if */
   /* Do the primary entry parameters. */
   for (var = scope->parameters; var != NULL; var = var->next) {
@@ -6201,7 +6202,7 @@ Generate C for a statement.
         /* Return the function result variable if there is one. */
         fputs(" ", f_C_output);
         dump_var_ref(curr_function_result_var);
-      } else if (curr_scope->assoc_routine->type->variant.routine.
+      } else if (curr_scope->variant.routine.ptr->type->variant.routine.
                                    return_type->kind == (a_type_kind)tk_void &&
                  il_header.source_language == sl_Fortran) {
         /* Return 0 from subroutines in case they have alternate returns. */
@@ -7561,7 +7562,7 @@ that have bodies.
           type->kind == (a_type_kind)tk_union) {
         if (type->variant.class_struct_union.extra_info != NULL) {
           for (routine = type->variant.class_struct_union.extra_info->
-                                                              member_functions;
+                                                         assoc_scope->routines;
                routine != NULL;
                routine = routine->next) {
             dump_routine(routine, bodies);
