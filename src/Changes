@@ -1,5 +1,21 @@
 Version 2.39
 
+5/18/98   Function type involving variable-length-array parameter
+
+When VLA support is enabled, the routine type is now set correctly (see
+the Changes entry for 11/1/97) when a function takes a parameter that
+(after array-to-pointer decay) involves a multidimensional VLA type.
+
+  int n;
+  f(float b[][2][n]) { }
+  g() {
+    float a[15][2][20];
+    f(a+1);
+  }
+
+The type of function f is now recorded as "int (float (*)[2][*])"; the
+type of paramter variable b continues to be "float (*)[2][n]".
+
 5/13/98   Source-sequence entries during prototype instantiation
 
 When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured

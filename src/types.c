@@ -6268,7 +6268,7 @@ make_new_type:
       if (func(type->variant.array.element_type, flags, &tp)) {
         /* Create a new array type. */
         new_type = alloc_type((a_type_kind)tk_array);
-        *new_type = *type;
+        copy_type(type, new_type);
         new_type->variant.array.element_type = tp;
       }  /* if */
       break;
