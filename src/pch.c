@@ -122,12 +122,38 @@ Macro to write a value to the PCH output file.
 #define pch_write_value(value)						\
   (void)fwrite((a_stdio_arg)&(value), sizeof(value), 1, f_pch_output)
 
+
+static void bad_pch_file(void)
+/*
+Called when a read operation on a PCH file fails.  Issue a catestrophic
+error.
+*/
+{
+  /* The error position is reset to prevent the error from being issued
+     with respect to a particular source line.  This is important because
+     the state information used to file source lines, etc. may be in an
+     indeterminate state. */
+  error_position = null_source_position;
+  catastrophe(ec_bad_pch_file);
+}  /* bad_pch_file */
+
+
+static void pch_write_error(void)
+/*
+Called when a write operation on a PCH file fails.  Issue a catestrophic
+error.
+*/
+{
+  str_catastrophe(ec_file_write_error, "PCH");
+}  /* pch_write_error */
+
+
 /*
 Macro to read a value from the PCH input file.
 */
 #define pch_read_value(value)						\
   if (fread((a_stdio_arg)&(value), sizeof((value)), 1, f_pch_input) != 1) { \
-    unexpected_condition_str("PCH read error");				\
+    bad_pch_file();							\
   }  /* if */
 
 
@@ -136,7 +162,7 @@ Macro to perform an fread with an error check.
 */
 #define fread_with_check(value, length, file)				\
   if (fread((a_stdio_arg)(value), size_t_arg((length)), 1, (file)) != 1) { \
-    unexpected_condition_str("PCH read error");				\
+    bad_pch_file();							\
   }  /* if */
 
 /*
@@ -151,7 +177,7 @@ Macro to perform an fwrite with an error check.
 */
 #define fwrite_with_check(value, length, file)				\
   if (fwrite((a_stdio_arg)(value), size_t_arg((length)), 1, (file)) != 1) { \
-    unexpected_condition_str("PCH write error");			\
+    pch_write_error();							\
   }  /* if */
 
 /*
@@ -159,7 +185,7 @@ Macro to do an fseek on the output file with an error check.
 */
 #define fseek_with_check(file, pos, mode)			\
   if (fseek((file), (long)(pos), (mode)) != 0) {			\
-    unexpected_condition_str("PCH seek error");				\
+    pch_write_error();							\
   }  /* if */
 
 

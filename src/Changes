@@ -1,5 +1,11 @@
 Version 2.43
 
+8/23/99  Diagnostics for corrupted PCH files
+
+Formerly, the front end would issue an internal error if a file I/O
+error occurred while reading or writing a precompiled header file.
+A catastrophic error is now issued instead.
+
 8/23/99  C++-generating back end: qualified access to an otherwise
          inaccessible base class
 

@@ -1033,6 +1033,7 @@ ec_ambiguous_class_call;;"there is more than one way an object of type %t can be
 ec_similar_typedef;;"typedef name has already been declared (with similar type)"
 ec_no_internal_linkage_for_new_or_delete;;"operator new and operator delete cannot be given internal linkage"
 ec_no_mutable_allowed_on_anonymous_union;;"storage class \"mutable\" is not allowed for anonymous unions"
+ec_bad_pch_file;;"invalid precompiled header file"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
