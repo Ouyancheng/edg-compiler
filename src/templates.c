@@ -15960,6 +15960,7 @@ that follows.
 #if SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       prev_sym_pos = sym->decl_position;
 #endif /* SUN_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+      sym->decl_position = id_pos;
       if (is_definition) {
         srk_flags |= SRK_DEFINITION;
         if (sym->kind == (a_symbol_kind)sk_static_data_member) {
