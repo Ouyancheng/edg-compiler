@@ -3963,7 +3963,7 @@ the file.
 
 #if USE_INIT_SECTION_IN_GENERATED_C
 
-static generate_init_section_call(char *startup_routine_name)
+static void generate_init_section_call(char *startup_routine_name)
 /*
 Generate a call of the startup routine with the indicated name in a .init
 section.  This is available on some Unix systems as a way to get
