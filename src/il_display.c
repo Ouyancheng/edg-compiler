@@ -2576,8 +2576,15 @@ do_assoc_type:
            iek_namelist_group);
 #endif /* ifdef FFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  disp_ptr("source_sequence_list", (char *)ptr->source_sequence_list,
-           iek_source_sequence_entry);
+  if (ptr->kind == (a_scope_kind)sck_file ||
+      ptr->kind == (a_scope_kind)sck_function) {
+    disp_ptr("source_sequence_list", (char *)ptr->source_sequence_list,
+             iek_source_sequence_entry);
+    if (ptr->kind == (a_scope_kind)sck_function) {
+      disp_ptr("src_seq_sublist_list", (char *)ptr->src_seq_sublist_list,
+               iek_src_seq_sublist);
+    }  /* if */
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_scope */
 
@@ -3123,7 +3130,7 @@ static void disp_source_sequence_entry(a_source_sequence_entry_ptr ssep)
 Display the indicated source sequence entry.
 */
 {
-  disp_ptr("next", (char *)ssep->next, iek_source_sequence_entry);  
+  disp_ptr("next", (char *)ssep->next, iek_source_sequence_entry);
   disp_ptr("prev", (char *)ssep->prev, iek_source_sequence_entry);
   disp_ptr("entity", (char *)ssep->entity.ptr,
            (an_il_entry_kind)ssep->entity.kind);
@@ -3149,13 +3156,27 @@ static void disp_src_seq_end_of_construct(a_src_seq_end_of_construct_ptr ptr)
 Display the indicated source sequence end-of-construct entry.
 */
 {
-  disp_unsigned_long("decl_position.seq",
-                     (unsigned long)ptr->decl_position.seq);
-  disp_unsigned_long("decl_position.column",
-                     (unsigned long)ptr->decl_position.column);
+  disp_unsigned_long("source_position.seq",
+                     (unsigned long)ptr->source_position.seq);
+  disp_unsigned_long("source_position.column",
+                     (unsigned long)ptr->source_position.column);
   disp_ptr("entity", (char *)ptr->entity.ptr,
            (an_il_entry_kind)ptr->entity.kind);
 }  /* disp_src_seq_end_of_construct */
+
+static void disp_src_seq_sublist(a_src_seq_sublist_ptr sssp)
+/*
+Display the indicated source sequence sublist header.
+*/
+{
+  disp_ptr("next", (char *)sssp->next, iek_src_seq_sublist);
+  disp_ptr("source_sequence_list", (char *)sssp->source_sequence_list,
+           iek_source_sequence_entry);
+  disp_ptr("last_source_sequence_entry",
+           (char *)sssp->last_source_sequence_entry,
+           iek_source_sequence_entry);
+}  /* disp_src_seq_sublist */
+
 
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
 
@@ -3333,6 +3354,9 @@ This routine is called during IL walking.
         case iek_src_seq_end_of_construct:
           disp_src_seq_end_of_construct(
                                     (a_src_seq_end_of_construct_ptr)entry_ptr);
+          break;
+        case iek_src_seq_sublist:
+          disp_src_seq_sublist((a_src_seq_sublist_ptr)entry_ptr);
           break;
 #if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
         case iek_comment:
