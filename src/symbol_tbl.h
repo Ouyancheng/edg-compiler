@@ -1491,6 +1491,15 @@ typedef struct a_scope_stack_entry {
 		template_param_list;
                         /* When kind == sck_template_instantiation, contains
 			   a pointer to the template parameter list. */
+  unsigned long	template_params_visible;
+			/* When kind == sck_template_instantiation, contains
+			   the number of template parameters that are visible
+			   for name lookup purposes.  This is normally the
+			   same as the number of parameters but may be less
+			   than the number of parameters when scanning
+			   rescanning the declaration of a template class
+			   parameter whose type depends on another template
+			   parameter. */
 } a_scope_stack_entry;
 
 
