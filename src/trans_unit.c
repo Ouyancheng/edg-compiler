@@ -512,6 +512,7 @@ a pointer to the entry created.
 */
 {
   a_translation_unit_ptr	tup;
+  a_variable_registration_ptr	vrp;
 
 #if CHECKING
   any_translation_units_allocated = TRUE;
@@ -540,10 +541,18 @@ a pointer to the entry created.
      saves and restores translation unit variables.  They point to whichever
      copy of the information is currently active (either the global variable
      or the copy in the variables block of the translation unit entry).
-     These should be initialized with a pointer to the global variable. */
-#if ORPHAN_PROCESSING_NEEDED
-  tup->orphaned_file_scope_il_entries = orphaned_file_scope_il_entries;
-#endif /* ORPHAN_PROCESSING_NEEDED */
+     These are initialized with a pointer to the global variable. */
+  for (vrp = trans_unit_variables; vrp != NULL; vrp = vrp->next) {
+    /* If there is an associated translation unit field, set it to point
+       to the global variable. */
+    if (vrp->field_offset != 0) {
+      a_void_ptr	dest;
+      a_void_ptr	*field;
+      dest = vrp->ptr;
+      field = (a_void_ptr)((char *)tup + vrp->field_offset);
+      *field = (a_void_ptr)dest;
+    }  /* if */
+  }  /* for */
   return tup;
 }  /* alloc_translation_unit */
 
