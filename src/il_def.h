@@ -1630,6 +1630,7 @@ enum a_calling_convention_tag {
    parameters (they can return a calling convention via a parameter even
    though it is never used). */
 typedef a_byte a_calling_convention;
+typedef a_byte *a_calling_convention_ptr;
 #if MICROSOFT_KEYWORDS_ALLOWED
 /* Display names for calling conventions. */
 EXTERN char *calling_convention_names[(int)cc_last]
