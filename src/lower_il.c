@@ -7630,6 +7630,9 @@ the expression have already been lowered.
 
 #if LOWER_LVALUE_RETURNING_OPERATIONS
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- expr is not used in that case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static a_boolean has_statement_expression(an_expr_node_ptr  expr)
 /*
 Return whether expr contains a statement expression (a GNU C extension).
