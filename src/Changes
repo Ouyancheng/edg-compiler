@@ -1,5 +1,11 @@
 Version 3.2
 
+2/20/02  Abort in process_local_types on export cases
+
+An abort has been fixed in process_local_types (il_walk.c line 2377
+in version 3.1).  This bug was introduced in version 3.1 and
+comes up only for complex export cases.
+
 2/19/03  IL lowering generated multiple virtual function tables for type_info
 
 When the source code for the EDG runtime routine typeinfo.c is compiled

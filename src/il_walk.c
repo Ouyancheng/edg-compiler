@@ -2373,10 +2373,13 @@ in cases where the orphan lists have not been generated yet.
          solhp != NULL;
          solhp = solhp->next) {
       saved_innermost_function_scope = innermost_function_scope;
-      check_assertion(solhp->assoc_routine != NULL &&
-                      solhp->assoc_routine->assoc_scope != NULL_region_number);
-      innermost_function_scope = 
+      check_assertion(solhp->assoc_routine != NULL);
+      if (solhp->assoc_routine->assoc_scope != NULL_region_number) {
+        innermost_function_scope = 
                il_header.region_scope_entry[solhp->assoc_routine->assoc_scope];
+      } else {
+        innermost_function_scope = NULL;
+      }  /* if */
       list_processing_routine(solhp->orphaned_types);
       innermost_function_scope = saved_innermost_function_scope;
     }  /* for */
