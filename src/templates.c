@@ -4823,10 +4823,6 @@ defer_inline is TRUE.
        is not required need to be processed for automatic instantiation
        processing. */
     add_to_instantiations_required_list(tip);
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-    /* See if this is an instantiation assigned to this compilation. */
-    check_if_present_in_info_file(tip);
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
   db_exit();
 }  /* update_instantiation_required_flag */
