@@ -190,7 +190,7 @@ caution when modifying this routine.
         /* Don't prejudice subsequent lookups. */
         clear_specific_symbol(locator_for_curr_id);
       }  /* if */
-    } else if (rtti_enabled) {
+    } else {
       /* See if this is an explicit declaration of class type_info, which was
          already "predeclared".  If it is, reuse the original symbol. */
       a_symbol_ptr  type_info_sym;
