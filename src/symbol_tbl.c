@@ -4084,87 +4084,99 @@ a_symbol_ptr find_copy_assignment_operator(
                                     a_boolean             *ambiguous,
                                     a_boolean             *pass_by_value)
 /*
+Return a pointer to the symbol entry for the copy assignment operator for
+class_type that is consistent with the type qualifiers indicated by
+required_qualifiers; return NULL if none is found.  *ambiguous is returned
+TRUE if there is more than matching assignment operator.  *pass_by_value
+is returned TRUE if the parameter is not a reference parameter.
 */
 {
-  a_symbol_ptr    sym, opass_sym = NULL;
-  a_boolean       is_overloaded_function;
-  a_boolean       opass_sym_matches_exactly = FALSE;
-  a_boolean       base_class_match_allowed = FALSE;
-  a_boolean       any_base_class_match = FALSE;
+  a_symbol_ptr                   sym, opass_sym = NULL;
+  a_class_symbol_supplement_ptr  cssp;
+  a_boolean                      is_overloaded_function;
+  a_boolean                      opass_sym_matches_exactly = FALSE;
+  a_boolean                      base_class_match_allowed = FALSE;
+  a_boolean                      any_base_class_match = FALSE;
 
   *ambiguous = FALSE;
-  sym = symbol_supplement_for_class(class_type)->assignment_operator;
-  /* If sym is an overloaded function symbol we need to go through the whole
-     list. */
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    is_overloaded_function = TRUE;
-    sym = sym->variant.overloaded_function.symbols;
-  } else {
-    is_overloaded_function = FALSE;
-  }  /* if */
-  /* This is potentially a two-pass loop.  The first time through
-     base_class_match_allowed is FALSE, the second time it's TRUE.  A "base
-     class match" is a cfront compatibility feature, where D::operator=(B&)
-     is treated as a copy assignment operator when B is a base class of D.
-     It is coded this way to avoid finding ambiguity when, for instance,
-     D::operator=(D&) and D::operator=(B&) exist side-by-side -- the former
-     is always preferred. */
-  for (;;) {
-    /* Find an assignment operator whose argument is ref-class (pass by
-       reference) or class (pass_by_value). */
-    for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-      a_boolean             sym_matches_exactly;
-      a_boolean             is_ref_arg;
-      a_type_qualifier_set  qualifiers = TQ_NONE;
-      a_boolean             is_base_class_match = FALSE;
+  cssp = symbol_supplement_for_class(class_type);
+  if (!cssp->assignment_by_bitwise_copy_allowed) {
+    sym = cssp->assignment_operator;
+    check_assertion(sym != NULL);
+    /* If sym is an overloaded function symbol we need to go through the whole
+       list. */
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      is_overloaded_function = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    } else {
+      is_overloaded_function = FALSE;
+    }  /* if */
+    /* This is potentially a two-pass loop.  The first time through
+       base_class_match_allowed is FALSE, the second time it's TRUE.  A "base
+       class match" is a cfront compatibility feature, where D::operator=(B&)
+       is treated as a copy assignment operator when B is a base class of D.
+       It is coded this way to avoid finding ambiguity when, for instance,
+       D::operator=(D&) and D::operator=(B&) exist side-by-side -- the former
+       is always preferred. */
+    for (;;) {
+      /* Find an assignment operator whose argument is ref-class (pass by
+         reference) or class (pass_by_value). */
+      for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
+        a_boolean             sym_matches_exactly;
+        a_boolean             is_ref_arg;
+        a_type_qualifier_set  qualifiers = TQ_NONE;
+        a_boolean             is_base_class_match = FALSE;
 
-      if (is_assignment_operator_for_copy(sym, &is_ref_arg, &qualifiers,
-                                          &is_base_class_match)) {
-        /* Found an assignment operator that can copy the current class. */
-        if (is_base_class_match) {
-          any_base_class_match = TRUE;
-          /* Ignore a base class match on the first pass. */
-          if (!base_class_match_allowed) continue;
-        }  /* if */
-        if (!is_ref_arg) {
-          /* Not a reference type, so qualifiers are ignored. */
-          sym_matches_exactly = TRUE;
-        } else {
-          /* Reference type. */
-          if ((required_qualifiers & qualifiers) != required_qualifiers) {
-            /* No match -- keep looking. */
-            continue;
-          } else if (required_qualifiers == qualifiers) {
-            /* It's an exact match. */
+        if (is_assignment_operator_for_copy(sym, &is_ref_arg, &qualifiers,
+                                            &is_base_class_match)) {
+          /* Found an assignment operator that can copy the current class. */
+          if (is_base_class_match) {
+            any_base_class_match = TRUE;
+            /* Ignore a base class match on the first pass. */
+            if (!base_class_match_allowed) continue;
+          }  /* if */
+          if (!is_ref_arg) {
+            /* Not a reference type, so qualifiers are ignored. */
             sym_matches_exactly = TRUE;
           } else {
-            /* It's not quite an exact match. */
-            sym_matches_exactly = FALSE;
+            /* Reference type. */
+            if ((required_qualifiers & qualifiers) != required_qualifiers) {
+              /* No match -- keep looking. */
+              continue;
+            } else if (required_qualifiers == qualifiers) {
+              /* It's an exact match. */
+              sym_matches_exactly = TRUE;
+            } else {
+              /* It's not quite an exact match. */
+              sym_matches_exactly = FALSE;
+            }  /* if */
           }  /* if */
+          if (opass_sym != NULL) {
+            /* We have a match on this symbol, but we've already had one
+               before as well.  If one but not the other is an exact match,
+               take the one that matches.  Otherwise it's an ambiguity.  */
+            *ambiguous = (sym_matches_exactly == opass_sym_matches_exactly);
+            if (!sym_matches_exactly) continue;
+          }  /* if */
+          opass_sym = sym;
+          opass_sym_matches_exactly = sym_matches_exactly;
+          *pass_by_value = !is_ref_arg;
         }  /* if */
-        if (opass_sym != NULL) {
-          /* We have a match on this symbol, but we've already had one before
-             as well.  If one but not the other is an exact match, take the
-             one that matches.  Otherwise it's an ambiguity.  */
-          *ambiguous = (sym_matches_exactly == opass_sym_matches_exactly);
-          if (!sym_matches_exactly) continue;
-        }  /* if */
-        opass_sym = sym;
-        opass_sym_matches_exactly = sym_matches_exactly;
-        *pass_by_value = !is_ref_arg;
+      }  /* for */
+      /* If this is already the second pass or if we've found a match break
+         out of the loop. */
+      if (opass_sym != NULL || base_class_match_allowed)  break;
+      /* If no base class match was found on the first pass don't bother doing
+         a second. */
+      if (!any_base_class_match) break;
+      /* Reset variables for a second pass. */
+      base_class_match_allowed = TRUE;
+      sym = symbol_supplement_for_class(class_type)->assignment_operator;
+      if (is_overloaded_function) {
+        sym = sym->variant.overloaded_function.symbols;
       }  /* if */
     }  /* for */
-    /* If this is already the second pass or if we've found a match break out
-       of the loop. */
-    if (opass_sym != NULL || base_class_match_allowed)  break;
-    /* If no base class match was found on the first pass don't bother doing
-       a second. */
-    if (!any_base_class_match) break;
-    /* Reset variables for a second pass. */
-    base_class_match_allowed = TRUE;
-    sym = symbol_supplement_for_class(class_type)->assignment_operator;
-    if (is_overloaded_function) sym = sym->variant.overloaded_function.symbols;
-  }  /* for */
+  }  /* if */
   return opass_sym;
 }  /* find_copy_assignment_operator */
 
@@ -4176,10 +4188,13 @@ a_routine_ptr select_copy_assignment_operator(
                                     a_boolean             *pass_by_value)
 /*
 Return a pointer to the routine entry for the copy assignment operator for
-class_type.
+class_type that is consistent with the type qualifiers indicated by
+required_qualifiers.  *err_pos indicates the source position at which to issue
+an error (e.g., for ambiguous or missing assignment operator).  *pass_by_value
+is returned TRUE if the parameter is not a reference parameter.
 */
 {
-  a_symbol_ptr    sym, opass_sym = NULL;
+  a_symbol_ptr    opass_sym = NULL;
   a_boolean       ambiguous;
   a_routine_ptr   opass_routine = NULL;
 
