@@ -1559,10 +1559,11 @@ subaggregate. The function returns a pointer to IL a_constant entity.
     } else {
       nonconst_allowed = FALSE;
     }  /* if */
-    if (microsoft_mode &&
+    if (microsoft_mode && !C_mode() &&
         context->prev_context != NULL &&
         context->prev_context->field != NULL &&
-        context->prev_context->field->is_bit_field) {
+        context->prev_context->field->is_bit_field &&
+        is_enum_type(context->type)) {
       /* Microsoft compilers allow bit fields of enumeration types to be
          initialized by integer values. */
       required_type = integer_type(skip_typerefs(context->type)

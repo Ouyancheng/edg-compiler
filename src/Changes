@@ -3183,6 +3183,8 @@ entities with values of integer types (with a warning).
 
   enum { e1, e2 } v = 1;  // Accepted with a warning in Microsoft mode
 
+[ Change undone.  See entry of 10/30/00. ]
+
 1/20/00  Templates in unnamed namespace fail in one instantiation
          per object mode
 
