@@ -921,6 +921,15 @@ default-initialized -- for instance:
   S s = { 1 };        // spurious error is no longer issued -- s.j is
                       //   default-initialized to zero
 
+3/9/96    Repackaging of scan_class_definition
+
+Several subroutines have been broken out of scan_class_definition, most
+notably scan_class_member.  Maintaining information among the various
+routines is simplified by using a_class_state and a_member_decl_info,
+which track the current state of the class definition as a whole and of
+a given declaration, respectively.  scan_class_member is also called by
+class_member_template_declaration.
+
 3/8/96    cv-qualifiers retained on class rvalues in C++
 
 In C++, unlike in C, class rvalues may have cv-qualified types.  These
