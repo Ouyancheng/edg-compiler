@@ -683,6 +683,15 @@ size and alignment.  Works for both structs and unions.
 }  /* finish_class_type */
 
 
+a_type_ptr void_star_type(void)
+/*
+Make and return a "void *" type.
+*/
+{
+  return make_pointer_type(void_type());
+}  /* void_star_type */
+
+
 /*
 Pointer to the generic function pointer type used in virtual function tables
 and pointers to member functions, once it is created.  NULL until created.
@@ -2715,7 +2724,7 @@ the file scope memory region.
 /*
 Pointer to routine entry for the runtime routine __pure_virtual_called,
 a pointer to which is placed in virtual function table slots for
-pure virtual functions.
+pure virtual functions.  NULL until allocated.
 */
 static a_routine_ptr
 		pure_virtual_called_routine;
@@ -3678,10 +3687,11 @@ Do IL lowering of the indicated list of types and everything under it.
 }  /* lower_type_list */
 
 
-static void make_typeinfo_var(a_type_ptr type)
+static a_variable_ptr make_typeinfo_var(a_type_ptr type)
 /*
-Make a typeinfo variable for the indicated type.  The variable points to
-runtime type information.
+Make a typeinfo variable for the indicated type (if it does not exist
+already) and return a pointer to it.  The variable points to runtime
+type information.
 */
 {
   a_variable_ptr  typeinfo_var;
@@ -3690,7 +3700,8 @@ runtime type information.
   a_storage_class storage_class;
 
   /* No need to create the variable if it exists already. */
-  if (type->typeinfo_var == NULL) {
+  typeinfo_var = type->typeinfo_var;
+  if (typeinfo_var == NULL) {
     /* Determine the length of the mangled name. */
     mangled_name_length = mangled_typeinfo_name(type, (char *)NULL);
     /* Allocate space for the mangled name, including the final null. */
@@ -3721,6 +3732,7 @@ runtime type information.
     /* Remember the variable in the type. */
     type->typeinfo_var = typeinfo_var;
   }  /* if */
+  return typeinfo_var;
 }  /* make_typeinfo_var */
 
 
@@ -3741,7 +3753,7 @@ information on it.
   /* We need a typeinfo variable for the underlying type.  Make it if it
      does not exist already. */
   if (type->typeinfo_var == NULL) {
-    make_typeinfo_var(type);
+    (void)make_typeinfo_var(type);
     /* If the type is a class, we also need typeinfo variables for its
        base classes. */
     if (is_immediate_class_type(type)) {
@@ -3749,7 +3761,7 @@ information on it.
       for (bcp = type->variant.class_struct_union.extra_info->base_classes;
            bcp != NULL;
            bcp = bcp->next) {
-        make_typeinfo_var(bcp->type);
+        (void)make_typeinfo_var(bcp->type);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5593,6 +5605,115 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
 
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 
+/*
+Pointers to routine entries for the runtime routines __throw_alloc,
+__throw, and __rethrow, used in throwing exceptions.  NULL until allocated.
+*/
+static a_routine_ptr
+		throw_alloc_routine,
+		throw_routine,
+		rethrow_routine;
+
+
+static void lower_throw(an_expr_node_ptr expr)
+/*
+Lower an enk_throw expression node.
+*/
+{
+  a_type_ptr         throw_type, ptr_throw_type, typeinfo_type;
+  a_variable_ptr     temp_var;
+  an_expr_node_ptr   call_node, typeinfo_node, size_node, flags_node;
+  an_expr_node_ptr   temp_node, assign_node;
+  a_dynamic_init_ptr dip;
+  long               flags_value;                
+  an_init_pos_descr  ipd;
+  an_insert_location insert_location;
+  a_boolean          keep_dynamic_init;
+
+  /* Check for a throw with no operand, i.e., a rethrow. */
+  if (expr->variant.throw_info == NULL) {
+    /* This is a rethrow.  Replace the enk_throw node with a call of
+       __rethrow. */
+    call_node = make_runtime_rout_call("__rethrow", &rethrow_routine,
+                                       void_type(), (an_expr_node_ptr)NULL);
+    overwrite_node(expr, call_node);
+  } else {
+    /* Throw of an object. */
+    throw_type = expr->variant.throw_info->type;
+    lower_os_type(throw_type);
+    throw_type = f_skip_typerefs(throw_type);  /* Probably unnecessary. */
+    dip = expr->variant.throw_info->dynamic_init;
+    /* Make the assignment
+         temp = __throw_alloc(&typeinfo, size, flags)
+       This allocates the space into which the thrown object is copied and
+       sets temp to point to that space.  typeinfo is the typeinfo variable
+       for the base type of the type thrown; size is the size in bytes of
+       the type thrown; and flags has the 0x01 bit set to indicate that a
+       pointer to the typeinfo type is being thrown. */
+    ptr_throw_type = make_pointer_type(throw_type);
+    temp_var = make_lowered_temporary(ptr_throw_type);
+    flags_value = 0;
+    typeinfo_type = throw_type;
+    if (is_pointer_type(throw_type)) {
+      /* If throwing a pointer to a class type, use the typeinfo for the
+         class. */
+      a_type_ptr base_type = type_pointed_to(throw_type);
+      if (is_class_struct_union_type(base_type)) {
+        typeinfo_type = f_skip_typerefs(base_type);
+        flags_value = 0x01;  /* Indicates "pointer to". */
+      }  /* if */
+    }  /* if */
+    /* Make the arguments for the __throw_alloc call. */
+    typeinfo_node = var_lvalue_expr(make_typeinfo_var(typeinfo_type));
+    size_node = node_for_integer_constant((long)throw_type->size,
+                                        (an_integer_kind)TARG_SIZE_T_INT_KIND);
+    typeinfo_node->next = size_node;
+    flags_node = node_for_integer_constant(flags_value,
+                                           (an_integer_kind)ik_int);
+    size_node->next = flags_node;
+    /* Make the __throw_alloc call. */
+    call_node = make_runtime_rout_call("__throw_alloc", &throw_alloc_routine,
+                                       void_star_type(), typeinfo_node);
+    /* Cast the pointer to the right type. */
+    call_node = add_cast_if_necessary(call_node, ptr_throw_type);
+    /* Make the node to assign the pointer to the temporary. */
+    temp_node = var_lvalue_expr(temp_var);
+    temp_node->next = call_node;
+    assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
+                                     ptr_throw_type, temp_node);
+    /* Make the call to the __throw routine, which actually does the
+       throw.  It has no arguments. */
+    call_node = make_runtime_rout_call("__throw", &throw_routine,
+                                       void_type(), (an_expr_node_ptr)NULL);
+    /* Overwrite the original node with a comma expression joining the
+       __throw_alloc and __throw expressions:
+         ((temp = __throw_alloc(...)), __throw())
+    */
+    assign_node->next = call_node;
+    set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
+    set_node_operator(expr, (an_expr_operator_kind)eok_comma,
+                      call_node->type, assign_node);
+    /* Now generate the initialization code for the dynamic initialization
+       and insert it preceding the call of __throw.  That gets it between
+       the allocation and the throw:
+         ((temp = __throw_alloc(...)), (initialization, __throw()))
+       The address to be initialized is pointed to by the temporary. */
+    set_var_indirect_init_pos_descr(temp_var, &ipd);
+    set_expr_insert_location(call_node, &insert_location);
+    /* Erase the destructor call if there is one.  The runtime takes care
+       of the destruction. */
+    dip->destructor = NULL;
+    lower_dynamic_init(dip, &ipd,
+                       /*first_time_test_var=*/(a_variable_ptr)NULL,
+                       /*is_expr_temporary=*/FALSE,
+                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                       (a_constructor_init_ptr)NULL,
+                       &insert_location, &keep_dynamic_init);
+    check_assertion(!keep_dynamic_init);
+  }  /* if */
+}  /* lower_throw */
+
+
 void lower_expr(an_expr_node_ptr expr,
                 a_boolean        is_lvalue)
 /*
@@ -5818,10 +5939,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       lower_new_delete(expr);
       break;
     case enk_throw:
-#if 0
-#else
-      overwrite_node(expr, expr->variant.throw_object);
-#endif
+      lower_throw(expr);
       break;
 #if CHECKING
     default:
@@ -7337,6 +7455,9 @@ of the front end.
   /* Static variables in lower_il.c: */
   avail_required_destructor_calls = NULL;
   pure_virtual_called_routine = NULL;
+  throw_alloc_routine = NULL;
+  throw_routine = NULL;
+  rethrow_routine = NULL;
   vptp_type = NULL;
   mptr_type = NULL;
   typeinfo_type = NULL;
