@@ -338,8 +338,8 @@ Return a pointer to the error text for the message identified by the given
 error code.
 */
 {
-  check_assertion_str2(error_code >= ec_no_error &&
-                       error_code < ec_last,
+  check_assertion_str2((int)error_code >= (int)ec_no_error &&
+                       (int)error_code < (int)ec_last,
                        "error_text: ", "invalid error code");
   return (message_text[(int)error_code]);
 }  /* error_text */
@@ -2996,7 +2996,7 @@ but diagnostics with a severity greater then es_discretionary_error
 may not have their severity altered.
 */
 {
-  if (*severity <= es_discretionary_error) {
+  if ((int)*severity <= (int)es_discretionary_error) {
     an_error_severity	new_severity;
     new_severity = severity_for_error_code[(int)error_code];
     if (new_severity != es_default) *severity = new_severity;
@@ -3354,7 +3354,7 @@ If the tag cannot be found return TRUE, otherwise return FALSE.
                             compare_tag_info);
   if (etep_found != NULL) {
     error_code = etep_found->code;
-    severity_for_error_code[error_code] = severity;
+    severity_for_error_code[(int)error_code] = severity;
   }  /* if */
   /* Return TRUE if the tag could not be found. */
   return etep_found == NULL;
@@ -3376,7 +3376,7 @@ return TRUE, otherwise return FALSE.
   error = (error_number <= (int)ec_no_error || error_number >= (int)ec_last);
   if (!error) {
     error_code = (an_error_code)error_number;
-    severity_for_error_code[error_code] = severity;
+    severity_for_error_code[(int)error_code] = severity;
   }  /* if */
   return error;
 }  /* set_severity_for_error_number */
