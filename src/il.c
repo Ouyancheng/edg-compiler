@@ -5191,9 +5191,13 @@ expression node.
   if (dip->lifetime != NULL) {
     /* This dynamic init is on a destruction list, so the copy must be
        put on a destruction list in the current context. */
+    an_object_lifetime_kind kind = dip->lifetime->kind;
+    a_boolean               static_lifetime =
+                        (kind == (an_object_lifetime_kind)olk_global_static ||
+                         kind == (an_object_lifetime_kind)olk_function_static);
     new_dip->lifetime = NULL;
     new_dip->next_in_destruction_list = NULL;
-    record_end_of_lifetime_destruction(new_dip, /*static_lifetime=*/FALSE);
+    record_end_of_lifetime_destruction(new_dip, static_lifetime);
   }  /* if */
   return new_dip;
 }  /* copy_dynamic_init */
