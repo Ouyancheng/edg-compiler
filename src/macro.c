@@ -1831,6 +1831,9 @@ escapes), return a pointer to it.  Otherwise, return NULL.
       if (text_loc[len] == LE_INERT_MACRO) {
         final_inert_escape = text_loc+len-1;
         break;
+      } else if (text_loc[len] == LE_END_OF_TOKEN) {
+        /* There's no inert-macro escape on the last token. */
+        break;
       }  /* if */
     }  /* if */
   }  /* for */
