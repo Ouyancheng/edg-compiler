@@ -1,5 +1,12 @@
 Version 3.4
 
+1/30/04  UPC mode: Predefined macros
+
+In UPC mode the macros __UPC__ and __UPC_VERSION__ are now predefined.
+In addition, either the macro __UPC_DYNAMIC_THREADS__ or the macro
+__UPC_STATIC_THREADS__ is defined, depending on whether the number of
+UPC threads is dynamic or not.
+
 1/30/04  GNU IA-64 ABI: Effect of #pragma pack on bit fields
 
 The effect of #pragma pack directives on bit fields changed substantially
