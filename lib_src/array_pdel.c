@@ -22,14 +22,12 @@ C++ operator delete[](size_t, void*);
 
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
 
-#if 0
 void operator delete[](void*, void*)
 /*
 Placement operator delete -- does nothing.
 */
 {
 }  /* operator delete[](void*, void*) */
-#endif
 
 #endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
 
