@@ -383,7 +383,7 @@ extern void set_operand_kind(an_operand      *operand,
 extern void error_in_operand(an_error_code error_code,
 		             an_operand    *operand);
 
-extern a_boolean check_lvalue_operand(an_operand *operand);
+extern a_boolean check_modifiable_lvalue_operand(an_operand *operand);
 
 extern a_boolean check_scalar_operand(an_operand *operand);
 
