@@ -545,6 +545,12 @@ Enable recognition of Microsoft attributes for internal versions.
 #define SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING 0
 #endif /* ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING */
 
+#ifndef LOWER_FIXED_POINT
+#if !defined(CP_GEN_BE_VERSION) && (EMBEDDED_C_ALLOWED || FIXED_POINT_ALLOWED)
+#define LOWER_FIXED_POINT 1
+#endif /* !defined(CP_GEN_BE_VERSION) && ... */
+#endif /* ifndef LOWER_FIXED_POINT */
+
 /*
 Set ABI-related switches.  This is done late so that individual configurations
 (above) can do something different from the EDG default by setting the
