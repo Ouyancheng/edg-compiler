@@ -635,7 +635,7 @@ typedef struct a_class_symbol_supplement {
 			   [class.copy]). */
   a_symbol_ptr	trivial_default_constructor;
 			/* When constructor is NULL and is_POD is FALSE,
-			   pointer to an sk_member_funcion symbol for the
+			   pointer to an sk_member_function symbol for the
 			   trivial default constructor; it is never actually
 			   called (that's why it's not in the constructor set
 			   for this class), and the associated routine entry
