@@ -2672,8 +2672,11 @@ as specified in the control block.
       break;
     case enk_throw:
       if (expr->variant.throw_info != NULL) {
-        traverse_dynamic_init(expr->variant.throw_info->dynamic_init, tblock);
-        if (tblock->terminate) goto end_of_routine;
+        if (expr->variant.throw_info->dynamic_init != NULL) {
+          traverse_dynamic_init(expr->variant.throw_info->dynamic_init,
+                                tblock);
+          if (tblock->terminate) goto end_of_routine;
+        }  /* if */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
         if (expr->variant.throw_info->expr != NULL) {
           traverse_expr(expr->variant.throw_info->expr, tblock);
