@@ -3046,8 +3046,9 @@ scan_paren:
               } else {
                 /* Using "()" with the mem-initializer means, perform default
                    initialization.  Note that the class and array-of-class
-                   cases has already been dealt with, so default initialization
-                   is tantamount to zero-initialization (8.5 [dcl.init]). */
+                   cases have already been dealt with, so default
+                   initialization is tantamount to zero-initialization
+                   (8.5 [dcl.init]). */
                 dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
               }  /* if */
               /* Bypass the right paren. */
