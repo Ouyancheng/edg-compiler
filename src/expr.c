@@ -6735,19 +6735,27 @@ be set to the source position of the type.
     /* This check catches incomplete enum types. */
     error(ec_incomplete_type_not_allowed);
     err = TRUE;
-  } else if (!C_mode() && is_class_struct_union_type(type_cast_to)) {
-    /* In C++, a cast to a class is allowed. */
-    /* But not in a constant expression. */
-    if (curr_expr_kind_is_const()) {
-      error(ec_expr_not_constant);
-      err = TRUE;
-    }  /* if */
-    /* But not a cast to an abstract class. */
-    if (skip_typerefs(type_cast_to)->variant.class_struct_union.abstract &&
-        /* Except in Microsoft mode. */
-        !microsoft_bugs) {
-      report_abstract_class_error(ec_cast_to_abstract_class, type_cast_to,
-                                  &error_position);
+  } else if (is_class_struct_union_type(type_cast_to)) {
+    /* Cast to a class type. */
+    if (!C_mode()) {
+      /* In C++, a cast to a class is allowed. */
+      /* But not in a constant expression. */
+      if (curr_expr_kind_is_const()) {
+        error(ec_expr_not_constant);
+        err = TRUE;
+      }  /* if */
+      /* But not a cast to an abstract class. */
+      if (skip_typerefs(type_cast_to)->variant.class_struct_union.abstract &&
+          /* Except in Microsoft mode. */
+          !microsoft_bugs) {
+        report_abstract_class_error(ec_cast_to_abstract_class, type_cast_to,
+                                    &error_position);
+        err = TRUE;
+      }  /* if */
+    } else {
+      /* In C, a cast to a class type is not allowed.  Note that compound
+         literal cases do not get here. */
+      type_error(ec_cast_to_bad_type, type_cast_to);
       err = TRUE;
     }  /* if */
   } else if (is_array_type(type_cast_to)) {

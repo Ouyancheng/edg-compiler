@@ -2411,8 +2411,12 @@ conversions.
         node->variant.operation.compiler_generated = FALSE;
       }  /* if */
     }  /* if */
-  } else if (m_is_error_type(new_type)) {
-    /* Casting to an error type changes the node to an error node. */
+  } else if (m_is_error_type(new_type) ||
+             (m_is_error_type(node->type) &&
+              is_class_struct_union_type(new_type))) {
+    /* Casting to an error type changes the node to an error node.
+       When casting from an error type, avoid creating a cast to a class
+       type. */
     *p_node = error_node();
   } else {
     /* Casting a node to a class type is not allowed. */
