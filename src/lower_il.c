@@ -4168,7 +4168,7 @@ index number of the first entry, or 0 if no entries were created.
 #endif /* !IA64_ABI */
             /* Add the base class subarray to the overall array being
                constructed for the class. */
-            sub_bcp->base_subarray_index_in_construction_vtbl_array =
+            eff_bcp->base_subarray_index_in_construction_vtbl_array =
                                 make_construction_vtbls(class_type,
                                                        eff_bcp,
                                                        construction_vtbls,
@@ -4176,7 +4176,7 @@ index number of the first entry, or 0 if no entries were created.
                                                        index);
             if (first_index == 0) {
               first_index =
-                      sub_bcp->base_subarray_index_in_construction_vtbl_array;
+                      eff_bcp->base_subarray_index_in_construction_vtbl_array;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -6341,13 +6341,15 @@ added_to_list:;
 static a_vcall_offset_entry_ptr* compute_vcall_offset_indices(
                                          a_type_ptr                class_type,
                                          a_base_class_ptr          bcp,
-                                         a_vcall_offset_entry_ptr* next_offset)
+                                         a_vcall_offset_entry_ptr* next_offset,
+                                         a_boolean                 is_primary)
 /* 
 Compute the vcall offset indices for routines in class_type, when class_type
 is used as a virtual base.  bcp is the subobject of class_type to process, or
 NULL if the complete object should be processed.  next_offset points to the
 location where the next offset should be added.  The value returned is
-the new location where the next offset should be added.
+the new location where the next offset should be added.  If is_primary is
+TRUE, bcp is a direct or indirect primary base of class_type.
 */
 {
   a_type_ptr                         base_type;
@@ -6362,7 +6364,7 @@ the new location where the next offset should be added.
   base_ctsp = base_type->variant.class_struct_union.extra_info;
   /* Add vcall offsets for the primary base. */
   b = base_ctsp->primary_base_class;
-  if (b != NULL) {
+  if (b != NULL && (!b->is_virtual || is_primary)) {
     /* Find the base (in the derived class) that corresponds to b. */
     if (bcp != NULL) {
       disambiguator = find_disambiguator(bcp, b);
@@ -6372,7 +6374,8 @@ the new location where the next offset should be added.
       b_in_derived = b;
     }  /* if */
     next_offset = compute_vcall_offset_indices(class_type, b_in_derived, 
-                                               next_offset);
+                                               next_offset, 
+                                               is_primary);
   }  /* if */
   /* Go through all of the routines in this type, adding vcall offsets.
      Sometimes, when processing a compiler-generated class, there is no
@@ -6424,7 +6427,8 @@ the new location where the next offset should be added.
         b_in_derived = b;
       }  /* if */
       next_offset = compute_vcall_offset_indices(class_type, b_in_derived, 
-                                                 next_offset);
+                                                 next_offset, 
+                                                 /*is_primary=*/FALSE);
     }  /* if */
   }  /* for */
   return next_offset;
@@ -6484,7 +6488,8 @@ come from bcp.
   if (bcp == NULL || bcp->is_virtual) {
     a_vcall_offset_entry_ptr* next_offset = &ctsp->vcall_offsets;
     while (*next_offset != NULL) next_offset = &(*next_offset)->next;
-    (void)compute_vcall_offset_indices(class_type, bcp, next_offset);
+    (void)compute_vcall_offset_indices(class_type, bcp, next_offset,
+                                       /*is_primary=*/TRUE);
   }  /* if */
 }  /* compute_vbase_and_vcall_offset_indices */
 
