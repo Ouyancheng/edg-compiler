@@ -4325,9 +4325,9 @@ implement <stdarg.h>, a standard feature.
   a_boolean           is_parenthesized = FALSE, is_type = FALSE;
   a_type_ptr          alignof_type;
   an_expr_stack_entry expr_stack_entry;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_targ_alignment    alignment = 0;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_alignof_operator");
 

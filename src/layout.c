@@ -4210,9 +4210,9 @@ for handling virtual bases and functions.
 */
 {
   a_layout_block              lob;
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_targ_alignment            alignment;
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if TARG_REUSE_TAIL_PADDING
   a_boolean                   is_POD;
 #endif /* TARG_REUSE_TAIL_PADDING */
