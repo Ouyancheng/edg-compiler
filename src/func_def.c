@@ -1134,9 +1134,12 @@ member declaration (allowed in Microsoft mode only).
                    &locator->source_position, sym);
     }  /* if */
     sym = NULL;
-  } else if (!namespace_is_enclosed_by_scope(sym, ssep)) {
+  } else if (!namespace_is_enclosed_by_scope(sym, ssep) &&
+             !microsoft_out_of_class_redecl) {
     /* This member function is being defined in a scope that does not
-       enclose the scope in which the parent class was defined. */
+       enclose the scope in which the parent class was defined.  (Except
+       Microsoft mode out-of-class member function redeclarations, which
+       can appear in function scope.) */
     sym_error(ec_bad_scope_for_definition, sym);
     sym = NULL;
   } else {
@@ -1344,12 +1347,12 @@ member declaration (allowed in Microsoft mode only).
       record_symbol_declaration(SRK_DECLARATION, sym,
                                 &locator->source_position,
                                 func_info->declarator_ssep);
-      if (func_info->declarator_ssep == NULL) {
-        check_assertion(source_sequence_entries_disallowed);
-      } else {
+      if (!source_sequence_entries_disallowed) {
+        a_source_sequence_entry_ptr  ssep = NULL;
         a_src_seq_secondary_decl_ptr  sssdp;
-        sssdp = (a_src_seq_secondary_decl_ptr)
-                                       func_info->declarator_ssep->entity.ptr;
+        ssep = last_matching_source_sequence_entry((char *)rp);
+        check_assertion(ssep != NULL);
+        sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
         sssdp->declared_type = func_info->declared_type;
       }  /* if */
     }  /* if */

@@ -1,5 +1,17 @@
 Version 2.45
 
+8/14/00  Microsoft compatibility: block-scope class member redeclaration
+
+In Microsoft mode, the front end now accepts a redeclaration of a class
+member in block scope.
+
+  struct S { void f(); };
+  void g() {
+    void S::f();  // Accepted in Microsoft mode only
+  }
+
+See also Changes entry of 7/3/00.
+
 8/10/00  EXTRA_SOURCE_POSITIONS_IN_IL, parentheses in expressions
 
 The source positions recorded in expressions when EXTRA_SOURCE_POSITIONS_IN_IL

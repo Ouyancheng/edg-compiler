@@ -9377,7 +9377,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    is_linkage_spec_decl = FALSE;
   a_boolean                    restore_name_linkage = FALSE;
   a_decl_pos_block             decl_pos_block;
-
+  a_boolean                    microsoft_out_of_class_redecl = FALSE;
   db_enter(3, "declaration");
 
   set_err_pos_to_curr_token();
@@ -9647,7 +9647,9 @@ continue_with_declaration:
       di_flags |= DI_PARENTHESIZED_INITIALIZER_ALLOWED;
       di_flags |= DI_OPERATOR_NAME_ALLOWED;
       if (declared_storage_class != (a_storage_class)sc_typedef &&
-          decl_scope_level == depth_innermost_namespace_scope) {
+          (decl_scope_level == depth_innermost_namespace_scope ||
+           (microsoft_mode &&
+            depth_innermost_namespace_scope != NO_SCOPE_DEPTH))) {
         di_flags |= DI_QUALIFIED_NAME_ALLOWED;
       }  /* if */
     }  /* if */
@@ -9951,11 +9953,17 @@ continue_with_declaration:
       /* Indicate whether the function type is based on a typedef. */
       func_info.function_type_from_typedef = !top_declarator_type_is_function;
       /* If the thing declared is a function, and if the token following looks
-         like it could be part of a function-definition, go scan that. */
-      if (function_definition_allowed && is_function) {
+         like it could be part of a function-definition, go scan that.
+         A very special case are Microsoft out-of-class member redeclarations
+         (that are not definitions); they are handled by the code for out-of-
+         class definitions. */
+      microsoft_out_of_class_redecl = microsoft_mode &&
+                                                  locator.is_class_member &&
+                                                  curr_token == tok_semicolon;
+      if ((function_definition_allowed || microsoft_out_of_class_redecl) &&
+          is_function) {
         if (local_storage_class != (a_storage_class)sc_typedef &&
-            (curr_token != tok_semicolon ||
-             (microsoft_mode && locator.is_class_member)) &&
+            (curr_token != tok_semicolon || microsoft_out_of_class_redecl) &&
             curr_token != tok_comma &&
             curr_token != tok_assign &&
             curr_token != tok_end_of_source) {
@@ -10005,13 +10013,11 @@ continue_with_declaration:
           }  /* if */
           check_assertion(curr_token == tok_rbrace ||
                           curr_token == tok_end_of_source ||
-                          (microsoft_mode && locator.is_class_member &&
-                           curr_token == tok_semicolon) ||
+                          microsoft_out_of_class_redecl ||
                           total_errors != 0);
           /* Right brace is expected, except for the Microsoft extension that
              allows a nondefining out-of-class member declaration. */
-          final_token = (microsoft_mode && locator.is_class_member &&
-                         curr_token == tok_semicolon) ? tok_semicolon :
+          final_token = microsoft_out_of_class_redecl ? tok_semicolon :
                                                         tok_rbrace;
           goto advance_past_final_token;
 #if ASM_FUNCTION_ALLOWED
