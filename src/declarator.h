@@ -189,7 +189,6 @@ extern
 a_type_ptr pointer_declarator(
                       a_type_ptr            specifiers_type,
                       a_boolean   	    reference_allowed,
-		      a_boolean		    call_conv_allowed,
                       a_call_conv_descr_ptr p_calling_convention,
                       a_call_conv_descr_ptr p_unbound_calling_convention,
                       a_type_qualifier_set  *unbound_qualifiers);

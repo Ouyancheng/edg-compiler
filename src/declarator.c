@@ -1854,7 +1854,6 @@ Clear the pointer stored in "var" if it is used.
 a_type_ptr pointer_declarator(
                       a_type_ptr            specifiers_type,
                       a_boolean   	    reference_allowed,
-		      a_boolean		    call_conv_allowed,
                       a_call_conv_descr_ptr p_calling_convention,
                       a_call_conv_descr_ptr p_unbound_calling_convention,
                       a_type_qualifier_set  *unbound_qualifiers)
@@ -1875,6 +1874,11 @@ is not allowed in a new-declarator (ARM 5.3.3), so the reference_allowed
 parameter controls the restrictions imposed by the context.
 
 Note that this routine actually scans a sequence of pointer declarators.
+The pointer type modifiers are placed on top of the type passed in as
+specifiers_type, and a pointer to the complete type is returned.
+specifiers_type is NULL for a nested declarator (one enclosed in
+parentheses); in that case the pointer type modifiers are built up
+but nothing is attached to the bottom-most modifier.
 
 In Microsoft mode, the Microsoft __cdecl, __stdcall, and __fastcall are
 recognized as calling conventions.  The handling of calling conventions
@@ -1883,12 +1887,6 @@ Calling conventions are allowed on function types and pointer to
 function types.  They are permitted on object declarations, but have
 no meaning.  They are not allowed on pointers to objects or on
 references.
-
-call_conv_allowed is TRUE if a calling convention specifier
-is legal in the current context.  The calling_convention syntax
-is recognized when microsoft_mode is TRUE.  An error is issued
-if a calling convention is supplied when call_conv_allowed
-is FALSE.
 
 p_calling_convention and p_unbound_calling_convention are pointers
 to calling conventions.  The values of these calling conventions
@@ -1902,6 +1900,8 @@ last one (not followed by a pointer operator) is returned in
 *p_unbound_calling_convention.  When specifiers_type is not NULL, only
 an unbound calling convention is returned.  The initial calling convention
 is immediately applied to the specifiers type.
+If p_unbound_calling_convention is NULL, an unbound calling convention
+is not allowed (an error is issued).
 
 When pointer_declarator is called from elsewhere in the compiler
 (e.g., new_type_name), p_calling_convention and p_unbound_calling_convention
@@ -2064,12 +2064,7 @@ thrown away.
       is_call_conv = TRUE;
       ccd.position = pos_curr_token;
       ccd.call_conv = scan_microsoft_qualifiers();
-      /* Check for an calling convention used where none is allowed. */
-      if (!call_conv_allowed) {
-        pos_diagnostic(es_discretionary_error,
-                       ec_calling_convention_not_allowed,
-                       &ccd.position);
-      } else if (curr_token_is_ptr_operator()) {
+      if (curr_token_is_ptr_operator()) {
         /* Another pointer operator is next so we know that
            this is not an unbound calling convention. */
         if (initial_call_conv_or_nonstd_qualifier_allowed) {
@@ -2092,7 +2087,15 @@ thrown away.
       } else {
         /* The next token is not a pointer operator.  This is an unbound
            calling convention. */
-        unbound_call_conv = ccd;
+        if (p_unbound_calling_convention == NULL) {
+          /* The caller indicates that we should not accept an unbound
+             calling convention. */
+          pos_diagnostic(es_discretionary_error,
+                         ec_calling_convention_not_allowed,
+                         &ccd.position);
+        } else {
+          unbound_call_conv = ccd;
+        }  /* if */
       }  /* if */
       /* Suppress the get_token() that is normally done before scanning
          the qualifiers below, as this will have been done when scanning
@@ -2667,7 +2670,6 @@ The syntax is:
   complete_type = pointer_declarator(specifiers_type,
                                      /*reference_allowed=*/
                                        C_dialect == C_dialect_cplusplus,
-                                     /*call_conv_allowed=*/TRUE,
                                      &call_conv,
                                      &unbound_call_conv,
                                      unbound_qualifiers);

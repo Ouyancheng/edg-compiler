@@ -5030,7 +5030,6 @@ within this routine if is_parenthesized comes in FALSE.
     /* Scan pointer declarators. */
     complete_type = pointer_declarator(*type_ptr,
                                        /*reference_allowed=*/FALSE,
-                                       /*call_conv_allowed=*/FALSE,
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL);
@@ -5150,7 +5149,6 @@ is no parent.
     }  /* if */
     complete_type = pointer_declarator(specifiers_type,
                                        /*reference_allowed=*/TRUE,
-                                       /*call_conv_allowed=*/FALSE,
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL);
