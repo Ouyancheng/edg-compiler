@@ -8105,9 +8105,9 @@ its parents and return the first entry that has a kind of olk_local.
 */
 {
   while (olp->kind != (an_object_lifetime_kind)olk_local) {
+    olp = olp->parent_lifetime;
     check_assertion_str(olp != NULL,
                         "innermost_local_object_lifetime: not found");
-    olp = olp->parent_lifetime;
   }  /* while */
   return olp;
 }  /* innermost_local_object_lifetime */
