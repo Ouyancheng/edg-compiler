@@ -2825,6 +2825,10 @@ for exact pointer equality.
           }  /* if */
           break;
         case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case tk_complex:
+        case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           compat = (type_1->variant.float_kind == type_2->variant.float_kind);
           break;
         case tk_pointer:
@@ -5403,6 +5407,10 @@ is allocated, it is allocated in the file scope.
         case tk_unknown:
         case tk_void:
         case tk_integer:
+#if C99_IL_EXTENSIONS_SUPPORTED
+        case tk_complex:
+        case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case tk_float:
         case tk_class:
         case tk_struct:
