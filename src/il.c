@@ -6898,29 +6898,49 @@ Make or find a type entry for a bool type and return a pointer to it.
 
 #if FIXED_POINT_ALLOWED
 
-a_type_ptr fixed_point_type(a_fixed_point_precision  precision,
-                            a_boolean                is_unsigned,
-                            a_boolean                is_fract,
-                            a_boolean                saturating)
+a_boolean fixed_point_type_used_in_primary_IL(a_fixed_point_type_descr descr)
 /*
-Make or find a fixed-point type entry with the given precision (short,
-default, or long), signedness (indicated by is_unsigned), and overflow
-behavior (indicated by saturating).  If is_fract is TRUE, return the
-_Fract fixed-point type variant; otherwise, return an _Accum type.
+Return TRUE if the fixed-point type with the indicated description was used
+in the primary IL so far.  If the fixed-point type was used in a secondary
+translation unit it will probably have been copied to the primary IL, but
+the trans_copy process does not update the fixed_point_types array.
+Therefore, this routine should be called to determine if a fixed_point
+type should be lowered: it will perform the update if needed.
 */
 {
-  a_type_ptr  *p_result = &fixed_point_types[precision]
-                                            [is_unsigned]
-                                            [is_fract]
-                                            [saturating];
+  a_type_ptr *array_entry = &fixed_point_types[descr.precision]
+                                              [(int)descr.is_unsigned]
+                                              [(int)descr.is_fract_type]
+                                              [(int)descr.saturating];
+  check_assertion(is_primary_translation_unit);
+  if (*array_entry == NULL && secondary_translation_unit_seen()) {
+    /* We haven't seen a fixed-point type in the primary translation unit, but
+       it might have been copied into the primary IL from a secondary
+       translation unit. */
+    a_type_ptr  canonical_type = canonical_fixed_point_type(descr);
+    if (canonical_type != NULL && !in_secondary_trans_unit(canonical_type)) {
+      *array_entry = canonical_type;
+    }  /* if */
+  }  /* if */
+  return *array_entry != NULL;
+}  /* fixed_point_type_used_in_primary_IL */
 
-  if (*p_result == NULL) {
+
+a_type_ptr fixed_point_type(a_fixed_point_type_descr descr)
+/*
+Make or find a fixed-point type entry with the given attributes and
+return a pointer to it.
+*/
+{
+  a_type_ptr  *p_result = &fixed_point_types[descr.precision]
+                                            [(int)descr.is_unsigned]
+                                            [(int)descr.is_fract_type]
+                                            [(int)descr.saturating];
+
+  if (*p_result == NULL && !fixed_point_type_used_in_primary_IL(descr)) {
     /* The type hasn't been created yet: Do so now. */
     *p_result = alloc_type((a_type_kind)tk_fixed_point);
-    (*p_result)->variant.fixed_point.precision = precision;
-    (*p_result)->variant.fixed_point.is_unsigned = is_unsigned;
-    (*p_result)->variant.fixed_point.is_fract_type = is_fract;
-    (*p_result)->variant.fixed_point.saturating = saturating;
+    (*p_result)->variant.fixed_point = descr;
     set_type_size(*p_result);
 #if ORPHAN_PROCESSING_NEEDED
     /* Record the type entry as an orphan in case it is discarded now
@@ -6932,6 +6952,25 @@ _Fract fixed-point type variant; otherwise, return an _Accum type.
   }  /* if */
   return *p_result;
 }  /* fixed_point_type */
+
+
+a_fixed_point_type_descr make_fixed_point_type_descr(
+                                 a_fixed_point_precision  precision,
+                                 a_boolean                is_unsigned,
+                                 a_boolean                is_fract,
+                                 a_boolean                saturating)
+/*
+Construct and return a fixed-point-type-descr with the given attributes.
+*/
+{
+  a_fixed_point_type_descr descr;
+
+  descr.precision = precision;
+  descr.is_unsigned = is_unsigned;
+  descr.is_fract_type = is_fract;
+  descr.saturating = saturating;
+  return descr;
+}  /* make_fixed_point_type_descr */
 
 #endif /* FIXED_POINT_ALLOWED */
 

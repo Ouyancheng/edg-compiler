@@ -3392,11 +3392,13 @@ type (i.e., a non-floating-point arithmetic type).
     }  /* if */
     if (result->variant.fixed_point.saturating != saturating ||
         (result->variant.fixed_point.is_unsigned && !is_unsigned)) {
-      result = fixed_point_type(result->variant.fixed_point.precision,
+      result = fixed_point_type(
+                     make_fixed_point_type_descr(
+                                result->variant.fixed_point.precision,
                                 is_unsigned,
                                 (a_boolean)result->variant.
                                                 fixed_point.is_fract_type,
-                                saturating);
+                                saturating));
     }  /* if */
   }  /* if */
   return result;
@@ -4434,12 +4436,14 @@ adding an integer to fixed-point type.)
         type = tp2;
       }  /* if */
       if (operand_to_adjust != NULL) {
-        type = fixed_point_type(type->variant.fixed_point.precision,
+        type = fixed_point_type(
+                     make_fixed_point_type_descr(
+                                type->variant.fixed_point.precision,
                                 /*is_unsigned=*/FALSE,
                                 (a_boolean)type
                                           ->variant.fixed_point.is_fract_type,
                                 (a_boolean)type
-                                          ->variant.fixed_point.saturating);
+                                          ->variant.fixed_point.saturating));
         cast_operand(type, operand_to_adjust, /*check_cast_access=*/FALSE,
                      /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
                      /*reinterpret_semantics=*/FALSE);

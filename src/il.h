@@ -555,10 +555,14 @@ extern a_boolean bool_type_used_in_primary_IL(void);
 extern a_type_ptr bool_type(void);
 
 #if FIXED_POINT_ALLOWED
-extern a_type_ptr fixed_point_type(a_fixed_point_precision  precision,
-                                   a_boolean                is_unsigned,
-                                   a_boolean                is_fract,
-                                   a_boolean                saturating);
+extern a_boolean fixed_point_type_used_in_primary_IL(
+                                 a_fixed_point_type_descr descr);
+extern a_type_ptr fixed_point_type(a_fixed_point_type_descr descr);
+extern a_fixed_point_type_descr make_fixed_point_type_descr(
+                                 a_fixed_point_precision  precision,
+                                 a_boolean                is_unsigned,
+                                 a_boolean                is_fract,
+                                 a_boolean                saturating);
 #endif /* FIXED_POINT_ALLOWED */
 
 extern a_type_ptr float_type(a_float_kind kind);

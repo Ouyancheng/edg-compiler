@@ -6303,10 +6303,14 @@ after_precision:;
                                  h_size ? (a_fixed_point_precision)fpp_short :
                                           (a_fixed_point_precision)fpp_default;
           a_boolean  is_unsigned = (type_char == 'R' || type_char == 'K');
-          required_type = fixed_point_type(precision, is_unsigned,
-                                           is_fract_type, /*saturating=*/TRUE);
-          *alt_type = fixed_point_type(precision, is_unsigned, is_fract_type,
-                                       /*saturating=*/FALSE);
+          required_type = fixed_point_type(
+                                make_fixed_point_type_descr(
+                                          precision, is_unsigned,
+                                          is_fract_type, /*saturating=*/TRUE));
+          *alt_type = fixed_point_type(
+                                make_fixed_point_type_descr(
+                                       precision, is_unsigned, is_fract_type,
+                                       /*saturating=*/FALSE));
         }
         break;
 #endif /* FIXED_POINT_ALLOWED */

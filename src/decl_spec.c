@@ -4718,9 +4718,11 @@ modifier _Sat was specified.
             bad_combination = TRUE;
         }  /* switch */
         if (!bad_combination) {
-          *type_ptr = fixed_point_type(precision, (sign == sign_unsigned),
+          *type_ptr = fixed_point_type(
+                           make_fixed_point_type_descr(
+                                       precision, (sign == sign_unsigned),
                                        (basic_type == bt_fract),
-                                       saturating_fp);
+                                       saturating_fp));
         }  /* if */
       }  /* if */
       break;

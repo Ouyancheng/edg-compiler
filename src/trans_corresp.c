@@ -1317,7 +1317,26 @@ canonical entry in the primary IL.
 }  /* canonical_imaginary_type */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if FIXED_POINT_ALLOWED
 
+a_type_ptr canonical_fixed_point_type(a_fixed_point_type_descr descr)
+/*
+Return the canonical fixed-point type entry for the type described by
+descr.  This routine takes into account the possibility that the trans_copy
+process created a new canonical entry in the primary IL.
+*/
+{
+  a_type_ptr  result = canonical_fixed_point_types[descr.precision]
+                                                  [(int)descr.is_unsigned]
+                                                  [(int)descr.is_fract_type]
+                                                  [(int)descr.saturating];
+  if (result != NULL) {
+    result = (a_type_ptr)canonical_il_entry_of(result);
+  }  /* if */
+  return result;
+}  /* canonical_fixed_point_type */
+
+#endif /* FIXED_POINT_ALLOWED */
 
 static a_field_ptr skip_generated_field(a_field_ptr  field)
 /*

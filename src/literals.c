@@ -520,11 +520,7 @@ This function is modeled after conv_float_literal (see below).
     /* Build a constant with the right type and value. */
     clear_constant(&const_for_curr_token,
                    (a_constant_repr_kind)ck_fixed_point);
-    const_for_curr_token.type = fixed_point_type(
-                                            fxp_descr.precision,
-                                            (a_boolean)fxp_descr.is_unsigned,
-                                            (a_boolean)fxp_descr.is_fract_type,
-                                            (a_boolean)fxp_descr.saturating);
+    const_for_curr_token.type = fixed_point_type(fxp_descr);
     const_for_curr_token.variant.fixed_point_value = value;
     if (inexact) {
       /* The hex value could not be exactly represented in the specified

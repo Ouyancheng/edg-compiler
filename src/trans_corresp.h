@@ -43,10 +43,10 @@ Routine to record builtin type correspondences.
 */
 extern void record_builtin_type(a_type_ptr  type);
 
-#if C99_IL_EXTENSIONS_SUPPORTED
 /*
 Routines to retrieve certain canonical builtin types.
 */
+#if C99_IL_EXTENSIONS_SUPPORTED
 extern a_type_ptr canonical_bool_type(void);
 
 extern a_type_ptr canonical_complex_type(a_float_kind  kind);
@@ -54,6 +54,9 @@ extern a_type_ptr canonical_complex_type(a_float_kind  kind);
 extern a_type_ptr canonical_imaginary_type(a_float_kind  kind);
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if FIXED_POINT_ALLOWED
+extern a_type_ptr canonical_fixed_point_type(a_fixed_point_type_descr descr);
+#endif /* FIXED_POINT_ALLOWED */
 
 /*
 Return TRUE if we need to compare the canonical entries in order to determine
