@@ -93,7 +93,7 @@ Flags to be set when using the KAI inliner.
 #else
 #define USE_MMAP_FOR_MEMORY_REGIONS 0
 #endif
-#define DEFAULT_SVR4_C_MODE 1
+#define DEFAULT_SVR4_C_MODE 0
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 
