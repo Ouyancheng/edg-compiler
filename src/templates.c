@@ -7149,6 +7149,9 @@ to represent the template parameters.
     a_type_ptr	   default_arg_type;
     a_token_kind   next_tok;
     a_token_kind   second_token;
+    a_boolean	   is_type_param = FALSE;
+    a_boolean	   is_end_of_param;
+    a_token_kind   token_after_id;
 
     /* If we've unexpectedly reached the end of the template parameter list,
        issue an error. */
@@ -7163,24 +7166,22 @@ to represent the template parameters.
     prescan_template_param_decl(&param_cache, decl_state);
     add_stop_token(tok_comma);
     /* Determine whether this is a "type-argument" (a parameter that
-       represents a type) or a "arg-declaration" (a parameter that represents
-       a constant). */
+       represents a type) or a "parameter-declaration" (a parameter that
+       represents a constant).  A type argument may be specified as "class T"
+       or "typename T", or if the parameter is unnamed, simply "class" or
+       "typename".  "class" and "typename" may also be used at the beginning
+       of the declaration of a nontype parameter.  The parameter is considered
+       to be a type parameter if it is "class" or "typename" followed by an
+       optional simple (i.e., nonqualified) identifier.  All other cases are
+       considered to be nontype parameters. */
     next_tok = next_two_tokens(tok_identifier, &second_token);
-    if ((curr_token == tok_class || curr_token == tok_typename) &&
-        ((next_tok == tok_comma ||
-          next_tok == tok_gt || next_tok == tok_assign) ||
-        (next_tok == tok_identifier && second_token != tok_colon_colon))) {
-      /* A type-argument. Note that there is a possible ambiguity here:
-         template <class T> vs. template <class T X>, where in the second
-         case T is already declared.  One could argue that the second is an
-         "arg-declaration" rather than a "type-argument", but the working
-         paper (14.1 para 2) appears to resolve the ambiguity in favor of
-         always interpreting <class T ... as a type-argument.  Although
-         the WP is not clear about the extent to which the tokens that follow
-         "class T" are involved in the disambiguation.  A similar ambiguity
-         exists when "typename" is used.  If the name that follows "class"
-         or "typename" is a simple identifier (i.e., not a qualified name)
-         we assume it to be a type parameter. */
+    token_after_id = next_tok == tok_identifier ? second_token : next_tok;
+    is_end_of_param = token_after_id == tok_comma ||
+                      token_after_id == tok_gt ||
+                      token_after_id == tok_assign;
+    is_type_param =  (curr_token == tok_class || curr_token == tok_typename) &&
+                     is_end_of_param;
+    if (is_type_param) {
       a_boolean	is_unnamed = FALSE;
       /* Bypass "class" or "typename". */
       (void)get_token();
