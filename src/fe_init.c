@@ -854,8 +854,8 @@ source file's compilation.
       make_global_operator_new_or_delete_symbol(
                                              (an_opname_kind)onk_array_delete);
     }  /* if */
-    /* Enter other predeclared symbols, as required by the implementation. */
   }  /* if */
+  /* Enter other predeclared symbols, as required by the implementation. */
   enter_system_specific_predeclared_symbols();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
