@@ -10242,7 +10242,7 @@ continue_with_declaration:
         mark_variable_value_set(symbol_ptr);
       }  /* if */
       copy_source_position(locator.source_position, error_position);
-      if (is_incomplete_type(local_type_ptr)) {
+      if (var_ptr != NULL && is_incomplete_type(local_type_ptr)) {
         /* Issue an error on a variable for which this is the defining
            declaration but whose type is incomplete.  Also, in C mode, issue
            an error on a static variable with incomplete type (6.7.2 para 3)
