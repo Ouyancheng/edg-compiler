@@ -28,7 +28,7 @@ applies.
 typedef enum /* an_ms_attribute_target */ {
   msat_none,
   msat_standalone,
-  msat_class,
+  msat_class
 } an_ms_attribute_target;
 
 /*
