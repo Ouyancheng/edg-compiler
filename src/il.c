@@ -849,6 +849,10 @@ class_struct_union:
       fputs(" of type ", f_debug);
       db_abbreviated_type(tp->variant.ptr_to_member.type);
       break;
+    case tk_template_param:
+      fputs("template-param ", f_debug);
+      db_name(&tp->source_corresp);
+      break;
     default:
       fputs("<bad type>", f_debug);
   }  /* switch */
@@ -2887,6 +2891,7 @@ to default values.
     case tk_error:
     case tk_unknown:
     case tk_void:
+    case tk_template_param:
       /* No variant fields to set. */
       break;
     case tk_integer:

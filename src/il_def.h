@@ -618,6 +618,8 @@ enum a_type_kind_tag {
                            another type; also used to add type qualifiers
                            (const or volatile) to a type. */
   tk_ptr_to_member,     /* Pointer-to-member (C++ only). */
+  tk_template_param,	/* Type parameter in a (class or function) template
+			   declaration (C++ only). */
 #endif /* ifdef CIL */
 #ifdef FIL
   tk_fcharacter,        /* Fortran character. */
@@ -1317,7 +1319,8 @@ typedef struct a_type {
   a_type_kind   kind;
                         /* The kind of type. */
   union {
-    /* When kind == tk_error, tk_unknown, or tk_void, no variant fields. */
+    /* When kind == tk_error, tk_unknown, tk_void, or tk_template_param,
+       no variant fields. */
 #ifdef FIL
     /* Likewise, when kind == tk_stmt_label, tk_format, tk_association,
        tk_unspec_routine, or tk_blockdata. */
