@@ -5402,7 +5402,7 @@ If var_scope is NULL, use the current scope in the scope stack.
   return lsvip;
 }  /* alloc_local_static_variable_init */
 
-#endif !STANDALONE_UTILITY_PROGRAM
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_local_static_variable_init_ptr find_local_static_variable_init(
                                                       a_variable_ptr  var,
