@@ -7479,7 +7479,8 @@ created if a projected symbol cannot be found in any of the real bases.
   if (debug_level >= 4) {
     fprintf(f_debug, "looking for projection of \"%s\" into class \"%s\"\n",
                      locator->symbol_header->identifier,
-                     class_ptr->source_corresp.name);
+                     class_ptr->source_corresp.name != NULL ?
+                         class_ptr->source_corresp.name : "<unnamed>");
   }  /* if */
 #endif /* DEBUG */
   class_sym = (a_symbol_ptr)class_ptr->source_corresp.assoc_info;
