@@ -482,6 +482,13 @@ extern void break_source_corresp(a_source_correspondence *sc);
 extern a_source_correspondence *source_corresp_for_il_entry(
                                                  char              *entity_ptr,
                                                  an_il_entry_kind  kind);
+
+/*
+Macro that returns TRUE if an IL entry has a name.  (Applies only to
+those containing source correspondence information.)
+*/
+#define has_name(entry) ((entry)->source_corresp.name != NULL)
+
 /*
 Return TRUE if a constant is an error constant.
 */

@@ -221,12 +221,6 @@ Return TRUE if the current name context is the indicated class.
    curr_name_context_class() == (class_type))
 
 
-/*
-Macro that returns TRUE if an IL entry has a name.  (Applies only to
-those containing source correspondence information.)
-*/
-#define has_name(entry) ((entry)->source_corresp.name != NULL)
-
 /* Value to use to specify that no name is provided. */
 #define NO_NAME ((a_source_correspondence *)NULL)
 
