@@ -8686,10 +8686,12 @@ continue_with_declaration:
            is supposed to be used only for pointer-to-member declarations
            (and only in cfront compatibility mode). */
         if (rtsp->implicit_this_param_type != NULL) {
+          /* It must be one of these special member function typedefs.  Issue
+             an error, since this appears to be a function declaration,
+             not a pointer to member declaration. */
           pos_sy_error(ec_bad_use_of_ptr_to_member_typedef, &decl_start_pos,
-                       (a_symbol_ptr)local_type_ptr->
-                                        source_corresp.assoc_info);
-                       
+                       (a_symbol_ptr)(make_unqualified_type(local_type_ptr)->
+                                                   source_corresp.assoc_info));
           /* Replace the type with one that does not have an implicit
              this param. */
           local_type_ptr = alloc_type((a_type_kind)tk_routine);
