@@ -2206,12 +2206,13 @@ enum a_pragma_kind_tag {
 			   by the C or C++ generating back end. */
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
 
-  /* The preceding pragma kinds are required for the default implementation
-     of the EDG front end.  If additional pragma kinds are supplied for a
-     given implementation, be sure to update pragma_ids, a_pragma (if
-     variant fields are required), and alloc_pragma (which initializes the
-     variant part of a_pragma), and add an entry to the pragma_descriptions
-     array. */
+  /* The preceding pragma kinds are required for the default
+     implementation of the EDG front end.  If additional pragma kinds
+     are supplied for a given implementation, be sure to update
+     pragma_ids, a_pragma (if variant fields are required), and
+     alloc_pragma (which initializes the variant part of a_pragma),
+     and add an entry to the pragma_kind_descriptions list using one
+     of the add_..._pragma_kind_description routines. */
 
   pk_last		/* Must be last. */
 };
