@@ -3850,7 +3850,7 @@ to scan_integer_expression with slightly different checks.
                                                  BTK_BOOL,
                                                  &processed);
   }  /* if */
-  if (!processed) {
+  if (!processed && !is_class_struct_union_type(result.type)) {
     /* Non-class (i.e., normal) case. */
     do_operand_transformations(&result,
                                output ?
