@@ -25,10 +25,10 @@ the compiler is invoked.
 
 #ifndef HOST_ENVIR_H
 #include "host_envir.h"
-#endif /* ifndef HOST_ENVIR_H */
+#endif /* !defined(HOST_ENVIR_H) */
 #ifndef LANG_FEAT_H
 #include "lang_feat.h"
-#endif /* ifndef LANG_FEAT_H */
+#endif /* !defined(LANG_FEAT_H) */
 
 /*
 Flag that is TRUE if object code compatibility with USL's cfront is
@@ -46,10 +46,10 @@ be used.
 */
 #ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
 #define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY TRUE
-#endif /* ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#endif /* !defined(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY) */
 #ifndef CFRONT_3_0_OBJECT_CODE_COMPATIBILITY
 #define CFRONT_3_0_OBJECT_CODE_COMPATIBILITY FALSE
-#endif /* ifndef CFRONT_3_0_OBJECT_CODE_COMPATIBILITY */
+#endif /* !defined(CFRONT_3_0_OBJECT_CODE_COMPATIBILITY) */
 #define CFRONT_OBJECT_CODE_COMPATIBILITY \
                            (CFRONT_2_1_OBJECT_CODE_COMPATIBILITY ||   \
                             CFRONT_3_0_OBJECT_CODE_COMPATIBILITY)
@@ -80,9 +80,11 @@ multi-byte integer is at the lowest memory address.
 /*
 Char types:
 */
+#ifndef TARG_CHAR_BIT
 #define TARG_CHAR_BIT 8
 			/* Number of bits in a target char.  Default value,
 			   used to initialize global variable targ_char_bit. */
+#endif /* !defined(TARG_CHAR_BIT) */
 
 /* TARG_HOST_STRING_CHAR_BIT is the number of data bits per character used
    when representing target characters as a string on the host.  One is
@@ -144,29 +146,53 @@ Wide character constant type (wchar_t, see stddef.h and stdlib.h).
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT
 			/* Default value, used to initialize global variable
 			   targ_sizeof_wchar_t. */
-#endif /* !defined(TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT) */
+#endif /* !defined(TARG_SIZEOF_WCHAR_T) */
 
 /*
 Integer types:
 */
 /* Remember that the size of a type must be a multiple of the alignment. */
+#ifndef TARG_SIZEOF_SHORT
 #define TARG_SIZEOF_SHORT 2
+			/* Default value, used to initialize global variable
+			   targ_sizeof_short. */
+#endif /* !defined(TARG_SIZEOF_SHORT) */
+#ifndef TARG_ALIGNOF_SHORT
 #define TARG_ALIGNOF_SHORT 2
-			/* Default values, used to initialize global variables
-			   targ_sizeof_short and targ_alignof_short. */
+			/* Default value, used to initialize global variable
+			   targ_alignof_short. */
+#endif /* !defined(TARG_ALIGNOF_SHORT) */
+#ifndef TARG_SIZEOF_INT
 #define TARG_SIZEOF_INT 4
+			/* Default value, used to initialize global variable
+			   targ_sizeof_int. */
+#endif /* !defined(TARG_SIZEOF_INT) */
+#ifndef TARG_ALIGNOF_INT
 #define TARG_ALIGNOF_INT 4
-			/* Default values, used to initialize global variables
-			   targ_sizeof_int and targ_alignof_int. */
+			/* Default value, used to initialize global variable
+			   targ_alignof_int. */
+#endif /* !defined(TARG_ALIGNOF_INT) */
+#ifndef TARG_SIZEOF_LONG
 #define TARG_SIZEOF_LONG 4
+			/* Default value, used to initialize global variable
+			   targ_sizeof_long. */
+#endif /* !defined(TARG_SIZEOF_LONG) */
+#ifndef TARG_ALIGNOF_LONG
 #define TARG_ALIGNOF_LONG 4
-			/* Default values, used to initialize global variables
-			   targ_sizeof_long and targ_alignof_long. */
+			/* Default value, used to initialize global variable
+			   targ_alignof_long. */
+#endif /* !defined(TARG_ALIGNOF_LONG) */
 #if LONG_LONG_ALLOWED
+#ifndef TARG_SIZEOF_LONG_LONG
 #define TARG_SIZEOF_LONG_LONG 8
+			/* Default value, used to initialize global variable
+			   targ_sizeof_long_long. */
+#endif /* !defined(TARG_SIZEOF_LONG_LONG) */
+#ifndef TARG_ALIGNOF_LONG_LONG
 #define TARG_ALIGNOF_LONG_LONG 8
-			/* Default values, used to initialize global variables
-			   targ_sizeof_long_long and targ_alignof_long_long. */
+			/* Default value, used to initialize global variable
+			   targ_alignof_long_long. */
+#endif /* !defined(TARG_ALIGNOF_LONG_LONG) */
 #endif /* LONG_LONG_ALLOWED */
 
 /* Specify the size of the largest integer.  Note that this will constrain
@@ -238,7 +264,7 @@ integers than the host.
 */
 #ifndef INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER TRUE
-#endif /*INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+#endif /* !defined(INTEGER_VALUE_REPR_IS_A_HOST_INTEGER) */
 
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 
@@ -261,7 +287,7 @@ host long long.
 */
 #ifndef AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
 #define AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG	FALSE
-#endif /* AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG */
+#endif /* !defined(AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG) */
 
 /* Minimum and maximum values that can be represented in an_integer_value. */
 #define MAX_INTEGER_VALUE LONG_MAX
@@ -322,7 +348,7 @@ This is true when simulated integers are being used.
 */
 #ifndef AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
 #define AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG	TRUE
-#endif /* AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG */
+#endif /* !defined(AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG) */
 
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
@@ -348,7 +374,7 @@ errors are still generated for type mismatches.
 */
 #ifndef SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
 #define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL TRUE
-#endif /* ifndef SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */
+#endif /* !defined(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL) */
 
 /* Maximum size of a bit-field.  Must not be larger than the size of a
    long (or a long long, if they are allowed). */
@@ -410,10 +436,16 @@ Pointer types:
 #define TARG_ALL_POINTERS_SAME_SIZE TRUE
 			/* At the moment, this cannot be set FALSE.
 			   See set_type_size in types.c. */
+#ifndef TARG_SIZEOF_POINTER
 #define TARG_SIZEOF_POINTER 4
+			/* Default value, used to initialize global variable
+			   targ_sizeof_pointer. */
+#endif /* !defined(TARG_SIZEOF_POINTER) */
+#ifndef TARG_ALIGNOF_POINTER
 #define TARG_ALIGNOF_POINTER 4
-			/* Default values, used to initialize global variables
-			   targ_sizeof_pointer and targ_alignof_pointer. */
+			/* Default value, used to initialize global variable
+			   targ_alignof_pointer. */
+#endif /* !defined(TARG_ALIGNOF_POINTER) */
 
 /* Indication of whether NULL pointer is like integer zero. */
 #define TARG_NULL_IS_ALL_BITS_ZERO TRUE
@@ -428,10 +460,16 @@ typedef long a_targ_ptrdiff_t;  /* Must be host "long". */
    to or smaller than the integer size implied by TARG_PTRDIFF_T_INT_KIND.
    Except when the target ptrdiff_t is smaller than the host long, they
    should be LONG_MAX and LONG_MIN. */
+#ifndef TARG_PTRDIFF_T_MAX
 #define TARG_PTRDIFF_T_MAX ((a_targ_ptrdiff_t)LONG_MAX)
+			/* Default value, used to initialize global variable
+			   targ_ptrdiff_t_max. */
+#endif /* !defined(TARG_PTRDIFF_T_MAX) */
+#ifndef TARG_PTRDIFF_T_MIN
 #define TARG_PTRDIFF_T_MIN ((a_targ_ptrdiff_t)LONG_MIN)
-			/* Default values, used to initialize global variables
-			   targ_ptrdiff_t_max and targ_ptrdiff_t_min. */
+			/* Default value, used to initialize global variable
+			   targ_ptrdiff_t_min. */
+#endif /* !defined(TARG_PTRDIFF_T_MIN) */
 
 /* Pick a typical representation for ptrdiff_t: the smaller of int or long
    that can hold a pointer value. */
@@ -474,25 +512,36 @@ typedef a_byte a_targ_alignment;
 Float types:
 */
 /* Remember that the size of a type must be a multiple of the alignment. */
+#ifndef TARG_SIZEOF_FLOAT
 #define TARG_SIZEOF_FLOAT 4
+			/* Default value, used to initialize global variable
+			   targ_sizeof_float. */
+#endif /* !defined(TARG_SIZEOF_FLOAT) */
+#ifndef TARG_ALIGNOF_FLOAT
 #define TARG_ALIGNOF_FLOAT 4
-			/* Default values, used to initialize global variables
-			   targ_sizeof_float and targ_alignof_float. */
+			/* Default value, used to initialize global variable
+			   targ_alignof_float. */
+#endif /* !defined(TARG_ALIGNOF_FLOAT) */
+#ifndef TARG_SIZEOF_DOUBLE
 #define TARG_SIZEOF_DOUBLE 8
+			/* Default value, used to initialize global variable
+			   targ_sizeof_double. */
+#endif /* !defined(TARG_SIZEOF_DOUBLE) */
 #ifndef TARG_ALIGNOF_DOUBLE
 #define TARG_ALIGNOF_DOUBLE 8
-#endif /* ifndef TARG_ALIGNOF_DOUBLE */
-			/* Default values, used to initialize global variables
-			   targ_sizeof_double and targ_alignof_double. */
+			/* Default value, used to initialize global variable
+			   targ_alignof_double. */
+#endif /* !defined(TARG_ALIGNOF_DOUBLE) */
 #ifndef TARG_SIZEOF_LONG_DOUBLE
 #define TARG_SIZEOF_LONG_DOUBLE 8
-#endif /* ifndef TARG_SIZEOF_LONG_DOUBLE */
+			/* Default value, used to initialize global variable
+			   targ_sizeof_long_double. */
+#endif /* !defined(TARG_SIZEOF_LONG_DOUBLE) */
 #ifndef TARG_ALIGNOF_LONG_DOUBLE
 #define TARG_ALIGNOF_LONG_DOUBLE 8
-#endif /* ifndef TARG_ALIGNOF_LONG_DOUBLE */
-			/* Default values, used to initialize global variables
-			   targ_sizeof_long_double and
+			/* Default value, used to initialize global variable
 			   targ_alignof_long_double. */
+#endif /* !defined(TARG_ALIGNOF_LONG_DOUBLE) */
 
 /*
 Type used to represent float quantities internally:
@@ -512,17 +561,27 @@ typedef struct an_internal_float_value {
 C++ pointer-to-member type.
 (The formulas here are for a typical implementation, but are not required.)
 */
+#ifndef TARG_SIZEOF_PTR_TO_DATA_MEMBER
 #define TARG_SIZEOF_PTR_TO_DATA_MEMBER TARG_SIZEOF_SHORT
+			/* Default value, used to initialize global variable
+			   targ_sizeof_ptr_to_data_member. */
+#endif /* !defined(TARG_SIZEOF_PTR_TO_DATA_MEMBER) */
+#ifndef TARG_ALIGNOF_PTR_TO_DATA_MEMBER
 #define TARG_ALIGNOF_PTR_TO_DATA_MEMBER TARG_ALIGNOF_SHORT
-			/* Default values, used to initialize global variables
-			   targ_sizeof_ptr_to_data_member and
+			/* Default value, used to initialize global variable
 			   targ_alignof_ptr_to_data_member. */
+#endif /* !defined(TARG_ALIGNOF_PTR_TO_DATA_MEMBER) */
+#ifndef TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION
 #define TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION                            \
-  (2*TARG_SIZEOF_SHORT+TARG_SIZEOF_POINTER)
+           (2*TARG_SIZEOF_SHORT+TARG_SIZEOF_POINTER)
+			/* Default value, used to initialize global variable
+			   targ_sizeof_ptr_to_member_function. */
+#endif /* !defined(TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION) */
+#ifndef TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION
 #define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION TARG_ALIGNOF_POINTER
-			/* Default values, used to initialize global variables
-			   targ_sizeof_ptr_to_member_function and
+			/* Default value, used to initialize global variable
 			   targ_alignof_ptr_to_member_function. */
+#endif /* !defined(TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION) */
 
 /* 
 In C++ classes with virtual functions provide a special mechanism for
@@ -532,11 +591,16 @@ class with virtual functions the front end allocates a field to contain
 such a pointer -- or other data as required by a given implementation.
 The size and alignment of such a field are defined by the following.
 */
+#ifndef TARG_SIZEOF_VIRTUAL_FUNCTION_INFO
 #define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO TARG_SIZEOF_POINTER
+			/* Default value, used to initialize global variable
+			   targ_sizeof_virtual_function_info. */
+#endif /* !defined(TARG_SIZEOF_VIRTUAL_FUNCTION_INFO) */
+#ifndef TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO
 #define TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO TARG_ALIGNOF_POINTER
-			/* Default values, used to initialize global variables
-			   targ_sizeof_virtual_function_info and
+			/* Default value, used to initialize global variable
 			   targ_alignof_virtual_function_info. */
+#endif /* !defined(TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO) */
 
 /* 
 Numbering for virtual functions.  Each virtual member function in a given
@@ -559,14 +623,14 @@ to be folded into the constructor or destructor if possible.
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
 #define NEW_CAN_BE_FOLDED_INTO_CTOR TRUE  /* Can be changed. */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-#endif /* ifndef NEW_CAN_BE_FOLDED_INTO_CTOR */
+#endif /* !defined(NEW_CAN_BE_FOLDED_INTO_CTOR) */
 #ifndef DELETE_CAN_BE_FOLDED_INTO_DTOR
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 #define DELETE_CAN_BE_FOLDED_INTO_DTOR TRUE /* cfront compatibility setting. */
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
 #define DELETE_CAN_BE_FOLDED_INTO_DTOR TRUE  /* Can be changed. */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-#endif /* ifndef DELETE_CAN_BE_FOLDED_INTO_DTOR */
+#endif /* !defined(DELETE_CAN_BE_FOLDED_INTO_DTOR) */
 /* If assignment to "this" is allowed, the folding must be done. */
 #if ASSIGNMENT_TO_THIS_ALLOWED && !NEW_CAN_BE_FOLDED_INTO_CTOR
  #error -- NEW_CAN_BE_FOLDED_INTO_CTOR set wrong.
@@ -588,7 +652,7 @@ into the runtime routine to process those.
 #define NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE \
   TRUE  /* Can be changed. */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-#endif /* ifndef NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+#endif /* !defined(NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_...) */
 /* This must be TRUE for IL lowering.  There's a consistency check there. */
 
 /*
@@ -601,17 +665,19 @@ If TRUE, enumerated types can be allocated in integral types smaller than int.
 #else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
 #define TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT FALSE  /* Can be changed. */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-#endif /* ifndef TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT */
 			/* Default value, used to initialize global variable
 			   targ_enum_types_can_be_smaller_than_int. */
+#endif /* !defined(TARG_ENUM_TYPES_CAN_BE_SMALLER_THAN_INT) */
 
 /*
 Definition of shift operations:
 */
+#ifndef TARG_RIGHT_SHIFT_IS_ARITHMETIC
 #define TARG_RIGHT_SHIFT_IS_ARITHMETIC TRUE
 			/* Right shift on a signed quantity does sign
 			   extension.  Default value, used to initialize
 			   global variable targ_right_shift_is_arithmetic. */
+#endif /* !defined(TARG_RIGHT_SHIFT_IS_ARITHMETIC) */
 
 /*
 Number of significant characters in an external name (names will be truncated
@@ -654,9 +720,11 @@ environment.  If C code is being generated, this may be dictated by the
 characteristics of the C compiler that will be used for subsequent
 processing.
 */
+#ifndef TARG_MINIMUM_STRUCT_ALIGNMENT
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
 			/* Default value, used to initialize global variable
 			   targ_minimum_struct_alignment. */
+#endif /* !defined(TARG_MINIMUM_STRUCT_ALIGNMENT) */
 
 #if BACK_END_IS_C_GEN_BE
 /*
@@ -666,7 +734,7 @@ gcc (the GNU C compiler).
 
 #ifndef GCC_IS_C_GEN_BE_TARGET
 #define GCC_IS_C_GEN_BE_TARGET FALSE
-#endif /* GCC_IS_C_GEN_BE_TARGET */
+#endif /* !defined(GCC_IS_C_GEN_BE_TARGET) */
 
 /*
 Switch that is TRUE if the C-generating back end should generate ANSI C
@@ -678,7 +746,7 @@ instead of K&R C.
 #else /* !GCC_IS_C_GEN_BE_TARGET */
 #define C_GEN_BE_GENERATES_ANSI_C FALSE
 #endif /* GCC_IS_C_GEN_BE_TARGET */
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
+#endif /* !defined(C_GEN_BE_GENERATES_ANSI_C) */
 #endif /* BACK_END_IS_C_GEN_BE */
 
 /*
@@ -688,7 +756,7 @@ generating K&R C.)
 */
 #ifndef SUPPRESS_CONST_IN_GENERATED_C
 #define SUPPRESS_CONST_IN_GENERATED_C FALSE
-#endif /* ifndef SUPPRESS_CONST_IN_GENERATED_C */
+#endif /* !defined(SUPPRESS_CONST_IN_GENERATED_C) */
 
 #if DO_IL_LOWERING
 
@@ -745,7 +813,7 @@ tree.
 */
 #ifndef LOWER_LVALUE_RETURNING_OPERATIONS
 #define LOWER_LVALUE_RETURNING_OPERATIONS TRUE
-#endif /* ifndef LOWER_LVALUE_RETURNING_OPERATIONS */
+#endif /* !defined(LOWER_LVALUE_RETURNING_OPERATIONS) */
 
 /*
 This switch controls whether or not "guard" code is placed around
@@ -762,7 +830,7 @@ instances will do nothing.
 */
 #ifndef TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
 #define TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE FALSE
-#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
+#endif /* !defined(TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE) */
 
 /*
 jmp_buf is a type defined by <setjmp.h> for use in setjmp/longjmp.
@@ -775,12 +843,12 @@ and the integral kind for the array element type.
 */
 #ifndef TARG_JMP_BUF_NUM_ELEMENTS
 #define TARG_JMP_BUF_NUM_ELEMENTS 9  /* For SPARC, SunOS 4.1.2. */
-#endif /* TARG_JMP_BUF_NUM_ELEMENTS */
+#endif /* !defined(TARG_JMP_BUF_NUM_ELEMENTS) */
 			/* Default value, used to initialize global variable
 			   targ_jmp_buf_num_elements. */
 #ifndef TARG_JMP_BUF_ELEMENT_INT_KIND
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
-#endif /* TARG_JMP_BUF_ELEMENT_INT_KIND */
+#endif /* !defined(TARG_JMP_BUF_ELEMENT_INT_KIND) */
 			/* Default value, used to initialize global variable
 			   targ_jmp_buf_element_int_kind. */
 
@@ -799,7 +867,7 @@ address table.
 
 #endif /* DO_IL_LOWERING */
 
-#endif /* ifndef TARG_DEF_H */
+#endif /* !defined(TARG_DEF_H) */
 
 
 /******************************************************************************
