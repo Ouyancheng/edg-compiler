@@ -167,6 +167,12 @@ __INFINITY__, which are Not-a-Number and positive Infinity values
 of float type.  These are intended for the use of library
 writers in implementing the C99 NAN and INFINITY macros.
 
+[3/16/01:] The floating-point constant routines have been made
+aware of IEEE floating point, under control of the configuration
+macro TARG_HAS_IEEE_FLOATING_POINT.  NaN and Infinity constants
+are now output in compilable code as (0.0/0.0) and (1.0/0.0),
+respectively, which produce the required values.
+
 3/2/01   Loop in preprocessor on #if within macro argument
 
 The preprocessor looped as a result of processing a macro invocation
