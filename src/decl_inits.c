@@ -686,10 +686,6 @@ for unions and aggregates at that level).
 }  /* get_initializer */
 
 
-/* Declaration needed because of mutual recursion: */
-static a_boolean dynamic_init_has_side_effects(a_dynamic_init_ptr dip);
-
-
 static a_boolean init_con_has_side_effects(a_constant_ptr con)
 /*
 Return TRUE if the indicated constant (part of an initialization)
@@ -722,7 +718,7 @@ has side effects.
 }  /* init_con_has_side_effects */
 
 
-static a_boolean dynamic_init_has_side_effects(a_dynamic_init_ptr dip)
+a_boolean dynamic_init_has_side_effects(a_dynamic_init_ptr dip)
 /*
 Return TRUE if the indicated dynamic initialization has side effects,
 i.e., it does something other than just return a value for the initialization.
@@ -778,7 +774,6 @@ unreachable code).
 {
   a_dynamic_init_ptr      new_dip;
   a_statement_ptr         init_stmt;
-  a_symbol_ptr            assoc_sym;
   a_memory_region_number  region_to_switch_back_to = NULL_region_number;
 
   db_enter(4, "gen_dynamic_initialization");
@@ -833,15 +828,6 @@ unreachable code).
      referenced flag unset when the initialization (e.g., by constructor)
      may have side effects. */
   vp->source_corresp.referenced = TRUE;
-  /* Also set the referenced flag in the associated symbol if the
-     initialization has side effects.  That suppresses a warning that the
-     symbol is declared but never referenced. */
-  assoc_sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
-  if (assoc_sym != NULL) {
-    if (dynamic_init_has_side_effects(dip)) {
-      assoc_sym->referenced = TRUE;
-    }  /* if */
-  }  /* if */
   db_exit();
 }  /* gen_dynamic_initialization */
 

@@ -1,3 +1,12 @@
+Version 2.13
+
+11/24/92 Remark issued for unreferenced variable with constructor
+
+Formerly, variables with dynamic initialization side-effects (e.g.,
+with constructors or destructors) did not cause a diagnostic to be
+issued if a variable was declared but never referenced.  A remark
+is now issued.
+
 Version 2.12
 
 11/21/92 Abort in overload resolution fixed

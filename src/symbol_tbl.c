@@ -5184,15 +5184,17 @@ called.
 }  /* check_referenced_member_functions */
 
 
-static void report_unreferenced(a_symbol_ptr  sym,
-                                an_error_code error_code)
+static void report_unreferenced(a_symbol_ptr  	  sym,
+                                an_error_code	  error_code,
+			        an_error_severity normal_severity)
 /*
 Issue a warning for an unreferenced entity.  However, demote the warning to
 a remark if the entity is a file-scope entity declared in an include file.
 */
 {
-  if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-      seq_is_in_include_file(sym->decl_position.seq)) {
+  if (normal_severity == es_remark ||
+      (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+       seq_is_in_include_file(sym->decl_position.seq))) {
     pos_sy_remark(error_code, &sym->decl_position, sym);
   } else {
     pos_sy_warning(error_code, &sym->decl_position, sym);
@@ -5271,7 +5273,8 @@ NULL.
 #endif /* ASM_FUNCTION_ALLOWED */
           } else {
             /* Unreferenced parameter. */
-            report_unreferenced(sym, ec_declared_but_not_referenced);
+            report_unreferenced(sym, ec_declared_but_not_referenced,
+                                es_warning);
           }  /* if */
         } else {
           /* A normal variable (not a parameter). */
@@ -5279,8 +5282,19 @@ NULL.
             /* No warning for unused "extern" variables; this is a
                long-standing C tradition. */
           } else {
-            /* An unreferenced variable. */
-            report_unreferenced(sym, ec_declared_but_not_referenced);
+            a_variable_ptr vp = sym->variant.variable;
+            /* An unreferenced variable.  Check for a dynamic initialization
+               that has side effects (such as a constructor call).  If
+	       such an initialization exists, issue a remark rather than a
+	       warning. */
+            if (vp->init_kind == (an_init_kind)initk_dynamic &&
+                dynamic_init_has_side_effects(vp->initializer.dynamic)) {
+              report_unreferenced(sym, ec_declared_but_not_referenced,
+				  es_remark);
+            } else {
+              report_unreferenced(sym, ec_declared_but_not_referenced,
+				  es_warning);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -5343,7 +5357,8 @@ NULL.
 #endif /* ASM_FUNCTION_ALLOWED */
         } else {
           /* An unreferenced routine. */
-          report_unreferenced(sym, ec_declared_but_not_referenced);
+          report_unreferenced(sym, ec_declared_but_not_referenced,
+			      es_warning);
         }  /* if */
       }  /* if */
 #if CHECKING
@@ -5383,7 +5398,8 @@ NULL.
         pos_sy_error(ec_never_defined, &sym->decl_position, sym);
       } else if (!sym->referenced) {
         /* An unreferenced label. */
-        report_unreferenced(sym, ec_declared_but_not_referenced);
+        report_unreferenced(sym, ec_declared_but_not_referenced,
+			    es_warning);
       }  /* if */
       break;
     case sk_extern_variable:
