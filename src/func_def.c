@@ -1945,11 +1945,12 @@ whose definition has not yet been generated, force the definition now.
 }  /* force_definition_of_compiler_generated_routine */
 
 
-static void generate_virtual_destructor_bodies_for_scope(a_scope_ptr  scope)
+void generate_required_virtual_destructor_bodies(a_scope_ptr  scope)
 /*
 Go through the classes on the types list of the indicated scope and generate
-bodies for virtual destructors, as required.  Then check the scopes for
-each namespace defined in the indicated scope.
+bodies for virtual destructors, as required.  Then (if it is a file or
+namespace scope) check the scopes for each namespace defined in the
+indicated scope.
 */
 {
   a_namespace_ptr                nsp;
@@ -1958,6 +1959,7 @@ each namespace defined in the indicated scope.
   a_class_symbol_supplement_ptr  cssp;
   a_class_type_supplement_ptr    ctsp;
 
+  db_enter(3, "generate_required_virtual_destructor_bodies");
   /* First go through all the classes declared in the indicated scope. */
   for (tp = scope->types; tp != NULL; tp = tp->next) {
     if (is_immediate_class_type(tp)) {
@@ -1984,33 +1986,22 @@ each namespace defined in the indicated scope.
           }  /* if */
         }  /* if */
         /* Do the same check for nested classes, if any. */
-        generate_virtual_destructor_bodies_for_scope(ctsp->assoc_scope);
+        generate_required_virtual_destructor_bodies(ctsp->assoc_scope);
       }  /* if */
     }  /* if */
   }  /* for */
-  /* Next go though all the namespaces, calling this routine recursively
-     for each (excluding namespace aliases). */
-  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
-    if (!nsp->is_namespace_alias) {
-      generate_virtual_destructor_bodies_for_scope(nsp->variant.assoc_scope);
-    }  /* if */
-  }  /* for */
-}  /* generate_virtual_destructor_bodies_for_scope */
-
-
-void generate_required_virtual_destructor_bodies(void)
-/*
-As required, generate bodies for virtual destructors declared in this
-translation unit.
-*/
-{
-  db_enter(3, "generate_required_virtual_destructor_bodies");
-  /* Generate the virtual destruct bodies required for classes defined in the
-     file scope, and then apply the check recursively, walking the namespace
-     tree. */
-  generate_virtual_destructor_bodies_for_scope(il_header.primary_scope);
+  if (scope->kind == (a_scope_kind)sck_file ||
+      scope->kind == (a_scope_kind)sck_namespace) {
+    /* Next go though all the namespaces, calling this routine recursively
+       for each (excluding namespace aliases). */
+    for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+      if (!nsp->is_namespace_alias) {
+        generate_required_virtual_destructor_bodies(nsp->variant.assoc_scope);
+      }  /* if */
+    }  /* for */
+  }  /* if */
   db_exit();
-}  /* generate_required_virtual_destructor_bodies */
+}  /* generate_virtual_destructor_bodies_for_scope */
 
 
 /******************************************************************************
