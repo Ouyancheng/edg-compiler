@@ -1414,6 +1414,39 @@ point are related by inheritance.
          find_base_class_of(class_2, class_1) != NULL;
 }  /* related_ptr_to_members */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+static void convert_to_or_from_fixed_point_constant(
+                                                a_constant_ptr  src,
+                                                a_constant_ptr  dst,
+                                                a_boolean       *did_not_fold)
+/*
+Convert the constant *src to type dst->type and put the result in *dst.
+Either src->type or dst->type is a fixed-point type.  If the conversion
+cannot be done in the front end, set *did_not_fold to TRUE.
+
+Currently, a conversion is only performed if *src is a zero-valued integer
+constant.
+*/
+{
+  a_boolean  conversion_done = FALSE;
+  if (is_integral_type(src->type) && is_fixed_point_type(dst->type)) {
+    an_integer_value  zero;
+    set_integer_value(&zero, (a_host_large_integer)0);
+    check_assertion(src->kind == (a_constant_repr_kind)ck_integer);
+    if (cmp_integer_values(&src->variant.integer_value,
+                           int_constant_is_signed(src),
+                           &zero, /*op_2_signed=*/FALSE) == 0) {
+      /* The source is zero.  It is the only special case we convert. */
+      dst->kind = (a_constant_repr_kind)ck_fixed_point;
+      fxp_init_value(&src->variant.fixed_point_value);
+      conversion_done = TRUE;
+    }  /* if */
+  }  /* if */
+  *did_not_fold = !conversion_done;
+}  /* convert_to_or_from_fixed_point_constant */
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
 #if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
 /*ARGSUSED*/ /* <-- maintain_expression is unused in that case. */
@@ -1482,15 +1515,6 @@ to the constant is maintained, by adding a cast if necessary.
     new_constant.type = new_type_with_typedefs;
     goto exit;
   }  /* if */
-#if FIXED_POINT_EXTENSIONS_ALLOWED
-  if (fixed_point_allowed && (is_fixed_point_type(constant_type) ||
-                              is_fixed_point_type(new_type))) {
-    /* For now we do not fold fixed-point type operations.  However, we
-       probably do want to do so at some point. FIXME */
-    *did_not_fold = TRUE;
-    goto exit;
-  }  /* if */
-#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   if (!C_mode() &&
       (constant->kind == (a_constant_repr_kind)ck_template_param ||
        (in_front_end && is_template_dependent_type(new_type)))) {
@@ -1534,6 +1558,16 @@ to the constant is maintained, by adding a cast if necessary.
     goto exit;
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  if (fixed_point_allowed && (is_fixed_point_type(constant_type) ||
+                              is_fixed_point_type(new_type))) {
+    /* For now we do not fold fixed-point type operations.  However, we
+       probably do want to do so at some point. */
+    convert_to_or_from_fixed_point_constant(constant, &new_constant,
+                                            did_not_fold);
+    goto exit;
+  }  /* if */
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* Any case where the constant is represented as an address should be
        converted by setting the implicit_cast flag.  This test has to be
@@ -2168,6 +2202,12 @@ the reason is that the constant is a template parameter constant).
        not fold unary operations involving these constants. */
     *did_not_fold = TRUE;  
 #endif /* UPC_EXTENSIONS_ALLOWED */ 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  } else if (constant->kind == (a_constant_repr_kind)ck_fixed_point) {
+    /* Unary operators applied to fixed-point constants are not currently
+       folded. */
+    *did_not_fold = TRUE;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;
@@ -4111,6 +4151,13 @@ as the position for any diagnostics issued.
                                  result, constant_context, evaluated_context,
                                  did_not_fold, template_constant, err_pos);
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+  } else if (constant_1->kind == (a_constant_repr_kind)ck_fixed_point ||
+             constant_2->kind == (a_constant_repr_kind)ck_fixed_point) {
+    /* Binary operators applied to fixed-point constants are not currently
+       folded. */
+    *did_not_fold = TRUE;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;
