@@ -155,6 +155,9 @@ static a_vla_fixup_ptr
 			/* List of vla fixup entries freed and available for
 			   reuse. */
 
+/* Forward declaration: */
+static char *il_entry_for_symbol_null_okay(a_symbol_ptr      sym,
+                                           an_il_entry_kind  *kind);
 
 void form_optionally_qualified_symbol_name(
 		a_symbol_ptr				sym,
@@ -177,7 +180,7 @@ that might normally precede it.
      symbols promoted from anonymous unions, in which case preference is
      given to the symbol; the parent namespace can differ for extern-C
      declarations). */
-  entry = il_entry_for_symbol(sym, &kind);
+  entry = il_entry_for_symbol_null_okay(sym, &kind);
   if (entry != NULL &&
       (scp = source_corresp_for_il_entry(entry, kind)) != NULL &&
       sym->is_class_member == scp->is_class_member &&
@@ -5336,81 +5339,93 @@ is returned TRUE if the parameter is not a reference parameter.
 }  /* select_copy_assignment_operator */
 
 
-char *il_entry_for_symbol(a_symbol_ptr      sym,
-                          an_il_entry_kind  *kind)
+static char *il_entry_for_symbol_null_okay(a_symbol_ptr      sym,
+                                           an_il_entry_kind  *kind)
 /*
 Return a pointer to the IL entry to which the specified symbol refers.  Also
 return the kind of IL entry that is found.  If the symbol is not associated
-with an IL entry, return NULL, and leave kind set to iek_none.
+with an IL entry, return NULL, and return kind set to iek_none.
 */
 {
-  char  *entry_ptr = NULL;
+  char             *entry_ptr = NULL;
+  an_il_entry_kind lkind;
 
-  *kind = iek_none;
   switch (sym->kind) {
     case sk_macro:
 #if RECORD_MACROS_IN_IL
       entry_ptr = (char *)sym->variant.macro_def->macro;
-      if (entry_ptr != NULL) *kind = iek_macro;
+      lkind = iek_macro;
 #endif /* RECORD_MACROS_IN_IL */
       break;
     case sk_constant:
       entry_ptr = (char *)sym->variant.constant;
-      *kind = iek_constant;
+      lkind = iek_constant;
       break;
     case sk_type:
       entry_ptr = (char *)sym->variant.type;
-      *kind = iek_type;
+      lkind = iek_type;
       break;
     case sk_enum_tag:
       entry_ptr = (char *)sym->variant.enumeration.type;
-      *kind = iek_type;
+      lkind = iek_type;
       break;
     case sk_class_or_struct_tag:
     case sk_union_tag:
       entry_ptr = (char *)sym->variant.class_struct_union.type;
-      *kind = iek_type;
+      lkind = iek_type;
       break;
     case sk_variable:
       entry_ptr = (char *)sym->variant.variable.ptr;
-      *kind = iek_variable;
+      lkind = iek_variable;
       break;
     case sk_static_data_member:
       entry_ptr = (char *)sym->variant.static_data_member.variable;
-      *kind = iek_variable;
+      lkind = iek_variable;
       break;
     case sk_field:
       entry_ptr = (char *)sym->variant.field.ptr;
-      *kind = iek_field;
+      lkind = iek_field;
       break;
     case sk_routine:
     case sk_member_function:
       entry_ptr = (char *)sym->variant.routine.ptr;
-      *kind = iek_routine;
+      lkind = iek_routine;
       break;
     case sk_label:
       entry_ptr = (char *)sym->variant.label.ptr;
-      *kind = iek_label;
+      lkind = iek_label;
       break;
     case sk_namespace:
       entry_ptr = (char *)sym->variant.namespace_info.ptr;
-      *kind = iek_namespace;
+      lkind = iek_namespace;
       break;
 #if RECORD_TEMPLATES_IN_IL
     case sk_function_template:
     case sk_class_template:
       entry_ptr = (char *)sym->variant.template_info->il_template_entry;
-      if (entry_ptr != NULL) *kind = iek_template;
+      lkind = iek_template;
       break;
 #endif /* RECORD_TEMPLATES_IN_IL */
     default:;
       /* Other cases ignored. */
   }  /* switch */
-#if CHECKING
-  if (entry_ptr == NULL && *kind != iek_none) {
-    internal_error("il_entry_for_symbol: NULL assoc IL entry ptr");
-  }  /* if */
-#endif /* CHECKING */
+  if (entry_ptr == NULL) lkind = iek_none;
+  *kind = lkind;
+  return entry_ptr;
+}  /* il_entry_for_symbol_null_okay */
+
+
+char *il_entry_for_symbol(a_symbol_ptr      sym,
+                          an_il_entry_kind  *kind)
+/*
+Return a pointer to the IL entry to which the specified symbol refers.  Also
+return the kind of IL entry that is found.  Always returns a non-NULL value.
+*/
+{
+  char *entry_ptr = il_entry_for_symbol_null_okay(sym, kind);
+
+  check_assertion_str(entry_ptr != NULL,
+                      "il_entry_for_symbol: NULL assoc IL entry ptr");
   return entry_ptr;
 }  /* il_entry_for_symbol */
 
@@ -5418,14 +5433,13 @@ with an IL entry, return NULL, and leave kind set to iek_none.
 a_source_correspondence *source_corresp_entry_for_symbol(a_symbol_ptr sym_ptr)
 /*
 Return a pointer to the source correspondence entry in the IL entry
-for the given symbol.  Return NULL if there isn't one (if that's
-allowed for that kind of symbol).
+for the given symbol.  Return NULL if there isn't one.
 */
 {
   char              *entity_ptr;
   an_il_entry_kind  entity_kind;
 
-  entity_ptr = il_entry_for_symbol(sym_ptr, &entity_kind);
+  entity_ptr = il_entry_for_symbol_null_okay(sym_ptr, &entity_kind);
   return (entity_ptr == NULL ?
            NULL : source_corresp_for_il_entry(entity_ptr, entity_kind));
 }  /* source_corresp_entry_for_symbol */
@@ -5466,10 +5480,12 @@ It cannot be used for checking access (see have_access_to_symbol).
     access = (an_access_specifier)as_public;
   } else {
     /* Normal symbol (not projection or overloaded function). */
+    a_source_correspondence *scp = source_corresp_entry_for_symbol(sym_ptr);
     check_assertion_str2(sym_ptr->kind
                                     != (a_symbol_kind)sk_namespace_projection,
                          "access_for_symbol:", "invalid symbol kind");
-    access = source_corresp_entry_for_symbol(sym_ptr)->access;
+    check_assertion(scp != NULL);
+    access = scp->access;
   }  /* if */
   return access;
 }  /* access_for_symbol */
