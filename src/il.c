@@ -2803,7 +2803,7 @@ members), and does not enter those.
 */
 {
   check_assertion_str(in_file_scope(entry_ptr),
-           "possibly_add_orphaned_file_scope_...: IL entry not in file scope");
+         "f_possibly_add_orphaned_file_scope_...: IL entry not in file scope");
   /* Do not put the entry on a list if it's already on a list. */
   if (fs_orphan_pointer_of(entry_ptr) == NULL) {
     a_boolean could_be_orphan = TRUE;
@@ -2847,8 +2847,7 @@ members), and does not enter those.
       f_add_orphaned_file_scope_il_entry(entry_ptr, entry_kind, tup);
     }  /* if */
   }  /* if */
-}  /* possibly_add_orphaned_file_scope_il_entry */
-
+}  /* f_possibly_add_orphaned_file_scope_il_entry */
   
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
