@@ -155,6 +155,10 @@ suppress_preproc_only=0
 #
 executable=a.out
 #
+# Was a name for the output file explicitly specified.
+#
+output_file_specified=0
+#
 # A list of .c files to compile, separated by blanks.
 #
 cfiles=
@@ -262,6 +266,10 @@ driver_debug=0
 #
 pch_test_mode=0
 #
+# The name of the instantiation information file was explicitly specified
+#
+ii_file_specified=0
+#
 # Go through every argument, identify it, and add it to a list if appropriate.
 #
 while [ -n "$1" ]
@@ -313,16 +321,19 @@ do
       shift;
       used_two_params=1
       executable=$1;
+      output_file_specified=1
       add_to_instantiation_command=0
       ;;
     -o*)
 #     Explicitly name the executable.
       executable=`expr $1 : '-o\(.*\)'`    # Get the string after the -o
+      output_file_specified=1
       add_to_instantiation_command=0
       ;;
     --output=*)
 #     Explicitly name the executable.
       executable=`expr $1 : '.*=\(.*\)'`    # Get the string after the =
+      output_file_specified=1
       add_to_instantiation_command=0
       ;;
     $library_option | --library_directory)
@@ -582,6 +593,7 @@ do
       case $curr_param in
         -t | --instantiate)
           instantiation_mode_specified=1
+          ;;
       esac
       ;;
 ###############################################################################
@@ -620,6 +632,7 @@ do
       case $curr_param in
         -t* | --instantiate=*)
           instantiation_mode_specified=1
+          ;;
       esac
       ;;
 ###############################################################################
@@ -787,6 +800,7 @@ any_errors=0
 max_status=0
 for cfile in $cfiles
 do
+  instantiation_command_suffix=
   basefile=`expr //$cfile : '.*/\(.*\)\.'`  # Get basename
   if [ $more_than_one_c_file -ne 0 ]
   then
@@ -804,7 +818,36 @@ do
     gen_c_obj_name=$basefile.$$""$gen_o_suffix
     gen_c_option=--gen_c_file_name=$gen_c_file_name
   fi
-  command=${CPFE}" "$feoptions" "$gen_c_option" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
+  if [ $cc_only -eq 1 -a $output_file_specified -eq 1 ] ; then
+    # An output file name was specified using the -o option and
+    # the -c option (compile only) is also in effect.  Take the
+    # output file name as the name to be given to the first .o
+    # file generated.
+    output_file=$executable
+    output_file_specified=0
+    # The output file must be included in the options in the command line saved
+    # in the .ii file for this object file.
+    instantiation_command_suffix=$instantiation_command_suffix" -o $output_file"
+    # Build the .ii file name based on the name of the object file being
+    # built.
+    output_basename=`expr $output_file : '\(.*\)\.'`  # Get basename
+    ii_file_name=$output_basename.ii
+    ii_file_specified=1
+  else
+    output_file=$basefile.o
+  fi
+  # Build the name of the .ii file if it was not explicitly specified.  We
+  # might end up specifying this even in cases where an ii file isn't
+  # created (e.g., preprocessing only), but that won't hurt anything.
+  ii_file_option=
+  if [ $ii_file_specified -eq 0 ] ; then
+    # No file name was specified -- construct the default name.
+    ii_file_name=$basefile.ii
+  else
+    # A name was specified -- pass it to the front end.
+    ii_file_option="--ii_file=$ii_file_name"
+  fi
+  command=${CPFE}" "$feoptions" "$gen_c_option" "$ii_file_option" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
   if [ $driver_debug -ne 0 ] ; then
     echo $command
   fi
@@ -832,7 +875,6 @@ do
   #
   if [ $automatic_instantiation -ne 0 -a $preprocessor_only -eq 0 \
        -a $fe_only -eq 0 -a $status -eq 0 ] ; then
-    ii_file_name=$basefile.ii
     if [ -f $ii_file_name ] ; then
       # An instantiation file exists which means the compilation involves
       # templates.  Construct the new .ii file.
@@ -840,7 +882,7 @@ do
       if [ $old_ii_format -ne 1 ] ; then
 #       New format
         sed -e "1,3 d" $ii_file_name >$ii_tmp_file
-        echo $instantiation_command_line >$ii_file_name
+        echo $instantiation_command_line $instantiation_command_suffix >$ii_file_name
         pwd >>$ii_file_name
 	echo $cfile >>$ii_file_name
       else
@@ -903,7 +945,7 @@ do
 #
 #       Rename the object file to the appropriate name
 #
-	command="mv -f $gen_c_obj_name $basefile.o"
+	command="mv -f $gen_c_obj_name $output_file"
         if [ $driver_debug -ne 0 ] ; then
           echo $command
         fi
@@ -911,7 +953,7 @@ do
 #
 #       Add the file to the list of .o files to be removed later.
 #
-	rofiles=$rofiles" "$basefile.o
+	rofiles=$rofiles" "$output_file
       fi
     fi
   fi
