@@ -1,5 +1,10 @@
 Version 2.32
 
+4/8/96  Bug when handling #pragma ident
+
+A null-pointer dereference no longer occurs when a #pragma ident appears
+inside a class template definition.
+
 4/8/96  Bitwise copy of volatile-qualified object
 
 Bitwise copying of classes in C++ is an implementation technique; the
