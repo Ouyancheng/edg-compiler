@@ -80,8 +80,11 @@ provide some language compatibility with the Sun CC compiler (version 5.0).
 The default setting of these switches is determined by the new configuration
 option DEFAULT_SUN_COMPATIBILITY.
 
-Sun compatibility is only applicable in C++ mode, and cannot be enabled at
-the same time as strict ANSI mode, or Microsoft or cfront compatibility modes.
+Sun compatibility is only applicable in C++ mode, and cannot be enabled at the
+same time as strict ANSI mode, or Microsoft or cfront compatibility modes.
+
+The routine proc_command_line (cmd_line.c) was reworked to more cleanly
+accommodate the new mode combinations.
 
 11/9/99  Sun compatibility: using-directive non-tag hides tag from other scope
 
