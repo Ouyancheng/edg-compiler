@@ -8945,7 +8945,8 @@ indicated statement.
 /*ARGSUSED*/  /* <-- "statement" is not used in that case. */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 static void reset_cleanup_state_at_transfer_of_control(
-                                                     a_statement_ptr statement)
+                                               a_statement_ptr statement,
+                                               a_statement_ptr block_statement)
 /*
 "statement" points to a transfer of control statement (goto, return)
 that has just been lowered.  Adjust the current cleanup state after the
@@ -8957,12 +8958,22 @@ must be inserted after the statement to re-establish that
 most-constructed state.  (Note that the statement is being inserted
 as unreachable code.  The assumption is that the instruction may be
 used to build a table, rather than being something executable.)
+block_statement points to the block statement of which statement is
+the last statement.
 */
 {
-  set_curr_cleanup_state_to_latest_initialization();
+  /* Don't put out the adjustment at the end of a function.  It's
+     not necessary and it can be confusing to back ends when an epilogue
+     label for a destructor follows. */
+  if (curr_context->scope != innermost_function_scope ||
+      block_statement->next != NULL ||
+      last_statement_in_block(innermost_function_scope->assoc_block) !=
+                                                             block_statement) {
+    set_curr_cleanup_state_to_latest_initialization();
 #if INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE
-  reset_cleanup_state_at_unreachable_point(statement);
+    reset_cleanup_state_at_unreachable_point(statement);
 #endif /* INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE */
+  }  /* if */
 }  /* reset_cleanup_state_at_transfer_of_control */
 
 
@@ -9403,7 +9414,7 @@ Generate any cleanup actions required preceding the indicated goto statement.
            of it. */
         turn_branch_into_block(statement, &insert_location, &orig_statement);
         gen_cleanup_actions(outer_lifetime, &insert_location);
-        reset_cleanup_state_at_transfer_of_control(orig_statement);
+        reset_cleanup_state_at_transfer_of_control(orig_statement, statement);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9704,7 +9715,7 @@ Lower an stmk_return statement.
       turn_branch_into_block(statement, &insert_location, &return_statement);
     }  /* if */
     gen_cleanup_actions(innermost_function_scope->lifetime, &insert_location);
-    reset_cleanup_state_at_transfer_of_control(return_statement);
+    reset_cleanup_state_at_transfer_of_control(return_statement, statement);
   }  /* if */
   /* Maintain a list of all returns in the routine so that epilogue code
      can be added for destructors and for exception handling. */

@@ -1,5 +1,15 @@
 Version 2.41
 
+12/11/98  Partially lowered exception handling: cleanup state after final
+          return in destructor
+
+When partial lowering of exception handling is done, cleanup state
+instructions are placed in unreachable code to aid in generation of
+arrays that map program locations to cleanup state.  The cleanup state
+instruction put out following the final return of a function is
+now suppressed.  It was unnecessary, and, in the case of a destructor
+with an epilogue, could be confusing to a back end.
+
 12/9/98   IL write/read problem with zero-length memory blocks
 
 In some obscure cases, a zero-length memory block could end up on the
