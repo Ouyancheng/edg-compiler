@@ -4662,7 +4662,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         /* The destination space is either more restrictive or altogether
            different: No conversion is possible. */
         okay = FALSE;
-      } else if (dest_type_qualifiers != source_type_qualifiers) {
+      } else if (named_address_space_from_qualifier_set(source_type_qualifiers)
+             != named_address_space_from_qualifier_set(dest_type_qualifiers)) {
         /* A conversion is possible but the destination address space is
            less strict.  This is similar to adding qualifiers. */
         std_conv->type_qualifiers_added = TRUE;
