@@ -3352,7 +3352,8 @@ Look for the given namespace in another translation unit and set the
 translation unit correspondence pointer if one is found.
 */
 {
-  a_symbol_ptr  nsp_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
+  a_symbol_ptr     nsp_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
+  a_namespace_ptr  unaliased_nsp = skip_namespace_aliases(nsp);
 
   check_assertion(nsp_sym != NULL);
   if (nsp_sym == symbol_for_namespace_std) {
@@ -3373,6 +3374,11 @@ translation unit correspondence pointer if one is found.
     } else {
       set_trans_unit_corresp(iek_namespace, nsp, primary_std_namespace);
     }  /* if */
+  } else if (is_member_of_unnamed_namespace(&unaliased_nsp->source_corresp)) {
+    /* A member of an unnamed namespace does not correspond to a similar
+       member in another translation unit.  This also applies to aliases of
+       member namespaces. */
+    set_no_trans_unit_corresp(iek_namespace, nsp);
   } else {
     a_symbol_ptr            sym = corresp_symbol_list(nsp_sym);
     a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(nsp_sym);
