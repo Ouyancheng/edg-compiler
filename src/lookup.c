@@ -2135,7 +2135,7 @@ If we are in a prototype instantiation context, return an unknown function
 symbol that has the result type recorded in the ck_template_param constant.
 */
 {
-  a_symbol_ptr	result_sym;
+  a_symbol_ptr	result_sym = NULL;
 
   if (is_template_dependent_context()) {
     /* A template context.  Create an unknown function symbol to
