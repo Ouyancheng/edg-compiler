@@ -560,6 +560,19 @@ and the integral kind for the array element type.
 #define TARG_JMP_BUF_NUM_ELEMENTS 9  /* For SPARC, SunOS 4.1.2. */
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
 
+/*
+The integral kind to be used for a cleanup region number with exception
+processing.
+*/
+#define TARG_REGION_NUMBER_INT_KIND ((an_integer_kind)ik_unsigned_short)
+
+/*
+The integral kind to be used for a local variable identifier in exception
+processing.  In the portable scheme, this is an index into the object
+address table.
+*/
+#define TARG_VAR_HANDLE_INT_KIND ((an_integer_kind)ik_unsigned_short)
+
 #endif /* DO_IL_LOWERING */
 
 
