@@ -176,6 +176,18 @@ EXTERN a_pending_class_definition_count
 			   process.  This includes normal class definitions
 			   and template class instantiations. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern void f_consume_any_stray_microsoft_rparen(void);
+
+#define consume_any_stray_microsoft_rparen()                             \
+  if (curr_token == tok_rparen && microsoft_bugs) {                      \
+    f_consume_any_stray_microsoft_rparen();                              \
+  }  /* if */
+#else /* MICROSOFT_EXTENSIONS_ALLOWED */
+#define consume_any_stray_microsoft_rparen()  /* Nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 #if DEBUG
 extern unsigned long db_show_routine_fixups_used(unsigned long grand_total);
 

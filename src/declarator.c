@@ -3231,6 +3231,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Advance past the "*", "&", or "Name::*". */
     (void)get_token();
+    consume_any_stray_microsoft_rparen();
     /* Scan any qualifiers following the pointer declarator, e.g.,
          int * const x;
     */
@@ -3293,6 +3294,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       /* Add the qualifiers to the complete type being built up. */
       complete_type = f_make_qualified_type(complete_type, qualifiers,
                                             upc_block_size);
+      consume_any_stray_microsoft_rparen();
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     /* Attributes may appear after the pointer declarator in some cases. */
@@ -3900,6 +3902,7 @@ passed to r_declarator.)
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !NEAR_AND_FAR_ALLOWED
 /*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in
                      Microsoft mode, and p_left_qualifiers is used only when
@@ -4223,6 +4226,7 @@ The syntax is:
                               &member_parent_type, decl_pos_block);
     }  /* if */
   }  /* if */
+  consume_any_stray_microsoft_rparen();
   /* The declarator can end at this point, or an array or function
      specification (or a series of them) can follow.  The additional
      specifications, if they appear, are parsed in their order of 
@@ -4502,6 +4506,7 @@ function_lparen:
     add_to_derived_type_list(new_type_ptr, &derived_type, &bottom_derived_type,
                              (input_flags & DI_IS_PARAMETER_DECL) != 0,
                              (input_flags & DI_IS_MICROSOFT_PROPERTY) != 0);
+    consume_any_stray_microsoft_rparen();
   }  /* while */
   /* Set the referenced flag on the specifiers type if this is the top-level
      scan of the declarator (i.e., if specifiers_type is non-NULL) -- but

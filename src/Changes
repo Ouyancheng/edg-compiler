@@ -1,5 +1,29 @@
 Version 3.6
 
+3/7/05   Microsoft compatibility: Parenthesized class member declarations
+
+Microsoft VC++ 7.1 introduced a parsing bug that causes it to accept and
+ignore a leading left parenthesis in class member declarations.  The matching
+right parenthesis may appear almost anywhere in the declaration or not at all.
+For example:
+
+  struct S {
+    ()unsigned int* a0[3];  // Accepted by VC++ 7.1 (emulated).
+    (unsigned) int* a1[3];  // Accepted by VC++ 7.1 (not emulated).
+    (unsigned int)* a2[3];  // Accepted by VC++ 7.1 (emulated).
+    (unsigned int*) a3[3];  // Accepted by VC++ 7.1 (emulated).
+    (unsigned int* a4)[3];  // Accepted by VC++ 7.1 (emulated).
+    (unsigned int* a5[)3];  // Accepted by VC++ 7.1 (not emulated).
+    (unsigned int* a6[3)];  // Accepted by VC++ 7.1 (not emulated).
+    (unsigned int* a7[3]);  // Accepted by VC++ 7.1 (emulated).
+    (unsigned int* a8[3];   // Accepted by VC++ 7.1 (emulated).
+  };
+
+The parentheses in this example are all ignored by the Microsoft compiler: The
+fields all have the same type ("array of 3 pointers to int").  We now partially
+emulate this behavior in Microsoft bugs mode when microsoft_version >= 1310.
+(In the example above, we emulate the cases marked with "(emulated)".)
+
 3/3/05   Missing access error on elaborated type specifier reference to
          an injected class name
 

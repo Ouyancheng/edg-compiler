@@ -1442,6 +1442,7 @@ ec_dllimport_defined;;"cannot define dllimport entity"
 ec_dll_interface_requires_external_linkage;;"dllexport/dllimport requires external linkage"
 ec_class_and_member_have_dll_interface;;"a member of a class declared with dllexport/dllimport cannot itself be declared with such a specifier"
 ec_field_without_dll_interface;;"field of class type without a DLL interface used in a class with a DLL interface"
+ec_microsoft_parenthesized_member;;"parenthesized member declaration is nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
