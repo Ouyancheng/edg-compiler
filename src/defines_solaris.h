@@ -87,6 +87,9 @@ Definitions for Solaris:
 Determine the C compiler being used to configure initialization handling
 in the C generating back end.
 */
+#ifdef SUNOS
+/* Don't configure under SunOS. */
+#else /* ifndef SUNOS */
 #ifdef __SUNPRO_C
 #else /* ifndef __SUNPRO_C */
 #ifdef __GNUC__
@@ -95,6 +98,7 @@ in the C generating back end.
 #define USE_INIT_SECTION_IN_GENERATED_C 1
 #endif /* ifdef __GNUC__ */
 #endif /* ifdef __SUNPRO_C */
+#endif /* ifdef SUNOS */
 
 
 /******************************************************************************
