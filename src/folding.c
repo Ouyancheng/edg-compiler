@@ -2015,6 +2015,21 @@ everything went fine.
     if (shift_right) {
       /* Shift right. */
       is_signed = int_constant_is_signed(constant_1);
+      /* If the operation is signed but the shift is unsigned, mask off the
+         high order bits of the integer value that are not actually part of
+         the value to be shifted.  This prevents those high order bits from
+         being shifted in to the result. */
+      if (is_signed && !targ_right_shift_is_arithmetic) {
+        an_integer_kind		tmp_ikind;
+        a_boolean		tmp_is_signed;
+        int			tmp_bit_size;
+        an_integer_value	mask;
+        /* Determine attributes (size, signedness) of the new integer kind. */
+        get_integer_attributes(result, &tmp_ikind, &tmp_is_signed,
+                               &tmp_bit_size);
+        make_integer_value_mask(&mask, tmp_bit_size);
+        and_integer_values(&result_value, &mask);
+      }  /* if */
       shift_right_integer_value(&result_value, value_2, is_signed,
                                /*sign_extend=*/targ_right_shift_is_arithmetic);
     } else {

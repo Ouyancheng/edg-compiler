@@ -1,5 +1,12 @@
 Version 2.42
 
+6/7/99   Improper logical right shift of negative value
+
+When TARG_RIGHT_SHIFT_IS_ARITHMETIC is TRUE, a right shift of a negative
+value smaller than the size of an_integer_value did not work properly; it
+failed to ignore the high order sign bits included in an_integer_value that
+were not part of the type on which the shift was done.  Now fixed.
+
 6/7/99   Extra source positions for block-extern redeclaration
 
 When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the source positions associated
