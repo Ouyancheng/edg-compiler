@@ -164,6 +164,26 @@ token that corresponds to it.
 }  /* enter_keyword */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void enter_underscore_keywords(a_token_kind token,
+                                      char         *keyword)
+/*
+This routine is called in Microsoft compatibility mode.  The string pointed
+to by keyword has a double-underscore prefix (e.g., __cdecl), and an
+alternate version with only one underscore is also allowed (e.g., _cdecl).
+token is the lexical token that corresponds to both.  Enter both keywords.
+*/
+{
+  check_assertion(microsoft_mode);
+  check_assertion_str(keyword[0] == '_' && keyword[1] == '_',
+                      "enter_underscore_keywords: expected \"__\" prefix");
+  enter_keyword(token, keyword);
+  enter_keyword(token, ++keyword);
+}  /* enter_underscore_keywords */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 static void enter_unimplemented_keyword(char          *keyword,
 					an_error_code error_code)
 /*
@@ -240,46 +260,40 @@ Install the keywords in the symbol table.
   if (microsoft_mode) {
     /* If Microsoft extensions are allowed, enter the keywords that are to
        be recognized. */
-    enter_keyword((a_token_kind)tok_cdecl, "__cdecl");
-    enter_keyword((a_token_kind)tok_cdecl, "_cdecl");
-    enter_keyword((a_token_kind)tok_declspec, "__declspec");
-    enter_keyword((a_token_kind)tok_fastcall, "__fastcall");
-    enter_keyword((a_token_kind)tok_fastcall, "_fastcall");
-    enter_keyword((a_token_kind)tok_microsoft_inline, "__inline");
-    enter_keyword((a_token_kind)tok_microsoft_inline, "_inline");
-    enter_keyword((a_token_kind)tok_stdcall, "__stdcall");
-    enter_keyword((a_token_kind)tok_stdcall, "_stdcall");
-    enter_keyword((a_token_kind)tok_unaligned, "__unaligned");
-    enter_keyword((a_token_kind)tok_microsoft_try, "__try");
-    enter_keyword((a_token_kind)tok_finally, "__finally");
-    enter_keyword((a_token_kind)tok_leave, "__leave");
-    enter_keyword((a_token_kind)tok_except, "__except");
+    enter_keyword((a_token_kind)tok_cdecl, "cdecl");
+    enter_underscore_keywords((a_token_kind)tok_cdecl, "__cdecl");
+    enter_underscore_keywords((a_token_kind)tok_declspec, "__declspec");
+    enter_underscore_keywords((a_token_kind)tok_fastcall, "__fastcall");
+    enter_underscore_keywords((a_token_kind)tok_microsoft_inline, "__inline");
+    enter_underscore_keywords((a_token_kind)tok_stdcall, "__stdcall");
+    enter_underscore_keywords((a_token_kind)tok_unaligned, "__unaligned");
+    enter_underscore_keywords((a_token_kind)tok_microsoft_try, "__try");
+    enter_underscore_keywords((a_token_kind)tok_finally, "__finally");
+    enter_underscore_keywords((a_token_kind)tok_leave, "__leave");
+    enter_underscore_keywords((a_token_kind)tok_except, "__except");
     if (targ_int8_int_kind != (an_integer_kind)ik_none) {
       /* There is a 8 bit target integer kind to which __int8 can map. */
-      enter_keyword((a_token_kind)tok_int8, "__int8");
+      enter_underscore_keywords((a_token_kind)tok_int8, "__int8");
     }  /* if */
     if (targ_int16_int_kind != (an_integer_kind)ik_none) {
       /* There is a 16 bit target integer kind to which __int16 can map. */
-      enter_keyword((a_token_kind)tok_int16, "__int16");
+      enter_underscore_keywords((a_token_kind)tok_int16, "__int16");
     }  /* if */
     if (targ_int32_int_kind != (an_integer_kind)ik_none) {
       /* There is a 32 bit target integer kind to which __int32 can map. */
-      enter_keyword((a_token_kind)tok_int32, "__int32");
+      enter_underscore_keywords((a_token_kind)tok_int32, "__int32");
     }  /* if */
     if (targ_int64_int_kind != (an_integer_kind)ik_none) {
       /* There is a 64 bit target integer kind to which __int64 can map. */
-      enter_keyword((a_token_kind)tok_int64, "__int64");
+      enter_underscore_keywords((a_token_kind)tok_int64, "__int64");
     }  /* if */
-    enter_keyword((a_token_kind)tok_based, "__based");
-    enter_keyword((a_token_kind)tok_based, "_based");
+    enter_underscore_keywords((a_token_kind)tok_based, "__based");
     if (il_header.microsoft_16_mode) {
       /* Enter 16-bit mode keywords. */
       enter_keyword((a_token_kind)tok_near, "near");
-      enter_keyword((a_token_kind)tok_near, "_near");
-      enter_keyword((a_token_kind)tok_near, "__near");
+      enter_underscore_keywords((a_token_kind)tok_near, "__near");
       enter_keyword((a_token_kind)tok_far, "far");
-      enter_keyword((a_token_kind)tok_far, "_far");
-      enter_keyword((a_token_kind)tok_far, "__far");
+      enter_underscore_keywords((a_token_kind)tok_far, "__far");
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -291,19 +305,16 @@ Install the keywords in the symbol table.
   } else {
     enter_keyword((a_token_kind)tok_asm, "asm");
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* "__asm" and "_asm" are accepted in Microsoft mode. */
+    enter_underscore_keywords((a_token_kind)tok_asm, "__asm");
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
   /* Enter "__asm" as a synonym for "asm" -- it too maps to tok_asm.  Note
      that in strict ANSI C mode, "__asm" is recognized but "asm" is not. */
   enter_keyword((a_token_kind)tok_asm, "__asm");
-#else /* !ASM_FUNCTION_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
-    /* "__asm" is also accepted in Microsoft mode. */
-    enter_keyword((a_token_kind)tok_asm, "__asm");
-    /* "_asm" is also accepted. */
-    enter_keyword((a_token_kind)tok_asm, "_asm");
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ASM_FUNCTION_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
     /* Enter C++ keywords that are not also C keywords. */
