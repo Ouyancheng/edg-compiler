@@ -24,6 +24,7 @@ class_decl.c -- Scanning of class declarations.
 #include "error.h"
 #include "expr.h"
 #include "exprutil.h"
+#include "lang_feat.h"
 #include "cmd_line.h"
 #include "types.h"
 #include "mem_tables.h"
@@ -1907,6 +1908,49 @@ data section in new_bcp.
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
 
 
+static void set_pointer_base_class(a_base_class_ptr       base_class,
+                                   a_derivation_step_ptr  path)
+/*
+Set the pointer_base_class field of a virtual base class.  It will be the
+nonvirtual base class in its derivation path that is furthest along the
+derivation path without having any virtual base classes of its own.  For
+instance, given this derivation:
+    ==>D==>C==>V1==>B==>A==>V2
+(where base classes V1 and V2 are virtual and the others are nonvirtual)
+the pointer_base_class for both V1 and V2 is C.
+*/
+{
+  a_derivation_step_ptr  dsp;
+
+  /* The root of the path is virtual, there are no qualifying base classes. */
+  if (!path->base_class->is_virtual) {
+    /* Traverse the path till the end is reached or until a virtual base is
+       next.  In either case, the base class at that point is the one we
+       want. */
+    for (dsp = path;; dsp = dsp->next) {
+      if (dsp->next == NULL || dsp->next->base_class->is_virtual) {
+#if CHECKING
+        /* Consistency check. */
+        a_base_class_ptr  bcp = base_classes_of(dsp->base_class->type);
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->type == base_class->type && bcp->is_virtual) {
+            if (bcp->pointer_base_class != NULL) {
+              internal_error("set_pointer_base_class: mismatch");
+            }  /* if */
+            break;
+          } else if (bcp->next == NULL) {
+            internal_error("set_pointer_base_class: missing base class");
+          }  /* if */
+        }  /* for */
+#endif /* CHECKING */
+        base_class->pointer_base_class = dsp->base_class;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* set_pointer_base_class */
+
+
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
                                     a_base_class_ptr      directly_derived_bcp,
                                     a_base_class_ptr      *p_end_of_add_list,
@@ -1943,9 +1987,8 @@ duplicate paths.  The copy will be a base class of new_class.
         /* If bcp is (or becomes) a direct base class, the pointer_base_class
            field will identify the base class that contains a pointer to its
            data section. */
-        if (bcp->pointer_base_class == NULL &&
-            !directly_derived_bcp->any_virtual_steps_in_derivation) {
-          bcp->pointer_base_class = directly_derived_bcp;
+        if (bcp->pointer_base_class == NULL) {
+          set_pointer_base_class(bcp, path);
         }  /* if */
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
         /* complete_subobject flag should already be TRUE since bcp is a
@@ -1977,21 +2020,13 @@ duplicate paths.  The copy will be a base class of new_class.
   new_bcp->access = base_class_to_copy->access;
   if (base_class_to_copy->is_virtual) {
     new_bcp->is_virtual = TRUE;
-    if (!directly_derived_bcp->any_virtual_steps_in_derivation) {
-      /* If new_bcp becomes a direct base class, the pointer_base_class field
-         will identify the base class that contains a pointer to its data
-         section. */
-      new_bcp->pointer_base_class = directly_derived_bcp;
-#if 0
-#else
-    /* Is this correct? */
-    } else if (directly_derived_bcp->is_virtual) {
-      new_bcp->pointer_base_class = directly_derived_bcp->pointer_base_class;
-#endif /* if 0 */
-    }  /* if */
+    set_pointer_base_class(new_bcp, path);
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
     /* The data section of an indirect virtual base class is in the
        complete subobject to which it belongs. */
+#if 0
+    /* Is this right? */
+#endif /* if 0 */
     if (!directly_derived_bcp->is_virtual &&
         directly_derived_bcp->complete_subobject) {
       new_bcp->data_section_base_class = directly_derived_bcp;
