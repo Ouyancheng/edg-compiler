@@ -174,6 +174,20 @@ By default, configure for ANSI C if __STDC__ is set, and for BSD4.n otherwise.
             be set.
 #endif /* __ANSIC__ + ... */
 
+/*
+USING_ISO_C is TRUE if the compiler being used to build the front end
+is an ISO C compiler or C++ compiler.  This is used to determine whether
+certain language features and preprocessing features are available.
+*/
+#ifndef USING_ISO_C
+#ifdef __STDC__
+#define USING_ISO_C TRUE
+#else /* !__STDC__ */
+#define USING_ISO_C FALSE
+#endif /* __STDC__ */
+#endif /* ifndef USING_ISO_C */
+
+
 #include <stdio.h>
 #if __BSD__
 /* Some stdio.h's do not define sprintf.  This declaration will be included
