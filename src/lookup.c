@@ -977,6 +977,10 @@ scope lookup.  options specifies the options being used for the lookup.
            contexts. */
        set_namespace_projection_symbol(curr_sym, new_sym,
                                        depth_scope_stack);
+      } else if (fund_curr_sym->kind == (a_symbol_kind)sk_undefined) {
+        /* The current symbol is an sk_undefined symbol.  Use a "real" symbol
+           if one is available, for better error recovery. */
+        set_namespace_projection_symbol(curr_sym, new_sym, depth_scope_stack);
       }  /* if */
     } else {
       /* Both symbols are functions. */

@@ -1,5 +1,11 @@
 Version 2.33
 
+9/4/96  Ambiguous undefined namespace projection symbol causes internal error
+
+An internal error may result when an ambiguous namespace projection symbol
+refers to an undefined symbol entry that is created when an undefined
+name has been referenced.  This has been fixed.
+
 9/3/96  Default for for-init semantic in Microsoft mode
 
 Because the Microsoft MSVC++ compiler does not yet support the new for-init
