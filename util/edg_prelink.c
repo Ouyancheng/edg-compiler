@@ -1929,6 +1929,10 @@ Execute the command to recompile a file.
   /* If the specified directory is different than the current
      one (and is not a null string), then we need to switch directories
      before doing the compilation. */
+  if (dir_name == NULL || file_name == NULL) {
+    /* The pointers may point to empty strings, but must not be null. */
+    pl_internal_error("dir_name or file_name NULL in pl_recompile_file");
+  }  /* if */
   chdir_needed = strcmp(dir_name, curr_dir_name) != 0 &&
                  strcmp(dir_name, "") != 0;
   if (chdir_needed) {
@@ -2067,6 +2071,12 @@ has changed then write the updated list of instantiations to the file.
   /* We allocate one additional array element because it is possible
      for there to be zero reserved lines. */
   char *reserved_lines[INSTANTIATION_INFO_LINES_RESERVED + 1];
+  /* Initialize the array so that we can check for invalid
+     references (i.e., if INSTANTIATION_INFO_LINES_RESERVED is
+     set incorrectly. */
+  for (i = 0; i < INSTANTIATION_INFO_LINES_RESERVED; ++i) {
+    reserved_lines[i] = NULL;
+  }  /* for */
 
   pifp = pl_input_files;
   while (pifp != NULL) {
