@@ -3667,6 +3667,45 @@ the diagnostic is suppressed.
 }  /* check_for_invalid_instantiation */
 
 
+static void check_for_declaration_errors(a_decl_flag_set   dso_flags,
+					 a_type_ptr	   type,
+                                         a_symbol_locator  *locator,
+					 a_source_position *pos)
+/*
+This routine is used to detect certain kinds of errors related to
+the processing of a declaration in a function template declaration,
+explicit instantiation or specialization.  
+
+dso_flags and type are the values returned from decl_specifiers and
+declarator. pos is the position to be used if a diagnostic is issued.
+*/
+{
+  /* Make sure the lookup was not ambiguous. */
+  check_for_ambiguity(locator);
+  if (!is_error_locator(*locator)) {
+    a_boolean	is_function;
+    is_function = is_function_type(type);
+    if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+      if (is_function_type(type) &&
+          (((dso_flags & (DSO_CONSTRUCTOR | DSO_DESTRUCTOR)) != 0) ||
+           locator->is_conversion_name)) {
+        /* No type specifier is required. */
+      } else {
+        /* Error on omitted type specifier. */
+        report_missing_type_specifier(
+                                  pos, is_function, /*is_function_def=*/FALSE,
+                                  (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0);
+      }  /* if */
+    }  /* if */
+    if (dso_flags & DSO_DEFINES_SOMETHING) {
+      /* The type specifiers included a type definition, which is not allowed
+         in this context. */
+      pos_error(ec_type_definition_not_allowed, pos);
+    }  /* if */
+  }  /* if */
+}  /* check_for_declaration_errors */
+
+
 static void scan_template_declaration(a_boolean         is_initial_decl,
                                       a_boolean         is_member_decl,
                                       a_type_ptr	parent_class,
@@ -3765,6 +3804,7 @@ with the original declaration of a template and is only present
          previously reported error. */
       set_to_named_error_locator(*locator);
     }  /* if */
+    check_for_declaration_errors(*dso_flags, *type, locator, &decl_start_pos);
     func_info->is_inline = ((*dso_flags & DSO_INLINE) != 0);
     /* Note whether this is a function type that comes from a typedef.  The
        setting is checked later if this turns out to be a function template
@@ -7417,43 +7457,6 @@ been instantiated, update the befriending information for the instances.
 }  /* add_befriending_class_to_function_template */
 
 
-static void check_for_declaration_errors(a_decl_flag_set   dso_flags,
-					 a_type_ptr	   type,
-					 a_symbol_ptr      sym,
-                                         a_symbol_locator  *locator,
-					 a_source_position *pos)
-/*
-This routine is used to detect certain kinds of errors related to
-the processing of a declaration in an explicit instantiation or
-specialization.  
-
-dso_flags and type are the values returned from decl_specifiers and
-declarator.  sym is the symbol associated with the declarator.  pos
-is the position to be used if a diagnostic is issued.
-*/
-{
-  /* Make sure the lookup was not ambiguous. */
-  check_for_ambiguity(locator);
-  if (!is_error_locator(*locator)) {
-    if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
-      if (is_function_type(type) && sym != NULL &&
-          (is_constructor_symbol(sym) || is_destructor_symbol(sym) ||
-           is_conversion_function_symbol(sym))) {
-        /* No type specifier is required. */
-      } else {
-        /* Error on omitted type specifier. */
-        pos_diagnostic(es_discretionary_error, ec_missing_type_specifier, pos);
-      }  /* if */
-    }  /* if */
-    if (dso_flags & DSO_DEFINES_SOMETHING) {
-      /* The type specifiers included a type definition, which is not allowed
-         in this context. */
-      pos_error(ec_type_definition_not_allowed, pos);
-    }  /* if */
-  }  /* if */
-}  /* check_for_declaration_errors */
-
-
 static void complete_function_template_decl(
                      a_tmpl_decl_state_ptr	      decl_state,
                      a_symbol_ptr                     sym,
@@ -7663,7 +7666,7 @@ declaration (following any template clauses).
   sym = locator->specific_symbol;
   if (!is_error_locator(*locator)) {
     /* Check for errors such as a missing type specifier. */
-    check_for_declaration_errors(dso_flags, type, sym, locator, start_pos);
+    check_for_declaration_errors(dso_flags, type, locator, start_pos);
   }  /* if */
   if (is_error_locator(*locator)) {
     /* Ignore it. */
@@ -8533,8 +8536,7 @@ that follows.
         sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
       }  /* if */
     }  /* if */
-    check_for_declaration_errors(dso_flags, type, sym, &locator,
-                                 &decl_start_pos);
+    check_for_declaration_errors(dso_flags, type, &locator, &decl_start_pos);
     if (is_error_locator(locator)) {
       /* Ignore it. */
     } else if (sym == NULL) {
@@ -10450,7 +10452,7 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   if (sym == NULL) {
     sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
   }  /* if */
-  check_for_declaration_errors(dso_flags, type, sym, &locator, start_pos);
+  check_for_declaration_errors(dso_flags, type, &locator, start_pos);
   if (sym == NULL) {
     /* No symbol was found.  If the declarator has a function type
        then say that the name is undefined.  If it was not a function

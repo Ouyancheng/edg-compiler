@@ -1,5 +1,12 @@
 Version 2.35
 
+2/13/97 Missing error on type definition in function template return type
+
+No diagnostic was issued when a type definition appeared in the return type
+of a function template.  This has been fixed.
+
+  template <class T> const struct X { int i; } f(T);
+
 2/13/97 Error on base-specifier that depends on a template parameter
 
 An error is now issued if a base-specifier depends on a template parameter
