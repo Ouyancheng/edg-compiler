@@ -3144,6 +3144,69 @@ be found.
 }  /* opname_function_symbol */
 
 
+static void add_routine_to_symbol_list(a_symbol_list_entry_ptr *list_head,
+				       a_symbol_ptr	       sym)
+/*
+This routine is used when constructing a list of nonmember operator symbols.
+list_head points to the list of symbols already found.  sym points to
+the symbol to be added to the list, which could be an overloaded function
+symbol.  When an overloaded function symbol is added to the list, the
+individual routines under the overloaded function symbol are each added
+separately.  The list is checked for each routine that is added so that
+no routine is on the list twice.
+*/
+{
+  a_symbol_ptr			rout_sym = sym;
+  a_boolean			is_list = FALSE;
+  a_symbol_list_entry_ptr	slep;
+
+  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    rout_sym = sym->variant.overloaded_function.symbols;
+    is_list = TRUE;
+  }  /* if */
+  for (; rout_sym != NULL; rout_sym = is_list ? rout_sym->next : NULL) {
+    /* Go through the symbol list for each routine associated with
+       the new symbol. */
+    a_symbol_ptr	sym_to_find;
+    /* Use the fundamental symbol.  The symbol passed in could be a namespace
+       projection symbol, including a synthesized namespace projection symbol
+       created by a using-directive lookup. */
+    sym_to_find = fundamental_symbol_of(rout_sym);
+    check_assertion_str2(
+                     sym_to_find->kind == (a_symbol_kind)sk_routine ||
+                     sym_to_find->kind == (a_symbol_kind)sk_function_template,
+                     "nonmember_operator_function_lookup:", "bad symbol kind");
+    for (slep = *list_head; slep != NULL; slep = slep->next) {
+      a_symbol_ptr	list_sym = slep->symbol;
+      if (list_sym->kind == sym_to_find->kind) {
+        if (list_sym->kind == (a_symbol_kind)sk_routine) {
+          if (list_sym->variant.routine.ptr ==
+                                            sym_to_find->variant.routine.ptr) {
+            /* We've found a match -- exit the loop. */
+            break;
+          }  /* if */
+        } else {
+          if (list_sym->variant.template_info ==
+                                          sym_to_find->variant.template_info) {
+            /* We've found a match -- exit the loop. */
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* If the routine was not found under any of the symbols on the
+       list, create a new entry for it now. */
+    if (slep == NULL) {
+      slep = alloc_symbol_list_entry();
+      slep->symbol = sym_to_find;
+      /* Add the new entry to the front of the list. */
+      slep->next = *list_head;
+      *list_head = slep;
+    }  /* if */
+  }  /* for */
+}  /* add_routine_to_symbol_list */
+
+
 a_symbol_list_entry_ptr nonmember_operator_function_lookup(
                                  an_opname_kind kind,
                                  a_type_ptr	type_1,
@@ -3159,6 +3222,10 @@ pointed to by type_1 and type_2 including the namespaces of their base
 classes.  type_1 and type_2 may point to any kind of type or may be
 NULL.  If the type pointed to by type_1 or type_2 is not a class
 type, that type is ignored by this routine.
+
+The result of this lookup is a symbol list, each entry of which points
+to a routine or function template (i.e., there are no overloaded
+functions symbols or namespace projection symbols in the list).
 */
 {
   a_namespace_list_entry_ptr	nlep_1 = NULL;
@@ -3230,12 +3297,7 @@ type, that type is ignored by this routine.
           if (nlep != NULL) {
             /* The namespace was found on one of the lists.  Create a symbol
                list entry that points to this symbol and add it so the list. */
-            a_symbol_list_entry_ptr	slep;
-            slep = alloc_symbol_list_entry();
-            slep->symbol = sym;
-            /* Add the new entry to the front of the list. */
-            slep->next = symbol_list;
-            symbol_list = slep;
+            add_routine_to_symbol_list(&symbol_list, sym);
           }  /* if */
         }  /* for */
       }  /* for */
@@ -3248,88 +3310,11 @@ type, that type is ignored by this routine.
       make_opname_locator(kind, &locator, &pos_curr_token);
       sym = normal_id_lookup(&locator, IDL_SKIP_CLASS_SCOPES);
       if (sym != NULL) {
-        a_symbol_list_entry_ptr	slep;
+        add_routine_to_symbol_list(&symbol_list, sym);
+        /* It shoujld not be possible for the lookup to return an ambiguity.
+           Functions are always combined into overload sets by using-directive
+           lookups, and anything with an operator name must be a function. */
         check_assertion(!locator.specific_symbol->ambiguous);
-        /* See if this symbol is already on the list. */
-        for (slep = symbol_list; slep != NULL; slep = slep->next) {
-          /* The same routine should not appear on the list twice.
-             First see if the symbol pointers are the same.  If the
-             symbol pointers are different, see if one of the routines
-             pointed to by the by the symbol on the list matches the
-             new symbol. */
-          if (slep->symbol == sym) break;
-        }  /* for */
-        if (slep == NULL) {
-          /* The symbol is not on the list.  See if the routine(s) pointed
-             to by the symbol are already present under one of the symbols
-             on the current list.  If the new symbol is an overload set,
-             process each element separately and add each one to the
-             symbol list individually. */
-          a_boolean	is_list = FALSE;
-          a_symbol_ptr	rout_sym = sym;
-          /* If the new symbol is an overload set, process each element of
-             the overload list. */
-          if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-            rout_sym = sym->variant.overloaded_function.symbols;
-            is_list = TRUE;
-          }  /* if */
-          for (; rout_sym != NULL;
-               rout_sym = is_list ? rout_sym->next : NULL) {
-            /* Go through the symbol list for each routine associated with
-               the new symbol. */
-	    a_symbol_ptr	sym_to_find;
-            /* Use the fundamental symbol.  The normal lookup could return
-               a synthesized namespace projection symbol, or an overloaded set
-               that points to a synthesized namespace projection. */
-            sym_to_find = fundamental_symbol_of(rout_sym);
-            check_assertion_str2(sym_to_find->kind ==
-                                                   (a_symbol_kind)sk_routine ||
-                                 sym_to_find->kind ==
-                                           (a_symbol_kind)sk_function_template,
-                                 "nonmember_operator_function_lookup:",
-                                 "bad symbol kind");
-            for (slep = symbol_list; slep != NULL; slep = slep->next) {
-              a_symbol_ptr	list_sym = slep->symbol;
-	      a_boolean		list_is_list = FALSE;
-              /* If the list entry is an overload set, look through the
-                 list of overloaded functions for a match. */
-              if (list_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-                list_is_list = TRUE;
-                list_sym = list_sym->variant.overloaded_function.symbols;
-              }  /* if */
-              for (; list_sym != NULL;
-                   list_sym = list_is_list ? list_sym->next : NULL) {
-                if (list_sym->kind == sym_to_find->kind) {
-                  if (list_sym->kind == (a_symbol_kind)sk_routine) {
-                    if (list_sym->variant.routine.ptr ==
-                                            sym_to_find->variant.routine.ptr) {
-                      /* We've found a match -- exit the loop. */
-                      break;
-                    }  /* if */
-                  } else {
-                    if (list_sym->variant.template_info ==
-                                          sym_to_find->variant.template_info) {
-                      /* We've found a match -- exit the loop. */
-                      break;
-                    }  /* if */
-                  }  /* if */
-                }  /* if */
-              }  /* for */
-              /* If the routine was found in the symbol list of this list
-                 entry, stop the search. */
-              if (list_sym != NULL) break;
-            }  /* for */
-            /* If the routine was not found under any of the symbols on the
-               list, create a new entry for it now. */
-            if (slep == NULL) {
-              slep = alloc_symbol_list_entry();
-              slep->symbol = sym_to_find;
-              /* Add the new entry to the front of the list. */
-              slep->next = symbol_list;
-              symbol_list = slep;
-            }  /* if */
-          }  /* for */
-        }  /* if */
       }  /* if */
     }
   }  /* if */

@@ -1,5 +1,27 @@
 Version 2.36
 
+3/5/97   Namespace operator lookup and using-declarations
+
+A bug has been fixed that resulted in a spurious ambiguity error when
+importing operator functions into a namespace with a using-declaration.
+The bug would occur when a using-declaration names an overloaded set of
+operator functions, and the actual call of the operator uses an object
+of a derived class declared in the namespace containing the using-declaration
+and whose base class is in the namespace in which the operator functions
+were initially declared.
+
+  namespace N {
+    struct B {};
+    B& operator<<(B& os, char c);
+    B& operator<<(B& os, const char* c);
+  }
+  using N::operator<<;
+  struct A: public N::B {};
+  int main() {
+    A a;
+    a << "hello";
+  }
+
 3/5/97   IL CHANGE: source-sequence-entry pointer in IL entities
 
 For implementations in which GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the
