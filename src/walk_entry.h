@@ -970,7 +970,16 @@ the file scope, do not process it (but record an orphan in the latter case).
 do_definition_needed_if_class:
                   definition_needed_if_class(optype);
                   break;
+                case eok_dynamic_cast:
+                  /* Destination class (pointed to by result type) must be
+                     complete.  Watch out for the case where the result type
+                     is "void *". */
+                  optype = type_pointed_to(ptr->type);
+                  definition_needed_if_class(optype);
+                  /* Source type must also be complete. */
+                  goto cast_source_type_must_be_pointer_to_complete_class;
                 case eok_base_class_cast:
+cast_source_type_must_be_pointer_to_complete_class:
                   /* First operand is a pointer to class. */
                   optype = type_pointed_to(
                                         ptr->variant.operation.operands->type);

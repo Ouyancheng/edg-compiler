@@ -1,5 +1,17 @@
 Version 2.36
 
+4/22/97   Needed flag walk: dynamic_cast source/destination must be pointers
+          to complete classes
+
+The "needed" flag walk notes that certain IL operations require completeness
+of the underlying class types, and ensures that the associated class
+definitions are not removed.  This process did not correctly note
+that the dynamic_cast operation requires that its source and
+destination types be pointers to complete class types, so class
+definitions were sometimes removed even though they were required.
+This affected only versions that do not use IL lowering (e.g., those
+using the C++-generating back end).
+
 4/22/97   Microsoft compatibility:  long + int is int
 
 The Microsoft Visual C++ compiler, amazingly, considers that an expression
