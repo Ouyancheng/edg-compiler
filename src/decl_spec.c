@@ -4888,10 +4888,12 @@ Returns TRUE if there is an error in the specifiers.
           error(ec_inline_not_allowed);
           err = TRUE;
         } else if (decl_specifiers_seen & DS_INLINE) {
-          /* Only one "inline" specifier at a time. */
-          diagnostic(microsoft_mode ? es_warning : es_error,
+          /* Only one "inline" specifier at a time.  C99 and Microsoft C++
+             allow multiple "inline" specifiers, but that is unlikely the
+             intent of a programmer. */
+          diagnostic((c99_mode || microsoft_mode) ? es_warning : es_error,
                      ec_dupl_decl_specifier);
-          if (!microsoft_mode) {
+          if (!(c99_mode || microsoft_mode)) {
             err = TRUE;
           }  /* if */
         } else if (input_flags & DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS) {
