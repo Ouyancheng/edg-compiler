@@ -719,17 +719,18 @@ Write the tag lookup table to the error data file.
           number_of_tags);
   /* Generate the sorted list of tags and associated enumerators. */
   fprintf(data_output_file,
-          "static an_error_tag_entry error_tags[NUMBER_OF_ERROR_TAGS]\n");
-  fprintf(data_output_file, "#ifndef _lint\n= {\n");
+          "static an_error_tag_entry error_tags[NUMBER_OF_ERROR_TAGS] = {\n");
+  fprintf(data_output_file, "#ifndef _lint\n");
   for (i = 0; i < number_of_tags; ++i) {
     /* If this is not the first time through, terminate the previous line. */
     if (i != 0) fprintf(data_output_file, ",\n");
     fprintf(data_output_file, "  \"%s\", %s", tag_info[i].tag,
             tag_info[i].enumerator);
   }  /* for */
-  fprintf(data_output_file, "\n}\n");
+  fprintf(data_output_file, "\n#else /* ifdef _lint */\n");
+  fprintf(data_output_file, "  0, 0\n");
   fprintf(data_output_file, "#endif /* ifndef _lint */\n");
-  fprintf(data_output_file, ";\n");
+  fprintf(data_output_file, "};\n");
 }  /* me_write_tag_table */
 
 
