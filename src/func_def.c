@@ -2103,7 +2103,7 @@ indicated scope.
     }  /* for */
   }  /* if */
   db_exit();
-}  /* generate_virtual_destructor_bodies_for_scope */
+}  /* generate_required_virtual_destructor_bodies */
 
 
 /******************************************************************************
