@@ -8,6 +8,17 @@ a weight of "standard conversion" (this is what cfront 2.1 seems to do).
 Now, they are given the proper weight -- exact, promotion, or standard
 conversion.  The old behavior continues in cfront 2.1 mode.
 
+2/19/95  Is Derived::operator=(const Base&) a "copy assignment operator"?
+
+If Base is a base class of Derived, Derived::operator=(const Base&) is
+treated by cfront as a copy assignment operator -- that is, its declaration
+blocks the implicit generation of Derived::operator=(const Derived&).
+Although this is inconsistent with the ARM and the Working Paper, it is
+depended on by USL's standard components library.
+
+In default mode (as well as cfront mode) we treat it as a copy assignment
+operator.  In strict ANSI mode we do not.
+
 2/17/95  Digraph and operator keyword support
 
 The front end now supports C++ digraphs (e.g., <&%, %>, etc.), and
@@ -16,7 +27,7 @@ are likely to cause problems for existing programs, the alternate tokens
 are disabled by default.  The default may be changed by setting the
 configuration flag DEFAULT_ALTERNATE_KEYWORDS_ALLOWED.  They may
 also be enabled or disabled on the command line using the 
---alternate_tokens and --no_alternater_tokens command line options.
+--alternate_tokens and --no_alternate_tokens command line options.
 
 An example of an incompatibility caused by this feature is:
 
