@@ -1742,6 +1742,14 @@ The position of the current token will be used as the operand position.
   } else {
     /* Normal (non-reference) case. */
     make_constant_operand(con_ptr, operand);
+    if (is_template_dependent_context() &&
+        con_ptr->kind == (a_constant_repr_kind)ck_template_param &&
+        con_ptr->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function) {
+      /* Unknown functions in prototype instantiations start out as function
+         designators. */
+      operand->state = (an_operand_state)os_function_designator;
+    }  /* if */
   }  /* if */
 }  /* make_sym_constant_operand */
 
