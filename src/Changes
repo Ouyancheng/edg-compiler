@@ -1,5 +1,18 @@
 Version 2.45
 
+12/6/00  Internal error on default arguments of member functions
+
+When DEFAULT_INSTANTIATIONS_PERMITTED_IN_CLASS_SRC_SEQ_LIST is TRUE and
+source sequence entries are generated for template instantiations, the
+front end used to abort with an internal error while processing the default
+argument of a member function.  E.g.,
+
+  struct S {
+    void f(int a = 0) {}  // Used to cause an abort in certain
+  };                      // configurations.
+
+This is now fixed.
+
 12/6/00  C99 support
 
 We have added support for the 1999 version of the ISO C standard.
