@@ -2032,7 +2032,7 @@ error code.
       m = "%n is used before its value is set";
       break;
     case ec_set_but_not_used:
-      m = "value of %n was set but never used";
+      m = "%n was set but never used";
       break;
     case ec_bad_scope_for_definition:
       m = "%n cannot be defined in the current scope";
