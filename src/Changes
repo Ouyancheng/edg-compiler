@@ -1,5 +1,12 @@
 Version 2.26
 
+9/7/94   Order in which different pragma kinds are processed
+
+Formerly, if an immediate pragma was followed by a next construct pragma, the
+next construct pragma would be processed first.  This has been changed
+so that any immediate pragmas will be processed when
+select_curr_construct_pragmas is called. 
+
 9/7/94   Storage class of static template functions
 
 A bug was introduced into version 2.17 that caused static (nonmember)

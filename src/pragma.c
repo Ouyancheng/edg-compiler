@@ -479,11 +479,12 @@ the pragma is copied to the curr_construct_pragmas list.
 If add_to_list is TRUE, any new entries are added to the end of
 the list.  If it is FALSE, the existing list must be empty.
 If binding kind does not match the flags passed by the caller an error
-is issued.  Pragmas that don't bind to the next declaration/statement
-remain on the current token pragma list.  If there are any pragmas on
-the curr_construct_pragmas (either ones that were already
-on the list, or new ones added by this call) return TRUE; otherwise
-return FALSE.
+is issued.  After any next construct pragmas have been removed from
+the current token pragma list, process_curr_token_pragmas is called to
+take the appropriate actions for the remaining pragmas.  If there are
+any pragmas on the curr_construct_pragmas (either ones that were
+already on the list, or new ones added by this call) return TRUE;
+otherwise return FALSE.
 */
 {
   a_pending_pragma_ptr		list_start;
@@ -556,6 +557,10 @@ return FALSE.
     ppp = next_ppp;
   }  /* while */
   *curr_list_of_curr_construct_pragmas() = list_start;
+  /* Call process_curr_token_pragmas to handle other pragma kinds.  This
+     ensures that any immediate pragmas will be processed before any
+     next construct pragmas found at the same point. */
+  if (curr_token_pragmas != NULL) process_curr_token_pragmas();
   db_exit();
   /* Return TRUE if there are any entrys of the list. */
   return list_start != NULL;
@@ -1160,9 +1165,6 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/FALSE,
 		 /*ignore_in_back_end=*/FALSE,
                  es_warning);
-#if 0
-  /* Change lint comment error severities to es_none. */
-#endif 
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_lint_argsused,
 		 (a_next_construct_pragma_function_ptr)NULL,
