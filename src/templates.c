@@ -2377,7 +2377,8 @@ entry is pushed on the scope stack.
       }  /* if */
     }  /* if */
     if (!is_function_type(type) && sym != NULL &&
-        sym->kind == (a_symbol_kind)sk_static_data_member) {
+        sym->kind == (a_symbol_kind)sk_static_data_member_template) {
+      sym->variant.templ.extra_info->parameters = template_param_list;
       /* Special processing for static data member declarations. */
       if (curr_token == tok_assign) {
         (void)get_token();
