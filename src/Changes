@@ -1,5 +1,12 @@
 Version 2.26
 
+9/15/94  Return type checking for operator->()
+
+The checking that is done for the return type of an operator-> function is
+delayed to the point of call (if any) when the function is a member of a
+class generated from a template (but not of an explicitly specialized
+template class).  The error message has been improved to use fill-ins.
+
 9/15/94  Reference to virtual destructor in delete
 
 A delete operator for a class with a virtual destructor no longer sets
