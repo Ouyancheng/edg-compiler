@@ -371,9 +371,15 @@ Initialize target machine characteristics.
     bits = size * targ_char_bit;
     if (int_kind_is_signed[TARG_DELTA_INT_KIND]) bits -= 1;
     temp = ~((~(unsigned long)0) << bits);
+    /* Add an extra byte, since it should be okay for a struct to extend
+       one past the maximum field offset. */
+    if (temp < ULONG_MAX) temp += 1;
     if (temp > (unsigned long)targ_size_t_max) {
       /* It shouldn't exceed the maximum that can fit in a_targ_size_t. */
-      targ_max_class_object_size = targ_size_t_max;
+      temp = (unsigned long)targ_size_t_max;
+    }  /* if */
+    if (temp >= targ_max_class_object_size) {
+      /* Don't increase the maximum size beyond what was specified. */
     } else {
       targ_max_class_object_size = (a_targ_size_t)temp;
     }  /* if */
