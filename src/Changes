@@ -128,7 +128,7 @@ This is now fixed (i.e., such code is now accepted).
 
 1/12/04  GNU C++ mode: Class types with size zero
 
-In GNU C++ mode, struct containing only data members of zero-length array
+In GNU C++ mode, structs containing only data members of zero-length array
 types now have size zero.  (Note that empty class types still have size 1.)
 For example:
 
