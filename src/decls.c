@@ -9598,15 +9598,6 @@ continue_with_declaration:
       incomplete_type_error_reported = FALSE;
       if (has_initializer) {
         /* Initializer is present.  Scan it. */
-        /* If the symbol is a parameter, the subroutine will generate the
-           error.  This is done rather than flagging the error here because
-           the subroutine can scan over the initializer expression neatly. */
-        initializer(symbol_ptr, &locator.source_position, linkage,
-                    has_parenthesized_initializer, is_old_style_param_decl,
-                    &incomplete_type_error_reported);
-        /* Fetch the type of the symbol again, since it might have been
-           changed if it was an incomplete array and was initialized. */
-        if (var_ptr != NULL) local_type_ptr = var_ptr->type;
         if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
             !is_old_style_param_decl) {
           /* Set the storage class of a file-scope initialized variable to
@@ -9623,6 +9614,15 @@ continue_with_declaration:
           symbol_ptr->defined = TRUE;
           mark_variable_value_set(symbol_ptr);
         }  /* if */
+        /* If the symbol is a parameter, the subroutine will generate the
+           error.  This is done rather than flagging the error here because
+           the subroutine can scan over the initializer expression neatly. */
+        initializer(symbol_ptr, &locator.source_position, linkage,
+                    has_parenthesized_initializer, is_old_style_param_decl,
+                    &incomplete_type_error_reported);
+        /* Fetch the type of the symbol again, since it might have been
+           changed if it was an incomplete array and was initialized. */
+        if (var_ptr != NULL) local_type_ptr = var_ptr->type;
       } else if (is_definition && !is_error_locator(locator) &&
                  var_ptr->init_kind == (an_init_kind)initk_none) {
         /* Uninitialized variable or static data member is being defined, but
@@ -9645,9 +9645,9 @@ continue_with_declaration:
                  (local_storage_class == (a_storage_class)sc_extern ||
                   is_tentative_definition)) {
         /* Either:  This is not a definition of a variable but rather an extern
-           declaration.  Such variables may be assumed to be initialized
-           at the point of definition, flag them as "set" (even if it is not
-           at the current declaration). */
+           declaration.  Such a variable may be assumed to be initialized
+           at the point of definition, so flag it as "set" (even if it is not
+           actually set at the current declaration). */
         /* Or else:  This is a tentative definition (C mode only), which should
            be treated as though it were a definition. */
         mark_variable_value_set(symbol_ptr);
