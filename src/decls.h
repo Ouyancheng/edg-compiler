@@ -108,15 +108,15 @@ extern a_boolean scan_conversion_operator(a_source_position  *pos);
 
 extern a_type_ptr type_keyword(void);
 
+extern a_boolean check_function_return_type(a_type_ptr         return_type,
+                                            a_source_position  *err_pos,
+                                            a_boolean          is_call);
+
 extern void adjust_parameter_type(a_type_ptr *type_ptr);
 
 extern void check_operator_function_params(a_type_ptr        rout_type,
                                            a_type_ptr        class_type,
                                            a_symbol_locator  *locator);
-
-extern void decl_parameter(a_param_id_ptr    param_id,
-                           a_param_type_ptr  ptp,
-                           a_boolean         function_instantiation);
 
 extern void decl_default_function(a_symbol_ptr symbol_ptr);
 
