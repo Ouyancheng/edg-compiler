@@ -2137,11 +2137,13 @@ that line type.
   sizeof_t		compilation_dir_length = 0;
   sizeof_t		instantiation_suffix_length;
   sizeof_t		extra_space;
-  FILE			*f_template_info;
+  FILE			*f_template_info = NULL;
   a_boolean		instantiation_dir_set = FALSE;
   a_pl_object_file_ptr	pofp;
 
-  f_template_info = fopen(pifp->template_info_file_name, "r");
+  if (pifp->template_info_file_name != NULL) {
+    f_template_info = fopen(pifp->template_info_file_name, "r");
+  }  /* if */
   if (f_template_info != NULL) {
     /* Allocate an object file entry for this file, but don't attach it
        to the input file yet -- it must be the first entry on the list. */

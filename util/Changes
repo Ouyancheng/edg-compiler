@@ -1,5 +1,10 @@
 Version 2.42
 
+4/27/99  Prelinker calls fopen with a null file name
+
+A bug in edg_prelink caused it to call fopen with a null file name pointer.
+This happens to work on most systems, but is not correct.  Now fixed.
+
 4/17/99  Incorrect required_buffer_size returned on attempt to demangle
          compressed name
 
