@@ -33,7 +33,8 @@ In C++, unlike in C, an array rvalue is converted to a pointer to its
 first element.  This is now implemented.
 
 This conversion is also done in C mode, as an extension.  A diagnostic
-is issued in strict C mode.
+is issued in strict C mode.  IL CHANGE: a new expression operator,
+eok_lvalue_from_call_result, is used to implement this in C mode.
 
 5/22/97   Missing test for extra text after expected end of #elif
 
