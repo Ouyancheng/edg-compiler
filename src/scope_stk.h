@@ -958,6 +958,8 @@ extern void push_name_linkage(a_name_linkage_kind  kind);
 
 extern void pop_name_linkage(void);
 
+extern void set_needed_flags_at_end_of_file_scope(a_scope_ptr scope);
+
 extern void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp);
 
 extern void scope_stk_one_time_init(void);

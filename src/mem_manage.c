@@ -1195,23 +1195,26 @@ not definition_needed, or (c) if they are inline.
       /* This memory has already been freed. */
     } else {
       a_scope_ptr   sp = il_header.region_scope_entry[n];
-      a_routine_ptr rout;
-
-      check_assertion(sp->kind == (a_scope_kind)sck_function);
-      rout = sp->variant.routine.ptr;
-      check_assertion_str2(!rout->is_trivial_default_constructor,
+      /* Skip the file scope memory regions of secondary translation units. */
+      if (sp->kind != (a_scope_kind)sck_file) {
+        a_routine_ptr rout;
+        check_assertion(sp->kind == (a_scope_kind)sck_function);
+        rout = sp->variant.routine.ptr;
+        check_assertion_str2(!rout->is_trivial_default_constructor,
                            "check_for_done_with_all_function_memory_regions:",
                            "trivial default constructor");
 #if DEBUG
-      if (debug_level >= 3 || db_flag_is_set("needed_flags")) {
-        fprintf(f_debug, "check_for_done_with_all_function_memory_regions: ");
-        fprintf(f_debug, "writing/freeing memory region for ");
-        db_name(&rout->source_corresp);
-        fprintf(f_debug, "\n");
-      }  /* if */
+        if (debug_level >= 3 || db_flag_is_set("needed_flags")) {
+          fprintf(f_debug,
+                  "check_for_done_with_all_function_memory_regions: ");
+          fprintf(f_debug, "writing/freeing memory region for ");
+          db_name(&rout->source_corresp);
+          fprintf(f_debug, "\n");
+        }  /* if */
 #endif /* DEBUG */
-      write_memory_region(n);
-      free_memory_region(n);
+        write_memory_region(n);
+        free_memory_region(n);
+      }  /* if */
     }  /* if */
   }  /* for */
   }

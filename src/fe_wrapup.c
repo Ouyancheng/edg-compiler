@@ -33,10 +33,16 @@ fe_wrapup.c - End of front end processing.
 #include "exprutil.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
+#if DO_C99_IL_LOWERING
+#include "lower_c99.h"
+#endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
 #include "macro.h"
 #include "statements.h"
 #endif /* DEBUG */
+#if MAINTAIN_NEEDED_FLAGS
+#include "il_walk.h"
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 
 #if DEBUG
@@ -71,6 +77,16 @@ Do any processing that is required at the end of a translation unit
 {
   db_enter(1, "translation_unit_wrapup");
 
+#if CHECKING
+  /* Check that the stop_token_array elements all made it back to zero.
+     (Every add_stop_token is supposed to have a corresponding
+     remove_stop_token.)  Note that there is also a check in db_exit,
+     which can be used to pin down problems that are initially
+     spotted here. */
+  check_all_stop_token_entries_are_reset(
+                                   curr_stop_token_stack_entry->stop_tokens);
+#endif /* CHECKING */
+
   if (is_primary_translation_unit) {
     /* Do any template instantiation that may be required.  This is called
        first because it may generate additional function bodies and class
@@ -78,8 +94,99 @@ Do any processing that is required at the end of a translation unit
     instantiation_wrapup();
   }  /* if */
 
+  /* Pop the file scope off the scope stack. */
+  pop_scope();
+
   db_exit();
 }  /* translation_unit_wrapup */
+
+
+static void file_scope_il_wrapup(void)
+/*
+Do the processing required to complete the file scope IL.  This is done
+after any entries from secondary translation units have been moved to
+the primary translation unit IL.
+*/
+{
+  a_scope_ptr	il_scope;
+
+  il_scope = curr_translation_unit->primary_scope;
+  if (!C_mode()) {
+    /* Go through the fixup list for based-type entries and remove entities
+       as required. */
+    do_based_type_fixup();
+  }  /* if */
+
+#if DO_IL_LOWERING
+  /* Lower the file scope. */
+  lower_il_memory_region(file_scope_region_number);
+#if DO_C99_IL_LOWERING
+  if (c99_il_lowering_needed()) {
+    lower_c99_il_memory_region(il_scope);
+  }  /* if */
+#endif /* DO_C99_IL_LOWERING */
+#endif /* DO_IL_LOWERING */
+
+  /* Clear out the shareable constants table for the file scope. */
+  empty_shareable_constants_table();
+
+#if DO_IL_LOWERING
+  if (!C_mode()) {
+    if (il_lowering_needed()) {
+      /* If we're not supposed to pass object lifetime information to the back
+         end, unlink all object lifetimes from the IL tree.  This has to
+         be done after the file scope object lifetime has been popped. */
+      clean_up_all_object_lifetimes(il_scope);
+    }  /* if */
+  }  /* if */
+#endif /* DO_IL_LOWERING */
+
+#if MAINTAIN_NEEDED_FLAGS
+  /* Set the "needed" flag in defined variables with external linkage --
+     both in the file scope and in each of the namespace scopes. */
+  set_needed_flags_at_end_of_file_scope(il_scope);
+  /* Don't bother pruning the IL of unneeded entries if errors were seen. */
+  if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
+  if (okay_to_eliminate_unneeded_il_entries) {
+    /* Set the "keep_in_il" flag for all file-scope IL entries that must
+       be kept to maintain the integrity of the IL. */
+    end_of_file_scope_needed_flags_phase = TRUE;
+    mark_to_keep_in_il((char *)il_scope, (an_il_entry_kind)iek_scope);
+    end_of_file_scope_needed_flags_phase = FALSE;
+    /* Now all IL entries that are really needed are so marked, and other
+       entries that they may depend on are also marked, with "keep_in_il"
+       set to TRUE.  Everything else can be eliminated from the IL. */
+    /* Eliminate unneeded function bodies.  Note that the function
+       declarations are not removed at this point. */
+    eliminate_bodies_of_unneeded_functions();
+    /* Now eliminate everything at file and namespace scope that does not
+       need to be kept in the IL. */
+    eliminate_unneeded_il_entries(il_scope);
+  }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+  /* Check for memory regions that were not written out but now should
+     be.  Among other things, this deals with functions that have
+     keep_definition_in_il set but not definition_needed, and inline
+     functions. */
+  check_for_done_with_all_function_memory_regions();
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+  if (total_errors == 0) {
+    /* Set the IL flags used to pass automatic instantiation information to
+       the link-time instantiation processor.  The timing of this call is
+       important.  It must follow the call to eliminate_unneeded_il_entries,
+       which may clear the instantiation_required flag in the associated
+       template instance entry.  And it must precede the call to
+       check_for_done_with_memory_region, since it modifies IL entries and
+       (if DO_IL_LOWERING is TRUE) may allocate variables that are added to
+       the IL. */
+    update_auto_instantiation_flags();
+    /* Do the similar processing for inline functions, when instantiating
+       inline functions similarly to templates. */
+    update_inline_function_flags();
+  }  /* if */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+  check_for_done_with_memory_region(file_scope_region_number);
+}  /* file_scope_il_wrapup */
 
 
 void fe_wrapup(void)
@@ -91,15 +198,13 @@ and before the back end (if any) is executed.
 
   db_enter(1, "fe_wrapup");
 
-#if CHECKING
-  /* Check that the stop_token_array elements all made it back to zero.
-     (Every add_stop_token is supposed to have a corresponding
-     remove_stop_token.)  Note that there is also a check in db_exit,
-     which can be used to pin down problems that are initially
-     spotted here. */
-  check_all_stop_token_entries_are_reset(
-                                   curr_stop_token_stack_entry->stop_tokens);
-#endif /* CHECKING */
+  /* Switch back to the primary translation unit. */
+  switch_translation_unit(translation_units);
+
+  /* Make sure that we have switched back to processing the primary
+     translation unit. */
+  check_assertion_str2(is_primary_translation_unit,
+                       "fe_wrapup:", "bad translation unit in fe_wrapup");
 
   if (C_dialect == C_dialect_cplusplus) {
     if (any_cfront_mode()) {
@@ -117,8 +222,8 @@ and before the back end (if any) is executed.
     inline_function_wrapup();
   }  /* if */
 
-  /* Pop the file declaration scope off the scope stack. */
-  pop_scope();
+  /* Lower the file scope, remove unneeded entities, etc. */
+  file_scope_il_wrapup();
 
 #if CHECKING
   /* Ensure that unexpected situations did not occur without at least one

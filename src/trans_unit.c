@@ -73,6 +73,11 @@ static sizeof_t	trans_unit_var_block_size;
 			/* Size of the memory block used to store variables
 			   that are specific to a given translation unit. */
 
+static a_translation_unit_ptr
+		translation_units_tail;
+			/* Pointer to the end of the list of translation
+			   units. */
+
 #if CHECKING
 static a_boolean
 		any_translation_units_allocated;
@@ -117,7 +122,7 @@ Register a variable that is specific to a given translation unit.
   {
     /* Make sure this variable is not already registered. */
     for (vrp = trans_unit_variables; vrp != NULL; vrp = vrp->next) {
-      check_assertion_str2(vrp->ptr != var, "f_register_trans_unit_variables:",
+      check_assertion_str2(vrp->ptr != var, "f_register_trans_unit_variable:",
                            "duplicate registration");
     }  /* for */
   }
@@ -154,11 +159,10 @@ pointed to by the translation unit entry.
     a_void_ptr	dest;
     src = vrp->ptr;
     dest = (a_void_ptr)(((char*)var_block) + vrp->offset);
-    memcpy(dest, src, vrp->size);
+    memcpy(dest, src, size_t_arg(vrp->size));
   }  /* for */
 }  /* save_translation_unit_state */
 
-#if 0
 
 static void restore_translation_unit_state(a_translation_unit_ptr	tup)
 /*
@@ -175,11 +179,21 @@ pointed to by the translation unit entry.
     a_void_ptr	dest;
     dest = vrp->ptr;
     src = (a_void_ptr)(((char*)var_block) + vrp->offset);
-    memcpy(dest, src, vrp->size);
+    memcpy(dest, src, size_t_arg(vrp->size));
   }  /* for */
 }  /* restore_translation_unit_state */
 
-#endif /* 0 */
+
+void switch_translation_unit(a_translation_unit_ptr	tup)
+/*
+Make the translation unit specified by "tup" the current translation unit.
+*/
+{
+  check_assertion(curr_translation_unit != NULL);
+  save_translation_unit_state(curr_translation_unit);
+  restore_translation_unit_state(tup);
+  curr_translation_unit = tup;
+}  /* switch_translation_unit */
 
 
 a_translation_unit_ptr alloc_translation_unit(void)
@@ -194,6 +208,7 @@ a pointer to the entry created.
   any_translation_units_allocated = TRUE;
 #endif /* CHECKING */
   tup = alloc_fe_of_type(a_translation_unit);
+  tup->next = NULL;
   /* Allocate the variable block for this translation unit. */
   tup->variables_block = alloc_fe(trans_unit_var_block_size);
   tup->primary_scope = NULL;
@@ -227,6 +242,16 @@ translation units.
   is_primary_translation_unit = is_primary;
   if (is_primary_translation_unit) fe_init_part_1();
   trans_unit = alloc_translation_unit();
+  /* Add this translation unit to the list of translation units. */
+  if (translation_units == NULL) {
+    translation_units = trans_unit;
+    /* The primary translation unit must be first. */
+    check_assertion(is_primary_translation_unit);
+  }  /* if */
+  if (translation_units_tail != NULL) {
+    translation_units_tail->next = trans_unit;
+  }  /* if */
+  translation_units_tail = trans_unit;
   curr_translation_unit = trans_unit;
   fe_translation_unit_init();
   if (do_preprocessing_only) {
@@ -264,10 +289,13 @@ One-time initialization for trans_unit variables.
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(curr_translation_unit),
+      pch_saved_var_array_elem(translation_units),
+      pch_saved_var_array_elem(translation_units_tail),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  register_trans_unit_variable(is_primary_translation_unit);
 }  /* trans_unit_one_time_init */
 
 
@@ -278,6 +306,8 @@ translation unit processing.
 */
 {
   curr_translation_unit = NULL;
+  translation_units = NULL;
+  translation_units_tail = NULL;
 }  /* trans_unit_init */
 
 
@@ -291,8 +321,7 @@ of the front end are called.
   trans_unit_variables = NULL;
   trans_unit_variables_tail = NULL;
   trans_unit_var_block_size = 0;
-  /* This will be moved to the translation unit driver. */
-  is_primary_translation_unit = TRUE;
+  is_primary_translation_unit = FALSE;
 #if CHECKING
   any_translation_units_allocated = FALSE;
 #endif /* CHECKING */

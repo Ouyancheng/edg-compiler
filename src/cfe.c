@@ -30,8 +30,6 @@ Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson,
 #include "preproc.h"
 #include "fe_init.h"
 #include "fe_wrapup.h"
-#include "decls.h"
-#include "pch.h"
 
 #if BACK_END_IS_C_GEN_BE
 #include "c_gen_be.h"

@@ -32,6 +32,10 @@ translation unit.
 */
 typedef struct a_translation_unit *a_translation_unit_ptr;
 typedef struct a_translation_unit {
+  a_translation_unit_ptr
+		next;
+			/* Pointer to the next entry on a list of translation
+			   units, or NULL for the last entry. */
   a_void_ptr	variables_block;
 			/* Pointer to the block of memory used to store
 			   variables that are saved and restored when
@@ -46,6 +50,8 @@ extern void trans_unit_early_init(void);
 extern a_translation_unit_ptr alloc_translation_unit(void);
 
 extern void process_translation_unit(a_boolean	is_primary);
+
+extern void switch_translation_unit(a_translation_unit_ptr	tup);
 
 extern void trans_unit_one_time_init(void);
 
@@ -63,6 +69,12 @@ EXTERN a_boolean
 			/* TRUE when processing the primary translation
 			   unit.  FALSE when processing secondary translation
 			   units. */
+
+EXTERN a_translation_unit_ptr
+		translation_units;
+			/* Pointer to a list of translation units.  The first
+			   entry on the list is the primary translation
+			   unit. */
 
 extern void f_register_trans_unit_variable(a_void_ptr	var,
 					   sizeof_t	size);

@@ -3938,7 +3938,7 @@ is done, is that all the classes have to have been marked first.
 }  /* set_needed_flags_for_typedefs */
 
 
-static void set_needed_flags_at_end_of_file_scope(a_scope_ptr scope)
+void set_needed_flags_at_end_of_file_scope(a_scope_ptr scope)
 /*
 scope is a pointer to the file scope, a namespace scope, or a class scope.
 Set the "needed" flags on classes, variables, and static data members now
@@ -4252,9 +4252,6 @@ End a name scope by popping an entry off the scope stack.
       /* Call a routine to do end-of-scope processing for any namespace scopes
          that may exist. */
       wrapup_namespace_scopes(il_header.primary_scope);
-      /* Go through the fixup list for based-type entries and remove entities
-         as required. */
-      do_based_type_fixup();
     }  /* if */
     /* If the scope specified additional using directives, clear all of the
        active using list flags, and reset them to the values specified
@@ -4385,15 +4382,20 @@ End a name scope by popping an entry off the scope stack.
   /* Determine and remember the current (old) memory region, to see
      if it changes when returning to the outer scope. */
   old_memory_region_number = ssep->il_memory_region;
-  /* If the old memory region number does not appear anywhere in the
-     remaining stack, the region is no longer needed by the front end. */
-  old_region_still_needed = FALSE;
-  for (scope_depth = depth_scope_stack-1; scope_depth >= 0; scope_depth--) {
-    if (scope_stack[scope_depth].il_memory_region == old_memory_region_number){
-      old_region_still_needed = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
+  /* Don't finish the file scope at this point.  That is deferred until
+     the compilation unit (not translation unit) is completed. */
+  old_region_still_needed = ssep->kind == (a_scope_kind)sck_file;
+  if (!old_region_still_needed) {
+    /* If the old memory region number does not appear anywhere in the
+       remaining stack, the region is no longer needed by the front end. */
+    for (scope_depth = depth_scope_stack-1; scope_depth >= 0; scope_depth--) {
+      if (scope_stack[scope_depth].il_memory_region ==
+                                                     old_memory_region_number){
+        old_region_still_needed = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
   if (!old_region_still_needed) {
     /* The old memory region is no longer needed. */
 #if DO_IL_LOWERING
@@ -4418,15 +4420,18 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
 #endif /* DEBUG */
 #if DO_IL_LOWERING
-    if (kind != (a_scope_kind)sck_function ||
-        (!function_body_will_be_discarded &&
-         !ssep->in_prototype_instantiation)) {
-      /* Do IL lowering (change the C++ IL into C IL). */
-      lower_il_memory_region(old_memory_region_number);
-    }  /* if */
+    if (is_primary_translation_unit) {
+      /* Scopes from secondary translation units are not lowered. */
+      if (kind != (a_scope_kind)sck_function ||
+          (!function_body_will_be_discarded &&
+           !ssep->in_prototype_instantiation)) {
+        /* Do IL lowering (change the C++ IL into C IL). */
+        lower_il_memory_region(old_memory_region_number);
+      }  /* if */
 #if DO_C99_IL_LOWERING
-    if (c99_il_lowering_needed()) {
-      lower_c99_il_memory_region(il_scope);
+      if (c99_il_lowering_needed()) {
+        lower_c99_il_memory_region(il_scope);
+      }  /* if */
     }  /* if */
 #endif /* DO_C99_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
@@ -4449,11 +4454,8 @@ End a name scope by popping an entry off the scope stack.
       add_scope_orphaned_il_lists(il_scope);
     }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-    /* Clear out the shareable constants table for the file scope or a
-       function scope. */
-    if (old_memory_region_number == file_scope_region_number) {
-      empty_shareable_constants_table();
-    } else {
+    /* Clear out the shareable constants table for the function scope. */
+    if (ssep->kind != (a_scope_kind)sck_file) {
       empty_func_shareable_constants_table();
     }  /* if */
   }  /* if */
@@ -4468,8 +4470,8 @@ End a name scope by popping an entry off the scope stack.
 #if DO_IL_LOWERING
     if (!old_region_still_needed && il_lowering_needed()) {
       /* If we're not supposed to pass object lifetime information to the back
-         end, unlink all object lifetimes from the IL tree.  This has to
-         be done after the file scope object lifetime has been popped. */
+         end, unlink all object lifetimes from the IL tree.  Note that this
+         does not handle the file scope.  That is done later. */
       clean_up_all_object_lifetimes(il_scope);
     }  /* if */
 #endif /* DO_IL_LOWERING */
@@ -4509,52 +4511,6 @@ End a name scope by popping an entry off the scope stack.
     set_routine_defined(curr_routine);
     check_assertion_str2(!old_region_still_needed, "pop_scope:",
                          "old_region_still_needed is TRUE for function scope");
-  } else if (kind == (a_scope_kind)sck_file) {
-    /* Popping the file scope. */
-#if MAINTAIN_NEEDED_FLAGS
-    /* Set the "needed" flag in defined variables with external linkage --
-       both in the file scope and in each of the namespace scopes. */
-    set_needed_flags_at_end_of_file_scope(il_scope);
-    /* Don't bother pruning the IL of unneeded entries if errors were seen. */
-    if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
-    if (okay_to_eliminate_unneeded_il_entries) {
-      /* Set the "keep_in_il" flag for all file-scope IL entries that must
-         be kept to maintain the integrity of the IL. */
-      end_of_file_scope_needed_flags_phase = TRUE;
-      mark_to_keep_in_il((char *)il_scope, (an_il_entry_kind)iek_scope);
-      end_of_file_scope_needed_flags_phase = FALSE;
-      /* Now all IL entries that are really needed are so marked, and other
-         entries that they may depend on are also marked, with "keep_in_il"
-         set to TRUE.  Everything else can be eliminated from the IL. */
-      /* Eliminate unneeded function bodies.  Note that the function
-         declarations are not removed at this point. */
-      eliminate_bodies_of_unneeded_functions();
-      /* Now eliminate everything at file and namespace scope that does not
-         need to be kept in the IL. */
-      eliminate_unneeded_il_entries(il_scope);
-    }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
-    /* Check for memory regions that were not written out but now should
-       be.  Among other things, this deals with functions that have
-       keep_definition_in_il set but not definition_needed, and inline
-       functions. */
-    check_for_done_with_all_function_memory_regions();
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (total_errors == 0) {
-      /* Set the IL flags used to pass automatic instantiation information to
-         the link-time instantiation processor.  The timing of this call is
-         important.  It must follow the call to eliminate_unneeded_il_entries,
-         which may clear the instantiation_required flag in the associated
-         template instance entry.  And it must precede the call to
-         check_for_done_with_memory_region, since it modifies IL entries and
-         (if DO_IL_LOWERING is TRUE) may allocate variables that are added to
-         the IL. */
-      update_auto_instantiation_flags();
-      /* Do the similar processing for inline functions, when instantiating
-         inline functions similarly to templates. */
-      update_inline_function_flags();
-    }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   }  /* if */
 
   /* The IL scope, if any, is no longer on the stack.  This must occur
