@@ -3256,9 +3256,10 @@ special function kind (e.g., constructor, destructor), if any.
     redecl_member_function(sym, member_type, access,
                            (a_boolean)func_info->is_inline, is_virtual,
                            &locator->source_position);
-
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     update_source_sequence_list((char *)rtn, (an_il_entry_kind)iek_routine,
                                 &locator->source_position, declarator_ssep);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
     sym->class_of_which_a_member = class_type;
     /* Create the routine entry for the member function. */
@@ -3961,12 +3962,14 @@ class, struct, or union.
        used for easy identification. */
     field->source_corresp.assoc_info = (char *)unnamed_field_symbol();
     field->source_corresp.decl_position = locator->source_position;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Ordinarily we create source sequence entries only for named
        entities (see sym_update_source_sequence_list, called for fields
        from mark_defined).  An exception is made for unnamed fields; call
        the subroutine directly. */
     update_source_sequence_list((char *)field, (an_il_entry_kind)iek_field,
                                 &locator->source_position, ssep);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else if (!is_anonymous_union) {
     /* Create the field symbol. */
     member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
