@@ -3356,7 +3356,7 @@ on a prior declaration.
     /* Error case. */
     a_routine_ptr  other_rp = NULL;
 
-    if (sym->defined) {
+    if (sym != NULL) {
       /* Type was okay, but this member function has a body. */
       pos_error(ec_function_redefinition, &locator->source_position);
       other_rp = sym->variant.routine;
