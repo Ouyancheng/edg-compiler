@@ -2951,8 +2951,14 @@ member_proj_sym gives the (projection) symbol for the member.
   a_field_ptr   field;
   a_routine_ptr rout;
 
-  clear_constant(&constant, (a_constant_repr_kind)ck_ptr_to_member);
   member_sym = fundamental_symbol_of(member_proj_sym);
+  /* Note that the class of the pointer is always the class in which
+     the member was defined, not any derived class.  See ARM 5.3. */
+  member_class = member_sym->class_of_which_a_member;
+  /* No need to instantiate the class; since we have a member of it, it must
+     be instantiated already. */
+  /* Build the constant. */
+  clear_constant(&constant, (a_constant_repr_kind)ck_ptr_to_member);
   if (member_sym->kind == (a_symbol_kind)sk_field) {
     /* Pointer to nonstatic data member. */
     constant.variant.ptr_to_member.is_function_ptr = FALSE;
@@ -2970,16 +2976,11 @@ member_proj_sym gives the (projection) symbol for the member.
     constant.variant.ptr_to_member.variant.routine = rout =
                                                member_sym->variant.routine.ptr;
     member_type = rout->type;
-    /* If the routine is compiler-generated and its definition has not
-       yet been put out, force the definition now.  Do not force generation
-       of virtual compiler-generated routines. */
     if (!rout->is_virtual) {
-      force_definition_of_compiler_generated_routine(rout, position);
+      /* Force the routine to be instantiated or generated. */
+      mark_routine_referenced(rout, position);
     }  /* if */
   }  /* if */
-  /* Note that the class of the pointer is always the class in which
-     the member was defined, not any derived class.  See ARM 5.3. */
-  member_class = member_sym->class_of_which_a_member;
   constant.variant.ptr_to_member.class_of_which_a_member = member_class;
   constant.type = ptr_to_member_type(member_type, member_class);
   make_constant_operand(&constant, result);
