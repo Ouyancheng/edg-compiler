@@ -7728,14 +7728,15 @@ static void lower_field_list(a_type_ptr class_type)
 Do IL lowering of the fields of the indicated class and everything under them.
 */
 {
-  a_field_ptr field;
+  a_field_ptr field, next_field;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_field_ptr prev_field = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   for (field = class_type->variant.class_struct_union.field_list;
        field != NULL;
-       field = field->next) {
+       field = next_field) {
+    next_field = field->next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Remove any fields declared __declspec(property(...)). */
     if (field->get_property_name != NULL ||
@@ -7743,9 +7744,9 @@ Do IL lowering of the fields of the indicated class and everything under them.
       check_assertion_str(!field->source_corresp.has_associated_pragma,
                           "property field has associated pragma");
       if (prev_field == NULL) {
-        class_type->variant.class_struct_union.field_list = field->next;
+        class_type->variant.class_struct_union.field_list = next_field;
       } else {
-        prev_field->next = field->next;
+        prev_field->next = next_field;
       }  /* if */
       field->next = NULL;  /* Defensive programming. */
       continue;

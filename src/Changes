@@ -1,5 +1,12 @@
 Version 3.4
 
+8/4/03  C-generating back end aborts due to Microsoft property fields
+
+IL lowering did not always correctly remove Microsoft property fields from
+class types.  The C-generating back, which does not expect property fields in
+the IL, would then either abort or incorrectly generate the property field as
+a normal field.  This is now fixed.
+
 8/4/03  System header flag in GNU preprocessor line directives
 
 The preprocessor line directives emitted by the GNU preprocessor can include
