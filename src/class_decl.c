@@ -8060,6 +8060,10 @@ nonstandard anonymous unions is_nonstd is TRUE.
                     ->variant.typeref.is_placeholder_for_class_instantiation) {
           /* This type was not really declared in the nested union.  It is
              just the side-effect of using a class template specialization. */
+        } else if (allow_anon_types_in_anon_unions && !has_name(nested_type)) {
+          /* Some test suites commonly declare anonymous types in anonymous
+             unions.  Since these tests must run in strict mode, a flag is
+             provided to inhibit this particular diagnostic. */
         } else {
           pos_diagnostic(strict_ansi_mode ?
                          strict_ansi_discretionary_severity : es_warning,

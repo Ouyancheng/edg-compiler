@@ -1366,6 +1366,7 @@ Array of flag names that may be set on the command-line.
 static a_flag_name
 		flag_names[] = {
   { "suppress_inline_corresp_check", &suppress_inline_corresp_check },
+  { "allow_anon_types_in_anon_unions", &allow_anon_types_in_anon_unions },
   { NULL, NULL }  /* must be last */
 };
 

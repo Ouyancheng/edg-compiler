@@ -1462,6 +1462,11 @@ EXTERN a_boolean
 			   routines. */
 
 EXTERN a_boolean
+		allow_anon_types_in_anon_unions;
+			/* TRUE if no diagnostic should be issued on
+			   anonymous types declared in anonymous unions. */
+
+EXTERN a_boolean
 		IEEE_handling_on_float_operation_exceptions
 #if VAR_INITIALIZERS
                                                 = TARG_HAS_IEEE_FLOATING_POINT
