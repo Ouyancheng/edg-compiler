@@ -1357,7 +1357,13 @@ is TRUE.
                                  arg_operand_is_constant,
                                  arg_operand_constant,
                                  param_type, /*suppress_extensions=*/TRUE,
-                                 ec_incompatible_param, &std_conversion)) {
+                                 ec_incompatible_param, &std_conversion) &&
+        /* cfront requires that a null pointer constant be spelled "0"
+           for it to be convertible to a pointer in overload resolution. */
+        !(any_cfront_mode() && arg_operand_is_constant &&
+          is_null_pointer_constant(arg_operand_constant) &&
+          (is_pointer_type(param_type) || is_ptr_to_member_type(param_type)) &&
+          !arg_operand_constant->is_simple_zero)) {
       /* Match with standard conversions. */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std = std_conversion;
@@ -4321,6 +4327,11 @@ as its first operand.
       case onk_ge:
         /* Relational operators take arithmetic or pointer operands. */
         operand_type_pattern = "AA;=PP";
+        if (cfront_2_1_mode) {
+          /* cfront 2.1 is confused and allows pointers to members on this
+             case (they get rejected if chosen). */
+          operand_type_pattern = "AA;=PP;=MM";
+        }  /* if */
         break;
       case onk_eq:
       case onk_ne:
@@ -4690,34 +4701,61 @@ the target type to be used).
           arg_match->param_type = pointer_type;
         }  /* if */
       } else {
+        a_boolean        ptr_to_member_case = (*type_pattern_position ==
+                                                      PTR_TO_MEMBER_TYPE_CODE);
+        a_boolean        cfront_null_ptr_constant_case;
         a_std_conv_descr std_conv;
         a_boolean        source_is_constant;
+        a_constant_ptr   source_constant;
         /* A non-class operand. */
         /* Do array --> pointer and function --> pointer transformations. */
         operand_type = do_implicit_type_transformations(operand_type,
                                                         &arg_operand->operand);
         source_is_constant = is_constant_operand(&arg_operand->operand);
+        source_constant = &arg_operand->operand.variant.constant;
         /* See if we can convert the type we have to the type we want. */
-        if (*type_pattern_position == PTR_TO_MEMBER_TYPE_CODE ?
+        cfront_null_ptr_constant_case =
+                               any_cfront_mode() &&
+                               source_is_constant &&
+                               is_null_pointer_constant(source_constant);
+        if (cfront_null_ptr_constant_case &&
+            (!source_constant->is_simple_zero ||
+             (cfront_3_0_mode &&
+              (kind == (an_opname_kind)onk_lt ||
+               kind == (an_opname_kind)onk_gt ||
+               kind == (an_opname_kind)onk_le ||
+               kind == (an_opname_kind)onk_ge)))) {
+          /* cfront requires that a null pointer constant be spelled "0"
+             for it to be convertible to a pointer in overload resolution.
+             This one isn't.   cfront 3.0 doesn't allow null pointer
+             conversions on relational operators. */
+          arg_match->match_level = aml_none;
+        } else if (ptr_to_member_case ?
               impl_ptr_to_member_conversion(
                                     operand_type,
                                     source_is_constant,
-                                    &arg_operand->operand.variant.constant,
+                                    source_constant,
                                     pointer_type,
                                     /*check_as_operands_not_conversion=*/TRUE,
                                     &std_conv) :
               impl_pointer_conversion(
                                     operand_type,
                                     source_is_constant,
-                                    &arg_operand->operand.variant.constant,
+                                    source_constant,
                                     pointer_type,
                                     /*check_as_operands_not_conversion=*/TRUE,
                                     /*suppress_extensions=*/TRUE,
                                     ec_no_error, /* arbitrary */
                                     &std_conv)) {
           /* The conversion can be done. */
-          arg_match->match_level = std_conv.nontrivial_conversion ?
+          if (cfront_null_ptr_constant_case) {
+            /* cfront uses standard weighting for these. */
+            arg_match->match_level = cfront_2_1_mode ? 
                                                 aml_std_conversion : aml_exact;
+          } else {
+            arg_match->match_level = std_conv.nontrivial_conversion ?
+                                                aml_std_conversion : aml_exact;
+          }  /* if */
           arg_match->conversion.std = std_conv;
           arg_match->param_type = pointer_type;
         }  /* if */
