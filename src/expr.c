@@ -2599,7 +2599,7 @@ nonstatic_member_function:
                                                       bound_function_selector);
             }  /* if */
           } else {
-            /* Static member function.  Discard the left operand. */
+            /* Static member function. */
             make_function_designator_operand(projection_member_sym,
                                              is_qualified_name,
                                              &member_position,
