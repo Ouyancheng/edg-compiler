@@ -3337,7 +3337,7 @@ return FALSE.
       unexpected_condition();
     }  /* if */
     result = verify_type_correspondence(type_1);
-    if (!result && !visited) {
+    if (!result && !visited && total_errors == 0) {
       clear_type_correspondence(type_1, /*visited=*/FALSE);
     }  /* if */
   }  /* if */
