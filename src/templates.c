@@ -8656,6 +8656,29 @@ symbol, otherwise we return NULL.
 } /* sym_if_template_class_member_function */
 
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+static void make_instantiation_directive(a_symbol_ptr                 sym,
+                                         a_source_sequence_entry_ptr  ssep,
+                                         a_source_position            *pos)
+/*
+Create an source_
+*/
+{
+  an_instantiation_directive_ptr  idp;
+  an_il_entry_kind                kind;
+
+  if (!source_sequence_entries_disallowed) {
+    idp = alloc_instantiation_directive();
+    idp->source_position = *pos;
+    idp->entity.ptr = il_entry_for_symbol(sym, &kind);
+    idp->entity.kind = (a_byte_il_entry_kind)kind;
+    update_source_sequence_list((char *)idp,
+                                 (an_il_entry_kind)iek_instantiation_directive,
+                                 ssep);
+  }  /* if */
+}  /* make_instantiation_directive */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 static
 void instantiation_directive(a_pragma_kind	kind,
  			     a_boolean		is_pragma,
@@ -8697,7 +8720,21 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   a_source_sequence_entry_ptr   declarator_ssep;
   a_symbol_ptr		        sym;
   a_token_kind			end_of_statement_token;
+  a_source_position             decl_start_pos;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr   ssep;
+  a_source_position             template_keyword_pos;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+  if (!is_pragma) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    ssep = add_empty_source_sequence_entry();
+    template_keyword_pos = pos_curr_token;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    /* By pass "template". */
+    (void)get_token();
+    *start_pos = pos_curr_token;
+  }  /* if */    
   /* If this is a pragma it will end with a tok_newline, if not
      it will end with a semicolon. */
   end_of_statement_token = is_pragma ? tok_newline : tok_semicolon;
@@ -8733,11 +8770,15 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
                 DI_OPERATOR_NAME_ALLOWED | DI_IS_EXPLICIT_INSTANTIATION),
                &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                &declarator_ssep, &func_info);
+    record_param_id_list_declarations(func_info.param_id_list);
     done_with_func_info(func_info);
-#if 0
-    /* Presumably, declarator_ssep will often be returned pointing at an
-       empty source sequence entry.  How should this be handled? */
-#endif /* if 0 */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (declarator_ssep != NULL) {
+      a_src_seq_sublist_ptr  sublist = NULL;
+      remove_from_source_sequence_list(declarator_ssep, &sublist);
+      declarator_ssep = NULL;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   /* Look up the identifier scanned in the declarator.  If the
      declarator contains a qualified name it will already have
@@ -8763,6 +8804,11 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
       /* A static data member -- set the instantiation flags. */
       update_instantiation_flags(sym, kind, start_pos,
                                  /*is_class_instantiation=*/FALSE, is_pragma);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (!is_pragma) {
+        make_instantiation_directive(sym, ssep, &template_keyword_pos);
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       /* A static data member, but of a template class. */
       sym_error(ec_not_instantiatable_entity, sym);
@@ -8785,9 +8831,22 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
       /* Update the flags for the symbol found. */
       update_instantiation_flags(new_sym, kind, start_pos,
                                  /*is_class_instantiation=*/FALSE, is_pragma);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (!is_pragma) {
+        make_instantiation_directive(new_sym, ssep, &template_keyword_pos);
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
 done:;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (!is_pragma) {
+    if (ssep != NULL && ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {
+      a_src_seq_sublist_ptr  sublist = NULL;
+      remove_from_source_sequence_list(ssep, &sublist);
+    }  /* if */
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* instantiation_directive */
 
 
@@ -8949,11 +9008,10 @@ access errors that were detected.
        performed to ensure that no other instantiations are implicitly
       requested as a consequence of scanning the pragma. */
     instantiation_mode = tim_none;
-    (void)get_token();  /* Bypass "template". */
-    start_pos = pos_curr_token;
+    /* Note that the "template" keyword is bypassed in the subroutine. */
     begin_deferral_of_access_checks();
     instantiation_directive((a_pragma_kind)pk_instantiate, /*is_pragma=*/FALSE,
-                            &start_pos);
+                            &pos_curr_token);
     discard_deferred_access_checks();
     end_deferral_of_access_checks();
   }  /* if */
