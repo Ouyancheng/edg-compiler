@@ -3843,12 +3843,17 @@ initialized.  These are addressed in the course of the processing.
             bcp = found_bcp;
           }  /* if */
           if (bcp == NULL) {
-            if (!member_or_base_sym->is_template_param &&
-                template_param_init) {
-              /* A reference to a dependent base, but not a template
-                 parameter itself (presumably, a dependent qualified name).
-                 We cannot tell whether this refers to a virtual or nonvirtual
-                 base; so just treat it as nonvirtual. */
+            if ((!member_or_base_sym->is_template_param &&
+                 template_param_init) ||
+                (class_type->variant.class_struct_union.is_nonreal_class &&
+                 symbol_supplement_for_class(class_type)->
+                                                  any_nonreal_base_classes)) {
+              /* There are some cases where we cannot match up a base:
+                 - A dependent reference to a base, but not a template
+                   parameter itself (presumably, a dependent qualified name).
+                 - A reference to a class type that might be a virtual base of
+                   a dependent base.
+                 For these case, we make up a nonvirtual base class node. */
               new_cip = alloc_ctor_init(
                               (a_constructor_init_kind)cik_direct_base_class);
               new_cip->variant.base_class = alloc_base_class();
