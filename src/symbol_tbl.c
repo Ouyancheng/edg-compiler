@@ -5098,9 +5098,10 @@ called at the point where the #include <stdarg.h> appears.
          declared as a file-scope type, use that type as the type for the
          built-in va_list. */
       clear_locator(&locator, &null_source_position);
-      (void)find_symbol(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME,
-                        (sizeof_t)(sizeof(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME)-1),
-                        &locator);
+      (void)find_symbol(
+                      BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME,
+                      (sizeof_t)(sizeof(BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME)-1),
+                      &locator);
       sym = file_scope_id_lookup(il_header.primary_scope, &locator,
                                  IDL_NO_OPTIONS);
       if (sym != NULL && is_type_symbol(sym)) {
