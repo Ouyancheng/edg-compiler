@@ -4581,7 +4581,9 @@ on for use in generating cross-reference output describing this declaration.
         }  /* if */
         if (!routines_compat) {
           /* The old and new declarations are incompatible.  There is special
-             handling for SVR4 C compatibility mode. */
+             handling for SVR4 and Microsoft C compatibility modes. */
+          a_type_ptr  old_return_type = return_type_of(routine_ptr->type);
+          a_type_ptr  new_return_type = return_type_of(type_ptr);
           if (SVR4_C_mode &&
               incompatible_types_are_SVR4_compatible(type_ptr,
                                                      routine_ptr->type)) {
@@ -4596,8 +4598,7 @@ on for use in generating cross-reference output describing this declaration.
             *old_type = routine_ptr->type;
             if (is_function_def) routine_ptr->type = type_ptr;
           } else if (microsoft_mode && C_mode() &&
-                     identical_types(return_type_of(routine_ptr->type),
-                                     return_type_of(type_ptr))) {
+                     identical_types(old_return_type, new_return_type)) {
             /* In Microsoft C mode "anything goes" as far as function
                redeclarations are concerned, provided the return types
                are identical. */
@@ -4727,9 +4728,9 @@ on for use in generating cross-reference output describing this declaration.
            declaration of a function if a prior declaration was visible. */
         a_symbol_ptr  prior_decl =
                     fundamental_symbol_of(idlb.prior_decl_in_enclosing_scope);
+        a_type_ptr    prior_type = routine_symbol_type(prior_decl);
         if (is_function_symbol(prior_decl) &&
-            routine_types_are_compatible(routine_symbol_type(prior_decl),
-                                         type_ptr, TCF_NO_FLAGS)) {
+            routine_types_are_compatible(prior_type, type_ptr, TCF_NO_FLAGS)) {
           type_ptr = routine_symbol_type(prior_decl);
         }  /* if */
       }  /* if */
