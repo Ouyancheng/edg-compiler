@@ -1829,6 +1829,9 @@ to it.
   fp->alignment            = 0;
   fp->is_packed            = 0;
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
+#if GNU_EXTENSIONS_ALLOWED
+  fp->has_gnu_deprecated_attribute = 0;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if IA64_ABI
   fp->offset_is_set        = FALSE;
 #endif /* IA64_ABI */

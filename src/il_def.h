@@ -6018,6 +6018,11 @@ typedef struct a_field {
 			/* TRUE if the field was declared with the GNU "packed"
 			   attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field   has_gnu_deprecated_attribute:1;
+			/* TRUE if this field was declared with the GNU
+			   "deprecated" attribute. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if IA64_ABI
   a_bit_field	offset_is_set:1;
 			/* TRUE if the offset for this field has been set. */

@@ -1464,8 +1464,8 @@ attribute "deprecated."
   } else if (sym->kind == (a_symbol_kind)sk_routine ||
              sym->kind == (a_symbol_kind)sk_member_function) {
     deprecated = sym->variant.routine.ptr->has_gnu_deprecated_attribute;
-  } else if (is_type_symbol(sym) || is_tag_symbol(sym)) {
-    deprecated = type_symbol_type(sym)->has_gnu_deprecated_attribute;
+  } else if (sym->kind == (a_symbol_kind)sk_field) {
+    deprecated = sym->variant.field.ptr->has_gnu_deprecated_attribute;
   }  /* if */
   if (deprecated) {
     pos_sy_warning(ec_deprecated_entity, pos, sym);

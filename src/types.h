@@ -719,6 +719,11 @@ extern a_boolean is_directly_variably_modified_type(a_type_ptr  tp);
 extern a_type_ptr strip_local_and_nonreal_typedefs(a_type_ptr  type);
 extern a_type_ptr remove_assoc_vla_dimensions(a_type_ptr  type);
 
+#if GNU_EXTENSIONS_ALLOWED
+extern void warn_about_use_of_gnu_deprecated_type(a_type_ptr         type,
+                                                  a_source_position  *pos);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 extern a_boolean routine_linkages_are_compatible(
                                            a_name_linkage_kind  nlk1,
                                            a_name_linkage_kind  nlk2,

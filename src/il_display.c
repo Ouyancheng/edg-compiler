@@ -2146,6 +2146,9 @@ Display the indicated field.
   if (ptr->is_packed) {
     disp_boolean("is_packed", TRUE);
   }  /* if */
+  if (ptr->has_gnu_deprecated_attribute) {
+    disp_boolean("has_gnu_deprecated_attribute", TRUE);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && USER_CONTROL_OF_STRUCT_PACKING */
   if (ptr->is_anonymous_parent_object) {
     disp_boolean("is_anonymous_parent_object", TRUE);

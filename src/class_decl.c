@@ -6804,13 +6804,20 @@ otherwise these are NULL).
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  /* Apply the attributes to the routine. */
-  if (attributes != NULL) {
-    apply_attributes_to_routine(attributes, rtn);
-  }  /* if */
-  /* Record the assembly name. */
-  if (asm_name != NULL) {
-    rtn->asm_name = asm_name;
+  if (gpp_mode) {
+    /* Apply the attributes to the routine. */
+    if (attributes != NULL) {
+      apply_attributes_to_routine(attributes, rtn);
+    }  /* if */
+    if (!rtn->has_gnu_deprecated_attribute) {
+      /* Check if a deprecated type was involved in this declaration. */
+      warn_about_use_of_gnu_deprecated_type(member_type,
+                                            &locator->source_position);
+    }  /* if */
+    /* Record the assembly name. */
+    if (asm_name != NULL) {
+      rtn->asm_name = asm_name;
+    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (!compiler_generated) {
@@ -7735,11 +7742,18 @@ otherwise these are NULL).
                                  /*is_redecl=*/FALSE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  /* Apply the attributes to the variable declaration. */
-  apply_attributes_to_variable(attributes, var);
-  /* If applicable, record the asm-name. */
-  if (asm_name != NULL) {
-    var->asm_name_or_reg.name = asm_name;
+  if (gpp_mode) {
+    /* Apply the attributes to the variable declaration. */
+    apply_attributes_to_variable(attributes, var);
+    if (!var->has_gnu_deprecated_attribute) {
+      /* Check if a deprecated type was involved in this declaration. */
+      warn_about_use_of_gnu_deprecated_type(member_type,
+                                            &locator->source_position);
+    }  /* if */
+    /* If applicable, record the asm-name. */
+    if (asm_name != NULL) {
+      var->asm_name_or_reg.name = asm_name;
+    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Check for the case in which the type is or contains a routine type for
@@ -9248,9 +9262,14 @@ specific information about the member declaration, respectively.
     cannot_bind_to_curr_construct();
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gcc_mode) {
+  if (gnu_mode) {
     /* Apply the attributes to the field. */
     apply_attributes_to_field(attributes, field);
+    /* Check if a deprecated type was involved in this declaration.
+       Unlike other similar cases, the warning is issued even when the field
+       itself is marked as deprecated. */
+    warn_about_use_of_gnu_deprecated_type(member_type,
+                                          &locator->source_position);
     /* We are done with the postfix attributes. */
     free_attribute_list(*last_attribute);
     *last_attribute = NULL;

@@ -4489,20 +4489,28 @@ declaration.
                             /*update_il_entry=*/FALSE);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  /* Apply the attributes to the variable declaration. */
-  apply_attributes_to_variable(attributes, variable_ptr);
-  if (asm_name != NULL) {
-    if (is_register) {
-      /* If the variable has been declared with the register keyword, then
-         the assembly name indicates a particular register. */
-      a_named_register anr = name_to_register(asm_name, asm_name_pos);
-      if (anr != (a_named_register)anr_invalid) {
-        variable_ptr->asm_name_or_reg.reg = anr;
-        variable_ptr->asm_name_is_valid = FALSE;
+  if (gnu_mode) {
+    /* Apply the attributes to the variable declaration. */
+    apply_attributes_to_variable(attributes, variable_ptr);
+    if (!variable_ptr->has_gnu_deprecated_attribute) {
+      /* Check if a deprecated type was involved in this declaration. */
+      warn_about_use_of_gnu_deprecated_type(type_ptr,
+                                            &locator->source_position);
+    }  /* if */
+    /* Record the assembly name. */
+    if (asm_name != NULL) {
+      if (is_register) {
+        /* If the variable has been declared with the register keyword, then
+           the assembly name indicates a particular register. */
+        a_named_register anr = name_to_register(asm_name, asm_name_pos);
+        if (anr != (a_named_register)anr_invalid) {
+          variable_ptr->asm_name_or_reg.reg = anr;
+          variable_ptr->asm_name_is_valid = FALSE;
+        }  /* if */
+      } else {
+        /* Otherwise, the assembly name is just a name.  */
+        variable_ptr->asm_name_or_reg.name = asm_name;
       }  /* if */
-    } else {
-      /* Otherwise, the assembly name is just a name.  */
-      variable_ptr->asm_name_or_reg.name = asm_name;
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -5998,13 +6006,20 @@ skip_overloading:;
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  /* Apply the attributes to the routine. */
-  if (attributes != NULL) {
-    apply_attributes_to_routine(attributes, routine_ptr);
-  }  /* if */
-  /* Record the assembly name. */
-  if (asm_name != NULL) {
-    routine_ptr->asm_name = asm_name;
+  if (gnu_mode) {
+    /* Apply the attributes to the routine. */
+    if (attributes != NULL) {
+      apply_attributes_to_routine(attributes, routine_ptr);
+    }  /* if */
+    if (!routine_ptr->has_gnu_deprecated_attribute) {
+      /* Check if a deprecated type was involved in this declaration. */
+      warn_about_use_of_gnu_deprecated_type(type_ptr,
+                                            &locator->source_position);
+    }  /* if */
+    /* Record the assembly name. */
+    if (asm_name != NULL) {
+      routine_ptr->asm_name = asm_name;
+    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (is_function_def && qualifier_namespace_ptr(*locator) != NULL) {
@@ -6765,9 +6780,16 @@ is not necessarily the canonical entry for the template being declared.
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  /* Apply the attributes to the routine. */
-  if (attributes != NULL) {
-    apply_attributes_to_routine(attributes, rout_ptr);
+  if (gnu_mode) {
+    /* Apply the attributes to the routine. */
+    if (attributes != NULL) {
+      apply_attributes_to_routine(attributes, rout_ptr);
+    }  /* if */
+    if (!rout_ptr->has_gnu_deprecated_attribute) {
+      /* Check if a deprecated type was involved in this declaration. */
+      warn_about_use_of_gnu_deprecated_type(type_ptr,
+                                            &locator->source_position);
+    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Return the function template symbol. */
@@ -7410,10 +7432,17 @@ return a pointer to it in *symbol_ptr.
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (attributes != NULL && !is_error_type(type_ptr)) {
-    /* Applying attributes could change the underlying type. */
-    apply_attributes_to_typedef(attributes, tp, linkage_name);
-  }  /* if */ 
+  if (gnu_mode && !is_error_type(type_ptr)) {
+    if (attributes != NULL) {
+      /* Applying attributes could change the underlying type. */
+      apply_attributes_to_typedef(attributes, tp, linkage_name);
+    }  /* if */
+    if (!tp->has_gnu_deprecated_attribute) {
+      /* Check if a deprecated type was involved in this declaration. */
+      warn_about_use_of_gnu_deprecated_type(type_ptr,
+                                            &locator->source_position);
+    }  /* if */
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 return_point:
   /* Do processing required for any pragmas that are bound to the current

@@ -1352,6 +1352,9 @@ messages about any invalid attributes.
         /* This attribute was already handled in
            apply_attributes_to_variable_type. */
         break;
+      case ak_deprecated:
+        fp->has_gnu_deprecated_attribute = TRUE;
+        break;
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
         /* Apply the specified alignment (which may be an increase or a

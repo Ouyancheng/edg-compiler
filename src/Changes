@@ -419,9 +419,9 @@ a "unexpected function type" error during template instantiation.
 
 In both GNU C and GNU C++ modes, the front end now supports the GNU
 attributes "deprecated" and "used."  A warning is issued for uses of
-an entity (variable, function, member function, or type) declared with
-the "deprecated" attributes.  A routine declared with the "used"
-attribute is kept in the IL even when it is not used.
+an entity (variable, function, member function, field, or type) 
+declared with the "deprecated" attributes.  A routine declared with
+the "used" attribute is kept in the IL even when it is not used.
 
 2/4/03   IL display build problem with IA-64 ABI and no IL lowering
 
