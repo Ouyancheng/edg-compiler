@@ -1955,12 +1955,12 @@ file to a memory region.
                             PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
                             fd, (off_t)offset);
   /* mmap returns (cresult_addr_t)-1 if the operation fails. */
-#if CHECKING
+#if DEBUG
   if (result_addr == (caddr_t)-1) {
     fprintf(f_debug, "Map failed: address=%p, size=%lu, offset=%lu\n",
             address, (unsigned long)size, (unsigned long)offset);
   }  /* if */
-#endif /* CHECKING */
+#endif /* DEBUG */
   if (result_addr == (caddr_t)-1) result_addr = NULL;
   return result_addr;
 }  /* map_input_file_to_region */
