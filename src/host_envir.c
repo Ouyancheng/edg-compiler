@@ -1461,7 +1461,7 @@ since the start of the compilation.  The value is converted to milliseconds.
      to milliseconds. */
   temp = cpu_time;
   temp = (cpu_time * 1000) / CLOCKS_PER_SEC;
-  cpu_time = temp;
+  cpu_time = (clock_t)temp;
   return cpu_time;
 #else /* !__ANSIC__ */
   /* This version uses the UNIX routines to get the CPU time. */
