@@ -9409,6 +9409,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         if (err) {
           /* An error message was already issued. */
         } else if ((gcc_mode &&
+                    /* GNU C allows arithmetic on pointers to void and
+                       pointers to functions. */
                     (is_void_type(type_pointed_to(operand_1->type)) ||
                      is_function_type(type_pointed_to(operand_1->type)))) ||
                    (check_object_pointer_operand(
@@ -11388,7 +11390,12 @@ See section 3.3.16 of the standard.
             /* If the first operand is arithmetic or enum, the second must
                be also. */
             (void)check_arithmetic_or_enum_operand(&operand_2);
-          } else if (check_object_pointer_operand(
+          } else if ((gcc_mode &&
+                      /* GNU C allows arithmetic on pointers to void and
+                         pointers to functions. */
+                      (is_void_type(type_pointed_to(operand_1->type)) ||
+                       is_function_type(type_pointed_to(operand_1->type)))) ||
+                     check_object_pointer_operand(
                                 operand_1,
                                  enum_type_is_integral ?
                                    ec_expr_not_scalar :
