@@ -8119,14 +8119,15 @@ TRUE if the declaration following this one is such a continuation.
         /* Suppress the storage class if it's extern "C". */
         storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
-      /* For a definition, use the form
+      /* For declarations with an explicit "inline" keyword, use the form
            extern "C" { inline void foo() {} }
          because simply
            extern "C" inline void foo() {}
          is not allowed by some compilers (the combination of a linkage
          specification and "inline" is not accepted).  The brace form is
          also needed for static functions. */
-      if (is_definition || storage_class == (a_storage_class)sc_static) {
+      if ((rout->is_inline && !decl_within_function) ||
+          storage_class == (a_storage_class)sc_static) {
         write_tok_str("{ ");
         /* Force matching "}" to be output later */
         need_extern_C_closing_brace = TRUE;

@@ -1471,7 +1471,11 @@ internal linkage).
   a_source_correspondence  *scp;
 
   idlbp->name_linkage_is_explicit = FALSE;
-  if (idlbp->linkage == idl_external) {
+  if (idlbp->linkage == idl_external ||
+      /* In Sun mode a name linkage specifier also affects functions with
+         internal name linkage: */
+      (sun_mode && idlbp->linkage == idl_internal &&
+       ssep->name_linkage_is_explicit)) {
     if (C_mode()) {
       /* External entity in C mode. */ 
       idlbp->name_linkage = (a_name_linkage_kind)nlk_external;
