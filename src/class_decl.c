@@ -4055,6 +4055,8 @@ table.
      current class. */
   var = make_variable(member_type, (a_storage_class)sc_static,
                       /*at_file_scope=*/FALSE);
+  /* Correct the initialization of the defined flag in the variable. */
+  var->defined = FALSE;
   sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
                            decl_scope_level, /*suppress_redecl_error=*/FALSE);
   /* Set the source correspondence fields of the variable. */
@@ -4068,6 +4070,20 @@ table.
      data members will also be changed. */
   var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
   var->source_corresp.access = access;
+
+  if (curr_token == tok_assign && is_const_qualified_type(member_type) &&
+      is_integral_type(member_type)) {
+    /* A const integral or const enumeration type may be initialized inside
+       the class definition (9.5.2).  Note that the variable entry will have
+       an initializer but its "defined" flag will not be set. */
+    a_constant_ptr  cp = alloc_constant((a_constant_repr_kind)ck_error);
+    /* Advance past the "=". */
+    (void)get_token();
+    /* Scan the constant expression. */
+    scan_constant_initializer_expression(member_type, cp);
+    var->init_kind = (an_init_kind)initk_static;
+    var->initializer.constant = cp;
+  }  /* if */
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
   record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
