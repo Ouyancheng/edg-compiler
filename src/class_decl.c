@@ -5034,7 +5034,6 @@ class/struct/union is actually defined.
   a_type_ptr              local_type;
   a_type_ptr              bottom_derived_type;
   a_boolean               unnamed_field;
-  a_boolean               outer_scope_tag;
   a_boolean               tag_resolution = FALSE;
   a_boolean               prototype_tag_resolution = FALSE;
   a_boolean               first_declarator;
