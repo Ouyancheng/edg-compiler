@@ -4911,7 +4911,7 @@ is_definition is TRUE if the label is being scanned as part of a label.
                              depth_innermost_function_scope,
                              /*suppress_error=*/TRUE);
     /* Allocate the IL label and attach it to the symbol. */
-    label_sym->variant.label = label = alloc_label();
+    label_sym->variant.label.ptr = label = alloc_label();
     add_to_labels_list(label);
     set_source_corresp(&label->source_corresp, label_sym);
     /* The exec_stmt field stays NULL to indicate that the declaration
@@ -4920,11 +4920,13 @@ is_definition is TRUE if the label is being scanned as part of a label.
   if (!is_error_locator(locator_for_curr_id)) {
     /* Record the right kind of reference to the label symbol. */
     if (is_definition) {
+      check_assertion(!label_sym->defined);
       /* Note that we want mark_declared called even if the symbol
          was previously entered.  Labels are strange in that a reference
          can come up before a declaration. */
       mark_declared(label_sym, &pos_curr_token,
                     /*save_as_decl_position=*/TRUE);
+      label_sym->defined = TRUE;
     } else {
       mark_referenced(label_sym, &pos_curr_token);
       /* Set the decl_position in case no declaration shows up, so we
@@ -4945,7 +4947,7 @@ is_definition is TRUE if the label is being scanned as part of a label.
   }  /* if */
 #endif /* DEBUG */
   db_exit();
-  return(label_sym->variant.label);
+  return(label_sym->variant.label.ptr);
 }  /* scan_label */
 
 
