@@ -1180,11 +1180,12 @@ targ_microsoft_bit_field_allocation is FALSE.)
      field is not aligned, but the overall alignment of the enclosing class
      is updated if needed. */ 
   if (gnu_mode && !targ_microsoft_bit_field_allocation &&
-      !is_union_type(lob->class_type)) {
+      curr_max_member_alignment > 0 && !is_union_type(lob->class_type)) {
     a_targ_alignment declared_alignment = field_alignment_for(field->type);
     if (container_alignment <= declared_alignment) {
-      if (curr_max_member_alignment > 0 && 
-          curr_max_member_alignment < declared_alignment) {
+      /* Determine the effect of the container alignment on the alignment of
+         the enclosing class. */
+      if (curr_max_member_alignment < declared_alignment) {
         container_alignment = curr_max_member_alignment;
       }  else {
         container_alignment = declared_alignment;
@@ -1192,6 +1193,7 @@ targ_microsoft_bit_field_allocation is FALSE.)
       if (container_alignment > lob->alignment) {
         lob->alignment = container_alignment;
       }  /* if */
+      /* Do not align the bit field itself. */
       goto done;
     }  /* if */
   }  /* if */
