@@ -673,7 +673,7 @@ itself recursively to process classes nested within this class.
 static a_template_arg_ptr templ_arg_list_for_class(a_type_ptr class_type)
 /*
 Given a class type, return the template argument list to be used when
-generating an instantiation.  This it the template argument list
+generating an instantiation.  This is the template argument list
 associated with the nearest enclosing class that has a template
 argument list.  Classes without template argument lists are member classes
 but not member class templates.
