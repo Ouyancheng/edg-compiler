@@ -5868,6 +5868,19 @@ its parameters?).
       case tk_union:
         /* Any code for the general class/struct/union case should go
 	   here. */
+        {
+          /* If this class is a proxy class, traverse its associated
+             template parameter. */
+          a_class_symbol_supplement_ptr	cssp;
+          cssp = symbol_supplement_for_class(type_ptr);
+          tp = cssp->template_param_for_proxy_class;
+          if (tp != NULL) {
+            if (traverse_type_tree(tp, func, flags)) {
+              status = TRUE;
+              break;
+            }  /* if */
+          }  /* if */
+        }
         /* Conditional traversal of contained types. */
         if (flags & TTT_TEMPLATE_ARGS) {
           for (tap = type_ptr->variant.class_struct_union.extra_info->
