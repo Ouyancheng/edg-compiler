@@ -155,6 +155,11 @@ EDG_STD_LIBS=${EDG_STD_LIBS-"std"}
 #
 EDG_RUNTIME_LIB=${EDG_RUNTIME_LIB-"C"}
 #
+# The name of the fixed-point library to be used when compiling
+# embedded C.
+#
+EDG_FIXED_POINT_LIB=${EDG_FIXED_POINT_LIB-""}
+#
 # C compiler to use to compile the output and any options to be used with
 # this compiler by default.
 #
@@ -1223,6 +1228,12 @@ process_option()
           ;;
 	--no_preproc_only)
 	  suppress_preproc_only=1
+          ;;
+        --embedded_c)
+          # Link in the fixed-point runtime library, if any.
+          if [ "$EDG_FIXED_POINT_LIB" != "" ] ; then
+            EDG_STD_LIBS="$EDG_STD_LIBS:$EDG_FIXED_POINT_LIB"
+          fi
           ;;
         --suppress_instantiation_flags)
 #         This should not be included in the command line in the .ii file.
