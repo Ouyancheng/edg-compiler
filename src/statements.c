@@ -37,7 +37,7 @@ statements.c -- Scanning of statements.
 static a_struct_stmt_stack_entry_ptr
 		struct_stmt_stack_container = NULL;
 			/* A dynamically allocated array of structured
-			   statement stack entries that is can accommodate
+			   statement stack entries that can accommodate
 			   the coexistence of more than one stack.  When a
                            stack is currently active and a new stack is
                            required (for member function definitions of
