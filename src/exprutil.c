@@ -9127,8 +9127,9 @@ C mode.
        SVR4 C mode, and in Microsoft C mode (it also applies in Microsoft
        C++ mode, but that case doesn't get to this routine). */
     is_still_an_lvalue = TRUE;
-  } else if (is_floating_type(type_before_cast) ||
-             is_floating_type(type_cast_to)) {
+  } else if (!microsoft_mode &&
+             (is_floating_type(type_before_cast) ||
+              is_floating_type(type_cast_to))) {
     /* The source or destination types are floating types, so there's
        actual conversion involved. */
     /* is_still_an_lvalue = FALSE; -- already set. */

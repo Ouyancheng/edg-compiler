@@ -1,5 +1,11 @@
 Version 3.1
 
+1/22/03  Microsoft compatibility: lvalue cast of float to same-sized type
+
+In Microsoft C mode, the front end now accepts an lvalue cast of
+a floating-point value to another type with the same size and
+alignment.
+
 1/20/03  Abort on invalid wide-string initializer in GNU C mode
 
 Attempting to initialize an array of the wrong type with a wide string
