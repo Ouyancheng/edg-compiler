@@ -131,21 +131,51 @@ are instantiated.
 #if DO_IL_LOWERING
 
 
-static void add_externalized_trans_unit_corresp(a_source_correspondence *scp,
-                                                an_il_entry_kind        kind)
+static void externalize_entity_for_exported_templates(
+                                                  a_source_correspondence *scp,
+                                                  an_il_entry_kind        kind)
 /*
-The entity with the indicated source correspondence has just been externalized.
-Add a trans_unit_corresp to it (externally-linked entities are supposed
-to have one).  The entity has the indicated kind.
+Externalize the entity with the indicated source correspondence and kind.
+It's a static entity that may be referenced from exported templates.
 */
 {
-  a_trans_unit_corresp_ptr tucp = alloc_trans_unit_corresp();
+  a_boolean                is_variable = (kind == iek_variable);
+  a_variable_ptr           var;
+  a_routine_ptr            rout;
+  a_trans_unit_corresp_ptr tucp;
 
+  externalize_source_correspondence(scp, is_variable);
+  if (is_variable) {
+    var = (a_variable_ptr)scp;
+    var->storage_class = (a_storage_class)sc_unspecified;
+  } else {
+    check_assertion(kind == iek_routine);
+    rout = (a_routine_ptr)scp;
+    rout->storage_class = (a_storage_class)sc_unspecified;
+  }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+  mark_as_needed((char *)scp, kind);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+  /* Add a trans_unit_corresp entry (an entity with external linkage should
+     have one). */
+  tucp = alloc_trans_unit_corresp();
   tucp->kind = kind;
   tucp->canonical = (char *)scp;
   if (!in_secondary_trans_unit(scp)) tucp->primary = (char *)scp;
   scp->trans_unit_corresp = tucp;
-}  /* add_externalized_trans_unit_corresp */
+#if ONE_INSTANTIATION_PER_OBJECT
+  if (one_instantiation_per_object) {
+    /* Assign a slice number for one-instantiation-per-object mode if there
+       isn't one already. */
+    unsigned long *bit_number = is_variable ?
+                                     &(var->instantiation_needed_bit_number) :
+                                     &(rout->instantiation_needed_bit_number);
+    if (*bit_number == 0) {
+      *bit_number = assign_instantiation_needed_bit_number();
+    }  /* if */
+  }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+}  /* externalize_entity_for_exported_templates */
 
 
 static void externalize_statics_for_exported_templates(a_scope_ptr scope);
@@ -186,14 +216,8 @@ referenced by exported templates.
   externalize_type_list_statics_for_exported_templates(scope->types);
   for (rout = scope->routines; rout != NULL; rout = rout->next) {
     if (rout->storage_class == (a_storage_class)sc_static) {
-      externalize_source_correspondence(&rout->source_corresp,
-                                        /*is_variable=*/FALSE);
-      rout->storage_class = (a_storage_class)sc_unspecified;
-#if MAINTAIN_NEEDED_FLAGS
-      mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
-#endif /* MAINTAIN_NEEDED_FLAGS */
-      add_externalized_trans_unit_corresp(&rout->source_corresp,
-                                          iek_routine);
+      externalize_entity_for_exported_templates(&rout->source_corresp,
+                                                iek_routine);
     }  /* if */
   }  /* for */
   /* Local static variables do not get externalized. */
@@ -201,14 +225,8 @@ referenced by exported templates.
       scope->kind != (a_scope_kind)sck_block) {
     for (var = scope->variables; var != NULL; var = var->next) {
       if (var->storage_class == (a_storage_class)sc_static) {
-        externalize_source_correspondence(&var->source_corresp,
-                                          /*is_variable=*/TRUE);
-        var->storage_class = (a_storage_class)sc_unspecified;
-#if MAINTAIN_NEEDED_FLAGS
-        mark_as_needed((char *)var, (an_il_entry_kind)iek_variable);
-#endif /* MAINTAIN_NEEDED_FLAGS */
-        add_externalized_trans_unit_corresp(&var->source_corresp,
-                                            iek_variable);
+        externalize_entity_for_exported_templates(&var->source_corresp,
+                                                  iek_variable);
       }  /* if */
     }  /* for */
   }  /* if */
