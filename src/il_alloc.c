@@ -3094,7 +3094,9 @@ to it.
 a_namespace_ptr alloc_namespace(a_boolean  is_alias)
 /*
 Allocate a namespace entry, initialize its fields, and return a pointer to
-it.  The entry is allocated in the file scope memory region.
+it.  The entry is allocated in the current memory region.  This is
+usually the file scope memory region, but may be a function scope memory
+region when creating an entry for a namespace alias.
 */
 {
   a_namespace_ptr nsp;
