@@ -1,5 +1,13 @@
 Version 3.4
 
+4/19/04  IA-64 ABI: Array field of __vmi_class_type_info objects
+
+In IA-64 ABI configurations, a typeinfo variable for a class involving
+multiple and/or virtual bases classes (whose type is __vmi_class_type_info)
+ended up having a __base_info field with a zero-length array type.
+(However, the initializer for this field had the correct nonzero number of
+elements.)  This is now fixed.
+
 4/17/04  IL problem with GNU __extension__ on constant and
          RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
