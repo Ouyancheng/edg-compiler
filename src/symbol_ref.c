@@ -24,6 +24,9 @@ symbol_ref.c - Routines to manage references to symbols.
 
 /* Additional header files. */
 #include "symbol_ref.h"
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "statements.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 static an_il_to_str_output_control_block
@@ -1756,8 +1759,7 @@ void reference_to_implicitly_invoked_function
                                  a_source_position  *pos,
                                  a_type_ptr         class_of_object,
                                  a_boolean          honor_virtual,
-                                 a_boolean          evaluated,
-                                 a_boolean          suppress_access_check)
+                                 a_boolean          evaluated)
 /*
 sym is points to a symbol for a special member function that is invoked
 implicitly -- e.g., a copy constructor that is called when a class
@@ -1779,8 +1781,7 @@ function is virtual, the reference is considered to be a virtual call;
 that means the access control checking is done, but the IL entry is not
 marked as referenced.  If evaluated is FALSE, the reference is within
 an unevaluated expression; again, access control checking is done, but
-the IL entry is not marked as referenced.  If suppress_access_check is
-TRUE, no access control checking is done.
+the IL entry is not marked as referenced.
 */
 {
   a_symbol_ptr  base_sym = fundamental_symbol_of(sym);
@@ -1794,7 +1795,15 @@ TRUE, no access control checking is done.
                                (a_special_function_kind)sfk_conversion ||
                   (rp->special_kind == (a_special_function_kind)sfk_operator &&
                    rp->opname_kind == (an_opname_kind)onk_assign));
-  if (!suppress_access_check) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && struct_stmt_stack != NULL &&
+      struct_stmt_stack[depth_stmt_stack].in_handler_parameter_declaration &&
+      is_constructor_symbol(base_sym)) {
+    /* Don't check access on constructors while processing handler parameters
+       in Microsoft mode. */
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  {
     /* Check for accessibility. */
     if (!have_access_to_symbol(sym)) {
       an_error_severity  severity = es_discretionary_error;
@@ -1850,8 +1859,7 @@ constructor), return TRUE.
   if (ctor_sym != NULL) {
     reference_to_implicitly_invoked_function(ctor_sym, pos, class_type,
                                              /*honor_virtual=*/FALSE,
-                                             /*evaluated=*/TRUE,
-                                             /*suppress_access_check=*/FALSE);
+                                             /*evaluated=*/TRUE);
   }  /* if */
   return (ctor_sym != NULL);
 }  /* reference_to_trivial_default_constructor */

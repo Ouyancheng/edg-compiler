@@ -237,8 +237,11 @@ typedef struct a_struct_stmt_stack_entry {
 			   catch clause. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	in_cleanup_statement_of_microsoft_try:1;
-			/* TRUE if current inside the cleanup statement of
+			/* TRUE if currently inside the cleanup statement of
 			   a Microsoft try-finally or try-except. */
+  a_bit_field	in_handler_parameter_declaration:1;
+			/* TRUE if currently inside the declaration of the
+			   handler parameter. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	switch_has_default_clause:1;
 			/* TRUE if the structured statement is a switch and

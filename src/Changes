@@ -1,5 +1,20 @@
 Version 2.44
 
+2/3/00   Microsoft compatibility: disable access checks on copy constructor
+         for base classes of handler parameters
+
+In Microsoft mode, access checks to copy constructors for base classes of a
+handler type are now disabled.  The access check for the copy constructor of
+the handler type itself was already disabled in prior releases.
+
+  struct Base { private: Base(const Base &src); };
+  struct Derived: public Base {};
+  void f() {
+    try {}
+    catch (Derived d) {}  // No longer an access error in Microsoft mode
+    catch (Base b) {}  // No error in Microsoft mode in prior releases
+  }
+
 2/3/00   Internal error when allowing pointers to incomplete types in catch
          clauses
 

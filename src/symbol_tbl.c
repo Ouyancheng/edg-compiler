@@ -5758,8 +5758,7 @@ FALSE, the reference is within an unevaluated expression.
     reference_to_implicitly_invoked_function(ctor_sym, err_pos,
                                              object_class_type,
                                              /*honor_virtual=*/FALSE,
-                                             evaluated,
-                                             /*suppress_access_check=*/FALSE);
+                                             evaluated);
     ctor_routine = ctor_sym->variant.routine.ptr;
   }  /* if */
   return ctor_routine;
@@ -5770,8 +5769,7 @@ a_routine_ptr select_destructor(a_type_ptr        class_type,
 				a_type_ptr        object_class_type,
                                 a_source_position *position,
                                 a_boolean         honor_virtual,
-                                a_boolean         evaluated,
-                                a_boolean         suppress_access_check)
+                                a_boolean         evaluated)
 /*
 If the indicated class has a destructor, check that it is accessible, mark
 it as referenced, and return a pointer to the routine entry.  Otherwise,
@@ -5780,8 +5778,7 @@ destroyed; class_type may be a base class of object_class_type.  This is
 needed for protected member access checking.  If honor_virtual is TRUE, and
 if the destructor is virtual, consider this reference a virtual function
 call.  If evaluated is FALSE, the reference is within an unevaluated
-expression.  *position is the source position of the reference.  If
-suppress_access_check is TRUE, no access checking is done.
+expression.  *position is the source position of the reference.
 */
 {
   a_symbol_ptr  dtor_sym;
@@ -5795,8 +5792,7 @@ suppress_access_check is TRUE, no access checking is done.
       /* Check that the destructor is accessible and mark it referenced. */
       reference_to_implicitly_invoked_function(dtor_sym, position,
                                                object_class_type,
-                                               honor_virtual, evaluated,
-                                               suppress_access_check);
+                                               honor_virtual, evaluated);
       dtor_routine = dtor_sym->variant.routine.ptr;
     }  /* if */
   }  /* if */
@@ -5810,8 +5806,7 @@ a_routine_ptr select_copy_constructor(
                                   a_source_position     *err_pos,
                                   a_type_ptr            object_class_type,
                                   a_boolean             *class_bitwise_copy,
-                                  a_boolean             evaluated,
-                                  a_boolean             suppress_access_check)
+                                  a_boolean             evaluated)
 /*
 Find and return a pointer to a routine representing a copy constructor for
 the class indicated by class_type.  If qualifiers_required is non-zero,
@@ -5824,7 +5819,6 @@ copied; class_type may be a base class of object_class_type.  This is needed
 for protected member access checking.  If a bitwise copy is allowed, return
 NULL and *class_bitwise_copy TRUE.  If evaluated is FALSE, the reference is
 within an unevaluated expression.  This routine is only used in C++ mode.
-If suppress_access_check is TRUE, no access checking is done.
 */
 {
   a_symbol_ptr  cctor_sym;
@@ -5853,7 +5847,7 @@ If suppress_access_check is TRUE, no access checking is done.
     reference_to_implicitly_invoked_function(cctor_sym, err_pos,
                                              object_class_type,
                                              /*honor_virtual=*/FALSE,
-                                             evaluated, suppress_access_check);
+                                             evaluated);
     cctor_routine = cctor_sym->variant.routine.ptr;
   }  /* if */
   return cctor_routine;
@@ -6006,8 +6000,7 @@ is returned TRUE if the parameter is not a reference parameter.
     /* Check that the function is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(
                                   opass_sym, err_pos, (a_type_ptr)NULL,
-                                  /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
-                                  /*suppress_access_check=*/FALSE);
+                                  /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);
     opass_routine = opass_sym->variant.routine.ptr;
   }  /* if */
   db_exit();

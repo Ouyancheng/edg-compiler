@@ -2753,8 +2753,7 @@ extern a_routine_ptr select_destructor(a_type_ptr       class_type,
 				       a_type_ptr       object_class_type,
                                        a_source_position *position,
                                        a_boolean        honor_virtual,
-                                       a_boolean        evaluated,
-                                       a_boolean        suppress_access_check);
+                                       a_boolean        evaluated);
 
 extern a_routine_ptr select_copy_constructor(
                                   a_type_ptr            class_type,
@@ -2762,8 +2761,7 @@ extern a_routine_ptr select_copy_constructor(
                                   a_source_position     *err_pos,
                                   a_type_ptr            object_class_type,
                                   a_boolean             *class_bitwise_copy,
-                                  a_boolean             evaluated,
-                                  a_boolean             suppress_access_check);
+                                  a_boolean             evaluated);
 
 extern a_symbol_ptr find_copy_assignment_operator(
                                     a_type_ptr            class_type,

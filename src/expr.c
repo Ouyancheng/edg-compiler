@@ -961,8 +961,7 @@ is after the closing parenthesis of the argument list.
                                          constructor_sym, source_pos,
                                          object_class_type,
                                          /*honor_virtual=*/FALSE,
-                                         curr_expr_is_potentially_evaluated(),
-                                         /*suppress_access_check=*/FALSE);
+                                         curr_expr_is_potentially_evaluated());
     *conversion_routine = constructor_sym->variant.routine.ptr;
   }  /* if */
   db_exit();
@@ -5416,8 +5415,7 @@ specification allow a variable-sized array as the top type.
                                         base_new_type, base_new_type,
                                         &type_position,
                                         /*honor_virtual=*/FALSE,
-                                        curr_expr_is_potentially_evaluated(),
-                                        /*suppress_access_check=*/FALSE);
+                                        curr_expr_is_potentially_evaluated());
             if (dip->destructor != NULL) {
               dip->destruction_is_for_partially_constructed_aggregate = TRUE;
             }  /* if */
@@ -5681,8 +5679,7 @@ As an anachronism, allow an expression inside the [ ].
         dtor_routine = select_destructor(base_delete_type, base_delete_type,
                                          &operand.position,
                                          /*honor_virtual=*/TRUE,
-                                         curr_expr_is_potentially_evaluated(),
-                                         /*suppress_access_check=*/FALSE);
+                                         curr_expr_is_potentially_evaluated());
         if (dtor_routine != NULL) {
           /* Class with destructor.  Destruction is required. */
           dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
@@ -10073,8 +10070,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
               select_destructor(operand_type, operand_type,
                                 &operand.position,
                                 /*honor_virtual=*/FALSE,
-                                curr_expr_is_potentially_evaluated(),
-                                /*suppress_access_check=*/FALSE);
+                                curr_expr_is_potentially_evaluated());
       } else {
         /* For a nonclass operand, generate an expression and then make a
            dynamic initialization entry for the expression. */
@@ -11739,8 +11735,7 @@ are marked as actually referenced.
                                                dtor_routine->source_corresp.
                                                            parent.class_type,
                                                /*honor_virtual=*/FALSE,
-                                               /*evaluated=*/TRUE,
-                                              /*suppress_access_check=*/FALSE);
+                                               /*evaluated=*/TRUE);
     }  /* if */
     /* Free the one entry. */
     free_dynamic_init_dtor_fixup(didfp);
@@ -12814,8 +12809,7 @@ overall errors.
       (*dip)->destructor = select_destructor(class_type, object_class_type,
                                              source_pos,
                                              /*honor_virtual=*/FALSE,
-                                             /*evaluated=*/TRUE,
-                                             /*suppress_access_check=*/FALSE);
+                                             /*evaluated=*/TRUE);
     }  /* if */
     /* If there's an object lifetime around the initialization, transfer it
        to the dynamic initialization entry. */

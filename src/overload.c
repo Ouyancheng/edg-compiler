@@ -8480,8 +8480,7 @@ is used only in C++ mode.
                                            &operand->position,
                                            operand->type,
                                            /*honor_virtual=*/TRUE,
-                                          curr_expr_is_potentially_evaluated(),
-                                           /*suppress_access_check=*/FALSE);
+                                         curr_expr_is_potentially_evaluated());
   check_assertion_str(routine_type_is_nonstatic_member_function(routine_type),
                      "set_up_for_conversion_function_call: no this parameter");
   /* Check for the cfront anachronism that allows a non-const function to be
@@ -8529,8 +8528,7 @@ call in *arg_expr_list.  This routine is used only in C++ mode.
                                            ctor_routine->source_corresp.
                                                            parent.class_type,
                                            /*honor_virtual=*/FALSE,
-                                          curr_expr_is_potentially_evaluated(),
-                                           /*suppress_access_check=*/FALSE);
+                                         curr_expr_is_potentially_evaluated());
   routine_type = skip_typerefs(ctor_routine->type);
   /* Convert the operand to the proper type to be an argument of the
      constructor. */
@@ -9165,8 +9163,7 @@ happen only in C++ mode.
                               get_type_qualifiers(source_operand->type),
                               &source_operand->position, class_type,
                               &class_bitwise_copy,
-                              curr_expr_is_potentially_evaluated(),
-                              /*suppress_access_check=*/FALSE);
+                              curr_expr_is_potentially_evaluated());
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9320,8 +9317,7 @@ the address of the temporary.  Used only in C++ mode.
                                 get_type_qualifiers(operand->type),
                                 &operand->position, unqual_temp_type,
                                 &class_bitwise_copy,
-                                curr_expr_is_potentially_evaluated(),
-                                /*suppress_access_check=*/FALSE);
+                                curr_expr_is_potentially_evaluated());
       if (class_bitwise_copy) {
         /* A bitwise copy can be done. */
         /* cctor_case = FALSE;  -- already set */

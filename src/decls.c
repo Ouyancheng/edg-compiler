@@ -7459,7 +7459,7 @@ pos is used to mark the location that carries any diagnostic.
     result = TRUE;
   }  /* if */
   return result;
-}  /* invalid_catch_type */
+}  /* is_invalid_catch_type */
 
 
 void handler_declaration(a_statement_ptr     try_block_stmt,
@@ -7499,6 +7499,12 @@ clause is to be attached.  catch_pos is the source position of "catch".
   set_block_scope_handler(handler);
   set_stmt_source_position(handler->catch_position, *catch_pos);
   if (required_token(tok_lparen, ec_exp_lparen)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (struct_stmt_stack != NULL) {
+      struct_stmt_stack[depth_stmt_stack].in_handler_parameter_declaration
+                                                                       = TRUE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     decl_pos = pos_curr_token;
     if (curr_token == tok_ellipsis) {
       /* NULL parameter. */
@@ -7627,18 +7633,17 @@ clause is to be attached.  catch_pos is the source position of "catch".
           }  /* if */
           /* Both the copy constructor and destructor must be accessible in
              the context of the handler (15.3 [except.handle] para 17).
-             (However, the Microsoft compiler doesn't enforce accessibility
-             of copy constructors). */
+             (However, the Microsoft compiler doesn't enforce accessibility of
+             copy constructors; see
+                                reference_to_implicitly_invoked_function). */
           cctor = select_copy_constructor(type_ptr,
                                           (a_type_qualifier_set)TQ_NONE,
                                           &pos, type_ptr, &bitwise_copy,
-                                          /*evaluated=*/TRUE,
-                                          /*suppress_access_check=*/
-                                                           microsoft_mode);
+                                          /*evaluated=*/TRUE);
           check_assertion((cctor == NULL) == bitwise_copy);
           dtor = select_destructor(type_ptr, type_ptr, &pos,
-                                   /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
-                                   /*suppress_access_check=*/FALSE);
+                                   /*honor_virtual=*/FALSE,
+                                   /*evaluated=*/TRUE);
         } else {
           /* Non classes require only bitwise copying. */
           cctor = dtor = NULL;
@@ -7723,6 +7728,12 @@ clause is to be attached.  catch_pos is the source position of "catch".
       }  /* for */
     }  /* if */
     (void)required_token(tok_rparen, ec_exp_rparen);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (struct_stmt_stack != NULL) {
+      struct_stmt_stack[depth_stmt_stack].in_handler_parameter_declaration
+                                                                      = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Parse the body of the handler. */
   handler->statement = compound_statement(/*at_function_level=*/FALSE,

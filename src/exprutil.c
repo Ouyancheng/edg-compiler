@@ -4762,8 +4762,7 @@ initialization entry.  *position gives the associated source position.
     if (!expr_stack->in_cctor_elision_initializer) {
       dip->destructor = select_destructor(type, type, position,
                                           /*honor_virtual=*/FALSE,
-                                          curr_expr_is_potentially_evaluated(),
-                                          /*suppress_access_check=*/FALSE);
+                                        curr_expr_is_potentially_evaluated());
     } else {
       /* In a cctor elision expression.  Put the destructor in the entry,
          but do not do the access checking etc. at this time.  Build a fixup
