@@ -316,10 +316,11 @@ Dump a direct base class entry, for debug purposes.
     fputs("virtual ", f_debug);
   }  /* if */
   db_access_control(bcp->access);
-  fprintf(f_debug, " base class %s (%soffset = %lu)",
-		   tp->source_corresp.name, bcp->is_virtual ? "pointer " : "",
-                   bcp->offset);
-  if (!bcp->is_virtual) {
+  fprintf(f_debug, " base class %s", tp->source_corresp.name);
+  if (bcp->is_virtual) {
+    fprintf(f_debug, " (pointer offset = %lu)", bcp->pointer_offset);
+  } else {
+    fprintf(f_debug, " (offset = %lu)", bcp->offset);
     bcp = tp->variant.class_struct_union.extra_info->base_classes;
     while (bcp != NULL) {
       if (bcp->direct) db_direct_base_class(bcp, depth+1);
