@@ -8847,25 +8847,30 @@ temporary in *result.  The argument list has already been prepared for
 the call (default arguments have been added, the argument types have
 been adjusted, etc.).  temp_type is the type of the temporary; its
 cv-unqualified version must be the class of which the constructor is
-a member.  If it is NULL, the class type is used.
+a member.  If it is NULL, the class type is used.  ctor_routine can
+be NULL to indicate that the constructor is unknown because one or
+more of the arguments is template-dependent in a prototype instantiation.
+temp_type must be non-NULL in that case.
 */
 {
-  a_type_ptr         class_type;
   a_dynamic_init_ptr dip;
   an_expr_node_ptr   temp_init_node;
 
-#if CHECKING
-  if (ctor_routine->special_kind != (a_special_function_kind)sfk_constructor) {
-    internal_error("make_constructor_dynamic_init: routine not constructor");
-  }  /* if */
-#endif /* CHECKING */
-  class_type = ctor_routine->source_corresp.parent.class_type;
-  if (temp_type == NULL) {
-    temp_type = class_type;
+  if (ctor_routine == NULL) {
+    check_assertion(temp_type != NULL);
   } else {
-    check_assertion_str(types_are_compatible_ignoring_qualifiers(class_type,
-                                                                 temp_type),
-                        "make_constructor_dynamic_init: bad temp_type");
+    a_type_ptr class_type;
+    check_assertion_str(ctor_routine->special_kind ==
+                                      (a_special_function_kind)sfk_constructor,
+                     "make_constructor_dynamic_init: routine not constructor");
+    class_type = ctor_routine->source_corresp.parent.class_type;
+    if (temp_type == NULL) {
+      temp_type = class_type;
+    } else {
+      check_assertion_str(types_are_compatible_ignoring_qualifiers(class_type,
+                                                                   temp_type),
+                          "make_constructor_dynamic_init: bad temp_type");
+    }  /* if */
   }  /* if */
   /* Create the dynamic initialization entry and the enk_temp_init node. */
   temp_init_node = create_expr_temporary(temp_type, result_is_addr, position);
