@@ -183,7 +183,7 @@ for certain base classes in the IA-64 ABI.
       if (bctbp->public_only && (bcsp->__offset_flags & BCS_PUBLIC) == 0) {
         continue;
       }  /* if */
-      if (bcsp->__offset_flags & BCS_VIRTUAL) {
+      if (is_virtual(bcsp)) {
         a_vtbl_entry_ptr vtbl, vbase_offset;
         vtbl = *((a_vtbl_entry_ptr *)ptr);
         vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + get_offset(bcsp));
@@ -220,7 +220,7 @@ end_of_routine:;
     /* Adjust the pointer by the offset provided in the base class
        specification. */
     new_ptr = (void*) (((char *) ptr) + bcsp->offset);
-    if (bcsp->flags & BCS_VIRTUAL) {
+    if (is_virtual(bcsp)) {
       /* If this is a virtual base class then the offset provides the
          location of a pointer to the base class.  Dereference the
          pointer and use that value. */
@@ -693,6 +693,7 @@ this function is called; it is set to TRUE If the base class is found.
 }  /* find_base_class_at_addr */
 
 
+/*ARGSUSED*/ /* <-- curr_base_info is not used. */
 static void tbc_downcast(
 		void					*ptr,
 		a_type_info_impl_ptr			class_info,
@@ -733,8 +734,6 @@ See try_downcast for more information.
     } else {
       /* A result has been found (for the first time). */
       bctbp->downcast_result = bctbp->downcast_dest_ptr;
-      /* If the base class is not virtual, we can terminate the search. */
-      if (!is_virtual(curr_base_info)) bctbp->terminate = TRUE;
     }  /* if */
   }  /* if */
 }  /* tbc_downcast */
