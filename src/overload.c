@@ -4861,7 +4861,8 @@ gives the type of the routine being called.
     }  /* if */
   }  /* if */
   /* The cast here handles const/volatile differences and error cases. */
-  cast_operand(this_param_type, operand, /*is_implicit_cast=*/TRUE);
+  cast_operand(this_param_type, operand, /*check_cast_access=*/TRUE,
+               /*is_implicit_cast=*/TRUE);
 }  /* prep_special_selector_operand */
 
 
@@ -6145,7 +6146,8 @@ be a constructor call.
       }  /* if */
       /* Do any necessary standard or trivial conversion. */
       if (dest_type != NULL && is_an_rvalue(operand)) {
-        cast_operand(dest_type, operand, /*is_implicit_cast=*/TRUE);
+        cast_operand(dest_type, operand, /*check_cast_access=*/TRUE,
+                     /*is_implicit_cast=*/TRUE);
       }  /* if */
     }  /* if */
   } else {
@@ -6190,7 +6192,8 @@ conversion (which might involve a user-defined conversion).
                          (a_conv_descr *)NULL);
   } else {
     /* Cast the operand to the result type. */
-    cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
+    cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
+                 /*is_implicit_cast=*/TRUE);
   }  /* if */
 }  /* convert_operand */
 
@@ -6828,7 +6831,7 @@ reference type.  Only used in C++.
       conv_class_operand_to_object_pointer(source_operand);
       /* Handle base class casts. */
       cast_operand(make_pointer_type(dest_type), source_operand,
-                                     /*is_implicit_cast=*/TRUE);
+                   /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE);
     } else if (have_temp && is_an_lvalue(source_operand)) {
       /* The result of the conversion is already a non-class temporary
          that is an lvalue (in particular, this includes array lvalues).
@@ -7124,7 +7127,8 @@ initializer has previously been found to be acceptable, and
          destination. */
       dest_type = make_pointer_type(base_dest_type);
       /* Cast the operand to the result type. */
-      cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
+      cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
+                   /*is_implicit_cast=*/TRUE);
     } else if (direct_binding_possible &&
                is_a_function_designator(source_operand)) {
       /* The initial value is a function designator of the right type;
@@ -7162,7 +7166,8 @@ initializer has previously been found to be acceptable, and
       /* Use a pointer type instead of a reference type on the
          destination. */
       dest_type = make_pointer_type(base_dest_type);
-      cast_operand(dest_type, source_operand, /*is_implicit_cast=*/TRUE);
+      cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
+                   /*is_implicit_cast=*/TRUE);
       if (dropping_qualifiers) {
         /* Type qualifiers were dropped on this binding. */
         pos_error(ec_qualifier_dropped_in_ref_init, &source_operand->position);

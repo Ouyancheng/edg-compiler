@@ -232,8 +232,8 @@ function).
     an_expr_node_ptr expr_cast = expr, expr_next = expr->next;
     an_expr_node     node_copy;
 
-    cast_node(&expr_cast, promoted_type, /*is_implicit_cast=*/TRUE,
-              &error_position);
+    cast_node(&expr_cast, promoted_type, /*check_cast_access=*/TRUE,
+              /*is_implicit_cast=*/TRUE, &error_position);
     expr_cast->next = expr_next;
     if (expr_cast != expr) {
       /* A cast was added, so swap the cast and the original node so that the

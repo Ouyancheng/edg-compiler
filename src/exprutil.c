@@ -1762,13 +1762,15 @@ source position to be used for errors.  This routine is only used in C++ mode.
 
 static void add_cast_to_node(an_expr_node_ptr  *p_node,
                              a_type_ptr        new_type,
+                             a_boolean         check_cast_access,
                              a_boolean         is_implicit_cast,
                              a_source_position *err_pos)
 /*
 Add a cast node to the expression tree pointed to by *p_node, and update
 *p_node to point to the cast node.  The old node is cast to the type new_type.
-*err_pos gives the source position for errors.  If is_implicit_cast is TRUE,
-this is an implicit cast rather than an explicit one.  This routine generates
+*err_pos gives the source position for errors.  Check access on the
+cast if check_cast_access is TRUE.  If is_implicit_cast is TRUE, this
+is an implicit cast rather than an explicit one.  This routine generates
 the special IL operators used for base-->derived and derived-->base class
 pointer casts, when they are appropriate.  It also issues errors for
 invalid casts of that kind (e.g., ambiguous).
@@ -1792,8 +1794,8 @@ invalid casts of that kind (e.g., ambiguous).
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
       add_base_class_casts(bcp, new_type_pointed_to,
-                           /*check_cast_access=*/is_implicit_cast,
-                           is_implicit_cast, /*implicit_in_naming=*/FALSE,
+                           check_cast_access, is_implicit_cast,
+                           /*implicit_in_naming=*/FALSE,
                            p_node, err_pos);
     } else {
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
@@ -1816,8 +1818,8 @@ invalid casts of that kind (e.g., ambiguous).
          derived class. */
       new_type_pointed_to = pm_class_type(new_type);
       add_pm_derived_class_casts(new_type_pointed_to, bcp,
-                                 /*check_cast_access=*/is_implicit_cast,
-                                 is_implicit_cast, p_node, err_pos);
+                                 check_cast_access, is_implicit_cast,
+                                 p_node, err_pos);
     }  /* if */
   } else if (!C_mode() && is_bool_type(new_type)) {
     /* Cast to bool.  Use eok_bool_cast. */
@@ -1835,19 +1837,22 @@ invalid casts of that kind (e.g., ambiguous).
 
 void cast_node(an_expr_node_ptr  *node,
                a_type_ptr        new_type,
+               a_boolean         check_cast_access,
 	       a_boolean         is_implicit_cast,
                a_source_position *err_pos)
 /*
 Change the type of a node.  If the node is a constant, a conversion is done on
-the constant value; otherwise a cast operator is added on top of the node.
-If is_implicit_cast is TRUE, this is an implicit cast rather than an explicit
-one.  Warnings about truncation etc. are issued only if is_implicit_cast
-is TRUE.  *err_pos gives the source position for errors.  The current
-expression is assumed to be a nonconstant expression; if it were a
-constant expression, we wouldn't have an expression node.  It's also
-assumed to be an evaluated expression (for purposes of error diagnosis).
-The caller must have already determined that the conversion is allowed,
-except for casts to ambiguous or inaccessible base classes.
+the constant value; otherwise a cast operator is added on top of the
+node.  Check access on the cast if check_cast_access is TRUE.  If
+is_implicit_cast is TRUE, this is an implicit cast rather than an
+explicit one.  Warnings about truncation etc. are issued only if
+is_implicit_cast is TRUE.  *err_pos gives the source position for
+errors.  The current expression is assumed to be a nonconstant
+expression; if it were a constant expression, we wouldn't have an
+expression node.  It's also assumed to be an evaluated expression (for
+purposes of error diagnosis).  The caller must have already determined
+that the conversion is allowed, except for casts to ambiguous or
+inaccessible base classes.
 */
 {
   a_constant local_constant;
@@ -1882,7 +1887,8 @@ except for casts to ambiguous or inaccessible base classes.
       /* Note that if the constant type-change was attempted, it was
          done on a copy of the constant.  The original constant and
          expression were not changed, and therefore can be used here. */
-      add_cast_to_node(node, new_type, is_implicit_cast, err_pos);
+      add_cast_to_node(node, new_type, check_cast_access, is_implicit_cast,
+                       err_pos);
     } else {
       /* The operation was successfully folded to a constant. */
       (*node)->variant.constant = alloc_shareable_constant(&local_constant);
@@ -1894,14 +1900,16 @@ except for casts to ambiguous or inaccessible base classes.
 
 void cast_operand(a_type_ptr new_type,
 		  an_operand *operand,
+                  a_boolean  check_cast_access,
 		  a_boolean  is_implicit_cast)
 /*
-Cast the operand to the new type.  If is_implicit_cast is TRUE, this
-is an implicit cast rather than an explicit one.  If there are any
-warnings detected on the type change, issue them only if is_implicit_cast
-is TRUE.  The operand must be an rvalue or error operand.
-The caller must have already determined that the conversion is allowed,
-except for casts to ambiguous or inaccessible base classes.
+Cast the operand to the new type.  Check access on the cast if
+check_cast_access is TRUE.  If is_implicit_cast is TRUE, this is an
+implicit cast rather than an explicit one.  If there are any warnings
+detected on the type change, issue them only if is_implicit_cast is TRUE.
+The operand must be an rvalue or error operand.  The caller must have
+already determined that the conversion is allowed, except for casts to
+ambiguous or inaccessible base classes.
 */
 {
   a_boolean         did_not_fold, access_error_reported, ambiguous;
@@ -1944,7 +1952,8 @@ except for casts to ambiguous or inaccessible base classes.
              change its type in place.  Otherwise, add a cast expression
              node. */
           node = operand->variant.expression;
-          cast_node(&node, new_type, is_implicit_cast, &operand->position);
+          cast_node(&node, new_type, check_cast_access, is_implicit_cast,
+                    &operand->position);
           make_expression_operand(node, new_type, operand);
           break;
         case ok_constant:
@@ -1973,8 +1982,8 @@ except for casts to ambiguous or inaccessible base classes.
                  copy of the constant.  The original constant was not
                  changed, and therefore can be used here. */
               node = make_node_from_operand(operand);
-              add_cast_to_node(&node, new_type, is_implicit_cast,
-                               &operand->position);
+              add_cast_to_node(&node, new_type, check_cast_access,
+                               is_implicit_cast, &operand->position);
               make_expression_operand(node, new_type, operand);
             }  /* if */
           } else {
@@ -2308,7 +2317,7 @@ See 3.2.1.1 in the standard.
 */
 {
   cast_operand(operand_type_after_integral_promotion(operand), operand,
-               /*is_implicit_cast=*/TRUE);
+               /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE);
 }  /* promote_operand */
 
 
@@ -2330,7 +2339,8 @@ Do default argument promotions on an argument operand.
     error_in_operand(ec_incomplete_type_not_allowed, argument_operand);
   } else {
     cast_operand(default_argument_promotion(argument_operand->type),
-                 argument_operand, /*is_implicit_cast=*/TRUE);
+                 argument_operand, /*check_cast_access=*/TRUE,
+                 /*is_implicit_cast=*/TRUE);
   }  /* if */
 }  /* arg_default_promote_operand */
 
@@ -2776,11 +2786,13 @@ with the type probably determined by determine_arithmetic_conversions.
   if (!is_error_type(type)) {
     if (operand_1->type != type) {
       /* Cast operand 1 to match the desired type. */
-      cast_operand(type, operand_1, /*is_implicit_cast=*/TRUE);
+      cast_operand(type, operand_1, /*check_cast_access=*/TRUE,
+                   /*is_implicit_cast=*/TRUE);
     }  /* if */
     if (operand_2->type != type) {
       /* Cast operand 2 to match the desired type. */
-      cast_operand(type, operand_2, /*is_implicit_cast=*/TRUE);
+      cast_operand(type, operand_2, /*check_cast_access=*/TRUE,
+                   /*is_implicit_cast=*/TRUE);
     }  /* if */
   }  /* if */
 }  /* change_binary_operand_types */
@@ -4159,6 +4171,7 @@ in *result.
       /* Cast if necessary to handle any const etc. adjustment. */
       cast_node(&implicit_this_argument,
                 implicit_this_param_type_of(function_type),
+                /*check_cast_access=*/TRUE,
                 /*is_implicit_cast=*/TRUE,
                 &bound_function_selector->position);
       /* Pass a "this" pointer as the first argument. */
@@ -4395,8 +4408,8 @@ and if so, change *operand to indicate the address.  If not, return FALSE.
       /* Change the field selection to a normal field selection. */
       node->variant.operation.kind = (an_expr_operator_kind)eok_field;
       /* Cast the field selection to the right pointer type. */
-      cast_node(&node, ptr_type, /*is_implicit_cast=*/TRUE,
-                &operand->position);
+      cast_node(&node, ptr_type, /*check_cast_access=*/TRUE,
+                /*is_implicit_cast=*/TRUE, &operand->position);
       /* Make an rvalue operand for the address. */
       make_expression_operand(node, ptr_type, operand);
     }  /* if */
@@ -4930,7 +4943,8 @@ not an lvalue, it is left alone.
             /* The operand is not based on an expression node (unexpected,
                but checked just to be safe).  Throw away the cast node and
                do a cast. */
-            cast_operand(cast_orig_type, operand, /*is_implicit_cast=*/FALSE);
+            cast_operand(cast_orig_type, operand, /*check_cast_access=*/FALSE,
+                         /*is_implicit_cast=*/FALSE);
           } else {
             /* The cast node can be reused (usual case). */
             operand->type = cast_node->type = cast_orig_type;
@@ -4972,7 +4986,8 @@ not an lvalue, it is left alone.
         } else {
           /* For other cases (including constants), do the cast the normal
              way. */
-          cast_operand(unqualified_type, operand, /*is_implicit_cast=*/TRUE);
+          cast_operand(unqualified_type, operand, /*check_cast_access=*/TRUE,
+                       /*is_implicit_cast=*/TRUE);
         }  /* if */
       }  /* if */
       if (curr_expr_kind_is_const() && !constant_case) {
@@ -5029,7 +5044,8 @@ are left alone.
          from pointer-to-array to pointer-to-array-element. */
       ptr_type = type_after_array_to_pointer_transformation(operand->type);
       take_address_of_lvalue(operand);
-      cast_operand(ptr_type, operand, /*is_implicit_cast=*/TRUE);
+      cast_operand(ptr_type, operand, /*check_cast_access=*/TRUE,
+                   /*is_implicit_cast=*/TRUE);
       /* Restore the original source position, etc.  Keep the
          reference entries because if the pointer to the array is
          used in a subscript operation or the like we would like to
@@ -5346,7 +5362,8 @@ types to get a boolean expression (see process_boolean_controlling_expression).
                                    &std_conv)) {
         okay = TRUE;
         /* Convert the expression to bool. */
-        cast_operand(bool_type(), operand, /*is_implicit_cast=*/TRUE);
+        cast_operand(bool_type(), operand, /*check_cast_access=*/TRUE,
+                     /*is_implicit_cast=*/TRUE);
       } else {
         error_in_operand(ec_expr_not_bool, operand);
       }  /* if */

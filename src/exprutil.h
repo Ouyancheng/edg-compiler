@@ -764,6 +764,7 @@ extern void discard_operand(an_operand *operand);
 
 extern void cast_operand(a_type_ptr new_type,
 		         an_operand *operand,
+                         a_boolean  check_cast_access,
 		         a_boolean  is_implicit_cast);
 
 extern void conv_selector_to_object_pointer(an_operand *operand,
@@ -838,6 +839,7 @@ extern an_expr_operator_kind which_binary_operator(a_token_kind token,
 
 extern void cast_node(an_expr_node_ptr  *node,
 		      a_type_ptr        type,
+                      a_boolean         check_cast_access,
 		      a_boolean         is_implicit_cast,
                       a_source_position *err_pos);
 
