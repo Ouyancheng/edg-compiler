@@ -1,5 +1,19 @@
 Version 2.31
 
+1/11/96   Source-sequence entry for enum constant
+
+An obscure bug in the generation of source-sequence entries for enum
+constants has been fixed.  It involved the interaction with source-sequence
+entries for adjacent macro or pragma declarations.  For example,
+
+  enum E {
+    x, y
+  #define xx 1
+  };
+
+The source-sequence entry for "y" used to follow the entry for "xx"; now
+it precedes it.
+
 1/10/96   Adding cv-qualifiers to typedef in C mode
 
 The following is permitted in C++ (the redundant const in the second line is
