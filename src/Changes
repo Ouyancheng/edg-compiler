@@ -1,5 +1,19 @@
 Version 3.1
 
+8/21/02   Microsoft compatibility: internal error on __super reference
+
+An internal error would occur on certain uses of the Microsoft __super
+keyword when the entity referenced is a member of an indirect base class.
+This has been fixed.
+
+  struct Base {
+    void f() {}
+  };
+  struct Derived : public Base {};
+  struct MoreDerived: public Derived {
+     void f() { __super::f(); }
+  };
+
 8/20/02   GNU compatibility: Built-in functions misdeclared
 
 The following built-in functions were previously misdeclared: __builtin_apply,

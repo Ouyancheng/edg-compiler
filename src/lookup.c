@@ -3539,7 +3539,23 @@ Microsoft __super keyword.
         clear_specific_symbol(*locator);
         base_sym = class_qualified_id_lookup(locator, bcp->type, options);
         if (base_sym != NULL) {
-          a_boolean is_list;
+          a_boolean		is_list;
+          a_symbol_ptr		proj_base_sym;
+          a_base_class_ptr	fundamental_bcp;
+          /* See if the base class symbol is itself a projection symbol. */
+          proj_base_sym = locator->specific_symbol;
+          if (proj_base_sym->kind == (a_symbol_kind)sk_projection) {
+            /* It is a projection symbol.  Get the base class information from
+               the projection symbol information. */
+            fundamental_bcp = proj_base_sym->variant.projection.extra_info->
+                                                       fundamental_base_class;
+            /* Find the base class that represents fundamental_bcp as a
+               base class of the class specified by class_type. */
+            fundamental_bcp = corresponding_base_class(fundamental_bcp,
+                                                       class_type, bcp);
+          } else {
+            fundamental_bcp = bcp;
+          }  /* if */
           /* If the base class symbol is an overloaded function, process
              each of the overload set members. */
           is_list = (base_sym->kind == (a_symbol_kind)sk_overloaded_function);
@@ -3549,7 +3565,7 @@ Microsoft __super keyword.
           for (; base_sym != NULL;
                  base_sym = (is_list ? base_sym->next : NULL)) {
             add_symbol_to_super_set(locator, base_sym, &result_sym,
-                                    class_type, bcp);
+                                    class_type, fundamental_bcp);
           }  /* for */
         }  /* if */
       }  /* for */
