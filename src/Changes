@@ -1,4 +1,4 @@
-Version 2.37
+Version 2.37, October 18, 1997
 
 10/18/97  IL version number changed to 2.29
 
@@ -197,7 +197,9 @@ FALSE.
 
 This feature requires support from the driver used to invoke the
 front end.  See the "Driver interface changes" entry above for
-more information.
+more information.  It also requires support in the back end.
+For these reasons, the feature is configured off by default,
+except when the C-generating back end is used.
 
 10/16/97  Explicit specification of function template arguments
 

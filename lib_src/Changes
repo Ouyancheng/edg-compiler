@@ -1,4 +1,4 @@
-Version 2.37
+Version 2.37, October 18, 1997
 
 8/18/97  Default new handler implementation did not match Working Paper
 
@@ -39,6 +39,7 @@ When terminate() is called as the result of a throw, the exception should
 be considered caught.  In other words, if terminate() does a rethrow,
 the rethrown exception should be the one that caused terminate() to
 be called.  We now implement this feature correctly.
+
 -------------------------------------------------------------------------------
 Version 2.36, June 17, 1997
 
