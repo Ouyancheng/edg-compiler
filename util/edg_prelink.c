@@ -1821,6 +1821,7 @@ or defined in that object file.
         type != 'R' &&
         type != 'T' &&
         type != 'U' &&
+        type != 'V' &&
         type != 'W' &&
         type != 'C') {
        /* Not a type of symbol that we need to process.  Only global
@@ -1834,6 +1835,7 @@ or defined in that object file.
         case 'D':  /* data symbol */
         case 'R':  /* read-only data symbol */
         case 'T':  /* text symbol */
+        case 'V':  /* Weak definition */
         case 'W':  /* Weak definition */
           psp->defined = TRUE;
           break;
