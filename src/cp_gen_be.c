@@ -1501,6 +1501,27 @@ Write a temporary name generated from the given IL pointer.
 }  /* gen_temp_name */
 
 
+static void gen_conversion_function_name(a_routine_ptr rout)
+/*
+Generate the name of the indicated conversion function.  This is done
+by generating "operator" followed by the result type.  This
+differs from the name as it appears in the source_corresp.name field
+in that it goes through the special processing that decides how to
+output names (qualified name references, elaborated type specifiers,
+etc.)
+*/
+{
+  a_type_ptr type;
+
+  write_tok_str("operator");
+  write_space();
+  type = rout->type;
+  type = skip_typerefs(type);
+  type = type->variant.routine.return_type;
+  gen_type(type);
+}  /* gen_conversion_function_name */
+
+
 static void gen_unqualified_name(a_source_correspondence *scp,
                                  an_il_entry_kind        entry_kind)
 /*
@@ -1515,6 +1536,11 @@ entity is a template class, add the template arguments.
   if (name == NULL) {
     /* For entities without names, create a name. */
     gen_temp_name((char *)scp);
+  } else if (entry_kind == iek_routine &&
+             ((a_routine_ptr)scp)->special_kind == sfk_conversion) {
+    /* For conversion functions, generate the routine name from the type
+       name. */
+    gen_conversion_function_name((a_routine_ptr)scp);
   } else {
     m_write_tok_str(name);
   }  /* if */
