@@ -201,7 +201,7 @@ do
 #     Generate optimized code
       c_to_obj_options=$c_to_obj_options" -O";
       ;;
-    -O)
+    -O*)
 #     Generate optimized code (e.g., -O2)
       c_to_obj_options=$c_to_obj_options" $1";
       ;;
