@@ -1229,6 +1229,7 @@ end_of_type_list_add:;
           }  /* if */
           if (!is_class_scope) {
             remove_from_primary_file_variables_list(primary_variable);
+            last_variable = pointers_block->last_variable;
           }  /* if */
           overwrite_primary_entry(primary_variable, corresp_variable,
                                   a_variable_ptr);
@@ -1321,6 +1322,7 @@ end_of_variable_list_add:;
           }  /* if */
           if (!is_class_scope) {
             remove_from_primary_file_routines_list(primary_routine);
+            last_routine = pointers_block->last_routine;
           }  /* if */
           overwrite_primary_entry(primary_routine, corresp_routine,
                                   a_routine_ptr);
