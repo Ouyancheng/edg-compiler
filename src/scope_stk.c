@@ -1613,7 +1613,10 @@ the scope being pushed.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* The creation of source sequence entries is suppressed in certain
      contexts. */
-  if (kind == (a_scope_kind)sck_template_declaration) {
+  if (!is_primary_translation_unit) {
+    /* No source sequence entries are created for secondary translation
+       units. */
+  } else if (kind == (a_scope_kind)sck_template_declaration) {
     if (!prototype_instantiations_in_il) {
       /* Source sequence entries are generated in template declaration scopes
          when prototype instantiations are passed in the IL (prototype
