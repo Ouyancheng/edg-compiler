@@ -3703,7 +3703,7 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
 #endif /* DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD */
-#if DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD
+#if DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD
     if (bool_is_keyword) {
       /* Enter a predefined macro that can be used to determine that
          bool is a keyword. */
