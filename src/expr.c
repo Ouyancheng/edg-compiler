@@ -4316,8 +4316,8 @@ As an anachronism, allow an expression inside the [ ].
          Working Paper, but many feel that's overly restrictive, so we
          issue the error only in strict mode. */
       if (strict_ansi_mode) {
-        error_in_operand(ec_delete_of_const_pointer, &operand);
-        make_error_operand(result);
+        pos_diagnostic(strict_ansi_discretionary_severity,
+                       ec_delete_of_const_pointer, &operand.position);
       }  /* if */
     }  /* if */
     if (is_function_type(delete_type)) {
