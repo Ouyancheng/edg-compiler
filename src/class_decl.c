@@ -5812,6 +5812,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
           if (check_for_overload_anachronism()) goto next_declaration;
           if (is_qualified_name_start() &&
 	      locator_for_curr_id.qualifier_class_type != class_type &&
+	      !locator_for_curr_id.is_global_qualified_name &&
               coalesce_and_lookup_qualified_name
                   (GID_DTOR_RECOGNIZED, ilm_normal, &err) &&
               next_token() == tok_semicolon) {
