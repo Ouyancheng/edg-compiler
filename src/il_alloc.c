@@ -933,8 +933,11 @@ to default values.
       pte->variant.class_struct_union.keep_definition_in_il = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if CHECKING
-      pte->variant.integer.avoid_codecenter_warnings = 0;
+      pte->variant.class_struct_union.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
+#if USER_CONTROL_OF_STRUCT_PACKING
+      pte->variant.class_struct_union.max_member_alignment = 0;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       /* The class type supplement is only allocated in C++ mode. */
       if (C_mode()) {
         pte->variant.class_struct_union.extra_info = NULL;
@@ -952,9 +955,6 @@ to default values.
         ctsp->orig_type_kind = kind;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
-#if USER_CONTROL_OF_STRUCT_PACKING
-      pte->variant.class_struct_union.max_member_alignment = 0;
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       break;
     case tk_routine:
       pte->variant.routine.return_type = NULL;
