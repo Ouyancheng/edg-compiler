@@ -2676,7 +2676,7 @@ void record_expected_error(char *filename,
 Record a pending assertion.  This routine may be called in a situation that
 is expected to be the result of processing invalid source code but where a
 diagnostic has not yet been issued.  The location (and associated message)
-of that situation is recorded and then later checked by check_expected_error.
+of that situation is recorded and then later checked by check_expected_errors.
 Only the first instance of such a situation is recorded; subsequent calls
 have no effect.
 */
