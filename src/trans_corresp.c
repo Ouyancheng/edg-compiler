@@ -282,14 +282,25 @@ has not yet been examined for a matching entry in another translation unit.
   f_set_no_trans_unit_corresp((an_il_entry_kind)kind, (char*)(ptr))
 
 
+#if !CHECKING
+/*ARGSUSED*/ /* THe kind parameter is only used for consistency checking. */
+#endif /* CHECKING */
 static void f_set_unvisited_trans_unit_corresp(an_il_entry_kind  kind,
                                                char              *entity)
 /*
 Detach the given IL entity from a translation unit correspondence entry.
 */
 {
+  a_trans_unit_corresp_ptr  tcp = trans_unit_corresp_of_unknown_entry(entity);
+
+  if (tcp != NULL) {
+#if CHECKING
+    check_assertion(tcp->count == 1 && tcp->kind == kind);
+#endif /* CHECKING */
+    free_trans_unit_corresp(tcp);
+    trans_unit_corresp_of_unknown_entry(entity) = NULL;
+  }  /* if */
   /* Unused. */
-  unexpected_condition();
 }  /* f_set_unvisited_trans_unit_corresp */
 
 #define set_unvisited_trans_unit_corresp(kind, ptr)                         \
@@ -2598,11 +2609,7 @@ return FALSE.
        match, the type is restored to its previous state wrt. correspondence
        checking. */
     a_boolean  visited = (trans_unit_corresp_of(type_1) != NULL);
-#if 0 /*FIXME*/
     clear_type_correspondence(type_1, /*visited=*/FALSE);
-#else /*FIXME*/
-    check_assertion(!visited);
-#endif /*FIXME*/
     set_trans_unit_corresp(iek_type, type_1, type_2);
     if (is_immediate_class_type(type_1)) {
       establish_trans_unit_correspondences_for_class(type_1);
