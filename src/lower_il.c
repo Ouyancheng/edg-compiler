@@ -584,26 +584,26 @@ scope, or the lifetime from the parent context, will be used.
     context->latest_initialization = parent_context->latest_initialization;
   }  /* if */
   if (parent_context == NULL) {
-    curr_context->curr_cleanup_state = NULL;
+    context->curr_cleanup_state = NULL;
   } else if (new_lifetime) {
     set_curr_cleanup_state_to_latest_initialization();
   } else {
-    curr_context->curr_cleanup_state = parent_context->curr_cleanup_state;
+    context->curr_cleanup_state = parent_context->curr_cleanup_state;
   }  /* if */
   context->successor_lifetime_at_statement = NULL;
 #if DO_FULL_PORTABLE_EH_LOWERING
   context->try_frame = NULL;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
-  if (parent_context == NULL || parent_context->scope != curr_context->scope) {
+  if (parent_context == NULL || parent_context->scope != context->scope) {
     /* New scope.  Start a new list of local temporaries and of
        scopeless compound statements. */
-    curr_context->local_temporaries = NULL;
-    curr_context->scopeless_compound_stmts = NULL;
+    context->local_temporaries = NULL;
+    context->scopeless_compound_stmts = NULL;
   } else {
     /* Same scope as parent.  Use the same list of local temporaries and of
        scopeless compound statements. */
-    curr_context->local_temporaries = parent_context->local_temporaries;
-    curr_context->scopeless_compound_stmts =
+    context->local_temporaries = parent_context->local_temporaries;
+    context->scopeless_compound_stmts =
                                       parent_context->scopeless_compound_stmts;
   }  /* if */
 }  /* push_context */
