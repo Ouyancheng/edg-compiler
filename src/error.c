@@ -2483,12 +2483,11 @@ Add the first of possibly two parts of a type reference.
   /* Don't use make_qualified_type or is_qualified_type here -- there are
      problems when compiling it in standalone mode. */
   unqualified_type = type;
-  while (unqualified_type->kind == (a_type_kind)tk_typeref) {
-    if (unqualified_type->variant.typeref.is_const ||
-        unqualified_type->variant.typeref.is_volatile) {
-      /* Keep looping. */
-      unqualified_type = unqualified_type->variant.typeref.type;
-    }  /* if */
+  while (unqualified_type->kind == (a_type_kind)tk_typeref &&
+         (unqualified_type->variant.typeref.is_const ||
+          unqualified_type->variant.typeref.is_volatile)) {
+    /* Keep looping. */
+    unqualified_type = unqualified_type->variant.typeref.type;
   }  /* while */
   /* For the pointer case, ignore any typerefs that provide qualifiers
      on the indirection. */
