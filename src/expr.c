@@ -1208,6 +1208,7 @@ Syntax:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean         call_may_be_folded = FALSE;
   a_boolean         do_arg_dep_lookup = FALSE;
+  a_boolean         arg_dep_lookup_suppressed = FALSE;
 
   db_enter(4, "scan_function_call");
 
@@ -1232,10 +1233,13 @@ Syntax:
   /* Argument-dependent lookup will be done if the function name is a
      simple name followed by a left parenthesis (not, for example,
      a name enclosed in parentheses as in "(f)(x)"). */
-  if (!C_mode() && arg_dependent_lookup_enabled &&
-      operand->is_routine_name_followed_by_left_paren &&
-      !operand->is_qualified_name) {
-    do_arg_dep_lookup = TRUE;
+  if (!C_mode() && arg_dependent_lookup_enabled) {
+    if (operand->is_routine_name_followed_by_left_paren &&
+        !operand->is_qualified_name) {
+      do_arg_dep_lookup = TRUE;
+    } else {
+      arg_dep_lookup_suppressed = TRUE;
+    }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   call_may_be_folded = gnu_mode && !curr_expr_kind_is(ek_pp) &&
@@ -1644,6 +1648,10 @@ Syntax:
     call_node = make_operator_node(op,
                                    type_of_unknown_templ_param_nontype,
                                    function_node);
+    if (arg_dep_lookup_suppressed) {
+      call_node->variant.operation.
+                                arg_dependent_lookup_suppressed_on_call = TRUE;
+    }  /* if */
     make_expression_operand(call_node, call_node->type, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ignore_call) {
@@ -1658,6 +1666,7 @@ Syntax:
     assemble_function_call(operand, bound_function_selector, argument_list,
                            /*compiler_generated=*/FALSE,
                            /*is_conversion=*/FALSE,
+                           arg_dep_lookup_suppressed,
                            &call_position, result);
 #if GNU_EXTENSIONS_ALLOWED
     if (call_may_be_folded) {

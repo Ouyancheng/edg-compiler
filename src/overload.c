@@ -9479,6 +9479,7 @@ select_best_function:
                                      arg_expr_list,
                                      /*compiler_generated=*/TRUE,
                                      /*is_conversion=*/FALSE,
+                                     /*arg_dep_lookup_suppressed=*/FALSE,
                                      operator_position, result);
             }  /* if */
           }  /* if */
@@ -10688,6 +10689,7 @@ an explicit cast.
                        /*virtual_suppressed=*/FALSE,
                        /*compiler_generated=*/!is_explicit_cast,
                        /*is_conversion=*/TRUE,
+                       /*arg_dep_lookup_suppressed=*/FALSE,
                        &orig_operand.position, operand);
     if (dest_type == NULL) {
       /* No specified destination type.  The result type of the conversion

@@ -29,6 +29,12 @@ argument-dependent lookup was done anyway.  Now fixed.
     (f)(a);  //1 is called now; formerly, 3 was called
   }
 
+In a related change, a field has been added to the IL an_expr_node
+entry: arg_dependent_lookup_suppressed_on_call indicates that
+argument-dependent lookup was suppressed on a call node, and is
+used in the C++-generating back end to restore the parentheses
+around the function name in cases like the above.
+
 1/6/04   GNU C99 mode: Return type of certain built-in functions
 
 In GNU C99 mode, built-in functions __builtin_creal, __builtin_crealf,

@@ -1028,6 +1028,7 @@ extern void make_function_call(an_expr_node_ptr  function_node,
                                a_boolean         virtual_suppressed,
                                a_boolean         compiler_generated,
                                a_boolean         is_conversion,
+                               a_boolean         arg_dep_lookup_suppressed,
                                a_source_position *call_pos,
                                an_operand        *result);
 
@@ -1036,6 +1037,7 @@ extern void assemble_function_call(an_operand        *function_operand,
                                    an_expr_node_ptr  argument_list,
                                    a_boolean         compiler_generated,
                                    a_boolean         is_conversion,
+                                   a_boolean         arg_dep_lookup_suppressed,
                                    a_source_position *call_position,
                                    an_operand        *result);
 

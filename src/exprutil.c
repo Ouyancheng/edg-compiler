@@ -7076,13 +7076,15 @@ a pointer to its routine entry.  Otherwise, return NULL.
 }  /* routine_from_function_operand */
 
 
-static an_expr_node_ptr func_call_expr(an_expr_node_ptr  function_node,
-                                       a_type_ptr        function_type,
-                                       a_boolean         is_virtual,
-                                       a_boolean         virtual_suppressed,
-                                       a_boolean         compiler_generated,
-                                       a_boolean         is_conversion,
-                                       a_source_position *err_pos)
+static an_expr_node_ptr func_call_expr(
+                                   an_expr_node_ptr  function_node,
+                                   a_type_ptr        function_type,
+                                   a_boolean         is_virtual,
+                                   a_boolean         virtual_suppressed,
+                                   a_boolean         compiler_generated,
+                                   a_boolean         is_conversion,
+                                   a_boolean         arg_dep_lookup_suppressed,
+                                   a_source_position *err_pos)
 /*
 Make an expression for a call of the function indicated by function_node,
 whose type is function_type, and which is virtual if is_virtual is TRUE or
@@ -7099,6 +7101,8 @@ a diagnostic is put out in some cases.  compiler_generated is TRUE if
 this call is compiler-generated (e.g., for an implicit conversion via
 a conversion function).  is_conversion is TRUE for a call generated for
 an explicit or implicit conversion (e.g., a conversion function call).
+arg_dep_lookup_suppressed is TRUE if argument-dependent lookup
+was suppressed on the call.
 */
 {
   an_expr_operator_kind         op;
@@ -7154,6 +7158,8 @@ an explicit or implicit conversion (e.g., a conversion function call).
   call_node = make_operator_node(op, return_type, function_node);
   call_node->variant.operation.compiler_generated = compiler_generated;
   call_node->variant.operation.is_conversion_call = is_conversion;
+  call_node->variant.operation.arg_dependent_lookup_suppressed_on_call =
+                                                     arg_dep_lookup_suppressed;
   rtsp = function_type->variant.routine.extra_info;
   if (rtsp->value_returned_by_cctor) {
     /* An error was already issued for a function returning an abstract
@@ -7180,6 +7186,7 @@ void make_function_call(an_expr_node_ptr  function_node,
                         a_boolean         virtual_suppressed,
                         a_boolean         compiler_generated,
                         a_boolean         is_conversion,
+                        a_boolean         arg_dep_lookup_suppressed,
                         a_source_position *call_pos,
                         an_operand        *result)
 /*
@@ -7191,8 +7198,9 @@ attached to function_node.  A skip_typerefs need not have been done
 on function_type.  compiler_generated is TRUE if this is a compiler-
 generated call (e.g., for an implicit conversion via a conversion
 function).  is_conversion is TRUE for a call generated for an explicit
-or implicit conversion (e.g., a conversion function call).  *call_pos
-gives the source position of the call.
+or implicit conversion (e.g., a conversion function call).
+arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was
+suppressed on the call.  *call_pos gives the source position of the call.
 */
 {
   an_expr_node_ptr call_node;
@@ -7201,8 +7209,9 @@ gives the source position of the call.
   function_type = skip_typerefs(function_type);
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
-			       virtual_suppressed, compiler_generated,
-			       is_conversion, call_pos);
+                             virtual_suppressed, compiler_generated,
+                             is_conversion, arg_dep_lookup_suppressed,
+                             call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
@@ -7228,6 +7237,7 @@ void assemble_function_call(an_operand        *function_operand,
                             an_expr_node_ptr  argument_list,
                             a_boolean         compiler_generated,
                             a_boolean         is_conversion,
+                            a_boolean         arg_dep_lookup_suppressed,
                             a_source_position *call_position,
                             an_operand        *result)
 /*
@@ -7237,9 +7247,10 @@ it is provided by *bound_function_selector.  argument_list points to the
 (explicit) argument list.  compiler_generated is TRUE if this is a compiler-
 generated call (e.g., for an implicit conversion via a conversion
 function).  is_conversion is TRUE for a call generated for an explicit
-or implicit conversion (e.g., a conversion function call).  call_position
-gives the source position of the call.  An operand for the overall call
-is constructed in *result.
+or implicit conversion (e.g., a conversion function call).
+arg_dep_lookup_suppressed is TRUE if argument-dependent lookup
+was suppressed on the call.  call_position gives the source position
+of the call.  An operand for the overall call is constructed in *result.
 */
 {
   an_expr_node_ptr function_node;
@@ -7307,6 +7318,7 @@ is constructed in *result.
                        (a_boolean)function_operand->virtual_function, 
                        (a_boolean)function_operand->is_qualified_name,
                        compiler_generated, is_conversion,
+                       arg_dep_lookup_suppressed,
                        call_position, result);
   }  /* if */
   result->position = *call_position;
@@ -7363,7 +7375,9 @@ intended to be called from outside of the expression routines.
                         rout->is_virtual && !suppress_virtual,
                         rout->is_virtual && suppress_virtual,
                         /*compiler_generated=*/TRUE,
-                        /*is_conversion=*/FALSE, err_pos);
+                        /*is_conversion=*/FALSE,
+                        /*arg_dep_lookup_suppressed=*/FALSE,
+                        err_pos);
   node = wrap_up_full_expression(node);
   /* Allocate the statement. */
   stmt = alloc_expr_statement(node);
@@ -9189,6 +9203,7 @@ is a "get" if put_operand is NULL.
                                  argument_list,
                                  /*compiler_generated=*/TRUE,
                                  /*is_conversion=*/FALSE,
+                                 /*arg_dep_lookup_suppressed=*/FALSE,
                                  &operand_position, operand);
         }  /* if */
       }  /* if */
