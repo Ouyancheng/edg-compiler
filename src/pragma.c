@@ -28,19 +28,15 @@ pragma.c -- Routines to support #pragma directives
 
 /*
 Macro used to get a pointer to the active pointer to the current construct
-pragma list.  The list pointer is stored in the most recently created
-scope stack or statement stack entry.  A flag in the scope stack entry
-indicates which of the two should be used.  This macro returns a pointer
-to the head of the list.  By updating this pointer the caller may
-alter the list pointed to by the current pointer.
+pragma list.  The list pointer is stored in the scope stack entry.
+This macro returns a pointer to the head of the list.  By updating this
+pointer the caller may alter the list pointed to by the current pointer.
 */
 #define curr_list_of_curr_construct_pragmas()		         	      \
-(scope_stack[depth_scope_stack].curr_construct_pragma_list_is_on_stmt_stack ? \
-  &struct_stmt_stack[depth_stmt_stack].curr_construct_pragmas :		      \
-  &scope_stack[depth_scope_stack].curr_construct_pragmas)
+  (&scope_stack[depth_scope_stack].curr_construct_pragmas)
 
 
-static a_pragma_kind_description_ptr add_pragma_description
+static a_pragma_kind_description_ptr add_pragma_kind_description
                       (a_pragma_kind 	     kind,
 		       a_pragma_binding_kind binding_kind,
 		       a_generic_pragma_function_ptr
@@ -53,6 +49,7 @@ static a_pragma_kind_description_ptr add_pragma_description
 		       a_boolean	     make_text_not_tokens,
 		       a_boolean	     expand_macros,
 		       a_boolean	     processing_C_code_in_pragma,
+		       a_boolean	     ignore_in_back_end,
 		       an_error_severity     error_severity)
 /*
 Allocate a pragma description entry, initialize its fields, and add it
@@ -65,12 +62,26 @@ but cannot be referenced by name in a pragma directive.
 
   /* Make sure this pragma kind is not already on the list. */
   check_assertion_str(pragma_description_for_pragma_kind[kind] == NULL,
-                      "add_pragma_description: duplicate pragma kind");
+                      "add_pragma_kind_description: duplicate pragma kind");
   /* A pbk_next_construct pragma must bind to a declaration and/or
      statement. */
-  check_assertion_str(binding_kind != pbk_next_construct ||
-                      (may_bind_to_decl || may_bind_to_stmt),
-                      "add_pragma_description: bad next_construct binding");
+  check_assertion_str2(binding_kind != pbk_next_construct ||
+                       (may_bind_to_decl || may_bind_to_stmt),
+                       "add_pragma_kind_description:",
+		       "bad next_construct binding");
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+  /* The back end must be capable of handling any pragmas that are included
+     in the IL, and which it is expected to process (i.e., not ignore).
+     The C and C++ generating back ends can only handle pragmas that
+     are represented as character strings, not those represented as token
+     caches.  Note: If the C or C++ generating back end is modified to
+     do special processing for other kinds of pragmas, this checking code
+     will need to be modified accordingly. */
+  check_assertion_str2(!automatically_include_in_il ||
+                       (make_text_not_tokens || ignore_in_back_end),
+                       "add_pragma_kind_description:",
+		       "pragma flags not valid when using C/C++ gen. BE");
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   /* Allocate a new entry. */
   pkdp = (a_pragma_kind_description_ptr)
 				alloc_fe(sizeof(a_pragma_kind_description));
@@ -94,7 +105,8 @@ but cannot be referenced by name in a pragma directive.
       break;
 #if CHECKING
     default:
-      unexpected_condition_str("add_pragma_description: bad binding kind");
+      unexpected_condition_str2("add_pragma_kind_description:",
+				"bad binding kind");
 #endif /* CHECKING */
   }  /* switch */
   pkdp->may_bind_to_decl = may_bind_to_decl;
@@ -104,22 +116,23 @@ but cannot be referenced by name in a pragma directive.
   pkdp->make_text_not_tokens = make_text_not_tokens;
   pkdp->expand_macros = expand_macros;
   pkdp->processing_C_code_in_pragma = processing_C_code_in_pragma;
+  pkdp->ignore_in_back_end = ignore_in_back_end;
   pkdp->error_severity = error_severity;
   if (is_pseudo_pragma) {
     /* This is a pseudo-pragma (such as a lint comment) that cannot
        be referenced by name.  Don't add it to the linked list. */
     pkdp->next = NULL;
   } else {
-    pkdp->next = pragma_descriptions;
-    pragma_descriptions = pkdp;
+    pkdp->next = pragma_kind_descriptions;
+    pragma_kind_descriptions = pkdp;
   }  /* if */
   /* Save the pragma description in an array indexed by pragma kind. */
   pragma_description_for_pragma_kind[(int)kind] = pkdp;
   return pkdp;
-}  /* add_pragma_description */
+}  /* add_pragma_kind_description */
 
 
-static a_pragma_kind_description_ptr add_next_construct_pragma_description
+static a_pragma_kind_description_ptr add_next_construct_pragma_kind_description
                       (a_pragma_kind 	     kind,
 		       a_next_construct_pragma_function_ptr
 					     processing_function,
@@ -130,27 +143,29 @@ static a_pragma_kind_description_ptr add_next_construct_pragma_description
 		       a_boolean	     make_text_not_tokens,
 		       a_boolean	     expand_macros,
 		       a_boolean	     processing_C_code_in_pragma,
+		       a_boolean	     ignore_in_back_end,
 		       an_error_severity     error_severity)
 /*
-This is an interface to the general add_pragma_description that is
+This is an interface to the general add_pragma_kind_description that is
 used for creating pbk_next_construct pragmas.
 */
 {
   /* A pbk_next_construct pragma must bind to a declaration and/or
      statement. */
-  check_assertion_str(may_bind_to_decl || may_bind_to_stmt,
-     "add_next_construct_pragma_description: bad next_construct binding");
-  return add_pragma_description
+  check_assertion_str2(may_bind_to_decl || may_bind_to_stmt,
+                       "add_next_construct_pragma_kind_description:",
+                       "bad next_construct binding");
+  return add_pragma_kind_description
            (kind, pbk_next_construct,
             (a_generic_pragma_function_ptr)processing_function,
             is_pseudo_pragma, may_bind_to_decl, may_bind_to_stmt,
 	    /*global=*/FALSE, automatically_include_in_il,
             make_text_not_tokens, expand_macros, processing_C_code_in_pragma,
-            error_severity);
-}  /* add_next_construct_pragma_description */
+            ignore_in_back_end, error_severity);
+}  /* add_next_construct_pragma_kind_description */
 
 
-static a_pragma_kind_description_ptr add_immediate_pragma_description
+static a_pragma_kind_description_ptr add_immediate_pragma_kind_description
                       (a_pragma_kind 	     kind,
 		       an_immediate_pragma_function_ptr
 					     processing_function,
@@ -160,23 +175,24 @@ static a_pragma_kind_description_ptr add_immediate_pragma_description
 		       a_boolean	     make_text_not_tokens,
 		       a_boolean	     expand_macros,
 		       a_boolean	     processing_C_code_in_pragma,
+		       a_boolean	     ignore_in_back_end,
 		       an_error_severity     error_severity)
 /*
-This is an interface to the general add_pragma_description that is
+This is an interface to the general add_pragma_kind_description that is
 used for creating pbk_immediate pragmas.
 */
 {
-  return add_pragma_description
+  return add_pragma_kind_description
            (kind, pbk_immediate,
             (a_generic_pragma_function_ptr)processing_function,
 	    is_pseudo_pragma, /*may_bind_to_decl=*/FALSE,
             /*may_bind_to_expr=*/NULL, global, automatically_include_in_il,
             make_text_not_tokens, expand_macros, processing_C_code_in_pragma,
-            error_severity);
-}  /* add_immediate_pragma_description */
+            ignore_in_back_end, error_severity);
+}  /* add_immediate_pragma_kind_description */
 
 
-static a_pragma_kind_description_ptr add_other_pragma_description
+static a_pragma_kind_description_ptr add_other_pragma_kind_description
                       (a_pragma_kind 	     kind,
 		       an_other_pragma_function_ptr
 					     processing_function,
@@ -186,20 +202,21 @@ static a_pragma_kind_description_ptr add_other_pragma_description
 		       a_boolean	     make_text_not_tokens,
 		       a_boolean	     expand_macros,
 		       a_boolean	     processing_C_code_in_pragma,
+		       a_boolean	     ignore_in_back_end,
 		       an_error_severity     error_severity)
 /*
-This is an interface to the general add_pragma_description that is
+This is an interface to the general add_pragma_kind_description that is
 used for creating pbk_other pragmas.
 */
 {
-  return add_pragma_description
+  return add_pragma_kind_description
            (kind, pbk_other,
             (a_generic_pragma_function_ptr)processing_function,
 	    is_pseudo_pragma, /*may_bind_to_decl=*/FALSE,
             /*may_bind_to_expr=*/NULL, global, automatically_include_in_il,
             make_text_not_tokens, expand_macros, processing_C_code_in_pragma,
-            error_severity);
-}  /* add_other_pragma_description */
+            ignore_in_back_end, error_severity);
+}  /* add_other_pragma_kind_description */
 
 
 a_pending_pragma_ptr alloc_pending_pragma(a_pragma_kind_description_ptr pkdp,
@@ -539,10 +556,10 @@ return FALSE.
 }  /* select_curr_construct_pragmas */
 
 
-static add_pragma_to_il(a_pending_pragma_ptr  ppp,
-                        an_il_entry_kind      entity_kind,
-                        char                  *entity_ptr,
-                        a_boolean             at_file_scope)
+static void add_pragma_to_il(a_pending_pragma_ptr  ppp,
+                             an_il_entry_kind      entity_kind,
+                             char                  *entity_ptr,
+                             a_boolean             at_file_scope)
 /*
 ppp points to the front-end representation of a pragma.  When the pragma
 binding kind is pbk_next, entity_ptr is a pointer to the IL entry of the
@@ -810,7 +827,8 @@ Initialize the pragma description table.
     pragma_description_for_pragma_kind[i] =
 					 (a_pragma_kind_description_ptr)NULL;
   }  /* for */
-  (void)add_next_construct_pragma_description
+  pragma_kind_descriptions = NULL;
+  (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_printf_args,
 		 record_arg_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -820,8 +838,9 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
                  es_error);
-  (void)add_next_construct_pragma_description
+  (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_scanf_args,
 	         record_arg_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -831,11 +850,12 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
                  es_error);
 #if 0
   /* Change lint comment error severities to es_none. */
 #endif 
-  (void)add_next_construct_pragma_description
+  (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_lint_argsused,
 		 (a_next_construct_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/TRUE,
@@ -845,8 +865,9 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
                  es_warning);
-  (void)add_next_construct_pragma_description
+  (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_lint_varargs_count,
 		 (a_next_construct_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/TRUE,
@@ -856,8 +877,9 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
                  es_warning);
-  (void)add_next_construct_pragma_description
+  (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_lint_not_reached,
 		 (a_next_construct_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/TRUE,
@@ -867,8 +889,9 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
                  es_warning);
-  (void)add_immediate_pragma_description
+  (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_instantiate,
 	         instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -877,8 +900,9 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code_in_pragma=*/TRUE,
+		 /*ignore_in_back_end=*/FALSE,
                  es_error);
-  (void)add_immediate_pragma_description
+  (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_do_not_instantiate,
 		 instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -887,8 +911,9 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/TRUE,
                  /*processing_C_code_in_pragma=*/TRUE,
+		 /*ignore_in_back_end=*/FALSE,
                  es_error);
-  (void)add_immediate_pragma_description
+  (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_can_instantiate,
 		 instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -897,21 +922,23 @@ Initialize the pragma description table.
 		 /*make_text_not_tokens=*/FALSE,
 		 /*expand_macros=*/TRUE,
 		 /*processing_C_code_in_pragma=*/TRUE,
+		 /*ignore_in_back_end=*/FALSE,
 		 es_error);
 #if 0
 #else
-  (void)add_next_construct_pragma_description
+  (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_test_next_decl,
 		 (a_next_construct_pragma_function_ptr)NULL,
-		  /*is_pseudo_pragma=*/FALSE,
-		  /*may_bind_to_decl=*/TRUE,
-		  /*may_bind_to_stmt=*/FALSE,
-                  /*automatically_include_in_il=*/TRUE,
-                  /*make_text_not_tokens=*/FALSE,
-                  /*expand_macros=*/FALSE,
-                  /*processing_C_code_in_pragma=*/FALSE,
-                  es_error);
-  (void)add_next_construct_pragma_description
+		 /*is_pseudo_pragma=*/FALSE,
+		 /*may_bind_to_decl=*/TRUE,
+		 /*may_bind_to_stmt=*/FALSE,
+                 /*automatically_include_in_il=*/TRUE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+                 es_error);
+  (void)add_next_construct_pragma_kind_description
  		((a_pragma_kind)pk_test_next_statement,
 		 (a_next_construct_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -921,8 +948,9 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
                  es_error);
-  (void)add_immediate_pragma_description
+  (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_test_immediate,
                  (an_immediate_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -931,8 +959,9 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
                  es_error);
-  (void)add_other_pragma_description
+  (void)add_other_pragma_kind_description
 		((a_pragma_kind)pk_test_other,
 	         (an_other_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -941,8 +970,30 @@ Initialize the pragma description table.
                  /*make_text_not_tokens=*/FALSE,
                  /*expand_macros=*/FALSE,
                  /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
                  es_error);
 #endif
+#if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
+  /* When unrecognized pragmas are being included in the IL, we need a
+     pragma description that can be used for the unrecognized pragmas.
+     The pragma description for pk_unrecognized is the one that will
+     be used.
+
+     This definition may be modified (except as noted below), but some
+     description must be provided. */
+  (void)add_next_construct_pragma_kind_description
+		((a_pragma_kind)pk_unrecognized,
+                 (an_immediate_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/FALSE,
+		 /*may_bind_to_decl=*/TRUE,
+		 /*may_bind_to_stmt=*/FALSE,
+                 /*automatically_include_in_il=*/TRUE,  /* Do not change. */
+                 /*make_text_not_tokens=*/TRUE,         /* Do not change. */
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code_in_pragma=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
+                 es_error);
+#endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
   db_exit();
 }  /* pragma_init */
 

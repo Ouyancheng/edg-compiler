@@ -1360,6 +1360,14 @@ enum a_pragma_kind_tag {
   pk_test_other,
 #endif /* if 0 */
 
+#if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
+  pk_unrecognized,	/* This pragma kind is used for pragmas that are
+			   not recognized by the front end but are to be
+			   recorded as a character string and passed to
+			   the back end.  These will typically be emitted
+			   by the C or C++ generating back end. */
+#endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
+
   /* The preceding pragma kinds are required for the default implementation
      of the EDG front end.  If additional pragma kinds are supplied for a
      given implementation, be sure to update pragma_ids, a_pragma (if
@@ -1393,6 +1401,9 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_test_immediate */		"test_immediate",
 /* pk_test_other */		"test_other",
 #endif /* if 0 */
+#if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
+/* pk_unrecognized */		"unrecognized",
+#endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
 /* pk_last */			"last"
 } /* pragma_ids */
 #endif /* VAR_INITIALIZERS */

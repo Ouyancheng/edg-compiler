@@ -156,6 +156,13 @@ typedef struct a_pragma_kind_description {
 			/* The value of the flags to be used while scanning
 			   the tokens that make up the body of the pragma
 			   (the tokens after the pragma identifier). */
+  unsigned int	ignore_in_back_end:1;
+			/* TRUE if this pragma may be ignored if it is
+			   not recognized by the back end.  This allows the
+			   back end to diagnose any pragmas that are in the
+			   IL that it does not recognize, but ignore pragmas
+			   that are in the IL but are intended to be processed
+			   by other (earlier) phases of the compilation. */
   an_error_severity
 		error_severity;
 			/* For pbk_other pragmas, the severity of the
@@ -238,7 +245,7 @@ typedef struct a_pending_pragma {
 } a_pending_pragma;
 
 
-EXTERN a_pragma_kind_description_ptr pragma_descriptions;
+EXTERN a_pragma_kind_description_ptr pragma_kind_descriptions;
 			/* Pointer to a linked list of pragma descriptions. */
 
 EXTERN a_pending_pragma_ptr
