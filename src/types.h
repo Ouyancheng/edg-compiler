@@ -206,6 +206,9 @@ that this macro does not check that the underlying types are compatible.
 
 extern a_boolean f_any_qualifier_missing(a_type_ptr  tp1,
                                          a_type_ptr  tp2);
+extern a_boolean is_qualified_version_of_array_typedef(
+                                                a_type_ptr type,
+                                                a_type_ptr *unqual_array_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_far_type(a_type_ptr tp);
 extern a_type_qualifier_set get_original_type_qualifiers(a_type_ptr type);
