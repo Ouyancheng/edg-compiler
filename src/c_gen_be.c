@@ -7184,7 +7184,8 @@ Generate C for a statement.
 {
 #ifdef CFE
   register a_statement_ptr     case_statement;
-  a_statement_ptr              body_statement;
+  a_statement_ptr              body_statement, init_stmt;
+  an_expr_node_ptr             init_expr;
   register a_constant_ptr      constant;
   register a_switch_clause_ptr switch_clause;
   a_boolean                    need_break;
@@ -7242,9 +7243,23 @@ Generate C for a statement.
       indent -= 2;
       break;
     case stmk_for:
+      /* Put the initializing statement outside the "for" if it's not
+         a simple expression statement. */
+      init_stmt = statement->variant.for_loop.extra_info->initialization;
+      if (init_stmt == NULL) {
+        init_expr = NULL;
+      } else if (init_stmt->kind == (a_statement_kind)stmk_expr) {
+        init_expr = init_stmt->expr;
+      } else {
+        dump_statement(init_stmt);
+        startline((a_seq_number)0);
+        init_expr = NULL;
+      }  /* if */
       fputs("for (", f_C_output);
-      dump_statement(statement->variant.for_loop.extra_info->initialization);
-      startline((a_seq_number)0);
+      if (init_expr != NULL) {
+        dump_expression(init_expr, /*need_parens=*/FALSE);
+      }  /* if */
+      fputs("; ", f_C_output);
       if (statement->expr != NULL) {
         dump_boolean_controlling_expression(statement->expr);
       }  /* if */
