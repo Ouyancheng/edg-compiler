@@ -984,6 +984,7 @@ ec_cl_import_only_in_microsoft;;"an import directory can be specified only in Mi
 ec_ref_not_allowed_in_union;;"a member with reference type is not allowed in a union"
 ec_typedef_not_allowed;;"\"typedef\" may not be specified here"
 ec_redecl_changes_access;;"redeclaration of %n alters its access"
+ec_qualified_name_required;;"a class or namespace qualified name is required"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

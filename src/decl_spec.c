@@ -2677,11 +2677,14 @@ above.
     a_boolean	err = FALSE;
     if (!coalesce_and_lookup_qualified_name(GID_NO_OPTIONS,
                                             ilm_typename, &err) ||
-        !locator_for_curr_id.is_class_member || err) {
-      /* The identifier scanned is not a class-qualified name, or
-         is a qualified name that refers to a nonexistent member. */
+        !locator_for_curr_id.is_qualified_name || 
+        locator_for_curr_id.is_file_scope_qualified_name || err) {
+      /* The identifier scanned is not a class-qualified name,
+         namespace-qualified name (file-scope qualified names such as ::x are
+         disallowed by the syntax), or is a qualified name that refers to a
+         nonexistent member. */
       if (!err) {
-        error(ec_class_qualified_name_required);
+        error(ec_qualified_name_required);
       }  /* if */
     } else {
       a_symbol_ptr	sym = locator_for_curr_id.specific_symbol;
