@@ -6868,9 +6868,7 @@ qualified name.
 	     check cannot because it must be done based on the projection
 	     symbol, not on the symbol pointed to by the projection symbol. */
 	  specific_sym = locator_for_curr_id.specific_symbol;
-	  if (specific_sym != NULL &&
-	      specific_sym->kind == (a_symbol_kind)sk_projection &&
-	      specific_sym->variant.projection.ambiguous) {
+	  if (specific_sym != NULL && specific_sym->ambiguous) {
 	    pos_sy_error(ec_ambiguous_name,
 			 &locator_for_curr_id.source_position,
 			 specific_sym);

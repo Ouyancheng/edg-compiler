@@ -3601,7 +3601,7 @@ pointed to by cssp.
     base_class = orig_sym->variant.projection.extra_info->
                                                  fundamental_base_class;
     base_class_access = preferred_derivation_of(base_class)->access;
-    ambiguous = orig_sym->variant.projection.ambiguous;
+    ambiguous = orig_sym->ambiguous;
     access_adj = (orig_sym->variant.projection.access_adjustment_made ||
                   orig_sym->variant.projection.intervening_access_adjustment);
     /* Go through the members of the overload set. */
@@ -5868,7 +5868,7 @@ and "class_type" indicates the class in which the declaration occurs.
      ambiguous, issue an error -- an ambiguity cannot be resolved by an
      an access declaration. */
   check_assertion(projection_into_curr_class != NULL);
-  if (projection_into_curr_class->variant.projection.ambiguous) {
+  if (projection_into_curr_class->ambiguous) {
 #if 0
     /* Note that the ARM does not require this error, though cfront does
        something similar and it *seems* appropriate. */

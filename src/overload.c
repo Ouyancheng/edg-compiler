@@ -688,8 +688,7 @@ Return a printable string describing a type code.
 /*
 Return TRUE if the given symbol is ambiguous by inheritance. */
 #define is_ambiguous_by_inheritance(symbol)                           \
-  ((symbol)->kind == (a_symbol_kind)sk_projection &&                  \
-   (symbol)->variant.projection.ambiguous)
+  ((symbol)->kind == (a_symbol_kind)sk_projection && (symbol)->ambiguous)
 
 
 static void diagnose_overload_ambiguity(
@@ -5294,7 +5293,7 @@ set *ambiguous to TRUE.  Always set symbol to its fundamental symbol.
 */
 #define check_symbol_ambiguous_by_inheritance(symbol, ambiguous)      \
 { if ((symbol)->kind == (a_symbol_kind)sk_projection) {               \
-    if ((symbol)->variant.projection.ambiguous) *(ambiguous) = TRUE;  \
+    if ((symbol)->ambiguous) *(ambiguous) = TRUE;  \
     symbol = (symbol)->variant.projection.extra_info->fundamental_symbol; \
   }  /* if */                                                         \
 }  /* check_symbol_ambiguous_by_inheritance */
