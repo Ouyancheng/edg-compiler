@@ -2163,7 +2163,6 @@ declaration modifiers.
   /* dllimport and dllexport need not match up.  The only constraint is that
      there should not be two dllexport definitions, but that is covered by
      the more general check for multiple definitions. */
-
   result = ((rp1->decl_modifiers & ~dm_mask) !=
             (rp2->decl_modifiers & ~dm_mask));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2288,6 +2287,37 @@ done:
   return match;
 }  /* verify_routine_correspondence */
 
+#if DECL_MODIFIERS_IN_USE
+
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* The parameters are only used to check Microsoft-specific
+                declaration modifiers. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+static a_boolean incompatible_variable_decl_modifiers(a_variable_ptr  var1,
+                                                      a_variable_ptr  var2)
+/*
+Return TRUE if and only if the two corresponding variables have incompatible
+declaration modifiers.
+*/
+{
+  a_boolean        result = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLIMPORT | DM_DLLEXPORT |
+                                               DM_SELECTANY);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  result = ((var1->decl_modifiers & ~dm_mask) !=
+            (var2->decl_modifiers & ~dm_mask));
+  /* dllimport, dllexport, and selectany need not match up.  The only
+     constraint is that if there are multiple definitions they must be
+     marked with selectany, but that is covered by the check for multiple
+     definitions. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* incompatible_variable_decl_modifiers */
+
+#endif /* DECL_MODIFIERS_IN_USE */
 
 static a_boolean verify_variable_correspondence(a_variable_ptr  var)
 /*
@@ -2330,7 +2360,7 @@ is in fact valid.
           !eq_constants(var->initializer.constant,
                         corresp_var->initializer.constant)) ||
 #if DECL_MODIFIERS_IN_USE
-         var->decl_modifiers != corresp_var->decl_modifiers ||
+         incompatible_variable_decl_modifiers(var, corresp_var) ||
 #endif /* DECL_MODIFIERS_IN_USE */
          scp->access != corresp_scp->access ||
          scp->name_linkage != corresp_scp->name_linkage)) {
@@ -2341,7 +2371,8 @@ is in fact valid.
         var->storage_class == (a_storage_class)sc_unspecified &&
         corresp_var->storage_class == (a_storage_class)sc_unspecified &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        !(var->decl_modifiers & (a_decl_modifier)DM_SELECTANY) &&
+        !((var->decl_modifiers & (a_decl_modifier)DM_SELECTANY) &&
+          (corresp_var->decl_modifiers & (a_decl_modifier)DM_SELECTANY)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         (!C_mode() ||
          (var->init_kind != (an_init_kind)initk_none &&

@@ -1,5 +1,26 @@
 Version 3.5
 
+5/12/04  Microsoft compatibility: Spurious correspondence error on variables
+         with selectany, dllimport, or dllexport specifiers
+
+When compiling multiple translation units in Microsoft mode, the front end
+incorrectly treated as incompatible a nondefining variable declaration
+without the selectany specifier and a corresponding definition that does
+have that specifier.  For example:
+
+  // File 1:
+  __declspec(selectany) int i = 0;
+
+  // File 2:
+  extern int i;  // Previously considered incompatible with declaration in
+                 // File 1; now okay.
+
+Similar spurious errors were issued for variable declarations that only
+differ in their dllimport/dllexport specifiers (see Changes entry of 12/2/03
+which addressed the case of routine declarations).
+
+This is now fixed.
+
 5/11/04  Microsoft compatibility: const_cast as lvalue cast
 
 A variant of the issue dealt with in the entry of 5/1/04: MSVC++ 7.1
