@@ -6704,7 +6704,7 @@ explicitly specified (rather than defaulted to "int").
   if (!top_declarator_type_is_function) {
     error(ec_function_type_must_come_from_declarator);
     /* Build a copy of the routine type that can be used below, to avoid
-      further error recovery problems, and because we need a non-shared
+       further error recovery problems, and because we need a non-shared
        routine type entry that we can modify. */
     /* The type was probably from a typedef, so skip past that. */
     rout_type = skip_typerefs(rout_type);
@@ -6714,25 +6714,7 @@ explicitly specified (rather than defaulted to "int").
     }  /* if */
 #endif /* CHECKING */
     unqualified_rout_type = alloc_type((a_type_kind)tk_routine);
-    copy_type(rout_type, unqualified_rout_type);
-    ptp = rout_type->variant.routine.extra_info->param_type_list;
-    if (ptp != NULL) {
-      /* Copy the param type list so that the new unshared routine type will
-         also have an unshared param type list. */
-      a_param_type_ptr  new_ptp = alloc_param_type(ptp->type);
-      *new_ptp = *ptp;
-      /* Attach the first new param type entry to the routine type
-         supplement. */
-      unqualified_rout_type->
-                   variant.routine.extra_info->param_type_list = new_ptp;
-      /* If there are addition param type entries, add them to the end of the
-         list (new_ptp will always be the current end-of-list entry). */
-      ptp = ptp->next;
-      for (; ptp != NULL; ptp = ptp->next, new_ptp = new_ptp->next) {
-        new_ptp->next = alloc_param_type(ptp->type);
-        *(new_ptp->next) = *ptp;
-      }  /* for */
-    }  /* if */
+    copy_routine_type_with_param_types(rout_type, unqualified_rout_type);
     rout_type = unqualified_rout_type;
   } else {
     unqualified_rout_type = make_unqualified_type(rout_type);
@@ -7135,24 +7117,27 @@ processing of function definition.
   extra_info->lint_varargs_count = lint_varargs_count;
 
   param_id = func_info->param_id_list;
-  ptp = extra_info->param_type_list;
+  if (param_id != NULL) {
+    ptp = extra_info->param_type_list;
 #if CHECKING
-  if ((param_id == NULL) != (ptp == NULL)) {
-    internal_error("inline_function_definition: param_id and ptp out of sync");
-  }  /* if */
-#endif /* CHECKING */
-  for (; param_id != NULL;
-         param_id = param_id->next, ptp = ptp->next) {
-    /* Declare each parameter identifier to have the associated type
-       from the parameter type list. */
-    decl_parameter(param_id, ptp, /*function_instantiation=*/FALSE);
-#if CHECKING
-    if ((param_id->next == NULL) != (ptp->next == NULL)) {
+    if ((param_id == NULL) != (ptp == NULL)) {
       internal_error(
                    "inline_function_definition: param_id and ptp out of sync");
     }  /* if */
 #endif /* CHECKING */
-  }  /* for */
+    for (; param_id != NULL;
+           param_id = param_id->next, ptp = ptp->next) {
+      /* Declare each parameter identifier to have the associated type
+         from the parameter type list. */
+      decl_parameter(param_id, ptp, /*function_instantiation=*/FALSE);
+#if CHECKING
+      if ((param_id->next == NULL) != (ptp->next == NULL)) {
+        internal_error(
+                   "inline_function_definition: param_id and ptp out of sync");
+      }  /* if */
+#endif /* CHECKING */
+    }  /* for */
+  }  /* if */
   /* Free the list of parameter ids, now that it is no longer needed. */
   free_param_id_list(&(func_info->param_id_list));
   /* Set the assoc_param_type field in each of the parameter variables. */
