@@ -1,5 +1,11 @@
 Version 2.21
 
+11/24/93 No unreachable code warning on unreachable "{"
+
+An "unreachable code" warning is no longer issued for a "{" that is not
+reachable.  If there is code within the block, it will provoke the
+diagnostic.
+
 11/24/93 Access checking on overloaded function referenced by qualified name
 
 When an overloaded function was referenced by qualified name, and

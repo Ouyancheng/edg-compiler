@@ -3259,12 +3259,10 @@ branching into it is disallowed).
     end_of_control_flow_descr_list->variant.block.is_handler_block = TRUE;
   } else {
     /* Block nested within a function.  Link it onto the current statement
-       sequence.  Check for unreachable code. */
-    if (struct_stmt_stack[depth_stmt_stack].kind == ssk_switch) {
-      /* The body statement of a switch is not considered dead code. */
-    } else {
-      check_for_unreachable_code();
-    }  /* if */
+       sequence. */
+    /* Note that there is no check for unreachable code.  It's probably too
+       draconian to warn about an unreachable open brace if (say) there
+       is a label right afterwards. */
     start_block_statement(&block, /*dependent_statement=*/FALSE);
     /* Clear the entry for "else" in the stop tokens set.  Without this,
        an else encountered where a statement is expected could cause an
