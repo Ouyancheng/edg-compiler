@@ -992,9 +992,7 @@ the entire string.  The tokens are scanned as preprocessing tokens.
   sizeof_t	pos_in_buffer = 0;
 
   db_enter(4, "convert_pp_directive_to_string");
-  /* The current token is the identifier that indicates the pragma kind.
-     This should be included in the generated string. */
-  do {
+  while (curr_token != tok_newline) {
     /* The +1 in the following call is to make sure there is space for
        a null terminator to be added. */
     ensure_pp_dir_string_buffer_space(pos_in_buffer + len_of_curr_token +
@@ -1008,8 +1006,9 @@ the entire string.  The tokens are scanned as preprocessing tokens.
     skip_white_space();
     any_white_space_skipped = (kind_of_white_space_skipped != 0);
     (void)get_token();
-  } while (curr_token != tok_newline);
-  /* Add a null terminator.  We made sure there was room for it earlier. */
+  }  /* while */
+  /* Add a null terminator. */
+  ensure_pp_dir_string_buffer_space(pos_in_buffer + 1);
   pp_dir_string_buffer[pos_in_buffer] = '\0';
   pp_directive_string_length = pos_in_buffer;
   db_exit();
@@ -1159,7 +1158,7 @@ Scan and process a #pragma directive.
           generate_precompiled_header();
           header_stop_no_longer_pending();
         }   /* if */
-        while (get_token() != tok_newline);
+        while (curr_token != tok_newline) (void)get_token();
         processed = TRUE;
       } else {
         /* Look for a matching pragma identifier in the pragma descriptions
@@ -1273,7 +1272,7 @@ begin.
     /* Save the line number of the beginning of the directive. */
     a_line_number	actual_line = curr_ise->actual_line;
     /* Skip to the end of this directive. */
-    while (get_token() != tok_newline);
+    while (curr_token != tok_newline) (void)get_token();
     if (building_pch_prefix) {
       if (is_pragma_hdrstop ||
           (actual_line == (a_line_number)pos_of_last_event_from_pch.seq &&
