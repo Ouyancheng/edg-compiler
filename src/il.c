@@ -1527,6 +1527,7 @@ fields to default values.
       cp->variant.address.offset = 0;
       break;
     case ck_ptr_to_member:
+      cp->variant.ptr_to_member.class_of_which_a_member = NULL;
       cp->variant.ptr_to_member.is_function_ptr = FALSE;
       cp->variant.ptr_to_member.variant.field   = NULL;
       break;

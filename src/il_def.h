@@ -499,6 +499,9 @@ typedef struct a_constant {
     /* When kind == ck_ptr_to_member: */
     struct {
       /* A C++ pointer-to-member (data or function). */
+      a_type_ptr
+		class_of_which_a_member;
+			/* The class whose member this points to. */
       a_byte_boolean
 		is_function_ptr;
 			/* TRUE if the pointer is to a member function,
