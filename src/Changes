@@ -1,5 +1,11 @@
 Version 2.45
 
+11/15/00 Use of front end routines in a back end or middle end
+
+Some additional guards (testing the global variable in_front_end)
+have been added to traverse_type_tree and type_change_constant to
+allow those routines to be used outside of the front end.
+
 11/15/00 IL macro entries for command-line macro definitions
 
 IL macro entries are now recorded for macros defined on the command

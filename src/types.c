@@ -6356,16 +6356,18 @@ its parameters?).
         if (!C_mode()) {
           /* If this class is a proxy class, traverse its associated
              template parameter. */
-          a_symbol_ptr			class_sym;
-          a_class_symbol_supplement_ptr	cssp;
-          class_sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
-          check_assertion(in_front_end && class_sym != NULL);
-          cssp = class_sym->variant.class_struct_union.extra_info;
-          tp = cssp->template_param_for_proxy_class;
-          if (tp != NULL) {
-            if (traverse_type_tree(tp, func, flags)) {
-              status = TRUE;
-              break;
+          if (in_front_end) {
+            a_symbol_ptr			class_sym;
+            a_class_symbol_supplement_ptr	cssp;
+            class_sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
+            check_assertion(class_sym != NULL);
+            cssp = class_sym->variant.class_struct_union.extra_info;
+            tp = cssp->template_param_for_proxy_class;
+            if (tp != NULL) {
+              if (traverse_type_tree(tp, func, flags)) {
+                status = TRUE;
+                break;
+              }  /* if */
             }  /* if */
           }  /* if */
           /* Conditional traversal of contained types. */

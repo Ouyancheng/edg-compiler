@@ -692,7 +692,9 @@ set on entry.
        necessary casts. */
     access_okay = TRUE;
     /* No access checking in prototype instantiations. */
-    if (is_template_dependent_context()) check_cast_access = FALSE;
+    if (in_front_end && is_template_dependent_context()) {
+      check_cast_access = FALSE;
+    }  /* if */
     orig_type = type_pointed_to(constant_1->type);
     curr_type = skip_typerefs(orig_type);
     for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
@@ -1112,7 +1114,9 @@ If there is an error, it is issued at *err_pos.
     set_error_constant(result);
   } else {
     /* No access checking in prototype instantiations. */
-    if (is_template_dependent_context()) check_cast_access = FALSE;
+    if (in_front_end && is_template_dependent_context()) {
+      check_cast_access = FALSE;
+    }  /* if */
     if (check_cast_access) {
       /* Check the accessibility of the base class.  (Recall that casts
          to derived types can be done implicitly.) */
@@ -1363,7 +1367,7 @@ to the constant is maintained, by adding a cast if necessary.
   }  /* if */
   if (!C_mode() &&
       (constant->kind == (a_constant_repr_kind)ck_template_param ||
-       (is_template_dependent_context() &&
+       (in_front_end && is_template_dependent_context() &&
         is_template_dependent_type(new_type)))) {
     /* Casting a template parameter constant, or casting to a template
        parameter type.  Use a special tpck_cast constant. */
