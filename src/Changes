@@ -219,7 +219,9 @@ copies.
 
 The front end used to issue a redeclaration error when referring to an
 elaborated type that has been made visible by both a using-declaration
-and a typedef declaration.
+and a typedef declaration.  Similarly, a redeclaration error was issued
+when a using-declaration brought in a type that was already made visible
+through a typedef.
 
   namespace N {
     struct S {};
@@ -227,6 +229,7 @@ and a typedef declaration.
   using N::S;
   typedef ::S S;
   void f(struct S*);  // Used to cause a redeclaration error
+  using N::S;         // Idem
 
 This is now fixed (see also related Changes entries of 11/1/99 and 11/8/99).
 
