@@ -4808,7 +4808,7 @@ specification allow a variable-sized array as the top type.
         /* Note that this case comes up if the class type is incomplete.
            An error was issued previously. */
         check_assertion_str(err,
-       "scan_new_operator: non-POD class has neither actual not assumed ctor");
+       "scan_new_operator: non-POD class has neither actual nor assumed ctor");
       }  /* if */
       if (do_const_test && (!any_cfront_mode() && !microsoft_mode)) {
         /* When the initializer is omitted on a "new" of a const class
