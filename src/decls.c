@@ -7422,9 +7422,8 @@ return a pointer to it in *symbol_ptr.
   if (!C_mode()) {
     if (class_type != NULL) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (class_type->variant.class_struct_union.is_microsoft_interface) {
-        pos_error(ec_microsoft_interface_cannot_have_typedef,
-                  &locator->source_position);
+      if (class_type->variant.class_struct_union.is_interface) {
+        pos_error(ec_interface_cannot_have_typedef, &locator->source_position);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       set_class_membership(sym, &tp->source_corresp, class_type);

@@ -875,23 +875,24 @@ static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_symbol_locator  *locator,
                                   a_boolean         *is_friend_decl,
                                   a_boolean         *check_for_vacuous_decl,
-                                  a_boolean         is_microsoft_interface,
+                                  a_boolean         is_interface,
                                   a_boolean         is_ref_within_new_expr,
                                   a_scope_depth     *effective_decl_level,
                                   a_boolean         *tag_resolution,
                                   a_boolean         *is_predeclared_type_decl,
                                   a_decl_pos_block  *decl_pos_block)
 /*
-Scan a tag identifier for a class, struct, union, or enum declaration.
-If a tag symbol already exists for the identifier, return a pointer to
-that symbol; otherwise return NULL.  If there is no identifier or if there
-is an error, return NULL.
+Scan a tag identifier for a class, struct, union, enum, or interface
+declaration.  If a tag symbol already exists for the identifier, return
+a pointer to that symbol; otherwise return NULL.  If there is no
+identifier or if there is an error, return NULL.
 
 *is_friend_decl is TRUE when the declaration appears to be of the form
 "friend class X;"; if it turns out that no semicolon follows the identifier,
 however, the flag will be reset to FALSE and a normal lookup will be done.
 *check_for_vacuous_decl is TRUE when the context permits a declaration like
-"struct x;".  is_ref_within_new_expr is TRUE when the declaration appears
+"struct x;".  is_interface is TRUE if we're scanning the identifier for an
+interface.  is_ref_within_new_expr is TRUE when the declaration appears
 inside a new expression.  *effective_decl_level will have been initialized
 to decl_scope_level by the caller; it may be changed in C++ for a forward
 reference to a tag within a function prototype or a class definition -- the
@@ -1423,13 +1424,13 @@ caution when modifying this routine.
                             name_of_symbol_kind(tag_kind), tag_sym);
         if (tag_err) tag_sym = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (microsoft_mode && !tag_err &&
+      } else if (microsoft_mode &&
                  tag_sym->kind == (a_symbol_kind)sk_class_or_struct_tag) {
         /* Both the current declaration and the previous must match wrt. to
            the use of __interface. */
         a_type_ptr  class_type = type_symbol_type(tag_sym);
-        if (is_microsoft_interface !=
-               class_type->variant.class_struct_union.is_microsoft_interface) {
+        if (is_interface !=
+                        class_type->variant.class_struct_union.is_interface) {
           pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
                          &locator->source_position,
                          name_of_symbol_kind(tag_kind), tag_sym);
@@ -1731,7 +1732,7 @@ new expression and should therefore not be treated as a declaration.
   a_boolean               tag_id_present;
   a_type_ptr              class_type;
   a_boolean               is_local_class = FALSE;
-  a_boolean               is_microsoft_interface = FALSE;
+  a_boolean               is_interface = FALSE;
   a_boolean               is_template_class_instantiation = FALSE;
   a_boolean               tag_resolution = FALSE;
   a_boolean               err = FALSE;
@@ -1791,7 +1792,7 @@ new expression and should therefore not be treated as a declaration.
       type_kind = (a_type_kind)(curr_token == tok_class ?
                                                     tk_class : tk_struct);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      is_microsoft_interface = (curr_token == tok_interface);
+      is_interface = (curr_token == tok_interface);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     (void)get_token();
@@ -1844,7 +1845,7 @@ new expression and should therefore not be treated as a declaration.
     *declares_something = TRUE;
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
-                            &vacuous_decl_allowed, is_microsoft_interface,
+                            &vacuous_decl_allowed, is_interface,
                             is_ref_within_new_expr, &effective_decl_level,
                             &tag_resolution, &is_predeclared_type_decl,
                             &local_decl_pos_block);
@@ -2335,11 +2336,11 @@ new expression and should therefore not be treated as a declaration.
       /* Check various scoping constraints on interface types. */
       if (!microsoft_mode) {
         /* Nothing to be checked. */
-      } else if (is_microsoft_interface) {
+      } else if (is_interface) {
         if (is_local_class) {
-          pos_error(ec_microsoft_interface_cannot_be_local, &decl_start_pos);
+          pos_error(ec_interface_cannot_be_local, &decl_start_pos);
         }  /* if */
-        class_type->variant.class_struct_union.is_microsoft_interface = TRUE;
+        class_type->variant.class_struct_union.is_interface = TRUE;
         class_type->variant.class_struct_union.abstract = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2363,10 +2364,13 @@ new expression and should therefore not be treated as a declaration.
                                  scope_stack[depth_scope_stack].current_access;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             if (microsoft_mode &&
-                parent->variant.class_struct_union.is_microsoft_interface) {
+                parent->variant.class_struct_union.is_interface) {
               /* Interface types cannot contain nested class types. */
-              pos_error(ec_microsoft_interface_cannot_have_nested_class,
+              pos_error(ec_interface_cannot_have_nested_class,
                         &decl_start_pos);
+            }  /* if */
+            if (is_interface) {
+              pos_error(ec_interface_cannot_be_nested_class, &decl_start_pos);
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           }  /* if */
@@ -2889,7 +2893,7 @@ to indicate whether an enumeration is actually defined.
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
                             &is_friend_decl, &vacuous_decl_allowed,
                             /*is_ref_within_new_expr=*/FALSE,
-                            /*is_microsoft_interface=*/FALSE,
+                            /*is_interface=*/FALSE,
                             &effective_decl_level, &tag_resolution,
                             &is_predeclared_type_decl, &local_decl_pos_block);
     if (tag_resolution) {                            

@@ -10771,7 +10771,7 @@ declaration of a partial specialization declared outside of its class.
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/TRUE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (curr_token == tok_interface) {
-    error(ec_microsoft_interface_cannot_be_template);
+    error(ec_interface_cannot_be_template);
     curr_token = tok_struct;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -15806,9 +15806,9 @@ keyword.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (decl_state.is_member_decl &&
              decl_state.class_declared_in
-                       ->variant.class_struct_union.is_microsoft_interface) {
+                                  ->variant.class_struct_union.is_interface) {
     /* Member templates should not appear in interface definitions. */
-    pos_error(ec_microsoft_interface_cannot_have_member_templates,
+    pos_error(ec_interface_cannot_have_member_templates,
               &decl_state.start_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */

@@ -126,9 +126,9 @@ Macro to be used in conjunction with is_class_type_keyword to check for
 Microsoft __interface specifiers.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define or_is_microsoft_interface_keyword(tok) || ((tok) == tok_interface)
+#define or_is_interface_keyword(tok) || ((tok) == tok_interface)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define or_is_microsoft_interface_keyword(tok) /* nothing */
+#define or_is_interface_keyword(tok) /* nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -137,7 +137,7 @@ specifier.
 */
 #define is_class_type_keyword(tok)                                    \
   ((tok) == tok_struct || (tok) == tok_union ||                       \
-   (tok) == tok_class  or_is_microsoft_interface_keyword(tok))
+   (tok) == tok_class  or_is_interface_keyword(tok))
 
 /*
 Macro that is TRUE if the current token is the start of a type

@@ -1929,29 +1929,16 @@ Return a string that describes the tag kind for the indicated type (i.e.,
 {
   char *result;
 
-  switch (type->kind) {
-    case tk_enum:
-      result = "enum";
-      break;
-    case tk_class:
-      result = "class";
-      break;
-    case tk_struct:
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (type->variant.class_struct_union.is_microsoft_interface) {
-        result = "__interface";
-      } else
+  if (type->variant.class_struct_union.is_interface) {
+    check_assertion(type->kind == (a_type_kind)tk_struct);
+    result = "__interface";
+  } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
-        result = "struct";
-      }  /* if */
-      break;
-    case tk_union:
-      result = "union";
-      break;
-    default:        unexpected_condition_str("tag_kind: bad type kind");
-  }  /* switch */
+  /* Do not insert code here. */
+  {
+    result = tag_kind(type->kind);
+  }  /* if */
   return result;
 }  /* tag_keyword */
 

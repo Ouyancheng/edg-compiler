@@ -5101,7 +5101,7 @@ typedef struct a_type {
                            is only used in C++, and will be NULL in C. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_bit_field
-                is_microsoft_interface:1;
+		is_interface:1;
 			/* TRUE if this is a struct type declared with the
 			   Microsoft keyword __interface.  Member functions of
 			   such types are implicitly pure virtual.  (Implies

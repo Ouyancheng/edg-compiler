@@ -2097,7 +2097,7 @@ declarations that produced the problem.
   class_type = skip_typerefs(class_type);
   pos_ty_start_error(error_code, error_pos, class_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (class_type->variant.class_struct_union.is_microsoft_interface) {
+  if (class_type->variant.class_struct_union.is_interface) {
     ty_add_diag_info(ec_type_is_interface, class_type);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4612,8 +4612,8 @@ diagnostics that can be emitted based on this information.
       if (*is_virtual) {
         error(ec_dupl_decl_specifier);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (type_ptr->variant.class_struct_union.is_microsoft_interface) {
-        error(ec_microsoft_interface_cannot_have_virtual_base);
+      } else if (type_ptr->variant.class_struct_union.is_interface) {
+        error(ec_interface_cannot_have_virtual_base);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         *is_virtual = TRUE;
@@ -4632,8 +4632,8 @@ diagnostics that can be emitted based on this information.
             *access = (an_access_specifier)as_private;
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (type_ptr->variant.class_struct_union.is_microsoft_interface) {
-            error(ec_microsoft_interface_cannot_have_private_or_protected);
+          if (type_ptr->variant.class_struct_union.is_interface) {
+            error(ec_interface_cannot_have_private_or_protected);
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
@@ -4694,11 +4694,11 @@ or struct definition.  The syntax is
   a_boolean                     first_direct_nonvirtual_base_class = TRUE;
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean                     microsoft_interface_definition =
+  a_boolean                     interface_definition =
                                    microsoft_mode &&
                                    type_ptr->kind == (a_type_kind)tk_struct &&
                                    type_ptr->variant.class_struct_union
-                                                      .is_microsoft_interface;
+                                                                .is_interface;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "scan_base_specifier_list");
@@ -4855,11 +4855,10 @@ or struct definition.  The syntax is
         }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_interface_definition &&
-          !base_class_type
-                        ->variant.class_struct_union.is_microsoft_interface &&
+      if (interface_definition &&
+          !base_class_type->variant.class_struct_union.is_interface &&
           !is_microsoft_IUnknown_type(base_class_type)) {
-        error(ec_microsoft_interface_must_derive_from_interface);
+        error(ec_interface_must_derive_from_interface);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Issue a diagnostic if an explicit access specifier was not provided
@@ -5684,9 +5683,8 @@ of the function, and again overloading is a possibility.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Friend declarations cannot appear in interface types. */
     if (microsoft_mode &&
-        class_type->variant.class_struct_union.is_microsoft_interface) {
-      pos_error(ec_microsoft_interface_cannot_have_friend,
-                &decl_info->decl_start_pos);
+        class_type->variant.class_struct_union.is_interface) {
+      pos_error(ec_interface_cannot_have_friend, &decl_info->decl_start_pos);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     sym = locator->specific_symbol;
@@ -6766,6 +6764,43 @@ Also record the presence of a pure virtual function in the given class type.
   class_type->variant.class_struct_union.abstract = TRUE;
 }  /* make_virtual_function_pure */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean check_virtual_interface_member(a_routine_ptr     rtn,
+                                                a_symbol_locator  *locator)
+/*
+The given routine is being declared in an interface class type.  Return
+whether the member should be (pure) virtual.  Issue an error for member
+functions that cannot be (user-)declared in interface class types.
+*/
+{
+  a_boolean  is_virtual = TRUE;
+
+  switch (rtn->special_kind) {
+    case sfk_none:
+      is_virtual = TRUE;
+      break;
+    case sfk_constructor:
+    case sfk_destructor:
+      if (!rtn->compiler_generated) {
+        pos_error(ec_interface_cannot_have_ctor_or_dtor,
+                  &locator->source_position);
+      }  /* if */
+      break;
+    case sfk_conversion:
+    case sfk_operator:
+      if (!rtn->compiler_generated) {
+        pos_error(ec_interface_cannot_have_operator,
+                  &locator->source_position);
+      }  /* if */
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return is_virtual;
+}  /* check_virtual_interface_member */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes and asm_name are not used in that case. */
@@ -6815,8 +6850,8 @@ otherwise these are NULL).
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Static member functions cannot appear in interface types. */
     if (microsoft_mode &&
-        class_type->variant.class_struct_union.is_microsoft_interface) {
-      pos_error(ec_microsoft_interface_cannot_have_static_members,
+        class_type->variant.class_struct_union.is_interface) {
+      pos_error(ec_interface_cannot_have_static_members,
                 &decl_info->decl_start_pos);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7221,29 +7256,12 @@ otherwise these are NULL).
       a_boolean  is_virtual = ((decl_info->dso_flags & DSO_VIRTUAL) &&
                                !decl_info->invalid_virtual_specifier);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (class_type->variant.class_struct_union.is_microsoft_interface) {
-        switch (rtn->special_kind) {
-          case sfk_none:
-            is_virtual = TRUE;
-            make_virtual_function_pure(rtn, class_type);
-            break;
-          case sfk_constructor:
-          case sfk_destructor:
-            if (!compiler_generated) {
-              pos_error(ec_microsoft_interface_cannot_have_ctor_or_dtor,
-                        &locator->source_position);
-            }  /* if */
-            break;
-          case sfk_conversion:
-          case sfk_operator:
-            if (!compiler_generated) {
-              pos_error(ec_microsoft_interface_cannot_have_operator,
-                        &locator->source_position);
-            }  /* if */
-            break;
-          default:
-            unexpected_condition();
-        }  /* switch */
+      if (class_type->variant.class_struct_union.is_interface &&
+          check_virtual_interface_member(rtn, locator)) {
+        /* This member is implicitly pure virtual by virtue of being
+           declared in an interface class type. */
+        make_virtual_function_pure(rtn, class_type);
+        is_virtual = TRUE;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (check_for_virtual_function(is_virtual, sym, class_type, class_state,
@@ -7899,10 +7917,8 @@ otherwise these are NULL).
                                  &locator->source_position,
                                  /*is_redecl=*/FALSE);
   /* Disallow data members in interface types. */
-  if (microsoft_mode &&
-      class_type->variant.class_struct_union.is_microsoft_interface) {
-    pos_error(ec_microsoft_interface_cannot_have_data_member,
-              &locator->source_position);
+  if (microsoft_mode && class_type->variant.class_struct_union.is_interface) {
+    pos_error(ec_interface_cannot_have_data_member, &locator->source_position);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -9483,8 +9499,8 @@ specific information about the member declaration, respectively.
     }  /* if */
     /* Disallow data members in interface types. */
     if (microsoft_mode &&
-        class_type->variant.class_struct_union.is_microsoft_interface) {
-      pos_error(ec_microsoft_interface_cannot_have_data_member,
+        class_type->variant.class_struct_union.is_interface) {
+      pos_error(ec_interface_cannot_have_data_member,
                 &locator->source_position);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11032,9 +11048,8 @@ Check that this is a valid type and if so make member_type a friend.
     /* An error was already issued. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
-             class_type->variant.class_struct_union.is_microsoft_interface) {
-    pos_error(ec_microsoft_interface_cannot_have_friend,
-              &decl_info->decl_start_pos);
+             class_type->variant.class_struct_union.is_interface) {
+    pos_error(ec_interface_cannot_have_friend, &decl_info->decl_start_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((is_class_struct_union_type(member_type) ||
               is_template_param_type(member_type)) &&

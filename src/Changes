@@ -92,11 +92,11 @@ limitations:
       destructors, member operator functions, friend declarations,
       private or protected access specifiers, member templates, member
       typedefs, static member functions, or nested class types.
-  b)  An interface type cannot inherit for non-interface types (except
+  b)  An interface type cannot inherit from non-interface types (except
       that the IUnknown struct is treated as an interface in this case)
       and cannot have virtual bases.
   c)  Interface type templates are not allowed.
-  d)  Interface types cannot be declared in functions.
+  d)  Interface types cannot be nested or local class types.
 
 Furthermore, interface types are always abstract (i.e., a complete object
 cannot have an interface type) and all their nonstatic member functions
