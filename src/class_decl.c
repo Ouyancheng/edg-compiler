@@ -6225,6 +6225,9 @@ specified by decl_scope_level.
            and the nonstandard case is only allowed to have fields.  Ignore
            this symbol. */
         break;
+      case sk_undefined:
+        /* Error. */
+        break;
 #if CHECKING
       default:
         internal_error("check_anonymous_union_symbols: unexpected sym kind");
