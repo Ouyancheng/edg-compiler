@@ -430,13 +430,13 @@ void fold_base_class_cast(a_constant        *constant_1,
 Fold a C++ cast of a class pointer to a base class pointer.  constant_1 is
 an address of a class object.  It is converted to a pointer to the base
 class indicated by bcp and the new constant is returned in *result.
-Do access control on the cast if check_cast_access is TRUE.  If the operation
-cannot be folded, *did_not_fold is returned TRUE.  If there is an error,
-issue it at *err_pos.
+Do access control on the cast if check_cast_access is TRUE.  If the
+operation cannot be folded, *did_not_fold is returned TRUE.  If there
+is an error, issue it at *err_pos.  result->type need not be set on entry.
 */
 {
   a_boolean             access_okay;
-  a_type_ptr            curr_type;
+  a_type_ptr            orig_type, curr_type, new_type;
   a_derivation_step_ptr dsp;
   a_targ_ptrdiff_t      offset;
 
@@ -452,8 +452,8 @@ issue it at *err_pos.
        base class.  Check accessibility at each step and generate the
        necessary casts. */
     access_okay = TRUE;
-    curr_type = type_pointed_to(constant_1->type);
-    curr_type = skip_typerefs(curr_type);
+    orig_type = type_pointed_to(constant_1->type);
+    curr_type = skip_typerefs(orig_type);
     for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
       /* Check that the base class is accessible from the current class.
          Accessibility is not checked if the cast is explicit. */
@@ -495,7 +495,10 @@ issue it at *err_pos.
       }  /* if */
     }  /* for */
     if (!access_okay) pos_error(ec_inaccessible_base_class, err_pos);
-    implicit_cast(result, make_pointer_type(curr_type));
+    /* Set the constant type.  It includes all the type qualifiers from the
+       original pointer. */
+    new_type = make_identically_qualified_type(curr_type, orig_type);
+    implicit_cast(result, new_type);
   }  /* if */
 }  /* fold_base_class_cast */
 
@@ -630,8 +633,9 @@ static void fold_pm_base_class_cast(a_constant        *constant_1,
 /*
 Fold a C++ cast of a pointer to a member of a class to pointer to a member
 of a base class.  constant_1 is a pointer-to-member constant.  It is converted
-to a pointer-to-member for the base class indicated by bcp (given by
-result->type) and the new constant is returned in *result.  If there is an
+to a pointer-to-member for the base class indicated by bcp  and the new
+constant is returned in *result.  result->type on entry indicates the
+desired pointer-to-member type, possibly with qualifiers.  If there is an
 error, issue it at *err_pos.  Note that casts of this type always come from
 explicit casts, so checking for accessibility of base classes is not necessary.
 */
