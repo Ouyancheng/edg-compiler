@@ -1496,10 +1496,6 @@ messages about any invalid attributes.
                  checking, so this form of the attribute is silently
                  ignored. */
               break;
-            case fak_last:
-              /* An unrecognized format function type.  A warning was
-                 already issued. */
-              break;
             default:
               unexpected_condition();
             }  /* switch */
