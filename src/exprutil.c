@@ -79,7 +79,9 @@ typedef struct a_candidate_function {
   an_arg_operand_ptr
 		arg_operand_list;
 			/* If is_function_template is TRUE, the list of
-			   argument operands for the call.  NULL otherwise. */
+			   argument operands for the call.  NULL otherwise.
+			   Note that when present this list is shared with
+			   all the other candidate function entries. */
   /* Fields used by select_best_candidate_functions: */
   an_arg_match_summary_ptr
 		current_arg_match;
@@ -4439,7 +4441,8 @@ Free the list of candidate function entries pointed to by cfp.
     if (cfp->arg_matches != NULL) {
       free_arg_match_summary_list(cfp->arg_matches);
     }  /* if */
-    /* arg_operand_list is deliberately not freed. */
+    /* arg_operand_list is deliberately not freed, because it is shared
+       with any other candidate function entries for templates. */
     /* Add the entry to the available list. */
     cfp->next = avail_candidate_functions;
     avail_candidate_functions = cfp;
