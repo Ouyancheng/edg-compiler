@@ -1085,12 +1085,14 @@ done:
 
 
 void db_sym(a_symbol_ptr sym)
-/* A short-hand version of db_symbol for convenient access from a debugger. */
+/*
+A short-hand version of db_symbol for convenient access from a debugger.
+*/
 {
   db_symbol(sym, "", 2);
 }  /* db_sym */
-#endif /* DEBUG */
 
+#endif /* DEBUG */
 
 void set_source_corresp(a_source_correspondence *sc,
                         a_symbol_ptr            sp)
