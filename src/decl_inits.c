@@ -243,16 +243,12 @@ routine is called in C++ mode only.
               cssp->any_ref_member) {
           *incomplete_init = TRUE;
         }  /* if */
-      }  /* if */
-      if (cssp->constructor != NULL || cssp->destructor != NULL) {
+      } else {
         /* Initialization is required. */
-        if (cssp->constructor != NULL) {
-          /* Get the default constructor.  Note that it is an error if it
-             is missing. */
-          ctor_rp = select_default_constructor(element_type, &pos_curr_token,
-					       element_type,
-                                               /*evaluated=*/TRUE);
-        }  /* if */
+        /* Get the default constructor.  Note that it is an error if it
+           is missing. */
+        ctor_rp = select_default_constructor(element_type, &pos_curr_token,
+                                             element_type, /*evaluated=*/TRUE);
         if (ctor_rp != NULL) {
           /* If there's a constructor routine create a dik_constructor
              dynamic init entry. */
@@ -263,45 +259,29 @@ routine is called in C++ mode only.
           ptp = (skip_typerefs(ctor_rp->type))->
                                    variant.routine.extra_info->param_type_list;
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
-        } else {
-          /* If there's no constructor routine we use a dik_none dynamic
+          /* Now create the constant entry that will point to the new dynamic
              init entry. */
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-        }  /* if */
-        /* Register the destructor if there's one there. */
-        dip->destructor = select_destructor(element_type, element_type,
-                                            &pos_curr_token,
-                                            /*honor_virtual=*/FALSE,
-                                            /*evaluated=*/TRUE,
-                                            /*suppress_access_check=*/FALSE);
-        /* Since the destructor may have been added to a dynamic init entry
-           that will not be "on top" when gen_dynamic_initialization is called,
-           record the destruction, if needed, with the appropriate
-           object-lifetime entry. */
-        record_end_of_lifetime_destruction(dip, static_lifetime,
-                                           /*block_lifetime=*/TRUE);
-        /* Now create the constant entry that will point to the new dynamic
-           init entry. */
-        cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-        cp->variant.dynamic_init = dip;
-        cp->type = element_type;
-        if (number_of_uninitialized_elements > 1) {
-          /* When there is more than one uninitialized element remaining in the
-             array, we put out an init_repeat constant on top of the
-             dynamic init constant. */
-          repeat_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
-          repeat_con->variant.init_repeat.count = 
+          cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+          cp->variant.dynamic_init = dip;
+          cp->type = element_type;
+          if (number_of_uninitialized_elements > 1) {
+            /* When there is more than one uninitialized element remaining
+               in the array, we put out an init_repeat constant on top of
+               the dynamic init constant. */
+            repeat_con = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+            repeat_con->variant.init_repeat.count = 
                                              number_of_uninitialized_elements;
-          repeat_con->variant.init_repeat.constant = cp;
-          cp = repeat_con;
+            repeat_con->variant.init_repeat.constant = cp;
+            cp = repeat_con;
+          }  /* if */
+          /* Add the constant entry to the list of constants. */
+          if (*con_list == NULL) {
+            *con_list = cp;
+          } else {
+            (*end_of_con_list)->next = cp;
+          }  /* if */
+          *end_of_con_list = cp;
         }  /* if */
-        /* Add the constant entry to the list of constants. */
-        if (*con_list == NULL) {
-          *con_list = cp;
-        } else {
-          (*end_of_con_list)->next = cp;
-        }  /* if */
-        *end_of_con_list = cp;
         init_done = TRUE;
       }  /* if */
     }  /* if */
@@ -397,11 +377,10 @@ initialized.  This routine is called in C++ mode only.
       } else {
         cssp = NULL;
       }  /* if */
-      if (cssp == NULL ||
-          (cssp->constructor == NULL && cssp->destructor == NULL)) {
+      if (cssp == NULL || cssp->constructor == NULL) {
         /* Zero-initialize the field and then continue looping.  There is
            a field later in the list for which the default constructor has to
-           be called, but we can't leave list field uninitialized. */
+           be called, but we can't leave this field uninitialized. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
         /* Create the constant entry that will point to the new dynamic
            init entry. */
@@ -412,15 +391,14 @@ initialized.  This routine is called in C++ mode only.
         /* Default initialization is required -- this must be the field found
            by the call to any_constructible_fields_remaining. */
         found_constructible_field = TRUE;
-        if (cssp->constructor != NULL) {
-          /* Get the default constructor.  Note that it is an error if it
-             is missing. */
-          ctor_rp = select_default_constructor(tp, &pos_curr_token, tp,
-                                               /*evaluated=*/TRUE);
-        } else {
-          ctor_rp = NULL;
-        }  /* if */
-        if (ctor_rp != NULL) {
+        /* Get the default constructor.  Note that it is an error if it
+           is missing. */
+        ctor_rp = select_default_constructor(tp, &pos_curr_token, tp,
+                                             /*evaluated=*/TRUE);
+        if (ctor_rp == NULL) {
+          /* Error of some sort. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+        } else  {
           /* If there's a constructor routine create a dik_constructor
              dynamic init entry. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
@@ -430,33 +408,18 @@ initialized.  This routine is called in C++ mode only.
           ptp = (skip_typerefs(ctor_rp->type))->
                                    variant.routine.extra_info->param_type_list;
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
-        } else {
-          /* If there's no constructor routine we use a dik_none dynamic
-             init entry. */
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-        }  /* if */
-        /* Register the destructor if there's one there. */
-        dip->destructor = select_destructor(tp, tp, &pos_curr_token,
-                                            /*honor_virtual=*/FALSE,
-                                            /*evaluated=*/TRUE,
-                                            /*suppress_access_check=*/FALSE);
-        /* Since the destructor may have been added to a dynamic init entry
-           that will not be "on top" when gen_dynamic_initialization is called,
-           record the destruction, if needed, with the appropriate
-           object-lifetime entry. */
-        record_end_of_lifetime_destruction(dip, static_lifetime,
-                                           /*block_lifetime=*/TRUE);
-        if (is_array_type(fp->type)) {
-          /* This field is an array, so each of its elements has to be
-             constructed. */
-          a_type_ptr          array_type = skip_typerefs(fp->type);
-          a_dynamic_init_ptr  orig_dip = dip;
+          if (is_array_type(fp->type)) {
+            /* This field is an array, so each of its elements has to be
+               constructed. */
+            a_type_ptr          array_type = skip_typerefs(fp->type);
+            a_dynamic_init_ptr  orig_dip = dip;
 
-          dip = alloc_dynamic_init(
+            dip = alloc_dynamic_init(
                            (a_dynamic_init_kind)dik_nonconstant_aggregate);
-          /* Build the looping constant entry. */
-          repeat_nonconstant_init(orig_dip, array_type, tp, dip,
-                                  array_element_count(array_type, tp));
+            /* Build the looping constant entry. */
+            repeat_nonconstant_init(orig_dip, array_type, tp, dip,
+                                    array_element_count(array_type, tp));
+          }  /* if */
         }  /* if */
         /* Now create the constant entry that will point to the new dynamic
            init entry. */
@@ -683,7 +646,8 @@ ref field of a class object (or an array of same) remains uninitialized.
     /* This is an array element that can only be initialized by a
        constructor.  Treat the expression as an argument for the constructor
        call. */
-    if (!scan_class_initializer_expression(local_type, &dip)) {
+    if (!scan_class_initializer_expression(local_type, /*fill_in_dtor=*/FALSE,
+                                           &dip)) {
       /* No constructor was found.  Abort the initialization. */
       err = TRUE;
     } else {
@@ -1125,11 +1089,12 @@ unless there were errors in the scan (other than those reporting the
 detection of uninitialized fields).
 */
 {
-  a_boolean          any_member_uninitialized = FALSE;
-  a_boolean          any_const_or_ref_member_uninitialized = FALSE;
-  a_boolean          initialization_is_dynamic = FALSE;
-  a_boolean          nothing_taken;
-  a_boolean          err = FALSE;
+  a_boolean      any_member_uninitialized = FALSE;
+  a_boolean      any_const_or_ref_member_uninitialized = FALSE;
+  a_boolean      initialization_is_dynamic = FALSE;
+  a_boolean      nothing_taken;
+  a_boolean      err = FALSE;
+  a_routine_ptr  dtor_rp = NULL;
 
   db_enter(3, "scan_initializer_list");
   /* Scan the initializer list. */
@@ -1153,11 +1118,22 @@ detection of uninitialized fields).
   if ((*init_con)->kind == (a_constant_repr_kind)ck_error) {
     err = TRUE;
   } else {
+    a_type_ptr  tp = *type;
+    if (is_array_type(*type)) tp = underlying_array_element_type(tp);
+    tp = skip_typerefs(tp);
+    if (is_immediate_class_type(tp) &&
+        symbol_supplement_for_class(tp)->destructor != NULL) {
+      dtor_rp = select_destructor(tp, tp, err_pos, /*honor_virtual=*/FALSE,
+                                  /*evaluated=*/TRUE,
+                                  /*suppress_access_check=*/FALSE);
+      if (dtor_rp != NULL) initialization_is_dynamic = TRUE;
+    }  /* if */
     if (initialization_is_dynamic) {
       check_assertion((*init_con)->kind == (a_constant_repr_kind)ck_aggregate);
       *init_dip = alloc_dynamic_init(
                          (a_dynamic_init_kind)dik_nonconstant_aggregate);
       (*init_dip)->variant.constant = *init_con;
+      (*init_dip)->destructor = dtor_rp;
       *init_con = NULL;
 #if CHECKING
     } else {
@@ -1668,7 +1644,9 @@ returned set to TRUE.
       /* In ordinary C a struct or union variable may be initialized by an
          object of the same type as long as dynamic initialization is
          otherwise allowed. */
-      if (!scan_class_initializer_expression(vp_type, &init_dip)) {
+      if (!scan_class_initializer_expression(vp_type,
+                                             /*fill_in_dtor=*/TRUE,
+                                             &init_dip)) {
         /* No appropriate constructor was found.  Abort the initialization. */
         init_err = TRUE;
       }  /* if */
@@ -1990,6 +1968,20 @@ the default constructor (if one exists) is called.
             }  /* if */
             (void)pop_object_lifetime();
           }  /* if */
+          if (var_type != tp) {
+            /* The object has an array type.  We need to build an aggregate
+               initialization on top of the other dynamic init entry. */
+            /* Save a pointer to init_dip, since it will be modified for
+               an array initialization. */
+            orig_init_dip = init_dip;
+            /* Create a new one to represent a nonconstant aggregate
+               initialization. */
+            init_dip = alloc_dynamic_init(
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
+            /* Build the repeat construct. */
+            repeat_nonconstant_init(orig_init_dip, var_type, tp, init_dip,
+                                    array_element_count(var_type, tp));
+          }  /* if */
         } else {
           /* Default initialization of an object that has a destructor.  We
              generate a dik_none dynamic initialization entry for this object,
@@ -1997,30 +1989,9 @@ the default constructor (if one exists) is called.
              of the destructor can be duly recorded. */
           init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
         }  /* if */
-        init_dip->destructor = dtor;
         /* A constructor (or at least a destructor) was found and a dynamic
            init entry (local_di) was set to represent the initialization. */
-        /* Save a pointer to init_dip, since it may be modified if this is
-           an array initialization. */
-        orig_init_dip = init_dip;
-        if (var_type != tp) {
-          /* The object has an array type.  We need to build an aggregate
-             initialization on top of the other dynamic init entry. */
-          /* Since the destructor may have been added to a dynamic init entry
-             that will not be "on top" when gen_dynamic_initialization is
-             called, record the destruction, if needed, with the appropriate
-             object-lifetime entry. */
-          record_end_of_lifetime_destruction(orig_init_dip,
-                                             static_lifetime,
-                                             /*block_lifetime=*/TRUE);
-          /* Create a new one to represent a nonconstant aggregate
-             initialization. */
-          init_dip = alloc_dynamic_init(
-                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
-          /* Build the repeat construct. */
-          repeat_nonconstant_init(orig_init_dip, var_type, tp, init_dip,
-                                  array_element_count(var_type, tp));
-        }  /* if */
+        init_dip->destructor = dtor;
         /* Allocate a dynamic init entry (a copy of local_di) and attach it
            to the variable. */
         gen_dynamic_initialization(var, init_dip, &local_static_var_init,
@@ -2922,6 +2893,18 @@ scan_paren:
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
         }  /* if */
       }  /* if */
+      if (array_type != NULL &&
+          dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        /* We have an array of objects with constructors.  Create a dynamic
+           init entry to handle the aggregate. */
+        dip->is_constructor_init = TRUE;
+        ctor_dip = dip;
+        dip =
+           alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
+        /* Build the looping constant entry. */
+        repeat_nonconstant_init(ctor_dip, array_type, tp, dip,
+                                array_element_count(array_type, tp));
+      }  /* if */
       if (exceptions_enabled && cssp != NULL) {
         if (cssp->destructor != NULL) {
           /* If exception handling is enabled, record the destructor in the
@@ -2938,18 +2921,6 @@ scan_paren:
            destruction in the context of the current lifetime. */
         record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
                                            /*block_lifetime=*/TRUE);
-      }  /* if */
-      if (array_type != NULL &&
-          dip->kind == (a_dynamic_init_kind)dik_constructor) {
-        /* We have an array of objects with constructors.  Create a dynamic
-           init entry to handle the aggregate. */
-        dip->is_constructor_init = TRUE;
-        ctor_dip = dip;
-        dip =
-           alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-        /* Build the looping constant entry. */
-        repeat_nonconstant_init(ctor_dip, array_type, tp, dip,
-                                array_element_count(array_type, tp));
       }  /* if */
       /* Attach the new dynamic init entry to the constructor initializer. */
       dip->is_constructor_init = TRUE;
@@ -3150,17 +3121,6 @@ though neither constructors nor initialization is involved here.)
                appropriate object-lifetime entry. */
             record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
                                                /*block_lifetime=*/TRUE);
-          }  /* if */
-          if (array_type != NULL) {
-            /* We have an array of objects with destructors.  Create a dynamic
-               init entry to handle the aggregate. */
-            a_dynamic_init_ptr  dtor_dip = dip;
-            dip = alloc_dynamic_init(
-                             (a_dynamic_init_kind)dik_nonconstant_aggregate);
-            dip->is_constructor_init = TRUE;
-            /* Build the looping constant entry. */
-            repeat_nonconstant_init(dtor_dip, array_type, tp, dip,
-                                    array_element_count(array_type, tp));
           }  /* if */
           /* Attach the new dynamic init entry to the constructor
              initializer. */
