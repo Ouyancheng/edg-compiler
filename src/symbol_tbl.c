@@ -6939,7 +6939,7 @@ Allocate a progenitor entry, initialize its fields, and return a pointer to it.
   pp->next = NULL;
   pp->sym = NULL;
   pp->path = NULL;
-  pp->access = as_public;
+  pp->access = (an_access_specifier)as_public;
   return pp;
 }  /* alloc_progenitor */
 
