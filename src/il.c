@@ -223,16 +223,7 @@ static void db_name_linkage(a_name_linkage_kind nlk)
 Dump the indicated name linkage kind.
 */
 {
-  char *str;
-
-  switch (nlk) {
-    case nlk_none:                str = "no"; break;
-    case nlk_internal:            str = "int'l"; break;
-    case nlk_external:            str = "ext'l"; break;
-    case nlk_cplusplus_external:  str = "C++"; break;
-    default:                      str = "<bad name linkage kind>"; break;
-  }  /* switch */
-  fprintf(f_debug, "%s", str);
+  fprintf(f_debug, "%s", name_linkage_kind_names[(int)nlk]);
 }  /* db_name_linkage */
 
 
@@ -8446,7 +8437,7 @@ in il_init.)
   }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
 #if NEED_IL_DISPLAY || DEBUG
-  /* Variable in il.h: */
+  /* Variable in il_def.h: */
   /* Check that the table of IL entry names is correctly initialized.
      This guards against someone changing the enumeration and forgetting to
      update il_entry_kind_names. */
@@ -8465,6 +8456,13 @@ in il_init.)
     internal_error(
                 "il_init: incorrect initialization of db_storage_class_names");
   }  /* if */
+  /* Check that the table of special function kind names is correctly
+     initialized. */
+  if (db_special_function_kinds[(int)sfk_last] == NULL ||
+      strcmp(db_special_function_kinds[(int)sfk_last], "last") != 0) {
+    internal_error(
+             "il_init: incorrect initialization of db_special_function_kinds");
+  }  /* if */
   /* Check that the table of operator names is correctly initialized.  This
      guards against someone changing the enumeration and forgetting to update
      db_operator_names. */
@@ -8473,6 +8471,19 @@ in il_init.)
     internal_error("il_init: incorrect initialization of db_operator_names");
   }  /* if */
 #endif /* DEBUG */
+  /* Variable in il_def.h: */
+  /* Check that the table of linkage kind names is correctly initialized. */
+  if (name_linkage_kind_names[(int)nlk_last] == NULL ||
+      strcmp(name_linkage_kind_names[(int)nlk_last], "last") != 0) {
+    internal_error(
+               "il_init: incorrect initialization of name_linkage_kind_names");
+  }  /* if */
+  /* Variable in il_def.h: */
+  /* Check that the table of decl modifier names is correctly initialized. */
+  if (decl_modifier_names[(int)dmt_last] == NULL ||
+      strcmp(decl_modifier_names[(int)dmt_last], "last") != 0) {
+    internal_error("il_init: incorrect initialization of decl_modifier_names");
+  }  /* if */
   /* Variable in il_def.h: */
   /* Check that the table of pragma ids is correctly initialized.  This guards
      against someone changing the enumeration a_pragma_kind and forgetting to

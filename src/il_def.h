@@ -213,8 +213,9 @@ typedef a_byte an_access_specifier;
 #define is_more_accessible(access1, access2) ((int)(access1) < (int)(access2))
 #endif /* ifdef CIL */
 
+/* Kind of name linkage (e.g., external name visibility). */
+/* If you update this, be sure to update name_linkage_kind_names too. */
 enum a_name_linkage_kind_tag {
-  /* Kind of name linkage (e.g., external name visibility). */
   nlk_none,		/* No linkage, as for a local variable. */
 #ifdef CIL
   nlk_internal,		/* Internal linkage, as for a file-scope static. */
@@ -222,12 +223,32 @@ enum a_name_linkage_kind_tag {
 			/* C++ external linkage, as for an extern in C++.
 			   Implies name mangling if that technique is used. */
 #endif /* ifdef CIL */
-  nlk_external		/* External linkage, as for an external routine. */
+  nlk_external,		/* External linkage, as for an external routine. */
+  nlk_last
 };
+/* Number of bits required to hold a name linkage.  nlk_last need not be
+   accounted for. */
 #define NUM_BITS_FOR_NAME_LINKAGE 2
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_name_linkage_kind;
 
+/*
+Names of linkage kinds.  These are used to recognize the string in a
+linkage specification (extern "xxx") and for debug output.
+*/
+EXTERN char *name_linkage_kind_names[(int)nlk_last+1]
+#if VAR_INITIALIZERS
+= {
+  "no",			/* nlk_none */
+#ifdef CIL
+  "internal",		/* nlk_internal */
+  "C++",		/* nlk_cplusplus_external */
+#endif /* ifdef CIL */
+  "C",			/* nlk_external */
+  "last"		/* nlk_last */
+}
+#endif /* VAR_INITIALIZERS */
+;
 
 /*
 List of all IL entry kinds:
@@ -1964,7 +1985,7 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
   /* dmt_naked */		"naked",
   /* dmt_inline */		"__inline",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* dmt_last */		"__last"
+  /* dmt_last */		"last"
 } /* decl_modifier_names */
 #endif /* VAR_INITIALIZERS */
 ;

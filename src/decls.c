@@ -5229,9 +5229,10 @@ variable, the declaration(s) are processed, and then the original linkage
 specifier is restored.
 */
 {
-  an_extern_linkage  saved_linkage;
-  char               *str;
-  a_boolean          err = FALSE;
+  an_extern_linkage   saved_linkage;
+  char                *str;
+  a_boolean           err = FALSE;
+  a_name_linkage_kind kind;
 
   db_enter(3, "linkage_specification");
   if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
@@ -5240,6 +5241,7 @@ specifier is restored.
   }  /* if */
   /* Advance to the string literal. */
   (void)get_token();
+  check_assertion(curr_token == tok_string_literal);
   str = const_for_curr_token.variant.string.value;
   /* ARM 7.4 specifies that the strings "C" and "C++" must be supported,
      but that implementations are permitted to add others, such as "Ada"
@@ -5247,19 +5249,23 @@ specifier is restored.
      sure to update the name linkage kind enumeration. */
   /* Save the current default linkage. */
   saved_linkage = def_external_linkage;
-  if (strcmp(str, "C") == 0) {
-    if (!err) {
-      def_external_linkage.kind = (a_name_linkage_kind)nlk_external;
-      def_external_linkage.is_explicit = TRUE;
+  /* Look for a matching string. */
+  for (kind = (a_name_linkage_kind)nlk_cplusplus_external;
+       kind < (int)nlk_last;
+       kind = (a_name_linkage_kind)(kind + 1)) {
+    if (strcmp(str, name_linkage_kind_names[kind]) == 0) {
+      /* Found a matching linkage kind string. */
+      break;
     }  /* if */
-  } else if (strcmp(str, "C++") == 0) {
+  }  /* for */
+  if (kind != (a_name_linkage_kind)nlk_last) {
+    /* A valid linkage kind was found. */ 
     if (!err) {
-      def_external_linkage.kind =
-			     (a_name_linkage_kind)nlk_cplusplus_external;
+      def_external_linkage.kind = kind;
       def_external_linkage.is_explicit = TRUE;
     }  /* if */
   } else {
-    /* Leave def_external_linkage unmodified. */
+    /* Bad linkage kind.  Leave def_external_linkage unmodified. */
     error(ec_bad_linkage_specifier);
   }  /* if */
   (void)get_token();

@@ -416,24 +416,7 @@ Display the indicated field name and name linkage kind.
 */
 {
   disp_name(name);
-  switch (nlk) {
-    case nlk_none:
-      (void)printf("nlk_none\n");
-      break;
-#ifdef CFE
-    case nlk_internal:
-      (void)printf("nlk_internal\n");
-      break;
-    case nlk_cplusplus_external:
-      (void)printf("nlk_cplusplus_external\n");
-      break;
-#endif /* ifdef CFE */
-    case nlk_external:
-      (void)printf("nlk_external\n");
-      break;
-    default:
-      (void)printf("**BAD NAME LINKAGE KIND**\n");
-  }  /* switch */
+  (void)printf("%s\n", name_linkage_kind_names[(int)nlk]);
 }  /* disp_name_linkage */
 
 
