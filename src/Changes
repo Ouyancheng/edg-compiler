@@ -1,5 +1,12 @@
 Version 2.46
 
+3/1/01   Abort on ill-formed C99 _Pragma operator
+
+An abort would occur on certain ill-formed C99 _Pragma operators.  This
+has been fixed.
+
+  _Pragma // followed by end of file
+
 3/1/01   C99 compound literals not considered "side effects"
 
 The creation of a C99 compound literal is no longer considered

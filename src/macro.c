@@ -1124,7 +1124,7 @@ is the source position of the _Pragma token.
 }  /* scan_pragma_string */
 
 
-static void scan_pragma_operator(void)
+static void scan_pragma_operator(a_boolean *got_proper_closing_token)
 /*
 Process a C99 _Pragma operator.  The current token is the _Pragma identifier
 token.  The form of a _Pragma invocation is:
@@ -1133,11 +1133,15 @@ token.  The form of a _Pragma invocation is:
 
 The first component of "string" is the pragma identifier, which may be followed
 by pragma arguments.
+
+If the pragma operator is badly formed and we don't successfully find its
+end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
 */
 {
   a_boolean		save_fetch_pp_tokens = fetch_pp_tokens;
   a_boolean		save_expand_macros = expand_macros;
   a_source_position	start_of_dir_position;
+  a_boolean		found_end_of_operator = FALSE;
 
   /* The inside of the _Pragma directive should be processed as pp-tokens. */
   fetch_pp_tokens = TRUE;
@@ -1159,12 +1163,19 @@ by pragma arguments.
     scan_pragma_string(map, &start_of_dir_position);
     /* Bypass the scanned string and check for the closing parenthesis.. */
     (void)get_token();
-    if (curr_token != tok_rparen) error(ec_exp_rparen);
+    if (curr_token == tok_rparen) {
+      found_end_of_operator = TRUE;
+    } else {
+      error(ec_exp_rparen);
+    }  /* if */
   }  /* if */
   /* Restore the previous state for fetching pp-tokens, and expanding
      macros. */
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
+  /* If we didn't find the end of the operator, clear the flag passed
+     by the caller. */
+  if (!found_end_of_operator) *got_proper_closing_token = FALSE;
 }  /* scan_pragma_operator */
 
 
@@ -2090,7 +2101,7 @@ end_scan_for_macro_modifs:;
            Call a routine to translate the string into a pending pragma
            entry. */
         is_macro_call = FALSE;
-        scan_pragma_operator(); 
+        scan_pragma_operator(&got_proper_closing_token); 
         repl_text = "";
         repl_text_len = 0;
 #if CHECKING
