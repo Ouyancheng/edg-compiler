@@ -2501,11 +2501,11 @@ The subtree is not processed.
 #if RECORD_MACROS_IN_IL
   remap_ptr(il_header.macros, a_macro_ptr, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+#if ONE_INSTANTIATION_PER_OBJECT
   remap_ptr(il_header.instantiation_file_list_name, a_char_ptr,
             iek_other_text);
   remap_ptr(il_header.instantiation_dir_name, a_char_ptr, iek_other_text);
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* region_scope_entry should not be changed; it's not a pointer into
      IL memory in the usual way.  It's changed explicitly as needed. */
 }  /* remap_il_header_pointers. */
