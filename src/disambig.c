@@ -1100,10 +1100,10 @@ done:
 }  /* prescan_declaration */
 
 
-a_boolean f_is_decl_not_expr(a_disambig_flag_set flags)
+static a_boolean is_decl_not_expr_full(a_disambig_flag_set flags)
 /*
-This routine is called via the macro is_decl_not_expr (in C++ only) to
-distinguish statements and expressions from declarations -- for example:
+This routine is called via is_decl_not_expr (in C++ only) to distinguish
+statements and expressions from declarations -- for example:
   (1) a statement vs. a declaration, e.g.,
          typedef int I;
          I(i);                // declaration (= I i);
@@ -1172,7 +1172,7 @@ types separated by commas (when single_type_required is FALSE).
   a_boolean	      is_implicit_template_type;
   a_symbol_ptr	      specific_sym = locator_for_curr_id.specific_symbol;
 
-  db_enter(3, "f_is_decl_not_expr");
+  db_enter(3, "is_decl_not_expr_full");
   /* Determine whether the current identifier is a synthesized template
      parameter type symbol created in implicit_typename mode.  If so,
      we must do additional checking for casts to determine that the
@@ -1279,7 +1279,37 @@ done:
   }  /* if */
   db_exit();
   return result;
-}  /* f_is_decl_not_expr */
+}  /* is_decl_not_expr_full */
+
+
+a_boolean is_decl_not_expr(a_disambig_flag_set	flags)
+/*
+Called in various contexts to distinguish expressions from declarations. 
+In C this is straightforward -- is_decl_start() provides all the information
+needed.  But the added complexity of disambiguation in C++ requires calling a
+routine to do lookahead, etc.
+*/
+{
+  an_is_decl_start_options_set	is_decl_start_options;
+  a_boolean			result = FALSE;
+
+  is_decl_start_options = IDS_EXPR_CONTEXT;
+  if ((flags & DFS_REAL_DECLARATOR_ALLOWED) != 0) {
+    is_decl_start_options |= IDS_REAL_DECLARATOR_ALLOWED;
+  }  /* if */
+  if (!C_mode()) {
+    if (is_decl_start(is_decl_start_options)) {
+      result = is_decl_not_expr_full(flags);
+    } else {
+      /* is_decl_start returns FALSE on "overload" but it should still be
+         considered a declaration. */
+      result = curr_token == tok_overload;
+    }  /* if */
+  } else {
+    result = is_decl_start(is_decl_start_options);
+  }  /* if */
+  return result;
+}  /* is_decl_not_expr */
 
 
 a_type_ptr prescan_and_find_declarator(a_token_cache *decl_token_cache_ptr,

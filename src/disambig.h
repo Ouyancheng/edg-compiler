@@ -49,30 +49,7 @@ typedef a_byte a_disambig_flag_set;
 			/* This is a template argument that is being
 			   prescanned. */
 
-/*
-Macro called in various contexts to distinguish expressions from declarations. 
-In C this is straightforward -- is_decl_start() provides all the information
-needed.  But the added complexity of disambiguation in C++ requires calling a
-routine to do lookahead, etc.
-*/
-#define is_decl_not_expr(flags)						\
-  /* if */ ((C_dialect == C_dialect_cplusplus) /* { */ ?          	\
-    /* if */ (is_decl_start(IDS_EXPR_CONTEXT |				\
-/*lint --e(506)*/           ((((flags) & DFS_REAL_DECLARATOR_ALLOWED) != 0) \
-                            ? IDS_REAL_DECLARATOR_ALLOWED		\
-                            : IDS_NO_OPTIONS))/* { */ ?			\
-      f_is_decl_not_expr(flags)						\
-    /* } else { */ :		      					\
-      curr_token == tok_overload					\
-    /* } */)								\
-  /* } else { */ :            						\
-    is_decl_start(IDS_EXPR_CONTEXT |					\
-/*lint --e(506)*/ ((((flags) & DFS_REAL_DECLARATOR_ALLOWED) != 0)	\
-                  ? IDS_REAL_DECLARATOR_ALLOWED				\
-                  : IDS_NO_OPTIONS))					\
-  /* } */ )
-
-extern a_boolean f_is_decl_not_expr(a_disambig_flag_set flags);
+extern a_boolean is_decl_not_expr(a_disambig_flag_set flags);
 
 extern
 a_type_ptr prescan_and_find_declarator(a_token_cache *decl_token_cache_ptr,
