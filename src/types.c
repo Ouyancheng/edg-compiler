@@ -684,6 +684,28 @@ class for which the flag will be set when it is instantiated.
 }  /* is_abstract_class_type */
 
 
+a_boolean type_has_default_constructor(a_type_ptr  tp)
+/*
+Return TRUE if the type pointed to by tp is a class type with a default
+constructor (or an array thereof).  This function is called in C++ mode only.
+*/
+{
+  a_boolean  has_default_ctor = FALSE;
+
+  if (is_array_type(tp)) {
+    tp = underlying_array_element_type(tp);
+  }  /* if */
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp)) {
+    /* It's a class type or an array of class type. */
+    if (symbol_supplement_for_class(tp)->has_default_constructor) {
+      has_default_ctor = TRUE;
+    }  /* if */
+  }  /* if */
+  return has_default_ctor;
+}  /* type_has_default_constructor */
+
+
 a_base_class_ptr find_base_class_of(a_type_ptr derived_class,
                                     a_type_ptr base_class)
 /*
