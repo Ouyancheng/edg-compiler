@@ -1,4 +1,15 @@
-Version 2.23
+Version 2.24
+
+-------------------------------------------------------------------------------
+Version 2.23, May 25, 1994
+
+5/24/94  C++-generating back end processes C++
+
+The C++-generating back end now processes C++ as well as C.  It does not
+handle templates, and there are some known problems with cases where
+the output looks reasonable but means something else when compiled again
+(for example, "A()" is put out as "(A())", which suddenly looks like a
+cast).  However, it compiles lots of real code correctly.
 
 5/24/94  Overload resolution bug when static & non-static functions compete
 
