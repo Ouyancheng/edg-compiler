@@ -512,6 +512,30 @@ recorded in the IL.  Automatically TRUE if BACK_END_IS_CP_GEN_BE is TRUE.
 #endif /* !defined(RECORD_HIDDEN_NAMES_IN_IL) */
 
 /*
+Flag that is TRUE if template declarations should be recorded in the IL.
+Automatically TRUE if BACK_END_IS_CP_GEN_BE is TRUE.
+*/
+#ifndef RECORD_TEMPLATES_IN_IL
+#if BACK_END_IS_CP_GEN_BE
+#define RECORD_TEMPLATES_IN_IL TRUE /* Do not change this. */
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define RECORD_TEMPLATES_IN_IL FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* !defined(RECORD_TEMPLATES_IN_IL) */
+
+/*
+Flag that is TRUE if macro declarations should be recorded in the IL.
+Automatically TRUE if BACK_END_IS_CP_GEN_BE is TRUE.
+*/
+#ifndef RECORD_MACROS_IN_IL
+#if BACK_END_IS_CP_GEN_BE
+#define RECORD_MACROS_IN_IL TRUE /* Do not change this. */
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define RECORD_MACROS_IN_IL FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* !defined(RECORD_MACROS_IN_IL) */
+
+/*
 Flag that is TRUE to include a set of EDG provided set test pragmas in the
 front end.
 */
