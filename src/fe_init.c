@@ -88,9 +88,11 @@ been included by the inclusion of fe_common.h.
 #include "cp_gen_be.h"
 #endif /* BACK_END_IS_CP_GEN_BE */
 
-#if DO_IL_LOWERING
+#if NEED_NAME_MANGLING
 #include "lower_il.h"
 #include "lower_name.h"
+#endif /* NEED_NAME_MANGLING */
+#if DO_IL_LOWERING
 #include "lower_init.h"
 #include "lower_eh.h"
 #if MINIMAL_INLINING
