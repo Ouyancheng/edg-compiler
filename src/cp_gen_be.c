@@ -143,8 +143,13 @@ those containing source correspondence information.)
 */
 #define has_name(entry) ((entry)->source_corresp.name != NULL)
 
+/* Value to use to specify that no name is provided. */
+#define NO_NAME ((a_source_correspondence *)NULL)
+
 
 /* Needed because of forward references: */
+static void gen_enum_definition(a_type_ptr type);
+static void gen_class_definition(a_type_ptr type);
 static void gen_lvalue(an_expr_node_ptr node);
 static void gen_statement(a_statement_ptr statement);
 static void gen_file_scope_entity(a_source_sequence_entry_ptr ssep);
@@ -447,17 +452,17 @@ function list.
 #if CHECKING
   if (func_scope_source_sequence_entry != ssep || ssep == NULL) {
 #if DEBUG
-    fprintf(f_debug, "Expected:    ");
+    (void)fprintf(f_debug, "Expected:    ");
     if (ssep != NULL) {
       db_source_sequence_entry(ssep);
     } else {
-      fprintf(f_debug, "nothing\n");
+      (void)fprintf(f_debug, "nothing\n");
     }  /* if */
-    fprintf(f_debug, "Got instead: ");
+    (void)fprintf(f_debug, "Got instead: ");
     if (func_scope_source_sequence_entry != NULL) {
       db_source_sequence_entry(func_scope_source_sequence_entry);
     } else {
-      fprintf(f_debug, "nothing\n");
+      (void)fprintf(f_debug, "nothing\n");
     }  /* if */
 #endif /* DEBUG */
     internal_error("check_for_and_take_func_source_seq_entry: wrong entry");
@@ -679,7 +684,7 @@ complete token.
   if (output_position_is_pending) adjust_output_position();
   /* Start the current line if we have not started it yet. */
   if (curr_output_column == 0) curr_output_column = 1;
-  fputc(ch, f_C_output);
+  (void)fputc(ch, f_C_output);
   /* Keep track of the current column number on output. */
   curr_output_column++;
 }  /* write_ch */
@@ -701,7 +706,7 @@ complete token.
   if (output_position_is_pending) adjust_output_position();
   /* Start the current line if we have not started it yet. */
   if (curr_output_column == 0) curr_output_column = 1;
-  fputs(str, f_C_output);
+  (void)fputs(str, f_C_output);
   /* Keep track of the current column number on output. */
   curr_output_column += strlen(str);
 }  /* write_str */
@@ -725,7 +730,7 @@ several), which means a long line could be broken before or after it.
     write_line_directive(curr_output_seq_number, curr_output_line,
                          curr_output_file);
   }  /* if */
-  fputs(str, f_C_output);
+  (void)fputs(str, f_C_output);
   /* Keep track of the current column number on output. */
   curr_output_column += len;
 }  /* write_tok_str */
@@ -1024,7 +1029,7 @@ Output the indicated constant.
              is set, the final type cast was already generated above and
              need not be repeated here. */
           if (!constant->implicit_cast) {
-           gen_cast(orig_type);
+            gen_cast(orig_type);
             write_tok_str("(");
             scaled_offset_cast = TRUE;
           }  /* if */
@@ -1234,6 +1239,28 @@ qualification.
 }  /* is_immediate_type_qualifier */
 
 
+static void gen_type_qualifier(a_type_ptr type)
+/*
+Print the type qualifier for the top type of the given type (i.e., just
+the first level).  The type must be a tk_typeref containing a type
+qualifier.
+*/
+{
+  a_boolean previous_qualifier = FALSE;
+
+  check_assertion_str(type->kind == (a_type_kind)tk_typeref,
+                      "gen_type_qualifier: bad type kind");
+  if (type->variant.typeref.is_const) {
+    write_tok_str("const");
+    previous_qualifier = TRUE;
+  }  /* if */
+  if (type->variant.typeref.is_volatile) {
+    if (previous_qualifier) write_space();
+    write_tok_str("volatile");
+  }  /* if */
+}  /* gen_type_qualifier */
+
+
 static a_boolean is_not_yet_defined_typedef(a_type_ptr type)
 /*
 Return TRUE if the indicated type is a typedef for which the type has
@@ -1261,90 +1288,6 @@ must be suppressed.
 }  /* is_not_yet_defined_typedef */
 
 
-static void gen_type_qualifier(a_type_ptr type)
-/*
-Print the type qualifier for the top type of the given type (i.e., just
-the first level).  The type must be a tk_typeref containing a type
-qualifier.
-*/
-{
-  a_boolean previous_qualifier = FALSE;
-
-  check_assertion_str(type->kind == (a_type_kind)tk_typeref,
-                      "gen_type_qualifier: bad type kind");
-  if (type->variant.typeref.is_const) {
-    write_tok_str("const");
-    previous_qualifier = TRUE;
-  }  /* if */
-  if (type->variant.typeref.is_volatile) {
-    if (previous_qualifier) write_space();
-    write_tok_str("volatile");
-  }  /* if */
-}  /* gen_type_qualifier */
-
-
-static void gen_typedef_definition(a_type_ptr type)
-/*
-Output the definition of the indicated typedef.
-*/
-{
-  /* set_output_position has already been called for the type. */
-  type->definition_put_out = TRUE;
-  write_tok_str("typedef ");
-  gen_declaration_using_type(type->variant.typeref.type,
-                             &type->source_corresp,
-                             (a_src_seq_secondary_decl_ptr)NULL);
-}  /* gen_typedef_definition */
-
-
-static void gen_enum_definition(a_type_ptr type)
-/*
-Output the definition of the indicated enum type.
-*/
-{
-  a_constant_ptr enum_con;
-  a_constant     next_enum_value;
-
-  check_assertion_str(type->kind == (a_type_kind)tk_integer &&
-                      type->variant.integer.enum_type,
-                      "gen_enum_definition: not an enum type");
-  type->definition_put_out = TRUE;
-  set_output_position(&type->source_corresp.decl_position);
-  /* Generate "enum <name>". */
-  write_tok_str("enum ");
-  /* (Note that a name will be generated for an unnamed enum.  That's
-     necessary in C mode to allow the necessary casts of enumerator
-     constants, and it's not a bad thing in general.) */
-  gen_type_name(type);
-  enum_con = type->variant.integer.enum_info.constant_list;
-  if (enum_con != NULL) {
-    write_tok_str(" {");
-    /* Output the enumeration constants. */
-    /* Start with an expected value of 0 next. */
-    next_enum_value = *enum_con;
-    set_integer_value(&next_enum_value.variant.integer_value, 0L);
-    for (;;) {
-      set_output_position(&enum_con->source_corresp.decl_position);
-      /* Output the constant's name. */
-      gen_constant_name(enum_con);
-      /* Output the value if it's not the next value in sequence. */
-      if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
-        write_tok_str(" = ");
-        write_tok_str(str_for_integer_constant(enum_con));
-        next_enum_value = *enum_con;
-      }  /* if */
-      enum_con = enum_con->next;
-      /* Stop if at the end of the list of constants. */
-      if (enum_con == NULL) break;
-      /* Not the end of the list, so output a separator and keep looping. */
-      write_tok_str(", ");
-      incr_integer_value(&next_enum_value.variant.integer_value);
-    }  /* for */
-    write_tok_str("}");
-  }  /* if */
-}  /* gen_enum_definition */
-
-
 static char *tag_kind(a_type_kind kind)
 /*
 Return a string that describes the tag kind for the indicated type, i.e.,
@@ -1362,137 +1305,6 @@ Return a string that describes the tag kind for the indicated type, i.e.,
   }  /* switch */
   return str;
 }  /* tag_kind */
-
-
-static void gen_field_decl(a_field_ptr field)
-/*
-Generate the declaration for a field (a nonstatic data member).
-*/
-{
-  set_output_position(&field->source_corresp.decl_position);
-  /* Generate the field type and name. */
-  gen_declaration_using_type(field->type,
-                             has_name(field) ? &field->source_corresp : NULL,
-                             (a_src_seq_secondary_decl_ptr)NULL);
-  if (field->is_bit_field) {
-    /* A bit field.  Put out the size. */
-    write_tok_str(":");
-    write_unsigned_num((unsigned long)field->bit_size);
-  }  /* if */
-  write_tok_str("; ");
-}  /* gen_field_decl */
-
-
-static gen_class_definition(a_type_ptr type)
-/*
-Output the definition of the indicated class type.
-*/
-{
-  a_field_ptr                 field_list, field;
-  a_class_type_supplement_ptr ctsp;
-  a_scope_ptr                 scope;
-  a_source_sequence_entry_ptr ssep;
-
-  type->definition_put_out = TRUE;
-  set_output_position(&type->source_corresp.decl_position);
-  write_tok_str(tag_kind(type->kind));
-  write_space();
-  /* (Note that a name will be generated for an unnamed class.) */
-  gen_type_name(type);
-  /* See if this class is defined.  In C mode, there is no class type
-     supplement, so check for the presence of fields. */
-  field_list = type->variant.class_struct_union.field_list;
-  ctsp = type->variant.class_struct_union.extra_info;
-  scope = NULL;
-  if (ctsp != NULL) scope = ctsp->assoc_scope;
-  if (field_list != NULL || scope != NULL) {
-    /* Yes, the class is defined. */
-    /* Save class_scope_source_sequence_entry for later restoration. */
-    a_source_sequence_entry_ptr saved_class_scope_source_sequence_entry =
-                                             class_scope_source_sequence_entry;
-    write_tok_str(" { ");
-    if (scope != NULL) {
-      /* C++ -- the class has a scope. */
-      class_scope_source_sequence_entry = scope->source_sequence_list;
-      /* Skip non-significant source sequence entries. */
-      adv_to_signif_class_scope_source_sequence_entry();
-    } else {
-      /* C -- the class has no scope, so start with the source sequence entry
-         following the one for the class definition, thus simulating a list
-         for the class "scope." */
-      if (field_list != NULL) {
-        class_scope_source_sequence_entry =
-                              type->source_corresp.source_sequence_entry->next;
-        check_assertion_str(class_scope_source_sequence_entry != NULL,
-                          "gen_class_definition: missing field src seq entry");
-      } else {
-        /* No fields.  (Yes, this can happen in C if the only fields are
-           unnamed bit fields.) */
-        class_scope_source_sequence_entry = NULL;
-      }  /* if */
-      /* While we're inside the struct, types must be emitted when used,
-         not in freestanding declarations. */
-      type_declaration_cannot_be_emitted_now++;
-    }  /* if */
-    /* Go through the source sequence list and generate the members of the
-       class. */
-    for (;;) {
-      char *entity_ptr;
-      ssep = class_scope_source_sequence_entry;
-      if (ssep == NULL) break;
-      entity_ptr = ssep->entity.ptr;
-      /* Advance the source sequence list for the next iteration of the
-         loop. */
-      (void)next_class_scope_source_sequence_entry();
-      switch (ss_entry_kind(ssep)) {
-        case iek_constant:
-          /* Ignore all constants in C mode (e.g., enum constants). */
-          if (il_header.source_language == sl_C) break;
-          /* Ignore enum constants (they come out as part of the enum type). */
-          if (is_enum_constant((a_constant_ptr)entity_ptr)) break;
-          /* Other constants (C++ only) are member constants. */
-          unimplemented();
-          break;
-        case iek_field:
-          /* Generate the declaration for a field (nonstatic data member). */
-          field = (a_field_ptr)entity_ptr;
-          gen_field_decl(field);
-          break;
-        case iek_type:
-          /* Nested type. */
-          gen_type_decl((a_type_ptr)entity_ptr,
-                        (a_src_seq_secondary_decl_ptr)NULL);
-          break;
-        case iek_variable:
-          /* Static data member. */
-          gen_variable_decl((a_variable_ptr)entity_ptr,
-                            (a_src_seq_secondary_decl_ptr)NULL);
-          break;
-        case iek_routine:
-          /* Member function */
-          gen_routine_decl((a_routine_ptr)entity_ptr,
-                           (a_src_seq_secondary_decl_ptr)NULL);
-          break;
-        case iek_src_seq_secondary_decl:
-          /* A secondary declaration, i.e., a declaration of something that
-             is also defined/declared elsewhere. */
-          gen_secondary_decl((a_src_seq_secondary_decl_ptr)entity_ptr);
-          break;
-        case iek_source_sequence_entry:
-          /* A proxy for a file-scope entity.  This will only happen in
-             C++ mode. */
-          gen_file_scope_entity((a_source_sequence_entry_ptr)entity_ptr);
-          break;
-        default:
-          unexpected_condition_str("gen_class_definition: bad entity kind");
-      }  /* switch */
-    }  /* for */
-    /* Restore the previous value of class_scope_source_sequence_entry. */
-    class_scope_source_sequence_entry= saved_class_scope_source_sequence_entry;
-    if (scope == NULL) type_declaration_cannot_be_emitted_now--;
-    write_tok_str("}");
-  }  /* if */
-}  /* gen_class_definition */
 
 
 static void gen_tag_reference(a_type_ptr type)
@@ -1819,8 +1631,7 @@ is non-NULL, in which case that is the function scope.
           param_var = param_var->next;
         } else {
           /* This is just a declaration, so put out the type and no name. */
-          gen_declaration_using_type(param->type,
-                                     (a_source_correspondence *)NULL,
+          gen_declaration_using_type(param->type, NO_NAME,
                                      (a_src_seq_secondary_decl_ptr)NULL);
         }  /* if */
         param = param->next;
@@ -1960,6 +1771,275 @@ declaration.
 }  /* gen_declaration_using_type */
 
 
+static void gen_typedef_definition(a_type_ptr type)
+/*
+Output the definition of the indicated typedef.
+*/
+{
+  /* set_output_position has already been called for the type. */
+  type->definition_put_out = TRUE;
+  write_tok_str("typedef ");
+  gen_declaration_using_type(type->variant.typeref.type,
+                             &type->source_corresp,
+                             (a_src_seq_secondary_decl_ptr)NULL);
+}  /* gen_typedef_definition */
+
+
+static void gen_enum_definition(a_type_ptr type)
+/*
+Output the definition of the indicated enum type.
+*/
+{
+  a_constant_ptr enum_con;
+  a_constant     next_enum_value;
+
+  check_assertion_str(type->kind == (a_type_kind)tk_integer &&
+                      type->variant.integer.enum_type,
+                      "gen_enum_definition: not an enum type");
+  type->definition_put_out = TRUE;
+  set_output_position(&type->source_corresp.decl_position);
+  /* Generate "enum <name>". */
+  write_tok_str("enum ");
+  /* (Note that a name will be generated for an unnamed enum.  That's
+     necessary in C mode to allow the necessary casts of enumerator
+     constants, and it's not a bad thing in general.) */
+  gen_type_name(type);
+  enum_con = type->variant.integer.enum_info.constant_list;
+  if (enum_con != NULL) {
+    write_tok_str(" {");
+    /* Output the enumeration constants. */
+    /* Start with an expected value of 0 next. */
+    next_enum_value = *enum_con;
+    set_integer_value(&next_enum_value.variant.integer_value, 0L);
+    for (;;) {
+      set_output_position(&enum_con->source_corresp.decl_position);
+      /* Output the constant's name. */
+      gen_constant_name(enum_con);
+      /* Output the value if it's not the next value in sequence. */
+      if (cmp_integer_constants(enum_con, &next_enum_value) != 0) {
+        write_tok_str(" = ");
+        write_tok_str(str_for_integer_constant(enum_con));
+        next_enum_value = *enum_con;
+      }  /* if */
+      enum_con = enum_con->next;
+      /* Stop if at the end of the list of constants. */
+      if (enum_con == NULL) break;
+      /* Not the end of the list, so output a separator and keep looping. */
+      write_tok_str(", ");
+      incr_integer_value(&next_enum_value.variant.integer_value);
+    }  /* for */
+    write_tok_str("}");
+  }  /* if */
+}  /* gen_enum_definition */
+
+
+static void gen_field_decl(a_field_ptr field)
+/*
+Generate the declaration for a field (a nonstatic data member).
+*/
+{
+  set_output_position(&field->source_corresp.decl_position);
+  /* Generate the field type and name. */
+  gen_declaration_using_type(field->type,
+                             has_name(field) ? &field->source_corresp : NULL,
+                             (a_src_seq_secondary_decl_ptr)NULL);
+  if (field->is_bit_field) {
+    /* A bit field.  Put out the size. */
+    write_tok_str(":");
+    write_unsigned_num((unsigned long)field->bit_size);
+  }  /* if */
+  write_tok_str("; ");
+}  /* gen_field_decl */
+
+
+static void gen_class_definition(a_type_ptr type)
+/*
+Output the definition of the indicated class type.
+*/
+{
+  a_field_ptr                 field_list, field;
+  a_class_type_supplement_ptr ctsp;
+  a_scope_ptr                 scope;
+  a_source_sequence_entry_ptr ssep;
+
+  type->definition_put_out = TRUE;
+  set_output_position(&type->source_corresp.decl_position);
+  write_tok_str(tag_kind(type->kind));
+  write_space();
+  /* (Note that a name will be generated for an unnamed class.) */
+  gen_type_name(type);
+  /* See if this class is defined.  In C mode, there is no class type
+     supplement, so check for the presence of fields. */
+  field_list = type->variant.class_struct_union.field_list;
+  ctsp = type->variant.class_struct_union.extra_info;
+  scope = NULL;
+  if (ctsp != NULL) scope = ctsp->assoc_scope;
+  if (field_list != NULL || scope != NULL) {
+    /* Yes, the class is defined. */
+    /* Save class_scope_source_sequence_entry for later restoration. */
+    a_source_sequence_entry_ptr saved_class_scope_source_sequence_entry =
+                                             class_scope_source_sequence_entry;
+    write_tok_str(" { ");
+    if (scope != NULL) {
+      /* C++ -- the class has a scope. */
+      class_scope_source_sequence_entry = scope->source_sequence_list;
+      /* Skip non-significant source sequence entries. */
+      adv_to_signif_class_scope_source_sequence_entry();
+    } else {
+      /* C -- the class has no scope, so start with the source sequence entry
+         following the one for the class definition, thus simulating a list
+         for the class "scope." */
+      if (field_list != NULL) {
+        class_scope_source_sequence_entry =
+                              type->source_corresp.source_sequence_entry->next;
+        check_assertion_str(class_scope_source_sequence_entry != NULL,
+                          "gen_class_definition: missing field src seq entry");
+      } else {
+        /* No fields.  (Yes, this can happen in C if the only fields are
+           unnamed bit fields.) */
+        class_scope_source_sequence_entry = NULL;
+      }  /* if */
+      /* While we're inside the struct, types must be emitted when used,
+         not in freestanding declarations. */
+      type_declaration_cannot_be_emitted_now++;
+    }  /* if */
+    /* Go through the source sequence list and generate the members of the
+       class. */
+    for (;;) {
+      char *entity_ptr;
+      ssep = class_scope_source_sequence_entry;
+      if (ssep == NULL) break;
+      entity_ptr = ssep->entity.ptr;
+      /* Advance the source sequence list for the next iteration of the
+         loop. */
+      (void)next_class_scope_source_sequence_entry();
+      switch (ss_entry_kind(ssep)) {
+        case iek_constant:
+          /* Ignore all constants in C mode (e.g., enum constants). */
+          if (il_header.source_language == sl_C) break;
+          /* Ignore enum constants (they come out as part of the enum type). */
+          if (is_enum_constant((a_constant_ptr)entity_ptr)) break;
+          /* Other constants (C++ only) are member constants. */
+          unimplemented();
+          break;
+        case iek_field:
+          /* Generate the declaration for a field (nonstatic data member). */
+          field = (a_field_ptr)entity_ptr;
+          gen_field_decl(field);
+          break;
+        case iek_type:
+          /* Nested type. */
+          gen_type_decl((a_type_ptr)entity_ptr,
+                        (a_src_seq_secondary_decl_ptr)NULL);
+          break;
+        case iek_variable:
+          /* Static data member. */
+          gen_variable_decl((a_variable_ptr)entity_ptr,
+                            (a_src_seq_secondary_decl_ptr)NULL);
+          break;
+        case iek_routine:
+          /* Member function */
+          gen_routine_decl((a_routine_ptr)entity_ptr,
+                           (a_src_seq_secondary_decl_ptr)NULL);
+          break;
+        case iek_src_seq_secondary_decl:
+          /* A secondary declaration, i.e., a declaration of something that
+             is also defined/declared elsewhere. */
+          gen_secondary_decl((a_src_seq_secondary_decl_ptr)entity_ptr);
+          break;
+        case iek_source_sequence_entry:
+          /* A proxy for a file-scope entity.  This will only happen in
+             C++ mode. */
+          gen_file_scope_entity((a_source_sequence_entry_ptr)entity_ptr);
+          break;
+        default:
+          unexpected_condition_str("gen_class_definition: bad entity kind");
+      }  /* switch */
+    }  /* for */
+    /* Restore the previous value of class_scope_source_sequence_entry. */
+    class_scope_source_sequence_entry= saved_class_scope_source_sequence_entry;
+    if (scope == NULL) type_declaration_cannot_be_emitted_now--;
+    write_tok_str("}");
+  }  /* if */
+}  /* gen_class_definition */
+
+
+static void set_decl_position(a_source_correspondence      *scp,
+                              a_src_seq_secondary_decl_ptr sec_decl)
+/*
+Position the output file properly for the declaration position indicated
+in the given source correspondence, or in the secondary declaration
+entry if sec_decl is non-NULL.
+*/
+{
+  a_source_position *eff_pos;
+
+  if (sec_decl != NULL) {
+    /* This is a secondary declaration, so use the position in the secondary
+       declaration entry. */
+    eff_pos = &sec_decl->decl_position;
+  } else {
+    /* Normal case -- use the position in the source correspondence. */
+    eff_pos = &scp->decl_position;
+  }  /* if */
+  /* Adjust the output file to the right position. */
+  set_output_position(eff_pos);
+}  /* set_decl_position */
+
+
+static void gen_type_decl(a_type_ptr                   type,
+                          a_src_seq_secondary_decl_ptr sec_decl)
+/*
+Generate a declaration of the indicated type.  If sec_decl is non-NULL,
+a secondary declaration is wanted, and sec_decl points to an entry giving
+information about the secondary declaration.
+*/
+{
+  a_type_kind kind = type->kind;
+
+  if (type->definition_put_out) {
+    /* The definition has already been put out, so don't do it again.
+       This can happen in C mode when one struct is defined inside another. */
+  } else if (!has_name(type) || type_declaration_cannot_be_emitted_now) {
+    /* Treat this type declaration as embedded in another declaration, and
+       do not put the declaration out at this point, if (a) the type is
+       unnamed or (b) we are at a point where a type declaration cannot
+       be emitted (e.g., inside a struct in C mode).  Ordinarily, it's
+       okay to render
+         struct A { int i; } x;     as
+         struct A { int i; }; struct A x;
+       but that's not legal in the cases listed above. */
+    /* Do not process the declaration (yet).  Set a flag to cause it to be
+       emitted at the earliest opportunity if this source sequence entry is
+       a definition. */
+    if (sec_decl == NULL) type->definition_delayed = TRUE;
+  } else {
+    /* Position the output file to the declaration position. */
+    set_decl_position(&type->source_corresp, sec_decl);
+    if (sec_decl != NULL) {
+      /* For a secondary declaration, generate a reference to the type
+         instead of a definition. */
+      gen_type_reference(type);
+    } else if (kind == (a_type_kind)tk_typeref) {
+      /* A typedef definition. */
+      gen_typedef_definition(type);
+    } else if (kind == (a_type_kind)tk_integer) {
+      /* An enum type definition. */
+      gen_enum_definition(type);
+    } else {
+      check_assertion_str(kind == (a_type_kind)tk_class ||
+                          kind == (a_type_kind)tk_struct ||
+                          kind == (a_type_kind)tk_union,
+                          "gen_type_decl: bad type on list");
+      /* A class type definition. */
+      gen_class_definition(type);
+    }  /* if */
+    /* Finish the declaration. */
+    write_tok_str(";");
+  }  /* if */
+}  /* gen_type_decl */
+
+
 static void gen_field_reference(an_expr_node_ptr node)
 /*
 Generate the name of the field from the indicated node (an enk_field node).
@@ -2050,7 +2130,7 @@ Generate a cast to the indicated type.
 */
 {
   write_tok_str("(");
-  gen_type(type, (a_source_correspondence *)NULL);
+  gen_type(type, NO_NAME);
   write_tok_str(")");
 }  /* gen_cast */
 
@@ -3007,82 +3087,6 @@ done:;
 }  /* gen_statement */
 
 
-static void set_decl_position(a_source_correspondence      *scp,
-                              a_src_seq_secondary_decl_ptr sec_decl)
-/*
-Position the output file properly for the declaration position indicated
-in the given source correspondence, or in the secondary declaration
-entry if sec_decl is non-NULL.
-*/
-{
-  a_source_position *eff_pos;
-
-  if (sec_decl != NULL) {
-    /* This is a secondary declaration, so use the position in the secondary
-       declaration entry. */
-    eff_pos = &sec_decl->decl_position;
-  } else {
-    /* Normal case -- use the position in the source correspondence. */
-    eff_pos = &scp->decl_position;
-  }  /* if */
-  /* Adjust the output file to the right position. */
-  set_output_position(eff_pos);
-}  /* set_decl_position */
-
-
-static void gen_type_decl(a_type_ptr                   type,
-                          a_src_seq_secondary_decl_ptr sec_decl)
-/*
-Generate a declaration of the indicated type.  If sec_decl is non-NULL,
-a secondary declaration is wanted, and sec_decl points to an entry giving
-information about the secondary declaration.
-*/
-{
-  a_type_kind kind = type->kind;
-
-  if (type->definition_put_out) {
-    /* The definition has already been put out, so don't do it again.
-       This can happen in C mode when one struct is defined inside another. */
-  } else if (!has_name(type) || type_declaration_cannot_be_emitted_now) {
-    /* Treat this type declaration as embedded in another declaration, and
-       do not put the declaration out at this point, if (a) the type is
-       unnamed or (b) we are at a point where a type declaration cannot
-       be emitted (e.g., inside a struct in C mode).  Ordinarily, it's
-       okay to render
-         struct A { int i; } x;     as
-         struct A { int i; }; struct A x;
-       but that's not legal in the cases listed above. */
-    /* Do not process the declaration (yet).  Set a flag to cause it to be
-       emitted at the earliest opportunity if this source sequence entry is
-       a definition. */
-    if (sec_decl == NULL) type->definition_delayed = TRUE;
-  } else {
-    /* Position the output file to the declaration position. */
-    set_decl_position(&type->source_corresp, sec_decl);
-    if (sec_decl != NULL) {
-      /* For a secondary declaration, generate a reference to the type
-         instead of a definition. */
-      gen_type_reference(type);
-    } else if (kind == (a_type_kind)tk_typeref) {
-      /* A typedef definition. */
-      gen_typedef_definition(type);
-    } else if (kind == (a_type_kind)tk_integer) {
-      /* An enum type definition. */
-      gen_enum_definition(type);
-    } else {
-      check_assertion_str(kind == (a_type_kind)tk_class ||
-                          kind == (a_type_kind)tk_struct ||
-                          kind == (a_type_kind)tk_union,
-                          "gen_type_decl: bad type on list");
-      /* A class type definition. */
-      gen_class_definition(type);
-    }  /* if */
-    /* Finish the declaration. */
-    write_tok_str(";");
-  }  /* if */
-}  /* gen_type_decl */
-
-
 static void gen_dynamic_init(a_dynamic_init_ptr dip)
 /*
 Output the indicated dynamic initialization.
@@ -3558,6 +3562,7 @@ from the primary source file name in the IL information.
   if (optind != argc - 1) {
     command_line_error(ec_cl_back_end_requires_il_file);
   }  /* if */
+  /* Open the IL file. */
   f_il_input = fopen(argv[optind], "rb");
   if (f_il_input == NULL) {
     str_command_line_error(ec_cl_could_not_open_il_file, argv[optind]);
@@ -3569,7 +3574,7 @@ from the primary source file name in the IL information.
   cp_gen_be();
   (void)fclose(f_il_input);
   normal_termination();
-  /*NOTREACHED*/
+  return 0;  /* Not reached; here to make lint et al. happy. */
 }  /* main */
 
 #else /* !STANDALONE_CP_GEN_BE */
@@ -3601,8 +3606,8 @@ as the front end.
 
 #ifdef USING_QUANTIFY
 /*
-Quantify has a bug that causes an error when an empty object file is used.
-When using quantify, generate a dummy variable.
+Quantify has a bug that causes an error when an empty object file is used,
+so generate a dummy variable.
 */
 char quantify_dummy_in_cp_gen_be;
 #endif /* ifndef USING_QUANTIFY */
