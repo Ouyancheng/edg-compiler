@@ -2314,28 +2314,6 @@ added to the scope symbols list and is not linked into the symbol table.
   } else {
     /* When there is an ambiguity, we must check the paths as well as the
        type. */
-#if 0
-    /* Find the last step in the linked list of derivation step entries
-       pointed to by path. */
-    for (tail = path; tail->next != NULL; tail = tail->next) {}
-    if (progenitor_pdp != NULL) {
-      /* The progenitor symbol is a itself a projection symbol.  At this
-         point "path" represents the path from the current class
-         (represented by class_ptr) to the class of which progenitor_sym
-         is a member (by inheritance).  We need to temporarily extend "path"
-         to include the rest of the path on to the fundamental symbol. */
-      tail->next = progenitor_pdp->fundamental_base_class->derivation;
-    }  /* if */
-    for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->type == pdp->fundamental_symbol->class_of_which_a_member &&
-          equivalent_paths(path, bcp->derivation)) {
-        pdp->fundamental_base_class = bcp;
-        break;
-      }  /* if */
-    }  /* for */
-    /* Restore the path to what it was originally. */
-    tail->next = NULL;
-#endif /* if 0 */
     a_base_class_ptr  ref_bcp = path->base_class;
 
     if (ref_bcp->derived_class != class_ptr) {
@@ -4794,18 +4772,39 @@ qualified reference either to A::i or to C::i will pick up A::i).
          derived type. */
       bcp = corresponding_base_class(bcp, class_type, (a_base_class_ptr)NULL);
       if (dominated_bcp == NULL) {
-        /* dominated_bcp is a base class of the candidate dominated declaration
-           or a base class on its derivation. */
+        /* Do the same for the base class associated with the candidate for
+           dominated declaration.  dominated_bcp is the base class in which
+           sym2 was declared. */
         for (step = path_to_sym2; step->next != NULL; step = step->next);
         dominated_bcp = corresponding_base_class(step->base_class, class_type,
                                                  (a_base_class_ptr)NULL);
         if (sym2->kind == (a_symbol_kind)sk_projection) {
+          /* Follow out to the fundamental symbol if sym2 is a projection.
+             dominated_bcp will be the base class in which the fundamental
+             symbol for sym2 was declared. */
           a_base_class_ptr  temp_bcp = sym2->variant.projection.extra_info->
                                                        fundamental_base_class;
           dominated_bcp = corresponding_base_class(temp_bcp, class_type,
                                                    dominated_bcp);
         }  /* if */
       }  /* if */
+      /* If they are the same base class or if bcp is on any possible
+         derivation of dominated_bcp, return TRUE.  Here's an example:
+                       X
+                      /|\
+                     A B C
+                      \|/
+                       Y
+                      /|\
+                     D E F
+                      \|/
+                       Z
+          A declaration of D::i dominates declarations of X::i, A::i, B::i,
+          C::i, and Y::i, because (1) D is on one of the derivations of each
+          of X, A, B, C, and Y, and (2) there is another derivation of each.
+          The second may be assumed, since the search up the derivation graph
+          stops when a name match is found; if the path through D were the
+          only path to X, A, etc., X::i, A::i, etc., would not be found. */
       if (dominated_bcp == bcp ||
           is_on_any_derivation_of(bcp, dominated_bcp)) {
         dominated = TRUE;
@@ -4813,7 +4812,6 @@ qualified reference either to A::i or to C::i will pick up A::i).
       }  /* if */
     }  /* if */
   }  /* for */
-done:
   return dominated;
 }  /* check_for_dominance */       
 
