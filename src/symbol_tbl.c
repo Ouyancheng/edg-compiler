@@ -1918,8 +1918,9 @@ in the conversion header list; if there is none, a new one is created.
 {
   a_conversion_header_ptr  conv_hdr, prev_conv_hdr;
   a_symbol_header_ptr      sym_hdr;
-  char                     *default_name = "conversion";
-#define DEFAULT_NAME_LEN 13 /* Length of "conversion" */
+  char                     *type_name;
+  sizeof_t                 type_name_length;
+#define OPERATOR_LEN 9 /* Length of "operator " */
 
   if (is_error_type(type)) {
     set_to_error_locator(*locator);
@@ -1952,20 +1953,21 @@ in the conversion header list; if there is none, a new one is created.
       /* Set the type and symbol header. */
       conv_hdr->type = type;
       conv_hdr->symbol_header = sym_hdr = alloc_symbol_header();
-      /* All the conversion symbols are given the same name.  This is
-         because the name is not needed for anything but debug output. */
-      sym_hdr->identifier_length = DEFAULT_NAME_LEN;
-      sym_hdr->identifier = alloc_il((sizeof_t)DEFAULT_NAME_LEN + 1);
-      (void)strcpy(sym_hdr->identifier, default_name);
+      /* Conversion symbols have the name "operator <type-name>". */
+      type_name = format_type_string(type, &type_name_length);
+      sym_hdr->identifier_length = (sizeof_t)OPERATOR_LEN + type_name_length;
+      sym_hdr->identifier = alloc_il(sym_hdr->identifier_length + 1);
+      (void)memcpy(sym_hdr->identifier, "operator ", OPERATOR_LEN);
+      (void)strcpy((sym_hdr->identifier + OPERATOR_LEN), type_name);
 #if DEBUG
-      symbol_name_string_space += DEFAULT_NAME_LEN+1;
+      symbol_name_string_space += sym_hdr->identifier_length;
 #endif /* DEBUG */
     }  /* if */
     locator->symbol_header = conv_hdr->symbol_header;
   }  /* if */
   locator->is_conversion_name = TRUE;
   locator->variant.conversion_result_type = type;
-#undef DEFAULT_NAME_LEN
+#undef OPERATOR_LEN
 }  /* make_type_conversion_locator */
 
 
