@@ -440,7 +440,7 @@ past the number on return.
 { sizeof_t temp = 0;                                             \
   temp  = (sizeof_t)*(a_byte *)rtp++;                            \
   temp |= (sizeof_t)(*(a_byte *)rtp++) << CHAR_BIT;              \
-  temp |= (sizeof_t)(*(a_byte *)rtp++) << CHAR_BIT*2;            \
+  temp |= (sizeof_t)(*(a_byte *)rtp++) << (CHAR_BIT*2);          \
   num = temp;                                                         \
 }  /* get_macro_repl_text_number */
 
@@ -452,9 +452,9 @@ to the first byte of the number; it is advanced past the number on return.
 #define PN_BYTE_MASK ((1 << CHAR_BIT) - 1)
 #define put_macro_repl_text_number(num, rtp)                          \
 { sizeof_t temp = num;                                           \
-  *(a_byte *)rtp++ = (a_byte)(temp                 & PN_BYTE_MASK);   \
-  *(a_byte *)rtp++ = (a_byte)((temp >> CHAR_BIT)   & PN_BYTE_MASK);   \
-  *(a_byte *)rtp++ = (a_byte)((temp >> CHAR_BIT*2) & PN_BYTE_MASK);   \
+  *(a_byte *)rtp++ = (a_byte)(temp                   & PN_BYTE_MASK); \
+  *(a_byte *)rtp++ = (a_byte)((temp >> CHAR_BIT)     & PN_BYTE_MASK); \
+  *(a_byte *)rtp++ = (a_byte)((temp >> (CHAR_BIT*2)) & PN_BYTE_MASK); \
 }  /* put_macro_repl_text_number */
 
 

@@ -24,8 +24,6 @@ macro.c -- Macro definition and expansion routines.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
-#include "decls.h"
-#include "expr.h"
 #include "macro.h"
 #include "pch.h"
 #include "preproc.h"
@@ -113,6 +111,7 @@ shouldn't be initialized in its declaration).
 #define register_pointer_variable(ptr_var, ptr_registration)          \
 { ptr_registration.next = registered_pointers;                        \
   ptr_registration.ptr_variable = &(ptr_var);                         \
+  /*lint --e(789)*/                                                   \
   registered_pointers = &ptr_registration;                            \
   (ptr_var) = NULL;                                                   \
 }  /* register_pointer_variable */
@@ -326,7 +325,7 @@ Ensure that at least "needed" bytes of space remain in macro_buffer.
 If not, expand macro_buffer by reallocating it.
 */
 #define ensure_macro_buffer_space(needed)                             \
-{ sizeof_t temp_needed = needed;                                      \
+{ sizeof_t temp_needed = (needed);                                    \
   if (temp_needed > (sizeof_t)(after_end_of_macro_buffer -            \
                                next_avail_in_macro_buffer)) {         \
     expand_macro_buffer(temp_needed);                                 \
@@ -384,7 +383,7 @@ pos_in_aux_buffer in aux_buffer_for_pcc_macros.  If not, expand
 aux_buffer_for_pcc_macros by reallocating it.
 */
 #define ensure_aux_buffer_for_pcc_macros_space(needed, pos_in_aux_buffer) \
-{ sizeof_t temp_needed = needed;                                      \
+{ sizeof_t temp_needed = (needed);                                    \
   if (temp_needed > (sizeof_t)(after_end_of_aux_buffer_for_pcc_macros -    \
                                pos_in_aux_buffer)) {                       \
     expand_aux_buffer_for_pcc_macros(temp_needed, pos_in_aux_buffer); \
@@ -455,7 +454,7 @@ Ensure that at least "needed" bytes of space remain in the raw_text of
 the given macro argument entry.  If not, expand raw_text by reallocating it.
 */
 #define ensure_arg_raw_text_space(needed, map)                        \
-{ sizeof_t temp_needed = needed;                                      \
+{ sizeof_t temp_needed = (needed);                                    \
   if (temp_needed > (map->max_len - map->raw_len)) {                  \
     expand_arg_raw_text(temp_needed, map);                            \
   }  /* if */                                                         \
@@ -648,7 +647,9 @@ reallocated; that's why an extra level of indirection is used.
            it's not needed because a modification cannot be planted on the
            terminating LE_END_OF_INSERTION lexical escape. */
         if (ptr_in_range(old_line_loc, slmp->inserted_text,
-                         slmp->end_inserted_text)) break;
+                         slmp->end_inserted_text)) {
+          break;
+        }  /* if */
       }  /* for */
       parent_slmp = slmp->assoc_copy_modif;
 #if CHECKING
@@ -3530,7 +3531,7 @@ repl_text_length is not NULL.
     /* Put the length in the header. */
     put_macro_repl_text_number(repl_text_len, rtp);
     /* Copy the text itself. */
-    (void)memcpy(rtp, repl_text, size_t_arg(repl_text_len));
+    (void)memcpy(rtp, repl_text, size_t_arg(repl_text_len)); /*lint !e668*/
     rtp += repl_text_len;
   }  /* if */
   /* Put the terminator on the string. */
@@ -3624,7 +3625,7 @@ curr_date_time passed in by the caller.
   /* Make the date string. */
   date_of_translation[0] = date_of_translation[12] = '"';
   /* Copy "Mmm dd " into [1] .. [7]. */
-  (void)memcpy(&date_of_translation[1], &curr_date_time[4], 7);
+  (void)memcpy(date_of_translation+1, curr_date_time+4, 7);
   /* If the day-of-month has a leading zero, replace it with a space.
      ctime is allowed to return a leading zero, but __DATE__ is required
      to have a blank there.  Windows NT returns a leading zero from ctime. */
@@ -3632,12 +3633,12 @@ curr_date_time passed in by the caller.
     date_of_translation[5] = ' ';
   }  /* if */
   /* Copy "yyyy" into [8] .. [11]. */
-  (void)memcpy(&date_of_translation[8], &curr_date_time[20], 4);
+  (void)memcpy(date_of_translation+8, curr_date_time+20, 4);
   date_of_translation[13] = '\0';
   /* Make the time string. */
   time_of_translation[0] = time_of_translation[9] = '"';
   /* Copy "hh:mm:ss" into [1] .. [8]. */
-  (void)memcpy(&time_of_translation[1], &curr_date_time[11], 8);
+  (void)memcpy(time_of_translation+1, curr_date_time+11, 8);
   time_of_translation[10] = '\0';
   if (!using_a_pch_file) {
     /* Create the symbols. */
