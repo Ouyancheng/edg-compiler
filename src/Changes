@@ -1,5 +1,12 @@
 Version 2.27
 
+10/19/94 Error recovery bug in declarator scanning
+
+An internal error has been fixed in continuing from errors on array-of-
+ref-type declarations.  Here's an example:
+
+  typedef int (&T[4]);              // Internal error is now fixed
+
 10/18/94 Default args associated with non-function member declarations
 
 A null-pointer bug has been fixed in the delayed scanning of default
