@@ -1136,6 +1136,7 @@ and return a pointer to it.
     case sk_member_function:
       tssp->variant.function.instantiations = NULL;
       tssp->variant.function.routine = NULL;
+      clear_func_info(&tssp->variant.function.func_info);
       break;
     case sk_static_data_member:
       tssp->variant.static_data_member.definitions = NULL;
@@ -6723,6 +6724,7 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->specific_decl                     = FALSE;
   tip->specific_def                      = FALSE;
   tip->explicit_instantiation            = FALSE;
+  tip->already_instantiated              = FALSE;
   tip->explicit_instantiation_pos.seq    = 0;
   tip->explicit_instantiation_pos.column = 0;
   db_exit();
@@ -6764,12 +6766,27 @@ instantiation is required.  If the flag is set to FALSE the entry is simply
 updated but not removed from the list.
 */
 {
-  /* Nothing needs to be done if the flag already has the new value. */
-  if (tip->instantiation_required != value) {
-    tip->instantiation_required = value;
-    if (value) {
-      add_to_instantiations_required_list(tip);
+  a_symbol_ptr   sym;
+
+  if (value) {
+    if (!tip->already_instantiated) {
+      sym = tip->instance_sym;
+      if (is_function_symbol(sym) && sym->defined &&
+          sym->variant.routine.ptr->is_inline) {
+        /* Inline (member or nonmember) functions are instantiated at the
+           point of first use, in case the back end requires the function
+           body immediately to perform inlining. */
+        instantiate_template_function(tip);
+        tip->already_instantiated = TRUE;
+        tip->instantiation_required = FALSE;
+      } else if (!tip->instantiation_required) {
+        /* It's not yet on the list. */
+        tip->instantiation_required = TRUE;
+        add_to_instantiations_required_list(tip);
+      }  /* if */
     }  /* if */
+  } else {
+    tip->instantiation_required = FALSE;
   }  /* if */
 }  /* update_instantiation_required_flag */
 
