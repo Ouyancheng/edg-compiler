@@ -4759,6 +4759,72 @@ type in a function definition is based on a typedef).
 }  /* copy_routine_type_with_param_types */
 
 
+a_boolean is_default_constructor(a_routine_ptr  ctor_rout)
+/*
+ctor_rout points to a routine entry for a constructor.   Return TRUE if it
+points to a default constructor routine entry.
+*/
+{
+  a_param_type_ptr  ptp;
+
+  check_assertion(ctor_rout->special_kind ==
+                                  (a_special_function_kind)sfk_constructor);
+  ptp = ctor_rout->type->variant.routine.extra_info->param_type_list;
+  /* There are no parameters or if the first (and therefore its successors,
+     if any) has a default argument expression, then this is a default
+     constructor. */
+  return (ptp == NULL || ptp->has_default_arg);
+}  /* is_default_constructor */
+
+
+a_boolean is_copy_constructor(a_routine_ptr  ctor_rout,
+                              a_type_ptr     class_of_which_a_member,
+                              a_boolean      *const_object_okay,
+                              a_boolean      *volatile_object_okay)
+/*
+Return TRUE if ctor_rout points to a copy constructor routine entry for
+class_of_which_a_member; if it does, also set and return *const_object_okay
+and/or *volatile_object_okay, depending on whether the type of the copy
+constructor's first parameter is const or volatile qualified (or both).
+*/
+{
+  a_param_type_ptr  ptp;
+  a_type_ptr        tp;
+  a_boolean         is_cctor = FALSE;
+
+  check_assertion(ctor_rout->special_kind ==
+                                  (a_special_function_kind)sfk_constructor);
+  *const_object_okay = FALSE;
+  *volatile_object_okay = FALSE;
+  /* A constructor is deemed a copy constructor if (1) the type of the first
+     parameter is reference-to-class or reference-to-const-class where
+     "class" is the class of which it is a member function, and (2) where
+     the function can be called with only one argument. */
+  ptp = ctor_rout->type->variant.routine.extra_info->param_type_list;
+  /* If the param type entry is non-NULL there is at least one argument.  If
+     there is a second argument and it has a default expression, the function
+     call need not explicitly mention the second argument. */
+  if (ptp != NULL && is_reference_type(ptp->type) &&
+      (ptp->next == NULL || ptp->next->has_default_arg)) {
+    tp = type_pointed_to(ptp->type);
+    if (skip_typerefs(tp) == class_of_which_a_member) {
+      /* It is a copy constructor. */
+      is_cctor = TRUE;
+      /* See if the object being copied is const qualified. */
+      if (tp->kind == (a_type_kind)tk_typeref) {
+        if (f_is_const_qualified_type(tp, /*top_level=*/TRUE)) {
+          *const_object_okay = TRUE;
+        }  /* if */
+        if (f_is_volatile_qualified_type(tp, /*top_level=*/TRUE)) {
+          *volatile_object_okay = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_cctor;
+}  /* is_copy_constructor */
+
+
 void set_dynamic_init_kind(a_dynamic_init_ptr  dip,
                            a_dynamic_init_kind kind)
 /*

@@ -203,6 +203,13 @@ extern void copy_type(a_type_ptr from,
 extern void copy_routine_type_with_param_types(a_type_ptr from_type,
                                                a_type_ptr to_type);
 
+extern a_boolean is_default_constructor(a_routine_ptr  ctor_rout);
+
+extern a_boolean is_copy_constructor(a_routine_ptr  ctor_rout,
+                                     a_type_ptr     class_of_which_a_member,
+                                     a_boolean      *const_object_okay,
+                                     a_boolean      *volatile_object_okay);
+
 extern void switch_il_region(a_memory_region_number region_number);
 
 extern void switch_to_file_scope_region(
