@@ -2030,8 +2030,8 @@ Set module_id to the string.
   a_variable_ptr	variable;
   a_routine_ptr		routine;
   char			*external_name = NULL;
-  char			*compilation_time = NULL;
-  char			*curr_dir = NULL;
+  char			*str1;
+  char			*str2;
 
   /* Only generate the module ID the first time that this routine is called
      for a given primary source file. */
@@ -2074,31 +2074,48 @@ Set module_id to the string.
       /* In the very unlikely event that the file does not define any
          externally visible variables or routines, use the time of
          compilation and current directory name. */
-      external_name = "";
-      compilation_time = il_header.time_of_compilation;
-      curr_dir = current_directory_name;
+      str1 = il_header.time_of_compilation;
+      str2 = current_directory_name;
     } else {
-      compilation_time = "";
-      curr_dir = "";
+      str1 = external_name;
+      str2 = NULL;
     }  /* if */
-    /* The identifier is made of the primary source file name plus the
-       name of an externally defined variable or routine (or the
-       current date, time and current directory if no such externally
-       visible name exists), with non-identifier characters changed to
-       underscores. */
-    module_id = alloc_general(file_name_len + 1 +
-                              strlen(external_name) + 1 +
-                              strlen(compilation_time) + 1 +
-                              strlen(curr_dir) + 1);
-    (void)strcpy(module_id, file_name);
-    (void)strcat(module_id, "_");
-    (void)strcat(module_id, external_name);
-    (void)strcat(module_id, "_");
-    (void)strcat(module_id, compilation_time);
-    (void)strcat(module_id, "_");
-    (void)strcat(module_id, curr_dir);
-    /* Change non-identifier characters to "_". */
-    change_non_id_characters(module_id);
+    { /* The identifier is made of the primary source file name plus
+         either the name of an externally defined variable or routine,
+         or (if no such entity is available) the current directory and
+         time and date.  If the entity name or time/date/directory is
+         longer than 8 characters, a CRC of the string is used in place
+         of the string.  Non-identifier characters are replaced with
+         underscores. */
+      char	crc_buf[9];
+      int	len1;
+      int	len2;
+      len1 = strlen(str1);
+      len2 = str2 == NULL ? 0 : strlen(str2);
+      if ((len1 + len2 + (len2 != 0)) > 8) {
+        /* The string (not including the file name) is longer than 8
+           characters.  Use a CRC of the string instead. */
+        unsigned long	crc;
+	crc = crc_32(str1, (unsigned long)0);
+	if (len2 != 0) crc = crc_32(str2, crc);
+        sprintf(crc_buf, "%08lx", crc);
+        str1 = crc_buf;
+        len1 = 8;
+        str2 = NULL;
+        len2 = 0;
+      }  /* if */
+      module_id = alloc_general(file_name_len + 1 +
+                                len1 + len2 + (len2 != 0) + 1);
+      (void)strcpy(module_id, file_name);
+      (void)strcat(module_id, "_");
+      (void)strcat(module_id, str1);
+      if (str2 != NULL) {
+        (void)strcat(module_id, "_");
+        (void)strcat(module_id, str2);
+      }  /* if */
+      /* Change non-identifier characters to "_". */
+      change_non_id_characters(module_id);
+    }
   }  /* if */
   return module_id;
 }  /* make_module_id */

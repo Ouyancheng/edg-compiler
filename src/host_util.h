@@ -14,18 +14,23 @@ host_util.h -- host environment utility routines that are shared by
 
 */
 
-#if ONE_INSTANTIATION_PER_OBJECT
-
-unsigned long crc_32(char *str)
+unsigned long crc_32(char		*str,
+		     unsigned long	prev_crc)
 /*
 Determines and returns the CRC-32 value for a null-terminated string.
 This is the CRC used by ZMODEM and PKZIP.  There are plenty of more
 efficient ways of computing CRC; this straightforward approach is used
 only because in this context the CRC is needed just a small number of times.
+prev_crc is a previously computed value.  This permits a CRC
+to be computed by several calls to this routine.  If there is no previous
+value, a zero should be passed in.
 */
 {
-  unsigned long crc = 0xffffffff;
+  unsigned long crc;
 
+  /* Start with an initial value of 0xfffffff, or undo the exclusive
+     or done when the previous value was returned. */
+  crc = prev_crc ^ 0xffffffff;
   while (*str != '\0') {
     unsigned long ch = (unsigned long)*str++;
     int nbit;
@@ -40,6 +45,7 @@ only because in this context the CRC is needed just a small number of times.
   return crc;
 }  /* crc_32 */
 
+#if ONE_INSTANTIATION_PER_OBJECT
 
 char *generate_instantiation_output_file_name(char *mangled_name)
 /*
@@ -63,7 +69,8 @@ called again.
   check_assertion(max_len_without_suffix > 0);
   (void)strncpy(buffer, mangled_name, max_len_without_suffix);
   buffer[max_len_without_suffix] = '\0';
-  (void)sprintf(buffer+strlen(buffer), "_%08lx", crc_32(mangled_name));
+  (void)sprintf(buffer+strlen(buffer), "_%08lx",
+                crc_32(mangled_name, (unsigned long)0));
 #undef MAX_INSTANTIATION_OUTPUT_FILE_LEN
   return buffer;
 }  /* generate_instantiation_output_file_name */
