@@ -1117,8 +1117,9 @@ the file scope.  If it is a local class or non-real, return NO_SCOPE_DEPTH.
   a_type_ptr                     orig_class_type = class_type;
 #endif /* EXPENSIVE_CHECKING */
 
+  cssp = symbol_supplement_for_class(class_type);
   if (!class_type->source_corresp.is_local_to_function &&
-      !(cssp = symbol_supplement_for_class(class_type))->is_nonreal_class) {
+      !class_type->variant.class_struct_union.is_nonreal_class) {
     if (class_type->variant.class_struct_union.is_template_class &&
         !class_type->variant.class_struct_union.is_specialized) {
       /* The class is a template instantiation.  That means its scope is
