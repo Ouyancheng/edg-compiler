@@ -2262,20 +2262,39 @@ algorithm.
 
   db_enter(4, "fixup_embedded_virtual_base_classes");
   if (base_class->type->variant.class_struct_union.any_virtual_base_classes) {
+    /* base_class has one or more virtual base classes of its own. */
     for (bcp = base_classes_of(base_class->type);
          bcp != NULL;
          bcp = bcp->next) {
-      if (bcp->is_virtual
-#if 0
-/* Removing this test fixes a bug.  But are other problems introduced by taking
-   it out??  RMA -- 11/24/92. */
-                          && bcp->data_section_base_class == NULL
-#endif /* if 0 */
-                                                                  ) {
+      if (bcp->is_virtual) {
+        /* bcp is one of the virtual base class of base_class.  Find the
+           base class entry that corresponds to it in the base classes list
+           for class_type. */
         embedded_base_class = corresponding_base_class(bcp, (a_type_ptr)NULL,
                                                        class_type);
-        if (embedded_base_class->data_section_base_class == NULL) {
-          embedded_base_class->data_section_base_class = base_class;
+        if (embedded_base_class->data_section_base_class != NULL) {
+          /* The data section for this virtual base class has already been
+             assigned a location. */
+        } else {
+          /* Proceed to specify how it should be embedded. */
+          if (bcp->data_section_base_class == NULL) {
+            /* In the context of base_class, it was not embedded (for instance,
+               it may have been a direct virtual base class or a virtual
+               base class that was inherited through a direct base class
+               represented as an "incomplete subobject").  Therefore it will
+               be embedded in the data section reserved for base_class in
+               the layout of class_type. */
+            embedded_base_class->data_section_base_class = base_class;
+          } else {
+            /* In the context of base class it was embedded (for instance,
+               it may have been inherited through another virtual base class
+               or through a "complete subobject" base class).  Use the same
+               location in the layout of class_type. */
+            embedded_base_class->data_section_base_class =
+                  corresponding_base_class(bcp->data_section_base_class,
+                                           (a_type_ptr)NULL, class_type);
+          }  /* if */
+          /* Apply the algorithm recursively. */
           fixup_embedded_virtual_base_classes(embedded_base_class, class_type);
         }  /* if */
       }  /* for */
