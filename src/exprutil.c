@@ -4642,6 +4642,12 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
          implicit casts there are from base to derived. */
       arg_summary->downward_cast_derivation = bcp->derivation;
       arg_summary->reversed_derivation = TRUE;
+    } else if (cfront_compatibility_mode && param_is_reference) {
+      /* cfront 2.1 has a bug: when a reference parameter is initialized
+         with something that requires a standard conversion that isn't
+         class-related, the cost is considered to be a user-defined
+         conversion. */
+      arg_summary->match_level = aml_user_conversion;
     }  /* if */
     goto have_level;
   }  /* if */
