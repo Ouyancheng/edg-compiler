@@ -468,7 +468,7 @@ extern void debug_exit(void);
 /* If debugging code is not included: */
 #define db_enter(reporting_level, function_name) /* empty */
 #define db_exit()                                /* empty */
-#define db_flag_is_set(name) 			 /* empty */
+#define db_flag_is_set(name) FALSE
 
 #endif /* DEBUG */
 
