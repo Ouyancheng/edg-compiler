@@ -61,6 +61,12 @@ extern char *get_mangled_function_name(a_routine_ptr routine);
 extern char *get_mangled_static_data_member_name(a_variable_ptr variable);
 #endif /* TEMPLATE_LOOKUP_NEEDED */
 
+extern a_boolean function_name_mangling_needed(
+                                       a_routine_ptr routine,
+                                       a_boolean     *suppress_param_encoding);
+
+extern a_boolean variable_name_mangling_needed(a_variable_ptr variable);
+
 extern char *mangled_vtbl_name(a_type_ptr       class_type,
                                a_base_class_ptr bcp,
                                a_base_class_ptr ctor_bcp);

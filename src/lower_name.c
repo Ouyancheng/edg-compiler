@@ -2544,8 +2544,7 @@ types; just put out the base encoded name.
 }  /* mangled_function_name */
 
 
-static a_boolean function_name_mangling_needed(
-                                        a_routine_ptr routine,
+a_boolean function_name_mangling_needed(a_routine_ptr routine,
                                         a_boolean     *suppress_param_encoding)
 /*
 Return TRUE if the name of the indicated routine needs to be mangled.
@@ -2561,10 +2560,20 @@ mangled without parameter encoding.
      they exist in a scope that does not exist in the C version of the
      program (of course, none of them have C external linkage, so no
      separate test is needed). */
-  if (routine == il_header.main_routine) {
+  if (!has_name(routine)) {
+    /* Unnamed routines generally do not need mangled names. */
+    /* Compiler-generated routines have no name, and they are left alone.
+       But constructors for unnamed classes that got a name for linkage
+       purposes should get mangled names. */
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor &&
+        has_name(routine->source_corresp.parent.class_type)) {
+      mangling_needed = TRUE;
+    }  /* if */
+  } else if (routine == il_header.main_routine) {
     /* Don't mangle "main" regardless of its linkage. */
   } else if (is_name_linkage_kind_subject_to_name_mangling(
                                        routine->source_corresp.name_linkage)) {
+    /* Routines other than extern "C" routines need to be mangled. */
     mangling_needed = TRUE;
   } else if (routine->special_kind != (a_special_function_kind)sfk_none) {
     /* Operator function names must be somewhat mangled even if they are
@@ -2889,21 +2898,37 @@ Mangle the name of the indicated function, if necessary.
   a_mangling_control_block mctl;
 
   error_position = routine->source_corresp.decl_position;
-  /* Compiler-generated routines have no name, and they are left alone.
-     But constructors for unnamed classes that got a name for
-     linkage purposes should get mangled names. */
-  if ((routine->source_corresp.name != NULL ||
-       (routine->special_kind == (a_special_function_kind)sfk_constructor &&
-        has_name(routine->source_corresp.parent.class_type))) &&
-      !routine->source_corresp.name_has_been_mangled) {
-    if (function_name_mangling_needed(routine, &suppress_param_encoding)) {
-      /* Mangle the function name. */
-      start_mangling(&mctl);
-      mangled_function_name(routine, suppress_param_encoding, &mctl);
-      (void)end_mangling(&routine->source_corresp, /*final=*/TRUE, &mctl);
-    }  /* if */
+  if (!routine->source_corresp.name_has_been_mangled &&
+      function_name_mangling_needed(routine, &suppress_param_encoding)) {
+    /* Mangle the function name. */
+    start_mangling(&mctl);
+    mangled_function_name(routine, suppress_param_encoding, &mctl);
+    (void)end_mangling(&routine->source_corresp, /*final=*/TRUE, &mctl);
   }  /* if */
 }  /* mangle_function_name */
+
+
+a_boolean variable_name_mangling_needed(a_variable_ptr variable)
+/*
+Return TRUE if the name of the indicated variable needs to be mangled.
+*/
+{
+  a_boolean mangling_needed = FALSE;
+
+  if (!has_name(variable)) {
+    /* Unnamed variables do not need mangled names. */
+  } else if (variable->source_corresp.is_class_member ||
+             variable->source_corresp.parent.namespace_ptr != NULL) {
+    /* Static data members and members of namespaces need mangled names. */
+    mangling_needed = TRUE;
+    /* But do not mangle namespace members with extern "C" linkage. */
+    if (!is_name_linkage_kind_subject_to_name_mangling(
+                                      variable->source_corresp.name_linkage)) {
+      mangling_needed = FALSE;
+    }  /* if */
+  }  /* if */
+  return mangling_needed;
+}  /* variable_name_mangling_needed */
 
 
 static void mangle_member_variable_name(a_variable_ptr variable)
@@ -2916,9 +2941,7 @@ variable.
 
   error_position = variable->source_corresp.decl_position;
   if (!variable->source_corresp.name_has_been_mangled &&
-      /* Do not mangle namespace members with extern "C" linkage. */
-      is_name_linkage_kind_subject_to_name_mangling(
-                                      variable->source_corresp.name_linkage)) {
+      variable_name_mangling_needed(variable)) {
     start_mangling(&mctl);
     mangled_member_variable_name(variable, &mctl);
     (void)end_mangling(&variable->source_corresp, /*final=*/TRUE, &mctl);

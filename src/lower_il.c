@@ -12703,10 +12703,23 @@ files can reference it.
   char     buffer[50];
 
   name = scp->name;
-  check_assertion(scp->name_has_been_mangled || name == NULL ||
-                  (is_variable &&
-                   !scp->is_class_member &&
-                   scp->parent.namespace_ptr == NULL));
+#if CHECKING
+  /* If the name needs to be mangled, the mangling should have been done
+     already. */
+  { a_boolean dummy;
+    if (scp->name_has_been_mangled) {
+      /* Okay, mangling already done. */
+    } else if (is_variable ?
+                           variable_name_mangling_needed((a_variable_ptr)scp) :
+                           function_name_mangling_needed((a_routine_ptr)scp,
+                                                         &dummy)) {
+#if DEBUG
+      db_entity_info((char *)scp, is_variable ? iek_variable : iek_routine);
+#endif /* DEBUG */
+      internal_error("externalize_source_correspondence: name not mangled");
+    }  /* if */
+  }
+#endif /* CHECKING */
   /* The generated name has the form
        __STV__name__module_id  (variable)
        __STF__name__module_id  (function)
