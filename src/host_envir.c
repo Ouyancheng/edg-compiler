@@ -2189,7 +2189,11 @@ definition whose name can be used as part of the module ID.
           continue;
         }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-        name = get_mangled_function_name(routine);
+        if (C_mode()) {
+          name = routine->source_corresp.name;
+        } else {
+          name = get_mangled_function_name(routine);
+        }  /* if */
         check_assertion(name != NULL);
         break;
       }  /* if */
