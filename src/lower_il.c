@@ -2760,12 +2760,6 @@ the constant.
         /* Make the constant the initial value of the variable. */
         assoc_var->init_kind = (an_init_kind)initk_static;
         assoc_var->initializer.constant = constant;
-        /* Make sure the variable gets lowered so that the constant will
-           be lowered too.  This is necessary when the recording of orphan
-           entries is turned off in lower_os_constant because we're
-           maintaining "needed" flags and we don't want to record orphans
-           from functions that will be deleted. */
-        if (!lowering_file_scope) mark_as_not_visited(assoc_var);
       } else {
         /* The constant is in the function scope, so use a function-local
            static variable. */
@@ -2882,14 +2876,7 @@ constants in other scopes.
        can never be an orphan, so member constants are not recorded as
        orphans. */
     if (!constant->source_corresp.is_class_member) {
-#if IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
-      /* When an IL file is being written, the IL walk when writing will
-         mark all the orphans properly.  We don't want to mark them now if
-         we're going to discard the function scope memory region because
-         it turns out not to be needed. */
-#else /* !(IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT) */
       add_orphaned_file_scope_il_entry((char *)constant, iek_constant);
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
     }  /* if */
   } else {
     lower_constant(constant);
