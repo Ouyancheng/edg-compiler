@@ -1614,6 +1614,9 @@ typedef struct a_routine {
 			   definition).  This flag is intended as a hint to
 			   the compiler and does not mean that inlining is
 			   required. */
+  unsigned int	compiler_generated:1;
+			/* TRUE for functions that are created by the
+			   compiler, e.g., default constructors in C++. */
   a_class_list_entry_ptr
                 befriending_classes;
                         /* A linked list of entries identifying classes that

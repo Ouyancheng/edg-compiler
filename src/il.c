@@ -3084,6 +3084,7 @@ to it.
   rp->is_virtual              = FALSE;
   rp->pure_virtual            = FALSE;
   rp->is_inline               = FALSE;
+  rp->compiler_generated      = FALSE;
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;
 #ifdef FIL
