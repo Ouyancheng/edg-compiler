@@ -1,5 +1,17 @@
 Version 3.6
 
+2/15/05  Pseudo-destructor call with cv-qualified array type
+
+A spurious error was issued on a pseudo-destructor call in which the
+object pointer was a cv-qualified array type and the type used as the
+destructor name was the cv-unqualified version of the array type.  Now
+fixed.
+
+  typedef int A[2];
+  void f(A const volatile *p) {
+    p->A::~A();
+  }
+
 2/14/05  Searching for preinclude files
 
 When searching for a preinclude file, the front end would start the

@@ -12481,7 +12481,7 @@ selection operator, in which case it points to the type of the left operand.
            destructor type that has been found matches the type of the
            left operand. */
         check_assertion(dtor_type != NULL);
-        if (!identical_types(field_sel_type,
+        if (!identical_types(make_unqualified_type(field_sel_type),
                              f_skip_typerefs(dtor_type))) { /*lint !e666*/
           if (!in_if_exists) {
             pos_ty_error(ec_invalid_destructor_name, &tilde_position,
