@@ -11582,7 +11582,10 @@ to be acceptable, and *conversion describes it.
          the lvalue-ness of some operands is not knowable. */
       if (is_an_lvalue(source_operand)) {
         take_address_of_lvalue(source_operand);
-      } else if (is_a_function_designator(source_operand)) {
+      } else if (is_a_function_designator(source_operand) &&
+                 /* Avoid member functions; you can't bind references to
+                    them. */
+                 !is_sym_for_member_operand(source_operand)) {
         conv_function_designator_to_ptr_to_function(source_operand,
                                                     /*allow_ctor=*/FALSE);
       } else {
