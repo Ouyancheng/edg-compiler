@@ -7241,6 +7241,16 @@ NULL.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "decl_typedef");
+#if GNU_EXTENSIONS_ALLOWED
+  if (attributes != NULL) {
+    /* Some attributes must be apply early on because they affect type
+       compatibility in case of a redeclaration.  We cannot modify the
+       given list of attributes because it may need to be applied to
+       other (typedef) declarators: Make a copy. */
+    attributes = copy_attribute_list(attributes);
+    type_ptr = apply_type_transforming_attributes(type_ptr, &attributes);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   sym = curr_scope_id_lookup(locator, IDL_PROJ_SYMBOL_ALLOWED);
   loc_sym = locator->specific_symbol;
   if (loc_sym != NULL && loc_sym->kind == (a_symbol_kind)sk_projection) {
@@ -7504,12 +7514,12 @@ NULL.
     nsp = NULL;
     if (!C_mode()) {
       if (class_type != NULL) {
-  #if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (class_type->variant.class_struct_union.is_interface) {
           pos_error(ec_interface_cannot_have_typedef,
                     &locator->source_position);
         }  /* if */
-  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         set_class_membership(sym, &tp->source_corresp, class_type);
         tp->source_corresp.access = ssep->current_access;
       } else {
@@ -7520,7 +7530,7 @@ NULL.
     }  /* if */
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                               &locator->source_position, declarator_ssep);
-  #if IA64_ABI && NEED_NAME_MANGLING
+#if IA64_ABI && NEED_NAME_MANGLING
     if (tp->source_corresp.is_local_to_function &&
         !tp->source_corresp.is_class_member) {
       /* Local typedefs may need to be mangled.  If two (or more) such
@@ -7529,16 +7539,16 @@ NULL.
          dictated by our use of a C-generating back end). */
       compute_name_collision_discriminator(sym);
     }  /* if */
-  #endif /* IA64_ABI && NEED_NAME_MANGLING */
-  #if BACK_END_IS_CP_GEN_BE
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
+#if BACK_END_IS_CP_GEN_BE
     /* Set the "name linkage environment" for this type.  This is used by the
        C++-generating back end to decide when to emit extern "C". */
     tp->variant.typeref.surrounding_name_linkage_state =
                           scope_stack[depth_scope_stack].default_name_linkage;
-  #endif /* BACK_END_IS_CP_GEN_BE */
-  #if EXTRA_SOURCE_POSITIONS_IN_IL
+#endif /* BACK_END_IS_CP_GEN_BE */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
     update_decl_pos_info(&tp->source_corresp, decl_pos_block);
-  #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     add_to_types_list(tp, decl_scope_level);
     /* Issue a diagnostic if size_t is declared in a way inconsistent with
        the target configuration. */
@@ -7576,6 +7586,9 @@ NULL.
     if (attributes != NULL) {
       /* Applying attributes could change the underlying type. */
       apply_attributes_to_typedef(attributes, tp, linkage_name);
+      /* The list of attributes was duplicated earlier: We're responsible
+         for freeing it. */
+      free_attribute_list(attributes);
     }  /* if */
     if (!tp->source_corresp.is_deprecated) {
       /* Check if a deprecated type was involved in this declaration. */

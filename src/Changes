@@ -1,5 +1,19 @@
 Version 3.3
 
+7/29/03  GNU mode: Typedef redeclarations and the mode attribute
+
+In GNU modes the front end used to apply all attributes on a typedef after
+checking for type compatibility.  This caused the following to trigger an
+error:
+
+  typedef short S;
+  typedef int S __attribute__((mode(__HI__)));
+    // Previously an error; now accepted (with a warning in GNU C mode).
+
+Now the mode attributes are applied before checking for redeclaration
+compatibility and the example above is accepted.  Furthermore, the mode
+__QI__ has been changed to produce type "signed char" instead of plain "char".
+
 7/28/03  GNU mode: New built-in functions used by GNU headers
 
 In GNU C and C++ modes, the front end now recognizes the built-in functions

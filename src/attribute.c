@@ -1862,6 +1862,43 @@ The given type should not be a class or enum type.
 }  /* copy_type_and_apply_attributes */
 
 
+a_type_ptr apply_type_transforming_attributes(a_type_ptr        tp,
+                                              an_attribute_ptr  *ap)
+/*
+If the given attribute list contains attributes that transform type tp to
+the point of making it incompatible (wrt. redeclarations) with the original
+type, return a type with those attributes applied and remove those attributes
+from the list.  Currently, only the mode attribute is applied by this routine.
+*/
+{
+  a_type_ptr        result;
+  an_attribute_ptr  to_apply = NULL, *tail = &to_apply;
+
+  if (!is_class_struct_union_type(tp) && !is_enum_type(tp)) {
+    /* Class and enum types cannot have the mode attribute applied to them,
+       and could cause problems later on. */
+    while (*ap != NULL) {
+      if ((*ap)->kind == (an_attribute_kind)ak_mode) {
+        *tail = *ap;
+        *ap = (*ap)->next;
+        (*tail)->next = NULL;
+        tail = &(*tail)->next;
+      } else {
+        ap = &(*ap)->next;
+      }  /* if */
+    }  /* while */
+  }  /* if */
+  if (to_apply != NULL) {
+    result = copy_type_and_apply_attributes(to_apply, tp,
+                                            /*is_typedef=*/FALSE);
+    free_attribute_list(to_apply);
+  } else {
+    result = tp;
+  }  /* if */
+  return result;
+}  /* apply_type_transforming_attributes */
+
+
 void apply_attributes_to_typedef(an_attribute_ptr  attributes,
                                  a_type_ptr        tp,
                                  a_boolean         linkage_name)
