@@ -1,11 +1,22 @@
 Version 2.29
 
+4/13/95  Off-by-one bug in using targ_max_class_object_size
+
+When N was defined to the value of targ_max_class_object_size, the
+following was not accepted (but now it is):
+
+  struct S { char x[N]; }
+
+In a related change, the upper limit for targ_max_class_object_size, when
+it is computed based on TARG_DELTA_INT_KIND (see target_init in fe_init.c),
+will no longer be used to increase the configured value, only to reduce it.
+
 4/13/95  IL CHANGE: superseded_external flag in a_variable and a_routine
 
 Because we now issue warnings instead of errors in SVR4 C compatibility
 mode for certain type-incompatible "block extern" declarations, we have
 added a new superseded_external flag for the extra variable and routine
-entries.  Here's an example:
+entries that result.  Here's an example:
 
   void f() { extern float x; }
   void g() { extern int x; }       // SVR4-mode warning on incompatible
