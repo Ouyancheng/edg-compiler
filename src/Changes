@@ -1,5 +1,23 @@
 Version 3.5
 
+10/5/04   Microsoft compatibility: tweak on reference binding and lvalues
+
+A further tweak on the Microsoft-mode rules for binding references
+to non-const to rvalues and different microsoft_version values.
+It appears a deduced reference to non-const is allowed to bind to "this"
+in all MSVC++ versions through 7.1 even though "this" is an rvalue.
+Formerly, this was based on whether the argument is constant for
+MSVC++ 7.0 and beyond.
+
+  template<class T> void g(T&);
+  struct X {
+    void f() {
+      X *p;
+      g(p+0);    // Error, MSVC++ 6.0, 7.0, and 7.1
+      g(this);   // Accepted by MSVC++ 6.0, 7.0, and 7.1
+    }
+  };
+
 10/5/04  Embedded C: warning on named-address-space mismatch on old-style
          parameter
 

@@ -12459,41 +12459,29 @@ issue a warning and change it to an lvalue for the "this" parameter.
 This is used for checking/allowing assignment to "this" -- an anachronism.
 */
 {
-  a_boolean        is_this = FALSE;
-  a_variable_ptr   this_var, operand_var;
-  an_expr_node_ptr operand_expr;
+  a_boolean      is_this = FALSE;
+  a_variable_ptr this_var;
 
-  if (is_an_rvalue(operand) && is_expression_operand(operand)) {
-    operand_expr = operand->variant.expression;
-    if (is_variable_node(operand_expr)) {
-      /* The operand is an rvalue that is the value of a simple variable. */
-      operand_var = operand_expr->variant.variable;
-      if (variable_this_exists(&this_var)) {
-        /* There is a current "this" parameter.  See if it matches the
-           variable in the operand. */
-        if (this_var == operand_var) {
-          /* Yes.  Issue an anachronism diagnostic and change the operand
-             to an lvalue for the "this" variable. */
-          is_this = TRUE;
-          /* Assignment to "this" is not allowed if exceptions are enabled.
-             For one thing, the code in IL lowering does not know how to
-             build the right region table if there are several assignments
-             to "this" in one constructor. */
-          pos_diagnostic(exceptions_enabled ? es_error :
-                                              anachronism_error_severity,
-                         ec_assignment_to_this, &operand->position);
-          make_lvalue_variable_operand(this_var, operand,
-                                       operand->ref_entries_list,
-                                       /*record_expr=*/TRUE);
-          current_routine_entry()->assignment_to_this_done = TRUE;
-          this_var->param_value_has_been_changed = TRUE;
-          if (exceptions_enabled &&
-              scope_stack[decl_scope_level].within_try_block) {
-            /* Mark the this variable as modified within a try block. */
-            this_var->modified_within_try_block = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* if */
+  if (is_this_parameter_operand(operand, &this_var)) {
+    /* This is an operand for "this".  Issue an anachronism diagnostic
+       and change the operand to an lvalue for the "this" variable. */
+    is_this = TRUE;
+    /* Assignment to "this" is not allowed if exceptions are enabled.
+       For one thing, the code in IL lowering does not know how to
+       build the right region table if there are several assignments
+       to "this" in one constructor. */
+    pos_diagnostic(exceptions_enabled ? es_error :
+                                        anachronism_error_severity,
+                   ec_assignment_to_this, &operand->position);
+    make_lvalue_variable_operand(this_var, operand,
+                                 operand->ref_entries_list,
+                                 /*record_expr=*/TRUE);
+    current_routine_entry()->assignment_to_this_done = TRUE;
+    this_var->param_value_has_been_changed = TRUE;
+    if (exceptions_enabled &&
+        scope_stack[decl_scope_level].within_try_block) {
+      /* Mark the this variable as modified within a try block. */
+      this_var->modified_within_try_block = TRUE;
     }  /* if */
   }  /* if */
   return is_this;

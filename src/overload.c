@@ -42,6 +42,7 @@ static void prep_conversion_operand(
 static a_boolean operand_is_temp_init(an_operand *operand);
 static a_boolean type_matches_type_code(a_type_ptr type,
                                         char       type_code);
+static a_boolean variable_this_exists(a_variable_ptr *this_var);
 
 #if DEBUG
 static unsigned long
@@ -1912,12 +1913,15 @@ have_level:;
           arg_summary->anachronism_used = TRUE;
         }  /* if */
       } else if (microsoft_bugs && param_type_is_deduced &&
-                 (microsoft_version < 1300 ||
-                  (arg_operand != NULL &&
-                   !is_constant_operand(arg_operand)))) {
+                 arg_operand != NULL &&
+                 ((microsoft_version < 1300 &&
+                   is_constant_operand(arg_operand)) ||
+                  is_this_parameter_operand(arg_operand,
+                                            (a_variable_ptr *)NULL))) {
         /* A reference to non-const that's deduced can bind to an rvalue in
-           Microsoft bugs mode (VC++ 6.0, 7.0 beta).  As of real 7.0,
-           this is allowed only if the operand is not a constant. */
+           Microsoft bugs mode (VC++ 6.0, 7.0 beta) if the operand
+           is a constant.  As of real 7.0, this is allowed only if the
+           operand is "this". */
       } else {
         arg_summary->match_level = aml_none;
       }  /* if */
@@ -5788,7 +5792,7 @@ source position of the member name reference.
 }  /* cast_pointer_for_field_selection */
 
 
-a_boolean variable_this_exists(a_variable_ptr *this_var)
+static a_boolean variable_this_exists(a_variable_ptr *this_var)
 /*
 Return TRUE if there is a currently-visible "this" variable.  If there is,
 also set *this_var to point to the variable entry for it.  This routine
@@ -5971,6 +5975,39 @@ only in C++ mode.  Note that this routine is called only for an implicit
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   return okay;
 }  /* make_this_pointer_operand */
+
+
+a_boolean is_this_parameter_operand(an_operand     *operand,
+                                    a_variable_ptr *p_this_var)
+/*
+Return TRUE if the given operand is for the "this" parameter of the
+current function.  If so, and if p_this_var is non-NULL, also set
+*p_this_var to the "this" variable.
+*/
+{
+  a_boolean        is_this = FALSE;
+  a_variable_ptr   this_var = NULL, operand_var;
+  an_expr_node_ptr operand_expr;
+
+  if (p_this_var != NULL) *p_this_var = NULL;
+  if (is_an_rvalue(operand) && is_expression_operand(operand)) {
+    operand_expr = operand->variant.expression;
+    if (is_variable_node(operand_expr)) {
+      /* The operand is an rvalue that is the value of a simple variable. */
+      operand_var = operand_expr->variant.variable;
+      if (variable_this_exists(&this_var)) {
+        /* There is a current "this" parameter.  See if it matches the
+           variable in the operand. */
+        if (this_var == operand_var) {
+          /* Yes. */
+          is_this = TRUE;
+          if (p_this_var != NULL) *p_this_var = this_var;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_this;
+}  /* is_this_parameter_operand */
 
 
 static void make_resolved_overloaded_function_operand(
