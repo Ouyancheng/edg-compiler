@@ -1598,15 +1598,19 @@ is in fact valid.
         process_bad_trans_unit_corresp(templ);
       } else {
         a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
-        for (; inst != NULL; inst = next_instance_sym(inst)) {
-          a_type_ptr  inst_type = type_symbol_type(inst);
-          if (!inst_type->variant.class_struct_union.is_specialized) {
-            /* Specializations appear on the types list of their scope. */
-            (void)verify_type_correspondence(inst_type);
-          }  /* if */
-        }  /* for */
-        /* Also process the prototype instantiation. */
-        (void)verify_type_correspondence(proto);
+        /* First process the prototype instantiation. */
+        match = verify_type_correspondence(proto);
+        if (match) {
+          /* Only check real instantiations if the prototype instantiation
+             matched. */
+          for (; inst != NULL; inst = next_instance_sym(inst)) {
+            a_type_ptr  inst_type = type_symbol_type(inst);
+            if (!inst_type->variant.class_struct_union.is_specialized) {
+              /* Specializations appear on the types list of their scope. */
+              (void)verify_type_correspondence(inst_type);
+            }  /* if */
+          }  /* for */
+        }  /* if */
       }  /* if */
     } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
       /* A function template.  Verify the instantiations (if any). */
@@ -1680,7 +1684,9 @@ correspondence pointer for each of them.
   a_type_ptr  type;
 
   /* Visit all types. */
-  for (type = scope->types; type != NULL; type = type->next) {
+  for (type = skip_generated_type(scope->types);
+       type != NULL;
+       type = skip_generated_type(type->next)) {
     a_symbol_ptr  type_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
 
     /* Note that placeholder types do not have an associated symbol. */
