@@ -849,15 +849,12 @@ in ps_arg_list.
 
 static a_boolean is_more_specialized(
 				a_symbol_ptr 		templ_sym1,
-				a_symbol_ptr		templ_sym2,
-				a_template_param_ptr	templ_param_list)
+				a_symbol_ptr		templ_sym2)
 /*
 templ_sym1 and templ_sym2 are class template symbols for partial
 specializations of a template.  Return TRUE if templ_sym1 is more
 specialized than templ_sym2.  This means that, for an instance that
 matches both templates, templ_sym1 should be preferred over templ_sym2.
-templ_param_list is the template parameter list with respect to the
-primary template.
 */
 {
   a_boolean				result = FALSE;
@@ -868,9 +865,11 @@ primary template.
   a_type_ptr				type1;
   a_type_ptr				type2;
   a_template_arg_ptr			dummy_arg_list = NULL;
+  a_template_param_ptr			templ_param_list;
 
   tssp1 = templ_sym1->variant.template_info;
   tssp2 = templ_sym2->variant.template_info;
+  templ_param_list = tssp2->cache.decl_info->parameters;
   type1 = tssp1->variant.class_template.prototype_instantiation->
                                               variant.class_struct_union.type;
   type2 = tssp2->variant.class_template.prototype_instantiation->
@@ -901,16 +900,14 @@ primary template.
 static void add_to_candidates_list(
 			a_partial_spec_candidate_ptr	*psc_list,
 			a_symbol_ptr			new_sym,
-			a_template_arg_ptr		templ_arg_list,
-			a_template_param_ptr		templ_param_list)
+			a_template_arg_ptr		templ_arg_list)
 /*
 Add the partial specialization specified by new_sym to the candidates
 list pointed to by psc_list.  If the new entry is a poorer match than an
 entry already on the list, don't add it.  Go through the existing list
 and remove any entries that are poorer candidates than the new entry.
 templ_arg_list is the template argument list is the argument list
-associated with new_sym.  templ_param_list is the template parameter list
-with respect to the primary template.
+associated with new_sym.
 */
 {
   a_partial_spec_candidate_ptr	prev_pscp = NULL;
@@ -920,10 +917,8 @@ with respect to the primary template.
   for (pscp = *psc_list; pscp != NULL; prev_pscp = pscp, pscp = pscp->next) {
     a_boolean	new_is_more_specialized;
     a_boolean	curr_is_more_specialized;
-    new_is_more_specialized = is_more_specialized(
-                                new_sym, pscp->symbol, templ_param_list);
-    curr_is_more_specialized = is_more_specialized(
-                                pscp->symbol, new_sym, templ_param_list);
+    new_is_more_specialized = is_more_specialized(new_sym, pscp->symbol);
+    curr_is_more_specialized = is_more_specialized(pscp->symbol, new_sym);
     if (new_is_more_specialized && !curr_is_more_specialized) {
       /* The new entry is more specialized than the one already on the
          list.  Remove the entry from the list.
@@ -1018,7 +1013,6 @@ with that partial specialization; otherwise return NULL.
   a_symbol_ptr				ps_sym;
   a_template_arg_ptr			templ_arg_list;
   a_class_type_supplement_ptr		ctsp;
-  a_template_param_ptr			templ_param_list;
   a_partial_spec_candidate_ptr		candidate_list = NULL;
 
   db_enter(3, "check_partial_specializations");
@@ -1026,15 +1020,12 @@ with that partial specialization; otherwise return NULL.
   /* Get the template argument list with respect to the primary template. */
   ctsp = class_type->variant.class_struct_union.extra_info;
   templ_arg_list = ctsp->template_arg_list;
-  /* Get the template parameter list with respect to the primary template. */
-  templ_param_list = tssp->cache.decl_info->parameters;
   for (ps_sym = tssp->variant.class_template.partial_specializations;
        ps_sym != NULL; ps_sym = ps_sym->next) {
     a_template_arg_ptr	ps_arg_list = NULL;
     if (matches_partial_specialization(ps_sym, templ_arg_list,
                                        &ps_arg_list)) {
-      add_to_candidates_list(&candidate_list, ps_sym, ps_arg_list,
-                             templ_param_list);
+      add_to_candidates_list(&candidate_list, ps_sym, ps_arg_list);
     }  /* if */
   }  /* for */
   if (candidate_list != NULL) {
@@ -5368,8 +5359,8 @@ instantiation.
            template.  This occurs if the primary template was named in the
            template argument list of a partial specialization.  This is
            not permitted. */
-        pos_sy_error(ec_partial_spec_is_primary_template,
-                     &locator.source_position, sym);
+        pos_error(ec_partial_spec_is_primary_template,
+                  &locator.source_position);
         err = TRUE;
       }  /* if */
     } else if (is_nonreal_instance_class_symbol(sym)) {
