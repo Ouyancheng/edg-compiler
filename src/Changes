@@ -1,5 +1,15 @@
 Version 2.43
 
+12/2/99  Improved error on unexpected end of default argument expression
+
+The front end gave a confusing message when the default argument of a
+template function ended with an unexpected token.  A better message is
+now issued.
+
+  template <class T> void f(T t,
+                            int i = 1  // note missing ","
+                            int j = 2);
+ 
 12/2/99  Microsoft compatibility: no error issued on floating-point
          constant that is too small
 
