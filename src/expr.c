@@ -1455,12 +1455,16 @@ Syntax:
   if (vacuous_destructor_case) {
     /* Vacuous destructor case; leave the original operand alone. */
     copy_operand(operand, result);
-  } if (unknown_dependent_function) {
+  } else if (unknown_dependent_function) {
     /* A call of a function whose type is not completely known, in
        a prototype instantiation.  Make a generic call. */
-    an_expr_node_ptr function_node, call_node;
-    check_assertion(!operand->bound_function);
+    an_expr_node_ptr function_node, call_node, implicit_this_argument;
     function_node = make_node_from_operand(operand);
+    if (operand->bound_function) {
+      implicit_this_argument = make_node_from_operand(bound_function_selector);
+      implicit_this_argument->next = argument_list;
+      argument_list = implicit_this_argument;
+    }  /* if */
     function_node->next = argument_list;
     call_node = make_operator_node((an_expr_operator_kind)eok_generic_call,
                                     type_of_unknown_templ_param_nontype,
