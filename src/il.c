@@ -10075,11 +10075,14 @@ a set of options for the copy.
       /* Nothing more to copy. */
       break;
     case enk_constant:
-      if (in_file_scope(expr_copy) &&
-          !in_file_scope(expr->variant.constant)) {
+      if (!in_file_scope(expr->variant.constant) &&
+          (in_file_scope(expr_copy) ||
+           (options & CE_DOING_INLINING_OF_FUNCTION_CALL))) {
         /* Copy a constant to avoid having an expression in the file-scope
            memory region pointing to a constant in a function scope
-           memory region. */
+           memory region.  Also copy function-scope constants when copying
+           for inlining, because the constants are in a different
+           function-scope memory region. */
         expr_copy->variant.constant =
                          copy_constant_full(expr->variant.constant,
                                             (a_constant *)NULL,

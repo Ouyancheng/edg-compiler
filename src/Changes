@@ -1,5 +1,15 @@
 Version 3.1
 
+5/15/02  Copying of function-scope constants while inlining
+
+When the inlining process is copying the statements and expressions
+of an inlined routine, any function-scope memory constants that
+are encountered should be copied, because they are in the wrong
+memory region.  That is now done.  This problem seldom came up,
+but did arise more frequently when RECORD_CONSTANT_EXPRESSIONS_IN_IL
+is set and IL lowering/inlining is also done (an unusual
+combination).
+
 5/15/02  GNU C compatibility: spurious error when ellipsis in prototype
          declaration follows an unprototyped definition
 
