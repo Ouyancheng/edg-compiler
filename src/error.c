@@ -1,4 +1,4 @@
-	/******************************************************************************
+/******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
 * Edison Design Group C Front End                            - | \^/ | -      *
@@ -985,11 +985,7 @@ error code.
       m = "type does not match any instance of overloaded function \"%s\"";
       break;
     case ec_no_matching_function:
-      m = "none of the overloaded functions matches this argument list";
-#if 0
-      m =
-        "no instance of overloaded function \"%s\" matches this argument list";
-#endif /* if 0 */
+      m = "no instance of this overloaded function matches this argument list";
       break;
     case ec_type_def_not_allowed_in_func_type_decl:
       m = "type definition not allowed in function return type declaration";
