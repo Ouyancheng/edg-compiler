@@ -3355,7 +3355,8 @@ virtual function table.
     /* The [0] entry includes the offset of the class whose vtbl is being
        made in the complete class, and a pointer to the typeinfo entry for
        the class. */
-    add_vtbl_entry_init((bcp != NULL) ? bcp->offset : (a_targ_ptrdiff_t)0,
+    add_vtbl_entry_init((bcp != NULL) ? (a_targ_ptrdiff_t)bcp->offset :
+                                        (a_targ_ptrdiff_t)0,
                         (a_routine_ptr)NULL,
                         make_typeinfo_var(class_type),
                         aggr_con, first_virtual);
