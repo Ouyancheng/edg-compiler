@@ -12,9 +12,9 @@ is being used, cases like the following result in a spurious
 
 7/25/95  Bit-field allocation bug
 
-A bug has been fixed in computing the size and alignment of a bit-field
-container when TARG_BIT_FIELD_CONTAINER_SIZE is configured to zero.  Here
-is an example of the effect of the fix:
+In certain configurations version 2.29 introduced a bug in computing the
+size and alignment of a bit-field container; this has been fixed.  Here is
+an example of the effect of the fix:
 
   struct S {
     char c;
@@ -23,6 +23,14 @@ is an example of the effect of the fix:
 
 Assuming default settings for integer sizes and alignments, the size of s
 is now 4 (not 3, as before) and its alignment is 4 (not 1).
+
+The bug occurred only when TARG_BIT_FIELD_CONTAINER_SIZE was configured to
+zero and when the size of the bit field exceeded the number of bits in a
+char, but even then it was usually masked: it had an effect (on the size
+and alignment of the class object itself, never on its internal layout)
+only in rather unusual cases, such as when there were no other fields
+whose alignment requirements would "dominate".  For example, if struct S
+defined above had an int or pointer field, the bug would not be noticed.
 
 7/24/95  Memory region problem with IL lowering default_version_of_routine
 
