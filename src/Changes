@@ -1,5 +1,19 @@
 Version 3.1
 
+6/26/02  Abort on definition of function previously misdeclared in a namespace
+
+The front end used to abort when processing the definition of a function that
+was first declared with undeclared types in a namespace, and then named by a
+friend declaration not enclosed by that namespace.  For example:
+
+  namespace N { void f(X); }  // Error: No type X declared
+  class X { friend void N::f(X); };
+  namespace N {
+    void f(X) {}              // Used to cause an abort
+  }
+
+This is now fixed.
+
 6/26/02  Microsoft compatibility: Using-declarations of masked members
 
 MSVC++ 7 (but not MSVC++ 6) accepts using-declarations of members that are not

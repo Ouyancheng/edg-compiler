@@ -5618,16 +5618,19 @@ skip_overloading:;
     if (is_function_def) {
       a_boolean      saved_referenced_flag;
       a_scope_depth  scope_depth = depth_innermost_namespace_scope;
-
-      /* If this is a definition, unlink the routine entry and relink it
-         at the end of the routines list, so that routines appear in the
-         order that their bodies appear. */
-      if (routine_ptr->source_corresp.name_linkage ==
+      if (!linked_redecl_error) {
+        /* If this is a definition, unlink the routine entry and relink it
+           at the end of the routines list, so that routines appear in the
+           order that their bodies appear.  If a redeclaration error
+           occurred, the scope depth is unreliable and this operation
+           might not be possible. */
+        if (routine_ptr->source_corresp.name_linkage ==
                                           (a_name_linkage_kind)nlk_external) {
-        scope_depth = DEPTH_OF_FILE_SCOPE;
+          scope_depth = DEPTH_OF_FILE_SCOPE;
+        }  /* if */
+        remove_from_routines_list(routine_ptr, scope_depth);
+        add_to_routines_list(routine_ptr, scope_depth);
       }  /* if */
-      remove_from_routines_list(routine_ptr, scope_depth);
-      add_to_routines_list(routine_ptr, scope_depth);
       /* Put in the storage class for the definition (static or 
          unspecified). */
       routine_ptr->storage_class = storage_class;
