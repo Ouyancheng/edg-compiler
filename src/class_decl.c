@@ -10732,6 +10732,8 @@ the IL, the template header is passed via template_decl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr     prefix_attributes;
+  an_attribute_ptr     *last_prefix_attribute;
+  an_attribute_ptr     attributes = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "class_member_declaration");
@@ -10770,6 +10772,10 @@ the IL, the template header is passed via template_decl.
                         (an_attribute_ptr *)NULL,
 #endif /* !GNU_EXTENSIONS_ALLOWED */
                         &decl_info.decl_modifiers,  &decl_info.decl_pos_block);
+#if GNU_EXTENSIONS_ALLOWED
+  /* Find the last prefix_attribute. */
+  last_prefix_attribute = last_attribute_link(&prefix_attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   decl_info.dso_flags = dso_flags;
   if (C_dialect == C_dialect_cplusplus &&
       (dso_flags & DSO_DEFINES_SOMETHING) && !is_error_type(member_type)) {
@@ -10972,6 +10978,21 @@ the IL, the template header is passed via template_decl.
         di_flags |= DI_IS_MICROSOFT_PROPERTY;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+      /* Look for optional attributes, which are added to the prefix
+         attributes.  Note that the draft GNU C manual for version 3.1
+         says that in the future, these attributes may apply only to
+         the next declarator, but that they presently apply to all
+         declarators. */
+      if (gcc_mode) {
+        /* Scan the attributes. */
+        attributes = scan_attributes();
+        /* Add these to the prefix_attributes. */
+        *last_prefix_attribute = attributes;
+        /* And compute what's now the end of the prefix attributes. */
+        last_prefix_attribute = last_attribute_link(last_prefix_attribute);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       /* Pass the class's type pointer to declarator if this might be a
          nonstatic member function, in which case its presence will cause an
          implicit "this" parameter type to be created. (Static member

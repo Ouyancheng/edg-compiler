@@ -10221,10 +10221,7 @@ continue_with_declaration:
                         &decl_modifiers, &decl_pos_block);
 #if GNU_EXTENSIONS_ALLOWED
   /* Find the last prefix_attribute. */
-  last_prefix_attribute = &prefix_attributes;
-  while (*last_prefix_attribute) {
-    last_prefix_attribute = &(*last_prefix_attribute)->next;
-  }  /* while */
+  last_prefix_attribute = last_attribute_link(&prefix_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   has_explicit_type_specifier =
                       ((dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0);
