@@ -145,6 +145,7 @@ Set var to indicate that the associated code is unreachable.
 /*
 Declarations needed because of forward references:
 */
+static void make_implicit_break_explicit(a_struct_stmt_stack_entry_ptr sssep);
 static void statement(a_boolean is_dependent_statement,
                       a_boolean marked_as_gnu_extension);
 
@@ -1565,6 +1566,19 @@ is not called for the top-level compound statement of a function.
 }  /* is_primary_block_of_switch_statement */
 
 
+static a_statement_ptr last_statement_in_list(a_statement_ptr sp)
+/*
+sp points to a list of statements.  Return a pointer to the last statement
+on the list, or NULL if the list is empty.
+*/
+{
+  if (sp != NULL) {
+    while (sp->next != NULL) sp = sp->next;
+  }  /* if */
+  return sp;
+}  /* last_statement_in_list */
+
+
 static void add_statement_list(a_statement_ptr  sp,
                                a_boolean        reachable)
 /*
@@ -1631,6 +1645,18 @@ should be set to TRUE.
         }  /* if */
         break;
       case stmk_switch:
+        if (sssep->after_break_in_switch) {
+          /* This is dead code following a top-level "break" in a switch.
+             Replace the implied "break" by a goto (in effect, going back
+             to break_statement and taking the other path instead of the
+             implied-break path chosen) and keep adding after it. */
+          sssep->after_break_in_switch = FALSE;
+          /* For labels, no need to continue the previous switch clause.
+             The code is not dead. */
+          if (sp->kind != (a_statement_kind)stmk_label) {
+            make_implicit_break_explicit(sssep);
+          }  /* if */
+        }  /* if */
         if (sssep->curr_switch_clause == NULL) {
           /* There is no current switch clause, so add statements to the
              body_statement of the switch (this is unusual). */
@@ -2740,6 +2766,7 @@ statement is the top block of a GNU statement expression ({ ... }).
   if (depth_stmt_stack > 0 && (sssep-1)->inside_statement_expr) {
     sssep->inside_statement_expr = TRUE;
   }  /* if */
+  sssep->after_break_in_switch= FALSE;
   sssep->statement            = sp;
   sssep->curr_switch_clause   = NULL;
   sssep->discarded_case_label_constants
@@ -2985,8 +3012,7 @@ retained in the IL, bind it to an IL entity.
 }  /* terminate_curr_block_object_lifetime */
 
 
-static void reset_curr_block_object_lifetime(an_il_entry_kind  entity_kind,
-                                             char              *entity_ptr)
+static void reset_curr_block_object_lifetime(a_statement_ptr sp)
 /*
 If the current structured statement stack entry represents a compound
 statement in which a label has appeared that "invalidates" the object
@@ -3007,7 +3033,8 @@ appears in the same block or in a nested block.  For example:
 
 This routine is called both at label statements and immediately after a
 structured statement terminates (i.e., in the context of the block just
-resumed).
+resumed).  sp indicates the statement that starts the new object lifetime
+(e.g., an stmk_label statement).
 */
 {
   a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack[depth_stmt_stack];
@@ -3019,17 +3046,16 @@ resumed).
     terminate_curr_block_object_lifetime(sssep);
     /* Push the object lifetime and set the struct-stmt-stack entry to point
        to it. */
-    push_object_lifetime(entity_kind, entity_ptr,
+    push_object_lifetime((an_il_entry_kind)iek_statement, (char *)sp,
                          (an_object_lifetime_kind)olk_block_after_label);
     sssep->curr_block_object_lifetime = curr_object_lifetime;
     sssep->label_invalidates_curr_block_object_lifetime = FALSE;
-    if (depth_stmt_stack > 0) {
-      if (sssep[-1].kind == (a_struct_stmt_kind)ssk_switch) {
-        /* sssep represents the block statement or compound statement
-           immediately within a switch statement.  Update the object lifetime
-           in the ssk_switch entry, too. */
-        sssep[-1].curr_block_object_lifetime = curr_object_lifetime;
-      }  /* if */
+    if (depth_stmt_stack > 0 &&
+        is_primary_block_of_switch_statement(sssep)) {
+      /* sssep represents the block statement or compound statement
+         immediately within a switch statement.  Update the object lifetime
+         in the ssk_switch entry, too. */
+      sssep[-1].curr_block_object_lifetime = curr_object_lifetime;
     }  /* if */
   }  /* if */
 }  /* reset_curr_block_object_lifetime */
@@ -3309,8 +3335,7 @@ the block statement.
   /* If a label appeared in the context of the block that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
-  reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
-                                   (char *)block_stmt);
+  reset_curr_block_object_lifetime(block_stmt);
 }  /* finish_block_statement */
 
 
@@ -3565,8 +3590,7 @@ See also 3.6.4.1.
   /* If a label appeared in the context of the statement that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
-  reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
-                                   (char *)sp);
+  reset_curr_block_object_lifetime(sp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3674,8 +3698,7 @@ See also 3.6.4.2.
   /* If a label appeared in the context of the statement that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
-  reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
-                                   (char *)sp);
+  reset_curr_block_object_lifetime(sp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3739,8 +3762,7 @@ See also 3.6.5.1.
   /* If a label appeared in the context of the statement that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
-  reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
-                                   (char *)sp);
+  reset_curr_block_object_lifetime(sp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3812,8 +3834,7 @@ See also 3.6.5.2.
   /* If a label appeared in the context of the statement that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
-  reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
-                                   (char *)sp);
+  reset_curr_block_object_lifetime(sp);
   /* Pop a scope in C99 mode. */
   pop_c99_statement_scope();
 
@@ -4507,8 +4528,7 @@ The affinity can be an expression or the keyword "continue".
   /* If a label appeared in the context of the statement that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */
-  reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
-                                   (char *)sp);
+  reset_curr_block_object_lifetime(sp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   set_stmt_source_position(sp->end_position, curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -5063,6 +5083,83 @@ See also 3.6.6.2.
 }  /* continue_statement */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/* ARGSUSED */ /* <-- end_pos is not used in that case. */ */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+static void add_goto_for_break(a_struct_stmt_stack_entry_ptr sssep,
+                               a_source_position             *pos,
+                               a_source_position             *end_pos)
+/*
+Add a goto to implement a break statement.  sssep points to the structured
+statement stack entry for the statement being exited.  *pos and *end_pos
+give the starting and ending positions of the break statement.
+*/
+{
+  a_statement_ptr               sp;
+  a_label_ptr                   dest_label;
+  a_control_flow_descr_ptr      cfdp;
+
+  dest_label = sssep->break_label;
+  if (dest_label == NULL) {
+    /* The break label has not previously been used, so generate it. */
+    dest_label = sssep->break_label = alloc_temp_label();
+    dest_label->break_label = TRUE;
+  }  /* if */
+  /* Allocate the goto statement. */
+  sp = add_statement_at_stmt_pos((a_statement_kind)stmk_goto, pos);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  set_stmt_source_position(sp->end_position, *end_pos);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  stmt_update_source_sequence_list(sp);
+  /* Put the destination label into the goto. */
+  sp->variant.label.ptr = dest_label;
+  if (!C_mode()) {
+    /* Set the object lifetime.  It is a provisional setting and may be
+       changed based on the lifetime of the continue label itself. */
+    sp->variant.label.lifetime =
+                        innermost_block_object_lifetime(curr_object_lifetime);
+  }  /* if */
+  if (!C_mode() || vla_enabled) {
+    /* Allocate and fill in a goto entry.  This is done in C++ mode
+       because it's needed for object lifetime management and in C mode
+       when VLA support is enabled to insert vla-dealloc statements before
+       forward gotos. */
+    cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
+    cfdp->source_pos = pos_curr_token;
+    cfdp->variant.goto_statement.ptr = sp;
+    add_to_control_flow_descr_list(cfdp);
+    cfdp->variant.goto_statement.prev_goto = sssep->break_statements;
+    sssep->break_statements = cfdp;
+  }  /* if */
+}  /* add_goto_for_break */
+
+
+static void make_implicit_break_explicit(a_struct_stmt_stack_entry_ptr sssep)
+/*
+The current switch clause of the switch statement associated with the
+structured statement stack entry pointed to by sssep was ended by
+an implied break.  Change the implied break to an explicit goto,
+thus allowing us to continue adding (dead) code following the break.
+*/
+{
+  sssep->curr_switch_clause = sssep[1].curr_switch_clause =
+                                                     sssep->last_switch_clause;
+  check_assertion(sssep->curr_switch_clause != NULL &&
+                  sssep->curr_switch_clause->implied_break_at_end);
+  sssep->curr_switch_clause->implied_break_at_end = FALSE;
+  sssep->last_dep_statement =
+                 last_statement_in_list(sssep->curr_switch_clause->statements);
+  add_goto_for_break(sssep,
+                     &sssep->curr_switch_clause->break_position,
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+                     &sssep->curr_switch_clause->break_end_position
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+                     &null_source_position
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+                    );
+}  /* make_implicit_break_explicit */
+
+
 static void break_statement(void)
 /*
 Scan a "break" statement and add it to the current statement sequence.
@@ -5074,15 +5171,11 @@ The syntax is:
 See also 3.6.6.3.
 */
 {
-  register a_statement_ptr      sp = 0;
   a_struct_stmt_stack_entry_ptr sssep;
-  a_label_ptr                   dest_label;
-  a_control_flow_descr_ptr      cfdp;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_stmt_source_position*	end_position_ptr = 0;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_source_position             start_position, end_position;
 
   db_enter(3, "break_statement");
+  start_position = pos_curr_token;
   check_for_unreachable_code();
   /* See if we are within a loop body (while, do, or for) or a switch
      by looking at the entries in the structured statement stack. */
@@ -5098,6 +5191,26 @@ See also 3.6.6.3.
     error(ec_break_must_be_in_loop_or_switch);
   } else {
     check_for_leaving_statement_expr(sssep);
+  }  /* if */
+  /* Advance over the "break". */
+#if CHECKING
+  if (curr_token != tok_break) {
+    internal_error("break_statement: expected break");
+  }  /* if */
+#endif /* CHECKING */
+  (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (sssep != NULL) {
+    if (sssep->kind == ssk_switch &&
+        sssep->curr_switch_clause != NULL) {
+      set_stmt_source_position(sssep->curr_switch_clause->break_position,
+                               start_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      sssep->curr_switch_clause->break_end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    }  /* if */
     if (sssep->kind == ssk_switch &&
         sssep->curr_switch_clause != NULL &&
         sssep->curr_switch_clause ==
@@ -5107,68 +5220,24 @@ See also 3.6.6.3.
          the clause.  No goto is required.  However, the current switch
          clause must be ended.  Note that this special trick can be done
          only when the break is at the top level in the case clause. */
-      set_stmt_source_position(sssep->curr_switch_clause->break_position,
-                               pos_curr_token);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      end_position_ptr = &sssep->curr_switch_clause->break_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       sssep->curr_switch_clause->implied_break_at_end = TRUE;
       sssep->curr_switch_clause = NULL;
       struct_stmt_stack[depth_stmt_stack].curr_switch_clause = NULL;
+      sssep->after_break_in_switch = TRUE;
       term_stmt_clause(sssep);
       set_unreachable(curr_reachability);
     } else {
       /* This break statement exits a loop, or some part of a switch that
-         is not inside a switch clause. */
-      dest_label = sssep->break_label;
-      if (dest_label == NULL) {
-        /* The break label has not previously been used, so generate it. */
-        dest_label = sssep->break_label = alloc_temp_label();
-        dest_label->break_label = TRUE;
-      }  /* if */
-      /* Allocate the goto statement. */
-      sp = add_statement((a_statement_kind)stmk_goto);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      end_position_ptr = &sp->end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      stmt_update_source_sequence_list(sp);
-      /* Put the destination label into the goto. */
-      sp->variant.label.ptr = dest_label;
-      if (!C_mode()) {
-        /* Set the object lifetime.  It is a provisional setting and may be
-           changed based on the lifetime of the continue label itself. */
-        sp->variant.label.lifetime =
-                        innermost_block_object_lifetime(curr_object_lifetime);
-      }  /* if */
-      if (!C_mode() || vla_enabled) {
-        /* Allocate and fill in a goto entry.  This is done in C++ mode
-           because it's needed for object lifetime management and in C mode
-           when VLA support is enabled to insert vla-dealloc statements before
-           forward gotos. */
-        cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
-        cfdp->source_pos = pos_curr_token;
-        cfdp->variant.goto_statement.ptr = sp;
-        add_to_control_flow_descr_list(cfdp);
-        cfdp->variant.goto_statement.prev_goto = sssep->break_statements;
-        sssep->break_statements = cfdp;
-      }  /* if */
+         is not inside a switch clause.  Add a goto to implement the
+         break. */
+      add_goto_for_break(sssep, &start_position, &end_position);
     }  /* if */
   }  /* if */
-  /* Ignore the initial "break". */
-#if CHECKING
-  if (curr_token != tok_break) {
-    internal_error("break_statement: expected break");
-  }  /* if */
-#endif /* CHECKING */
-  (void)get_token();
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = end_pos_curr_token;
-  if (end_position_ptr) {
-    *end_position_ptr = end_pos_curr_token;
-  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* break_statement */
 
@@ -5902,6 +5971,7 @@ redundant diagnostics in case ranges (GNU C mode only).
     top_sssep->curr_switch_clause = scp;
     if (label_directly_in_switch) {
       sssep->curr_switch_clause = scp;
+      sssep->after_break_in_switch = FALSE;
       end_stmt_sequence(sssep);
     }  /* if */
     /* Represent this case label by adding an entry to the
@@ -6471,8 +6541,7 @@ rescan_statement:
             /* Create an object lifetime to run from this point to the end of
                the current scope.  It's needed to handle backwards gotos to
                the current label. */
-            reset_curr_block_object_lifetime((an_il_entry_kind)iek_statement,
-                                             (char *)label->variant.exec_stmt);
+            reset_curr_block_object_lifetime(label->variant.exec_stmt);
           }  /* if */
         }  /* if */
 #if CHECKING
@@ -6575,7 +6644,7 @@ expr_statement:
         if (is_dependent_statement) {
           error(ec_dependent_stmt_is_declaration);
         } else if (c99_mode) {
-          /* A labeled statement is not allowed in C99 mode (the syntax
+          /* A labeled declaration is not allowed in C99 mode (the syntax
              doesn't allow it), but we allow it in default mode. */
           diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity :
                                         es_warning,

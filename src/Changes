@@ -1,5 +1,22 @@
 Version 3.5
 
+5/27/04  Abort on destructible entity in dead code after break in switch
+
+IL lowering aborted in lower_dynamic_init ("dynamic init has lifetime
+other than curr lifetime") on encountering a destructible object
+declaration in dead code following a break statement in a switch
+statement.  Now fixed.
+
+  struct XX {XX(); ~XX();};
+  void foo(int n) {
+    switch (n) {
+    case 1:
+        break;
+        XX x;  // Caused abort after warning re dynamic initialization
+               // in unreachable code
+    }
+  }
+
 5/26/04  Lowering of variable-length arrays (VLAs)
 
 The front end can now be configured to transform variable-length array IL

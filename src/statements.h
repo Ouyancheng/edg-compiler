@@ -287,6 +287,13 @@ typedef struct a_struct_stmt_stack_entry {
   a_bit_field	inside_statement_expr:1;
 			/* TRUE if the statement is or is inside of a
 			   GNU statement expression. */
+  a_bit_field	after_break_in_switch:1;
+			/* TRUE if the current position is just after a
+			   break statement at the top level of a switch.
+			   Set only when the break is represented implicitly
+			   via the implied_break_at_end flag.  If anything
+			   other than a label follows, it will be dead code.
+			   Set only in entries with kind == ssk_switch. */
   a_statement_ptr
 		statement;
 			/* The associated IL statement.  Indirectly,
@@ -367,7 +374,9 @@ typedef struct a_struct_stmt_stack_entry {
 			   block starts, but a label in the midst of the
 			   block "invalidates" the lifetime and a new one is
 			   pushed to replace it; this pointer then points to
-			   the new one. */
+			   the new one.  Also set on entries with
+			   kind == ssk_switch, to track the lifetime in
+			   the top block. */
   a_scope_depth depth_of_assoc_scope;
 			/* If kind == ssk_compound and a scope stack entry
 			   was pushed in conjunction with this structured

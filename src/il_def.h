@@ -8819,10 +8819,9 @@ typedef struct a_switch_clause {
 			   clause). */
   a_stmt_source_position
 		break_position;
-			/* If the source contains an explicit break statement
-			   (which is represented in the IL as an implied break
-			   at the end of the switch clause), the break
-			   statement's source position; otherwise zero. */
+			/* If the source contains an explicit break statement,
+			   the break statement's source position; otherwise
+			   zero. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_stmt_source_position
 		break_end_position;
