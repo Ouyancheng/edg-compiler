@@ -6728,7 +6728,7 @@ new-expression that might throw an exception.  The warning is only issued if
 the operator is missing and the given boolean flag is TRUE).
 */
 #define warn_about_missing_delete_if(cond)                                  \
-{ if (delete_routine == NULL && (cond)) {                                   \
+{ if (delete_routine == NULL && exceptions_enabled && (cond)) {             \
     pos_stsy_warning(ec_no_corresponding_delete, &new_position,             \
                      (char *)(array_new ? "[]" : ""), function_symbol);     \
   }  /* if */                                                               \
