@@ -421,6 +421,11 @@ variable for the current function.
    nearest_function_scope->variant.routine.return_value_variable == (var))
 
 
+EXTERN a_source_position
+		code_pos_for_lowering;
+			/* The source position associated with executable code
+			   currently being lowered. */
+
 #if DEBUG
 /*
 Count of entries allocated, for debugging purposes.
