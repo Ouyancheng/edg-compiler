@@ -1979,7 +1979,7 @@ fields to default values.
       /* No variant fields to set. */
       break;
     case ck_integer:
-      cp->variant.integer_value = 0;
+      set_integer_value(&cp->variant.integer_value, 0L);
       break;
     case ck_string:
       cp->variant.string.length = 0;
