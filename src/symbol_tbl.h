@@ -1646,11 +1646,11 @@ typedef struct a_scope_stack_entry {
 			   with a source sequence list (= DEPTH_OF_FILE_SCOPE,
 			   depth_innermost_function_scope, or, in C++ only,
 			   the depth of the innermost class scope). */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_depth depth_template_declaration_scope;
 			/* Depth of the sck_template_declaration scope entry,
 			   if any, that the current scope is enclosed by;
 			   otherwise, NO_SCOPE_DEPTH. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_depth depth_innermost_instantiation_scope;
                         /* Depth of the nearest enclosing instantiation scope
 			   of any kind.  This is a copy of the the global
@@ -1737,6 +1737,11 @@ EXTERN a_scope_depth
 			/* If there are template instantiation scopes on the
                            scope stack, this is the depth of the innermost
                            one.  Otherwise, NO_SCOPE_DEPTH. */
+EXTERN a_scope_depth
+		depth_template_declaration_scope;
+			/* Depth of the sck_template_declaration scope entry,
+			   if any, that the current scope is enclosed by;
+			   otherwise, NO_SCOPE_DEPTH. */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 EXTERN a_scope_depth
@@ -1745,11 +1750,6 @@ EXTERN a_scope_depth
 			   with a source sequence list (= DEPTH_OF_FILE_SCOPE,
 			   depth_innermost_function_scope, or, in C++ only,
 			   the depth of the innermost class scope). */
-EXTERN a_scope_depth
-		depth_template_declaration_scope;
-			/* Depth of the sck_template_declaration scope entry,
-			   if any, that the current scope is enclosed by;
-			   otherwise, NO_SCOPE_DEPTH. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 EXTERN a_boolean

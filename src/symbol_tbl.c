@@ -6592,8 +6592,8 @@ of the template.
   ssep->source_sequence_avail_list = NULL;
   ssep->last_src_seq_sublist     = NULL;
   ssep->depth_innermost_ss_list_scope = depth_innermost_ss_list_scope;
-  ssep->depth_template_declaration_scope = depth_template_declaration_scope;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  ssep->depth_template_declaration_scope = depth_template_declaration_scope;
   ssep->depth_innermost_instantiation_scope =
                                        depth_innermost_instantiation_scope;
   ssep->instance_sym             = instance_sym;
@@ -6713,27 +6713,31 @@ of the template.
     depth_innermost_function_scope =
             ssep->depth_innermost_function_scope = NO_SCOPE_DEPTH;
   }  /* if */
-  /* Maintain the depth of the innermost stack entry that affects access
-     control. */
-  if (C_dialect == C_dialect_cplusplus &&
-      is_scope_kind_that_affects_access_control(kind)) {
-    depth_of_innermost_scope_that_affects_access_control = depth_scope_stack;
+  if (C_dialect == C_dialect_cplusplus) {
+    /* Maintain the depth of the innermost stack entry that affects access
+       control. */
+    if (is_scope_kind_that_affects_access_control(kind)) {
+      depth_of_innermost_scope_that_affects_access_control = depth_scope_stack;
+    }  /* if */
+    /* Maintain the depth of a template declaration scope, if any. */
+    if (kind == (a_scope_kind)sck_template_declaration) {
+      ssep->depth_template_declaration_scope =
+        depth_template_declaration_scope = depth_scope_stack;
+    } else if (kind == (a_scope_kind)sck_template_instantiation) {
+      /* A template instantiation within a template declaration. */
+      ssep->depth_template_declaration_scope =
+        depth_template_declaration_scope = NO_SCOPE_DEPTH;
+    }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (kind == (a_scope_kind)sck_file) {
+  /* Maintain the depth of the scope of the current source sequence list. */
+  if (kind == (a_scope_kind)sck_function) {
     ssep->depth_innermost_ss_list_scope =
       depth_innermost_ss_list_scope = depth_scope_stack;
-  } else if (kind == (a_scope_kind)sck_function) {
-    ssep->depth_innermost_ss_list_scope =
-      depth_innermost_ss_list_scope = depth_scope_stack;
-  } else if (kind == (a_scope_kind)sck_template_declaration) {
-    ssep->depth_template_declaration_scope =
-      depth_template_declaration_scope = depth_scope_stack;
-  } else if (kind == (a_scope_kind)sck_template_instantiation) {
+  } else if (kind == (a_scope_kind)sck_template_instantiation ||
+             kind == (a_scope_kind)sck_file) {
     ssep->depth_innermost_ss_list_scope =
       depth_innermost_ss_list_scope = DEPTH_OF_FILE_SCOPE;
-    ssep->depth_template_declaration_scope =
-      depth_template_declaration_scope = NO_SCOPE_DEPTH;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DEBUG
@@ -7568,11 +7572,11 @@ End a name scope by popping an entry off the scope stack.
     inside_local_class = scope_stack[depth_scope_stack].inside_local_class;
     depth_innermost_function_scope = scope_stack[depth_scope_stack].
                                             depth_innermost_function_scope;
+    depth_template_declaration_scope =
+             scope_stack[depth_scope_stack].depth_template_declaration_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     depth_innermost_ss_list_scope =
              scope_stack[depth_scope_stack].depth_innermost_ss_list_scope;
-    depth_template_declaration_scope =
-             scope_stack[depth_scope_stack].depth_template_declaration_scope;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
@@ -8723,9 +8727,9 @@ to avoid an 8-character external name clash with symbol_table.)
   decl_scope_level = NO_SCOPE_DEPTH;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
   depth_innermost_instantiation_scope = NO_SCOPE_DEPTH;
+  depth_template_declaration_scope = NO_SCOPE_DEPTH;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   depth_innermost_ss_list_scope = NO_SCOPE_DEPTH;
-  depth_template_declaration_scope = NO_SCOPE_DEPTH;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   inside_local_class = FALSE;
   next_scope_number = FILE_SCOPE_NUMBER;
