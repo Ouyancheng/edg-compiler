@@ -635,6 +635,8 @@ asm ( "string" ) ;
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
+  /* Check for and skip the semicolon. */
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
 
   db_exit();
 }  /* asm_statement */
