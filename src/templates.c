@@ -183,13 +183,14 @@ itself recursively to process classes nested within this class.
   /* The assoc_scope pointer can be NULL if errors occurred during the
      instantiation of the class. */
   if (ctsp->assoc_scope != NULL) {
-    /* Normally, function instantiation entries are not marked for actual
-       instantiation (that is, for generation of the function body) until there
-       is an invocation of the function.  This is partly under user control,
-       however: if instantiation_mode is tim_all, mark it immediately.
-       Moreover, if the function is virtual, mark it for instantiation no
-       matter what the instantiation mode, since a virtual function table may
-       have to be put out for it. */
+    /* Function instantiation entries are not marked for actual instantiation
+       (that is, for generation of the function body) until there is
+       an invocation of the function.  However, if the function is
+       virtual, mark it for instantiation in all cases, since a
+       virtual function table may have to be put out for it.  All
+       instances are placed on the instantiation list.  In tim_all
+       mode the instantiations will be generated even if the
+       instantiation required flag is not set. */
     rout = ctsp->assoc_scope->routines;
     while (rout != NULL) {
       sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
@@ -199,8 +200,7 @@ itself recursively to process classes nested within this class.
            occurs for compiler generated routines and under some error
            conditions.  Simply skip this routine. */
         update_instantiation_required_flag
-                                    (tip, instantiation_mode == tim_all ||
-                                     sym->variant.routine.ptr->is_virtual);
+                                 (tip, sym->variant.routine.ptr->is_virtual);
       }  /* if */
       rout = rout->next;
     }  /* while */
@@ -1638,14 +1638,16 @@ templ_sym).
     check_operator_function_params(rout_type, /*class_type=*/(a_type_ptr)NULL,
                                    &locator);
   }  /* if */
-  /* Normally, function instantiation entries are not marked for actual
-     instantiation (that is, for generation of the function body) until there
-     is an invocation of the function.  This is partly under user control,
-     however: if instantiation_mode is tim_all, mark it immediately. */
-  if (instantiation_mode == tim_all) {
-    update_instantiation_required_flag(tip, /*value=*/TRUE);
+  /* Function instantiation entries are not marked for actual instantiation
+     (that is, for generation of the function body) until there is an
+     invocation of the function.  In tim_all mode the instantiations
+     will be generated even if the instantiation required flag is not
+     set. */
+  if (!tip->instantiation_required) {
+    /* If the flag is set then the entry is already on the list and the flag
+       should not be reset. */
+    update_instantiation_required_flag(tip, /*value=*/FALSE);
   }  /* if */
-
   db_exit();
   return sym;
 }  /* make_template_function */
@@ -1920,13 +1922,15 @@ the function instantiation entry and set all the pointers.
           rp->is_inline = FALSE;
         }  /* if */
       }  /* if */
-      /* Normally, function instantiation entries are not marked for actual
-         instantiation (that is, for generation of the function body) until
-         there is an invocation of the function.  This is partly under user
-         control, however: if instantiation_mode is tim_all, mark it
-         immediately. */
-      if (instantiation_mode == tim_all) {
-        update_instantiation_required_flag(tip, /*value=*/TRUE);
+      /* Function instantiation entries are not marked for actual instantiation
+         (that is, for generation of the function body) until there is an
+         invocation of the function.  In tim_all mode the instantiations
+         will be generated even if the instantiation required flag is not
+         set. */
+      if (!tip->instantiation_required) {
+        /* If the flag is set then the entry is already on the list and
+           the flag should not be reset. */
+        update_instantiation_required_flag(tip, /*value=*/FALSE);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3659,7 +3663,7 @@ template entities.
   a_boolean	specific_def;
   a_boolean	template_def;
   if (tip->explicit_instantiation ||
-      (tip->instantiation_required &&
+      ((tip->instantiation_required || instantiation_mode == tim_all) &&
         (instantiation_mode != tim_none ||
          is_static_or_inline_template_function(tip)))) {
     /* For error checking purposes, find out if a specific definition
@@ -4293,7 +4297,8 @@ specific definition that made it unnecessary.
     for (tip = instantiations_required;
          tip != NULL;
          tip = tip->next_in_instantiation_list) {
-      if (tip->instantiation_required && !tip->already_instantiated) {
+      if ((instantiation_mode == tim_all || tip->instantiation_required) &&
+          !tip->already_instantiated) {
         if (should_be_instantiated(tip, /*implicit_inclusion_ok=*/TRUE)) {
           if (tip->instance_sym->kind ==
                                         (a_symbol_kind)sk_static_data_member) {
