@@ -534,10 +534,14 @@ static a_template_arg_ptr templ_arg_list_for_class(a_type_ptr class_type)
 /*
 Given a class type, return the template argument list to be used when
 generating an instantiation.  This it the template argument list
-associated with the outermost enclosing class.
+associated with the nearest enclosing class that has a template
+argument list.  Classes without template argument lists are member classes
+but not member class templates.
 */
 {
-  while (class_type->source_corresp.is_class_member) {
+  while (class_type->source_corresp.is_class_member &&
+         class_type->variant.class_struct_union.extra_info->
+                                                  template_arg_list == NULL) {
     class_type = class_type->source_corresp.parent.class_type;
   }  /* while */
   return class_type->variant.class_struct_union.extra_info->template_arg_list;
@@ -4430,7 +4434,7 @@ instantiation.
       } else if (!sym->defined) {
         /* Not previously defined. */
         *resolution = is_definition;
-        if (!is_definition && sym->is_class_member) {
+        if (!is_definition && sym->is_class_member && !is_template_friend) {
           /* Redeclaration of a class member is not allowed. */
           pos_sy_error(ec_bad_scope_for_redeclaration,
 	                 &locator.source_position, sym);
@@ -6185,7 +6189,8 @@ as the current token; otherwise, it is consumed.
     }  /* if */
   }  /* for */
   if (curr_token_sequence_number !=
-                         decl_token_cache.first_token->token_sequence_number) {
+                         decl_token_cache.first_token->token_sequence_number &&
+      curr_token != tok_end_of_source) {
     /* We aren't where we expected to be after scanning the template parameter
        lists.  This should be the result of an error.  Recache the template
        declaration at this point. */
