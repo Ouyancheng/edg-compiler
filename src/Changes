@@ -48,10 +48,14 @@ Support for the "new" scoping rules for for-init declarations (WP 6.5.3
     }                           //   but the standard says to return 0.
   }
 
-Global variable default_use_nonstandard_for_init_scope determines whether  
+Global variable default_use_nonstandard_for_init_scope determines whether
 the standard-conforming or cfront-compatible rules are observed; its
 default value is DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE, and it may be
 controlled from the command line by --old_for_init and --new_for_init.
+Moreover, no matter how DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE is
+defined, the new rules are used by default (i.e., in the absence of a
+command-line directive) in strict-ANSI mode, and the old rules are used
+by default in cfront-compatibility mode.
 
 Warning: Although code that relied on the old for-init scoping rules will
 usually produce compile-time errors when compiled under the new rules,
