@@ -4042,13 +4042,16 @@ mangled names (e.g., virtual function table variable names).
      and are not used in the file scope, so it's okay to change their names
      now. */
   for (type = scope->types; type != NULL; type = type->next) {
-    mangle_nested_type_name(type);
     if (is_immediate_class_type(type)) {
       class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
       if (class_scope != NULL) {
         do_scope_nested_type_name_mangling(class_scope);
       }  /* if */
     }  /* if */
+    /* Note that the call here must be done after all subscopes have been
+       visited; we don't want to change the name of a class until the
+       classes nested within it have been processed. */
+    mangle_nested_type_name(type);
   }  /* for */
   /* Visit all block scopes. */
   for (block_scope = scope->scopes;

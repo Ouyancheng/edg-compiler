@@ -1,11 +1,20 @@
 Version 2.13
 
+1/12/93 Bug in nested class name mangling
+
+Another bug in nested class name mangling has been fixed.  This one was
+visible with three or more levels of nesting:
+
+  struct A {struct B {struct C {static int i;};};} a;
+
 1/12/93 IL for new and delete changed
 
 The IL representation for new and delete has been changed.  enk_new_init
 has been removed.  An expression node of kind enk_new_delete, with a
 supplement of type a_new_delete_supplement, is now used to represent
-all new and delete operations.
+all new and delete operations.  This change makes the IL more truthful
+when the allocation or deallocation is folded into a constructor or
+destructor.  It makes the representation cleaner in general.
 
 1/10/93 Name mangling in base class names (for template cases)
 
