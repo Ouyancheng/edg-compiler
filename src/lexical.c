@@ -4258,53 +4258,71 @@ only in C++ mode.
 }  /* f_get_destructor_name */
 
 
-static a_boolean is_operator_token(a_token_kind token)
-/*
-Return TRUE if the indicated token is an operator token.  See ARM 13.4.
-*/
+static an_opname_kind opname_for_token(a_token_kind token)
 {
-  a_boolean is_operator;
+  an_opname_kind  op = onk_none;
 
   switch (token) {
-    case tok_new: case tok_delete:
-    case tok_plus: case tok_minus: case tok_star: case tok_divide:
-    case tok_remainder: case tok_excl_or: case tok_ampersand: case tok_or:
-    case tok_compl: case tok_not: case tok_assign: case tok_lt: case tok_gt:
-    case tok_plus_assign: case tok_minus_assign: case tok_times_assign:
-    case tok_divide_assign: case tok_remainder_assign: case tok_excl_or_assign:
-    case tok_and_assign: case tok_or_assign: case tok_shift_left:
-    case tok_shift_right: case tok_shift_right_assign:
-    case tok_shift_left_assign: case tok_eq: case tok_ne: case tok_le:
-    case tok_ge: case tok_and_and: case tok_or_or: case tok_plus_plus:
-    case tok_minus_minus: case tok_comma: case tok_arrow_star:
-    case tok_arrow:
-      is_operator = TRUE;
-      break;
+    /* Single token operators: */
+    case tok_new:                 op = onk_new;                 break;
+    case tok_delete:              op = onk_delete;              break;
+    case tok_plus:                op = onk_plus;                break;
+    case tok_minus:               op = onk_minus;               break;
+    case tok_star:                op = onk_star;                break;
+    case tok_divide:              op = onk_divide;              break;
+    case tok_remainder:           op = onk_remainder;           break;
+    case tok_excl_or:             op = onk_excl_or;             break;
+    case tok_ampersand:           op = onk_ampersand;           break;
+    case tok_or:                  op = onk_or;                  break;
+    case tok_compl:               op = onk_compl;               break;
+    case tok_not:                 op = onk_not;                 break;
+    case tok_assign:              op = onk_assign;              break;
+    case tok_lt:                  op = onk_lt;                  break;
+    case tok_gt:                  op = onk_gt;                  break;
+    case tok_plus_assign:         op = onk_plus_assign;         break;
+    case tok_minus_assign:        op = onk_minus_assign;        break;
+    case tok_times_assign:        op = onk_times_assign;        break;
+    case tok_divide_assign:       op = onk_divide_assign;       break;
+    case tok_remainder_assign:    op = onk_remainder_assign;    break;
+    case tok_excl_or_assign:      op = onk_excl_or_assign;      break;
+    case tok_and_assign:          op = onk_and_assign;          break;
+    case tok_or_assign:           op = onk_or_assign;           break;
+    case tok_shift_left:          op = onk_shift_left;          break;
+    case tok_shift_right:         op = onk_shift_right;         break;
+    case tok_shift_right_assign:  op = onk_shift_right_assign;  break;
+    case tok_shift_left_assign:   op = onk_shift_left_assign;   break;
+    case tok_eq:                  op = onk_eq;                  break;
+    case tok_ne:                  op = onk_ne;                  break;
+    case tok_le:                  op = onk_le;                  break;
+    case tok_ge:                  op = onk_ge;                  break;
+    case tok_and_and:             op = onk_and_and;             break;
+    case tok_or_or:               op = onk_or_or;               break;
+    case tok_plus_plus:           op = onk_plus_plus;           break;
+    case tok_minus_minus:         op = onk_minus_minus;         break;
+    case tok_comma:               op = onk_comma;               break;
+    case tok_arrow_star:          op = onk_arrow_star;          break;
+    case tok_arrow:               op = onk_arrow;               break;
+    /* Two-token operators: () and [].  Peek ahead to the next token; if it's
+       the right one, swallow it and set the opname kind.  Otherwise leave the
+       opname kind to onk_none, and the caller will issue the error. */
     case tok_lparen:
-      /* Two-token operator: (). */
       if (next_token() == tok_rparen) {
-        is_operator = TRUE;
-        /* Advance to the second token of the "operator". */
+        op = onk_function_call;
         (void)get_token();
-      } else {
-        is_operator = FALSE;
       }  /* if */
       break;
     case tok_lbracket:
-      /* Two-token operator: []. */
       if (next_token() == tok_rbracket) {
-        is_operator = TRUE;
-        /* Advance to the second token of the "operator". */
+        op = onk_subscript;
         (void)get_token();
-      } else {
-        is_operator = FALSE;
       }  /* if */
       break;
-    default:
-      is_operator = FALSE;
-  }  /* if */
-  return is_operator;
-}  /* is_operator_token */
+    default:;
+      /* Error case.  The caller will report it. */
+  }  /* switch */
+  /* Return the operator name kind. */
+  return op;
+}  /* opname_for_token */
 
 
 a_boolean f_get_opname(void)
@@ -4318,11 +4336,13 @@ only in C++ mode.
 {
   a_source_position start_position;
   a_token_kind      token;
+  an_opname_kind    opname;
 
   start_position = pos_curr_token;
   /* Skip past the "operator", check for an operator. */
   token = get_token();
-  if (!is_operator_token(token)) {
+  opname = opname_for_token(token);
+  if (opname == onk_none) {
     /* syntax_error is deliberately not called. */
     error(ec_exp_operator);
     /* Put back the current token and make a fake error identifier. */
@@ -4330,7 +4350,7 @@ only in C++ mode.
     make_specific_symbol_error_locator(&locator_for_curr_id);
   } else {
     /* Convert the locator to a locator for the operator. */
-    make_opname_locator(token, &locator_for_curr_id, &start_position);
+    make_opname_locator(token, opname, &locator_for_curr_id, &start_position);
   }  /* if */
   curr_token = tok_identifier;
   return TRUE;
