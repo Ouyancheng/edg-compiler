@@ -5758,7 +5758,7 @@ Returns TRUE if there is an error in the specifiers.
           /* Microsoft attributes can follow the typedef keyword. */
           (void)get_token();
           scan_and_append_microsoft_attributes(p_ms_attributes,
-                                               /*is_parameter=*/TRUE);
+                                               /*is_parameter=*/FALSE);
           goto no_get_token;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
