@@ -7734,6 +7734,24 @@ the process of being scanned.
 }  /* invalid_end_of_template_arg_list */
 
 
+static a_symbol_ptr class_template_for_injected_template_symbol(
+							a_symbol_ptr sym)
+/*
+sym is an injected template name symbol.  Return the class template symbol
+for the class template of which this class is an instance.
+*/
+{
+  a_type_ptr			templ_class_type;
+  a_class_symbol_supplement_ptr	cssp;
+  a_symbol_ptr			template_sym;
+
+  templ_class_type = sym->variant.type.ptr;
+  cssp = symbol_supplement_for_class(templ_class_type);
+  template_sym = cssp->class_template;
+  return template_sym;
+}  /* class_template_for_injected_template_symbol */
+
+
 a_symbol_ptr coalesce_template_class_reference(
 			a_symbol_ptr			template_sym,
 			an_identifier_options_set	options,
@@ -7914,11 +7932,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
        class this points to the current instance of the class.  When
        followed by a template argument list, we need to substitute the
        class template symbol for the injected symbol. */
-    a_type_ptr				templ_class_type;
-    a_class_symbol_supplement_ptr	cssp;
-    templ_class_type = template_sym->variant.type.ptr;
-    cssp = symbol_supplement_for_class(templ_class_type);
-    template_sym = cssp->class_template;
+    template_sym = class_template_for_injected_template_symbol(template_sym);
   }  /* if */
   /* Always allocate template arguments at the file scope. */
   switch_to_file_scope_region(&region_to_switch_back_to);
@@ -8477,8 +8491,25 @@ Set the specific symbol to the associated nonfundamental symbol.
        normal symbol refers to a class and the class symbol refers to the
        constructor, they are considered equivalent. */
     a_boolean	equiv_symbols = FALSE;
+    a_boolean	use_normal_if_equiv = TRUE;
     if (normal_fund_sym == class_fund_sym) {
       equiv_symbols = TRUE;
+    } else if (is_class_symbol(normal_fund_sym) &&
+               is_injected_class_symbol(class_fund_sym)) {
+      /* The normal symbol is a class and the class symbol is an injected
+         class name.  They are equivalent if they refer to the same type. */
+      equiv_symbols = identical_types(type_symbol_type(normal_fund_sym),
+                                      class_fund_sym->variant.type.ptr);
+    } else if (is_class_template_symbol(normal_fund_sym) &&
+               is_injected_template_symbol(class_fund_sym)) {
+      /* The normal symbol is a class template and the class symbol is an
+         injected template name.  They are equivalent if the template
+         associated with the injected name is the same as the class template.
+         If they are equivalent, use the class symbol because it is the one
+         for which a following template argument list is optional. */
+      equiv_symbols = normal_sym ==
+                   class_template_for_injected_template_symbol(class_fund_sym);
+      use_normal_if_equiv = FALSE;
     } else if (is_constructor_symbol(class_fund_sym) &&
                is_class_symbol(normal_fund_sym)) {
       a_type_ptr	normal_type;
@@ -8488,10 +8519,15 @@ Set the specific symbol to the associated nonfundamental symbol.
       }  /* if */
     }  /* if */
     if (equiv_symbols) {
-      /* The symbols are equivalent.  Use the normal symbol just in case
-         the class symbol refers to a constructor. */
-      result_sym = normal_fund_sym;
-      specific_symbol = normal_sym;
+      /* The symbols are equivalent.  Use the normal symbol unless otherwise
+         specified. */
+      if (use_normal_if_equiv) {
+        result_sym = normal_fund_sym;
+        specific_symbol = normal_sym;
+      } else {
+        result_sym = class_fund_sym;
+        specific_symbol = class_sym;
+      }  /* if */
     } else {
       /* The symbols are not equivalent.  Issue a diagnostic.
          When the name is followed by a "::" (when might_be_template

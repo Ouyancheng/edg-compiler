@@ -3012,6 +3012,12 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
    (sym)->variant.type.ptr->						\
 	    variant.class_struct_union.extra_info->template_arg_list != NULL)
 
+/* Return TRUE if the symbol is an sk_type symbol that represents an
+   injected class name. */
+#define is_injected_class_symbol(sym)					\
+  ((sym)->kind == (a_symbol_kind)sk_type &&				\
+   (sym)->variant.type.is_injected_class_name)
+
 /* Return TRUE if the symbol is a class template symbol or an sk_type
    symbol that represents an injected class name in a template class. */
 #define is_class_template_or_injected_template_symbol(sym)		\
