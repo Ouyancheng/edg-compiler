@@ -1,5 +1,24 @@
 Version 2.21
 
+12/15/93  Virtual function table problem in non-cfront-compatibility mode
+
+In non-cfront-layout-compatibility mode, IL lowering would abort
+while trying to generate virtual function tables if the most-derived
+class contained no virtual function declarations but still had an
+effect on the virtual function tables for its base classes:
+
+	struct W {
+		virtual int f() = 0;
+		virtual int g() = 0;
+	};
+	struct A : public virtual W {
+		int f();
+	};
+	struct B : public virtual W {
+		int g();
+	};
+	class C : public A, public B { };
+
 12/15/93  IL change: shares_virtual_function_info added to a_base_class
 
 A new field, shares_virtual_function_info, has been added to a_base_class.
