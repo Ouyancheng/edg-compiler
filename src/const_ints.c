@@ -31,7 +31,7 @@ static an_integer_value
 		max_integer_value_of_kind[(int)ik_last];
 
 
-#define INT_VALUE_PART_BASE (MAX_UINT_VALUE_PART + 1)
+#define INT_VALUE_PART_BASE ((a_host_large_unsigned)MAX_UINT_VALUE_PART + 1)
 
 /* Return TRUE if the sign of the integer value is negative. */
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
@@ -678,8 +678,9 @@ operand (op_1 = op_1 ^ op_2).
    number is valid, otherwise returns the value in fill_value.
    fill_value is a local variable of the functions that call this macro. */
 #define get_part(value, part_gp)					\
+  ((a_host_large_unsigned)						\
   ((part_gp < 0 || part_gp >= INT_VALUE_PARTS_PER_INTEGER_VALUE) ?	\
-                                      fill_value : (value).part[part_gp]) 
+                                      fill_value : (value).part[part_gp])) 
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 
