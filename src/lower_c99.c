@@ -820,7 +820,7 @@ replace them by a representation compatible with C89.
           break;
         case abk_constant:
           /* Nothing to be done (appears only for addresses of string
-             constants. */
+             constants). */
           break;
         default:
           unexpected_condition_str("Bad c99 address const kind");
