@@ -1,5 +1,14 @@
 Version 2.15
 
+3/3/93  Uninitialized const or ref field of aggregate class object
+
+In C++ mode we now issue an error when a class object that is an
+"aggregate" (ARM 8.4.1) and that has const or ref nonstatic data members
+is declared without an initializer.  The error is also issued when there
+is partial initialization but at least one const or ref field if left
+uninitialized, or when an array of such class objects is only partially
+initialized.  (In C mode we continue to issue a warning on such cases.)
+
 3/3/93  Cleanup of use of <ctype.h> macros
 
 All uses of the <ctype.h> macros (e.g., isalpha) in the front end code

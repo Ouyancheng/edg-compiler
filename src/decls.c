@@ -9074,8 +9074,11 @@ continue_with_declaration:
                   }  /* for */
                 }  /* if */
                 if (init_required) {
-                  pos_sy_warning(ec_var_with_uninitialized_field,
-                                 &declarator_pos, symbol_ptr);
+                  pos_sy_diagnostic(C_dialect == C_dialect_cplusplus ?
+                                      (an_error_severity)es_error :
+                                      (an_error_severity)es_warning,
+                                    ec_var_with_uninitialized_field,
+                                    &declarator_pos, symbol_ptr);
                 }  /* if */
               }  /* if */
             }  /* if */
