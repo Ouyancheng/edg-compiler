@@ -8330,7 +8330,7 @@ the VTT pointer, or NULL if one is not needed.
                   /*var_is_array=*/FALSE,
                   base_class->type,
                   base_class->base_subarray_index_in_construction_vtbl_array,
-                  &ipd,
+                  ipdp,
                   insert_location);
   } else if (base_class->is_virtual) {
     if (base_class->base_construction_vtbls != 0) {
@@ -8348,7 +8348,7 @@ the VTT pointer, or NULL if one is not needed.
                             /*var_is_array=*/TRUE,
                             base_class->type,
                             (a_construction_vtbl_array_index)1,
-                            &ipd,
+                            ipdp,
                             insert_location);
     }  /* if */
   }  /* if */
@@ -8418,6 +8418,7 @@ array if necessary.  The statement(s) created are inserted at
     /* Initializing a base class. */
     a_base_class_ptr base_class = ctor_init->variant.base_class;
 #if !IA64_ABI
+    a_variable_ptr   param_var;
     a_type_ptr       base_class_type = base_class->type;
     a_base_class_ptr bcp;
     /* Develop a position description for the entity to initialize. */
