@@ -1,5 +1,12 @@
 Version 3.2
 
+4/16/03  Spurious correspondence errors on prototype instantiations
+
+When PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, the front end sometimes issued
+spurious correspondence errors between a class template and its prototype
+instantiation (during compilations involving multiple translation units).
+This is now fixed.
+
 4/16/03  Spurious error on specialization of template static data member
 
 A spurious error could occur when a template static data member is specialized,

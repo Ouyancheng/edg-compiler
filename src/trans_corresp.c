@@ -3834,9 +3834,11 @@ entities.
   a_boolean     handled_later = FALSE;
 
   if (is_immediate_class_type(type) &&
-      type->variant.class_struct_union.originally_unnamed) {
-    /* This is presumably a class that acquired a name through a typedef
-       declaration.  It will be handled elsewhere. */
+      (type->variant.class_struct_union.originally_unnamed ||
+       type->variant.class_struct_union.is_prototype_instantiation)) {
+    /* A class that acquired a name through a typedef declaration will be
+       handled elsewhere.   Similarly, prototype instantiations are handled
+       when the generic template is processed. */
     handled_later = TRUE;
   } else if (!has_name(type)) {
     /* Cannot establish a correspondence without a name. */
