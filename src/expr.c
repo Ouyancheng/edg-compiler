@@ -3572,12 +3572,8 @@ As an anachronism, allow an expression inside the [ ].
       if (is_class_struct_union_type(base_delete_type)) {
         dtor_routine = select_destructor(base_delete_type);
         if (dtor_routine != NULL) {
-          /* Class with destructor.  Destruction is required.  The pointer
-             must be saved in a temporary so that it can be used both on the
-             call of the destructor and on the call of the delete routine.
-             The overall expression will look like
-               ((dtor-routine(temp = ptr-node)), delete_routine((void *)temp))
-          */
+          /* Class with destructor.  Destruction is required.  Use an
+             enk_new_init node to do the destruction. */
           init_node = alloc_expr_node((an_expr_node_kind)enk_new_init);
           init_node->variant.init.expr = ptr_node;
           init_node->type = ptr_node->type;
