@@ -3503,7 +3503,7 @@ Syntax:
   }  /* if */
 #endif /* CHECKING */
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   expr_stack_entry.evaluated = FALSE;
   expr_stack_entry.potentially_evaluated = FALSE;
   /* Save the position of the sizeof keyword. */
@@ -3635,7 +3635,7 @@ be inappropriate, because the feature is probably used to implement
   db_enter(4, "scan_alignof_operator");
 
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   expr_stack_entry.evaluated = FALSE;
   expr_stack_entry.potentially_evaluated = FALSE;
   /* Save the position of the __ALIGNOF__ keyword. */
@@ -3711,7 +3711,7 @@ used in the implementation of offsetof.
 
   db_enter(4, "scan_extended_integral_constant_expression");
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   /* Scan the expression. */
   scan_expr(operand, prec_level, allow_comma ? EOPT_NO_OPTIONS :
                                                EOPT_DISALLOW_COMMA_OPERATOR);
@@ -8538,7 +8538,7 @@ a pointer to the expression tree.
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*new_object_lifetime=*/TRUE);
+                  /*force_object_lifetime=*/TRUE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* Make sure it's an integer.  Convert from a class type to an integer if
@@ -8588,7 +8588,7 @@ scan full expressions.
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*new_object_lifetime=*/repeated_in_loop);
+                  /*force_object_lifetime=*/repeated_in_loop);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
@@ -8630,7 +8630,7 @@ a prior error) just do the scan.
   saved_expr_stack = expr_stack;
   expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   expr_stack_entry.is_default_arg_expression = TRUE;
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST,
@@ -8801,7 +8801,7 @@ the appropriate dynamic initialization entry and return NULL.
   *dip = NULL;
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   return_by_cctor_case = FALSE;
   routine_type = skip_typerefs(curr_routine->type);
   if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
@@ -8869,7 +8869,7 @@ Scan a pre-processor expression.  See sections 3.4 and 3.8.1 in the standard.
   saved_expr_stack = expr_stack;
   expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_pp, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
@@ -8897,7 +8897,7 @@ Scan an integral constant expression.  See section 3.4 in the C standard.
   db_enter(3, "scan_integral_constant_expression");
 
   push_expr_stack((an_expression_kind)ek_integral_constant, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   do_operand_transformations(&result, TOPT_NO_OPTIONS);
@@ -8934,7 +8934,7 @@ C++ mode.
   db_enter(3, "scan_new_array_dimension_expression");
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* Convert from a class type to integral if necessary. */
@@ -9075,7 +9075,7 @@ Return the constant in *constant.
   db_enter(3, "scan_template_argument_constant_expression");
 
   push_expr_stack((an_expression_kind)ek_template_arg, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
@@ -9128,7 +9128,7 @@ constant class members (an extension).
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Convert to the required type. */
@@ -9153,6 +9153,7 @@ constant class members (an extension).
 
 void scan_initializer_expression(a_type_ptr       required_type,
                                  a_boolean        static_lifetime,
+                                 a_boolean        force_object_lifetime,
                                  a_boolean        *is_constant,
                                  an_expr_node_ptr *expression,
                                  a_constant       *constant)
@@ -9160,8 +9161,9 @@ void scan_initializer_expression(a_type_ptr       required_type,
 Scan an initializer expression.  See sections 3.4 and 3.5.7 in the standard.
 The expression is converted to required_type; an error is issued if it
 is incompatible with that type.  The entity being initialized has static
-lifetime if static_lifetime is TRUE.  The expression can be constant or
-nonconstant; on return, *is_constant is set accordingly, and the result
+lifetime if static_lifetime is TRUE.  Force an object lifetime around the
+expression if force_object_lifetime is TRUE.  The expression can be constant
+or nonconstant; on return, *is_constant is set accordingly, and the result
 is returned either in *expression or in *constant.  Note that the
 required_type may not be an array type.  This routine is not used when
 copy constructor elision is possible; see scan_class_initializer_expression.
@@ -9174,7 +9176,7 @@ copy constructor elision is possible; see scan_class_initializer_expression.
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  force_object_lifetime);
   if (static_lifetime) {
     /* In initializations of static variables, fold constant addressing
        expressions to constants so that constant initialization can be
@@ -9246,7 +9248,7 @@ err_pos as the error position.
   saved_expr_stack = expr_stack;
   expr_stack = NULL;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   /* Make an operand for the expression. */
   make_expression_operand(expr, expr->type, &operand);
   operand.position = *err_pos;
@@ -9289,7 +9291,7 @@ appropriate.
   db_enter(3, "scan_class_initializer_expression");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  /*force_object_lifetime=*/FALSE);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   /* Find out whether or not the conversion is possible, and
@@ -9304,11 +9306,13 @@ appropriate.
 }  /* scan_class_initializer_expression */
 
 
-void scan_class_parenthesized_initializer(a_type_ptr         class_type,
-                                          a_type_ptr         object_class_type,
-                                          a_source_position  *source_pos,
-                                          a_boolean          fill_in_dtor,
-                                          a_dynamic_init_ptr *dip)
+void scan_class_parenthesized_initializer(
+                                      a_type_ptr         class_type,
+                                      a_type_ptr         object_class_type,
+                                      a_boolean          force_object_lifetime,
+                                      a_source_position  *source_pos,
+                                      a_boolean          fill_in_dtor,
+                                      a_dynamic_init_ptr *dip)
 /*
 Scan a parenthesized initializer for an object of type class_type.
 class_type must be a class type having at least one constructor.
@@ -9321,10 +9325,12 @@ This routine is used for constructs like
 
 object_class_type indicates the class type of the full object being
 initialized.  It is the same as class_type, or a derived type thereof.
-On return, the current position is following the closing parenthesis of
-the initializer.  If fill_in_dtor is TRUE, any required destruction will
-be indicated in the dynamic initialization.  *source_pos is the source
-position to be used in overall errors.
+An object lifetime is forced around the initialization if
+force_object_lifetime is TRUE.  On return, the current position is
+following the closing parenthesis of the initializer.  If fill_in_dtor
+is TRUE, any required destruction will be indicated in the dynamic
+initialization.  *source_pos is the source position to be used in
+overall errors.
 */
 {
   an_expr_stack_entry           expr_stack_entry;
@@ -9335,7 +9341,7 @@ position to be used in overall errors.
   db_enter(4, "scan_class_parenthesized_initializer");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*new_object_lifetime=*/FALSE);
+                  force_object_lifetime);
   check_assertion(C_dialect == C_dialect_cplusplus &&
                   is_class_struct_union_type(class_type));
   cssp = symbol_supplement_for_class(class_type);
@@ -9393,7 +9399,8 @@ full expressions.
 
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*new_object_lifetime=*/is_condition_expr||repeated_in_loop);
+                  /*force_object_lifetime=*/is_condition_expr ||
+                                            repeated_in_loop);
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
 
