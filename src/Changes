@@ -1,17 +1,41 @@
 Version 2.28
 
+1/23/95  Bug in generation of implicitly declared assignment operator
+
+A bug has been fixed in how assignment operators are implicitly declared
+-- the problem is when a const-qualified object may be accepted.  For
+example, in the following C::operator=(C&) was being created instead of
+C::operator=(const C&):
+
+  struct A {
+    A& operator=(const A&);
+  };
+  struct B {
+    int i;
+    int operator=(int);
+  };
+  struct C {
+    A a;
+    B b;
+    C();
+  } c;
+  main() {
+    const C x;
+    c = x;                      // Spurious error is not longer issued
+  }
+
 1/23/95  Compile-time comparison of pointers to data members in unions
 
 The compile-time folding in the following is now done correctly:
 
   union U {
-      int i1;
-      int i2;
+    int i1;
+    int i2;
   };
   main()
   {
-      int result = &U::i1==&U::i2;  // Should be 1
-      return result;
+    int result = &U::i1==&U::i2;  // Should be 1
+    return result;
   }
 
 1/23/95  Template instance flag and automatic instantiation mode
@@ -27,13 +51,13 @@ in automatic instantiation mode.
 A bug has been fixed that caused examples such as the following to
 produce spurious access errors.
 
-template <class T> class A {
-  class B {
-  public:
-    B();
+  template <class T> class A {
+    class B {
+    public:
+      B();
+    };
   };
-};
-template<class T> A<T>::B::B(){}  // Spurious error on this line
+  template<class T> A<T>::B::B(){}  // Spurious error on this line
 
 1/20/95  Internal error following syntax error in #pragma directive
 
