@@ -6961,7 +6961,7 @@ its source correspondence entry, if any, has been put out.)
             first_token = first_token->next;
           }  /* while */
           if (first_token != NULL &&
-              first_token->token == (a_token_kind)tok_colon) {
+              (a_token_kind)first_token->token == tok_colon) {
             /* There can sometimes be an overlap between the template
                declaration cache and the template body cache.  Such an
                overlap does not cause problems for the normal
