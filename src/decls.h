@@ -167,8 +167,10 @@ extern void type_name(a_type_ptr *type_ptr);
 extern void new_type_name(a_boolean         is_parenthesized,
                           a_type_ptr        *type_ptr);
 
-extern a_boolean scan_conversion_operator(a_source_position  *pos,
-				          a_type_ptr         class_type);
+extern
+a_boolean scan_conversion_operator(a_source_position           *id_pos,
+                                   a_boolean                   is_class_member,
+                                   a_parent_class_or_namespace parent);
 
 extern a_type_ptr type_keyword(void);
 

@@ -5987,14 +5987,18 @@ only in C++ mode.
 }  /* get_destructor_name */
 
 
-static void get_opname(a_type_ptr class_type)
+static void get_opname(a_boolean                   is_class_member,
+                       a_parent_class_or_namespace parent)
 /*
 The current token is the token "operator" at the start of an operator name,
 like "operator+".  Scan the name and build a locator for the operator name
-in locator_for_curr_id.  class_type is a pointer to the class type of the
-class qualifier associated with the generalized identifier being scanned.
-If class_type is not NULL then push a class reactivation scope before
-scanning the type name in a type conversion operator.
+in locator_for_curr_id.  parent is a pointer to the class type or the
+namespace of the qualifier associated with the generalized identifier
+being scanned.  is_class_member is TRUE if the parent points
+to a class, it is FALSE if parent points to a namespace or if there
+is no parent.  If the parent pointer is not NULL then push a class or
+namespace reactivation scope before scanning the type name in a type
+conversion operator.
 
 This routine is called only in C++ mode.
 */
@@ -6006,7 +6010,7 @@ This routine is called only in C++ mode.
   start_position = pos_curr_token;
   /* Skip past the "operator", check for an operator. */
   token = get_token();
-  if (scan_conversion_operator(&start_position, class_type)) {
+  if (scan_conversion_operator(&start_position, is_class_member, parent)) {
     /* This is a conversion operator function -- "operator" followed by
        a type name. */
   } else {
@@ -7357,8 +7361,15 @@ qualified name.
     }  /* if */
     /* The name can be an operator name like "operator+". */
     if (curr_token == tok_operator) {
-      check_assertion(qualifier_is_type == TRUE);
-      get_opname(qualifier_type);
+      /* get_opname requires a parent class or namespace pointer.
+         Construct one for the qualifier that has been scanned. */
+      a_parent_class_or_namespace parent;
+      if (qualifier_is_type) {
+        parent.class_type = qualifier_type;
+      } else {
+        parent.namespace_ptr = qualifier_namespace;
+      }  /* if */
+      get_opname(qualifier_is_type, parent);
     }  /* if */
 wrapup:
     /* The current token must now be the final identifier of the

@@ -4895,15 +4895,19 @@ syntax is:
 }  /* new_type_name */
 
 
-a_boolean scan_conversion_operator(a_source_position  *id_pos,
-				   a_type_ptr	      class_type)
+a_boolean scan_conversion_operator(a_source_position           *id_pos,
+                                   a_boolean                   is_class_member,
+                                   a_parent_class_or_namespace parent)
 /*
 The token "operator" has been seen and passed; we are now on the token
 immediately following it.  If it marks the start of a type name we have
 an identifier for a conversion operator -- scan the type name, update the
 locator, and return TRUE.  If it doesn't, return FALSE.
-If class_type is not NULL then push a class reactivation scope before
-scanning type name in a type conversion operator.
+If the class or namespace pointed to by parent is not NULL then push a
+class or namespace reactivation scope before scanning type name in a type
+conversion operator.  is_class_member is TRUE if the parent points
+to a class, it is FALSE if parent points to a namespace or if there
+is no parent.
 */
 {
   a_storage_class           storage_class;
@@ -4914,17 +4918,20 @@ scanning type name in a type conversion operator.
   a_source_position         type_pos;
   a_boolean                 is_conversion_operator;
   a_boolean		    class_reactivated = FALSE;
+  a_boolean		    namespace_reactivated = FALSE;
 
   db_enter(3, "scan_conversion_operator");
-  /* Push a class reactivation scope if class_type is not NULL.  This is
-     used when scanning conversion operators such as "A::operator B" where
-     B needs to be looked up within A.  This is not needed for overloaded
-     operator routines, but we don't know what kind of operator we are
-     scanning until we call is_type_start, and the class needs to
-     be reactivated before is_type_start is called. */
-  if (class_type != NULL && !is_incomplete_type(class_type)) {
+  /* Push a class or namespace reactivation scope if the class or namespace
+     pointed to by parent is not NULL.  This is used when scanning conversion
+     operators such as "A::operator B" where B needs to be looked up within
+     A.  This is not needed for overloaded operator routines, but we
+     don't know what kind of operator we are scanning until we call
+     is_type_start, and the class needs to be reactivated before
+     is_type_start is called. */
+  if (is_class_member && parent.class_type != NULL &&
+      !is_incomplete_type(parent.class_type)) {
     a_symbol_ptr	sym;
-    sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+    sym = (a_symbol_ptr)parent.class_type->source_corresp.assoc_info;
     /* In valid usage, the class type will always be either a complete
        real class type or a prototype instantiation.  In other cases,
        suppress the reactivation because incomplete and nonreal classes
@@ -4933,9 +4940,12 @@ scanning type name in a type conversion operator.
     if (sym != NULL && 
         (is_real_class_symbol(sym) ||
          is_prototype_instantiation_symbol(sym))) {
-      push_class_reactivation_scope(class_type);
+      push_class_reactivation_scope(parent.class_type);
       class_reactivated = TRUE;
     }  /* if */
+  } else if (parent.namespace_ptr != NULL) {
+    push_namespace_reactivation_scope(parent.namespace_ptr);
+    namespace_reactivated = TRUE;
   }  /* if */
   if (is_type_start()) {
     /* It is the start of a type name. */
@@ -4971,8 +4981,13 @@ scanning type name in a type conversion operator.
   } else {
     is_conversion_operator = FALSE;
   }  /* if */
-  /* Pop the class reactivation scope if one was pushed earlier. */
-  if (class_reactivated) pop_class_reactivation_scope();
+  /* Pop the class or namespace reactivation scope if one was
+     pushed earlier. */
+  if (class_reactivated) {
+    pop_class_reactivation_scope();
+  } else if (namespace_reactivated) {
+    pop_namespace_reactivation_scope();
+  }  /* if */
   db_exit();
   return is_conversion_operator;
 }  /* scan_conversion_operator */
