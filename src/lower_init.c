@@ -3312,7 +3312,13 @@ enabled.
 {
   a_dynamic_init_ptr dip = local_static_lifetime->destructions;
 
-  check_assertion(dip != NULL && dip->next == NULL);
+  check_assertion(dip != NULL);
+  /* There may be other destructions in the scope, so go to the end of the
+     list to find the destruction for the guard variable. */
+  while (dip->next_in_destruction_list != NULL) {
+    dip = dip->next_in_destruction_list;
+  }  /* if */
+  check_assertion(dip->is_guard_var_for_local_static_var_init);
   curr_context->curr_cleanup_state = dip->destructible_entity_descr->
                                 cleanup_state_to_set_when_starting_destruction;
   insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,

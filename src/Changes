@@ -1,5 +1,43 @@
 Version 2.36
 
+6/13/97   EH cleanup state after initialization of local static variable
+
+After initialization of a local static variable that is an aggregate,
+when partial lowering of exception handling is being done, the cleanup
+state incorrectly included the entry to clear the "initialized" flag
+for the local static variable.
+
+  struct A {
+    A();
+    ~A();
+  };
+  void f() {
+    static A a[2];
+    // cleanup state here included clearing the initialized flag for "a"
+    ...
+  }
+
+If full lowering of exception handling is done, if such a local static
+aggregate is initialized with a brace-enclosed list, the cleanup state
+at the end of the initialization would lose any initializations that
+precede the local static variable declaration:
+
+  struct A {
+    A(int);
+    A();
+    ~A();
+  };
+  struct B {
+    A a;
+  };
+  void f()
+  {
+    A a;
+    static B b = {1};
+    // cleanup state here does not include destroying "a"
+    ...
+  }
+
 6/12/97   Using-declaration that specifies a constructor or destructor
 
 In accord with a recent clarification to the Working Paper, an error is now
