@@ -2374,9 +2374,13 @@ will be involved in overloading.
     is_function = is_function_type(type);
     is_object = !is_function;
     /* In pcc mode, functions and extern variables are always effectively
-       declared at the file scope level. */
-    if (C_dialect == C_dialect_pcc &&
-        (is_function || local_storage_class == (a_storage_class)sc_extern)) {
+       declared at the file scope level.  In addition, because we accept
+       static function declarations inside functions as an extension, we
+       must promote static function declarations to file scope. */
+    if ((C_dialect == C_dialect_pcc &&
+         (is_function || local_storage_class == (a_storage_class)sc_extern)) ||
+        (C_dialect != C_dialect_cplusplus &&
+         (is_function && local_storage_class == (a_storage_class)sc_static))) {
       *effective_decl_level = DEPTH_OF_FILE_SCOPE;
     } else if (C_dialect == C_dialect_cplusplus &&
                is_default_operator_new(locator, type)) {
@@ -7810,14 +7814,22 @@ continue_with_declaration:
                                            (a_scope_kind)sck_block) &&
               local_storage_class != (a_storage_class)sc_unspecified &&
               local_storage_class != (a_storage_class)sc_extern) {
-            /* In pcc mode, allow "static"; the function will be entered
-               at the file scope as static. */
-            if (C_dialect == C_dialect_pcc &&
-                local_storage_class == (a_storage_class)sc_static) {
-              /* Okay. */
-            } else {
-              error(ec_block_scope_function_must_be_extern);
-              local_storage_class = (a_storage_class)sc_extern;
+            /* Allow "static" in all C modes except strict ANSI. The function 
+               will be entered at the file scope as static.  This is an
+               extension to ANSI C.  Do not allow at all in C++ mode. */
+            if (local_storage_class == (a_storage_class)sc_static) {
+              if (C_dialect == C_dialect_cplusplus) {
+                error(ec_block_scope_function_must_be_extern);
+                /* id_linkage doesn't expect block level statics in
+                   C++ mode. */
+                local_storage_class = (a_storage_class)sc_extern;
+              } else {  /* a C dialect */
+                /* This is an extension to ANSI C so produce a warning
+                   in strict ANSI C mode. */
+                if (strict_ansi_mode) {
+                  warning(ec_block_scope_function_must_be_extern);
+                }  /* if */
+              }  /* if */
             }  /* if */
           }  /* if */
           /* Make a function with no body (yet?) have a storage class of

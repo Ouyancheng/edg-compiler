@@ -1,5 +1,19 @@
 Version 2.08
 
+7/27/92  Accept function scope declarations of static functions
+
+Code such as:
+
+void f()
+{
+	static int y();
+}
+
+was accepted only in pcc mode.  It is now accepted in all C modes
+except strict ANSI mode.
+
+This is now a warning (in strict ANSI mode) instead of an error.
+
 7/24/92  Handle parameter types with type qualifiers better
 
 Fixed a bug that gave an error on the following:
