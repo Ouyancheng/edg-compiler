@@ -575,6 +575,10 @@ extern void type_error(an_error_code error_code,
 extern void pos_sy_error(an_error_code     error_code,
                          a_source_position *error_pos,
                          struct a_symbol   *symbol);
+extern void pos_syty_error(an_error_code     error_code,
+                           a_source_position *error_pos,
+                           struct a_symbol   *symbol,
+                           struct a_type     *type);
 extern void sym_error(an_error_code   error_code,
                       struct a_symbol *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */

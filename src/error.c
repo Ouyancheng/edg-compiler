@@ -1433,8 +1433,7 @@ error code.
       m = "a function with an incomplete return type may not be called";
       break;
     case ec_protected_access_problem:
-      m =
-     "protected %n is not accessible through a pointer or object of this type";
+      m = "protected %n is not accessible through a %t pointer or object";
       break;
     case ec_param_not_allowed:
       m = "a parameter is not allowed";
@@ -1443,7 +1442,7 @@ error code.
       m = "%no is reserved for future use as a keyword";
       break;
     case ec_asm_not_allowed:
-      m = "\"asm\" declaration not allowed";
+      m = "an \"asm\" declaration is not allowed at this point";
       break;
     case ec_no_conversion_function:
       m = "no suitable conversion function from %t1 to %t2 exists";
@@ -3245,6 +3244,22 @@ indicated position.
   error_msg_syms[1] = symbol;
   diag_message(error_code, error_pos, es_error);
 }  /* pos_sy_error */
+
+
+void pos_syty_error(an_error_code     error_code,
+                    a_source_position *error_pos,
+                    struct a_symbol   *symbol,
+                    struct a_type     *type)
+/*
+Report the indicated error (with the indicated symbol and type) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type;
+  error_msg_syms[1] = symbol;
+  diag_message(error_code, error_pos, es_error);
+}  /* pos_ty_error */
 
 
 void sym_error(an_error_code   error_code,
