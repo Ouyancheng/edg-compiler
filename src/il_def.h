@@ -3860,8 +3860,11 @@ typedef struct a_routine {
                 assoc_scope;
                         /* If not NULL_region_number, this indicates the
                            memory region containing local declarations and
-                           executable statements.  This is non-NULL only
-                           if the routine has a body. */
+                           executable statements.  This is non-NULL only if
+			   the routine has a body.  If this field is non-NULL
+			   and the "defined" flag is FALSE during front-end
+			   processing, it means that scanning the function
+			   body has begun but is not yet complete. */
 #ifdef CIL
                         /* See also prototype_scope under
                            a_routine_type_supplement. */
@@ -3906,6 +3909,10 @@ typedef struct a_routine {
   a_bit_field	compiler_generated:1;
 			/* TRUE for functions that are created by the
 			   compiler, e.g., default constructors in C++. */
+  a_bit_field	defined:1;
+			/* TRUE once the definition of the function has been
+			   completed.  (While the function body is being
+			   scanned, "defined" remains FALSE.) */
   a_bit_field	called:1;
 			/* TRUE if this routine is directly called.
 			   For virtual functions in C++, this indicates that

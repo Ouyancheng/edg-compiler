@@ -1519,9 +1519,8 @@ Display the indicated routine.
   if (ptr->compiler_generated) {
     disp_boolean("compiler_generated", TRUE);
   }  /* if */
-  if (ptr->called) {
-    disp_boolean("called", TRUE);
-  }  /* if */
+  disp_boolean("defined", ptr->defined);
+  disp_boolean("called", ptr->called);
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->assignment_to_this_done) {
     disp_boolean("assignment_to_this_done", TRUE);
