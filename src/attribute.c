@@ -1515,7 +1515,6 @@ messages about any invalid attributes.
                   pos_error(ec_fmt_arg_is_not_string, &ap->position);
                   error_occurred = TRUE;
                 }  /* if */
-                break;
               }  /* if */
             }  /* for */
             /* If the format argument index is out of range, issue an
