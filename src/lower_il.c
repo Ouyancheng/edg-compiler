@@ -11661,7 +11661,7 @@ not reachable from the normal file-scope IL tree.
 {
   an_orphaned_types_list_ptr otlp;
   an_il_entry_kind           kind;
-  char                       *list_entry_ptr, *entry_ptr, *next_entry_ptr;
+  char                       *entry_ptr;
 
   /* First lower the list of types saved by IL lowering itself.  This is
      done as a separate step so that the class types can be processed in
@@ -11674,41 +11674,27 @@ not reachable from the normal file-scope IL tree.
   for (kind = (an_il_entry_kind)0;
        (int)kind < (int)iek_last;
        kind = (an_il_entry_kind)((int)kind + 1)) {
-    /* Look at each entry on the list of orphaned entries of that kind. */
+    /* Visit each entry on the list of orphaned entries of that kind. */
     for (entry_ptr = orphaned_file_scope_il_entries[(int)kind].first_entry;
          entry_ptr != NULL; 
          entry_ptr = fs_orphan_pointer_of(entry_ptr)) {
-      /* Treat each entry as part of a list if that IL entry has a "next"
-         pointer. */
-      list_entry_ptr = entry_ptr;
-      do {
-        /* Stop the inner loop on an entry that has already been visited.
-           Without this optimization, there would be quadratic behavior in
-           cases where the orphaned_file_scope_il_entries list and the
-           "next" pointer list have long shared segments, which is quite
-           likely. */
-        if (visited_yet((a_type_ptr)list_entry_ptr)) break;
-        next_entry_ptr = NULL;
-        /* Only a few entry kinds are actually used in lowering. */
-        switch (kind) {
-          case iek_type:
-            lower_type((a_type_ptr)list_entry_ptr);
-            next_entry_ptr = (char *)(((a_type_ptr)list_entry_ptr)->next);
-            break;
-          case iek_constant:
-            lower_constant((a_constant_ptr)list_entry_ptr);
-            next_entry_ptr = (char *)(((a_constant_ptr)list_entry_ptr)->next);
-            break;
-          case iek_variable:
-            lower_variable((a_variable_ptr)list_entry_ptr);
-            next_entry_ptr = (char *)(((a_variable_ptr)list_entry_ptr)->next);
-            break;
-          default:
-            /* There may be other kinds of entries recorded by an IL walk. */
-            break;
-        }  /* switch */
-      } while ((list_entry_ptr = next_entry_ptr) != NULL);
+      switch (kind) {
+        case iek_type:
+          lower_type((a_type_ptr)entry_ptr);
+          break;
+        case iek_constant:
+          lower_constant((a_constant_ptr)entry_ptr);
+          break;
+        case iek_variable:
+          lower_variable((a_variable_ptr)entry_ptr);
+          break;
+        default:
+          /* There may be other kinds of entries recorded by an IL walk,
+             but we don't care about them. */
+          goto next_kind;
+      }  /* switch */
     }  /* for */
+next_kind:;
   }  /* for */
 }  /* lower_orphaned_entries */
 
