@@ -1278,6 +1278,12 @@ the file scope, do not process it (but record an orphan in the latter case).
                              iek_hidden_name);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if KEEP_IN_IL_WALK
+        /* When setting the keep_in_il flag, source sequence entries are
+           kept if and only if the associated IL entry is kept.  Note that
+           this is done last so all the keep_in_il flags are set already. */
+        set_keep_in_il_on_source_sequence_entries(ptr);
+#else /* !KEEP_IN_IL_WALK */
         walk_list_not_needed(ptr->source_sequence_list,
                              a_source_sequence_entry_ptr,
                              iek_source_sequence_entry);
@@ -1286,11 +1292,6 @@ the file scope, do not process it (but record an orphan in the latter case).
            processing. */
         remap_ptr_not_needed(ptr->src_seq_sublist_list, a_src_seq_sublist_ptr,
                              iek_src_seq_sublist);
-#if KEEP_IN_IL_WALK
-        /* When setting the keep_in_il flag, source sequence entries are
-           kept if and only if the associated IL entry is kept.  Note that
-           this is done last so all the keep_in_il flags are set already. */
-        set_keep_in_il_on_source_sequence_entries(ptr);
 #endif /* KEEP_IN_IL_WALK */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
