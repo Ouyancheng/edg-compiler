@@ -761,7 +761,6 @@ declaration position to eliminate redundant file names in a diagnostic.
       entity_kind = "function template ";
       routine = fund_sym->variant.template_info->variant.function.routine;
       type = routine->type;
-      goto symbol_name;
 symbol_name:
       /* Add the entity kind if not specified as name only or full type for
          a declaration-like entity. */
