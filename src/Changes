@@ -1,5 +1,18 @@
 Version 2.46
 
+10/11/01 Spurious ambiguity between injected and non-injected name
+
+If a class inherited both the injected name of a class and the non-injected
+name, a reference to the name was incorrectly treated as ambiguous.  This
+has been fixed.
+
+  struct A {
+    struct B { };
+  };
+  struct C : public A, public A::B {
+    B *p;
+  };
+
 10/10/01 Spurious error on injected class name used as a template
 
 The injected class name of a class template can be used as either

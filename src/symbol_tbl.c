@@ -8355,6 +8355,29 @@ fundamental symbol.  Return the preferred derivation of that base class.
 }  /* path_to_fundamental_symbol_base_class */
 
 
+static a_boolean equivalent_injected_class_symbols(a_symbol_ptr	sym1,
+						   a_symbol_ptr	sym2)
+/*
+Return TRUE if sym1 and sym2 refer to the same class ignoring whether
+one or both of the symbols is the injected class symbol.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if ((is_injected_class_symbol(sym1) && is_type_symbol(sym2)) ||
+      (is_injected_class_symbol(sym2) && is_type_symbol(sym1))) {
+    /* Both symbols are types, and one is an injected class name.  See
+       if they refer to the same type. */
+    a_type_ptr	type1;
+    a_type_ptr	type2;
+    type1 = type_symbol_type(sym1);
+    type2 = type_symbol_type(sym2);
+    result = identical_types(type1, type2);
+  }  /* if */
+  return result;
+}  /* equivalent_injected_class_symbols */
+
+
 static a_boolean progenitors_are_equivalent(a_progenitor_ptr  progenitor1,
                                             a_progenitor_ptr  progenitor2)
 /*
@@ -8368,12 +8391,14 @@ equivalent derivations).
   a_derivation_step_ptr  path1 = progenitor1->path, path2 = progenitor2->path;
   a_boolean              equiv = FALSE;
   a_symbol_ptr           fundamental_sym1;
+  a_symbol_ptr           fundamental_sym2;
   a_type_ptr             rout_type;
   a_derivation_step_ptr  tail1, tail2;
 
   db_enter(4, "progenitors_are_equivalent");
   fundamental_sym1 = fundamental_symbol_of(sym1);
-  if (fundamental_sym1 == fundamental_symbol_of(sym2)) {
+  fundamental_sym2 = fundamental_symbol_of(sym2);
+  if (fundamental_sym1 == fundamental_sym2) {
     /* Fundamental symbols are the same.  Set equiv to TRUE if they
        represent the same function, object, type, or enumerator (ARM 10.1.1).
        In other words, if they are independent of a class object, they are
@@ -8469,6 +8494,11 @@ check_rout_type:
         }  /* if */
       }  /* if */
     }  /* if */
+  } else if (equivalent_injected_class_symbols(fundamental_sym1,
+                                               fundamental_sym2)) {
+    /* One symbol is an injected class name and the other is the
+       primary symbol for the same class. */
+    equiv = TRUE;
   }  /* if */
   db_exit();
   return equiv;
