@@ -7180,6 +7180,20 @@ specific version of the template.
                                      source_sequence_entries_disallowed;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (!C_mode()) {
+    /* Do management related to the object lifetime stack. */
+    if (kind == (a_scope_kind)sck_file ||
+        kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_block) {
+      /* This is the sort of scope for which a new object lifetime is
+         pushed. */
+      push_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
+                           /*ctor_init=*/FALSE);
+    } else if (kind == (a_scope_kind)sck_template_instantiation) {
+      curr_object_lifetime =
+                       scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime;
+    }  /* if */
+  }  /* if */      
 #if DEBUG
   if (debug_level >= 3) {
     db_scope_stack();
@@ -7914,6 +7928,22 @@ End a name scope by popping an entry off the scope stack.
     /* Issue diagnostics on any pragmas that are still on the pending list. */
     end_of_scope_pragma_processing(ssep->pending_pragmas);
   }  /* if */
+  if (!C_mode()) {
+    /* Do management related to the object lifetime stack. */
+    if (kind == (a_scope_kind)sck_file ||
+        kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_block) {
+      /* This is the sort of scope for which a new object lifetime was
+         pushed during push_scope. */
+      do {
+        pop_object_lifetime();
+      } while (curr_object_lifetime != ssep->saved_curr_object_lifetime);
+    } else if (kind == (a_scope_kind)sck_template_instantiation) {
+      check_assertion(curr_object_lifetime ==
+                         scope_stack[DEPTH_OF_FILE_SCOPE].il_scope->lifetime);
+      curr_object_lifetime = ssep->saved_curr_object_lifetime;
+    }  /* if */
+  }  /* if */      
   check_assertion_str2(ssep->defer_access_checks == FALSE &&
                        ssep->deferred_access_checks == NULL,
                        "pop_scope:", "deferred access checks still on list");
