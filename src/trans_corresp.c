@@ -4335,7 +4335,7 @@ way, determine to which other IL entry this might correspond.
 }  /* determine_correspondence */
 
 
-a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr nsp)
+static a_namespace_ptr canonical_namespace_entry_of(a_namespace_ptr nsp)
 /*
 Return the canonical entry established for the given namespace entry.
 (Should not be called until the namespaces have already been visited for
@@ -4357,7 +4357,7 @@ correspondences with other translation units.)
 }  /* canonical_namespace_entry_of */
 
 
-a_field_ptr canonical_field_entry_of(a_field_ptr field)
+static a_field_ptr canonical_field_entry_of(a_field_ptr field)
 /*
 If the given field entry has not yet been examined for a corresponding entry
 in another translation unit, do so now.  Then return the established canonical
@@ -4379,7 +4379,7 @@ entry.
 }  /* canonical_field_entry_of */
 
 
-a_routine_ptr canonical_routine_entry_of(a_routine_ptr routine)
+static a_routine_ptr canonical_routine_entry_of(a_routine_ptr routine)
 /*
 If the given routine entry has not yet been examined for a corresponding entry
 in another translation unit, do so now.  Then return the established canonical
@@ -4398,7 +4398,7 @@ entry.
 }  /* canonical_routine_entry_of */
 
 
-a_variable_ptr canonical_variable_entry_of(a_variable_ptr var)
+static a_variable_ptr canonical_variable_entry_of(a_variable_ptr var)
 /*
 If the given variable entry has not yet been examined for a corresponding entry
 in another translation unit, do so now.  Then return the established canonical
