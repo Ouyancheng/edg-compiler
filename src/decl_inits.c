@@ -2678,8 +2678,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
       /* Uninitialized const new-object.  Issue an discretionary error in
          strict mode, otherwise a warning. (One can infer from the ARM that
          an error is required, but it's not explicit.)  */
-      diagnostic(strict_ansi_mode ?
-                    strict_ansi_discretionary_severity : es_warning,
+      diagnostic(es_discretionary_error,
                  ec_missing_initializer_on_unnamed_const);
     }  /* if */
   } else {
@@ -2728,7 +2727,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
           an_error_severity	severity;
           if (C_dialect == C_dialect_cplusplus) {
             code = ec_var_with_uninitialized_member;
-            severity = es_error;
+            severity = es_discretionary_error;
           } else {
             code = ec_var_with_uninitialized_field;
             severity = es_warning;
@@ -2736,8 +2735,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
           pos_sy_diagnostic(severity, code, &sym->decl_position, sym);
         } else {
           /* New object -- there's no name to display. (C++ only.) */
-          diagnostic(strict_ansi_mode ?
-                        strict_ansi_discretionary_severity : es_warning,
+          diagnostic(es_discretionary_error,
                      ec_unnamed_object_with_uninitialized_field);
         }  /* if */
       }  /* if */
