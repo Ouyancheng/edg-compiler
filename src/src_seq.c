@@ -1727,6 +1727,17 @@ declared_type points to a type that should be recorded in the entry.
   a_memory_region_number        region_to_switch_back_to;
 
   if (!scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_entries_disallowed) {
+    scp = source_corresp_for_il_entry(ptr, kind);
+    sym = (a_symbol_ptr)scp->assoc_info;
+    /* Check if turning the partial instantiation into an explicit
+       declaration/specialization is at all meaningful in this location.
+       Specifically, we cannot create an explicit specialization for a
+       namespace scope entity within a class scope. */
+    if (scope_stack[depth_scope_stack].kind ==
+                                       (a_scope_kind)sck_class_struct_union &&
+        !sym->is_class_member) {
+      goto done;
+    }  /* if */
     /* Turn on the generation of source sequence entries. */
     source_sequence_entries_disallowed = FALSE;
     /* Create the entry. */
@@ -1738,8 +1749,6 @@ declared_type points to a type that should be recorded in the entry.
     }  /* if */
     /* This partial instantiation can be triggered anywhere.  Use the
        position associated with the symbol. */
-    scp = source_corresp_for_il_entry(ptr, kind);
-    sym = (a_symbol_ptr)scp->assoc_info;
     sssdp->decl_position = sym->decl_position;
 #if BACK_END_IS_CP_GEN_BE
     sssdp->specialized_with_new_syntax =
@@ -1801,6 +1810,7 @@ declared_type points to a type that should be recorded in the entry.
     source_sequence_entries_disallowed =
           scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
   }  /* if */
+done:;
 }  /* add_source_sequence_entry_for_partial_instantiation */
 
 

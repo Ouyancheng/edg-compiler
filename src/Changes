@@ -1,5 +1,18 @@
 Version 3.4
 
+11/19/03 C++-generating back end: Invalid specializations in class scope
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE the
+front end sometimes generated a source sequence entry for an incomplete
+instantiation of a namespace scope entity in a class scope.  This in
+turn caused the C++-generating back end to produce an invalid explicit
+specialization of the namespace scope entity in the class scope.
+In most cases, however, there is no need to declare an explicit
+specialization if it does not actually define the specialization.
+The front end therefore no longer produces source sequence entries for
+incomplete instantiations of namespace scope entities appearing in class
+scope.
+
 11/18/03 Default argument on definition of member of class template
 
 In certain modes (Microsoft, g++, and Sun) a default argument may be
