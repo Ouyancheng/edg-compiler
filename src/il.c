@@ -3024,6 +3024,87 @@ Copy a constant entry from "from" to "to".
 }  /* copy_constant */
 
 
+static an_expr_node_ptr gather_initializer_expressions(a_constant_ptr con)
+/*
+Gather any expressions with side effects in the initializer constant con
+into a single expression, and return a pointer to that expression.  If
+there are no expressions with side effects in con, return NULL.  The
+expressions aren't copied; they're just linked together into one tree.
+*/
+{
+  an_expr_node_ptr expr = NULL;
+
+  if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+    a_dynamic_init_ptr dip = con->variant.dynamic_init;
+    /* Note that if designators are accepted in C++ other initialization
+       kinds may show up here (dik_constructor in particular). */
+    check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
+    expr = dip->variant.expression;
+    if (!node_has_side_effects(expr, (a_boolean *)NULL)) expr = NULL;
+  } else if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+    /* Visit the members of an aggregate. */
+    a_constant_ptr mcon;
+    for (mcon = con->variant.aggregate.first_constant;
+         mcon != NULL;
+         mcon = mcon->next) {
+      an_expr_node_ptr mexpr = gather_initializer_expressions(mcon);
+      if (mexpr != NULL) {
+        /* Add the expression to the list using a comma operator. */
+        if (expr == NULL) {
+          expr = mexpr;
+        } else {
+          expr = make_comma_node(expr, mexpr);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
+    expr = gather_initializer_expressions(con->variant.init_repeat.constant);
+  }  /* if */
+  return expr;
+}  /* gather_initializer_expressions */
+
+
+static an_expr_node_ptr *find_expression_in_initializer(a_constant_ptr con)
+/*
+Find an expression in the initializer constant con, and return a pointer
+to the pointer to it.  If no expression is found, change a constant to a
+ck_dynamic_init with the constant as an expression under it, and return
+that expression.
+*/
+{
+  an_expr_node_ptr *expr_ptr;
+
+  if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+    a_dynamic_init_ptr dip = con->variant.dynamic_init;
+    /* Note that if designators are accepted in C++ other initialization
+       kinds may show up here (dik_constructor in particular). */
+    check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
+    expr_ptr = &dip->variant.expression;
+  } else if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+    /* Use the first member of an aggregate. */
+    /* In C, {} is not allowed.  This would have to be changed if
+       designated initializers were allowed in C++. */
+    check_assertion(con->variant.aggregate.first_constant != NULL);
+    expr_ptr = find_expression_in_initializer(
+                                        con->variant.aggregate.first_constant);
+  } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
+    expr_ptr =
+             find_expression_in_initializer(con->variant.init_repeat.constant);
+  } else {
+    an_expr_node_ptr   expr;
+    a_dynamic_init_ptr dip =
+                       alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+    /* Other constants.  Change to a ck_dynamic_init. */
+    expr = alloc_node_for_constant(con);
+    set_constant_kind(con, (a_constant_repr_kind)ck_dynamic_init);
+    con->variant.dynamic_init = dip;
+    dip->variant.expression = expr;
+    expr_ptr = &dip->variant.expression;
+  }  /* if */
+  return expr_ptr;
+}  /* find_expression_in_initializer */
+
+
 void combine_initializers(a_constant_ptr     first,
                           a_dynamic_init_ptr *first_dip_ptr,
                           a_constant_ptr     second,
@@ -3041,36 +3122,34 @@ should be unshared. The entities pointed to by second and *second_dip_ptr
 are modified to reflect the combined effect.
 */
 {
-  if (first != NULL && first->kind != (a_constant_repr_kind)ck_dynamic_init) {
-    /* The earlier constant has no side effects, so it is just replaced by
-       the new one. */
+  an_expr_node_ptr first_expr;
+
+  /* Get the expression for the first constant. */
+  if (first != NULL) {
+    first_expr = gather_initializer_expressions(first);
   } else {
-    /* The earlier constant has side effects, so keep the old and new
-       initializations under a comma expression. */
-    an_expr_node_ptr   first_expr, second_expr;
-    a_dynamic_init_ptr first_dip = first != NULL? first->variant.dynamic_init
-                                                : *first_dip_ptr;
-    a_dynamic_init_ptr second_dip;
+    a_dynamic_init_ptr first_dip = *first_dip_ptr;
     check_assertion(first_dip->kind == (a_dynamic_init_kind)dik_expression);
     first_expr = first_dip->variant.expression;
-    if (second == NULL ||
-        second->kind == (a_constant_repr_kind)ck_dynamic_init) {
-      /* Both initializers are dynamic. */
-      second_dip = second != NULL? second->variant.dynamic_init
-                                 : *second_dip_ptr;
-      check_assertion(second_dip->kind == (a_dynamic_init_kind)dik_expression);
-      second_expr = second_dip->variant.expression;
-    } else {
-       /* The second initializer was not dynamic, but it must override the
-          value of the dynamic first initializer.  So create an expression
-          node for this second (constant) value to enable its combination
-          into a comma node. */
-       second_expr = alloc_node_for_constant(second);
-       set_constant_kind(second, (a_constant_repr_kind)ck_dynamic_init);
-       second_dip = second->variant.dynamic_init = first_dip;
+    if (!node_has_side_effects(first_expr, (a_boolean *)NULL)) {
+      first_expr = NULL;
     }  /* if */
-    second_dip->variant.expression = make_comma_node(first_expr, second_expr);
-    if (second_dip_ptr != NULL) { *second_dip_ptr = second_dip; }
+  }  /* if */
+  /* If first_expr is NULL here, the first constant contains no expressions
+     with side effects, so no update of the second is required. */
+  if (first_expr != NULL) {
+    /* Find an expression in the second constant that we can modify.
+       Make one if necessary. */
+    an_expr_node_ptr *modif_ptr;
+    if (second != NULL) {
+      modif_ptr = find_expression_in_initializer(second);
+    } else {
+      a_dynamic_init_ptr second_dip = *second_dip_ptr;
+      check_assertion(second_dip->kind == (a_dynamic_init_kind)dik_expression);
+      modif_ptr = &second_dip->variant.expression;
+    }  /* if */
+    /* Make a comma node to join the two expressions. */
+    *modif_ptr = make_comma_node(first_expr, *modif_ptr);
   }  /* if */
 }  /* combine_initializers */
 

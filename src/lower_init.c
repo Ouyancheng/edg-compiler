@@ -5865,7 +5865,7 @@ is not called for union initializations.
       count = (desig_con->variant.designator.array_element -
                aggr_pos.curr_elem);
       if (count > con.repeat_count) count = con.repeat_count;
-      check_assertion(count > 0 );
+      check_assertion(count > 0);
       aggr_pos.curr_elem += count;
       con.repeat_count -= count;
       if (con.repeat_count == 0) {
@@ -5907,7 +5907,8 @@ have already had their designated initializers lowered.
 */
 {
   a_constant_ptr  temp_con;
-  a_constant_ptr  prev_con, union_designator = NULL;
+  a_constant_ptr  prev_con;
+  a_constant_ptr  union_designator = NULL, saved_union_init_constant = NULL;
   a_type_ptr      aggr_type = skip_typerefs(aggr_con->type);
   a_boolean       union_init = is_union_type(aggr_type);
   an_init_con_pos con, earlier_con;
@@ -5997,9 +5998,8 @@ have already had their designated initializers lowered.
       /* When initializing a union, always insert at the beginning, and
          keep the ck_designator for later re-insertion if it requests
          initialization of a member other than the first. */
+      a_constant_ptr prev_union_designator = union_designator;
       prev_con = NULL;
-      set_init_con_pos(aggr_con->variant.aggregate.first_constant,
-                       &earlier_con);
       if (con.ptr->variant.designator.field ==
                   next_initializable_field(
                            aggr_type->variant.class_struct_union.field_list)) {
@@ -6009,6 +6009,30 @@ have already had their designated initializers lowered.
       } else {
         union_designator = con.ptr;
       }  /* if */
+      /* Overwrite the previous value if it's for the same member of the
+         union, otherwise save it off to the side to be combined with
+         the final value later. */
+      check_assertion(aggr_con->variant.aggregate.first_constant == NULL ||
+                      aggr_con->variant.aggregate.first_constant->next==NULL);
+      if ((prev_union_designator == NULL || union_designator == NULL) ?
+                  (prev_union_designator == union_designator) :
+                  (prev_union_designator->variant.designator.field ==
+                        union_designator->variant.designator.field)) {
+        /* Same member. */
+        set_init_con_pos(aggr_con->variant.aggregate.first_constant,
+                         &earlier_con);
+      } else if (aggr_con->variant.aggregate.first_constant != NULL) {
+        /* saved_union_init_constant contains all the superseded
+           initializations.  Add the current constant to the set. */
+        if (saved_union_init_constant != NULL) {
+          combine_initializer_constants(
+                                   saved_union_init_constant,
+                                   aggr_con->variant.aggregate.first_constant);
+        }  /* if */
+        saved_union_init_constant = aggr_con->variant.aggregate.first_constant;
+        set_init_con_pos((a_constant_ptr)NULL, &earlier_con);
+      }  /* if */
+      aggr_con->variant.aggregate.first_constant = NULL;
     } else {
       /* Array or struct initialization. */
       /* Find the right point to insert the constants after the designator. */
@@ -6026,6 +6050,15 @@ have already had their designated initializers lowered.
       prev_con->next = con.ptr;
     }  /* if */
   }  /* for */
+  /* For a union in which more than one member was initialized, combine
+     the old and new initializations to preserve any side effects of the
+     old initializer. */
+  if (saved_union_init_constant != NULL) {
+    check_assertion(aggr_con->variant.aggregate.first_constant != NULL &&
+                    aggr_con->variant.aggregate.first_constant->next == NULL);
+    combine_initializer_constants(saved_union_init_constant,
+                                  aggr_con->variant.aggregate.first_constant);
+  }  /* if */
   /* For a union initialization, re-insert a ck_designator if the field
      initialized is not the first field. */
   if (union_designator != NULL) {
