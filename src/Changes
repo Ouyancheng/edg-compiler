@@ -1,6 +1,18 @@
 Version 2.20
 
-10/02/93 IL CHANGE -- an_accessible_base_class
+11/04/93 Class specific operator delete may not be instantiated
+
+Under some highly unusual circumstances it is possible for a
+class specific operator delete routine to not be instantiated when
+one is needed.  This is been corrected.
+
+11/04/93 Loop reading the instantiation information file
+
+On systems where chars are unsigned by default it is possible for
+read_info_file to loop because the return value of getc is stored in
+a char.  This has been corrected.
+
+11/02/93 IL CHANGE -- an_accessible_base_class
 
 Entries of type an_accessible_base_class are created as part of exception
 handling support.
