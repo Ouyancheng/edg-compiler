@@ -7639,6 +7639,11 @@ C++ to C, so that a C back end can handle it without change.
       /* The file scope. */
       lowering_file_scope = TRUE;
       scope = il_header.primary_scope;
+      /* Do name mangling.  This must be done early when original type
+         information is available (for example, references are still
+         references and not yet pointers).  Note that this is done only
+         in the file scope memory region. */
+      do_all_name_mangling();
     } else {
       /* A function scope. */
       lowering_file_scope = FALSE;
@@ -7648,10 +7653,6 @@ C++ to C, so that a C back end can handle it without change.
       push_context(&context, il_header.primary_scope,
                    /*subscope_region=*/FALSE);
     }  /* if */
-    /* Do name mangling.  This must be done early when original type
-       information is available (for example, references are still
-       references and not yet pointers). */
-    do_memory_region_name_mangling(scope);
     /* Create definitions for virtual function tables.  This must be done
        early when virtual function information is still available. */
     define_scope_virtual_function_tables(scope);
