@@ -1069,6 +1069,65 @@ Process the default argument expressions for the indicated class.
 }  /* default_argument_fixup_for_class */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void defer_routine_fixup_until_use(a_symbol_ptr		sym,
+					  a_routine_fixup_ptr	rfp)
+/*
+The Microsoft compiler treats friend functions defined in a class
+template much like a member function of such a class.  The body is
+only processed if needed.  Create a template instance entry for this
+routine and save a pointer to the fixup information there.  The fixup
+will be completed later, if needed.  "sym" is the symbol for the routine
+that is being fixed up.  "rtp" is its routine fixup entry.  Note that
+the template instance created here is different from most template instances
+in that it doesn't actually point to an instance of a template and it
+is not linked into the instantiations required list.
+*/
+{
+  a_template_instance_ptr	tip;
+
+  tip = alloc_template_instance();
+  tip->instance_sym = sym;
+  tip->routine_fixup = rfp;
+  sym->variant.routine.instance_ptr = tip;
+}  /* defer_routine_fixup_until_use */
+
+
+void microsoft_friend_function_fixup(a_routine_fixup_ptr	rfp)
+/*
+Called in Microsoft mode when a friend function defined in a class template
+is first used.  Does the fixup on the friend function that is normally done
+when the enclosing class is instantiated.
+*/
+{
+  a_routine_ptr  rp = rfp->symbol->variant.routine.ptr;
+
+  /* Reset the template instance pointer in the symbol to prevent this
+     process from being attempted again. */
+  rfp->symbol->variant.routine.instance_ptr = NULL;
+  /* Reactivate the scope containing the function definition. */
+  push_class_and_template_reactivation_scope(rfp->class_type,
+                                             /*is_template_based=*/TRUE);
+  /* Let get_token know about the cache. */
+  rescan_cached_tokens(&rfp->function_body_token_cache);
+  /* Scan the function body. */
+  scan_function_body(rp, &rfp->func_info,
+                     (SFB_NO_CLASS_REACTIVATION |
+                      SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
+                      SFB_PRAGMA_PACK_IS_LOCAL));
+  /* scan_function_body does not scan past the right brace. */
+  if (curr_token == tok_rbrace) (void)get_token();
+  /* In the normal case the current token should be end_of_source,
+     which was inserted to mark the end of the cached token stream.
+     If necessary, keep flushing until end-of-source is found. */
+  flush_past_token_cache_terminator();
+  /* Pop the reactivated class scope from the scope stack. */
+  pop_class_reactivation_scope();
+}  /* microsoft_friend_function_fixup */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 static void inline_function_fixup_for_class(a_type_ptr  class_type,
                                             a_boolean   is_template_based)
 /*
@@ -1239,6 +1298,16 @@ nested class.
             }  /* for */
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        } else if (microsoft_mode &&
+                   is_real_template_instantiation && is_friend) {
+          /* The Microsoft compiler treats friend functions defined in a
+             class template much like a member function of such a class.
+             The body is only processed if needed. */
+          defer_routine_fixup_until_use(sym, rfp);
+          /* Set rfp to NULL to prevent it from being freed below. */
+          rfp = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (is_nonreal_template_instantiation) {
           /* Prototype instantiation -- copy the cache for member functions. */
           tssp = sym->variant.routine.instance_ptr->template_info;
@@ -1338,8 +1407,9 @@ nested class.
         }  /* if */
       }  /* if */
       /* Free the current entry, returning it and any expr fixup entries
-         attached to it to their respective available-lists. */
-      free_routine_fixup(rfp);
+         attached to it to their respective available-lists.  "rtp" may
+         be set to NULL earlier if it should not be freed. */
+      if (rfp != NULL) free_routine_fixup(rfp);
     }  /* for */
     if (curr_scope_class_type != NULL) {
       /* Pop the reactivated class scope from the scope stack. */
