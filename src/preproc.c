@@ -1321,19 +1321,29 @@ If not, expand pp_dir_string_buffer by reallocating it.
 }  /* ensure_pp_dir_string_buffer_space */
 
 
-static void convert_pp_directive_to_string(void)
+static void convert_pp_directive_to_string(
+					a_boolean is_microsoft_pragma_operator)
 /*
 Scans the tokens that make up a preprocessing directive and converts them into
 a single null terminated character string.  The string is constructed in
 a dedicated buffer which is enlarged as needed to be able to contain
-the entire string.  The tokens are scanned as preprocessing tokens.
+the entire string.  The tokens are scanned as preprocessing tokens.  If
+is_microsoft_pragma_operator is TRUE, scan to the closing parenthesis.
 */
 {
   a_boolean	any_white_space_skipped = FALSE;
   sizeof_t	pos_in_buffer = 0;
+  int		paren_count = 0;
 
   db_enter(4, "convert_pp_directive_to_string");
-  while (curr_token != tok_newline && curr_token != tok_end_of_source) {
+  while (curr_token != tok_newline && curr_token != tok_end_of_source &&
+         (!is_microsoft_pragma_operator ||
+          (curr_token != tok_rparen || paren_count != 0))) {
+    if (curr_token == tok_lparen) {
+      paren_count++;
+    } else if (curr_token == tok_rparen) {
+      paren_count--;
+    }  /* if */
     /* The +1 in the following call is to make sure there is space for
        a null terminator to be added. */
     ensure_pp_dir_string_buffer_space(pos_in_buffer + len_of_curr_token +
@@ -1472,21 +1482,35 @@ being scanned is a Microsoft __pragma operator.
   ppp->id_position = *id_pos;
   ppp->pragma_position = *directive_pos;
   ppp->is_microsoft_pragma_operator = is_microsoft_pragma_operator;
-  /* Cache the tokens that make up the pragma directive. */
-  cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
-  if (pkdp->make_text_not_tokens) {
-    /*  The character string representation is usually used for pragmas that
-        are to be passed to the C or C++ generating back end, but may be
-        used for other pragmas in which a character string is simpler to
-        manipulate. */
-    convert_pragma_to_string(ppp);
+  if (pkdp->fetch_pp_tokens) {
+    /* When fetching pp-tokens, convert the tokens to a string in
+       such a way that no additional white space is added. */
+    convert_pp_directive_to_string(is_microsoft_pragma_operator);
+    ppp->pragma_text = copy_string_to_region(file_scope_region_number,
+                                             pp_dir_string_buffer);
+#if DEBUG
+    if (db_flag_is_set("pragma_string")) {
+      fprintf(f_debug, "pp-token pragma string: '%s'\n", ppp->pragma_text);
+    }  /* if */
+#endif /* DEBUG */
   } else {
-    /* Remove the initial token from the token cache.  For historical reasons,
-       the cache does not include the pragma identifier, but it must be
-       cached initially so that it can be included in the pragma string when
-       making text, not tokens. */
-    remove_token_from_cache(ppp->token_cache.first_token,
-                            &ppp->token_cache.first_token, &ppp->token_cache);
+    /* Cache the tokens that make up the pragma directive. */
+    cache_pragma_tokens(ppp, pkdp, is_microsoft_pragma_operator);
+    if (pkdp->make_text_not_tokens) {
+      /*  The character string representation is usually used for pragmas that
+          are to be passed to the C or C++ generating back end, but may be
+          used for other pragmas in which a character string is simpler to
+          manipulate. */
+      convert_pragma_to_string(ppp);
+    } else {
+      /* Remove the initial token from the token cache.  For historical
+         reasons, the cache does not include the pragma identifier, but
+         it must be cached initially so that it can be included in the
+         pragma string when making text, not tokens. */
+      remove_token_from_cache(ppp->token_cache.first_token,
+                              &ppp->token_cache.first_token,
+                              &ppp->token_cache);
+    }  /* if */
   }  /* if */
   /* Add this pragma to the list of pragmas associated with the
      current token. */
@@ -2206,7 +2230,7 @@ begin.
          of a precompiled header for this compilation. */
       suppress_creation_of_pch();
     } else {
-      convert_pp_directive_to_string();
+      convert_pp_directive_to_string(/*is_microsoft_pragma_operator=*/FALSE);
       add_pch_event(pchek_pp_directive, kind, pp_dir_string_buffer, pos,
                     actual_line);
     }  /* if */
