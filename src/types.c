@@ -17,8 +17,8 @@ types.c -- Utility routines that check types.
 #include "types.h"
 #include "il.h"
 #include "error.h"
-#if !STANDALONE_UTILITY_PROGRAM
 #include "target.h"
+#if !STANDALONE_UTILITY_PROGRAM
 #include "symbol_tbl.h"
 #include "cmd_line.h"
 #include "mem_manage.h"
@@ -335,7 +335,6 @@ unsigned char are all included.
   return is_char_array;
 }  /* is_char_array_type */
 
-#if !STANDALONE_UTILITY_PROGRAM
   
 static a_boolean is_wchar_t_array_type(a_type_ptr tp)
 /*
@@ -356,7 +355,6 @@ Return TRUE if the given type is an array of wchar_t.
   return is_wchar_t_array;
 }  /* is_wchar_t_array_type */
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_string_type(a_type_ptr tp)
 /*
