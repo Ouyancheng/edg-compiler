@@ -6891,7 +6891,6 @@ specific version of the template.
   ssep->first_scope              = NULL;
   ssep->last_scope               = NULL;
   ssep->last_dynamic_init        = NULL;
-  ssep->last_local_static_variable_init = NULL;
   ssep->last_pragma              = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   ssep->last_source_sequence_entry = NULL;

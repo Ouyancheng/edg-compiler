@@ -1735,11 +1735,6 @@ typedef struct a_scope_stack_entry {
 		last_dynamic_init;
 			/* End of list of local dynamic initializations, NULL
 			   if none. */
-  a_local_static_variable_init_ptr
-		last_local_static_variable_init;
-			/* End of the linked list of local static variable
-			   initializations for the current function or block
-			   scope, NULL if none. */
   a_pragma_ptr	last_pragma;
 			/* End of list of IL pragma entries entered on the
 			   pragma_list of il_scope, NULL if none. */
