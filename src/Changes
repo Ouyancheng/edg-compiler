@@ -1,5 +1,11 @@
 Version 2.36
 
+3/19/97   C-generating back end doesn't compile as standalone
+
+Some calls of db_expression added to c_gen_be.c in 2.35 should have
+been enclosed in #if !STANDALONE_UTILITY_PROGRAM/#endif so the code
+can be compiled as standalone program.  Now fixed.
+
 3/14/97   Error recovery abort with extern "C" declaration
 
 A null-pointer failure has been fixed on the following:
