@@ -132,7 +132,6 @@ static void lower_field(a_field_ptr field);
 static void lower_routine(a_routine_ptr routine);
 static void lower_label(a_label_ptr label);
 static void lower_asm_entry(an_asm_entry_ptr asm_entry);
-static void lower_statement(a_statement_ptr statement);
 static void lower_scope(a_scope_ptr scope);
 static a_boolean any_required_destructor_calls(a_context_ptr outer_context);
 static void gen_expr_conditional_destruction_var_initializations(void);
@@ -6342,7 +6341,7 @@ NULL if there are no statements in the block.
 }  /* pop_block_scope_context */
 
 
-static void lower_statement(a_statement_ptr statement)
+void lower_statement(a_statement_ptr statement)
 /*
 Do IL lowering of the indicated statement and everything under it.
 */
@@ -6550,6 +6549,9 @@ Do IL lowering of the indicated statement and everything under it.
         break;
       case stmk_init:
         lower_stmk_init(statement);
+        break;
+      case stmk_try_block:
+        lower_try_block(statement);
         break;
 #if CHECKING
       default:
