@@ -1041,6 +1041,7 @@ static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_boolean         is_destructor,
                                 a_boolean         disallow_default_args,
                                 a_boolean         disallow_exception_spec,
+                                a_boolean         is_typedef_decl,
                                 a_decl_pos_block  *decl_pos_block)
 /*
 Scan a function declarator (3.5.4.3), or an array declarator in an
@@ -1288,6 +1289,10 @@ issue an error if a default argument expression is encountered.
           di_flags = DI_IS_PARAMETER_DECL |
                      DI_REAL_DECLARATOR_ALLOWED |
                      DI_ABSTRACT_DECLARATOR_ALLOWED;
+          if (is_typedef_decl) {
+            /* At the top level this is a typedef declaration. */
+            di_flags |= DI_IS_TYPEDEF_DECLARATION;
+          }  /* if */
           if (vla_enabled) {
             /* Permit a variable length array declaration. */
             di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
@@ -3741,6 +3746,7 @@ function_lparen:
                           member_parent_type, is_nonstatic_member_function,
                           *is_constructor, *is_destructor,
                           disallow_default_args, disallow_exception_spec,
+                          (input_flags & DI_IS_TYPEDEF_DECLARATION) != 0,
                           decl_pos_block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {
