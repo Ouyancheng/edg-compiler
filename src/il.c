@@ -9508,6 +9508,9 @@ the list.
           case iek_type:
             tp = ss_entry_ptr(next_ssep, a_type_ptr);
             break;
+          case iek_field:
+            tp = ss_entry_ptr(next_ssep, a_field_ptr)->type;
+            break;
           case iek_src_seq_secondary_decl:
             sssdp = ss_entry_ptr(next_ssep, a_src_seq_secondary_decl_ptr);
             if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_variable ||
