@@ -3679,6 +3679,20 @@ from the front end to the runtime.
 			   "__EDG_ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+  /* Pass the library dialect flags to the runtime (__BSD__, __SYSV__, and
+     __ANSIC__). */
+  (void)enter_predef_macro(conv_unsigned_long_to_str((unsigned long)__BSD__),
+			   "__EDG_BSD",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro(conv_unsigned_long_to_str((unsigned long)__SYSV__),
+			   "__EDG_SYSV",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro(conv_unsigned_long_to_str((unsigned long)__ANSIC__),
+			   "__EDG_ANSIC",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
 }  /* init_runtime_macros */
 
 
