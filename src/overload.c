@@ -9021,13 +9021,10 @@ in that case.
   } else if (conversion->unknown_dependent_conversion) {
     /* Conversion from or to a template-dependent type in a prototype
        instantiation.  Render as a cast. */
-    if (dest_type != NULL) {
-      generic_cast_operand(operand, dest_type,
-                           (an_expr_operator_kind)eok_cast,
-                           /*is_implicit_cast=*/TRUE);
-    } else {
-      prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
-    }  /* if */
+    if (dest_type == NULL) dest_type = type_of_unknown_templ_param_nontype;
+    generic_cast_operand(operand, dest_type,
+                         (an_expr_operator_kind)eok_cast,
+                         /*is_implicit_cast=*/TRUE);
   } else if (conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     /* Conversion function. */
