@@ -6868,37 +6868,6 @@ this entity.
   db_exit();
 }  /* update_source_sequence_list */
 
-#if 0
-a_source_sequence_entry_ptr add_source_sequence_entry_for_routine(void)
-/*
-An incomplete source sequence entry is created and entered for a routine
-declaration.  The entry is incomplete because it does not (yet) point to
-the IL entry; the pointer will be supplied later in function declarator
-processing.
-*/
-{
-  a_source_sequence_entry_ptr   ssep = alloc_source_sequence_entry();
-  a_boolean                     force_to_fs = FALSE;
-  a_memory_region_number        region_to_switch_back_to;
-
-  db_enter(4, "add_source_sequence_entry_for_routine");
-  /* The source sequence entry will always be allocated in the file scope
-     memory region.  However, if the current il region is that of a function,
-     an entry must also be allocated in the function scope; that is handled
-     in add_to_source_sequence_list if force_to_fs is set. */
-  if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    force_to_fs = TRUE;
-  }  /* if */
-  ssep = alloc_source_sequence_entry();
-  ssep->entity.kind = (a_byte_il_entry_kind)iek_routine;
-  /* Note that the entity.ptr field is left NULL. */
-  if (force_to_fs) switch_back_to_original_region(region_to_switch_back_to);
-  add_to_source_sequence_list(ssep, force_to_fs, TRUE);
-  db_exit();
-  return ssep;
-}  /* add_source_sequence_entry_for_routine */
-#endif /* if 0 */
 
 a_source_sequence_entry_ptr add_empty_source_sequence_entry(
                                                    a_boolean  alloc_in_fs,
@@ -6924,6 +6893,18 @@ the current memory region only if proxy_allowed is TRUE.
     /* We may need to change this for prototype instantiations, however. */
 #endif /* if 0 */
     ssep = NULL;
+  } else if (scope_stack[depth_scope_stack].kind ==
+                                   (a_scope_kind)sck_template_declaration ||
+             (scope_stack[depth_scope_stack].kind ==
+                                   (a_scope_kind)sck_func_prototype &&
+              scope_stack[depth_scope_stack-1].kind ==
+                                   (a_scope_kind)sck_template_declaration)) {
+#if 0
+    /* This should be changed when we add support for source sequence entries
+       for template declarations. */
+#else /* if !0 */
+    ssep = NULL;
+#endif /* if 0 */
   } else {
     if (alloc_in_fs) {
       switch_to_file_scope_region(&region_to_switch_back_to);
