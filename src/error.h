@@ -503,7 +503,6 @@ typedef enum /*an_error_code*/ {
   ec_implicit_static_data_member_definition,
   ec_template_not_allowed,
   ec_not_a_class_template,
-  ec_bad_template_arg_use,
   ec_static_data_member_anon_union,
   ec_function_template_named_main,
   ec_union_nonunion_mismatch,
@@ -596,7 +595,8 @@ typedef enum /*an_error_code*/ {
   ec_bad_scope_for_definition,
   ec_throw_specification_not_allowed,
   ec_template_and_instance_linkage_conflict,
-  ec_conversion_function_not_usable
+  ec_conversion_function_not_usable,
+  ec_tag_kind_incompatible_with_template_parameter
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

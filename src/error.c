@@ -1765,9 +1765,6 @@ error code.
     case ec_not_a_class_template:
       m = "%t is not a class template";
       break;
-    case ec_bad_template_arg_use:
-      m = "template parameter %no is not allowed in this context";
-      break;
     case ec_static_data_member_anon_union:
       m = "static data member may not be an anonymous union";
       break;
@@ -2045,6 +2042,9 @@ error code.
       break;
     case ec_conversion_function_not_usable:
       m = "%nf will not be called for implicit or explicit conversions";
+      break;
+    case ec_tag_kind_incompatible_with_template_parameter:
+      m = "tag kind of %s is incompatible with template parameter of type %t";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
