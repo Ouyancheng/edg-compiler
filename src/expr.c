@@ -1513,14 +1513,15 @@ Syntax:
 
   if (overloaded_function_case) {
     a_source_position id_position;
+    a_source_position function_end_position;
 #if RECORD_FORM_OF_NAME_REFERENCE
     a_boolean         name_reference_was_saved = FALSE;
     a_name_reference  saved_name_reference;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    /* Save the end position for later restoration. */
-    a_source_position end_function_position;
-    end_function_position = operand->end_position;
+    function_end_position = operand->end_position;
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+    function_end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if RECORD_FORM_OF_NAME_REFERENCE
     if (operand->name_reference_set) {
@@ -1558,14 +1559,12 @@ Syntax:
                                             &call_position,
                                             opening_paren_tok_seq_number,
                                             &function_position,
+                                            &function_end_position,
                                             &id_position,
                                             &closing_paren_position,
                                             &unknown_dependent_function,
                                             operand,
                                             &argument_list);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    operand->end_position = end_function_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (unknown_dependent_function) {
       /* The routine to be called cannot be determined because one or more
          of the arguments has a template-dependent type.  Use a generic
@@ -6922,6 +6921,7 @@ specification allow a variable-sized array as the top type.
                                  operator_new_symbol,
                                  /*is_qualified_name=*/FALSE,
                                  &new_position,
+                                 &new_position,  /* Not used. */
                                  &new_position,
                                  /*elided_reference=*/(new_routine==NULL),
                                  /*address_taken=*/FALSE,

@@ -1,5 +1,21 @@
 Version 3.1
 
+12/1/02   End position on some function expressions
+
+The end positions (maintained when EXTRA_SOURCE_POSITIONS_IN_IL is
+TRUE, which is not the default) on some expression nodes relating
+to static functions called with an unnecessary object were sometimes
+not set (they remained [0,0]).  They are now set.
+
+  struct A {
+    static void f();
+    void f(float);
+  };
+  A g();
+  int main() {
+    g().f();
+  }
+
 11/27/02  Spurious error on return statement in Microsoft mode templates
 
 In Microsoft C++ mode with prototype instantiations of function templates

@@ -381,6 +381,16 @@ Copy the source position from an expression operand into an expression node.
 #define copy_operand_position_to_expr(operand, node) /* Nothing */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+/*
+Get the end position address from an operand if there is one, otherwise return
+the address of null_source_position.
+*/
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+#define end_position_of_operand(operand) (&(operand)->end_position)
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#define end_position_of_operand(operand) (&null_source_position)
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 
 /*
 Bit flags used in calling do_operand_transformations, to suppress
