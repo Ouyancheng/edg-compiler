@@ -2364,6 +2364,11 @@ Display the indicated routine.
       disp_stdc_pragma_value("cx_limited_range", ptr->cx_limited_range);
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (ptr->contains_statement_expression) {
+    disp_boolean("contains_statement_expression", TRUE);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is

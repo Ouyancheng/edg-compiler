@@ -5859,6 +5859,12 @@ typedef struct a_routine {
   a_bit_field	cx_limited_range:2;
 			/* In C99 mode, the setting of the cx_limited_range
 			   mode at the point that this routine was defined. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	contains_statement_expression:1;
+			/* TRUE if this routine's body contains one or more
+			   statement expressions, i.e., ({...}), a GNU C
+			   extension. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

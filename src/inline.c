@@ -1680,6 +1680,13 @@ the routine so it can be inlined on calls from here on.
        we want to be able to count on "this" being constant across the
        whole invocation. */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (routine->contains_statement_expression) {
+    /* The routine contains a GNU C statement expression, ({...}).
+       copy_expr_tree would have to be enhanced to be able to copy
+       the statement subtree and associated scopes for those if we
+       wanted to be able to inline such things. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     /* The routine looks like it can be inlined. */
     routine->inlinable = TRUE;

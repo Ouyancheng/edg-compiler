@@ -8661,6 +8661,7 @@ Return an operand for the expression in *result.
        inside of. */
     an_expr_stack_entry_ptr saved_expr_stack;
     save_expr_stack(&saved_expr_stack);
+    check_assertion(innermost_function_scope != NULL);
     /* Scan the compound statement. */
     sp = compound_statement(/*at_function_level=*/FALSE,
                             /*explicit_return_type=*/FALSE,
@@ -8694,6 +8695,7 @@ Return an operand for the expression in *result.
     expr->variant.statement = sp;
     expr->type = expr_type;
     make_expression_operand(expr, expr_type, result);
+    current_routine_entry()->contains_statement_expression = TRUE;
   }  /* if */
   (void)required_token(tok_rparen, ec_exp_rparen);
   set_operand_position(result, &start_position, &pos_curr_token,

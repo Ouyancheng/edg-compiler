@@ -1766,6 +1766,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->fp_contract                 = (a_stdc_pragma_value)stdc_pv_none;
   rp->fenv_access                 = (a_stdc_pragma_value)stdc_pv_none;
   rp->cx_limited_range            = (a_stdc_pragma_value)stdc_pv_none;
+#if GNU_EXTENSIONS_ALLOWED
+  rp->contains_statement_expression = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
