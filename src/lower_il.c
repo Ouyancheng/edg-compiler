@@ -5301,12 +5301,14 @@ lowering process, but does not modify the class type.
   a_base_class_ptr            bcp;
   a_class_type_supplement_ptr base_ctsp;
   a_type_ptr                  base_class_type;
+  a_source_position           saved_error_position;
 
-  error_position = class_type->source_corresp.decl_position;
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp != NULL) {
     /* See if prelowering has already been done. */
     if (ctsp->type_as_subobject == NULL) {
+      saved_error_position = error_position;
+      error_position = class_type->source_corresp.decl_position;
       /* Make the virtual function table variables if they have not been made
          already. */
       make_vars_for_virtual_function_tables(class_type);
@@ -5391,6 +5393,8 @@ lowering process, but does not modify the class type.
           }  /* if */
         }  /* for */
       }  /* if */
+      /* Restore error_position as of entry to this routine. */
+      error_position = saved_error_position;
     }  /* if */
   }  /* if */
 }  /* prelower_class_type */
@@ -5534,7 +5538,9 @@ Do IL lowering on the indicated class/struct/union type.
 {
   a_class_type_supplement_ptr ctsp;
   a_base_class_ptr            bcp;
+  a_source_position           saved_error_position;
 
+  saved_error_position = error_position;
   /* Lower the nonstatic data members. */
   lower_field_list(class_type->variant.class_struct_union.field_list);
   error_position = class_type->source_corresp.decl_position;
@@ -5563,6 +5569,7 @@ Do IL lowering on the indicated class/struct/union type.
   if (class_type->kind == (a_type_kind)tk_class) {
     class_type->kind = (a_type_kind)tk_struct;
   }  /* if */
+  error_position = saved_error_position;
 }  /* lower_class_struct_union_type */
 
 
@@ -7118,13 +7125,15 @@ On return, *keep_dynamic_init is TRUE if the dynamic init entry is to
 be kept, FALSE if it should be deleted.
 */
 {
-  an_expr_node_ptr entity_node, source_node;
-  a_variable_ptr   variable;
-  a_boolean        simple_constant_init = FALSE, keep_constant;
-  a_constant_ptr   simple_constant;
-  a_context_ptr    destructor_context;
+  an_expr_node_ptr  entity_node, source_node;
+  a_variable_ptr    variable;
+  a_boolean         simple_constant_init = FALSE, keep_constant;
+  a_constant_ptr    simple_constant;
+  a_context_ptr     destructor_context;
+  a_source_position saved_error_position;
 
   *keep_dynamic_init = FALSE;
+  saved_error_position = error_position;
   variable = dip->variable;
   if (variable != NULL) {
     /* Whole-variable initialization. */
@@ -7335,6 +7344,7 @@ do_assignment:;
       variable->init_kind = (an_init_kind)initk_none;
     }  /* if */
   }  /* if */
+  error_position = saved_error_position;
 }  /* lower_dynamic_init */
 
 
@@ -7349,9 +7359,11 @@ and ipdp identifies the entity to be destroyed.  The statements are inserted at
 *insert_location and *insert_location is updated.
 */
 {
-  an_expr_node_ptr entity_node;
-  a_variable_ptr   variable;
+  an_expr_node_ptr  entity_node;
+  a_variable_ptr    variable;
+  a_source_position saved_error_position;
 
+  saved_error_position = error_position;
   variable = dip->variable;
   if (variable != NULL) {
     /* Track the source position for internal errors. */
@@ -7375,6 +7387,7 @@ and ipdp identifies the entity to be destroyed.  The statements are inserted at
                         /*honor_virtual=*/FALSE,
                         insert_location);
   }  /* if */
+  error_position = saved_error_position;
 }  /* lower_destructor_dynamic_init */
 
 
