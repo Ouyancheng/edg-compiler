@@ -262,7 +262,10 @@ static void gen_class_definition(a_type_ptr type);
 static a_boolean process_preprocessing_directives(void);
 static void gen_pragma(void);
 static void gen_template(void);
-static void gen_lvalue(an_expr_node_ptr node);
+static void gen_lvalue_full(an_expr_node_ptr node,
+                            a_boolean        need_parens);
+#define gen_lvalue(node) gen_lvalue_full(node, /*need_parens=*/TRUE)
+#define gen_lvalue_no_parens(node) gen_lvalue_full(node, /*need_parens=*/FALSE)
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
                                  a_boolean        need_parens);
@@ -2280,7 +2283,7 @@ parameter.
     if (param->passed_via_copy_constructor) {
       /* For a default argument for a parameter passed via a copy constructor,
          the default argument expression is an address. */
-      gen_lvalue(param->default_arg_expr);
+      gen_lvalue_no_parens(param->default_arg_expr);
     } else {
       gen_initializer_expr(param->default_arg_expr, param->type,
                            /*need_parens=*/TRUE);
@@ -3647,12 +3650,13 @@ implements an array-to-pointer decay; return FALSE otherwise.
 }  /* is_array_decay_cast */
 
 
-static void gen_lvalue(an_expr_node_ptr node)
+static void gen_lvalue_full(an_expr_node_ptr node,
+                            a_boolean        need_parens)
 /*
 Generate an expression that the IL sees as an lvalue address, and C sees as
 an expression.  In effect, add an indirection to the expression.  The
 expression is surrounded by parentheses if there's some possibility of
-precedence confusion.
+precedence confusion and need_parens is TRUE.
 */
 {
   an_expr_node_kind kind = node->kind;
@@ -3665,7 +3669,7 @@ precedence confusion.
        would be adding in the source relative to what's in the IL, so
        just put out the expression. */
     node->implicit_reference_indirection = FALSE;
-    gen_expr_with_parens(node);
+    gen_expr(node, need_parens);
     node->implicit_reference_indirection = TRUE;
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_variable_address) {
@@ -3683,39 +3687,42 @@ precedence confusion.
     if (op == (an_expr_operator_kind)eok_padd_subsc) {
       /* The expression is a pointer addition.  It can be rewritten as
          a subscripting operation (i.e., *(a+b) becomes a[b]). */
-      write_tok_ch('(');
+      if (need_parens) write_tok_ch('(');
       gen_expr_with_parens(operand_1);
       write_tok_ch('[');
       gen_expression(operand_2);
-      write_tok_str("])");
+      write_tok_ch(']');
+      if (need_parens) write_tok_ch(')');
       processed = TRUE;
     } else if (op == (an_expr_operator_kind)eok_field ||
                op == (an_expr_operator_kind)eok_bit_field) {
       /* The expression is a field selection, which has an implicit "&"
          in front of it (in C terms).  Adding the indirection removes 
          the "&". */
-      write_tok_ch('(');
+      if (need_parens) write_tok_ch('(');
       gen_simple_field_selection(operand_1, operand_2);
-      write_tok_ch(')');
+      if (need_parens) write_tok_ch(')');
       processed = TRUE;
     } else if (op == (an_expr_operator_kind)eok_pm_field) {
       /* The expression is a "->*", which has an implicit "&"
          in front of it (in C++ terms).  Adding the indirection removes 
          the "&". */
-      write_tok_ch('(');
+      if (need_parens) write_tok_ch('(');
       gen_pm_simple_field_selection(operand_1, operand_2);
-      write_tok_ch(')');
+      if (need_parens) write_tok_ch(')');
       processed = TRUE;
     } else if (op == (an_expr_operator_kind)eok_lvalue_from_call_result) {
       /* Used in C mode to allow subscripting of an rvalue array.  The
          operand expression is put out as an rvalue, and the underlying
          C compiler will presumably do the right thing. */
-      gen_expr_with_parens(operand_1);
+      gen_expr(operand_1, need_parens);
       processed = TRUE;
     } else if (op == (an_expr_operator_kind)eok_lvalue_cast) {
       /* Lvalue cast. */
+      if (need_parens) write_tok_ch('(');
       gen_cast(type_pointed_to(node->type));
       gen_lvalue(operand_1);
+      if (need_parens) write_tok_ch(')');
       processed = TRUE;
     } else if (op == (an_expr_operator_kind)eok_cast ||
                op == (an_expr_operator_kind)eok_base_class_cast ||
@@ -3728,13 +3735,14 @@ precedence confusion.
           /* A cast that does array-to-pointer decay.  The cast can be removed,
              but an extra indirection has to be applied to the underlying
              lvalue.  That is, "(int *[3])&x" becomes "x", not "&x". */
-          write_tok_str("(*");
+          if (need_parens) write_tok_ch('(');
+          write_tok_ch('*');
           gen_lvalue(operand_1);
-          write_tok_ch(')');
+          if (need_parens) write_tok_ch(')');
           processed = TRUE;
         } else {
           /* Normal cast. */
-          gen_lvalue(operand_1);
+          gen_lvalue_full(operand_1, need_parens);
           processed = TRUE;
         }  /* if */
       } else {
@@ -3770,9 +3778,9 @@ precedence confusion.
               check_assertion(dest_type->kind == (a_type_kind)tk_pointer);
               type_copy = *dest_type;
               type_copy.variant.pointer.is_reference = TRUE;
-              write_tok_ch('(');
+              if (need_parens) write_tok_ch('(');
               gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE, op);
-              write_tok_ch(')');
+              if (need_parens) write_tok_ch(')');
               processed = TRUE;
             }  /* if */
           }  /* if */
@@ -3784,27 +3792,27 @@ precedence confusion.
       if (op == (an_expr_operator_kind)eok_question) {
         /* Lvalue-returning "?".  Put out the second and third operands as
            lvalues. */
-        write_tok_ch('(');
+        if (need_parens) write_tok_ch('(');
         gen_boolean_controlling_expression(operand_1);
         write_tok_str(" ? ");
         gen_lvalue(operand_2);
         write_tok_str(" : ");
         gen_lvalue(operand_2->next);
-        write_tok_ch(')');
+        if (need_parens) write_tok_ch(')');
         processed = TRUE;
       } else if (op == (an_expr_operator_kind)eok_comma) {
         /* Lvalue-returning ",".  Put out the second operand as an lvalue. */
-        write_tok_ch('(');
+        if (need_parens) write_tok_ch('(');
         gen_expr_with_parens(operand_1);
         write_tok_str(", ");
         gen_lvalue(operand_2);
-        write_tok_ch(')');
+        if (need_parens) write_tok_ch(')');
         processed = TRUE;
       } else {
         /* Other case (e.g., lvalue-returning assignment).  Just put the
            expression out. */
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
-        gen_expr_with_parens(node);
+        gen_expr(node, need_parens);
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
         processed = TRUE;
       }  /* if */
@@ -3824,16 +3832,17 @@ precedence confusion.
   } else if (kind == (an_expr_node_kind)enk_object_lifetime) {
     /* Ignore an enk_object_lifetime; the thing underneath is processed as
        an lvalue. */
-    gen_lvalue(node->variant.object_lifetime.expr);
+    gen_lvalue_full(node->variant.object_lifetime.expr, need_parens);
     processed = TRUE;
   }  /* if */
   if (!processed) {
     /* Not a special case: write "*expression". */
-    write_tok_str("(*");
+    if (need_parens) write_tok_ch('(');
+    write_tok_ch('*');
     gen_expr_with_parens(node);
-    write_tok_ch(')');
+    if (need_parens) write_tok_ch(')');
   }  /* if */
-}  /* gen_lvalue */
+}  /* gen_lvalue_full */
 
 
 static an_expr_node_ptr skip_implicit_ptr_type_qualifier_adjustment_cast(
@@ -3891,7 +3900,7 @@ need_parens is TRUE.
       expr = expr->variant.operation.operands;
     }  /* while */
     /* Put the expression out as an lvalue to remove a level of indirection. */
-    gen_lvalue(expr);
+    gen_lvalue_full(expr, need_parens);
   } else if (il_header.source_language == sl_C &&
              is_constant_node(expr) &&
              is_implicitly_cast_integral_constant(expr->variant.constant)) {
@@ -4275,7 +4284,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
     /* The void_expression_lvalue flag indicates that the expression
        should be treated as an lvalue. */
     expr->void_expression_lvalue = FALSE;
-    gen_lvalue(expr);
+    gen_lvalue_full(expr, need_parens);
     expr->void_expression_lvalue = TRUE;
     goto done_with_expr;
   }  /* if */
@@ -4313,7 +4322,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       switch (expr->variant.operation.kind) {
         /* One-operand operators. */
         case eok_indirect:
-          gen_lvalue(operand_1);
+          gen_lvalue_no_parens(operand_1);
           goto done_with_operation;
         case eok_inegate:
         case eok_fnegate:
@@ -4338,7 +4347,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                  removed, but an extra indirection has to be applied to the
                  underlying expression.  That is, "(int *[3])&x" becomes "x",
                  not "&x". */
-              gen_lvalue(operand_1);
+              gen_lvalue_no_parens(operand_1);
             } else {
               /* Normal implicit cast.  Just omit the cast. */
               gen_expression(operand_1);
@@ -4372,7 +4381,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           gen_type(expr->type);
           write_tok_str(">(");
           if (is_reference_type(expr->type)) {
-            gen_lvalue(operand_1);
+            gen_lvalue_no_parens(operand_1);
           } else {
             gen_expression(operand_1);
           }  /* if */
@@ -4705,7 +4714,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_va_end:
           /* <stdarg.h> va_end macro, treated as a builtin operator. */
           write_tok_str("va_end(");
-          gen_lvalue(operand_1);
+          gen_lvalue_no_parens(operand_1);
           write_tok_ch(')');
           goto done_with_operation;
         default:
@@ -4776,7 +4785,7 @@ done_with_operation:
         gen_type(expr->variant.typeid_info.type);
       } else {
         /* Use expression. */
-        gen_lvalue(expr->variant.typeid_info.expr);
+        gen_lvalue_no_parens(expr->variant.typeid_info.expr);
       }  /* if */
       write_tok_ch(')');
       break;
@@ -4787,7 +4796,7 @@ done_with_operation:
         gen_type(expr->variant.runtime_sizeof.type);
       } else {
         /* sizeof(expr) for expr with variable-length array type. */
-        gen_lvalue(expr->variant.runtime_sizeof.expr);
+        gen_lvalue_no_parens(expr->variant.runtime_sizeof.expr);
       }  /* if */
       write_tok_ch(')');
       break;

@@ -1,5 +1,10 @@
 Version 2.39
 
+3/17/98   C++-generating back end: fewer parentheses around lvalues
+
+The C++-generating back end has been changed so that fewer unnecessary
+parentheses are put around lvalues.
+
 3/17/98   Constant conditional expressions following a destruction
 
 The change of 11/3/97 related to folding of constant conditional
