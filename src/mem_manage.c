@@ -562,15 +562,15 @@ the block header.
      just so that we're not allocating space at the end that can hardly 
      ever be used). */
   do_host_alignment(alloc_size);
-#if USE_MMAP_FOR_MEMORY_REGIONS
-  /* When using mmap, make sure the size is a multiple of the host
-     page size. */
-  alloc_size = do_page_alignment(alloc_size);
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 #if STANDALONE_UTILITY_PROGRAM
   alloc_addr = malloc_with_check(alloc_size);
 #else /* !STANDALONE_UTILITY_PROGRAM */
   if (precompiled_header_processing_required) {
+#if USE_MMAP_FOR_MEMORY_REGIONS
+    /* When using mmap, make sure the size is a multiple of the host
+       page size. */
+    alloc_size = do_page_alignment(alloc_size);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     alloc_addr = alloc_new_mem_block(alloc_size);
   } else {
     alloc_addr = malloc_with_check(alloc_size);
