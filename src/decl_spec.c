@@ -2695,26 +2695,31 @@ Returns TRUE if there is an error in the specifiers.
         if (!type_specifier_allowed) {
           error(ec_type_specifier_not_allowed);
           err = TRUE;
-#if LONG_LONG_ALLOWED
-        } else if (size == size_long && curr_token == tok_long) {
-          /* long long.  This is an extension. */
-          size = size_long_long;
-          if (strict_ansi_mode) {
-            diagnostic(strict_ansi_discretionary_severity,
-                       ec_nonstd_long_long);
-          }  /* if */
-#endif /* LONG_LONG_ALLOWED */
         } else if (size != size_none) {
           /* Size has already been specified in some way. */
-          if ((size == size_short && curr_token == tok_short) ||
-              (size == size_long && curr_token == tok_long)) {
-            /* "short short" or "long long".  Issue an error, except in
-               cfront mode, which is silent about "short short" and warns
-               about "long long". */
+          if (size == size_long && curr_token == tok_long) {
+            /* long long.  This is an extension. */
+#if LONG_LONG_ALLOWED
+            size = size_long_long;
+            if (strict_ansi_mode) {
+              diagnostic(strict_ansi_discretionary_severity,
+                         ec_nonstd_long_long);
+            }  /* if */
+#else /* !LONG_LONG_ALLOWED */
+            if (any_cfront_mode()) {
+              /* Cfront warns about "long long" and treats it as "long". */
+              warning(ec_dupl_decl_specifier);
+            } else {
+              error(ec_nonstd_long_long);
+            }  /* if */
+#endif /* LONG_LONG_ALLOWED */
+          } else if (size == size_short && curr_token == tok_short) {
+            /* "short short".  Issue an error, except in cfront mode,
+               which is silent about "short short". */
             diagnostic((any_cfront_mode() ? es_warning : es_error),
                        ec_dupl_decl_specifier);
           } else {
-            /* Mixing size specifications. */
+            /* Some other bad combination. */
             bad_combination_of_type_specifiers = TRUE;
             error(ec_bad_combination_of_type_specifiers);
           }  /* if */
