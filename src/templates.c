@@ -5849,6 +5849,14 @@ instantiation.
     /* Enter the symbol at the scope indicated by effective_decl_level. */
     a_scope_stack_entry_ptr	ssep =
                                 &scope_stack[decl_state->effective_decl_level];
+    if (is_partial_specialization && partial_spec_nonreal_sym == NULL) {
+      /* A partial specialization cannot be entered if no partial spec.
+         nonreal symbol is available.  This situation can occur in certain
+         error cases.  Clear the is_partial_specialization flag and continue
+         with this declaration as a normal template. */
+      check_assertion(is_error_locator(locator));
+      is_partial_specialization = FALSE;
+    }  /* if */
     if (is_partial_specialization) {
       /* The symbol being created is for a partial specialization.  Create
          the symbol. */
