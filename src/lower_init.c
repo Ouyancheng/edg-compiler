@@ -4390,7 +4390,7 @@ location is the insert_location2 value (after the assignment statement).
   if (treat_as_extern_inline(innermost_function_scope->variant.routine.ptr)
 #if IA64_ABI
       /* In the IA64 ABI this routine is used for static data members of
-         templates classes, too.  This routine is only called if the static
+         template classes, too.  This routine is only called if the static
          data member has external linkage, in which case the guard variable
          must have external linkage too. */
       || guarded_var->is_template_static_data_member
