@@ -11238,12 +11238,22 @@ the needed-flag walk for the file scope.
           externalize_source_correspondence(&rout->source_corresp,
                                             /*is_variable=*/FALSE);
           rout->storage_class = (a_storage_class)sc_unspecified;
+          mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
         }  /* if */
       }  /* if */
     }  /* for */
     for (var = il_header.primary_scope->variables;
          var != NULL;
          var = var->next) {
+#if !USE_INIT_SECTION_IN_GENERATED_C
+      char *var_name = var->source_corresp.name;
+      if (var_name != NULL && var_name[0] == '_' &&
+          strcmp(var_name, "__link") == 0) {
+        /* Do not rename the __link variable.  It is specific to a particular
+           slice. */
+      } else
+#endif /* !USE_INIT_SECTION_IN_GENERATED_C */
+      /* Do not insert code here.  This is the "else" of an "if". */
       if (var->source_corresp.static_used_by_instantiation) {
         if (var->storage_class != (a_storage_class)sc_static) {
           /* If the entity was changed to non-static after the flag was set,
@@ -11253,6 +11263,7 @@ the needed-flag walk for the file scope.
           externalize_source_correspondence(&var->source_corresp,
                                             /*is_variable=*/TRUE);
           var->storage_class = (a_storage_class)sc_unspecified;
+          mark_as_needed((char *)var, (an_il_entry_kind)iek_variable);
         }  /* if */
       }  /* if */
     }  /* for */
