@@ -6866,8 +6866,13 @@ to indicate whether the class/struct/union is actually defined.
              template <class T> class A {
                class T x;
              };
-           During prototype instantiation we have to assume that T can be a
-           valid class name.  It is treated as synonymous with "T x". */
+           This may turn out to be legal, such that during prototype
+           instantiation we would have to assume that T can be a
+           valid class name, and "class T x" would be treated as synonymous
+           with "T x".  However, it seems more likely that it will be
+           disallowed, so issue an error. */
+        pos_sy_error(ec_bad_template_arg_use, &locator.source_position,
+                     tag_sym);
       } else if (tag_sym->kind != tag_kind) {
 #if CHECKING
         if (!is_template_class_symbol(tag_sym)) {

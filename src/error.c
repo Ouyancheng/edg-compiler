@@ -1756,7 +1756,7 @@ error code.
       m = "%t is not a class template";
       break;
     case ec_bad_template_arg_use:
-      m = "template parameter %no with type %t is not allowed in this context";
+      m = "template parameter %no is not allowed in this context";
       break;
     case ec_static_data_member_anon_union:
       m = "static data member may not be an anonymous union";
