@@ -15,6 +15,7 @@ exception handling.
 */
 
 #ifndef _RTTI_H
+#define _RTTI_H
 
 #include <stdlib.h>
 #include <typeinfo.h>

@@ -1,5 +1,10 @@
 Version 2.34
 
+12/4/96  Missing defines of guard macros
+
+rtti.h and vtbl.h were missing #defines of their include guard variables.
+This has been fixed.
+
 11/25/96 uncaught_exception() returns TRUE when called from terminate()
 
 X3J16/WG21 clarified the definition of uncaught_exception() when

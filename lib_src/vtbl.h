@@ -14,6 +14,7 @@ Virtual function table entry layout.
 */
 
 #ifndef _VTBL_H
+#define _VTBL_H
 
 struct a_vtbl_entry {
   __EDG_DELTA_TYPE
