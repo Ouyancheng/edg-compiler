@@ -1,5 +1,16 @@
 Version 3.5
 
+6/16/04  Microsoft mode: Spurious error when combining explicit and __stdcall
+
+In Microsoft mode, the front end issued a spurious error on the declaration
+of an explicit constructor with a __stdcall modifier.  For example:
+
+  struct S {
+    explicit __stdcall S();  // Previously an error.  Now accepted in
+  };                         // Microsoft mode.
+
+This is now fixed.
+
 6/16/04  long long bit field promotion rules in gcc mode
 
 It turns out the promotion rules for long long bit fields used

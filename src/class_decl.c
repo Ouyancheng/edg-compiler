@@ -11858,6 +11858,7 @@ If prototype instantiations are recorded in the IL, the template header is
 passed via template_decl.  
 */
 {
+  a_boolean            missing_declarator = FALSE;
   a_source_position    decl_start_pos;
   a_decl_flag_set      dsi_flags;
   a_decl_flag_set      dso_flags;
@@ -11988,17 +11989,12 @@ passed via template_decl.
     *skip_semicolon_check = TRUE;
     goto next_declaration;
   }  /* if */
-  if ((dso_flags & DSO_EXPLICIT) && !(dso_flags & DSO_CONSTRUCTOR) &&
-      !(microsoft_mode && curr_token == tok_semicolon)) {
-    /* The keyword "explicit" is allowed only on a constructor declaration,
-       and in Microsoft mode on free standing class/enum declarations. */
-    pos_error(ec_explicit_not_allowed, &decl_start_pos);
-  }  /* if */
   if (curr_token == tok_semicolon) {
     /* There's no declarator following the declaration specifier.  This may
        be okay, but sometimes a diagnostic should be issued. */
     check_missing_declarator_in_member_declaration(class_type, member_type,
                                                    &decl_info);
+    missing_declarator = TRUE;
     if (decl_info.is_anonymous_union) {
       /* decl_nonstatic_data_member needs to be called. */
       /* Ignore any top level cv-qualifiers in Microsoft mode. */
@@ -12724,6 +12720,15 @@ passed via template_decl.
     /* Loop for additional declarators. */
   } while (loop_token(tok_comma));
 next_declaration:;
+  if ((dso_flags & DSO_EXPLICIT) && !decl_info.is_constructor &&
+      !(microsoft_mode && missing_declarator)) {
+    /* The keyword "explicit" is allowed only on a constructor declaration,
+       and in Microsoft mode on free standing class/enum declarations.  Note
+       that this check must occur after any declarator processing since we
+       cannot know for sure whether the declaration was a constructor until
+       then. */
+    pos_error(ec_explicit_not_allowed, &decl_start_pos);
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     if (any_decl_other_than_nonstatic_data_member &&
