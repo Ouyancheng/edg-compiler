@@ -4103,7 +4103,7 @@ be processed under an ellipsis).
                          (a_boolean)expr_stack->inside_conditional_expression);
     } else {
       /* In cases where there was an error in the declaration of a function
-         template (a parameter with an default argument expression was
+         template (a parameter with a default argument expression was
          followed by one without), put in an error node for the default
          expression for the parameter without one. */
       arg = error_node();
