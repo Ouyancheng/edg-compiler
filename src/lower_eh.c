@@ -862,9 +862,10 @@ twice, with preparation_pass == FALSE and then TRUE; the definition
 is generated on the second pass.
 */
 {
-  a_type_ptr  type;
-  a_scope_ptr class_scope, block_scope;
-  a_boolean   definition_needed, force_static;
+  a_type_ptr      type;
+  a_scope_ptr     class_scope, block_scope;
+  a_namespace_ptr nsp;
+  a_boolean       definition_needed, force_static;
 
   /* Visit all types to find all class types. */
   /* Note that when processing a function or block scope we will be crossing
@@ -924,6 +925,16 @@ is generated on the second pass.
       if (class_scope != NULL) {
         r_define_scope_class_typeinfo_vars(class_scope, preparation_pass);
       }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Visit all namespaces. */
+  /* Once all of the typeinfo variables have been found, quit. */
+  for (nsp = scope->namespaces;
+       nsp != NULL && num_of_pending_class_typeinfo_vars != 0;
+       nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      r_define_scope_class_typeinfo_vars(nsp->variant.assoc_scope,
+                                         preparation_pass);
     }  /* if */
   }  /* for */
   /* Visit all block scopes. */
