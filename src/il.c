@@ -2292,8 +2292,10 @@ If the indicated source correspondence is attached to a source entity,
 break the correspondence.
 */
 {
-  sc->assoc_info = NULL;
-  sc->name       = NULL;
+  sc->assoc_info        = NULL;
+  sc->name              = NULL;
+  sc->is_class_member   = FALSE;
+  sc->parent.class_type = NULL;
 }  /* break_source_corresp */
 
 
