@@ -619,11 +619,7 @@ typedef enum /*a_C_dialect*/ {
 
 
 EXTERN a_C_dialect
-		C_dialect
-#if VAR_INITIALIZERS
-                          = C_dialect_cplusplus
-#endif /* VAR_INITIALIZERS */
-                                               ;
+		C_dialect;
 			/* The C dialect to be accepted.  This is here because
 			   it's convenient to allow "back end" pieces to
 			   use C_mode(). */

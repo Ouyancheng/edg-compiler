@@ -1928,6 +1928,18 @@ EXTERN a_directory_name_entry_ptr
 			   they can be shared.  The name strings are in
 			   IL storage. */
 
+#if MAKE_FRONT_END_CALLABLE
+#include <setjmp.h> 
+
+EXTERN int	exit_status;
+			/* The status value to be returned to the caller. */
+
+EXTERN jmp_buf	edg_main_setjmp_buffer;
+			/* The setjmp buffer used to transfer control back
+			   to the main routine in the event of an error. */
+#endif /* MAKE_FRONT_END_CALLABLE */
+
+
 /* Add the default system include file search path. */
 extern void add_default_include_search_path(
 				a_directory_name_entry_ptr *search_path,

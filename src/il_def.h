@@ -4557,11 +4557,7 @@ EXTERN char *inheritance_kind_names[(int)ihk_virtual+1]
 
 
 EXTERN an_inheritance_kind
-		default_inheritance_kind
-#if VAR_INITIALIZERS
-                                         = (an_inheritance_kind)ihk_virtual
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
+		default_inheritance_kind;
 			/* Default to which the inheritance_kind field for
 			   class is set, in the absence of an explicit
 			   specification, if the class is used in a

@@ -4828,6 +4828,34 @@ variables declared in cmd_line.h.
                                  DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS;
   thread_local_storage_specifier_enabled =
                                 DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED;
+  /* Global variables from lang_feat.h. */
+#if SUN_EXTENSIONS_ALLOWED || defined(_lint)
+  sun_mode
+#if !SUN_EXTENSIONS_ALLOWED
+           = FALSE;
+#else /* SUN_EXTENSIONS_ALLOWED */
+           = DEFAULT_SUN_COMPATIBILITY;
+#endif /* !SUN_EXTENSIONS_ALLOWED */
+#endif /* SUN_EXTENSIONS_ALLOWED || defined(_lint) */
+#if SUN_EXTENSIONS_ALLOWED
+  sun_linker_scope_allowed = DEFAULT_SUN_LINKER_SCOPE_ALLOWED;
+#endif /* SUN_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED || defined(_lint)
+  gcc_mode = FALSE;
+  gpp_mode = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
+  gnu_version = DEFAULT_GNU_VERSION;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  microsoft_mode = DEFAULT_MICROSOFT_MODE;
+  microsoft_bugs = DEFAULT_MICROSOFT_BUGS;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#ifdef _lint
+  microsoft_mode = FALSE;
+  microsoft_bugs = FALSE;
+#endif /* ifdef _lint */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  microsoft_version = DEFAULT_MICROSOFT_VERSION;
+  c99_mode = DEFAULT_C99_MODE;
 }  /* cmd_line_static_var_init */
 
 

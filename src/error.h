@@ -63,11 +63,7 @@ EXTERN unsigned long
 		total_catastrophes;
 
 EXTERN an_error_severity
-		error_threshold
-#if VAR_INITIALIZERS
-                                = es_warning
-#endif /* VAR_INITIALIZERS */
-                                            ;
+		error_threshold;
 			/* Messages at or above this severity level should
 			   be displayed; those below are suppressed. */
 EXTERN unsigned long

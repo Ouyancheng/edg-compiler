@@ -777,15 +777,7 @@ that it can be available to standalone utilities.
 */
 #if SUN_EXTENSIONS_ALLOWED || defined(_lint)
 EXTERN a_boolean
-                sun_mode
-#if VAR_INITIALIZERS
-#if !SUN_EXTENSIONS_ALLOWED
-                         = FALSE
-#else /* SUN_EXTENSIONS_ALLOWED */
-                         = DEFAULT_SUN_COMPATIBILITY
-#endif /* !SUN_EXTENSIONS_ALLOWED */
-#endif /* VAR_INITIALIZERS */
-                                                    ;
+                sun_mode;
                         /* Accept C language features supported by Sun C++ 5.x
                            compilers. */
 #else /* !(SUN_EXTENSIONS_ALLOWED || defined(_lint)) */
@@ -797,11 +789,7 @@ EXTERN a_boolean
 
 #if SUN_EXTENSIONS_ALLOWED
 EXTERN a_boolean
-                sun_linker_scope_allowed
-#if VAR_INITIALIZERS
-                                         = DEFAULT_SUN_LINKER_SCOPE_ALLOWED
-#endif /* VAR_INITIALIZERS */
-                                                                           ;
+                sun_linker_scope_allowed;
                         /* TRUE if Sun C++ 5.5 linker scope specifiers
                            (__global, __symbolic, __hidden) should be
                            accepted. */
@@ -813,11 +801,7 @@ that it can be available to standalone utilities.
 */
 #if GNU_EXTENSIONS_ALLOWED || defined(_lint)
 EXTERN a_boolean
-                gcc_mode
-#if VAR_INITIALIZERS
-                         = FALSE
-#endif /* VAR_INITIALIZERS */
-                                ;
+                gcc_mode;
                         /* Accept C language features supported by GNU C
                            compilers. */
 #else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
@@ -833,11 +817,7 @@ that it can be available to standalone utilities.
 */
 #if GNU_EXTENSIONS_ALLOWED || defined(_lint)
 EXTERN a_boolean
-                gpp_mode
-#if VAR_INITIALIZERS
-                         = FALSE
-#endif /* VAR_INITIALIZERS */
-                                ;
+                gpp_mode;
                         /* Accept C++ language features supported by GNU C++
                            compilers. */
 #else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
@@ -854,11 +834,7 @@ is enabled.
 #define gnu_mode (gcc_mode || gpp_mode)
 
 EXTERN unsigned long
-		gnu_version
-#if VAR_INITIALIZERS
-                               = DEFAULT_GNU_VERSION
-#endif /* VAR_INITIALIZERS */
-                                                           ;
+		gnu_version;
 			/* The version of the GNU C or C++ compiler with which
 			   compatibility is desired.  GNU C/C++ version x.y.z
 			   is represented by the value x*10000+y*100+z.  (E.g.,
@@ -871,19 +847,11 @@ utilities.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_boolean
-		microsoft_mode
-#if VAR_INITIALIZERS
-                               = DEFAULT_MICROSOFT_MODE
-#endif /* VAR_INITIALIZERS */
-                                                       ;
+		microsoft_mode;
 			/* TRUE if Microsoft extensions are to be accepted. */
 
 EXTERN a_boolean
-		microsoft_bugs
-#if VAR_INITIALIZERS
-                               = DEFAULT_MICROSOFT_BUGS
-#endif /* VAR_INITIALIZERS */
-                                                       ;
+		microsoft_bugs;
 			/* TRUE if Microsoft bugs are to be emulated. */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 /* When Microsoft mode is unavailable, replace the variables for Microsoft
@@ -892,17 +860,9 @@ EXTERN a_boolean
 #ifdef _lint
 /* When lint is used, avoid warnings about dead code. */
 EXTERN a_boolean
-		microsoft_mode
-#if VAR_INITIALIZERS
-                               = FALSE
-#endif /* VAR_INITIALIZERS */
-                                      ;
+		microsoft_mode;
 EXTERN a_boolean
-		microsoft_bugs
-#if VAR_INITIALIZERS
-                               = FALSE
-#endif /* VAR_INITIALIZERS */
-                                      ;
+		microsoft_bugs;
 #else /* !defined(_lint) */
 #define microsoft_mode FALSE
 #define microsoft_bugs FALSE
@@ -910,11 +870,7 @@ EXTERN a_boolean
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN unsigned long
-		microsoft_version
-#if VAR_INITIALIZERS
-                               = DEFAULT_MICROSOFT_VERSION
-#endif /* VAR_INITIALIZERS */
-                                                           ;
+		microsoft_version;
 			/* The version of the Microsoft compiler with which
 			   compatibility is desired.  This enables or disables
 			   particular Microsoft mode features when the
@@ -1258,11 +1214,7 @@ value of which may be modified using command line options.
 #endif /* ifndef DEFAULT_C99_MODE */
 
 EXTERN a_boolean
-		c99_mode
-#if VAR_INITIALIZERS
-                         = DEFAULT_C99_MODE
-#endif /* VAR_INITIALIZERS */
-                                           ;
+		c99_mode;
 			/* When TRUE accept language features defined by the
 			   C99 standard. */
 

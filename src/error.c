@@ -4724,6 +4724,7 @@ line processing is done.
   internal_error_loop = FALSE;
 #endif /* CHECKING */
   catastrophe_has_occurred = FALSE;
+  error_threshold = es_warning;
   error_source_line = NULL;
   after_end_of_error_source_line = NULL;
   cs_saved_severity = (an_error_severity)es_default;
