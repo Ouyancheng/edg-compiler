@@ -41,24 +41,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #endif /* ifdef _WIN32 */
 #endif /* ifdef CP_GEN_BE_VERSION */
 
-#ifndef ABI_COMPATIBILITY_VERSION
-#define ABI_COMPATIBILITY_VERSION 99999 /* Use latest version. */
-/* We want enough cfront compatibility to be able to use I/O streams compiled
-   by cfront, but we also want the latest features. */
-#ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-#define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 1
-#endif /* ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-#ifndef ABI_CHANGES_FOR_RTTI
-#define ABI_CHANGES_FOR_RTTI 1
-#endif /* ifndef ABI_CHANGES_FOR_RTTI */
-#ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
-#define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE 1
-#endif /* ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
-#ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES
-#define REMOVE_QUALIFIERS_FROM_PARAM_TYPES 1
-#endif /* ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
-#endif /* ifndef ABI_COMPATIBILITY_VERSION */
-
 /*
 Flags to be set when using the KAI inliner.
 */
@@ -187,7 +169,6 @@ Flags to be set when using the KAI inliner.
 #define ASSIGNMENT_TO_THIS_ALLOWED 0
 #define DEFAULT_ALLOW_ANACHRONISMS 0
 #define CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG 0
-#undef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
 #define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 0
 #define NEW_CAN_BE_FOLDED_INTO_CTOR 0
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
@@ -209,6 +190,32 @@ Flags to be set when using the KAI inliner.
 #endif /* ifdef __LINUX__ */
 #endif /* defined(_WIN32) */
 #endif /* defined(sun) */
+
+/*
+Set ABI-related switches.  This is done late so that individual configurations
+(above) can do something different from the EDG default by setting the
+switches before this point.
+*/
+#ifndef ABI_COMPATIBILITY_VERSION
+#define ABI_COMPATIBILITY_VERSION 99999 /* Use latest version. */
+/* We want enough cfront compatibility to be able to use I/O streams compiled
+   by cfront, but we also want the latest features. */
+#ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+#define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 1
+#endif /* ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+#ifndef ABI_CHANGES_FOR_RTTI
+#define ABI_CHANGES_FOR_RTTI 1
+#endif /* ifndef ABI_CHANGES_FOR_RTTI */
+#ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+#define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE 1
+#endif /* ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
+#ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES
+#define REMOVE_QUALIFIERS_FROM_PARAM_TYPES 1
+#endif /* ifndef REMOVE_QUALIFIERS_FROM_PARAM_TYPES */
+#ifndef RUNTIME_USES_NAMESPACES
+#define RUNTIME_USES_NAMESPACES 1
+#endif /* ifndef RUNTIME_USES_NAMESPACES */
+#endif /* ifndef ABI_COMPATIBILITY_VERSION */
 
 
 /******************************************************************************
