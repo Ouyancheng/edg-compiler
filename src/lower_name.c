@@ -1673,11 +1673,15 @@ template classes.
     a_boolean     suppress_parent_encoding = FALSE;
     a_routine_ptr routine = con->variant.address.variant.routine;
 #if IA64_ABI
-    if (!emulate_gnu_abi_bugs) add_str_to_mangled_name("_Z", mctl);
     suppress_param_encoding = FALSE;
     if (!function_name_mangling_needed(routine, &suppress_param_encoding)) {
       suppress_param_encoding = TRUE;
       suppress_parent_encoding = TRUE;
+    }  /* if */
+    if (emulate_gnu_abi_bugs && suppress_param_encoding) {
+      /* g++ 3.2 does not include the "_Z" for extern "C" functions. */
+    } else {
+      add_str_to_mangled_name("_Z", mctl);
     }  /* if */
 #endif /* IA64_ABI */
     mangled_function_name(routine, suppress_param_encoding,
