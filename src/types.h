@@ -329,11 +329,11 @@ but it may have typerefs on top of it.
           variant.routine.extra_info->implicit_this_param_type != NULL)
 
 /*
-Extract the class type from a nonstatic member function type.
+Extract the "this" parameter type from a nonstatic member function type.
 */
-#define class_type_from_nonstatic_member_function_type(routine_type)  \
-  (f_skip_typerefs(type_pointed_to(f_skip_typerefs(routine_type)->    \
-               variant.routine.extra_info->implicit_this_param_type)))
+#define implicit_this_param_type_of(routine_type)                     \
+ (f_skip_typerefs(routine_type)->                                     \
+          variant.routine.extra_info->implicit_this_param_type)
 
 /*
 Extract a pointer to a base classes list for a class type.  This macro
