@@ -711,6 +711,9 @@ typedef int a_ctws_options_set;
 			/* TRUE if, when copying a type like A<T>, that the
 			   prototype instantiation may be used in preference
 			   to the nonreal class of the same name. */
+#define CTWS_NON_CONSTANT_EXPR		0x4
+			/* TRUE when copying a non-constant expression,
+			   which can come up under a sizeof. */
 
 extern a_constant_ptr copy_template_param_con_with_substitution(
                                  a_constant_ptr           con,

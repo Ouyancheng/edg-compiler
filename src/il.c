@@ -8521,6 +8521,7 @@ to TRUE.  *source_pos gives the source position for errors.
                                       result_type, source_pos);
     }  /* if */
   } else if (!op_3_present) {
+    a_boolean assignment_case = FALSE;
     /* Two-operand operation. */
     do_usual_arith_conversions = do_promotion = FALSE;
     switch (op) {
@@ -8560,15 +8561,39 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_remainder:
         do_usual_arith_conversions = TRUE;
         break;
+      case eok_iadd_assign:
+      case eok_fadd_assign:
+      case eok_add_assign:
+      case eok_isubtract_assign:
+      case eok_fsubtract_assign:
+      case eok_subtract_assign:
+      case eok_fmultiply_assign:
+      case eok_multiply_assign:
+      case eok_idivide_assign:
+      case eok_fdivide_assign:
+      case eok_divide_assign:
+      case eok_remainder_assign:
+      case eok_and_assign:
+      case eok_or_assign:
+        do_usual_arith_conversions = TRUE;
+        assignment_case = TRUE;
+        break;
       case eok_shiftl:
       case eok_shiftr:
         do_promotion = TRUE;
         break;
+      case eok_shiftl_assign:
+      case eok_shiftr_assign:
+        do_promotion = TRUE;
+        assignment_case = TRUE;
+        break;
 #if GNU_EXTENSIONS_ALLOWED
       case eok_binary_question:
-        /* Not supported.  Note that the type change on the first operand
-           will have to be suppressed. */
-        unexpected_condition_str("eok_binary_question not implemented");
+        do_usual_arith_conversions = TRUE;
+        /* This is not an assignment, but suppress the type change on the
+           first operand by setting the assignment flag. */
+        assignment_case = TRUE;
+        break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
       /* These are used only in C mode.  If they are added for GNU C++
@@ -8594,21 +8619,24 @@ to TRUE.  *source_pos gives the source position for errors.
     }  /* switch */
     if (do_usual_arith_conversions) {
       result_type = usual_arithmetic_conversions(type_1, type_2);
-      cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
-                                      result_type, source_pos);
+      if (!assignment_case) {
+        cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
+                                        result_type, source_pos);
+      }  /* if */
       cast_copied_template_param_expr(operand_2, constant_2, alloc_con_2,
                                       result_type, source_pos);
     } else if (do_promotion) {
       result_type = type_after_integral_promotion(type_1);
-      cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
-                                      result_type, source_pos);
+      if (!assignment_case) {
+        cast_copied_template_param_expr(operand_1, constant_1, alloc_con_1,
+                                        result_type, source_pos);
+      }  /* if */
       promoted_type_2 = type_after_integral_promotion(type_2);
       cast_copied_template_param_expr(operand_2, constant_2, alloc_con_2,
                                       promoted_type_2, source_pos);
     }  /* if */
-  } else {
+  } else if (op == (an_expr_operator_kind)eok_question) {
     /* Three-operand operation, i.e., "?" */
-    check_assertion(op == (an_expr_operator_kind)eok_question);
     /* If the operands have the same type, use that type.  Otherwise, do
        the usual arithmetic conversions. */
     if (!types_are_compatible(type_2, type_3)) {
@@ -8668,6 +8696,109 @@ to an already-allocated constant; otherwise, constant points to the
   }  /* if */
   return expr;
 }  /* alloc_copied_template_param_expr */
+  
+  
+static a_boolean operator_is_foldable(an_expr_operator_kind op)
+/*
+Return TRUE if the indicated operation should be folded when doing
+template argument substitution.
+*/
+{
+  a_boolean is_foldable = FALSE;
+
+  switch (op) {
+    case eok_inegate:
+    case eok_negate:
+    case eok_unary_plus:
+    case eok_complement:
+    case eok_not:
+    case eok_iadd:
+    case eok_add:
+    case eok_isubtract:
+    case eok_subtract:
+    case eok_imultiply:
+    case eok_multiply:
+    case eok_idivide:
+    case eok_divide:
+    case eok_remainder:
+    case eok_shiftl:
+    case eok_shiftr:
+    case eok_ieq:
+    case eok_eq:
+    case eok_ine:
+    case eok_ne:
+    case eok_igt:
+    case eok_gt:
+    case eok_ilt:
+    case eok_lt:
+    case eok_ige:
+    case eok_ge:
+    case eok_ile:
+    case eok_le:
+    case eok_and:
+    case eok_or:
+    case eok_xor:
+    case eok_land:
+    case eok_lor:
+    case eok_question:
+    case eok_cast:
+      is_foldable = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return is_foldable;
+}  /* operator_is_foldable */
+
+
+static an_expr_operator_kind substitute_integer_operator_for_generic(
+                                                      an_expr_operator_kind op)
+/*
+If op is a generic operator (e.g., eok_add), return the corresponding
+integer operator (e.g., eok_iadd).  Otherwise, return the operator
+passed in.
+*/
+{
+  switch (op) {
+    case eok_negate:
+      op = (an_expr_operator_kind)eok_inegate;
+      break;
+    case eok_add:
+      op = (an_expr_operator_kind)eok_iadd;
+      break;
+    case eok_subtract:
+      op = (an_expr_operator_kind)eok_isubtract;
+      break;
+    case eok_multiply:
+      op = (an_expr_operator_kind)eok_imultiply;
+      break;
+    case eok_divide:
+      op = (an_expr_operator_kind)eok_idivide;
+      break;
+    case eok_eq:
+      op = (an_expr_operator_kind)eok_ieq;
+      break;
+    case eok_ne:
+      op = (an_expr_operator_kind)eok_ine;
+      break;
+    case eok_gt:
+      op = (an_expr_operator_kind)eok_igt;
+      break;
+    case eok_lt:
+      op = (an_expr_operator_kind)eok_ilt;
+      break;
+    case eok_ge:
+      op = (an_expr_operator_kind)eok_ige;
+      break;
+    case eok_le:
+      op = (an_expr_operator_kind)eok_ile;
+      break;
+    default:
+      /* No change. */
+      break;
+  }  /* switch */
+  return op;
+}  /* substitute_integer_operator_for_generic */
 
 
 static an_expr_node_ptr copy_template_param_eok_lvalue( 
@@ -8884,6 +9015,8 @@ options is a set of name lookup options.
 {
   an_expr_node_ptr      expr_copy = NULL;
   an_expr_operator_kind op;
+  a_boolean             non_constant_expr =
+                                       (options & CTWS_NON_CONSTANT_EXPR) != 0;
 
   *alloc_con = NULL;
   switch (expr->kind) {
@@ -8926,6 +9059,13 @@ options is a set of name lookup options.
                                                    copy_error,
                                                    constant,
                                                    alloc_con);
+      } else if (!operator_is_foldable(op)) {
+        /* For operators we can't ever fold (e.g., calls), give up on
+           deduction.  This is a limitation with respect to the standard,
+           but going down this road eventually requires overload
+           resolution during this copy process, so we're going to
+           put that off for now.  See Core Issue 339. */
+        *copy_error = TRUE;
       } else {
         an_expr_node_ptr operand_1 = expr->variant.operation.operands;
         an_expr_node_ptr operand_2 = operand_1->next;
@@ -8982,6 +9122,18 @@ options is a set of name lookup options.
                   operand_3 != NULL, &new_operand_3, &constant_3, &alloc_con_3,
                   source_pos, &operation_type,
                   copy_error);
+        if (op == (an_expr_operator_kind)eok_cast) {
+          /* Determine the result type of a cast by substitution. */
+          operation_type = copy_type_with_substitution(operation_type,
+                                                       template_arg_list,
+                                                       template_param_list,
+                                                       source_pos,
+                                                       options,
+                                                       copy_error);
+        } else {
+          /* Change generic operators to integer operators. */
+          op = substitute_integer_operator_for_generic(op);
+        }  /* if */
         if (new_operand_1 == NULL &&
             new_operand_2 == NULL &&
             new_operand_3 == NULL) {
@@ -9027,6 +9179,18 @@ options is a set of name lookup options.
                 check_assertion(!did_not_fold);
                 *alloc_con = NULL;
               }  /* if */
+            } else if (op == (an_expr_operator_kind)eok_cast) {
+              type_change_constant(&constant_1, operation_type,
+                                   /*is_implicit_cast=*/FALSE,
+                                   /*constant_context=*/TRUE,
+                                   /*evaluated_context=*/TRUE,
+                                   /*fold_constant_addr_exprs=*/TRUE,
+                                   /*is_reinterpret_cast=*/FALSE,
+                                   /*maintain_expression=*/FALSE,
+                                   &did_not_fold,
+                                   source_pos);
+              check_assertion(!did_not_fold);
+              *alloc_con = NULL;
             } else {
               /* One-operand operation. */
               unary_operation(op, &constant_1, operation_type, constant,
@@ -9065,8 +9229,21 @@ options is a set of name lookup options.
         }  /* if */
       }  /* if */
       break;
+    case enk_variable:
+    case enk_variable_address:
+    case enk_routine_address:
+      /* Come up in non-constant expressions under sizeof. */
+      check_assertion_str(non_constant_expr,
+                          "copy_template_param_expr: bad expression kind");
+      expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
+      break;
     default:
-      unexpected_condition_str("copy_template_param_expr: bad kind");
+      /* Other kinds of expressions can come up when copying a non-constant
+         expression under a sizeof. */
+      check_assertion_str(non_constant_expr,
+                          "copy_template_param_expr: bad expression kind");
+      *copy_error = TRUE;
+      break;
   }  /* if */
   return expr_copy;
 }  /* copy_template_param_expr */
@@ -9393,7 +9570,7 @@ name lookup options.
                                             (a_type_ptr)NULL,
                                             /*indef_lvalue=*/TRUE,
                                             source_pos,
-                                            options,
+                                            options | CTWS_NON_CONSTANT_EXPR,
                                             copy_error,
                                             &sizeof_expr_con,
                                             &alloc_sizeof_expr_con);
