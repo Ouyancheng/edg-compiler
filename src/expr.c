@@ -7442,6 +7442,28 @@ to select one of the functions in the overload set.  See [over.over].
 }  /* cast_overloaded_function */
 
 
+static void microsoft_lvalue_cv_qual_adjustment(an_operand *operand,
+                                                a_type_ptr new_type)
+/*
+operand is being subjected to an lvalue cast to new_type in Microsoft
+mode.  The cast can adjust only the cv-qualification of the lvalue;
+the underlying type is the same.  If necessary, adjust the cv-qualification.
+Note that this will get an error if the operand is a bit field reference.
+The caller should check for that and avoid it.
+*/
+{
+  if (!identical_types(operand->type, new_type)) {
+    take_address_of_lvalue(operand);
+    cast_operand(make_pointer_type(new_type),
+                 operand, /*check_cast_access=*/FALSE,
+                 /*is_implicit_cast=*/FALSE, 
+                 /*is_reinterpret_cast=*/FALSE,
+                 /*reinterpret_semantics=*/FALSE);
+    conv_object_pointer_to_lvalue(operand);
+  }  /* if */
+}  /* microsoft_lvalue_cv_qual_adjustment */
+
+
 static void do_cast(a_type_ptr               type_cast_to,
                     an_operand               *operand,
                     an_operand               *bound_function_selector,
@@ -7590,15 +7612,7 @@ C-style casts and C++ functional-notation type conversions.
                this applies in C++ as well as C. */
             /* The cast can add or drop cv-qualifiers.  If it does, we
                have to add a cast. */
-            if (!identical_types(source_type, type_cast_to)) {
-              take_address_of_lvalue(operand);
-              cast_operand(make_pointer_type(type_cast_to),
-                           operand, /*check_cast_access=*/FALSE,
-                           /*is_implicit_cast=*/FALSE, 
-                           /*is_reinterpret_cast=*/FALSE,
-                           /*reinterpret_semantics=*/FALSE);
-              conv_object_pointer_to_lvalue(operand);
-            }  /* if */
+            microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to);
           } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode ||
                       (microsoft_mode && C_mode())) &&
                      is_an_lvalue(operand) &&
@@ -9952,6 +9966,37 @@ operand.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+
+static a_boolean same_types_for_question_operator(an_operand *operand_2,
+                                                  an_operand *operand_3)
+/*
+Return TRUE if the two indicated operands, which are the second and
+third operands of a "?" operator, have the same type.
+*/
+{
+  a_boolean  types_are_the_same;
+  a_type_ptr type_2 = operand_2->type;
+  a_type_ptr type_3 = operand_3->type;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_bugs && !is_class_struct_union_type(type_2)) {
+    /* In Microsoft mode, cv-qualifiers are ignored in determining
+       whether two non-class operands have the same type. */
+    if ((is_qualified_type(type_2) && is_bit_field_operand(operand_2)) ||
+        (is_qualified_type(type_3) && is_bit_field_operand(operand_3))) {
+       /* We can't implement dropping of cv-qualifiers while keeping an
+          lvalue for a bit field, so ignore those. */
+    } else {
+      type_2 = skip_typerefs(type_2);
+      type_3 = skip_typerefs(type_3);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  types_are_the_same = types_are_compatible(type_2, type_3);
+  return types_are_the_same;
+}  /* same_types_for_question_operator */
+
+
 static void scan_conditional_operator(an_operand *operand_1,
                                       an_operand *result)
 /*
@@ -10053,7 +10098,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   /* Check the second and third operand types. */
   if (!C_mode()) {
     /* Checks specific to C++ mode: */
-    types_are_the_same = types_are_compatible(operand_2.type, operand_3.type);
+    types_are_the_same = same_types_for_question_operator(&operand_2,
+                                                          &operand_3);
     if (is_template_dependent_context() &&
         (is_template_dependent_type(operand_1->type) ||
          is_template_dependent_type(operand_2.type) ||
@@ -10134,8 +10180,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                /*is_explicit_cast=*/FALSE);
         }  /* if */
         /* Determine if the types are the same after any conversions.*/
-        types_are_the_same = types_are_compatible(operand_2.type,
-                                                  operand_3.type);
+        types_are_the_same = same_types_for_question_operator(&operand_2,
+                                                              &operand_3);
       } else {
         /* The operands do not have the same type, at least one of them
            has a class type, and there is no way to convert one to the
@@ -10154,8 +10200,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
           err = TRUE;
         } else {
           /* Determine if the types are the same after any conversions.*/
-          types_are_the_same = types_are_compatible(operand_2.type,
-                                                    operand_3.type);
+          types_are_the_same = same_types_for_question_operator(&operand_2,
+                                                                &operand_3);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -10183,8 +10229,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       /* See if the types are the same in C++ mode after the
          transformations. */
       if (!C_mode()) {
-        types_are_the_same = types_are_compatible(operand_2.type,
-                                                  operand_3.type);
+        types_are_the_same = same_types_for_question_operator(&operand_2,
+                                                              &operand_3);
       }  /* if */
     }  /* if */
     result_type = operand_2.type;  /* Assume. */
@@ -10193,7 +10239,22 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
          is needed. */
       /* If either operand has an error type, make sure the result type is
          an error type. */
-      if (is_error_type(operand_3.type)) result_type = operand_3.type;
+      if (is_error_type(operand_3.type)) {
+        result_type = operand_3.type;
+      } else if (microsoft_bugs && !is_class_struct_union_type(result_type)) {
+        /* In Microsoft mode, the cv-qualifiers are dropped on non-class
+           operands. */
+        if ((is_qualified_type(operand_2.type) &&
+             is_bit_field_operand(&operand_2)) ||
+            (is_qualified_type(operand_3.type) &&
+             is_bit_field_operand(&operand_3))) {
+          /* We can't do this on bit-field operands, however. */
+        } else {
+          result_type = make_unqualified_type(result_type);
+          microsoft_lvalue_cv_qual_adjustment(&operand_2, result_type);
+          microsoft_lvalue_cv_qual_adjustment(&operand_3, result_type);
+        }  /* if */
+      }  /* if */
     } else if (is_throw_operand(&operand_2)) {
       /* The second operand is a throw expression and the third is not
          (because if they both were, they would have the same types),
