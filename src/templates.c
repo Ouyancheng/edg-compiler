@@ -940,9 +940,8 @@ over templ_sym2.
 }  /* function_template_is_more_specialized */
 
 
-int compare_function_template_speciality(
-				a_symbol_ptr 		templ_sym1,
-				a_symbol_ptr		templ_sym2)
+int compare_function_templates(a_symbol_ptr 		templ_sym1,
+			       a_symbol_ptr		templ_sym2)
 /*
 templ_sym1 and templ_sym2 are function template symbols.  Return 1 if
 templ_sym1 is more specialized than templ_sym2, return -1 if templ_sym2 is

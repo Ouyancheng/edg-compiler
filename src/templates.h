@@ -114,7 +114,7 @@ extern
 a_symbol_ptr find_matching_template_instance(a_symbol_ptr      sym,
                                              a_type_ptr        type);
 
-extern int compare_function_template_speciality(
+extern int compare_function_templates(
 				a_symbol_ptr 		templ_sym1,
 				a_symbol_ptr		templ_sym2);
 
