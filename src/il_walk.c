@@ -1478,6 +1478,16 @@ which these are local declarations.
   a_routine_ptr  rout;
   a_scope_ptr    subscope;
 
+  if (scope->kind == (a_scope_kind)sck_function) {
+    /* Process the parameter variables of the function. */
+    for (var = scope->variant.routine.parameters;
+         var != NULL;
+         var = var->next) {
+      var->source_corresp.okay_to_walk_subtree_of_local_entity = TRUE;
+      remark_as_needed    ((char *)var, (an_il_entry_kind)iek_variable);
+      remark_to_keep_in_il((char *)var, (an_il_entry_kind)iek_variable);
+    }  /* for */
+  }  /* if */
   for (var = scope->variables; var != NULL; var = var->next) {
     var->source_corresp.okay_to_walk_subtree_of_local_entity = TRUE;
     remark_as_needed    ((char *)var, (an_il_entry_kind)iek_variable);

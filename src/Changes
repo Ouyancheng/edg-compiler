@@ -1,5 +1,20 @@
 Version 2.44
 
+1/13/00  Needed typedef removed as "unneeded", with cv-qualified parameter
+
+The typedef in the following example was incorrectly removed as
+"unneeded", when in fact it is referenced from the parameter variable
+types.  Now fixed.  This bug is not visible in versions with
+DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES set to FALSE, which
+is the default when cfront object code compatibility is selected.
+
+  typedef float * volatile * volatile pfv;
+  void D( pfv y, pfv x, float a, int n ) {
+    int i;
+    for( i=0; i<n; i++ )
+        (*y)[i] += (*x)[i]*a; 
+  }
+
 1/12/00  Nonstandard pointer-to-member constant passed to reference
          parameter of template function
 
