@@ -369,6 +369,7 @@ Convert the indicated statement into a no-op.
 
 
 static void insert_if_statement(an_expr_node_ptr       test_expr,
+                                a_boolean              is_initialization_guard,
                                 an_insert_location_ptr insert_location,
                                 an_insert_location_ptr insert_location2)
 /*
@@ -376,6 +377,10 @@ Create an "if" statement that tests test_expr, and insert it at
 insert_location.  Set insert_location2 to allow insertion of the
 dependent statements of the "if".  This routine also handles the
 case of inserting an if-equivalent into the middle of an expression.
+If this test is the guard code around an initialization,
+is_initialization_guard is TRUE; that's used to indicate to a back
+end that the test-and-set of the guard flag should be done as an
+atomic operation.
 */
 {
   a_statement_ptr  if_stmt, block_stmt;
@@ -397,6 +402,7 @@ case of inserting an if-equivalent into the middle of an expression.
     op2_node->next = op3_node;
     question_node = make_operator_node((an_expr_operator_kind)eok_question,
                                        void_type_ptr, test_expr);
+    question_node->is_initialization_guard = is_initialization_guard;
     insert_expr(question_node, insert_location);
     /* The insert location is before the "(void)0" of the second operand. */
     set_expr_insert_location(op2_node, insert_location2);
@@ -407,6 +413,7 @@ case of inserting an if-equivalent into the middle of an expression.
     if_stmt->expr = test_expr;
     if_stmt->variant.if_stmt.then_statement = block_stmt =
                                  alloc_statement((a_statement_kind)stmk_block);
+    if_stmt->is_initialization_guard = is_initialization_guard;
     insert_statement(if_stmt, insert_location);
     set_block_start_insert_location(block_stmt, insert_location2);
   }  /* if */
@@ -1894,7 +1901,8 @@ insertion within the "if".
                                     integer_type((an_integer_kind)ik_int),
                                     test_var_node);
   /* Make an "if" statement and insert it into the program. */
-  insert_if_statement(compare_node, insert_location, insert_location2);
+  insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
+                      insert_location, insert_location2);
 }  /* add_conditional_flag_test */
 
 
@@ -3862,7 +3870,8 @@ for further insertion after the assignment statement.
   compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
                                     int_type, test_var_node);
   /* Make an "if" statement and insert it into the program. */
-  insert_if_statement(compare_node, insert_location, &insert_location2);
+  insert_if_statement(compare_node, /*is_initialization_guard=*/TRUE,
+                      insert_location, &insert_location2);
   /* Further inserts are done at the start of the block. */
   *insert_location = insert_location2;
   /* Make "test_var = 1" and insert it inside the "if" statement. */
@@ -3939,7 +3948,8 @@ This routine returns TRUE if guard code was emitted.
                                       integer_type((an_integer_kind)ik_int),
                                       test_var_node);
     /* Make an "if" statement and insert it into the program. */
-    insert_if_statement(compare_node, insert_location, insert_location2);
+    insert_if_statement(compare_node, /*is_initialization_guard=*/TRUE,
+                        insert_location, insert_location2);
     /* Make "test_var = 1" and insert it inside the "if" statement. */
     (void)insert_var_assignment_statement(test_var,
                                           (an_expr_operator_kind)eok_iassign,
@@ -4302,7 +4312,8 @@ constructor, but may instead be after an assignment to "this".
          if (param == NULL) {}
                              ^--- additional statements will be inserted.
     */
-    insert_if_statement(compare_node, insert_location, &insert_location2);
+    insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
+                        insert_location, &insert_location2);
     /* Set the added parameters to the addresses of the virtual base
        classes. */
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
@@ -4992,7 +5003,8 @@ destructor scope, and also lower the user code.
            if (param != 0) {}
                             ^--- additional statements will be inserted.
       */
-      insert_if_statement(compare_node, &insert_location, &insert_location2);
+      insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
+                          &insert_location, &insert_location2);
       /* Destroy any virtual base classes on the ctor_init list. */
       for (; ctor_init != NULL; ctor_init = ctor_init->next) {
         lower_dtor_init(ctor_init, this_param_var,
@@ -5126,7 +5138,8 @@ destructor scope, and also lower the user code.
     }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     /* Make "if ((param & 0x1) != 0)". */
-    insert_if_statement(if_node, &insert_location, &insert_location2);
+    insert_if_statement(if_node, /*is_initialization_guard=*/FALSE,
+                        &insert_location, &insert_location2);
     /* Make "delete-routine((void *)this);" under the "if". */
     this_param_node = var_rvalue_expr(this_param_var);
     this_param_node = add_cast_if_necessary(this_param_node, void_star_type());

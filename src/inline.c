@@ -842,6 +842,7 @@ If not, *failed is set.
               expr = make_operator_node((an_expr_operator_kind)eok_question,
                                         void_type(),
                                         stmt_expr);
+              expr->is_initialization_guard=statement->is_initialization_guard;
             }  /* if */
             set_expr_result_not_used(expr);
             insert_expr(expr, insert_location);

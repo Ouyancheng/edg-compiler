@@ -4342,6 +4342,12 @@ typedef struct an_expr_node {
 			/* Always FALSE in C, by language definition. */
 #endif /* ifdef CIL */
 #endif /* ifdef FIL */
+  unsigned int	is_initialization_guard:1;
+			/* TRUE if this node is a "?" that guards a first-time
+			   test on an initialization.  When generating
+			   thread-safe code, the "?" and the first assignment
+			   within it should be rendered as an atomic
+			   test-and-set. */
   bitfield_to_avoid_codecenter_warnings();
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */
@@ -4972,12 +4978,17 @@ typedef struct a_statement {
   a_statement_kind
                 kind;
                         /* The kind of statement. */
-  a_byte_boolean
-		has_associated_pragma;
+  unsigned int	has_associated_pragma:1;
 			/* TRUE if an entry of type a_pragma has been created
 			   and bound to this statement.  The pragma entry,
 			   which will contain a pointer to this statement, is
 			   found by calling find_assoc_pragma. */
+  unsigned int	is_initialization_guard:1;
+			/* TRUE if this statement is an "if" that guards
+			   a first-time test on an initialization.  When
+			   generating thread-safe code, the "if" and the
+			   first initialization within it should be rendered
+			   as an atomic test-and-set. */
   an_expr_node_ptr
                 expr;
                         /* The primary expression, if applicable

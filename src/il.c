@@ -6274,6 +6274,7 @@ its kind to the indicated kind.
 #ifdef FIL
   node->allow_reordering = FALSE;
 #endif /* ifdef FIL */
+  node->is_initialization_guard = FALSE;
 #if CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
@@ -7358,6 +7359,7 @@ to it.  The statement kind is set as indicated.
   clear_stmt_source_position(sp->position);
   sp->next                  = NULL;
   sp->has_associated_pragma = FALSE;
+  sp->is_initialization_guard = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sp->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

@@ -1865,6 +1865,9 @@ Display the indicated expression node.
 #ifdef FFE
   disp_boolean("allow_reordering", (a_boolean)ptr->allow_reordering);
 #endif /* ifdef FFE */
+  if (ptr->is_initialization_guard) {
+    disp_boolean("is_initialization_guard", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
@@ -2131,8 +2134,10 @@ Display the indicated statement.
                             ptr->position);
   disp_ptr("next", (char *)ptr->next, iek_statement);
   if (ptr->has_associated_pragma) {
-    disp_boolean("has_associated_pragma",
-                 (a_boolean)ptr->has_associated_pragma);
+    disp_boolean("has_associated_pragma", TRUE);
+  }  /* if */
+  if (ptr->is_initialization_guard) {
+    disp_boolean("is_initialization_guard", TRUE);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->source_sequence_entry != NULL) {

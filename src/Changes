@@ -1,5 +1,13 @@
 Version 2.28
 
+2/27/95  IL change: is_initialization_guard
+
+stmk_if statements and eok_question expression nodes now have a
+field is_initialization_guard set if the test being done is the
+guard code around the initialization of a variable.  When thread-safe
+code is being generated, those tests and the first assignment
+within them should be rendered as an atomic test-and-set.
+
 2/27/95  Setting param_value_has_been_changed when address of parameter taken
 
 The param_value_has_been_changed flag in parameter variables is supposed
