@@ -300,8 +300,9 @@ information returned from that call.
   length = mctl->length - length_reservation->start_length;
   (void)sprintf(buffer, "%lu", (unsigned long)length);
   length_length = strlen(buffer);
-  check_assertion_str(length_length <= NUM_CHARS_RESERVED_FOR_LENGTH,
-                      "mangled name length is too large");
+  if (length_length > NUM_CHARS_RESERVED_FOR_LENGTH) {
+    catastrophe(ec_mangled_name_too_long);
+  }  /* if */
   /* Determine the position of the start of the length in the buffer. */
   length_pos = mangling_text_buffer->buffer +
                length_reservation->start_position;
