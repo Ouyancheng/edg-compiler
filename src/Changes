@@ -1,5 +1,25 @@
 Version 2.42
 
+6/4/99   Checking of elaborated type-specifiers in class-scope
+
+The following example used to incorrectly trigger a diagnostic about
+redeclaring a nested type with different accessibility:
+
+  class A {
+    struct N {
+      int mem;
+    };
+  public:
+   struct N *foo(); // No longer a diagnostic here
+  };
+
+This is now fixed by recognizing that an elaborated type-specifier for
+a class type that is found by elaborated lookup, and which does not
+introduce a definition or a declaration of the form
+    <class-key> <name>;
+is not in fact a redeclaration (standard par. 3.4.4).
+
+
 6/3/99   Default template arguments on class template member declarations
 
 A default template argument can only be specified on the declaration of
