@@ -193,8 +193,9 @@ unreachable.
       if (node->kind == (an_expr_node_kind)enk_routine_address) {
         a_boolean  routine_does_not_return = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        routine_does_not_return |=
-                   (node->variant.routine->decl_modifiers & DM_NORETURN) != 0;
+        if (node->variant.routine->decl_modifiers & DM_NORETURN) {
+          routine_does_not_return = TRUE;
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
         routine_does_not_return |= node->variant.routine->does_not_return;
@@ -1634,7 +1635,7 @@ should be set to TRUE.
   while (temp_stmt->next != NULL) temp_stmt = temp_stmt->next;
   sssep->last_dep_statement = temp_stmt;
   db_exit();
-}  /*add_statement_list  */
+}  /* add_statement_list */
 
 
 a_statement_ptr add_statement_at_stmt_pos(a_statement_kind   kind,
