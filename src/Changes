@@ -9,9 +9,9 @@ containing only a declaration of the template (marked with "export"),
 and the definition (also marked with "export") can be placed in
 another source file.  The Front End does appropriate processing to
 ensure that when the complete program is linked the template will be
-instantiated appropriately.
+instantiated.
 
-When the front end compiles a file containing a definition of
+When the Front End compiles a file containing a definition of
 an exported template, it writes a file with a .et suffix to
 record the location of the definition.  Later, when a template
 needs to be instantiated, the Front End searches the .et
@@ -28,7 +28,7 @@ issues errors if they do not.
 "export" is not quite the panacea that some users might hope
 for.  It does allow users to omit the definitions of templates in
 header files, but it doesn't make templates more efficient.  On the
-contrary, because the front end has to process multiple translation
+contrary, because the Front End has to process multiple translation
 units simultaneously, the cost of compilation can be large, both
 in terms of time and in terms of memory use.  Accordingly, "export"
 is off by default, and we've tried hard to make sure that with the
