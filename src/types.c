@@ -1606,11 +1606,13 @@ do_signed_char:;
     }  /* if */
     /* In C++, enumeration types lose their enumeration identity when they
        get promoted. */
-    if (C_dialect == C_dialect_cplusplus &&
-        unqual_type->variant.integer.enum_type) {
-      /* Make a "plain" version of this enum type, i.e., the same underlying
-         integral type but not tagged as an enum. */
-      promoted_type = integer_type(unqual_type->variant.integer.int_kind);
+    if (C_dialect == C_dialect_cplusplus) {
+      unqual_type = skip_typerefs(promoted_type);
+      if (unqual_type->variant.integer.enum_type) {
+        /* Make a "plain" version of this enum type, i.e., the same underlying
+           integral type but not tagged as an enum. */
+        promoted_type = integer_type(unqual_type->variant.integer.int_kind);
+      }  /* if */
     }  /* if */
   }  /* if */
 
