@@ -2552,6 +2552,7 @@ generated is inserted at insert_location.
 }  /* cleanup_on_exit_from_catch */
 
 #if DO_FULL_PORTABLE_EH_LOWERING
+#if FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
 
 static void add_var_addr_to_list_if_modified_in_try_block(
                                                     a_variable_ptr   var,
@@ -2575,6 +2576,7 @@ must be stored out when modified.
   }  /* if */
 }  /* add_var_addr_to_list_if_modified_in_try_block */
 
+#endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 #if DO_FULL_PORTABLE_EH_LOWERING
 /*
@@ -2609,7 +2611,9 @@ Do IL lowering for an stmk_try_block statement.
   a_statement_ptr    prev_if_stmt, if_stmt;
   long               catch_clause_number;
   a_constant         null_constant;
+#if FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
   a_label_ptr        label;
+#endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 #if DO_FULL_PORTABLE_EH_LOWERING
@@ -2721,6 +2725,7 @@ Do IL lowering for an stmk_try_block statement.
   /* Lower the dependent statement of the try. */
   lower_statement(orig_stmt_to_try);
 #if DO_FULL_PORTABLE_EH_LOWERING
+#if FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
   /* Add a label inside the dependent statement to defeat optimization.
      See comment below. */
   { a_statement_ptr label_stmt = alloc_statement((a_statement_kind)stmk_label);
@@ -2736,6 +2741,7 @@ Do IL lowering for an stmk_try_block statement.
     orig_stmt_to_try->variant.block.statements = label_stmt;
     mark_stmk_inits_as_following_exec_statement(label_stmt->next);
   }
+#endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
   catch_clause_number = 0;
   prev_if_stmt = orig_stmt;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
@@ -2752,24 +2758,39 @@ Do IL lowering for an stmk_try_block statement.
        is generated during the lowering of the dependent statement. */
     lower_statement(dep_statement);
 #if DO_FULL_PORTABLE_EH_LOWERING
-    /* Test the catch clause number returned by the runtime in an "if"
-       statement:
-         if (__catch_clause_number == n) ...
-       This is done even for an ellipsis catch, so that we can put an
-       unreached "else" at the end of the list (see below). */
-    catch_clause_number_node = var_rvalue_expr(make_catch_clause_number_var());
-    catch_clause_number_node->next = 
+#if !FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
+    /* The special processing for the ellipsis entry is not done if we want
+       to add an "else" at the end to suppress optimization. */
+    if (handler->parameter == NULL) {
+      /* This is an ellipsis entry.  No "if" is required, since it accepts
+         any type.  Previous error checks have ensured that this is the
+         last clause. */
+      check_assertion_str(handler->next == NULL,
+                          "lower_try_block: ellipsis clause not last");
+      prev_if_stmt->variant.if_stmt.else_statement = dep_statement;
+    } else {
+#endif /* !FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
+      /* Test the catch clause number returned by the runtime in an "if"
+         statement:
+           if (__catch_clause_number == n) ...
+      */
+      catch_clause_number_node =
+                               var_rvalue_expr(make_catch_clause_number_var());
+      catch_clause_number_node->next = 
                             node_for_integer_constant(catch_clause_number,
                                                       (an_integer_kind)ik_int);
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
-                                      catch_clause_number_node->type,
-                                      catch_clause_number_node);
-    if_stmt = alloc_statement((a_statement_kind)stmk_if);
-    if_stmt->position = handler->catch_position;
-    if_stmt->expr = compare_node;
-    if_stmt->variant.if_stmt.then_statement = dep_statement;
-    prev_if_stmt->variant.if_stmt.else_statement = if_stmt;
-    prev_if_stmt = if_stmt;
+      compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
+                                        catch_clause_number_node->type,
+                                        catch_clause_number_node);
+      if_stmt = alloc_statement((a_statement_kind)stmk_if);
+      if_stmt->position = handler->catch_position;
+      if_stmt->expr = compare_node;
+      if_stmt->variant.if_stmt.then_statement = dep_statement;
+      prev_if_stmt->variant.if_stmt.else_statement = if_stmt;
+      prev_if_stmt = if_stmt;
+#if !FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
+    }  /* if */
+#endif /* !FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
     /* Clear the assoc_handler pointer in the handler scope because it's not
        a C field. */
     handler->statement->variant.block.extra_info->assoc_scope->
@@ -2777,6 +2798,7 @@ Do IL lowering for an stmk_try_block statement.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   }  /* for */
 #if DO_FULL_PORTABLE_EH_LOWERING
+#if FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS
   /* Add an unreachable "else" at the end of the "if".  It contains a call
      followed by a goto that look like
        suppress_optim_on_vars_modified_in_try(&x, &y, &z);
@@ -2824,6 +2846,7 @@ Do IL lowering for an stmk_try_block statement.
       call_stmt->next = goto_stmt;
     }  /* if */
   }
+#endif /* FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* Generate code to pop the "try" frame off the stack after the rewritten
      "if" statement. */

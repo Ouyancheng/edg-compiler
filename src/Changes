@@ -8,6 +8,11 @@ a try block and that are then modified inside the compound statement of the
 try block.  It is intended to help optimizing back-ends recognize variables
 that must (sometimes) be stored immediately after being modified.
 
+When FORCE_STORES_OF_VARS_MODIFIED_IN_TRY_BLOCKS is true (when the
+C-generating back end is used, typically), IL lowering uses this flag
+to generate code to fool compilers into doing fewer optimizations on
+references to such variables.
+
 3/1/95   Internal error after error when generating cross-reference output
 
 An internal error occurred after an error on the following program
