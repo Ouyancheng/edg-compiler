@@ -6166,7 +6166,7 @@ overloaded operator cases.
       arg_match = arg_match->next;
     }  /* if */
     prev_arg = NULL;
-    /* Scan though the argument list. */
+    /* Scan through the argument list. */
     for (arg_operand = arg_operand_list,
              param = routine_type->variant.routine.extra_info->param_type_list;
          arg_operand != NULL || param != NULL;) {
