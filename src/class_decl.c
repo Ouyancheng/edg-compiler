@@ -1425,6 +1425,7 @@ nested class.
           discard_token_cache(&rfp->function_body_token_cache);
         } else if (defer_friend_instantiation &&
                    is_real_template_instantiation &&
+                   is_function_symbol(sym) &&
                    (is_friend || rfp->is_specialization)) {
           /* In some modes friend functions defined in a class template
              are treated  much like a member function of such a class.
