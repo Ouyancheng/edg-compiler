@@ -1953,8 +1953,9 @@ static a_targ_size_t virtual_base_offset_computed_for_last_direct_base_type(
 /*
 The given base class should be an empty virtual base.  If this base had
 already appeared as a virtual base of a direct base, return the offset
-within the last direct base in which it appeared.  Otherwise return zero.
-This is used to emulate a strange GNU IA-64 layout bug.
+within the last direct base in which it appeared (excluding cases where
+it appeared at offset zero).  Otherwise return zero.  This is used to
+emulate a strange GNU IA-64 layout bug.
 */
 {
   a_targ_size_t     result = (a_targ_size_t)0;
@@ -1967,7 +1968,10 @@ This is used to emulate a strange GNU IA-64 layout bug.
       a_base_class_ptr  sub_bcp = base_classes_of(bcp->type);
       for (; sub_bcp != NULL; sub_bcp = sub_bcp->next) {
         if (sub_bcp->is_virtual && same_entities(sub_bcp->type, ebcp->type)) {
-          result = sub_bcp->offset;
+          if (sub_bcp->offset != 0) {
+            /* Ignore previous allocations at offset zero. */
+            result = sub_bcp->offset;
+          }  /* if */
           break;
         }  /* if */
       }  /* for */
