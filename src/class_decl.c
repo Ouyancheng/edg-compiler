@@ -6018,6 +6018,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             if (friend_specified) {
               declarator_input_flags |= DI_QUALIFIED_NAME_ALLOWED;
             }  /* if */
+            declarator_input_flags |= DI_OPERATOR_NAME_ALLOWED;
             /* Pass the class's type pointer to declarator if this might
                be a nonstatic member function, in which case its presence
                will cause an implicit "this" parameter type to be created.

@@ -2809,7 +2809,8 @@ entry is pushed on the scope stack.
     } else {
       declarator((DI_IS_TEMPLATE_DECLARATION |
                   DI_REAL_DECLARATOR_ALLOWED |
-                  DI_QUALIFIED_NAME_ALLOWED),
+                  DI_QUALIFIED_NAME_ALLOWED |
+                  DI_OPERATOR_NAME_ALLOWED),
                  &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                  &bottom_derived_type, &func_info, &dim_expr_ptr);
     }  /* if */

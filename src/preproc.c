@@ -1119,8 +1119,8 @@ assumed if the return type is omitted.
       /* Error of some sort. */
       set_to_error_locator(locator);
     } else {
-      declarator((DI_REAL_DECLARATOR_ALLOWED |
-                  DI_QUALIFIED_NAME_ALLOWED),
+      declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
+                  DI_OPERATOR_NAME_ALLOWED),
                  &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                  &bottom_derived_type, &func_info, &dim_expr_ptr);
     }  /* if */
