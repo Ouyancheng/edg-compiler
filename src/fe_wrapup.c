@@ -97,11 +97,10 @@ and before the back end (if any) is executed.
     /* Go through the classes in the file scope and each namespace scope
        and generate bodies for virtual destructors, as required. */
     generate_required_virtual_destructor_bodies(il_header.primary_scope);
+    /* Determine which extern inline functions should have bodies emitted
+       as part of this translation unit. */
+    inline_function_wrapup();
   }  /* if */
-
-  /* Determine which extern inline functions should have bodies emitted
-     as part of this translation unit. */
-  inline_function_wrapup();
 
   /* Pop the file declaration scope off the scope stack. */
   pop_scope();
