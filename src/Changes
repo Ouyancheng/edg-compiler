@@ -1,5 +1,16 @@
 Version 2.26
 
+10/7/94  Fixed bug in processing abstract classes
+
+An internal error (caused by a bug in copy_type) has been fixed -- it
+showed up in the following sort of case:
+
+  struct A {
+    virtual void f() = 0;
+    typedef A (F)();
+    F g;                       // Internal error has been eliminated.
+  };
+
 10/6/94  C_generating back end: no #define in output
 
 The C-generating back end has been changed to eliminate the only requirement
