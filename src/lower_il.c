@@ -1738,6 +1738,28 @@ their operands.
 }  /* overwrite_node */
 
 
+static void change_node_to_operation(an_expr_node_ptr      node,
+                                     an_expr_operator_kind op,
+                                     a_type_ptr            type,
+                                     an_expr_node_ptr      operand)
+/*
+Change node to an operation node with operator op, type type, and operand
+list as given by operand.
+*/
+{
+  an_expr_node_ptr node_next;
+  a_boolean        node_result_is_not_used;
+
+  /* Preserve the next pointer and the result_is_not_used flag. */
+  node_next = node->next;
+  node_result_is_not_used = node->result_is_not_used;
+  clear_expr_node(node, (an_expr_node_kind)enk_operation);
+  node->next = node_next;
+  node->result_is_not_used = node_result_is_not_used;
+  set_node_operator(node, op, type, operand);
+}  /* change_node_to_operation */
+
+
 void insert_expr(an_expr_node_ptr       inserted_expr,
                  an_insert_location_ptr insert_location)
 /*
@@ -1746,7 +1768,7 @@ location within an expression.  Update *insert_location so the next insertion
 will be after the expression added.
 */
 {
-  an_expr_node_ptr orig_expr, orig_expr_copy, orig_expr_next;
+  an_expr_node_ptr orig_expr, orig_expr_copy;
   an_expr_node_ptr first_operand, second_operand;
 
 #if CHECKING
@@ -1771,11 +1793,8 @@ will be after the expression added.
   first_operand->next = second_operand;
   second_operand->next = NULL;
   /* Turn the original node into a comma node. */
-  orig_expr_next = orig_expr->next;
-  clear_expr_node(orig_expr, (an_expr_node_kind)enk_operation);
-  orig_expr->next = orig_expr_next;
-  set_node_operator(orig_expr, (an_expr_operator_kind)eok_comma,
-                    second_operand->type, first_operand);
+  change_node_to_operation(orig_expr, (an_expr_operator_kind)eok_comma,
+                           second_operand->type, first_operand);
   /* Change the insert location so that it inserts after the
      comma operator just created. */
   insert_location->variant.expr.insert_before = FALSE;
@@ -4538,17 +4557,16 @@ have already been lowered.
      the virtual call (i.e., the enk_routine_address node) as the new
      eok_call node.  Attach the function selection node, the object node, and
      the additional arguments to the call node as arguments. */
-  clear_expr_node(func_node, (an_expr_node_kind)enk_operation);
-  set_node_operator(func_node, (an_expr_operator_kind)eok_call, expr->type,
-                    func_select_node);
   func_select_node->next = object_node;
   object_node->next = additional_args;
+  change_node_to_operation(func_node, (an_expr_operator_kind)eok_call,
+                           expr->type, func_select_node);
   /* Reuse the original eok_virtual_call node as a comma operator node and
      attach the vtbl_temp assignment and the eok_call nodes under it as
      operands. */
+  assign_node->next = func_node;
   set_node_operator(expr, (an_expr_operator_kind)eok_comma, expr->type,
                     assign_node);
-  assign_node->next = func_node;
 }  /* lower_virtual_function_call */
 
 
@@ -5034,12 +5052,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           /* Value of variable becomes value pointed to by variable.  Make
              a copy of the enk_variable node and overwrite the original
              node with an eok_indirect. */
-          an_expr_node_ptr var_value = copy_node(expr), expr_next;
-          expr_next = expr->next;
-          clear_expr_node(expr, (an_expr_node_kind)enk_operation);
-          expr->next = expr_next;
-          set_node_operator(expr, (an_expr_operator_kind)eok_indirect,
-                            var_value->type, var_value);
+          an_expr_node_ptr var_value = copy_node(expr);
+          change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
+                                   var_value->type, var_value);
           /* Again, the type that was in the node is the one we want
              because the pointer-to and indirection cancel out.
              The type in the enk_variable node must be changed. */
