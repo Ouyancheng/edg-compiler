@@ -6013,7 +6013,7 @@ or implicit) controlling the declaration.
     /* The identifier should be a qualified name, with the qualifier a base
        class of the current class. */
     if (!locator_for_curr_id.is_class_member) {
-      error(ec_bad_name_in_using_decl);
+      error(ec_class_qualified_name_required);
       err = TRUE;
     } else if (symbol_supplement_for_class(class_type)->
                                                is_prototype_instantiation &&

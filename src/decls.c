@@ -6171,7 +6171,8 @@ current scope.
                 locator_for_curr_id.symbol_header->identifier);
     } else if (!locator_for_curr_id.is_qualified_name ||
                locator_for_curr_id.is_class_member) {
-      error(ec_bad_name_in_using_decl);
+      /* An unqualified name or a class-qualified name is not allowed here. */
+      error(ec_namespace_qualified_name_required);
     } else if ((nsp = qualifier_namespace_ptr(locator_for_curr_id)) != NULL &&
                ssep->il_scope != NULL &&
                ssep->il_scope->kind == (a_scope_kind)sck_namespace &&
@@ -6180,11 +6181,18 @@ current scope.
       /* Attempting a using-declaration with a namespace qualifier that is
          the same as the current namespace:
            namespace N { int i; using N::i; }
-      */
-      error(ec_bad_name_in_using_decl);
+         Issue a warning and ignore the using-declaration. */
+      warning(ec_useless_using_declaration);
     } else if (sym->kind == (a_symbol_kind)sk_namespace) {
       pos_error(ec_namespace_name_not_allowed,
                 &locator_for_curr_id.source_position);
+    } else if (depth_scope_stack == DEPTH_OF_FILE_SCOPE && nsp == NULL) {
+      /* Attempting a using declaration at file scope with name already
+         declared in the file scope -- e.g.,
+           int i; using ::i;
+         Issue a warning and ignore the using-declaration. */
+      check_assertion(locator_for_curr_id.is_global_qualified_name);
+      warning(ec_useless_using_declaration);
     } else {
       check_assertion(qualifier_namespace_ptr(locator_for_curr_id) != NULL ||
                       locator_for_curr_id.is_global_qualified_name);

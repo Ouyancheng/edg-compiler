@@ -774,7 +774,7 @@ ec_probable_inadvertent_sharp_digraph;;"use of alternative token \"%%:\" appears
 ec_namespace_def_not_allowed;;"namespace definition is not allowed"
 ec_missing_namespace_name;;"namespace name is required"
 ec_namespace_alias_def_not_allowed;;"namespace alias definition is not allowed"
-ec_bad_name_in_using_decl;;"invalid name in using declaration"
+ec_namespace_qualified_name_required;;"namespace-qualified name is required"
 ec_namespace_name_not_allowed;;"a namespace name is not allowed"
 ec_bad_combination_of_dll_attributes;;"invalid combination of DLL attributes"
 ec_sym_not_a_class_template;;"%n is not a class template"
@@ -784,6 +784,8 @@ ec_deallocation_operator_in_namespace;;"deallocation operator may not be declare
 ec_conflicts_with_using_decl;;"%np1 conflicts with using-declaration of %np2"
 ec_using_decl_conflicts_with_prev_decl;;"using-declaration of %np1 conflicts with %npd2"
 ec_cl_namespaces_option_only_in_cplusplus;;"namespaces option can be used only when compiling C++"
+ec_useless_using_declaration;;"using-declaration ignored -- it refers to the current namespace"
+ec_class_qualified_name_required;;"class-qualified name is required"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
