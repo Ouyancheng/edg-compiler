@@ -1,5 +1,9 @@
 Version 2.21
 
+12/1/93  C-generating back end outputs extern void variable as char
+
+The C-generating back end now outputs a void variable as type char.
+
 12/1/93  Void variable is not an lvalue
 
 The following now gets an error:

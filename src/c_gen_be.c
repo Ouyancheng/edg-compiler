@@ -2269,13 +2269,7 @@ Generate a cast to the indicated type.
 */
 {
   fputc('(', f_C_output);
-  /* Dump cast to void specially; otherwise, it would come out as
-     cast to char. */
-  if (is_void_type(type)) {
-    fputs("void", f_C_output);
-  } else {
-    simple_type_reference((char *)NULL, type);
-  }  /* if */
+  simple_type_reference((char *)NULL, type);
   fputc(')', f_C_output);
 }  /* dump_cast */
 
@@ -5832,7 +5826,13 @@ parameters.
         } else
 #endif /* ifdef FFE */
         {
-          simple_type_reference(var_name, var_type);
+          if (is_void_type(var_type)) {
+            /* A (extern) variable can have void type in ANSI C, but not in
+               pcc C, so change its type to char. */
+            fprintf(f_C_output, "char %s", var_name);
+          } else {
+            simple_type_reference(var_name, var_type);
+          }  /* if */
         }  /* if */
         /* Dump the initializer if there is a constant one. */
         if (dump_initializers && init_con != NULL) {
