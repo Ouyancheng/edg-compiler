@@ -13377,6 +13377,7 @@ classes.
                  specified attributes are standalone attributes.  This also
                  sets ms_attributes to NULL. */
               verify_standalone_attributes(&ms_attributes);
+              cannot_bind_to_curr_construct();
               (void)get_token();
               goto next_declaration;
             }  /* if */
