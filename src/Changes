@@ -1,5 +1,19 @@
 Version 2.22
 
+2/22/94  address_taken flag set more often by IL lowering
+
+IL lowering now sets the address_taken flag on variables whose address
+is used in initialization code.  In particular, this means class objects
+initialized through a constructor.  When the address_taken flag is set,
+if the variable's storage class is "register" it is changed to "auto",
+which avoids bad generated C for the following case:
+
+  struct A { int i; A(int ii) : i(ii) { } };
+  int f() {
+    register A x(1);
+    return x.i;
+  }
+
 2/21/94  Base class cast on operator()
 
 When an operator() function is called, the pointer to the object now

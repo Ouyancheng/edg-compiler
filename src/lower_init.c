@@ -597,6 +597,20 @@ block.
 }  /* make_routine_definition */
 
 
+static void set_variable_address_taken(a_variable_ptr variable)
+/*
+Set the address_taken flag in the indicated variable.
+*/
+{
+  variable->address_taken = TRUE;
+  /* If the storage class is "register", change it to "auto", because
+     C doesn't allow taking the address of a register variable (C++ does). */
+  if (variable->storage_class == (a_storage_class)sc_register) {
+    variable->storage_class = (a_storage_class)sc_auto;
+  }  /* if */
+}  /* set_variable_address_taken */
+
+
 static void clear_init_pos_modifier(an_init_pos_modifier_ptr ipmp)
 /*
 Set the fields of the indicated initialization position modifier entry to
@@ -845,10 +859,13 @@ tree.
 }  /* modify_init_entity_node */
 
 
-an_expr_node_ptr make_init_entity_node(an_init_pos_descr_ptr ipdp)
+an_expr_node_ptr make_init_entity_node(an_init_pos_descr_ptr ipdp,
+                                       a_boolean             using_as_address)
 /*
 Make an expression for the entity described by ipdp, as an lvalue, and
-return a pointer to it.
+return a pointer to it.  If using_as_address is TRUE, the expression will
+be used as an address (and that means really as an address that escapes,
+not simply as an address because it's an lvalue).
 */
 {
   an_expr_node_ptr entity_node;
@@ -860,6 +877,9 @@ return a pointer to it.
   } else {
     /* Normal case, a simple variable. */
     entity_node = var_lvalue_expr(ipdp->variable);
+    /* If we will be using this expression as an address, set the address-taken
+       flag in the variable. */
+    if (using_as_address) set_variable_address_taken(ipdp->variable);
   }  /* if */
   /* Add the modifiers to the base address. */
   entity_node = modify_init_entity_node(entity_node, ipdp->modifiers);
@@ -958,8 +978,9 @@ for the source parameter of the copy constructor.
 
 
 static an_expr_node_ptr implied_source_of_copy(
-                                              a_constructor_init_ptr ctor_init,
-                                              an_init_pos_descr_ptr  dest)
+                                       a_constructor_init_ptr ctor_init,
+                                       an_init_pos_descr_ptr  dest,
+                                       a_boolean              using_as_address)
 /*
 We're processing a dynamic initialization entry that represents a copy of
 something from an implied source location to the thing being initialized.
@@ -968,7 +989,9 @@ that indicates a copy of a member of a class; if ctor_init is NULL, the
 copy is of the object thrown by an exception handling "throw" into the
 parameter of the catch clause.  In either case, create an expression to
 describe the address of the implied source and return a pointer to it.
-dest describes the entity being initialized.
+dest describes the entity being initialized.  If using_as_address is TRUE,
+the expression will be used as an address (and that means really as an
+address that escapes, not simply as an address because it's an lvalue).
 */
 {
   an_expr_node_ptr     source_node;
@@ -984,7 +1007,7 @@ dest describes the entity being initialized.
                                     &cctor_source_ipd);
     modify_ctor_init_pos_descr(ctor_init, &cctor_source_ipd,
                                &cctor_source_ipm);
-    source_node = make_init_entity_node(&cctor_source_ipd);
+    source_node = make_init_entity_node(&cctor_source_ipd, using_as_address);
   } else {
     /* The implied source is the address in __caught_object_address. */
     caught_object_addr = make_caught_object_address_var();
@@ -997,6 +1020,10 @@ dest describes the entity being initialized.
       /* Initializing a reference parameter, so copy the pointer into
          the parameter, instead of copying the object pointed to. */
       source_node = var_lvalue_expr(caught_object_addr);
+      /* Set the address_taken flag if the variable address escapes.  This
+         is for completeness; it would be strange for this routine to be
+         called with using_as_address TRUE for this case. */
+      if (using_as_address) set_variable_address_taken(caught_object_addr);
      } else {
       /* Normal case (not a reference). */
       source_node = var_rvalue_expr(caught_object_addr);
@@ -1025,9 +1052,12 @@ and update *insert_location.
   an_expr_operator_kind op;
 
   /* Make an expression for the address of the destination entity. */
-  dest_node = make_init_entity_node(dest);
+  /* Note that using_as_address is FALSE even for the block copy case,
+     because the address doesn't escape. */
+  dest_node = make_init_entity_node(dest, /*using_as_address=*/FALSE);
   /* Make an expression for the address of the source entity. */
-  source_node = implied_source_of_copy(ctor_init, dest);
+  source_node = implied_source_of_copy(ctor_init, dest,
+                                       /*using_as_address=*/FALSE);
   /* Make an assignment statement. */
   /* Choose the operation.  For simple types use the built-in operator.
      For other types use a block copy. */
@@ -2624,7 +2654,7 @@ do_assignment:;
       }  /* if */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       /* Make a node for the entity to be initialized. */
-      entity_node = make_init_entity_node(ipdp);
+      entity_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE);
       add_init_assignment(dip, entity_node, insert_location);
       break;
     case dik_call_returning_class_via_cctor:
@@ -2680,12 +2710,13 @@ do_assignment:;
       }  /* if */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       /* Make a node for the entity to be initialized. */
-      entity_node = make_init_entity_node(ipdp);
+      entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE);
       source_node = NULL;
       if (dip->variant.constructor.is_copy_constructor_with_implied_source) {
         /* The constructor is a copy constructor, and the source of the
            copy is implied.  Determine the source location. */
-        source_node = implied_source_of_copy(ctor_init, ipdp);
+        source_node = implied_source_of_copy(ctor_init, ipdp,
+                                             /*using_as_address=*/TRUE);
       }  /* if */
       if (ipdp->whole_array) {
         /* Construct an array. */
@@ -2935,7 +2966,7 @@ are inserted at *insert_location and *insert_location is updated.
     }  /* if */
   }  /* if */
   /* Make an expression for the object to be destroyed. */
-  entity_node = make_init_entity_node(ipdp);
+  entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE);
   /* Generate code for the destructor call. */
   if (ipdp->whole_array) {
     /* Destruction of whole array. */
@@ -3562,8 +3593,10 @@ Do IL lowering of an enk_temp_init expression node.
   /* Change the enk_temp_init to a reference to the value or address
      of the temporary. */
   if (result_is_addr) {
-    dip->variable->address_taken = TRUE;
     set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
+    /* The address of the temporary escapes (or might escape) into the
+       surrounding context, so set its address_taken flag. */
+    set_variable_address_taken(dip->variable);
   } else {
     set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
   }  /* if */
@@ -4230,7 +4263,7 @@ constructor, but may instead be after an assignment to "this".
     /* Assign the primary virtual table address to the virtual table pointer
        in the current class. */
     vtbl_addr_node = make_vtbl_address_node(primary_vtbl_var);
-    primary_vtbl_var->address_taken = TRUE;
+    set_variable_address_taken(primary_vtbl_var);
     primary_vtbl_var->source_corresp.referenced = TRUE;
     vptr_node = make_vptr_field_lvalue_from_var(this_param_var);
     (void)insert_assignment_statement(vptr_node,
@@ -4249,7 +4282,7 @@ constructor, but may instead be after an assignment to "this".
          reflect the fact that it exists as a subobject inside the current
          class. */
       vtbl_addr_node = make_vtbl_address_node(vtbl_var);
-      vtbl_var->address_taken = TRUE;
+      set_variable_address_taken(vtbl_var);
       vtbl_var->source_corresp.referenced = TRUE;
       if (!bcp->is_virtual) {
         /* For non-virtual base classes, use the usual code.  Note that if
@@ -4574,7 +4607,7 @@ destructor scope, and also lower the user code.
     /* Assign the primary virtual table address to the virtual table pointer
        in the current class. */
     vtbl_addr_node = make_vtbl_address_node(primary_vtbl_var);
-    primary_vtbl_var->address_taken = TRUE;
+    set_variable_address_taken(primary_vtbl_var);
     primary_vtbl_var->source_corresp.referenced = TRUE;
     vptr_node = make_vptr_field_lvalue_from_var(this_param_var);
     (void)insert_assignment_statement(vptr_node,
@@ -4619,7 +4652,7 @@ destructor scope, and also lower the user code.
          to reflect the fact that it exists as a subobject inside the
          current class. */
       vtbl_addr_node = make_vtbl_address_node(vtbl_var);
-      vtbl_var->address_taken = TRUE;
+      set_variable_address_taken(vtbl_var);
       vtbl_var->source_corresp.referenced = TRUE;
       /* Build a node to address the virtual table pointer in the base
          class.   The base class may be virtual or may be inside a virtual

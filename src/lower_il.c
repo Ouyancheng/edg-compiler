@@ -5336,7 +5336,7 @@ call should return its value.
       internal_error("lower_call: missing location for result");
     }  /* if */
 #endif /* CHECKING */
-    temp_node = make_init_entity_node(ipdp);
+    temp_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE);
     temp_node->next = arg_node;
     prev_arg_node->next = temp_node;
     /* Change the result type of the call to "void". */

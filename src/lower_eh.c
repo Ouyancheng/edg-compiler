@@ -1398,7 +1398,8 @@ at *insert_location and *insert_location is updated.
   subsc_node = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
                                   object_addr_table_node->type,
                                   object_addr_table_node);
-  object_addr_node = add_cast_if_necessary(make_init_entity_node(ipdp),
+  object_addr_node = add_cast_if_necessary(make_init_entity_node(ipdp,
+                                                    /*using_as_address=*/TRUE),
                                            void_star_type());
   (void)insert_assignment_statement(subsc_node,
                                     (an_expr_operator_kind)eok_passign,
