@@ -4602,16 +4602,24 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     /* *p and p[expr] yielding polymorphic class objects are special cases
        that use runtime typeid determination. */
     if (is_an_lvalue(&operand) &&
-        is_expression_operand(&operand) &&
         is_polymorphic_class_type(typeid_type)) {
-      if (operand_complete_object_type(&operand,
-                                       /*call_case=*/FALSE) != NULL) {
-        /* The complete object type can be determined, so runtime processing
-           is not needed. */
-        expr = NULL;
-      } else {
-        /* The type must be determined dynamically. */
-        expr = operand.variant.expression;
+      if (is_expression_operand(&operand)) {
+        if (operand_complete_object_type(&operand,
+                                         /*call_case=*/FALSE) != NULL) {
+          /* The complete object type can be determined, so runtime processing
+             is not needed. */
+          expr = NULL;
+        } else {
+          /* The type must be determined dynamically. */
+          expr = operand.variant.expression;
+        }  /* if */
+      } else if (is_constant_operand(&operand) &&
+                 constant_bool_value_known_at_compile_time(
+                                                  &operand.variant.constant) &&
+                 /* "false" means zero, i.e., a null pointer. */
+                 is_false_constant(&operand.variant.constant)) {
+        /* Special case for (*(T *)0), which should throw an exception. */
+        expr = make_node_from_operand(&operand);
       }  /* if */
     }  /* if */
   }  /* if */

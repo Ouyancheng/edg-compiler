@@ -1,5 +1,23 @@
 Version 2.45
 
+12/24/00 typeid(*(T *)0) should throw an exception
+
+The (somewhat contrived) case of applying typeid to an "lvalue" produced
+by dereferencing a constant null pointer should throw an exception at
+runtime.  Now, it does.
+
+  #include <typeinfo>
+  struct S { virtual ~S() { } };
+  int main () {
+    try {
+        typeid (*(S*)0);
+    }
+    catch (...) {
+        return 0;
+    }
+    return 1;
+  }
+
 12/21/00 IL version number changed to 2.37
 
 12/21/00 Function template entries when using PROTOTYPE_INSTANTIATIONS_IN_IL
