@@ -315,6 +315,22 @@ Change the reference kind in any references attached to operand to srk_error.
 }  /* change_operand_refs_to_error */
 
 
+void change_arg_operand_list_refs_to_error(an_arg_operand_ptr arg_operand_list)
+/*
+Change the references on each operand in the list of operands headed by
+arg_operand_list to error references.
+*/
+{
+  an_arg_operand_ptr arg_operand;
+
+  for (arg_operand = arg_operand_list;
+       arg_operand != NULL;
+       arg_operand = arg_operand->next) {
+    change_operand_refs_to_error(&arg_operand->operand);
+  }  /* for */
+}  /* change_arg_operand_list_refs_to_error */
+
+
 void change_some_ref_kinds(a_ref_entry_ptr         ref_list,
                            a_symbol_reference_kind old_kind,
                            a_symbol_reference_kind new_kind)

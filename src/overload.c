@@ -3247,23 +3247,6 @@ be processed under an ellipsis).
 }  /* node_for_arg_of_overloaded_function_call */
 
 
-static void change_arg_operand_list_refs_to_error(
-                                           an_arg_operand_ptr arg_operand_list)
-/*
-Change the references on each operand in the list of operands headed by
-arg_operand_list to error references.
-*/
-{
-  an_arg_operand_ptr arg_operand;
-
-  for (arg_operand = arg_operand_list;
-       arg_operand != NULL;
-       arg_operand = arg_operand->next) {
-    change_operand_refs_to_error(&arg_operand->operand);
-  }  /* for */
-}  /* change_arg_operand_list_refs_to_error */
-
-
 void adjust_overloaded_function_call_arguments(
                              a_symbol_ptr             function_symbol,
                              a_boolean                have_selector,
