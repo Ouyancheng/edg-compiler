@@ -16,7 +16,7 @@ could lead to a variety of errors later on.  For example:
   struct A { void f(); };
   struct B { void f(); };
   void A::f();  // Accepted in Microsoft mode
-  void B::f();  // Use to trigger a redeclaration error; now accepted
+  void B::f();  // Used to trigger a redeclaration error; now accepted
 
 This is now fixed.
 
