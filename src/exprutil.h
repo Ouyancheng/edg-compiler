@@ -172,11 +172,9 @@ typedef struct a_candidate_function {
 			/* Pointer to the symbol for the function. */
 } a_candidate_function;
 /*
-Entry describing how well a given actual argument matches the corresponding
-formal parameter, used in resolving overloaded function calls.
+Argument match levels for overloaded function call resolution; See ARM 13.2.
 */
 typedef enum /*an_argument_match_level*/ {
-  /* Match levels -- See ARM 13.2. */
   aml_exact,		/* Exact match or trivial conversions. */
   aml_exact_qualified,	/* Trivial conversions including removal of a type
 			   qualifier from the base type of a reference or
@@ -188,9 +186,14 @@ typedef enum /*an_argument_match_level*/ {
   aml_error,		/* Match with error type (not in ARM). */
   aml_none		/* No match.  Must be last (highest value). */
 } an_argument_match_level;
-typedef struct an_argument_match_summary *an_argument_match_summary_ptr;
-typedef struct an_argument_match_summary {
-  an_argument_match_summary_ptr
+/*
+Entry describing an actual argument to an overloaded function call,
+including a quantification of how well the argument matches the corresponding
+formal parameter.
+*/
+typedef struct an_argument_summary *an_argument_summary_ptr;
+typedef struct an_argument_summary {
+  an_argument_summary_ptr
 		next;	/* Pointer to entry for following argument, or NULL
 			   if this is the last argument.  Also used to link
 			   entries on the avail_argument_match_summries
@@ -206,10 +209,9 @@ typedef struct an_argument_match_summary {
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this match is chosen. */
-  a_source_position
-		position;
-			/* Source position of the argument expression. */
-} an_argument_match_summary;
+  an_operand	operand;
+			/* The argument value. */
+} an_argument_summary;
 
 
 /* Copy an operand. */
@@ -285,21 +287,22 @@ extern an_xref_entry_ptr xref_entry(a_symbol_ptr            sym_ptr,
 extern void change_xref_kinds(an_xref_entry_ptr       xref_list,
                               a_symbol_reference_kind kind);
 
-extern an_argument_match_summary_ptr alloc_argument_match_summary(void);
+extern an_argument_summary_ptr alloc_argument_summary(void);
 
 an_argument_match_level selector_match_with_this_param(
                               an_operand              *bound_function_selector,
                               a_type_ptr              routine_type);
 
-a_symbol_ptr select_overloaded_function(
-                      a_symbol_ptr                  overloaded_function_symbol,
-                      a_boolean                     have_selector,
-                      an_operand                    *bound_function_selector,
-                      an_expr_node_ptr              *arg_expr_list,
-                      an_argument_match_summary_ptr orig_arg_match_list,
-                      an_error_code                 err_none_applies,
-                      an_error_code                 err_ambiguous,
-                      a_source_position             *err_pos);
+extern a_symbol_ptr select_overloaded_function(
+                            a_symbol_ptr            overloaded_function_symbol,
+                            a_boolean               have_selector,
+                            an_operand              *bound_function_selector,
+                            an_argument_summary_ptr arg_list,
+                            an_expression_kind      expression_kind,
+                            an_error_code           err_none_applies,
+                            an_error_code           err_ambiguous,
+                            a_source_position       *err_pos,
+                            an_expr_node_ptr        *arg_expr_list);
 
 extern a_boolean conversion_to_class_possible(
                                        a_type_ptr    source_type,
@@ -376,6 +379,9 @@ extern void clear_operand(an_operand_kind kind,
 
 extern void set_operand_kind(an_operand      *operand,
                              an_operand_kind kind);
+
+extern void error_in_operand(an_error_code error_code,
+		             an_operand    *operand);
 
 extern a_boolean check_lvalue_operand(an_operand *operand);
 
@@ -465,16 +471,18 @@ extern void cast_node(an_expr_node_ptr  *node,
 
 extern void integral_promote_node(an_expr_node_ptr *node);
 
-extern a_boolean prepare_assignment_operand(
-                                     an_operand         *right_side_operand,
-                                     a_type_ptr         left_side_type,
-                                     an_expression_kind expression_kind,
-                                     an_error_code      incompatible_err,
-                                     a_source_position  *err_pos,
-                                     a_type_ptr         *result_type);
+extern void prepare_initializer_operand(an_operand         *right_side_operand,
+                                        a_type_ptr         left_side_type,
+                                        an_expression_kind expression_kind,
+                                        an_error_code      incompatible_err,
+                                        a_source_position  *err_pos);
 
-extern void error_in_operand(an_error_code error_code,
-		             an_operand    *operand);
+extern void prepare_assignment_operand(an_operand         *right_side_operand,
+                                       a_type_ptr         left_side_type,
+                                       an_expression_kind expression_kind,
+                                       an_error_code      incompatible_err,
+                                       a_source_position  *err_pos,
+                                       a_type_ptr         *result_type);
 
 extern void expr_init(void);
 
