@@ -22,7 +22,7 @@ is now supported.
 Floating-point values with no non-zero mantissa bits were not converted to
 fixed-point correctly.  Now fixed.
 
-7/14/04  Internal error with hidden names prototype instantiations in IL
+7/14/04  Internal error with hidden names and prototype instantiations in IL
 
 An internal error in create_nonreal_progenitor_symbol could occur in
 versions configured with hidden name table support (e.g., C++-generating
