@@ -2105,8 +2105,8 @@ This is now fixed.
 
 10/18/99 Configuration option to record constant-expressions in IL
 
-Ordinarily, the front folds constant-expressions into simple a_constant nodes
-whenever possible.  The exact structure of the constant-expression is
+Ordinarily, the front end folds constant-expressions into simple a_constant
+nodes whenever possible.  The exact structure of the constant-expression is
 discarded: "1+2" has the same representation as "3".  A new configuration
 option has been added (RECORD_CONSTANT_EXPRESSIONS_IN_IL, in host_envir.h) to
 add a field expr to struct a_constant; this new field will point to the
