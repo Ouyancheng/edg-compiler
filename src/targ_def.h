@@ -1932,6 +1932,88 @@ a code generator.
  #error -- extern inline functions cannot be instantiated when they are lowered
 #endif /* !LOWER_EXTERN_INLINE && INSTANTIATE_EXTERN_INLINE */
 
+/*
+Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is
+an array whose size is known only at execution time.  This is supported in
+C mode only.  If VLA_ALLOWED is TRUE, support is enabled and disabled based
+on command-line options --[no_]vla, which control global variable vla_enabled.
+When VLAs are allowed, they are enabled by default in C99 mode.
+*/
+#ifndef VLA_ALLOWED
+#define VLA_ALLOWED FALSE
+#endif /* VLA_ALLOWED */
+
+/*
+Flag that is used as the default setting for global variable vla_enabled.
+The variable can also been controlled from the command line by --[no_]vla.
+(Whatever the default, vla_enabled is always turned off in C++ mode.)
+*/
+#ifndef DEFAULT_VLA_ENABLED
+#define DEFAULT_VLA_ENABLED FALSE
+#endif /* ifndef DEFAULT_VLA_ENABLED */
+#if DEFAULT_VLA_ENABLED && !VLA_ALLOWED
+  #error -- DEFAULT_VLA_ENABLED cannot be true unless VLA_ALLOWED is true
+#endif /* DEFAULT_VLA_ENABLED && !VLA_ALLOWED */
+
+/*
+Flag that is TRUE if designators of the form 'x:' and '[expr ... expr]'
+should be accepted in aggregate initializers.  This also makes the '='
+following an array element designation optional.  It should not be TRUE
+if DEFAULT_DESIGNATORS_ALLOWED is FALSE.  It is the initial value
+of the global variable extended_designators_allowed.
+*/
+#ifndef DEFAULT_EXTENDED_DESIGNATORS_ALLOWED
+#define DEFAULT_EXTENDED_DESIGNATORS_ALLOWED FALSE
+#endif /* DEFAULT_EXTENDED_DESIGNATORS_ALLOWED */
+
+/*
+Flag that is TRUE if designators of the form '.x' and '[expr]' should be
+accepted in aggregate initializers.  It is the initial value of the global
+variable designators_allowed.
+*/
+#ifndef DEFAULT_DESIGNATORS_ALLOWED
+#define DEFAULT_DESIGNATORS_ALLOWED FALSE
+#endif /* DEFAULT_DESIGNATORS_ALLOWED */
+
+/*
+Flag that is TRUE if support for designated initializers and extended
+designated initializers can be enabled.  Having this TRUE means the back
+end is prepared to accept designated initializers, either in the
+unlowered form or the lowered form (see LOWER_DESIGNATED_INITIALIZERS).
+The C-generating and C++-generating back ends can handle designated
+initializers (but that's useful only if the downstream compiler also
+handles them).
+*/
+#ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
+#endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+#if !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && DEFAULT_DESIGNATORS_ALLOWED
+ #error -- designated initializer enabling not allowed
+#endif /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && ... */
+/*
+Flag that is TRUE if compound literals, which look vaguely like a cast
+whose source expression is a brace-enclosed initializer (e.g.,
+(int []){1, 2, 3}) should be accepted in expressions.  It is the
+initial value of the global variable compound_literals_allowed.
+*/
+#ifndef DEFAULT_COMPOUND_LITERALS_ALLOWED
+#define DEFAULT_COMPOUND_LITERALS_ALLOWED FALSE
+#endif /* DEFAULT_COMPOUND_LITERALS_ALLOWED */
+
+/*
+This switch controls whether support for compound literals (a C9X feature)
+can be enabled.  Having this TRUE means the back end is prepared to
+accept compound literals, which are represented as enk_temp_init nodes.
+The C-generating and C++-generating back ends can handle compound literals
+(but that's useful only if the downstream compiler also handles them).
+*/
+#ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE
+#define COMPOUND_LITERAL_ENABLING_POSSIBLE FALSE
+#endif /* ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE */
+#if !COMPOUND_LITERAL_ENABLING_POSSIBLE && DEFAULT_COMPOUND_LITERALS_ALLOWED
+ #error -- compound literal enabling not allowed
+#endif /* !COMPOUND_LITERAL_ENABLING_POSSIBLE && ... */
+
 #if DO_IL_LOWERING
 
 /* Switches that control aspects of IL lowering: */
@@ -2153,66 +2235,6 @@ whole process.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-Flag that is TRUE if variable length arrays (VLAs) are allowed.  A VLA is
-an array whose size is known only at execution time.  This is supported in
-C mode only.  If VLA_ALLOWED is TRUE, support is enabled and disabled based
-on command-line options --[no_]vla, which control global variable vla_enabled.
-When VLAs are allowed, they are enabled by default in C99 mode.
-*/
-#ifndef VLA_ALLOWED
-#define VLA_ALLOWED FALSE
-#endif /* VLA_ALLOWED */
-
-/*
-Flag that is used as the default setting for global variable vla_enabled.
-The variable can also been controlled from the command line by --[no_]vla.
-(Whatever the default, vla_enabled is always turned off in C++ mode.)
-*/
-#ifndef DEFAULT_VLA_ENABLED
-#define DEFAULT_VLA_ENABLED FALSE
-#endif /* ifndef DEFAULT_VLA_ENABLED */
-#if DEFAULT_VLA_ENABLED && !VLA_ALLOWED
-  #error -- DEFAULT_VLA_ENABLED cannot be true unless VLA_ALLOWED is true
-#endif /* DEFAULT_VLA_ENABLED && !VLA_ALLOWED */
-
-
-/*
-Flag that is TRUE if designators of the form 'x:' and '[expr ... expr]'
-should be accepted in aggregate initializers.  This also makes the '='
-following an array element designation optional.  It should not be TRUE
-if DEFAULT_DESIGNATORS_ALLOWED is FALSE.  It is the initial value
-of the global variable extended_designators_allowed.
-*/
-#ifndef DEFAULT_EXTENDED_DESIGNATORS_ALLOWED
-#define DEFAULT_EXTENDED_DESIGNATORS_ALLOWED FALSE
-#endif /* DEFAULT_EXTENDED_DESIGNATORS_ALLOWED */
-
-/*
-Flag that is TRUE if designators of the form '.x' and '[expr]' should be
-accepted in aggregate initializers.  It is the initial value of the global
-variable designators_allowed.
-*/
-#ifndef DEFAULT_DESIGNATORS_ALLOWED
-#define DEFAULT_DESIGNATORS_ALLOWED FALSE
-#endif /* DEFAULT_DESIGNATORS_ALLOWED */
-
-/*
-Flag that is TRUE if support for designated initializers and extended
-designated initializers can be enabled.  Having this TRUE means the back
-end is prepared to accept designated initializers, either in the
-unlowered form or the lowered form (see LOWER_DESIGNATED_INITIALIZERS).
-The C-generating and C++-generating back ends can handle designated
-initializers (but that's useful only if the downstream compiler also
-handles them).
-*/
-#ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
-#define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
-#endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
-#if !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && DEFAULT_DESIGNATORS_ALLOWED
- #error -- designated initializer enabling not allowed
-#endif /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE && ... */
-
-/*
 This switch controls whether designated initializers (a C9X feature)
 are lowered to standard C.  Well, almost standard C: a designated
 initializer allows initialization of a member other than the first in
@@ -2226,30 +2248,6 @@ of times.
 #ifndef LOWER_DESIGNATED_INITIALIZERS
 #define LOWER_DESIGNATED_INITIALIZERS TRUE
 #endif /* ifndef LOWER_DESIGNATED_INITIALIZERS */
-
-/*
-Flag that is TRUE if compound literals, which look vaguely like a cast
-whose source expression is a brace-enclosed initializer (e.g.,
-(int []){1, 2, 3}) should be accepted in expressions.  It is the
-initial value of the global variable compound_literals_allowed.
-*/
-#ifndef DEFAULT_COMPOUND_LITERALS_ALLOWED
-#define DEFAULT_COMPOUND_LITERALS_ALLOWED FALSE
-#endif /* DEFAULT_COMPOUND_LITERALS_ALLOWED */
-
-/*
-This switch controls whether support for compound literals (a C9X feature)
-can be enabled.  Having this TRUE means the back end is prepared to
-accept compound literals, which are represented as enk_temp_init nodes.
-The C-generating and C++-generating back ends can handle compound literals
-(but that's useful only if the downstream compiler also handles them).
-*/
-#ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE
-#define COMPOUND_LITERAL_ENABLING_POSSIBLE FALSE
-#endif /* ifndef COMPOUND_LITERAL_ENABLING_POSSIBLE */
-#if !COMPOUND_LITERAL_ENABLING_POSSIBLE && DEFAULT_COMPOUND_LITERALS_ALLOWED
- #error -- compound literal enabling not allowed
-#endif /* !COMPOUND_LITERAL_ENABLING_POSSIBLE && ... */
 
 /*
 This switch controls whether or not "guard" code is placed around
