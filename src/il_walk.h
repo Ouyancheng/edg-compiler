@@ -124,6 +124,13 @@ extern void set_class_keep_definition_in_il(a_type_ptr type);
 
 
 EXTERN a_boolean
+		end_of_function_scope_needed_flags_phase;
+			/* TRUE during the phase at the end of a function
+			   scope that deals with walking the subtrees of
+			   variables and classes to set needed flags. */
+
+
+EXTERN a_boolean
 		end_of_file_scope_needed_flags_phase;
 			/* TRUE during the phase at the end of the file scope
 			   that deals with walking the subtrees of variables

@@ -4315,7 +4315,13 @@ End a name scope by popping an entry off the scope stack.
        Note: this allows sweeping the routine definition, and (except for
        inline functions) writing out of the body of the function, so it's
        done late. */
+#if MAINTAIN_NEEDED_FLAGS
+    end_of_function_scope_needed_flags_phase = TRUE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
     set_routine_defined(curr_routine);
+#if MAINTAIN_NEEDED_FLAGS
+    end_of_function_scope_needed_flags_phase = FALSE;
+#endif /* MAINTAIN_NEEDED_FLAGS */
     check_assertion_str2(!old_region_still_needed, "pop_scope:",
                          "old_region_still_needed is TRUE for function scope");
   } else if (kind == (a_scope_kind)sck_file) {

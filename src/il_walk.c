@@ -576,17 +576,20 @@ entry's subtree should not be walked at this time.  This is used when
 setting the "needed" or "keep_in_il" flags.  Entities that can be
 defined or redeclared later (e.g., classes) shouldn't have their subtrees
 walked until after there is no longer the possibility of the subtree changing.
-end_of_file_scope_needed_flags_phase is set to TRUE in a phase where subtrees
-should finally be walked.  is_class is TRUE if the entity is a class.
-Entities local to functions (indicated by local_class, which is defined
-only if is_class is TRUE) are always fully walked immediately.
+For local classes (local_class is TRUE) and local variables, this corresponds
+to the end of the enclosing function scope (after lowering), when the global
+end_of_function_scope_needed_flags_phase is set; for namespace scope classes
+we must wait until the file scope is popped (and the entities lowered) when
+end_of_file_scope_needed_flags_phase is TRUE.  is_class is TRUE if the entity
+is a class (and local_class can only be TRUE when is_class is TRUE).
 */
 #define should_not_walk_subtree(entry_ptr, entry_kind, is_class, local_class) \
- (!end_of_file_scope_needed_flags_phase && \
-  (((is_class) && !(local_class)) || \
-   ((entry_kind) == iek_variable && \
-    !((a_variable_ptr)(entry_ptr))->source_corresp.is_local_to_function) || \
-   ((entry_kind) == iek_routine)))
+ !(end_of_file_scope_needed_flags_phase || \
+   (end_of_function_scope_needed_flags_phase && \
+    (((is_class) && !(local_class)) || \
+     ((entry_kind) == iek_variable && \
+      !((a_variable_ptr)(entry_ptr))->source_corresp.is_local_to_function) || \
+     ((entry_kind) == iek_routine))))
 
 
 #if DO_IL_LOWERING
