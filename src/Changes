@@ -1,5 +1,17 @@
 Version 3.3
 
+7/8/03   Microsoft mode: __alignof for incomplete types
+
+In Microsoft modes, the result of applying the __alignof operator to an
+incomplete class type is zero.  (Previously, it was one.)  Furthermore,
+in Microsoft C mode (but not Microsoft C++ mode), the __alignof operator
+also results in zero for void types.
+For example:
+
+  struct S;                  // Incomplete struct type.
+  int a1 = __alignof(S);     // a1 == 0 in Microsoft C and C++ modes.
+  int a2 = __alignof(void);  // a2 == 0 in Microsoft C mode only.
+
 7/16/03  GNU C++ mode: __cplusplus defined to 1
 
 In g++ mode the __cplusplus macro is now defined to the 1 instead of
@@ -174,16 +186,6 @@ only) for a class instantiation.  For example:
   template struct S<int>;
 
 This is now fixed.
-
-7/8/03   Microsoft mode: __alignof for non-void incomplete types
-
-In Microsoft mode, the result of applying the __alignof operator to an
-incomplete type other than "void" is zero.  (Previously, it was one.)
-For example:
-
-  struct S;                  // Incomplete struct type.
-  int a1 = __alignof(S);     // a1 == 0 in Microsoft mode.
-  int a2 = __alignof(void);  // a2 == 1 (all modes).
 
 7/7/03   Incorrect size on virtual function table for local class
 
