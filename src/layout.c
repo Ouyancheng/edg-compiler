@@ -443,9 +443,13 @@ there was an overflow error.
 }  /* do_alignment */
 
 
-#if TARG_BIT_FIELD_CONTAINER_SIZE >= 0
-/*ARGSUSED*/ /* <-- base_type is not used. */
-#endif /* TARG_BIT_FIELD_CONTAINER_SIZE >= 0 */
+#if TARG_BIT_FIELD_CONTAINER_SIZE < 0           /* base_type is used. */
+#else
+#if  TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT < 0    /* base_type is used. */
+#else                                           /* base_type is not used. */
+/*ARGSUSED*/
+#endif /* TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT < 0 */
+#endif /* TARG_BIT_FIELD_CONTAINER_SIZE < 0 */
 static a_boolean align_offsets_for_bit_field(int              bit_size,
                                              a_targ_size_t    *byte_offset,
                                              int              *bit_offset,
