@@ -4882,6 +4882,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_inline               = FALSE;
   rp->compiler_generated      = FALSE;
   rp->called                  = FALSE;
+#if ASSIGNMENT_TO_THIS_ALLOWED
+  rp->assignment_to_this_done = FALSE;
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   rp->is_template_function    = FALSE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   rp->can_be_instantiated     = FALSE;
@@ -4889,9 +4892,6 @@ to it.  The entry is allocated in the file scope memory region.
   rp->instance_required       = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   rp->specific_def	      = FALSE;
-#if ASSIGNMENT_TO_THIS_ALLOWED
-  rp->assignment_to_this_done = FALSE;
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;
 #ifdef FIL
