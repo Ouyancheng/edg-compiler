@@ -644,8 +644,11 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
             parent = parent->parent;
           }  /* while */
           check_assertion(parent->variant.block.is_switch_block);
-          pos_start_diagnostic(C_dialect == C_dialect_cplusplus ?
-                                              es_error : es_warning,
+          /* Issue a warning in C mode or for compatibility with cfront 2.1.
+             Otherwise, issue an error. */
+          pos_start_diagnostic((C_dialect != C_dialect_cplusplus ||
+                                cfront_compatibility_mode) ?
+                                              es_warning : es_error,
                                ec_branch_past_initialization,
                                &parent->source_pos);
         }  /* if */
