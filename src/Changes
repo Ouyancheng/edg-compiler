@@ -13,7 +13,7 @@ __builtin_log10f, __builtin_log10l, __builtin_modff, __builtin_modfl,
 __builtin_powf, __builtin_powl, __builtin_sinhf, __builtin_sinhl,
 __builtin_tanf, __builtin_tanhf, __builtin_tanhl, __builtin_tanl,
 __builtin_ctzl, __builtin_ctzll, __builtin_popcountl, and __builtin_popcountll.
-Among this list, those function expecting an argument of type long long are
+Among this list, those functions expecting an argument of type long long are
 (of course) only declared if LONG_LONG_ALLOWED is TRUE.
 
 7/24/04  Warning on call of pure virtual function in derived class constructor
