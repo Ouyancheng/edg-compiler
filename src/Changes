@@ -12,7 +12,8 @@ in the anonymous union is itself anonymous.  For example:
     };
   };
 
-This is now fixed (i.e., an error is issued).
+This is now fixed (i.e., an error is issued in strict mode; a warning in
+default mode).
 
 6/20/02  GNU C compatibility: Redeclaration of a transparent union parameter
 
