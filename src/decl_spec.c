@@ -1472,6 +1472,7 @@ it is left unchanged.
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static a_boolean class_specifier(a_boolean         vacuous_decl_allowed,
                                  a_boolean         is_friend_decl,
+                                 a_boolean         is_typedef,
                                  a_boolean         is_ref_within_new_expr,
 				 a_boolean         is_explicit_instantiation,
                                  a_boolean         is_template_specialization,
@@ -2276,7 +2277,15 @@ the template.
        declaration scope, unless an earlier syntax error caused us to confuse
        the intended construct; in that case a diagnostic has been or will be
        issued elsewhere. */
-    if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    if (depth_template_declaration_scope == NO_SCOPE_DEPTH &&
+        !(microsoft_mode && is_typedef)) {
+      /* In Microsoft mode, the typedef is processed before member function
+         bodies etc. are rescanned.  This makes e.g. the following legal:
+            typedef struct {
+              enum { e };
+              void f() { S::e; }
+            } S;
+      */
       process_deferred_class_fixups_and_instantiations();
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -5000,6 +5009,7 @@ process_class_specifier:
               if (!class_specifier(
                           vacuous_decl_allowed,
                           (decl_specifiers_seen & DS_FRIEND) != 0,
+                          *storage_class == (a_storage_class)sc_typedef,
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
@@ -5020,6 +5030,7 @@ process_class_specifier:
             (void)class_specifier(
                           /*vacuous_decl_allowed=*/FALSE,
                           /*is_friend_decl=*/FALSE,
+                          /*is_typedef=*/FALSE,
                           (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
                           (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
                           (input_flags & DSI_IS_SPECIALIZATION) != 0,
