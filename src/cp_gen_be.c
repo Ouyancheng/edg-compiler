@@ -10972,6 +10972,22 @@ TRUE if the declaration following this one is such a continuation.
          not defined). */
       discard_declaration = TRUE;
     }  /* if */
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (rout->source_corresp.is_class_member &&
+        rout->source_corresp.parent.class_type->
+                                variant.class_struct_union.is_template_class &&
+        rout->is_specialized &&
+        rout->template_arg_list == NULL &&
+        !curr_name_context_is_a_class()) {
+      /* This is a non-definition declaration of an explicit specialization
+         of a (non-template) member function of a class template, occurring
+         outside the definition of the class template specialization.  The
+         class template specialization will have contained a declaration of
+         this function, so we must suppress its redeclaration in namespace
+         scope. */
+      discard_declaration = TRUE;
+    }  /* if */
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
     marked_as_gnu_extension = sec_decl->marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
