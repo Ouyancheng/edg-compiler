@@ -1,5 +1,16 @@
 Version 2.46
 
+7/26/01  IL lowering of compound assignments to bool variables
+
+IL lowering now generates extra code to ensure that the result of
+a compound assignment that assigns to a bool variable is limited
+to 0/1.
+
+  int main() {
+    bool b = true;
+    b += 2;  // Yields 1, not 3
+  }
+
 7/24/01  Value-initialization
 
 Value-initialization, a refinement of default-initialization

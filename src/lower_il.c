@@ -281,6 +281,11 @@ static void adjust_bool_operation_types(an_expr_node_ptr expr,
 static void lower_pm_comparison(an_expr_node_ptr expr,
                                 a_boolean        operand1_lowered);
 static void do_scope_namespace_member_promotion(a_scope_ptr scope);
+#if LOWER_LVALUE_RETURNING_OPERATIONS
+static void lower_operations_returning_lvalue_instead_of_usual_rvalue(
+                                                   an_expr_node_ptr expr,
+                                                   a_boolean        is_lvalue);
+#endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 
 
 static void clear_insert_location(an_insert_location      *insert_location,
@@ -6744,6 +6749,141 @@ Those operations set the lvalue to true instead of incrementing.
 }  /* lower_bool_increment */                  
 
 
+#if !LOWER_LVALUE_RETURNING_OPERATIONS
+/*ARGSUSED*/ /* <-- is_lvalue is not used in that case. */
+#endif /* !LOWER_LVALUE_RETURNING_OPERATIONS */
+static void lower_bool_compound_assignment(an_expr_node_ptr expr,
+                                           a_boolean        is_lvalue)
+/*
+Lower a compound assignment operator that assigns to a bool.  They are
+special in that the computed value must be reduced to 0/1 before the
+assignment.  expr is being used as an lvalue if is_lvalue is TRUE.
+*/
+{
+  an_expr_operator_kind op = expr->variant.operation.kind;
+  an_expr_node_ptr      op1 = expr->variant.operation.operands;
+  an_expr_node_ptr      op2 = op1->next;
+  an_expr_node_ptr      op1_for_operation, op_node, op2_node, ne_node;
+  a_variable_ptr        temp_var = NULL;
+  a_boolean             vars_can_change;
+  a_type_ptr            dest_type = rvalue_type(type_pointed_to(op1->type));
+  a_boolean             result_is_lvalue = expr->variant.operation.
+                                        returns_lvalue_instead_of_usual_rvalue;
+
+  /* The operator
+       x @= y      (for any appropriate operator @)
+     where x is bool, becomes
+       x = (x @ y) != 0;
+     x is, of course, evaluated only once.  If x is not simple, a
+     temporary and a comma expression are used to be sure of the order
+     of evaluation:
+       (temp = (x @ y) != 0, x = temp)
+  */
+  vars_can_change = node_has_side_effects(op2, (a_boolean *)NULL);
+  if (is_invariant_expr(op1, vars_can_change)) {
+    op1_for_operation = make_lvalue_reusable_copy(op1, vars_can_change);
+  } else {
+    /* Use a temporary to save the value of the expression. */
+    temp_var = make_local_temporary(integer_type((an_integer_kind)ik_int));
+    op1_for_operation = op1;
+    op1 = make_lvalue_reusable_copy(op1_for_operation, vars_can_change);
+  }  /* if */
+  op1_for_operation = add_indirection_to_node(op1_for_operation);
+  /* Determine the corresponding operator. */
+  switch (op) {
+    case eok_iadd_assign:
+      op = (an_expr_operator_kind)eok_iadd;
+      break;
+    case eok_isubtract_assign:
+      op = (an_expr_operator_kind)eok_isubtract;
+      break;
+    case eok_imultiply_assign:
+      op = (an_expr_operator_kind)eok_imultiply;
+      break;
+    case eok_idivide_assign:
+      op = (an_expr_operator_kind)eok_idivide;
+      break;
+    case eok_remainder_assign:
+      op = (an_expr_operator_kind)eok_remainder;
+      break;
+    case eok_shiftl_assign:
+      op = (an_expr_operator_kind)eok_shiftl;
+      break;
+    case eok_shiftr_assign:
+      op = (an_expr_operator_kind)eok_shiftr;
+      break;
+    case eok_and_assign:
+      op = (an_expr_operator_kind)eok_and;
+      break;
+    case eok_or_assign:
+      op = (an_expr_operator_kind)eok_or;
+      break;
+    case eok_xor_assign:
+      op = (an_expr_operator_kind)eok_xor;
+      break;
+    case eok_fadd_assign:
+      op = (an_expr_operator_kind)eok_fadd;
+      break;
+    case eok_fsubtract_assign:
+      op = (an_expr_operator_kind)eok_fsubtract;
+      break;
+    case eok_fmultiply_assign:
+      op = (an_expr_operator_kind)eok_fmultiply;
+      break;
+    case eok_fdivide_assign:
+      op = (an_expr_operator_kind)eok_fdivide;
+      break;
+    default:
+      unexpected_condition_str("lower_bool_compound_assignment: bad operator");
+  }  /* switch */
+  op1_for_operation->next = NULL;
+  op1_for_operation = add_cast_if_necessary(op1_for_operation, op2->type);
+  op1_for_operation->next = op2;
+  /* Make the (x @ y) operation. */
+  op_node = make_operator_node(op, op2->type, op1_for_operation);
+  /* Add a cast to bool and lower it. */
+  ne_node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
+                               dest_type, op_node);
+  transform_bool_cast(ne_node);
+  ne_node->type = integer_type((an_integer_kind)ik_int);
+  if (temp_var == NULL) {
+    /* Change the original expression to an assignment:
+       x = (x @ y) != 0
+    */
+    ne_node = add_cast_if_necessary(ne_node, dest_type);
+    op1->next = ne_node;
+    set_node_operator(expr, (an_expr_operator_kind)eok_iassign,
+                      expr->type, op1);
+    expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                              result_is_lvalue;
+  } else {
+    /* Using a temporary. */
+    /* Add the comma expression and final assignment from the temporary,
+         (temp = (x @ y) != 0, x = temp)
+    */
+    op_node = var_lvalue_expr(temp_var);
+    op_node->next = ne_node;
+    op_node = make_operator_node((an_expr_operator_kind)eok_iassign,
+                                 ne_node->type, op_node);
+    op1->next = add_cast_if_necessary(var_rvalue_expr(temp_var), dest_type);
+    op2_node = make_operator_node((an_expr_operator_kind)eok_iassign,
+                                  expr->type, op1);
+    op2_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                              result_is_lvalue;
+#if LOWER_LVALUE_RETURNING_OPERATIONS
+    if (result_is_lvalue) {
+      lower_operations_returning_lvalue_instead_of_usual_rvalue(op2_node,
+                                                                is_lvalue);
+    }  /* if */
+#endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
+    op_node = make_comma_node(op_node, op2_node);
+    op_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                              result_is_lvalue;
+    overwrite_node(expr, op_node);
+  }  /* if */
+}  /* lower_bool_compound_assignment */
+
+
 void eliminate_assignment_if_empty_class(an_expr_node_ptr expr)
 /*
 expr is an eok_sassign assignment.  Eliminate it if it copies an empty
@@ -8056,6 +8196,29 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
               a_type_ptr operand_type = type_pointed_to(operand_node->type);
               if (is_bool_type(operand_type)) {
                 lower_bool_increment(expr);
+              }  /* if */
+            }  /* if */
+            break;
+          case eok_iadd_assign:
+          case eok_isubtract_assign:
+          case eok_imultiply_assign:
+          case eok_idivide_assign:
+          case eok_remainder_assign:
+          case eok_shiftl_assign:
+          case eok_shiftr_assign:
+          case eok_and_assign:
+          case eok_or_assign:
+          case eok_xor_assign:
+          case eok_fadd_assign:
+          case eok_fsubtract_assign:
+          case eok_fmultiply_assign:
+          case eok_fdivide_assign:
+            if (bool_is_keyword) {
+              /* Compound assignments to bool don't exist in C89, and
+                 must be lowered to get the value reduced to 0/1. */
+              a_type_ptr operand_type = type_pointed_to(operand_node->type);
+              if (is_bool_type(operand_type)) {
+                lower_bool_compound_assignment(expr, is_lvalue);
               }  /* if */
             }  /* if */
             break;
