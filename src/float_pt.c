@@ -173,10 +173,8 @@ Convert unsigned_long_value to a floating-point value of kind "kind" in
 *float_value.  Return *err TRUE if there is some error.
 */
 {
-  long temp = unsigned_long_value;
-
   *err = FALSE;
-  store_double((double)temp, kind, float_value, err);
+  store_double((double)unsigned_long_value, kind, float_value, err);
 }  /* fp_unsigned_long_to_float */
 
 
