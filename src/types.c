@@ -640,6 +640,42 @@ Otherwise, return NULL.
   return type;
 }  /* underlying_type_of_derived_type */
 
+#if BACK_END_IS_CP_GEN_BE
+
+a_type_ptr type_specifier_of_type(a_type_ptr type)
+/*
+Find the specifiers type at the bottom of a type, and return a pointer to
+it.  For example, from "array[3] of pointer to const int" one gets back
+"const int".
+*/
+{
+  a_type_ptr return_type;
+
+  for (;;) {
+    return_type = type;
+    /* Remove type qualifiers to see what is underneath.  If what is underneath
+       is a derived type we keep going. */
+    while (type->kind == (a_type_kind)tk_typeref &&
+           !typeref_is_typedef(type)) {
+      type = type->variant.typeref.type;
+    }  /* while */
+    switch (type->kind) {
+      case tk_pointer:  /* Includes C++ reference too. */
+      case tk_ptr_to_member:
+      case tk_array:
+      case tk_routine:
+        /* Derived type -- keep looping. */
+        type = underlying_type_of_derived_type(type);
+        break;
+      default:
+        goto found_specifier_type;
+    }  /* switch */
+  }  /* for */
+found_specifier_type:
+  return return_type;
+}  /* type_specifier_of_type */
+
+#endif /* BACK_END_IS_CP_GEN_BE */
 
 a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
                                            a_boolean   top_level)
