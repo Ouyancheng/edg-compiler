@@ -1677,6 +1677,10 @@ and create a function instantiation entry to bind the two symbols together.
           sym->decl_position.seq == rout_sym->decl_position.seq &&
           sym->decl_position.column == rout_sym->decl_position.column) {
         /* sym is the template function symbol for rout_sym. */
+#if 0
+        /* Eventually we need a more reliable technique than relying on
+           declaration position. */
+#endif /* if 0 */
         break;
       }  /* if */
     }  /* for */
@@ -1730,31 +1734,64 @@ and create a function instantiation entry to bind the two symbols together.
 void find_static_data_member_template(a_symbol_ptr  static_data_member_sym,
                                       a_symbol_ptr  corresp_prototype_tag_sym)
 /*
+static_data_member_sym is a symbol representing a static data member of a
+real instantiation of a class template.  corresp_prototype_tag_sym identifies
+the nonreal prototype instantiation of the same class template.  Find the
+sk_static_data_member symbol from the prototype instantiation (it serves as
+the template for the real static data member), and then create and fill out a
+static-data-member-definition entry and add it to the list of such entries
+attached to the static-data-member-template.
 */
 {
   a_static_data_member_def_ptr      sdmdp;
   a_scope_number                    corresp_prototype_decl_scope;
-  a_type_ptr                        tp;
+  a_type_ptr                        tp, member_type;
   a_symbol_ptr                      sym;
   a_template_symbol_supplement_ptr  tssp;
 
   db_enter(3, "find_static_data_member_template");
-  /* Find a static data member template function symbol on the inactive list
-     that is in the scope of the prototype instantiation. */
-  /* Get the scope in which the members of the class represented by
-     corresp_prototype_tag_sym were declared. */
+  /* Find a static data member symbol belonging to the prototype instantiation
+     and corresponding to static_data_member_sym. */
   tp = type_symbol_type(corresp_prototype_tag_sym);
-  corresp_prototype_decl_scope =
+  member_type = static_data_member_sym->variant.variable.ptr->type;
+  if (member_type->kind == (a_type_kind)tk_union &&
+      is_unnamed_class_symbol(
+                  (a_symbol_ptr)member_type->source_corresp.assoc_info)) {
+    /* Error case -- the static data member is an anonymous union.  Look
+       through the types list of the prototype instantiation type. */
+    tp = tp->variant.class_struct_union.extra_info->assoc_scope->types;
+    for (; tp != NULL; tp = tp->next) {
+      if (tp->kind == (a_type_kind)tk_union) {
+        sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
+        if (sym != NULL && 
+            sym->decl_position.column ==
+                       static_data_member_sym->decl_position.column &&
+            sym->decl_position.seq ==
+                       static_data_member_sym->decl_position.seq) {
+#if 0
+          /* Eventually we need a more reliable technique than relying on
+             declaration position. */
+#endif /* if 0 */
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  } else {
+    /* Normal case -- do the lookup by name. */
+    /* Get the scope in which the members of the class represented by
+       corresp_prototype_tag_sym were declared. */
+    corresp_prototype_decl_scope =
                tp->variant.class_struct_union.extra_info->assoc_scope->number;
-  for (sym = static_data_member_sym->header->inactive_symbols;
-       sym != NULL;
-       sym = sym->next) {
-    if (sym->decl_scope == corresp_prototype_decl_scope &&
-        sym->kind == (a_symbol_kind)sk_static_data_member &&
-        sym->variant.variable.template_info != NULL) {
-      break;
-    }  /* if */
-  }  /* for */
+    for (sym = static_data_member_sym->header->inactive_symbols;
+         sym != NULL;
+         sym = sym->next) {
+      if (sym->decl_scope == corresp_prototype_decl_scope &&
+          sym->kind == (a_symbol_kind)sk_static_data_member &&
+          sym->variant.variable.template_info != NULL) {
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
 #if CHECKING
   if (sym == NULL) {
     internal_error(
@@ -2017,6 +2054,9 @@ that make up the declaration and do a prototype instantiation.
       set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
       prototype_type->source_corresp.name_linkage =
                                            (a_name_linkage_kind)nlk_internal;
+      /* Build the template argument list for the prototype instantiantion
+         of this template.  Loop through the template parameters and
+         create a corresponding template argument for each. */
       append_addr = &prototype_type->
                      variant.class_struct_union.extra_info->template_arg_list;
       for (tpp = templ_params; tpp != NULL; tpp = tpp->next) {
@@ -2025,8 +2065,19 @@ that make up the declaration and do a prototype instantiation.
           tap = alloc_template_arg(/*is_arg_type=*/TRUE);
           tap->variant.type = param_sym->variant.type;
         } else {
+          a_constant_ptr  cp;
+
           tap = alloc_template_arg(/*is_arg_type=*/FALSE);
-          tap->variant.constant = param_sym->variant.constant;
+          /* The constant's type in template argument should be stripped of
+             any qualifier. */
+          if (!is_qualified_type(param_sym->variant.constant->type)) {
+            cp = param_sym->variant.constant;
+          } else {
+            cp = fs_constant((a_constant_repr_kind)ck_error);
+            copy_constant(param_sym->variant.constant, cp);
+            cp->type = skip_typerefs(cp->type);
+          }  /* if */
+          tap->variant.constant = cp;
         }  /* if */
         *append_addr = tap;
         append_addr = &tap->next;
