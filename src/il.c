@@ -2361,7 +2361,13 @@ Return TRUE if the two constants are identical.
     eq = TRUE;
   } else if (cp1->kind          == cp2->kind &&
              cp1->type          == cp2->type &&
-             cp1->implicit_cast == cp2->implicit_cast) {
+             /* Check the types if either constant has been implicitly cast
+                or (always) if they are template parameters (since parameter
+                2 of one template is not necessarily the same as parameter 2
+                of another template). */
+             ((!cp1->implicit_cast && !cp2->implicit_cast &&
+               cp1->kind != (a_constant_repr_kind)ck_template_param) ||
+              identical_types(cp1->type, cp2->type))) {
     switch (cp1->kind) {
       case ck_error:
         /* No further field to check. */
@@ -2421,8 +2427,8 @@ Return TRUE if the two constants are identical.
         }  /* if */
         break;
       case ck_template_param:
-        eq = (cp1->variant.list_position == cp2->variant.list_position &&
-              identical_types(cp1->type, cp2->type));
+        /* Note that the constant types have been compared above. */
+        eq = (cp1->variant.list_position == cp2->variant.list_position);
         break;
 #if CHECKING
       default:
