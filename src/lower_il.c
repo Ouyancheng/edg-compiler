@@ -3926,6 +3926,9 @@ Do IL lowering of the indicated type and everything under it.
              assoc_routine == NULL, and param_type_list != NULL, which is
              not otherwise possible. */
           rtsp->prototyped = FALSE;
+          /* We do not change old_style_params_scanned, because it's used in
+             another part of lowering to tell whether the interface used to
+             be old-style.  Back ends must watch out for that. */
           /* We do not clear has_ellipsis on purpose.  The C-generating
              back end depends on it in this case. */
 #endif /* MAKE_ALL_FUNCTIONS_UNPROTOTYPED */
