@@ -66,6 +66,7 @@ later on.
 }  /* record_vla_type_for_lowering */
 
 
+/*ARGSUSED*/  /* <-- end_traversal is not used. */
 static a_boolean ttt_record_vla_type_for_lowering(a_type_ptr  tp,
                                                   a_boolean   *end_traversal)
 /*
@@ -108,7 +109,7 @@ have been treated separately.
 }  /* record_vla_component_types_for_lowering */
 
 
-static void lower_vla_types(a_scope_ptr  file_scope)
+static void lower_vla_types(void)
 /*
 Lower all VLA types that were recorded by record_vla_type_for_lowering.
 */
@@ -2428,7 +2429,7 @@ Do C99 lowering for all entities in and under the given scope.
 #endif /* MINIMAL_INLINING */
   } else if (scope->kind == (a_scope_kind)sck_file) {
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
-    lower_vla_types(scope);
+    lower_vla_types();
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 #if MINIMAL_INLINING
     if (inlining_enabled) {
