@@ -1121,6 +1121,8 @@ not being eliminated.
   }  /* for */
   check_assertion(param == NULL && corresp_param == NULL);
   check_assertion(routine->is_inline == corresp_routine->is_inline ||
+                  /* In C mode, the inline specifier need not match. */
+                  C_mode() ||
                   /* The is_inline flag in templates is not set until
                      the function is fully instantiated. */
                   (routine->is_template_function &&
