@@ -11143,12 +11143,40 @@ eliminated, if appropriate.
       if (rp->is_template_function && !rp->is_specialized) {
         a_symbol_ptr             sym;
         a_template_instance_ptr  tip;
+        a_boolean                okay_to_clear_flag = TRUE;
 
         sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
         if (sym != NULL) {
-          tip = sym->variant.routine.instance_ptr;
-          check_assertion(tip != NULL);
-          tip->instantiation_required = FALSE;
+          if (rp->is_virtual) {
+#if DO_IL_LOWERING
+            a_class_type_supplement_ptr  ctsp;
+            a_variable_ptr               vtbl_var;
+
+            ctsp = sym->parent.class_type->
+                         variant.class_struct_union.extra_info;
+            /* Note: the class-type supplement will be NULL if the class
+               body has been eliminated. */
+            if (ctsp != NULL &&
+                ((vtbl_var = ctsp->virtual_function_table_var) == NULL ||
+                 !il_entry_prefix_of(vtbl_var).keep_in_il)) {
+              /* Either there is no virtual function table or it's been
+                 eliminated from the IL: it's okay to clear the flag, since
+                 an otherwise unreferenced virtual function would be needed
+                 only if the virtual function table is defined in this
+                 translation unit. */
+            } else
+#endif /* DO_IL_LOWERING */
+            /* Virtual function may be needed for defining the virtual
+               function table. */
+            okay_to_clear_flag = FALSE;
+          }  /* if */
+          if (okay_to_clear_flag) {
+            tip = sym->variant.routine.instance_ptr;
+            check_assertion(tip != NULL);
+            tip->instantiation_required = FALSE;
+#if DO_IL_LOWERING
+          }  /* if */
+#endif /* DO_IL_LOWERING */
         }  /* if */
       }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
