@@ -1,5 +1,37 @@
 Version 2.22
 
+2/24/94  Declarations involving incomplete class types
+
+A declaration may involve an incomplete class type -- e.g.,
+
+  struct A;
+  typedef A array_of_A[10];  // Okay in C++, allowed as in extension in C
+  A f();
+  void g(A);
+
+Only when the class is finally defined can the declarations be completed.
+For example, once A is defined, the array size of array_of_A can be
+computed and, if appropriate, the routine_calling_method flag for f can be
+set, as can the arg_transfer_method_flag for g's parameter.  The strategy
+for accomplishing this has been improved (see the dependent-type-fixup
+list associated with each class); as a result several cases have been
+fixed in which the flags were not set properly.  For example:
+
+  struct A;
+  typedef A FT();
+  extern A f();
+  struct A { A(const A&); };
+  main() {
+    (void)(*((FT*)f))();    // The code put out to call f is now correct
+  }
+
+In addition, we now handle this case correctly:
+
+  struct A;
+  typedef struct A arr1[5];
+  typedef arr1 arr[6];      // Size of arr is now computed correctly
+  struct A { int i; };
+
 2/23/94  Address of void variable an error only in C++ and strict C mode
 
 The error on the following, added in the previous release, has been
@@ -19,7 +51,6 @@ once again.
   {
     printf("%s %d\n", "foo");  // Gets a warning once again
   }
-
 
 2/23/94  Recursion loop in overload resolution fixed
 
