@@ -654,17 +654,15 @@ definition of the class is needed, and not just the declaration.
        because before the definition_needed flag is set the subtree of
        the class is not swept when the class needed flag is set. */
     remark_as_needed((char *)type, iek_type);
-    if (in_secondary_trans_unit(type)) {
-      /* For a type in a secondary translation unit that has linkage,
-         mark the associated canonical entry to be kept too, since that's the
-         one that will be copied to the primary IL. */
-      if (trans_unit_corresp_of(type) != NULL) {
-        a_type_ptr canonical_type =
+    /* For a type that has linkage, mark the associated canonical entry
+       to have its definition kept too, since that's the one that will be
+       copied to the primary IL. */
+    if (trans_unit_corresp_of(type) != NULL) {
+      a_type_ptr canonical_type =
                             (a_type_ptr)trans_unit_corresp_of(type)->canonical;
-        if (canonical_type != type &&
-            in_secondary_trans_unit(canonical_type)) {
-          set_class_definition_needed(canonical_type);
-        }  /* if */
+      if (canonical_type != type &&
+          in_secondary_trans_unit(canonical_type)) {
+        set_class_definition_needed(canonical_type);
       }  /* if */
     }  /* if */      
   }  /* if */
@@ -908,19 +906,18 @@ references.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
-  if (in_secondary_trans_unit(entry_ptr)) {
-    /* For an entity in a secondary translation unit that has linkage,
-       mark the associated canonical entry as needed too, since that's the
-       one that will be copied to the primary IL. */
-    a_source_correspondence *scp =
+  /* For an entity that has linkage, mark the associated canonical entry
+     as needed too, since that's the one that will be copied to the
+     primary IL. */
+  {  a_source_correspondence *scp =
                             source_corresp_for_il_entry(entry_ptr, entry_kind);
     if (scp != NULL && scp->trans_unit_corresp != NULL) {
       char *canonical = scp->trans_unit_corresp->canonical;
       if (canonical != entry_ptr && in_secondary_trans_unit(canonical)) {
         mark_as_needed(canonical, entry_kind);
       }  /* if */
-    }  /* if */
-  }  /* if */      
+    }  /* if */    
+  }
 }  /* mark_as_needed */
 
 
@@ -1229,17 +1226,15 @@ declaration.
        subtree of the class is not swept when the class keep_in_il flag
        is set. */
     remark_to_keep_in_il((char *)type, iek_type);
-    if (in_secondary_trans_unit(type)) {
-      /* For a type in a secondary translation unit that has linkage,
-         mark the associated canonical entry to be kept too, since that's the
-         one that will be copied to the primary IL. */
-      if (trans_unit_corresp_of(type) != NULL) {
-        a_type_ptr canonical_type =
+    /* For a type that has linkage, mark the associated canonical entry
+       to have its definition kept too, since that's the one that will
+       be copied to the primary IL. */
+    if (trans_unit_corresp_of(type) != NULL) {
+      a_type_ptr canonical_type =
                             (a_type_ptr)trans_unit_corresp_of(type)->canonical;
-        if (canonical_type != type &&
-            in_secondary_trans_unit(canonical_type)) {
-          set_class_keep_definition_in_il(canonical_type);
-        }  /* if */
+      if (canonical_type != type &&
+          in_secondary_trans_unit(canonical_type)) {
+        set_class_keep_definition_in_il(canonical_type);
       }  /* if */
     }  /* if */      
   }  /* if */
