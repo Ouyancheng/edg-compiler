@@ -2035,7 +2035,7 @@ See comment above.
     }  /* if */
     result = dir_entry->d_name;
     /* Make sure the suffix matches the value passed by the caller. */
-    ptr = strchr(result, '.');
+    ptr = strrchr(result, '.');
     if (ptr != NULL && strcmp(ptr, suffix) == 0) break;
   }  /* for */
   return result;

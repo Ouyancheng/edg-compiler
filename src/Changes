@@ -1,5 +1,11 @@
 Version 2.46
 
+8/7/01   File names containing "." and PCH usage
+
+The routine that reads directory entries did not handle file names with
+embedded "." (e.g., t.x.c) characters properly.  As a result, a PCH file
+generate by such a file would never be used.  This has been fixed.
+
 8/2/01   C++-generating back end: inline specifier on friend declarations
 
 The C++-generating back end no longer emits the inline keyword on friend
