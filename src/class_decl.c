@@ -4076,15 +4076,13 @@ variable is an anonymous union type.  Process the member symbols of the
 anonymous union: make a pass over all its members, perform some error
 checking, and promote each field from the anonymous union to its containing
 scope.  The scope to which the symbols are promoted is decl_scope_level.
+
+If ALLOW_NONSTANDARD_ANONYMOUS_UNIONS, then, when assoc_object_sym refers
+to a field, its type may also be an unnamed struct or class, or a typedef
+referring to an unnamed class, struct, or union.  If the type is a typedef,
+the symbols are not promoted, but rather new ones are allocated in scope
+specified by decl_scope_level.
 */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-/*
-When assoc_object_sym refers to a field, its type may also be an unnamed
-struct or class, or a typedef referring to an unnamed class, struct, or
-union.  If the type is a typedef, the symbols are not promoted, but rather
-new ones are allocated in scope specified by decl_scope_level.
-*/
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 {
   a_symbol_ptr                   sym, next_sym, mf_sym, apo_sym;
   a_class_symbol_supplement_ptr  cssp;
@@ -4116,12 +4114,6 @@ new ones are allocated in scope specified by decl_scope_level.
       check_assertion(assoc_object_type->kind == (a_type_kind)tk_union);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       break;
-    case sk_static_data_member:
-      assoc_object_type =
-               assoc_object_sym->variant.static_data_member.variable->type;
-      assoc_object_access = assoc_object_sym->variant.static_data_member.
-                                           variable->source_corresp.access;
-      break;
 #if CHECKING
     default:
       internal_error("check_anonymous_union_symbols: bad symbol kind");
@@ -4152,6 +4144,13 @@ new ones are allocated in scope specified by decl_scope_level.
       /* It is no longer treated as a member of the anonymous union but
          rather it will be a member of the class_type. */
       sym->class_of_which_a_member = NULL;
+#if CHECKING
+    } else {
+      /* Creation of a new symbol is only implemented for fields, because it
+         can only happen in C mode or with C++ classes that have no C++
+         features. */
+      check_assertion(sym->kind == (a_symbol_kind)sk_field);
+#endif /* CHECKING */
     }  /* if */
     /* Private and protected members are not allowed in an anonymous union
        (ARM 9.5). */
@@ -4257,8 +4256,9 @@ new ones are allocated in scope specified by decl_scope_level.
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
         break;
       case sk_static_data_member:
-        /* Must be an error, since unions cannot have static data members.
-           Ignore this symbol. */
+        /* Must be an error, since unions cannot have static data members,
+           and the nonstandard case is only allowed to have fields.  Ignore
+           this symbol. */
        break;
 #if CHECKING
       default:
@@ -4271,85 +4271,84 @@ new ones are allocated in scope specified by decl_scope_level.
 
 
 static a_boolean is_anonymous_union_decl(a_type_ptr       member_type,
-                                         a_storage_class  storage_class,
                                          a_decl_flag_set  dso_flags,
                                          a_boolean        *is_nonstd)
 /*
+A declaration has appeared in which there is no declarator.  Return TRUE if
+it is an anonymous union declaration.  If ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+is TRUE and this is not a standard C++ anonymous union, return TRUE and
+also set *is_nonstd to TRUE.
 */
 {
   a_boolean  is_anonymous_union = FALSE;
 
   *is_nonstd = FALSE;
-  if (
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-      C_mode() ||
-#else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-      !C_mode() &&
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-                   (!(dso_flags & DSO_FRIEND) &&
-                    storage_class != (a_storage_class)sc_typedef)) {
-    /* In C++ mode, we know this is not a friend or typedef declaration.  If
-       the extension is not enabled, we know this isn't C mode. */
-    if (!is_class_struct_union_type(member_type) ||
-        (!C_mode() && !(skip_typerefs(member_type))->
-                           variant.class_struct_union.originally_unnamed)) {
-      /* Definitely not an anonymous union -- either it's the wrong kind of
-         type or (in C++) it was declared with a tag. */
-    } else if (!C_mode() &&
-               member_type->kind == (a_type_kind)tk_union) {
-      /* A proper C++ anonymous union. */
+  if (!C_mode() &&
+      member_type->kind == (a_type_kind)tk_union) {
+    if ((dso_flags & DSO_DECLARES_SOMETHING) ||
+        (dso_flags & DSO_FRIEND)) {
+      /* This cannot be a standard or a nonstandard anonymous union in C++. */
+    } else {
       is_anonymous_union = TRUE;
+    }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-      /* The extension to support anonymous-union-like constructs is
-         enabled, but only recognize it if we aren't in strict mode. */
-    } else if (!strict_ansi_mode &&
-               storage_class == (a_storage_class)sc_unspecified) {
-      /* Skip the typedefs but not cv qualifiers. */
-      a_type_ptr  tp = skip_typedefs(member_type);
+  } else if (!is_class_struct_union_type(member_type)) {
+    /* Not a pseudo-anonymous-union -- it's not a class, struct,
+       or union type. */
+  } else if (!C_mode() &&
+             ((dso_flags & DSO_DECLARES_SOMETHING) ||
+              (dso_flags & DSO_FRIEND) ||
+              !(skip_typerefs(member_type))->
+                             variant.class_struct_union.originally_unnamed)) {
+    /* Not a pseudo-anonymous-union -- either a tag appeared on the current
+       declaration, or its a typedef name and a tag was declared originally,
+       or else its a friend declaration. */
+  } else {
+    /* This may in fact be an anonymous-union-like construct. */
+    /* Skip the typedefs but not cv qualifiers. */
+    a_type_ptr  tp = skip_typedefs(member_type);
 
-      if (tp->kind == (a_type_kind)tk_typeref) {
-        /* This must be a cv qualifier on top of what we already know is
-           a class/struct/union type.  Don't treat this as an anonymous-
-           union-like construct. */
-      } else if (C_mode()) {
+    if (tp->kind == (a_type_kind)tk_typeref) {
+      /* This must be a cv qualifier on top of what we already know to be a
+         class, struct, or union type.  The qualifier disqualifies it from
+         being treated as an anonymous-union-like construct. */
+    } else {
+      if (C_mode()) {
+        /* In C mode that's all we need to know. */
         is_anonymous_union = TRUE;
       } else {
         /* In C++ it's required that the class have only C features -- i.e.,
-           no member functions, no static data members, and no nested aside
-           from anonymous unions. */
+           no member functions, no static data members, and no nested types
+           that have names (i.e., nested anonymous unions are okay). */
         a_class_symbol_supplement_ptr  cssp;
         a_symbol_ptr                   sym;
 
         cssp = symbol_supplement_for_class(tp);
         if (cssp->is_class_aggregate) {
-          /* Assume. */
-          is_anonymous_union = TRUE;
-          for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
-            if (sym->kind == (a_symbol_kind)sk_field) {
-              /* Okay. */
-            } else if (sym->kind == (a_symbol_kind)sk_union_tag &&
-#if 0
-/* This test isn't right */
-#endif /* if 0 */
-                       (type_symbol_type(sym))->
-                           variant.class_struct_union.originally_unnamed) {
-              /* Okay. */
-            } else {
-              is_anonymous_union = FALSE;
-              break;
-            }  /* if */
-          }  /* for */
+          if ((sym = cssp->symbols) != NULL) {
+            /* Assume. */
+            is_anonymous_union = TRUE;
+            for (; sym != NULL; sym = sym->next_in_scope) {
+              if (sym->kind == (a_symbol_kind)sk_field) {
+                /* Okay. */
+              } else {
+                is_anonymous_union = FALSE;
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
         }  /* if */
       }  /* if */
       if (is_anonymous_union) {
+        /* Set the nonstandard flag. */
         *is_nonstd = TRUE;
         if (strict_ansi_mode) {
           /* Issue a diagnostic that this is an extension. */
           diagnostic(strict_ansi_error_severity, ec_nonstd_unnamed_field);
         }  /* if */
       }  /* if */
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     }  /* if */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   }  /* if */
   return is_anonymous_union;
 }  /* is_anonymous_union_decl */
@@ -5711,8 +5710,9 @@ Scan the body of a class definition, including the base classes list.
              is okay sometimes.  When it is, skip over declarator processing
              to the next declaration. */
           /* Check first whether this is an anonymous union declaration. */
-          if (is_anonymous_union_decl(member_type, member_storage_class,
-                                      dso_flags, &is_nonstd_anonymous_union)) {
+          if (member_storage_class == (a_storage_class)sc_unspecified &&
+              is_anonymous_union_decl(member_type, dso_flags,
+                                      &is_nonstd_anonymous_union)) {
             /* A C++ anonymous union -- "union { int i, j; };" */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
             /* It might also be an anonymous-union-like construct in C or
