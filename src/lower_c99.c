@@ -2836,7 +2836,7 @@ associated with the same type is turned into a no-op.
 }  /* lower_set_vla_size */
 
 
-static a_routine_ptr  vla_alloc_routine = NULL;
+static a_routine_ptr  vla_alloc_routine;
 
 
 static an_expr_node_ptr make_vla_allocation_expr(a_variable_ptr  vla_var)
@@ -2887,7 +2887,7 @@ memory for it.
 }  /* lower_vla_decl */
 
 
-static a_routine_ptr  vla_dealloc_routine = NULL;
+static a_routine_ptr  vla_dealloc_routine;
 
 
 static void lower_vla_dealloc(a_statement_ptr  stmt)
@@ -3691,6 +3691,8 @@ for each translation unit.
 #endif /* LOWER_FIXED_POINT */
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
   vla_types = NULL;
+  vla_dealloc_routine = NULL;
+  vla_alloc_routine = NULL;
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
   temp_init_statements = NULL;
 #if MINIMAL_INLINING

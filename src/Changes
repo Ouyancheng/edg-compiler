@@ -1,5 +1,12 @@
 Version 3.6
 
+3/8/05   Invalid memory access with VLA lowering and
+         COMPILE_MULTIPLE_SOURCE_FILES
+
+An invalid memory access could occur when using LOWER_VARIABLE_LENGTH_ARRAYS
+and COMPILE_MULTIPLE_SOURCE_FILES, if the compiler was invoked with
+multiple source files that make use of variable length arrays.  Now fixed.
+
 3/7/05   C++-generating back end: Microsoft compatibility with conflicting
          dllimport/dllexport specifications
 
