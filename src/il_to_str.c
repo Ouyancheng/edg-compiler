@@ -2528,7 +2528,7 @@ confusion.  Do the output in the way described by octl.
       /* If the constant is implicitly cast to another type, prefix the
          constant with an explicit cast. */
       a_boolean need_cast = FALSE;
-      if (constant->is_reinterpret_cast && octl->c_generating_back_end) {
+      if (constant->is_reinterpret_cast && !octl->c_generating_back_end) {
         /* The source form used reinterpret_cast, so a cast is needed. */
         need_cast = TRUE;
         need_reinterpret_cast = TRUE;
