@@ -6177,9 +6177,10 @@ points to the associated routine if the kind is sck_function.
 #if DEBUG
 void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep)
 /*
+Display the source-sequence entry pointed to by ssep, for debugging purposes.
 */
 {
-  an_il_entry_kind  kind = ssep->entity.kind;
+  an_il_entry_kind  kind = (an_il_entry_kind)ssep->entity.kind;
 
   fputs(il_entry_kind_names[(int)kind], f_debug);
   if (kind == iek_source_sequence_entry) {
@@ -6241,12 +6242,35 @@ void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep)
         pos = &scp->decl_position;
       }  /* if */
       fprintf(f_debug, " (%lu): \"", pos->seq);
-      db_name(scp);
+      if (kind == iek_type) {
+        db_type_name((a_type_ptr)ssep->entity.ptr);
+      } else {
+        db_name(scp);
+      }  /* if */
       fputc('"', f_debug);
     }  /* if */
     fputc('\n', f_debug);
   }  /* if */
 }  /* db_source_sequence_entry */
+
+
+void db_source_sequence_list(a_source_sequence_entry_ptr  ssep)
+/*
+Display the list of source-sequence entries pointed to by ssep, for debugging
+purposes.
+*/
+{
+  a_source_sequence_entry_ptr  prev = NULL;
+
+  for (; ssep != NULL; ssep = ssep->next) {
+    if (ssep->prev != prev) {
+      fputs("**BAD PREV PTR:", f_debug);
+    }  /* if */
+    fputs("  ", f_debug);
+    db_source_sequence_entry(ssep);
+    prev = ssep;
+  }  /* for */
+}  /* db_source_sequence_list */
 #endif /* DEBUG */
 
 
@@ -6315,12 +6339,18 @@ Allocate a comment entry, initialize its fields, and return a pointer to it.
 }  /* alloc_comment */
 #endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
-void add_to_source_sequence_list(a_source_sequence_entry_ptr  src_seq_ptr,
-                                 a_boolean                    force_to_fs)
+
+static void add_to_source_sequence_list(a_source_sequence_entry  *ssep,
+                                        a_boolean                force_to_fs)
 /*
+Add ssep to the end of the source-sequence list of the appropriate scope,
+which is either the file scope, a class scope (for members declared within
+a class definition), or a function scope.  If force_to_fs is TRUE, the
+entry should be added to the file scope's list even though it is declared
+within a function scope.
 */
 {
-  a_scope_stack_entry_ptr  ssep;
+  a_scope_stack_entry_ptr  scope_stack_ptr;
   a_scope_ptr              sp;
 
   if (force_to_fs) {
@@ -6365,40 +6395,40 @@ void add_to_source_sequence_list(a_source_sequence_entry_ptr  src_seq_ptr,
     a_source_sequence_entry_ptr  proxy_ssep;
 
     check_assertion(curr_il_region_number != FILE_SCOPE_REGION_NUMBER);
-    check_assertion(in_file_scope(src_seq_ptr));
+    check_assertion(in_file_scope(ssep));
     proxy_ssep = alloc_source_sequence_entry();
     proxy_ssep->entity.kind = (a_byte_il_entry_kind)iek_source_sequence_entry;
-    proxy_ssep->entity.ptr  = (char *)src_seq_ptr;
+    proxy_ssep->entity.ptr  = (char *)ssep;
     add_to_source_sequence_list(proxy_ssep, /*force_to_fs=*/FALSE);
     /* Use the file scope. */
-    ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+    scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
   } else {
-    ssep = &scope_stack[depth_scope_stack];
-    if (ssep->kind == (a_scope_kind)sck_file ||
-        ssep->kind == (a_scope_kind)sck_function ||
+    scope_stack_ptr = &scope_stack[depth_scope_stack];
+    if (scope_stack_ptr->kind == (a_scope_kind)sck_file ||
+        scope_stack_ptr->kind == (a_scope_kind)sck_function ||
         (C_dialect == C_dialect_cplusplus &&
-         ssep->kind == (a_scope_kind)sck_class_struct_union)) {
+         scope_stack_ptr->kind == (a_scope_kind)sck_class_struct_union)) {
       /* Use the current scope. */
     } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
       /* Use the function scope. */
-      ssep = &scope_stack[depth_innermost_function_scope];
+      scope_stack_ptr = &scope_stack[depth_innermost_function_scope];
     } else {
       /* Use the file scope. */
-      ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+      scope_stack_ptr = &scope_stack[DEPTH_OF_FILE_SCOPE];
     }  /* if */
   }  /* if */
-  sp = ssep->il_scope;
+  sp = scope_stack_ptr->il_scope;
   check_assertion_str(sp != NULL,
                       "add_to_source_sequence_list: NULL IL scope");
   if (sp->source_sequence_list == NULL) {
-    src_seq_ptr->prev = NULL;
-    sp->source_sequence_list = src_seq_ptr;
+    ssep->prev = NULL;
+    sp->source_sequence_list = ssep;
   } else {
-    src_seq_ptr->prev = ssep->last_source_sequence_entry;
-    ssep->last_source_sequence_entry->next = src_seq_ptr;
+    ssep->prev = scope_stack_ptr->last_source_sequence_entry;
+    scope_stack_ptr->last_source_sequence_entry->next = ssep;
   }  /* if */
-  ssep->last_source_sequence_entry = src_seq_ptr;
-  src_seq_ptr->next = NULL;
+  scope_stack_ptr->last_source_sequence_entry = ssep;
+  ssep->next = NULL;
 }  /* add_to_source_sequence_list */
 
 
