@@ -5589,7 +5589,6 @@ any classes that declared the nested class as a template friend.
         a_type_ptr				class_type;
         a_template_symbol_supplement_ptr	tssp;
         cssp = sym->variant.class_struct_union.extra_info;
-        check_assertion(sym->next == NULL);
         tssp = template_supplement_for_symbol(ct_symbol);
         next_instance_sym(sym) = tssp->variant.class_template.instantiations;
         tssp->variant.class_template.instantiations = sym;
