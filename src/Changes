@@ -1,5 +1,26 @@
 Version 2.34
 
+12/5/96  extern "C" and implicit int
+
+The diagnostic message has been clarified for declarations like the
+following:
+
+  extern "C" f(int);
+
+12/5/96  Implicit int and function parameter declarations
+
+A diagnostic is now issued on the following:
+
+  void f(const &);   // remark in C mode, warning in C++ mode, error in
+                     //   strict ANSI C++ mode
+
+12/5/96  Microsoft compatibility: implicit int on function declarations
+
+There were some cases in which errors were issued in Microsoft
+compatibility mode on function definitions with an implicit int return
+type.  This has been fixed -- warnings are issued in Microsoft C++ mode,
+and remarks in Microsoft C mode.
+
 12/4/96  Microsoft compatibility: spurious warning on friend declaration
 
 A bug was introduced in version 2.33 that in Microsoft compatibility mode
