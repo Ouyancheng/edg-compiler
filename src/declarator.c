@@ -3151,7 +3151,8 @@ function_lparen:
 #endif /* RESTRICT_ALLOWED */
       /* This is a top-level declarator if derived_type is NULL; it's a field
          declaration only if the nonstatic member flag is set. */
-      top_level_field_decl = (input_flags & DI_NONSTATIC_MEMBER) &&
+      top_level_field_decl = (C_mode() ||
+                              (input_flags & DI_NONSTATIC_MEMBER)) &&
                              derived_type == NULL;
       array_declarator(&new_type_ptr, nonconstant_dimension_allowed,
                        top_level_field_decl, restrict_allowed, &restrict_seen);
