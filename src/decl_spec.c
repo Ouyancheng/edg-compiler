@@ -7321,6 +7321,18 @@ destructor_name:
         }  /* if */
         /* If destructors aren't expected, fall through into the default
            case. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_public:
+      case tok_private:
+      case tok_protected:
+        if (microsoft_bugs && microsoft_version >= 1300 &&
+            *storage_class == (a_storage_class)sc_typedef) {
+          /* Microsoft C++ compilers ignore access specifiers in ill-formed
+             typedef declarations like "typedef int private I;". */
+          warning(ec_invalid_access_specifier);
+          break;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       default:
         /* Something unexpected.  After the first time, we can just exit
            the loop (we've taken all we're supposed to).  The first time,

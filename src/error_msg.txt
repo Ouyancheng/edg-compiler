@@ -1430,6 +1430,7 @@ ec_multiple_thread_local_storage_specifiers;;"multiple thread-local storage spec
 ec_virtual_function_never_defined;;"virtual %n was not defined (and cannot be defined elsewhere because it is a member of an unnamed namespace)"
 ec_stray_carriage_return;;"carriage return character in source line outside of comment or character/string literal"
 ec_expr_not_fixed_point;;"expression must have fixed-point type"
+ec_invalid_access_specifier;;"invalid use of access specifier is ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

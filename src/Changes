@@ -1,5 +1,14 @@
 Version 3.6
 
+1/7/05  Microsoft compatibility: Access specifiers in typedefs
+
+In Microsoft bugs mode with microsoft_version >= 1300 the front end now ignores
+(with a warning) any access specifiers appearing among the specifiers following
+a typedef keyword.  For example:
+
+  typedef char protected C;  // Now treated as "typedef char C;" in Microsoft
+                             // bugs mode.  A warning is issued.
+
 1/7/05  Undefined virtual inline function causes wrong choice of key function 
 
 In strict ANSI C++ mode, an undefined virtual inline function always triggers
