@@ -4122,23 +4122,6 @@ the type.  If is_type is FALSE, this is a "sizeof expression", and
 }  /* make_runtime_sizeof_expr */
 
 
-static void conv_gcc_lvalue_question_to_rvalue(an_operand *operand)
-/*
-If the given operand is an lvalue "?" operation in gcc mode, change it
-to the corresponding rvalue.
-*/
-{
-  if (gcc_mode && is_expression_operand(operand) && is_an_lvalue(operand)) {
-    an_expr_node_ptr expr = operand->variant.expression;
-    if (is_operation_node(expr) &&
-        expr->variant.operation.kind == (an_expr_operator_kind)eok_question &&
-        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-      conv_lvalue_to_rvalue(operand);
-    }  /* if */
-  }  /* if */
-}  /* conv_gcc_lvalue_question_to_rvalue */
-
-
 static void scan_sizeof_operator(an_operand *result)
 /*
 Scan the sizeof operator.  The operand of the sizeof operator cannot be an
@@ -4269,7 +4252,6 @@ Syntax:
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
-    conv_gcc_lvalue_question_to_rvalue(&operand);
     if (is_parenthesized) {
       /* When scanning the expression with a trapped left parenthesis, the
          position returned in the operand indicates the token following
@@ -4308,6 +4290,7 @@ Syntax:
     template_case = TRUE;
   } else if (is_function_type(sizeof_type)) {
     if (gcc_mode) {
+      /* GCC evaluates sizeof(function-type) as 1. */
       sizeof_type = integer_type((an_integer_kind)ik_char);
     } else {
       pos_error(ec_sizeof_function, &type_position);
@@ -4315,6 +4298,7 @@ Syntax:
     }  /* if */
   } else if (is_incomplete_type(sizeof_type)) {
     if (gcc_mode && is_void_type(sizeof_type)) {
+      /* GCC evaluates sizeof(void) as 1. */
       sizeof_type = integer_type((an_integer_kind)ik_char);
     } else {
       pos_error(ec_incomplete_type_not_allowed, &type_position);
@@ -4505,7 +4489,6 @@ implement <stdarg.h>, a standard feature.
                                TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
                                TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
-    conv_gcc_lvalue_question_to_rvalue(&operand);
     if (is_parenthesized) {
       /* When scanning the expression with a trapped left parenthesis, the
          position returned in the operand indicates the token following
@@ -4612,7 +4595,6 @@ The parentheses are required, unlike for sizeof.
   } else {
     /* Scan an expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-    conv_gcc_lvalue_question_to_rvalue(&operand);
     result = operand.type;
   }  /* if */
   if (!is_error_type(result)) {
@@ -7286,6 +7268,24 @@ As an anachronism, allow an expression inside the [ ].
 }  /* scan_delete_operator */
 
 
+an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
+                                       a_type_ptr       type_cast_to)
+/*
+Make an lvalue cast expression node that casts source_expr to type_cast_to.
+This is used only in C mode, and it's an extension.
+*/
+{
+  an_expr_node_ptr lvalue_cast_node;
+
+  check_assertion_str(C_mode(),
+                      "make_lvalue_cast_node: lvalue cast in C++ mode");
+  lvalue_cast_node = make_operator_node((an_expr_operator_kind)eok_lvalue_cast,
+                                        make_pointer_type(type_cast_to),
+                                        source_expr);
+  return lvalue_cast_node;
+}  /* make_lvalue_cast_node */
+
+
 static void lvalue_cast(a_type_ptr type_cast_to,
                         an_operand *result)
 /*
@@ -7298,9 +7298,8 @@ only done in C mode, and it's an extension.
   check_assertion_str(C_mode(), "lvalue_cast: lvalue cast in C++ mode");
   /* Build an expression node for the lvalue cast.  Note that this is done
      even if the lvalue address is represented by a constant. */
-  temp_node = make_node_from_operand(result);
-  temp_node = make_operator_node((an_expr_operator_kind)eok_lvalue_cast,
-                                 make_pointer_type(type_cast_to), temp_node);
+  temp_node = make_lvalue_cast_node(make_node_from_operand(result),
+                                    type_cast_to);
   /* Make an expression operand for the node.  Change the old one rather
      than creating a new one so as not to disturb the other fields in the
      operand. */
@@ -10898,12 +10897,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   expr_stack->evaluated = saved_evaluated;
 
   /* Check the second and third operand types. */
-  if (!C_mode() || gcc_mode) {
-    types_are_the_same = same_types_for_question_operator(&operand_2,
-                                                          &operand_3);
-  }  /* if */
   if (!C_mode()) {
     /* Checks specific to C++ mode: */
+    types_are_the_same = same_types_for_question_operator(&operand_2,
+                                                          &operand_3);
     if (is_template_dependent_context() &&
         (is_template_dependent_type(operand_1->type) ||
          is_template_dependent_type(operand_2.type) ||
@@ -11040,12 +11037,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     }  /* if */
   }  /* if */
   if (!processed && !err) {
-    if ((!C_mode() || (gcc_mode && !binary_conditional)) &&
-        types_are_the_same &&
+    if (!C_mode() && types_are_the_same &&
         is_a_cplusplus_lvalue(&operand_2) &&
         is_a_cplusplus_lvalue(&operand_3)) {
-      /* In C++ and GNU C, if the second and third operands have the same type
-         and they are lvalues, the result is also an lvalue. */
+      /* In C++, if the second and third operands have the same type and
+         they are lvalues, the result is also an lvalue. */
       result_is_an_lvalue = TRUE;
     } else {
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
@@ -11063,9 +11059,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
       }  /* if */
     }  /* if */
     result_type = operand_2.type;  /* Assume. */
-    if ((!C_mode() ||
-         (gcc_mode && result_is_an_lvalue)) &&
-        types_are_the_same) {
+    if (!C_mode() && types_are_the_same) {
       /* If the types are the same in C++ mode, no further checking of types
          is needed. */
       /* If either operand has an error type, make sure the result type is
@@ -12150,9 +12144,9 @@ EOPT_DISALLOW_COMMA_OPERATOR).
     if (!processed) {
       /* Non-operator-function cases. */
       simplify_void_operand(operand_1);
-      /* In C++ and GNU C modes, an lvalue in the second operand is preserved.
+      /* In C++ mode, an lvalue in the second operand is preserved.
          In C mode, an lvalue is converted to an rvalue. */
-      if (C_dialect == C_dialect_cplusplus || gcc_mode) {
+      if (C_dialect == C_dialect_cplusplus) {
         do_operand_transformations(&operand_2,
                                  TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                  TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);

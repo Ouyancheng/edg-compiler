@@ -29,8 +29,14 @@ exprutil.c -- Expression scanning utility routines.
 #include "pch.h"
 #include "func_def.h"
 
-/* Forward declaration required: */
+/* Forward declarations required: */
 static void conv_array_rvalue_to_lvalue(an_operand *operand);
+static void conv_rvalue_expr_to_object_pointer(
+                                              an_expr_node_ptr *p_node,
+                                              a_boolean        *converted,
+                                              a_boolean        see_if_possible,
+                                              a_boolean        gcc_lvalue,
+                                              a_type_ptr       *lvalue_type);
 
 
 /*
@@ -4151,6 +4157,21 @@ the member.
 }  /* change_nonreal_member_constant_operand_to_lvalue */
 
 
+static an_expr_node_ptr gcc_strip_casts(an_expr_node_ptr expr)
+/*
+Strip casts off an expression tree and return the stripped expression.
+This is used in gcc mode to check for lvalues that have been cast.
+gcc treats such expressions as lvalues, discarding the casts.
+*/
+{
+  while (is_operation_node(expr) &&
+         expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
+    expr = expr->variant.operation.operands;
+  }  /* while */
+  return expr;
+}  /* gcc_strip_casts */
+
+
 a_boolean check_modifiable_lvalue_operand(an_operand *operand)
 /*
 Return FALSE and issue an error message if the operand is not a modifiable
@@ -4160,6 +4181,52 @@ lvalue.  If there is an error, change the operand to an error operand.
   a_boolean  okay = FALSE;
   a_type_ptr type;
 
+  if (gcc_mode && is_an_rvalue(operand)) {
+    /* gcc allows some strange casts that look like lvalue casts but are
+       actually ignored.  For example:
+         (short)i = 1;
+       If the expression here has a cast on top, try to recover an
+       underlying lvalue. */
+    if (is_expression_operand(operand)) {
+      an_expr_node_ptr expr = operand->variant.expression;
+      if (is_operation_node(expr) &&
+          (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast ||
+           expr->variant.operation.kind ==
+                                         (an_expr_operator_kind)eok_question ||
+           expr->variant.operation.kind == (an_expr_operator_kind)eok_comma)) {
+        a_boolean converted;
+        a_boolean casts_removed = 
+             (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast);
+        /* Remove casts. */
+        expr = gcc_strip_casts(expr);
+        /* See whether we can find an underlying lvalue. */
+        conv_rvalue_expr_to_object_pointer(&expr, &converted,
+                                           /*see_if_posible=*/TRUE,
+                                           /*gcc_lvalue=*/TRUE,
+                                           (a_type_ptr *)NULL);
+        if (converted) {
+          /* Yes, an lvalue can be recovered. */
+          a_type_ptr lvalue_type;
+          an_operand orig_operand = *operand;
+          if (casts_removed) {
+            pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
+          }  /* if */
+          conv_rvalue_expr_to_object_pointer(&expr, &converted,
+                                             /*see_if_posible=*/FALSE,
+                                             /*gcc_lvalue=*/TRUE,
+                                             &lvalue_type);
+          make_expression_operand(expr, expr->type, operand);
+          if (is_function_type(lvalue_type)) {
+            operand->state = (an_operand_state)os_function_designator;
+          } else {
+            operand->state = (an_operand_state)os_lvalue;
+          }  /* if */
+          operand->type = lvalue_type;
+          restore_operand_details(operand, &orig_operand);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
   /* 3.2.2.1:  A modifiable lvalue has to
        (a)  be an lvalue.
        (b)  not have array type.
@@ -5812,7 +5879,7 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
     /* Build the expression tree for the operation. */
     build_question_result_operand(operand_1, operand_2, operand_3,
                                   operation_type, result);
-    if (!C_mode() || gcc_mode) {
+    if (!C_mode()) {
       if (result_is_an_lvalue) {
         check_assertion(is_expression_operand(result) &&
                         is_operation_node(result->variant.expression));
@@ -7235,29 +7302,118 @@ to (or a function designator).
 }  /* conv_object_pointer_to_lvalue */
 
 
-static void conv_class_rvalue_expr_to_object_pointer(
+static a_boolean okay_as_gcc_lvalue_question(an_expr_node_ptr *op2,
+                                             an_expr_node_ptr *op3,
+                                             a_type_ptr       *result_type)
+/*
+Return TRUE if an rvalue expression that is a "?" operator with the
+indicated two expressions as the second and third operands can be
+converted to an lvalue "?" in gcc mode.  The expressions are updated
+by stripping off casts.  *result_type is set to the result type for the
+lvalue operation (with no extra pointer-to level).
+*/
+{
+  a_boolean        okay = FALSE;
+  a_type_ptr       res_type;
+
+  /* The two branches must have the same type in order for the
+     operator to be usable as an lvalue.  Strip casts off the
+     operands and then see what type they have. */
+  an_expr_node_ptr stripped_op2 = gcc_strip_casts(*op2);
+  an_expr_node_ptr stripped_op3 = gcc_strip_casts(*op3);
+  a_type_ptr       type2, type3;
+  a_boolean        op2_possible, op3_possible;
+
+  /* Note that by the time a "?" operation gets here, it has
+     been validated as a correct rvalue operation, so a certain
+     level of compatibility between the operands has already been
+     established. */
+  /* Do a test conversion of the expressions to lvalues, to
+     see whether they can be converted to lvalues and to find out what
+     their lvalue types are.  The lvalue types may have cv-qualifiers
+     that the rvalue versions don't. */
+  conv_rvalue_expr_to_object_pointer(&stripped_op2, &op2_possible,
+                                     /*see_if_possible=*/TRUE,
+                                     /*gcc_lvalue=*/TRUE, &type2);
+  conv_rvalue_expr_to_object_pointer(&stripped_op3, &op3_possible,
+                                     /*see_if_possible=*/TRUE,
+                                     /*gcc_lvalue=*/TRUE, &type3);
+  if (!op2_possible || !op3_possible) {
+    /* One or both of the operands cannot be converted to an lvalue,
+       so give up. */
+  } else if (is_class_struct_union_type(type2)) {
+    /* For struct types, only the exact same type will work. */
+    okay = identical_types(type2, type3);
+    res_type = type2;
+  } else if (!is_scalar_type(type2) ||
+             !is_scalar_type(type3)) {
+    /* Rule out void and function types. */
+    /* okay = FALSE; -- already set. */
+  } else if (identical_types(type2, type3)) {
+    /* The types match. */
+    okay = TRUE;
+    res_type = type2;
+  } else if (get_type_qualifiers(type2) == get_type_qualifiers(type3) &&
+             still_an_lvalue(type2, type3)) {
+    /* The types match enough that an lvalue cast can bridge the gap.
+       We also require that the cv-qualifiers match, to avoid problems
+       with cases like
+         int i;
+         const int j;
+         (i ? i : j) = 1;  // Modifiable or not?
+    */
+    okay = TRUE;
+    /* Favor an integral type as the result type. */
+    if (is_integral_type(type2)) {
+      res_type = type2;
+    } else if (is_integral_type(type3)) {
+      res_type = type3;
+    } else {
+      res_type = type2;
+    }  /* if */
+  }  /* if */
+  if (okay) {
+    /* Remove the casts from the operands in the caller. */
+    *op2 = stripped_op2;
+    *op3 = stripped_op3;
+    *result_type = res_type;
+  }  /* if */
+  return okay;
+}  /* okay_as_gcc_lvalue_question */
+
+
+static void conv_rvalue_expr_to_object_pointer(
                                               an_expr_node_ptr *p_node,
                                               a_boolean        *converted,
-                                              a_boolean        see_if_possible)
+                                              a_boolean        see_if_possible,
+                                              a_boolean        gcc_lvalue,
+                                              a_type_ptr       *lvalue_type)
 /*
-*p_node is an expression tree for a class rvalue.  If possible, rewrite it
-as an object pointer for the class object, and set *p_node to the new
+*p_node is an expression tree for an rvalue.  If possible, rewrite it
+as an object pointer for the object, and set *p_node to the new
 pointer and *converted to TRUE.  If not possible, return *converted FALSE
 and *p_node unchanged.  If see_if_possible is TRUE, just see if the
 rewriting is possible, and set *converted accordingly; do not change
-the expression.
+the expression.  If gcc_lvalue is TRUE, we're rewriting the operand of
+an lvalue cast in gcc mode.  If lvalue_type is non-NULL, *lvalue_type
+is set to the type of the lvalue (without extra pointer-to level);
+it might differ from the original node node in having extra cv-qualifiers
+that were dropped when the lvalue was converted to an rvalue.
 */
 {
   an_expr_node_ptr      node = *p_node, op1, op2, op3;
   an_expr_operator_kind op;
   a_boolean             possible;
   a_boolean             op1_possible, op2_possible, op3_possible;
-  a_type_ptr            orig_type = node->type;
+  a_type_ptr            node_type = node->type;
 
   possible = FALSE;
   if (is_variable_node(node)) {
     /* The value of a variable.  Change it to the address of the variable. */
     possible = TRUE;
+    /* Re-fetch the variable type, because cv-qualifiers might have been
+       dropped in converting it to an rvalue. */
+    node_type = node->variant.variable->type;
     if (!see_if_possible) {
       node->kind = (an_expr_node_kind)enk_variable_address;
       set_variable_address_taken(node->variant.variable);
@@ -7306,24 +7462,50 @@ the expression.
         node->variant.operation.kind = (an_expr_operator_kind)eok_padd_subsc;
       }  /* if */
     } else if (op == (an_expr_operator_kind)eok_question) {
+      a_type_ptr result_type;
+      a_boolean  okay;
       /* "?" operator -- transform each branch independently to an address. */
       op1 = node->variant.operation.operands;
       op2 = op1->next;
       op3 = op2->next;
-      /* See if both branches can be rewritten. */
-      conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
-                                               /*see_if_possible=*/TRUE);
-      conv_class_rvalue_expr_to_object_pointer(&op3, &op3_possible,
-                                               /*see_if_possible=*/TRUE);
-      if (op2_possible && op3_possible) {
-        /* Both branches can be rewritten, so rewrite the whole expression. */
+      if (!gcc_lvalue) {
+        /* See if both branches can be rewritten. */
+        conv_rvalue_expr_to_object_pointer(&op2, &op2_possible,
+                                           /*see_if_possible=*/TRUE,
+                                           gcc_lvalue, (a_type_ptr *)NULL);
+        conv_rvalue_expr_to_object_pointer(&op3, &op3_possible,
+                                           /*see_if_possible=*/TRUE,
+                                           gcc_lvalue, (a_type_ptr *)NULL);
+        okay = (op2_possible && op3_possible);
+      } else {
+        /* Test whether this expression can be rewritten as an lvalue
+           in gcc mode. */
+        okay = !is_void_type(node_type) &&
+               okay_as_gcc_lvalue_question(&op2, &op3, &result_type);
+      }  /* if */
+      if (okay) {
+        /* The expression is okay, so go ahead and rewrite the expression. */
         possible = TRUE;
         if (!see_if_possible) {
           node->variant.operation.returns_lvalue_instead_of_usual_rvalue= TRUE;
-          conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
-                                                   /*see_if_possible=*/FALSE);
-          conv_class_rvalue_expr_to_object_pointer(&op3, &op3_possible,
-                                                   /*see_if_possible=*/FALSE);
+          conv_rvalue_expr_to_object_pointer(&op2, &op2_possible,
+                                             /*see_if_possible=*/FALSE,
+                                             gcc_lvalue, (a_type_ptr *)NULL);
+          conv_rvalue_expr_to_object_pointer(&op3, &op3_possible,
+                                             /*see_if_possible=*/FALSE,
+                                             gcc_lvalue, (a_type_ptr *)NULL);
+          if (gcc_lvalue) {
+            /* For the gcc case, cast the operands to the right result
+               type if necessary. */
+            node_type = result_type;
+            result_type = make_pointer_type(result_type);
+            if (!il_identical_types(op2->type, result_type)) {
+              op2 = make_lvalue_cast_node(op2, result_type);
+            }  /* if */
+            if (!il_identical_types(op3->type, result_type)) {
+              op3 = make_lvalue_cast_node(op3, result_type);
+            }  /* if */
+          }  /* if */
           op1->next = op2;
           op2->next = op3;
         }  /* if */
@@ -7336,14 +7518,16 @@ the expression.
       /* Same processing for static selection. */
       op1 = node->variant.operation.operands;
       op2 = op1->next;
-      conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
-                                               /*see_if_possible=*/TRUE);
+      conv_rvalue_expr_to_object_pointer(&op2, &op2_possible,
+                                         /*see_if_possible=*/TRUE,
+                                         gcc_lvalue, (a_type_ptr *)NULL);
       if (op2_possible) {
         possible = TRUE;
         if (!see_if_possible) {
           node->variant.operation.returns_lvalue_instead_of_usual_rvalue= TRUE;
-          conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
-                                                   /*see_if_possible=*/FALSE);
+          conv_rvalue_expr_to_object_pointer(&op2, &op2_possible,
+                                             /*see_if_possible=*/FALSE,
+                                             gcc_lvalue, (a_type_ptr *)NULL);
           op1->next = op2;
         }  /* if */
       }  /* if */
@@ -7354,13 +7538,15 @@ the expression.
       op1 = node->variant.operation.operands;
       op2 = op1->next;
       /* See if the operand can be rewritten. */
-      conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
-                                               /*see_if_possible=*/TRUE);
+      conv_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+                                         /*see_if_possible=*/TRUE,
+                                         gcc_lvalue, (a_type_ptr *)NULL);
       if (op1_possible) {
         possible = TRUE;
         if (!see_if_possible) {
-          conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
-                                                   /*see_if_possible=*/FALSE);
+          conv_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+                                             /*see_if_possible=*/FALSE,
+                                             gcc_lvalue, (a_type_ptr *)NULL);
           node->variant.operation.operands = op1;
           op1->next = op2;
           node->variant.operation.kind = (an_expr_operator_kind)eok_field;
@@ -7376,18 +7562,20 @@ the expression.
       if (!see_if_possible) {
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
       }  /* if */
-    } else if (op == (an_expr_operator_kind)eok_cast) {
+    } else if (!gcc_lvalue && op == (an_expr_operator_kind)eok_cast) {
       /* Generic cast, in a prototype instantiation.  Try to rewrite
          the operand, and change the cast to a pointer cast. */
       op1 = node->variant.operation.operands;
       /* See if the operand can be rewritten. */
-      conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
-                                               /*see_if_possible=*/TRUE);
+      conv_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+                                         /*see_if_possible=*/TRUE,
+                                         gcc_lvalue, (a_type_ptr *)NULL);
       if (op1_possible) {
         possible = TRUE;
         if (!see_if_possible) {
-          conv_class_rvalue_expr_to_object_pointer(&op1, &op1_possible,
-                                                   /*see_if_possible=*/FALSE);
+          conv_rvalue_expr_to_object_pointer(&op1, &op1_possible,
+                                             /*see_if_possible=*/FALSE,
+                                             gcc_lvalue, (a_type_ptr *)NULL);
           node->variant.operation.operands = op1;
         }  /* if */
       }  /* if */
@@ -7399,11 +7587,12 @@ the expression.
   /* If the node was transformed, its type is now a pointer to the type it
      had previously. */
   if (!see_if_possible && possible) {
-    node->type = make_pointer_type(orig_type);
+    node->type = make_pointer_type(node_type);
   }  /* if */
   *p_node = node;
   *converted = possible;
-}  /* conv_class_rvalue_expr_to_object_pointer */
+  if (lvalue_type != NULL) *lvalue_type = node_type;
+}  /* conv_rvalue_expr_to_object_pointer */
 
 
 void conv_class_operand_to_object_pointer(an_operand *operand)
@@ -7438,8 +7627,10 @@ address of the temporary is returned.  This routine is only used in C++ mode.
     if (is_expression_operand(operand)) {
       node = operand->variant.expression;
       /* Class rvalue.  Change it to an object pointer if possible. */
-      conv_class_rvalue_expr_to_object_pointer(&node, &optimized_case,
-                                               /*see_if_possible=*/FALSE);
+      conv_rvalue_expr_to_object_pointer(&node, &optimized_case,
+                                         /*see_if_possible=*/FALSE,
+                                         /*gcc_lvalue=*/FALSE,
+                                         (a_type_ptr *)NULL);
       if (optimized_case) {
         /* The expression has been rewritten as an object pointer. */
         make_expression_operand(node, node->type, operand);
@@ -7608,27 +7799,6 @@ non-NULL return *con_value == NULL.
                                            (a_constant_ptr *)NULL);
           op3 = conv_lvalue_expr_to_rvalue(op3, &constant_case3,
                                            (a_constant_ptr *)NULL);
-          if (gcc_mode && C_mode()) {
-            /* In gcc mode, promotions must be done to get back to what
-               we would have had in standard C mode. */
-            if (is_arithmetic_or_enum_type(op2->type)) {
-              a_type_ptr result_type = usual_arithmetic_conversions(op2->type,
-                                                                    op3->type);
-              cast_node(&op2, result_type,
-                        /*check_cast_access=*/FALSE,
-                        /*is_implicit_cast=*/TRUE,
-                        /*is_reinterpret_cast=*/FALSE,
-                        /*reinterpret_semantics=*/FALSE,
-                        &error_position);
-              cast_node(&op3, result_type,
-                        /*check_cast_access=*/FALSE,
-                        /*is_implicit_cast=*/TRUE,
-                        /*is_reinterpret_cast=*/FALSE,
-                        /*reinterpret_semantics=*/FALSE,
-                        &error_position);
-              node->type = make_pointer_type(result_type);
-            }  /* if */
-          }  /* if */
           op1->next = op2;
           op2->next = op3;
           *constant_case = constant_case2 && constant_case3;

@@ -74,6 +74,9 @@ extern a_boolean node_has_side_effects(an_expr_node_ptr node,
 extern a_boolean is_invariant_expr(an_expr_node_ptr expr,
                                    a_boolean        vars_can_change);
 
+extern an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
+                                              a_type_ptr       type_cast_to);
+
 extern void check_closing_paren_after_expr_list(void);
 
 extern a_boolean is_two_argument_delete(a_routine_ptr delete_routine);
