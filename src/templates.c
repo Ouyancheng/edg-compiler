@@ -915,8 +915,13 @@ over templ_sym2.
        not for the return type. */
     ptp1 = rtsp1->param_type_list;
     ptp2 = rtsp2->param_type_list;
-    /* Do the argument deduction on each function parameter. */
-    for (; ptp1 != NULL; ptp1 = ptp1->next, ptp2 = ptp2->next) {
+    /* Do the argument deduction on each function parameter.  The loop will
+       terminate when one of the parameter lists has been exhausted.  If
+       the two functions differ in the number of parameters, which can
+       occur if one of the functions has default arguments, base
+       the decision on the common parameters. */
+    for (; ptp1 != NULL && ptp2 != NULL;
+           ptp1 = ptp1->next, ptp2 = ptp2->next) {
       if (!parameter_is_more_specialized(ptp1->type, ptp2->type,
                                          &dummy_arg_list,
                                          templ_param_list)) {
