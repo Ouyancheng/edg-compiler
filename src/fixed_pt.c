@@ -338,8 +338,12 @@ value is negative, is_negative will be TRUE.
   int			parts_to_copy;
   an_integer_value	local_value;
 
-  /* Make sure an_integer_value can be copied into a_mantissa. */
-  check_assertion(sizeof(an_integer_value) <= sizeof(mp->parts));/*lint !e506*/
+#if CHECKING
+  { /* Make sure an_integer_value can be copied into a_mantissa. */
+    a_boolean	okay = sizeof(an_integer_value) <= sizeof(mp->parts);
+    check_assertion(okay);
+  }
+#endif /* CHECKING */
   /* Clear the mantissa. */
   init_mantissa(mp);
   *exponent = 0;
