@@ -854,7 +854,8 @@ Process the default argument expressions for the indicated class.
       fputs("\"\n", f_debug);
     }  /* if */
 #endif /* DEBUG */
-    if (class_type->variant.class_struct_union.is_nonreal_class) {
+    if (class_type->variant.class_struct_union.is_template_class &&
+        class_type->variant.class_struct_union.is_nonreal_class) {
       is_nonreal_template_instantiation = TRUE;
     } else if (is_template_based) {
       is_real_template_instantiation = TRUE;
@@ -1282,7 +1283,8 @@ nested class.
       fputs("\"\n", f_debug);
     }  /* if */
 #endif /* DEBUG */
-    if (class_type->variant.class_struct_union.is_nonreal_class) {
+    if (class_type->variant.class_struct_union.is_template_class &&
+        class_type->variant.class_struct_union.is_nonreal_class) {
       is_nonreal_template_instantiation = TRUE;
     } else if (is_template_based) {
       is_real_template_instantiation = TRUE;
