@@ -2495,8 +2495,8 @@ Display the indicated routine.
       disp_opname_kind_name(ptr->opname_or_builtin.opname_kind);
       (void)printf("\n");
     }  /* if */
-  } else {
 #if GNU_EXTENSIONS_ALLOWED
+  } else {
     if ((ptr->opname_or_builtin.builtin_function_kind != 
                                           (a_builtin_function_kind)bfk_none)) {
       disp_name("builtin_function_kind");
@@ -2504,8 +2504,8 @@ Display the indicated routine.
                                  ptr->opname_or_builtin.builtin_function_kind);
       (void)printf("\n");
     }  /* if */
-  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
   if (ptr->address_taken) {
     disp_boolean("address_taken", TRUE);
   }  /* if */
