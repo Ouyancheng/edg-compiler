@@ -3728,6 +3728,7 @@ function symbols.
     sym = NULL;
   } else {
     /* See if there's already a member function with this name. */
+    clear_specific_symbol(*locator);
     (void)class_qualified_id_lookup(locator, class_type,
                                     IDL_MEMBER_FUNCTION_LOOKUP);
     sym = locator->specific_symbol;
