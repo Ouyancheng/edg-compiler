@@ -1682,10 +1682,12 @@ is FALSE, field subobjects are ignored while searching for a conflict.
           if (is_array_type(field->type)) {
             /* Watch out for prototype instantiations. */
             if (!has_unknown_specified_bound(field->type)) {
-              if (emulate_gnu_abi_bugs &&
-                  has_dimension_of_length_one(field->type)) {
-                /* Early GNU compilers do not consider conflicts with arrays
-                   of length one. */
+              if (skip_typerefs(field->type)->size == 0 ||
+                  (emulate_gnu_abi_bugs &&
+                   has_dimension_of_length_one(field->type))) {
+                /* Do not consider conflicts with flexible array members.
+                   Also, early GNU compilers do not consider conflicts with
+                   arrays of length one. */
                 continue;
               }  /* if */
               num_field_array_elts = num_array_elements(field->type);

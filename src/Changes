@@ -1,5 +1,16 @@
 Version 3.5
 
+8/31/04  Microsoft compatibility/IA-64 ABI: Abort on flexible array member
+
+Under certain circumstances an internal error was triggered in "types.c"
+during the layout of a class containing a flexible array member.  For example:
+
+  class C {};
+  struct S { C c[]; };
+  struct X { S s; };    // Internal error during class layout.
+
+This is now fixed.
+
 8/31/04  Incorrect IL for lowered lvalue "?" involving bit fields
 
 The lowered code for a compound assignment to bool involving
