@@ -1416,21 +1416,13 @@ constants, which must have the form of a qualified name).
 }  /* gen_name */
 
 
-static void gen_decl_name(a_source_correspondence *scp,
-                          an_il_entry_kind        entry_kind)
 /*
 Output the name of the entity whose source correspondence information
 is given by scp.  This name is being declared in this use.  entry_kind
 indicates the IL entry kind.  If the entity is unnamed, generate a name.
 */
-{
-  a_boolean save_global_qualification_needed= scp->global_qualification_needed;
-
-  /* Suppress a leading "::". */
-  scp->global_qualification_needed = FALSE;
-  gen_name(scp, entry_kind, /*force_qualified_name=*/FALSE);
-  scp->global_qualification_needed = save_global_qualification_needed;
-}  /* gen_decl_name */
+#define gen_decl_name(scp, entry_kind)                                \
+  gen_name((scp), (entry_kind), /*force_qualified_name=*/FALSE);
 
 
 /* Interface routines to gen_name. */
@@ -1738,7 +1730,12 @@ or enum.
                /*force_qualified_name=*/FALSE);
     } else {
       /* Declarations cannot use a global qualifier. */
+      a_boolean save_global_qualification_needed =
+                              type->source_corresp.global_qualification_needed;
+      type->source_corresp.global_qualification_needed = FALSE;
       gen_decl_name(&type->source_corresp, iek_type);
+      type->source_corresp.global_qualification_needed =
+                                              save_global_qualification_needed;
       type->declaration_put_out = TRUE;
     }  /* if */
   }  /* if */
