@@ -1889,49 +1889,6 @@ is a base class.
 }  /* fixup_virtual_base_class */
 
 
-#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-static void fixup_data_section_base_class_pointers(a_base_class_ptr new_bcp,
-                                                   a_type_ptr       class_type)
-/*
-Indirect virtual base classes of new_bcp have not yet been marked as having
-new_bcp as their data section base class (to allow for a subsequently seen
-complete subobject base class of new_bcp to be the data section base class).
-Do a fixup pass now to indicate that all virtual base classes of new_bcp
-that do no already have the data section base class pointer set will use the
-data section in new_bcp.
-*/
-{
-  a_base_class_ptr  bcp, corresp_bcp;
-
-  if (new_bcp->complete_subobject) {
-    for (bcp = base_classes_of(new_bcp->type); bcp != NULL; bcp = bcp->next) {
-      if (bcp->is_virtual) {
-        if (bcp->data_section_base_class != NULL) {
-#if CHECKING
-          /* The data section is not actually in new_bcp but rather in a
-             nonvirtual base class of bcp.  The pointer should already have
-             been set. */
-          corresp_bcp = corresponding_base_class(bcp, new_bcp->type,
-                                                 class_type);
-          if (corresp_bcp->data_section_base_class == NULL) {
-            internal_error(
-              "fixup_data_section_base_class_pointers: NULL data section bcp");
-          }  /* if */
-#endif /* if CHECKING */
-        } else {
-          corresp_bcp = corresponding_base_class(bcp, new_bcp->type,
-                                                 class_type);
-          if (corresp_bcp->data_section_base_class == NULL) {
-            corresp_bcp->data_section_base_class = new_bcp;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-}  /* fixup_data_section_base_class_pointers */
-#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
-
-
 static void set_pointer_base_class(a_base_class_ptr       base_class,
                                    a_derivation_step_ptr  path)
 /*
