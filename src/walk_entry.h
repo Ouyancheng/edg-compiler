@@ -909,8 +909,10 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef CFE
             walk_list(ptr->variant.routine.constructor_inits,
                       a_constructor_init_ptr, iek_constructor_init);
-            remap_ptr(ptr->variant.routine.lifetime_of_constructor_inits,
-                      an_object_lifetime_ptr, iek_object_lifetime);
+            walk_ptr(ptr->variant.routine.lifetime_of_constructor_inits,
+                     an_object_lifetime_ptr, iek_object_lifetime);
+            walk_ptr(ptr->variant.routine.lifetime_of_local_static_vars,
+                     an_object_lifetime_ptr, iek_object_lifetime);
             walk_ptr(ptr->variant.routine.this_param_variable, a_variable_ptr,
                      iek_variable);
             remap_ptr(ptr->variant.routine.return_value_variable,
