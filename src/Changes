@@ -1,5 +1,11 @@
 Version 2.43
 
+10/13/99 Abort on IL lowering of asm function with EH enabled
+
+A change introduced in 2.42 caused an assertion failure on IL lowering
+of an asm function (an optional feature -- see ASM_FUNCTION_ALLOWED)
+when exception handling is enabled.  Now fixed.
+
 10/13/99 Exception specification on return types
 
 The front end now accepts exception specifications on return types of
