@@ -1694,7 +1694,7 @@ with that partial specialization; otherwise return NULL.
 }  /* check_partial_specializations */
 
 
-static a_namespace_ptr determine_referencing_namespace(void)
+a_namespace_ptr determine_referencing_namespace(void)
 /*
 Determine the referencing namespace for a template that is to be
 instantiated.  For a template that is not instantiated because of a

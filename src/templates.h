@@ -126,6 +126,8 @@ extern a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                                         a_template_arg_ptr  *template_arg_list,
 				 	a_boolean	    prototype_allowed);
 
+extern a_namespace_ptr determine_referencing_namespace(void);
+
 extern a_template_arg_ptr get_template_arg_by_list_pos(
                                     a_template_param_ptr      templ_param_list,
                                     a_template_arg_ptr        *templ_arg_list,

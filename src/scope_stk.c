@@ -1672,7 +1672,9 @@ be NULL if we don't yet know which instance we are dealing with.
   a_namespace_ptr	nsp = NULL;
 
   if (instance_sym == NULL) {
-    /* We don't know which instance is being used yet. */
+    /* We don't know which instance is being used yet.  Determine the
+       referencing namespace from the scope stack. */
+    nsp = determine_referencing_namespace();
   } else if (instance_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
              instance_sym->kind == (a_symbol_kind)sk_union_tag) {
     /* The instance points to a class symbol.  Return the referencing
