@@ -118,12 +118,20 @@ namespace __cxxabiv1 {
 #else /* ifndef __EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
     typedef void ctor_dtor_return_type;
 #endif /* ifdef __EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
+
+    /* Guard variables are 64 bits in the IA-64 ABI but only 32 bits in
+       the ARM EABI. */
+#ifdef __EDG_IA64_ABI_USE_INT_STATIC_INIT_GUARD
+    typedef int __guard_variable_type;
+#else /* ifndef __EDG_IA64_ABI_USE_INT_STATIC_INIT_GUARD */
+    typedef unsigned long long __guard_variable_type;
+#endif /* ifdef __EDG_IA64_ABI_USE_INT_STATIC_INIT_GUARD */
   
     /* Guard variables for the initialization of variables with static storage
        duration. */
-    int __cxa_guard_acquire(unsigned long long *);
-    void __cxa_guard_release(unsigned long long *);
-    void __cxa_guard_abort(unsigned long long *);
+    int __cxa_guard_acquire(__guard_variable_type *);
+    void __cxa_guard_release(__guard_variable_type *);
+    void __cxa_guard_abort(__guard_variable_type *);
 
     /* Construction and destruction of arrays. */
     void *__cxa_vec_new(size_t, size_t, size_t,
