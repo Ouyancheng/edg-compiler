@@ -1032,14 +1032,13 @@ is asked to act like cpp.
   /* In some cases involving macro ids right before the end of file,
      the end of file line will have been modified (characters will have
      been inserted into it).  Check for that, and dump out the final
-     preprocessing and/or raw listing output line in that case. */
+     preprocessing and/or expanded raw listing output line in that case. */
   if (source_line_modif_list != NULL) {
     if (generate_pp_output) {
-      do_not_put_curr_line_in_pp_output = FALSE;
       gen_pp_output_for_curr_line();
     }  /* if */
     if (f_raw_listing != NULL) {
-      gen_expanded_raw_listing_output_for_curr_line();
+      gen_expanded_raw_listing_output_for_curr_line(/*do_inserted_text=*/TRUE);
     }  /* if */
   }  /* if */
   if (f_pp_output != NULL) {
