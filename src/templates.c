@@ -14979,9 +14979,6 @@ the exported templates in that file.
   /* Consider the exported template file to be in instantiation wrapup at
      this point. */
   in_instantiation_wrapup = TRUE;
-  /* Save the translation unit pointer associated with this exported template
-     file. */
-  etfp->translation_unit = curr_translation_unit;
   /* Switch back to the previous translation unit. */
   switch_translation_unit(saved_tup);
 }  /* load_exported_template_file */

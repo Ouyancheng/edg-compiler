@@ -361,9 +361,6 @@ it the current translation unit.
 {
   a_translation_unit_stack_entry_ptr	tusep;
 
-  check_assertion(curr_translation_unit_stack_entry == NULL ||
-                  curr_translation_unit_stack_entry->translation_unit ==
-                  curr_translation_unit);
   tusep = alloc_translation_unit_stack_entry();
   tusep->next = curr_translation_unit_stack_entry;
   tusep->translation_unit = tup;
@@ -399,11 +396,13 @@ new top entry the current translation unit.
   /* Add the old entry to the list of available stack entries. */
   tusep->next = avail_translation_unit_stack_entries;
   avail_translation_unit_stack_entries = tusep;
-  check_assertion(curr_translation_unit_stack_entry != NULL);
-  /* Make the translation unit specified by the top of the stack into the
-     active translation unit. */
-  switch_translation_unit(curr_translation_unit_stack_entry->translation_unit);
-}  /* push_translation_unit_stack */
+  if (curr_translation_unit_stack_entry != NULL) {
+    /* Make the translation unit specified by the top of the stack into the
+       active translation unit. */
+   switch_translation_unit(
+                          curr_translation_unit_stack_entry->translation_unit);
+  }  /* if */
+}  /* pop_translation_unit_stack */
 
 
 a_boolean push_translation_unit_if_needed(a_symbol_ptr	sym)
@@ -539,15 +538,13 @@ treated as separate translation units of a single compilation.
     /* The primary translation unit must be first. */
     check_assertion(is_primary_translation_unit);
   }  /* if */
-  if (is_primary) {
-    /* Push this translation unit onto the translation unit stack. */
-    push_translation_unit_stack(trans_unit);
-  }  /* if */
+  curr_translation_unit = trans_unit;
+  /* Push this translation unit onto the translation unit stack. */
+  push_translation_unit_stack(trans_unit);
   if (translation_units_tail != NULL) {
     translation_units_tail->next = trans_unit;
   }  /* if */
   translation_units_tail = trans_unit;
-  curr_translation_unit = trans_unit;
   if (exported_file != NULL) {
     /* Set the include search path and macro define/undefines to be used for
        this exported template file.  For secondary translation units loaded
@@ -557,6 +554,8 @@ treated as separate translation units of a single compilation.
     undefs_from_cmd_line = exported_file->undefine_list;
     incl_search_path = exported_file->incl_search_path;
     sys_incl_search_path = exported_file->sys_incl_search_path;
+    /* Save the translation unit associated with this exported template. */
+    exported_file->translation_unit = trans_unit;
   }  /* if */
   fe_translation_unit_init();
 #if MODULE_ID_NEEDED
@@ -582,6 +581,8 @@ treated as separate translation units of a single compilation.
     translation_unit();
   }  /* if */
   translation_unit_wrapup();
+  /* Remove this entry from the translation unit stack. */
+  pop_translation_unit_stack();
 #if DEBUG
   if (debug_level >= 1 || db_flag_is_set("trans_unit")) {
     fprintf(f_debug, "Done processing translation unit %s\n", file_name);

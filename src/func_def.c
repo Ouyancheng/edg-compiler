@@ -2216,9 +2216,12 @@ empty statement block.
     a_translation_unit_ptr saved_tup = curr_translation_unit;
     a_scope_ptr            class_scope = class_type->variant.
                                     class_struct_union.extra_info->assoc_scope;
+    a_symbol_ptr	   rout_sym;
+    a_boolean		   trans_unit_pushed;
+    rout_sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
     check_assertion(class_scope != NULL);
     /* Switch translation units if necessary. */
-    switch_translation_unit(trans_unit_for_scope[class_scope->number]);
+    trans_unit_pushed = push_translation_unit_if_needed(rout_sym);
     /* Push a class symbol reactivation scope, to make class member names
        visible for processing the function definition. */
     push_class_reactivation_scope(class_type, /*extend_namespace=*/TRUE);
@@ -2263,8 +2266,9 @@ empty statement block.
     /* Terminate the class reactivation scope. */
     pop_class_reactivation_scope();
     /* Mark the symbol for this routine "defined". */
-    ((a_symbol_ptr)rout_ptr->source_corresp.assoc_info)->defined = TRUE;
-    switch_translation_unit(saved_tup);
+    rout_sym->defined = TRUE;
+    /* If the translation unit stack was pushed above, pop it now. */
+    if (trans_unit_pushed) pop_translation_unit_stack();
   }  /* if */
   db_exit();
 }  /* define_special_member_function */

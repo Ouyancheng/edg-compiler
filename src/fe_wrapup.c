@@ -435,11 +435,17 @@ functions require definitions in this translation unit.
 {
   a_translation_unit_ptr	tup;
 
+  /* Push the primary translation unit.  This should be the first entry
+     on the stack. */
+  check_assertion(curr_translation_unit_stack_entry == NULL);
+  push_translation_unit_stack(translation_units);
   /* Do one-time processing (not per-translation unit) for instantiation
      wrapup. */
   instantiation_wrapup_setup();
   for (tup = translation_units; tup != NULL; tup = tup->next) {
-    push_translation_unit_stack(tup);
+    /* Push the translation unit (but don't repush the primary translation
+       unit. */
+    if (tup != translation_units) push_translation_unit_stack(tup);
     /* Do any template instantiation that may be required.  This is called
        first because it may generate additional function bodies and class
        definitions that need to be processed by the operations that follow. */
@@ -453,8 +459,11 @@ functions require definitions in this translation unit.
          as part of this translation unit. */
       inline_function_wrapup();
     }  /* if */
-    pop_translation_unit_stack();
+    /* Pop the translation unit if pushed above. */
+    if (tup != translation_units) pop_translation_unit_stack();
   }  /* for */
+  /* Pop the primary translation unit off of the stack. */
+  pop_translation_unit_stack();
 }  /* template_and_inline_function_wrapup */
 
 
