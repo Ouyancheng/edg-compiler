@@ -162,6 +162,20 @@ its return type is return_type.
 }  /* make_runtime_routine */
 
 
+static a_statement_ptr alloc_expr_statement(an_expr_node_ptr node)
+/*
+Allocate an stmk_expr statement pointing to the indicated expression
+and return a pointer to it.
+*/
+{
+  a_statement_ptr stmt = alloc_statement((a_statement_kind)stmk_expr);
+
+  stmt->expr = node;
+  set_expr_result_not_used(node);
+  return stmt;
+}  /* alloc_expr_statement */
+
+
 static a_statement_ptr insert_expr_statement(
                                         an_expr_node_ptr       node,
                                         an_insert_location_ptr insert_location)
@@ -180,8 +194,7 @@ context).
     stmt = NULL;
   } else {
     /* Make the expression statement. */
-    stmt = alloc_statement((a_statement_kind)stmk_expr);
-    stmt->expr = node;
+    stmt = alloc_expr_statement(node);
     /* Insert the statement at the right location. */
     insert_statement(stmt, insert_location);
   }  /* if */
@@ -420,8 +433,7 @@ and return pointer to it.
   /* Make the call node. */
   call_node = make_call_node(routine, arg_list, /*honor_virtual=*/FALSE);
   /* Allocate an expression statement and put the call into it. */
-  call_stmt = alloc_statement((a_statement_kind)stmk_expr);
-  call_stmt->expr = call_node;
+  call_stmt = alloc_expr_statement(call_node);
   return call_stmt;
 }  /* make_call_statement */
 
@@ -1382,8 +1394,7 @@ The routine must have a "this" parameter.
        to the return. */
     if (is_void_type(call_node->type)) {
       /* Insert the statement at the right place. */
-      call_stmt = alloc_statement((a_statement_kind)stmk_expr);
-      call_stmt->expr = call_node;
+      call_stmt = alloc_expr_statement(call_node);
       insert_statement(call_stmt, &insert_location);
       call_node = NULL;
     }  /* if */
@@ -1437,8 +1448,7 @@ dip->variant.constructor.args has already been lowered.
     call_node = make_vec_new_call(entity_node, num_elem_node, ctor_routine);
   }  /* if */
   /* Make a statement containing the call. */
-  call_stmt = alloc_statement((a_statement_kind)stmk_expr);
-  call_stmt->expr = call_node;
+  call_stmt = alloc_expr_statement(call_node);
   /* Insert the statement at the right location. */
   insert_statement(call_stmt, insert_location);
 }  /* add_array_constructor_call */
@@ -1511,8 +1521,7 @@ in the array.  Insert the statements at *insert_location and update
   call_node = make_vec_delete_call(entity_node, array_element_count,
                                    dtor_routine, /*free_storage=*/FALSE);
   /* Make a statement containing the call. */
-  call_stmt = alloc_statement((a_statement_kind)stmk_expr);
-  call_stmt->expr = call_node;
+  call_stmt = alloc_expr_statement(call_node);
   /* Insert the statement at the right location. */
   insert_statement(call_stmt, insert_location);
 }  /* add_array_destructor_call */
