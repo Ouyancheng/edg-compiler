@@ -2405,6 +2405,14 @@ the block statement.
       block->assoc_scope = scope_ptr;
       scope_ptr->assoc_block = block_stmt;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Don't pop the name scope here if this is the end of the guarded
+       statement of Microsoft __try statement.  It will be done after the
+       __except expression, if any, is processed. */
+    if (struct_stmt_stack[depth_stmt_stack].kind != ssk_microsoft_try ||
+        struct_stmt_stack[depth_stmt_stack].
+                                  in_cleanup_statement_of_microsoft_try)
+#endif MICROSOFT_EXTENSIONS_ALLOWED
     /* Pop the name scope. */
     pop_scope();
   }  /* if */
@@ -2868,8 +2876,12 @@ statement.  Its form is
     remove_stop_token(tok_rparen);
   } else {
     /* __finally form. */
-    (void)required_token(tok_finally, ec_exp_expect_or_finally);
+    (void)required_token(tok_finally, ec_exp_except_or_finally);
   }  /* if */
+  /* Pop the name scope.  (It was not done in finish_block_statement because
+     the __except expression has to be scanned within the name scope belonging
+     to the guarded statement.) */
+  pop_scope();
   /* Scan the cleanup statement. */
   term_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
   start_stmt_clause(&struct_stmt_stack[depth_stmt_stack]);
