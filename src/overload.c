@@ -1492,7 +1492,8 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
                                  param_type,
                                  /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                  /*suppress_extensions=*/TRUE,
-                                 ec_incompatible_param, &std_conversion) &&
+                                 ec_simple_incompatible_param,
+                                 &std_conversion) &&
         /* cfront requires that a null pointer constant be spelled "0"
            for it to be convertible to a pointer in overload resolution. */
         !(any_cfront_mode() && arg_operand_is_constant &&
