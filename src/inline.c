@@ -166,7 +166,7 @@ is not null, return *is_non_null TRUE.
   if (is_constant_node(expr)) {
     a_constant_ptr con = expr->variant.constant;
     is_constant_valued = TRUE;
-    /* Dont treat string literals as constant, because if we generate C code
+    /* Don't treat string literals as constant, because if we generate C code
        and refer to the constant several times, the address of the string
        literal will be different on each reference. */
     if (con->kind == (a_constant_repr_kind)ck_address &&
