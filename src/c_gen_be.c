@@ -1951,7 +1951,7 @@ by unnamed non-bit-fields.
     if (curr_offset / TARG_CHAR_BIT != next_field_offset / TARG_CHAR_BIT) {
       /* The bit positions are not in the same byte.  Finish out the
          current byte. */
-      nbits = curr_offset % TARG_CHAR_BIT;
+      nbits = (int)(curr_offset % TARG_CHAR_BIT);
       if (nbits != 0) {
         nbits = TARG_CHAR_BIT - nbits;
         startline((a_seq_number)0);
@@ -1967,7 +1967,7 @@ by unnamed non-bit-fields.
     }  /* if */
     if (curr_offset != next_field_offset) {
       /* Fill the final part of the gap. */
-      nbits = next_field_offset - curr_offset;
+      nbits = (int)(next_field_offset - curr_offset);
       startline((a_seq_number)0);
       (void)fprintf(f_C_output, "unsigned int :%d;", nbits);
       curr_offset += nbits;

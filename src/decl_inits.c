@@ -1256,9 +1256,9 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
 #endif /* CHECKING */
       if (di_list != NULL) initialization_is_dynamic = TRUE;
       clear_dynamic_init(&local_di,
-                         (initialization_is_dynamic ?
-                             (a_dynamic_init_kind)dik_nonconstant_aggregate :
-                             (a_dynamic_init_kind)dik_constant));
+                         (a_dynamic_init_kind)(initialization_is_dynamic ?
+                                               dik_nonconstant_aggregate :
+                                               dik_constant));
       local_di.variant.constant = cp;
       if (incomplete_init) {
         /* A const or ref field was not initialized.  Issue an error. */
@@ -1681,9 +1681,9 @@ initialized.  These are addressed in the course of the processing.
          dynamic init entry will be required; otherwise it is optional.
          Create the constructor init entry now; the dynamic init will be added
          later. */
-      cip = alloc_ctor_init(bcp->is_virtual ?
-                            (a_constructor_init_kind)cik_virtual_base_class :
-                            (a_constructor_init_kind)cik_direct_base_class);
+      cip = alloc_ctor_init((a_constructor_init_kind)(bcp->is_virtual ?
+                                                      cik_virtual_base_class :
+                                                      cik_direct_base_class));
       cip->variant.base_class = bcp;
       /* Add the constructor init to the end of the appropriate list. */
       if (bcp->is_virtual) {
@@ -2347,9 +2347,10 @@ though neither constructors nor initialization is involved here.)
       rp = select_destructor(bcp->type, class_type, &source_pos,
                              /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);
       if (rp != NULL) {
-        cip = alloc_ctor_init(bcp->is_virtual ?
-                              (a_constructor_init_kind)cik_virtual_base_class :
-                              (a_constructor_init_kind)cik_direct_base_class);
+        cip = alloc_ctor_init((a_constructor_init_kind)
+                                                    (bcp->is_virtual ?
+                                                     cik_virtual_base_class :
+                                                     cik_direct_base_class));
         cip->variant.base_class = bcp;
         /* Create a dynamic init entry. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);

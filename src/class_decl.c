@@ -3947,7 +3947,7 @@ class, struct, or union.
      part of the IL. */
   field = alloc_field();
   field->type = *member_type;
-  field->bit_size = bit_field_size;
+  field->bit_size = (a_byte)bit_field_size;
   field->bit_field_is_signed = bit_field_is_signed;
   /* For an unnamed field, do not create the field symbol. */
   if (!unnamed_field) {
