@@ -111,7 +111,13 @@ changed to conform with the usage in the ARM and elsewhere:
 Also, exception_specification replaces throw_specification to designate
 the field in a_routine_type_supplement, and iek_exception_specification
 and iek_exception_specification_type now appear as members of the
-enumeration an_il_entry_kind.
+enumeration an_il_entry_kind.  In addition, some error codes were renamed,
+and error messages for the following error codes were reworded:
+
+   ec_redundant_exception_specification_type
+   ec_incompatible_exception_specification
+   ec_omitted_exception_specification
+   ec_exception_specification_not_allowed
 
 6/29/94 IL CHANGE: representation of field offset
 
