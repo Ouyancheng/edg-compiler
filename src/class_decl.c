@@ -386,8 +386,7 @@ routine recursively for each nested class.
              during prototype instantiation. */
           discard_token_cache(&rfp->function_body_token_cache);
         } else if (is_nonreal_template_instantiation) {
-          /* Prototype instantiation -- copy the cache for memeber
-             functions. */
+          /* Prototype instantiation -- copy the cache for member functions. */
           tssp = sym->variant.routine.instance_ptr->template_info;
           tssp->token_cache = rfp->function_body_token_cache;
           clear_token_cache(&rfp->function_body_token_cache);
@@ -5477,7 +5476,7 @@ back down to find A<T>::B).
          a symbol for that nested class. */
       tp = sym->variant.class_struct_union.type;
       if (is_unnamed_class_symbol(curr_sym)) {
-        /* Unusual case of an unnamed class -- e.g., an anonymouse union.
+        /* Unusual case of an unnamed class -- e.g., an anonymous union.
            Look through the types list associated with the parent class. */
         tp = tp->variant.class_struct_union.extra_info->assoc_scope->types;
         for (; tp != NULL; tp = tp->next) {
