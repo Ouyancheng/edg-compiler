@@ -109,14 +109,6 @@ typedef struct a_func_info_block {
 			   just a type and no name. */
 } a_func_info_block;
 
-/*
-Flag that is meaningful while within a routine.  It indicates whether the
-current routine's type was explicitly specified, rather than defaulted
-to "int".
-*/
-EXTERN a_boolean
-		curr_rout_type_explicitly_specified;
-
 
 EXTERN a_param_id_ptr
 		avail_param_ids;
