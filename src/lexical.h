@@ -1579,6 +1579,11 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
                          an_identifier_lookup_mode        ilm,
                          a_boolean                        *err);
 
+extern unsigned long scan_universal_character(
+					char		**start_pos,
+					a_boolean	issue_diagnostics);
+
+
 /* Macro that tests whether f_is_generalized_identifier_start needs
    to be called.  We don't need to call it if we have an identifier that
    has already been coalesced.  There are other cases that could be
@@ -1839,6 +1844,12 @@ Also set slmp for use in scanning the line with the "walk_.." macros.
     loc_in_line = curr_source_line;                                   \
   }  /* if */                                                         \
 }  /* set_up_for_walk_of_source_line */
+
+/*
+Convert a character hex digit to the associated hex digit value.
+*/
+#define hexvalue(ch) ((ch) - (isdigit((unsigned char)ch) ? '0' : \
+                             (islower((unsigned char)ch) ? 'a'-0xa : 'A'-0xA)))
 
 #endif /* ifndef LEXICAL_H */
 

@@ -1,5 +1,11 @@
 Version 2.42
 
+6/23/99  Universal character name support
+
+Universal character names (e.g., \u0401) are now accepted in C++ mode in
+identifiers, character literals, and string literals (they have always been
+accepted in comments because they have no special meaning there).
+
 6/23/99  Microsoft compatibility: static member function overrides inherited
          virtual member function
 

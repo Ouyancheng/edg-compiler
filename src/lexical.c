@@ -88,6 +88,73 @@ at the beginning of get_token need to be done.
 
 
 /*
+Entry used to represent the table of valid universal character name.
+A sorted array of these entries is used when checking the validity of
+a given universal character.
+*/
+typedef struct a_UCN_range *a_UCN_range_ptr;
+typedef struct a_UCN_range {
+  unsigned long
+		start;
+			/* The first character in the range. */
+  unsigned long
+		end;
+			/* The last character in the range. */
+} a_UCN_range;
+
+/*
+Sorted table of valid UCN ranges.  This is extracted from Annex E
+of the C++ standard.
+*/
+static a_UCN_range
+		UCN_table[] = {
+  0x00c0, 0x00d6, 0x00d8, 0x00f6, 0x00f8, 0x01f5, 0x01fa, 0x0217,
+  0x0250, 0x02a8, 0x0384, 0x0384, 0x0388, 0x038a, 0x038c, 0x038c,
+  0x038e, 0x03a1, 0x03a3, 0x03ce, 0x03d0, 0x03d6, 0x03da, 0x03da,
+  0x03dc, 0x03dc, 0x03de, 0x03de, 0x03e0, 0x03e0, 0x03e2, 0x03f3,
+  0x0401, 0x040d, 0x040f, 0x044f, 0x0451, 0x045c, 0x045e, 0x0481,
+  0x0490, 0x04c4, 0x04c7, 0x04c8, 0x04cb, 0x04cc, 0x04d0, 0x04eb,
+  0x04ee, 0x04f5, 0x04f8, 0x04f9, 0x0531, 0x0556, 0x0561, 0x0587,
+  0x05d0, 0x05ea, 0x05f0, 0x05f4, 0x0621, 0x063a, 0x0640, 0x0652,
+  0x0670, 0x06b7, 0x06ba, 0x06be, 0x06c0, 0x06ce, 0x06e5, 0x06e7,
+  0x0905, 0x0939, 0x0958, 0x0962, 0x0985, 0x098c, 0x098f, 0x0990,
+  0x0993, 0x09a8, 0x09aa, 0x09b0, 0x09b2, 0x09b2, 0x09b6, 0x09b9,
+  0x09dc, 0x09dd, 0x09df, 0x09e1, 0x09f0, 0x09f1, 0x0a05, 0x0a0a,
+  0x0a0f, 0x0a10, 0x0a13, 0x0a28, 0x0a2a, 0x0a30, 0x0a32, 0x0a33,
+  0x0a35, 0x0a36, 0x0a38, 0x0a39, 0x0a59, 0x0a5c, 0x0a5e, 0x0a5e,
+  0x0a85, 0x0a8b, 0x0a8d, 0x0a8d, 0x0a8f, 0x0a91, 0x0a93, 0x0aa8,
+  0x0aaa, 0x0ab0, 0x0ab2, 0x0ab3, 0x0ab5, 0x0ab9, 0x0ae0, 0x0ae0,
+  0x0b05, 0x0b0c, 0x0b0f, 0x0b10, 0x0b13, 0x0b28, 0x0b2a, 0x0b30,
+  0x0b32, 0x0b33, 0x0b36, 0x0b39, 0x0b5c, 0x0b5d, 0x0b5f, 0x0b61,
+  0x0b85, 0x0b8a, 0x0b8e, 0x0b90, 0x0b92, 0x0b95, 0x0b99, 0x0b9a,
+  0x0b9c, 0x0b9c, 0x0b9e, 0x0b9f, 0x0ba3, 0x0ba4, 0x0ba8, 0x0baa,
+  0x0bae, 0x0bb5, 0x0bb7, 0x0bb9, 0x0c05, 0x0c0c, 0x0c0e, 0x0c10,
+  0x0c12, 0x0c28, 0x0c2a, 0x0c33, 0x0c35, 0x0c39, 0x0c60, 0x0c61,
+  0x0c85, 0x0c8c, 0x0c8e, 0x0c90, 0x0c92, 0x0ca8, 0x0caa, 0x0cb3,
+  0x0cb5, 0x0cb9, 0x0ce0, 0x0ce1, 0x0d05, 0x0d0c, 0x0d0e, 0x0d10,
+  0x0d12, 0x0d28, 0x0d2a, 0x0d39, 0x0d60, 0x0d61, 0x0e01, 0x0e30,
+  0x0e32, 0x0e33, 0x0e40, 0x0e46, 0x0e4f, 0x0e5b, 0x0e81, 0x0e82,
+  0x0e84, 0x0e84, 0x0e87, 0x0e87, 0x0e88, 0x0e88, 0x0e8a, 0x0e8a,
+  0x0e8d, 0x0e8d, 0x0e94, 0x0e97, 0x0e99, 0x0e9f, 0x0ea1, 0x0ea3,
+  0x0ea5, 0x0ea5, 0x0ea7, 0x0ea7, 0x0eaa, 0x0eaa, 0x0eab, 0x0eab,
+  0x0ead, 0x0eb0, 0x0eb2, 0x0eb2, 0x0eb3, 0x0eb3, 0x0ebd, 0x0ebd,
+  0x0ec0, 0x0ec4, 0x0ec6, 0x0ec6, 0x10a0, 0x10c5, 0x10d0, 0x10f6,
+  0x1100, 0x1159, 0x1161, 0x11a2, 0x11a8, 0x11f9, 0x1e00, 0x1e9a,
+  0x1ea0, 0x1ef9, 0x1f00, 0x1f15, 0x1f18, 0x1f1d, 0x1f20, 0x1f45,
+  0x1f48, 0x1f4d, 0x1f50, 0x1f57, 0x1f59, 0x1f59, 0x1f5b, 0x1f5b,
+  0x1f5d, 0x1f5d, 0x1f5f, 0x1f7d, 0x1f80, 0x1fb4, 0x1fb6, 0x1fbc,
+  0x1fc2, 0x1fc4, 0x1fc6, 0x1fcc, 0x1fd0, 0x1fd3, 0x1fd6, 0x1fdb,
+  0x1fe0, 0x1fec, 0x1ff2, 0x1ff4, 0x1ff6, 0x1ffc, 0x3041, 0x3094,
+  0x309b, 0x309e, 0x30a1, 0x30fe, 0x3105, 0x312c, 0x4e00, 0x9fa5,
+  0xf900, 0xfa2d, 0xfb1f, 0xfb36, 0xfb38, 0xfb3c, 0xfb3e, 0xfb3e,
+  0xfb40, 0xfb41, 0xfb42, 0xfb44, 0xfb46, 0xfbb1, 0xfbd3, 0xfd3f,
+  0xfd50, 0xfd8f, 0xfd92, 0xfdc7, 0xfdf0, 0xfdfb, 0xfe70, 0xfe72,
+  0xfe74, 0xfe74, 0xfe76, 0xfefc, 0xff21, 0xff3a, 0xff41, 0xff5a,
+  0xff66, 0xffbe, 0xffc2, 0xffc7, 0xffca, 0xffcf, 0xffd2, 0xffd7,
+  0xffda, 0xffdc
+};
+
+/*
 Variables pertaining to the input stack (for include files and the
 primary source file) and the current input file (the top entry on the
 stack).
@@ -5386,6 +5453,90 @@ pp tokens).
 }  /* scan_boolean_constant */
 
 
+static a_boolean UCN_char_is_in_range(const void* char_ptr,
+                                      const void* table_entry_ptr)
+/*
+Comparison function used by bsearch to test whether a given UCN
+value is within the specified range.  char_ptr points to the UCN
+value being looked up, and table_entry_ptr points to the entry in the
+UCN range table.
+
+Return -1 if the character precedes the range, zero if it is in the range,
+or +1 if the character follows the range.
+*/
+{
+  unsigned long		uchar = *(unsigned long*)char_ptr;
+  a_UCN_range_ptr	range = (a_UCN_range_ptr)table_entry_ptr;
+  return (uchar < range->start ? -1 : uchar <= range->end ? 0 : +1);
+}  /* UCN_char_is_in_range */
+
+
+static a_boolean is_valid_universal_character(unsigned long uchar)
+/*
+Return TRUE if uchar is a value that is designated as a valid universal
+character in Annex E of the C++ standard.
+*/
+{
+  a_UCN_range *range;
+  range = (a_UCN_range *)bsearch(&uchar, UCN_table,
+                                 sizeof(UCN_table) / sizeof(a_UCN_range),
+                                 sizeof(a_UCN_range), UCN_char_is_in_range);
+  return range != NULL;
+}  /* is_valid_universal_character */
+
+
+unsigned long scan_universal_character(char		**start_pos,
+				       a_boolean	issue_diagnostics)
+/*
+Scan the universal character name starting at start_pos.  The character
+specified by the universal character name is returned.  If issue_diagnostics
+is TRUE, diagnostic messages are produced if the universal character is
+improperly formed, or if it names an invalid character.  start_pos is
+updated by this routine to point to the character after the universal
+character name.
+*/
+{
+  char		*pos = *start_pos;
+  a_boolean	err = FALSE;
+  unsigned long	result = 0;
+  int		digits;
+
+  /* The current position must be the start of a universal character name. */
+  check_assertion_str2(*pos == '\\' && (*(pos+1) == 'u' || *(pos+1) == 'U'),
+                       "scan_universal_character:",
+                       "curr pos not universal character");
+  /* Skip past the "\u" or "\U", and determine whether we are processing a
+     four or eight character name.  "\u" is followed by four hex digits,
+     "\U" is followed by eight hex digits. */
+  pos++;
+  digits = *pos++ == 'u' ? 4 : 8;
+  /* Scan the digits and calculate the character value.  Stop scanning if
+     we encounter an invalid character. */
+  for (; digits > 0; --digits) {
+    char	ch;
+    ch = *pos++;
+    if (!isxdigit((unsigned char)ch)) {
+      if (issue_diagnostics) {
+        /* Get the source position that corresponds to this character. */
+        conv_line_loc_to_source_pos(pos-1, &error_position);
+        error(ec_malformed_universal_character);
+      }  /* if */
+      err = TRUE;
+      break;
+    }  /* if */
+    result = (result << 4) | hexvalue(ch);
+  }  /* for */
+  /* Check whether the specified character is a valid universal character. */
+  if (!err && issue_diagnostics && !is_valid_universal_character(result)) {
+    /* Get the source position that corresponds to this character. */
+    conv_line_loc_to_source_pos(*start_pos, &error_position);
+    diagnostic(strict_ansi_error_severity, ec_invalid_universal_character);
+  }  /* if */
+  *start_pos = pos;
+  return result;
+}  /* scan_universal_character */
+
+
 static a_token_kind accum_quoted_string(a_token_kind  ctoken,
                                         unsigned long *num_chars,
                                         a_boolean     *err)
@@ -5443,6 +5594,17 @@ for header names in #include and #line directives.
         }  /* if */
         *err = TRUE;
         goto return_point;
+      } else if ((ch == 'u' || ch == 'U') && !C_mode()) {
+        /* A universal character name escape sequence. Skip past the characters
+           that make up the universal character.  Ignore any errors at this
+           point -- they will be issued when the escape is converted to a
+           character. */
+        /* Back up one character because the routine expects the opening
+           backslash to be the current character. */
+        curr_char_loc--;
+        (void)scan_universal_character(&curr_char_loc,
+                                       /*issue_diagnostics=*/FALSE);
+        (*num_chars)++;
       } else {
         curr_char_loc++;
         (*num_chars)++;
@@ -5827,6 +5989,7 @@ If in_asm_block_or_function is TRUE, return tok_newline for ends of lines.
   unsigned long         num_chars;
   a_symbol_kind		id_kind;
   a_boolean		rescan, is_inert_macro = FALSE;
+  a_boolean		continue_scan;
 #if DEBUG
   a_boolean             gotten_from_cache = FALSE;
 #endif /* DEBUG */
@@ -6230,6 +6393,17 @@ start_of_token_scan:  /* Restart here after scanning white space. */
         goto bad_token;
       }  /* if */
       /* This can't fall through into the next case. */
+    case '\\':
+      /* Either the start of a universal character name or an invalid
+         token.  If the next character is "U" or "u", this is a universal
+         character name. */
+      ch = *(curr_char_loc+1);
+      if ((ch == 'U' || ch == 'u') && !C_mode()) {
+        goto id_scan;
+      } else {
+        goto bad_token;
+      }  /* if */
+      /* This can't fall through into the next case. */
     case 'L':
       /* Probably an identifier, but check for a wide character
          constant (L'x') or wide string literal (L"xyz") first. */
@@ -6259,25 +6433,44 @@ id_scan:
          characters, underscores, and digits after the first character. */
       remember_token_start();
       ctoken = tok_identifier;
-      if (allow_dollar_in_id_chars && strict_ansi_mode &&
-          !dollar_in_id_diagnostic_issued) {
-        /* Use a special scanning loop when we must check for dollar signs
-           (which are nonstandard) while accumulating the characters of the
-           identifier.  The diagnostic is issued only once. */
-        register a_boolean dollar_used = (ch == '$');
-        while (is_id_char[(ch = *(++curr_char_loc))-CHAR_MIN]) {
-          if (ch == '$') dollar_used = TRUE;
-        }  /* while */
-        if (dollar_used) {
-          diagnostic(strict_ansi_error_severity, ec_dollar_used_in_identifier);
-          dollar_in_id_diagnostic_issued = TRUE;
+      do {
+        continue_scan = FALSE;
+        if (allow_dollar_in_id_chars && strict_ansi_mode &&
+            !dollar_in_id_diagnostic_issued) {
+          /* Use a special scanning loop when we must check for dollar signs
+             (which are nonstandard) while accumulating the characters of the
+             identifier.  The diagnostic is issued only once. */
+          register a_boolean dollar_used = (ch == '$');
+          for (; is_id_char[(ch = *(curr_char_loc))-CHAR_MIN];
+               curr_char_loc++) {
+            if (ch == '$') dollar_used = TRUE;
+          }  /* for */
+          if (dollar_used) {
+            diagnostic(strict_ansi_error_severity,
+                       ec_dollar_used_in_identifier);
+            dollar_in_id_diagnostic_issued = TRUE;
+          }  /* if */
+        } else {
+          /* Dollar signs are not allowed, or the diagnostic has been issued
+             already, so use the normal (faster) loop. */
+          /* Accumulate characters of the identifier after the first. */
+          while (is_id_char[(ch = *(curr_char_loc))-CHAR_MIN]) {
+            curr_char_loc++;
+          }  /* while */
         }  /* if */
-      } else {
-        /* Dollar signs are not allowed, or the diagnostic has been issued
-           already, so use the normal (faster) loop. */
-        /* Accumulate characters of the identifier after the first. */
-        while (is_id_char[(ch = *(++curr_char_loc))-CHAR_MIN]) {}
-      }  /* if */
+        /* We have just scanned a sequence of "normal" identifier characters.
+           Check whether we are now at a universal character name.  If so,
+           scan the universal character and check for additional "normal"
+           identifier characters. */
+        if (*curr_char_loc == '\\') {
+          ch = *(curr_char_loc + 1);
+          if ((ch == 'u' || ch == 'U') && !C_mode()) {
+            continue_scan = TRUE;
+            (void)scan_universal_character(&curr_char_loc,
+                                           /*issue_diagnostics=*/TRUE);
+          }  /* if */
+        }  /* if */
+      } while (continue_scan);
       end_of_curr_token = curr_char_loc - 1;
       /* Clear the symbol locator for the current identifier.  This is done 
          even if the identifier is not looked up in the symbol table. */
@@ -11002,6 +11195,23 @@ of the front end.
   num_include_file_histories_allocated = 0;
   cached_pp_token_string_space = 0;
 #endif /* DEBUG */
+#if CHECKING
+  /* Make sure the UCN table is properly formed.  Each element of the
+     array must be a start-end range where the ending value is greater
+     than the starting value, and the starting value is greater than the
+     end of the previous range. */
+  {
+    unsigned long	last_end = 0;
+    int			i;
+    for (i = 0; i < sizeof(UCN_table) / sizeof(a_UCN_range); i++) {
+      a_UCN_range_ptr	p = &UCN_table[i];
+      check_assertion_str2(p->start <= p->end && p->start > last_end,
+                           "lexical_init:",
+                           "UCN_table is not sorted properly");
+      last_end = p->end;
+    }  /* for */
+  }
+#endif /* CHECKING */
 }  /* lexical_init */
 
 

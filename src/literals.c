@@ -26,11 +26,6 @@ literals.c -- Literal constant conversion to and from internal form.
 #include "literals.h"
 
 
-/* Convert a character hex digit to the associated hex digit value. */
-#define hexvalue(ch) ((ch) - (isdigit((unsigned char)ch) ? '0' : \
-                             (islower((unsigned char)ch) ? 'a'-0xa : 'A'-0xA)))
-
-
 void conv_integer_literal(int           radix,
                           an_error_code *err_code,
                           char          **err_pos)
@@ -491,7 +486,7 @@ are not enabled, and thus stays zero on all calls).
 {
   register unsigned long targ_ch;
   register unsigned char tch;
-  register char          *lptr;
+  char		         *lptr;
   int                    digit;
   a_boolean              range_error = FALSE;
   a_boolean              unrecognized;
@@ -556,6 +551,16 @@ are not enabled, and thus stays zero on all calls).
         /* \v is not in K&R, but is recognized by pcc. */
         targ_ch = (unsigned char)TARG_VERT_TAB_CHAR;
         break;
+      case 'u':
+      case 'U':
+        /* A universal character name.  Back the pointer up to the position
+           of the backslash. */
+        /* Universal characters are only allowed in C++. */
+        if (C_mode()) goto other_chars;
+        lptr -= 2;
+        targ_ch = scan_universal_character(&lptr,
+                                           /*issue_diagnostics=*/TRUE);
+        goto range_check;
       case 'x':
         /* Hexadecimal escape.  There can be many digits, but there must be
            at least one.  If not, treat as just "x". */
@@ -596,6 +601,7 @@ are not enabled, and thus stays zero on all calls).
         }  /* if */
         goto range_check;
       default:
+other_chars:
         /* Other characters, left alone.  Specifically, standard requires
            that \', \", \?, and \\ be reduced to just the escaped character. */
         if (tch == '\'' || tch == '"' || tch == '?' || tch == '\\') {
