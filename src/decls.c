@@ -4155,13 +4155,15 @@ be a using-declaration.
 
 
 static a_boolean microsoft_for_init_hiding(a_symbol_locator  *loc,
+                                           a_scope_depth     decl_level,
                                            a_boolean         *in_for_init)
 /*
 Starting with version 7, Microsoft Visual C++ allows for-initializers to
 declare variables that conflict with a declaration in the surrounding scope.
 The earlier declaration is hidden by the new one.  The given locator is for
 a new variable declaration in the current scope.  Return TRUE if we must
-emulate the Microsoft behavior for that declaration.  *in_for_init is set
+emulate the Microsoft behavior for that declaration.  decl_level is the
+scope level in which for-init variables will be placed.  *in_for_init is set
 to TRUE if we are in Microsoft mode and in a for-init block.
 */
 {
@@ -4172,10 +4174,16 @@ to TRUE if we are in Microsoft mode and in a for-init block.
       struct_stmt_stack != NULL && depth_stmt_stack >= 0 &&
       struct_stmt_stack[depth_stmt_stack].for_init) {
     *in_for_init = TRUE;
-    if (microsoft_version >= 1300 && use_nonstandard_for_init_scope) {
-      a_symbol_ptr  prev_decl = curr_scope_id_lookup(loc, IDL_NO_OPTIONS);
+    if (microsoft_version >= 1300 && decl_level != depth_scope_stack) {
+      a_scope_depth  saved_decl_scope_level = decl_scope_level;
+      a_symbol_ptr   prev_decl;
+      /* Look for an existing variable in the scope in which the for-init
+         variable will be placed. */
+      decl_scope_level = decl_level;
+      prev_decl = curr_scope_id_lookup(loc, IDL_NO_OPTIONS);
+      decl_scope_level = saved_decl_scope_level;
       if (prev_decl != NULL &&
-          prev_decl->decl_scope == scope_stack[depth_scope_stack].number) {
+          prev_decl->decl_scope == scope_stack[decl_level].number) {
         pos_start_diagnostic(es_warning, ec_for_init_hides_declaration,
                              &loc->source_position);
         add_diag_info_with_pos_insert(ec_for_init_hidden_declaration,
@@ -4441,16 +4449,6 @@ declaration.
   idlb.storage_class = storage_class;
   idlb.direct_linkage_specifier = decl_modifiers->direct_linkage_specifier;
   set_linkage_environment(&idlb, decl_scope_level);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && microsoft_version >= 1310 &&
-      scope_stack[decl_scope_level].is_for_init_block) {
-    /* A for-init variable may need to be placed in the surrounding scope to
-       emulate MSVC++ 7.1 behavior.  effective_decl_level (which determines
-       where the symbol table entry goes) is already updated.  decl_scope_level
-       (which determines where the IL entry goes) should be the same. */
-    decl_scope_level = idlb.effective_decl_level;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (!C_mode() && locator->specific_symbol != NULL &&
       (qualifier_namespace_ptr(*locator) != NULL ||
        locator->is_file_scope_qualified_name)) {
@@ -4591,8 +4589,9 @@ declaration.
   if (sym == NULL) {
     a_boolean  in_microsoft_for_init = FALSE;
     a_boolean  inhibit_redecl_error =
-                    microsoft_mode &&
-                    microsoft_for_init_hiding(locator, &in_microsoft_for_init);
+                      microsoft_mode &&
+                      microsoft_for_init_hiding(locator, effective_decl_level,
+                                                &in_microsoft_for_init);
     /* There is no (compatible) symbol, so enter one now. */
     sym = enter_symbol((a_symbol_kind)sk_variable, locator,
                        effective_decl_level,
@@ -4643,6 +4642,16 @@ declaration.
            (This should only occur in error situations.) */
         check_assertion(total_errors != 0);
         alloc_at_file_scope = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_mode && microsoft_version >= 1310 &&
+                 scope_stack[decl_scope_level].is_for_init_block) {
+        /* A for-init variable may need to be placed in the surrounding scope
+           to emulate MSVC++ 7.1 behavior.  effective_decl_level (which
+           determines where the symbol table entry goes) is already updated.
+           scope_depth (which determines where the IL entry goes) should
+           be the same. */
+        scope_depth = idlb.effective_decl_level;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     } else if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE ||
                (scope_stack[depth_scope_stack].default_name_linkage ==
