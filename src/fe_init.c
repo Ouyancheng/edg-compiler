@@ -229,8 +229,8 @@ Make a replacement text string for a macro, corresponding to the raw text
 given by repl_text.  repl_text == NULL implies an empty replacement string.
 */
 {
-  char *repl_text_copy, *rtp;
-  int  repl_text_len, overhead;
+  char     *repl_text_copy, *rtp;
+  sizeof_t repl_text_len, overhead;
 
   repl_text_len = (repl_text != NULL) ? strlen(repl_text) : 0;
   /* There is always an rt_null at the end of the string.  If the text is
@@ -246,7 +246,7 @@ given by repl_text.  repl_text == NULL implies an empty replacement string.
     /* Put the length in the header. */
     put_macro_repl_text_number(repl_text_len, rtp);
     /* Copy the text itself. */
-    memcpy(rtp, repl_text, repl_text_len);
+    (void)memcpy(rtp, repl_text, repl_text_len);
     rtp += repl_text_len;
   }  /* if */
   /* Put the terminating null on the string. */
@@ -359,13 +359,13 @@ Initialize things related to preprocessing.
   (void)strcpy(curr_date_time, ctime(&timer));
   date_of_translation[0] = date_of_translation[12] = '"';
   /* Copy "Mmm dd " into [1] .. [7]. */
-  memcpy(&date_of_translation[1], &curr_date_time[4], 7);
+  (void)memcpy(&date_of_translation[1], &curr_date_time[4], size_t_arg(7));
   /* Copy "yyyy" into [8] .. [11]. */
-  memcpy(&date_of_translation[8], &curr_date_time[20], 4);
+  (void)memcpy(&date_of_translation[8], &curr_date_time[20], size_t_arg(4));
   date_of_translation[13] = '\0';
   time_of_translation[0] = time_of_translation[9] = '"';
   /* Copy "hh:mm:ss" into [1] .. [8]. */
-  memcpy(&time_of_translation[1], &curr_date_time[11], 8);
+  (void)memcpy(&time_of_translation[1], &curr_date_time[11], size_t_arg(8));
   time_of_translation[10] = '\0';
 
   (void)enter_predef_macro(date_of_translation, "__DATE__");
