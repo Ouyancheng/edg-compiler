@@ -37,6 +37,13 @@ class_decl.c -- Scanning of class declarations.
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
 
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+/*
+Dummy variable to support a cfront anomaly -- see set_data_section_base_class.
+*/
+static a_base_class data_section_base_class_blocked;
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+
 /*
 Structure for keeping track of token cache representing a default argument
 expression, prescanned during a member function declaration within a class
@@ -1292,27 +1299,44 @@ void db_base_class(a_base_class_ptr  bcp,
 Dump a base class entry, for debug purposes.
 */
 {
-  (void)fputc('"', f_debug);
-  db_name(&bcp->type->source_corresp);
-  fputs("\": ", f_debug);
-  if (show_offset) {
-    fprintf(f_debug, "(%ld bytes): offset = %ld, ",
-                     bcp->type->size, bcp->offset);
-  }  /* if */
-  fprintf(f_debug, "%sdirect, ",
-                     bcp->direct ? "" : "in");
-  db_access_control(bcp->access);
-  if (bcp->is_virtual) {
-    fputs(", virtual", f_debug);
+  if (bcp == &data_section_base_class_blocked) {
+    fputs("<data-section-base-class-blocked>");
+  } else {
+    (void)fputc('"', f_debug);
+    db_name(&bcp->type->source_corresp);
+    fputs("\": ", f_debug);
     if (show_offset) {
-      fprintf(f_debug, " (ptr offset = %ld)", bcp->pointer_offset);
+      fprintf(f_debug, "(%ld bytes): offset = %ld",
+                       bcp->type->size, bcp->offset);
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+      if (bcp->data_section_base_class != NULL ||
+          bcp->data_section_base_class == &data_section_base_class_blocked) {
+        fputs(", in ", f_debug);
+        db_name(&bcp->data_section_base_class->type->source_corresp);
+      }  /* if */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+      fputs(", ", f_debug);
     }  /* if */
-  } else if (bcp->any_virtual_steps_in_derivation) {
-    fputs(", vsteps", f_debug);
+    fprintf(f_debug, "%sdirect, ",
+                       bcp->direct ? "" : "in");
+    db_access_control(bcp->access);
+    if (bcp->is_virtual) {
+      fputs(", virtual", f_debug);
+      if (show_offset) {
+        fprintf(f_debug, " (ptr offset = %ld", bcp->pointer_offset);
+        if (bcp->pointer_base_class != NULL) {
+          fputs(", in ", f_debug);
+          db_name(&bcp->pointer_base_class->type->source_corresp);
+        }  /* if */
+        fputc(')', f_debug);
+      }  /* if */
+    } else if (bcp->any_virtual_steps_in_derivation) {
+      fputs(", vsteps", f_debug);
+    }  /* if */
+    if (bcp->ambiguous) fputs(", ambig", f_debug);
+    fputs(", deriv = ", f_debug);
+    db_path(bcp->derivation, show_offset);
   }  /* if */
-  if (bcp->ambiguous) fputs(", ambig", f_debug);
-  fputs(", deriv = ", f_debug);
-  db_path(bcp->derivation, show_offset);
   (void)fputc('\n', f_debug);
 }  /* db_base_class */
 
@@ -1932,6 +1956,206 @@ the pointer_base_class for both V1 and V2 is C.
 }  /* set_pointer_base_class */
 
 
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+static void set_data_section_base_class(a_base_class_ptr       base_class,
+                                        a_derivation_step_ptr  path)
+/*
+In cfront-compatibility mode the data section for a virtual base class
+may be embedded in the data section of some other base class.  When this
+is the case, the data_section_base_class field in the entry for the virtual
+base class will contain a pointer to the base class that contains its data
+section.  (This is not an issue in normal layout mode since virtual base
+class data sections are never embedded.)  Here are some examples that
+reveal how cfront decides when a virtual base class is embedded and when
+it is not:
+
+(1) Virtual base class data sections are not embedded in incomplete
+    subobjects -- i.e., in the first direct nonvirtual base class:
+
+  class A { int a; };                       //     A
+  class B : public virtual A { int b; };    //     |
+  class C : public B { int c; };            //     B
+                                            //     |
+Cfront's layout:                            //     C
+
+  struct A {
+    int a__1A ;
+  };
+  struct B {
+    int b__1B ;
+    struct A *PA;
+    struct A OA;
+  };
+  struct C {
+    int b__1B ;
+    struct A *PA;
+    int c__1C ;
+    struct A OA;
+  };
+
+Here, the data section for virtual base class A is allocated independently
+in C and not embedded in B, since be is not a complete subobject of C.
+
+(2) Virtual base class data sections are (usually) embedded in complete
+    subobjects.
+
+  class A { };                             //  A
+  class B : public virtual A { };          //   \
+  class C { };                             //    B   C
+  class D : public C, public B { };        //     \ /
+                                           //      D
+Cfront's layout:
+
+  struct A {
+    int a__1A ;
+  };
+  struct B {
+    int b__1B ;
+    struct A *PA;
+    struct A OA;
+  };
+  struct C {
+    int c__1C ;
+  };
+  struct D {
+    int c__1C ;
+    struct B OB;
+    int d__1D ;
+  };
+
+In this case the data section for virtual base class A is not allocated
+independently in D.  Rather, the A embedded in B is used, since B is a
+complete subobject of D.
+
+(3) When a virtual base class appears more than once in a class, the
+    data section is (usually) that of the first complete subobject it
+    belongs to.
+
+  class A { int a; };                       //      A
+  class B : public virtual A { int b; };    //     /|\
+  class C : public virtual A { int c; };    //    B | C
+  class D : public C, public B,             //     \|/
+            public virtual A { int d; };    //      D   
+
+Cfront's layout:
+
+  struct A {
+    int a__1A ;
+  };
+  struct B {
+    int b__1B ;
+    struct A *PA;
+    struct A OA;
+  };
+  struct C {
+    int c__1C ;
+    struct A *PA;
+    struct A OA;
+  };
+  struct D {
+    int b__1B ;
+    struct A *PA;
+    struct C OC;
+    int d__1D ;
+  };
+
+Here the data section for virtual base A in D is embedded in C, because
+B is not complete and even though A is also a direct base class of D.
+
+(4) An "interesting" anomaly (or bug?) appears when another level of
+    inheritance is added to example (3):
+
+  class A { int a; };                       //      A   
+  class B : public virtual A { int b; };    //     /|\  
+  class C : public virtual A { int c; };    //    B | C 
+  class D : public B, public C,		    //     \|/  
+            public virtual A { int d; };    //      D   
+  class E : public D { int e; };            //      |
+                                            //      E
+Cfront's layout:
+
+  struct A {
+    int a__1A ;
+  };
+  struct B {
+    int b__1B ;
+    struct A *PA;
+    struct A OA;
+  };
+  struct C {
+    int c__1C ;
+    struct A *PA;
+    struct A OA;
+  };
+  struct D {
+    int b__1B ;
+    struct A *PA;
+    struct C OC;
+    int d__1D ;
+  };
+  struct E {
+    int b__1B ;
+    struct A *PA;
+    struct C OC;
+    int d__1D ;
+    int e__1E ;
+    struct A OA;
+  };
+
+What's anomalous about this case is that, even though there is a copy of
+A's data section in C, and even though C is a complete subobject of E,
+another copy of A's data section is allocated in E.
+
+The rule here seems to be that a virtual base class (e.g., A) that is an
+indirect base class of an incomplete subobject base class (e.g., D) is
+treated as though it were not embedded in an intermediate complete
+subobject (e.g., C).
+*/
+{
+  a_derivation_step_ptr  dsp;
+  a_base_class_ptr       bcp;
+
+  if (base_class->data_section_base_class == NULL) {
+    bcp = path->base_class;
+    if (!bcp->is_virtual) {
+      if (bcp->complete_subobject) {
+        for (dsp = path; dsp != NULL; dsp = dsp->next) {
+          if (dsp->next == NULL || dsp->next->base_class->is_virtual) {
+            bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
+                                           dsp->base_class->type);
+            if (bcp->data_section_base_class == NULL) {
+              base_class->data_section_base_class = dsp->base_class;
+            }  /* if */
+            break;
+          }  /* if */
+        }  /* for */
+      } else if (path->next != NULL) {
+        /* Indirect virtual base class that are base classes of an incomplete
+           subobject base class are put out at the derived class even if they
+           are embedded in some other direct base class.  This seems to be
+           an anomaly in cfront's algorithm. */
+        base_class->data_section_base_class = &data_section_base_class_blocked;
+      }  /* if */
+    }  /* if */
+  } else if (base_class->data_section_base_class ==
+                                      &data_section_base_class_blocked) {
+    bcp = path->base_class;
+    if (!bcp->is_virtual && bcp->complete_subobject) {
+      for (dsp = path;; dsp = dsp->next) {
+        if (dsp->next == NULL || dsp->next->base_class->is_virtual) break;
+        bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
+                                       dsp->base_class->type);
+        if (bcp->data_section_base_class == NULL) {
+          base_class->data_section_base_class = dsp->base_class;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* set_data_section_base_class */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+
+
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
                                     a_base_class_ptr      directly_derived_bcp,
                                     a_base_class_ptr      *p_end_of_add_list,
@@ -1962,6 +2186,15 @@ duplicate paths.  The copy will be a base class of new_class.
        add it or its own base classes to the list again. */
     for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
       if (bcp->is_virtual && bcp->type == base_class_to_copy->type) {
+#if DEBUG
+        if (debug_level >= 3) {
+          fputs("  reencountering virtual base class \"", f_debug);
+          db_name(&base_class_to_copy->type->source_corresp);
+          fputs("\" for ", f_debug);
+          db_abbreviated_type(new_class);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
         fixup_virtual_base_class(bcp, path, base_class_to_copy->access,
                                  new_class);
         /* If bcp is (or becomes) a direct base class, the pointer_base_class
@@ -1975,11 +2208,14 @@ duplicate paths.  The copy will be a base class of new_class.
            virtual base class. */
         /* Specify the base class in which the data section resides, if there
            isn't one yet. */
+        set_data_section_base_class(bcp, path);
+#if 0
         if (bcp->data_section_base_class == NULL &&
             !directly_derived_bcp->is_virtual &&
             directly_derived_bcp->complete_subobject) {
           bcp->data_section_base_class = directly_derived_bcp;
         }  /* if */
+#endif /* if 0 */
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
         goto done;
       }  /* if */
@@ -1989,7 +2225,9 @@ duplicate paths.  The copy will be a base class of new_class.
   if (debug_level >= 3) {
     fputs("  creating indirect base class \"", f_debug);
     db_name(&base_class_to_copy->type->source_corresp);
-    fputs("\"\n", f_debug);
+    fputs("\" for ", f_debug);
+    db_abbreviated_type(new_class);
+    fputc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
   /* Create a new base class entry. */
@@ -2006,11 +2244,12 @@ duplicate paths.  The copy will be a base class of new_class.
        complete subobject to which it belongs. */
 #if 0
     /* Is this right? */
-#endif /* if 0 */
     if (!directly_derived_bcp->is_virtual &&
         directly_derived_bcp->complete_subobject) {
       new_bcp->data_section_base_class = directly_derived_bcp;
     }  /* if */
+#endif /* if 0 */
+    set_data_section_base_class(new_bcp, path);
     /* According to cfront all virtual base classes are complete subobjects. */
     new_bcp->complete_subobject = TRUE;
   } else {
@@ -2091,6 +2330,13 @@ or struct definition.  The syntax is
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
 
   db_enter(3, "scan_base_specifier_list");
+#if DEBUG
+  if (debug_level >= 3) {
+    fputs("scanning base classes for ", f_debug);
+    db_abbreviated_type(type_ptr);
+    fputc('\n', f_debug);
+  }  /* if */
+#endif /* DEBUG */
   if (type_ptr->kind == (a_type_kind)tk_union) {
     /* Unions cannot have base classes.  Issue an error, but go ahead and scan
        the base class specifiers (without updating the type supplement). */
@@ -2364,6 +2610,16 @@ skip_base_class:
        specifier. */
     remove_stop_token(tok_comma);
   } while (loop_token(tok_comma));
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+  if (type_ptr->variant.class_struct_union.any_virtual_base_classes) {
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      if (bcp->is_virtual &&
+          bcp->data_section_base_class == &data_section_base_class_blocked) {
+        bcp->data_section_base_class = NULL;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
 #if CHECKING
   if (type_ptr->kind != (a_type_kind)tk_union) {
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
