@@ -7,7 +7,6 @@ variants of the ABI that are specified in the ARM EABI.  See the front end
 Changes file entry for more information.
 
 -------------------------------------------------------------------------------
-
 Version 3.4, May 8, 2004
 
 12/9/03  Missing exception specification on uncaught_exception
