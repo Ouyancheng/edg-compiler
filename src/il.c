@@ -8359,7 +8359,9 @@ lifetimes, since those are never bound.
           check_assertion_str2((((a_scope_ptr)entity_ptr)->kind ==
                                            (a_scope_kind)sck_function) ||
                                (((a_scope_ptr)entity_ptr)->kind ==
-                                         (a_scope_kind)sck_block),
+                                         (a_scope_kind)sck_block) ||
+                               (((a_scope_ptr)entity_ptr)->kind ==
+                                         (a_scope_kind)sck_condition),
                                str, "bad scope kind for olk_block");
         case iek_block:
           /* Okay. */
