@@ -15304,7 +15304,7 @@ block -- scopes for "for" init blocks do not have one.
 }  /* r_promote_local_entities_to_file_scope */
 
 
-void promote_local_entities_to_file_scope(a_scope_ptr scope)
+static void promote_local_entities_to_file_scope(a_scope_ptr scope)
 /*
 Promote the local types and static variables of the indicated
 (function) scope and its subscopes to the file scope if appropriate.

@@ -1059,8 +1059,6 @@ extern void lower_block_statement(
 
 extern void lower_statement(a_statement_ptr statement);
 
-extern void promote_local_entities_to_file_scope(a_scope_ptr scope);
-
 extern void externalize_source_correspondence(
                                        a_source_correspondence *scp,
                                        a_boolean               is_variable);
