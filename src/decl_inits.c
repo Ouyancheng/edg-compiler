@@ -2294,6 +2294,12 @@ scan_paren:
     if (new_routine != NULL) {
       mark_routine_referenced(new_routine);
       new_routine->called = TRUE;
+      if (exceptions_enabled) {
+        /* When exceptions are enabled, the constructor has to be able to
+           delete the storage allocated if an exception is thrown, so it
+           needs the delete routine too. */
+        set_class_assoc_operator_delete_routine(class_type);
+      }  /* if */
     }  /* if */
   }
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
