@@ -656,7 +656,7 @@ and return a pointer to it.
   a_template_param_type_supplement_ptr tptsp;
 
   tptsp = (a_template_param_type_supplement_ptr)alloc_il(
-                                       sizeof(a_template_param_type_supplement));
+                                     sizeof(a_template_param_type_supplement));
 #if DEBUG
   num_template_param_type_supplements_allocated++;
 #endif /* DEBUG */
