@@ -7766,17 +7766,6 @@ continue_with_declaration:
            be treated bas though it were a definition. */
         mark_variable_value_set(symbol_ptr);
       }  /* if */
-#if MAINTAIN_NEEDED_FLAGS
-      if (is_variable_def &&
-          local_storage_class == (a_storage_class)sc_unspecified) {
-        /* Even if this variable is not referenced in this translation unit,
-           we mark it as "needed", since it may be referenced from another
-           translation unit and this is its defining declaration.  (The
-           type with which it was declared and its initializer, if any, will
-           also be marked as needed). */
-        mark_as_needed((char *)var_ptr, (an_il_entry_kind)iek_variable);
-      }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
       copy_source_position(locator.source_position, error_position);
       if (var_ptr != NULL && !is_error_locator(locator) &&
           is_incomplete_type(local_type_ptr)) {
