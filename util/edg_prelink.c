@@ -226,6 +226,9 @@ static a_boolean		suppress_compilation = FALSE;
    the assumption that we've run into an instantiation loop. */
 static a_boolean		limit_recursion = TRUE;
 
+/* TRUE if we should use the SVR4 format for nm output. */
+static a_boolean		use_SVR4_nm_format = FALSE;
+
 /* String that is used as the prefix of all diagnostic messages generated
    by the prelinker. */
 static char message_prefix[] = "C++ prelinker";
@@ -438,10 +441,10 @@ to the number of characters read not including the trailing null character.
 {
   register char*    buffer_pos = &pl_input_line[0];
   register int      size = 0;
-  register char     ch;
+  register int      ch;
   a_boolean         result;
 
-  while (ch = getc(input_file), ch != EOF && ch != '\n') {
+  while ((ch = getc(input_file)), ch != EOF && ch != '\n') {
     if (++size > PL_INPUT_LINE_SIZE) {
       pl_internal_error("pl_read_input_line: input line too long.");
     }  /* if */
@@ -485,7 +488,97 @@ Issue an invalid input error and exit.
 }  /* pl_invalid_input */
 
 
-static void pl_read_nm_output(void)
+static a_boolean pl_scan_SVR4_nm_line(char	**name1,
+				      char	**name2,
+				      char	*type,
+				      char	**symbol_name)
+/*
+Read the output of the nm command.  This routine is written to accept
+the output of the nm command on SVR4 using the -p -x and -R options.
+This routine was designed to accept the input from Solaris 2.x.  If this
+format differs from the standard SVR4 format then this routine may not
+work correctly for systems other than Solaris.
+
+The output for an object (.o) file is expected to look like:
+
+0x12345678 T xxx.o:name1
+0x12345678 T xxx.o:name2
+
+The output for an archive file (.a) is expected to look like:
+xxx.a[x1.o]:
+
+0x12345678 T xxx.a:x1.o:name1
+0x12345678 T xxx.a:x1.o:name2
+0x12345678 T xxx.a:x2.o:name3
+0x12345678 T xxx.a:x2.o:name4
+
+Returns TRUE if the line contains symbol information; returns FALSE
+if the line is a blank line, or a header line that should not be
+processed further.
+*/
+{
+  a_boolean	result = TRUE;
+  char		*pos;
+  char		*rest_of_line;
+  char		ch;
+
+  /* Clear the pointers to the returned values. */
+  *name1 = *name2 = *symbol_name = NULL;
+  /* Find the first colon which terminates either the archive or the
+     file name. */
+  pos = strchr(pl_input_line, ':');
+  if (pos == NULL) {
+    /* Ignore blank lines.  A nonblank line that doesn't contain
+       a colon is an error. */
+    if (pl_input_line[0] != '\0') pl_invalid_input();
+    result = FALSE;
+  } else if (*(pos+1) == '\0') {
+    /* A line that just contains a string like "xxx:".  This is an
+       archive header that should be ignored. */
+    result = FALSE;
+  } else {
+    /* Skip over the first field which is expected to contain the
+       value field.  Skip to a blank. */
+    pos = pl_input_line;
+    while((ch = *pos), ch != ' ' && ch != '\0') pos++;
+    /* Look for blank after value. */
+    if (*pos++ != ' ') pl_invalid_input();
+    /* Now look for a nonblank. */
+    while (*pos == ' ') pos++;
+    /* Get the type code. */
+    *type = *pos++;
+    if (!isalpha(*type)) pl_invalid_input();
+    /* Look for blank after type. */
+    if (*pos++ != ' ') pl_invalid_input();
+    /* Note that the SVR4 format is not expected to contain
+       extra leading underscores. */
+    rest_of_line = pos;
+    pos = strchr(rest_of_line, ':');
+    /* Replace the first colon with a NULL. */
+    *pos = '\0';
+    *name1 = rest_of_line;
+    rest_of_line = pos + 1;
+    pos = strchr(rest_of_line, ':');
+    if (pos == NULL) {
+      /* No second name exists. */
+      *name2 = NULL;
+    } else {
+      /* Replace the second colon with a NULL to terminate the file
+         name. */
+      *pos = '\0';
+      *name2 = rest_of_line;
+      rest_of_line = pos + 1;
+    }  /* if */
+    *symbol_name = rest_of_line;
+  }  /* if */
+  return result;
+}  /* pl_scan_default_nm_line */
+
+
+static a_boolean pl_scan_default_nm_line(char	**name1,
+					 char	**name2,
+					 char	*type,
+					 char	**symbol_name)
 /*
 Read the output of the nm command.  This routine is written to accept
 the output of the nm command on SunOS and may have to be modified
@@ -497,18 +590,76 @@ xxx.o:01230123 T _name1
 xxx.o:01230124 T _name2
 
 The output for an archive file (.a) is expected to look like:
-<blank line>
 xxx.a:
 xxx.a:x1.o:01230123 T _name1
 xxx.a:x1.o:01230124 T _name2
 xxx.a:x2.o:01230123 T _name3
 xxx.a:x2.o:01230124 T _name4
 
-Note that the first line of output for an archive file is missing if
-there is only one file passed to the nm command.  Since it doesn't
-make sense to link one file this format is not accepted.  The command
-line processing code will reject invocations with only a single filename.
+Returns TRUE if the line contains symbol information; returns FALSE
+if the line is a blank line, or a header line that should not be
+processed further.
+*/
+{
+  a_boolean	result = TRUE;
+  char		*pos;
+  char		*rest_of_line;
+  char		ch;
 
+  /* Clear the pointers to the returned values. */
+  *name1 = *name2 = *symbol_name = NULL;
+  /* Find the first colon which terminates either the archive or the
+     file name. */
+  pos = strchr(pl_input_line, ':');
+  if (pos == NULL) {
+    /* Ignore blank lines.  A nonblank line that doesn't contain
+       a colon is an error. */
+    if (pl_input_line[0] != '\0') pl_invalid_input();
+    result = FALSE;
+  } else if (*(pos+1) == '\0') {
+    /* A line that just contains a string like "xxx:".  This is an
+       archive header that should be ignored. */
+    result = FALSE;
+  } else {
+    /* Replace the first colon with a NULL. */
+    *pos = '\0';
+    *name1 = pl_input_line;
+    rest_of_line = pos + 1;
+    pos = strchr(rest_of_line, ':');
+    if (pos == NULL) {
+      /* No second name exists. */
+      *name2 = NULL;
+    } else {
+      /* Replace the second colon with a NULL to terminate the file
+         name. */
+      *pos = '\0';
+      *name2 = rest_of_line;
+      rest_of_line = pos + 1;
+    }  /* if */
+    /* Skip over the first field which is expected to contain the
+       value field.  Skip to a blank. */
+    pos = rest_of_line;
+    while((ch = *pos), ch != ' ' && ch != '\0') pos++;
+    /* Look for blank after value. */
+    if (*pos++ != ' ') pl_invalid_input();
+    /* Now look for a nonblank. */
+    while (*pos == ' ') pos++;
+    /* Get the type code. */
+    *type = *pos++;
+    if (!isalpha(*type)) pl_invalid_input();
+    /* Look for blank after type. */
+    if (*pos++ != ' ') pl_invalid_input();
+    /* Skip passed extra underscore at the start of every symbol if an
+       underscore is present.  */
+    if (skip_underscore_prefix && *pos == '_') pos++;
+    *symbol_name = pos;
+  }  /* if */
+  return result;
+}  /* pl_scan_default_nm_line */
+
+
+static void pl_read_nm_output(void)
+/*
 This routine reads the output of the nm command and builds a data
 structure containing the information.  The base of the structure
 is a linked list of input files that can be object files or archive files.
@@ -522,52 +673,44 @@ or defined in that object file.
   char			*input_filename = NULL;
   char			*object_filename = NULL;
   a_boolean		is_archive = FALSE;
-  a_boolean		archive_start = FALSE;
   a_pl_object_file_ptr	objects_tail;
   a_pl_object_file_ptr	pofp;
   a_pl_input_file_ptr	pifp;
 
   while (pl_read_input_line(pl_command_output)) {
-    char		*pos;
-    char		*name;
+    char		*name1;
+    char		*name2;
     char		type;
+    char		*symbol_name;
     a_pl_symbol_ptr	psp;
-    char		ch;
-    char		*curr_filename;
-    char		*rest_of_line;
-    char	        *first_colon;
+    a_boolean		process_line;
 #if DEBUG
     if (pl_debug_level >= 4) {
       fprintf(stderr, "%s\n", pl_input_line);
     }  /* if */
 #endif /* DEBUG */
-    /* Find the first colon and replace it with a null.  Build pointers to
-       the two portions of the string. */
-    first_colon = strchr(pl_input_line, ':');
-    if (first_colon != NULL) {
-      *first_colon = '\0';
-      curr_filename = pl_input_line;
-      rest_of_line = first_colon + 1;
-    } else {
-      curr_filename = NULL;
-      rest_of_line = pl_input_line;
-    }  /* if */
 
-    /* A blank line marks the start of an archive. */
-    if (pl_input_line[0] == '\0') {
-      archive_start = TRUE;
-      continue;
+    if (use_SVR4_nm_format) {
+      process_line = pl_scan_SVR4_nm_line(&name1, &name2, &type,
+                                          &symbol_name);
+    } else {
+      process_line = pl_scan_default_nm_line(&name1, &name2, &type,
+                                             &symbol_name);
     }  /* if */
+    /* Is this a line that should be skipped such as a blank line or
+       header line? */
+    if (!process_line) continue;
     /* See if this is the start of a new input file. */
     if (input_filename == NULL ||
-        strcmp(input_filename, curr_filename) != 0) {
+        strcmp(input_filename, name1) != 0) {
       /* The start of a new input file. */
-      input_filename = pl_copy_string(curr_filename);
+      input_filename = pl_copy_string(name1);
+      /* The input file is an archive if there is also an object name in
+         the input line. */
+      is_archive = name2 != NULL;
       pifp = alloc_pl_input_file();
-      pifp->is_archive = archive_start;
+      pifp->is_archive = is_archive;
       pifp->filename = input_filename;
-      is_archive = archive_start;
-      archive_start = FALSE;
       objects_tail = NULL;
       /* Add this entry to the list of input files. */
       if (pl_input_files == NULL) pl_input_files = pifp;
@@ -588,23 +731,10 @@ or defined in that object file.
     }  /* if */
     /* See if this is the start of a new object file within an archive. */
     if (is_archive) {
-      char	*first_colon;
-      char	*curr_object_filename;
-      /* Find the colon that terminates the object filename.  rest_of_line
-         already points to beginning of the object file name not the
-         beginning of the archive name. */
-      first_colon = strchr(rest_of_line, ':');
-      if (first_colon != NULL) {
-        *first_colon = '\0';
-        curr_object_filename = rest_of_line;
-        rest_of_line = first_colon + 1;
-      } else {
-        curr_filename = NULL;
-      }  /* if */
       if (object_filename == NULL ||
-          strcmp(object_filename, curr_object_filename) != 0) {
+          strcmp(object_filename, name2) != 0) {
         /* This is a new object file within the archive. */
-        object_filename = pl_copy_string(curr_object_filename);
+        object_filename = pl_copy_string(name2);
         pofp = alloc_pl_object_file();
         pofp->filename = object_filename;
         /* Add this object file to the list of objects pointed to by the
@@ -614,24 +744,8 @@ or defined in that object file.
         objects_tail = pofp;
       }  /* if */
     }  /* if */
-    /* Extract the symbol information from the remainder of the line.
-       Verify that the line has the proper format. */
-    /* Skip over the first field which is expected to contain the
-       value field.  Skip to a blank. */
-    pos = rest_of_line;
-    while((ch = *pos), ch != ' ' && ch != '\0') pos++;
-    /* Look for blank after value. */
-    if (*pos++ != ' ') pl_invalid_input();
-    /* Now look for a nonblank. */
-    while (*pos == ' ') pos++;
-    /* Get the type code. */
-    type = *pos++;
-    if (!isalpha(type)) pl_invalid_input();
-    /* Look for blank after type. */
-    if (*pos++ != ' ') pl_invalid_input();
-    /* Skip passed extra underscore at the start of every symbol if an
-       underscore is present.  */
-    if (skip_underscore_prefix && *pos == '_') pos++;
+    /* See if this is a type of line for which the symbol information should
+       be recorded. */
     if (type != 'B' &&
         type != 'D' &&
         type != 'T' &&
@@ -640,10 +754,8 @@ or defined in that object file.
        /* Not a type of symbol that we need to process.  Only global
           symbols are processed. */
      } else {
-      /* Save the position of the start of the name. */
-      name = pos;
       psp = alloc_pl_symbol();
-      psp->name = pl_copy_string(name);
+      psp->name = pl_copy_string(symbol_name);
       /* Set symbol flags. */
       switch (type) {
         case 'B':  /* BSS symbol */
@@ -1428,15 +1540,23 @@ int main(int argc, char *argv[])
   extern int	optind;
   int		optchar;
   long		number_of_iterations = 0;
-  char		*nm_command = default_nm_command;
+  char		*nm_command = NULL;
 
-#define OPTION_LIST "lnvuc:d:"
+#define OPTION_LIST "lnvuc:d:f:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'c':
         /* Specify the nm command to be used instead of the default
            value. */
         nm_command = optarg;
+        break;
+      case 'f':
+        /* Specifies the nm line format to be expected. */
+        if (strchr(optarg, "SVR4") == 0) {
+          use_SVR4_nm_format = TRUE;
+        } else {
+          pl_error("Invalid nm format option");
+        }  /* if */
         break;
       case 'l':
         /* Don't stop after a certain number of iterations. */
@@ -1470,8 +1590,15 @@ int main(int argc, char *argv[])
   }  /* while */
   /* Add to the symbol table any names that the linker predefines. */
   pl_add_predefined_names();
-  /* The command line must include at least two arguments. */
-  if (argc < optind + 2) pl_error("at least two filenames must be specified");
+  /* Determine the nm command to be used. */
+  if (nm_command != NULL) {
+    /* A command was specified on the command line. */
+  } else if (use_SVR4_nm_format) {
+    nm_command = SVR4_nm_command;
+  } else {
+    /* Use the default command. */
+    nm_command = default_nm_command;
+  }  /* if */
   /* Determine the length of the command line. */
   for (arg = optind; arg < argc; arg++) {
     int	arg_size = strlen(argv[arg]);
