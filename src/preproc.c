@@ -1875,8 +1875,7 @@ pragmas, and by upc_pragma for pragmas that appear in the file scope.
       assoc_statement->variant.block.extra_info->upc_access_method = value;
     }  /* if */
     /* Record the pragma in the IL. */
-    create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL,
-                               (a_statement_ptr)assoc_statement);
+    create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
     if (ppp->il_pragma_entry != NULL) {
       ppp->il_pragma_entry->variant.upc.access_method = value;
     }  /* if */
