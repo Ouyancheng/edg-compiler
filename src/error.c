@@ -3120,6 +3120,22 @@ indicated by error_position.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+void pos_syty_warning(an_error_code     error_code,
+                      a_source_position *error_pos,
+                      struct a_symbol   *symbol,
+                      struct a_type     *type)
+/*
+Report the indicated warning (with the indicated symbol and type) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_syms[1] = symbol;
+  error_msg_types[1] = type;
+  diag_message(error_code, error_pos, es_warning);
+}  /* pos_sy_warning */
+
+
 void pos_sy_warning(an_error_code     error_code,
                     a_source_position *error_pos,
                     struct a_symbol   *symbol)
