@@ -1226,6 +1226,9 @@ do_float_complex:
       (void)printf("tk_array\n");
       disp_ptr("element_type", (char *)ptr->variant.array.element_type,
                iek_type);
+      if (ptr->variant.array.is_static) {
+        disp_boolean("is_static", TRUE);
+      }  /* if */
       if (ptr->variant.array.is_variable_size_array) {
         disp_boolean("is_variable_size_array", TRUE);
         if (ptr->variant.array.is_vla) {

@@ -1986,6 +1986,7 @@ may be NULL if it is not needed.
   a_boolean               template_dependent_bound = FALSE;
   a_source_position       start_pos;
   an_expr_node_ptr        dim_expr = NULL;
+  a_boolean               static_seen = FALSE;
 
   db_enter(3, "array_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -1993,6 +1994,13 @@ may be NULL if it is not needed.
   /* Pass over the initial left bracket. */
   (void)get_token();
   add_stop_token(tok_rbracket);
+  if (c99_mode && top_level_param_decl && curr_token == tok_static) {
+    /* In C99, "static" in an array declarator in a parameter declaration
+       indicates that the actual argument must have at least as many elements
+       as the declared size of the array. */
+    static_seen = TRUE;
+    (void)get_token();
+  }  /* if */
   /* In some modes, "restrict" is allowed inside the brackets:
        int x[restrict 5]
      or
@@ -2025,14 +2033,20 @@ may be NULL if it is not needed.
                    ec_restrict_not_allowed : ec_type_qualifier_not_allowed,
                 &qualifier_pos);
     }  /* if */
+    if (c99_mode && top_level_param_decl && curr_token == tok_static &&
+        !static_seen) {
+      /* In C99, "static" can appear after cv-qualifiers as well. */
+      static_seen = TRUE;
+      (void)get_token();
+    }  /* if */
   }  /* if */
-  if (curr_token == tok_rbracket) {
+  if (curr_token == tok_rbracket && !static_seen) {
     /* Empty brackets, indicating an incomplete array type. */
     num_of_elements = 0;
   } else if (vla_enabled && curr_token == tok_star &&
              next_token() == tok_rbracket) {
     /* [*] syntax for a VLA in a prototype. */
-    if (vla_asterisk_allowed) {
+    if (vla_asterisk_allowed && !static_seen) {
       has_vla_asterisk = TRUE;
     } else {
       error(ec_vla_with_unspecified_bound_not_allowed);
@@ -2091,6 +2105,7 @@ may be NULL if it is not needed.
     *new_type_ptr = error_type();
   } else {
     *new_type_ptr = alloc_type((a_type_kind)tk_array);
+    (*new_type_ptr)->variant.array.is_static = static_seen;
     /* Store the array size. */
     if (has_vla_asterisk) {
       /* [*] case (C only).  Since the size of the VLA is not specified,

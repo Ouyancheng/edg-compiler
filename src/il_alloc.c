@@ -1037,6 +1037,7 @@ to default values.
       pte->variant.array.is_vla = FALSE;
       pte->variant.array.has_assoc_vla_dimension = FALSE;
       pte->variant.array.put_out_unknown_bound_as_zero = FALSE;
+      pte->variant.array.is_static = FALSE;
       pte->variant.array.variant.number_of_elements = 0;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       pte->variant.array.bound_constant = NULL;

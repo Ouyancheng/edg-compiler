@@ -1678,6 +1678,15 @@ be suppressed in the output.
 
 /*
 Flag that is TRUE if, when the C-generating back end (c_gen_be) or
+C++/C-generating back end (cp_gen_be) is run, the "static" keyword in
+array declarators (a C99 feature) should be suppressed in the output.
+*/
+#ifndef SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE
+#define SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE TRUE
+#endif /* SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE */
+
+/*
+Flag that is TRUE if, when the C-generating back end (c_gen_be) or
 C++/C-generating back end (cp_gen_be) is run, the Microsoft qualifiers
 should be suppressed in the output.  This flag is only applicable if
 MICROSOFT_EXTENSIONS_ALLOWED is TRUE.

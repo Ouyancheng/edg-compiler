@@ -4055,6 +4055,12 @@ typedef struct a_type {
 		put_out_unknown_bound_as_zero:1;
 			/* Indication that an unknown bound [] should be
 			   put out as [0] in generated code. */
+      a_bit_field
+		is_static:1;
+			/* TRUE if this array is tagged with the C99 keyword
+			   static, which indicates for a parameter that the
+			   argument passed must have at least as many members
+			   as the array size. */
       union {
         /* When is_variable_size_array and is_template_dependent_size_array
            are FALSE: */

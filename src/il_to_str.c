@@ -1500,6 +1500,12 @@ the way described by octl.
 */
 {
   octl->output_str("[");
+#if !SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE
+  if (type->variant.array.is_static) {
+    /* C99 static. */
+    octl->output_str("static ");
+  }  /* if */
+#endif /* !SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE */
   if (type->variant.array.is_vla) {
     /* Variable-length array. */
     if (!type->variant.array.has_assoc_vla_dimension ||

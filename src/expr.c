@@ -12680,6 +12680,7 @@ handle_trapped_left_paren:
      
     default:
 bad_start_of_primary:
+      set_err_pos_to_curr_token();
       syntax_error(ec_exp_primary_expr);
       make_error_operand(&local_result);
   }  /* switch */
