@@ -1,5 +1,11 @@
 Version 2.34
 
+11/4/96  Demangling of names for interface routines for covariant return types
+
+The implementation of virtual functions with covariant return types
+uses interface routines with names that begin with "__VFE__".  These
+are now demangled correctly.
+
 10/22/96 decode.h and decode.c copyrighted but not proprietary
 
 We've changed the copyright notices in decode.h and decode.c to make

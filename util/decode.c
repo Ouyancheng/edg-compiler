@@ -1888,7 +1888,7 @@ In addition, if the error is that the output buffer is too small,
 is set to the size of buffer required to do the demangling.
 */
 {
-  char                       *end_ptr;
+  char                       *end_ptr, *p;
   a_decode_control_block     control_block;
   a_decode_control_block_ptr dctl = &control_block;
 
@@ -1936,6 +1936,16 @@ is set to the size of buffer required to do the demangling.
   } else if (start_of_id_is("__T_", id)) {
     write_id_str("typeinfo for ", dctl);
     end_ptr = demangle_type(id+4, dctl);
+  } else if (start_of_id_is("__VFE__", id)) {
+    write_id_str("surrogate in class ", dctl);
+    p = demangle_type(id+7, dctl);
+    if (p[0] != '_' || p[1] != '_') {
+      bad_mangled_name(dctl);
+      end_ptr = p;
+    } else {
+      write_id_str(" for ", dctl);
+      end_ptr = demangle_identifier(p+2, dctl);
+    }  /* if */
   } else if (start_of_id_is("__Q", id)) {
     /* Nested class name. */
     end_ptr = demangle_type_name(id+2, dctl);
