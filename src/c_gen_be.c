@@ -2190,22 +2190,22 @@ scope types, the two instances of the type would not be compatible.
 Helper macro for check_parent_info; calls db_name to display the name of an
 entity, but only if DEBUG code is enabled.
 */
-#if DEBUG
+#if DEBUG && !STANDALONE_UTILITY_PROGRAM
 #define display_entity_if_debug_enabled(entity) \
 { (void)fprintf(f_debug, "\nEntity is "); \
   db_name(&(entity)->source_corresp); \
   (void)fprintf(f_debug, "\n"); \
 }  /* display_entity_if_debug_enabled */
-#else /* !DEBUG */
+#else /* !(DEBUG && !STANDALONE_UTILITY_PROGRAM) */
 #define display_entity_if_debug_enabled(entity) /* Nothing */
-#endif /* DEBUG */
+#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
 
 /*
 If "scope" is the file scope, check that the parent information for the
 given entity (which is from that scope) does not indicate class or
 namespace membership, or have the is_local_to_function flag TRUE.
 */
-#if CHECKING
+#if CHECKING && !STANDALONE_UTILITY_PROGRAM
 #define check_membership_info(entity, scope) \
 { if ((scope)->kind == (a_scope_kind)sck_file) { \
     if ((entity)->source_corresp.is_class_member || \
@@ -2216,9 +2216,9 @@ namespace membership, or have the is_local_to_function flag TRUE.
     }  /* if */ \
   }  /* if */ \
 }  /* check_membership_info */
-#else /* !CHECKING */
+#else /* !(CHECKING && !STANDALONE_UTILITY_PROGRAM) */
 #define check_membership_info(entity, scope) /* Nothing */
-#endif /* CHECKING */
+#endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
 
 
 static void dump_scope_types(a_scope_ptr scope)
@@ -3402,7 +3402,7 @@ process_assignment:
       if (is_unary) {
 #endif /* CHECKING */
 done_with_unary_operation:;
-#if CHECKING
+#if CHECKING && !STANDALONE_UTILITY_PROGRAM
         if (operand_2 != NULL) {
 #if DEBUG
           db_expression(expr);
@@ -3410,9 +3410,9 @@ done_with_unary_operation:;
           internal_error("dump_expr: unary operator has wrong # of operands");
         }  /* if */
       } else {
-#endif /* CHECKING */
+#endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
 done_with_binary_operation:;
-#if CHECKING
+#if CHECKING && !STANDALONE_UTILITY_PROGRAM
         if (operand_2->next != NULL) {
 #if DEBUG
           db_expression(expr);
@@ -3420,7 +3420,7 @@ done_with_binary_operation:;
           internal_error("dump_expr: binary operator has wrong # of operands");
         }  /* if */
       }  /* if */
-#endif /* CHECKING */
+#endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
 done_with_operation:
       if (need_parens) m_write_tok_ch(')');
       break;
