@@ -2174,8 +2174,7 @@ Dump all types declared within one scope.
        from the top level of the function, since there can be references
        from one to the other.  That's hard to do, though, because
        the IL entry source position information is incomplete when
-       entries come from macro expansions.  Also, the current orphan
-       lists do not identify the associated function. */
+       entries come from macro expansions. */
 #endif /* 0 */
     /* Types can't be declared/defined in a prototype scope in C++, so don't
        bother with this processing if the source was C++. */
