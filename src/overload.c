@@ -8055,9 +8055,9 @@ rewritten) for use in error messages.
 }  /* conversion_possible */
 
 
-static void prep_class_bitwise_copy_operand(an_operand   *source_operand,
-                                            a_type_ptr   dest_type,
-                                            a_conv_descr *conversion)
+static void prep_class_bitwise_copy_operand(an_operand *source_operand,
+                                            a_type_ptr dest_type,
+                                            a_boolean  conv_to_rvalue)
 /*
 source_operand is to be copied bitwise to an entity of type dest_type.
 Both have class types.  Adjust source_operand if necessary, specifically
@@ -8066,8 +8066,7 @@ This is used for initialization.  See ARM 8.4.1 (aggregate initialization).
 This routine does not do the bitwise copy; it just prepares the operand
 for it.  Note also that this routine is called for the identity case
 where the class type is already correct and nothing should be done to it.
-*conversion describes the conversion; it particular, it indicates whether
-the result should be an rvalue or lvalue.
+conv_to_rvalue is TRUE if the result should be forced to be an rvalue.
 */
 {
   a_type_ptr       source_type = source_operand->type;
@@ -8095,7 +8094,7 @@ the result should be an rvalue or lvalue.
     }  /* if */
     adjust_class_object_type(source_operand, dest_type, bcp);
   }  /* if */
-  if (!conversion->result_is_an_lvalue) {
+  if (conv_to_rvalue) {
     /* Make the source an rvalue. */
     do_operand_transformations(source_operand, TOPT_NO_OPTIONS);
   }  /* if */
@@ -8315,9 +8314,11 @@ in that case.
 #endif /* CHECKING */
   if (conversion->class_identity_or_bitwise_copy) {
     /* Bitwise copy of a class. */
-    prep_class_bitwise_copy_operand(operand, dest_type, conversion);
+    a_boolean conv_to_rvalue = !conversion->result_is_an_lvalue;
+    prep_class_bitwise_copy_operand(operand, dest_type, conv_to_rvalue);
     if (force_temp_for_class_bitwise_copy) {
       /* Make a copy of the class object in a temporary. */
+      check_assertion(conv_to_rvalue);
       temp_init_by_bitwise_copy_from_operand(operand,
                                              /*result_is_addr=*/FALSE);
     }  /* if */
@@ -8779,7 +8780,8 @@ happen only in C++ mode.
     /* The dynamic initialization entry was already allocated above. */
   } else if (class_bitwise_copy) {
     /* The operation is a class bitwise copy, so use a dik_expression. */
-    prep_class_bitwise_copy_operand(source_operand, dest_type, conversion);
+    prep_class_bitwise_copy_operand(source_operand, dest_type,
+                                    /*conv_to_rvalue=*/TRUE);
     dip = alloc_dynamic_init_possibly_with_dtor(
                                           (a_dynamic_init_kind)dik_expression,
                                           fill_in_dtor,
