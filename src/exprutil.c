@@ -7967,6 +7967,7 @@ possible; see prep_elision_initializer_operand.
   a_type_ptr base_dest_type, base_source_type;
   a_type_ptr unqual_dest_type, unqual_source_type;
   a_boolean  type_is_correct_or_derived, err = FALSE;
+  a_boolean  conversion_to_temp_done;
   an_operand orig_operand;
 
   orig_operand = *source_operand;
@@ -8029,6 +8030,7 @@ possible; see prep_elision_initializer_operand.
       } else {
         /* The initialization cannot be done directly; a temporary must be
            used. */
+        conversion_to_temp_done = FALSE;
         if (type_is_correct_or_derived) {          
           /* The source is an rvalue but otherwise has the right type.
              Get the address of the rvalue, then cast the pointer to the right
@@ -8048,15 +8050,23 @@ possible; see prep_elision_initializer_operand.
           convert_operand_into_temp(source_operand,
                                     skip_typerefs(base_dest_type),
                                     expression_kind, incompatible_err, &err);
+          conversion_to_temp_done = TRUE;
         }  /* if */
-        /* The reference must be to a const object (otherwise the user might
-           change the temporary thinking he is changing the original
-           object).  Suppress the warning if an error has already been put
-           out. */
-        if (!err && !is_const_qualified_type(base_dest_type)) {
-          /* This is an error according to the ARM (8.4.3), but we allow it to
-             be user-friendly. */
-          pos_warning(ec_temp_used_for_ref_init, &source_operand->position);
+        if (!err) {
+          /* The reference must be to a const object (otherwise the user might
+             change the temporary thinking he is changing the original
+             object).  Suppress the diagnostic if an error has already been put
+             out. */
+          if (allow_anachronisms && !is_const_qualified_type(base_dest_type)) {
+            /* This is an error according to the ARM (8.4.3), but we allow it 
+               as an anachronism. */
+            pos_diagnostic(anachronism_error_severity,
+                           ec_nonconst_ref_init_anachronism,
+                           &source_operand->position);
+          } else if (conversion_to_temp_done) {
+            /* The the user know a temp was used. */
+            pos_remark(ec_temp_used_for_ref_init, &source_operand->position);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

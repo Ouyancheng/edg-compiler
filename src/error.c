@@ -1614,7 +1614,10 @@ error code.
       m = "a constructor or destructor may not have its address taken";
       break;
     case ec_dollar_used_in_identifier:
-      m = "dollar sign ($) used in identifier";
+      m = "dollar sign (\"$\") used in identifier";
+      break;
+    case ec_nonconst_ref_init_anachronism:
+      m = "incorrect initial value type for non-const reference (anachronism)";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:

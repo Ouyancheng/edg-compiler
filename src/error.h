@@ -465,7 +465,8 @@ typedef enum /*an_error_code*/ {
   ec_builtin_operator_add_on,
   ec_ambiguous_by_inheritance_add_on,
   ec_addr_of_constructor_or_destructor,
-  ec_dollar_used_in_identifier
+  ec_dollar_used_in_identifier,
+  ec_nonconst_ref_init_anachronism
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
