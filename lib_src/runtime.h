@@ -15,7 +15,60 @@ Miscellaneous declarations for all runtime routines.
 
 #ifndef RUNTIME_H
 #define RUNTIME_H 1
+
 #include "config.h"
+#include <stdio.h>
+
+#ifndef DEBUG
+/* Include debugging code. */
+#define DEBUG 1
+#endif /* ifndef DEBUG */
+#if DEBUG
+EXTERN int	__debug_level /* = 0 */;
+			/* Debug level.  0 means no debug output, 1 - 5
+                            means increasing amounts. */
+EXTERN FILE	*__f_debug initial_value(stderr);
+			/* Debug output file. */
+#endif /* DEBUG */
+
+/*
+Error routines.
+*/
+#if CHECKING
+/* Macro to test an assertion and generate an internal error if
+   the condition is not TRUE.  The macro expands to nothing when checking
+   code is not being used. */
+/* stdlib.h is included is to define abort(). */
+#include <stdlib.h>
+#define assert(test) \
+  {									\
+    if (!(test)) {							\
+      (void)fprintf(__f_debug, "Assertion failed in file \"%s\", line %d\n", \
+                    __FILE__, __LINE__);				\
+      abort();								\
+    }  /* if */								\
+  }
+
+#define check_assertion(test)						\
+  assert(test)
+#define unexpected_condition()						\
+  assert(FALSE)
+#else /* !CHECKING */
+#define check_assertion(test) /* Nothing */
+#define unexpected_condition()    /* Nothing */
+#endif /* CHECKING */
+
+/*
+a_size_of_t is used as a synonym for size_t by the runtime.
+*/
+#if 0
+This should probably use some other kind of test.
+#endif /* 0 */
+#if __cplusplus
+typedef size_t a_sizeof_t;
+#else /* __cplusplus */
+typedef unsigned int a_sizeof_t;
+#endif /* __cplusplus */
 
 typedef void (*a_destructor_ptr)(void*, int);
 			/* Type used to store a pointer a destructor. */
