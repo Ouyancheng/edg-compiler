@@ -4224,6 +4224,7 @@ arguments.
   int                 arg_number, func_arg_number;
   a_boolean           err = FALSE;
   an_expr_stack_entry expr_stack_entry;
+  a_boolean           saved_evaluated, saved_potentially_evaluated;
 
   db_enter(4, "scan_type_generic_operator");
 
@@ -4283,9 +4284,9 @@ arguments.
   if (err) {
     func_arg_number = -1;
   } else {
+    check_assertion(arg_type != NULL && is_floating_type(arg_type));
 #if 0
-    check_assertion(arg_type != NULL &&
-                    (is_floating_type(arg_type) || is_complex_type(arg_type)));
+    /* Add || is_complex_type(arg_type) */
 #endif /* if 0 */
     /* Positions 3, 4, and 5 are occupied, respectively, by double,
        float, and long double versions of the function. */
@@ -4317,9 +4318,8 @@ arguments.
     fputs("\n", f_debug);
   }  /* if */
 #endif /* DEBUG */
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
+  saved_evaluated = expr_stack_entry.evaluated;
+  saved_potentially_evaluated = expr_stack_entry.potentially_evaluated;
   /* Now loop through the remaining arguments (3-8), ignoring everything
      except the function name associated with the argument type -- i.e., the
      expression at the position specified by func_arg_number. */
@@ -4336,6 +4336,7 @@ arguments.
         pos_ty_error(ec_type_generic_function_mismatch, &start_position,
                      arg_type);
         err = TRUE;
+        if (curr_token == tok_rparen) break;
       } else {
         /* Okay. */
       }  /* if */
@@ -4352,12 +4353,9 @@ arguments.
         do_operand_transformations(result, TOPT_NO_OPTIONS);
       }  /* if */
     }  /* if */
-    if (curr_token == tok_rparen) {
-      /* Allow a shortened argument list if there has been a match. */
-      if (func_arg_number <= arg_number) break;
-    }  /* if */
   }  /* for */
-  pop_expr_stack();
+  expr_stack_entry.evaluated = saved_evaluated;
+  expr_stack_entry.potentially_evaluated = saved_potentially_evaluated;
   remove_stop_token(tok_comma);
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
