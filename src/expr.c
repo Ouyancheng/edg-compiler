@@ -7592,7 +7592,7 @@ class type if necessary.
 */
 {
   a_boolean processed = FALSE;
-  a_boolean pointer_case;
+  a_boolean pointer_case, was_constant;
 
   /* Convert from a class type to bool or scalar/pointer-to-member if
      necessary. */
@@ -7620,17 +7620,22 @@ class type if necessary.
      integer result. */
   pointer_case = is_pointer_type(result->type) ||
                  is_ptr_to_member_type(result->type);
+  was_constant = is_constant_operand(result);
   /* Check that the operand is scalar or a pointer to member.  Note that
      this is done even for the cases where a class type has been converted
      to such a type, because the subroutine does some additional checking
      and some normalization of the expression. */
   if (check_boolean_controlling_expr(result)) {
-    /* Issue a remark if the expression is constant.  The check is here
-       instead of check_boolean_controlling_expr because we don't want
-       to issue diagnostics for things like "i = 1&&2;".  Do not issue
-       the error in constant expressions (which can happen only for
-       conditional operators, i.e., "?", not for statements). */
-    if (is_constant_operand(result)) {
+    /* Issue a remark if the expression is constant.  (Actually, if
+       it WAS constant, because the address of an extern entity -- a
+       constant -- converted to bool becomes an expression, because
+       one can't tell at compile time whether the external's address
+       is non-zero.)  The check is here instead of
+       check_boolean_controlling_expr because we don't want to issue
+       diagnostics for things like "i = 1&&2;".  Do not issue the error
+       in constant expressions (which can happen only for conditional
+       operators, i.e., "?", not for statements). */
+    if (was_constant) {
       if (pointer_case) {
         /* A test of a constant address is always pretty suspicious. */
         pos_warning(ec_boolean_controlling_expr_is_constant,
