@@ -4162,11 +4162,10 @@ for the qualified identifier, and return TRUE.  This is recognized only
 in C++ mode.  If a qualified name is not next, leave specific_symbol
 set to NULL and return FALSE.  options is a set of special options,
 as a bit set; they control the lookup of (only) the final identifier in the
-qualified name.  They can include IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL and
-IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL.
+qualified name.
 */
 {
-  a_boolean         is_qualified_name = FALSE, qualifier_err, okay = FALSE;
+  a_boolean         is_qualified_name = FALSE, qualifier_err, okay;
   a_symbol_ptr      name_symbol;
   a_scope_number    class_scope;
   a_source_position start_position;
@@ -4176,7 +4175,13 @@ IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL.
       if (locator_for_curr_id.specific_symbol != NULL) {
         /* The current token is already a qualified name or specific symbol. */
         is_qualified_name = locator_for_curr_id.is_qualified_name;
-        okay = TRUE;
+        if (is_qualified_name) {
+          /* Do the ambiguity/access control check.  In the normal case (below)
+             it is done by scope_qualified_id_lookup. */
+          if (!(options & IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL)) {
+            check_ambiguity_and_verify_access(&locator_for_curr_id);
+          }  /* if */
+        }  /* if */
       } else {
         /* See if there is a class qualifier (the "A::" part of "A::x"), and
            if so, get it and determine the scope number it represents. */
@@ -4186,6 +4191,7 @@ IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL.
              puts it in error_position). */
           start_position = error_position;
           set_err_pos_to_curr_token();
+          okay = FALSE;
           /* The current token must now be the final identifier of the
              qualified name, e.g., "x" in "A::B::x". */
           if (curr_token != tok_identifier) {
@@ -4215,12 +4221,7 @@ IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL.
             /* For the error cases, set the current locator to an error locator
                with specific_symbol pointing to a newly-created error
                symbol of kind sk_undefined. */
-            set_to_error_locator(locator_for_curr_id);
-            locator_for_curr_id.specific_symbol =
-                                      enter_symbol((a_symbol_kind)sk_undefined,
-                                                   &locator_for_curr_id,
-                                                   decl_scope_level,
-                                                   /*suppress_error=*/TRUE);
+            make_specific_symbol_error_locator(&locator_for_curr_id);
           }  /* if */
           locator_for_curr_id.is_qualified_name = is_qualified_name = TRUE;
           error_position = start_position;
