@@ -11,7 +11,7 @@ be resolved.  Now fixed.
 
 Changes made in version 3.1 caused virtual functions of types used in
 operations that rely on RTTI data structures to be instantiated
-earlier than had previously been the case.  The caused problems in
+earlier than had previously been the case.  That caused problems in
 certain cases.  The previous behavior has been restored.
 
   template <class T> struct A;
