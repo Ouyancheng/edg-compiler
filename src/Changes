@@ -1,5 +1,11 @@
 Version 2.30
 
+8/31/95  C++-generating back end: extern "C" suppressed on friend declarations
+
+extern "C" is not allowed on friend declarations, so the C++-generating
+back end has been changed to suppress it on such declarations.  It will
+still come out on the definition of the friend function.
+
 8/30/95  Function types as template parameters
 
 In version 2.26 we made it an error to use a function type as a
