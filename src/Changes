@@ -1,5 +1,15 @@
 Version 2.30
 
+8/21/95  SVR4-C compatibility bug fixed
+
+An error is no longer issued in SVR4-C mode when a nonprototyped function
+definition follows a prototyped declaration with which it is incompatible,
+as long as the return types are the same or "interchangeable".  For
+example:
+
+  int f(const int *);
+  int f(p) int *p; { ... }    // A warning is now issued in SVR4-C mode
+
 8/18/95  Type for bit fields
 
 All bit fields in the front end have been changed to use the typedef
