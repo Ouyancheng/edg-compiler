@@ -57,14 +57,15 @@ result of an #if or #ifdef directive.  This has been fixed.
 
 10/2/00  Microsoft compatibility: throw (...)
 
-The front end now accepts the special "throw (...)" exception specification.
-Recent Microsoft compilers regognize this to explicitly indicate that a
-function may throw any exception (this is useful for modes where a Microsoft
-back end assumes that extern "C" functions will not throw any exception).
-Although other exception specifications are ignored in Microsoft mode, this
-special syntax is recorded in the IL through the new "throw_any" flag of
-"an_exception_specification".  The C++-generating back end uses that flag
-to correctly regenerate the associated declarations.  For example:
+In Microsoft mode, the front end now accepts the special "throw (...)"
+exception specification.  Recent Microsoft compilers recognize this to
+explicitly indicate that a function may throw any exception (this is useful
+for modes where a Microsoft back end assumes that extern "C" functions will
+not throw any exception).  Although other exception specifications are
+ignored in Microsoft mode, this special syntax is recorded in the IL through
+the new "throw_any" flag of an_exception_specification (IL CHANGE).
+The C++-generating back end uses that flag to correctly regenerate the
+associated declarations.  For example:
 
   extern "C" void f() throw (...); // "f" may throw any exception
 
