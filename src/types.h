@@ -103,7 +103,8 @@ an lvalue.
 Return TRUE if a routine type is the type of a nonstatic member function.
 */
 #define routine_type_is_nonstatic_member_function(routine_type)       \
- ((routine_type)->variant.routine.extra_info->implicit_this_param_type != NULL)
+ (skip_typerefs(routine_type)->variant.routine.extra_info->           \
+                                       implicit_this_param_type != NULL)
 
 #endif /* ifndef TYPES_H */
 
