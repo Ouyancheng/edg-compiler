@@ -6039,6 +6039,9 @@ to it.  The statement kind is set as indicated.
   clear_stmt_source_position(sp->position);
   sp->next                = NULL;
   sp->dependent_statement = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  sp->source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   set_statement_kind(sp, stmt_kind);
   db_exit();
   return sp;
@@ -6152,6 +6155,9 @@ points to the associated routine if the kind is sck_function.
   sp->entries             = NULL;
   sp->namelist_groups     = NULL;
 #endif /* ifdef FIL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  sp->source_sequence_list = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_exit();
   return sp;
@@ -6349,6 +6355,9 @@ of the front end.
 #if RECORD_SCOPE_DEPTH_IN_IL
   def_source_corresp.scope_depth = NO_SCOPE_DEPTH;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  def_source_corresp.source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if DEBUG
   num_source_files_allocated             = 0;
