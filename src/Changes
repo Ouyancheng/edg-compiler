@@ -1,5 +1,11 @@
 Version 3.4
 
+8/4/03  Microsoft compatibility: long long bit fields promote to long long
+
+In Microsoft C and C++ modes, long long bit fields with lengths equal
+to or smaller than long now promote to long long (or unsigned long
+long), as in MSVC++.
+
 8/4/03  C-generating back end aborts due to Microsoft property fields
 
 IL lowering did not always correctly remove Microsoft property fields from

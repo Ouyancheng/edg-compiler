@@ -2922,6 +2922,15 @@ up to the caller to do the cast if desired.
   }  /* if */
 #endif /* CHECKING */
   orig_ikind = ikind = promoted_type->variant.integer.int_kind;
+#if LONG_LONG_ALLOWED
+  if (microsoft_mode &&
+      (ikind == (an_integer_kind)ik_long_long ||
+       ikind == (an_integer_kind)ik_unsigned_long_long)) {
+    /* MSVC++ promotes long long and unsigned long long bit fields to
+       those types. */
+  } else
+#endif /* LONG_LONG_ALLOWED */
+  /* Do not insert code here. */
   if (field->bit_field_is_signed) {
     /* Bit-field is signed, so it is promoted to the first of int or
        long into which all its values will fit. */
