@@ -305,10 +305,10 @@ end_of_routine:
 #if CHECKING && DEBUG
   /* Stop if the entry being examined is the one we're looking for. */
   if (entry_kind == trace_entry_kind &&
-      entry_number == trace_entry_number /* &&
+      entry_number == trace_entry_number &&
       ((trace_memory_region_number == FILE_SCOPE_REGION_NUMBER) ?
         epp->file_scope :
-        (trace_region_being_written == trace_memory_region_number)) */){
+        (trace_region_being_written == trace_memory_region_number))) {
     trace_entry_assignment();
   }  /* if */
 #endif /* CHECKING && DEBUG */
