@@ -2975,7 +2975,17 @@ the macro definition.
     put_ch_to_temp_text_buffer('(');
     for (pp = mdp->param_list; pp != NULL; pp = pp->next) {
       /* Put out a macro parameter name. */
-      put_str_to_temp_text_buffer(pp->name);
+      if (mdp->variadic && pp->next == NULL) {
+        /* This is a variadic parameter (declared with an ellipsis). */
+        if (extended_variadic_macros_allowed) {
+          /* Generate a variadic macro name as in "M(x, y, z...)". */
+          put_str_to_temp_text_buffer(pp->name);
+        }  /* if */
+        put_str_to_temp_text_buffer("...");
+      } else {
+        /* The normal case of a nonvariadic macro parameter. */
+        put_str_to_temp_text_buffer(pp->name);
+      }  /* if */
       /* There are more parameters, so put out a comma separator. */
       if (pp->next != NULL) put_ch_to_temp_text_buffer(',');
     }  /* for */

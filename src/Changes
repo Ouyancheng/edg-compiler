@@ -1,5 +1,18 @@
 Version 2.46
 
+6/27/01  C++-generating back end: bad rendering of variadic macro parameter
+
+The text rendering of macros used to systematically substitute "__VA_ARGS__"
+for the variadic macro parameter.  This caused
+
+  #define M(...) __VA_ARGS__
+
+to be rendered as
+
+  #define M(__VA_ARGS__) __VA_ARGS__
+
+by the C++-generating back end.  That is now fixed.
+
 6/26/01  Abort when attempting to define a function previously declared
          with a cv-qualified typedef
 
