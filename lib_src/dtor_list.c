@@ -19,7 +19,7 @@ dtor_list.c -- destruction list processing.
 
 /*
 The list of static objects that require destruction.  An entry is
-added to the front of this list each time a new destructable static
+added to the front of this list each time a new destructible static
 object is created.
 */
 static a_needed_destruction_ptr
