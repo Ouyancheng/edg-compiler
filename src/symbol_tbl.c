@@ -109,7 +109,11 @@ static a_function_instantiation_entry_ptr  instantiations_required_head;
 			/* Points to the first entry on a list of
 			   function instantiation entries for which
 			   instantiations are required.  Entries are
-			   added to the end of the list. */
+			   added to the end of the list.  The instantiation
+			   required flag can be reset after the entry
+			   has been added to the list, so the flag must
+			   still be checked before assuming that entries
+			   on the list must be instantiated. */
 static a_function_instantiation_entry_ptr  instantiations_required_tail;
 			/* Points to the last entry on a list of function
 			   instantiation entries for which instantiations
