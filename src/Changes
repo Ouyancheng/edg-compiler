@@ -1,5 +1,13 @@
 Version 2.13
 
+12/4/92  Strict ANSI C mode errors on pointer coercions
+
+In strict ANSI C mode (-A), nonstandard cases where a null pointer
+constant, a "void *" pointer, or a pointer to function is considered
+compatible with another pointer, or where a pointer to a complete
+type is considered compatible with a pointer to an incomplete type,
+now issue warnings instead of warnings.
+
 12/4/92  Strict ANSI mode error on "useless declaration"
 
 The diagnostic issued on declarations which define nothing and have no
