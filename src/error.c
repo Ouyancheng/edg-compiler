@@ -20,9 +20,9 @@ error.c -- Error reporting routines.
 #include "mem_manage.h"
 
 #include "il.h"
+#if !STANDALONE_UTILITY_PROGRAM
 #include "symbol_tbl.h"
 #include "lexical.h"
-#if !STANDALONE_UTILITY_PROGRAM
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
@@ -30,6 +30,36 @@ error.c -- Error reporting routines.
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+
+
+/* Many support functions and macros that are generally available in the
+   front end are duplicated here so that error.c can be compiled
+   independently of a front end (e.g. with a standalone IL display utility. */
+
+/* Macro to strip tk_typeref entries from a type. */
+#define skip_typerefs(tp)                                             \
+  ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : local_skip_typerefs(tp))
+
+static a_type_ptr local_skip_typerefs(a_type_ptr type_ptr)
+/*
+Strip any typeref entries off the given type to get to the real type, and
+return a pointer to that.  Note that the typeref may have some type
+qualifiers (const, volatile), and they will be dropped here.  Therefore,
+this routine should not be used when checking type qualifiers.  Note
+that ordinarily this routine should not be called directly; use the macro
+"skip_typerefs".
+*/
+{
+  while (type_ptr->kind == (a_type_kind)tk_typeref) {
+    type_ptr = type_ptr->variant.typeref.type;
+#if CHECKING
+    if (type_ptr == NULL) {
+      internal_error("local_skip_typerefs: NULL referenced type");
+    }  /* if */
+#endif /* CHECKING */
+  }  /* while */
+  return(type_ptr);
+}  /* local_skip_typerefs */
 
 
 #define is_pointer_or_reference_type(tp) \
@@ -132,11 +162,13 @@ static a_type_ptr
 				/* Array of pointers to the types to be
 				   used for substitutions in diagnostic
 				   messages. */
+#if !STANDALONE_UTILITY_PROGRAM
 static a_symbol_ptr
 		error_msg_syms[MAX_ERR_SEG_KIND_PER_MSG + 1];
 				/* Array of pointers to the symbols to be
 				   used for substitutions in diagnostic
 				   messages. */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 static msg_segment_ptr
 	error_message_head = NULL;
 				/* Pointer to the first segment in the current
@@ -1810,6 +1842,7 @@ segment described by "seg_ptr".
   form_type_second_part(tp, /*need_parens=*/FALSE, seg_ptr);
 }  /* summarize_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 static void form_decl_position(a_symbol_ptr    sym,
                                msg_segment_ptr seg_ptr)
@@ -2015,6 +2048,7 @@ symbol_name:
   }  /* if */
 }  /* form_symbol_name */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static msg_segment_ptr new_message_segment(void)
 /*
@@ -2063,6 +2097,9 @@ of the expansion.
 
 The linked list of message segments needed for the text and parameter
 substitutions to form the desired diagnostic message is constructed.
+
+NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
+       is defined.  The symbol table and token names no longer exist.
 */
 {
   msg_segment_ptr
@@ -2099,6 +2136,13 @@ substitutions to form the desired diagnostic message is constructed.
             msg_ptr++;
             goto check_for_seq_number;
           case 'n':
+#if STANDALONE_UTILITY_PROGRAM
+            /* Treat this %n as a continuation of the message template.
+               No symbol name expansion is possible. */
+            msg_ptr--;
+            goto text_segment;
+#else /* !STANDALONE_UTILITY_PROGRAM */
+            /* This is a symbol name insertion point. */
             curr_segment->kind = (a_message_segment_kind)msk_symbol;
             curr_segment->variant.symbol.full_type = FALSE;
             curr_segment->variant.symbol.name_only = FALSE;
@@ -2116,6 +2160,7 @@ substitutions to form the desired diagnostic message is constructed.
               curr_segment->variant.symbol.decl_pos = TRUE;
               msg_ptr++;
             }  /* if */
+#endif /* STANDALONE_UTILITY_PROGRAM */
 check_for_seq_number:
             curr_segment->sequence = 1;
             if (isdigit(*msg_ptr)) {
@@ -2135,6 +2180,9 @@ check_for_seq_number:
         break;
 
       default:
+#if STANDALONE_UTILITY_PROGRAM
+text_segment:
+#endif /* STANDALONE_UTILITY_PROGRAM */
         /* This is the first character of a text segment. */
         curr_segment->kind = (a_message_segment_kind)msk_error_text_part;
         curr_segment->variant.msg_part = msg_ptr;
@@ -2166,8 +2214,8 @@ check_for_seq_number:
   curr_segment->kind = (a_message_segment_kind)msk_last;
 }  /* construct_message_segments */
 
-
 #if !STANDALONE_UTILITY_PROGRAM
+
 /*
 Macro to write source line characters in the first pass, and spaces over
 and the caret on the second pass.  Exits to "end_of_loop" upon finding the
@@ -2300,8 +2348,8 @@ end_of_loop:
        (writing the caret). */
   }  /* for */
 }  /* write_orig_source_line */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static void write_message(char      *msg,
                           int       len,
@@ -2384,9 +2432,11 @@ a diagnostic message.
   for (i = 1; i <= MAX_ERR_SEG_KIND_PER_MSG; i++) {
     error_msg_strings[i] = NULL;
     error_msg_types[i] = NULL;
+#if !STANDALONE_UTILITY_PROGRAM
     error_msg_syms[i] = NULL;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   }  /* for */
-  }  /* init_error_params */
+}  /* init_error_params */
 
 
 static void write_diagnostic(a_source_position *error_pos,
@@ -2503,7 +2553,6 @@ message segments pointed to by the global variable error_msg_head.
     } else {
       line_len += fprintf(stderr, "%s", severity_string);
     }  /* if */
-
 
     /* Put out the error message text.  Try to collect the three parts
        into a single message if possible, as that will improve the
@@ -2763,12 +2812,14 @@ diagnostic is written.
         form_type_summary(error_msg_types[curr_seg->sequence], curr_seg);
         break;
       case msk_symbol:
+#if !STANDALONE_UTILITY_PROGRAM
 #if CHECKING
         if (error_msg_syms[curr_seg->sequence] == NULL) {
           internal_error("diag_message: missing symbol substitution");
         }  /* if */
 #endif /* CHECKING */
         form_symbol_name(error_msg_syms[curr_seg->sequence], curr_seg);
+#endif /* !STANDALONE_UTILITY_PROGRAM */
         break;
     }  /* switch */
   }  /* for */
@@ -2845,6 +2896,7 @@ indicated by error_position.
   pos_ty_remark(error_code, &error_position, type);
 }  /* type_remark */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 void pos_sy_remark(an_error_code     error_code,
                    a_source_position *error_pos,
@@ -2870,6 +2922,7 @@ indicated by error_position.
   pos_sy_remark(error_code, &error_position, symbol);
 }  /* sym_remark */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void pos_st_warning(an_error_code     error_code,
                     a_source_position *error_pos,
@@ -2939,6 +2992,7 @@ indicated by error_position.
   pos_ty_warning(error_code, &error_position, type);
 }  /* type_warning */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 void pos_sy_warning(an_error_code     error_code,
                     a_source_position *error_pos,
@@ -2964,6 +3018,7 @@ indicated by error_position.
   pos_sy_warning(error_code, &error_position, symbol);
 }  /* sym_warning */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void pos_st_error(an_error_code     error_code,
                   a_source_position *error_pos,
@@ -3033,6 +3088,7 @@ indicated by error_position.
   pos_ty_error(error_code, &error_position, type);
 }  /* type_error */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 void pos_sy_error(an_error_code     error_code,
                   a_source_position *error_pos,
@@ -3058,6 +3114,7 @@ indicated by error_position.
   pos_sy_error(error_code, &error_position, symbol);
 }  /* sym_error */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if !STANDALONE_UTILITY_PROGRAM
 void syntax_error(an_error_code error_code)
@@ -3136,6 +3193,7 @@ indicated by error_position.
   pos_ty_catastrophe(error_code, &error_position, type);
 }  /* type_catastrophe */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 void pos_sy_catastrophe(an_error_code     error_code,
                         a_source_position *error_pos,
@@ -3161,6 +3219,7 @@ indicated by error_position.
   pos_sy_catastrophe(error_code, &error_position, symbol);
 }  /* sym_catastrophe */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *
