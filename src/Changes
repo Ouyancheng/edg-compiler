@@ -70,7 +70,7 @@ in a spurious ambiguity for examples like the one below.  Now fixed.
 
 The definitions of virtual functions declared in unnamed classes or nested
 classes thereof must appear within the definition of their enclosing class
-because there is no syntax to define the outside the class.  However, when
+because there is no syntax to define them outside the class.  However, when
 such a virtual function definition appeared inside a class template, the
 front end emitted a spurious error indicating the definition is missing.
 In GNU and Microsoft C++ modes, an internal error was sometimes triggered
