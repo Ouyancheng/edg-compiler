@@ -1,5 +1,22 @@
 Version 3.5
 
+7/20/04  Typedefs with missing declarators in class templates
+
+In some modes (e.g., Microsoft mode) a typedef with a missing declarator
+is allowed.  For example:
+
+  template<typename T> struct S {
+    typedef struct N {};  // Error in strict mode, but accepted in many
+  }                       // other modes.  N is a nested class of S<T>.
+
+When such a typedef introduced a nested class definition in a class template
+(as in the example above), the front end mistakenly treated the class as
+belonging to the enclosing namespace scope (ignoring the definition while
+doing so).  This could lead to all kinds of spurious errors (e.g., the
+nested class was often incorrectly diagnosed as being incomplete).
+
+This is now fixed.
+
 7/15/04  C++-generating back end: parentheses around function calls
 
 The C++-generating back end no longer puts an extra set of parentheses

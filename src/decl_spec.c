@@ -6661,7 +6661,14 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            if (any_decl_specifiers_seen) vacuous_decl_allowed = FALSE;
+            if (any_decl_specifiers_seen &&
+                (strict_ansi_mode ||
+                 *storage_class != (a_storage_class)sc_typedef)) {
+              /* We allow things like "typedef struct X {};" in various mode.
+                 So do not disallow vacuous declarations in typedefs unless
+                 we're in strict mode. */
+              vacuous_decl_allowed = FALSE;
+            }  /* if */
             if (microsoft_mode && is_member_decl && !err &&
                 is_constructor_decl(enclosing_class_type(input_flags))) {
               /* In Microsoft mode, "struct S { struct S(); }; is accepted. */
@@ -6715,7 +6722,12 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            if (any_decl_specifiers_seen || strict_ansi_mode) {
+            if (any_decl_specifiers_seen &&
+                (strict_ansi_mode ||
+                 *storage_class != (a_storage_class)sc_typedef)) {
+              /* We allow things like "typedef struct X {};" in various mode.
+                 So do not disallow vacuous declarations in typedefs unless
+                 we're in strict mode. */
               vacuous_decl_allowed = FALSE;
             }  /* if */
             enum_specifier(vacuous_decl_allowed, type_ptr, p_ms_attributes,
