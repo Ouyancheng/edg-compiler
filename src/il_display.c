@@ -1462,16 +1462,12 @@ Display the indicated variable.
   if (ptr->specific_def) {
     disp_boolean("specific_def", (a_boolean)ptr->specific_def);
   }  /* if */
-#if DO_INLINING
-  if (ptr->param_value_has_been_changed) {
+  if (ptr->is_parameter) {
     disp_boolean("param_value_has_been_reset",
                  (a_boolean)ptr->param_value_has_been_reset);
-  }  /* if */
-  if (ptr->param_used_more_than_once) {
     disp_boolean("param_used_more_than_once",
                  (a_boolean)ptr->param_used_more_than_once);
   }  /* if */
-#endif DO_INLINING
   disp_name("init_kind");
   switch (ptr->init_kind) {
     case initk_none:
