@@ -3187,6 +3187,22 @@ indicated position.
 }  /* pos_ty_error */
 
 
+void pos_ty2_error(an_error_code     error_code,
+                   a_source_position *error_pos,
+                   struct a_type     *type1,
+                   struct a_type     *type2)
+/*
+Report the indicated error (with the two indicated types) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type1;
+  error_msg_types[2] = type2;
+  diag_message(error_code, error_pos, es_error);
+}  /* pos_ty_error */
+
+
 void type_error(an_error_code error_code,
                 struct a_type *type)
 /*
