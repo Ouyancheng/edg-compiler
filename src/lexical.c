@@ -4546,19 +4546,16 @@ so efficiency is not a prime concern.
 }  /* unget_token */
 
 
-a_boolean f_get_destructor_name(a_symbol_header_ptr *class_symbol_header)
+a_boolean f_get_destructor_name(void)
 /*
 The current token is the "~" at the start of a destructor name.  Scan the
 name and build a locator for the destructor name in locator_for_curr_id.
-Return in *class_symbol_header a pointer to the symbol header for the
-name following the "~", or NULL if there is an error.  (Note that this
-routine does not check that the name is a class name or that the destructor
-exists.)  Return TRUE always (this routine is called from the macro
-get_destructor_name; it handles the FALSE case).  This routine is called
+Note that this routine does not check that the name is a class name or that
+the destructor exists.  Return TRUE always (this routine is called from the
+macro get_destructor_name; it handles the FALSE case).  This routine is called
 only in C++ mode.
 */
 {
-  *class_symbol_header = NULL;
   /* Skip past the "~", check for an identifier. */
   if (get_token() != tok_identifier) {
     /* syntax_error is deliberately not called. */
@@ -4569,7 +4566,6 @@ only in C++ mode.
     make_specific_symbol_error_locator(&locator_for_curr_id);
   } else {
     /* "~identifier" is present. */
-    *class_symbol_header = locator_for_curr_id.symbol_header;
     /* Convert the locator to a locator for the destructor. */
     tildize_locator(&locator_for_curr_id);
   }  /* if */
@@ -5000,9 +4996,10 @@ This consists of scanning the tokens that make up the identifier,
 retaining the information conveyed by the tokens in the symbol
 locator, setting curr_token to tok_identifier, and setting
 pos_curr_token to the position of the first token in the sequence.
+We return TRUE if an identifier was found, otherwise we return FALSE.
 
-Pointer to members are coalesced into a tok_ptr_to_member.  However,
-we return FALSE for pointer to members.
+Pointer to members are coalesced into a tok_ptr_to_member. We return
+FALSE for pointer to members.
 
 Returns TRUE and sets curr_token to tok_identifier for the
 following cases:
@@ -5021,9 +5018,6 @@ following cases:
 	operator int
 	~A		When options & GID_DTOR_RECOGNIZED = TRUE
 	A<int>		Template reference will be coalesced
-	operator +	When options & GID_DISALLOW_OPERATOR_NAME = FALSE
-	operator int	When options & GID_DISALLOW_OPERATOR_NAME = FALSE
-	~A		When options & GID_DTOR_RECOGNIZED = TRUE
 
 Returns FALSE and sets curr_token to tok_ptr_to_member for:
 
@@ -5052,7 +5046,6 @@ This routine performs ambiguity and access checking on the components of the
 qualified name.  Only the ambiguity errors are actually issued, however.
 Information about any access errors is accumulated in a list of
 an_access_error_descr entries pointed to by locator_for_curr_id.
-
 It is the responsibility of the caller to ensure that either
 issue_qualifier_access_errors or do_not_issue_qualifier_access_errors is
 called to do the appropriate processing and free the entries on the list.
@@ -5064,7 +5057,7 @@ This routine may only be called in C++ mode.
 {
   a_type_ptr		class_type = NULL;
   a_boolean     	is_file_scope_qualified_name = FALSE;
-  a_boolean		is_global_qualified_name;
+  a_boolean		is_global_qualified_name = FALSE;
   a_boolean     	is_qualified_name = FALSE;
   a_boolean             is_ptr_to_member = FALSE;
   a_boolean		is_identifier = FALSE;
@@ -5098,7 +5091,6 @@ This routine may only be called in C++ mode.
   orig_error_position = error_position;
   /* Look for a leading unary "::".  Don't be fooled by "::new" and
      "::delete". */
-  is_global_qualified_name = FALSE;
   if (curr_token == tok_colon_colon && !is_global_new_or_delete()) {
     is_global_qualified_name = TRUE;
     is_file_scope_qualified_name = TRUE;
@@ -5226,7 +5218,9 @@ This routine may only be called in C++ mode.
     } else if (curr_token == tok_operator) {
       /* Could be something like either "operator +" or "operator int".
          We don't determine at this point whether this is a legal operator,
-         just that it couldn't legally be anything else. */
+         just that it couldn't legally be anything else.  We recognize
+         operator names even if they are disallowed by the "options" flags.
+         An error will be issued later if needed. */
     } else if (curr_token == tok_compl &&
                ((options & GID_DTOR_RECOGNIZED) || is_qualified_name)) {
       /* A destructor name (e.g., ~A or A::~A).  Destructor names are
@@ -5241,6 +5235,12 @@ This routine may only be called in C++ mode.
       is_identifier = FALSE;
     }  /* if */
   }  /* if */
+  /* This routine has two functions: determining whether the thing
+     being scanned is a generalized identifier, pointer to member,
+     or something else; and, if it is an identifier, coalescing the
+     identifier and storing the information in the locator.  The code
+     above performed the first part of the job.  The code below does
+     the coalescing now that we know what we are scanning. */
   if (is_ptr_to_member) {
     curr_token = tok_ptr_to_member;
     /* The qualifier class type is the only field of the locator
@@ -5262,6 +5262,7 @@ This routine may only be called in C++ mode.
           /* Discard the errors. */
           do_not_issue_qualifier_access_errors(&first_aedp);
         } else if (options & GID_DEFER_ACCESS_ERRORS) {
+          /* Access errors are to be saved and possibly issued later. */
         } else {
           /* Issue the errors. */
           issue_qualifier_access_errors(&first_aedp);
@@ -5295,9 +5296,8 @@ This routine may only be called in C++ mode.
        GID_DTOR_RECOGNIZED flag is set. */
     if (((options & GID_DTOR_RECOGNIZED) || (is_qualified_name)) &&
         !is_file_scope_qualified_name) {
-      a_symbol_header_ptr  class_symbol_header;
       /* The name can be a destructor name like "~A". */
-      (void)get_destructor_name(&class_symbol_header);
+      (void)get_destructor_name();
     }  /* if */
     /* The name can be an operator name like "operator+". */
     (void)get_opname();
@@ -5372,10 +5372,10 @@ is looked up.  Returns TRUE if identifier is a qualified name.
     if (is_generalized_identifier_start(options & ~GID_ERROR_FLAGS) &&
         curr_token == tok_identifier &&
         locator_for_curr_id.is_qualified_name) {
+      /* The current identifier is a qualified name. */
       a_source_position	identifier_pos;
       identifier_pos = locator_for_curr_id.source_position;
       class_type = locator_for_curr_id.qualifier_class_type;
-      /* The final identifier is present. */
       return_value = TRUE;
       /* Perform error checks as specified in "options". */
       if (check_for_generalized_identifier_errors(options,
@@ -5398,10 +5398,18 @@ is looked up.  Returns TRUE if identifier is a qualified name.
             okay = FALSE;
           }  /* if */
         } else {
-          if (class_type == NULL) {
+          if (class_type == NULL ||
+              (is_incomplete_type(class_type) &&
+               class_type->variant.class_struct_union.
+                                  extra_info->assoc_scope == NULL)) {
             /* An error must have occurred while scanning the class
                qualifier.  Don't try to do the lookup of the identifier
-               following the qualifier. */
+               following the qualifier.   If the type is incomplete we also
+               check whether the type is currently being defined -- it is
+               considered complete if it is being defined.  We determine
+               this by checking the assoc_scope field of the class type
+               supplement.  If the type is incomplete an error will have
+               been issued earlier. */
             okay = FALSE;
           } else {
 #if CHECKING

@@ -1028,11 +1028,9 @@ extern a_token_kind next_token(void);
 /* Back up one token. */
 extern void unget_token(void);
 /* Get a C++ destructor name, like "~A". */
-extern a_boolean f_get_destructor_name(
-                                     a_symbol_header_ptr *class_symbol_header);
-#define get_destructor_name(class_symbol_header)                      \
-  ((curr_token == tok_compl) ? f_get_destructor_name(class_symbol_header) : \
-                               FALSE)
+extern a_boolean f_get_destructor_name(void);
+#define get_destructor_name()			                      \
+  ((curr_token == tok_compl) ? f_get_destructor_name() : FALSE)
 /* Get a C++ operator name, like "operator+". */
 extern a_boolean f_get_opname(void);
 #define get_opname()                                         \
