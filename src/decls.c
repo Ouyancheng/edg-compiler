@@ -2769,7 +2769,7 @@ created; the caller must set it.
     if (ext_sym != NULL) {
       /* There is an existing external symbol for the name. */
       esdp = ext_sym->variant.extern_symbol_descr;
-      if ((microsoft_bugs || gpp_mode) && !
+      if ((microsoft_bugs || gpp_mode) &&
           depth_innermost_function_scope == NO_SCOPE_DEPTH &&
           name_linkage == (a_name_linkage_kind)nlk_external) {
         /* In Microsoft and GNU compilers, an extern "C" declaration in one
