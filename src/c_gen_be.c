@@ -1337,9 +1337,16 @@ is non-NULL, in which case that is the function scope.
       param = rtsp->param_type_list;
       if (param == NULL) {
         /* The first argument is NULL, so this is a "void" parameter list. */
-        /* Render the C++ "void f(...)" case as an old-style parameter list. */
         if (!rtsp->has_ellipsis) {
           write_tok_str("void");
+        } else {
+          /* "void f(...)" is permitted in C++ mode and may be accepted (as a
+             nonstandard construct) in C mode as well.  But unless the idiom
+             is acceptable in the generated C as well, this is rendered as an
+             empty old-style parameter list. */
+#if ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
+          write_tok_str("...");
+#endif /* ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C */
         }  /* if */
       } else {
         /* List the parameters. */

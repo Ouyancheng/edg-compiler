@@ -883,10 +883,26 @@ in the way described by octl.
       /* Prototyped list. */
       param = rtsp->param_type_list;
       if (param == NULL) {
-        /* The first argument is NULL, so this is a "void" parameter list.
-           Write it as void in C, as empty in C++. */
-        if (il_header.source_language == sl_C) {
-          octl->output_str("void");
+        if (!rtsp->has_ellipsis) {
+          /* The first argument is NULL, so this is a "void" parameter list.
+             Write it as void in C, as empty in C++. */
+          if (il_header.source_language == sl_C) {
+            octl->output_str("void");
+          }  /* if */
+#if !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
+        } else if (octl->gen_compilable_code &&
+                   (octl->c_generating_back_end ||
+                    il_header.source_language == sl_C) {
+          /* For the C-generating back end (or the C++-generating back end
+             when it is producing C code), we put out the ellipsis by itself
+             only if it can be handled.  Otherwise, "(...)" is rendered by
+             "()" in the generated C. */
+#endif /* !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C */
+        } else {
+          /* This is a parameter list consisting of only an ellipsis, which
+             is standard in C++ and may be accepted as an extension in C
+             mode. */
+          octl->output_str("...");
         }  /* if */
       } else {
         /* List the parameter types. */
@@ -899,12 +915,8 @@ in the way described by octl.
              looping. */
           octl->output_str(", ");
         }  /* for */
-      }  /* if */
-      if (rtsp->has_ellipsis) {
-        /* There is an ellipsis. */
-        /* Separate it from the parameters if there are any. */
-        if (rtsp->param_type_list != NULL) octl->output_str(", ");
-        octl->output_str("...");
+        /* Put out the ellipsis if there is one. */
+        if (rtsp->has_ellipsis) octl->output_str(", ...");
       }  /* if */
     }  /* if */
     octl->output_str(")");

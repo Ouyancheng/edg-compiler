@@ -1744,10 +1744,23 @@ is non-NULL, in which case that is the function scope.
     /* Prototyped list. */
     param = rtsp->param_type_list;
     if (param == NULL) {
-      /* The first argument is NULL, so this is a "void" parameter list.
-         Write it as void in C, as empty in C++. */
-      if (il_header.source_language == sl_C) {
-        write_tok_str("void");
+      if (!rtsp->has_ellipsis) {
+        /* The first argument is NULL, so this is a "void" parameter list.
+           Write it as void in C, as empty in C++. */
+        if (il_header.source_language == sl_C) {
+          write_tok_str("void");
+        }  /* if */
+#if !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
+      } else if (il_header.source_language != sl_Cplusplus) 
+        /* When C code is being generated, we put out the ellipsis by itself
+           only if it can be handled.  Otherwise, "(...)" is rendered by
+           "()" in the generated C. */
+#endif /* !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C */
+      } else {
+        /* This is a parameter list consisting of only an ellipsis, which
+           is standard in C++ and may be accepted as an extension in C
+           mode. */
+        write_tok_str("...");
       }  /* if */
     } else {
       /* List the parameter types (and, if this is the definition, names
@@ -1795,12 +1808,8 @@ is non-NULL, in which case that is the function scope.
            looping. */
         write_tok_str(", ");
       }  /* for */
-    }  /* if */
-    if (rtsp->has_ellipsis) {
-      /* There is an ellipsis. */
-      /* Separate it from the parameters if there are any. */
-      if (rtsp->param_type_list != NULL) write_tok_str(", ");
-      write_tok_str("...");
+      /* Put out the ellipsis if there is one. */
+      if (rtsp->has_ellipsis) write_tok_str(", ...");
     }  /* if */
   }  /* if */
   write_tok_ch(')');
