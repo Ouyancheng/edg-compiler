@@ -41,9 +41,11 @@ extern void fixup_embedded_virtual_base_classes(a_base_class_ptr base_class,
                                                 a_type_ptr       class_type);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 
-extern a_boolean scan_class_definition(a_type_ptr    class_type,
-                                       a_scope_depth effective_decl_level,
-                                       a_boolean     is_local_class);
+extern a_boolean scan_class_definition(
+                                   a_type_ptr     class_type,
+                                   a_scope_depth  effective_decl_level,
+                                   a_boolean      is_local_class,
+                                   a_boolean      is_prototype_instantiation);
 
 extern a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                                  a_boolean  is_friend_decl,
