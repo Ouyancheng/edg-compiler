@@ -11689,7 +11689,7 @@ if one already exists.
       }  /* if */
     } else {
       /* No instantiation request needed.  Delete the file if it
-         already exits.  This is done even when using a template
+         already exists.  This is done even when using a template
          information file so that unused .ii files will be cleaned up. */
       if (f_ii_file != NULL) {
         if (fclose(f_ii_file)) {
