@@ -478,6 +478,20 @@ static a_boolean
 			   trivial modifications).  If so, it must be
 			   displayed. */
 
+static a_text_buffer_ptr
+		token_insertion_buffer;
+			/* A buffer used by the mechanism that inserts strings
+			   into the token stream. */
+
+static a_boolean
+		in_token_insertion_from_string;
+			/* TRUE during the initial scan of tokens that are
+			   being inserted from a string. */
+
+static a_source_position
+		token_insertion_position;
+			/* The source position to be used for tokens inserted
+			   from a string. */
 
 /*
 Information about cached tokens, i.e., tokens saved for later rescanning.
@@ -4014,12 +4028,12 @@ Make sure the curr source line can hold at least min_len characters.
 void conv_line_loc_to_source_pos(char              *loc_in_line,
                                  a_source_position *position_var)
 /*
-Convert a pointer to somewhere in curr_source_line or macro_buffer
-(loc_in_line) into the corresponding source sequence number and column
-(in position_var).  This is used to develop a position for later use
-in error reporting.  This function version is for cases where the processing
-need not be very fast; macro_line_loc_to_source_pos should be used
-when speed is critical.
+Convert a pointer to somewhere in curr_source_line, macro_buffer, or a
+string insertion buffer (loc_in_line) into the corresponding source
+sequence number and column (in position_var).  This is used to develop
+a position for later use in error reporting.  This function version is
+for cases where the processing need not be very fast;
+macro_line_loc_to_source_pos should be used when speed is critical.
 */
 {
   char                    *adj_loc_in_line;
@@ -4029,6 +4043,12 @@ when speed is critical.
   a_seq_number            seq_number               = curr_seq_number;
   int                     trigraph_adjustment      = 0;
 
+  if (in_token_insertion_from_string) {
+    /* We are processing a token insertion from a string.  Just use
+       the position at which the insertion is being done. */
+    *position_var = token_insertion_position;
+    goto done;
+  }  /* if */
   adj_loc_in_line = loc_in_line;
   orig_slmp = NULL;
   if (!within_curr_source_line(adj_loc_in_line)) {
@@ -4103,6 +4123,8 @@ have_position:
      that covers this location.  That will make succeeding calls of
      this routine faster. */
   if (orig_slmp != NULL) orig_slmp->source_position = *position_var;
+done:
+  return;
 }  /* conv_line_loc_to_source_pos */
 
 
@@ -6826,6 +6848,14 @@ and also put that into error_position.
 }  /* remember_token_start */
 
 /*
+Return TRUE if we are getting tokens from an inserted token string.
+*/
+#define fetching_tokens_from_insert_string()				\
+  (cached_token_rescan_list != NULL &&					\
+   cached_token_rescan_list->extra_info_kind ==				\
+                                  (a_token_extra_info_kind)teik_insert_string)
+
+/*
 Macro that is TRUE if digraph tokens should be recognized.  Note that
 alternative_tokens_allowed is only TRUE in C++ mode.
 */
@@ -6903,7 +6933,8 @@ to speed in some cases.
   a_boolean             gotten_from_cache = FALSE;
 #endif /* DEBUG */
 
-  if (any_initial_get_token_tests_needed) {
+  if (any_initial_get_token_tests_needed &&
+      !fetching_tokens_from_insert_string()) {
     /* Before fetching a new token, do any processing required for pragmas
        that preceded the current token.  Don't do this when fetching
        preprocessing tokens -- pragmas should only be processed when
@@ -7551,7 +7582,8 @@ check_start_of_pp_directive:
 	  } else {
 	    ctoken = tok_sharp;
 	  } /* if */
-	} else if (!any_tokens_gotten_from_curr_source_line) {
+	} else if (!any_tokens_gotten_from_curr_source_line &&
+                   !in_token_insertion_from_string) {
 	  /* A sharp that is the first thing on a line -- This is a
 	     preprocessing directive. */
 	  if (!currently_in_pp_if_skip) {
@@ -11888,6 +11920,129 @@ not be returned.
 }  /* cache_function_body */
 
 
+static void push_string_insert_cache_entry(void)
+/*
+Push a dummy entry on the cached token rescan list indicating that
+tokens should be fetched from the insertion string.
+*/
+{
+  a_cached_token_ptr	ctp;
+
+  alloc_cached_token(ctp);
+  ctp->extra_info_kind = teik_insert_string;
+  ctp->next = cached_token_rescan_list;
+  cached_token_rescan_list = ctp;
+}  /* push_string_insert_cache_entry */
+
+
+static void pop_string_insert_cache_entry(void)
+/*
+Remove the dummy entry from the cached token rescan list that indicates
+that tokens should be fetched from the insertion string.
+*/
+{
+  a_cached_token_ptr	ctp;
+
+  check_assertion(fetching_tokens_from_insert_string());
+  ctp = cached_token_rescan_list;
+  cached_token_rescan_list = ctp->next;
+  free_cached_token(ctp);
+}  /* pop_string_insert_cache_entry */
+
+
+void insert_string_into_token_stream(char	*string,
+				     a_boolean	insert_after)
+/*
+Scan "string" as a sequence of tokens.  Build a token cache and insert it
+into the token stream at the current position.  "insert_after" is TRUE
+if the tokens should be inserted after the current token; FALSE if they
+should be inserted before the current token.
+*/
+{
+  char			*save_curr_char_loc;
+  a_boolean		save_treat_newline_as_token;
+  a_text_buffer_ptr	buffer;
+  a_token_cache		cache;
+  a_token_cache		curr_token_cache;
+  a_boolean		save_no_modifs_to_curr_source_line;
+  char			*save_curr_source_line;
+  char			*save_after_end_of_curr_source_line;
+
+  if (token_insertion_buffer == NULL) {
+    token_insertion_buffer = alloc_text_buffer(1024);
+  }  /* if */
+  /* Copy the string to the buffer. */
+  buffer = token_insertion_buffer;
+  reset_text_buffer(buffer);
+  add_string_to_text_buffer(buffer, string);
+  /* Add the lexical escape for a newline. */
+  add_char_to_text_buffer(buffer, LE_ESCAPE);
+  add_char_to_text_buffer(buffer, LE_NEWLINE);
+  /* Add the end of line escape. */
+  add_char_to_text_buffer(buffer, LE_ESCAPE);
+  add_char_to_text_buffer(buffer, LE_END_OF_LINE);
+
+  /* Save the current token position. */
+  save_curr_char_loc = curr_char_loc;
+  save_treat_newline_as_token = treat_newline_as_token;
+  token_insertion_position = pos_curr_token;
+  save_no_modifs_to_curr_source_line = no_modifs_to_curr_source_line;
+  save_curr_source_line = curr_source_line;
+  save_after_end_of_curr_source_line = after_end_of_curr_source_line;
+
+  /* Reset the information used by get_token to fetch the tokens from
+     the string in the text buffer. */
+  treat_newline_as_token = TRUE;
+  no_modifs_to_curr_source_line = FALSE;
+  curr_char_loc = buffer->buffer;
+  curr_source_line = curr_char_loc;
+  after_end_of_curr_source_line = &buffer->buffer[buffer->size];
+  in_token_insertion_from_string = TRUE;
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  /* Push a marker into the cached token rescan list indicating that
+     tokens should be fetched from the insert string. */
+  push_string_insert_cache_entry();
+  /* Put the current token in the cache.  When the token string is inserted
+     after the current token we just put the current token at the start
+     of the cache to be rescanned.  When inserting before the current token
+     we create a separate cache containing the current token. */
+  if (insert_after) {
+    cache_curr_token(&cache);
+  } else {
+    clear_token_cache(&curr_token_cache, /*reusable=*/FALSE);
+    cache_curr_token(&curr_token_cache);
+  }  /* if */
+
+  /* Fetch tokens from the buffer.  Stop on a newline. */
+  while (get_token() != tok_newline) {
+    /* All of the tokens should have the position of the insert point. */
+    pos_curr_token = token_insertion_position;
+    cache_curr_token(&cache);
+  }  /* while */
+
+  /* Restore the original position from which tokens are being fetched. */
+  curr_char_loc = save_curr_char_loc;
+  after_end_of_curr_source_line = save_after_end_of_curr_source_line;
+  treat_newline_as_token = save_treat_newline_as_token;
+  no_modifs_to_curr_source_line = save_no_modifs_to_curr_source_line;
+  in_token_insertion_from_string = FALSE;
+  curr_source_line = save_curr_source_line;
+
+  /* Resume fetching tokens from the previous source. */
+  pop_string_insert_cache_entry();
+  /* Get the next token from the normal input stream.  This is needed because
+     the correct current token must be available for rescan_cached_tokens. */
+  (void)get_token();
+  if (!insert_after) {  
+    /* If the string is inserted before the current token, rescan the current
+       token. */
+    rescan_cached_tokens(&curr_token_cache);
+  }  /* if */
+  /* Scan the tokens from the cache. */
+  rescan_cached_tokens(&cache);
+}  /* insert_string_into_token_stream */
+
+
 void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp)
 /*
 Active the token cache containing the pragma to be scanned and push a
@@ -12686,6 +12841,9 @@ of the front end.
   avail_stop_token_stack_entries = NULL;
   avail_pending_pragmas = NULL;
   dollar_in_id_diagnostic_issued = FALSE;
+  token_insertion_buffer = NULL;
+  in_token_insertion_from_string = FALSE;
+  token_insertion_position = null_source_position;
 #if TOKENS_TO_STRING_NEEDED
   /* Initialize the output control block for the il-to-str routines. */
   clear_il_to_str_output_control_block(&octl);

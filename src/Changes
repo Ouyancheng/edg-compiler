@@ -1,5 +1,14 @@
 Version 2.46
 
+12/26/01 Mechanism to insert strings into the token stream
+
+A mechanism has been provided that may be used to insert a string, that
+is interpreted as a sequence of tokens, into the token stream processed
+by the front end.
+
+The function insert_string_into_token_stream is used to access this
+mechanism.  The tokens may be inserted before or after the current token.
+
 12/25/01 Microsoft compatibility: lvalue cast that drops cv-qualifier
 
 A previous change (see entry for 1/17/00) emulates MSVC++ in

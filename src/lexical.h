@@ -1426,7 +1426,8 @@ enum a_token_extra_info_kind_tag {
   teik_pragma,		/* Extra information for a pragma. */
   teik_pp_token,        /* Extra information for a pp token. */
   teik_extracted_body,  /* Extra information for an extracted template body. */
-  teik_asm_string	/* Extra information for a Microsoft asm block. */
+  teik_asm_string,	/* Extra information for a Microsoft asm block. */
+  teik_insert_string    /* Extra information for an inserted token string. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_token_extra_info_kind;
@@ -1834,6 +1835,9 @@ extern void pop_stop_token_stack(void);
 extern a_template_ptr scan_template_template_argument(
 				a_template_ptr		param_template,
 				a_source_position	*err_pos);
+
+extern void insert_string_into_token_stream(char	*string,
+					    a_boolean	insert_after);
 
 #if CHECKING
 void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens);
