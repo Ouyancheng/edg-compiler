@@ -1,5 +1,11 @@
 Version 2.39
 
+7/9/98    EH cleanup state, long lifetime temporaries mode, switch clauses
+
+The cleanup state determined in long lifetime temporaries mode at a
+switch clause after the first in the switch was sometimes wrong.
+This has been corrected.
+
 7/9/98    __STDC__ redefinable in non-strict ANSI/ISO C mode
 
 The predefined macro __STDC__ is now allowed to be redefined in

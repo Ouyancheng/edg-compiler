@@ -515,6 +515,16 @@ and return that.
          lifetime != NULL;
          lifetime = lifetime->parent_lifetime) {
       cleanup_state = lifetime->parent_destruction_sublist;
+      if (long_lifetime_temps &&
+          lifetime->kind == (an_object_lifetime_kind)olk_block_after_label) {
+        /* When going up into a lifetime preceding a label, in long lifetime
+           temporaries mode, skip temporaries, since they have been
+           destroyed. */
+        while (cleanup_state != NULL &&
+               cleanup_state->has_temporary_lifetime) {
+          cleanup_state = cleanup_state->next_in_destruction_list;
+        }  /* while */
+      }  /* if */
       if (cleanup_state != NULL &&
           cleanup_state->overlaps_temps_in_inner_lifetime &&
           cleanup_state->destructible_entity_descr != NULL &&
