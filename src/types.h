@@ -637,8 +637,8 @@ typedef int a_type_tree_traversal_flag_set;
 			   apply the predicate check to the parameter types. */
 #define TTT_THIS_PARAM_TYPE 0x4
 			/* When the type being traversed is a function type,
-			   apply the predicate check to the implicit this
-			   param type. */
+			   apply the predicate check to the implicit "this"
+			   parameter type. */
 #define TTT_MEMBER_TYPES 0x8
 			/* When the type being traversed is a class type,
 			   apply the predicate check to nested classes,
@@ -668,11 +668,18 @@ typedef int a_type_tree_traversal_flag_set;
 			/* When the type being traversed is a function type,
 			   apply the predicate check to the exception
 			   specification list. */
+#define TTT_STOP_AT_TYPEDEFS 0x800
+			/* When the type encountered is a typedef, stop
+			   the traversal. */
 
 /* Type of service function called by traverse_type_tree to return TRUE or
    FALSE status regarding a given type in a type tree. */
 typedef a_boolean a_type_predicate_function(a_type_ptr tp, a_boolean *flag);
 typedef a_type_predicate_function *a_type_predicate_function_ptr;
+
+extern a_boolean ttt_is_variably_modified_type(
+                                        a_type_ptr  type_ptr,
+                                        a_boolean   *force_end_of_traversal);
 
 a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                              a_type_predicate_function_ptr  func,

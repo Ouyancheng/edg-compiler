@@ -5339,10 +5339,10 @@ bound (i.e., one declared with "[*]").
   return found;
 }  /* ttt_is_or_contains_vla_with_unspecified_bound */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static a_boolean ttt_is_variably_modified_type(
-                                       a_type_ptr  type_ptr,
-                                       a_boolean   *force_end_of_traversal)
+a_boolean ttt_is_variably_modified_type(a_type_ptr  type_ptr,
+                                        a_boolean   *force_end_of_traversal)
 /*
 Return TRUE if type_ptr is a VLA or a typedef type that has been marked as
 referring to a variably modified type.
@@ -5358,8 +5358,6 @@ referring to a variably modified type.
   return found;
 }  /* ttt_is_variably_modified_type */    
 
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                              a_type_predicate_function_ptr  func,
@@ -5386,9 +5384,16 @@ its parameters?).
       type_ptr = f_skip_typerefs(type_ptr);
     } else if (flags & TTT_SKIP_TYPEDEFS) {
       type_ptr = skip_typedefs(type_ptr);
+    } else if ((flags & TTT_STOP_AT_TYPEDEFS) &&
+               typeref_is_typedef(type_ptr)) {
+      force_end_of_traversal = TRUE;
     }  /* if */
   }  /* if */
-  status = func(type_ptr, &force_end_of_traversal);
+  if (!force_end_of_traversal) {
+    status = func(type_ptr, &force_end_of_traversal);
+  } else {
+    status = FALSE;
+  }  /* if */
   if (force_end_of_traversal) {
     /* The function has determined that no further traversal is appropriate;
        return the current status to the caller. */
