@@ -919,8 +919,10 @@ no need to actually instantiate X<int> in the example above.
     /* We are reusing a class type that already exists, so *new_list will not
        be used.  Return the entries to the available list for reuse. */
     free_template_arg_list(*new_list);
-    *new_list = NULL;
   }  /* if */
+  /* The list is cleared in all cases.  The caller cannot use the list
+     after we return because it may have been freed. */
+  *new_list = NULL;
   db_exit();
   return sym;
 }  /* find_template_class */
@@ -2288,8 +2290,10 @@ structure.
     /* We are reusing a template function that already exists, so *new_list
        will not be used.  Return it to the available list for reuse. */
     free_template_arg_list(*new_list);
-    *new_list = NULL;
   }  /* if */
+  /* The list is cleared in all cases.  The caller cannot use the list
+     after we return because it may have been freed. */
+  *new_list = NULL;
   db_exit();
   return sym;
 }  /* find_template_function */
