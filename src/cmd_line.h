@@ -629,7 +629,7 @@ EXTERN a_boolean
                                                        ;
 			/* TRUE if Microsoft extensions are to be accepted. */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-/* When Microsoft mode is unavailable, replace the variable with a macros.
+/* When Microsoft mode is unavailable, replace the variable with a macro.
    This will allow optimizers to remove some useless code when the front-end
    itself is compiled. */
 #define microsoft_mode (FALSE)
