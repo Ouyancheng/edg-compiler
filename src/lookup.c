@@ -596,13 +596,14 @@ of the symbol header.
     a_symbol_header_ptr		hdr;
     a_type_ptr			parent_class = NULL;
     a_namespace_ptr		parent_namespace = NULL;
-    hdr = sym->header;
     if (orig_sym->is_class_member) {
       parent_class = orig_sym->parent.class_type;
     } else {
       parent_namespace = orig_sym->parent.namespace_ptr;
     }  /* if */
-    sym = create_unknown_function_symbol(hdr, parent_class, parent_namespace);
+    sym = create_unknown_function_symbol(orig_sym->header, parent_class,
+                                         parent_namespace);
+    hdr = sym->header;
     /* Link this symbol onto the other symbols list. */
     sym->next = hdr->other_symbols;
     hdr->other_symbols = sym;
