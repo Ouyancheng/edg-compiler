@@ -152,12 +152,12 @@ static a_boolean
 			/* TRUE when instantiation wrapup has been called
 			   to do end-of-compilation unit instantiations. */
 
-#if DEBUG
+#if CHECKING
 static a_boolean
 		after_instantiation_wrapup;
 			/* TRUE after instantiation wrapup processing has
 			   completed. */
-#endif /* DEBUG */
+#endif /* CHECKING */
 
 static a_boolean
 		entries_updated_during_instantiation_wrapup;
@@ -10505,7 +10505,6 @@ file we simply return.
     db_symbol(tip->instance_sym, "", 2);
   }  /* if */
 #endif /* DEBUG */
-  check_assertion(!after_instantiation_wrapup);
   decl_position = &tip->template_sym->decl_position;
   sfp = source_file_for_seq(decl_position->seq, &line_number,
                             &at_end_of_source, &nesting_depth,
@@ -10519,6 +10518,7 @@ file we simply return.
     if (!sfp->related_file_implicit_include_done) {
       /* If we haven't already included the corresponding source file then
          do so now. */
+      check_assertion(!after_instantiation_wrapup);
 #if DEBUG
       if (print_debug_info) {
         fprintf(f_debug, "  Looking for source file related to '%s'\n",
@@ -11609,9 +11609,9 @@ specific definition that made it unnecessary.
   check_assertion_str2(!any_friend_state_changed || total_errors != 0,
                        "instantiation_wrapup:",
                        "silent change in friend state");
-#if DEBUG
+#if CHECKING
   after_instantiation_wrapup = TRUE;
-#endif /* DEBUG */
+#endif /* CHECKING */
   db_exit();
 }  /* instantiation_wrapup */
 
@@ -12504,10 +12504,10 @@ Initializations for template.
   deferred_instantiations_in_process = FALSE;
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
-  after_instantiation_wrapup = FALSE;
 #endif /* DEBUG */
 #if CHECKING
   any_friend_state_changed = FALSE;
+  after_instantiation_wrapup = FALSE;
 #endif /* CHECKING */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   any_instantiations_required = FALSE;
