@@ -591,8 +591,11 @@ ambiguity.
   a_base_class_ptr                    bcp;
   an_overriding_virtual_function_ptr  ovfp;
   a_routine_ptr                       vfp;
+  a_boolean                           is_nonreal_instantiation;
 
   db_enter(4, "report_virtual_function_ambiguities");
+  is_nonreal_instantiation =
+                    symbol_supplement_for_class(class_type)->is_nonreal_class;
   /* Make a pass over all the base classes (direct and indirect both) of
      the class indicated by class_type. */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
@@ -619,8 +622,10 @@ ambiguity.
         /* The virtual functions (member functions of the base class to which
            bcp refers) are the same -- i.e., both ovfp and ovfp->next
            represent an override of the same function. */
-        a_symbol_ptr sym = (a_symbol_ptr)vfp->source_corresp.assoc_info;
-        sym_error(ec_ambiguous_virtual_function_override, sym);
+        if (!is_nonreal_instantiation) {
+          a_symbol_ptr sym = (a_symbol_ptr)vfp->source_corresp.assoc_info;
+          sym_error(ec_ambiguous_virtual_function_override, sym);
+        }  /* if */
         /* Remove the next entry and any successors that also have the same
            virtual function number. */
         for (;;) {
@@ -1265,19 +1270,14 @@ routine entry and return TRUE; otherwise return FALSE.
               if (return_types_are_override_compatible(rout->type, rp->type)) {
                 /* Match */
                 is_virtual = TRUE;
-                if (is_nonreal_instantiation) {
-                  /* No more searching is needed, so break out of the loops. */
-                  goto done;
-                } else {
-                  /* Record the virtual function override in the base class
-                     entry.  It can be used later, e.g., for building a virtual
-                     function table. */
-                  record_virtual_function_override(bcp, rp, rout);
-                  if (shares_virtual_function_info(class_type, bcp)) {
-                    /* The virtual function table is being shared, so we must
-                       use the identical number. */
-                    virtual_function_number = rp->virtual_function_number;
-                  }  /* if */
+                /* Record the virtual function override in the base class
+                   entry.  It can be used later, e.g., for building a virtual
+                   function table. */
+                record_virtual_function_override(bcp, rp, rout);
+                if (shares_virtual_function_info(class_type, bcp)) {
+                  /* The virtual function table is being shared, so we must
+                     use the identical number. */
+                  virtual_function_number = rp->virtual_function_number;
                 }  /* if */
               } else {
                 /* Error -- cannot differ in return type only (ARM 10.2). */
@@ -6695,21 +6695,21 @@ next_declaration:
         /* Check for inherited conversion functions.  This must be done before
            rescanning inline function definitions. */
         project_base_class_conversion_functions(class_type);
-        /* Report errors in virtual function declarations that result from
-           the failure to redeclare a virtual function originally declared in
-           a virtual base class. */
-        copy_source_position(pos_curr_token, error_position);
-        report_virtual_function_ambiguities(class_type);
-        /* If the current class is not already marked as "abstract", run
-           through its base classes to determine whether it is abstract by
-           inheritance and set the flag accordingly. */
-        check_abstract_class(class_type);
-        /* Classes with no constructors, no private or protected members, no
-           base classes, and no virtual functions are used to declare
-           "aggregate" objects (ARM 8.4.1). */
-        if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
-          cssp->is_class_aggregate = TRUE;
-        }  /* if */
+      }  /* if */
+      /* Report errors in virtual function declarations that result from
+         the failure to redeclare a virtual function originally declared in
+         a virtual base class. */
+      copy_source_position(pos_curr_token, error_position);
+      report_virtual_function_ambiguities(class_type);
+      /* If the current class is not already marked as "abstract", run
+         through its base classes to determine whether it is abstract by
+         inheritance and set the flag accordingly. */
+      check_abstract_class(class_type);
+      /* Classes with no constructors, no private or protected members, no
+         base classes, and no virtual functions are used to declare
+         "aggregate" objects (ARM 8.4.1). */
+      if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
+        cssp->is_class_aggregate = TRUE;
       }  /* if */
       /* Issue a warning on a class with an operator new() but no operator
          delete() or vice versa. */
