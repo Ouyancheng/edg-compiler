@@ -3968,6 +3968,9 @@ the current class (class_type).
 {
   a_class_list_entry_ptr      clep;
   a_class_type_supplement_ptr ctsp;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_type_ptr  declared_type = friend_class_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   if (is_error_type(friend_class_type)) {
     /* Ignore it. */
@@ -3975,12 +3978,10 @@ the current class (class_type).
     /* friend declarations are not processed during prototype instantiation
        -- they're meaningless until a real instantiation is done. */
   } else {
-    if (any_cfront_mode()) {
-      /* In cfront mode it is sometimes permitted to use a typedef name in
-         the elaborated type specifier of a friend class declaration as long
-         as it refers to a class. */
-      friend_class_type = skip_typerefs(friend_class_type);
-    }  /* if */
+    /* In non-strict mode (e.g., for cfront compatibility) it is sometimes
+       permitted to use a typedef name in the elaborated type specifier of
+       a friend class declaration as long as it refers to a class. */
+    friend_class_type = skip_typerefs(friend_class_type);
     check_assertion(is_immediate_class_type(friend_class_type));
     if (class_type == friend_class_type) {
       /* Diagnostic on excessive narcissism. */
@@ -4013,7 +4014,7 @@ the current class (class_type).
     {
     a_source_sequence_entry_ptr   ssep;
 
-    ssep = last_matching_source_sequence_entry((char *)friend_class_type);
+    ssep = last_matching_source_sequence_entry((char *)declared_type);
     if (ssep != NULL && ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
       ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->friend_decl = TRUE;
     }  /* if */

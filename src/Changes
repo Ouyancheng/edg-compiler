@@ -1,5 +1,18 @@
 Version 2.37
 
+9/3/97    Source sequence entry for nonstandard friend declaration
+
+The source sequence entry generated for a nonstandard friend declaration
+was incorrect when the type specified in the friend declaration was a
+typedef name.  This resulted in incorrect output from the C++-generating
+back end.  Now fixed.
+
+  class A { };
+  typedef A T;
+  class B {
+    friend T;      // omission of "class" is nonstandard
+  };
+
 9/2/97    Missing test for exceeding maximum number of scopes
 
 The front end did not check for overflow when the next scope number was

@@ -3538,8 +3538,6 @@ Returns TRUE if there is an error in the specifiers.
                            class B { friend TA; };
                       */
                       tp = NULL;
-                    } else {
-                      tp = skip_typerefs(tp);
                     }  /* if */
                   }  /* if */
                 }  /* if */
@@ -3555,7 +3553,7 @@ Returns TRUE if there is an error in the specifiers.
                      for using a nonstandard feature. */
                   char               *class_key_string;
 
-                  switch (tp->kind) {
+                  switch (skip_typerefs(tp)->kind) {
                     case tk_class:   class_key_string = "class";   break;
                     case tk_struct:  class_key_string = "struct";  break;
                     case tk_union:   class_key_string = "union";   break;
