@@ -2337,6 +2337,8 @@ Print the name of the C++ operator kind.
     case onk_arrow:               s = "onk_arrow";                 break;
     case onk_function_call:       s = "onk_function_call";         break;
     case onk_subscript:           s = "onk_subscript";             break;
+    case onk_gnu_min:             s = "onk_gnu_min";               break;
+    case onk_gnu_max:             s = "onk_gnu_max";               break;
     default:                      s = "**BAD OPERATOR NAME KIND**";
   }  /* switch */
   (void)printf(s);
