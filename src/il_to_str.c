@@ -1595,7 +1595,7 @@ pointer to it.
     /* See if any of the fields matches the desired type. */
     for (; field != NULL; field = field->next) {
       /* Stop on finding a field with the desired type. */
-      if (identical_types(type, field->type)) break;
+      if (type == field->type) break;
     }  /* for */
     /* Use the first field if nothing matched. */
     if (field == NULL) {
