@@ -5907,20 +5907,16 @@ next_declaration:
       /* Create compiler-generated default constructor, copy constructor,
          destructor, and assignment operator, if any is needed. */
       check_special_member_functions(class_type);
-      /* Since check_special_member_functions can have added new symbols,
-         update the symbols list attached to the class if it is empty. */
-      if (cssp->symbols == NULL) {
-        cssp->symbols = scope_stack[depth_scope_stack].symbols;
-      }  /* if */
+      /* Since check_special_member_functions can have added new symbols or
+         modified the head of the old list, update the symbols list attached
+         to the class. */
+      cssp->symbols = scope_stack[depth_scope_stack].symbols;
       /* Check for inherited conversion functions.  This must be done before
          rescanning inline function definitions. */
       project_base_class_conversion_functions(class_type);
       /* Since project_base_class_conversion_functions can have added new
-         symbols, update the symbols list attached to the class if it is
-         empty. */
-      if (cssp->symbols == NULL) {
-        cssp->symbols = scope_stack[depth_scope_stack].symbols;
-      }  /* if */
+         symbols, update the symbols list attached to the class.
+      cssp->symbols = scope_stack[depth_scope_stack].symbols;
       /* Report errors in virtual function declarations that result from
          the failure to redeclare a virtual function originally declared in
          a virtual base class. */
