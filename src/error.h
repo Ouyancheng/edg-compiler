@@ -498,7 +498,8 @@ typedef enum /*an_error_code*/ {
   ec_compiler_generated_function_context,
   ec_runaway_recursive_instantiation,
   ec_bad_template_declaration,
-  ec_bad_nontype_template_arg
+  ec_bad_nontype_template_arg,
+  ec_init_needing_temp_not_allowed
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1741,6 +1741,9 @@ error code.
     case ec_bad_nontype_template_arg:
       m = "argument is incompatible with corresponding template parameter";
       break;
+    case ec_init_needing_temp_not_allowed:
+      m = "initialization requiring a temporary is not allowed";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
