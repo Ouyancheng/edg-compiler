@@ -4156,6 +4156,7 @@ new ones are allocated in scope specified by decl_scope_level.
   sym = cssp->symbols;
   cssp->symbols = NULL;
   /* Go through each of the symbols on the list. */
+  check_assertion(decl_scope_level == depth_scope_stack || C_mode());
   for (; sym != NULL; sym = next_sym) {
     next_sym = sym->next_in_scope;
     if (reuse_symbol) sym->next_in_scope = NULL;
@@ -4175,7 +4176,7 @@ new ones are allocated in scope specified by decl_scope_level.
           /* Unlink the symbol from the inactive list and link it back into
              the symbol table in the current scope. */
           remove_anonymous_union_member_from_inactive_symbols_list(sym);
-          reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+          reenter_symbol(sym, depth_scope_stack, /*suppress_error=*/FALSE);
         } else {
           a_field_ptr      fp = sym->variant.field.ptr;
           a_symbol_locator loc;
@@ -4219,40 +4220,28 @@ new ones are allocated in scope specified by decl_scope_level.
       case sk_class_or_struct_tag:
       case sk_union_tag:
       case sk_enum_tag:
-        if (reuse_symbol) {
-          /* Unlink the symbol from the inactive list and link it back into
-             the symbol table in the current scope. */
-          tp = type_symbol_type(sym);
-          /* Set the parent class in the symbol but not in the IL entry.  The
-             symbol is promoted, but the type remains nested. */
-          sym->class_of_which_a_member = class_type;
-          /* The members of an anonymous union within a class take on the
-             access specifier of the anonymous union itself; the members
-             of a variable anonymous union should be (i.e., should remain)
-             public. */
-          tp->source_corresp.access = assoc_object_access;
-          remove_anonymous_union_member_from_inactive_symbols_list(sym);
-          reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
-        } else {
-#if 0
-NYI
-#endif /* if 0 */
-        }  /* if */
+        /* Unlink the symbol from the inactive list and link it back into
+           the symbol table in the current scope. */
+        tp = type_symbol_type(sym);
+        /* Set the parent class in the symbol but not in the IL entry.  The
+           symbol is promoted, but the type remains nested. */
+        sym->class_of_which_a_member = class_type;
+        /* The members of an anonymous union within a class take on the
+           access specifier of the anonymous union itself; the members
+           of a variable anonymous union should be (i.e., should remain)
+           public. */
+        tp->source_corresp.access = assoc_object_access;
+        remove_anonymous_union_member_from_inactive_symbols_list(sym);
+        reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
         break;
       case sk_constant:
         /* An enum constant. */
-        if (reuse_symbol) {
-          /* Set the parent class in the symbol but not in the IL entry.  The
-             symbol is promoted, but the type remains nested. */
-          sym->class_of_which_a_member = class_type;
-          sym->variant.constant->source_corresp.access = assoc_object_access;
-          remove_anonymous_union_member_from_inactive_symbols_list(sym);
-          reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
-        } else {
-#if 0
-NYI
-#endif /* if 0 */
-        }  /* if */
+        /* Set the parent class in the symbol but not in the IL entry.  The
+           symbol is promoted, but the type remains nested. */
+        sym->class_of_which_a_member = class_type;
+        sym->variant.constant->source_corresp.access = assoc_object_access;
+        remove_anonymous_union_member_from_inactive_symbols_list(sym);
+        reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
         break;
       case sk_static_data_member:
         /* Must be an error, since unions cannot have static data members.
@@ -4287,10 +4276,10 @@ static a_boolean is_anonymous_union_decl(a_type_ptr       member_type,
     /* In C++ mode, we know this is not a friend or typedef declaration.  If
        the extension is not enabled, we know this isn't C mode. */
     if (!is_class_struct_union_type(member_type) ||
-        !(skip_typerefs(member_type))->
-                           variant.class_struct_union.originally_unnamed) {
+        (!C_mode() && !(skip_typerefs(member_type))->
+                           variant.class_struct_union.originally_unnamed)) {
       /* Definitely not an anonymous union -- either it's the wrong kind of
-         type or it was declared with a tag. */
+         type or (in C++) it was declared with a tag. */
     } else if (!C_mode() &&
                member_type->kind == (a_type_kind)tk_union) {
       /* A proper C++ anonymous union. */
@@ -4307,18 +4296,39 @@ static a_boolean is_anonymous_union_decl(a_type_ptr       member_type,
         /* This must be a cv qualifier on top of what we already know is
            a class/struct/union type.  Don't treat this as an anonymous-
            union-like construct. */
-      } else {
-        /* Okay.  But issue a diagnostic that this is an extension. */
-        /* warning(xxx); */
+      } else if (C_mode()) {
         is_anonymous_union = TRUE;
+      } else {
+        /* In C++ it's required that the class have only C features -- i.e.,
+           no member functions, no static data members, and no nested aside
+           from anonymous unions. */
+        a_class_symbol_supplement_ptr  cssp;
+        a_symbol_ptr                   sym;
+
+        cssp = symbol_supplement_for_class(tp);
+        if (cssp->is_class_aggregate) {
+          /* Assume. */
+          is_anonymous_union = TRUE;
+          for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
+            if (sym->kind == (a_symbol_kind)sk_field) {
+              /* Okay. */
+            } else if (sym->kind == (a_symbol_kind)sk_union_tag &&
 #if 0
-        if (member_type != tp) {
-          /* Now we have to clone the type. */
-          member_type = alloc_type(tp->kind);
-          copy_type(tp, member_type);
-          /* Copy the fields. */
-        }
+/* This test isn't right */
 #endif /* if 0 */
+                       (type_symbol_type(sym))->
+                           variant.class_struct_union.originally_unnamed) {
+              /* Okay. */
+            } else {
+              is_anonymous_union = FALSE;
+              break;
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      }  /* if */
+      if (is_anonymous_union) {
+        /* Issue a diagnostic that this is an extension. */
+        warning(ec_nonstd_anonymous_union);
       }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     }  /* if */
