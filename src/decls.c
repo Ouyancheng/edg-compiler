@@ -2510,6 +2510,7 @@ diagnostics.
             break;
           case dmt_microsoft_inline:
           case dmt_nothrow:
+          case dmt_noreturn:
             break;
           default:
             invalid_modifier = TRUE;

@@ -314,6 +314,14 @@ source position of the specified inheritance kind is returned in
               } else {
                 decl_modifiers->flags |= DM_NOVTABLE;
               }  /* if */
+            } else if (strcmp(modifier, "noreturn") == 0) {
+              if (is_class_decl) {
+                /* "noreturn" is not allowed on a class declaration. */
+                pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                               &pos_curr_token, modifier);
+              } else {
+                decl_modifiers->flags |= DM_NORETURN;
+              }  /* if */
             } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
               if (!is_class_decl) {
                 /* "uuid" is allowed only on a class declaration. */

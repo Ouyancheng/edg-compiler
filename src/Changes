@@ -1,5 +1,12 @@
 Version 2.40
 
+9/16/98   Microsoft compatibility: support for __declspec(noreturn)
+
+In Microsoft compatibility mode, "noreturn" is now recognized as a
+__declspec modifier.  In addition, "reachability" checking now takes
+it into account in issuing various diagnostics (e.g., complaints about
+missing return statements).
+
 9/16/98   New diagnostic on implicit return from non-void function
 
 A new diagnostic (ec_implicit_return_from_non_void_function) has been

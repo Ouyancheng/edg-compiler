@@ -1291,6 +1291,9 @@ Display the indicated decl modifiers.
     if (dm & DM_NOVTABLE) {
       disp_boolean("novtable", TRUE);
     }  /* if */
+    if (dm & DM_NORETURN) {
+      disp_boolean("noreturn", TRUE);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* disp_decl_modifiers */

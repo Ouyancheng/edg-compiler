@@ -2435,6 +2435,7 @@ enum a_decl_modifier_tag {
   dmt_selectany,
   dmt_nothrow,
   dmt_novtable,
+  dmt_noreturn,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   dmt_last
 };
@@ -2452,6 +2453,7 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
   /* dmt_selectany */		"selectany",
   /* dmt_nothrow */		"nothrow",
   /* dmt_novtable */		"novtable",
+  /* dmt_noreturn */		"noreturn",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* dmt_last */		"last"
 } /* decl_modifier_names */
@@ -2491,12 +2493,15 @@ about variables and routines.
 #define DM_NOVTABLE	(1 << (int)dmt_novtable)
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(novtable) specifier. */
+#define DM_NORETURN	(1 << (int)dmt_noreturn)
+			/* TRUE if the declaration includes the Microsoft
+			   __declspec(noreturn) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Type used to represent a set of decl modifiers.
 */
-typedef a_byte a_decl_modifier;
+typedef unsigned short a_decl_modifier;
 
 #endif /* ifdef CIL */
 
