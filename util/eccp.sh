@@ -139,6 +139,10 @@ EDG_LIB_SUFFIX=${EDG_LIB_SUFFIX-""}
 #
 EDG_STD_LIBS=${EDG_STD_LIBS-"std"}
 #
+# The name of the EDG runtime library to be passed to the linker.
+#
+EDG_RUNTIME_LIB=${EDG_RUNTIME_LIB-"C"}
+#
 # C compiler to use to compile the output and any options to be used with
 # this compiler by default.
 #
@@ -1983,7 +1987,7 @@ then
                        $ldoptions -o $executable \
                        $object_files $EDG_STD_LIBS \
 		       $EDG_C_TO_OBJ_LIBRARIES"
-      link_command_suffix=" -lC$EDG_LIB_SUFFIX"
+      link_command_suffix=" -l$EDG_RUNTIME_LIB$EDG_LIB_SUFFIX"
       if [ $link_using_purify -eq 1 ] ; then
         link_command="purify $link_command"
       fi
