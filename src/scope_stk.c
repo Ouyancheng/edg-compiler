@@ -2152,6 +2152,7 @@ body.  Only called in C++ mode.
   a_scope_ptr              class_scope;
   a_symbol_ptr             sym;
   a_template_instance_ptr  tip;
+  a_boolean                is_inline_virtual;
 
   /* Examine each of the class types on the types list of the scope.  If
      this is a class scope, it picks up the nested classes. */
@@ -2169,30 +2170,47 @@ body.  Only called in C++ mode.
   if (scope->kind == (a_scope_kind)sck_class_struct_union) {
     /* Now go though each routine entry for the current class. */
     for (rp = scope->routines; rp != NULL; rp = rp->next) {
-      /* If the member function was referenced but not defined and was declared
-         inline or is a local class member, it may need a diagnostic. */
-      if (rp->source_corresp.referenced &&
-          rp->assoc_scope == NULL_region_number &&
-          (is_function_local || rp->is_inline ||
-           rp->storage_class == (a_storage_class)sc_static)) {
-        /* Referenced but never defined. */
-        if (rp->compiler_generated || (rp->is_virtual && !rp->pure_virtual)) {
-          /* These cases are handled elsewhere. */
-        } else {
+      if (rp->assoc_scope == NULL_region_number) {
+        /* An undefined member function. */
+        is_inline_virtual =
+                    (rp->is_inline && rp->is_virtual && !rp->pure_virtual);
+        if (rp->source_corresp.referenced || is_inline_virtual) {
+          /* Either the function was actually referenced or could be
+             referenced using the virtual function call mechanism. */
+          check_assertion(!rp->compiler_generated);
           sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
           if (sym != NULL) {
-            if (is_function_local) {
+            tip = sym->variant.routine.instance_ptr;
+            if (tip != NULL && tip->explicit_instantiation) {
+              /* An error will already have been issued on the instantiation
+                 attempt. */
+            } else if (is_inline_virtual) {
+              /* An undefined inline virtual function.  This is definitely an
+                 error when extern inline is TRUE, and is plausibly an error
+                 otherwise.  However, cfront accepts it (though it may put
+                 out bad code). */
+              pos_sy_diagnostic(any_cfront_mode() ? es_warning : es_error,
+                                ec_virtual_inline_never_defined,
+                                &sym->decl_position, sym);
+              if (any_cfront_mode()) {
+                /* Modify the routine entry so that the IL will be valid;
+                   otherwise there may appear to be a reference to an
+                   undefined function with static storage class. */
+                rp->storage_class = (a_storage_class)sc_extern;
+                rp->source_corresp.name_linkage =
+                                 (a_name_linkage_kind)nlk_cplusplus_external;
+                rp->is_inline = FALSE;
+              }  /* if */
+            } else if (is_function_local) {
+              /* A referenced but undefined member function of a local
+                 class. */
               pos_sy_error(ec_local_class_function_def_missing,
                            &sym->decl_position, sym);
-            } else {
-              tip = sym->variant.routine.instance_ptr;
-              if (tip != NULL && tip->explicit_instantiation) {
-                /* An error will already have been issued on the instantiation
-                   attempt. */
-              } else {
-                /* Put out the error. */
-                pos_sy_error(ec_never_defined, &sym->decl_position, sym);
-              }  /* if */
+            } else if (rp->is_inline ||
+                       rp->storage_class != (a_storage_class)sc_extern) {
+              /* A referenced but undefined member function that is either
+                 extern-inline or has internal linkage. */
+              pos_sy_error(ec_never_defined, &sym->decl_position, sym);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -2401,7 +2419,7 @@ NULL.
           !rout_ptr->is_inline) {
         /* Regard functions with "unspecified" storage class to be referenced
            somewhere, even if not in the current translation unit; extern
-           inline functions are an exception, since there callability is
+           inline functions are an exception, since their callability is
            "as if" they had static storage. */
         rout_ptr->source_corresp.referenced = TRUE;
         sym->referenced = TRUE;
@@ -2435,7 +2453,7 @@ NULL.
           }  /* if */
         } else if (rout_ptr->is_inline &&
                    rout_ptr->storage_class == (a_storage_class)sc_extern) {
-          /* An extern-inline function that was reference but not defined. */
+          /* An extern-inline function that was referenced but not defined. */
           pos_sy_error(ec_extern_inline_never_defined, &sym->decl_position,
                        sym);
         }  /* if */

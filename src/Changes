@@ -1,5 +1,24 @@
 Version 2.33
 
+9/24/96 Undefined inline virtual function
+
+Except in cfront mode, an error is now issued if a virtual function is
+declared inline but not defined:
+
+  struct S {
+    virtual inline void f();   // Now an error if not defined later in the
+  };                           //   current translation unit.
+
+There are three motivations for this change.  First, there was a bug in
+failing to issue an error even when the undefined inline virtual function
+was subsequently called.  Second, the C-generating back end was putting out
+bad C code for the above example.  Third, the error is now required when
+compiling with --extern_inline: simply being a virtual function counts as
+being "used", and an inline function with external linkage must be defined
+in every translation unit in which it is used.  Only a warning is put out
+in cfront mode (because cfront itself issues no error), and the IL entry
+is modified to produce consistent IL.
+
 9/23/06 Support for "extern inline"
 
 In C++ support for "extern inline" is now available.  This means
