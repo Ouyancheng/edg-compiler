@@ -4001,7 +4001,7 @@ operand.
   operand->came_from_reference = FALSE;
   /* Restore the original source position etc.  Keep the cross-reference
      entries because if the function is called we would like to be able
-     ro change the reference to referenced instead of address-taken. */
+     to change the reference to referenced instead of address-taken. */
   restore_operand_details_incl_xref(operand, &orig_operand);
   /* Change the kind in the cross-reference entries to address-taken. */
   change_xref_kinds(operand->xref_entries_list, srk_address_taken);
