@@ -9162,6 +9162,8 @@ its source correspondence entry, if any, has been put out.)
           case sk_function_template:
           case sk_member_function:
           case sk_class_template:
+          case sk_class_or_struct_tag:
+          case sk_union_tag:
             il_template_entry->definition_range = decl_state->definition_range;
             break;
           default:;
