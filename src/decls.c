@@ -6122,10 +6122,12 @@ A sk_namespace_projection is created and added to the symbol table for the
 current scope.
 */
 {
-  a_symbol_ptr      sym, new_sym, overload_sym = NULL;
-  a_boolean         err = FALSE;
-  a_symbol_locator  locator;
-  a_boolean         is_list = FALSE;
+  a_symbol_ptr             sym, new_sym, overload_sym = NULL;
+  a_boolean                err = FALSE;
+  a_symbol_locator         locator;
+  a_boolean                is_list = FALSE;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+  a_namespace_ptr          nsp;
 
   db_enter(3, "nonmember_using_declaration");
   /* Bypass "using". */
@@ -6143,6 +6145,16 @@ current scope.
                 locator_for_curr_id.symbol_header->identifier);
     } else if (!locator_for_curr_id.is_qualified_name ||
                locator_for_curr_id.is_class_member) {
+      error(ec_bad_name_in_using_decl);
+    } else if ((nsp = qualifier_namespace_ptr(locator_for_curr_id)) != NULL &&
+               ssep->il_scope != NULL &&
+               ssep->il_scope->kind == (a_scope_kind)sck_namespace &&
+               ssep->il_scope->variant.assoc_namespace ==
+                                                skip_namespace_aliases(nsp)) {
+      /* Attempting a using-declaration with a namespace qualifier that is
+         the same as the current namespace:
+           namespace N { int i; using N::i; }
+      */
       error(ec_bad_name_in_using_decl);
     } else if (sym->kind == (a_symbol_kind)sk_namespace) {
       pos_error(ec_namespace_name_not_allowed,
