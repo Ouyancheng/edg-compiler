@@ -353,6 +353,8 @@ conversion can be done, return the result in "result".
       /* The number is slightly larger than the official maximum float, but
          on conversion to float it rounds to the maximum float, so it's
          okay. */
+    } else if (gnu_mode) {
+      /* GNU C and C++ silently uses infinity for values that are too large. */
     } else {
       /* Overflow. */
       *err = TRUE;

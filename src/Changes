@@ -1,5 +1,14 @@
 Version 3.6
 
+2/3/04  GNU compatibility: infinity used for float values out of range
+
+In GNU mode, the front end accepts floating-point constants that are out
+of range and uses the "infinity" value instead.  However, constants that were
+explicitly written as float (i.e., with an "F" suffix) were incorrectly not
+given this special treatment.  Now fixed.
+
+  float f() { return 1.0e+40F; }
+
 2/2/05   Nonstandard anonymous unions in unions
 
 The fields of a nonstandard anonymous union appearing in a union are in most
