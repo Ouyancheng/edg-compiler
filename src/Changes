@@ -1,5 +1,16 @@
 Version 3.3
 
+6/2/03   Spurious error on elaborated type specifier in typedef inside template
+
+A change introduced in version 3.1 resulted in a spurious error if a
+class was initially declared using an elaborated type specifier in a
+class template.  This error occurred when not using dependent name
+lookup mode.  Now fixed.
+
+  template <class T> struct A : public T {
+    typedef struct X* my_x;
+  };
+
 5/30/03  Unset memory reference on error case in Microsoft and g++ modes
 
 In certain error cases, unset memory could be referenced after diagnosing

@@ -2967,7 +2967,8 @@ C and C++.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (sym == NULL && lookup_state.any_nonreal_bases) {
+        if (sym == NULL && lookup_state.any_nonreal_bases &&
+            !lookup_state.must_be_tag) {
           /* If no symbol was found and one of the classes searched has
              a nonreal base class then consider the symbol to be a member
              of the class with the nonreal base class.  This will occur when
@@ -2981,7 +2982,9 @@ C and C++.
              it will add a projection symbol to one of the nonreal bases
              if the name is not found.  In other words, this call is used
              to create the nonreal member.  any_nonreal_bases will only
-             be set if check_for_nonreal_bases was set earlier. */
+             be set if check_for_nonreal_bases was set earlier.  This is not
+             done for must_be_tag lookups so that an elaborated type specifier
+             will declare a previously undeclared name. */
           sym = class_qualified_id_lookup(
                                  locator, lookup_state.class_with_nonreal_base,
                                  options | IDL_DO_NOT_CREATE_PROJ_SYM |
