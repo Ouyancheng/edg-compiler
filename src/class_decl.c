@@ -3144,6 +3144,80 @@ if there's no overflow TRUE is returned.
 }  /* set_field_size_and_offset */
 
 
+static a_boolean assignment_operator_for_copy_exists(a_symbol_ptr  sym,
+                                                     a_boolean     *const_okay)
+/*
+
+Return TRUE if sym is not NULL and qualifies as an assignment operator that
+can copy a class object (ARM 12.8).  It qualifies if its first parameter
+has a type of "const A&" or "A&", where "A" is the class of which it is a
+member.  (The logic also supports a more relaxed (and dubious) reading of
+the ARM whereby a first parameter involving type B also qualifies if B is a
+base class of A; this interpretation is supported to provide compatibility
+with other C++ compilers, which work this way.)  If sym is an overloaded
+function, return TRUE if at least one of the functions qualifies.  Set
+*const_okay TRUE if a const object can be copied.
+
+*/
+{
+  a_type_ptr   tp, class_type;
+  a_boolean    sym_is_overloaded;
+  a_boolean    found_assignment_operator_for_copy = FALSE;
+
+  db_enter(4, "assignment_operator_for_copy_exists");
+  *const_okay = FALSE;
+  if (sym != NULL) {
+    class_type = sym->class_of_which_a_member;
+    sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
+    if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
+    /* Loop through the one or more symbols looking for one with the right
+       argument type. */
+    for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
+      tp = sym->variant.routine->type->
+                variant.routine.extra_info->param_type_list->type;
+      tp = skip_typerefs(tp);
+      /* We are looking for a reference to the current class. */
+      if (is_reference_type(tp)) {
+        tp = type_pointed_to(tp);
+        /* Look for an exact match between tp and either the parent class or
+           a base class of the parent class.  (A strict reading of the ARM
+           seems to disallow the base class match.) */
+        if (is_same_class_or_base_class_thereof(class_type, tp)) {
+          /* Found it. */
+          found_assignment_operator_for_copy = TRUE;
+          /* Now see if it a const qualified object can be copied.  If not
+             keep looping in case there's another that accepts a const
+             object. */
+          if (is_const_qualified_type(tp)) {
+            *const_okay = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      } else if (is_same_class_or_base_class_thereof(class_type, tp)) {
+        /* The argument is not the class object by reference but rather
+           the class object by value.  We accept this, but it presents a
+           special set of problems. */
+        a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(tp);
+        found_assignment_operator_for_copy = TRUE;
+        /* Since passing a class object by value involves a copy constructor
+           call if a copy constructor exists, the logic for setting *const_okay
+           is more complicated. */
+        if (cssp->constructor == NULL) {
+          /* No constructor exists. */
+          *const_okay = TRUE;
+        } else if (cssp->has_copy_constructor_for_const_object) {
+          /* A copy constructor exists that can copy an object without
+             modifying it. */
+          *const_okay = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  db_exit();
+  return found_assignment_operator_for_copy;
+}  /* assignment_operator_for_copy_exists */
+
+
 static a_boolean is_valid_union_field(a_type_ptr        field_type,
                                       a_source_position *pos)
 /*
@@ -4622,71 +4696,6 @@ destructors, assignment operators, and conversion functions.
     define_special_member_function(rp, sym->class_of_which_a_member);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
-
-
-static a_boolean assignment_operator_for_copy_exists(a_symbol_ptr  sym,
-                                                     a_boolean     *const_okay)
-/*
-Return TRUE if sym is not NULL and qualifies as an assignment operator that
-can copy a class object (ARM 12.8).  It qualifies if its first parameter
-has a type of "const A&" or "A&", where "A" is the class of which it is a
-member.  If sym is an overloaded function, return TRUE if at least one of
-the functions qualifies.  Set *const_okay TRUE if a const object can be
-copied.
-*/
-{
-  a_type_ptr   tp;
-  a_boolean    sym_is_overloaded;
-  a_boolean    found_assignment_operator_for_copy = FALSE;
-
-  db_enter(4, "assignment_operator_for_copy_exists");
-  *const_okay = FALSE;
-  if (sym != NULL) {
-    sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
-    if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
-    /* Loop through the one or more symbols looking for one with the right
-       argument type. */
-    for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
-      tp = sym->variant.routine->type->
-                variant.routine.extra_info->param_type_list->type;
-      tp = skip_typerefs(tp);
-      /* We are looking for a reference to the current class. */
-      if (is_reference_type(tp)) {
-        tp = type_pointed_to(tp);
-        if (skip_typerefs(tp) == sym->class_of_which_a_member) {
-          /* Found it. */
-          found_assignment_operator_for_copy = TRUE;
-          /* Now see if it a const qualified object can be copied.  If not
-             keep looping in case there's another that accepts a const
-             object. */
-          if (is_const_qualified_type(tp)) {
-            *const_okay = TRUE;
-            break;
-          }  /* if */
-        }  /* if */
-      } else if (tp == sym->class_of_which_a_member) {
-        /* The argument is not the class object by reference but rather
-           the class object by value.  We accept this, but it presents a
-           special set of problems. */
-        a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(tp);
-        found_assignment_operator_for_copy = TRUE;
-        /* Since passing a class object by value involves a copy constructor
-           call if a copy constructor exists, the logic for setting *const_okay
-           is more complicated. */
-        if (cssp->constructor == NULL) {
-          /* No constructor exists. */
-          *const_okay = TRUE;
-        } else if (cssp->has_copy_constructor_for_const_object) {
-          /* A copy constructor exists that can copy an object without
-             modifying it. */
-          *const_okay = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  db_exit();
-  return found_assignment_operator_for_copy;
-}  /* assignment_operator_for_copy_exists */
 
 
 static void default_assignment_operator_check(a_type_ptr  class_type,
