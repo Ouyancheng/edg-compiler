@@ -293,12 +293,17 @@ typedef struct an_expr_stack_entry {
 		old_xref_entries_list;
 			/* Saved copy of the cross-reference entries list
 			   at the time of the push of this entry. */
-  unsigned int	is_default_arg_expression;
+  a_byte_boolean
+		is_default_arg_expression;
 			/* TRUE if the expression is a C++ default argument
 			   expression in a parameter list. */
-  unsigned int	is_template_arg_expression;
+  a_byte_boolean
+		is_template_arg_expression;
 			/* TRUE if the expression is an argument of a
 			   template reference. */
+  unsigned long	nested_construct_depth;
+			/* Number of nested constructs like parentheses
+			   begun within this major expression level. */
 } an_expr_stack_entry;
 
 EXTERN an_expr_stack_entry_ptr

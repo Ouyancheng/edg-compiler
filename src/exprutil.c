@@ -299,6 +299,7 @@ at the start of a major expression.
   curr_expr_xref_entries = NULL;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
+  new_entry->nested_construct_depth = 0;
   expr_stack = new_entry;
 }  /* push_expr_stack */
 
