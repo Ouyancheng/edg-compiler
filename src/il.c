@@ -218,6 +218,15 @@ static a_template_arg_ptr
 			   available for reuse. */
 
 
+/*
+Flag that is set to TRUE when there one or more implicit children of the
+lifetime object that is associated with the file scope.  (Its implicit
+children are entries that point to it as a parent but which it does not
+point back to on its child_lifetime list; that is because implicit children
+are in the function scope memory region.)
+*/
+static a_boolean any_function_scope_lifetime_entries;
+
 /* Static variable and macro for quickly initializing the source_corresp
    field of an IL entry to default values. */
 static a_source_correspondence
@@ -6582,7 +6591,6 @@ to it.
   scp->constant_list    = NULL;
   scp->statements       = NULL;
   clear_stmt_source_position(scp->break_position);
-  scp->lifetime         = NULL;
   return scp;
 }  /* alloc_switch_clause */
 
@@ -6999,36 +7007,338 @@ pragma has not yet been found for the given IL entity).
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-an_object_lifetime_ptr alloc_object_lifetime(
-                                        an_il_entry_kind       kind,
-                                        char                   *entry_ptr,
-                                        an_object_lifetime_ptr parent_lifetime)
+an_object_lifetime_ptr alloc_object_lifetime(void)
 /*
-Allocate an object lifetime entry whose associated entity is kind/entry_ptr,
-set its parent lifetime to parent_lifetime, clear its fields to default values,
-and return a pointer to it.  An object lifetime entry represents a lifetime
-(e.g., for a temporary), which may be the same as a scope or may be some
-subscope region.
+Allocate an object lifetime entry, initialize its fields, and return a pointer
+to it.
 */
 {
-  an_object_lifetime_ptr olp;
+  an_object_lifetime_ptr  olp, *avail_list_ptr;
+  a_scope_depth           scope_depth;
 
   db_enter(5, "alloc_object_lifetime");
-
-  olp = (an_object_lifetime_ptr)alloc_cil(sizeof(an_object_lifetime));
+  /* Use an object lifetime entry that is on an available list, if possible;
+     otherwise, allocate a new one. */
+  /* Note that the file scope and every function scope (i.e., each scope for
+     which there is a unique memory region) has its own available list. */
+  if (curr_il_region_number == FILE_SCOPE_REGION_NUMBER) {
+    /* Use the file scope. */
+    scope_depth = DEPTH_OF_FILE_SCOPE;
+  } else {
+    /* Use the current function scope. */
+    check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
+    scope_depth = depth_innermost_function_scope;
+  }  /* if */
+  /* Copy the address of the available list. */
+  avail_list_ptr = &scope_stack[scope_depth].object_lifetime_avail_list;
+  if (*avail_list_ptr != NULL) {
+    olp = *avail_list_ptr;
+    *avail_list_ptr = olp->next;
+  } else {
+    olp = (an_object_lifetime_ptr)alloc_cil(sizeof(an_object_lifetime));
 #if DEBUG
-  num_object_lifetimes_allocated++;
+    num_object_lifetimes_allocated++;
 #endif /* DEBUG */
-  olp->entity.kind         = (a_byte_il_entry_kind)kind;
-  olp->entity.ptr          = entry_ptr;
+  }  /* if */
+  olp->entity.kind         = (a_byte_il_entry_kind)iek_none;
+  olp->entity.ptr          = NULL;
   olp->dynamic_inits       = NULL;
-  olp->parent_lifetime     = parent_lifetime;
+  olp->parent_lifetime     = NULL;
   olp->parent_dynamic_init = NULL;
   olp->child_lifetime      = NULL;
   olp->next                = NULL;
   db_exit();
   return olp;
 }  /* alloc_object_lifetime */
+
+
+static void free_object_lifetime(an_object_lifetime_ptr  olp)
+/*
+Return an object lifetime to the appropriate available list.
+*/
+{
+  an_object_lifetime_ptr  *avail_list_ptr;
+  a_scope_depth           scope_depth;
+
+  if (in_file_scope(olp)) {
+    /* Return the entry to the file scope's available list. */
+    scope_depth = DEPTH_OF_FILE_SCOPE;
+  } else {
+    /* Use the current function scope. */
+    check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
+    scope_depth = depth_innermost_function_scope;
+  }  /* if */
+  /* Copy the address of the available list. */
+  avail_list_ptr = &scope_stack[scope_depth].object_lifetime_avail_list;
+  /* Link it onto the front of the available list. */
+  olp->next = *avail_list_ptr;
+  *avail_list_ptr = olp;
+}  /* free_object_lifetime */
+
+
+static an_object_lifetime_ptr *addr_of_lifetime_ptr(
+                                             an_il_entry_kind  entity_kind,
+                                             char              *entity_ptr,
+                                             a_boolean         ctor_init)
+/*
+Given an IL entry kind and a pointer to the entry, return the address of the
+field of that entry that points to an object lifetime.  Scope entries have
+two such pointers, and for that case the flag ctor_init is used to decide
+which address to return -- it is set to TRUE if lifetime_of_constructor_inits
+is required and to FALSE otherwise.
+*/
+{
+  an_object_lifetime_ptr *lifetime_addr;
+
+  check_assertion(ctor_init == FALSE ||
+                  entity_kind == (an_il_entry_kind)iek_scope);
+  switch (entity_kind) {
+    case iek_scope:
+      if (ctor_init) {
+        check_assertion(((a_scope_ptr)entity_ptr)->kind ==
+                                         (a_scope_kind)sck_function);
+        lifetime_addr = &((a_scope_ptr)entity_ptr)->
+                              variant.routine.lifetime_of_constructor_inits;
+      } else {
+        lifetime_addr = &((a_scope_ptr)entity_ptr)->lifetime;
+      }  /* if */
+      break;
+    case iek_expr_node:
+      check_assertion(((an_expr_node_ptr)entity_ptr)->kind ==
+                                  (an_expr_node_kind)enk_object_lifetime);
+      lifetime_addr = &((an_expr_node_ptr)entity_ptr)->
+                                              variant.object_lifetime.ptr;
+      break;      
+    case iek_label:
+      lifetime_addr = &((a_label_ptr)entity_ptr)->lifetime_following_label;
+      break;
+    case iek_block:
+      lifetime_addr = &((a_block_ptr)entity_ptr)->lifetime;
+      break;
+    case iek_try_supplement:
+      lifetime_addr = &((a_try_supplement_ptr)entity_ptr)->lifetime;
+      break;
+    case iek_new_delete_supplement:
+      lifetime_addr = &((a_new_delete_supplement_ptr)entity_ptr)->
+                                        lifetime_of_uninitialized_storage;
+      break;
+#if CHECKING
+    default:
+      internal_error("addr_of_lifetime_ptr: bad il entry kind");
+#endif /* CHECKING */
+  }  /* switch */
+  return lifetime_addr;
+}  /* addr_of_lifetime_ptr */
+
+
+void bind_object_lifetime(an_object_lifetime_ptr  olp,
+                          an_il_entry_kind        entity_kind,
+                          char                    *entity_ptr,
+                          a_boolean               ctor_init)
+/*
+Set the object lifetime entry pointed to by olp to point to the IL entry
+represented by entity_kind and entity_ptr, and set the IL entry to point
+back to it.  Scope entries have two object lifetime pointers; ctor_init
+should is TRUE when it is the lifetime_of_constructor_inits field of the
+scope entry that should be updated.
+*/
+{
+  an_object_lifetime_ptr  *lifetime_addr;
+
+  /* Point the object lifetime at the IL entry. */
+  olp->entity.kind = (a_byte_il_entry_kind)entity_kind;
+  olp->entity.ptr = entity_ptr;
+  /* Get the address of the appropriate field of the IL entry and point
+     back to the object lifetime entry. */
+  lifetime_addr = addr_of_lifetime_ptr(entity_kind, entity_ptr, ctor_init);
+  *lifetime_addr = olp;
+}  /* bind_object_lifetime */
+
+
+static void unbind_object_lifetime(an_object_lifetime_ptr  olp)
+/*
+Undo the binding between an object lifetime entry and the IL entry to which
+it points.
+*/
+{
+  a_boolean               ctor_init = FALSE;
+  a_scope_ptr             scope;
+  an_object_lifetime_ptr  *lifetime_addr;
+
+  if (olp->entity.kind == (an_il_entry_kind)iek_scope) {
+    /* Scope entries have two object lifetime pointers.  Figure out for which
+       one the binding should be undone. */
+    scope = (a_scope_ptr)olp->entity.ptr;
+    if (scope->kind == (a_scope_kind)sck_function &&
+        scope->variant.routine.lifetime_of_constructor_inits == olp) {
+      ctor_init = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Get the address of the appropriate field of the IL entry so that the
+     lifetime pointer can be cleared. */
+  lifetime_addr = addr_of_lifetime_ptr(olp->entity.kind, olp->entity.ptr,
+                                       ctor_init);
+  check_assertion(*lifetime_addr == olp);
+  *lifetime_addr = NULL;
+  /* Clear the fields in the object lifetime, too. */
+  olp->entity.kind = (a_byte_il_entry_kind)iek_none;
+  olp->entity.ptr = NULL;
+}  /* unbind_object_lifetime */
+
+      
+void push_object_lifetime(an_il_entry_kind  entity_kind,
+                          char              *entity_ptr,
+                          a_boolean         ctor_init)
+/*
+
+
+ whose associated entity is kind/entry_ptr,
+set its parent lifetime to parent_lifetime, clear its fields to default values,
+and return a pointer to it.  An object lifetime entry represents a lifetime
+(e.g., for a temporary), which may be the same as a scope or may be some
+subscope region.
+
+
+*/
+{
+  an_object_lifetime_ptr   olp;
+
+  olp = alloc_object_lifetime();
+  /* Link the new entry into the object lifetime tree. */
+  olp->parent_lifetime = curr_object_lifetime;
+  if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
+      ((a_scope_ptr)olp->entity.ptr)->kind == (a_scope_kind)sck_function) {
+    /* This is an object lifetime for a function scope; its parent pointer
+       is the file scope lifetime entry, but it's an "implicit" child of the
+       latter -- because of a memory region incompatibility, olp doesn't
+       appear explicitly on the child_lifetime list of its parent . */
+    check_assertion(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope ==
+                           (a_scope_ptr)olp->parent_lifetime->entity.ptr);
+    /* Don't add the current entry to the parent's list of children, and
+       don't update the sibling pointer. */
+  } else {
+    check_assertion(in_file_scope(olp) == in_file_scope(olp->parent_lifetime));
+    /* If the parent already has a list of children, add the new entry to
+       the front of the list. */
+    olp->next = olp->parent_lifetime->child_lifetime;
+    olp->parent_lifetime->child_lifetime = olp;
+  }  /* if */
+  /* Bind the object lifetime and the entity with which it is associated. */
+  if (entity_ptr != NULL) {
+    bind_object_lifetime(olp, entity_kind, entity_ptr, ctor_init);
+  }  /* if */
+  /* Now set the new entry to be the current object lifetime. */
+  curr_object_lifetime = olp;
+}  /* push_object_lifetime */
+
+
+static a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp)
+{
+  a_boolean    is_useless = FALSE;
+
+  if (olp->dynamic_inits != NULL) {
+    /* Useless = FALSE. */
+  } else {
+    switch (olp->entity.kind) {
+      case iek_scope:
+        switch (((a_scope_ptr)olp->entity.ptr)->kind) {
+          case sck_file:
+            /* The file scope object lifetime is preserved if it has any
+               "implicit children" -- i.e., any function scope object
+               lifetimes that are not useless; the latter point to the
+               file scope as parent_lifetime. */
+            if (any_function_scope_lifetime_entries) break;
+          case sck_function:
+            /* File and function scope object lifetimes are preserved if
+               they have children, since the latter point to the former as
+               parent_lifetime. */
+            if (olp->child_lifetime != NULL) break;
+          default:
+            is_useless = TRUE;
+        }  /* switch */
+        break;
+      case iek_expr_node:
+      case iek_label:
+      case iek_block:
+        is_useless = TRUE;
+        break;
+#if CHECKING
+      case iek_try_supplement:
+      case iek_new_delete_supplement:
+        /* Useless = FALSE. */
+        break;
+      default:
+        internal_error("is_useless_object_lifetime: bad il entry kind");
+#endif /* CHECKING */
+    }  /* switch */
+  }  /* if */
+  return is_useless;
+}  /* is_useless_object_lifetime */
+
+
+void pop_object_lifetime(void)
+/*
+*/
+{
+  a_boolean               is_implicit_child = FALSE;
+  an_object_lifetime_ptr  olp, parent, child, end_of_child_list;
+
+  olp = curr_object_lifetime;
+  /* Pop the lifetime entry -- that is, update curr_object_lifetime to
+     point to its parent entry. */
+  curr_object_lifetime = olp->parent_lifetime;
+  /* Do additional processing connected with whether the entry remains in
+     the IL or should be removed. */
+  if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
+      ((a_scope_ptr)olp->entity.ptr)->kind == (a_scope_kind)sck_function) {
+    /* This is an object lifetime for a function scope; its parent pointer
+       is the file scope lifetime entry, but it's an "implicit" child of the
+       latter -- because of a memory region incompatibility, olp doesn't
+       appear explicitly on the child_lifetime list of its parent . */
+    is_implicit_child = TRUE;
+  }  /* if */
+  /* Determine whether the entry needs to be kept in the IL at all.  If not,
+     modify all related pointers and then return it to an available list. */
+  if (is_useless_object_lifetime(olp)) {
+    /* Unlink the object lifetime entry from its parent, children, and
+       siblings. */
+    parent = olp->parent_lifetime;
+    /* Unless *olp is an "implicit child", the lifetime entry that's no
+       longer needed should be the first entry on the parent's child list. */
+    check_assertion(is_implicit_child || parent->child_lifetime == olp);
+    /* Loop through all the children of olp move them up to the parent's
+       child list -- i.e., promote the children to siblings. */
+    end_of_child_list = NULL;
+    child = olp->child_lifetime;
+    for (child = olp->child_lifetime; child != NULL; child = child->next) {
+      child->parent_lifetime = parent;
+      end_of_child_list = child;
+    }  /* for */
+    if (!is_implicit_child) {
+      /* If there is a child list, promote it to parent. */
+      if (olp->child_lifetime != NULL) {
+        end_of_child_list->next = olp->next;
+        parent->child_lifetime = olp->child_lifetime;
+      } else {
+        parent->child_lifetime = olp->next;
+      }  /* if */
+    }  /* if */
+    /* *olp's former parent and children, if any, should no longer have
+       pointers back to it.  Now (to be safe) remove its own pointers. */
+    olp->parent_lifetime = NULL;
+    olp->child_lifetime = NULL;
+    olp->next = NULL;
+    /* It should be unbound from the IL entry with which it is associated. */
+    unbind_object_lifetime(olp);
+    /* Return the entry to its available list. */
+    (void)free_object_lifetime(olp);
+  } else if (is_implicit_child) {
+    /* This is an object lifetime for a function scope that will remain
+       in the IL.  Set the global variable to assure the file scope lifetime
+       entry will be preserved. */
+    any_function_scope_lifetime_entries = TRUE;
+  }  /* if */
+}  /* pop_object_lifetime */
 
 
 a_scope_ptr alloc_scope(a_scope_kind   kind,
@@ -8659,6 +8969,8 @@ in il_init.)
       pch_array_saved_var_array_elem(wide_string_types),
       pch_array_saved_var_array_elem(shareable_constants_table),
       pch_saved_var_array_elem(avail_template_args),
+      pch_saved_var_array_elem(curr_object_lifetime),
+      pch_saved_var_array_elem(any_function_scope_lifetime_entries),
 #if ORPHAN_PROCESSING_NEEDED
       pch_array_saved_var_array_elem(orphaned_file_scope_il_entries),
 #endif /* ORPHAN_PROCESSING_NEEDED */
@@ -8760,6 +9072,7 @@ of the front end.
 #if DO_IL_LOWERING
   initial_value_for_il_lowering_flag = 0;
 #endif /* DO_IL_LOWERING */
+  curr_object_lifetime = NULL;
 
   /* Static variables in il.c: */
   /* Depending on NULL represented as zero bits here. */
@@ -8855,6 +9168,7 @@ of the front end.
   last_scope_orphaned_list_header = NULL;
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   avail_template_args = NULL;
+  any_function_scope_lifetime_entries = FALSE;
   il_reset();
 }  /* il_init */
 

@@ -487,10 +487,23 @@ extern a_pragma_ptr find_assoc_pragma(char          *il_entity,
                                       a_type_ptr    class_type,
                                       a_pragma_ptr  prev_assoc_pragma);
 
-extern an_object_lifetime_ptr alloc_object_lifetime(
-                                       an_il_entry_kind       kind,
-                                       char                   *entry_ptr,
-                                       an_object_lifetime_ptr parent_lifetime);
+EXTERN an_object_lifetime_ptr
+		curr_object_lifetime;
+			/* The top of the currently active object lifetime
+			   stack. */
+
+extern an_object_lifetime_ptr alloc_object_lifetime(void);
+
+extern void bind_object_lifetime(an_object_lifetime_ptr  olp,
+                                 an_il_entry_kind        entity_kind,
+                                 char                    *entity_ptr,
+                                 a_boolean               ctor_init);
+
+extern void push_object_lifetime(an_il_entry_kind  entity_kind,
+                                 char              *entity_ptr,
+                                 a_boolean         ctor_init);
+
+extern void pop_object_lifetime(void);
 
 extern a_scope_ptr alloc_scope(a_scope_kind   kind,
                                a_scope_number number,
