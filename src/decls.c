@@ -5563,13 +5563,24 @@ process_class_specifier:
                  should again be the name of the class being defined. */
               rescan_cached_tokens(&cache);
               if (is_constructor) {
+                a_type_ptr    tp = scope_stack[decl_scope_level].assoc_type;
+                a_symbol_ptr  tag_sym =
+                                   (a_symbol_ptr)tp->source_corresp.assoc_info;
                 basic_type = bt_no_type;
-                *type_ptr = make_reference_type(
-                                  scope_stack[decl_scope_level].assoc_type);
+                *type_ptr = make_reference_type(tp);
                 *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
                 /* Turn the current locator from a "specific symbol" locator
                    into a constructor locator. */
                 determine_curr_token_type_symbol();
+                if (curr_token_type_symbol != tag_sym) {
+                  /* This can only mean that another member has been declared
+                     with the class name.  Issue an error. */
+                  if (locator_for_curr_id.specific_symbol->
+                               class_of_which_a_member == tp) {
+                    error(ec_id_already_declared);
+                  }  /* if */
+                  locator_for_curr_id.specific_symbol = tag_sym;
+                }  /* if */
                 change_class_locator_into_constructor_locator(
                                                      &locator_for_curr_id);
                 /* Note that with a branch to exit_loop the get_token call
