@@ -1946,14 +1946,6 @@ might not be able to if the template itself has not yet been defined.
       set_instantiation_required_for_template_class_members(class_type);
       /* Process any pragmas that are to be bound to this instance. */
       process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
-      /* Pop the template instantiation scope. */
-      pop_template_instantiation_scope();
-      /* In the normal case the current token should be end_of_source,
-         which was inserted to mark the end of the cached token stream.
-         If necessary, keep flushing until end-of-source is found. */
-      flush_past_token_cache_terminator();
-      /* Do the class fixups for this instantiation. */
-      process_deferred_class_fixups_and_instantiations();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       /* A template instantiation is considered to always be "autonomous",
@@ -1964,6 +1956,14 @@ might not be able to if the template itself has not yet been defined.
       pop_ss_insert_stack();
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      /* Pop the template instantiation scope. */
+      pop_template_instantiation_scope();
+      /* In the normal case the current token should be end_of_source,
+         which was inserted to mark the end of the cached token stream.
+         If necessary, keep flushing until end-of-source is found. */
+      flush_past_token_cache_terminator();
+      /* Do the class fixups for this instantiation. */
+      process_deferred_class_fixups_and_instantiations();
       /* Decrement the count of instantiations-in-progress for the current
          class template. */
       cssp->instantiation_in_progress = FALSE;
