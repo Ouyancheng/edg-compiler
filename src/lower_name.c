@@ -1036,10 +1036,7 @@ name at *store_at if store_at != NULL, and (always) return the length
 of the name.
 */
 {
-  sizeof_t mangled_name_length;
-
-  check_assertion(!type->source_corresp.name_has_been_mangled);
-  mangled_name_length = mangled_type_name(type, store_at);
+  sizeof_t mangled_name_length = mangled_type_name(type, store_at);
   return mangled_name_length;
 }  /* mangled_class_name */
 
