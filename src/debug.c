@@ -38,7 +38,7 @@ extern int atoi(char *);
 The structure defining the linked list of routines from which debug information
 has been requested.
 */
-typedef enum a_debug_action {
+typedef enum /*a_debug_action*/ {
   da_set_level,
   da_increase_level,
   da_decrease_level
