@@ -3903,7 +3903,13 @@ Dump the indicated character as part of a string literal or character constant.
 Handle unprintable characters and necessary escapes.
 */
 {
-  if (isprint(ch)) {
+  if (isprint(ch)
+#ifdef sun
+    /* The Sun cc (4.1.2) in -O mode when outputting assembly language
+       has a bug that transforms quote into accent grave.  Avoid it. */
+      && ch != '\''
+#endif /* ifdef sun */
+                 ) {
     if (ch == '"' || ch == '\'' || ch == '\\') fputc('\\', f_C_output);
     fputc(ch, f_C_output);
   } else {
