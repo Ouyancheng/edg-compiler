@@ -5,7 +5,7 @@ Version 3.2
 The runtime provides a version of the __cxa_finalize routine that can be
 used if the host runtime does not provide one.  This routine did not
 correctly handle cases where the caller provides a non-null DSO handle.
-The runtime nevers calls the routine in such a way, but this could
+The runtime never calls the routine in such a way, but this could
 cause incorrect behavior if the user explicitly called __cxa_finalize.
 
 3/31/03  IA-64: _main no longer called
