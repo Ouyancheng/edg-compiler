@@ -566,11 +566,6 @@ typedef struct a_func_info_block {
 } a_func_info_block;
 
 
-EXTERN a_param_id_ptr
-		avail_param_ids;
-			/* List of parameter id entries freed and available
-			   for reuse. */
-
 typedef struct a_template_param *a_template_param_ptr;
 typedef struct a_template_param {
   /* Information describing a template formal parameter.  Pointed to by the
