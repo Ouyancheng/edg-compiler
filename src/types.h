@@ -179,9 +179,12 @@ set explicitly using an attribute on a typedef, the skip_typeref could be
 erroneous (GNU and Microsoft modes only).
 */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+extern a_targ_alignment f_alignment_of_type(a_type_ptr  tp);
+
 #define alignment_of_type(tp)                                         \
-  ((tp)->alignment_set_explicitly ? (tp)->alignment                   \
-                                  : skip_typerefs(tp)->alignment)
+  ((tp)->alignment_set_explicitly ? (tp)->alignment :                 \
+   (tp)->kind != (a_type_kind)tk_typeref ? (tp)->alignment :          \
+                                           f_alignment_of_type((tp)))
 #else /* !(GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */
 #define alignment_of_type(tp)  (skip_typerefs(tp)->alignment)
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */

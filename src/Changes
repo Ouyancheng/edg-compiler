@@ -1,5 +1,17 @@
 Version 3.4
 
+1/16/04  GNU mode: Explicitly specified alignment lost
+
+In GNU C and C++ mode, an alignment specified with the GNU attribute "aligned"
+was sometimes subsequently ignored.  For example (assuming "int" is 4-byte
+aligned):
+
+  typedef int I64 __attribute__((aligned(64)));
+  I64 x;
+  int a = __alignof__(x);  // a was erroneously set to 4 instead of 64.
+
+This is now fixed.
+
 1/15/04  Microsoft compatibility: __declspec(selectany) ignored in some cases
 
 In Microsoft mode with microsoft_version >= 1300, the front end accepts the

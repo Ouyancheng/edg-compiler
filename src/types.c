@@ -946,6 +946,24 @@ found_specifier_type:
 
 #endif /* BACK_END_IS_CP_GEN_BE */
 
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+
+a_targ_alignment f_alignment_of_type(a_type_ptr  tp)
+/*
+Return the alignment of the given type.  Normally, this function should only
+be called by using the macro alignment_of_type.
+*/
+{
+  /* Skip any typerefs that do not affect the alignment. */
+  while (!tp->alignment_set_explicitly &&
+         tp->kind == (a_type_kind)tk_typeref) {
+    tp = tp->variant.typeref.type;
+  }  /* while */
+  return tp->alignment;
+}  /* f_alignment_of_type */
+
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+
 a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
                                            a_boolean   top_level)
 /*
