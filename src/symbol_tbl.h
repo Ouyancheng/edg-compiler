@@ -1541,6 +1541,14 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if kind is sck_template_instantiation and
 			   what is being instantiated is the prototype for a
 			   class template. */
+  unsigned int	curr_construct_pragma_list_is_on_stmt_stack:1;
+			/* The current construct pragma list may be stored
+			   in either the scope stack entry or the structured
+			   statement stack entry.  The current value is
+			   in whichever of the two contains the most
+			   recently created entry.  This flag is TRUE
+			   if the most recent value is on the statement
+			   stack. */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
@@ -1744,25 +1752,6 @@ typedef struct a_scope_stack_entry {
 			   pragmas associated with this scope stack entry.
 			   See ptr_to_curr_construct_pragmas
 			   below to see how this field is used. */
-  a_pending_pragma_ptr
-		*curr_list_of_curr_construct_pragmas;
-			/* Points to a pointer to a list of pbk_next_construct
-			   pragmas that are to be processed as part of the
-			   declaration or statement that is currently being
-			   processed.  When a scope stack entry is created,
-			   this points to curr_construct_pragmas.
-			   When a structured statement stack entry is pushed,
-			   the current value of this pointer is saved in
-			   the structured statement stack entry and this
-			   pointer is modified to point to a pointer that
-			   is part of the current structured statement stack
-			   entry.  When the statement stack is popped the
-			   reverse occurs, leaving this pointer pointing to
-			   the location it pointed to before the statement
-			   stack was pushed.   The effect of this is that
-			   this field (in the current scope stack entry) always
-			   points to the current list of current construct
-			   pragmas. */
 } a_scope_stack_entry;
 
 

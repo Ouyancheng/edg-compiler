@@ -6708,8 +6708,8 @@ of the template.
   ssep->last_label_decl_seq      = 0;
   ssep->pending_pragmas          = NULL;
   ssep->curr_construct_pragmas	 = NULL;
-  ssep->curr_list_of_curr_construct_pragmas
-				 = &ssep->curr_construct_pragmas;
+  ssep->curr_construct_pragma_list_is_on_stmt_stack
+				 = FALSE;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -7680,6 +7680,10 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
+  /* If there are any remaining current construct pragmas on the list,
+     call a routine that will issue diagnostic (if appropriate) and
+     free the entries. */
+  dispose_of_remaining_curr_construct_pragmas();
   /* Pop the stack. */
   if (--depth_scope_stack >= 0) {
     /* The stack is not empty, so do anything necessary to activate the

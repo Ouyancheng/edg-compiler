@@ -23,7 +23,21 @@ pragma.c -- Routines to support #pragma directives
 #include "lexical.h"
 #include "il.h"
 #include "symbol_tbl.h"
+#include "statements.h"
 #include "templates.h"
+
+/*
+Macro used to get a pointer to the active pointer to the current construct
+pragma list.  The list pointer is stored in the most recently created
+scope stack or statement stack entry.  A flag in the scope stack entry
+indicates which of the two should be used.  This macro returns a pointer
+to the head of the list.  By updating this pointer the caller may
+alter the list pointed to by the current pointer.
+*/
+#define curr_list_of_curr_construct_pragmas()		         	      \
+(scope_stack[depth_scope_stack].curr_construct_pragma_list_is_on_stmt_stack ? \
+  &struct_stmt_stack[depth_stmt_stack].curr_construct_pragmas :		      \
+  &scope_stack[depth_scope_stack].curr_construct_pragmas)
 
 
 static a_pragma_kind_description_ptr add_pragma_description
@@ -420,7 +434,6 @@ on the list, or new ones added by this call) return TRUE; otherwise
 return FALSE.
 */
 {
-  a_scope_stack_entry_ptr	ssep;
   a_pending_pragma_ptr		list_start;
   a_pending_pragma_ptr		list_end;
   a_pending_pragma_ptr		ppp;
@@ -431,8 +444,7 @@ return FALSE.
      them. */
   add_source_sequence_entry_to_curr_token_pragmas();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  ssep = &scope_stack[depth_scope_stack];
-  list_start = *(ssep->curr_list_of_curr_construct_pragmas);
+  list_start = *curr_list_of_curr_construct_pragmas();
   /* Find the end of the current list. */
   list_end = list_start;
   if (list_end != NULL) {
@@ -509,10 +521,20 @@ return FALSE.
     }  /* if */
     ppp = next_ppp;
   }  /* while */
-  *(ssep->curr_list_of_curr_construct_pragmas) = list_start;
+  *curr_list_of_curr_construct_pragmas() = list_start;
   /* Return TRUE if there are any entrys of the list. */
   return list_start != NULL;
 }  /* select_curr_construct_pragmas */
+
+
+void dispose_of_remaining_curr_construct_pragmas(void)
+/*
+*/
+{
+#if 0
+  /* Issue diagnostics on unused pragmas and free the pragma entries. */
+#endif
+}  /* dispose_of_remaining_curr_construct_pragmas */
 
 
 static add_pragma_to_il(a_pending_pragma_ptr  ppp,
@@ -651,7 +673,7 @@ are first removed from the lists they currently reside on.
        statement. */
     is_bound_to_curr_construct = TRUE;
     ssep = &scope_stack[depth_scope_stack];
-    scope_list_addr = ssep->curr_list_of_curr_construct_pragmas;
+    scope_list_addr = curr_list_of_curr_construct_pragmas();
   } else {
     /* Set up to search for a pbk_other pragma. */
     is_bound_to_curr_construct = FALSE;
@@ -726,14 +748,12 @@ the pragmas.
   a_pending_pragma_ptr     	ppp;
   a_pending_pragma_ptr		list_start;
   a_pragma_kind_description_ptr	pkdp;
-  a_scope_stack_entry_ptr   	ssep;
 
   check_assertion_str((sym == NULL) == (sp != NULL),
                       "process_pragmas_bound...: invalid arguments");
   /* Go though the pragmas that are meant to apply to the current
      declaration or statement. */
-  ssep = &scope_stack[depth_scope_stack];
-  ppp = *(ssep->curr_list_of_curr_construct_pragmas);
+  ppp = *curr_list_of_curr_construct_pragmas();
   list_start = ppp;
   for(; ppp != NULL; ppp = ppp->next) {
     a_next_construct_pragma_function_ptr ncpfp;
@@ -759,7 +779,7 @@ the pragmas.
   if (list_start != NULL) {
     free_pending_pragma_list(list_start);
   }  /* if */
-  *(ssep->curr_list_of_curr_construct_pragmas) = NULL;
+  *curr_list_of_curr_construct_pragmas() = NULL;
 }  /* process_curr_construct_pragmas */
 
 
