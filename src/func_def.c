@@ -123,10 +123,10 @@ instruction.
   }  /* if */
   /* Loop through the tokens and build the string token by token. */
   while (curr_token != tok_end_of_source) {
-    /* There are two ways (other running off the end of the source stream)
+    /* There are two ways (other than running off the end of the source stream)
        to terminate this loop -- if is_asm_block is TRUE, stop when
        a zero-level right brace is reached; otherwise, stop when tok_newline
-       or tok_semicolon is reached. */
+       or tok_rbrace is reached. */
     if (is_asm_block) {
       /* Keep track of braces. */
       if (curr_token == tok_rbrace && --nbrace == 0) {
