@@ -1147,7 +1147,7 @@ initialized.  These are addressed in the course of the processing.
   a_constructor_init_ptr        direct_list, end_of_direct_list;
   a_base_class_ptr              bcp;
   a_class_symbol_supplement_ptr cssp;
-  a_routine_ptr                 conversion_routine;
+  a_routine_ptr                 conversion_routine, cctor_routine;
   a_dynamic_init_ptr            dip, ctor_dip;
 
   db_enter(3, "ctor_initializer");
@@ -1555,8 +1555,6 @@ scan_paren:
         } else {
           /* Constructor initialization is required (not a bitwise copy), so
              find the copy constructor for this field or base class. */
-          a_symbol_ptr  cctor_sym;
-          a_boolean     cctor_err;
           /* The flag const_object_okay describes whether the top-level
              constructor can accept a const object for copying; if it can,
              then all constructors called to copy subobjects *must* accept a
@@ -1564,19 +1562,19 @@ scan_paren:
              By extension, the same applies to the volatile qualifier.  Thus
              the parameter name on the other end of this call stipulates a
              requirement on the search for a copy constructor. */
-          cctor_sym =
-               select_copy_constructor(tp,
+          cctor_routine =
+            select_copy_constructor(tp,
                                     /*const_required=*/const_object_okay,
                                     /*volatile_required=*/volatile_object_okay,
-                                    &error_position, &cctor_err);
-          if (cctor_err) {
+                                    &error_position);
+          if (cctor_routine == NULL) {
             /* The copy constructor was invalid in some way or other. */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           } else {
             /* A valid copy constructor does exist.  Generate the dynamic init
-               entry and mark the constructor routine referenced. */
+               entry. */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-            dip->variant.constructor.routine = cctor_sym->variant.routine;
+            dip->variant.constructor.routine = cctor_routine;
             /* No expression node is created to represent the subobject.  The
                back end will compute the subobject's address based on the
                base class or field just as it will compute the address of the
@@ -1584,9 +1582,6 @@ scan_paren:
                to be initialized by the copy. */
             dip->variant.constructor.args = NULL;
             dip->variant.constructor.is_copy_constructor_for_subobject = TRUE;
-            /* Check that the constructor is accessible and mark it
-               referenced. */
-            reference_to_special_member_function(cctor_sym);
           }  /* if */
         }  /* if */
       } else if (cssp->default_constructor == NULL) {
