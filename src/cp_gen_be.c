@@ -2023,20 +2023,35 @@ is called.
 */
 {
   a_boolean invisible = FALSE;
+  a_boolean typedef_will_be_implicitly_instantiated_if_referenced;
+
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  /* When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
+     all instances of class templates are handled by explicit specialization.
+     In that case, when typedef_definition_has_been_put_out is FALSE, it
+     indicates that the specialization has been declared but not yet
+     defined, so we must not generate a reference to that typedef name. */
+  typedef_will_be_implicitly_instantiated_if_referenced = FALSE;
+#else /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  /* When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is FALSE,
+     we will still be able to use the name of a typedef for which
+     typedef_definition_has_been_put_out is FALSE if it is a member of a
+     class template that was (and will be in the generated code) implicitly
+     instantiated. */
+  typedef_will_be_implicitly_instantiated_if_referenced =
+           type->source_corresp.is_class_member &&
+           type->source_corresp->parent.class_type->
+                                variant.class_struct_union.is_template_class &&
+           !type->source_corresp->parent.class_type->
+                                     variant.class_struct_union.is_specialized;
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
   check_assertion(type->kind == (a_type_kind)tk_typeref &&
                   typeref_is_typedef(type));
   if (!type->typedef_definition_has_been_put_out &&
-      !(type->source_corresp.is_class_member &&
-        type->source_corresp.parent.class_type->
-                               variant.class_struct_union.is_template_class)) {
+      !typedef_will_be_implicitly_instantiated_if_referenced) {
     /* The typedef definition has not been put out yet, so the typedef
-       name cannot be referenced. (Except when
-       CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
-       typedef members of instances of class templates are never generated
-       and thus always satisfy the !typedef_definition_has_been_put_out
-       test; they are still referenceable, however, and should not be
-       treated as invisible.) */
+       name cannot be referenced. */
     invisible = TRUE;
 #if GCC_BUILTIN_VARARGS
     /* The definition of the va_list type is never put out, but it's
@@ -3532,7 +3547,7 @@ default arguments should be suppressed (needed for template specializations).
                                           param_var->declared_type,
 #if GNU_EXTENSIONS_ALLOWED
                                           param->mode,
-#else /* GNU_EXTENSIONS_ALLOWED */
+#else /* !GNU_EXTENSIONS_ALLOWED */
                                           (a_type_mode_kind)tmk_none,
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                           has_name(param_var) ?
