@@ -1,5 +1,31 @@
 Version 3.4
 
+9/30/03  IA-64 ABI: Spurious padding in "size without virtual bases classes"
+
+In IA-64 ABI configurations allowing the reuse of tail padding (configuration
+flag TARG_REUSE_TAIL_PADDING set to TRUE), the front end sometimes added
+spurious padding to the "size without virtual base classes" field.  (The
+exact condition causing this error is complex and fairly rare in practice.)
+This could result in layouts that do not conform to the IA-64 ABI
+specification.  For example:
+
+  struct E {};
+  struct NP {
+    NP() {}
+    int i;
+    char c; // Tail padding can be reused since this is a non-POD.
+  };
+  struct V: NP, virtual E {};  // The "size without virtual base classes"
+                               // erroneously included the tail adding of
+                               // base NP.
+  struct D: virtual V, E {};   // The size of D and offset of V were too
+                               // large.
+
+This is now fixed when ABI_COMPATIBILITY_VERSION is at least 304.  The
+previous behavior remains in effect for smaller values of
+ABI_COMPATIBILITY_VERSION.
+
+
 9/30/03  Spurious error on partial specialization parameter with dependent type
 
 A spurious error was issued if a nonspecialized nontype template parameter

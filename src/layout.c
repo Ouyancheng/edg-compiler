@@ -1432,7 +1432,13 @@ base class).
   a_type_ptr     bctp = skip_typerefs(bcp->type);
   a_targ_size_t  next_byte;
 
-  if (bctp->variant.class_struct_union.any_virtual_base_classes) {
+  if (
+#if ABI_COMPATIBILITY_VERSION >= 304
+      !is_empty_class_type(bctp)
+#else /* ABI_COMPATIBILITY_VERSION < 304 */
+      bctp->variant.class_struct_union.any_virtual_base_classes
+#endif /* ABI_COMPATIBILITY_VERSION >= 304 */
+                                                               ) {
     next_byte = bcp->offset + bctp->variant.class_struct_union.extra_info
                                   ->size_without_virtual_base_classes;
   } else {
@@ -4320,6 +4326,10 @@ into the base classes of class_type.
       primary->offset_is_set = TRUE;
     }  /* if */
   }  /* for */
+  /* Reset the offset_is_set flag in the base classes. */
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+    bcp->offset_is_set = FALSE;
+  }  /* for */
 }  /* compute_primary_base_classes */
 
 #endif /* IA64_ABI */
@@ -4370,11 +4380,6 @@ for handling virtual bases and functions.
     a_class_type_supplement_ptr ctsp;
     /* Identify all of the primary base classes. */
     compute_primary_base_classes(class_type);
-    /* Clear the offset_is_set flag which is used both by
-       compute_primary_base_classes and by other parts of the layout code. */
-    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-      bcp->offset_is_set = FALSE;
-    }  /* for */
     ctsp = class_type->variant.class_struct_union.extra_info;
     bcp = ctsp->primary_base_class;
     if (bcp != NULL) {
