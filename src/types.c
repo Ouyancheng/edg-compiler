@@ -2093,7 +2093,6 @@ set, leave it alone.  Also compute and set the alignment requirement.
         break;
       case tk_pointer:
         size = size_of_pointer_to(type_pointed_to(type_ptr), &alignment);
-        type_ptr->is_incomplete = FALSE;
         break;
       case tk_array:
         (void)set_array_type_size(type_ptr, /*suppress_error=*/FALSE);
@@ -2108,7 +2107,6 @@ set, leave it alone.  Also compute and set the alignment requirement.
           size = targ_sizeof_ptr_to_data_member;
           alignment = targ_alignof_ptr_to_data_member;
         }  /* if */
-        type_ptr->is_incomplete = FALSE;
         break;
 #if CHECKING
       case tk_class:

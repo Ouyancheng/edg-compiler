@@ -347,6 +347,47 @@ array-to-pointer decay).
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+static a_boolean is_partial_type(a_type_ptr  type)
+/*
+Return TRUE if and only the given type is not (yet) fully assembled because
+the it only incorporates some components of the declarator and not those of
+the decl-specifier (e.g., "array [1] of NULL").
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (type->size == 0) {
+    /* If the size is zero, the type may not yet be fully constructed. */
+    a_type_ptr  underlying_type = type;
+    do {
+      switch (underlying_type->kind) {
+        case tk_pointer:  /* Includes C++ reference too. */
+          underlying_type = type_pointed_to(underlying_type);
+          break;
+        case tk_ptr_to_member:
+          underlying_type = pm_member_type(underlying_type);
+          break;
+        case tk_array:
+          underlying_type = array_element_type(underlying_type);
+          break;
+        case tk_routine:
+          underlying_type = underlying_type->variant.routine.return_type;
+          break;
+        case tk_typeref:
+          underlying_type = underlying_type->variant.typeref.type;
+          break;
+        default:
+          goto done;
+          break;
+      }  /* switch */
+    } while (underlying_type != NULL);
+done:
+    result = (underlying_type == NULL);
+  }  /* if */
+  return result;
+}  /* is_partial_type */
+
+
 void add_to_derived_type_list(a_type_ptr new_type_ptr,
                               a_type_ptr *derived_type,
                               a_type_ptr *bottom_derived_type,
@@ -365,7 +406,6 @@ property fields).
   a_boolean               err = FALSE;
   a_type_kind             tkind;
   a_boolean               array_of_incomp_class_or_enum = FALSE;
-  a_boolean               missing_element_type = FALSE;
   a_boolean               is_member_function_typedef = FALSE;
   a_type_ptr              mft_class_type, mft_rout_type;
   a_symbol_ptr            mft_sym;
@@ -421,12 +461,12 @@ property fields).
         /* Array.  See if the element type is proper.  3.1.2.5: the 
            elements must have an object type.  If the element type is
            a partial array or pointer type (see comment above), let it
-           by as long as it looks okay otherwise.  Note that
-           is_object_type will return FALSE for a type with a size
-           of zero, which is the case for the partial array and pointer
-           types. */
+           by as long as it looks okay otherwise. */
         temp_type = skip_typerefs(new_type_ptr);
-        if (is_object_type(temp_type)) {
+        if (is_partial_type(temp_type)) {
+          /* If the element type is a partial array or pointer type (see
+             comment above), let it by as long as it looks okay otherwise. */
+        } else if (is_object_type(temp_type)) {
           /* Usually okay. */
           if (flexible_array_members_allowed) {
             /* A struct or union containing a member that is a zero-length
@@ -438,8 +478,6 @@ property fields).
               err = TRUE;
             }  /* if */
           }  /* if */
-        } else if (is_pointer_type(temp_type)) {
-          /* Okay. */
         } else if (temp_type->kind == (a_type_kind)tk_array &&
                    (has_unknown_specified_bound(temp_type) ||
                     temp_type->
@@ -457,8 +495,6 @@ property fields).
                  done only when the class is the immediate element type. */
               array_of_incomp_class_or_enum = TRUE;
             }  /* if */
-          } else {
-            missing_element_type = TRUE;
           }  /* if */
         } else if (is_ptr_to_member_type(temp_type) &&
                    pm_member_type(temp_type) == NULL) {
@@ -704,17 +740,13 @@ property fields).
          in). */
       /* Note that the size of a pointer pointing to an incomplete type
          can be determined, so do that even if the new type is incomplete. */
-      if ((is_incomplete_type(temp_type) ||
-           (tkind == (a_type_kind)tk_array &&
-            temp_type->variant.array.bound_is_zero &&
-            underlying_array_element_type(temp_type) != NULL)) &&
-          tkind != (a_type_kind)tk_routine /* For speed. */ &&
+      if (tkind != (a_type_kind)tk_routine /* For speed. */ &&
           !microsoft_property &&
           (tkind == (a_type_kind)tk_pointer ||
            tkind == (a_type_kind)tk_ptr_to_member ||
            array_of_incomp_class_or_enum ||
-           (is_object_type(new_type_ptr) && !missing_element_type) ||
            is_function_type(new_type_ptr) ||
+           !is_partial_type(new_type_ptr) ||
            is_error_type(new_type_ptr))) {
         while (tkind == (a_type_kind)tk_array ||
                tkind == (a_type_kind)tk_pointer ||
@@ -3125,7 +3157,6 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
            types have different sizes.  At that time, the is_incomplete flag
            will be cleared. */
         a_type_ptr new_type_ptr = alloc_type((a_type_kind)tk_pointer);
-        new_type_ptr->is_incomplete = TRUE;
         new_type_ptr->variant.pointer.type = complete_type;
         if (curr_token == tok_ampersand) {
           new_type_ptr->variant.pointer.is_reference = TRUE;
