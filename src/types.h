@@ -120,9 +120,9 @@ extern a_boolean expl_conversion(a_type_ptr    source_type,
                                  an_error_code *warning_suggested);
 extern a_type_ptr composite_type(a_type_ptr type_1,
                                  a_type_ptr type_2);
-extern a_boolean overload_distinguishable(a_symbol_ptr old_sym_ptr,
-                                          a_type_ptr   new_type,
-                                          a_symbol_ptr *exact_match_symbol);
+extern a_boolean overload_distinguishable(a_symbol_ptr  old_sym_ptr,
+                                          a_type_ptr    new_type,
+                                          an_error_code *err_code);
 extern void determine_argument_match_level(
                                     a_type_ptr                arg_type,
                                     a_boolean                 arg_is_constant,

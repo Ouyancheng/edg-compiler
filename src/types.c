@@ -2129,26 +2129,26 @@ is allocated, it is allocated in the file scope.
 }  /* composite_type */
 
 
-a_boolean overload_distinguishable(a_symbol_ptr old_sym_ptr,
-                                   a_type_ptr   new_type,
-                                   a_symbol_ptr *exact_match_symbol)
+a_boolean overload_distinguishable(a_symbol_ptr  old_sym_ptr,
+                                   a_type_ptr    new_type,
+                                   an_error_code *err_code)
 /*
 Return TRUE if the new function type new_type is distinguishable under
-overload resolution from all the types of the functions indicated
+overload resolution from all the types of the functions indicated by
 old_sym_ptr (which might be a simple function or an sk_overloaded_function
-symbol).  If the new function is compatible with (i.e., essentially
-identical to) some function on the old list, *exact_match_symbol
-will be set to point to that function; otherwise, it will be NULL.
+symbol).  Otherwise, set *err_code to an appropriate error code
+and return FALSE.  We assume that the caller has already determined that
+the new type is not compatible with any of the existing types.
 Only callable in C++ mode.  See ARM 13.
 */
 {
-  a_boolean        distinguishable;
+  a_boolean        distinguishable, params_all_compatible;
   a_boolean        old_is_list, reference_dropped;
   a_type_ptr       old_type, old_param_type, new_param_type;
   a_param_type_ptr old_param, new_param;
 
   db_enter(5, "overload_distinguishable");
-  *exact_match_symbol = NULL;
+  *err_code = ec_no_error;
   /* See if the old symbol is a list of overloaded functions. */
   if (old_sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
     old_is_list = TRUE;
@@ -2160,60 +2160,80 @@ Only callable in C++ mode.  See ARM 13.
   do {
     /* See if old_sym_ptr and new_type are distinguishable. */
     distinguishable = FALSE;
+    params_all_compatible = TRUE;
     old_type = old_sym_ptr->variant.routine->type;
     old_type = skip_typerefs(old_type);
-    if (types_are_compatible(old_type, new_type)) {
-      /* The types are compatible. */
-      *exact_match_symbol = old_sym_ptr;
-      /* distinguishable = FALSE; -- already set. */
-    } else {
-      /* The types aren't compatible, so see if they are sufficiently
-         different that they are distinguishable by overload resolution.
-         Compare the parameter types. */
-      for (old_param = old_type->variant.routine.extra_info->param_type_list,
-           new_param = new_type->variant.routine.extra_info->param_type_list;
-           old_param != NULL || new_param != NULL;
-           old_param = old_param->next, new_param = new_param->next) {
-        if (old_param == NULL || new_param == NULL) {
-          /* The parameter lists do not end at the same point, so they
-             are distinguishable. */
-          distinguishable = TRUE;
-          break;
-        } else {
-          old_param_type = old_param->type;
-          new_param_type = new_param->type;
-          /* See if one of the types is a reference to the other type,
-             e.g., T and T&. */
-          reference_dropped = FALSE;
-          if (is_reference_type(old_param_type)) {
-            old_param_type = type_referenced(old_param_type);
-            reference_dropped = TRUE;
-          }  /* if */
-          if (is_reference_type(new_param_type)) {
-            new_param_type = type_referenced(new_param_type);
-            reference_dropped = TRUE;
-          }  /* if */
-          /* If neither top-level type was a reference, drop the type
-             qualifiers (it's impossible to distinguish between T, const T,
-             and volatile T, but it's possible to distinguish between
-             T&, const T&, and volatile T&). */
-          if (!reference_dropped) {
-            old_param_type = skip_typerefs(old_param_type);
-            new_param_type = skip_typerefs(new_param_type);
-          }  /* if */
-          /* Now compare the types. */
-          if (!types_are_compatible(old_param_type, new_param_type)) {
-            /* The two types are distinguishable. */
-            distinguishable = TRUE;
-            break;
-          }  /* if */
+    /* See if the types are sufficiently different that they are
+       distinguishable by overload resolution. */
+    /* Compare the parameter types. */
+    for (old_param = old_type->variant.routine.extra_info->param_type_list,
+         new_param = new_type->variant.routine.extra_info->param_type_list;
+         old_param != NULL || new_param != NULL;
+         old_param = old_param->next, new_param = new_param->next) {
+      if (old_param == NULL || new_param == NULL) {
+        /* The parameter lists do not end at the same point, so they
+           are distinguishable. */
+        distinguishable = TRUE;
+        goto distinguishable_determined;
+      } else {
+        old_param_type = old_param->type;
+        new_param_type = new_param->type;
+        /* See if one of the types is a reference to the other type,
+           e.g., T and T&. */
+        reference_dropped = FALSE;
+        if (is_reference_type(old_param_type)) {
+          old_param_type = type_referenced(old_param_type);
+          reference_dropped = TRUE;
         }  /* if */
-      }  /* for */
-      /* Note that the return types are not tested.  Two functions that differ
-         only in return type are not distinguishable. */
+        if (is_reference_type(new_param_type)) {
+          new_param_type = type_referenced(new_param_type);
+          reference_dropped = TRUE;
+        }  /* if */
+        /* If neither top-level type was a reference, drop the type
+           qualifiers (it's impossible to distinguish between T, const T,
+           and volatile T, but it's possible to distinguish between
+           T&, const T&, and volatile T&). */
+        if (!reference_dropped) {
+          old_param_type = skip_typerefs(old_param_type);
+          new_param_type = skip_typerefs(new_param_type);
+        }  /* if */
+        /* Now compare the types. */
+        if (!types_are_compatible(old_param_type, new_param_type)) {
+          /* The two types are distinguishable. */
+          distinguishable = TRUE;
+          goto distinguishable_determined;
+        }  /* if */
+        /* The types are indistinguishable.  See if they're compatible
+           (meaning the same type, roughly).  This is useful to know in
+           issuing the right error message. */
+        if (params_all_compatible &&
+            !types_are_compatible(old_param->type, new_param->type)) {
+          params_all_compatible = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* All the parameters are indistinguishable. */
+    if (params_all_compatible) {
+      /* The parameter types are not just indistinguishable, they are
+         compatible.  This suggests that the user is trying to distinguish
+         the function on the basis of the return type, which is not
+         valid. */
+#if CHECKING
+      if (types_are_compatible(old_type->variant.routine.return_type,
+                               new_type->variant.routine.return_type)) {
+        /* The caller is supposed to have ensured that the case of
+           completely compatible function types does not come here, since
+           that's a case of redeclaration rather than overloading. */
+        internal_error("overload_distinguishable: types compatible");
+      }  /* if */
+#endif /* CHECKING */
+      *err_code = ec_return_type_cannot_distinguish_functions;
+    } else {
+      /* The parameter lists differ in some way. */
+      *err_code = ec_overloaded_function_types_too_similar;
     }  /* if */
-  } while (old_is_list && distinguishable &&
-           (old_sym_ptr = old_sym_ptr->next) != NULL);
+  } while (old_is_list && (old_sym_ptr = old_sym_ptr->next) != NULL);
+distinguishable_determined:;
   db_exit();
   return distinguishable;
 }  /* overload_distinguishable */
