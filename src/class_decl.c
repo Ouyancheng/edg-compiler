@@ -13617,14 +13617,15 @@ classes.
                                        (a_decl_pos_block *)NULL);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member
-             declaration.  It's optional after the last declaration (that's
-             an extension in ANSI C mode). */
+             declaration.  It's optional after the last declaration in
+             pcc mode; as an extension, it is also accepted with a warning
+             in nonstrict ANSI C modes. */
           if (curr_token == tok_rbrace) {
             /* The final semicolon is omitted. */
             if (C_dialect != C_dialect_pcc) {
-              diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
-                         C_mode()         ? es_warning :
-                                            es_discretionary_error,
+              diagnostic(strict_ansi_mode ?
+                                          strict_ansi_discretionary_severity :
+                         C_mode() ? es_warning : es_discretionary_error,
                          ec_exp_semicolon);
             }  /* if */ 
           } else {
