@@ -898,7 +898,18 @@ omit the space.
       break;
 #ifdef CFE
     case sc_register:
-      fputs("register ", f_C_output);
+      if (il_header.source_language == sl_Cplusplus) {
+        /* Use of "?" or "," with lvalues can cause the addresses of variables
+           to be used in the C code even though the address_taken flag is
+           FALSE.  Suppress the "register" storage class. */
+        start_comment();
+        fputs("register", f_C_output);
+        end_comment();
+        /* "auto" is not put out because it's not valid for parameters. */
+        fputs(" ", f_C_output);
+      } else {
+        fputs("register ", f_C_output);
+      }  /* if */
       break;
     case sc_typedef:
       fputs("typedef ", f_C_output);
