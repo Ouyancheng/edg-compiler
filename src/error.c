@@ -3005,6 +3005,22 @@ indicated by error_position.
   pos_sy_remark(error_code, &error_position, symbol);
 }  /* sym_remark */
 
+
+void pos_stsy_remark(an_error_code     error_code,
+                     a_source_position *error_pos,
+                     char              *error_string,
+                     a_symbol_ptr      symbol)
+/*
+Report the indicated remark (with the indicated fill-in string and symbol)
+at the indicated position.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string;
+  error_msg_syms[1] = symbol;
+  diag_message(error_code, error_pos, es_remark, dck_standalone);
+}  /* sym_remark */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void pos_st_warning(an_error_code     error_code,

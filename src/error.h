@@ -253,6 +253,10 @@ extern void pos_sy_remark(an_error_code     error_code,
                           struct a_symbol   *symbol);
 extern void sym_remark(an_error_code   error_code,
                        struct a_symbol *symbol);
+extern void pos_stsy_remark(an_error_code     error_code,
+                            a_source_position *error_pos,
+                            char              *error_string,
+                            struct a_symbol   *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void pos_st_warning(an_error_code     error_code,
                            a_source_position *error_pos,
