@@ -1,5 +1,21 @@
 Version 3.0
 
+3/4/02   GNU C: variable-length array fields of local structs
+
+The GNU C compiler accepts variable-length array fields in local struct
+declarations, which may result in size and offset computation being
+delayed until run time.  However, it common for this feature to be used
+simply to indicate that the last field of a structure is a flexible array
+member.  To enable the latter idiom, the front end now accepts such
+declarations in GNU C mode, but it discards the given length with a
+warning, and sets the length of the array to zero.  For example:
+
+  void f(int n) {
+    struct S {
+      int a[n]; /* Warning: equivalent to "int a[0];". */
+    };
+  }
+
 3/2/02   Virtual destructor referenced only in array delete not generated
 
 A compiler-generated virtual destructor that is referenced only in
