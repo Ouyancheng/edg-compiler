@@ -1,5 +1,37 @@
 Version 2.23
 
+5/2/94  Inheritance of assignment operators
+
+Under certain circumstance the inheritance of assignment operators was
+permitted.  That has been fixed, and the following now gets an error:
+
+  struct A {
+    int i;
+    operator=(int ii) { i = ii; }
+  };
+  struct B : public A { };
+  void f() {
+    B b;
+    b = 0;                  // Error
+  }
+
+5/2/94  Cross-reference information on template declarations
+
+The generation of cross-reference information on declarations of templates
+and references to template classes has been improved.  For example:
+
+-  Template definitions are properly reported as definitions, not
+   declarations.
+-  Template definitions of static data members and member functions of
+   class templates are no longer omitted from the cross-reference listing.
+-  Declarations of template parameters are now reported, as are references
+   to them in template declarations; however, references in prototype
+   instantiations (like references to other symbols) are not reported.
+-  During template instantiation a reference to a template parameter that
+   in turn refers to a named type is now reported in the, cross-reference
+   listing as a reference to the named type; see the new symbol reference
+   kind SRK_IMPLICIT_TEMPLATE_ARG.
+
 4/30/94  Minor type qualifier tweaks in IL
 
 The attempt to get "const" put out when generating ANSI C turned up
