@@ -2556,41 +2556,30 @@ If the indicated class type is unnamed, give it a name and return the name.
     /* The name is __Cnn, where nn is a unique number for the
        class.  This is not from the ARM.  cfront uses the __Cn form, but
        the number is different. */
-    if (type->kind == (a_type_kind)tk_union &&
-        type->variant.class_struct_union.extra_info != NULL &&
-        type->variant.class_struct_union.extra_info->
-                   anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
-      /* For an anonymous union, use the name of the first member, if there
-         is one.  Note that the IA-64 ABI requires this. */
-      a_source_correspondence *field_scp;
-      name = first_field_name(type, &field_scp);
+    unsigned long num = 0;
+    if (type->source_corresp.is_class_member) {
+      /* For a nested type, try to find a field of the parent class that
+         has this type.  If there is one, use the field number of the
+         field in generating the unnamed class name.  Note that the
+         nested classes will have been promoted out of the parent
+         class by this point if the parent class is a local class,
+         so we can't look at the parent class types list. */
+      a_type_ptr parent_type = type->source_corresp.parent.class_type;
+      num = number_of_field_using_unnamed_type(parent_type, type);
     }  /* if */
-    if (name == NULL) {
-      unsigned long num = 0;
-      if (type->source_corresp.is_class_member) {
-        /* For a nested type, try to find a field of the parent class that
-           has this type.  If there is one, use the field number of the
-           field in generating the unnamed class name.  Note that the
-           nested classes will have been promoted out of the parent
-           class by this point if the parent class is a local class,
-           so we can't look at the parent class types list. */
-        a_type_ptr parent_type = type->source_corresp.parent.class_type;
-        num = number_of_field_using_unnamed_type(parent_type, type);
-      }  /* if */
-      if (num == 0) {
-        /* By default, just use the next number in sequence. */
-        num = ++unnamed_class_name_seed;
-        /* In this case (only), we set name_has_been_mangled to indicate
-           that the generated name is the complete name.  No parent
-           information, for example, will be added.  The generated name
-           by itself is unique across the whole compilation. */
-        type->source_corresp.name_has_been_mangled = TRUE;
-      }  /* if */
-      (void)sprintf(buffer, "__C%lu", (unsigned long)num);
-      name_len = strlen(buffer) + 1;
-      name = alloc_lowered_name_string(name_len);
-      (void)strcpy(name, buffer);
+    if (num == 0) {
+      /* By default, just use the next number in sequence. */
+      num = ++unnamed_class_name_seed;
+      /* In this case (only), we set name_has_been_mangled to indicate
+         that the generated name is the complete name.  No parent
+         information, for example, will be added.  The generated name
+         by itself is unique across the whole compilation. */
+      type->source_corresp.name_has_been_mangled = TRUE;
     }  /* if */
+    (void)sprintf(buffer, "__C%lu", (unsigned long)num);
+    name_len = strlen(buffer) + 1;
+    name = alloc_lowered_name_string(name_len);
+    (void)strcpy(name, buffer);
     type->source_corresp.name = name;
   }  /* if */
   return name;
