@@ -385,7 +385,8 @@ fields to default values.
     case ck_template_param:
       cp->variant.template_param.kind =
                                   (a_template_param_constant_kind)tpck_param;
-      cp->variant.template_param.variant.list_position = 0;
+      cp->variant.template_param.variant.coordinates.position = 0;
+      cp->variant.template_param.variant.coordinates.depth = 0;
       break;
     case ck_cast:
       cp->variant.source_constant = NULL;
@@ -938,7 +939,8 @@ to default values.
     case tk_template_param:
       pte->variant.template_param.kind =
                                    (a_template_param_type_kind)tptk_param;
-      pte->variant.template_param.list_position = 0;
+      pte->variant.template_param.coordinates.position = 0;
+      pte->variant.template_param.coordinates.depth = 0;
       pte->variant.template_param.descr = NULL;
       break;
 #if CHECKING

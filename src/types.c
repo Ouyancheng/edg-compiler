@@ -2068,9 +2068,13 @@ funcs_not_identical:;
                 case tptk_param:
                    /* Template parameter types are considered to be identical
                       if their positions in the template parameter list are
-                      the same. */
-                  identical = (type_1->variant.template_param.list_position ==
-                               type_2->variant.template_param.list_position);
+                      the same, and they are associated with template
+		      declarations of the same nesting level. */
+                  identical =
+                      (type_1->variant.template_param.coordinates.position ==
+                       type_2->variant.template_param.coordinates.position) &&
+                      (type_1->variant.template_param.coordinates.depth ==
+                       type_2->variant.template_param.coordinates.depth);
                   break;
                 case tptk_member:
                   /* Members types are the same if their names are the same

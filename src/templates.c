@@ -1887,7 +1887,8 @@ list of a template function.  Returns TRUE if a match is found.
       /* This is a template parameter from the original source program
          and not a synthesized template parameter. */
       a_template_param_list_pos list_pos;
-      list_pos = templ_constant->variant.template_param.variant.list_position;
+      list_pos =
+           templ_constant->variant.template_param.variant.coordinates.position;
       tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
                                          list_pos);
       /* Now we have the nth template argument, which should correspond to
@@ -1982,7 +1983,8 @@ of types after all of the function arguments have been processed.
     /* This is a template parameter from the original source program
        and not a synthesized template parameter. */
     a_template_param_list_pos list_pos;
-    list_pos = templ_constant->variant.template_param.variant.list_position;
+    list_pos =
+           templ_constant->variant.template_param.variant.coordinates.position;
     tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
                                        list_pos);
     /* Now we have the nth template argument, which should correspond to
@@ -2158,7 +2160,7 @@ performed.  templ_param_list points to the template parameter list.
         /* A real type "matches" a template parameter type if it is identical
            to the real type, if any, that was previously associated with that
            template type. */
-        list_pos = templ_type->variant.template_param.list_position;
+        list_pos = templ_type->variant.template_param.coordinates.position;
         tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
                                            list_pos);
         /* Now we have the nth template argument, which should correspond to
@@ -4771,7 +4773,7 @@ to represent the template parameters.
          only and will not appear in the IL passed on to the back end.  It
          is therefore not added to any scope types list. */
       template_param_type = alloc_type((a_type_kind)tk_template_param);
-      template_param_type->variant.template_param.list_position =
+      template_param_type->variant.template_param.coordinates.position =
                                                      template_param_list_pos;
       set_type_size(template_param_type);
       set_source_corresp(&template_param_type->source_corresp, sym);
@@ -4818,8 +4820,8 @@ to represent the template parameters.
       sym->variant.constant->type = param_type_ptr;
       /* Note that the variant field template_param.kind was initialized to
          tpck_param when the constant was allocated. */
-      sym->variant.constant->variant.template_param.variant.list_position =
-                                                      template_param_list_pos;
+      sym->variant.constant->variant.template_param.
+                        variant.coordinates.position = template_param_list_pos;
       set_source_corresp(&sym->variant.constant->source_corresp, sym);
       const_type_involves_template_param = 
 				is_or_contains_template_param(param_type_ptr);

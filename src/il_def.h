@@ -1212,6 +1212,28 @@ typedef unsigned long a_template_param_list_pos;
 			   parameter or argument list (i.e., a given
 			   parameter is the Nth parameter in the list). */
 
+typedef unsigned long a_template_nesting_depth;
+			/* When templates are nested within other templates,
+			   the nesting depth is used to associate a
+			   template parameter with a given template
+			   declaration level.  The first level is 1,
+			   the second 2, etc. */
+
+typedef struct a_template_param_coordinate {
+  /* Structure used to identify a template parameter from a template
+     declaration using its list position and template nesting depth.
+     Template parameters with matching coordinates are equivalent. */
+  a_template_param_list_pos
+		position;
+			/* Ordinal value indicating the position of the
+			   template parameter in its declaration list (1 is
+			   first param declared, 2 is second, etc.). */
+  a_template_nesting_depth
+		depth;
+			/* Ordinal value indicating with which of a set of
+			   nested templates a given parameter is
+                           associated. */
+} a_template_param_coordinate;
 #endif /* ifdef CIL */
 
 typedef struct a_constant {
@@ -1432,11 +1454,10 @@ typedef struct a_constant {
 			/* The kind of template param constant. */
       union {
 	/* When template param constant kind == tpck_param: */
-        a_template_param_list_pos
-		list_position;
-			/* Ordinal value indicating the position of the
-			   template parameter in its declaration list (1 is
-			   first param declared, 2 is second, etc.). */
+        a_template_param_coordinate
+		coordinates;
+			/* The parameter list position and template nesting
+			   depth of the parameter. */
 	/* When template param constant kind == tpck_expression: */
 	an_expr_node_ptr
 		expr;
@@ -3277,14 +3298,10 @@ typedef struct a_type {
       a_template_param_type_kind
 		kind;
 			/* The kind of template param type. */
-      a_template_param_list_pos
-		list_position;
-			/* Ordinal value indicating the position of a
-			   tptk_param template parameter in its declaration
-			   list (1 is the first param declared, 2 is the
-			   second, etc.).  This field is not used for
-			   tptk_member or tptk_type_of_member_constant
-			   variants. */
+      a_template_param_coordinate
+		coordinates;
+			/* The parameter list position and template nesting
+			   depth of the parameter. */
       a_template_param_type_descr_ptr
 		descr;
 			/* Pointer to a descriptor containing additional

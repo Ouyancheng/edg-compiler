@@ -926,8 +926,11 @@ class_struct_union:
       } else {
         if (tp->variant.template_param.kind ==
                    (a_template_param_type_kind)tptk_param) {
-          fprintf(f_debug, "#%lu ",
-              (unsigned long)tp->variant.template_param.list_position);
+          fprintf(f_debug, "#%0lu:%0lu ",
+                  (unsigned long)tp->variant.
+                                     template_param.coordinates.depth,
+                  (unsigned long)tp->variant.
+                                     template_param.coordinates.position);
         } else {
           fputc(' ', f_debug);
         }  /* if */
@@ -2988,8 +2991,10 @@ nonidentical.
                                       cp2->variant.template_param.kind) {
           switch (cp1->variant.template_param.kind) {
             case tpck_param:
-              eq = (cp1->variant.template_param.variant.list_position ==
-                            cp2->variant.template_param.variant.list_position);
+              eq = (cp1->variant.template_param.variant.coordinates.position ==
+                    cp2->variant.template_param.variant.coordinates.position)
+                && (cp1->variant.template_param.variant.coordinates.depth ==
+                    cp2->variant.template_param.variant.coordinates.depth);
               break;
             case tpck_expression:
               eq = compare_template_param_constant_expressions(
