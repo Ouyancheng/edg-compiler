@@ -1,5 +1,12 @@
 Version 2.08
 
+8/19/92  CFRONT_OBJECT_CODE_COMPATIBILITY
+
+This flag replaces CFRONT_CLASS_LAYOUT_COMPATIBILTY.  Defined in
+target.h, it controls whether the front end puts out IL for object code
+in an environment where cfront compatibility is required.  When this
+flag is FALSE the resulting object code may be somewhat more compact.
+
 8/16/92 Sharing of virtual function tables/pointers
 
 Pointers to virtual function tables are now shared between classes
