@@ -1,5 +1,14 @@
 Version 2.24
 
+6/23/94 IL CHANGE: declared_type in routine and variable entries
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, a new field, declared_type,
+appears in a_routine and a_variable.  It refers to the type that the user
+specified in the defining declaration of the entity.  This information is
+useful to the C++-generating back for reconstructing the original sequence
+of declarations, since the ultimate type of a variable or routine could be
+a product of several declarations.
+
 6/23/94 Include directory list when using STACK_REFERENCED_INCLUDE_DIRECTORIES
 
 When using stacked include directories, the directory associated with the
@@ -22,10 +31,10 @@ break and continue statements.  The C++-generating back end now uses
 those flags to recreate break and continue statements in their original
 form.
 
-6/22/94 IL CHANGE: entity_type recorded in a_src_seq_secondary_decl
+6/22/94 IL CHANGE: declared_type recorded in a_src_seq_secondary_decl
 
 A new field has been added to entries in a source-sequence list that
-represent secondary declarations -- the entity type.  This is useful for
+represent secondary declarations -- the "declared type".  This is useful for
 reconstructing the original source when the type on the entity differs from
 the type used in the secondary declaration.  Here's an example:
 
