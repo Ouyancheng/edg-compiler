@@ -95,6 +95,9 @@ typedef enum /*a_token_kind*/ {
   tok_comma                 /* , */,
   tok_sharp                 /* # */,
   tok_paste                 /* ## */,
+  /* The min and max operators are only recognized in GNU C++ mode. */
+  tok_gnu_min               /* <? */,
+  tok_gnu_max               /* >? */,
   /* Punctuators (standard, 3.1.6) that are not also operators: */
   tok_lbrace                /* { */,
   tok_rbrace                /* } */,
@@ -272,8 +275,8 @@ EXTERN char	*token_names[(int)tok_last+1]
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==",
    "!=", "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
-   "+=", "-=", "<<=", ">>=", "&=", "^=", "|=", ",", "#", "##", "{", "}",
-   ";", "...", "auto", "break", "case", "char", "const",
+   "+=", "-=", "<<=", ">>=", "&=", "^=", "|=", ",", "#", "##", "<?", ">?",
+   "{", "}", ";", "...", "auto", "break", "case", "char", "const",
    "continue", "default", "do", "double", "else", "enum", "extern",
    "float", "for", "goto", "if", "int", "long", "register",
    "return", "short", "signed", "sizeof", "static", "struct",
@@ -576,6 +579,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_comma,
    (an_opname_kind)onk_none,          /* tok_sharp */
    (an_opname_kind)onk_none,          /* tok_paste */
+   (an_opname_kind)onk_gnu_min,       /* tok_gnu_min */
+   (an_opname_kind)onk_gnu_max,       /* tok_gnu_max */
    (an_opname_kind)onk_none,          /* tok_lbrace */
    (an_opname_kind)onk_none,          /* tok_rbrace */
    (an_opname_kind)onk_none,          /* tok_semicolon */

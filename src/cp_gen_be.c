@@ -5537,6 +5537,34 @@ precedence confusion and need_parens is TRUE.
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
           break;
+#if GNU_EXTENSIONS_ALLOWED
+        case eok_gnu_min:
+        case eok_ignu_min:
+        case eok_fgnu_min:
+        case eok_pgnu_min:
+          /* Lvalue-returning GNU C++ minimum operator. Both operands are
+             lvalues. */
+          if (need_parens) write_tok_ch('(');
+          gen_lvalue(operand_1);
+          write_tok_str(" <? ");
+          gen_lvalue(operand_2);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        case eok_gnu_max:
+        case eok_ignu_max:
+        case eok_fgnu_max:
+        case eok_pgnu_max:
+          /* Lvalue-returning GNU C++ maximum operator. Both operands are
+             lvalues. */
+          if (need_parens) write_tok_ch('(');
+          gen_lvalue(operand_1);
+          write_tok_str(" >? ");
+          gen_lvalue(operand_2);
+          if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_points_to_static:
           /* Static member selection, p->m. */
           if (need_parens) write_tok_ch('(');
@@ -6629,6 +6657,20 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_ple:
           opstr = "<=";
           break;
+#if GCC_IS_GENERATED_CODE_TARGET
+        case eok_gnu_min:
+        case eok_ignu_min:
+        case eok_fgnu_min:
+        case eok_pgnu_min:
+          opstr = "<?";
+          break;
+        case eok_gnu_max:
+        case eok_ignu_max:
+        case eok_fgnu_max:
+        case eok_pgnu_max:
+          opstr = ">?";
+          break;
+#endif /* GCC_IS_GENERATED_CODE_TARGET */
         case eok_remainder:
           opstr = "%";
           break;

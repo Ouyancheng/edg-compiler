@@ -6198,6 +6198,7 @@ enum an_opname_kind_tag {
   onk_arrow_star,        /* "->*" */    onk_arrow,             /* "->" */
   onk_function_call,     /* "()" */     onk_subscript,         /* "[]" */
   onk_question,          /* "?" -- only used in front end. */
+  onk_gnu_min,           /* "<?" */     onk_gnu_max,           /* ">?" */
   onk_last
 };
 #endif /* ifdef CIL */
@@ -7354,6 +7355,8 @@ enum an_expr_operator_kind_tag {
   eok_ilt,              /* Integer less than. */
   eok_ige,              /* Integer greater than or equal. */
   eok_ile,              /* Integer less than or equal. */
+  eok_ignu_min,         /* Integer minimum operator (a GNU C++ extension). */
+  eok_ignu_max,         /* Integer maximum operator (a GNU C++ extension). */
   eok_iassign,          /* Integer assignment. */
   eok_fadd,             /* Floating addition. */
   eok_fsubtract,        /* Floating subtraction. */
@@ -7365,6 +7368,8 @@ enum an_expr_operator_kind_tag {
   eok_flt,              /* Floating less than. */
   eok_fge,              /* Floating greater than or equal. */
   eok_fle,              /* Floating less than or equal. */
+  eok_fgnu_min,         /* Floating minimum operator (a GNU C++ extension). */
+  eok_fgnu_max,         /* Floating maximum operator (a GNU C++ extension). */
   eok_fassign,          /* Floating assignment. */
   eok_padd,             /* Pointer addition.  First operand is always the
                            pointer, second always the integer.  Note that the
@@ -7427,6 +7432,8 @@ enum an_expr_operator_kind_tag {
   eok_plt,              /* Pointer less than. */
   eok_pge,              /* Pointer greater than or equal. */
   eok_ple,              /* Pointer less than or equal. */
+  eok_pgnu_min,         /* Pointer minimum operator (a GNU C++ extension). */
+  eok_pgnu_max,         /* Pointer maximum operator (a GNU C++ extension). */
   eok_pmeq,		/* Pointer-to-member equality. */
   eok_pmne,		/* Pointer-to-member inequality. */
   eok_sassign,          /* Structure assignment. */
@@ -7642,6 +7649,8 @@ enum an_expr_operator_kind_tag {
   eok_lt,               /* Generic less than. */
   eok_ge,               /* Generic greater than or equal. */
   eok_le,               /* Generic less than or equal. */
+  eok_gnu_min,          /* Generic minimum operator (a GNU C++ extension). */
+  eok_gnu_max,          /* Generic maximum operator (a GNU C++ extension). */
   eok_assign,           /* Generic assignment. */
   eok_add_assign,       /* Generic add assign operator. */
   eok_subtract_assign,  /* Generic subtract assign operator. */
@@ -10225,8 +10234,10 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef FIL
    "len ", "&", "loc ", "test",
 #endif /* ifdef FIL */
-   "i+", "i-", "i*", "i/", "i==", "i!=", "i>", "i<", "i>=", "i<=", "i=",
-   "f+", "f-", "f*", "f/", "f==", "f!=", "f>", "f<", "f>=", "f<=", "f=",
+   "i+", "i-", "i*", "i/", "i==", "i!=", "i>", "i<", "i>=", "i<=",
+   "i<?", "i>?", "i=",
+   "f+", "f-", "f*", "f/", "f==", "f!=", "f>", "f<", "f>=", "f<=",
+   "f<?", "f>?", "f=",
    "p+", "p-", "p=",
 #if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
    "x+", "x-", "x*", "x/", "x==", "x!=", "x=",
@@ -10241,7 +10252,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #endif /* ifdef FIL */
 #ifdef CIL
    "%",
-   "ps", "pd", "p==", "p!=", "p>", "p<", "p>=", "p<=",
+   "ps", "pd", "p==", "p!=", "p>", "p<", "p>=", "p<=", "p<?", "p>?",
    "pm==", "pm!=",
    "s=", "b=", "pm=",
    "i+=", "i-=", "i*=", "i/=", "%=",
@@ -10281,7 +10292,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "-G",
    "G++", "G--", "++G", "--G",
    "G+", "G-", "G*", "G/", "G==", "G!=", "G>", "G<", "G>=", "G<=",
-   "G=", "G+=", "G-=", "G*=", "G/=",
+   "G<?", "G>?", "G=", "G+=", "G-=", "G*=", "G/=",
    "&G", "G.*", "G->*",
    "static cast", "const cast", "reinterpret cast",
    "lvalue", "rvalue", "Gcall", "GMcall",

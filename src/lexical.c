@@ -7503,6 +7503,7 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       break;
     case '<':
       /* One of "<<", "<<=", "<=", or "<". In C++, "<%" or "<:".
+         If gpp_mode is TRUE, the tokens "<?" and ">?" are also recognized.
          If exp_system_header_name is TRUE, a header name of the form
          <filename>. */
       if (exp_system_header_name) {
@@ -7534,6 +7535,11 @@ start_of_token_scan:  /* Restart here after scanning white space. */
           warning(ec_probable_inadvertent_lbracket_digraph);
         }  /* if */
 	goto two_char_token;
+#if GNU_EXTENSIONS_ALLOWED
+      } else if (ch == '?' && gpp_mode) {
+        ctoken = tok_gnu_min;
+        goto two_char_token;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
       /* Just plain "<". */
       ctoken = tok_lt;
@@ -7551,6 +7557,11 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       } else if (ch == '=') {
         ctoken = tok_ge;
         goto two_char_token;
+#if GNU_EXTENSIONS_ALLOWED
+      } else if (ch == '?' && gpp_mode) {
+        ctoken = tok_gnu_max;
+        goto two_char_token;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
       /* Just plain ">". */
       ctoken = tok_gt;

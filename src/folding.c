@@ -2591,6 +2591,41 @@ operator "op", and return a 0 or 1 integer in "result".
 #endif /* DEBUG */
 }  /* do_icompare */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void do_ignu_min_max(a_constant            *constant_1,
+                            an_expr_operator_kind op,
+                            a_constant            *constant_2,
+                            a_constant            *result)
+/*
+Compare integers constant_1 and constant_2 and return the minimum or maximum
+in result (depending on which operator is indicated by op).  This folds the
+GNU C++ minimum and maximum operators ("<?" and ">?").
+*/
+{
+  if (cmp_integer_constants(constant_1, constant_2) <= 0) {
+    /* The first constant is no larger than the second one. */
+    if (op == (an_expr_operator_kind)eok_ignu_min) {
+      copy_constant(constant_1, result);
+    } else {
+      copy_constant(constant_2, result);
+    }  /* if */
+  } else {
+    /* The first constant is larger. */
+    if (op == (an_expr_operator_kind)eok_ignu_min) {
+      copy_constant(constant_2, result);
+    } else {
+      copy_constant(constant_1, result);
+    }  /* if */
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation(db_operator_names[op],
+                      constant_1, constant_2, result, ec_no_error);
+#endif /* DEBUG */
+}  /* do_ignu_min_max */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void do_and(a_constant    *constant_1,
 		   a_constant    *constant_2,
@@ -2950,6 +2985,50 @@ relational operator "op", and return a 0 or 1 integer in "result".
                       constant_1, constant_2, result, ec_no_error);
 #endif /* DEBUG */
 }  /* do_fcompare */
+
+#if GNU_EXTENSIONS_ALLOWED
+
+static void do_fgnu_min_max(a_constant            *constant_1,
+                            an_expr_operator_kind op,
+                            a_constant            *constant_2,
+                            a_constant            *result)
+/*
+Compare floating constant_1 and constant_2 and return the minimum or maximum
+in result (depending on which operator is indicated by op).  This folds the
+GNU C++ minimum and maximum operators ("<?" and ">?").
+*/
+{
+  a_boolean  unordered;
+  a_float_kind float_kind =
+                           skip_typerefs(constant_1->type)->variant.float_kind;
+  int          order = fp_compare(float_kind,
+                                  &constant_1->variant.float_value,
+                                  &constant_2->variant.float_value,
+                                  &unordered);
+
+  if (op == (an_expr_operator_kind)eok_fgnu_min) {
+    if (order < 0) {
+      /* The first constant is less than the second. */
+      copy_constant(constant_1, result);
+    } else {
+      copy_constant(constant_2, result);
+    }  /* if */
+  } else {
+    /* Evaluate the C++ maximum operator. */
+    if (order > 0) {
+      copy_constant(constant_1, result);
+    } else {
+      copy_constant(constant_2, result);
+    }  /* if */
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation(db_operator_names[op],
+                      constant_1, constant_2, result, ec_no_error);
+#endif /* DEBUG */
+}  /* do_fgnu_min_max */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if C99_IL_EXTENSIONS_SUPPORTED
 
@@ -3993,6 +4072,20 @@ as the position for any diagnostics issued.
         case eok_ile:
           do_icompare(constant_1, op, constant_2, result);
           break;
+#if GNU_EXTENSIONS_ALLOWED
+        case eok_ignu_max:
+        case eok_ignu_min:
+          do_ignu_min_max(constant_1, op, constant_2, result);
+          break;
+        case eok_fgnu_max:
+        case eok_fgnu_min:
+          do_fgnu_min_max(constant_1, op, constant_2, result);
+          break;
+        case eok_pgnu_max:
+        case eok_pgnu_min:
+          *did_not_fold = TRUE;
+          break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_and:
           do_and(constant_1, constant_2, result);
           break;

@@ -4783,21 +4783,29 @@ type is an error type, return eok_error.
 	case tok_ne:
 	  op = (an_expr_operator_kind)eok_ine;
 	  break;
-        case tok_ampersand:
-          op = (an_expr_operator_kind)eok_and;
-          break;
-        case tok_excl_or:
-          op = (an_expr_operator_kind)eok_xor;
-          break;
-        case tok_or:
-          op = (an_expr_operator_kind)eok_or;
-          break;
-        case tok_and_and:
-          op = (an_expr_operator_kind)eok_land;
-          break;
-        case tok_or_or:
-          op = (an_expr_operator_kind)eok_lor;
-          break;
+	case tok_ampersand:
+	  op = (an_expr_operator_kind)eok_and;
+	  break;
+	case tok_excl_or:
+	  op = (an_expr_operator_kind)eok_xor;
+	  break;
+	case tok_or:
+	  op = (an_expr_operator_kind)eok_or;
+	  break;
+	case tok_and_and:
+	  op = (an_expr_operator_kind)eok_land;
+	  break;
+	case tok_or_or:
+	  op = (an_expr_operator_kind)eok_lor;
+	  break;
+#if GNU_EXTENSIONS_ALLOWED
+	case tok_gnu_min:
+	  op = (an_expr_operator_kind)eok_ignu_min;
+	  break;
+	case tok_gnu_max:
+	  op = (an_expr_operator_kind)eok_ignu_max;
+	  break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 	case tok_assign:
 	  op = (an_expr_operator_kind)eok_iassign;
 	  break;
@@ -4870,6 +4878,14 @@ type is an error type, return eok_error.
 	case tok_ne:
 	  op = (an_expr_operator_kind)eok_fne;
 	  break;
+#if GNU_EXTENSIONS_ALLOWED
+	case tok_gnu_min:
+	  op = (an_expr_operator_kind)eok_fgnu_min;
+	  break;
+	case tok_gnu_max:
+	  op = (an_expr_operator_kind)eok_fgnu_max;
+	  break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 	case tok_assign:
 	  op = (an_expr_operator_kind)eok_fassign;
 	  break;
@@ -4998,6 +5014,14 @@ type is an error type, return eok_error.
 	case tok_ne:
 	  op = (an_expr_operator_kind)eok_pne;
 	  break;
+#if GNU_EXTENSIONS_ALLOWED
+	case tok_gnu_min:
+	  op = (an_expr_operator_kind)eok_pgnu_min;
+	  break;
+	case tok_gnu_max:
+	  op = (an_expr_operator_kind)eok_pgnu_max;
+	  break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 	case tok_assign:
 	  op = (an_expr_operator_kind)eok_passign;
 	  break;
@@ -5138,6 +5162,14 @@ eok_fadd or eok_padd.
       case onk_or:
         op = (an_expr_operator_kind)eok_or;
         break;
+#if GNU_EXTENSIONS_ALLOWED
+      case onk_gnu_min:
+        op = (an_expr_operator_kind)eok_gnu_min;
+        break;
+      case onk_gnu_max:
+        op = (an_expr_operator_kind)eok_gnu_max;
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case onk_assign:
         op = (an_expr_operator_kind)eok_assign;
         break;
@@ -5705,40 +5737,7 @@ be used (e.g., eok_add, not eok_iadd).
        allowed on operands involving template parameter types, so
        switch to the integral version of the generic operator if
        there is one. */
-    switch (op) {
-      case eok_add:
-        op = (an_expr_operator_kind)eok_iadd;
-        break;
-      case eok_subtract:
-        op = (an_expr_operator_kind)eok_isubtract;
-        break;
-      case eok_multiply:
-        op = (an_expr_operator_kind)eok_imultiply;
-        break;
-      case eok_divide:
-        op = (an_expr_operator_kind)eok_idivide;
-        break;
-      case eok_eq:
-        op = (an_expr_operator_kind)eok_ieq;
-        break;
-      case eok_ne:
-        op = (an_expr_operator_kind)eok_ine;
-        break;
-      case eok_gt:
-        op = (an_expr_operator_kind)eok_igt;
-        break;
-      case eok_lt:
-        op = (an_expr_operator_kind)eok_ilt;
-        break;
-      case eok_ge:
-        op = (an_expr_operator_kind)eok_ige;
-        break;
-      case eok_le:
-        op = (an_expr_operator_kind)eok_ile;
-        break;
-      default:;
-        /* Other operators are unchanged. */
-    }  /* switch */
+    op = substitute_integer_operator_for_generic(op);
     known_not_overloaded = TRUE;
   } else {
     /* The current expression is not a constant expression. */
@@ -7259,6 +7258,22 @@ is an lvalue if is_lvalue is TRUE.
           is_bit_field_expr(expr3, is_lvalue)) {
         is_bit_field = TRUE;
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (is_lvalue && gpp_mode &&
+               (op == (an_expr_operator_kind)eok_ignu_min ||
+                op == (an_expr_operator_kind)eok_ignu_max ||
+                op == (an_expr_operator_kind)eok_fgnu_min ||
+                op == (an_expr_operator_kind)eok_fgnu_max ||
+                op == (an_expr_operator_kind)eok_pgnu_min ||
+                op == (an_expr_operator_kind)eok_pgnu_max)) {
+      /* The GNU C++ minimum and maximum operators can return an lvalue. */
+      expr1 = node->variant.operation.operands;
+      expr2 = expr1->next;
+      if (is_bit_field_expr(expr1, is_lvalue) ||
+          is_bit_field_expr(expr2, is_lvalue)) {
+        is_bit_field = TRUE;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else if (is_lvalue && op == (an_expr_operator_kind)eok_comma) {
       /* An lvalue-returning "," operator; check its second operand. */
       expr1 = node->variant.operation.operands;
@@ -8070,8 +8085,9 @@ non-NULL return *con_value == NULL.
                                                  (a_constant_ptr *)NULL);
           *constant_case = constant_case2;
         } else {
-          /* The operation is an assignment or prefix ++/-- that returns an
-             lvalue.  Change it to one that returns an rvalue. */
+          /* The operation is an assignment, a prefix ++/--, or a GNU min/max
+             operator that returns an lvalue.  Change it to one that returns
+             an rvalue. */
         }  /* if */
         optimized_case = TRUE;
         node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
@@ -8714,6 +8730,18 @@ transformations in lowering.
     if (op == (an_expr_operator_kind)eok_question) {
       clear_lvalue_result_flags_in_expr_tree(op1->next);
       clear_lvalue_result_flags_in_expr_tree(op1->next->next);
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (op == (an_expr_operator_kind)eok_gnu_min ||
+               op == (an_expr_operator_kind)eok_gnu_max ||
+               op == (an_expr_operator_kind)eok_ignu_min ||
+               op == (an_expr_operator_kind)eok_ignu_max ||
+               op == (an_expr_operator_kind)eok_fgnu_min ||
+               op == (an_expr_operator_kind)eok_fgnu_max ||
+               op == (an_expr_operator_kind)eok_pgnu_min ||
+               op == (an_expr_operator_kind)eok_pgnu_max) {
+      clear_lvalue_result_flags_in_expr_tree(op1);
+      clear_lvalue_result_flags_in_expr_tree(op1->next);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else if (op == (an_expr_operator_kind)eok_comma ||
                op == (an_expr_operator_kind)eok_points_to_static ||
                op == (an_expr_operator_kind)eok_lvalue_dot_static ||

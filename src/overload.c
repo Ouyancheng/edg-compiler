@@ -7318,6 +7318,14 @@ as its first operand.
           operand_type_pattern = "AA;=PP;=MM";
         }  /* if */
         break;
+      case onk_gnu_min:
+      case onk_gnu_max:
+        if (operator_overloading_on_enums_enabled) {
+          operand_type_pattern = "AA;=PP;=EE";
+        } else {
+          operand_type_pattern = "AA;=PP";
+        }  /* if */
+        break;
       case onk_and_and:
       case onk_or_or:
         if (bool_is_keyword) {
@@ -11398,6 +11406,18 @@ true answer cannot be determined, the safe answer is FALSE.
           entity_is_auto = underlying_entity_is_auto(operands->next->next,
                                                      is_temp);
         }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+      } else if (op == (an_expr_operator_kind)eok_ignu_min ||
+                 op == (an_expr_operator_kind)eok_ignu_max ||
+                 op == (an_expr_operator_kind)eok_fgnu_min ||
+                 op == (an_expr_operator_kind)eok_fgnu_max ||
+                 op == (an_expr_operator_kind)eok_pgnu_min ||
+                 op == (an_expr_operator_kind)eok_pgnu_max) {
+        entity_is_auto = underlying_entity_is_auto(operands, is_temp);
+        if (!entity_is_auto) {
+          entity_is_auto = underlying_entity_is_auto(operands->next, is_temp);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       } else {
         /* Others, e.g., pre-increment, assignment.  Continue with the
            first operand. */

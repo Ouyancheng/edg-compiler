@@ -2921,6 +2921,10 @@ Display the name of an expression operator.
     case eok_ilt:               s = "eok_ilt";                    break;
     case eok_ige:               s = "eok_ige";                    break;
     case eok_ile:               s = "eok_ile";                    break;
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_ignu_min:          s = "eok_ignu_min";               break;
+    case eok_ignu_max:          s = "eok_ignu_max";               break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_iassign:           s = "eok_iassign";                break;
     case eok_fadd:              s = "eok_fadd";                   break;
     case eok_fsubtract:         s = "eok_fsubtract";              break;
@@ -2932,6 +2936,10 @@ Display the name of an expression operator.
     case eok_flt:               s = "eok_flt";                    break;
     case eok_fge:               s = "eok_fge";                    break;
     case eok_fle:               s = "eok_fle";                    break;
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_fgnu_min:          s = "eok_fgnu_min";               break;
+    case eok_fgnu_max:          s = "eok_fgnu_max";               break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_fassign:           s = "eok_fassign";                break;
     case eok_padd:              s = "eok_padd";                   break;
     case eok_psubtract:         s = "eok_psubtract";              break;
@@ -2969,6 +2977,10 @@ Display the name of an expression operator.
     case eok_plt:               s = "eok_plt";                    break;
     case eok_pge:               s = "eok_pge";                    break;
     case eok_ple:               s = "eok_ple";                    break;
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_pgnu_min:          s = "eok_pgnu_min";               break;
+    case eok_pgnu_max:          s = "eok_pgnu_max";               break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_pmeq:              s = "eok_pmeq";                   break;
     case eok_pmne:              s = "eok_pmne";                   break;
     case eok_sassign:           s = "eok_sassign";                break;
@@ -3059,6 +3071,10 @@ Display the name of an expression operator.
     case eok_lt:                s = "eok_lt";                     break;
     case eok_ge:                s = "eok_ge";                     break;
     case eok_le:                s = "eok_le";                     break;
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_gnu_min:           s = "eok_gnu_min";                break;
+    case eok_gnu_max:           s = "eok_gnu_max";                break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_assign:            s = "eok_assign";                 break;
     case eok_add_assign:        s = "eok_add_assign";             break;
     case eok_subtract_assign:   s = "eok_subtract_assign";        break;

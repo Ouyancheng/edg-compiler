@@ -56,15 +56,16 @@ Precedence level 0 is used to bracket a complete expression.
 */
 #define LEFT_ASSOC  TRUE
 #define RIGHT_ASSOC FALSE
-#define PREC_POSTFIX    17
-#define PREC_PREFIX     16
-#define PREC_CAST       15
-#define PREC_PTR_TO_MEMBER 14
-#define PREC_MULT_DIV   13
-#define PREC_PLUS_MINUS 12
-#define PREC_SHIFT      11
-#define PREC_RELATIONAL 10
-#define PREC_EQ_NE       9
+#define PREC_POSTFIX    18
+#define PREC_PREFIX     17
+#define PREC_CAST       16
+#define PREC_PTR_TO_MEMBER 15
+#define PREC_MULT_DIV   14
+#define PREC_PLUS_MINUS 13
+#define PREC_SHIFT      12
+#define PREC_RELATIONAL 11
+#define PREC_EQ_NE      10
+#define PREC_GNU_MIN_MAX 9
 #define PREC_AND         8
 #define PREC_EXCL_OR     7
 #define PREC_OR          6

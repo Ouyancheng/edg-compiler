@@ -109,6 +109,8 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_CALL "cl"
 #define MANGLING_STRING_FOR_OPERATOR_SUBSCRIPT "ix"
 #define MANGLING_STRING_FOR_OPERATOR_QUESTION "qu"
+#define MANGLING_STRING_FOR_OPERATOR_GNU_MIN "v23min"
+#define MANGLING_STRING_FOR_OPERATOR_GNU_MAX "v23max"
 #define MANGLING_STRING_FOR_CONSTRUCTOR "C9"  /* "9" changed later */
 #define MANGLING_STRING_FOR_DESTRUCTOR "D9"   /* "9" changed later */
 #define MANGLING_STRING_FOR_CONVERSION_FUNC "cv"
@@ -183,6 +185,8 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_OPERATOR_CALL "cl"
 #define MANGLING_STRING_FOR_OPERATOR_SUBSCRIPT "vc"
 #define MANGLING_STRING_FOR_OPERATOR_QUESTION "qs"
+#define MANGLING_STRING_FOR_OPERATOR_GNU_MIN "mn"
+#define MANGLING_STRING_FOR_OPERATOR_GNU_MAX "mx"
 #define MANGLING_STRING_FOR_CONSTRUCTOR "ct"
 #define MANGLING_STRING_FOR_DESTRUCTOR "dt"
 #define MANGLING_STRING_FOR_CONVERSION_FUNC "op"
@@ -4327,6 +4331,14 @@ binary versions of operators are mangled differently.
     case onk_question:          /* "?" */
       name = MANGLING_STRING_FOR_OPERATOR_QUESTION;
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case onk_gnu_min:           /* "<?" */
+      name = MANGLING_STRING_FOR_OPERATOR_GNU_MIN;
+      break;
+    case onk_gnu_max:           /* ">?" */
+      name = MANGLING_STRING_FOR_OPERATOR_GNU_MAX;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
     default:
       internal_error("mangled_operator_name: bad kind");
@@ -4430,6 +4442,18 @@ expressions on nontype template parameters in function signatures.
     case eok_le:
       opkind = (an_opname_kind)onk_le;
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_ignu_min:
+    case eok_fgnu_min:
+    case eok_gnu_min:
+      opkind = (an_opname_kind)onk_gnu_min;
+      break;
+    case eok_ignu_max:
+    case eok_fgnu_max:
+    case eok_gnu_max:
+      opkind = (an_opname_kind)onk_gnu_max;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_remainder:
       opkind = (an_opname_kind)onk_remainder;
       break;

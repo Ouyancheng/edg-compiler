@@ -8907,6 +8907,16 @@ to TRUE.  *source_pos gives the source position for errors.
       case eok_or:
       case eok_xor:
       case eok_remainder:
+#if GNU_EXTENSIONS_ALLOWED
+      case eok_gnu_min:
+      case eok_gnu_max:
+      case eok_ignu_min:
+      case eok_ignu_max:
+      case eok_fgnu_min:
+      case eok_fgnu_max:
+      case eok_pgnu_min:
+      case eok_pgnu_max:
+#endif /* GNU_EXTENSIONS_ALLOWED */
         do_usual_arith_conversions = TRUE;
         break;
       case eok_iadd_assign:
@@ -9090,6 +9100,16 @@ template argument substitution.
     case eok_lor:
     case eok_question:
     case eok_cast:
+#if GNU_EXTENSIONS_ALLOWED
+    case eok_gnu_min:
+    case eok_gnu_max:
+    case eok_ignu_min:
+    case eok_ignu_max:
+    case eok_fgnu_min:
+    case eok_fgnu_max:
+    case eok_pgnu_min:
+    case eok_pgnu_max:
+#endif /* GNU_EXTENSIONS_ALLOWED */
       is_foldable = TRUE;
       break;
     default:
@@ -9099,7 +9119,7 @@ template argument substitution.
 }  /* operator_is_foldable */
 
 
-static an_expr_operator_kind substitute_integer_operator_for_generic(
+an_expr_operator_kind substitute_integer_operator_for_generic(
                                                       an_expr_operator_kind op)
 /*
 If op is a generic operator (e.g., eok_add), return the corresponding

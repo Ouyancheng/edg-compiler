@@ -852,7 +852,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
       cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       if (curr_token != tok_rparen && curr_token != tok_ellipsis) {
-        /* See if the think inside the parenthesis looks like an
+        /* See if the thing inside the parenthesis looks like an
            initializer. */
         if (paren_initializer_allowed &&
             !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |

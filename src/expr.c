@@ -389,6 +389,30 @@ of this determination.
 }  /* is_invariant_expr */
 
 
+static a_ref_entry_ptr merge_ref_lists(a_ref_entry_ptr list1,
+                                       a_ref_entry_ptr list2)
+/*
+Return a pointer to a list of reference entries that is the concatenation
+of list1 and list2.  The source lists and the destination list are linked
+on the next_operand_ref field.
+*/
+{
+  a_ref_entry_ptr merged_list;
+
+  if (list1 == NULL) {
+    merged_list = list2;
+  } else if (list2 == NULL) {
+    merged_list = list1;
+  } else {
+    /* Find the end of list1 and add list2 there. */
+    merged_list = list1;
+    while (list1->next_operand_ref != NULL) list1 = list1->next_operand_ref;
+    list1->next_operand_ref = list2;
+  }  /* if */
+  return merged_list;
+}  /* merge_ref_lists */
+
+
 static void simplify_void_node(an_expr_node_ptr *node_ptr,
                                a_boolean        *suppress_warning)
 /*
@@ -575,6 +599,10 @@ current expression (used to decide how a comma should be treated).
     case tok_eq:
     case tok_ne:
       new_prec = PREC_EQ_NE;
+      break;
+    case tok_gnu_min:
+    case tok_gnu_max:
+      new_prec = PREC_GNU_MIN_MAX;
       break;
     case tok_ampersand:
       new_prec = PREC_AND;
@@ -10707,6 +10735,174 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   db_exit();
 }  /* scan_eq_operator */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void scan_gnu_min_max_operator(an_operand *operand_1,
+                                      an_operand *result)
+/*
+Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
+*/
+{
+  a_token_kind       save_token = curr_token;
+  a_boolean          processed = FALSE;
+  an_operand         operand_2;
+  a_source_position  operator_position;
+  a_token_sequence_number
+                     operator_tok_seq_number;
+  a_type_ptr         result_type;
+
+  /* Save the position of the operator in case of error. */
+  copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
+
+  /* Scan the second operand. */
+  (void)get_token();
+  scan_expr(&operand_2, PREC_GNU_MIN_MAX, EOPT_NO_OPTIONS);
+
+  if (is_overloadable_type_operand(operand_1) ||
+      is_overloadable_type_operand(&operand_2)) {
+    /* Look for C++ operator overloading cases. */
+    an_opname_kind  onk = (an_opname_kind)(save_token == tok_gnu_min ?
+                                                   onk_gnu_min : onk_gnu_max);
+    check_for_operator_overloading(onk,
+                                   /*unary_operator=*/FALSE,
+                                   /*must_be_member_function=*/FALSE,
+                                   /*try_conversions=*/TRUE,
+                                   /*has_predef_meaning=*/FALSE,
+                                   operand_1, &operand_2,
+                                   &operator_position,
+                                   operator_tok_seq_number,
+                                   result, &processed);
+  }  /* if */
+  if (!processed) {
+    an_expr_operator_kind         op;        
+    a_transformation_options_set  options = TOPT_NO_OPTIONS;
+    a_boolean                     result_is_lvalue = FALSE,
+                                  operand_1_is_pointer = FALSE,
+                                  funny_unsigned_comparison = FALSE,
+                                  second_is_constant = FALSE;
+    /* The standard operand transformations on these operators are similar
+       to the relational operators, except that lvalue-to-rvalue conversions
+       are not always performed. */
+    if (is_an_lvalue(operand_1) && is_an_lvalue(&operand_2) &&
+        identical_types(operand_1->type, operand_2.type)) {
+      /* If the types are identical, and both operands are lvalues, then
+         the result is an lvalue. */
+      result_is_lvalue = TRUE;
+      options |= TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION;
+    }  /* if */
+    do_operand_transformations(operand_1, options);
+    if (!is_arithmetic_or_enum_type(operand_1->type)) {
+      /* If the operand does not have arithmetic type, it must have pointer
+         type. */
+      if (check_pointer_operand(operand_1,
+                                ec_expr_not_arithmetic_or_enum_or_pointer)) {
+        operand_1_is_pointer = TRUE;
+      }  /* if */
+    }  /* if */
+    do_operand_transformations(&operand_2, options);
+    /* Check the operand types for compatibility. */
+    result_type = operand_1->type;  /* Assume. */
+    if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
+      /* One or both of the operands has an error. */
+      result_type = error_type();
+    } else if (result_is_lvalue) {
+      /* We already determined the operands are compatible. */
+#if C99_IL_EXTENSIONS_SUPPORTED
+    } else if (is_nonreal_floating_type(operand_1->type)) {
+      /* Complex and imaginary operands are unordered. */
+      pos_error(ec_complex_type_not_allowed, &operand_1->position);
+      result_type = error_type();
+    } else if (is_nonreal_floating_type(operand_2.type)) {
+      pos_error(ec_complex_type_not_allowed, &operand_2.position);
+      result_type = error_type();
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    } else {
+      if (operand_1_is_pointer || is_pointer_type(operand_2.type)) {
+        /* At least one of the operands is a pointer.  See if the operands are
+           compatible.  We're parsing C++: pointers to functions are allowed,
+           and null pointer constants and "void *" pointers are specially
+           handled (ARM 5.9). */
+        (void)check_compatibility_of_pointer_operands(
+                           operand_1, &operand_2, &operator_position,
+                           /*pointer_normalization_standard_in_C=*/FALSE,
+                           /*pointers_to_functions_standard_in_C=*/FALSE,
+                           /*pointers_to_incomplete_standard_in_C=*/FALSE,
+                           /*mixed_object_and_incomplete_standard_in_C=*/FALSE,
+                           &result_type);
+#if UPC_EXTENSIONS_ALLOWED
+        if (upc_mode && is_shared_void_star_type(result_type)) {
+          /* Cannot do comparisons involving shared void* pointers,
+             since they have no absolute ordering. */
+          pos_error(ec_upc_shared_void_comparison, &operator_position);
+          make_error_operand(result);
+          operand_will_not_be_used_because_of_error(operand_1);
+          operand_will_not_be_used_because_of_error(&operand_2);
+        }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+      } else {
+        /* Both operands should be arithmetic or enum (we have ruled out all
+           the pointer cases above).  We already know that operand_1 is
+           arithmetic or enum. */
+        if (check_arithmetic_or_enum_operand(&operand_2)) {
+          /* Check for comparisons of unsigned integers with zero or negative
+             constants.  More below. */
+          funny_unsigned_comparison = is_comparison_of_unsigned_with_constant(
+                                                          operand_1,
+                                                          &operand_2,
+                                                          &second_is_constant);
+        }  /* if */
+        result_type = determine_arithmetic_conversions(operand_1, &operand_2);
+      }  /* if */
+    }  /* if */
+    if (!result_is_lvalue) {
+      /* Convert the operands to a common type. */
+      change_binary_operand_types(result_type, operand_1, &operand_2);
+    }  /* if */
+    if (funny_unsigned_comparison) {
+      /* Check for pointless comparisons of unsigned integers against 0,
+         and give a warning.  The pointless cases are
+           u >? 0    (always equal to u)
+           0 <? u    (always zero)
+         There are also similar cases with negative constants.
+         The expression is not simplified.  Note that we check the nonconstant
+         operand type before any type promotions and the constant value after
+         any type change. */
+      a_boolean constant_sign;
+      if (get_sign_for_constant_in_unsigned_operation(operand_1, &operand_2,
+                                                      second_is_constant,
+                                                      &constant_sign)) {
+        if (constant_sign == 0) {
+          /* Comparison of an unsigned value with zero.  Some cases make
+             sense. */
+          if (second_is_constant ?  save_token == tok_gnu_max :
+                                    save_token == tok_gnu_min) {
+            pos_warning(ec_unsigned_compare_with_zero, &operator_position);
+          }  /* if */
+        } else if (constant_sign < 0) {
+          /* Comparison of an unsigned value with a negative constant.
+             No cases make sense. */
+          pos_warning(ec_unsigned_compare_with_negative, &operator_position);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    op = which_binary_operator(save_token, result_type);
+    do_binary_operation(op, operand_1, &operand_2,
+                        result_type, result, &operator_position);
+    if (result_is_lvalue) {
+      result->state = (an_operand_state)os_lvalue;
+      result->variant.expression->type = make_pointer_type(result_type);
+      result->variant.expression
+            ->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+      result->ref_entries_list = merge_ref_lists(operand_1->ref_entries_list,
+                                                 operand_2.ref_entries_list);
+    }  /* if */
+  }  /* if */
+  set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                       &operator_position);
+}  /* scan_gnu_min_max_operator */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void scan_bit_operator(an_operand *operand_1,
                               an_operand *result)
@@ -11140,30 +11336,6 @@ expression.
 #define is_throw_operand(operand)                                     \
   (is_expression_operand(operand) &&                                  \
    (operand)->variant.expression->kind == (an_expr_node_kind)enk_throw)
-
-
-static a_ref_entry_ptr merge_ref_lists(a_ref_entry_ptr list1,
-                                       a_ref_entry_ptr list2)
-/*
-Return a pointer to a list of reference entries that is the concatenation
-of list1 and list2.  The source lists and the destination list are linked
-on the next_operand_ref field.
-*/
-{
-  a_ref_entry_ptr merged_list;
-
-  if (list1 == NULL) {
-    merged_list = list2;
-  } else if (list2 == NULL) {
-    merged_list = list1;
-  } else {
-    /* Find the end of list1 and add list2 there. */
-    merged_list = list1;
-    while (list1->next_operand_ref != NULL) list1 = list1->next_operand_ref;
-    list1->next_operand_ref = list2;
-  }  /* if */
-  return merged_list;
-}  /* merge_ref_lists */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -14386,6 +14558,12 @@ bad_start_of_primary:
       case tok_ne:
 	scan_eq_operator(&operand, &local_result);
 	break;
+#if GNU_EXTENSIONS_ALLOWED
+      case tok_gnu_min:
+      case tok_gnu_max:
+        scan_gnu_min_max_operator(&operand, &local_result);
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case tok_ampersand:
       case tok_excl_or:
       case tok_or:

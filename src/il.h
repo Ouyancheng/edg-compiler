@@ -817,6 +817,9 @@ extern an_expr_node_ptr node_for_host_large_integer(
 
 extern a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type);
 
+extern an_expr_operator_kind substitute_integer_operator_for_generic(
+                                                     an_expr_operator_kind op);
+
 /*
 Flags used to specify options to copy_type_with_substitution.
 */
