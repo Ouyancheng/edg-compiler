@@ -1380,6 +1380,7 @@ state.
         cssp->is_nonreal_class = FALSE;
         cssp->is_specific_template_def = FALSE;
         cssp->any_nonstatic_data_members = FALSE;
+        cssp->force_external_linkage = FALSE;
       }
       break;
     case sk_variable:

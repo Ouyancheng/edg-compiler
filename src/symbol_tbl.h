@@ -581,6 +581,10 @@ typedef struct a_class_symbol_supplement {
   unsigned int  any_nonstatic_data_members:1;
 			/* TRUE if the class or any of its base classes has
 			   one or more nonstatic data members. */
+  unsigned int	force_external_linkage:1;
+			/* The class was used in a way that would force
+			   external linkage (instead of internal linkage) if
+			   it has linkage at all. */
 } a_class_symbol_supplement;
 
 
