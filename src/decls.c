@@ -3552,6 +3552,7 @@ not be TRUE.
           for (; rout_type_ptp != NULL; rout_type_ptp = next_rout_type_ptp,
                                         comp_type_ptp = comp_type_ptp->next) {
             a_type_qualifier_set  saved_qualifiers = rout_type_ptp->qualifiers;
+            a_type_ptr            declared_type = rout_type_ptp->declared_type;
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
             char *saved_name = rout_type_ptp->name;
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
@@ -3569,6 +3570,8 @@ not be TRUE.
             *rout_type_ptp = *comp_type_ptp;
             /* Restore the next pointer. */
             rout_type_ptp->next = next_rout_type_ptp;
+            /* Restore the declared type. */
+            rout_type_ptp->declared_type = declared_type;
             if (preserve_qualifiers_from_rout_type) {
               /* Restore the qualifiers as originally declared. */
               rout_type_ptp->qualifiers = saved_qualifiers;

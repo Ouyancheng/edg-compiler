@@ -1,5 +1,20 @@
 Version 3.4
 
+8/13/03  VLA dimensions sometimes lost on declared type
+
+In some situations involving forward function declarations the front end
+lost track of the representation of the dimension of a variable length
+array (VLA; available in some C modes) in the declared_type field of a
+parameter type.  For example:
+
+  void f(int, float[*][*]);
+  void f(n, z)
+  int n;
+  float z[n][n];  // Declared type of z accidentally replaced by float[*][*]
+  {}
+
+This is now fixed.
+
 8/13/03  IA-64 ABI problem with sharing of long string literals
 
 In versions using the IA-64 ABI, the lowered IL for an extern inline
