@@ -231,16 +231,36 @@ typedef struct an_expr_or_stmt_traversal_block {
      called.  The tree is still traversed below that node. */
   a_traversal_expr_process_function_ptr
 		process_expr;
-			/* Function called for each expression node. */
+			/* Function called for each expression node, before
+			   the subtree. */
+  a_traversal_expr_process_function_ptr
+		process_post_expr;
+			/* Function called for each expression node, after
+			   the subtree. */
   a_traversal_constant_process_function_ptr
 		process_constant;
-			/* Function called for each constant. */
+			/* Function called for each constant, before the
+			   subtree. */
+  a_traversal_constant_process_function_ptr
+		process_post_constant;
+			/* Function called for each constant, after the
+			   subtree. */
   a_traversal_dynamic_init_process_function_ptr
 		process_dynamic_init;
-			/* Function called for each dynamic init. */
+			/* Function called for each dynamic init, before the
+			   subtree */
+  a_traversal_dynamic_init_process_function_ptr
+		process_post_dynamic_init;
+			/* Function called for each dynamic init, after the
+			   subtree. */
   a_traversal_statement_process_function_ptr
 		process_statement;
-			/* Function called for each statement. */
+			/* Function called for each statement, before the
+			   subtree. */
+  a_traversal_statement_process_function_ptr
+		process_post_statement;
+			/* Function called for each statement, after the
+			   subtree. */
   a_boolean	terminate;
 			/* A called routine can set this to TRUE to
 			   terminate the tree walk. */
@@ -257,6 +277,17 @@ typedef struct an_expr_or_stmt_traversal_block {
 			   expressions) are also walked.  Ordinarily, they
 			   are not walked because we are primarily looking for
 			   expressions and statements. */
+  /* Fields used by examine_expr_for_unordered_temp_inits: */
+  a_boolean	set_unordered_on_dynamic_inits;
+			/* If TRUE, set the "unordered" flag in dynamic
+			   initializations encountered in the traversal. */
+  a_boolean	relink_dynamic_inits;
+			/* If TRUE, relink dynamic initialization entries in
+			   the order they were encountered in the traversal. */
+  a_dynamic_init_ptr
+		last_relinked_dynamic_init;
+			/* When relink_dynamic_inits is TRUE, this points
+			   to the last processed dynamic initialization. */
 } an_expr_or_stmt_traversal_block;
 
 extern void clear_expr_or_stmt_traversal_block(

@@ -2460,13 +2460,20 @@ default values.
 */
 {
   tblock->process_expr = NULL;
+  tblock->process_post_expr = NULL;
   tblock->process_constant = NULL;
+  tblock->process_post_constant = NULL;
   tblock->process_dynamic_init = NULL;
+  tblock->process_post_dynamic_init = NULL;
   tblock->process_statement = NULL;
+  tblock->process_post_statement = NULL;
   tblock->terminate = FALSE;
   tblock->suppress_subtree_walk = FALSE;
   tblock->result = FALSE;
   tblock->process_non_dynamic_constants = FALSE;
+  tblock->set_unordered_on_dynamic_inits = FALSE;
+  tblock->relink_dynamic_inits = FALSE;
+  tblock->last_relinked_dynamic_init = NULL;
 }  /* clear_expr_or_stmt_traversal_block */
 
 
@@ -2507,7 +2514,7 @@ it's the initializer for an aggregate.
     /* Skip the subtree walk if told to do so. */
     if (tblock->suppress_subtree_walk) {
       tblock->suppress_subtree_walk = FALSE;
-      goto end_of_routine;
+      goto post_processing;
     }  /* if */
   }  /* if */
   switch (constant->kind) {
@@ -2534,6 +2541,11 @@ it's the initializer for an aggregate.
     default:
       break;
   }  /* switch */
+post_processing:
+  if (tblock->process_post_constant != NULL) {
+    /* Call the user-provided (post-subtree) routine. */
+    tblock->process_post_constant(constant, tblock);
+  }  /* if */
 end_of_routine:;
 }  /* traverse_constant */
 
@@ -2553,7 +2565,7 @@ routines as specified in the control block.
     /* Skip the subtree walk if told to do so. */
     if (tblock->suppress_subtree_walk) {
       tblock->suppress_subtree_walk = FALSE;
-      goto end_of_routine;
+      goto post_processing;
     }  /* if */
   }  /* if */
   switch (dip->kind) {
@@ -2580,6 +2592,11 @@ routines as specified in the control block.
     default:
       unexpected_condition_str("traverse_dynamic_init: bad kind");
   }  /* switch */
+post_processing:
+  if (tblock->process_post_dynamic_init != NULL) {
+    /* Call the user-provided (post-subtree) routine. */
+    tblock->process_post_dynamic_init(dip, tblock);
+  }  /* if */
 end_of_routine:;
 }  /* traverse_dynamic_init */
 
@@ -2616,7 +2633,7 @@ as specified in the control block.
     /* Skip the subtree walk if told to do so. */
     if (tblock->suppress_subtree_walk) {
       tblock->suppress_subtree_walk = FALSE;
-      goto end_of_routine;
+      goto post_processing;
     }  /* if */
   }  /* if */
   switch (expr->kind) {
@@ -2703,6 +2720,11 @@ as specified in the control block.
     default:
       unexpected_condition_str("traverse_expr: bad expr kind");
   }  /* switch */
+post_processing:
+  if (tblock->process_post_expr != NULL) {
+    /* Call the user-provided (post-subtree) routine. */
+    tblock->process_post_expr(expr, tblock);
+  }  /* if */
 end_of_routine:;
 }  /* traverse_expr */
 
@@ -2739,7 +2761,7 @@ as specified in the control block.
     /* Skip the subtree walk if told to do so. */
     if (tblock->suppress_subtree_walk) {
       tblock->suppress_subtree_walk = FALSE;
-      goto end_of_routine;
+      goto post_processing;
     }  /* if */
   }  /* if */
   switch (statement->kind) {
@@ -2903,6 +2925,11 @@ as specified in the control block.
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
     default:
       unexpected_condition_str("traverse_statement: bad statement kind");
+  }  /* if */
+post_processing:
+  if (tblock->process_post_statement != NULL) {
+    /* Call the user-provided (post-subtree) routine. */
+    tblock->process_post_statement(statement, tblock);
   }  /* if */
 end_of_routine:;
 }  /* traverse_statement */
