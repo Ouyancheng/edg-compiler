@@ -10115,7 +10115,7 @@ that follows.
                  ptp != NULL && decl_ptp != NULL;
                  ptp = ptp->next, decl_ptp = decl_ptp->next) {
               ptp->qualifiers = decl_ptp->qualifiers;
-            }  /* if */
+            }  /* for */
           }  /* if */
           /* Scan the function body. */
           if (decl_state->is_member_decl) {
