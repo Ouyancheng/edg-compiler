@@ -1,5 +1,18 @@
 Version 2.43
 
+10/27/99 Microsoft compatibility: allocation of bitfields in unions
+
+When the configuration variable TARG_MICROSOFT_BIT_FIELD_ALLOCATION was TRUE,
+the front end would usually allocate twice the space required for a bit field
+in a union.
+
+  union U {
+    char c1;
+    char c2: 3;  // Allocated in 2 chars, so that sizeof(U) == 2;
+  };             // sizeof(U) should be 1.
+
+This is now fixed.
+
 10/27/99 Abort while expanding extended variadic macro
 
 The special treatment of the token pasting operator followed by an empty

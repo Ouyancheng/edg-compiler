@@ -1037,20 +1037,18 @@ there's no overflow TRUE is returned.
         if (targ_microsoft_bit_field_allocation &&
             lob->curr_container_type != NULL) {
           /* Update the number of bits that are available in the container
-             after the bit field is allocated. */
+             after the bit field is allocated by subtracting from the number
+             of bits available in the container the number that is now being
+             allocated.  It ought not to be a negative value. */
+          check_assertion_str2(lob->curr_container_avail_bits >=
+                                  (an_unnormalized_bit_offset)field->bit_size,
+                               "set_field_size_and_alignment:",
+                               "bad curr_container_avail_bits adjustment");
+          lob->curr_container_avail_bits -=
+                                  (an_unnormalized_bit_offset)field->bit_size;
           if (class_type->kind == (a_type_kind)tk_union) {
             /* Pad out the rest of the current container. */
             pad_ms_bit_field_container(lob);
-          } else {
-            /* Subtract from the number of bits available in the container
-               the number that is now being allocated.  It ought not to be a
-               negative value. */
-            check_assertion_str2(lob->curr_container_avail_bits >=
-                                   (an_unnormalized_bit_offset)field->bit_size,
-                                 "set_field_size_and_alignment:",
-                                 "bad curr_container_avail_bits adjustment");
-            lob->curr_container_avail_bits -=
-                                  (an_unnormalized_bit_offset)field->bit_size;
           }  /* if */
         }  /* if */
       } else {
