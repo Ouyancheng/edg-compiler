@@ -3662,7 +3662,9 @@ The syntax is:
       /* Identifier is omitted in an abstract declarator.  Be sure it is not a
          tk_unknown type. */
       check_assertion(specifiers_type == NULL ||
-                      !is_unknown_type(specifiers_type));
+                      !is_unknown_type(specifiers_type) ||
+                      (complete_type != NULL &&
+                       is_or_contains_error_type(complete_type)));
       parenthesized_initializer_allowed = FALSE;
     } else {
       /* Real (non-abstract) declarator.  Reset declarator_pos to correspond
