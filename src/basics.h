@@ -645,6 +645,41 @@ one.
 #endif /* ifdef __EDG__ */
 #endif /* ifndef offsetof */
 
+#if defined(sun) && defined(__i386__)
+/* Some versions of the GNU float.h file on Intel Solaris incorrectly
+   define the long double macros (LDBL_MANT_DIG, etc.), giving them the
+   values appropriate for the double type.  If LDBL_MANT_DIG is set
+   incorrectly, assume that all of the macros are set incorrectly and
+   reset them here. */
+#ifdef __GNUC__
+#if __GNUC__ == 3 && __GNUC_MINOR__ <= 2
+#include <float.h>
+#if LDBL_MANT_DIG == 53
+#undef LDBL_MANT_DIG
+#undef LDBL_DENORM_MIN
+#undef LDBL_DIG
+#undef LDBL_EPSILON
+#undef LDBL_MANT_DIG
+#undef LDBL_MAX_10_EXP
+#undef LDBL_MAX
+#undef LDBL_MAX_EXP
+#undef LDBL_MIN_10_EXP
+#undef LDBL_MIN
+#undef LDBL_MIN_EXP
+#define LDBL_DENORM_MIN 3.64519953188247460253e-4951L
+#define LDBL_DIG 18
+#define LDBL_EPSILON 1.08420217248550443401e-19L
+#define LDBL_MANT_DIG 64
+#define LDBL_MAX_10_EXP 4932
+#define LDBL_MAX 1.18973149535723176502e+4932L
+#define LDBL_MAX_EXP 16384
+#define LDBL_MIN_10_EXP (-4931)
+#define LDBL_MIN 3.36210314311209350626e-4932L
+#define LDBL_MIN_EXP (-16381)
+#endif /* LDBL_MANT_DIG == 53 */
+#endif /* __GNUC__ == 3 && __GNUC_MINOR__ <= 2 */
+#endif /* ifdef __GNUC__ */
+#endif /* defined(sun) && defined(__i386__) */
 
 /******************************************************************************
 *                                                             \  ___  /       *
