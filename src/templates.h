@@ -239,6 +239,9 @@ extern void update_instantiation_required_flag(
                                         a_boolean               value,
 				        a_boolean	        defer_linline);
 
+extern void set_instantiation_required_for_virtual_functions(
+                                                      a_type_ptr  class_type);
+
 extern void process_deferred_instantiation_requests(void);
 
 extern void instantiation_wrapup(void);

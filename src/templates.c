@@ -507,24 +507,26 @@ itself recursively to process classes nested within this class.
      instantiation of the class. */
   if (ctsp->assoc_scope != NULL) {
     /* Function instantiation entries are not marked for actual instantiation
-       (that is, for generation of the function body) until there is
-       an invocation of the function.  However, if the function is
-       virtual, mark it for instantiation in all cases, since a
-       virtual function table may have to be put out for it.  All
-       instances are placed on the instantiation list.  In tim_all
-       mode the instantiations will be generated even if the
-       instantiation required flag is not set. */
+       (that is, for generation of the function body) until there is an
+       invocation of the function.  (Note: if the function is virtual, it is
+       marked for instantiation when a constructor is defined for the class,
+       i.e., when it is determined that a virtual function table will be put
+       out.)  All instances are placed on the instantiation list.  In tim_all
+       mode the instantiations will be generated even if the instantiation
+       required flag is not set. */
     rout = ctsp->assoc_scope->routines;
     while (rout != NULL) {
       sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
       tip = sym->variant.routine.instance_ptr;
-      if (tip != NULL && !tip->instantiation_required) {
+      if (tip == NULL) {
         /* Under certain conditions the instance pointer will be NULL.  This
            occurs for compiler generated routines and under some error
            conditions.  Simply skip this routine. */
-        update_instantiation_required_flag(
-                       tip, (a_boolean)(sym->variant.routine.ptr->is_virtual),
-                       /*defer_inline=*/TRUE);
+      } else if (!tip->instantiation_required) {
+        /* Simply add the function to the instantiation list, without setting
+           the flag. */
+        update_instantiation_required_flag(tip, /*value=*/FALSE,
+                                           /*defer_inline=*/TRUE);
       }  /* if */
       rout = rout->next;
     }  /* while */
@@ -563,6 +565,38 @@ itself recursively to process classes nested within this class.
   }  /* if */
   db_exit();
 }  /* set_instantiation_required_for_template_class_members */
+
+
+void set_instantiation_required_for_virtual_functions(a_type_ptr  class_type)
+/*
+Calls update_instantiation_required_flag for all virtual functions that are
+members of the specified class, which is a class template instance.  This
+routine is called when a constructor body is scanned for the class (on the
+assumption that, if no constructor is defined in a given translation unit,
+no virtual function table will be defined, either).
+*/
+{
+  a_routine_ptr            rp;
+  a_symbol_ptr		   sym;
+  a_template_instance_ptr  tip;
+
+  if (class_type->variant.class_struct_union.any_virtual_functions) {
+    /* Loop through the routines list and check the virtual functions. */
+    rp = class_type->
+           variant.class_struct_union.extra_info->assoc_scope->routines;
+    for (; rp != NULL; rp = rp->next) {
+      if (rp->is_virtual) {
+        sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+        tip = sym->variant.routine.instance_ptr;
+        if (tip != NULL && !tip->instantiation_required) {
+          /* Set the instantiation_required flag for the virtual function. */
+          update_instantiation_required_flag(tip, /*value=*/TRUE,
+                                             /*defer_inline=*/TRUE);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* set_instantiation_required_for_virtual_functions */
 
 
 a_template_arg_ptr templ_arg_list_for_class(a_type_ptr class_type)
