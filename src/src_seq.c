@@ -2175,7 +2175,7 @@ the source sequence entry that follows the entry or entries removed.
 }  /* drop_from_fs_src_seq_list */
 
 
-void promote_src_seq_sublists_to_file_scope_list(a_scope_ptr  sp)
+static void promote_src_seq_sublists_to_file_scope_list(a_scope_ptr  sp)
 /*
 The given (function) scope is about to be eliminated from the IL.  Traverse
 the source sequence entry sublists of the given scope and promote those
