@@ -1997,7 +1997,7 @@ modification is due to a comment.
 
 /*
 Add a source line modification to indicate replacement of num_chars
-characters staring at line_loc by a space.  This is used for deletion
+characters starting at line_loc by a space.  This is used for deletion
 of comments.  A different space string must be used for each comment
 in the current line so that one can get back from each one to the
 right place based only on line position; for this reason, the
