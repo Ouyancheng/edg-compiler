@@ -759,8 +759,13 @@ Do initialization that needs to be done very early, specifically before command
 line processing is done.
 */
 {
-  /* Do host-specific initialization.  This must be done first in this
+#if DEBUG
+  /* Initialize debugging data structures.  This must be done first in this
      routine. */
+  debug_early_init();
+#endif /* DEBUG */
+  /* Do host-specific initialization.  Except for debug initialization, this
+     must be done first in this routine. */
   host_envir_early_init();
   cmd_line_early_init();
   mem_manage_early_init();

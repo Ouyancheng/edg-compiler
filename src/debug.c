@@ -88,7 +88,7 @@ typedef struct a_debug_request {
 The list of debug requests.
 */
 static a_debug_request_ptr
-		debug_requests = NULL;
+		debug_requests;
 
 /*
 Stack of function calls.  Each time db_enter is invoked, another entry is
@@ -118,7 +118,7 @@ static a_debug_stack_entry_ptr
 		debug_stack;
 			/* Pointer to the dynamically allocated debug stack. */
 
-static int	depth_debug_stack = -1;
+static int	depth_debug_stack;
 			/* The current depth of the debug stack. */
 
 static int	debug_stack_size = 0;
@@ -785,6 +785,20 @@ was printed on entry.  Remove the entry from the stack.
   }  /* if */
 #endif /* STOP_TOKEN_CHECKSUM_TEST_NEEDED */
 }  /* debug_exit */
+
+
+void debug_early_init(void)
+/*
+One time initialization that must take place early on in the front end.
+This routine is called before host_envir_early_init is called, so it
+must not make use of anything initialized there.
+*/
+{
+  debug_requests = NULL;
+  debug_stack = NULL;
+  depth_debug_stack = -1;
+  debug_stack_size = 0;
+}  /* debug_early_init */
 
 #endif /* DEBUG */
 

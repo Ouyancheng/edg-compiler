@@ -22,6 +22,8 @@ debug.h -- Declarations related to debugging.
 /*
 Externals for debugging.
 */
+extern void debug_early_init(void);
+
 extern a_boolean proc_debug_option(char *debug_option);
 
 extern a_boolean proc_debug_name_option(char *debug_option);
