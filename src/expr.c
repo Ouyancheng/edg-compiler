@@ -8906,16 +8906,11 @@ to the compound literal.
     literal_con = dip->variant.constant;
     if (gcc_mode && !(local_options & EOPT_OPERAND_OF_ADDRESS_OF)) {
       /* In GNU C mode, the compound literal is treated as a constant-
-         expression. */
+         expression.  In some cases, the constant may later be used to
+         initialize a variable (if an lvalue is needed after all). */
       make_constant_operand(literal_con, result);
     } else {
-      a_variable_ptr temp_var = alloc_temporary_variable(literal_type);
-      temp_var->is_compound_literal = TRUE;
-      temp_var->init_kind = (an_init_kind)initk_static;
-      temp_var->initializer.constant = literal_con;
-      /* The operand is an lvalue for the temporary. */
-      make_lvalue_variable_operand(temp_var, result, (a_ref_entry_ptr)NULL,
-                                   /*record_expr=*/FALSE);
+      make_lvalue_operand_from_array_constant(literal_con, result);
     }  /* if */
   } else {
     /* Allocate an enk_temp_init node. */

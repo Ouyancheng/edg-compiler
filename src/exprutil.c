@@ -7991,6 +7991,23 @@ subtree, some of which will no longer have array type.
 }  /* conv_array_rvalue_expr_to_object_pointer */
 
 
+void make_lvalue_operand_from_array_constant(a_constant_ptr  constant,
+                                             an_operand      *operand)
+/*
+The given constant has array type (presumably the result of a compound
+literal).  Make the given operand a variable initialized with that constant.
+*/
+{
+  a_variable_ptr temp_var = alloc_temporary_variable(constant->type);
+  temp_var->is_compound_literal = TRUE;
+  temp_var->init_kind = (an_init_kind)initk_static;
+  temp_var->initializer.constant = constant;
+  /* The operand is an lvalue for the temporary. */
+  make_lvalue_variable_operand(temp_var, operand, (a_ref_entry_ptr)NULL,
+                               /*record_expr=*/FALSE);
+}  /* make_lvalue_operand_from_array_constant */
+
+
 static void conv_array_rvalue_to_lvalue(an_operand *operand)
 /*
 operand is an array rvalue.  Convert it to an lvalue for the array.
@@ -7998,12 +8015,19 @@ operand is an array rvalue.  Convert it to an lvalue for the array.
 {
   an_expr_node_ptr expr;
 
-  check_assertion(is_expression_operand(operand) && is_an_rvalue(operand) &&
-                  is_array_type(operand->type));
-  expr = operand->variant.expression;
-  expr = conv_array_rvalue_expr_to_object_pointer(expr);
-  make_expression_operand(expr, expr->type, operand);
-  conv_object_pointer_to_lvalue(operand);
+  check_assertion(is_an_rvalue(operand) && is_array_type(operand->type));
+  if (!is_expression_operand(operand)) {
+    /* In GNU C mode, compound literals can really be constants. */
+    a_constant_ptr  constant;
+    check_assertion(gcc_mode && is_constant_operand(operand));
+    constant = alloc_unshared_constant(&operand->variant.constant);
+    make_lvalue_operand_from_array_constant(constant, operand);
+  } else {
+    expr = operand->variant.expression;
+    expr = conv_array_rvalue_expr_to_object_pointer(expr);
+    make_expression_operand(expr, expr->type, operand);
+    conv_object_pointer_to_lvalue(operand);
+  }  /* if */
 }  /* conv_array_rvalue_to_lvalue */
 
 
@@ -8019,7 +8043,7 @@ If the operand is an array rvalue, the conversion is done in some modes
   a_type_ptr ptr_type;
 
   if (is_array_type(operand->type)) {
-    if (is_an_rvalue(operand) && (!C_mode() || c99_mode)) {
+    if (is_an_rvalue(operand) && (!C_mode() || c99_mode || gcc_mode)) {
       /* In C++ or C99 (but not in older C), an array rvalue is converted
          to a pointer to its first element.  Make an lvalue so the
          conversion below will apply. */
