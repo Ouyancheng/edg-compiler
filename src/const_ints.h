@@ -41,6 +41,10 @@ extern int cmplit_integer_constant(a_constant *con1,
 #define eqlit_integer_constant(con1, value2)                          \
   (cmplit_integer_constant((con1), (value2)) == 0)
 
+/* Interface to cmplit_integer_constant for the simple case of getting
+   the sign (-1, 0, +1) of an integer constant. */
+#define sign_of_integer_constant(con) cmplit_integer_constant((con), 0L)
+
 extern void incr_integer_constant(a_constant *cp);
 
 extern void write_integer_constant(FILE       *f_output,
