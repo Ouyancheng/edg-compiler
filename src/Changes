@@ -1,5 +1,10 @@
 Version 2.25
 
+8/9/94   Diagnostic on omitted access specifier on base class declaration
+
+A remark (instead of a warning) is now issued when the access specifier
+is omitted in a base-specifier declaration.
+
 8/9/94   Cross-reference name display
 
 Fully qualified names are now put out to the cross-reference output file.
