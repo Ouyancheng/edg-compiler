@@ -3805,16 +3805,18 @@ Initialize static variables needed on a per-function basis for
 IL lowering for exceptions.
 */
 {
+  if (exceptions_enabled) {
 #if DO_FULL_PORTABLE_EH_LOWERING
-  object_addr_table_var = NULL;
+    object_addr_table_var = NULL;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 #if GENERATE_EH_TABLES
-  array_table_var = NULL;
-  array_table_aggr_con = NULL;
-  region_table_var = NULL;
-  region_table_aggr_con = NULL;
-  next_avail_region_number = 0;
+    array_table_var = NULL;
+    array_table_aggr_con = NULL;
+    region_table_var = NULL;
+    region_table_aggr_con = NULL;
+    next_avail_region_number = 0;
 #endif /* GENERATE_EH_TABLES */
+  }  /* if */
   curr_cleanup_state = NULL;
 }  /* eh_function_lower_init */
 

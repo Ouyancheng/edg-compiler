@@ -1728,10 +1728,8 @@ grcontext is a local variable used to save state for later restoration.
   save_eh_lowering_context(&grcontext->ehcontext);
   add_object_lifetime_to_function_scope(scope);
   push_context(&grcontext->context, scope, (an_object_lifetime_ptr)NULL);
-  if (exceptions_enabled) {
-    /* Initialize for exception handling lowering. */
-    eh_function_lower_init();
-  }  /* if */
+  /* Initialize for exception handling lowering. */
+  eh_function_lower_init();
 }  /* push_generated_routine_context */
 
 

@@ -9753,10 +9753,8 @@ Do IL lowering of the indicated scope and everything under it.
     /* Clear the list of return statements found in the routine.  This list
        is built so that epilogue code can be added at each return. */
     return_memo_list = NULL;
-    if (exceptions_enabled) {
-      /* Initialize for exception handling lowering. */
-      eh_function_lower_init();
-    }  /* if */
+    /* Initialize for exception handling lowering. */
+    eh_function_lower_init();
     /* Lower the executable code. */
     if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
       /* For a constructor, add wrapper code around the user code, and also
