@@ -522,6 +522,7 @@ only the entries marked as "needed" are marked to keep in the IL.
 */
 {
   an_il_walk_state saved_state;
+  a_boolean        file_scope_walk = FALSE;
 
   /* Save the state of global variables for later restoration. */
   save_il_walk_state(saved_state);
@@ -531,45 +532,48 @@ only the entries marked as "needed" are marked to keep in the IL.
   walk_termination_test_func = prune_keep_in_il_walk;
   walk_remap_func = NULL;
   /* walking_file_scope need not be set. */
+  if (entry_kind == iek_scope &&
+      ((a_scope_ptr)entry_ptr)->kind == (a_scope_kind)sck_file) {
+    file_scope_walk = TRUE;
+    il_entry_prefix_of(entry_ptr).keep_in_il = FALSE;
+  }  /* if */
 
   /* Walk the IL tree. */
   walk_tree_and_set_keep_in_il(entry_ptr, entry_kind);
 
-  if (entry_kind == iek_scope) {
-    a_scope_ptr scope = (a_scope_ptr)entry_ptr;
-    if (scope->kind == (a_scope_kind)sck_file) {
-      a_scope_orphaned_list_header_ptr *ptr_ptr;
-      /* The file scope is being walked. */
+  if (file_scope_walk) {
+    a_scope_ptr                      scope = (a_scope_ptr)entry_ptr;
+    a_scope_orphaned_list_header_ptr *ptr_ptr;
+    /* The file scope is being walked. */
 #if RECORD_MACROS_IN_IL
-      /* Mark all macros to be kept. */
-      walk_list(il_header.macros, a_macro_ptr, iek_macro);
+    /* Mark all macros to be kept. */
+    walk_list(il_header.macros, a_macro_ptr, iek_macro);
 #endif /* RECORD_MACROS_IN_IL */
-      /* Walk the orphaned list for scopes, marking only those entries that
-         correspond to needed routines.  The process that eliminates unneeded
-         IL entries looks at the lists for unneeded routines later, and
-         will try to remove entries from those lists.  If each list is
-         entirely removed, the header itself is removed, in which case
-         the reference from the header to the associated routine should
-         not cause the setting of keep_in_il on the routine entry itself.
-         So we don't do that here, leaving it to be done later if
-         appropriate. */
-      ptr_ptr = &il_header.scope_orphaned_list_headers;
-      check_assertion(end_of_file_scope_needed_flags_phase);
-      for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->next) {
-        if ((*ptr_ptr)->assoc_routine->source_corresp.needed) {
-          walk_ptr(*ptr_ptr, a_scope_orphaned_list_header_ptr,
-                   iek_scope_orphaned_list_header);
-        }  /* if */
-      }  /* for */
-      /* Visit the orphan lists. */
-      walk_orphaned_entries_set_keep_in_il();
+    /* Walk the orphaned list for scopes, marking only those entries that
+       correspond to needed routines.  The process that eliminates unneeded
+       IL entries looks at the lists for unneeded routines later, and
+       will try to remove entries from those lists.  If each list is
+       entirely removed, the header itself is removed, in which case
+       the reference from the header to the associated routine should
+       not cause the setting of keep_in_il on the routine entry itself.
+       So we don't do that here, leaving it to be done later if
+       appropriate. */
+    ptr_ptr = &il_header.scope_orphaned_list_headers;
+    check_assertion(end_of_file_scope_needed_flags_phase);
+    for (; *ptr_ptr != NULL; ptr_ptr = &(*ptr_ptr)->next) {
+      if ((*ptr_ptr)->assoc_routine->source_corresp.needed) {
+        walk_ptr(*ptr_ptr, a_scope_orphaned_list_header_ptr,
+                 iek_scope_orphaned_list_header);
+      }  /* if */
+    }  /* for */
+    /* Visit the orphan lists. */
+    walk_orphaned_entries_set_keep_in_il();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* Set keep_in_il on source correspondence entries to match the
-         IL entries pointed to.  This must be done late so that all the
-         keep_in_il flags have been set. */
-      set_keep_in_il_on_source_sequence_entries(scope);
+    /* Set keep_in_il on source correspondence entries to match the
+       IL entries pointed to.  This must be done late so that all the
+       keep_in_il flags have been set. */
+    set_keep_in_il_on_source_sequence_entries(scope);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    } /* if */
   }  /* if */
 
   /* Restore the state of global variables. */
