@@ -181,6 +181,9 @@ the current statement sequence.
         head_ptr = &ssp->variant.block.statements;
         statement_list_allowed = TRUE;
         break;
+      case stmk_try_block:
+        head_ptr = &ssp->variant.try_block.statement;
+        break;
 #if CHECKING
       default:
         internal_error("add_statement: bad kind of stmt in struc. stmt stack");
@@ -1000,6 +1003,45 @@ See also 3.6.5.2.
 }  /* do_statement */
 
 
+static void try_block_statement(void)
+/*
+Scan a C++ try-block statement.  Its form is:
+
+  "try" compound-statement handler-seq
+
+*/
+{
+  a_statement_ptr  sp;
+
+  db_enter(3, "try_block_statement");
+
+  check_for_unreachable_code();
+  /* Allocate the statement. */
+  sp = add_statement((a_statement_kind)stmk_try_block);
+#if CHECKING
+  if (curr_token != tok_try) {
+    internal_error("try_block_statement: expected try");
+  }  /* if */
+#endif /* CHECKING */
+  (void)get_token();
+  /* Scan the compound statement, and save a pointer to it in the try-block
+     statement. */
+  sp->variant.try_block.statement = compound_statement(
+                                               /*at_function_level=*/FALSE,
+                                               /*explicit_return_type=*/FALSE,
+                                               /*is_catch_clause=*/FALSE);
+  /* The next token should be a "catch" introducing the first handler. */
+  if (required_token(tok_catch, ec_missing_handler)) {
+    /* Loop through the (1 or more) handler declarations, adding each to
+       the linked list of handlers pointed to by sp. */
+    do handler_declaration(sp); while (loop_token(tok_catch));
+  }  /* if */
+  /* Pop the structured statement stack. */
+  
+  db_exit();
+}  /* try_block_statement */
+
+
 static void expression_statement(void)
 /*
 Scan an expression statement.
@@ -1807,7 +1849,8 @@ rescan_statement:
     case tok_lbrace:
       /* Compound statement (3.6.2). */
       (void)compound_statement(/*at_function_level=*/FALSE,
-                               /*explicit_return_type=*/FALSE);
+                               /*explicit_return_type=*/FALSE,
+                               /*is_catch_clause=*/FALSE);
       break;
     case tok_if:
       /* If statement (3.6.4). */
@@ -1848,6 +1891,10 @@ rescan_statement:
     case tok_asm:
       /* Asm "declaration" (ARM 7.3). */
       asm_statement();
+      break;
+    case tok_try:
+      /* C++ try block. */
+      try_block_statement();
       break;
     case tok_case:
       /* Case label (3.6.1). */
@@ -1934,8 +1981,9 @@ expr_statement:
 }  /* statement */
 
 
-a_statement_ptr compound_statement(a_boolean at_function_level,
-                                   a_boolean explicit_return_type)
+a_statement_ptr compound_statement(a_boolean  at_function_level,
+                                   a_boolean  explicit_return_type,
+                                   a_boolean  is_catch_clause)
 /*
 Scan a compound-statement.  The syntax is
 
@@ -1977,6 +2025,10 @@ come out on the closing "}".
     if (explicit_return_type) {
       struct_stmt_stack->rout_type_explicitly_specified = TRUE;
     }  /* if */
+  } else if (is_catch_clause) {
+    block = alloc_statement((a_statement_kind)stmk_block);
+    /* Push an entry on the structured statement stack. */
+    push_stmt_stack(ssk_compound, block);
   } else {
     /* Block nested within a function.  Link it onto the current statement
        sequence.  Check for unreachable code. */
@@ -2032,13 +2084,7 @@ come out on the closing "}".
   /* If a lint-style "notreached" comment was detected, suppress the
      warning on unreachable code. */
   check_lint_notreached_flag();
-  if (!at_function_level) {
-    /* Block/compound statement rather than function. */
-    finish_block_statement(block);
-    /* Restore the entry for "else" in the stop tokens set (see comment
-       above). */
-    stop_token_array[(int)tok_else] = old_else_stop_token_value;
-  } else {
+  if (at_function_level) {
     /* Function. */
     /* If the code at the end of a function runs off the end, a default
        return must be added.  See 3.6.6.4. */
@@ -2046,8 +2092,9 @@ come out on the closing "}".
        (one returning no value) is compatible with the current function
        (i.e., the current function should also have type void), and add
        a return with no expression. */
-    if (curr_reachability.reachable) {
+    if (at_function_level && curr_reachability.reachable) {
       a_statement_ptr sp;
+
       /* Suppress the warning if the user told us this code is not
          reachable. */
       if (curr_reachability.reachable_considering_hints) {
@@ -2064,6 +2111,14 @@ come out on the closing "}".
     pop_stmt_stack();
     /* Clear statement stack just to be careful. */
     depth_stmt_stack = -1;
+  } else if (is_catch_clause) {
+    pop_stmt_stack();
+  } else {
+    /* Block/compound statement rather than function. */
+    finish_block_statement(block);
+    /* Restore the entry for "else" in the stop tokens set (see comment
+       above). */
+    stop_token_array[(int)tok_else] = old_else_stop_token_value;
   }  /* if */
 
   /* Remember the sequence number of the current token, which is expected
