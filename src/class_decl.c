@@ -1231,8 +1231,8 @@ a pointer to it.
 
 
 #if DEBUG
-static void db_path(a_derivation_step_ptr dsp,
-                    a_boolean             show_offset)
+void db_path(a_derivation_step_ptr dsp,
+             a_boolean             show_offset)
 /*
 Dump a linked list of derivation steps, for debug purposes.
 */
@@ -1252,6 +1252,22 @@ Dump a linked list of derivation steps, for debug purposes.
     }  /* for */
   }  /* if */
 }  /* db_path */
+
+
+void db_abbreviated_base_class(a_base_class_ptr  bcp)
+/*
+Dump a base class entry, showing minimal information and not appending a
+new line, for debug purposes.
+*/
+{
+  (void)fputc('"', f_debug);
+  db_type_name(bcp->type);
+  if (bcp->derived_class != NULL) {
+    fputs("\" in \"", f_debug);
+    db_type_name(bcp->derived_class);
+  }  /* if */
+  fputc('"', f_debug);
+}  /* db_abbreviated_base_class */
 
 
 void db_base_class(a_base_class_ptr  bcp,
