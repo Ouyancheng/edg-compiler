@@ -553,7 +553,10 @@ typedef struct a_constant {
                         /* The constant to be repeated. */
       unsigned long
                 count;
-                        /* The repeat count (greater than zero). */
+                        /* The repeat count (greater than zero).  A count of
+			   zero is used for new and delete of an array, and
+			   means "use the number of elements recorded along
+			   with the storage allocation". */
     } init_repeat;
 #ifdef FIL
     /* When kind == ck_init_position: */
@@ -1913,6 +1916,8 @@ enum an_expr_node_kind_tag {
                            operation to indicate the field. */
   enk_temp_init,	/* Initialization of a temporary and evaluation of
 			   an expression that creates/uses it.  C++ only. */
+  enk_new_init,		/* Initialization of an entity allocated by a C++
+			   "new" or destruction on a "delete". */
 #endif /* ifdef CIL */
 #ifdef FIL
   enk_stmt_label_value, /* A statement label value for an ASSIGN or
@@ -2293,19 +2298,25 @@ typedef struct an_expr_node {
                         /* A pointer to the field.  Only used as an operand
                            to an eok_field or eok_value_field operation
                            (or the similar bit-field operators). */
-    /* When kind == enk_temp_init: */
+    /* When kind == enk_temp_init or enk_new_init: */
     /* C++ only. */
     struct {
       a_dynamic_init_ptr
 		dynamic_init;
 			/* Dynamic initialization entry that does the
-			   initialization (and destruction, if needed)
-			   for a temporary. */
+			   initialization for a temporary (enk_temp_init)
+			   or allocated storage (enk_new_init).  Destruction
+			   might also be indicated (enk_temp_init, or
+			   enk_new_init for delete). */
       an_expr_node_ptr
-		expr;	/* Expression evaluated after the temporary is
-			   initialized; its value is the value of the
-			   enk_temp_init node. */
-    } temp_init;
+		expr;	/* For enk_temp_init: expression evaluated after the
+			   temporary is initialized.  For enk_new_init:
+			   expression giving the address of the entity;
+			   if the address is non-NULL, the initialization
+			   (or destruction) is done.  For both enk_temp_init
+			   and enk_new_init, the value of this expression is
+			   the value of the overall expression. */
+    } init;
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == enk_stmt_label_value: */

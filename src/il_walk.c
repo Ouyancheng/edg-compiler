@@ -816,9 +816,10 @@ and the entry pointer is to an entry in the file scope, just return
               remap_ptr(ptr->variant.field, a_field_ptr, iek_field);
               break;
             case enk_temp_init:
-              walk_ptr(ptr->variant.temp_init.dynamic_init,
+            case enk_new_init:
+              walk_ptr(ptr->variant.init.dynamic_init,
                        a_dynamic_init_ptr, iek_dynamic_init);
-              walk_ptr(ptr->variant.temp_init.expr, an_expr_node_ptr,
+              walk_ptr(ptr->variant.init.expr, an_expr_node_ptr,
                        iek_expr_node);
               break;
 #endif /* ifdef CFE */

@@ -1908,9 +1908,13 @@ do_variable:
       break;
     case enk_temp_init:
       (void)printf("enk_temp_init\n");
-      disp_ptr("dynamic_init", (char *)ptr->variant.temp_init.dynamic_init,
+      goto init_cases;
+    case enk_new_init:
+      (void)printf("enk_new_init\n");
+init_cases:
+      disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
                iek_dynamic_init);
-      disp_ptr("expr", (char *)ptr->variant.temp_init.expr, iek_expr_node);
+      disp_ptr("expr", (char *)ptr->variant.init.expr, iek_expr_node);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
