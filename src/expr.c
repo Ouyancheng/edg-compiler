@@ -3495,9 +3495,8 @@ Syntax:
        The sizeof should be applied to "(v).b", not just "(v)". */
     copy_source_position(pos_curr_token, lparen_position);
     (void)get_token();
-    if (is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                         /*real_declarator_allowed=*/FALSE,
-                         /*single_type_required=*/TRUE)) {
+    if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                         DFS_SINGLE_TYPE_REQUIRED)) {
       /* This is a type-name in parentheses. */
       parenthesized_type = TRUE;
     } else {
@@ -3615,9 +3614,8 @@ be inappropriate, because the feature is probably used to implement
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
-  if (is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                       /*real_declarator_allowed=*/FALSE,
-                       /*single_type_required=*/TRUE)) {
+  if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                       DFS_SINGLE_TYPE_REQUIRED)) {
     /* Scan a type name. */
     type_name(&alignof_type);
   } else {
@@ -3694,9 +3692,8 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
   /* Disambiguate to choose between the type case and the expression case. */
-  if (is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                       /*real_declarator_allowed=*/FALSE,
-                       /*single_type_required=*/TRUE)) {
+  if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                       DFS_SINGLE_TYPE_REQUIRED)) {
     /* Scan a type name. */
     type_name(&typeid_type);
   } else {
@@ -4279,9 +4276,8 @@ specification allow a variable-sized array as the top type.
          new (int(1.5)) A     // placement
          new (int(*  ))       // type
     */
-    if (is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                         /*real_declarator_allowed=*/FALSE,
-                         /*single_type_required=*/TRUE)) {
+    if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                         DFS_SINGLE_TYPE_REQUIRED)) {
       /* This is the type name. */
       trapped_left_paren = TRUE;
     } else {
@@ -5546,9 +5542,9 @@ or
      since identifiers are never recognized as type names, and therefore
      is_decl_not_expr would never return TRUE). */
   if (!curr_expr_kind_is(ek_pp) &&
-      is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                       /*real_declarator_allowed=*/FALSE,
-                       /*single_type_required=*/TRUE)) {
+      is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                           DFS_SINGLE_TYPE_REQUIRED |
+                           DFS_IS_CAST)) {
     /* This is a cast operation. */
     /* Get the type to cast to. */
     type_name(&type_cast_to);

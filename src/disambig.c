@@ -34,6 +34,25 @@ the "::" at the start of a qualified name) is a type name.
 #define prescan_curr_id_is_type_name()					\
   (curr_type_symbol(/*is_new_type_name=*/FALSE, /*in_prescan=*/TRUE) != NULL)
 
+/*
+Macros to test bits in a disambiguation flag set.
+*/
+#define real_declarator_allowed(flags)					\
+  (((flags) & DFS_REAL_DECLARATOR_ALLOWED) != 0)
+
+#define abstract_declarator_allowed(flags)				\
+  (((flags) & DFS_ABSTRACT_DECLARATOR_ALLOWED) != 0)
+
+#define single_type_required(flags)					\
+  (((flags) & DFS_SINGLE_TYPE_REQUIRED) != 0)
+
+#define is_condition(flags)						\
+  (((flags) & DFS_IS_CONDITION) != 0)
+
+#define condition_is_for_stmt(flags)					\
+  (((flags) & DFS_CONDITION_IS_FOR_STMT) != 0)
+
+
 
 static void cache_tokens_until(a_token_cache	*token_cache_ptr,
 			       a_token_kind	stop_token)
@@ -248,12 +267,10 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 
 
 /* Forward declaration. */
-static void prescan_declaration(a_token_cache  *token_cache_ptr,
-                                a_boolean      abstract_declarator_allowed,
-                                a_boolean      real_declarator_allowed,
-				a_boolean      single_declaration_required,
-			        a_boolean      is_top_level,
-                                a_boolean      *may_be_decl);
+static void prescan_declaration(a_token_cache       *token_cache_ptr,
+                                a_disambig_flag_set flags,
+			        a_boolean           is_top_level,
+                                a_boolean           *may_be_decl);
 
 
 static void prescan_function_declarator
@@ -274,9 +291,8 @@ part of a function declarator is found, may_be_decl is set to FALSE.
     } else {
       /* A parameter declaration.  Scan the declaration. */
       prescan_declaration(token_cache_ptr,
-                          /*abstract_declarator_allowed=*/TRUE,
-                          /*real_declarator_allowed=*/TRUE,
-                          /*single_declaration_required=*/FALSE,
+			  (DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                           DFS_REAL_DECLARATOR_ALLOWED),
                           /*is_top_level=*/FALSE,
                           may_be_decl);
       if (!*may_be_decl) goto done;
@@ -329,12 +345,11 @@ done:
 }  /* prescan_function_declarator */
 
 
-static void prescan_declarator(a_token_cache  *token_cache_ptr,
-                               a_boolean      abstract_declarator_allowed,
-                               a_boolean      real_declarator_allowed,
-			       a_boolean      paren_initializer_allowed,
-			       a_boolean      is_top_level,
-                               a_boolean      *may_be_decl)
+static void prescan_declarator(a_token_cache       *token_cache_ptr,
+			       a_disambig_flag_set flags,
+			       a_boolean           paren_initializer_allowed,
+			       a_boolean           is_top_level,
+                               a_boolean           *may_be_decl)
 /*
 Scan and cache the tokens that comprise a declarator.  This routine
 is used by the disambiguation routines.  If a construct that cannot be
@@ -415,7 +430,8 @@ part of a declarator is found, may_be_decl is set to FALSE.
       } else if (curr_token == tok_rparen) {
         /* Construct like "A a(int());". */
         treat_as_expr = TRUE;
-      } else if (abstract_declarator_allowed && !pointer_operator_seen) {
+      } else if (abstract_declarator_allowed(flags) &&
+                 !pointer_operator_seen) {
         if (is_type_specifier() || curr_token == tok_identifier) {
           /* Construct like A a(int(x));". */
           treat_as_expr = TRUE;
@@ -426,7 +442,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
         goto done;
       }  /* if */
     }  /* if */
-    if (abstract_declarator_allowed) {
+    if (abstract_declarator_allowed(flags)) {
       if (curr_token == tok_rparen ||
           is_decl_start(/*expr_context=*/FALSE,
                         /*real_declarator_allowed=*/TRUE) ||
@@ -436,8 +452,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
       }  /* if */
     }  /* if */
     /* Get the nested declarator. */
-    prescan_declarator(token_cache_ptr, abstract_declarator_allowed,
-                       real_declarator_allowed,
+    prescan_declarator(token_cache_ptr, flags,
                        /*paren_initializer_allowed=*/FALSE,
                        /*is_top_level=*/FALSE, may_be_decl);
     if (!*may_be_decl) goto done;
@@ -458,8 +473,8 @@ part of a declarator is found, may_be_decl is set to FALSE.
     /* Declarator names cannot contain global qualifiers (e.g., ::i). */
     is_name_start = curr_token == tok_identifier &&
                     !locator_for_curr_id.is_global_qualified_name;
-    if (!real_declarator_allowed ||
-        (abstract_declarator_allowed && !is_name_start)) {
+    if (!real_declarator_allowed(flags) ||
+        (abstract_declarator_allowed(flags) && !is_name_start)) {
       /* Identifier is omitted in an abstract declarator. */
     } else if (!is_name_start) {
       /* Real (non-abstract) declarator.  An identifier must be found here. */
@@ -485,9 +500,8 @@ part of a declarator is found, may_be_decl is set to FALSE.
         /* See if the think inside the parenthesis looks like an
            initializer. */
         if (paren_initializer_allowed &&
-            !is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                              /*real_declarator_allowed=*/TRUE,
-                              /*single_type_required=*/FALSE)) {
+            !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                              DFS_REAL_DECLARATOR_ALLOWED)) {
           /* Function_declarator should not be called, scan the tokens that
              comprise the parenthesized initializer and exit the loop. */
           paren_initializer_seen = TRUE;
@@ -530,12 +544,11 @@ done:;
 }  /* prescan_declarator */
 
 
-static void prescan_declaration(a_token_cache  *token_cache_ptr,
-                                a_boolean      abstract_declarator_allowed,
-                                a_boolean      real_declarator_allowed,
-				a_boolean      single_declaration_required,
-			        a_boolean      is_top_level,
-                                a_boolean      *may_be_decl)
+static void prescan_declaration(a_token_cache       *token_cache_ptr,
+                                a_disambig_flag_set flags,
+			        a_boolean           is_top_level,
+                                a_boolean           *may_be_decl)
+
 /*
 Scan a sequence of tokens and cache them for rescanning later.  The purpose
 of this prescan is to help determine whether this is a declaration or an
@@ -557,23 +570,22 @@ evidence to the contrary.
     for (;;) {
       /* Parenthesized initializers are only allowed in contexts that
          in which only real declarators are allowed. */
-      prescan_declarator(token_cache_ptr, abstract_declarator_allowed,
-                         real_declarator_allowed,
+      prescan_declarator(token_cache_ptr, flags,
                          /*paren_initializer_allowed=*/
-                                  !abstract_declarator_allowed,
+                                  !abstract_declarator_allowed(flags),
 			 is_top_level && is_first_declarator, may_be_decl);
       if (!*may_be_decl) goto done;
       /* If we are not processing real declarators, don't look for
          additional declarators. */
-      if (abstract_declarator_allowed || curr_token != tok_comma) break;
+      if (abstract_declarator_allowed(flags) || curr_token != tok_comma) break;
       /* Advance past the comma then scan the next declarator. */
       cache_curr_token(token_cache_ptr);
       (void)get_token_and_coalesce_if_identifier();
       is_first_declarator = FALSE;
     }  /* for */
     /* If multiple types are not allowed, then break out of the loop. */
-    if ((!real_declarator_allowed &&
-         single_declaration_required) || curr_token != tok_comma) break;
+    if ((!real_declarator_allowed(flags) &&
+         single_type_required(flags)) || curr_token != tok_comma) break;
     /* Advance past the comma then scan the next declaration. */
     cache_curr_token(token_cache_ptr);
     (void)get_token_and_coalesce_if_identifier();
@@ -583,9 +595,7 @@ done:
 }  /* prescan_declaration */
 
 
-a_boolean f_is_decl_not_expr(a_boolean  abstract_declarator_allowed,
-                             a_boolean  real_declarator_allowed,
-			     a_boolean  single_type_required)
+a_boolean f_is_decl_not_expr(a_disambig_flag_set flags)
 /*
 This routine is called via the macro is_decl_not_expr (in C++ only) to
 distinguish statements and expressions from declarations -- for example:
@@ -600,6 +610,9 @@ distinguish statements and expressions from declarations -- for example:
   (3) a parenthesized initializer vs. a parameter declaration, e.g.,
          A a(int(1));         // initialize a by calling A::A() with arg 1
          A a(int(i));         // function a takes int arg, returns A
+  (4) a statement vs. a declaration in a condition context
+         if (A(i) = 1)        // A (probably invalid) condition declaration
+         if (A(i) == 1)       // An expression
 
 The ARM discusses disambiguation in sections 6.8 and 8.1.1.  In general, if a
 sequence of tokens looks like a declaration, then it is a declaration, even
@@ -609,10 +622,16 @@ disprove the assumption or, in the case of a more persistent ambiguity, to
 decide on the basis of tokens following the "declaration".  Tokens are cached
 so that they can be rescanned by the caller.
 
-The caller provides some information about the context, specifically whether,
+"flags" provides some information about the context, specifically whether,
 if it is a declaration, an abstract or real declarator is expected -- or
-either.  single_type_required is used to indicate that the construct
-scanned must be a single type and not a comma separated list.
+either.  The DFS_SINGLE_TYPE_REQUIRED flag is used to indicate that the
+construct scanned must be a single type and not a comma separated list.
+DFS_IS_CONDITION indicates that a condition statement is being scanned.
+DFS_CONDITION_IS_FOR_STMT indicates that the condition is in a for
+statement.  DFS_IS_CAST indicates that a cast like "(int)x" is being
+scanned, in which case the context following the cast is inspected
+to distinguish between cases like (A()), which is an expression and
+(A())+1 which is a cast.
 
 These flags are combined in the following ways to handle the various
 disambiguation contexts:
@@ -637,8 +656,8 @@ parameter list in which multiple declarations (i.e., not declarators)
 may be separated by commas.
 
 When abstract declarators are allowed, but real declarators are not, the
-context is one type (when single_declaration_required is TRUE) or multiple
-types separated by commas (when single_declaration_required is FALSE).
+context is one type (when single_type_required is TRUE) or multiple
+types separated by commas (when single_type_required is FALSE).
 
 */
 {
@@ -665,17 +684,14 @@ types separated by commas (when single_declaration_required is FALSE).
     /* Scan forward as far as required to determine whether this is a
        declaration.  Each token that is encountered is cached away, so that
        that they can be restored for the actual scan. */
-    prescan_declaration(&token_cache, abstract_declarator_allowed,
-                        real_declarator_allowed,
-		        single_type_required,
-                        /*is_top_level=*/TRUE,
+    prescan_declaration(&token_cache, flags, /*is_top_level=*/TRUE,
                         &may_be_decl);
     if (!may_be_decl) goto done;
     /* We should now be at either a comma separating two declarators or at
        the semicolon at the end of the declaration.  If not, assume that this
        is really an expression. */
-    if (real_declarator_allowed) {
-      if (abstract_declarator_allowed) {
+    if (real_declarator_allowed(flags)) {
+      if (abstract_declarator_allowed(flags)) {
         /* We are scanning a parameter list, we should be at the closing
            right parenthesis. */
         if (curr_token != tok_rparen) may_be_decl = FALSE;

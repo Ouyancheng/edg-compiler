@@ -650,9 +650,7 @@ specification is handled later (see check_exception_specification).
     type_pos = pos_curr_token;
     if (!is_decl_start(/*expr_context=*/FALSE,
                        /*real_declarator_allowed=*/FALSE) ||
-        !is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                          /*real_declarator_allowed=*/FALSE,
-                          /*single_type_required=*/FALSE)) {
+        !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED)) {
       /* Error. */
       pos_error(ec_exp_type_specifier, &type_pos);
       /* Flush tokens to the comma or right paren. */
@@ -2582,9 +2580,8 @@ The syntax is:
            follows the left paren.  If the construct inside the parentheses
            could be interpreted as a declaration, then do so.  Otherwise,
            treat this as a parenthesized initializer. */
-        if (!is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
-                              /*real_declarator_allowed=*/TRUE,
-                              /*single_type_required=*/FALSE)) {
+        if (!is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                              DFS_REAL_DECLARATOR_ALLOWED)) {
           a_boolean  is_function_decl = FALSE;
           /* This appears to be a parenthesized initializer.  However, it
              might also be a function definition with an old-style parameter

@@ -2542,9 +2542,9 @@ in C++.
 */
 {
   if (!C_mode() &&
-      is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
-                       /*real_declarator_allowed=*/TRUE,
-                       /*single_type_required=*/FALSE)) {
+      is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED | DFS_IS_CONDITION |
+                       (sp->kind == (a_statement_kind)stmk_for ?
+                                  DFS_CONDITION_IS_FOR_STMT : DFS_NO_FLAGS))) {
     /* A condition declaration.  Start a scope for the variable declared in
        the condition and scan the declaration. */
     *is_condition_decl = TRUE;
@@ -3149,9 +3149,7 @@ Scan the initializing expression or, in C++, declaration of a for statement.
      attached in the right place. */
   sssep->for_init = TRUE;
   if (C_dialect == C_dialect_cplusplus &&
-      is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
-                       /*real_declarator_allowed=*/TRUE,
-                       /*single_type_required=*/FALSE)) {
+      is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) {
     /* Scan a declaration (C++ only). */
     decl_statement();
     /* Immediately deactivate the decl-statement. */
@@ -4620,9 +4618,7 @@ rescan_statement:
 expr_statement:
       /* An expression statement. */
       if (C_dialect == C_dialect_cplusplus &&
-          is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
-                           /*real_declarator_allowed=*/TRUE,
-                           /*single_type_required=*/FALSE)) {
+          is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) {
         /* Scan a declaration (C++ only). */
         is_declaration = TRUE;
         decl_statement();
