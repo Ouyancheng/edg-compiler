@@ -7965,24 +7965,35 @@ End a name scope by popping an entry off the scope stack.
     /* Do management related to the object lifetime stack.  Don't pop the
        file scope object lifetime yet, though, because we need it in IL
        lowering; see below */
-    if (kind == (a_scope_kind)sck_block) {
-      pop_object_lifetimes_until(ssep->saved_curr_object_lifetime);
-    } else if (kind == (a_scope_kind)sck_function ||
-               kind == (a_scope_kind)sck_pragma ||
-               kind == (a_scope_kind)sck_func_prototype) {
-      pop_object_lifetimes_until(scope_stack[DEPTH_OF_FILE_SCOPE].
-                                                  curr_scope_object_lifetime);
-      curr_object_lifetime = ssep->saved_curr_object_lifetime;
-      if (kind == (a_scope_kind)sck_function &&
-          !il_scope->variant.routine.ptr->compiler_generated) {
-        /* Flow control wrapup for statement processing is done here because
-           part of what needs to be done is dependent on popping the object
-           lifetime of the function scope. */
-        wrapup_control_flow_processing(il_scope);
+    if (kind == (a_scope_kind)sck_block ||
+        kind == (a_scope_kind)sck_function) {
+      /* For a function or block scope, pop the current object lifetime, which
+         ought to be the one created when this scope was pushed. */
+      check_assertion_str2(curr_object_lifetime ==
+                                          ssep->curr_scope_object_lifetime,
+                           "pop_scope: unexpected curr_object_lifetime",
+                           "for function or block scope");
+      pop_object_lifetime();
+      if (kind == (a_scope_kind)sck_function) {
+        if (!il_scope->variant.routine.ptr->compiler_generated) {
+          /* Flow control wrapup for statement processing is done here because
+             part of what needs to be done is dependent on popping the object
+             lifetime of the function scope. */
+          wrapup_control_flow_processing(il_scope);
+        }  /* if */
+        /* Functions are always processed in the context of the file scope
+           lifetime; restore the lifetime stack as at was when the function
+           scope was pushed. */
+        curr_object_lifetime = ssep->saved_curr_object_lifetime;
       }  /* if */
-    } else if (kind == (a_scope_kind)sck_template_instantiation) {
-      check_assertion(curr_object_lifetime == scope_stack[DEPTH_OF_FILE_SCOPE].
-                                                   curr_scope_object_lifetime);
+    } else if (kind == (a_scope_kind)sck_pragma ||
+               kind == (a_scope_kind)sck_func_prototype ||
+               kind == (a_scope_kind)sck_template_instantiation) {
+      check_assertion_str2(curr_object_lifetime ==
+                                   scope_stack[DEPTH_OF_FILE_SCOPE].
+                                                   curr_scope_object_lifetime,
+                           "pop_scope: curr_object_lifetime is not that of",
+                           "file scope");
       curr_object_lifetime = ssep->saved_curr_object_lifetime;
     }  /* if */
   }  /* if */      
