@@ -8340,9 +8340,10 @@ list for the function definition.
     gen_function_declarator_with_scope(rout_type, scope,
                                        /*top_level_decl=*/TRUE,
                                        /*suppress_def_args=*/
-                                                 (rout->is_template_function &&
-                                                  !rout->is_specialized &&
-                                                  !decl_within_class));
+                                          (rout->is_template_function &&
+                                           !rout->is_prototype_instantiation &&
+                                           !rout->is_specialized &&
+                                           !decl_within_class));
     /* If the function has a throw specification, put it out here after the
        function declarator. */
     if (rtsp->exception_specification != NULL) {
