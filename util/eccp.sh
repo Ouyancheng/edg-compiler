@@ -190,7 +190,7 @@ ldoptions=
 #
 # Should the patch/munch phase be suppressed
 #
-suppress_patch_munch=0
+suppress_patch_munch=${EDG_SUPPRESS_PATCH_MUNCH-0}
 #
 # Options to be passed to the underlying C compiler
 #
