@@ -318,14 +318,19 @@ extern a_symbol_ptr select_overloaded_function(
                             a_symbol_ptr            alt_function_symbol,
                             a_boolean               have_selector,
                             an_operand              *bound_function_selector,
+                            a_boolean               virtual_allowed,
                             an_argument_summary_ptr arg_list,
                             a_boolean               operator_case,
                             an_expression_kind      expression_kind,
                             an_error_code           err_none_applies,
                             an_error_code           err_ambiguous,
                             a_boolean               *no_match,
-                            a_source_position       *err_pos,
+                            a_source_position       *call_position,
+                            an_operand              *function_operand,
                             an_expr_node_ptr        *arg_expr_list);
+
+extern void check_return_type(an_operand *operand,
+                              a_type_ptr routine_type);
 
 extern a_constant_ptr var_constant_value(a_variable_ptr var);
 
@@ -519,6 +524,14 @@ extern void integral_promote_node(an_expr_node_ptr *node);
 extern void make_constructor_call(a_routine_ptr    ctor_routine,
                                   an_expr_node_ptr arg_expr_list,
                                   an_operand       *result);
+
+extern a_boolean builtin_type_from_class_possible(
+                                           a_type_ptr    class_type,
+                                           a_boolean     integral_allowed,
+                                           a_boolean     floating_allowed,
+                                           a_boolean     pointer_allowed,
+                                           a_routine_ptr *conversion_routine,
+                                           a_boolean     *ambiguous);
 
 extern a_boolean user_defined_conversion_possible(
                                   an_operand         *source_operand,
