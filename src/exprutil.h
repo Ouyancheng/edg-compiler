@@ -749,8 +749,10 @@ extern void clear_operand(an_operand_kind kind,
 extern void set_operand_kind(an_operand      *operand,
                              an_operand_kind kind);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern void clone_operand(an_operand *operand,
                           an_operand *operand_clone);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void error_in_operand(an_error_code error_code,
 		             an_operand    *operand);
