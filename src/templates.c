@@ -10603,10 +10603,15 @@ list and template argument list of a partial specialization are valid.
   for (tpp = templ_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr	param_sym = tpp->param_symbol;
     if (!template_param_used_in_type(param_sym, prototype_type)) {
-      pos_sy2_error(ec_not_used_in_partial_spec_arg_list,
-                    &param_sym->decl_position, param_sym, prototype_sym);
-      any_errors = TRUE;
-      decl_state->decl_scope_err = TRUE;
+      /* g++ accepts unusable partial specializations.  They are accepted
+         but otherwise ignored. */
+      an_error_severity severity = gpp_mode ? es_warning : es_error;
+      pos_sy2_diagnostic(severity, ec_not_used_in_partial_spec_arg_list,
+                         &param_sym->decl_position, param_sym, prototype_sym);
+      if (severity == (an_error_severity)es_error) {
+        any_errors = TRUE;
+        decl_state->decl_scope_err = TRUE;
+      }  /* if */
     } /* if */
   } /* for */
   if (!any_errors && !decl_state->in_prototype_instantiation) {

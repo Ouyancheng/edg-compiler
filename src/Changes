@@ -1,5 +1,21 @@
 Version 3.6
 
+2/8/05   GNU C++ compatibility: unusable partial specialization accepted
+
+In g++ mode, partial specializations that are unusable because of
+nondeducible template parameter are accepted and ignored.
+
+  #include <stdio.h>
+  template<class T> struct A {
+    class C { };
+  };
+  template<class T> struct B {enum {e = 1}; };
+  template <class T> struct B<typename A<T>::C> {enum {e = 2}; };
+  int main(int argc, char **argv) {
+    printf("%d\n", B<int>::e);
+    printf("%d\n", B<A<int>::C>::e);
+  }
+
 2/7/05   Performance of routine list management for namespace scopes
 
 The list of routines for a namespace scope (including the file scope) contains
