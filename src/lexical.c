@@ -7275,6 +7275,10 @@ qualified name.
 	} else {
 	  type_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
         }  /* if */
+        if (type_sym != NULL) {
+          /* Make sure the lookup of the destructor type was not ambiguous. */
+          check_for_ambiguity(&locator_for_curr_id);
+        }  /* if */
         /* Clear the specific symbol found by these lookups. */
         clear_specific_symbol(locator_for_curr_id);
         if (type_sym != NULL && is_type_symbol(type_sym)) {
