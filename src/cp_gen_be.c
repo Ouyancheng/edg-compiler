@@ -1147,6 +1147,57 @@ Output the name of the indicated variable.
 }  /* gen_variable_name */
 
 
+static void gen_integer_constant(a_constant_ptr constant)
+/*
+Write out an integer constant (i.e., the constant has a ck_integer
+representation).  The constant is written as an integer even if it has
+been implicitly cast to some other type.  The caller must handle the
+implicit cast if appropriate.
+*/
+{
+  a_boolean  need_close_paren = FALSE;
+  a_type_ptr con_type = skip_typerefs(constant->type);
+
+  if (sign_of_integer_constant(constant) < 0) {
+    /* Negative value.  Put in parentheses. */
+    need_close_paren = TRUE;
+    write_tok_ch('(');
+  }  /* if */
+  /* Write the literal form of the constant. */
+  m_write_str(str_for_integer_constant(constant));
+  if (con_type->kind == (a_type_kind)tk_integer) {
+    /* Add suffixes if appropriate. */
+    an_integer_kind ikind = con_type->variant.integer.int_kind;
+    /* Put out a suffix if needed. */
+    /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
+       a prefix cast is used (the caller must handle that if it's
+       needed). */
+    if (!il_header.pcc_compatibility_mode) {
+      if (!int_kind_is_signed[(int)ikind]) {
+        /* Unsigned constant. */
+        m_write_ch('U');
+      }  /* if */
+    }  /* if */
+    if (ikind == (an_integer_kind)ik_long           ||
+        ikind == (an_integer_kind)ik_unsigned_long) {
+      m_write_ch('L');
+#if LONG_LONG_ALLOWED
+   } else if (ikind == (an_integer_kind)ik_long_long ||
+              ikind == (an_integer_kind)ik_unsigned_long_long) {
+      write_str("LL");
+#endif /* LONG_LONG_ALLOWED */
+    }  /* if */
+  } else {
+    /* An integer value cast to a non-integral type, e.g., (char *)0. */
+    /* Treat as an unsigned constant. */
+    if (!il_header.pcc_compatibility_mode) {
+      m_write_ch('U');
+    }  /* if */
+  }  /* if */
+  if (need_close_paren) write_tok_ch(')');
+}  /* gen_integer_constant */
+
+
 static void gen_char(char ch)
 /*
 Output the indicated character as part of a string literal or character
@@ -1384,7 +1435,7 @@ Output the indicated constant.
   a_constant_repr_kind kind = constant->kind;
   a_float_kind         fkind;
   a_type_ptr           con_type = NULL, orig_type;
-  a_boolean            need_cast_close_paren = FALSE, need_close_paren;
+  a_boolean            need_cast_close_paren = FALSE;
 
   orig_type = constant->type;
   /* Watch out for constants (like aggregates) that have no type. */
@@ -1421,43 +1472,7 @@ Output the indicated constant.
         gen_constant_name(constant);
       } else {
         /* A normal integer constant. */
-        need_close_paren = FALSE;
-        if (sign_of_integer_constant(constant) < 0) {
-          /* Negative value.  Put in parentheses. */
-          need_close_paren = TRUE;
-          write_tok_ch('(');
-        }  /* if */
-        /* Write the literal form of the constant. */
-        m_write_str(str_for_integer_constant(constant));
-        if (con_type->kind == (a_type_kind)tk_integer) {
-          /* Add suffixes if appropriate. */
-          an_integer_kind ikind = con_type->variant.integer.int_kind;
-          /* Put out a suffix if needed. */
-          /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
-             a prefix cast is used (see above). */
-          if (!il_header.pcc_compatibility_mode) {
-            if (!int_kind_is_signed[(int)ikind]) {
-              /* Unsigned constant. */
-              m_write_ch('U');
-            }  /* if */
-          }  /* if */
-          if (ikind == (an_integer_kind)ik_long           ||
-              ikind == (an_integer_kind)ik_unsigned_long) {
-            m_write_ch('L');
-#if LONG_LONG_ALLOWED
-         } else if (ikind == (an_integer_kind)ik_long_long ||
-                    ikind == (an_integer_kind)ik_unsigned_long_long) {
-            write_str("LL");
-#endif /* LONG_LONG_ALLOWED */
-          }  /* if */
-        } else {
-          /* An integer value cast to a non-integral type, e.g., (char *)0. */
-          /* Treat as an unsigned constant. */
-          if (!il_header.pcc_compatibility_mode) {
-            m_write_ch('U');
-          }  /* if */
-        }  /* if */
-        if (need_close_paren) write_tok_ch(')');
+        gen_integer_constant(constant);
       }  /* if */
       break;
     case ck_string:
@@ -3010,6 +3025,53 @@ Generate a cast to the indicated type.
 }  /* gen_cast */
 
 
+static a_boolean expr_is_implicitly_cast_integral_constant(
+                                                         an_expr_node_ptr expr)
+/*
+Return TRUE if the indicated expression is an integral constant cast to
+some other type, and the conversion is one that can be done implicitly.
+This is used for calls of C-mode functions with parameters that
+possibly involve prototype scope types.  For example:
+
+  void f(struct A { int i; } *);
+  void g(enum E { AA });
+  main() {
+    f(0);
+    g(5);
+  }
+
+These cases are problems because the cast cannot be written explicitly
+since the type cannot be named at the call site; therefore we detect them
+and put them out as implicit conversions.  Note that we're not checking
+to see if a prototype scope type is involved in the conversion, so some
+cases not involving such types will be rendered as implicit conversions
+even though the conversion could be written explicitly.  Implicit
+conversions on nonconstants are handled in eok_cast processing.
+*/
+{
+  a_boolean is_implicit_cast = FALSE;
+
+  if (is_constant_node(expr)) {
+    a_constant_ptr con = expr->variant.constant;
+    /* The implicit_cast flag is not checked here on purpose.  It's not set
+       for the enum case. */
+    if (con->kind == (a_constant_repr_kind)ck_integer) {
+      a_type_ptr con_type = skip_typerefs(con->type);
+      if (con_type->kind == (a_type_kind)tk_pointer &&
+          cmplit_integer_constant(con, 0L) == 0) {
+        /* Zero converted to a pointer type. */
+        is_implicit_cast = TRUE;
+      } else if (con_type->kind == (a_type_kind)tk_integer &&
+                 con_type->variant.integer.enum_type) {
+        /* Any integral value converted to an enum type. */
+        is_implicit_cast = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_implicit_cast;
+}  /* expr_is_implicitly_cast_integral_constant */
+
+
 static void gen_argument_list(an_expr_node_ptr arg,
                               a_type_ptr       rout_type,
                               int              skip_num)
@@ -3021,11 +3083,23 @@ arg list and the parameter list, and they're passed over, but nothing is
 put out for them).
 */
 {
-  a_param_type_ptr param;
-  a_boolean        skipped_argument;
+  a_param_type_ptr              param;
+  a_boolean                     skipped_argument;
+  a_routine_type_supplement_ptr rtsp;
+  a_boolean                     prototype_scope_type_arguments_are_possible =
+                                                                         FALSE;
 
   rout_type = skip_typerefs(rout_type);
-  param = rout_type->variant.routine.extra_info->param_type_list;
+  rtsp = rout_type->variant.routine.extra_info;
+  if (rtsp->prototype_scope != NULL) {
+    /* In C mode, it is possible for arguments to be based on prototype
+       scope types, as in
+         void f(struct { int i; } *);
+         f(0);
+    */
+    prototype_scope_type_arguments_are_possible = TRUE;
+  }  /* if */
+  param = rtsp->param_type_list;
   write_tok_ch('(');
   for (; arg != NULL;) {
     skipped_argument = FALSE;
@@ -3045,7 +3119,17 @@ put out for them).
       /* Normal case. */
       if (param != NULL) {
         /* Parameter type known. */
-        gen_initializer_expr(arg, param->type, /*need_parens=*/TRUE);
+        if (prototype_scope_type_arguments_are_possible &&
+            expr_is_implicitly_cast_integral_constant(arg)) {
+          /* This argument is an integral constant implicitly cast to
+             another type in a context where the other type might involve
+             a prototype scope type, so put out the constant without the
+             cast, leaving the cast as implicit. */
+          gen_integer_constant(arg->variant.constant);
+        } else {
+          /* Normal case. */
+          gen_initializer_expr(arg, param->type, /*need_parens=*/TRUE);
+        }  /* if */
       } else {
         /* Parameter type not known. */
         gen_expr_with_parens(arg);
@@ -3319,10 +3403,24 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           gen_boolean_controlling_expression(operand_1);
           goto done_with_operation;
         case eok_cast:
+          /* Normal casts can be eliminated if they are implicit. */
+          /* This is necessary in cases where a function is called with
+             an argument of a type that can be implicitly converted to
+             a parameter type that uses a prototype scope type.  There's
+             no way to write the cast explicitly, because the type can't
+             be named at the call site. */
+          if (expr->variant.operation.compiler_generated) {
+            gen_expression(operand_1);
+          } else {
+            gen_cast(expr->type);
+            gen_expr_with_parens(operand_1);
+          }  /* if */
+          goto done_with_operation;
         case eok_base_class_cast:
         case eok_derived_class_cast:
         case eok_pm_base_class_cast:
         case eok_pm_derived_class_cast:
+          /* Special casts. */
           gen_cast(expr->type);
           gen_expr_with_parens(operand_1);
           goto done_with_operation;
