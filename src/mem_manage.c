@@ -119,11 +119,11 @@ static unsigned long
 		num_mapped_bytes_from_pch;
 			/* Number of bytes of memory that have been mapped
 			   from a precompiled header file. */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 static unsigned long
 		num_text_buffers_allocated;
 			/* Number of text buffers that have been allocated. */
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 #endif /* DEBUG */
 
 
