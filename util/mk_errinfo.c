@@ -30,7 +30,7 @@ EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
                             int(*compar)(a_const_void_ptr,
                                          a_const_void_ptr));
 
-EXTERN_C a_void_ptr qsort(a_const_void_ptr *base,
+EXTERN_C a_void_ptr qsort(a_void_ptr       *base,
                           sizeof_t         nmemb,
                           sizeof_t         size,
                           int(*compar)(a_const_void_ptr,
@@ -761,12 +761,12 @@ int main(int argc, char *argv[])
     me_write_error_text();
     /* Sort the error information by enumeration code so that the enumerations
        can be looked up while processing the tag file. */
-    qsort((a_const_void_ptr)error_info, (sizeof_t)number_of_errors,
+    qsort((a_void_ptr)error_info, (sizeof_t)number_of_errors,
            sizeof(an_error_info), compare_error_info);
     /* Read the data from the tag file. */
     me_read_tag_file();
     /* Sort the tag information by tag. */
-    qsort((a_const_void_ptr)tag_info, (sizeof_t)number_of_tags,
+    qsort((a_void_ptr)tag_info, (sizeof_t)number_of_tags,
           sizeof(a_tag_info), compare_tag_info);
     /* Output the number of tags to the error code file. */
     me_write_tag_table();
