@@ -1666,7 +1666,7 @@ each of the sub-features (e.g., DEFAULT_FIXED_POINT_ENABLED).
 /*
 Flag that is TRUE if the IL and the front end code supporting Embedded C
 (ISO/IEC TR 18037) fixed-point extensions (e.g., support for _Fract and _Accum
-types) should be enabled.  Having this TRUE means the back end is prepared to
+types) should be included.  Having this TRUE means the back end is prepared to
 accept fixed-point IL entities.  The C-generating and C++-generating back ends
 can handle fixed-point extensions (but that's useful only if the downstream
 compiler also handles them).

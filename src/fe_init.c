@@ -313,11 +313,18 @@ Install the keywords in the symbol table.
   /* EDG-specific token for Infinity constant. */
   enter_keyword((a_token_kind)tok_infinity, "__INFINITY__");
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+#if FIXED_POINT_ALLOWED
   if (fixed_point_enabled) {
     enter_keyword((a_token_kind)tok_fract, "_Fract");
     enter_keyword((a_token_kind)tok_accum, "_Accum");
     enter_keyword((a_token_kind)tok_sat, "_Sat");
+    if (c99_mode) {
+      /* "__genericfx" is used in the implementation of type-generic functions
+         for fixed-point types. */
+      enter_keyword((a_token_kind)tok_genericfx, "__genericfx");
+    }  /* if */
   }  /* if */
+#endif /* FIXED_POINT_ALLOWED */
   /* __ALIGNOF__(type) returns the alignment requirement for a type (the
      lower case spelling __alignof__ is also accepted).
      __INTADDR__(addr_expr) scans its argument as an initializer expression
