@@ -11,7 +11,7 @@
 /*
 
 lower_c99.c -- Routines to transform C99 IL constructs into constructs
-               available in classic ANSI C ("C90").
+               available in classic ANSI/ISO C ("C89").
 
 */
 
@@ -41,10 +41,11 @@ static void lower_c99_dynamic_init(a_dynamic_init_ptr dip);
 static void lower_c99_constant_list(a_constant_ptr constant_list);
 static void lower_c99_statement(a_statement_ptr statement);
 
-
+/* Pointers to lowered versions of complex types, once allocated. */
 static a_type_ptr lowered_complex_float = NULL;
 static a_type_ptr lowered_complex_double = NULL;
 static a_type_ptr lowered_complex_long_double = NULL;
+
 
 static a_type_ptr make_lowered_complex_type(a_float_kind  fkind,
                                             char          *name)
@@ -60,7 +61,7 @@ floating point elements.
 
   result->source_corresp.name = alloc_il(strlen(name)+1);
   strcpy(result->source_corresp.name, name);
-  /* Create a type "array for two real values". */
+  /* Create a type "array of two real values". */
   array_type = alloc_type((a_type_kind)tk_array);
   array_type->variant.array.variant.number_of_elements = 2;
   array_type->variant.array.element_type = float_type(fkind);
@@ -155,7 +156,7 @@ Transform the given complex expression ("-z") into a function call (compatible
 with C89).
 */
 {
-  a_type_ptr        return_type = expr->type;
+  a_type_ptr        return_type = skip_typerefs(expr->type);
   char              *rout_name;
   an_expr_node_ptr  xnegate_call;
 
@@ -186,7 +187,7 @@ Transform the given complex expression ("z1+z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr        return_type = expr->type;
+  a_type_ptr        return_type = skip_typerefs(expr->type);
   char              *rout_name;
   an_expr_node_ptr  xadd_call;
 
@@ -216,7 +217,7 @@ Transform the given complex expression ("z1-z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr  return_type = expr->type;
+  a_type_ptr  return_type = skip_typerefs(expr->type);
   char        *rout_name;
   an_expr_node_ptr  xsubtract_call;
 
@@ -247,7 +248,7 @@ Transform the given complex expression ("z1*z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr  return_type = expr->type;
+  a_type_ptr  return_type = skip_typerefs(expr->type);
   char        *rout_name;
   an_expr_node_ptr  xmultiply_call;
 
@@ -278,7 +279,7 @@ Transform the given complex expression ("z1/z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr  return_type = expr->type;
+  a_type_ptr  return_type = skip_typerefs(expr->type);
   char        *rout_name;
   an_expr_node_ptr  xdivide_call;
 
@@ -309,7 +310,7 @@ Transform the given complex expression ("z1==z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr  return_type = expr->type;
+  a_type_ptr  return_type = skip_typerefs(expr->type);
   a_type_ptr  op_type = expr->variant.operation.operands->type;
   char        *rout_name;
   an_expr_node_ptr  xeq_call;
@@ -340,7 +341,7 @@ Transform the given complex expression ("z1!=z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr  return_type = expr->type;
+  a_type_ptr  return_type = skip_typerefs(expr->type);
   a_type_ptr  op_type = expr->variant.operation.operands->type;
   char        *rout_name;
   an_expr_node_ptr  xne_call;
@@ -371,7 +372,7 @@ Transform the given complex expression ("z1 += z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr  return_type = expr->type;
+  a_type_ptr  return_type = skip_typerefs(expr->type);
   char        *rout_name;
   an_expr_node_ptr  xadd_assign_call;
 
@@ -402,7 +403,7 @@ Transform the given complex expression ("z1 -= z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr        return_type = expr->type;
+  a_type_ptr        return_type = skip_typerefs(expr->type);
   char              *rout_name;
   an_expr_node_ptr  xsubtract_assign_call;
 
@@ -433,7 +434,7 @@ Transform the given complex expression ("z1 *= z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr        return_type = expr->type;
+  a_type_ptr        return_type = skip_typerefs(expr->type);
   char              *rout_name;
   an_expr_node_ptr  xmultiply_assign_call;
 
@@ -464,7 +465,7 @@ Transform the given complex expression ("z1 /= z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr        return_type = expr->type;
+  a_type_ptr        return_type = skip_typerefs(expr->type);
   char              *rout_name;
   an_expr_node_ptr  xdivide_assign_call;
 
@@ -509,7 +510,8 @@ Transform the given cast expression into a function call (compatible with C89).
 */
 {
   an_expr_node_ptr  src = expr->variant.operation.operands, cast_call;
-  a_type_ptr        src_type = src->type, dst_type = expr->type;
+  a_type_ptr        src_type = skip_typerefs(src->type);
+  a_type_ptr        dst_type = skip_typerefs(expr->type);
   a_routine_ptr     *routine;
   char              *routine_name;
 
@@ -517,7 +519,7 @@ Transform the given cast expression into a function call (compatible with C89).
     /* Nothing needs to be done. */
   } else if (is_complex_type(dst_type)) {
     if (is_complex_type(src_type)) {
-      /* A change in floating-point precision. */
+      /* A change in floating-point precision, complex to complex. */
       switch (src_type->variant.float_kind) {
         case fk_float:
           switch (dst_type->variant.float_kind) {
@@ -566,6 +568,7 @@ Transform the given cast expression into a function call (compatible with C89).
       }  /* switch */
       cast_call = make_runtime_rout_call(routine_name, routine, dst_type, src);
     } else if (is_imaginary_type(src_type)) {
+      /* Convert imaginary to complex. */
       /* Create a new complex value 0.0 + x*__I__. */
       switch (dst_type->variant.float_kind) {
         case fk_float:
@@ -589,6 +592,7 @@ Transform the given cast expression into a function call (compatible with C89).
                                   float_type(dst_type->variant.float_kind));
       cast_call = make_runtime_rout_call(routine_name, routine, dst_type, src);
     } else {
+      /* Convert float to complex. */
       /* Create a new complex value x + 0.0*__I__. */
       switch (dst_type->variant.float_kind) {
         case fk_float:
@@ -614,9 +618,9 @@ Transform the given cast expression into a function call (compatible with C89).
     }  /* if */
     overwrite_node(expr, cast_call);
   } else if (is_imaginary_type(dst_type)) {
-    /* Converting a complex value to an imaginary type.  This amounts to
-       keeping the imaginary part of the given value. */
     if (is_complex_type(src_type)) {
+      /* Converting a complex value to an imaginary type.  This amounts to
+         keeping the imaginary part of the given value. */
       switch (src_type->variant.float_kind) {
         case fk_float:
           routine_name = "__c99_cfloat_to_ifloat";
@@ -639,12 +643,14 @@ Transform the given cast expression into a function call (compatible with C89).
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
     } else if (is_imaginary_type(src_type)) {
+/* FIXME */
     } else {
+/* FIXME */
     }  /* if */
   } else {
-    /* Converting a complex value to a real type.  This amounts to keeping the
-       real part of the given value. */
     if (is_complex_type(src_type)) {
+      /* Converting a complex value to a real type.  This amounts to keeping
+         the real part of the given value. */
       switch (src_type->variant.float_kind) {
         case fk_float:
           routine_name = "__c99_cfloat_to_float";
@@ -667,7 +673,9 @@ Transform the given cast expression into a function call (compatible with C89).
       cast_call = add_cast_if_necessary(cast_call, dst_type);
       overwrite_node(expr, cast_call);
     } else if (is_imaginary_type(src_type)) {
+/* FIXME */
     } else {
+/* FIXME */
     }  /* if */
   }  /* if */
 }  /* lower_c99_complex_cast */
@@ -785,7 +793,7 @@ replace them by a representation compatible with C89.
       break;
     case ck_imaginary:
       /* Represent the constant as a regular floating-point constant.
-         It's type will similarly be adjusted. */
+         Its type will similarly be adjusted. */
       constant->kind = (a_constant_repr_kind)ck_float;
       break;
     case ck_address:
@@ -1340,6 +1348,9 @@ front end.
   cast_cfloat_to_ifloat = NULL;
   cast_cdouble_to_idouble = NULL;
   cast_clong_double_to_ilong_double = NULL;
+  lowered_complex_float = NULL;
+  lowered_complex_double = NULL;
+  lowered_complex_long_double = NULL;
 
 #if MINIMAL_INLINING
   /* Do inline.c initialization. */
