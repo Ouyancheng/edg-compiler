@@ -230,6 +230,8 @@ Dump a list of template arguments, enclosed by angle brackets.
       } else if (tap->is_array_bound_of_unknown_type) {
         fprintf(f_debug, "array-bound=%lu",
                 (unsigned long)tap->variant.integer_value);
+      } else if (tap->constant_is_an_arg_operand) {
+        fprintf(f_debug, "<arg-operand>");
       } else {
         db_constant(tap->variant.constant);
       }  /* if */
