@@ -326,6 +326,9 @@ extern a_boolean expr_tree_contains_template_param_constant(
                                              an_expr_node_ptr  node,
                                              a_constant_ptr    cp);
 
+extern a_boolean constant_references_non_external_entity(
+                                                      a_constant_ptr constant);
+
 extern a_constant_ptr alloc_shareable_constant(a_constant *cp);
 
 /* Make sure "a_scope_stack_entry" is known as a struct tag before its use
