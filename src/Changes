@@ -1,5 +1,28 @@
 Version 2.32
 
+5/14/96 referenced flag on template class in instantiation pragma
+
+An instantiation pragma for a class (which really asks for instantiation
+of all the functions in the class) now sets the "referenced" flag on the
+class.  Without that, the referenced flag would not be set in Foo<float>
+in the following.  One consequence of that is that the generated C
+code was invalid if MAINTAIN_NEEDED_FLAGS is configured as FALSE.
+
+  template<class T>
+  struct Foo {
+      virtual T f( T x ) const =0;
+      T integrate( T min, T max ) const;
+  };
+  template<class T>
+  T Foo<T>::integrate( T min, T max ) const
+  {
+      T h = (max - min);
+      T sum = f( min ) + f( max );
+      return h * sum;
+  }
+  #pragma instantiate Foo<float>
+
+
 5/13/96 Diagnostics on old-style template specializations
 
 New global variable old_specializations_allowed has been added to control
