@@ -4433,6 +4433,8 @@ before the fixup can be done for pointers in goto and label statements.
         /* The labels are still on the control_flow_descr_list. */
         for (cfdp = control_flow_descr_list; cfdp != NULL; cfdp = cfdp->next) {
           if (cfdp->kind == (a_control_flow_descr_kind)cfdk_label) {
+            cfdp->variant.label_statement->variant.label.lifetime = NULL;
+          } else if (cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
             cfdp->variant.goto_statement.ptr->variant.label.lifetime = NULL;
           }  /* if */
         }  /* for */
