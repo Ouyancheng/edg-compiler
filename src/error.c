@@ -892,7 +892,7 @@ error code.
       m = "constant string subscript out of range";
       break;
     case ec_declared_but_not_referenced:
-      m = "%n declared and never referenced";
+      m = "%n was declared but never referenced";
       break;
     case ec_pcc_address_of_array:
       m = "\"&\" applied to an array has no effect";
@@ -1068,7 +1068,7 @@ error code.
       m = "pointer does not point to struct or union containing this field";
       break;
     case ec_var_retained_incomp_type:
-      m = "variable %sq declared with a never-completed type";
+      m = "variable %sq was declared with a never-completed type";
       break;
     case ec_boolean_controlling_expr_is_constant:
       m = "controlling expression is constant";
@@ -1714,7 +1714,7 @@ error code.
       m = "global %no1 was declared after nested %nod2 (cfront compatibility)";
       break;
     case ec_template_param_declared_but_not_referenced:
-      m = "template parameter %no declared and never referenced";
+      m = "template parameter %no was declared but never referenced";
       break;
     case ec_ambiguous_ptr_to_overloaded_function:
       m = "more than one instance of %n matches the required type";
@@ -2032,7 +2032,7 @@ error code.
       m = "%n is used before its value is set";
       break;
     case ec_set_but_not_used:
-      m = "%n was set and never used";
+      m = "value of %n was set but never used";
       break;
     case ec_bad_scope_for_definition:
       m = "%n cannot be defined in the current scope";
