@@ -606,19 +606,26 @@ requires cleanup.
     }  /* if */
     if ((flags & RDF_SUBOBJECT_VTABLE) != 0 &&
         (flags & RDF_BASE_CLASS_SUBOBJECT) != 0) {
-      int	region_table_offset = 1;
       /* This is a subobject destruction that has a special vtable pointer
          that is to be used.  The next region table entry contains a handle
          that points to the vtable address to be used.  If there is a
          conditional flag, the handle is in the region table entry after
          the conditional flag. */
-      if (flag_addr != NULL) region_table_offset++;
+      an_eh_region_descr_ptr	vtbl_ehrdp;
+      vtbl_ehrdp = ehrdp + 1;
+      if (flag_addr != NULL) vtbl_ehrdp++;
 #if 0
       /* The following line needs to be modified when stack offsets are
 	 being used instead of an object address array. */
 #endif /* 0 */
-      vtbl_ptr = (void*)(obj_addr_array +
-                         (ehrdp + region_table_offset)->handle);
+      vtbl_ptr = (void*)(obj_addr_array + vtbl_ehrdp->handle);
+      if (vtbl_ehrdp->flags & RDF_INDIRECT) {
+        /* If the indirect flag is set on the vtable region entry, get the
+           actual vtable pointer from the address referred to by the region
+           table entry.  This is not used by the fully portable mechanism. */
+        temp_addr = (char *)*(void**)vtbl_ptr;
+        vtbl_ptr = (void *)temp_addr;
+      }  /* if */
 #if DEBUG
       if (__debug_level >= 2) {
         fprintf(__f_debug, "  Vtable pointer=%p\n", vtbl_ptr);
@@ -640,6 +647,9 @@ requires cleanup.
       obj_addr = *(obj_addr_array + ehrdp->handle);
     }  /* if */
     if (flags & RDF_INDIRECT) {
+      /* If the indirect flag is set, get the actual object address from
+         the address referred to by the region table entry.  This is not
+         used by the fully portable mechanism. */
       temp_addr = (char *)*(void**)obj_addr;
       obj_addr = (void *)temp_addr;
     }  /* if */
