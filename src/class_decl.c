@@ -4350,26 +4350,28 @@ virtual base class pointer is shared with some other base class.
        virtual_base_class != NULL;
        virtual_base_class = virtual_base_class->next) {
     if (virtual_base_class->is_virtual) {
-      if (virtual_base_class->direct) {
-        /* If the pointer_base_class field is non-NULL, the virtual base class
-           pointer for the derived class is the same as the pointer to the
-           corresponding virtual base class for pointer_base_class. */
-        pointer_base_class = virtual_base_class->pointer_base_class;
-        if (pointer_base_class != NULL) {
-          /* Look for the corresponding virtual base class. */
-          bcp = corresponding_base_class(virtual_base_class, class_type,
-                                         pointer_base_class->type);
-          /* The pointer_offset value in the context of the derived class
-             is the offset of the pointer base class plus the offset of the
-             virtual base class pointer within the latter. */
-          virtual_base_class->pointer_offset = bcp->pointer_offset +
-                                                    pointer_base_class->offset;
-        }  /* if */
-      } else {
+#if !CFRONT_CLASS_LAYOUT_COMPATIBILITY
+      if (!virtual_base_class->direct) {
         /* Pointer base class is defined only for direct virtual base classes,
            but it may have been set tentatively before we knew it was not a
            direct base class. */
         virtual_base_class->pointer_base_class = NULL;
+        continue;
+      }  /* if */
+#endif /* !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+      /* If the pointer_base_class field is non-NULL, the virtual base class
+         pointer for the derived class is the same as the pointer to the
+         corresponding virtual base class for pointer_base_class. */
+      pointer_base_class = virtual_base_class->pointer_base_class;
+      if (pointer_base_class != NULL) {
+        /* Look for the corresponding virtual base class. */
+        bcp = corresponding_base_class(virtual_base_class, class_type,
+                                       pointer_base_class->type);
+        /* The pointer_offset value in the context of the derived class
+           is the offset of the pointer base class plus the offset of the
+           virtual base class pointer within the latter. */
+        virtual_base_class->pointer_offset = bcp->pointer_offset +
+                                                  pointer_base_class->offset;
       }  /* if */
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
       set_embedded_virtual_base_class_offset(virtual_base_class, class_type);
@@ -4769,9 +4771,11 @@ setting the offset field in the latter.
                pointer_offset field that needs to be updated. */
             if (!bcp->is_virtual) {
               bcp->offset = proximate_derivation->offset + ref_bcp->offset;
+#if !CFRONT_CLASS_LAYOUT_COMPATIBILITY
             } else {
               bcp->pointer_offset = proximate_derivation->offset +
                                     ref_bcp->pointer_offset;
+#endif /* !CFRONT_CLASS_LAYOUT_COMPATIBILITY */
             }  /* if */
 #if DEBUG
             if (debug_level >= 4) {
