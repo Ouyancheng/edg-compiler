@@ -1,3 +1,11 @@
+Version 3.2
+
+3/6/03   __cxa_vec_ctor no longer returns a value
+
+The version of __cxa_vec_ctor returned the pointer to the array being
+constructed, in violation of the IA-64 ABI.  This has been fixed.
+
+-------------------------------------------------------------------------------
 Version 3.1, January 26, 2003
 
 1/22/03  IA-64 ABI
