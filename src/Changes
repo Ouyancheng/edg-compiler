@@ -1,5 +1,11 @@
 Version 3.5
 
+10/13/04 Microsoft compatibility: lookup of nontype names in base classes
+
+The Microsoft compatibility issue described in the Changes entry of
+1/8/01 is fixed in MSVC++ 7.1.  Therefore, we no longer emulate it
+when microsoft_version >= 1310.
+
 10/13/04 __asm functions and one-instantiation-per-object mode
 
 The duplicate_static_in_instantiation_slices flag is now set in __asm

@@ -9724,6 +9724,8 @@ names from base classes (i.e., it ignores nontypes):
 
 sym is the symbol found from a base class.  Return TRUE if this is a
 symbol that should be ignored as a result of the Microsoft bug.
+
+This bug was fixed in version 7.1 of the Microsoft compiler.
 */
 {
   a_boolean	result = FALSE;
@@ -9838,7 +9840,8 @@ created if a projected symbol cannot be found in any of the real bases.
         /* In Microsoft bugs mode, ignore non-types found by a tentative
            type lookup and continue looking for the symbol in enclosing
            scopes. */
-        if (check_for_microsoft_type_lookup_bug(progenitor_sym)) {
+        if (microsoft_version < 1310 &&
+            check_for_microsoft_type_lookup_bug(progenitor_sym)) {
           progenitor_sym = NULL;
         }  /* if */
       }  /* if */
