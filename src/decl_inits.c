@@ -1300,13 +1300,15 @@ issuing an error on an incomplete type.
       remove_stop_token(tok_rparen);
       check_closing_paren_after_expr_list();
     }  /* if */
-  } else if (curr_token == tok_lbrace) {
-    /* A brace enclosed list of initializers. */
+  } else if (curr_token == tok_lbrace || is_aggregate_or_union_type(vp_type)) {
+    /* Either a brace enclosed list of initializers or other aggregate
+       initialization. */
     if (cssp != NULL && !cssp->is_class_aggregate) {
       /* This is an attempt to do C-style aggregate initialization on a class
          object for which there is a constructor, nonpublic members, base
          classes, or virtual functions.  In such cases a constructor must be
          used. */
+      check_assertion(curr_token == tok_lbrace);
       /* We can't call syntax_error because the type is being displayed. */
       type_error(ec_brace_initialization_not_allowed, vp_type);
       /* Flush tokens until something in the stop token set turns up. */
