@@ -5616,7 +5616,7 @@ symbol.
     } else if (sym->kind == (a_symbol_kind)sk_projection) {
       local_access = sym->variant.projection.access;
       if (sym->ambiguous) *ambiguous = TRUE;
-      /* Retrurn a flag indicating whether there are any intervening access
+      /* Return a flag indicating whether there are any intervening access
          declarations in the inheritance path. */
       if (sym->variant.projection.access_adjustment_made ||
           sym->variant.projection.intervening_access_adjustment) {
