@@ -37,6 +37,9 @@ to handle C++ lowering, and from C99 IL lowering to handle C99 lowering.
 #if MINIMAL_INLINING
 
 #include "folding.h"
+#if MAINTAIN_NEEDED_FLAGS
+#include "il_walk.h"
+#endif /* MAINTAIN_NEEDED_FLAGS */
 
 #if !DO_FULL_PORTABLE_EH_LOWERING
  #error -- Inlining requires full portable lowering of exception handling.
@@ -1721,6 +1724,9 @@ versions of those routines.
         /* For extern inline functions we need to put out an out-of-line
            copy when told to do so via the suppress_inline_body flag. */
         routine->need_out_of_line_copy = TRUE;
+#if MAINTAIN_NEEDED_FLAGS
+        mark_as_needed((char *)routine, (an_il_entry_kind)iek_routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
       }  /* if */
       if (!routine->need_out_of_line_copy) {
         /* We don't need an out-of-line copy, so mark the routine as
