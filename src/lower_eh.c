@@ -1986,8 +1986,8 @@ pointers-to-members).
             }  /* if */
           }  /* if */
         }  /* if */
-#endif /* IA64_ABI */
       }  /* if */
+#endif /* IA64_ABI */
       /* Determine the name for the typeinfo variable. */
       mangled_name = alloc_mangled_typeinfo_name(type);
       /* Look for an existing typeinfo variable with this name.  This can
