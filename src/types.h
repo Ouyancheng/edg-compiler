@@ -261,7 +261,7 @@ extern a_boolean type_contains_specific_template_param_constant(
 #endif /* if 0 */
 extern void set_force_external_linkage_flag(a_type_ptr  type_ptr);
 extern void set_used_in_exception_flag(a_type_ptr  type_ptr);
-
+extern a_type_ptr strip_local_typedefs(a_type_ptr  type);
 
 /*
 Return TRUE if type_1 does not have some top-level type qualifier that
