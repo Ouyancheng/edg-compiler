@@ -585,6 +585,8 @@ hiding.
     /* Ignore members of prototype instantiations. */
   } else if (sym_ptr->is_template_param) {
     /* Ignore template parameters. */
+  } else if (sym_ptr->kind == (a_symbol_kind)sk_macro) {
+    /* Ignore macros. */
   } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
     /* Ignore template instantiation scopes. */
   } else if (is_template_class_symbol(sym_ptr)) {

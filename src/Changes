@@ -1,5 +1,21 @@
 Version 2.40
 
+10/23/98  Hidden name tables, macros, and the C++-generating back end
+
+If a macro and a class template have the same name, and the
+C++-generating back end is being used, unneeded elaborated type
+specifiers could be produced on certain template references.  This
+caused problems when the output was compiled with the Microsoft
+compiler, where a bug causes spurious errors for certain uses of
+elaborated type specifiers.
+
+  template <class T> struct A { };
+  struct B {};
+  A<B> ab;
+  #define A(X) A<X>
+  template <class T> struct C {};
+  template <> struct C<A(B)>;
+
 10/21/98  Microsoft compatibility: template parameters visible in
           class specializations
 
