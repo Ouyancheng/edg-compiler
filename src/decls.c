@@ -3218,6 +3218,13 @@ otherwise, set *ext_sym to NULL.
           sym->variant.routine.instance_ptr->specific_def = TRUE;
           sym->variant.routine.instance_ptr->instantiation_required = FALSE;
         }  /* if */
+        routine_ptr = sym->variant.routine.ptr;
+        old_decl_has_body = (routine_ptr->assoc_scope != NULL_region_number);
+        *old_type = routine_ptr->type;
+        reconcile_routine_types(routine_ptr, type_ptr,
+                                /*preserve_rout_type=*/old_decl_has_body,
+                                /*preserve_type_ptr=*/
+                                                 is_function_def_with_body);
       } else {
         /* Overloaded function.  Create the new symbol, which will be on the
            list of functions connected to an sk_overloaded symbol. */
@@ -3539,7 +3546,8 @@ void decl_function_template(a_symbol_locator    *locator,
 {
   a_storage_class                   storage_class;
   a_scope_depth                     effective_decl_level;
-  a_symbol_ptr                      sym, overload_symbol, homonym_symbol;
+  a_symbol_ptr                      sym;
+  a_symbol_ptr                      overload_symbol = NULL, homonym_symbol;
   a_template_symbol_supplement_ptr  tssp;
   a_routine_ptr                     rout_ptr;
   a_memory_region_number            region_to_switch_back_to;
@@ -3576,6 +3584,16 @@ void decl_function_template(a_symbol_locator    *locator,
     set_source_corresp(&rout_ptr->source_corresp, sym);
     rout_ptr->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
+  }  /* if */
+  if (overload_symbol != NULL) {
+    a_symbol_ptr  rout_sym;
+    for (rout_sym = overload_symbol->variant.overloaded_function.symbols;
+         rout_sym != NULL;
+         rout_sym = rout_sym->next) {
+      if (rout_sym->kind == (a_symbol_kind)sk_routine) {
+        record_predeclared_template_function(sym, rout_sym);
+      }  /* if */
+    }  /* for */
   }  /* if */
   *symbol_ptr = sym;
 #if DEBUG
