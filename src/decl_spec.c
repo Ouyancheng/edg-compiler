@@ -1405,7 +1405,12 @@ caution when modifying this routine.
         }  /* if */
       }  
     }  /* if */
-    if (!tag_err && tag_sym != NULL && tag_sym->kind != tag_kind) {
+    if (!tag_err && tag_sym != NULL && tag_sym->kind != tag_kind &&
+        (tag_sym->kind != (a_symbol_kind)sk_class_template ||
+         tag_kind != (a_symbol_kind)sk_class_or_struct_tag)) {
+      /* Allow class or struct for a class template symbol to permit
+         the Microsoft extension of "friend class X", where X is a
+         templates. */
       an_error_severity  severity;
       if (any_cfront_mode() && tag_kind != (a_symbol_kind)sk_enum_tag &&
           tag_sym->kind != (a_symbol_kind)sk_enum_tag) {
@@ -1920,6 +1925,13 @@ new expression and should therefore not be treated as a declaration.
           internal_error("class_specifier: invalid sk_type tag_sym");
 #endif /* CHECKING */
         }  /* if */
+      } else if (tag_sym->kind == (a_symbol_kind)sk_class_template) {
+        /* This should only occur for Microsoft friend template declarations
+           like "friend class X", where X is a class template.  Substitute the
+           prototype instantiation symbol for the class template symbol. */
+        check_assertion(microsoft_bugs && is_friend_decl);
+        tag_sym = tag_sym->variant.template_info->
+                                variant.class_template.prototype_instantiation;
       } else if (tag_sym->kind != tag_kind) {
         /* Union/nonunion mismatch on a redeclaration. */
         if (is_nonreal_instance_class_symbol(tag_sym)) {

@@ -3079,6 +3079,7 @@ in a friend declaration.
 {
   a_symbol_ptr              assoc_symbol;
   an_id_lookup_options_set  options = IDL_MUST_BE_TAG;
+  a_boolean		    is_microsoft_template_friend = FALSE;
 
   /* Look up the current token.  Note that a qualified name is not allowed. */
   if (is_friend_decl) options |= IDL_FRIEND_LOOKUP;
@@ -3101,8 +3102,14 @@ in a friend declaration.
   /* If the symbol still refers to the class template, ignore it. */
   if (assoc_symbol != NULL &&
       assoc_symbol->kind == (a_symbol_kind)sk_class_template) {
-    assoc_symbol = NULL;
-    clear_specific_symbol(*locator);
+    if (microsoft_bugs && is_friend_decl) {
+      /* The Microsoft compiler (as of 7.1) allows "friend class X", where X
+         is a class template. */
+      is_microsoft_template_friend = TRUE;
+    } else {
+      assoc_symbol = NULL;
+      clear_specific_symbol(*locator);
+    }  /* if */
   }  /* if */
   if (assoc_symbol == NULL && !is_friend_decl) {
     /* If the symbol was not found using a normal lookup above, look again
@@ -3184,6 +3191,9 @@ in a friend declaration.
          the midst of a prototype instantiation.  Return the symbol that
          was found. */
     } else if (assoc_symbol->kind != tag_kind &&
+               (!is_microsoft_template_friend ||
+                (assoc_symbol->kind == (a_symbol_kind)sk_class_template &&
+                 tag_kind != (a_symbol_kind)sk_class_or_struct_tag)) &&
                assoc_symbol->decl_scope !=
                         scope_stack[decl_scope_level].number) {
       /* A tag, but it's from another scope and it's the wrong kind of tag

@@ -1,5 +1,25 @@
 Version 3.2
 
+5/9/03   Microsoft compatibility: nonstandard template friend declaration
+
+The Microsoft compiler accepts a normal friend declaration in which the
+class named is actually a template (the template syntax should be
+used instead).  We now accept this in Microsoft bugs mode.
+
+  template <class T> class A;
+  class B {
+    protected:
+      friend class A;
+       void f();
+  };
+  template <class T> struct A {
+     A() {
+       B b;
+       b.f();
+     }
+  };
+  A<int> a;
+
 5/9/03   Internal error on strange specialization syntax
 
 An unusual syntax error suggesting a specialization of a static data member

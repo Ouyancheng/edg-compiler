@@ -27,6 +27,7 @@ class_decl.c -- Scanning of class declarations.
 /* Additional header files. */
 #include "expr.h"
 #include "layout.h"
+#include "templates.h"
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -5191,7 +5192,20 @@ the current class (class_type).
       friend_class_type = proxy_class_for_template_param(friend_class_type);
     }  /* if */
     check_assertion(is_immediate_class_type(friend_class_type));
-    if (class_type == friend_class_type) {
+    if (friend_class_type->
+                       variant.class_struct_union.is_prototype_instantiation) {
+      /* In Microsoft bugs mode, "friend class X", where X is a class template,
+         is accepted.  Earlier, the class template symbol was replaced with the
+         prototype instantiation.  Make the template associated with the
+         prototype instantiation a friend of the specified class. */
+      a_symbol_ptr			prototype_sym;
+      a_template_symbol_supplement_ptr	tssp;
+      check_assertion(microsoft_bugs);
+      prototype_sym = (a_symbol_ptr)friend_class_type->
+                                                     source_corresp.assoc_info;
+      tssp = template_supplement_for_symbol(prototype_sym);
+      add_befriending_class_to_class_template(tssp, class_type);
+    } else if (class_type == friend_class_type) {
       /* Diagnostic on excessive narcissism. */
       warning(ec_self_friendship);
     } else {
