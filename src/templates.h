@@ -90,8 +90,6 @@ extern void f_check_for_uninstantiated_template_class(a_type_ptr  type);
 
 extern void f_instantiate_template_class(a_type_ptr  type);
 
-extern void create_placeholder_for_class_instantiation(a_type_ptr class_type);
-
 extern a_boolean equiv_template_arg_lists(
                                     a_template_arg_ptr list1,
                                     a_template_arg_ptr list2,
