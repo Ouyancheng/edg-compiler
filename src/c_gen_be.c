@@ -2077,6 +2077,42 @@ This is only called when the source language is C.
 }  /* dump_prototype_scope_types_within_type */
 
 
+/*
+Helper macro for check_parent_info; calls db_name to display the name of an
+entity, but only if DEBUG code is enabled.
+*/
+#if DEBUG
+#define display_entity_if_debug_enabled(entity) \
+{ (void)fprintf(f_debug, "\nEntity is "); \
+  db_name(&(entity)->source_corresp); \
+  (void)fprintf(f_debug, "\n"); \
+}  /* display_entity_if_debug_enabled */
+#else /* /* !DEBUG */
+#define display_entity_if_debug_enabled(entity) /* Nothing */
+#endif /* DEBUG */
+
+/*
+If "scope" is the file scope, check that the parent information for the
+given entity (which is from that scope) does not indicate class or
+namespace membership, or have the is_local_to_function flag TRUE.
+*/
+#if CHECKING
+#define check_membership_info(entity, scope) \
+{ if ((scope)->kind == (a_scope_kind)sck_file) { \
+    if ((entity)->source_corresp.is_class_member || \
+        (entity)->source_corresp.parent.namespace_ptr != NULL || \
+        (entity)->source_corresp.is_local_to_function) { \
+      display_entity_if_debug_enabled(entity); \
+      internal_error( \
+         "check_membership_info: file scope entity has bad membership info"); \
+    }  /* if */ \
+  }  /* if */ \
+}  /* check_membership_info */
+#else /* !CHECKING */
+#define check_membership_info(entity, scope) /* Nothing */
+#endif /* CHECKING */
+
+
 static void dump_scope_types(a_scope_ptr scope)
 /*
 Dump all types declared within one scope.
@@ -2102,6 +2138,7 @@ Dump all types declared within one scope.
      program. */
   for (pass = 1; pass <= 2; pass++) {
     for (type = scope->types; type != NULL; type = type->next) {
+      check_membership_info(type, scope);
       dump_type_decl(type, pass);
     }  /* for */
     /* Examine functions and generate any prototype scope types as
@@ -4470,9 +4507,11 @@ interleaved with the variables.
               aep->source_corresp.decl_position.column <=
                                 var_ptr->source_corresp.decl_position.column));
            aep = aep->next) {
+        check_membership_info(aep, scope);
         dump_asm_entry(aep);
       }  /* for */
     }  /* if */
+    check_membership_info(var_ptr, scope);
     dump_variable_decl(var_ptr, dump_vars_without_initializers,
                        dump_initializers);
   }  /* for */
@@ -4480,6 +4519,7 @@ interleaved with the variables.
     /* Put out asm declarations (if any) that follow all variable
        declarations. */
     for (;aep != NULL; aep = aep->next) {
+      check_membership_info(aep, scope);
       dump_asm_entry(aep);
     }  /* for */
   }  /* if */
@@ -4526,6 +4566,7 @@ Dump all constants in the indicated scope.
   for (constant = scope->constants;
        constant != NULL;
        constant = constant->next) {
+    check_membership_info(constant, scope);
     dump_constant_decl(constant);
   }  /* for */
 }  /* dump_scope_constants */
@@ -5553,6 +5594,7 @@ that have bodies.
   a_routine_ptr routine;
 
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
+    check_membership_info(routine, scope);
     dump_routine_decl(routine, dump_defn);
   }  /* for */
 }  /* dump_scope_routines */
