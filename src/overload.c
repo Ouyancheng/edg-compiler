@@ -4430,7 +4430,7 @@ and return FALSE.  If ambiguity_list is non-NULL in that case, it is set
 to point to a list describing the set of ambiguous functions; the caller must
 free that list.  *ambiguity_list is set to NULL to indicate a case that
 is undecidable because of an error.  Note that this routine does not
-check for the possibility of bitwise copying (see class_copy_possible).
+check for the possibility of bitwise copying (see class_bitwise_copy_possible).
 This routine is only used in C++ mode.
 */
 {
@@ -4559,8 +4559,8 @@ functions; the caller must free that list.  *ambiguity_list is set to
 NULL to indicate a case that is undecidable because of an error.  Note
 that this routine does not look for constructors that can be used as
 conversion functions (see conversion_to_class_possible) or for the
-possibility of bitwise copying (see class_copy_possible).  This routine
-is only used in C++ mode.
+possibility of bitwise copying (see class_bitwise_copy_possible).
+This routine is only used in C++ mode.
 */
 {
   a_boolean                okay;
