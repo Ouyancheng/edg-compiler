@@ -5533,11 +5533,15 @@ where the type involves more than one token -- e.g., "unsigned int(x)".
   a_type_ptr            type_ptr;
   a_type_qualifier_set  qualifiers;
   a_decl_modifier       decl_modifiers;
+  a_source_position     pos;
 
   check_assertion(microsoft_mode && is_type_specifier());
+  pos = pos_curr_token;
   (void)decl_specifiers(DSI_TYPE_SPECIFIER_ALLOWED, &dso_flags,
                         &storage_class, &type_ptr, &qualifiers,
                         &decl_modifiers);
+  /* Set error_position to the start of the type-specifier sequence. */
+  error_position = pos;
   return type_ptr;
 }  /* simple_type_specifier_sequence */
 
@@ -5686,6 +5690,23 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
     case tok_bool:
       type = bool_type();
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* The following tokens may or may not be defined, but for each that is,
+       the corresponding integer kind will be set to something besides
+       ik_none. */
+    case tok_int8:
+      type = integer_type(targ_int8_int_kind);
+      break;
+    case tok_int16:
+      type = integer_type(targ_int16_int_kind);
+      break;
+    case tok_int32:
+      type = integer_type(targ_int32_int_kind);
+      break;
+    case tok_int64:
+      type = integer_type(targ_int64_int_kind);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
       type = NULL;
       break;
