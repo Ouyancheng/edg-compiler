@@ -3311,6 +3311,8 @@ operation is a pointer-to-member (see ARM 5.3).
       make_error_operand(result);
       operand_will_not_be_used_because_of_error(&operand);
     } else if (!C_mode() && is_template_dependent_context() &&
+               /* Avoid pointer-to-member constants. */
+               !is_sym_for_member_operand(&operand) &&
                is_or_contains_template_param(operand.type)) {
       /* The operand has a template parameter type, so we cannot
          check its type.  Just produce an expression with a generic
