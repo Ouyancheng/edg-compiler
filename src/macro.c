@@ -4746,7 +4746,7 @@ command line -D options.
 #if RUNTIME_USES_NAMESPACES
     /* Enter a predefined macro that can be used to determine that
        the runtime uses namespaces.  This is also used by the
-       standard header files so that the know whether to declare
+       standard header files so that they know whether to declare
        things like type_info in the std namespace. */
     (void)enter_predef_macro("1", MACRO_DEFINED_WHEN_RUNTIME_USES_NAMESPACES,
                              /*cannot_be_redefined=*/TRUE,
@@ -4757,6 +4757,13 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
 #endif /* RUNTIME_USES_NAMESPACES */
+#if IA64_ABI
+    /* Enter a predefined macro that can be used to determine that the
+       compiler is using the IA64 C++ ABI. */
+    (void)enter_predef_macro("1", MACRO_DEFINED_WHEN_IA64_ABI,
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+#endif /* IA64_ABI */
   }  /* if */
 #if DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED
   { a_boolean	long_long_is_disabled = !LONG_LONG_ALLOWED;

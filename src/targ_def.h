@@ -128,6 +128,16 @@ of 3.x versions of g++).  See www.codesourcery.com/cxx-abi/.
  #error -- Cfront and IA-64 ABIs are mutually exclusive.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY && IA64_ABI */
 
+#if IA64_ABI
+/*
+The name of the macro to be defined when IA-64 ABI is used on the target.
+This is only used when IA64_ABI is TRUE.
+*/
+#ifndef MACRO_DEFINED_WHEN_IA64_ABI
+#define MACRO_DEFINED_WHEN_IA64_ABI "__EDG_IA64_ABI"
+#endif /* ifndef MACRO_DEFINED_WHEN_IA64_ABI */
+#endif /* IA64_ABI */
+
 /*
 Certain C99 features require IL constructs not otherwise present.
 Because certain back ends may not support the new constructs, a mechanism
