@@ -132,10 +132,10 @@ Process the source correspondence field pointed to by ptr.
 
 #undef report_bad_init_kind
 #if CHECKING
-#define report_bad_init_kind                                          \
+#define report_bad_init_kind()                                        \
   internal_error("walk_entry_and_subtree: bad init kind")
 #else
-#define report_bad_init_kind  /* Nothing */
+#define report_bad_init_kind()  /* Nothing */
 #endif /* CHECKING */
 
 #undef walk_initializer
@@ -154,7 +154,7 @@ Process the source correspondence field pointed to by ptr.
                iek_dynamic_init);                                     \
       break;                                                          \
     default:                                                          \
-      report_bad_init_kind;                                           \
+      report_bad_init_kind();                                         \
   }  /* switch */                                                     \
 }  /* walk_initializer */
 
