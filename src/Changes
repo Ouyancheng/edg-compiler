@@ -7063,8 +7063,8 @@ the EH region table entry, and the front end and runtime have
 been changed to specify and pass the appropriate pointer.
 This is an ABI CHANGE, but an upward-compatible one.
 (Note in particular the way that RDF_SUBOBJECT_VTABLE is
-overlaid on the existing RDF_GUARD_VAR_FOR_LOCAL_STATIC bit,
-to avoid increasing the size of the flags byte.)
+overlaid on the existing RDF_LET_THIS bit, to avoid increasing the
+size of the flags byte.)
 
 1/20/03  Precompiled headers: workaround for mmap problem on Linux
 
