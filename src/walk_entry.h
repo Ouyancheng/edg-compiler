@@ -358,7 +358,7 @@ pointers.
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
 #define walk_per_instantiation_needed_flags(ptr) \
   walk_string_ptr((ptr).per_instantiation_needed_flags, \
-                  iek_other_text, \
+                  iek_string_text, \
                   il_header.per_instantiation_needed_flags_vector_byte_length)
 #else /* !MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 #define walk_per_instantiation_needed_flags(ptr) /* Nothing */
