@@ -218,7 +218,7 @@ expression is permitted.
 }  /* is_type_start */
 
 
-extern a_boolean is_decl_start(an_is_decl_start_options_set options)
+a_boolean is_decl_start(an_is_decl_start_options_set options)
 /*
 Return TRUE if the current token looks like the start of a declaration,
 i.e., it is the start of a type-specifier, a type-qualifier, or a
