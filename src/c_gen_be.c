@@ -2678,6 +2678,8 @@ final semicolon if output_final_semi is TRUE.
       if (!field->is_bit_field) {
         a_type_ptr field_type = field->type;
         /* Not a bit field. */
+#if GCC_IS_GENERATED_CODE_TARGET || \
+    (BACK_END_IS_CP_GEN_BE && CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT)
         /* If we are generating code for an early GNU compiler, check for a
            flexible array member and put out its bound as [0] instead of [].
            Starting with GNU C/C++ 3.0, the [] syntax is accepted (and only
@@ -2690,6 +2692,7 @@ final semicolon if output_final_semi is TRUE.
             is_incomplete_type(field_type)) {
           skip_typerefs(field_type)->variant.array.bound_is_zero = TRUE;
         }  /* if */
+#endif /* GCC_IS_GENERATED_CODE_TARGET || ... */
         /* Note that a name will be generated for an anonymous union in C++. */
         /* Note that "const" is dropped; that's important so that
            initialization code rewritten as executable code by IL lowering
