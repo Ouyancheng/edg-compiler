@@ -3852,14 +3852,14 @@ As an anachronism, allow an expression inside the [ ].
               node_for_integer_constant((long)(delete_type->size),
                                         (an_integer_kind)TARG_SIZE_T_INT_KIND);
 #if 0
-#else
+#else /* 0 */
 #if !ASSIGNMENT_TO_THIS_ALLOWED
         /* The two-argument form requires that the destructor be called
            to do the deletion, so the current implementation is incompatible
            with !ASSIGNMENT_TO_THIS_ALLOWED. */
 ??=error ASSIGNMENT_TO_THIS_ALLOWED must be TRUE
 #endif /* !ASSIGNMENT_TO_THIS_ALLOWED */
-#endif
+#endif /* 0 */
       }  /* if */
       make_function_call(function_node, delete_routine->type,
                          (a_boolean)delete_routine->is_virtual,
@@ -7197,8 +7197,8 @@ void scan_constant_initializer_expression(a_type_ptr required_type,
 /*
 Scan a constant initializer expression.  Convert the constant to
 required_type; issue an error if it is incompatible with that type.
-See section 3.4 in the ANSI C standard.  Not used in C++, because
-there's no such thing as a C++ initializer that must be constant.
+See section 3.4 in the ANSI C standard.  Used in C++ for scanning
+constant class members (an extension) and non-type template arguments.
 */
 {
   an_operand        result;
