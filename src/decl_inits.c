@@ -477,6 +477,10 @@ for unions and aggregates at that level).
       kind = local_type->kind;
       if (kind == (a_type_kind)tk_error) {
         member_type = local_type;
+        if (brace_flag && curr_token == tok_rbrace) {
+          /* Avoid an extra possibly spurious error. */
+          done = TRUE;
+        }  /* if */
       } else if (kind == (a_type_kind)tk_array) {
         curr_array_element = 0;
         is_incomplete_array = is_incomplete_type(local_type);
@@ -709,9 +713,11 @@ for unions and aggregates at that level).
       }  /* if */
       /* Allocate the aggregate constant that is the value for the
          initializer. */
-      init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-      init_con->variant.aggregate.first_constant = con_list;
-      init_con->variant.aggregate.last_constant  = end_of_con_list;
+      if (con_list != NULL) {
+        init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+        init_con->variant.aggregate.first_constant = con_list;
+        init_con->variant.aggregate.last_constant  = end_of_con_list;
+      }  /* if */
       if (brace_flag) {
         /* Allow an extra comma before the "}" in a brace-enclosed list.
            Do not allow it if an extra comma was taken already in 
@@ -1172,6 +1178,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
        enclosed list of values.  Except that in C++ such lists may include
        non-constants. */
     a_constant_ptr       cp;
+    a_type_ptr           tp = vp_type;
     a_dynamic_init_ptr   di_list = NULL, end_of_di_list = NULL;
     a_boolean            incomplete_init = FALSE;
 
@@ -1185,6 +1192,20 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
       fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
+    if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+    tp = skip_typerefs(tp);    
+    if (is_class_struct_union_type(tp) &&
+        !symbol_supplement_for_class(tp)->any_nonstatic_data_members &&
+        curr_token == tok_lbrace) {
+      /* Attempting to initialize an empty object with an initializer list
+         is prohibited by the syntax, since initializer lists may not be
+         empty. */
+      sym_error(ec_initializer_list_for_empty_class_object,
+                (a_symbol_ptr)tp->source_corresp.assoc_info);
+      vp_type = error_type();
+      err = TRUE;
+      put_init_in_variable = FALSE;
+    }  /* if */
     cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
                          /*top_level=*/TRUE, &incomplete_init);
     if (cp->kind == (a_constant_repr_kind)ck_error) {
