@@ -239,7 +239,7 @@ typedef struct a_pack_alignment_stack_entry {
 			   the bottom of the stack. */
   char		*name;
 			/* The identifying name of this stack entry -- used
-			   for "targetted" popping.  May be NULL. */
+			   for "targeted" popping.  May be NULL. */
   a_targ_alignment
 		alignment;
 			/* The alignment associated with this stack entry.
@@ -364,7 +364,7 @@ The "enhanced syntax" is also supported:
    #pragma pack(pop  {, name} {, n})
 
 "push" mean to push curr_max_member_alignment onto the pack alignment stack.
-A name may be provided to identify the entry for a targetted pop.  When n is
+A name may be provided to identify the entry for a targeted pop.  When n is
 specified, that becomes the new curr_max_member_alignment; otherwise the old
 one is retained.  "pop" with a name means to remove all entries on the pack
 alignment stack down to and including the named entry; without a name, only

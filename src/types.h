@@ -307,7 +307,7 @@ circuit some of the processing in common cases.
           f_types_are_compatible((t1), (t2),                          \
                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING))
 /* Use types_are_redecl_compatible for special handling in C++ of known- and
-   unknown-bound arrays; othewise it's the same as types_are_compatible. */
+   unknown-bound arrays; otherwise it's the same as types_are_compatible. */
 #define types_are_redecl_compatible(t1, t2)                           \
 	 ((t1) == (t2) ||                                             \
           f_types_are_compatible((t1), (t2),                          \
