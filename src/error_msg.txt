@@ -1310,6 +1310,15 @@ ec_pragma_pack_show_args_ignored;;"arguments for pragma pack(show) are ignored"
 ec_bad_alignment_specifier;;"invalid alignment specifier value"
 ec_exp_int_literal;;"expected an integer literal"
 ec_multiple_declspec_align;;"earlier declspec(align(...)) ignored"
+ec_exp_ms_attr_enum_value;;"expected an argument value for the %sq attribute parameter"
+ec_invalid_ms_attr_enum_value;;"invalid argument value for the %sq attribute parameter"
+ec_exp_ms_attr_bool_value;;"expected a boolean value for the %sq attribute parameter"
+ec_positional_after_named;;"a positional argument cannot follow a named argument"
+ec_invalid_attr_name;;"attribute %sq1 has no parameter named %sq2"
+ec_exp_attr_arg_list;;"expected an argument list for the %sq attribute"
+ec_exp_comma_or_rbracket;;"expected a \",\" or \"]\""
+ec_duplicate_attr_arg;;"attribute argument %sq has already been given a value"
+ec_cannot_assign_to_attribute;;"a value cannot be assigned to the %sq attribute"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

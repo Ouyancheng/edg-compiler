@@ -76,6 +76,8 @@ static unsigned long
 		num_try_supplements_allocated,
 #if MICROSOFT_EXTENSIONS_ALLOWED
 		num_microsoft_try_supplements_allocated,
+		num_ms_attributes_allocated,
+		num_ms_attribute_args_allocated,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 		num_blocks_allocated,
 		num_for_loops_allocated,
@@ -453,17 +455,46 @@ char *copy_string_to_region(a_memory_region_number region,
                             char                   *string)
 /*
 Make a copy of the specified string in the memory region indicated by
-"region".
+"region" (which must be the front end or file scope region number).
 */
 {
   sizeof_t	length;
   char		*new_string;
 
   length = strlen(string);
-  new_string = (char *)alloc_in_region(region, length+1);
+  if (region == FRONT_END_REGION_NUMBER) {
+    new_string = (char *)alloc_fe(length+1);
+  } else {
+    check_assertion(region == FILE_SCOPE_REGION_NUMBER);
+    new_string = alloc_il(length+1);
+  }  /* if */
   (void)strcpy(new_string, string);
   return new_string;
 }  /* copy_string_to_region */
+
+
+char *copy_string_of_length_to_region(a_memory_region_number region,
+				      char                   *string,
+				      sizeof_t		     length)
+/*
+Make a copy of the specified string, whose length is specified by "length"
+in the memory region indicated by "region" (which must be the front end or
+file scope region number).
+*/
+{
+  char		*new_string;
+
+  if (region == FRONT_END_REGION_NUMBER) {
+    new_string = (char *)alloc_fe(length+1);
+  } else {
+    check_assertion(region == FILE_SCOPE_REGION_NUMBER);
+    new_string = alloc_il(length+1);
+  }  /* if */
+  (void)strncpy(new_string, string, length);
+  /* Terminate the string. */
+  new_string[length] = '\0';
+  return new_string;
+}  /* copy_string_of_length_to_region */
 
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -3169,6 +3200,9 @@ points to the associated routine if the kind is sck_function.
   sp->hidden_names                = NULL;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   sp->templates                   = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sp->ms_attributes               = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_exit();
   return sp;
@@ -3561,6 +3595,71 @@ to it.
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+an_ms_attribute_ptr alloc_ms_attribute(void)
+/*
+Allocate a Microsoft attribute entry, set its fields to default values,
+and return a pointer to it.
+*/
+{
+  an_ms_attribute_ptr msap;
+
+  msap = alloc_il_of_type(an_ms_attribute);
+#if DEBUG
+  num_ms_attributes_allocated++;
+#endif /* DEBUG */
+  msap->name = NULL;
+  msap->kind = (an_ms_attribute_kind)msak_none;
+  msap->next = NULL;
+  msap->next_in_block = NULL;
+  msap->string = NULL;
+  msap->arg_list = NULL;
+  return msap;
+}  /* alloc_ms_attribute */
+
+
+an_ms_attribute_arg_ptr alloc_ms_attribute_arg(an_ms_attribute_arg_kind	kind)
+/*
+Allocate a Microsoft attribute argument entry, set its fields to default
+values, and return a pointer to it.
+*/
+{
+  an_ms_attribute_arg_ptr msaap;
+
+  msaap = alloc_il_of_type(an_ms_attribute_arg);
+#if DEBUG
+  num_ms_attribute_args_allocated++;
+#endif /* DEBUG */
+  msaap->kind = kind;
+  msaap->next = NULL;
+  msaap->param_name = NULL;
+  switch (kind) {
+    case msaak_integer:
+      msaap->variant.integer_value = 0;
+      break;
+    case msaak_boolean:
+      msaap->variant.bool_value = 0;
+      break;
+    case msaak_string:
+      msaap->variant.string = NULL;
+      break;
+    case msaak_uuid:
+      msaap->variant.uuid_string = NULL;
+      break;
+    case msaak_enumeration:
+      msaap->variant.enum_value = 0;
+      break;
+    case msaak_none:
+    default:
+      unexpected_condition_str("alloc_ms_attribute_arg: bad kind");
+      break;
+  }  /* switch */
+  return msaap;
+}  /* alloc_ms_attribute_arg */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if DEBUG
 
 unsigned long show_il_alloc_space_used(unsigned long grand_total)
@@ -3648,6 +3747,12 @@ Display and return the amount of space used for various IL tables.
   db_space_used("Microsoft try supplement",
                 num_microsoft_try_supplements_allocated,
                 a_microsoft_try_supplement);
+  db_space_used("Microsoft attributes",
+                num_ms_attributes_allocated,
+                an_ms_attribute);
+  db_space_used("Microsoft attribute args",
+                num_ms_attribute_args_allocated,
+                an_ms_attribute_arg);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_space_used("block", num_blocks_allocated, a_block);
   db_space_used("for_loop", num_for_loops_allocated, a_for_loop);
@@ -3906,6 +4011,8 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_try_supplements_allocated),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(num_microsoft_try_supplements_allocated),
+      pch_saved_var_array_elem(num_ms_attributes_allocated),
+      pch_saved_var_array_elem(num_ms_attribute_args_allocated),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(num_il_entry_prefixes_allocated),
       pch_saved_var_array_elem(num_labels_allocated),
@@ -4084,6 +4191,8 @@ initializations that are done for each compilation.
   num_try_supplements_allocated          = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   num_microsoft_try_supplements_allocated= 0;
+  num_ms_attributes_allocated            = 0;
+  num_ms_attribute_args_allocated        = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   num_blocks_allocated                   = 0;
   num_for_loops_allocated                = 0;

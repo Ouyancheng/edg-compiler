@@ -7950,6 +7950,7 @@ id_scan:
 	       processing a pragma that is explicitly designated as requiring
 	       keyword recognition. */
             if (!fetch_pp_tokens &&
+                !suppress_keyword_recognition &&
                 (!in_preprocessing_directive ||
                  assoc_symbol->variant.keyword.is_preprocessing_op_or_punc ||
                  (caching_pragma_tokens && recognize_keywords_in_pragma) ||
@@ -13323,10 +13324,14 @@ encountered, whatever their other characteristics, are included.
 }  /* add_pragmas_to_string */
 
 
-void add_token_cache_to_string(a_token_cache_ptr	cache)
+void add_token_cache_segment_to_string(a_token_cache_ptr	cache,
+				       a_token_sequence_number	start_tsn,
+				       a_token_sequence_number	end_tsn)
 /*
 Go through a token cache and add the tokens to the string that is
-being constructed that represents the tokens in the cache.
+being constructed that represents the tokens in the cache.  If start_tsn
+and/or end_tsn are not NO_TOKEN_SEQUENCE_NUMBER only the tokens >= start_tsn
+and < end_tsn are included in the string.
 */
 {
   a_cached_token_ptr	ctp = cache->first_token;
@@ -13336,10 +13341,19 @@ being constructed that represents the tokens in the cache.
     db_token_cache(cache, "add_token_cache_to_string");
   }  /* if */
 #endif /* DEBUG */
+  /* Skip any tokens that are before the desired starting point. */
+  if (start_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
+    for (; ctp != NULL; ctp = ctp->next) {
+      if (ctp->token_sequence_number >= start_tsn) break;
+    }  /* for */
+  }  /* if */
   for (; ctp != NULL; ctp = ctp->next) {
     a_token_extra_info_kind	teik_kind;
     /* Stop when we run out of tokens or hit an end-of-source token. */
     if ((a_token_kind)ctp->token == tok_end_of_source) break;
+    /* Stop if we've reached the specified ending token sequence number. */
+    if (end_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
+        ctp->token_sequence_number >= end_tsn) break;
     if (ctp->token == (a_byte_token_kind)tok_removed_default_arg) {
       /* A special token that indicates the location of a removed
          default argument.  The actual default argument tokens should
@@ -13396,6 +13410,19 @@ being constructed that represents the tokens in the cache.
       put_str_to_temp_text_buffer(ctp->variant.asm_string);
     }  /* if */
   }  /* for */
+}  /* add_token_cache_segment_to_string */
+
+
+void add_token_cache_to_string(a_token_cache_ptr	cache)
+/*
+Go through a token cache and add the tokens to the string that is
+being constructed that represents the tokens in the cache.  This
+is an interface to add_token_cache_segment_to_string that supplies default
+values for the starting/ending token sequence numbers.
+*/
+{
+  add_token_cache_segment_to_string(cache, NO_TOKEN_SEQUENCE_NUMBER,
+                                    NO_TOKEN_SEQUENCE_NUMBER);
 }  /* add_token_cache_to_string */
 
 

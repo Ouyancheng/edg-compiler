@@ -32,6 +32,9 @@ decls.c -- Scanning of declarations.
 #if MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS && !STANDALONE_UTILITY_PROGRAM */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ms_attrib.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Macro to test whether the current token is a Microsoft storage class
@@ -10688,6 +10691,12 @@ of local variables (and types, etc.) of functions and in blocks.
     begin_deferral_of_access_checks();
     access_checks_deferred = TRUE;
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && curr_token == tok_lbracket) {
+    /* A Microsoft attribute of the form "[ ... ]". */
+    (void)scan_microsoft_attributes();
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"

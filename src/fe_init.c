@@ -64,6 +64,7 @@ been included by the inclusion of fe_common.h.
 #include "lexical.h"
 #include "literals.h"
 #include "macro.h"
+#include "ms_attrib.h"
 #include "overload.h"
 #include "pch.h"
 #include "pragma.h"
@@ -798,6 +799,9 @@ after the command-line processing has been done.
   attribute_one_time_init();
   extasm_one_time_init();
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ms_attrib_one_time_init();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* fe_one_time_init */
 
 
@@ -882,6 +886,9 @@ source file's compilation.
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   attribute_init();
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  ms_attrib_init();
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   if (!C_mode() && make_all_functions_unprototyped) {
     /* <stdarg.h> cannot be treated as a builtin if IL lowering will

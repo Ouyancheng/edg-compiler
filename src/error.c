@@ -4026,6 +4026,22 @@ indicated position.
 }  /* pos_st_error */
 
 
+void pos_st2_error(an_error_code     error_code,
+                   a_source_position *error_pos,
+                   char              *error_string1,
+                   char              *error_string2)
+/*
+Report the indicated error (with the indicated fill-in strings) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string1;
+  error_msg_strings[2] = error_string2;
+  diag_message(error_code, error_pos, es_error, dck_standalone);
+}  /* pos_st2_error */
+
+
 void pos_stty_error(an_error_code     error_code,
                     a_source_position *error_pos,
                     char              *error_string,

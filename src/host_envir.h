@@ -1214,6 +1214,14 @@ front end.
 #endif /* !defined(INCLUDE_EDG_TEST_PRAGMAS) */
 
 /*
+Flag that is TRUE to include a set of EDG provided test attributes in the
+front end.
+*/
+#ifndef INCLUDE_EDG_TEST_ATTRIBUTES
+#define INCLUDE_EDG_TEST_ATTRIBUTES FALSE
+#endif /* !defined(INCLUDE_EDG_TEST_ATTRIBUTES) */
+
+/*
 Flag that is TRUE to enable a command-line option to test the compilation
 of multiple (possibly identical) translation units.
 */

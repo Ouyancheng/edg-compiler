@@ -4090,6 +4090,60 @@ Display the indicated template.
 #endif /* RECORD_TEMPLATE_STRINGS */
 }  /* disp_template */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void disp_ms_attribute(an_ms_attribute_ptr ptr)
+/*
+Display the indicated Microsoft attribute entry.
+*/
+{
+  an_ms_attribute_arg_ptr	arg;
+  int				arg_number = 0;
+#define ATTR_BUFFER_SIZE 80
+  char				buffer[ATTR_BUFFER_SIZE];
+
+  disp_name("kind");
+  switch (ptr->kind) {
+    case msak_none:         (void)printf("none\n");         break;
+    case msak_unrecognized: (void)printf("unrecognized\n"); break;
+    default:                (void)printf("other\n");        break;
+  }  /* switch */
+  disp_ptr("next", (char *)ptr->next, iek_ms_attribute);
+  disp_ptr("next_in_block", (char *)ptr->next_in_block, iek_ms_attribute);
+  disp_string_ptr("name", ptr->name, iek_other_text, (sizeof_t)0);
+  disp_string_ptr("string", ptr->string, iek_other_text, (sizeof_t)0);
+  for (arg = ptr->arg_list; arg != NULL; arg = arg->next) {
+    sprintf(buffer, "  argument %d (", arg_number++);
+    (void)strncat(buffer, arg->param_name,
+                  ATTR_BUFFER_SIZE - strlen(buffer) - 3);
+    (void)strcat(buffer, "): ");
+    switch (arg->kind) {
+      case msaak_integer:
+        disp_host_large_integer(
+                     buffer, (a_host_large_integer)arg->variant.integer_value);
+        break;
+      case msaak_boolean:
+        disp_boolean(buffer, (a_boolean)arg->variant.bool_value);
+        break;
+      case msaak_string:
+        disp_string_ptr(buffer, arg->variant.string, iek_other_text,
+                       (sizeof_t)0);
+        break;
+      case msaak_uuid:
+        disp_string_ptr(buffer, arg->variant.uuid_string, iek_other_text,
+                       (sizeof_t)0);
+        break;
+      case msaak_enumeration:
+        disp_host_large_integer(buffer,
+                               (a_host_large_integer)arg->variant.enum_value);
+        break;
+    }  /* switch */
+  }  /* for */
+#undef ATTR_BUFFER_SIZE
+}  /* disp_ms_attribute */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if RECORD_MACROS_IN_IL
 
 static void disp_macro(a_macro_ptr  ptr)
@@ -5308,6 +5362,9 @@ This routine is called during IL walking.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     case iek_decl_position_supplement:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case iek_ms_attribute_arg:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CFE */
       break;
     default:
@@ -5389,6 +5446,11 @@ This routine is called during IL walking.
         case iek_template:
           disp_template((a_template_ptr)entry_ptr);
           break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case iek_ms_attribute:
+          disp_ms_attribute((an_ms_attribute_ptr)entry_ptr);
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if RECORD_MACROS_IN_IL
         case iek_macro:
           disp_macro((a_macro_ptr)entry_ptr);

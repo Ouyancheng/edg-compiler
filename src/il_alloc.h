@@ -121,6 +121,13 @@ extern an_asm_entry_ptr alloc_asm_entry(void);
 extern char *alloc_asm_function_body(sizeof_t  len);
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern an_ms_attribute_ptr alloc_ms_attribute(void);
+extern
+an_ms_attribute_arg_ptr alloc_ms_attribute_arg(an_ms_attribute_arg_kind	kind);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 #if GNU_EXTENSIONS_ALLOWED
 extern an_asm_operand_constraint_ptr alloc_asm_operand_constraint(
                                             an_asm_operand_constraint_kind ck);
@@ -227,6 +234,11 @@ extern void clear_name_reference(a_name_reference_ptr	nrp);
 
 extern char *copy_string_to_region(a_memory_region_number region,
                                    char                   *string);
+
+extern char *copy_string_of_length_to_region(
+				      a_memory_region_number region,
+				      char                   *string,
+				      sizeof_t		     length);
 
 extern char *alloc_text_of_string_literal(sizeof_t size);
 

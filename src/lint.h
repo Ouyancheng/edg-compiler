@@ -334,6 +334,9 @@ extern int fileno(FILE *);
 /*lint -esym(765,traverse_statement)*/
 /*lint -esym(759,traverse_statement_list)*/
 /*lint -esym(765,traverse_statement_list)*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*lint -esym(769,msak_last)*/
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /******************************************************************************

@@ -503,6 +503,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_name_reference,	/* a_name_reference */
   iek_name_qualifier,	/* a_name_qualifier */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  iek_ms_attribute,	/* an_ms_attribute */
+  iek_ms_attribute_arg,	/* an_ms_attribute_arg */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -635,6 +639,8 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_name_reference */		"name-reference",
 /* iek_name_qualifier */		"name-qualifier",
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+/* iek_ms_attribute */			"ms-attribute",
+/* iek_ms_attribute_arg */		"ms-attribute-arg",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -9720,6 +9726,104 @@ typedef struct an_object_lifetime {
 			   lifetimes created last are first on the list. */
 } an_object_lifetime;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+/*
+Value that identifies a kind of Microsoft attribute.
+*/
+enum an_ms_attribute_kind_tag {
+  msak_none,		/* Must be first. */
+  msak_unrecognized,	/* Used to represent unrecognized attributes. */
+  msak_aggregatable,
+  msak_coclass,
+  msak_com_interface_entry,
+  msak_emitidl,
+  msak_soap_handler,
+#if INCLUDE_EDG_TEST_ATTRIBUTES
+  msak_edg_test,
+#endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
+  msak_last		/* Must be last. */
+};
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte an_ms_attribute_kind;
+
+/*
+Value that identifies the kind of argument value accepted for a given
+Microsoft attribute argument.
+*/
+enum an_ms_attribute_arg_kind_tag {
+  msaak_none,
+  msaak_integer,
+  msaak_boolean,
+  msaak_string,
+  msaak_uuid,
+  msaak_enumeration,
+};
+
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte an_ms_attribute_arg_kind;
+
+/*
+Entry used to describe an argument of a given Microsoft attribute.
+*/
+typedef struct an_ms_attribute_arg *an_ms_attribute_arg_ptr;
+typedef struct an_ms_attribute_arg {
+  an_ms_attribute_arg_ptr
+		next;
+			/* Pointer to the next argument in the list, or NULL
+			   for the last argument. */
+  char		*param_name;
+			/* The name of the associated parameter. */
+  union {
+    /* When kind is msaak_integer. */
+    long	integer_value;
+			/* The integer value specified. */
+    /* When kind is msaak_boolean. */
+    a_boolean	bool_value;
+			/* The boolean value specified. */
+    /* When kind is msaak_string. */
+    char	*string;
+			/* The string specified. */
+    /* When kind is msaak_uuid. */
+    char	*uuid_string;
+			/* String representation of the uuid value. */
+    /* When kind is msaak_enumeration. */
+    int		enum_value;
+			/* The position in the array of acceptable values
+			   of the specified value. */
+  } variant;
+  an_ms_attribute_arg_kind
+		kind;	/* Kind of argument (string, integer, etc.). */
+} an_ms_attribute_arg;
+
+/*
+Entry used to describe a use of a given attribute.
+*/
+typedef struct an_ms_attribute *an_ms_attribute_ptr;
+typedef struct an_ms_attribute {
+  an_ms_attribute_ptr
+		next;
+                        /* Pointer to the next attribute in a given scope.
+                           NULL if this the last attribute in the scope. */
+  an_ms_attribute_ptr
+		next_in_block;
+			/* Pointer to the next attribute in an attribute
+			   block, or NULL if there are no more attributes in
+			   the block. */
+  char		*name;
+			/* The name of the attribute. */
+  char		*string;
+			/* A textual representation of the attribute. */
+  an_ms_attribute_arg_ptr
+		arg_list;
+			/* The arguments, if any, specified for this
+			   attribute. */
+  an_ms_attribute_kind
+		kind;	/* The kind of attribute used. */
+} an_ms_attribute;
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 enum a_scope_kind_tag {
   /* Kinds of scopes. */
@@ -10102,6 +10206,13 @@ typedef struct a_scope {
 		templates;
 			/* Linked list of template entries. Only used
 			   in C++. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_ms_attribute_ptr
+		ms_attributes;
+			/* Linked list of Microsoft attribute entries.  Such
+			   entries are present only in namespace scopes
+			   (including the file scope) and class scopes. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_scope;
 
 /*
@@ -10526,6 +10637,10 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_name_reference),
   sizeof(a_name_qualifier),
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sizeof(an_ms_attribute),
+  sizeof(an_ms_attribute_arg),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

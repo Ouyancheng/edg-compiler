@@ -30,7 +30,9 @@ symbol_tbl.c - Symbol table management routines.
 /* macro.h is needed for enter_predef_macro. */
 #include "macro.h"
 #endif /* ifdef GUARD_MACRO_FOR_VA_LIST */
-
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#include "ms_attrib.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* The multiplier used in the hash algorithm that generates an index
    in the hash table from an identifier name string.  Do not change
@@ -10889,6 +10891,9 @@ for space tracking purposes.
   db_space_used_general("generated entity blocks",
                         num_generated_entity_blocks_allocated,
                         a_generated_entity_block);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  grand_total = db_show_ms_attrib_space_used(grand_total);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   grand_total = db_show_pch_space_used(grand_total);
   grand_total = db_show_scope_stack_space_used(grand_total);
   grand_total = db_show_template_space_used(grand_total);

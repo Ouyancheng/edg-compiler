@@ -127,6 +127,73 @@ necessarily null-terminated).
 }  /* is_valid_GUID_string */
 
 
+char *scan_GUID_string(void)
+/*
+Scan the string literal token that contains a GUID string.  Extract and
+check the format of the string.  Return a pointer to an IL string containing
+the GUID characters.  If the string is not of the required form, a diagnostic
+is issued and a NULL pointer is returned.
+
+The syntax is
+  uuid ( string-literal )
+where the string-literal optionally begins and ends with braces and is
+of the form
+  hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+where "h" is any hex digit and the hyphens are required.
+
+Any alphabetic characters in the string are converted to lower case in the
+string that is returned.
+*/
+{
+  char		*result = NULL;
+  a_boolean	err = FALSE;
+
+  if (curr_token != tok_string_literal) {
+    /* Error. */
+    syntax_error(ec_bad_uuid_string);
+  } else if (is_error_constant(&const_for_curr_token)) {
+    /* We encountered a misformed string literal.  An error should
+       have been issued already. */
+    check_assertion(total_errors != 0);
+  } else {
+    char		*str = const_for_curr_token.variant.string.value;
+    /* Get the string length not including the trailing null character. */
+    a_targ_size_t	length = const_for_curr_token.variant.string.length-1;
+    if (*str == '{') {
+      /* Has surrounding braces. */
+      /* Check for matching closing brace. */
+      if (str[length-1] != '}') {
+        error(ec_bad_uuid_string);
+        err = TRUE;
+      }  /* if */
+      str++;
+      length -= 2;
+    }  /* if */
+    /* Do error checking on the string. */
+    if (is_valid_GUID_string(str, length)) {
+      result = alloc_il((sizeof_t)length+1);
+      /* Copy the string, lower-casing hex letters so that
+         strcmp can be used to compare strings. */
+      { char		*src = str;
+        char		*dst = result;
+        a_targ_size_t	count = length;
+        for (; count != 0; count--) {
+          char ch = *src++;
+          if (isalpha((unsigned char)ch)) ch = tolower(ch);
+          *dst++ = ch;
+        }  /* for */
+        *dst = '\0';
+      }
+    } else if (!err) {
+      error(ec_bad_uuid_string);
+    }  /* if */
+    /* Bypass the string literal token. */
+    (void)get_token();
+  }  /* if */
+  return result;
+}  /* scan_GUID_string */
+
+
 static void scan_declspec_align(a_decl_modifiers_block_ptr  decl_modifiers)
 /*
 Scan the Microsoft C/C++ mode extension
@@ -428,59 +495,12 @@ declaration of a class member.
             flush_until_matching_token();
           }  /* if */
         } else {
-          /* The syntax is
-               uuid ( string-literal )
-             where the string-literal optionally begins and ends with
-             braces and is of the form
-               hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
-             where "h" is any hex digit and the hyphens are required. */
           /* Advance past "uuid". */
           (void)get_token();
           if (required_token(tok_lparen, ec_exp_lparen)) {
-            if (curr_token != tok_string_literal) {
-              /* Error. */
-              syntax_error(ec_bad_uuid_string);
-            } else if (is_error_constant(&const_for_curr_token)) {
-              /* We encountered a misformed string literal.  An error should
-                 have been issued already. */
-              check_assertion(total_errors != 0);
-            } else {
-              char          *str =
-                               const_for_curr_token.variant.string.value;
-              a_targ_size_t length = /* Without null. */
-                            const_for_curr_token.variant.string.length-1;
-              if (*str == '{') {
-                /* Has surrounding braces. */
-                /* Check for matching closing brace. */
-                if (str[length-1] != '}') {
-                  error(ec_bad_uuid_string);
-                  goto end_of_uuid_string;
-                }  /* if */
-                str++;
-                length -= 2;
-              }  /* if */
-              /* Do error checking on the string. */
-              if (is_valid_GUID_string(str, length)) {
-                decl_modifiers->uuid_string = alloc_il((sizeof_t)length+1);
-                /* Copy the string, lower-casing hex letters so that
-                   strcmp can be used to compare strings. */
-                { char		*src = str;
-                  char		*dst = decl_modifiers->uuid_string;
-                  a_targ_size_t	count = length;
-                  for (; count != 0; count--) {
-                    char ch = *src++;
-                    if (isalpha((unsigned char)ch)) ch = tolower(ch);
-                    *dst++ = ch;
-                  }  /* for */
-                  *dst = '\0';
-                }
-              } else {
-                error(ec_bad_uuid_string);
-                *err = TRUE;
-              }  /* if */
-end_of_uuid_string:
-              (void)get_token();
-            }  /* if */
+            decl_modifiers->uuid_string = scan_GUID_string();
+            /* A NULL pointer is returned to indicate an error. */
+            if (decl_modifiers->uuid_string == NULL) *err = TRUE;
             (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
           } else {
             break;

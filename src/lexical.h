@@ -2007,6 +2007,11 @@ extern void lexical_init(void);
     (void)get_token();						\
   }
 
+extern
+void add_token_cache_segment_to_string(a_token_cache_ptr	cache,
+				       a_token_sequence_number	start_tsn,
+				       a_token_sequence_number	end_tsn);
+
 extern void add_token_cache_to_string(a_token_cache_ptr	cache);
 
 extern void init_token_string(a_source_position *pos);

@@ -66,6 +66,8 @@ extern void update_extended_decl_info_for_class(
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+extern char *scan_GUID_string(void);
+
 extern void check_inheritance_kind(a_type_ptr           class_type,
                                    an_inheritance_kind  inheritance_kind,
                                    a_source_position    *err_pos);

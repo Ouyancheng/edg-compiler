@@ -13353,6 +13353,34 @@ Add the IL template entry pointed to by tp to the indicated scope.
   tp->next = NULL;
 }  /* add_to_templates_list */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+void add_to_ms_attributes_list(an_ms_attribute_ptr	msap,
+                               a_scope_depth		scope_depth)
+/*
+Add the Microsoft attribute entry pointed to by msap to the indicated scope.
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+  a_scope_pointers_block_ptr  pointers_block;
+
+  assert_is_valid_scope_depth(scope_depth);
+  ssep = &scope_stack[scope_depth];
+  sp = ensure_il_scope_exists(ssep);
+  check_assertion_str(sp != NULL, "add_to_attributes_list: NULL IL scope");
+  pointers_block = assoc_pointers_block_of(ssep);
+  if (sp->ms_attributes == NULL) {
+    sp->ms_attributes = msap;
+  } else {
+    pointers_block->last_ms_attribute->next = msap;
+  }  /* if */
+  pointers_block->last_ms_attribute = msap;
+  msap->next = NULL;
+}  /* add_to_ms_attributes_list */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if RECORD_MACROS_IN_IL
 
 void add_to_macros_list(a_macro_ptr  mp)

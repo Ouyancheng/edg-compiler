@@ -124,6 +124,14 @@ EXTERN a_boolean
 			   interpretation of white space, makes newline
 			   a token, disables recognition of keywords,
 			   and enables "#" and "##" as tokens. */
+
+EXTERN a_boolean
+		suppress_keyword_recognition;
+			/* TRUE if keywords should not be recognized even
+			   when not in a preprocessing directive.  This is
+			   used to suppress keyword recognition in Microsoft
+			   attribute processing. */
+
 EXTERN a_boolean
 		caching_pragma_tokens;
 			/* TRUE is we are in a pragma that is being recorded

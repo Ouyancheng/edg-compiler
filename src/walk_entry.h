@@ -1867,6 +1867,37 @@ end_sizeof:;
       }
       break;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case iek_ms_attribute:
+      {
+        an_ms_attribute_ptr ptr = (an_ms_attribute_ptr)entry_ptr;
+        walk_string_ptr(ptr->name, iek_other_text, 0);
+        walk_string_ptr(ptr->string, iek_other_text, 0);
+        walk_list(ptr->arg_list, an_ms_attribute_arg_ptr,
+                  iek_ms_attribute_arg);
+        remap_next_ptr(ptr->next, an_ms_attribute_ptr, iek_ms_attribute);
+        remap_ptr(ptr->next_in_block, an_ms_attribute_ptr, iek_ms_attribute);
+      }
+      break;
+    case  iek_ms_attribute_arg:
+      {
+        an_ms_attribute_arg_ptr ptr = (an_ms_attribute_arg_ptr)entry_ptr;
+        walk_string_ptr(ptr->param_name, iek_other_text, 0);
+        remap_next_ptr(ptr->next, an_ms_attribute_arg_ptr,
+                      iek_ms_attribute_arg);
+        switch (ptr->kind) {
+          case msaak_string:
+            walk_string_ptr(ptr->variant.string, iek_other_text, 0);
+            break;
+          case msaak_uuid:
+            walk_string_ptr(ptr->variant.uuid_string, iek_other_text, 0);
+            break;
+          default:
+            break;
+        }  /* switch */
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case iek_object_lifetime:
       {
         an_object_lifetime_ptr ptr = (an_object_lifetime_ptr)entry_ptr;
@@ -2044,6 +2075,9 @@ end_sizeof:;
 #endif /* ifdef CFE */
         walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
         walk_list(ptr->templates, a_template_ptr, iek_template);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        walk_list(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef FFE
         walk_list(ptr->entries, an_entry_description_ptr,
                   iek_entry_description);

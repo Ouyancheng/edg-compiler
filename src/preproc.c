@@ -2365,6 +2365,7 @@ every translation unit.
   fetch_pp_tokens = FALSE;
   expand_macros = TRUE;
   in_preprocessing_directive = FALSE;
+  suppress_keyword_recognition = FALSE;
   caching_pragma_tokens = FALSE;
   recognize_keywords_in_pragma = FALSE;
   do_string_literal_concatenation = TRUE;

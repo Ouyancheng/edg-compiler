@@ -137,6 +137,13 @@ typedef struct a_scope_pointers_block {
 		last_template;
 			/* End of the list of template entries entered on
 			   the corresponding IL scope entry; NULL if none. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_ms_attribute_ptr
+		last_ms_attribute;
+			/* End of the list of Microsoft attribute entries
+			   entered on the corresponding IL scope entry; NULL
+			   if none. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		last_source_sequence_entry;

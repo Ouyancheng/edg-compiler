@@ -197,6 +197,7 @@ Flags to be set when using the KAI inliner.
 #define GENERATE_SOURCE_SEQUENCE_LISTS 1
 #define ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING 1
 #define INCLUDE_EDG_TEST_PRAGMAS 1
+#define INCLUDE_EDG_TEST_ATTRIBUTES 1
 #define RECORD_HIDDEN_NAMES_IN_IL 1
 #define ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING 1
 #define RECORD_TEMPLATE_STRINGS 1
@@ -262,6 +263,7 @@ Flags to be set when using the KAI inliner.
 
 /* Linux test version definitions. */
 #define INCLUDE_EDG_TEST_PRAGMAS 1
+#define INCLUDE_EDG_TEST_ATTRIBUTES 1
 #define FIL 1
 #ifndef CHECKING
 #define CHECKING 1
