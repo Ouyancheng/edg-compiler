@@ -3540,12 +3540,20 @@ is static or inline (i.e., is not an external function).
   return result;
 }  /* is_static_or_inline_template_function */
 
-
-static a_boolean should_be_instantiated(a_template_instance_ptr tip)
+#if !INSTANTIATION_BY_IMPLICIT_INCLUSION
+/*ARGSUSED*/ /* <-- implicit_inclusion_ok is not used if no implicit
+                 inclusion. */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+static a_boolean should_be_instantiated
+				(a_template_instance_ptr tip,
+				 a_boolean	         implicit_inclusion_ok)
 /*
 Determines whether this template instance needs an instantiation and
 generates any errors caused by conflicting instantiation information
 such as instantiating a template for which no body was supplied.
+implicit_inclusion_ok is TRUE if the compiler should attempt to include
+a template definition file to provide definitions for externally linked
+template entities.
 */
 {
   a_boolean	result = TRUE;
@@ -3561,7 +3569,7 @@ such as instantiating a template for which no body was supplied.
       specific_def = tip->instance_sym->defined;
       template_def = tip->template_sym->defined;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      if (!template_def && !in_instantiation_wrapup &&
+      if (!template_def && implicit_inclusion_ok &&
           implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
@@ -3586,7 +3594,7 @@ such as instantiating a template for which no body was supplied.
       }  /* if */
       template_def = tssp->token_cache.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      if (!template_def && !in_instantiation_wrapup &&
+      if (!template_def && implicit_inclusion_ok &&
           implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
@@ -3689,7 +3697,13 @@ updated but not removed from the list.
 	 serially. */
       tip->instantiation_required = TRUE;
       if (in_instantiation_wrapup) {
-        if (!tip->already_instantiated && should_be_instantiated(tip)) {
+        if (!tip->already_instantiated &&
+            should_be_instantiated(tip, /*implicit_inclusion_ok=*/FALSE)) {
+          /* Implicit inclusion is not done for "on the fly" instantiations
+             because the includes cannot be processed in the middle of
+	     the instantiation of another function.  The entry will be put
+	     on the instantiation required list and instantiated later in
+             instantiation_wrapup. */
           if (tip->instance_sym->kind ==
                                         (a_symbol_kind)sk_static_data_member) {
             define_template_static_data_member(tip);
@@ -4155,7 +4169,7 @@ specific definition that made it unnecessary.
        tip != NULL;
        tip = tip->next_in_instantiation_list) {
     if (tip->instantiation_required && !tip->already_instantiated) {
-      if (should_be_instantiated(tip)) {
+      if (should_be_instantiated(tip, /*implicit_inclusion_ok=*/TRUE)) {
         if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
           /* Static data member definition. */
           define_template_static_data_member(tip);
