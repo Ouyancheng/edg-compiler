@@ -342,8 +342,10 @@ we keep scanning till the end of the declarator and return leaving both
       /* Cache and bypass the "*" or "&". */
       cache_curr_token(token_cache_ptr);
       (void)get_token();
-      if (curr_token == tok_const || curr_token == tok_volatile) {
-        /* Qualifier rules out expression. */
+      if (curr_token == tok_const || curr_token == tok_volatile ||
+          curr_token == tok_rparen) {
+        /* Qualifier rules out expression.  So does an asterisk followed
+           by a right paren. */
         *may_be_expr = FALSE;
         goto done;
       }  /* if */
@@ -399,6 +401,21 @@ we keep scanning till the end of the declarator and return leaving both
       /* Appears to be a real declarator.  But if a real declarator is not
          allowed in the current context, it's probably an expression. */
       if (!real_declarator_allowed) {
+        *may_be_decl = FALSE;
+        goto done;
+      } else if (abstract_declarator_allowed && cfront_compatibility_mode &&
+                 curr_token == tok_identifier) {
+        /* Cfront bug.  In a context in which a parameter declaration
+           must be distinguished from an argument expression, cfront seems
+           always to treat "type-name ( identifier ... )" as an expression,
+           contrary to our reading of the ARM.  For example:
+             class A { A(int); };
+             A a(int(x));
+           Cfront takes "int(x)" to be a an argument to the constructor and
+           treats "a" as a variable, but the ARM requires "int(x)" to be a
+           declaration and therefore "a" must be a function.  (Note that it
+           is a param-decl-vs-arg-expr context if both real and abstract
+           declarators are allowed.) */
         *may_be_decl = FALSE;
         goto done;
       }  /* if */
@@ -590,12 +607,6 @@ can be that both are TRUE.
     /* Advance to the first token within the parentheses. */
     (void)get_token();
     if (curr_token == tok_rparen) {
-      *may_be_decl = FALSE;
-    } else if (cfront_compatibility_mode &&
-               real_declarator_allowed && abstract_declarator_allowed) {
-      /* Cfront bug.  In a context is which a parameter declaration must be
-         distinguished from an argument expression, cfront seems always to
-         treat "type-name ( ... )" as an expression. */
       *may_be_decl = FALSE;
     } else {
       prescan_declarator(token_cache_ptr, abstract_declarator_allowed,
