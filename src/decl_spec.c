@@ -25,7 +25,10 @@ decl_spec.c -- Scanning of declaration specifiers.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/* For check_pack_alignment_value. */
 #include "layout.h"
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "folding.h"
 #include "statements.h"
 
