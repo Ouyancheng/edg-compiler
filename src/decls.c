@@ -3222,10 +3222,15 @@ be issued at the given position.
     } else {
       /* A declaration that conflicts with a previous declaration: Issue a
          warning and ignore any dllimport attribute. */
-      pos_sy_warning(ec_dll_interface_conflict_dllexport_assumed, diag_pos,
-                     symbol_for(routine));
+      an_error_code  err_code;
       clear_dll_import = TRUE;
       routine->decl_modifiers |= (new_dll_flags & DM_DLLEXPORT);
+      if ((routine->decl_modifiers & DM_DLLEXPORT) != 0) {
+        err_code = ec_dll_interface_conflict_dllexport_assumed;
+      } else {
+        err_code = ec_dll_interface_conflict_none_assumed;
+      }  /* if */
+      pos_sy_warning(err_code, diag_pos, symbol_for(routine));
     }  /* if */
     if (is_definition && !is_inline && (new_dll_flags & DM_DLLIMPORT) != 0 &&
         !clear_dll_import) {
@@ -3465,10 +3470,15 @@ position. */
     } else {
       /* A declaration that conflicts with a previous declaration: Issue a
          warning and ignore any dllimport attribute. */
-      pos_sy_warning(ec_dll_interface_conflict_dllexport_assumed, diag_pos,
-                     symbol_for(var));
+      an_error_code  err_code;
       clear_dll_import = TRUE;
       var->decl_modifiers |= (new_dll_flags & DM_DLLEXPORT);
+      if ((var->decl_modifiers & DM_DLLEXPORT) != 0) {
+        err_code = ec_dll_interface_conflict_dllexport_assumed;
+      } else {
+        err_code = ec_dll_interface_conflict_none_assumed;
+      }  /* if */
+      pos_sy_warning(err_code, diag_pos, symbol_for(var));
     }  /* if */
     if (clear_dll_import && (var->decl_modifiers & DM_DLLIMPORT) != 0) {
       /* Drop any previous dllimport attribute. */

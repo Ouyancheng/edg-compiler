@@ -1444,6 +1444,7 @@ ec_class_and_member_have_dll_interface;;"a member of a class declared with dllex
 ec_field_without_dll_interface;;"field of class type without a DLL interface used in a class with a DLL interface"
 ec_microsoft_parenthesized_member;;"parenthesized member declaration is nonstandard"
 ec_white_space_inside_splice;;"white space between backslash and newline in line splice ignored"
+ec_dll_interface_conflict_none_assumed;;"dllexport/dllimport conflict with %nod; dllimport/dllexport dropped"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
