@@ -4983,8 +4983,8 @@ cannot be used when fetching raw preprocessing tokens.
   /* If we are currently rescanning tokens from a cache then we should
      just be able to fetch the token kind from the next token on the
      list to be rescanned.  This code does not handle some of the more complex
-     cases such as when we have to scan over the end of a resusable cache.
-     In these cases we use the more general (and slower) method is used
+     cases such as when we have to scan over the end of a reusable cache.
+     In these cases the more general (and slower) method is used
      to fetch the next token. */
   if (cached_token_rescan_list != NULL) {
     /* There are tokens on the non-reusable rescan list. */

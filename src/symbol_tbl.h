@@ -745,8 +745,8 @@ typedef struct a_func_info_block {
 			   immediately precedes the first entry generated for
 			   declarations in the function prototype scope; NULL
 			   indicates that the first function prototype entry
-			   is also the first on the filescope list.  (Also NULL
-			   if param_id_list is NULL.) */
+			   is also the first on the file-scope list.  (Also
+			   NULL if param_id_list is NULL.) */
   a_source_sequence_entry_ptr
 		prototype_scope_ss_entry_end;
 			/* Pointer to a file-scope source sequence entry that
@@ -756,7 +756,7 @@ typedef struct a_func_info_block {
   a_type_ptr	class_in_which_defined_inline;
 			/* Pointer to a class type in which this function
 			   is inline-defined.  NULL if not defined inline
-			   within a class defintion. */
+			   within a class definition. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_func_info_block;
 
