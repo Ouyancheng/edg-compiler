@@ -899,6 +899,9 @@ a try block with a catch that matches the type of the object thrown.
          reference to a pointer.  Provide the handler with a pointer to
          the pointer. */
       __caught_object_address = object_buffer_ptr;
+    } else if (etsp_found->flags & ETS_IS_ELLIPSIS) {
+      /* It shouldn't really matter what this points to. */
+      __caught_object_address = NULL;
     } else {
       /* The thrown object may be a pointer or an object.  But whatever
          it is, the caught object is the same thing.  object_ptr points
