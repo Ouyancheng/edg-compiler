@@ -24,6 +24,31 @@ be explicitly specified when using simulated integers (i.e., when
 INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is FALSE) and when a_host_large_integer
 is of a type other than "long".
 
+The current recommendation for #defines to support long long using the
+host long long are as follows (assuming a host machine with 32-bit
+int and long and 64-bit long long):
+
+#define LONG_LONG_ALLOWED 1
+#define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 1
+#define TYPE_FOR_AN_INTEGER_VALUE unsigned long long
+#define TYPE_FOR_A_SIGNED_INTEGER_VALUE long long
+#define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%lld"
+#define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%llu"
+#define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%llx"
+#define MAX_INTEGER_VALUE 9223372036854775807LL
+#define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
+#define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
+#define HOST_ALIGNMENT_REQUIRED 8
+
+If, in addition, you want to use long long types for size_t and
+ptrdiff_t, the following defines should also be used:
+
+#define TARG_SIZE_T_MAX MAX_UNSIGNED_INTEGER_VALUE
+#define TARG_PTRDIFF_T_MAX MAX_INTEGER_VALUE
+#define TARG_PTRDIFF_T_MIN MIN_INTEGER_VALUE
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long_long)
+#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long_long)
+
 9/23/99  Partial overriding of virtual functions in multiple inheritance cases
 
 The front end used to always issue a warning when a virtual function in a
