@@ -2577,8 +2577,17 @@ orig_line_modif_list modifications apply to the indicated text.
       if (slmp->line_loc == loc_in_line &&
           slmp->orig_char != ATTENTION_MARKER) break;
     }  /* for */
-    putc(slmp->orig_char, f_raw_listing);
     loc_in_line++;
+    if (slmp->orig_char != LE_ESCAPE) {
+      putc(slmp->orig_char, f_raw_listing);
+    } else {
+      /* The original character is an escape.  This must be the first
+         character of a newline sequence, when the entire line is deleted.
+         Move past it and let the newline character be put out on the
+         normal exit above. */
+      check_assertion(*loc_in_line == LE_NEWLINE);
+      loc_in_line++;
+    }  /* if */
     /* If the whole requested piece has now been written out, exit the loop. */
     if (loc_in_line == stop_loc) break;
   }  /* for */
