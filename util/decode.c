@@ -1098,7 +1098,7 @@ of characters in the name, or is zero if the name is open-ended
 ends the name if stop_on_underscores is TRUE (though some sequences
 beginning with two underscores, e.g., "__pt", end the name even if
 stop_on_underscores is FALSE).  If nchars_left is non-NULL, no
-error is issued if too few characters are taken to satify nchars;
+error is issued if too few characters are taken to satisfy nchars;
 the count of remaining characters is placed in *nchars_left.
 mclass, when non-NULL, points to the mangled form of the class of
 which this name is a member.  When it's non-NULL, constructor and

@@ -3740,7 +3740,7 @@ int main(int argc, char *argv[])
         do_not_assign_to_nonlocal_objects = TRUE;
         break;
       case 'e':
-        /* Supress dependency checking of files used to define exported
+        /* Suppress dependency checking of files used to define exported
            templates. */
         suppress_dependency_checking = TRUE;
         break;
