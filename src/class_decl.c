@@ -4808,7 +4808,10 @@ of the function, and again overloading is a possibility.
          found, look it up now. */
       sym = normal_id_lookup(locator, IDL_FRIEND_LOOKUP);
     }  /* if */
-    check_ambiguity_and_verify_access(locator);
+    if (!(microsoft_mode || any_cfront_mode()) ||
+        (sym != NULL && sym->ambiguous)) {
+      check_ambiguity_and_verify_access(locator);
+    }  /* if */
     srk_flags = SRK_DECLARATION | SRK_FRIEND;
     if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
