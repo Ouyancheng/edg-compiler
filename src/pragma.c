@@ -1047,7 +1047,7 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,		/* Do not change. */
                  /*processing_C_code_in_pragma=*/FALSE, /* Do not change. */
 		 /*ignore_in_back_end=*/FALSE,
-                 es_error);
+                 es_warning);
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */
   db_exit();
 }  /* pragma_init */
