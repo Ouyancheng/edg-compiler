@@ -386,6 +386,20 @@ extension provided by Microsoft C and C++ compilers.
 #endif /* ifndef ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 /*
+Default value to which global variable allow_nonstandard_anonymous_unions
+is set when ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE.
+*/
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+#ifndef DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS DEFAULT_MICROSOFT_MODE
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ifndef DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+
+/*
 Flag that is TRUE if "#pragma pack(n)" and command-line option
 "--pack_alignment=n" are supported.  This feature allows for packing classes
 and structs by specifying a maximum alignment for nonstatic data members,
