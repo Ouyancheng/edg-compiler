@@ -1722,7 +1722,7 @@ termination.
 */
 {
   a_type_ptr       func_type, struct_type, ptr_struct_type;
-  a_type_ptr       ptr_func_type, char_type;
+  a_type_ptr       ptr_func_type;
   a_targ_size_t    byte_offset;
   a_field_ptr      last_field;
   a_variable_ptr   link_var;
@@ -1734,12 +1734,12 @@ termination.
   if (file_scope_init_routine != NULL || file_scope_term_routine != NULL) {
     /* Create a __link variable pointing to a struct that points to the
        initialization/termination routine, using the same form as cfront:
-         char __sti__module_id() {...}
-         char __std__module_id() {...}
+         void __sti__module_id() {...}
+         void __std__module_id() {...}
          struct __linkl {
            struct __linkl *next;
-           char           (*ctor)();
-           char           (*dtor)();
+           void           (*ctor)();
+           void           (*dtor)();
          };
          static struct __linkl __link = {NULL, __sti__module_id,
                                                __std__module_id};
@@ -1747,6 +1747,8 @@ termination.
        and link it with other initialization code to be invoked by _main.
        Alternatively, the munch step will find the routines with names
        beginning "__sti__" and "__std__".
+       Note that the AT&T approach uses "char" for "void" in all the
+       above.
     */
     switch_to_file_scope_region(&region_to_switch_back_to);
     /* Make the __linkl struct type.  It doesn't actually have a name. */
@@ -1757,13 +1759,12 @@ termination.
     ptr_struct_type = make_pointer_type(struct_type);
     make_lowered_field("next", ptr_struct_type, &byte_offset, struct_type,
                        &last_field);
-    /* field: char (*ctor)(); */
-    char_type = integer_type(plain_char_int_kind);
-    func_type = make_function_type(char_type, (a_type_ptr)NULL);
+    /* field: void (*ctor)(); */
+    func_type = make_function_type(void_type(), (a_type_ptr)NULL);
     ptr_func_type = make_pointer_type(func_type);
     make_lowered_field("ctor", ptr_func_type, &byte_offset, struct_type,
                        &last_field);
-    /* field: char (*dtor)(); */
+    /* field: void (*dtor)(); */
     make_lowered_field("dtor", ptr_func_type, &byte_offset, struct_type,
                        &last_field);
     finish_class_type(struct_type, &byte_offset);
@@ -1883,7 +1884,7 @@ pointer to the routine.
   (void)strcpy(name+prefix_len, module_id);
   /* Make a type and routine entry for the routine. */
   init_rout = make_rout_entry(name, (a_storage_class)sc_unspecified,
-                              integer_type(plain_char_int_kind),
+                              void_type(),
                               (a_type_ptr)NULL);
   /* Make a memory region, scope, and block for the init routine definition. */
   *init_rout_scope = make_routine_definition(init_rout, /*make_return=*/TRUE,

@@ -28,6 +28,12 @@ types, const qualifiers, and qualified names.
 "void" is now dumped as "void" instead of "char" in the C-generating
 back end.  "char" was used because some very old C compilers do
 not accept "void".  We've decided we need not reach that far back.
+The return types of generated startup routines have likewise been changed
+to void.
+
+This change is compatible with cfront in +a1 (ANSI C output) mode; the
+old change was compatible with +a0 mode.  In practice, it should make no
+difference.
 
 6/7/93 Variable size array representation
 

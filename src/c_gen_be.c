@@ -8924,7 +8924,7 @@ Generate old-style (K&R/pcc) C from the intermediate language.
         /* C++ -- Generate the __link variable expected by the AT&T patch
            program.  The __sti__ routine name is needed for the AT&T munch
            program. */
-        (void)fprintf(f_C_output, "\nchar __sti__%s() {\n", module_id);
+        (void)fprintf(f_C_output, "\nvoid __sti__%s() {\n", module_id);
         (void)fprintf(f_C_output, "__cgi__%s();\n}\n", module_init_id);
         (void)fprintf(f_C_output, "static struct __linkl {\n");
         (void)fprintf(f_C_output,
