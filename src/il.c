@@ -1004,7 +1004,9 @@ Dump the contents of the indicated expression node for debug purposes.
 	      node->variant.routine->source_corresp.name);
       break;
     case enk_field:
-      fprintf(f_debug, "field %s\n", node->variant.field->source_corresp.name);
+      fprintf(f_debug, "field ");
+      db_name(&node->variant.field->source_corresp);
+      fputs("\n", f_debug);
       break;
     case enk_temp_init:
       fprintf(f_debug, "temp init (%s of temporary): ",
@@ -5987,7 +5989,8 @@ an_expr_node_ptr field_lvalue_selection_expr(an_expr_node_ptr node,
                                              a_field_ptr      field)
 /*
 Make an expression for an lvalue reference to field "field" of "node" and
-return a pointer to it.
+return a pointer to it.  Note that this does NOT add extra intermediate
+selections for anonymous unions.
 */
 {
   an_expr_operator_kind op;
@@ -6017,7 +6020,8 @@ an_expr_node_ptr field_rvalue_selection_expr(an_expr_node_ptr node,
                                              a_field_ptr      field)
 /*
 Make an expression for an rvalue reference to field "field" of "node" and
-return a pointer to it.
+return a pointer to it.  Note that this does NOT add extra intermediate
+selections for anonymous unions.
 */
 {
   /* Make the expression node for an lvalue reference. */
@@ -6028,6 +6032,64 @@ return a pointer to it.
   return node;
 }  /* field_rvalue_selection_expr */
 
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS || DO_IL_LOWERING
+
+void adjust_anonymous_union_field_selection(an_expr_node_ptr node,
+                                            a_field_ptr      au_field)
+/*
+node is a field selection of some kind that selects an anonymous union
+field out of an anonymous parent object (or a similar C case allowed
+as an extension).  au_field is the field for the anonymous parent object.
+Insert an additional selection on the first operand, e.g., change
+"x.y" to "x.au_field.y".  If a multi-level anonymous union is involved,
+this routine handles only one level; the caller must loop to handle the
+rest.
+*/
+{
+  an_expr_node_ptr      op1, op2, new_op1, au_field_node;
+  an_expr_operator_kind op, new_op;
+  a_type_ptr            new_selection_type;
+
+  op1 = node->variant.operation.operands;
+  op2 = op1->next;
+  /* If the original field selection takes an lvalue as its first operand,
+     the added field selection is an eok_field; if the original field
+     selection takes an rvalue as its first operand, the added field
+     selection is an eok_value_field.  Here are the operators:
+                               in       out
+       eok_field             lvalue   lvalue
+       eok_value_field       rvalue   rvalue
+       eok_bit_field         lvalue   lvalue
+       eok_value_bit_field   rvalue   rvalue
+       eok_extract_bit_field lvalue   rvalue
+     Note that eok_field and eok_value_field produce as output that is
+     the same as their input, which is why they are used for the added
+     field selection -- whatever the first operand of the original field
+     was, it's preserved by adding the right one of those two selections. */
+  op = node->variant.operation.kind;
+  new_selection_type = au_field->type;
+  if (op == (an_expr_operator_kind)eok_value_field ||
+      op == (an_expr_operator_kind)eok_value_bit_field) {
+    /* These operators take an rvalue as their input, so use an
+       eok_value_field for the added field selection. */
+    new_op = (an_expr_operator_kind)eok_value_field;
+  } else {
+    /* These operators take an lvalue as their input, so use an
+       eok_field for the added field selection. */
+    new_op = (an_expr_operator_kind)eok_field;
+    new_selection_type = make_pointer_type(new_selection_type);
+  }  /* if */
+  au_field_node = alloc_expr_node((an_expr_node_kind)enk_field);
+  au_field_node->type = au_field->type;
+  au_field_node->variant.field = au_field;
+  op1->next = au_field_node;
+  new_op1 = make_operator_node(new_op, new_selection_type, op1);
+  /* Attach the new selection to the original selection. */
+  new_op1->next = op2;
+  node->variant.operation.operands = new_op1;
+}  /* adjust_anonymous_union_field_selection */
+
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS || DO_IL_LOWERING */
 
 an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
                                            a_base_class_ptr bcp)
