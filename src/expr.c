@@ -1447,12 +1447,12 @@ Syntax:
       }  /* if */
       if (!C_mode() &&
           is_template_dependent_context() &&
+          routine == NULL &&
           routine_type != NULL &&
           is_template_dependent_type(routine_type)) {
         /* Call through a template-dependent pointer to function or
            pointer to member function.  Suppress argument checking. */
         routine_type = NULL;
-        routine = NULL;
         unknown_dependent_function = TRUE;
       }  /* if */
     }  /* if */
@@ -1460,21 +1460,6 @@ Syntax:
        address-taken entry back to a simple reference. */
     change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                           SRK_REFERENCE);
-  }  /* if */
-  if (is_template_dependent_context() && operand->bound_function &&
-      is_template_dependent_type(bound_function_selector->type)) {
-    /* In a prototype instantiation, a call with a dependent selector
-       is treated as a call of an unknown function.  This can come up
-       for something like dependent_expr->A::f() -- we will find A::f
-       because we have a qualified name, but we don't really know how
-       it relates to the class of dependent_expr, so we go for the
-       generic call representation. */
-    routine_type = NULL;
-    routine = NULL;
-    unknown_dependent_function = TRUE;
-    overloaded_function_case = FALSE;
-    prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
-    prep_generic_operand(bound_function_selector, /*lvalue_expected=*/FALSE);
   }  /* if */
 
   /* Scan the arguments of the call. */

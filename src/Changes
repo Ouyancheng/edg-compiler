@@ -1,5 +1,24 @@
 Version 3.0
 
+3/8/02   Call of non-overloaded function with dependent selector
+
+In prototype instantiations of templates, a call of a non-overloaded
+function with a selector object that is dependent was incorrectly
+treated as returning a dependent type, which is not necessarily true.
+This can have an effect on the resolution of surrounding calls.
+
+  template <class T> static void f(T) { }
+  template <class T> struct A {
+    T g() {
+      f(g());  // Formerly got error, now accepted
+      return 0;
+    }
+  };
+  int main() {
+    A<int> x;
+    x.g();
+  }
+
 3/6/02   Abort on attempt to inline C function with old-style declaration
 
 The attempt to inline a call of a function declared with an old-style

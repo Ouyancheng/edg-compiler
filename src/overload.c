@@ -1913,7 +1913,7 @@ not used in that case, and can be NULL.
       this_match_summary->is_match_for_this_param = TRUE;
     } else {
       if (selector_is_object_pointer) {
-        if (is_template_param_type(selector_type)) {
+        if (is_template_param_or_nonreal_class_type(selector_type)) {
           /* Unknown type, in a prototype instantiation. */
           selector_type = type_of_unknown_templ_param_nontype;
         } else {

@@ -6908,6 +6908,16 @@ is constructed in *result.
     if (function_operand->bound_function) {
       /* Bound function.  bound_function_selector indicates the object. */
       a_type_ptr this_type = implicit_this_param_type_of(function_type);
+      if (is_template_dependent_context() &&
+          is_template_dependent_type(bound_function_selector->type)) {
+        /* In a prototype instantiation, a selector that might have a class
+           type that might have an operator-> function is left as is.
+           Convert it now to an approximation of a selector pointer. */
+        generic_cast_operand(bound_function_selector, this_type,
+                             (an_expr_operator_kind)eok_cast,
+                             /*is_implicit_cast=*/TRUE,
+                             /*is_reference_cast=*/FALSE);
+      }  /* if */
       implicit_this_argument = make_node_from_operand(bound_function_selector);
 #if CHECKING
       /* There shouldn't be a base-class adjustment here.  If there is,
