@@ -682,6 +682,7 @@ do
          --diag_remark | \
          --diag_warning | \
          --diag_error | \
+         --microsoft_version | \
          --pack_alignment)
       feoptions=$feoptions" $1 $2"
       shift
@@ -739,6 +740,7 @@ do
           --diag_remark=* | \
           --diag_warning=* | \
           --diag_error=* | \
+          --microsoft_version=* | \
           --pack_alignment=*)
       feoptions=$feoptions" $1"
 #     See if an instantiation mode was specified
