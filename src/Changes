@@ -1,5 +1,11 @@
 Version 2.28
 
+1/19/95  Template instance required flag for inline functions
+
+Version 2.27 contains a bug that results in the template instance
+required flag (TIR) being set for inline functions.  It should
+only be set for external functions.  This has been corrected.
+
 1/19/95  Error instead of warning in strict mode on incomplete final line
 
 In strict mode, when the final line of a file ends without a newline,

@@ -4697,7 +4697,8 @@ defer_inline is TRUE.
       a_variable_ptr	variable;
       variable = sym->variant.static_data_member.variable;
       variable->instance_required = TRUE;
-    } else {
+    } else if (!is_static_or_inline_template_function(tip)) {
+      /* A noninline function. */
       a_routine_ptr	routine;
       routine = sym->variant.routine.ptr;
       routine->instance_required = TRUE;
