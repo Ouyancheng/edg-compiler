@@ -1,5 +1,17 @@
 Version 2.36
 
+6/5/97    INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE
+
+Heretofore, when partial lowering of exception handling features was
+done, leck_cleanup_state instructions were put out even in unreachable
+code, just in case a back end is using them statically to develop a table
+of cleanup address ranges.  This functionality is now controlled
+by the separate configuration option
+INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE, whose default definition
+gives the same behavior as before.  Also (IL CHANGE), the unreachable
+cleanup state instructions now have the new kind
+leck_unreachable_cleanup_state.
+
 6/5/97    Microsoft compatibility: local type in block-extern declaration
 
 In Microsoft mode a local type is now permitted in the declaration of a

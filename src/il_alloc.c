@@ -1680,6 +1680,7 @@ to kind, and set dependent variant fields to default values.
       /* No variant fields. */
       break;
     case leck_cleanup_state:
+    case leck_unreachable_cleanup_state:
 #if GENERATE_EH_TABLES
       node->variant.lowered_eh.variant.cleanup_region_number = 0;
 #else /* !GENERATE_EH_TABLES */

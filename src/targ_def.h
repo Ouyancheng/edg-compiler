@@ -1604,6 +1604,20 @@ enabled.
 #endif /* !GENERATE_EH_TABLES */
 
 /*
+When this switch is TRUE, instructions to set the cleanup state will
+be emitted even at unreachable ends of blocks.  This may be desirable
+if the back end is using the cleanup state instructions to build a
+table, rather than leaving them as some kind of executable code.
+*/
+#ifndef INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE
+#if DO_FULL_PORTABLE_EH_LOWERING
+#define INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE FALSE
+#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+#define INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE TRUE
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* ifndef INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE */
+
+/*
 This switch, which affects the portable implementation of exception
 handling, controls generation of extra code and extra conditional
 flags to ensure that all appropriate expression temporaries are destroyed

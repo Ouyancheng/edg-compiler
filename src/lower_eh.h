@@ -105,7 +105,8 @@ extern void record_exception_started(an_insert_location *insert_location);
 #endif /* ABI_COMPATIBILITY_VERSION >= 233 */
 
 extern void insert_code_to_indicate_cleanup_state(
-                                          an_insert_location *insert_location);
+                                           an_insert_location *insert_location,
+                                           a_boolean          unreachable);
 
 /*
 Data structure used to save state information for lowering of exception

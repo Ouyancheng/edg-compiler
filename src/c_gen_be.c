@@ -3608,6 +3608,9 @@ done_with_operation:
         case leck_thrown_object_address:
           write_tok_str("thrown_object_address");
           break;
+        case leck_unreachable_cleanup_state:
+          write_tok_str("(unreachable) ");
+          /* FALLTHROUGH */
         case leck_cleanup_state:
           write_tok_str("cleanup_state");
           write_tok_str(" = ");

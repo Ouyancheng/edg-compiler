@@ -4810,6 +4810,10 @@ enum a_lowered_eh_construct_kind_tag {
 			/* Address to which the thrown object should be
 			   copied. */
   leck_cleanup_state,	/* Set the cleanup state. */
+  leck_unreachable_cleanup_state,
+			/* Set the cleanup state in unreachable code.  Used
+			   when INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE
+			   is TRUE. */
   leck_function_prologue,
 			/* Prologue for function. */
   leck_function_epilogue,
@@ -5482,7 +5486,8 @@ typedef struct an_expr_node {
         a_handler_ptr
 		caught_object_handler;
         /* When kind == leck_thrown_object_address, no variant fields. */
-        /* When kind == leck_cleanup_state: */
+        /* When kind == leck_cleanup_state or
+                        leck_unreachable_cleanup_state: */
 #if GENERATE_EH_TABLES
         a_cleanup_region_number
 		cleanup_region_number;

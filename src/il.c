@@ -1249,6 +1249,9 @@ Dump the contents of the indicated expression node for debug purposes.
         case leck_thrown_object_address:
           fputs("thrown object address\n", f_debug);
           break;
+        case leck_unreachable_cleanup_state:
+          fprintf(f_debug, "(unreachable) ");
+          /* FALLTHROUGH */
         case leck_cleanup_state:
 #if GENERATE_EH_TABLES
           fprintf(f_debug, "cleanup state, region number = %ld\n",

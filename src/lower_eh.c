@@ -3956,12 +3956,18 @@ the throw, whereas the rest of the throw expression evaluation is
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 233 */
 
-void insert_code_to_indicate_cleanup_state(an_insert_location *insert_location)
+#if DO_FULL_PORTABLE_EH_LOWERING
+/*ARGSUSED*/ /* <-- "unreachable" is not used in that case. */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+void insert_code_to_indicate_cleanup_state(an_insert_location *insert_location,
+                                           a_boolean          unreachable)
 /*
 Insert code to indicate the cleanup state (based on the current value of
 curr_context->curr_cleanup_state).  The code is inserted at *insert_location,
 and *insert_location is updated.  This routine is called only when exceptions
-are enabled.
+are enabled.  unreachable is TRUE if the inserted code will be unreachable
+(presumably, it's being added to provide information for back ends that
+use the cleanup state information statically to build tables).
 */
 {
   an_expr_node_ptr   node;
@@ -3976,9 +3982,11 @@ are enabled.
   assign_to_eh_curr_region(node, insert_location);
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* In the other schemes, generate an enk_lower_eh_construct/
-     leck_cleanup_state expression node. */
+     leck_[unreachable_]cleanup_state expression node. */
   node = alloc_lowered_eh_construct_node(
-                              (a_lowered_eh_construct_kind)leck_cleanup_state);
+             unreachable ?
+                  (a_lowered_eh_construct_kind)leck_unreachable_cleanup_state :
+                  (a_lowered_eh_construct_kind)leck_cleanup_state);
 #if GENERATE_EH_TABLES
   /* With partial lowering, the region number is put into the node. */
   node->variant.lowered_eh.variant.cleanup_region_number =

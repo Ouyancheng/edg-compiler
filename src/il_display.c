@@ -2116,6 +2116,10 @@ do_variable:
           break;
         case leck_cleanup_state:
           (void)printf("leck_cleanup_state\n");
+          goto cleanup_state_common;
+        case leck_unreachable_cleanup_state:
+          (void)printf("leck_unreachable_cleanup_state\n");
+cleanup_state_common:
 #if GENERATE_EH_TABLES
           disp_long("cleanup_region_number",
                   (long)ptr->variant.lowered_eh.variant.cleanup_region_number);

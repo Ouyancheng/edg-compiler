@@ -1095,6 +1095,7 @@ do_set_proper_definition_needed_flag:
                 /* No pointers. */
                 break;
               case leck_cleanup_state:
+              case leck_unreachable_cleanup_state:
 #if !GENERATE_EH_TABLES
                 remap_ptr_not_needed(ptr->variant.lowered_eh.variant.
                                                                    cleanup_ptr,

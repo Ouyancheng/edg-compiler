@@ -7290,7 +7290,8 @@ to the statement; otherwise, it is NULL.
       curr_context->curr_cleanup_state = saved_curr_cleanup_state;
       if (exceptions_enabled) {
         set_after_expr_insert_location(expr_to_lower, &insert_location);
-        insert_code_to_indicate_cleanup_state(&insert_location);
+        insert_code_to_indicate_cleanup_state(&insert_location,
+                                              /*unreachable=*/FALSE);
       }  /* if */
     }  /* if */
     /* The insertions may have changed the type of the node, so copy the
@@ -7922,7 +7923,8 @@ Called only in long lifetime temporaries mode.
        is a label (because in that case it will be set in a moment
        anyway). */
     if ((*statement)->kind != (a_statement_kind)stmk_label) {
-      insert_code_to_indicate_cleanup_state(&insert_location);
+      insert_code_to_indicate_cleanup_state(&insert_location,
+                                            /*unreachable=*/FALSE);
     }  /* if */
   }  /* if */
 }  /* destroy_long_lifetime_temporaries_before_statement */
@@ -8017,7 +8019,7 @@ there are no statements on the list.
   *p_last_statement = last_statement;
 }  /* lower_statement_list */
 
-#if !DO_FULL_PORTABLE_EH_LOWERING
+#if INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE
 
 static void reset_cleanup_state_at_unreachable_point(a_statement_ptr statement)
 /*
@@ -8033,11 +8035,12 @@ indicated statement.
   if (exceptions_enabled) {
     an_insert_location insert_location;
     set_insert_location(statement, &insert_location);
-    insert_code_to_indicate_cleanup_state(&insert_location);
+    insert_code_to_indicate_cleanup_state(&insert_location,
+                                          /*unreachable=*/TRUE);
   }  /* if */
 }  /* reset_cleanup_state_at_unreachable_point */
 
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE */
 
 #if DO_FULL_PORTABLE_EH_LOWERING
 /*ARGSUSED*/  /* <-- "statement" is not used in that case. */
@@ -8058,9 +8061,9 @@ used to build a table, rather than being something executable.)
 */
 {
   set_curr_cleanup_state_to_latest_initialization();
-#if !DO_FULL_PORTABLE_EH_LOWERING
+#if INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE
   reset_cleanup_state_at_unreachable_point(statement);
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE */
 }  /* reset_cleanup_state_at_transfer_of_control */
 
 
@@ -8153,9 +8156,9 @@ it; otherwise, switch_lifetime is NULL.
            however, it will not have been, so adjust it now. */
         if (curr_context->curr_cleanup_state != saved_curr_cleanup_state) {
           curr_context->curr_cleanup_state = saved_curr_cleanup_state;
-#if !DO_FULL_PORTABLE_EH_LOWERING
+#if INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE
           reset_cleanup_state_at_unreachable_point(last_statement);
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -8598,9 +8601,9 @@ curr_context->curr_cleanup_state had at the start of the block.
          generating them because the end of the block is not reachable). */
       if (curr_context->curr_cleanup_state != saved_curr_cleanup_state) {
         curr_context->curr_cleanup_state = saved_curr_cleanup_state;
-#if !DO_FULL_PORTABLE_EH_LOWERING
+#if INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE
         reset_cleanup_state_at_unreachable_point(last_statement);
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9124,7 +9127,8 @@ Do IL lowering of the indicated statement and everything under it.
           /* Exceptions are enabled and the current function has
              destructible objects.  Insert code to set the cleanup state. */
           set_insert_location(statement, &insert_location);
-          insert_code_to_indicate_cleanup_state(&insert_location);
+          insert_code_to_indicate_cleanup_state(&insert_location,
+                                                /*unreachable=*/FALSE);
         }  /* if */
         break;
       case stmk_return:
