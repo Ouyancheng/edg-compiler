@@ -2644,7 +2644,9 @@ symbol must be added to the inactive list.
           }  /* if */
         }  /* if */
         /* See if this name a redeclaration of a template parameter name.
-           Redeclarations are permitted in Microsoft mode. */
+           Redeclarations are permitted in Microsoft mode.  Injected class
+           names are ignored because the test will have already been done
+           on the declaration of the class in the enclosing scope. */
         if (!redecl_err &&
             (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||
              depth_template_declaration_scope != NO_SCOPE_DEPTH) &&
@@ -2653,6 +2655,7 @@ symbol must be added to the inactive list.
           an_error_severity severity;
           if (!suppress_error &&
               !microsoft_mode &&
+              !is_injected_class_symbol(sym_ptr) &&
               is_redeclared_template_param(sym_ptr, &severity)) {
             if (severity == es_error) {
               /* A template parameter name has been reused in the first scope
