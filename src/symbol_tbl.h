@@ -1735,9 +1735,10 @@ If the symbol specified by locator is a protected member, do the access
 check of ARM 11.5.  The symbol is being accessed through an object or
 pointer of class class_type.
 */
-#define check_protected_member_access(sym, err_pos, class_type)            \
-{ if (access_for_symbol((sym)) == (an_access_specifier)as_protected) {  \
-    f_check_protected_member_access(sym, err_pos, class_type);             \
+#define check_protected_member_access(sym, err_pos, class_type)       \
+{ if (access_for_symbol(fundamental_symbol_of(sym)) ==                \
+                                (an_access_specifier)as_protected) {  \
+    f_check_protected_member_access(sym, err_pos, class_type);        \
   }  /* if */                                                         \
 }  /* check_protected_member_access */
 

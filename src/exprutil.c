@@ -6729,7 +6729,8 @@ source position for an error.  This is being done after
 overloaded_function_catch_up.
 */
 #define check_protected_member_access_catch_up(sym, selector, err_pos)\
-{ if (access_for_symbol(sym) == (an_access_specifier)as_protected) {  \
+{ if (access_for_symbol(fundamental_symbol_of(sym)) ==                \
+                                (an_access_specifier)as_protected) {  \
     f_check_protected_member_access_catch_up(sym, selector, err_pos); \
   }  /* if */                                                         \
 }  /* check_protected_member_access_catch_up */
