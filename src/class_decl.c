@@ -3043,7 +3043,7 @@ without it.
 #if MICROSOFT_KEYWORDS_ALLOWED
                                      TCF_IGNORE_CALLING_CONVENTIONS
 #else /* !MICROSOFT_KEYWORDS_ALLOWED */
-                                     TCF_NO_OPTIONS
+                                     TCF_NO_FLAGS
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
                                      );
       if (!new_function_is_qualified) {
