@@ -3852,8 +3852,8 @@ check_routine:
         a_field_ptr  fp = sym->variant.field.ptr;
         for (;;) {
           scp = &fp->source_corresp;
-          if (!is_class_struct_union_type(fp->type)) break;
-          fp = (skip_typerefs(fp->type))->variant.
+          if (scp->class_of_which_a_member == NULL) break;
+          fp = (skip_typerefs(scp->class_of_which_a_member))->variant.
                          class_struct_union.extra_info->anonymous_union_field;
           if (fp == NULL) break;
         }  /* for */
