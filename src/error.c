@@ -1116,10 +1116,10 @@ error code.
       m = "base class %t is ambiguous";
       break;
     case ec_ambiguous_derived_class:
-      m = "derived class contains more than one instance of this class";
+      m = "derived class %t1 contains more than one instance of class %t2";
       break;
     case ec_derived_class_from_virtual_base:
-      m = "derived class has this class as a virtual base class";
+      m = "derived class %t1 has class %t2 as a virtual base class";
       break;
     case ec_no_matching_constructor:
       m = "no instance of constructor %no matches the argument list";

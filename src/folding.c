@@ -522,17 +522,20 @@ bcp points to the base class entry for the current type relative to the
 desired derived type.  If there is an error, it is issued at *err_pos.
 */
 {
-  a_type_ptr       new_type = result->type;
+  a_type_ptr       new_type = result->type, derived_class_type;
   a_targ_ptrdiff_t offset;
 
   /* The code here looks like add_derived_class_casts. */
+  derived_class_type = f_skip_typerefs(type_pointed_to(new_type));
   if (bcp->ambiguous) {
     /* The cast is ambiguous. */
-    pos_ty_error(ec_ambiguous_derived_class, err_pos, bcp->type);
+    pos_ty2_error(ec_ambiguous_derived_class, err_pos, derived_class_type,
+                  bcp->type);
     set_error_constant(result);
   } else if (bcp->any_virtual_steps_in_derivation) {
     /* The base class is a virtual base of the derived class. */
-    pos_error(ec_derived_class_from_virtual_base, err_pos);
+    pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
+                  derived_class_type, bcp->type);
     set_error_constant(result);
   } else {
     copy_constant(constant_1, result);
@@ -691,16 +694,18 @@ If there is an error, it is issued at *err_pos.
   a_base_class_ptr      base_class;
 
   /* The code here looks like add_pm_derived_class_casts. */
+  derived_class_type = pm_class_type(new_type);
   if (bcp->ambiguous) {
     /* The cast is ambiguous. */
-    pos_ty_error(ec_ambiguous_derived_class, err_pos, bcp->type);
+    pos_ty2_error(ec_ambiguous_derived_class, err_pos, derived_class_type,
+                  bcp->type);
     set_error_constant(result);
   } else if (bcp->any_virtual_steps_in_derivation) {
     /* The base class is a virtual base of the derived class. */
-    pos_error(ec_derived_class_from_virtual_base, err_pos);
+    pos_ty2_error(ec_derived_class_from_virtual_base, err_pos,
+                  derived_class_type, bcp->type);
     set_error_constant(result);
   } else {
-    derived_class_type = pm_class_type(new_type);
     if (check_cast_access) {
       /* Check the accessibility of the base class.  (Recall that casts
          to derived types can be done implicitly.) */
