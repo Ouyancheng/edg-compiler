@@ -2262,51 +2262,36 @@ If the operation cannot be folded, *did_not_fold is returned TRUE.
     offset = pointer_offset(constant_1);
     if (offset == 0 && base_object(constant_1) == NULL) {
       /* Preserve a NULL pointer. */
-    } else if (base_class->virtual) {
-      /* Casting to a virtual base class.  This can only be folded in the
-         simplest cases. */
-      *did_not_fold = TRUE;
-      if (constant_1->kind == (a_constant_repr_kind)ck_address &&
-          constant_1->variant.address.kind ==
+    } else {
+      if (base_class->virtual) {
+        /* Casting to a virtual base class.  This can only be folded if we
+           have a whole object of the derived class type. */
+        *did_not_fold = TRUE;
+        if (constant_1->kind == (a_constant_repr_kind)ck_address &&
+            constant_1->variant.address.kind ==
                                           (an_address_base_kind)abk_variable &&
-          offset == 0 &&
-          !constant_1->implicit_cast) {
-        /* The constant is the address of a variable. */
-        a_variable_ptr variable = constant_1->variant.address.variant.variable;
-        a_type_ptr     var_type = skip_typerefs(variable->type);
-        if (is_class_struct_union_type(var_type)) {
-          /* The constant is the address of a class variable.  Find the address
-             of the virtual base class in the variable. */
-          a_virtual_base_class_ptr vbcp = var_type->variant.
-                           class_struct_union.extra_info->virtual_base_classes;
-          for (;; vbcp = vbcp->next) {
-#if CHECKING
-            if (vbcp == NULL) {
-              internal_error("fold_base_class_cast: virtual class not found");
-            }  /* if */
-#endif /* CHECKING */
-            if (vbcp->class == base_class->class) {
-              /* Found the virtual class.  We now have its offset within the
-                 variable. */
-              offset = vbcp->data_section_offset;
-              *did_not_fold = FALSE;
-              break;
-            }  /* if */
-          }  /* for */
+            offset == 0 &&
+            !constant_1->implicit_cast) {
+          /* The constant is the unmodified address of a variable. */
+          a_variable_ptr variable =
+                                  constant_1->variant.address.variant.variable;
+          a_type_ptr     var_type = skip_typerefs(variable->type);
+          if (is_class_struct_union_type(var_type)) {
+            /* The constant is the address of a class variable. */
+            *did_not_fold = FALSE;
+          }  /* if */
         }  /* if */
       }  /* if */
-    } else {
-      /* Non-virtual base class. */
-      /* Take the pointer offset, ... */
-      /* ... add the offset to the base class, ... */
-      offset += base_class->offset;
-      /* ... and put the offset into the result pointer constant.  Note that
-         no overflow/object-size checking is needed, since the base class has
-         to be within the underlying object. */
-    }  /* if */
-    if (!*did_not_fold) {
-      set_pointer_offset(result, offset);
-      implicit_cast(result, make_pointer_type(base_class->class));
+      if (!*did_not_fold) {
+        /* Take the pointer offset, ... */
+        /* ... add the offset to the base class, ... */
+        offset += base_class->offset;
+        /* ... and put the offset into the result pointer constant.  Note that
+           no overflow/object-size checking is needed, since the base class has
+           to be within the underlying object. */
+        set_pointer_offset(result, offset);
+        implicit_cast(result, make_pointer_type(base_class->class));
+      }  /* if */
     }  /* if */
   }  /* if */
 #if DEBUG
