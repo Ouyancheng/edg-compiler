@@ -4227,14 +4227,19 @@ so efficiency is not a prime concern.
 }  /* unget_token */
 
 
-a_boolean f_get_destructor_name(void)
+a_boolean f_get_destructor_name(a_symbol_header_ptr *class_symbol_header)
 /*
 The current token is the "~" at the start of a destructor name.  Scan the
 name and build a locator for the destructor name in locator_for_curr_id.
-Return TRUE always (this routine is called from the macro get_destructor_name;
-it handles the FALSE case).  This routine is called only in C++ mode.
+Return in *class_symbol_header a pointer to the symbol header for the
+name following the "~", or NULL if there is an error.  (Note that this
+routine does not check that the name is a class name or that the destructor
+exists.)  Return TRUE always (this routine is called from the macro
+get_destructor_name; it handles the FALSE case).  This routine is called
+only in C++ mode.
 */
 {
+  *class_symbol_header = NULL;
   /* Skip past the "~", check for an identifier. */
   if (get_token() != tok_identifier) {
     /* syntax_error is deliberately not called. */
@@ -4244,6 +4249,8 @@ it handles the FALSE case).  This routine is called only in C++ mode.
     curr_token = tok_identifier;
     make_specific_symbol_error_locator(&locator_for_curr_id);
   } else {
+    /* "~identifier" is present. */
+    *class_symbol_header = locator_for_curr_id.symbol_header;
     /* Convert the locator to a locator for the destructor. */
     tildize_locator(&locator_for_curr_id);
   }  /* if */
@@ -4442,11 +4449,14 @@ The flag IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR, if present, suppresses
 the error on the final identifier not being found on lookup.
 */
 {
-  a_boolean         is_qualified_name = FALSE, qualifier_err, okay;
-  a_boolean         is_file_scope_qualifier, has_global_qualifier;
-  a_type_ptr        class_type;
-  a_source_position start_position;
-  an_error_code     err_code;
+  a_boolean	is_qualified_name = FALSE, qualifier_err, okay;
+  a_boolean	is_file_scope_qualifier, has_global_qualifier;
+  a_type_ptr	class_type;
+  a_source_position
+		start_position;
+  an_error_code	err_code;
+  a_symbol_header_ptr
+		class_symbol_header;
 
 #if CHECKING
   if (options & IDL_CONSTRAINTS) {
@@ -4472,7 +4482,7 @@ the error on the final identifier not being found on lookup.
           okay = FALSE;
           if (!is_file_scope_qualifier) {
             /* The name can be a destructor name like "~A". */
-            (void)get_destructor_name();
+            (void)get_destructor_name(&class_symbol_header);
           }  /* if */
           /* The name can be an operator name like "operator+". */
           (void)get_opname();
