@@ -4585,11 +4585,13 @@ on for use in generating cross-reference output describing this declaration.
            inline friend function or a dllimport function). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         check_assertion_str((routine_ptr->decl_modifiers & DM_DLLIMPORT) ||
+                            routine_ptr->defined_in_friend_decl ||
                             scope_stack[decl_scope_level].kind ==
                                         (a_scope_kind)sck_class_struct_union,
                             "decl_routine: defined flag is set wrong");
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-        check_assertion_str(scope_stack[decl_scope_level].kind ==
+        check_assertion_str(routine_ptr->defined_in_friend_decl ||
+                            scope_stack[decl_scope_level].kind ==
                                         (a_scope_kind)sck_class_struct_union,
                             "decl_routine: defined flag is set wrong");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
