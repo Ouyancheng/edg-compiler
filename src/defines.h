@@ -21,10 +21,27 @@ the release should contain no defines.
 
 #define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
 
+#ifdef CP_GEN_BE_VERSION
+/*
+Flags to be set for any version that uses the C++ generating back end.
+*/
+#define BACK_END_IS_C_GEN_BE 0
+#define BACK_END_IS_CP_GEN_BE 1
+#define SAME_REPR_INTS_INTERCHANGABLE 0
+#define DO_IL_LOWERING 0
+#define AUTOMATIC_TEMPLATE_INSTANTIATION 0
+#define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL 0
+#ifdef _WIN32
+/* On NT, don't generate an IL file. */
+#define IL_SHOULD_BE_WRITTEN_TO_FILE 0
+#endif /* ifdef _WIN32 */
+#endif /* ifdef CP_GEN_BE_VERSION */
+
 #ifdef sun
 /* Options Common to Sun hosted versions. */
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
 #define USING_QUANTIFY 1
+
 
 #ifdef OPTIMIZED_VERSION
 
