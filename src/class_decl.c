@@ -4277,6 +4277,7 @@ function symbols.
                                     &error_code)) {
         pos_error(error_code, &locator->source_position);
         suppress_redecl_error = TRUE;
+        set_to_named_error_locator(*locator);
       } else {
         a_boolean  is_ctor = decl_info->is_constructor;
 
