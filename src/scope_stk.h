@@ -984,7 +984,7 @@ of a translation unit (which should only occur for prototype instantiations).
 
 
 EXTERN a_scope_stack_entry_ptr
-		scope_stack /* = NULL */;
+		scope_stack;
 			/* Stack of entries describing active scopes.
 			   scope_stack[0] is the entry for the file scope,
 			   scope_stack[1] is an entry for a function scope,

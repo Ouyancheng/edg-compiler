@@ -513,6 +513,13 @@ dump_control_flow has been enabled at the command line.
 
 #endif /* DEBUG */
 
+#if DEBUG
+static unsigned long
+		cfd_id_number;
+			/* Identifier number used in control flow debug
+			   output. */
+#endif /* DEBUG */
+
 static a_control_flow_descr_ptr alloc_control_flow_descr(
                                                a_control_flow_descr_kind kind)
 /*
@@ -522,9 +529,6 @@ to it.
 */
 {
   register a_control_flow_descr_ptr  cfdp;
-#if DEBUG
-  static   unsigned long             id_number = 0;
-#endif /* DEBUG */
 
   db_enter(5, "alloc_control_flow_descr");
   if (avail_control_flow_descrs != NULL) {
@@ -545,7 +549,7 @@ to it.
   cfdp->kind = kind;
   cfdp->source_pos = error_position;
 #if DEBUG
-  cfdp->id_number = ++id_number;
+  cfdp->id_number = ++cfd_id_number;
 #endif /* DEBUG */
 #if UPC_EXTENSIONS_ALLOWED
   cfdp->enclosing_forall = NULL;
@@ -7289,6 +7293,10 @@ be repeated for every (primary or secondary) translation unit.
   /* Initialize static variables. */
   struct_stmt_stack_container = NULL;
   size_struct_stmt_stack_container = 0;
+#if UPC_EXTENSIONS_ALLOWED
+  affinity_forall_loop = NULL;
+  innermost_forall_loop = NULL;
+#endif /* UPC_EXTENSIONS_ALLOWED */
 }  /* statements_trans_unit_init */
 
 
@@ -7303,6 +7311,7 @@ of the front end.
   avail_control_flow_descrs = NULL;
 #if DEBUG
   num_control_flow_descrs_allocated = 0;
+  cfd_id_number = 0;
 #endif /* DEBUG */
 }  /* statements_init */
 

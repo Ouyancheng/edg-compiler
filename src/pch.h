@@ -282,6 +282,8 @@ extern void pch_one_time_init(void);
 
 extern void pch_init(void);
 
+extern void pch_early_init(void);
+
 #if DEBUG
 extern unsigned long db_show_pch_space_used(unsigned long grand_total);
 #endif /* DEBUG */

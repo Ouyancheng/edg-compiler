@@ -85,7 +85,7 @@ static a_pch_saved_variable_ptr
 			   lists.  Each element points to an array of
 			   saved variable entries. */
 
-static int	num_of_saved_variable_lists = 0;
+static int	num_of_saved_variable_lists;
 			/* Number of entries in the saved variable array list
 			   that have been used. */
 
@@ -110,7 +110,7 @@ static a_mem_alloc_history_ptr
 			   read from the precompiled header file. */
 
 static a_mem_alloc_history_number
-		new_alloc_history_entries = 0;
+		new_alloc_history_entries;
 			/* Number of entries in new_alloc_history. */
 
 static a_text_buffer_ptr
@@ -2222,6 +2222,11 @@ Initialize variables used by the precompiled header routines.
   cannot_create_pch_file = FALSE;
   pch_event_list_head = NULL;
   pch_event_list_tail = NULL;
+  pch_cmd_line_event_list_head = NULL;
+  pch_cmd_line_event_list_tail = NULL;
+  pch_file_name = NULL;
+  f_pch_input = NULL;
+  f_pch_output = NULL;
   building_pch_prefix = FALSE;
   header_stop_source_position = null_source_position;
   header_stop_position_pending = FALSE;
@@ -2231,6 +2236,8 @@ Initialize variables used by the precompiled header routines.
   pos_of_last_event_from_pch = null_source_position;
   using_a_pch_file = FALSE;
   file_name_text_buffer = NULL;
+  new_alloc_history_entries = 0;
+  new_alloc_history = NULL;
 #if DEBUG
   num_pch_events_allocated = 0;
 #endif /* DEBUG */
@@ -2255,8 +2262,20 @@ Do one-time initialization of variables related to PCH processing.
   pch_buffer = (char *)alloc_general(PCH_BUFFER_INITIAL_ALLOCATION);
   size_pch_buffer = PCH_BUFFER_INITIAL_ALLOCATION;
   /* Do initial allocation of the file name buffer. */
+  file_name_buffer.name = NULL;
+  file_name_buffer.size = 0;
   ensure_file_name_buffer_space(file_name_buffer, 1);
 }  /* pch_one_time_init */
+
+
+void pch_early_init(void)
+/*
+One time initialization that must take place early on in the front end.
+This is done before command line processing.
+*/
+{
+  num_of_saved_variable_lists = 0;
+}  /* pch_early_init */
 
 
 /******************************************************************************

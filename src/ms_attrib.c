@@ -2049,6 +2049,7 @@ void ms_attrib_one_time_init(void)
 One-time initialization for ms_attrib.c static variables.
 */
 {
+  ms_attr_buffer = NULL;
   /* Save variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
@@ -2078,7 +2079,6 @@ Microsoft attribute processing.
   scan_all_attributes_as_unrecognized =
                                        SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING;
   unrecognized_attribute = NULL;
-  ms_attr_buffer = NULL;
 #if DEBUG
   num_ms_attribute_kind_descrs_allocated = 0;
   num_ms_attribute_params_allocated = 0;
