@@ -1,5 +1,16 @@
 Version 3.6
 
+1/6/05   Embedded C: detecting problematic configurations for fixed-point
+         folding
+
+The fixed-point folding routines convert fixed-point values to host
+floating-point values and then fold the values using floating-point.
+This can produce incorrect results if the host floating-point value
+is not large enough.  A build-time test has been added to detect such
+configurations.  The ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE
+macro has been added to allow such configurations to be used even though
+fixed-point folding may produce inaccurate results.
+
 1/5/05   Over-eager instantiation of destructor in unused default argument
 
 The destructor for a temporary used in a default argument expression

@@ -1547,6 +1547,34 @@ Otherwise, we leave these undefined.
 #endif /* ifdef LDBL_MAX */
 #endif /* ifndef TARG_LDBL_MAX */
 
+#if FIXED_POINT_ALLOWED
+
+/*
+Flag that is TRUE if it is okay to use a host floating-point value that
+is not large enough to represent all of the bits of the largest fixed-point
+type.
+*/
+#ifndef ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE
+#define ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE FALSE
+#endif /* ifndef ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE */
+
+/*
+When fixed-point is enabled, make sure a host floating-point value has enough
+mantissa digits to represent all of the bits of the largest fixed-point type.
+*/
+#if !ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if LDBL_MANT_DIG < (TARG_SIZEOF_UNSIGNED_LONG_ACCUM * CHAR_BIT)
+ #error -- long double is not large enough to represent a long _Accum value
+#endif /* LDBL_MANT_DIG < (TARG_SIZEOF_UNSIGNED_LONG_ACCUM * CHAR_BIT) */
+#else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#if DBL_MANT_DIG < (TARG_SIZEOF_UNSIGNED_LONG_ACCUM * CHAR_BIT)
+ #error -- double is not large enough to represent a long _Accum value
+#endif /* DBL_MANT_DIG < (TARG_SIZEOF_UNSIGNED_LONG_ACCUM * CHAR_BIT) */
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* !ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE */
+#endif /* FIXED_POINT_ALLOWED */
+
 /*
 C++ pointer-to-member type.
 (The formulas here are for a typical implementation, but are not required.)
