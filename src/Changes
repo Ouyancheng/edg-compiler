@@ -1,5 +1,12 @@
 Version 2.06
 
+5/8/92   Fixed bug that resulted in incorrectly built virtual function
+         tables.
+
+Problem appeared in derived class D when a virtual function was
+overridden in base class B and the original function was a member of a
+base class of a virtual base class from which B was derived.
+
 5/7/92   Apply user-defined conversions on 2nd and 3rd operand of "?".
 
 5/7/92   Bug in IL lowering of virtual destructor calls fixed.
