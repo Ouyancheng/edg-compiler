@@ -1991,10 +1991,9 @@ later will be made conditional on the temporary.
 */
 {
   a_variable_ptr      temp;
-  a_dynamic_init_ptr  dip, prev_dip;
+  a_dynamic_init_ptr  dip;
   a_constant          zero_constant;
   a_statement_ptr     stmk_init_stmt, block, label_statement;
-  a_scope_ptr         scope;
   a_switch_clause_ptr scp;
   an_insert_location  insert_before_location;
 
@@ -2003,7 +2002,10 @@ later will be made conditional on the temporary.
   /* The temporary must be initialized to zero.  If it is static, that
      is done implicitly.  Otherwise, it must be done dynamically. */
   if (temp->storage_class != (a_storage_class)sc_static) {
-    /* Use a dynamic init entry to do the initialization. */
+    /* Use a dynamic init entry to do the initialization.  Note that the
+       dynamic init entry does not need to be put on a list of dynamic init
+       entries.  Such a list is used only at the file scope, and any
+       temporary allocated there would be static. */
     dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
     dip->variable = temp;
     /* The dynamic init entry is pointed to by the variable. */
@@ -2014,7 +2016,6 @@ later will be made conditional on the temporary.
     /* The dynamic init entry is pointed to by an stmk_init statement. */
     stmk_init_stmt = alloc_statement((a_statement_kind)stmk_init);
     stmk_init_stmt->variant.dynamic_init = dip;
-    scope = curr_context->scope;
     scp = curr_context->assoc_switch_clause;
     /* The stmk_init statement must be inserted at the right place.  For
        most cases, the right place is the beginning of the current block.
@@ -2037,7 +2038,7 @@ later will be made conditional on the temporary.
       scp->statements = stmk_init_stmt;
     } else {
       /* Normal case. */
-      block = scope->assoc_block;
+      block = curr_context->scope->assoc_block;
 #if CHECKING
       if (block == NULL) {
         internal_error("add_conditional_destruction_temp: missing block");
@@ -2046,26 +2047,6 @@ later will be made conditional on the temporary.
       /* Add the stmk_init statement at the beginning of the block. */
       stmk_init_stmt->next = block->variant.block.statements;
       block->variant.block.statements = stmk_init_stmt;
-      prev_dip = NULL;
-    }  /* if */
-    /* Add the dynamic init entry at the right spot in the dynamic inits
-       list.  Note that we do the insert of the statement and the dynamic
-       init entry at the front of the list each time, so they end up in
-       reverse order of insertion. */
-    prev_dip = curr_context->dynamic_init_preceding_clause;
-    if (prev_dip == NULL) {
-      dip->next = scope->dynamic_inits;
-      scope->dynamic_inits = dip;
-    } else {
-      dip->next = prev_dip->next;
-      prev_dip->next = dip;
-    }  /* if */
-    /* If the dynamic init is the first one so far in the current
-       clause (i.e., there are no previous initializations of this kind and
-       no pre-existing dynamic inits), record it as the last dynamic init
-       processed. */
-    if (curr_context->latest_dynamic_init_processed == prev_dip) {
-      curr_context->latest_dynamic_init_processed = dip;
     }  /* if */
   }  /* if */
   /* Make and insert an assignment statement to set the temporary to 1.
@@ -3166,7 +3147,6 @@ Generate code for a stmk_init (dynamic initialization) statement.
   a_dynamic_init_ptr dip = statement->variant.dynamic_init;
   a_boolean          non_C_case;
 
-  curr_context->latest_dynamic_init_processed = dip;
   /* Only lower the cases that do not come up in C: */
   non_C_case = FALSE;
   if (dip->destructor != NULL) {

@@ -257,8 +257,6 @@ is TRUE.
   context->required_destructor_calls = NULL;
   context->assoc_switch_clause = NULL;
   context->latest_label_statement_processed = NULL;
-  context->latest_dynamic_init_processed = NULL;
-  context->dynamic_init_preceding_clause = NULL;
   /* Keep track of the innermost function context/scope. */
   if (!dependent_statement && scope->kind == (a_scope_kind)sck_function) {
     nearest_function_context = curr_context;
@@ -5623,8 +5621,6 @@ it; otherwise, switch_context is NULL.
        add_conditional_destruction_temp. */
     curr_context->assoc_switch_clause = clause;
     curr_context->latest_label_statement_processed = NULL;
-    curr_context->dynamic_init_preceding_clause =
-                                   curr_context->latest_dynamic_init_processed;
     lower_constant_list(clause->constant_list);
     lower_statement_list(clause->statements, &last_statement);
     /* If the last statement is not a branch, there is an implicit "break"
@@ -5677,7 +5673,6 @@ it; otherwise, switch_context is NULL.
   }  /* for */
   curr_context->assoc_switch_clause = NULL;
   curr_context->latest_label_statement_processed = NULL;
-  curr_context->dynamic_init_preceding_clause = NULL;
 }  /* lower_switch_clause_list */
 
 

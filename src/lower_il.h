@@ -212,29 +212,18 @@ typedef struct a_context {
 			   nearest enclosing scope.  Also used for the "if"
 			   in first-time test code for initialization of
 			   local statics. */
-  a_required_destructor_call_ptr
-		required_destructor_calls;
-			/* Destructor calls required on exit from the scope. */
   a_switch_clause_ptr
 		assoc_switch_clause;
 			/* Points to the current clause of a switch statement
 			   if inside one; NULL otherwise. */
+  a_required_destructor_call_ptr
+		required_destructor_calls;
+			/* Destructor calls required on exit from the scope. */
   a_statement_ptr
 		latest_label_statement_processed;
 			/* The stmk_label statement most recently processed
 			   in (this clause of) the block, or NULL if none
 			   has been processed. */
-  a_dynamic_init_ptr
-		latest_dynamic_init_processed;
-			/* Points to the latest stmk_init dynamic
-			   initialization processed in the block.  NULL until
-			   set. */
-  a_dynamic_init_ptr
-		dynamic_init_preceding_clause;
-			/* A copy of latest_dynamic_init_processed as of
-			   the start of the current switch clause or the
-			   latest label, whichever is later.  NULL if neither
-			   has appeared. */
 } a_context;
 EXTERN a_context_ptr
 		curr_context;
