@@ -2084,10 +2084,10 @@ hold the command.
       *to++ = *from++;
     }  /* while */
     /* Append a blank, if the command does not already end with a blank. */
-    if (*to != ' ') *to++ = ' ';
+    if (*(to-1) != ' ') *to++ = ' ';
   }  /* for */
   /* Replace the last blank with a null. */
-  *to = '\0';
+  *(to-1) = '\0';
   return command;
 }  /* build_command_line */
 
