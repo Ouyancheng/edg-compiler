@@ -1,4 +1,6 @@
-Version 2.35
+Version 2.35, February 28, 1997
+
+2/28/97  IL version number changed to 2.27
 
 2/27/97  IL CHANGE: vacuous destructor call on non-class rvalue
 
