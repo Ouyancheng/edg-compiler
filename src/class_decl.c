@@ -1868,6 +1868,7 @@ is a base class.
 
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
                                     a_base_class_ptr      directly_derived_bcp,
+                                    a_base_class_ptr      complete_subobj_bcp,
                                     a_base_class_ptr      add_list,
                                     a_base_class_ptr      *p_end_of_add_list,
                                     a_type_ptr            new_class)
@@ -1904,11 +1905,13 @@ for ambiguity and duplicate paths.  The copy will be a base class of new_class.
           bcp->pointer_base_class = directly_derived_bcp;
         }  /* if */
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-        if (directly_derived_bcp->complete_subobject &&
-            bcp->data_section_base_class == NULL) {
-          bcp->data_section_base_class = directly_derived_bcp;
+        /* complete_subobject flag should already be TRUE since bcp is a
+           virtual base class. */
+        /* Specify the base class in which the data section resides, if there
+           isn't one yet. */
+        if (bcp->data_section_base_class == NULL) {
+          bcp->data_section_base_class = complete_subobj_bcp;
         }  /* if */
-        bcp->complete_subobject = TRUE;
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
         goto done;
       }  /* if */
@@ -1936,15 +1939,17 @@ for ambiguity and duplicate paths.  The copy will be a base class of new_class.
       new_bcp->pointer_base_class = directly_derived_bcp;
     }  /* if */
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
-    if (directly_derived_bcp->complete_subobject) {
-      /* The data section of an indirect virtual base class is in the
-         complete subobject to which it belongs. */
-      new_bcp->data_section_base_class = directly_derived_bcp;
-    }  /* if */
+    /* The data section of an indirect virtual base class is in the
+       complete subobject to which it belongs. */
+    new_bcp->data_section_base_class = complete_subobj_bcp;
     /* According to cfront all virtual base classes are complete subobjects. */
     new_bcp->complete_subobject = TRUE;
+    complete_subobj_bcp = new_bcp;
   } else {
-    new_bcp->complete_subobject = base_class_to_copy->complete_subobject;
+    if (base_class_to_copy->complete_subobject) {
+      new_bcp->complete_subobject = TRUE;
+      complete_subobj_bcp = new_bcp;
+    }  /* if */
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   }  /* if */
   new_bcp->any_virtual_steps_in_derivation =
@@ -1965,8 +1970,8 @@ for ambiguity and duplicate paths.  The copy will be a base class of new_class.
                   variant.class_struct_union.extra_info->base_classes;
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct) {
-      add_indirect_base_class(bcp, new_bcp, add_list, p_end_of_add_list,
-                              new_class);
+      add_indirect_base_class(bcp, new_bcp, complete_subobj_bcp, add_list,
+                              p_end_of_add_list, new_class);
     }  /* if */
   }  /* for */
   /* Add this to the end of add_list. */
@@ -2014,6 +2019,7 @@ or struct definition.  The syntax is
   a_boolean                     ambiguous;
   a_class_symbol_supplement_ptr cssp, bcp_cssp;
   a_boolean                     any_base_class_with_override_list;
+  a_base_class_ptr              complete_subobj_bcp = NULL;
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
   a_boolean                     first_direct_nonvirtual_base_class = TRUE;
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
@@ -2213,6 +2219,7 @@ or struct definition.  The syntax is
          and are therefore marked as having a "complete subobject". */
       if (is_virtual || !first_direct_nonvirtual_base_class) {
         new_direct_bcp->complete_subobject = TRUE;
+        complete_subobj_bcp = new_direct_bcp;
       }  /* if */
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
       new_direct_bcp->direct = TRUE;
@@ -2232,7 +2239,8 @@ or struct definition.  The syntax is
         if (bcp->direct) {
           /* Add the direct base class and all *its* base classes to the
              base class list for the derived class. */
-          add_indirect_base_class(bcp, new_direct_bcp, ctsp->base_classes,
+          add_indirect_base_class(bcp, new_direct_bcp, complete_subobj_bcp,
+                                  ctsp->base_classes,
                                   &end_of_base_classes_list, type_ptr);
         }  /* if */
         if (bcp->overriding_virtual_functions != NULL) {
