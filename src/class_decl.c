@@ -1427,8 +1427,12 @@ nested class.
             /* Do the prototype instantiation of the function body. */
             function_prototype_instantiation(sym);
           }  /* if */
-        } else if (is_nonreal_template_instantiation) {
-          /* Prototype instantiation -- copy the cache for member functions. */
+        } else if (is_nonreal_template_instantiation &&
+                   !scope_stack[depth_scope_stack].inside_local_class) {
+          /* Prototype instantiation -- copy the cache for member functions.
+             (Note that member functions of local classes of a function
+             prototype instantiation are nonreal, but they are not themselves
+             prototype instantiations.) */
           tssp = template_supplement_for_symbol(sym);
           tssp->cache.tokens = rfp->function_body_token_cache;
           clear_token_cache(&rfp->function_body_token_cache,
@@ -10775,9 +10779,12 @@ to be returned to the caller.
           (void)get_token();
         }  /* if */
         if (class_state->is_nonreal_instantiation &&
-            !class_type->variant.class_struct_union.is_specialized) {
-          /* The test of is_specialized is done to exclude Microsoft
-             mode specializations in a class template scope. */
+            !class_type->variant.class_struct_union.is_specialized &&
+            !class_type->source_corresp.is_local_to_function) {
+          /* The test of is_specialized is done to exclude Microsoft mode
+             specializations in a class template scope.  Similarly, a member
+             function of a local class of a prototype instantiation is nonreal
+             but not a template of itself. */
           if (friend_specified) {
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
             /* A template cache segment entry is created for a friend function
