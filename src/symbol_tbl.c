@@ -3117,7 +3117,8 @@ function.
     }  /* for */
   }  /* if */
   if (!have_access) {
-    pos_sy_error(ec_protected_access_problem, &locator->source_position, sym);
+    pos_syty_error(ec_protected_access_problem, &locator->source_position,
+                   sym, access_class);
   }  /* if */
 }  /* f_check_protected_member_access */
 
