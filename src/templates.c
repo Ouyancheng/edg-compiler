@@ -18482,7 +18482,7 @@ translation unit.
     if (il_lowering_needed()) {
       /* To improve efficiency of name mangling in the instantiation
          process, pre-generate the mangled names of classes. */
-      do_class_name_mangling();
+      do_type_name_mangling();
     }  /* if */
 #endif /* DO_IL_LOWERING && !IA64_ABI */
     /* Do any translation-unit specific processing that is required before

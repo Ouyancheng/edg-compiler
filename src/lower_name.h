@@ -96,6 +96,7 @@ extern char *mangled_typeinfo_string(a_type_ptr type);
 
 #if DO_IL_LOWERING
 extern void mangle_promoted_entity_name(a_source_correspondence *scp,
+                                        an_il_entry_kind        kind,
                                         a_boolean               final,
                                         a_routine_ptr           routine,
                                         a_scope_ptr             scope);
@@ -108,9 +109,9 @@ extern void mangle_covariant_return_type_entry_name(
 #if IA64_ABI
 extern void mangle_alternate_entry_point_name(a_routine_ptr routine,
                                               a_routine_ptr prim_routine);
-#else /* !IA64_ABI */
-extern void do_class_name_mangling(void);
 #endif /* IA64_ABI */
+
+extern void do_type_name_mangling(void);
 
 extern void do_all_name_mangling(void);
 

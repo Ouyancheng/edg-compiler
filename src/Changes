@@ -100,6 +100,10 @@ reference the deleted class.  Now fixed.
     };
   };
 
+This fix exposed another problem, an ordering issue in demangling,
+which was fixed by largely removing the final type name mangling
+and mangling type names fully at the start of lowering.
+
 12/6/02  More local statics than necessary externalized
 
 When exported templates are used, some static functions are

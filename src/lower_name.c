@@ -258,15 +258,6 @@ typedef struct a_mangling_control_block {
 } a_mangling_control_block;
 
 
-#if !IA64_ABI
-/*
-TRUE while final_type_name_mangling is running.
-*/
-static a_boolean
-		in_final_type_name_mangling = FALSE;
-#endif /* !IA64_ABI */
-
-
 /*
 Text buffer used for mangling.
 */
@@ -2804,137 +2795,100 @@ should be put out.
   char                        *name;
   a_class_type_supplement_ptr ctsp;
   a_template_arg_ptr          template_args;
-#if !IA64_ABI
-  a_boolean                   use_previously_mangled_name = FALSE;
-#endif /* !IA64_ABI */
 
   check_assertion(is_immediate_class_type(type));
   ctsp = type->variant.class_struct_union.extra_info;
   check_assertion_str(ctsp != NULL,
                       "mangled_full_class_name: no class type supplement");
-#if !IA64_ABI
-  if (type->source_corresp.name_has_been_mangled) {
-    /* The name is already mangled, including any template parameters.
-       We can use the mangled form unless we need to add specialization
-       indicators, which are not present in the saved mangled form, or
-       unless the name has been processed in some way that prevents its
-       use as part of another mangled name. */
-    if (!show_partial_spec_args &&
-        !show_template_specialization &&
-        !show_specialization &&
-        !type->source_corresp.mangled_name_cannot_be_included_in_other_name) {
-      use_previously_mangled_name = TRUE;
-    } else if (in_final_type_name_mangling) {
-      /* In final type name mangling, we can't go back and remangle anything,
-         so use what we have.  We're only generating a name for a type
-         to be used for C code generation, so the exact name (in particular,
-         whether it includes partial specialization arguments in the parent
-         classes) is not important as long as it is unique. */
-      use_previously_mangled_name = TRUE;
-    }  /* if */
+  /* See if template arguments are needed.  For partial specializations,
+     there are two argument lists. */
+  template_args = ctsp->template_arg_list;
+  /* Always start with the name of the class, which applies even in the
+     template class case. */
+  name = unmangled_name_of(&type->source_corresp);
+  if (name == NULL) {
+    /* For an unnamed class, generate a name (or use the name previously
+       generated). */
+    give_unnamed_class_a_name(type);
+    name = type->source_corresp.name;
   }  /* if */
-  if (use_previously_mangled_name) {
-    /* Use the previously mangled version of the name. */
-    add_str_to_mangled_name(type->source_corresp.name, mctl);
-  } else
-#else /* IA64_ABI */
-  /* We can't reuse class names in the IA-64 ABI because the substitution
-     numbering has to be done in the mangled name as a whole.  Therefore
-     every use of a name has to be redone from scratch. */
-#endif /* !IA64_ABI */
-  /* Do not add code here. */
-  {
-    /* Develop the mangled name. */
-    /* See if template arguments are needed.  For partial specializations,
-       there are two argument lists. */
-    template_args = ctsp->template_arg_list;
-    /* Always start with the name of the class, which applies even in the
-       template class case. */
-    name = unmangled_name_of(&type->source_corresp);
-    if (name == NULL) {
-      /* For an unnamed class, generate a name (or use the name previously
-         generated). */
-      give_unnamed_class_a_name(type);
-      name = type->source_corresp.name;
-    }  /* if */
 #if IA64_ABI
-    if (show_length) {
-      add_number_to_mangled_name((unsigned long)strlen(name), mctl);
-    }  /* if */
-#endif /* IA64_ABI */
-    add_str_to_mangled_name(name, mctl);
-#if !IA64_ABI
-    if (mctl->suppress_partial_spec_args) show_partial_spec_args = FALSE;
-#if ABI_COMPATIBILITY_VERSION < 241
-    /* Before this change, all names included partial specialization
-       arguments. */
-    show_partial_spec_args = distinct_template_signatures;
-#endif /* ABI_COMPATIBILITY_VERSION < 241 */
-    if (show_partial_spec_args &&
-        ctsp->partial_spec_template_arg_list != NULL) {
-      /* A partial specialization.  The first list is the argument list
-         from the prototype instantiation of the partial specialization.
-           template <class T> struct A { ... };
-           template <class T> struct A<T *> { ... };
-                                       ^^^this argument list
-      */
-      a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
-      a_class_type_supplement_ptr   proto_ctsp;
-
-      if (type->variant.class_struct_union.is_prototype_instantiation) {
-        proto_ctsp = ctsp;
-      } else {
-        a_symbol_ptr proto_sym = cssp->corresp_prototype_sym;
-        a_type_ptr   proto_type = proto_sym->variant.class_struct_union.type;
-        proto_ctsp = proto_type->variant.class_struct_union.extra_info;
-      }  /* if */
-      mangled_template_arguments(proto_ctsp->template_arg_list,
-                                 /*partial_spec=*/TRUE,
-                                 /*old_form=*/FALSE,
-                                 mctl);
-      /* The second argument list is the deduced argument values for the
-         template parameter list of the partial specialization. */
-      template_args = ctsp->partial_spec_template_arg_list;
-    }  /* if */
-    if (show_template_specialization) {
-      /* Put out an indication of the fact the template from which this
-         class is generated is specialized. */
-      mangled_specialization_indication(mctl);
-    }  /* if */
-#endif /* !IA64_ABI */
-    if (template_args != NULL) {
-      /* A template class.  Add information on template arguments. */
-      /* old_form=TRUE forces use of the cfront-compatible mangling convention
-         for lengths on literals, which though ambiguous is okay here because
-         the class cannot be followed by an "_". */
-      a_boolean old_form = !distinct_template_signatures;
-#if ABI_COMPATIBILITY_VERSION < 235
-      old_form = TRUE;
-#endif /* ABI_COMPATIBILITY_VERSION < 235 */
-      mangled_template_arguments(template_args,
-                                 /*partial_spec=*/FALSE,
-                                 old_form,
-                                 mctl);
-    }  /* if */
-#if !IA64_ABI
-    if (show_specialization) {
-      /* Put out an indication of the fact that this class is specialized. */
-      mangled_specialization_indication(mctl);
-    }  /* if */
-    /* If the class is a local class, put out a suffix identifying the
-       function and the class number. */
-    /* Don't do this for nested classes. */
-    if (type->source_corresp.is_local_to_function &&
-        !type->source_corresp.is_class_member) {
-      /* This is a local name. */
-      a_class_symbol_supplement_ptr ssp = symbol_supplement_for_class(type);
-      add_local_name_suffix(ssp->local_class_number, ssp->enclosing_routine,
-                            mctl);
-    }  /* if */
-#else /* IA64 */
-    add_discriminator_if_necessary(&type->source_corresp, mctl);
-#endif /* !IA64_ABI */
+  if (show_length) {
+    add_number_to_mangled_name((unsigned long)strlen(name), mctl);
   }  /* if */
+#endif /* IA64_ABI */
+  add_str_to_mangled_name(name, mctl);
+#if !IA64_ABI
+#if ABI_COMPATIBILITY_VERSION < 241
+  /* Before this change, all names included partial specialization
+     arguments. */
+  show_partial_spec_args = (distinct_template_signatures &&
+                            ctsp->partial_spec_template_arg_list != NULL);
+#endif /* ABI_COMPATIBILITY_VERSION < 241 */
+  if (show_partial_spec_args) {
+    /* A partial specialization.  The first list is the argument list
+       from the prototype instantiation of the partial specialization.
+         template <class T> struct A { ... };
+         template <class T> struct A<T *> { ... };
+                                     ^^^this argument list
+    */
+    a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
+    a_class_type_supplement_ptr   proto_ctsp;
+
+    check_assertion(ctsp->partial_spec_template_arg_list != NULL);
+    if (type->variant.class_struct_union.is_prototype_instantiation) {
+      proto_ctsp = ctsp;
+    } else {
+      a_symbol_ptr proto_sym = cssp->corresp_prototype_sym;
+      a_type_ptr   proto_type = proto_sym->variant.class_struct_union.type;
+      proto_ctsp = proto_type->variant.class_struct_union.extra_info;
+    }  /* if */
+    mangled_template_arguments(proto_ctsp->template_arg_list,
+                               /*partial_spec=*/TRUE,
+                               /*old_form=*/FALSE,
+                               mctl);
+    /* The second argument list is the deduced argument values for the
+       template parameter list of the partial specialization. */
+    template_args = ctsp->partial_spec_template_arg_list;
+  }  /* if */
+  if (show_template_specialization) {
+    /* Put out an indication of the fact the template from which this
+       class is generated is specialized. */
+    mangled_specialization_indication(mctl);
+  }  /* if */
+#endif /* !IA64_ABI */
+  if (template_args != NULL) {
+    /* A template class.  Add information on template arguments. */
+    /* old_form=TRUE forces use of the cfront-compatible mangling convention
+       for lengths on literals, which though ambiguous is okay here because
+       the class cannot be followed by an "_". */
+    a_boolean old_form = !distinct_template_signatures;
+#if ABI_COMPATIBILITY_VERSION < 235
+    old_form = TRUE;
+#endif /* ABI_COMPATIBILITY_VERSION < 235 */
+    mangled_template_arguments(template_args,
+                               /*partial_spec=*/FALSE,
+                               old_form,
+                               mctl);
+  }  /* if */
+#if !IA64_ABI
+  if (show_specialization) {
+    /* Put out an indication of the fact that this class is specialized. */
+    mangled_specialization_indication(mctl);
+  }  /* if */
+  /* If the class is a local class, put out a suffix identifying the
+     function and the class number. */
+  /* Don't do this for nested classes. */
+  if (type->source_corresp.is_local_to_function &&
+      !type->source_corresp.is_class_member) {
+    /* This is a local name. */
+    a_class_symbol_supplement_ptr ssp = symbol_supplement_for_class(type);
+    add_local_name_suffix(ssp->local_class_number, ssp->enclosing_routine,
+                          mctl);
+  }  /* if */
+#else /* IA64 */
+  add_discriminator_if_necessary(&type->source_corresp, mctl);
+#endif /* !IA64_ABI */
 }  /* mangled_full_class_name */
 
 
@@ -3040,6 +2994,78 @@ that fact should be put out.
   }  /* if */
 }  /* mangled_class_encoding */
 
+#if !IA64_ABI
+
+static unsigned long nesting_level_of(a_source_correspondence *scp)
+/*
+Compute the nesting level of the entity with the indicated source
+correspondence.  The nesting level is the count of enclosing class
+and namespace levels.
+*/
+{
+  unsigned long levels = 0;
+
+  if (scp->is_class_member) {
+    levels = nesting_level_of(&scp->parent.class_type->source_corresp) + 1;
+  } else if (scp->parent.namespace_ptr != NULL) {
+    levels = nesting_level_of(&scp->parent.namespace_ptr->source_corresp) + 1;
+  }  /* if */
+  return levels;
+}  /* nesting_level_of */
+
+
+static void add_nesting_level_encoding(unsigned long            nesting_level,
+                                       a_mangling_control_block *mctl)
+/*
+Add to the mangled name the "Q" encoding (Cfront-like ABI) that
+indicates the beginning of a qualified name.  nesting_level is the
+number of levels in the qualified name.
+*/
+{
+  /* This uses the ARM (7.2.1c) encoding for nested class names, like
+     "outer::inner", using a "Q" description:
+       Q2_5outer5inner
+          ^-----^-----mangled class names, outer to inner
+        ^----count of levels of qualification
+     Note that the ARM description does not include the underscore, which
+     is necessary if you allow more than 9 levels of nesting.
+     The same scheme is used for namespace names. */
+  add_to_mangled_name('Q', mctl);
+  add_number_to_mangled_name(nesting_level, mctl);
+  add_to_mangled_name('_', mctl);
+}  /* add_nesting_level_encoding */
+
+
+static a_boolean parents_have_partial_spec_args(a_type_ptr type)
+/*
+Return TRUE if any of the parents of the indicated type is a class
+with partial specialization arguments.
+*/
+{
+  a_boolean has_partial_spec_args = FALSE;
+
+  if (type->source_corresp.is_class_member) {
+    a_type_ptr parent_type = type->source_corresp.parent.class_type;
+    a_class_type_supplement_ptr
+               ctsp = parent_type->variant.class_struct_union.extra_info;
+    if (ctsp->partial_spec_template_arg_list != NULL) {
+      has_partial_spec_args = TRUE;
+    } else {
+      has_partial_spec_args = parents_have_partial_spec_args(parent_type);
+    }  /* if */
+  }  /* if */
+  return has_partial_spec_args;
+} /* parents_have_partial_spec_args */
+  
+#endif /* !IA64_ABI */
+
+/*
+The prefix put on the front of the type encoding for a nested type to get
+the name placed in the nested type itself.  Also used for classes with
+template argument lists, and types promoted out of functions.
+*/
+#define PREFIX_ON_NESTED_TYPE_NAME "__"
+
 
 /* Return TRUE if the indicated type needs a parent (class or namespace)
    qualifier. */
@@ -3069,89 +3095,34 @@ used in the IA-64 ABI.  See the macro mangled_parent_qualifier, which
 supplies the usual nesting_level == 1.
 */
 {
+  a_type_ptr              type = NULL;
+  a_class_type_supplement_ptr
+                          ctsp;
   a_source_correspondence *parent_scp;
   a_boolean               more_levels;
+#if !IA64_ABI
+  a_boolean               show_partial_spec_args = FALSE;
+  a_boolean               is_template_specialization = FALSE;
+  a_boolean               is_specialization = FALSE;
+#endif /* !IA64_ABI */
 
   /* See if the present level is nested inside some other class or
      namespace. */
   if (scp->is_class_member) {
-    a_type_ptr class_type = scp->parent.class_type;
+    /* Class member. */
+    type = scp->parent.class_type;
+    ctsp = type->variant.class_struct_union.extra_info;
 #if CHECKING
-    if (!class_type_has_body(class_type) &&
-        !class_type->variant.class_struct_union.is_nonreal_class) {
+    if (!class_type_has_body(type) &&
+        !type->variant.class_struct_union.is_nonreal_class) {
 #if DEBUG
       (void)fprintf(f_debug, "Parent class = ");
-      db_abbr_type(class_type);
+      db_abbr_type(type);
 #endif /* DEBUG */
       unexpected_condition_str(
                        "r_mangled_parent_qualifier: parent class has no body");
     }  /* if */
 #endif /* CHECKING */
-    parent_scp = &class_type->source_corresp;
-    more_levels = type_needs_parent_qualifier(class_type);
-  } else {
-    check_assertion(scp->parent.namespace_ptr != NULL);
-    parent_scp = &scp->parent.namespace_ptr->source_corresp;
-    more_levels = (parent_scp->parent.namespace_ptr != NULL);
-  }  /* if */
-#if !IA64_ABI
-  if (more_levels) {
-    /* This level is nested inside something else.  Do a recursive call to
-       deal with all of the parents. */
-    r_mangled_parent_qualifier(parent_scp, nesting_level + 1, mctl);
-  } else {
-    /* This is the topmost qualifier. */
-    if (nesting_level > 1) {
-      /* More than one level of nesting, so use the ARM (7.2.1c) encoding
-         for nested class names, like "outer::inner", using a "Q" description:
-           Q2_5outer5inner
-              ^-----^-----mangled class names, outer to inner
-            ^----count of levels of qualification
-         Note that the ARM description does not include the underscore, which
-         is necessary if you allow more than 9 levels of nesting.
-         The same scheme is used for namespace names. */
-      add_to_mangled_name('Q', mctl);
-      add_number_to_mangled_name(nesting_level, mctl);
-      add_to_mangled_name('_', mctl);
-    }  /* if */
-  }  /* if */
-#endif /* !IA64_ABI */
-  /* Put the class or namespace name at this level into the mangled name. */
-  /* The name is preceded by a count of the number of characters in
-     the name. */
-  if (scp->is_class_member) {
-    /* Class name. */
-    a_type_ptr type = scp->parent.class_type;
-    a_boolean  show_partial_spec_args; 
-    a_boolean  is_specialization;
-    a_boolean  is_template_specialization;
-#if IA64_ABI
-    if (add_substitution_if_available((char *)type, iek_type, mctl)) {
-      goto done;
-    } else {
-      a_template_ptr              tmpl;
-      a_class_type_supplement_ptr ctsp;
-      tmpl = class_template_of(type);
-      if (tmpl != NULL &&
-          add_substitution_if_available((char *)tmpl, iek_template, mctl)) {
-        ctsp = type->variant.class_struct_union.extra_info;
-        mangled_template_arguments(ctsp->template_arg_list,
-                                   /*partial_spec=*/FALSE,
-                                   /*old_form=*/FALSE,
-                                   mctl);
-        goto new_substitution;
-      }  /* if */
-      if (more_levels) {
-        /* This level is nested inside something else.  Do a recursive call to
-           deal with all of the parents. */
-        r_mangled_parent_qualifier(parent_scp, nesting_level + 1, mctl);
-      }  /* if */
-      if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
-    }  /* if */
-#endif /* IA64_ABI */
-    show_partial_spec_args = FALSE;
-    is_specialization = FALSE;
-    is_template_specialization = FALSE;
 #if !IA64_ABI
     if (distinct_template_signatures) {
       /* When templates get distinct mangling from normal functions,
@@ -3173,9 +3144,107 @@ supplies the usual nesting_level == 1.
           !type->variant.class_struct_union.specialized_with_old_syntax) {
         is_specialization = TRUE;
       }  /* if */
-      show_partial_spec_args = distinct_template_signatures;
+      /* See if the class is a partial specialization. */
+      if (ctsp->partial_spec_template_arg_list != NULL &&
+          !mctl->suppress_partial_spec_args) {
+        show_partial_spec_args = TRUE;
+      }  /* if */
+    }  /* if */
+    if (type->source_corresp.name_has_been_mangled &&
+        type->source_corresp.final_name_mangling_pending &&
+        !show_partial_spec_args &&
+        !is_template_specialization &&
+        !is_specialization &&
+        (!mctl->suppress_partial_spec_args ||
+         !parents_have_partial_spec_args(type))) {
+      /* The form of the name needed matches the form saved by
+         mangle_type_name, so use the saved form.  This includes all
+         the parents of the type as well.  Note that the tricky test here
+         is that we only include specialization information in parents, so
+         the saved version has no specialization information in the final
+         component of the name.  If there wouldn't be any of that information
+         anyway (e.g., because the final component is not a partial
+         specialization), the final component matches what we want.  The
+         other components are usually okay, because they're generated as
+         parent qualifiers and include the specialization information if
+         appropriate (but we can't use them if we're in a context where
+         all partial specialization information is suppressed, unless
+         there are no partial specializations involved). */
+      /* We need to drop the nested type name prefix if present, and
+         construct the correct "Q" qualifier with the right total nesting
+         level, ignoring the one on the saved mangled name. */
+      char          *name = type->source_corresp.name;
+      unsigned long type_nesting_level=nesting_level_of(&type->source_corresp);
+      /* Skip the prefix. */
+      check_assertion(strncmp(name,
+                              PREFIX_ON_NESTED_TYPE_NAME,
+                              sizeof(PREFIX_ON_NESTED_TYPE_NAME)-1) == 0);
+      name += sizeof(PREFIX_ON_NESTED_TYPE_NAME) - 1;
+      if (type_nesting_level > 0) {
+        check_assertion(*name == 'Q');
+        /* Skip the "Q", number of levels, and the underscore. */
+        name++;
+        while (isdigit((unsigned char)*name)) name++;
+        check_assertion(*name == '_');
+        name++;
+      }  /* if */
+      nesting_level += type_nesting_level;
+      if (nesting_level > 1) {
+        /* Output the "Q" qualifier with the correct (total) nesting level. */
+        add_nesting_level_encoding(nesting_level, mctl);
+      }  /* if */
+      /* Copy the previously mangled name to the output. */
+      add_str_to_mangled_name(name, mctl);
+      goto done;
     }  /* if */
 #endif /* !IA64_ABI */
+    parent_scp = &type->source_corresp;
+    more_levels = type_needs_parent_qualifier(type);
+  } else {
+    /* Namespace member. */
+    check_assertion(scp->parent.namespace_ptr != NULL);
+    parent_scp = &scp->parent.namespace_ptr->source_corresp;
+    more_levels = (parent_scp->parent.namespace_ptr != NULL);
+  }  /* if */
+#if !IA64_ABI
+  if (more_levels) {
+    /* This level is nested inside something else.  Do a recursive call
+       to put out all of the parents. */
+    r_mangled_parent_qualifier(parent_scp, nesting_level + 1, mctl);
+  } else {
+    /* This is the topmost qualifier. */
+    if (nesting_level > 1) {
+      add_nesting_level_encoding(nesting_level, mctl);
+    }  /* if */
+  }  /* if */
+#endif /* !IA64_ABI */
+  /* Put the class or namespace name at this level into the mangled name. */
+  /* The name is preceded by a count of the number of characters in
+     the name. */
+  if (scp->is_class_member) {
+    /* Class name. */
+#if IA64_ABI
+    if (add_substitution_if_available((char *)type, iek_type, mctl)) {
+      goto done;
+    } else {
+      a_template_ptr              tmpl;
+      tmpl = class_template_of(type);
+      if (tmpl != NULL &&
+          add_substitution_if_available((char *)tmpl, iek_template, mctl)) {
+        mangled_template_arguments(ctsp->template_arg_list,
+                                   /*partial_spec=*/FALSE,
+                                   /*old_form=*/FALSE,
+                                   mctl);
+        goto new_substitution;
+      }  /* if */
+      if (more_levels) {
+        /* This level is nested inside something else.  Do a recursive call to
+           deal with all of the parents. */
+        r_mangled_parent_qualifier(parent_scp, nesting_level + 1, mctl);
+      }  /* if */
+      if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
+    }  /* if */
+#endif /* IA64_ABI */
     mangled_class_encoding(type,
                            show_partial_spec_args,
                            is_template_specialization,
@@ -3214,9 +3283,7 @@ new_substitution:
     alloc_substitution((char *)nsp, iek_namespace, mctl);
 #endif /* IA64_ABI */
   }  /* if */
-#if IA64_ABI
 done:;
-#endif /* IA64_ABI */
 }  /* r_mangled_parent_qualifier */
 
 #if IA64_ABI
@@ -3310,7 +3377,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   /* The caller has already checked to see if a substitution is available for
      this entire type.  Check here to see if the type is an instantiation of a
      template for which a substitution is available. */
-  /* Don't do this for typedefs passed from final_type_name_mangling. */
+  /* Don't do this for typedefs passed from mangled_type_name. */
   tmpl = NULL;  
   if (is_immediate_class_type(type)) {
     tmpl = class_template_of(type);
@@ -3328,7 +3395,25 @@ and for unnamed classes and enums.  Nested types are encoded as such.
                                 &need_nested_name_close, mctl);
   if (tmpl != NULL) alloc_substitution((char *)tmpl, iek_template, mctl);
 #else /* !IA64_ABI */
-  if (type_needs_parent_qualifier(type)) {
+  if (type->source_corresp.name_has_been_mangled &&
+      type->source_corresp.final_name_mangling_pending &&
+      /* The saved version includes partial specialization arguments on
+         parents of the type, so it can be reused only if we want those
+         arguments or if there aren't any so it doesn't make a difference. */
+      (!mctl->suppress_partial_spec_args ||
+       !parents_have_partial_spec_args(type))) {
+    /* The type name has been mangled already (in mangle_type_name), so
+       reuse the form we already have saved.  Skip the prefix at the
+       beginning of the name. */
+    name = type->source_corresp.name;
+    check_assertion(name != NULL &&
+                    strncmp(name,
+                            PREFIX_ON_NESTED_TYPE_NAME,
+                            sizeof(PREFIX_ON_NESTED_TYPE_NAME)-1) == 0);
+    name += sizeof(PREFIX_ON_NESTED_TYPE_NAME) - 1;
+    add_str_to_mangled_name(name, mctl);
+    goto done;
+  } else if (type_needs_parent_qualifier(type)) {
     /* The type is a member of a class or namespace, so put out a qualifier.
        Note that the count starts at 2 because the type name itself is level
        1. */
@@ -3367,8 +3452,8 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   }  /* if */
 #if IA64_ABI
   close_ia64_nested_name(need_nested_name_close, mctl);
-done:;
 #endif /* IA64_ABI */
+done:;
 }  /* mangled_type_name */
 
 
@@ -4914,40 +4999,45 @@ use them; otherwise, visit the local scopes from the routine scope.
   process_local_types(il_header.primary_scope, list_mangling_routine);
 }  /* do_local_name_mangling */
 
-#if !IA64_ABI
 
-static void mangle_class_name(a_type_ptr class_type)
+static void mangle_type_name(a_type_ptr type)
 /*
-Mangle the name of the indicated class, if necessary.  This is done
-with the Cfront-like ABI to generate mangled version of the class
-name that can be reused when building up other mangled names.
-The mangled form has the class name and template arguments but
-no parent information.
+Mangle the name of the indicated type, if necessary.  Mangling is
+necessary for nested types and for classes with mangled names.
+This is done early for the Cfront-like ABI to generate a mangled
+version of the type name that can be reused when building up
+other mangled names, thus saving time.  The mangled form saved
+is what mangled_type_name generates, plus a prefix.
 */
 {
   a_mangling_control_block mctl;
 
-  error_position = class_type->source_corresp.decl_position;
-  /* Template class names must be mangled because otherwise all instances
-     of the same class template have the same name. */
-  if (class_type->variant.class_struct_union.extra_info->
-                                                   template_arg_list != NULL &&
-      !class_type->source_corresp.name_has_been_mangled) {
+  error_position = type->source_corresp.decl_position;
+  /* do_type_name_mangling gets called twice, once from template processing
+     and once from lowering itself.  Do nothing for names that have already
+     been mangled on the previous call. */
+  if (!type->source_corresp.name_has_been_mangled &&
+      has_name(type) &&
+      (type_needs_parent_qualifier(type) ||
+       (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.extra_info->
+                                                 template_arg_list != NULL))) {
     start_mangling(&mctl);
-    mangled_basic_class_name(class_type, &mctl);
+    add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
+    mangled_type_name(type, &mctl);
     /* Note final=FALSE to prevent compression and truncation at this
-       time, so that the name can be reused more often.
-       final_type_name_mangling will do the compression or truncation if
-       necessary. */
-    (void)end_mangling(&class_type->source_corresp, /*final=*/FALSE, &mctl);
+       time, so that the name can be reused.  final_entity_name_mangling
+       will do the compression or truncation if necessary. */
+    (void)end_mangling(&type->source_corresp, /*final=*/FALSE, &mctl);
   }  /* if */
-}  /* mangle_class_name */
+}  /* mangle_type_name */
 
 
-static void do_type_list_class_name_mangling(a_type_ptr type_list)
+static void do_type_list_type_name_mangling(a_type_ptr type_list)
 /*
-Do class name mangling for the types on the indicated type list and subscopes
-thereunder.  Note that this does not include final processing for type names.
+Do type name mangling for the types on the indicated type list and subscopes
+thereunder.  Note that this does not include final processing like
+compression and truncation.
 */
 {
   a_type_ptr  type;
@@ -4955,61 +5045,60 @@ thereunder.  Note that this does not include final processing for type names.
 
   /* Visit all types on the list. */
   for (type = type_list; type != NULL; type = type->next) {
-    /* If the type is a class, process it and its scope. */
+    mangle_type_name(type);
+    /* If the type is a class, process its scope. */
     if (is_immediate_class_type(type)) {
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
-      mangle_class_name(type);
       class_scope = ctsp->assoc_scope;
       if (class_scope != NULL) {
-        do_type_list_class_name_mangling(class_scope->types);
+        do_type_list_type_name_mangling(class_scope->types);
       }  /* if */
 #if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
       /* If some local types of member functions were promoted into the
          class on their way to the file scope, mangle them now too. */
-      do_type_list_class_name_mangling(ctsp->promoted_local_types);
+      do_type_list_type_name_mangling(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
     }  /* if */
   }  /* for */
-}  /* do_type_list_class_name_mangling */
+}  /* do_type_list_type_name_mangling */
 
 
-static void do_scope_class_name_mangling(a_scope_ptr scope)
+static void do_scope_type_name_mangling(a_scope_ptr scope)
 /*
-Do name mangling for class names in the indicated scope (a file or
+Do name mangling for type names in the indicated scope (a file or
 namespace scope) and all subscopes.  Note that this does not include
-final processing for type names.
+final processing like compression and truncation.
 */
 {
   a_namespace_ptr nsp;
 
   /* Process the types in the scope. */
-  do_type_list_class_name_mangling(scope->types);
+  do_type_list_type_name_mangling(scope->types);
   /* Process the namespaces in the scope. */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
-      do_scope_class_name_mangling(nsp->variant.assoc_scope);
+      do_scope_type_name_mangling(nsp->variant.assoc_scope);
     }  /* if */
   }  /* for */
-}  /* do_scope_class_name_mangling */
+}  /* do_scope_type_name_mangling */
 
 
-void do_class_name_mangling(void)
+void do_type_name_mangling(void)
 /*
-Do name mangling for all class names.  Note that this does not include
-final processing for type names.
+Do name mangling for all type names.  Note that this does not include
+final processing like compression and truncation.
 */
 {
   /* Process the file scope and all subscopes in the file-scope memory
      region. */
-  do_scope_class_name_mangling(il_header.primary_scope);
+  do_scope_type_name_mangling(il_header.primary_scope);
   /* Process local types. */
-  do_local_name_mangling(do_type_list_class_name_mangling);
-}  /* do_class_name_mangling */
+  do_local_name_mangling(do_type_list_type_name_mangling);
+}  /* do_type_name_mangling */
 
-#endif /* !IA64_ABI */
 
 static void mangle_member_constant_name(a_constant_ptr con)
 /*
@@ -5035,13 +5124,6 @@ extension) a declared class member constant.
 }  /* mangle_member_constant_name */
 
 
-/*
-The prefix put on the front of the type encoding for a nested type to get
-the name placed in the nested type itself.
-*/
-#define PREFIX_ON_NESTED_TYPE_NAME "__"
-
-
 static void do_type_list_other_name_mangling(a_type_ptr type_list)
 /*
 Do name mangling for things other than classes (e.g., functions, static
@@ -5055,24 +5137,8 @@ including classes.
 
   /* Visit all types on the list. */
   for (type = type_list; type != NULL; type = type->next) {
-    a_boolean is_class = is_immediate_class_type(type);
-#if IA64_ABI
-    /* For the IA-64 ABI, mangle nested types and classes with template
-       arguments.  See comment in final_type_name_mangling. */
-    if (has_name(type) &&
-        (type_needs_parent_qualifier(type) ||
-         (is_class &&
-          type->variant.class_struct_union.extra_info->
-                                                 template_arg_list != NULL))) {
-      a_mangling_control_block mctl;
-      start_mangling(&mctl);
-      add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
-      mangled_type_name(type, &mctl);
-      (void)end_mangling(&type->source_corresp, /*final=*/FALSE, &mctl);
-    }  /* if */
-#endif /* IA64_ABI */
     /* If the type is a class, do its scope. */
-    if (is_class) {
+    if (is_immediate_class_type(type)) {
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
       class_scope = ctsp->assoc_scope;
@@ -5265,10 +5331,11 @@ function-local entities that require mangling.  Final name mangling
 is not done yet -- see do_final_name_mangling.
 */
 {
-#if !IA64_ABI
-  /* Mangle class names, not including final mangling on type names. */
-  do_class_name_mangling();
-#endif /* !IA64_ABI */
+  /* Mangle type names, not including final mangling.  This is done first
+     so that the mangled names of classes can be used from the stored
+     form (in the Cfront-like ABI) and not regenerated each time they are
+     needed. */
+  do_type_name_mangling();
   /* Do function, namespace, and static data member name mangling, not
      including some final mangling. */
   do_scope_other_name_mangling(il_header.primary_scope);
@@ -5307,58 +5374,6 @@ compression and truncation.
 }  /* final_entity_name_mangling */
 
 
-static void final_type_name_mangling(a_type_ptr type)
-/*
-Do final mangling on a type name, mangling that would prevent the mangled
-form of the name from being usable as part of another mangled name.
-Such processing is delayed to the end to allow reuse of the mangled name
-(and the attendant time savings) as many times as possible.
-This does special processing for nested type names, compressed names,
-and truncated names.
-*/
-{
-  error_position = type->source_corresp.decl_position;
-  check_assertion_str2(!type->source_corresp.
-                                 mangled_name_cannot_be_included_in_other_name,
-                       "final_type_name_mangling:", 
-                       "mangled_name_cannot_be_included_in_other_name is set");
-#if IA64_ABI
-  /* In the IA-64 ABI, class names are fully mangled early because they
-     can't be reused (the substitution numbering has to be done in the
-     context of a whole mangled name).  The mangling is done early and
-     not here because by this time point some of the types and constants
-     in template arguments might have been lowered. */
-  final_entity_name_mangling(&type->source_corresp);
-#else /* !IA64_ABI */
-  /* Cfront-like ABI.  Mangle nested type names. */
-  in_final_type_name_mangling = TRUE;
-  if (has_name(type)) {
-    if (type_needs_parent_qualifier(type)) {
-      /* Nested type names must be mangled (because they exist in a scope
-         that does not exist in the generated C code).  The mangled form
-         is something like
-           __Q2_1A1B
-         The "Q2_1A1B" part is the normal representation for a mangled
-         name, and the prefix makes it unique (i.e., makes it distinct
-         from all user identifiers).  Similar mangling is used for members
-         of namespaces (a different kind of "nested" type). */
-      a_mangling_control_block mctl;
-      start_mangling(&mctl);
-      add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
-      mangled_type_name(type, &mctl);
-      /* The following does compression and truncation if necessary. */
-      (void)end_mangling(&type->source_corresp, /*final=*/TRUE, &mctl);
-      type->source_corresp.mangled_name_cannot_be_included_in_other_name= TRUE;
-    } else {
-      /* Not a nested type.  Check for compression and truncation. */
-      final_entity_name_mangling(&type->source_corresp);
-    }  /* if */
-  }  /* if */
-  in_final_type_name_mangling = FALSE;
-#endif /* IA64_ABI */
-}  /* final_type_name_mangling */
-
-
 static void do_scope_final_name_mangling(a_scope_ptr scope);
 
 
@@ -5391,10 +5406,7 @@ also processed.
 #endif /* DO_IL_LOWERING */
     }  /* if */
     /* Do name mangling on the type. */
-    /* Note that the call here must be done after all subscopes have been
-       visited; we don't want to change the name of a class until the
-       classes nested within it have been processed. */
-    final_type_name_mangling(type);
+    final_entity_name_mangling(&type->source_corresp);
   }  /* for */
 }  /* do_type_list_final_name_mangling */
 
@@ -5923,17 +5935,18 @@ returned.
 /*ARGSUSED*/  /* <-- scope is not used in that case. */
 #endif /* IA64_ABI */
 void mangle_promoted_entity_name(a_source_correspondence *scp,
+                                 an_il_entry_kind        kind,
                                  a_boolean               final,
                                  a_routine_ptr           routine,
                                  a_scope_ptr             scope)
 /*
 scp points to the source correspondence field of an entity that is
 being promoted out of the routine "routine" (or one of its block
-scopes) to the file scope.  scope indicates the scope out of which the
-entity is being promoted (a function or block scope).  Give the entity
-a mangled name if necessary.  If final is TRUE, do the final name
-mangling, which may produce a name that can no longer be embedded in
-other mangled names.
+scopes) to the file scope.  kind indicates the kind of entity.
+scope indicates the scope out of which the entity is being promoted
+(a function or block scope).  Give the entity a mangled name if
+necessary.  If final is TRUE, do the final name mangling, which may
+produce a name that can no longer be embedded in other mangled names.
 */
 {
   a_mangling_control_block mctl;
@@ -5959,6 +5972,9 @@ other mangled names.
       scope_number = search_scope_list(scope, rout_scope, &found);
       check_assertion_str(found,
                           "mangle_promoted_entity_name: scope not found");
+      if (kind == iek_type) {
+        add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
+      }  /* if */
       add_str_to_mangled_name(scp->name, &mctl);
       add_local_name_suffix(scope_number, routine, &mctl);
     }
@@ -6445,7 +6461,6 @@ initialized for each compilation.
   unnamed_member_variable_name_seed = 0;
 #if !IA64_ABI
   avail_compressible_string_pos = NULL;
-  in_final_type_name_mangling = FALSE;
 #if DEBUG
   num_compressible_string_pos_allocated = 0;
 #endif /* DEBUG */
