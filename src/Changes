@@ -36,7 +36,7 @@ To avoid the problem, the removal is now suppressed in such cases
 
 When VLA support is enabled, the routine type of a function that takes a
 parameter involving a VLA type is now modified so that its param-type
-entries no longer has has_assoc_vla_dimension set.  The VLA information
+entry no longer has has_assoc_vla_dimension set.  The VLA information
 continues to be recorded for the type of the corresponding parameter
 variable.  For instance:
 
