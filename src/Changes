@@ -40,6 +40,25 @@ function template f:
   template <class T> struct A;
   template <class T> const struct X : A<T> { int i; } f(T);
 
+2/12/97 Diagnostic on cv-qualifiers on return type of function template
+
+A spurious warning has been eliminated on "useless" top-level cv-qualifiers
+on the return type of a function template.  For instance:
+
+  struct S {
+    template <class T> operator const T();   // No diagnostic
+  } s;
+  struct X { };
+  int main() {
+    X x = s;                                 // No diagnostic
+    int i = s;                               // Remark
+  }
+
+A spurious warning used to be issued on the template declaration.  The
+handling of S::operator const X() is unchanged.  The diagnostic on the
+instantiation of S::operator const int() used to be a warning but is
+now a remark.
+
 2/12/97 &(A::x) is not a pointer to member
 
 The form "&(A::x)" is no longer accepted as a pointer to member.  This
