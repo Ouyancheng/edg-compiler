@@ -3,7 +3,7 @@ Version 3.1
 9/24/02  Typedefs and elaborated type specifiers
 
 The lookup rules for names used in elaborated type specifiers is different
-in C and C++ (a changed introduced in C++ by the standardization process).
+in C and C++ (a change introduced in C++ by the standardization process).
 In C++ the lookup finds typedef names (resulting in an error) while in C
 the lookup ignores typedef names.  We now implement the new rules in C++
 mode.
