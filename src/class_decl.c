@@ -5664,6 +5664,9 @@ Scan the body of a class definition, including the base classes list.
     /* This is a class, struct, or union definition -- not merely a
        declaration. */
     tag_sym->defined = TRUE;
+    /* Since this is the class's definition, set the declaration sequence
+       number. */
+    set_decl_sequence_number(tag_sym);
     /* If this is the definition of a nested class, set the parent class
        pointer in the tag symbol and set the access. */
     if (!is_template_instantiation &&
