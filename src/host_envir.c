@@ -984,6 +984,24 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
 }  /* get_file_modification_time */
 
 
+static char *get_file_modification_time_string(char	*file_name)
+/*
+Return the last modification time of "file_name" as a date/time string.
+If the file does not exist, or is not a regular file, return NULL.
+When a string is the static buffer returned by the ctime function,
+which will be overwritten when ctime is called again.
+*/
+{
+  time_t	mod_time;
+  char		*time_str = NULL;
+
+  if (get_file_modification_time(file_name, &mod_time)) {
+    time_str = ctime(&mod_time);
+  }  /* if */
+  return time_str;
+}  /* get_file_modification_time_string */
+
+
 a_boolean is_regular_file(char *file_name)
 /*
 Return TRUE if the specified file is a regular file (i.e., not a
@@ -2174,7 +2192,7 @@ Set module_id to the string.
       /* In the very unlikely event that the file does not define any
          externally visible variables or routines, use the time of
          compilation and current directory name. */
-      str1 = il_header.time_of_compilation;
+      str1 = get_file_modification_time_string(file_name);
       str2 = current_directory_name;
     } else {
       str1 = external_name;
