@@ -7055,8 +7055,9 @@ such as instantiating a template for which no body was supplied.
     /* Inline and static functions should always be instantiated if they
        are used. */
     a_routine_ptr	rout = tip->instance_sym->variant.routine.ptr;
-    is_inline_or_static_function = rout->is_inline ||
-                                   rout->storage_class == sc_static;
+    is_inline_or_static_function =
+                            rout->is_inline ||
+                            rout->storage_class == (a_storage_class)sc_static;
   }  /* if */
   if (tip->explicit_instantiation ||
       (tip->instantiation_required &&
