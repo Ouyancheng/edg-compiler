@@ -276,6 +276,8 @@ typedef int a_gen_name_options_set;
 			   parameter. */
 #define GN_NO_TEMPLATE_ARGS 0x40
 			/* Do not generate the template arguments. */
+#define GN_TEMPLATE 0x80
+			/* The name to generate is that of a template. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
 
@@ -1800,7 +1802,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         if (class_type->variant.class_struct_union.is_nonreal_class &&
             (template_arguments_for_name(scp, entry_kind,
                                          /*insert_space=*/NULL) != NULL ||
-             entry_kind == iek_template)) {
+             (options & GN_TEMPLATE))) {
           /* Issue the "template" keyword in a "X<T>::template Y<int>" name
              or in a "X<T>::template Y" default template argument for a
              template template parameter. */
@@ -2466,6 +2468,20 @@ Routine to be called by the il_to_str routines to output a name.
              (a_boolean *)NULL);
   }  /* if */
 }  /* gen_name_reference */
+
+
+static void gen_template_name(char             *entry,
+                              an_il_entry_kind kind)
+/*
+Routine to be called by the il_to_str routines to output the name of a
+template.
+*/
+{
+  a_gen_name_options_set options = GN_TEMPLATE;
+  if (octl.force_qualified_name) options |= GN_FORCE_QUALIFIED_NAME;
+  gen_name((a_source_correspondence *)entry, kind, options,
+           (a_boolean *)NULL);
+}  /* gen_template_name */
 
 
 static void bypass_prototype_scope_type_src_seq_entries(void)
@@ -4574,7 +4590,7 @@ precedence confusion and need_parens is TRUE.
                        (a_template_param_constant_kind)tpck_unknown_function) {
       /* A tpck_unknown_function constant represents the address of the
          unknown function.  Drop the "&" to make an lvalue. */
-      form_unknown_function_constant(constant, &octl);
+      form_unknown_function_constant(constant, /*is_template=*/FALSE, &octl);
       processed = TRUE;
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
@@ -5571,7 +5587,8 @@ finish_new_style_cast:
             /* A tpck_unknown_function constant represents the address of the
                unknown function.  Drop the "&" (it's implied) to make neater
                output. */
-            form_unknown_function_constant(operand_1->variant.constant, &octl);
+            form_unknown_function_constant(operand_1->variant.constant,
+                                           /*is_template=*/FALSE, &octl);
           } else if (is_operation_node(operand_1) &&
                      (operand_1->variant.operation.kind ==
                                (an_expr_operator_kind)eok_points_to_static ||
@@ -6330,7 +6347,7 @@ recorded with this particular header.
       if (param->variant.templ.default_arg_template != NULL) {
         write_tok_str(" = ");
         gen_name(&param->variant.templ.default_arg_template->source_corresp,
-                 iek_template, GN_NO_OPTIONS, /*need_closing_paren=*/NULL);
+                 iek_template, GN_TEMPLATE, /*need_closing_paren=*/NULL);
       }  /* if */  
     }  /* if */
     if (param->next != NULL) write_tok_str(", ");
@@ -8501,6 +8518,7 @@ Initialize for the C++/C-generating back end.
   octl.output_str = write_tok_str;
   octl.output_partial_token_str = write_str;
   octl.output_name = gen_name_reference;
+  octl.output_template_name = gen_template_name;
   octl.output_func_declarator = gen_function_declarator;
   octl.output_expression = f_gen_expression;
   octl.gen_compilable_code = TRUE;

@@ -33,6 +33,7 @@ Clear an output control block to default values.
   octl->output_str                = NULL;
   octl->output_partial_token_str  = NULL;
   octl->output_name               = NULL;
+  octl->output_template_name      = NULL;
   octl->output_temp_name          = NULL;
   octl->output_func_declarator    = NULL;
   octl->output_expression         = NULL;
@@ -133,7 +134,11 @@ static void form_template(a_template_ptr	tp,
 Output a string for a template.  Do the output in the way described by octl.
 */
 {
-  form_name(&tp->source_corresp, iek_template, octl);
+  if (octl->output_template_name != NULL) {
+    octl->output_template_name((char *)&tp->source_corresp, iek_template);
+  } else {
+    form_name(&tp->source_corresp, iek_template, octl);
+  }  /* if */
 }
 
 
@@ -2769,12 +2774,15 @@ out as the original enum constant.
 
 
 void form_unknown_function_constant(
-                                a_constant_ptr                        constant,
-                                an_il_to_str_output_control_block_ptr octl)
+                             a_constant_ptr                        constant,
+                             a_boolean                             is_template,
+                             an_il_to_str_output_control_block_ptr octl)
 /*
 Output the name indicated by a ck_template_param/tpck_unknown_function
 constant.  Note that while the constant represents the address of the unknown
 function, this routine puts out just the name, without a leading "&".
+If is_template is TRUE, the constant refers to an unknown function template
+(that will be followed by explicit template arguments).
 Do the output in the way described by octl.
 */
 {
@@ -2793,7 +2801,12 @@ Do the output in the way described by octl.
               octl);
   } else {
     /* Normal case (not a conversion function). */
-    form_name(&constant->source_corresp, iek_constant, octl);
+    if (is_template && octl->output_template_name != NULL) {
+      octl->output_template_name((char *)&constant->source_corresp,
+                                 iek_constant);
+    } else {
+      form_name(&constant->source_corresp, iek_constant, octl);
+    }  /* if */
   }  /* if */
 }  /* form_unknown_function_constant */
 
@@ -3137,7 +3150,8 @@ precedence confusion.  Do the output in the way described by octl.
           /* Address of an unknown function. */
           if (need_parens) octl->output_str("(");
           octl->output_str("&");
-          form_unknown_function_constant(constant, octl);
+          form_unknown_function_constant(constant, /*is_template=*/FALSE,
+                                         octl);
           if (need_parens) octl->output_str(")");
           break;
         case tpck_param:
@@ -3207,6 +3221,7 @@ precedence confusion.  Do the output in the way described by octl.
           octl->output_str("&");
           form_unknown_function_constant(constant->variant.template_param.
                                                       variant.template_ref.con,
+                                         /*is_template=*/TRUE,
                                          octl);
           /* Add the arguments. */
           form_template_args(constant->variant.template_param.variant.

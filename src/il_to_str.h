@@ -57,6 +57,10 @@ typedef struct an_il_to_str_output_control_block {
 	output_name;
 			/* Function to output the name of an entity.  NULL
 			   if a default routine should be used. */
+  an_output_name_function_ptr
+	output_template_name;
+			/* Function to output the name of a template.  NULL
+			   if a default routine should be used. */
   an_output_temp_name_function_ptr
 	output_temp_name;
 			/* Function to output a compiler-generated name based
@@ -225,8 +229,9 @@ extern void form_pm_constant(
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 extern void form_unknown_function_constant(
-                                a_constant_ptr                        constant,
-                                an_il_to_str_output_control_block_ptr octl);
+                             a_constant_ptr                        constant,
+                             a_boolean                             is_template,
+                             an_il_to_str_output_control_block_ptr octl);
 
 extern void form_constant(a_constant_ptr                        constant,
                           a_boolean                             need_parens,
