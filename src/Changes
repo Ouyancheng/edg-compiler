@@ -1,5 +1,13 @@
 Version 2.46
 
+6/11/01  No source positions in compiler-generated cast expressions
+
+Compiler-generated implicit cast expressions no longer have source
+position information.  The extra source position information
+is present only when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, and
+should not have been set for generated casts, because they do not
+have corresponding source code.
+
 6/7/01   Microsoft compatibility: internal error on default argument in
          template declaration
 

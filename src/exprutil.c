@@ -1364,7 +1364,10 @@ if setting the positions in the underlying expression.
     expr = operand->variant.constant.expr;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   }  /* if */
-  if (expr != NULL) {
+  if (expr != NULL &&
+      /* Don't set the position on compiler-generated operations. */
+      (!is_operation_node(expr) ||
+       !expr->variant.operation.compiler_generated)) {
     /* Set the position on the expression. */
     expr->expr_range.start = operand->position;
     expr->expr_range.end   = operand->end_position;
