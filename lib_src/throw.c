@@ -537,6 +537,7 @@ returns FALSE.
     if (!result) {
       /* The specified base class is not one of the direct or virtual bases.
          Search the indirect base classes. */
+      bcsp = class_info->base_class_entries;
       do {
         void*		new_ptr = ptr;
         a_typeinfo_ptr	test_info = bcsp->typeinfo;
@@ -658,19 +659,22 @@ static int check_exception_type_specifications
                         (an_exception_type_specification_ptr	etsp,
                          a_typeinfo_ptr				typeinfo,
 			 a_boolean				is_pointer,
-			 void**					object_ptr)
+			 void**					object_ptr,
+			 an_exception_type_specification_ptr*	etsp_found)
 /*
 Examine the exception type information associated with a given try block or
 throw specification and determine whether any of the entries match the
 object being thrown.  Returns 0 if no matching catch was found.  If a match
 is found the position in the catch array is returned (actually, the array
-index plus 1).
+index plus 1).  A pointer to the exception type specification of the matching
+entry is returned in etsp_found.
 */
 {
   int					result = 0;
   int					index = 0;
   a_boolean				done = FALSE;
 
+  *etsp_found = NULL;
   do {
     a_boolean	match = FALSE;
     index++;
@@ -681,6 +685,9 @@ index plus 1).
       match = TRUE;
     } else if (matching_types(etsp, typeinfo, is_pointer)) {
       match = TRUE;
+    } else if (((etsp->flags & ETS_IS_REFERENCE) != 0) && is_pointer) {
+      /* No match.  A pointer can only be thrown to a reference of
+         exactly the same type. */
     } else if (etsp->typeinfo == &MANGLED_NAME_OF_PTR_TO_VOID &&
                ((etsp->flags & ETS_IS_POINTER) != 0) == is_pointer) {
       /* The exception type specification is a void * and the object
@@ -712,6 +719,7 @@ index plus 1).
     }  /* if */
     if (match) {
       result = index;
+     *etsp_found = etsp;
       break;
     }  /* if */
     done = etsp->flags & ETS_LAST;
@@ -727,19 +735,28 @@ Process a throw.  This routine looks through the stack entries for
 a try block with a catch that matches the type of the object thrown.
 */
 {
-  an_eh_stack_entry_ptr	ehsep;
+  an_eh_stack_entry_ptr		ehsep;
   an_eh_stack_entry_ptr		destination_ehsep = NULL;
   int				destination_catch_value;
   void*				object_ptr;
+  void*				object_buffer_ptr;
   a_typeinfo_ptr		thrown_typeinfo;
   a_boolean			is_pointer;
   an_eh_stack_entry		throw_processing_marker;
+  an_exception_type_specification_ptr
+				etsp_found;
 
   /* Get the information about the current thrown object from the
      throw stack. */
   thrown_typeinfo = curr_throw_stack_entry->typeinfo;
   is_pointer = curr_throw_stack_entry->is_pointer;
-  object_ptr = curr_throw_stack_entry->object_address;
+  if (is_pointer) {
+    object_buffer_ptr = curr_throw_stack_entry->object_address;
+    object_ptr = *(void**)object_buffer_ptr;
+  } else {
+    object_buffer_ptr = curr_throw_stack_entry->object_address;
+    object_ptr = object_buffer_ptr;
+  }  /* if */
 #if DEBUG
   if (__debug_level >= 1) {
     fprintf(__f_debug, "__throw called\n");
@@ -759,7 +776,8 @@ a try block with a catch that matches the type of the object thrown.
         /* Skip over try blocks for which a catch is active. */
         int result = check_exception_type_specifications
 				(ehsep->variant.try_block.catch_entries,
-				 thrown_typeinfo, is_pointer, &object_ptr);
+				 thrown_typeinfo, is_pointer, &object_ptr,
+				 &etsp_found);
         if (result != 0) {
           destination_ehsep = ehsep;
           destination_catch_value = result;
@@ -774,9 +792,11 @@ a try block with a catch that matches the type of the object thrown.
          specification then, by definition, no match is found. */
       int	result = 0;
       if (ehsep->variant.throw_specification != NULL) {
+        an_exception_type_specification_ptr	dummy_etsp;
         result = check_exception_type_specifications
 				  (ehsep->variant.throw_specification,
-				   thrown_typeinfo, is_pointer, (void**)NULL);
+				   thrown_typeinfo, is_pointer, (void**)NULL,
+				   &dummy_etsp);
       }  /* if */
       if (result == 0) {
         destination_ehsep = ehsep;
@@ -872,13 +892,26 @@ a try block with a catch that matches the type of the object thrown.
 
   if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
     __catch_clause_number = destination_catch_value;
-    __caught_object_address = object_ptr;
-   /* Update the pointer in the try block to point to the throw stack entry
-      for the thrown object. */
-   destination_ehsep->variant.try_block.catch_info =
+    if (is_pointer && (etsp_found->flags & ETS_IS_REFERENCE)) {
+      /* The thrown object is a pointer and the caught object is a
+         reference to a pointer.  Provide the handler with a pointer to
+         the pointer. */
+      __caught_object_address = object_buffer_ptr;
+    } else {
+      /* The thrown object may be a pointer or an object.  But whatever
+         it is, the caught object is the same thing.  object_ptr points
+         either to the object (if is_pointer is TRUE) or to the buffer
+         (if is_pointer is FALSE).  This is what the handler expects. */
+      check_assertion(is_pointer ==
+                      ((etsp_found->flags & ETS_IS_POINTER) != 0));
+      __caught_object_address = object_ptr;
+    }  /* if */
+    /* Update the pointer in the try block to point to the throw stack entry
+       for the thrown object. */
+    destination_ehsep->variant.try_block.catch_info =
                                                (void*)curr_throw_stack_entry;
-   curr_throw_stack_entry->in_handler = TRUE;
-   longjmp(destination_ehsep->variant.try_block.setjmp_buffer, 1);
+    curr_throw_stack_entry->in_handler = TRUE;
+    longjmp(destination_ehsep->variant.try_block.setjmp_buffer, 1);
   } else if (destination_ehsep->kind ==
                                 (an_eh_stack_entry_kind)ehsek_throw_spec) {
     /* A destination stack entry indicates that a throw specification was
