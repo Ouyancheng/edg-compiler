@@ -13,7 +13,7 @@ been fixed.
 
 10/2/00  Spurious error on "\u" in skipped #include
 
-A \u in an header file name was incorrectly diagnosed as an invalid
+A \u in a header file name was incorrectly diagnosed as an invalid
 universal character name when the #include was in code skipped as the
 result of an #if or #ifdef directive.  This has been fixed.
 
