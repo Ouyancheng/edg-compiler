@@ -9715,7 +9715,8 @@ a normal try.
                           total_errors != 0);
           dtor = select_destructor(type_ptr, type_ptr, &pos,
                                    /*honor_virtual=*/FALSE,
-                                   /*evaluated=*/TRUE);
+                                   /*evaluated=*/TRUE,
+                                   /*instantiate=*/TRUE);
         } else {
           /* Non classes require only bitwise copying. */
           cctor = dtor = NULL;

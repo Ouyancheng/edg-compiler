@@ -7373,6 +7373,27 @@ an expression.
 }  /* alloc_expr_dynamic_init */
 
 
+a_routine_ptr expr_select_destructor(a_type_ptr        class_type,
+                                     a_type_ptr        object_class_type,
+                                     a_source_position *position,
+                                     a_boolean         honor_virtual)
+/*
+Interface to select_destructor for use within expression processing.
+Supplies the evaluated and instantiate arguments from context information
+on the expression stack.
+*/
+{
+  a_routine_ptr rout = select_destructor(class_type, object_class_type,
+                                         position,
+                                         honor_virtual,
+                                         curr_expr_is_potentially_evaluated(),
+                                         /*instantiate=*/
+                                       !expr_stack->is_default_arg_expression);
+  return rout;
+}  /* expr_select_destructor */
+
+
+
 a_dynamic_init_ptr alloc_dtor_dynamic_init(a_dynamic_init_kind kind,
                                            a_type_ptr          type,
                                            a_source_position   *position)
@@ -7389,9 +7410,8 @@ initialization entry.  *position gives the associated source position.
     /* The type is a class.  If it has a destructor, indicate it in
        the dynamic initialization. */
     if (!expr_stack->in_cctor_elision_initializer) {
-      dip->destructor = select_destructor(type, type, position,
-                                          /*honor_virtual=*/FALSE,
-                                        curr_expr_is_potentially_evaluated());
+      dip->destructor = expr_select_destructor(type, type, position,
+                                               /*honor_virtual=*/FALSE);
     } else {
       /* In a cctor elision expression.  Put the destructor in the entry,
          but do not do the access checking etc. at this time.  Build a fixup

@@ -1045,6 +1045,12 @@ extern void make_field_operand(a_field_ptr field,
 
 extern a_dynamic_init_ptr alloc_expr_dynamic_init(a_dynamic_init_kind kind);
 
+extern a_routine_ptr expr_select_destructor(
+                                     a_type_ptr        class_type,
+                                     a_type_ptr        object_class_type,
+                                     a_source_position *position,
+                                     a_boolean         honor_virtual);
+
 extern a_dynamic_init_ptr alloc_dtor_dynamic_init(
                                            a_dynamic_init_kind kind,
                                            a_type_ptr          type,

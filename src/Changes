@@ -1,5 +1,22 @@
 Version 3.6
 
+1/5/05   Over-eager instantiation of destructor in unused default argument
+
+The destructor for a temporary used in a default argument expression
+was instantiated even if the default argument expression is not used.
+Now, like other entities referenced in default arguments, it is
+instantiated only if the default argument is actually used.
+
+  template <class T> struct A {
+    A(int);
+    ~A() { m_p->some_f(); }  // Formerly got error because of instantiation
+    T* m_p;
+  };
+  class B;
+  struct D {
+    void f( const A< B >& = 0 );
+  };
+
 1/5/05   Field selection on member field in constant expression
 
 In Microsoft and GNU C++ modes, a field selection that selects a

@@ -6818,7 +6818,8 @@ a_routine_ptr select_destructor(a_type_ptr        class_type,
 				a_type_ptr        object_class_type,
                                 a_source_position *position,
                                 a_boolean         honor_virtual,
-                                a_boolean         evaluated)
+                                a_boolean         evaluated,
+                                a_boolean         instantiate)
 /*
 If the indicated class has a destructor, check that it is accessible, mark
 it as referenced, and return a pointer to the routine entry.  Otherwise,
@@ -6827,7 +6828,8 @@ destroyed; class_type may be a base class of object_class_type.  This is
 needed for protected member access checking.  If honor_virtual is TRUE, and
 if the destructor is virtual, consider this reference a virtual function
 call.  If evaluated is FALSE, the reference is within an unevaluated
-expression.  *position is the source position of the reference.
+expression.  If instantiate is TRUE, the destructor is instantiated
+if necessary.  *position is the source position of the reference.
 */
 {
   a_symbol_ptr  dtor_sym;
@@ -6842,7 +6844,7 @@ expression.  *position is the source position of the reference.
       reference_to_implicitly_invoked_function(dtor_sym, position,
                                                object_class_type,
                                                honor_virtual, evaluated,
-                                               /*instantiate=*/TRUE);
+                                               instantiate);
       dtor_routine = dtor_sym->variant.routine.ptr;
     }  /* if */
   }  /* if */

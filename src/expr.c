@@ -7567,11 +7567,10 @@ specification allow a variable-sized array as the top type.
              to destroy elements if a throw is done part-way through the
              initialization of the array. */
           if (exceptions_enabled) {
-            dip->destructor = select_destructor(
+            dip->destructor = expr_select_destructor(
                                         base_new_type, base_new_type,
                                         &type_position,
-                                        /*honor_virtual=*/FALSE,
-                                        curr_expr_is_potentially_evaluated());
+                                        /*honor_virtual=*/FALSE);
             if (dip->destructor != NULL) {
               dip->destruction_is_for_partially_constructed_aggregate = TRUE;
             }  /* if */
@@ -7857,10 +7856,9 @@ As an anachronism, allow an expression inside the [ ].
            a destructor). */
         pos_warning(ec_delete_of_incomplete_class, &operand.position);
       }  /* if */
-      dtor_routine = select_destructor(base_delete_type, base_delete_type,
-                                       &operand.position,
-                                       /*honor_virtual=*/TRUE,
-                                       curr_expr_is_potentially_evaluated());
+      dtor_routine = expr_select_destructor(base_delete_type, base_delete_type,
+                                            &operand.position,
+                                            /*honor_virtual=*/TRUE);
       if (dtor_routine != NULL) {
         /* Class with destructor.  Destruction is required. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
@@ -13414,10 +13412,9 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
            dynamic initialization.  Note that this also forces instantiation
            of the destructor if it's a template, which is desirable. */
         throw_node->variant.throw_info->destructor =
-              select_destructor(operand_type, operand_type,
-                                &operand.position,
-                                /*honor_virtual=*/FALSE,
-                                curr_expr_is_potentially_evaluated());
+              expr_select_destructor(operand_type, operand_type,
+                                     &operand.position,
+                                     /*honor_virtual=*/FALSE);
       } else {
         /* For a nonclass operand, generate an expression and then make a
            dynamic initialization entry for the expression. */
@@ -17737,10 +17734,10 @@ overall errors.
       /* Fill in the destructor information.  Note that we cannot use
          alloc_dtor_dynamic_init because it does not allow for the
          object_class_type to differ from the class_type. */
-      (*dip)->destructor = select_destructor(class_type, object_class_type,
-                                             source_pos,
-                                             /*honor_virtual=*/FALSE,
-                                             /*evaluated=*/TRUE);
+      (*dip)->destructor = expr_select_destructor(class_type,
+                                                  object_class_type,
+                                                  source_pos,
+                                                  /*honor_virtual=*/FALSE);
     }  /* if */
     /* If there's an object lifetime around the initialization, transfer it
        to the dynamic initialization entry. */

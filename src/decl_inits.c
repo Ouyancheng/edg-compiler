@@ -2490,7 +2490,7 @@ detection of uninitialized fields).
     if (is_immediate_class_type(tp) &&
         symbol_supplement_for_class(tp)->destructor != NULL) {
       dtor_rp = select_destructor(tp, tp, err_pos, /*honor_virtual=*/FALSE,
-                                  /*evaluated=*/TRUE);
+                                  /*evaluated=*/TRUE, /*instantiate=*/TRUE);
       if (dtor_rp != NULL) any_dynamic_init = TRUE;
     }  /* if */
     if (any_dynamic_init) {
@@ -3215,7 +3215,8 @@ returned set to TRUE.
            user has defined a destructor but the object can be initialized
            without a constructor. */
         dtor = select_destructor(vp_type, vp_type, source_pos,
-                                 /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);
+                                 /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                                 /*instantiate=*/TRUE);
       }  /* if */
       if (dtor != NULL || !has_static_storage_duration(vp->storage_class)) {
         init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
@@ -3516,7 +3517,8 @@ the default constructor (if one exists) is called.
         }  /* if */
       }  /* if */
       dtor = select_destructor(tp, tp, err_pos,
-                               /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);
+                               /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                               /*instantiate=*/TRUE);
       if (ctor == NULL && dtor == NULL && !is_nonreal_class) {
         /* No constructor for default initialization; no destructor either. */
       } else {
@@ -4786,7 +4788,8 @@ scan_paren:
              looked up. */
           dip->destructor = select_destructor(tp, object_class_type, &err_pos,
                                               /*honor_virtual=*/FALSE,
-                                              /*evaluated=*/TRUE);
+                                              /*evaluated=*/TRUE,
+                                              /*instantiate=*/TRUE);
         }  /* if */
         /* Record the need for a destruction in the context of the current
            lifetime.   Note: when the field is an array, it is the dynamic
@@ -4966,7 +4969,8 @@ though neither constructors nor initialization is involved here.)
         /* If the virtual base class or direct base class has a destructor, a
            dynamic init entry will be required. */
         rp = select_destructor(bcp->type, class_type, &source_pos,
-                               /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);
+                               /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                               /*instantiate=*/TRUE);
         if (rp != NULL) {
           cip = alloc_ctor_init((a_constructor_init_kind)
                                                     (bcp->is_virtual ?
@@ -5026,7 +5030,8 @@ though neither constructors nor initialization is involved here.)
       }  /* if */
       if (is_immediate_class_type(tp)) {
         rp = select_destructor(tp, tp, &source_pos,
-                               /*honor_virtual=*/FALSE, /*evaluated=*/TRUE);
+                               /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                               /*instantiate=*/TRUE);
         if (rp != NULL) {
           /* Create the constructor init entry for a field. */
           cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
