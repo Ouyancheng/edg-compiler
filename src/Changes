@@ -1,5 +1,22 @@
 Version 2.37
 
+8/12/97   Spurious invalid covariant return type error
+
+A spurious error would occur when a member function of a nested class
+returns a type that is covariant with the return type of the overridden
+function, and in which the return type of the overridden function is the
+enclosing class type.  This has been fixed.
+
+  struct A {
+    virtual A& f();
+  };
+  struct B : public A {
+    struct C : public A {
+        virtual B& f();
+    };
+  };
+
+
 8/12/97   C++-generating back end, Microsoft compatibility: no qualified name
           on reference to member within class definition
 

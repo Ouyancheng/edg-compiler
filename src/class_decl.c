@@ -1729,7 +1729,6 @@ entry appears on a linked list pointed to from base_class.
 static a_boolean return_types_are_override_compatible(
                                  a_type_ptr       type_of_overriding_routine,
                                  a_type_ptr       type_of_overridden_routine,
-                                 a_type_ptr       class_type,
                                  a_base_class_ptr *return_adjustment_bcp)
 /*
 Given the routine types of overriding and overridden virtual functions,
@@ -1738,8 +1737,7 @@ Covariance means both return types are references or pointers to class types
 that are related by derivation, where the class associated with the overridden
 function is a base class of the class associated with the overriding function.
 When covariance is detected, return in *return_adjustment_bcp the base class
-entry for the class associated with the overridden function.  class_type is
-the class of which the overriding function is a member.
+entry for the class associated with the overridden function.
 */
 {
   a_type_ptr             tp1, tp2;
@@ -1792,16 +1790,17 @@ the class of which the overriding function is a member.
             compatible = TRUE;
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
           } else {
+            a_base_class_ptr bcp;
             complete_type_is_needed(tp1);
-            if (!is_incomplete_type(tp1) || identical_types(tp1, class_type)) {
-              a_base_class_ptr bcp = find_base_class_of(tp1, tp2);
-              if (bcp != NULL) {
-                /* tp2 is a base class of tp1.  Be sure it's unambiguous and
-                   accessible in tp1. */
-                if (!bcp->ambiguous && is_accessible_base_class(bcp)) {
-                  compatible = TRUE;
-                  *return_adjustment_bcp = bcp;
-                }  /* if */
+            /* We don't need to test the completeness of the classes.  This
+               is done by find_base_class_of. */
+            bcp = find_base_class_of(tp1, tp2);
+            if (bcp != NULL) {
+              /* tp2 is a base class of tp1.  Be sure it's unambiguous and
+                 accessible in tp1. */
+              if (!bcp->ambiguous && is_accessible_base_class(bcp)) {
+                compatible = TRUE;
+                *return_adjustment_bcp = bcp;
               }  /* if */
             }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
@@ -2196,7 +2195,6 @@ routine entry and return TRUE; otherwise return FALSE.
 
                   if (return_types_are_override_compatible(
                                                     rout->type, rp->type,
-                                                    class_type,
                                                     &return_adjustment_bcp)) {
                     /* Match */
                     is_virtual = TRUE;
