@@ -1,5 +1,11 @@
 Version 2.18
 
+6/1/93 Diagnostics on compiler-generated assignment operators
+
+The user may not rely on the compiler to generate a default assignment
+operator for a class with const or ref members (ARM 12.8).  The
+diagnostics for reporting this problem have been improved.
+
 5/27/93 Inherited names in declarators
 
 We used to issue a confusing error message when an inherited name appeared
