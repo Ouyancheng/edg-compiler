@@ -1534,10 +1534,13 @@ extern a_symbol_ptr extract_default_operator_new_sym(a_symbol_ptr sym);
 
 extern void make_global_operator_new_or_delete_symbol(an_opname_kind  opname);
 
-extern a_routine_ptr select_default_constructor(a_type_ptr        class_type,
-                                                a_source_position *err_pos);
+extern a_routine_ptr select_default_constructor
+					(a_type_ptr        class_type,
+                                         a_source_position *err_pos,
+					 a_type_ptr	    object_class_type);
 
-extern a_routine_ptr select_destructor(a_type_ptr class_type);
+extern a_routine_ptr select_destructor(a_type_ptr class_type,
+				       a_type_ptr object_class_type);
 
 extern a_symbol_ptr find_copy_constructor(a_type_ptr class_type,
                                           a_boolean  const_object_required,
@@ -1550,6 +1553,7 @@ extern a_routine_ptr select_copy_constructor(
                                     a_boolean         const_object_required,
                                     a_boolean         volatile_object_required,
                                     a_source_position *err_pos,
+				    a_type_ptr	      object_class_type,
                                     a_boolean         *class_bitwise_copy);
 
 extern an_access_specifier compute_access(an_access_specifier access,
@@ -1628,7 +1632,7 @@ check of ARM 11.5.  The symbol is being accessed through an object or
 pointer of class class_type.
 */
 #define check_protected_member_access(locator, class_type)            \
-{ if (access_for_symbol(locator->specific_symbol) ==                  \
+{ if (access_for_symbol((locator)->specific_symbol) ==                  \
                                 (an_access_specifier)as_protected) {  \
     f_check_protected_member_access(locator, class_type);             \
   }  /* if */                                                         \

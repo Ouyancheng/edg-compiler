@@ -233,7 +233,8 @@ member remains uninitialized.
         if (cssp->constructor != NULL) {
           /* Get the default constructor.  Note that it is an error if it
              is missing. */
-          ctor_rp = select_default_constructor(element_type, &pos_curr_token);
+          ctor_rp = select_default_constructor(element_type, &pos_curr_token,
+					       element_type);
         }  /* if */
         if (ctor_rp != NULL) {
           /* If there's a constructor routine create a dik_constructor
@@ -251,7 +252,7 @@ member remains uninitialized.
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
         }  /* if */
         /* Register the destructor if there's one there. */
-        dip->destructor = select_destructor(element_type);
+        dip->destructor = select_destructor(element_type, element_type);
         /* Now create the constant entry that will point to the new dynamic
            init entry. */
         cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
@@ -437,7 +438,7 @@ is an empty class.
                       alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
         dip->variant.expression = expression;
       }  /* if */
-      dip->destructor = select_destructor(local_type);
+      dip->destructor = select_destructor(local_type, local_type);
       if (*di_list == NULL) {
         *di_list = dip;
       } else {
@@ -1360,7 +1361,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
        defined a destructor but the object can be initialized without a
        constructor. */
     if (cssp != NULL) {
-      a_routine_ptr  rp = select_destructor(vp_type);
+      a_routine_ptr  rp = select_destructor(vp_type, vp_type);
       if (rp != NULL) {
         local_di.destructor = rp;
         initialization_is_dynamic = TRUE;
@@ -1476,7 +1477,7 @@ the default constructor (if one exists) is called.
 #endif /* CHECKING */
 #endif /* if 0 */
         }  /* if */
-        if ((rp = select_default_constructor(tp, err_pos)) != NULL) {
+        if ((rp = select_default_constructor(tp, err_pos, tp)) != NULL) {
           a_param_type_ptr  ptp = (skip_typerefs(rp->type))->
                                    variant.routine.extra_info->param_type_list;
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
@@ -1484,7 +1485,7 @@ the default constructor (if one exists) is called.
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
           local_di.variant.constructor.args = copy_default_arg_expr_list(ptp);
-          local_di.destructor = select_destructor(tp);
+          local_di.destructor = select_destructor(tp, tp);
           if (var_type != tp) {
             /* The variable for which initialization is done is an array, so
                we need to generate the repeat construct so that the constructor
@@ -1528,7 +1529,7 @@ the default constructor (if one exists) is called.
              enforce such a restriction, however. */
           def_init_performed = TRUE;
         }  /* if */
-        if ((rp = select_destructor(tp)) != NULL) {
+        if ((rp = select_destructor(tp, tp)) != NULL) {
           /* Default initialization of an object that has a destructor.  We
              generate a dik_none dynamic initialization entry for this object,
              even though it is not actually initialized, so that the existence
@@ -2066,6 +2067,12 @@ scan_arg_for_scan_initialization:
   for (cip = cip_list; cip != NULL; cip = cip->next) {
     if (cip->initializer == NULL) {
       a_boolean  is_const_qualified = FALSE;
+      /* object_class_type is the type of the object being created.
+         For base classes it will be different than the type associated
+	 with the constructor being called.  For fields it will be
+         the same as the field type.  This is needed to check protected
+	 member access. */
+      a_type_ptr object_class_type = NULL;
       /* No initializer was explicitly specified. */
       array_type = NULL;
       if (cip->kind == (a_constructor_init_kind)cik_field) {
@@ -2077,9 +2084,11 @@ scan_arg_for_scan_initialization:
         }  /* if */
         if (is_const_qualified_type(tp)) is_const_qualified = TRUE;
         tp = skip_typerefs(tp);
+        object_class_type = tp;
       } else {
         /* Get the type of the base class. */
         tp = cip->variant.base_class->type;
+	object_class_type = class_type;
       }  /* if */
       cssp = is_class_struct_union_type(tp) ? symbol_supplement_for_class(tp) :
                                               NULL;
@@ -2103,7 +2112,8 @@ scan_arg_for_scan_initialization:
              be returned TRUE. */
           rp = select_copy_constructor(tp,
                                        const_object_okay, volatile_object_okay,
-                                       &ctor_init_pos, &bitwise_copy);
+                                       &ctor_init_pos, object_class_type,
+				       &bitwise_copy);
         }  /* if */
         if (bitwise_copy) {
           /* Construction by bitwise copy is allowed. */
@@ -2173,7 +2183,7 @@ scan_arg_for_scan_initialization:
           }  /* if */
           continue;
         }  /* if */
-        rp = select_default_constructor(tp, &ctor_init_pos);
+        rp = select_default_constructor(tp, &ctor_init_pos, object_class_type);
         if (rp == NULL) {
           /* Error in trying to find a default constructor. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
@@ -2290,7 +2300,7 @@ though neither constructors nor initialization is involved here.)
       /* If the virtual base class or direct base class has a destructor, a
          dynamic init entry will be required.  Create the constructor init
          entry now; the dynamic init will be added later. */
-      if ((rp = select_destructor(bcp->type)) != NULL) {
+      if ((rp = select_destructor(bcp->type, class_type)) != NULL) {
         cip = alloc_ctor_init(bcp->is_virtual ?
                               (a_constructor_init_kind)cik_virtual_base_class :
                               (a_constructor_init_kind)cik_direct_base_class);
@@ -2342,7 +2352,7 @@ though neither constructors nor initialization is involved here.)
         tp = skip_typerefs(underlying_array_element_type(tp));
       }  /* if */
       if (is_class_struct_union_type(tp)) {
-        if ((rp = select_destructor(tp)) != NULL) {
+        if ((rp = select_destructor(tp, tp)) != NULL) {
           /* Create the constructor init entry for a field. */
           cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
           cip->variant.field = sym->variant.field.ptr;

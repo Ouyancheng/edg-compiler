@@ -3445,13 +3445,15 @@ function.
 static void set_up_for_constructor_call(an_operand         *operand,
                                         a_routine_ptr      ctor_routine,
                                         an_expression_kind expression_kind,
-                                        an_expr_node_ptr   *arg_expr_list)
+                                        an_expr_node_ptr   *arg_expr_list,
+					a_type_ptr	   object_class_type)
 /*
 Prepare for generating a call of a constructor, but do not actually
 create the call.  Check accessibility of the routine and adjust the operand
 type if necessary so that it will be appropriate for the call.  Return
-an argument list for the call in *arg_expr_list.  This routine is used
-only in C++ mode.
+an argument list for the call in *arg_expr_list.  object_class_type is the
+type of the object being constructed, which may be different than the
+type of the constructor being called.  This routine is used only in C++ mode.
 */
 {
   a_symbol_ptr     ctor_symbol;
@@ -3462,7 +3464,8 @@ only in C++ mode.
 
   /* Check that the constructor is accessible and mark it as referenced. */
   ctor_symbol = (a_symbol_ptr)(ctor_routine->source_corresp.assoc_info);
-  reference_to_implicitly_invoked_function(ctor_symbol, &error_position);
+  reference_to_implicitly_invoked_function(ctor_symbol, &error_position,
+					   object_class_type);
   routine_type = skip_typerefs(ctor_routine->type);
   /* Convert the operand to the proper type to be an argument of the
      constructor. */
@@ -3531,12 +3534,13 @@ is used only in C++ mode.
      referenced. */
   conversion_symbol =
                  (a_symbol_ptr)(conversion_routine->source_corresp.assoc_info);
-  reference_to_implicitly_invoked_function(conversion_symbol, &error_position);
   routine_type = skip_typerefs(conversion_routine->type);
-  /* Convert the operand to the proper type to be an argument of the
-     conversion function. */
   this_param_type = routine_type->variant.routine.extra_info->
                                                       implicit_this_param_type;
+  reference_to_implicitly_invoked_function(conversion_symbol, &error_position,
+					   operand->type);
+  /* Convert the operand to the proper type to be an argument of the
+     conversion function. */
 #if CHECKING
   if (this_param_type == NULL) {
     internal_error("set_up_for_conversion_function_call: no this parameter");
@@ -3642,7 +3646,8 @@ will have been changed to an rvalue for the address of the temporary.
                                      temp_type,
                                      is_const_qualified_type(operand->type),
                                      is_volatile_qualified_type(operand->type),
-                                     &operand->position, &class_bitwise_copy);
+                                     &operand->position, temp_type,
+				     &class_bitwise_copy);
       if (class_bitwise_copy) {
         /* A bitwise copy can be done. */
         /* cctor_case = FALSE;  -- already set */
@@ -3656,7 +3661,7 @@ will have been changed to an rvalue for the address of the temporary.
         cctor_case = TRUE;
         set_up_for_constructor_call(operand, cctor_routine,
                                     (an_expression_kind)ek_normal,
-                                    &cctor_arg);
+                                    &cctor_arg, temp_type);
         make_constructor_dynamic_init(cctor_routine, cctor_arg,
                                       /*result_is_addr=*/TRUE, operand);
       }  /* if */
@@ -8727,7 +8732,8 @@ an rvalue.
 #endif /* CHECKING */
     /* Constructor. */
     set_up_for_constructor_call(operand, conversion_routine,
-                                expression_kind, &arg_expr_list);
+                                expression_kind, &arg_expr_list,
+			        dest_type);
     /* Make a constructor dynamic init into a temporary, and an operand for
        the value it produces. */
     make_constructor_dynamic_init(conversion_routine, arg_expr_list,
@@ -8916,13 +8922,14 @@ always be TRUE in C mode.  expression_kind is the current expression kind.
                               class_type,
                               is_const_qualified_type(source_operand->type),
                               is_volatile_qualified_type(source_operand->type),
-                              &source_operand->position, class_bitwise_copy);
+                              &source_operand->position, class_type,
+			      class_bitwise_copy);
     }  /* if */
   }  /* if */
   if (*conversion_routine != NULL) {
     /* Prepare for the call of the constructor. */
     set_up_for_constructor_call(source_operand, *conversion_routine,
-                                expression_kind, arg_expr_list);
+                                expression_kind, arg_expr_list, class_type);
   } else if (*class_bitwise_copy) {
     /* A bitwise copy should be done. */
     prep_class_bitwise_copy_operand(source_operand, dest_type,
@@ -9014,10 +9021,11 @@ convert source_operand to an error operand, and return *err TRUE.
          but cfront doesn't do it, and we can justify that by saying this is
          a conversion instead of an initialization. */
       set_up_for_constructor_call(source_operand, conversion_routine,
-                                  expression_kind, &arg_expr_list);
+                                  expression_kind, &arg_expr_list,
+				  dest_type);
       make_constructor_dynamic_init(conversion_routine, arg_expr_list,
                                     /*result_is_addr=*/TRUE, source_operand);
-    } else {
+    } else {	
       /* Non-constructor case.  Convert the operand. */
       convert_operand(source_operand, dest_type,
                       /*result_may_be_lvalue=*/FALSE,

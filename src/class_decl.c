@@ -4544,7 +4544,8 @@ assignment operator.
     } else {
       /* Exactly one assignment operator function is best. */
       /* Check that the function is accessible and mark it referenced. */
-      reference_to_implicitly_invoked_function(opass_sym, err_pos);
+      reference_to_implicitly_invoked_function(opass_sym, err_pos,
+					       (a_type_ptr)NULL);
     }  /* if */
     opass_routine = opass_sym->variant.routine.ptr;
   }  /* if */
@@ -4901,18 +4902,25 @@ empty statement block.
 }  /* define_special_member_function */
 
 
-void reference_to_implicitly_invoked_function(a_symbol_ptr       sym,
-                                              a_source_position  *err_pos)
+void reference_to_implicitly_invoked_function
+				(a_symbol_ptr       sym,
+                                 a_source_position  *err_pos,
+				 a_type_ptr         class_of_object)
 /*
 sym is points to a symbol for a special member function that is invoked
 implicitly -- e.g., a copy constructor that is called when a class object
 is passed by value or an assignment operator that is called when another
 assignment operator function is being created.  Check that the special member
-function is accessible and mark the routine entry referenced.  Also, if the
-routine is compiler generated, it may still need to be defined, since the
-definition may have been put off until an actual reference occurred (e.g.,
-ARM 12.8).  This function deals with implicitly called constructors,
-destructors, assignment operators, and conversion functions.
+function is accessible and mark the routine entry referenced.  class_of_object
+points to the type of the object for which the function is being called,
+which is not always the same as the class of which a the function is
+a member.  This is used to check protected member access which only applies
+to objects of a derived class.  class_of_object may be NULL if protected member
+access checking is not needed. Also, if the routine is compiler generated,
+it may still need to be defined, since the definition may have been put off
+until an actual reference occurred (e.g., ARM 12.8).  This function deals
+with implicitly called constructors, destructors, assignment operators,
+and conversion functions.
 */
 {
   a_routine_ptr                       rp = sym->variant.routine.ptr;
@@ -4931,6 +4939,13 @@ destructors, assignment operators, and conversion functions.
   /* Check for accessibility. */
   if (!have_access_to_symbol(sym)) {
     pos_sy_error(ec_inaccessible_special_function, err_pos, sym);
+  } else if (class_of_object != NULL) {
+    /* Protected members of a base class can only be accessed through an
+       object of a derived class. */
+    a_symbol_locator	locator;
+    make_locator_for_symbol(sym, &locator);
+    locator.source_position = *err_pos;
+    check_protected_member_access(&locator, class_of_object);
   }  /* if */
   /* Mark the IL entry as referenced. */
   rp->source_corresp.referenced = TRUE;

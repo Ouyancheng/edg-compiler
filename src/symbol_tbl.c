@@ -2718,14 +2718,17 @@ the compiler-generated flag should be cleared.
 
 
 a_routine_ptr select_default_constructor(a_type_ptr        class_type,
-                                         a_source_position *err_pos)
+                                         a_source_position *err_pos,
+					 a_type_ptr        object_class_type)
 /*
 Find and return a pointer to a routine representing a default constructor for
 the class indicated by class_type.  (A default constructor is a constructor
 that requires no arguments.)  If no acceptable constructor is found, issue
 a diagnostic and return NULL.  If more than one acceptable constructor is
 found, issue a (different) diagnostic and return NULL.  This routine is
-only used in C++ mode.
+only used in C++ mode.  object_class_type points to the type of the object
+being created;  class_type may be a base class of object_class_type.
+This is needed for protected member access checking.
 */
 {
   a_symbol_ptr  sym, ctor_sym = NULL;
@@ -2776,18 +2779,22 @@ only used in C++ mode.
   } else {
     /* Exactly one default constructor. */
     /* Check that the constructor is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(ctor_sym, err_pos);
+    reference_to_implicitly_invoked_function(ctor_sym, err_pos,
+					     object_class_type);
     ctor_routine = ctor_sym->variant.routine.ptr;
   }  /* if */
   return ctor_routine;
 }  /* select_default_constructor */
 
 
-a_routine_ptr select_destructor(a_type_ptr class_type)
+a_routine_ptr select_destructor(a_type_ptr class_type,
+				a_type_ptr object_class_type)
 /*
 If the indicated class has a destructor, check that it is accessible,
 mark it as referenced, and return a pointer to the routine entry.
-Otherwise, return NULL.
+Otherwise, return NULL.  object_class_type points to the type of the object
+being destroyed;  class_type may be a base class of object_class_type.
+This is needed for protected member access checking.
 */
 {
   a_symbol_ptr  dtor_sym;
@@ -2799,7 +2806,8 @@ Otherwise, return NULL.
     dtor_sym = cssp->destructor;
     if (dtor_sym != NULL) {
       /* Check that the destructor is accessible and mark it referenced. */
-      reference_to_implicitly_invoked_function(dtor_sym, &error_position);
+      reference_to_implicitly_invoked_function(dtor_sym, &error_position,
+					       object_class_type);
       dtor_routine = dtor_sym->variant.routine.ptr;
     }  /* if */
   }  /* if */
@@ -2913,6 +2921,7 @@ a_routine_ptr select_copy_constructor(
                                     a_boolean         const_object_required,
                                     a_boolean         volatile_object_required,
                                     a_source_position *err_pos,
+				    a_type_ptr        object_class_type,
                                     a_boolean         *class_bitwise_copy)
 /*
 Find and return a pointer to a routine representing a copy constructor for
@@ -2921,9 +2930,11 @@ a copy constructor that accepts a first parameter whose type is const
 qualified.  Similarly for volatile_object_required.  Otherwise, return what's
 found.  If no acceptable copy constructor is found, issue a diagnostic and
 return NULL.  If more than one acceptable copy constructor is found,
-issue a (different) diagnostic and return NULL.  If a bitwise copy
-is allowed, return NULL and *class_bitwise_copy TRUE.  This routine is only
-used in C++ mode.
+issue a (different) diagnostic and return NULL.  object_class_type points to
+the type of the object being copied;  class_type may be a base class of
+object_class_type.  This is needed for protected member access checking.
+If a bitwise copy is allowed, return NULL and *class_bitwise_copy TRUE.
+This routine is only used in C++ mode.
 */
 {
   a_symbol_ptr  cctor_sym;
@@ -2954,7 +2965,8 @@ used in C++ mode.
   } else {
     /* Exactly one copy constructor is best. */
     /* Check that the constructor is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(cctor_sym, err_pos);
+    reference_to_implicitly_invoked_function(cctor_sym, err_pos,
+					     object_class_type);
     cctor_routine = cctor_sym->variant.routine.ptr;
   }  /* if */
   return cctor_routine;

@@ -4111,7 +4111,8 @@ initialization entry.
         /* The class has a destructor. */
         dip->destructor = cssp->destructor->variant.routine.ptr;
         reference_to_implicitly_invoked_function(cssp->destructor,
-                                                 &error_position);
+                                                 &error_position,
+						 type);
       }  /* if */
     }  /* if */
   }  /* if */

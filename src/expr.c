@@ -1264,6 +1264,7 @@ remove it later, as this routine takes care of that.
 {
   a_boolean           overloaded_function_case = FALSE;
   a_type_ptr          routine_type;
+  a_type_ptr	      class_type;
   a_source_position   start_position;
   an_arg_operand_ptr  arg_operand_list;
   an_expression_kind  expression_kind = (an_expression_kind)ek_normal;
@@ -1278,20 +1279,25 @@ remove it later, as this routine takes care of that.
   if (constructor_sym == NULL) {
     /* There was a previous error. */
     routine_type = NULL;
-  } else if (constructor_sym->kind == (a_symbol_kind)sk_member_function) {
-    /* Constructor is not overloaded.  In this case, the argument types
-       can be checked as the argument list is scanned. */
-    routine_type = routine_symbol_type(constructor_sym);
+    class_type = NULL;
   } else {
+    class_type = constructor_sym->class_of_which_a_member;
+    if (constructor_sym->kind == (a_symbol_kind)sk_member_function) {
+      /* Constructor is not overloaded.  In this case, the argument types
+         can be checked as the argument list is scanned. */
+      routine_type = routine_symbol_type(constructor_sym);
+    } else {
 #if CHECKING
-    if (constructor_sym->kind != (a_symbol_kind)sk_overloaded_function) {
-      internal_error("scan_ctor_arguments: sym not function");
-    }  /* if */
+      if (constructor_sym->kind != (a_symbol_kind)sk_overloaded_function) {
+        internal_error("scan_ctor_arguments: sym not function");
+      }  /* if */
 #endif  /* CHECKING */
-    /* Constructor is overloaded. */
-    overloaded_function_case = TRUE;
-    routine_type = NULL;
+      /* Constructor is overloaded. */
+      overloaded_function_case = TRUE;
+      routine_type = NULL;
+    }  /* if */
   }  /* if */
+
   /* Scan the arguments. */
   scan_call_arguments(routine_type, expression_kind,
                       /*already_after_left_paren=*/TRUE, arg_expr_list,
@@ -1324,7 +1330,8 @@ remove it later, as this routine takes care of that.
   }  /* if */
   if (constructor_sym != NULL) {
     /* Check that the constructor is accessible and mark it referenced. */
-    reference_to_implicitly_invoked_function(constructor_sym, err_pos);
+    reference_to_implicitly_invoked_function(constructor_sym, err_pos,
+					     class_type);
     *conversion_routine = constructor_sym->variant.routine.ptr;
   }  /* if */
   pop_expr_stack();
@@ -3809,7 +3816,8 @@ specification allow a variable-sized array as the top type.
       if (array_new) arg_expr_list = NULL;
     } else {
       /* There is no new-initializer, so a default constructor should exist. */
-      ctor_routine = select_default_constructor(base_new_type, &type_position);
+      ctor_routine = select_default_constructor(base_new_type, &type_position,
+						base_new_type);
       arg_expr_list = NULL;
       if (ctor_routine != NULL) {
         /* Provide default arguments if any. */
@@ -4068,7 +4076,7 @@ As an anachronism, allow an expression inside the [ ].
              a destructor). */
           pos_warning(ec_delete_of_incomplete_class, &delete_position);
         }  /* if */
-        dtor_routine = select_destructor(base_delete_type);
+        dtor_routine = select_destructor(base_delete_type, base_delete_type);
         if (dtor_routine != NULL) {
           /* Class with destructor.  Destruction is required. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
