@@ -968,8 +968,8 @@ typedef struct a_per_instantiation_needed_flags_entry {
 Entry pointed to by the trans_unit_corresp field of a_source_correspondence
 to describe a linkage-based correspondence between entities in different
 translation units.  Each entity with linkage will point to one of these
-entries, and that entry also be pointed to by all equivalent entities in
-other translation units.
+entries, and that entry will also be pointed to by all equivalent entities
+in other translation units.
 */
 typedef struct a_trans_unit_corresp *a_trans_unit_corresp_ptr;
 typedef struct a_trans_unit_corresp {
@@ -1031,14 +1031,17 @@ typedef struct a_source_correspondence {
 #endif /* NEED_NAME_MANGLING */
   a_trans_unit_corresp_ptr
 		trans_unit_corresp;
-			/* When compiling multiple translation units, when
-			   an entry is referenced by more than one translation
-			   unit, all entries that refer to the same entity
-			   share a trans_unit_corresp entry.  An entity used
-			   only in the primary translation unit may have a
-			   NULL trans_unit_corresp pointer.  An entity used
-			   only in a secondary translation unit will have a
-			   non-NULL trans_unit_corresp pointer. */
+			/* If this entity has external linkage, this points
+			   to an entry that represents the set of things
+			   that this entry is linked to.  All entries that
+			   refer to the same entity (because of linkage)
+			   point to the same trans_unit_corresp entry.
+			   Used for multiple translation unit checking, so
+			   an entity used only in the primary translation
+			   unit will have a NULL trans_unit_corresp pointer.
+			   Externally-linked entities in secondary translation
+			   units will have a non-NULL trans_unit_corresp
+			   pointer. */
 #ifdef CIL
   a_parent_class_or_namespace
 		parent;
