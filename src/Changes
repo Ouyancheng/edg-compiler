@@ -3,9 +3,9 @@ Version 2.46
 3/22/01  Treatment of using-declaration duplicating a built-in declaration
 
 Using declarations are not added to the IL when they duplicate an equivalent
-declaration already visible in that scope.  However, when the using
-declaration was previously only visible as a built-in type, it need not be
-inhibited from appearing in the IL.  Specifically, in Microsoft mode:
+declaration already visible in that scope.  However, when the type in the
+using-declaration was previously only visible as a built-in type, it need not
+be inhibited from appearing in the IL.  Specifically, in Microsoft mode:
 
   namespace std { typedef unsigned int size_t; }
   using std::size_t;  // Used to not appear in the IL because the size_t type
