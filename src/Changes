@@ -1,5 +1,23 @@
 Version 2.45
 
+12/16/00 Overload resolution: comparison of conversions to const void *
+
+Overload resolution incorrectly compared the standard conversions
+after conversion functions when the destination type is "const void *"
+and only one of the conversion functions returns a const-qualified
+pointer.  The conversion should be considered ambiguous, but the
+conversion that didn't require the addition of "const" was chosen.
+
+  void f(const void *);
+  struct X;
+  struct A {
+    operator const char *();
+    operator X*();
+  } a;
+  int main() {
+    f(a);  // Now flagged as ambiguous
+  }
+
 12/16/00 Warning on conversion from integer to smaller pointer
 
 A warning is now issued on a conversion from an integral type to a

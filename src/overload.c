@@ -3505,15 +3505,13 @@ other.  Return
        conversions, and the standard conversion in one case is better than the
        standard conversion in the other case. */
   } else if (cfp1_type_qualifiers_added &&
-             (!cfp2_type_qualifiers_added ||
-              candidate_return_type_same_with_added_qualifiers(cfp2, cfp1))) {
+            candidate_return_type_same_with_added_qualifiers(cfp2, cfp1)) {
     /* The fact that type qualifiers were added after a conversion
        function can serve as a tie-breaker. */
     /* More type qualifiers were added on cfp1, so cfp2 is better. */
     cmp = -1;
   } else if (cfp2_type_qualifiers_added &&
-             (!cfp1_type_qualifiers_added ||
-              candidate_return_type_same_with_added_qualifiers(cfp1, cfp2))) {
+             candidate_return_type_same_with_added_qualifiers(cfp1, cfp2)) {
     /* The fact that type qualifiers were added after a conversion
        function can serve as a tie-breaker. */
     /* More type qualifiers were added on cfp2, so cfp1 is better. */
