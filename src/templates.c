@@ -3006,6 +3006,7 @@ equivalent template parameter lists.
   a_boolean	result = FALSE;
   a_boolean	must_be_identical = TRUE;
   a_boolean	okay_so_far = TRUE;
+  a_boolean	compare_parameters = TRUE;
 
   if (tssp1->is_nonreal_member &&
       tssp2->is_nonreal_member) {
@@ -3020,6 +3021,8 @@ equivalent template parameter lists.
                           templ2->source_corresp.parent.class_type)) {
         /* Their parent types are the same. */
         okay_so_far = TRUE;
+        /* Nonreal templates have no parameter lists. */
+        compare_parameters = FALSE;
       }  /* if */
     }  /* if */
   } else if (tssp1->variant.class_template.template_template_param &&
@@ -3041,7 +3044,8 @@ equivalent template parameter lists.
   } else if (must_be_identical) {
     result = tssp1 == tssp2;
   } else {
-    result = equiv_template_param_lists(tssp1->cache.decl_info->parameters,
+    result = !compare_parameters ||
+             equiv_template_param_lists(tssp1->cache.decl_info->parameters,
                                         tssp2->cache.decl_info->parameters,
 				        /*issue_errors=*/FALSE,
 				        (a_source_position*)NULL);
@@ -3054,15 +3058,19 @@ static a_boolean equiv_templates(a_template_ptr	templ1,
 				 a_template_ptr	templ2)
 /*
 Return TRUE if the templates specified by templ1 and templ2 are equivalent.
+templ1 and/or templ2 are permitted to be NULL (in which case, they match
+nothing).
 */
 {
   a_template_symbol_supplement_ptr	tssp1;
   a_template_symbol_supplement_ptr	tssp2;
-  a_boolean				result;
+  a_boolean				result = FALSE;
 
-  tssp1 = template_supplement_for_template(templ1);
-  tssp2 = template_supplement_for_template(templ2);
-  result = equiv_templates_given_supplement(tssp1, tssp2);
+  if (templ1 != NULL && templ2 != NULL) {
+    tssp1 = template_supplement_for_template(templ1);
+    tssp2 = template_supplement_for_template(templ2);
+    result = equiv_templates_given_supplement(tssp1, tssp2);
+  }  /* if */
   return result;
 }  /* equiv_templates */
 
@@ -4748,6 +4756,22 @@ are looked up, if needed.  The symbol of the new instance is returned.
   for (; tap != NULL;
        tap = tap->next, tpp = is_nonreal_template ? NULL : tpp->next) {
     new_tap = alloc_template_arg(tap->kind);
+    /* If there are too few parameters, the copy should fail. */
+    if (!is_nonreal_template && tpp == NULL) {
+      *copy_error = TRUE;
+      break;
+    }  /* if */
+    /* Make sure that the template argument kind matches the parameter
+       kind. */
+    if (!is_nonreal_template) {
+      a_symbol_kind	param_sym_kind;
+      param_sym_kind = tpp->param_symbol->kind;
+      if (templ_arg_kind_for_symbol_kind(param_sym_kind) != tap->kind) {
+        /* The argument kinds do not match. */
+        *copy_error = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
     if (is_type_templ_arg(tap)) {
       new_tap->variant.type =
                copy_type_with_substitution(tap->variant.type,
@@ -4784,6 +4808,10 @@ are looked up, if needed.  The symbol of the new instance is returned.
     }  /* if */
     prev_new_tap = new_tap;
   }  /* for */
+  /* If there are too many parameters, the copy should fail. */
+  if (!is_nonreal_template && tpp != NULL) {
+    *copy_error = TRUE;
+  }  /* if */
   if (*copy_error) {
     /* If an error occurred earlier, and in particular while creating one
        of the template arguments, don't try to find a matching template
@@ -8283,7 +8311,16 @@ using a qualified name.  Return TRUE if an error was detected.
     pos_sy_error(ec_bad_scope_for_definition,
                  &locator->source_position, sym);
     result = TRUE;
+  } else if (is_definition) {
+    a_template_symbol_supplement_ptr	tssp;
+    tssp = template_supplement_for_symbol(sym);
+    if (tssp->is_nonreal_member) {
+      /* An attempt to define a nonreal member. */
+      pos_sy_error(ec_bad_template_name, &locator->source_position, sym);
+      result = TRUE;
+    }  /* if */
   }  /* if */
+  if (result) decl_state->decl_scope_err = TRUE;
   return result;
 }  /* check_qualified_template_redecl_scope */
 
@@ -8659,6 +8696,7 @@ instantiation.
         pos_sy_error(ec_already_defined, &locator.source_position, sym);
         err = TRUE;
       }  /* if */
+      if (decl_state->decl_scope_err) err = TRUE;
       if ((is_definition || is_redecl) && sym != NULL) {
         /* Either a definition or a redeclaration.  Make sure the template
            parameters are compatible with the previous declaration. */
@@ -9442,13 +9480,15 @@ static a_template_param_ptr scan_nontype_template_param(
 		a_tmpl_decl_state_ptr		decl_state,
 		a_template_param_list_pos	template_param_list_pos,
 		a_token_cache			*param_cache,
-		a_boolean			*param_cache_used)
+		a_boolean			*param_cache_used,
+		a_boolean			is_template_param)
 /*
 Scan the declaration of a nontype template parameter.  Return the template
 parameter entry for the parameter.  param_cache is the cache containing
 the template parameter declaration.  param_cache_used is set to TRUE if
 a that cache has been saved for rescanning when the type of the nontype
-parameter depends on a template parameter.
+parameter depends on a template parameter.  is_template_param is TRUE if
+this is the template parameter list of a template template parameter.
 */
 {
   a_type_ptr		param_type_ptr;
@@ -9496,6 +9536,9 @@ parameter depends on a template parameter.
     set_template_cache_info(&template_param->cache, param_cache,
                             decl_state->decl_info);
     *param_cache_used = TRUE;
+    if (is_template_param) {
+      error(ec_dependent_type_in_templ_templ_param);
+    }  /* if */
   }  /* if */
   if (curr_token == tok_assign) {
     /* Scan the default value. */
@@ -9514,7 +9557,7 @@ parameter depends on a template parameter.
          constant involves a template parameter we have to save the
          constant as a token cache, so we also set the flag that indicates
          that the default argument contains a template parameter. */
-      def_arg_involves_template_param = TRUE;
+     def_arg_involves_template_param = TRUE;
     } else {
       /* The type doesn't involve a template parameter type.  Scan the
          default argument expression.  Rescan a copy of the cache.
@@ -9693,13 +9736,15 @@ parameter entry for the parameter.
 }  /* scan_template_template_param */
 
 
-static void scan_template_param_list(a_tmpl_decl_state_ptr decl_state)
+static void scan_template_param_list(a_tmpl_decl_state_ptr decl_state,
+				     a_boolean		   is_template_param)
 /*
 Scan a comma-separated list of template parameters.  The opening "<" will
 already have been scanned, and an empty list will have already been
 checked for.  The current token, consequently, is the first token of the
 first parameter.  Return a pointer to the linked list that is created
-to represent the template parameters.
+to represent the template parameters.  is_template_param is TRUE if
+this is the template parameter list of a template template parameter.
 */
 {
   a_template_param_ptr 		template_param;
@@ -9738,7 +9783,7 @@ to represent the template parameters.
     } else if (param_kind == (a_symbol_kind)sk_constant) {
       template_param = scan_nontype_template_param(
                              decl_state, template_param_list_pos, &param_cache,
-                             &param_cache_used);
+                             &param_cache_used, is_template_param);
     } else {
       /* A template template parameter. */
       template_param = scan_template_template_param(decl_state,
@@ -11090,7 +11135,7 @@ also for template template parameters (when is_template_param is TRUE).
         /* Save a pointer to the template declaration information in the
            scope stack entry. */
         scope_stack[depth_scope_stack].tmpl_decl_state = decl_state;
-        scan_template_param_list(decl_state);
+        scan_template_param_list(decl_state, is_template_param);
         template_decl_info->declaration_scope =
                                          scope_stack[decl_scope_level].number;
         /* Record that a template parameter list has been seen.  A
