@@ -110,6 +110,27 @@ typedef struct a_can_instantiate_entry {
 			   be instantiated later. */
 } a_can_instantiate_entry;
 
+
+/*
+Structure used to keep track of the class template partial specializations
+that match the template argument list of a given instance.
+*/
+typedef struct a_partial_spec_candidate *a_partial_spec_candidate_ptr;
+typedef struct a_partial_spec_candidate {
+  a_partial_spec_candidate_ptr
+		next;
+			/* Next entry in the list. */
+  a_symbol_ptr	symbol;
+			/* Pointer to the symbol associated with a
+			   given partial specialization. */
+  a_template_arg_ptr
+		template_arg_list;
+			/* Template argument list to be used if this partial
+			   specialization is to be used to generate the
+			   instance. */
+} a_partial_spec_candidate;
+
+
 static a_can_instantiate_entry_ptr can_instantiate_list;
 	
 static a_def_arg_expr_fixup_ptr	curr_default_args;
@@ -153,6 +174,18 @@ static a_symbol_list_entry_ptr
 static a_symbol_list_entry_ptr
 		deferred_instantiations_tail;
 			/* The end of the deferred_instantiations list. */
+
+static a_partial_spec_candidate_ptr
+		avail_partial_spec_candidates;
+			/* Previously allocated entries available for reuse. */
+
+#if DEBUG
+/*
+Counters used to track memory usage.
+*/
+static unsigned long
+		num_partial_spec_candidates_allocated;
+#endif /* DEBUG */
 
 /*
 Structure used to pass information about the current template declaration
@@ -297,6 +330,49 @@ Free the token caches that were used while processing a template declaration.
   /* Discard the token cache used to store the template parameter list. */
   discard_token_cache(&decl_state->param_list_cache);
 }  /* wrapup_templ_decl_state */
+
+
+static a_partial_spec_candidate_ptr alloc_partial_spec_candidate(void)
+/*
+Allocate a new partial specialization candidate entry, initialize it,
+and return a pointer to it.
+*/
+{
+  a_partial_spec_candidate_ptr pscp;
+
+  if (avail_partial_spec_candidates != NULL) {
+    /* Reuse an existing entry. */
+    pscp = avail_partial_spec_candidates;
+    avail_partial_spec_candidates = avail_partial_spec_candidates->next;
+  } else {
+    /* Allocate a new entry. */
+    pscp = (a_partial_spec_candidate_ptr)
+                                   alloc_fe(sizeof(a_partial_spec_candidate));
+#if DEBUG
+   num_partial_spec_candidates_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  pscp->next              = NULL;
+  pscp->symbol            = NULL;
+  pscp->template_arg_list = NULL;
+  
+  return pscp;
+}  /* alloc_partial_spec_candidate */
+
+
+static void free_partial_spec_candidate(a_partial_spec_candidate_ptr pscp)
+/*
+Free a partial specialization candidate entry by returning it to the
+list of available entries.
+*/
+{
+  /* Free any template argument list pointed to by this entry. */
+  if (pscp->template_arg_list != NULL) {
+    free_template_arg_list(pscp->template_arg_list);
+  }  /* if */
+  pscp->next = avail_partial_spec_candidates;
+  avail_partial_spec_candidates = pscp;
+}  /* free_partial_spec_candidate */
 
 
 #if RECORD_TEMPLATES_IN_IL
@@ -482,21 +558,23 @@ itself recursively to process classes nested within this class.
 }  /* set_instantiation_required_for_template_class_members */
 
 
-static a_template_arg_ptr templ_arg_list_for_class(a_type_ptr class_type)
+a_template_arg_ptr templ_arg_list_for_class(a_type_ptr class_type)
 /*
 Given a class type, return the template argument list to be used when
-generating an instantiation.  This is the template argument list
-associated with the nearest enclosing class that has a template
-argument list.  Classes without template argument lists are member classes
-but not member class templates.
+generating an instantiation.  This is usually the normal template
+argument list, but if the class was generated from a partial specialization,
+it is the partial specialization template argument list.
 */
 {
-  while (class_type->source_corresp.is_class_member &&
-         class_type->variant.class_struct_union.extra_info->
-                                                  template_arg_list == NULL) {
-    class_type = class_type->source_corresp.parent.class_type;
-  }  /* while */
-  return class_type->variant.class_struct_union.extra_info->template_arg_list;
+  a_template_arg_ptr		arg_list;
+  a_class_type_supplement_ptr	ctsp;
+
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  /* Return the partial specialization template argument list, if one is
+     present.  Otherwise return the primary template argument list. */
+  arg_list = ctsp->partial_spec_template_arg_list;
+  if (arg_list == NULL) arg_list = ctsp->template_arg_list;
+  return arg_list;
 }  /* templ_arg_list_for_class */
 
 
@@ -590,6 +668,24 @@ instantiation.
 }  /* func_info_for_template */
 
 
+static a_symbol_ptr primary_template_of(a_symbol_ptr sym)
+/*
+If sym is a partial specialization, return the primary template.  Otherwise,
+just return sym.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_symbol_ptr				result_sym;
+
+  check_assertion(sym->kind == (a_symbol_kind)sk_class_template);
+  tssp = sym->variant.template_info;
+  result_sym = tssp->variant.class_template.primary_template_sym != NULL
+                   ? tssp->variant.class_template.primary_template_sym
+                   : sym;
+  return result_sym;
+}  /* primary_template_of */
+
+
 static
 void find_class_template_member(a_symbol_ptr  ct_symbol,
                                 a_type_ptr    parent_class)
@@ -660,6 +756,303 @@ supplement already associated with ct_symbol.
 }  /* find_class_template_member */
 
 
+static a_boolean all_templ_params_have_values(
+				a_template_arg_ptr	templ_arg_list,
+				a_template_param_ptr	templ_param_list)
+/*
+This routine is used after doing argument deduction for a template
+argument list.  Its purpose is to make sure that a value has been deduced
+for each parameter.
+*/
+{
+  a_boolean		result = TRUE;
+  a_template_param_ptr	tpp;
+  a_template_arg_ptr	tap;
+
+  tpp = templ_param_list;
+  tap = templ_arg_list;
+  for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
+    a_boolean	arg_okay = FALSE;
+    if (tap == NULL) {
+      /* This argument is invalid. */
+    } else if (tap->is_type) {
+      /* A type argument -- the argument is okay if the type has been
+         filled in. */
+      arg_okay = tap->variant.type != NULL;
+    } else {
+      /* A nontype argument -- the argument is okay if the constant has been
+         filled in, or if it is an array bound of unknown type. */
+      arg_okay = tap->is_array_bound_of_unknown_type ||
+                 tap->variant.constant != NULL;
+    }  /* if */
+    if (!arg_okay) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* all_templ_params_have_values */
+
+
+/* Forward declaration. */
+static a_boolean matches_template_arg_list(
+				a_template_arg_ptr	tap,
+				a_template_arg_ptr	templ_tap,
+				a_template_arg_ptr	*templ_arg_list,
+				a_template_param_ptr	templ_param_list);
+
+static a_boolean matches_partial_specialization(
+				a_symbol_ptr		template_sym,
+				a_template_arg_ptr	arg_list,
+				a_template_arg_ptr	*ps_arg_list)
+/*
+Determine whether the template argument list specified by arg_list
+matches the partial specialization indicated by template_sym.  Return
+TRUE if it does; otherwise return FALSE.  If a match is found, return
+the template argument list with respect to the partial specialization
+in ps_arg_list.
+*/
+{
+  a_boolean				result = FALSE;
+  a_template_arg_ptr			templ_tap;
+  a_template_symbol_supplement_ptr	tssp;
+  a_symbol_ptr				prototype_sym;
+  a_type_ptr				prototype_type;
+  a_class_type_supplement_ptr		ctsp;
+  a_template_param_ptr			templ_param_list;
+  
+  /* Get a pointer to the prototype instantiation associated with this
+     partial specialization.  Then get the template argument list from
+     the prototype instantiation. */
+  tssp = template_sym->variant.template_info;
+  prototype_sym = tssp->variant.class_template.prototype_instantiation;
+  prototype_type = type_symbol_type(prototype_sym);
+  ctsp = prototype_type->variant.class_struct_union.extra_info;
+  templ_tap = ctsp->template_arg_list;
+  /* Get the template parameter list associated with this partial
+     specialization. */
+  templ_param_list = tssp->cache.decl_info->parameters;
+  if (matches_template_arg_list(arg_list, templ_tap, ps_arg_list,
+                                templ_param_list)) {
+    if (all_templ_params_have_values(*ps_arg_list, templ_param_list)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!result) {
+    /* If no match was found, free the template argument list that was
+       created, if any. */
+    free_template_arg_list(*ps_arg_list);
+  }  /* if */
+  return result;
+}  /* matches_partial_specialization */
+
+
+static a_boolean is_more_specialized(
+				a_symbol_ptr 		templ_sym1,
+				a_symbol_ptr		templ_sym2,
+				a_template_param_ptr	templ_param_list)
+/*
+templ_sym1 and templ_sym2 are class template symbols for partial
+specializations of a template.  Return TRUE if templ_sym1 is more
+specialized than templ_sym2.  This means that, for an instance that
+matches both templates, templ_sym1 should be preferred over templ_sym2.
+templ_param_list is the template parameter list with respect to the
+primary template.
+*/
+{
+  a_boolean				result = FALSE;
+  a_template_arg_ptr			tap1;
+  a_template_arg_ptr			tap2;
+  a_template_symbol_supplement_ptr	tssp1;
+  a_template_symbol_supplement_ptr	tssp2;
+  a_type_ptr				type1;
+  a_type_ptr				type2;
+  a_template_arg_ptr			dummy_arg_list = NULL;
+
+  tssp1 = templ_sym1->variant.template_info;
+  tssp2 = templ_sym2->variant.template_info;
+  type1 = tssp1->variant.class_template.prototype_instantiation->
+                                              variant.class_struct_union.type;
+  type2 = tssp2->variant.class_template.prototype_instantiation->
+                                              variant.class_struct_union.type;
+  tap1 = type1->variant.class_struct_union.extra_info->template_arg_list;
+  tap2 = type2->variant.class_struct_union.extra_info->template_arg_list;
+  /* Use the argument deduction routines to determine whether the template
+     parameters used in template2 can be deduced from the values used in
+     template1.  If so, then template1 is more specialized than template2.
+     For example:
+       1. template <class T> struct A<T**> {};
+       2. template <class T> struct A<T*> {};
+     In this example, the T in template2 can be deduced from template1.
+     The deduced value is T*.  So, template1 is more specialized than
+     template1. */
+  if (matches_template_arg_list(tap1, tap2, &dummy_arg_list,
+                                templ_param_list)) {
+    if (all_templ_params_have_values(dummy_arg_list, templ_param_list)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Discard the argument list produced by the deduction process. */
+  free_template_arg_list(dummy_arg_list);
+  return result;
+}  /* is_more_specialized */
+
+
+static void add_to_candidates_list(
+			a_partial_spec_candidate_ptr	*psc_list,
+			a_symbol_ptr			new_sym,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list)
+/*
+Add the partial specialization specified by new_sym to the candidates
+list pointed to by psc_list.  If the new entry is a poorer match than an
+entry already on the list, don't add it.  Go through the existing list
+and remove any entries that are poorer candidates than the new entry.
+templ_arg_list is the template argument list is the argument list
+associated with new_sym.  templ_param_list is the template parameter list
+with respect to the primary template.
+*/
+{
+  a_partial_spec_candidate_ptr	prev_pscp = NULL;
+  a_partial_spec_candidate_ptr	pscp;
+  a_boolean			do_not_add = FALSE;
+
+  for (pscp = *psc_list; pscp != NULL; prev_pscp = pscp, pscp = pscp->next) {
+    a_boolean	new_is_more_specialized;
+    a_boolean	curr_is_more_specialized;
+    new_is_more_specialized = is_more_specialized(
+                                new_sym, pscp->symbol, templ_param_list);
+    curr_is_more_specialized = is_more_specialized(
+                                pscp->symbol, new_sym, templ_param_list);
+    if (new_is_more_specialized && !curr_is_more_specialized) {
+      /* The new entry is more specialized than the one already on the
+         list.  Remove the entry from the list.
+      /* Remove the entry from the list. */
+      if (prev_pscp == NULL) {
+        *psc_list = pscp->next;
+      } else {
+        prev_pscp->next = pscp->next;
+      }  /* if */
+      /* Free the entry.  This also frees the template argument list. */
+      free_partial_spec_candidate(pscp);
+    } else if (curr_is_more_specialized && !new_is_more_specialized) {
+      /* The new entry is not more specialized than the one on the list.
+         Set a flag that indicates that this entry should not be added
+         to the list. */
+      do_not_add = TRUE;
+    }  /* if */
+  }  /* for */
+  if (!do_not_add) {
+    /* Add the new entry to the front of the list. */
+    a_partial_spec_candidate_ptr	new_pscp;
+    new_pscp = alloc_partial_spec_candidate();
+    new_pscp->symbol = new_sym;
+    new_pscp->template_arg_list = templ_arg_list;
+    new_pscp->next = *psc_list;
+    *psc_list = new_pscp;
+  } else {
+    /* If we are not adding the entry to the list, free the template
+       argument list. */
+    free_template_arg_list(templ_arg_list);
+  }  /* if */
+}  /* add_to_candidates_list */
+
+
+static void select_best_candidate(
+			a_partial_spec_candidate_ptr	psc_list,
+			a_symbol_ptr			instance_sym,
+			a_symbol_ptr			*best_sym,
+			a_template_arg_ptr		*best_arg_list)
+/*
+Return the best partial specialization symbol and its associated
+template argument list.  There should only be one entry
+left on the list, unless there is an ambiguity.  Return the first
+entry on the list.  If there are multiple entries, issue an error.
+*/
+{
+  a_partial_spec_candidate_ptr	pscp;
+  a_partial_spec_candidate_ptr	next_pscp;
+
+  if (psc_list->next != NULL) {
+    /* There is more than one entry on the list -- issue an error. */
+    pos_sy_start_error(ec_ambiguous_partial_spec, &error_position,
+                        instance_sym);
+    for (pscp = psc_list; pscp != NULL; pscp = pscp->next) {
+      /* The prototype instantiation for the partial specialization is used in
+         the diagnostic because it includes the template argument list of the
+         partial specialization. */
+      sym_add_diag_info(ec_ambiguous_partial_spec_add_on,
+                        pscp->symbol->variant.template_info->
+                               variant.class_template.prototype_instantiation);
+    }  /* for */
+    end_error();
+  }  /* if */
+  /* Return the information from the first entry on the list. */
+  *best_sym = psc_list->symbol;
+  *best_arg_list = psc_list->template_arg_list;
+  /* Clear the template argument list pointer in the first entry to prevent
+     it from being freed below. */
+  psc_list->template_arg_list = NULL;
+  for (pscp = psc_list; pscp != NULL; pscp = next_pscp) {
+    next_pscp = pscp->next;
+    /* Free the entry.  This also frees the template argument list. */
+    free_partial_spec_candidate(pscp);
+  }  /* for */
+}  /* select_best_candidate */
+
+
+static a_symbol_ptr check_partial_specializations(
+				a_symbol_ptr		instance_sym,
+				a_type_ptr		class_type,
+				a_symbol_ptr		template_sym)
+/*
+instance_sym identifies a template class that is about to be instantiated.
+template_sym points to the primary template on which the instantiation
+will be based.  class_type points to the class associated with instance_sym.
+If a matching partial specialization is found, return the symbol associate
+with that partial specialization; otherwise return NULL.
+*/
+{
+  a_template_symbol_supplement_ptr	tssp;
+  a_symbol_ptr				matching_sym = NULL;
+  a_symbol_ptr				ps_sym;
+  a_template_arg_ptr			templ_arg_list;
+  a_class_type_supplement_ptr		ctsp;
+  a_template_param_ptr			templ_param_list;
+  a_partial_spec_candidate_ptr		candidate_list = NULL;
+
+  db_enter(3, "check_partial_specializations");
+  tssp = template_sym->variant.template_info;
+  /* Get the template argument list with respect to the primary template. */
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  templ_arg_list = ctsp->template_arg_list;
+  /* Get the template parameter list with respect to the primary template. */
+  templ_param_list = tssp->cache.decl_info->parameters;
+  for (ps_sym = tssp->variant.class_template.partial_specializations;
+       ps_sym != NULL; ps_sym = ps_sym->next) {
+    a_template_arg_ptr	ps_arg_list = NULL;
+    if (matches_partial_specialization(ps_sym, templ_arg_list,
+                                       &ps_arg_list)) {
+      add_to_candidates_list(&candidate_list, ps_sym, ps_arg_list,
+                             templ_param_list);
+    } else {
+      /* If the template argument list is not being used, free it. */
+      free_template_arg_list(ps_arg_list);
+    }  /* if */
+  }  /* for */
+  if (candidate_list != NULL) {
+    /* A partial specialization was found.  Update the instance to record
+       the template argument list with respect to the partial
+       specialization.  If more than one match was found, this routine
+       will report the ambiguity. */
+    select_best_candidate(candidate_list, instance_sym, &matching_sym,
+                          &ctsp->partial_spec_template_arg_list);
+  }  /* if */
+  db_exit();
+  return matching_sym;
+}  /* check_partial_specializations */
+
+
 void f_instantiate_template_class(a_type_ptr  class_type)
 /*
 class_type is an incomplete class type.  If it is an instance of a class
@@ -671,7 +1064,7 @@ The template arguments (the real values which the template parameters take
 on) have been recorded in class_type and will be substituted for the
 template parameters when the instantiation scope is pushed.
 
-This routine should be called from macro instantiatiate_template_class,
+This routine should be called from macro instantiate_template_class,
 which determines that class_type is an incomplete type.  If it also turns
 out to be a template type, this routine attempts to instantiate it; it
 might not be able to if the template itself has not yet been defined.
@@ -712,6 +1105,7 @@ might not be able to if the template itself has not yet been defined.
        the class definition.  Simply ignore the instantiation request. */
   } else {
     a_template_cache_ptr	body_cache;
+    a_symbol_ptr		partial_spec_sym = NULL;
     tssp = template_supplement_for_symbol(template_sym);
     /* If this is a class template defined within another class template,
        the prototype instantiation is associated with the definition
@@ -724,7 +1118,22 @@ might not be able to if the template itself has not yet been defined.
     }  /* if */
     tssp_of_prototype =
                      template_supplement_for_symbol(template_sym_of_prototype);
-    body_cache = cache_for_template(tssp);
+    /* Now that we have the symbol associated with the true definition of
+       the primary template, check whether this particular instance should
+       be generated from a partial specialization.  This is only done for
+       class templates, not normal nested classes of class templates. */
+    if (template_sym->kind == (a_symbol_kind)sk_class_template &&
+        tssp_of_prototype->
+                    variant.class_template.partial_specializations != NULL) {
+      partial_spec_sym = check_partial_specializations(
+                          instance_sym, class_type, template_sym_of_prototype);
+    }  /* if */
+    if (partial_spec_sym != NULL) {
+      template_sym_of_prototype = partial_spec_sym;
+      tssp_of_prototype =
+                     template_supplement_for_symbol(template_sym_of_prototype);
+    }  /* if */
+    body_cache = cache_for_template(tssp_of_prototype);
     /* There is a class template from which to generate this class and it is
        a real instantiation. */
     /* Update the class symbol supplement pointer that points to the
@@ -1134,7 +1543,7 @@ A pointer to the head of the list is returned in tcsp.
 
   db_enter(3, "instantiate_class_template");
   tssp = template_supplement_for_symbol(template_sym);
-  instance_sym = (a_symbol_ptr)prototype_type->source_corresp.assoc_info;
+  instance_sym = tssp->variant.class_template.prototype_instantiation;
   cssp = instance_sym->variant.class_struct_union.extra_info;
   is_class_member = prototype_type->source_corresp.is_class_member;
 #if CHECKING
@@ -1151,10 +1560,6 @@ A pointer to the head of the list is returned in tcsp.
     db_symbol(template_sym, "prototype instantiation of: ", 2);
   }  /* if */
 #endif /* DEBUG */
-  instance_sym->variant.class_struct_union.extra_info->
-                                          is_prototype_instantiation = TRUE;
-  /* Save a pointer to the prototype instantiation. */
-  tssp->variant.class_template.prototype_instantiation = instance_sym;
   template_arg_list = templ_arg_list_for_class(prototype_type);
   cssp->instantiation_in_progress = TRUE;
   /* Record the namespace that is the "referencing context" namespace for
@@ -1871,16 +2276,46 @@ included in the search.
   tssp = class_template_sym->variant.template_info;
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
-  if (prototype_allowed && prototype_sym != NULL) {
-    /* Old list is the template argument list from a template class that has
-       already been created.  See if the list passed in matches it. */
-    old_list = prototype_sym->variant.class_struct_union.type->
+  if (prototype_allowed) {
+    if (prototype_sym != NULL) {
+      /* Old list is the template argument list from the prototype
+         instantiation of the primary template.  See if the list passed
+         in matches it. */
+      old_list = prototype_sym->variant.class_struct_union.type->
                      variant.class_struct_union.extra_info->template_arg_list;
-    if (equiv_template_arg_lists(old_list, *new_list,
-                                 /*error_matches_anything=*/FALSE,
-                                 (a_boolean)tssp->is_nonreal_member)) {
-      /* A match.  Set sym which will suppress any further search. */
-      sym = prototype_sym;
+      if (equiv_template_arg_lists(old_list, *new_list,
+                                   /*error_matches_anything=*/FALSE,
+                                   (a_boolean)tssp->is_nonreal_member)) {
+        /* A match.  Set sym which will suppress any further search. */
+        sym = prototype_sym;
+      }  /* if */
+    }  /* if */
+    if (sym == NULL) {
+      /* The list passed in did not match the primary prototype instantiation.
+         See if it matches any of the partial specializations. */
+      a_symbol_ptr	ps_sym;
+      ps_sym = tssp->variant.class_template.partial_specializations;
+      for (; ps_sym != NULL; ps_sym = ps_sym->next) {
+        /* Get the symbol associated with the prototype instantiation of this
+           partial specialization. */
+        a_symbol_ptr	ps_prototype_sym;
+        ps_prototype_sym = ps_sym->variant.template_info->
+                                variant.class_template.prototype_instantiation;
+        /* Old list is the template argument list associated with the
+           prototype instantiation of the partial specialization.  See if
+           the list passed in matches it. */
+        old_list = ps_prototype_sym->variant.class_struct_union.type->
+                      variant.class_struct_union.extra_info->template_arg_list;
+        if (equiv_template_arg_lists(old_list, *new_list,
+                                     /*error_matches_anything=*/FALSE,
+                                     (a_boolean)tssp->is_nonreal_member)) {
+#if DEBUG
+          if (debug_level >= 3) db_symbol(sym, "found: ", 2);
+#endif /* DEBUG */
+          sym = ps_prototype_sym;
+          break;
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
   if (sym == NULL) {
@@ -1889,10 +2324,10 @@ included in the search.
     sym = tssp->variant.class_template.instantiations;
     prev_sym = NULL;
     for (; sym != NULL; prev_sym = sym, sym = sym->next) {
-      /* The prototype instantiation should not be checked.  If
-         prototype_allowed is TRUE then we would have already found it
+      /* Prototype instantiations should not be checked.  If
+         prototype_allowed is TRUE then we would have already checked them
          in the test above. */
-      if (sym == prototype_sym) continue;
+      if (is_prototype_instantiation_symbol(sym)) continue;
       /* Old list is the template argument list from a template class that has
          already been created.  See if the list passed in matches it. */
       old_list = sym->variant.type->
@@ -1919,10 +2354,16 @@ included in the search.
        template class based on the template arguments.  First create a symbol
        (but do not enter it into the symbol table, since class templates
        are always looked up through the template. */
+    a_symbol_ptr			primary_template_sym;
+    a_template_symbol_supplement_ptr	primary_tssp;
     sym = make_template_class_symbol(class_template_sym);
-    /* Add the new symbol to the head of the instantiation list. */
-    sym->next = tssp->variant.class_template.instantiations;
-    tssp->variant.class_template.instantiations = sym;
+    /* Add the new symbol to the head of the instantiation list.  The
+       instantiation list of the primary template is always used (i.e.,
+       not the list of a partial specialization). */
+    primary_template_sym = primary_template_of(class_template_sym);
+    primary_tssp = primary_template_sym->variant.template_info;
+    sym->next = primary_tssp->variant.class_template.instantiations;
+    primary_tssp->variant.class_template.instantiations = sym;
     /* Now create a new type entry. */
     class_type = alloc_type(tssp->variant.class_template.type_kind);
     sym->variant.class_struct_union.type = class_type;
@@ -2237,6 +2678,45 @@ of types after all of the function arguments have been processed.
 }  /* matches_template_array_bound */
 
 
+static a_boolean matches_template_arg_list(
+				a_template_arg_ptr	tap,
+				a_template_arg_ptr	templ_tap,
+				a_template_arg_ptr	*templ_arg_list,
+				a_template_param_ptr	templ_param_list)
+/* This routine has a forward declaration earlier in this file. */
+/*
+Called by matches_template_type_for_class to determine whether a given
+template argument list matches a template argument list from the parameter
+list of a template function.  Also used to compare a template argument list
+from a template class reference with a template argument list of a
+partial specialization.
+*/
+{
+  a_boolean	match = FALSE;
+
+  do {
+    if (tap->is_type) {
+      /* A type template parameter.  See if the types match. */
+      match = matches_template_type(tap->variant.type,
+                                    templ_tap->variant.type,
+                                    templ_arg_list,
+                                    templ_param_list,
+                                    MTT_NO_FLAGS,
+                                    (a_base_class_ptr*)NULL);
+    } else {
+      /* A nontype template parameter. */
+      match = matches_template_constant(tap->variant.constant,
+                                        templ_tap->variant.constant,
+                                        templ_arg_list,
+                                        templ_param_list);
+    }  /* if */
+    tap = tap->next;
+    templ_tap = templ_tap->next;
+  } while (match && tap != NULL);
+  return match;
+}  /* matches_template_arg_list */
+
+
 static a_boolean matches_template_type_for_class_type
                                    (a_type_ptr           type,
                                     a_type_ptr           templ_type,
@@ -2273,25 +2753,10 @@ matches a class type from the parameter list of a template function.
                                                    template_arg_list;
     templ_tap = templ_type->variant.class_struct_union.
                                        extra_info->template_arg_list;
-    do {
-      if (tap->is_type) {
-        /* A type template parameter.  See if the types match. */
-        match = matches_template_type(tap->variant.type,
-                                      templ_tap->variant.type,
-                                      templ_arg_list,
-                                      templ_param_list,
-                                      MTT_NO_FLAGS,
-                                      (a_base_class_ptr*)NULL);
-      } else {
-        /* A nontype template parameter. */
-        match = matches_template_constant(tap->variant.constant,
-                                          templ_tap->variant.constant,
-                                          templ_arg_list,
-                                          templ_param_list);
-      }  /* if */
-      tap = tap->next;
-      templ_tap = templ_tap->next;
-    } while (match && tap != NULL);
+    if (matches_template_arg_list(tap, templ_tap, templ_arg_list,
+                                  templ_param_list)) {
+      match = TRUE;
+    }  /* if */
   }  /* if */
   return match;
 }  /* matches_template_type_for_class_type */
@@ -2741,19 +3206,7 @@ template symbol supplement has been set.
   }  /* if */
   /* Make an initial pass through the argument list to see if all of the
      arguments have deduced values. */
-  tpp = templ_param_list;
-  tap = templ_arg_list;
-  for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
-    a_boolean	arg_okay = FALSE;
-    arg_okay = tap != NULL &&
-               ((tap->is_type && tap->variant.type != NULL) ||
-                (tap->is_array_bound_of_unknown_type) ||
-                (tap->variant.constant != NULL));
-    if (!arg_okay) {
-      match = FALSE;
-      break;
-    }  /* if */
-  }  /* for */
+  match = all_templ_params_have_values(templ_arg_list, templ_param_list);
   if (match) {
     tpp = templ_param_list;
     tap = templ_arg_list;
@@ -2797,7 +3250,6 @@ template symbol supplement has been set.
   }  /* if */
   return match;
 }  /* verify_function_template_nontype_args */
-
 
 
 #if CHECKING
@@ -4541,7 +4993,8 @@ generated.
            sym = sym->next) {
         /* It is only an error if the class type is complete and is not a
            itself a specialization. */
-        if (is_complete_class_struct_union_type(type_symbol_type(sym)) &&
+        if (!is_prototype_instantiation_symbol(sym) &&
+            !is_incomplete_type(type_symbol_type(sym)) &&
             !is_template_instance_specific_def_symbol(sym)) {
           pos_sy2_error(ec_specialization_of_referenced_template,
                         &decl_state->start_pos, template_sym, sym);
@@ -4581,11 +5034,177 @@ error was diagnosed.
 }  /* same_name_as_template_param */
 
 
+static a_symbol_ptr add_partial_specialization(
+			a_tmpl_decl_state_ptr	decl_state,
+			a_symbol_ptr		partial_spec_nonreal_sym,
+			a_symbol_locator	*locator)
+/*
+Create a symbol for a class template partial specialization and add it
+to the list of partial specializations associated with the primary template.
+partial_spec_nonreal_sym points to the symbol associated with a nonreal
+class created by the initial scan of the partial specialization class name.
+For example, if the primary template is A<T1,T2>, a partial specialization
+declaration might be A<T1,int>.  When A<T1,int> is first scanned a nonreal
+class will be created.  As a consequence of the partial specialization
+declaration a new prototype instantiation for the partial specialization
+will be created (this is done later).
+*/
+{
+  a_symbol_ptr				primary_sym;
+  a_template_symbol_supplement_ptr	primary_tssp;
+  a_symbol_ptr				sym;
+  a_template_symbol_supplement_ptr	tssp;
+
+
+  primary_sym = partial_spec_nonreal_sym->
+                         variant.class_struct_union.extra_info->class_template;
+  check_assertion(primary_sym != NULL &&
+                  primary_sym->kind == (a_symbol_kind)sk_class_template);
+  primary_tssp = primary_sym->variant.template_info;
+  sym = alloc_symbol((a_symbol_kind)sk_class_template, primary_sym->header,
+                     &locator->source_position);
+  sym->decl_scope = primary_sym->decl_scope;
+  tssp = sym->variant.template_info;
+  tssp->variant.class_template.primary_template_sym = primary_sym;
+  if (!decl_state->decl_scope_err && !is_error_locator(*locator)) {
+    /* Only link the symbol to the primary template if some error has not
+       already occurred. */
+    sym->next = primary_tssp->variant.class_template.partial_specializations;
+    primary_tssp->variant.class_template.partial_specializations = sym;
+  }  /* if */
+  return sym;
+}  /* add_partial_specialization */
+
+
+static a_template_arg_ptr create_prototype_arg_list(
+			a_template_param_ptr	templ_param_list)
+/*
+Build the template argument list for the prototype instantiation
+of this template.  Loop through the template parameters and
+create a corresponding template argument for each.  Return a pointer
+to the newly created list.
+*/
+{
+  a_template_arg_ptr                tap;
+  a_template_arg_ptr                list_head = NULL;
+  a_template_arg_ptr                list_tail = NULL;
+  a_template_param_ptr              tpp;
+  a_symbol_ptr                      param_sym;
+
+  for (tpp = templ_param_list; tpp != NULL; tpp = tpp->next) {
+    param_sym = tpp->param_symbol;
+    if (param_sym->kind == (a_symbol_kind)sk_type) {
+      tap = alloc_template_arg(/*is_arg_type=*/TRUE);
+      tap->variant.type = param_sym->variant.type;
+    } else {
+      tap = alloc_template_arg(/*is_arg_type=*/FALSE);
+      tap->variant.constant = param_sym->variant.constant;
+    }  /* if */
+    if (list_head == NULL) list_head = tap;
+    if (list_tail != NULL) list_tail->next = tap;
+    list_tail = tap;
+  }  /* for */
+  return list_head;
+} /* create_prototype_arg_list */
+
+
+static void create_prototype_type(
+        a_tmpl_decl_state_ptr			decl_state,
+	a_symbol_ptr				sym,
+	a_template_symbol_supplement_ptr	tssp,
+        a_symbol_ptr				partial_spec_nonreal_sym,
+	a_boolean				is_partial_specialization)
+/*
+Create the type and symbol for the prototype instantiation of the
+template specified by sym.  tssp points to the symbol supplement of sym.
+partial_spec_nonreal_sym points to the symbol for the nonreal type
+initially used when processing the declaration of a partial specialization.
+*/
+{
+  a_symbol_ptr	prototype_sym;
+  a_type_ptr	prototype_type;
+  a_symbol_ptr	primary_sym;
+
+ if (sym->kind == (a_symbol_kind)sk_class_template) {
+    a_template_param_ptr	templ_param_list;
+    a_class_type_supplement_ptr	prototype_ctsp;
+    a_template_arg_ptr		templ_arg_list;
+    /* This is a class template declaration, not a declaration for
+       a normal class nested within a template. */
+    prototype_sym = make_template_class_symbol(sym);
+    /* Now create a new type entry. */
+    prototype_type = alloc_type(tssp->variant.class_template.type_kind);
+    prototype_sym->variant.class_struct_union.type = prototype_type;
+    set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
+    set_membership_in_source_corresp(&(prototype_type->source_corresp),
+                                     prototype_sym);
+    prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
+    /* Use the name linkage saved at the point of the original template
+       declaration. */
+    prototype_type->source_corresp.name_linkage =
+                                 tssp->variant.class_template.name_linkage;
+    templ_param_list = decl_state->decl_info->parameters;
+    /* Create a template argument list that corresponds to the template
+       parameter list. */
+    templ_arg_list = create_prototype_arg_list(templ_param_list);
+    if (is_partial_specialization) {
+      /* This is the initial declaration of a partial specialization.
+         The template argument list for the partial specialization should
+         be taken from the nonreal type created when the declaration was
+         scanned.  For example, the declaration may have been
+           template <class T1, class T2> struct A<T1*, T2*, int> { ... };
+         The template argument list for the prototype instantiation should
+          be "T1*, T2*, int". */
+      a_class_type_supplement_ptr	prototype_ctsp;
+      a_class_type_supplement_ptr	partial_spec_nonreal_ctsp;
+      partial_spec_nonreal_ctsp = partial_spec_nonreal_sym->variant.
+                class_struct_union.type->variant.class_struct_union.extra_info;
+      prototype_ctsp = prototype_type->variant.class_struct_union.extra_info;
+      prototype_ctsp->template_arg_list =
+                                  partial_spec_nonreal_ctsp->template_arg_list;
+      /* Just as with a normal instance, in the prototype instantiation of a
+         partial specialization the template_arg_list is with respect to the
+         primary template while the partial_spec_template_arg_list is with
+         respect to the partial specialization. */
+      prototype_ctsp->partial_spec_template_arg_list = templ_arg_list;
+      /* Get a pointer to the primary template for this partial
+         specialization. */
+      primary_sym = primary_template_of(sym);
+    } else {
+      /* A normal prototype (not a partial specialization). */
+      prototype_ctsp->template_arg_list = templ_arg_list;
+      primary_sym = sym;
+    }  /* if */
+  } else {
+    /* For a class nested within a class template, the member class
+       symbol of the prototype instantiation is used. */
+    prototype_sym = sym;
+    prototype_type = sym->variant.class_struct_union.type;
+    primary_sym = sym;
+  }  /* if */
+  {
+    /* Add the new symbol to the head of the instantiation list.  The
+       instantiations always go on the list associated with the primary
+       template. */
+    a_template_symbol_supplement_ptr	primary_tssp;
+
+    primary_tssp = template_supplement_for_symbol(primary_sym);
+    prototype_sym->next = primary_tssp->variant.class_template.instantiations;
+    primary_tssp->variant.class_template.instantiations = prototype_sym;
+    prototype_sym->defined = TRUE;
+    /* The prototype_instantiation field is set in the template supplement
+       of what may be a partial specialization, not in the primary template. */
+    tssp->variant.class_template.prototype_instantiation = prototype_sym;
+    prototype_sym->variant.class_struct_union.extra_info->
+                                          is_prototype_instantiation = TRUE;
+  }
+}  /* create_prototype_type */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
-		         a_boolean             *resolution,
-   		         a_type_ptr            *new_type)
+		         a_boolean             *resolution)
 
 /*
 The beginning of a template declaration or definition has been scanned,
@@ -4607,13 +5226,10 @@ instantiation.
   a_boolean                         suppress_redecl_error = FALSE;
   a_boolean                         is_definition, is_redecl = FALSE;
   a_symbol_locator                  locator;
-  a_symbol_ptr                      sym = NULL, prototype_sym, param_sym;
+  a_symbol_ptr                      sym = NULL;
   a_template_symbol_supplement_ptr  tssp;
   a_token_cache                     local_token_cache;
   a_type_kind                       type_kind;
-  a_type_ptr                        prototype_type = NULL;
-  a_template_arg_ptr                tap, *append_addr;
-  a_template_param_ptr              tpp;
   a_boolean			    err;
   a_token_set_array                 stop_tokens;
   a_source_position                 friend_pos;
@@ -4622,6 +5238,8 @@ instantiation.
                                              decl_state->decl_info->parameters;
   a_token_cache_ptr		    definition_token_cache = NULL;
   a_token_kind			    next_tok;
+  a_boolean			    is_partial_specialization = FALSE;
+  a_symbol_ptr			    partial_spec_nonreal_sym = sym;
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_typedef || curr_token == tok_auto ||
@@ -4667,17 +5285,22 @@ instantiation.
     /* Look up the identifier.  If it's a qualified name there will be an
        error down the line.  The options used when coalescing the 
        identifier are specified above. */
-#if 0
-    /* For member templates, is simplify_curr_class_qualified_name needed? */
-#endif /* 0 */
     /* For friend declarations, or declarations in which the template name
-       is a qualified name, do a normal lookup.  For unqualified
-       references that are not in friend declarations, just look
-       in the current scope. */
+       is a qualified name, and for cases where the template name is a
+       template ID (i.e., for partial specializations) do a normal lookup.
+       For unqualified references that are not in friend declarations, just
+       look in the current scope. */
     if (decl_state->is_template_friend ||
-        locator_for_curr_id.is_qualified_name) {
+        locator_for_curr_id.is_qualified_name ||
+        locator_for_curr_id.is_template_id) {
       sym = coalesce_and_lookup_generalized_identifier
                              (GID_CLASS_TEMPLATE_REQUIRED, ilm_linkage, &err);
+      /* If the class name is a template ID, then this is probably a
+         declaration of a partial specialization. */
+      if (!decl_state->is_template_friend &&
+          locator_for_curr_id.is_template_id) {
+        is_partial_specialization = TRUE;
+      }  /* if */
     } else {
       /* Look up the symbol in the current scope.  To do this we must
          temporarily change the decl. scope level to the effective
@@ -4723,6 +5346,47 @@ instantiation.
       /* A friend declaration in a nonclass scope. */
       pos_error(ec_bad_specifier_outside_class_decl, &friend_pos);
       decl_state->decl_scope_err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (is_partial_specialization) {
+    a_boolean	err = FALSE;
+    /* If this is a partial specialization, the symbol that was returned
+       by the lookup will be the prototype instantiation associated with
+       the partial specialization.  If this is the case, reset the symbol
+       to point to the class template symbol associated with the partial
+       specialization.  If instead the symbol points to a nonreal class,
+       then this is probably the initial declaration of the partial
+       specialization in which case we save a pointer to the nonreal class
+       so that we retain the information about the template argument list
+       that was used and we reset the symbol pointer to NULL so that a new
+       class template symbol will be created below. */
+    if (is_prototype_instantiation_symbol(sym)) {
+      sym = sym->variant.class_struct_union.extra_info->class_template;
+      check_assertion(sym != NULL);
+      if (sym->variant.template_info->
+                         variant.class_template.primary_template_sym == NULL) {
+        /* The template found is the prototype instantiation of the primary
+           template.  This occurs if the primary template was named in the
+           template argument list of a partial specialization.  This is
+           not permitted. */
+        pos_sy_error(ec_partial_spec_is_primary_template,
+                     &locator.source_position, sym);
+        err = TRUE;
+      }  /* if */
+    } else if (is_nonreal_instance_class_symbol(sym)) {
+      partial_spec_nonreal_sym = sym;
+      sym = NULL;
+    } else {
+      /* The symbol found is a real class.  This is an invalid partial
+         specialization. */
+      pos_sy_error(ec_bad_partial_specialization, &locator.source_position,
+                   sym);
+      err = TRUE;
+    }  /* if */
+    if (err) {
+      is_partial_specialization = FALSE;
+      decl_state->decl_scope_err = TRUE;
+      sym = NULL;
     }  /* if */
   }  /* if */
   if (sym != NULL && !decl_state->decl_scope_err && !sym->is_error) {
@@ -4847,7 +5511,7 @@ instantiation.
     } else if (sym == NULL) {
       /* Suppress the following error tests if the no symbol was found. */
     } else if ((sym->kind == (a_symbol_kind)sk_class_template ||
-        is_nested_class_definition)) {
+               is_nested_class_definition)) {
       /* This is a class template or a nested class within a class
          template. */
       is_redecl = TRUE;
@@ -4933,9 +5597,16 @@ instantiation.
     /* Enter the symbol at the scope indicated by effective_decl_level. */
     a_scope_stack_entry_ptr	ssep =
                                 &scope_stack[decl_state->effective_decl_level];
-    sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
-                       decl_state->effective_decl_level,
-                       suppress_redecl_error);
+    if (is_partial_specialization) {
+      /* The symbol being created is for a partial specialization.  Create
+         the symbol. */
+      sym = add_partial_specialization(decl_state,
+                                       partial_spec_nonreal_sym, &locator);
+    } else {
+      sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
+                         decl_state->effective_decl_level,
+                         suppress_redecl_error);
+    }  /* if */
     tssp = sym->variant.template_info;
     if (ssep->kind == (a_scope_kind)sck_namespace ||
         ssep->kind == (a_scope_kind)sck_namespace_extension) {
@@ -4946,6 +5617,9 @@ instantiation.
                            decl_state->class_declared_in);
       tssp->variant.class_template.access = decl_state->access; 
     }  /* if */
+    /* Save the type kind on the initial declaration.  This may be modified
+       later on a definition. */
+    tssp->variant.class_template.type_kind = type_kind;
     /* Set the name-linkage for this template -- it will be propagated
        into the instances. */
     if (ssep->within_unnamed_namespace ||
@@ -4961,10 +5635,7 @@ instantiation.
     }  /* if */
     is_redecl = FALSE;
   }  /* if */
-  if (is_definition || !is_redecl) {
-    /* Either this is the first declaration of the template class or a
-	defining redeclaration. */
-
+  if (is_definition) {
     /* Save the type kind (corresponding to the class/struct/union token)
        in the class template symbol's supplement -- it will be needed when
        type entries for instantiations are created. */
@@ -4992,6 +5663,12 @@ instantiation.
        template information to reflect this. */
     record_specialization(decl_state, sym, tssp);
   }  /* if */
+  if (tssp->prototype_template == NULL || tssp->is_specific_definition) {
+    /* Create the symbol for the prototype instantiation (but don't do
+       the instantiation yet).  This not done for subordinate templates. */
+    create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
+                          is_partial_specialization);
+  }  /* if */
   if (is_definition) {
     a_token_sequence_number   first_token_number = curr_token_sequence_number;
     a_token_sequence_number   last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
@@ -5003,49 +5680,6 @@ instantiation.
     decl_state->defines_something = TRUE;
     if (sym != NULL) {
       mark_defined(sym, &locator.source_position);
-      /* Create the symbol for the prototype instantiation (but don't do
-         the instantiation yet). */
-      if (sym->kind == (a_symbol_kind)sk_class_template) {
-        /* This is a class template declaration, not a declaration for
-           a normal class nested within a template. */
-        prototype_sym = make_template_class_symbol(sym);
-        /* Now create a new type entry. */
-        prototype_type = alloc_type(tssp->variant.class_template.type_kind);
-        prototype_sym->variant.class_struct_union.type = prototype_type;
-        set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
-        set_membership_in_source_corresp(&(prototype_type->source_corresp),
-                                         prototype_sym);
-        /* Use the name linkage saved at the point of the original template
-           declaration. */
-        prototype_type->source_corresp.name_linkage =
-                                 tssp->variant.class_template.name_linkage;
-        /* Build the template argument list for the prototype instantiation
-           of this template.  Loop through the template parameters and
-           create a corresponding template argument for each. */
-        append_addr = &prototype_type->
-                  variant.class_struct_union.extra_info->template_arg_list;
-        for (tpp = templ_params; tpp != NULL; tpp = tpp->next) {
-          param_sym = tpp->param_symbol;
-          if (param_sym->kind == (a_symbol_kind)sk_type) {
-            tap = alloc_template_arg(/*is_arg_type=*/TRUE);
-            tap->variant.type = param_sym->variant.type;
-          } else {
-            tap = alloc_template_arg(/*is_arg_type=*/FALSE);
-            tap->variant.constant = param_sym->variant.constant;
-          }  /* if */
-          *append_addr = tap;
-          append_addr = &tap->next;
-        }  /* for */
-      } else {
-        /* For a class nested within a class template, the member class
-           symbol of the prototype instantiation is used. */
-        prototype_sym = sym;
-        prototype_type = sym->variant.class_struct_union.type;
-      }  /* if */
-      /* Add the new symbol to the head of the instantiation list. */
-      prototype_sym->next = tssp->variant.class_template.instantiations;
-      tssp->variant.class_template.instantiations = prototype_sym;
-      prototype_sym->defined = TRUE;
     }  /* if */
     /* Initialize a local stop token set. */
     clear_token_set_array(stop_tokens);
@@ -5114,8 +5748,6 @@ instantiation.
     }  /* if */
   }  /* if */
   *p_sym_ptr = sym;
-  *new_type = prototype_type;
-
   db_exit();
 }  /* class_template_declaration */
 
@@ -6809,11 +7441,12 @@ any non-empty template parameter lists that were scanned.
   a_symbol_ptr                      sym = NULL;
   a_template_symbol_supplement_ptr  tssp = NULL;
   a_boolean                         tag_resolution = FALSE;
-  a_type_ptr                        prototype_type = NULL;
 #if RECORD_TEMPLATES_IN_IL
   a_token_cache                     *p_template_body_cache = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
   a_template_cache_segment_ptr	    cache_segments;
+  a_boolean			    prototype_okay = FALSE;
+  a_boolean			    is_class_template = FALSE;
 
   db_enter(3, "template_declaration");
   /* Now that we know where the template declaration begins (and the template
@@ -6841,8 +7474,9 @@ any non-empty template parameter lists that were scanned.
      of the definition (if any) and cache them away of later reference. */
   if (is_class_template_decl(&decl_state->decl_token_cache)) {
     class_template_declaration(decl_state, &sym,
-			       &tag_resolution, &prototype_type);
+			       &tag_resolution);
     tssp = sym != NULL ? template_supplement_for_symbol(sym) : NULL;
+    is_class_template = TRUE;
 #if RECORD_TEMPLATES_IN_IL
     if (decl_state->defines_something && sym != NULL) {
       /* Save a pointer to the token cache for class template body. */
@@ -6977,26 +7611,20 @@ any non-empty template parameter lists that were scanned.
       free_pending_pragma_list(decl_state->pragmas_bound_to_template);
     }  /* if */
   }
-  {
-    /* Save and clear the prototype_type.  After the code below is executed
-       prototype_type will only be non-NULL for valid cases where the
-       prototype instantiation has actually been done. */
-    a_type_ptr	saved_prototype_type = prototype_type;
-    prototype_type = NULL;
-    if (!decl_state->decl_scope_err && saved_prototype_type != NULL) {
-#if CHECKING
-      if (sym == NULL || tssp == NULL ||
-          tssp->variant.class_template.instantiations == NULL ||
-          tssp->variant.class_template.instantiations->
-                     variant.class_struct_union.type != saved_prototype_type) {
-        internal_error(
-                     "template_declaration: sym & prototype_type out of sync");
-      }  /* if */
-#endif /* CHECKING */
+  if (is_class_template) {
+    if (!decl_state->decl_scope_err && decl_state->defines_something) {
+      a_type_ptr	prototype_type;
+      a_symbol_ptr	prototype_sym;
+      check_assertion_str2(sym != NULL && tssp != NULL,
+                           "template_declaration:", "sym or tssp NULL");
+      prototype_sym = tssp->variant.class_template.prototype_instantiation;
+      prototype_type = type_symbol_type(prototype_sym);
+      check_assertion_str2(is_class_struct_union_symbol(prototype_sym),
+                           "template_declaration:", "prototype_sym invalid");
       if (!sym->is_error) {
         /* Do a "prototype instantiation" of the class template -- i.e., parse
            the declarative information looking for gross syntax errors. */
-        prototype_type = saved_prototype_type;
+        prototype_okay = TRUE;
         instantiate_class_template(sym, prototype_type, &cache_segments);
         if (tag_resolution) {
           /* This is the resolution of a previously incomplete template
@@ -7007,9 +7635,9 @@ any non-empty template parameter lists that were scanned.
         }  /* if */
       }  /* if */
     }  /* if */
-  }
+  }  /* if */
   {
-    a_boolean	member_bodies_need_extraction = prototype_type != NULL;
+    a_boolean	member_bodies_need_extraction = prototype_okay;
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     /* Member function bodies are extracted before the template string is
        constructed when member function instantiations are included in the
@@ -9519,6 +10147,26 @@ brace) is returned in *final_token.
 }  /* template_directive_or_declaration */
 
 
+#if DEBUG
+unsigned long db_show_template_space_used(unsigned long grand_total)
+/*
+Show space used by the template routines.  This is called by
+the symbol table space used routine.  The space used by the template
+routines is reported as part of the symbol table memory used.
+*/
+{
+  unsigned long	num;
+  unsigned long	size;
+  unsigned long	total;
+
+  db_space_used_lost("partial spec candidates", avail_partial_spec_candidates,
+                     num_partial_spec_candidates_allocated,
+                     a_partial_spec_candidate);
+  return grand_total;
+}  /* db_show_template_space_used */
+#endif /* DEBUG */
+
+
 void templates_one_time_init(void)
 /*
 One-time initialization for templates.c static variables.
@@ -9530,6 +10178,10 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(instantiations_required),
       pch_saved_var_array_elem(instantiations_required_tail),
       pch_saved_var_array_elem(can_instantiate_list),
+      pch_saved_var_array_elem(avail_partial_spec_candidates),
+#if DEBUG
+      pch_saved_var_array_elem(num_partial_spec_candidates_allocated),
+#endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -9550,6 +10202,10 @@ Initializations for template.
   can_instantiate_list = NULL;
   deferred_instantiations = NULL;
   deferred_instantiations_tail = NULL;
+  avail_partial_spec_candidates = NULL;
+#if DEBUG
+  num_partial_spec_candidates_allocated = 0;
+#endif /* DEBUG */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   any_instantiations_required = FALSE;
   instantiation_info_file_name = NULL;

@@ -7253,9 +7253,18 @@ a routine to lookup the appropriate instance (or generate one if needed).
        with a member that is being defined, or a template enclosing that
        class. */
     {
-      a_symbol_ptr	tmc_sym = ssep->templ_member_class_sym;
+      a_symbol_ptr			tmc_sym = ssep->templ_member_class_sym;
       while (tmc_sym != NULL) {
-        a_type_ptr	parent_type = NULL;
+        a_template_symbol_supplement_ptr	tmc_tssp;
+        a_type_ptr				parent_type = NULL;
+        tmc_tssp = tmc_sym->variant.template_info;
+        /* If the template of which a member is being defined is a partial
+           specialization, use the primary template instead for the purpose
+           of determining whether the template being used matches the template
+           of which a member is being defined. */
+        if (tmc_tssp->variant.class_template.primary_template_sym != NULL) {
+          tmc_sym = tmc_tssp->variant.class_template.primary_template_sym;
+        }  /* if */
         if (tmc_sym == template_sym) {
           is_templ_member_class_sym = TRUE;
           break;

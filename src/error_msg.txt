@@ -885,7 +885,9 @@ ec_bad_partial_specialization;;"invalid partial specialization -- %n is already 
 ec_incompatible_exception_specs;;"incompatible exception specifications"
 ec_returning_ref_to_local_variable;;"returning reference to local variable"
 ec_nonstd_implicit_int;;"omission of explicit type is nonstandard (\"int\" assumed)"
-ec_ambiguous_partial_spec;;"unable to select a partial specialization for %n1 -- %no2 and %no3 are unordered"
+ec_ambiguous_partial_spec;;"more than one partial specialization matches the template argument list of %n"
+ec_ambiguous_partial_spec_add_on;INTERNAL;"%no"
+ec_partial_spec_is_primary_template;;"invalid partial specialization -- %n is the primary template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

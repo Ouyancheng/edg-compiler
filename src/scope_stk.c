@@ -1684,8 +1684,7 @@ are non-NULL when they should be used for the outermost instantiation scope.
       /* Push a template instantiation scope associated with the
          class in which this template was defined.  Don't do this if
          the prototype instantiation is already in process. */
-      template_arg_list = class_type->variant.class_struct_union.extra_info->
-                                                           template_arg_list;
+      template_arg_list = templ_arg_list_for_class(class_type);
       (void)push_scope_full((a_scope_kind)sck_template_instantiation,
                           decl_info->declaration_scope, assoc_type,
                           assoc_routine, (a_namespace_ptr)NULL,
@@ -4163,8 +4162,7 @@ are not reactivated.
     /* Get a pointer to the symbol associated with the template from
        which this class was generated. */
     template_sym = template_symbol_for_class_symbol(class_sym);
-    template_arg_list = class_type->variant.class_struct_union.extra_info->
-                                                           template_arg_list;
+    template_arg_list = templ_arg_list_for_class(class_type);
     /* Get the template declaration information associated with the class. */
     tssp = template_supplement_for_symbol(template_sym);
     decl_info = cache_for_template(tssp)->decl_info;

@@ -27,6 +27,8 @@ templates.h -- Declarations relating to templates.c (template support)
 extern
 a_template_cache_ptr cache_for_template(a_template_symbol_supplement_ptr tssp);
 
+extern a_template_arg_ptr templ_arg_list_for_class(a_type_ptr class_type);
+
 extern a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                                         a_template_arg_ptr  *template_arg_list,
 				 	a_boolean	    prototype_allowed);
@@ -182,6 +184,10 @@ EXTERN a_type_ptr
     f_instantiate_template_class(tp);					\
   }  /* if */							        \
 }
+
+#if DEBUG
+extern unsigned long db_show_template_space_used(unsigned long grand_total);
+#endif /* DEBUG */
 
 #endif /* TEMPLATES_H */
 
