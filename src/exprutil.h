@@ -52,8 +52,7 @@ Macro that returns TRUE if an expression kind is for some variety of
 constant expression.  Note that the "<=" is possible because the constant
 kinds are at the beginning of the list.
 */
-#define is_const_expr_kind(kind)                                      \
-  ((kind) <= (an_expression_kind)ek_init_constant)
+#define is_const_expr_kind(kind) ((int)(kind) <= (int)ek_init_constant)
 
 
 /* Flag byte used to indicate scanning options that apply to one level
@@ -334,6 +333,8 @@ extern void make_expression_operand(an_expr_node_ptr node,
 			            an_operand       *operand);
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
+
+extern void discard_operand(an_operand *operand);
 
 extern void cast_operand(a_type_ptr         new_type,
 		         an_operand         *operand,
