@@ -12085,6 +12085,7 @@ conversion_to_class_possible.
 */
 {
   a_type_ptr param_type = formal_param->type;
+  a_boolean  adjusted_for_ref_to_non_const = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean  is_transparent = formal_param->is_transparent;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -12114,6 +12115,7 @@ conversion_to_class_possible.
              to const so that the binding is valid. */
           underlying_type = make_qualified_type(underlying_type, TQ_CONST);
           param_type = make_reference_type(underlying_type);
+          adjusted_for_ref_to_non_const = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -12131,6 +12133,14 @@ conversion_to_class_possible.
                              processed_arg,
                              /*nontype_template_arg=*/FALSE,
                              err_code);
+    if (adjusted_for_ref_to_non_const) {
+      /* If we did the adjustment above, cast the operand so that its
+         type matches the parameter type. */
+      cast_operand(make_pointer_type(type_pointed_to(formal_param->type)),
+                   source_operand, /*check_cast_access=*/FALSE,
+                   /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
+    }  /* if */
   }  /* if */
 }  /* prep_argument_operand */
 
