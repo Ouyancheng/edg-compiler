@@ -4645,19 +4645,20 @@ well as C++ mode.
         is_function_type(pm_member_type(dest_type))) {
       okay = TRUE;
     }  /* if */
-  } else if (is_error(dest_type)) {
-    /* Anything can be converted to an error type. */
-    okay = TRUE;
-  } else if (is_template_param_type(dest_type)) {
-    /* Anything can be converted to a template parameter type in a prototype
-       instantiation. */
-    okay = TRUE;
   }  /* if */
-  /* If compatibility was not found any other way, check for the source
-     having an error type or a template parameter type. */
   if (!okay) {
-    if (is_error(source_type) || is_template_param_type(source_type)) {
-      okay = TRUE;
+    /* No normal conversion.  Look for error and template matches. */
+    if (is_error(dest_type) || is_template_param_type(dest_type)) {
+      if (is_error(source_type) || is_template_param_type(source_type) ||
+          is_integral_or_enum(source_type) || is_pointer(source_type) ||
+          is_ptr_to_member(source_type)) {
+        okay = TRUE;
+      }  /* if */
+    } else if (is_error(source_type) || is_template_param_type(source_type)) {
+      if (is_integral_or_enum(dest_type) || is_pointer(dest_type) ||
+          is_ptr_to_member(dest_type)) {
+        okay = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 #if DEBUG
