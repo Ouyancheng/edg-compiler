@@ -1886,7 +1886,7 @@ were incorrectly flagged as errors.  Now fixed.
 
 11/5/02  Incorrect EH cleanup state after local block containing array
 
-A change in 2.30 (see 11/19/01 entry below) introduced a bug in
+A change in 3.0 (see 11/19/01 entry below) introduced a bug in
 the determination of the exception handling cleanup state when
 a block ends whose first variable is an array with a {...}
 initializer.  This could cause incomplete destruction if there
