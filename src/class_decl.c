@@ -1359,7 +1359,7 @@ routine entry and return TRUE; otherwise return FALSE.
                 /* A static member function "redeclares" a virtual nonstatic
                    member function from a base class. */
                 pos_error(ec_virtual_static_not_allowed, source_pos);
-                goto next_base_class;                                       
+                goto done;                                       
               } else if (!this_param_types_correspond(
                                              rout->type, rp->type,
                                              /*check_as_conversion=*/FALSE,
