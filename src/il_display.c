@@ -2232,6 +2232,10 @@ Display the indicated object lifetime.
   disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
   disp_ptr("parent_lifetime", (char *)ptr->parent_lifetime,
            iek_object_lifetime);
+  disp_ptr("parent_dynamic_init", (char *)ptr->parent_dynamic_init,
+           iek_dynamic_init);
+  disp_ptr("child_lifetime", (char *)ptr->child_lifetime, iek_object_lifetime);
+  disp_ptr("next", (char *)ptr->next, iek_object_lifetime);
 }  /* disp_object_lifetime */
 
 
@@ -2277,6 +2281,9 @@ do_assoc_type:
       disp_ptr("constructor_inits",
                (char *)ptr->variant.routine.constructor_inits,
                iek_constructor_init);
+      disp_ptr("lifetime_of_constructor_inits",
+               (char *)ptr->variant.routine.lifetime_of_constructor_inits,
+               iek_object_lifetime);
       if (ptr->variant.routine.this_param_variable != NULL) {
         disp_ptr("this_param_variable",
                  (char *)ptr->variant.routine.this_param_variable,

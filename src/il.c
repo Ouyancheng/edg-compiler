@@ -7019,10 +7019,13 @@ subscope region.
 #if DEBUG
   num_object_lifetimes_allocated++;
 #endif /* DEBUG */
-  olp->entity.kind = (a_byte_il_entry_kind)kind;
-  olp->entity.ptr = entry_ptr;
-  olp->dynamic_inits = NULL;
-  olp->parent_lifetime = parent_lifetime;
+  olp->entity.kind         = (a_byte_il_entry_kind)kind;
+  olp->entity.ptr          = entry_ptr;
+  olp->dynamic_inits       = NULL;
+  olp->parent_lifetime     = parent_lifetime;
+  olp->parent_dynamic_init = NULL;
+  olp->child_lifetime      = NULL;
+  olp->next                = NULL;
   db_exit();
   return olp;
 }  /* alloc_object_lifetime */
@@ -7064,6 +7067,7 @@ points to the associated routine if the kind is sck_function.
       sp->variant.routine.ptr                 = assoc_routine;
       sp->variant.routine.parameters          = NULL;
       sp->variant.routine.constructor_inits   = NULL;
+      sp->variant.routine.lifetime_of_constructor_inits = NULL;
       sp->variant.routine.this_param_variable = NULL;
       sp->variant.routine.return_value_variable = NULL;
 #ifdef FIL

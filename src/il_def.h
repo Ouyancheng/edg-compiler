@@ -4279,7 +4279,7 @@ typedef struct a_try_supplement {
 			/* An object lifetime enclosing the try block and
 			   catch clauses.  There are no user-declared objects
 			   that have this lifetime, but there may be runtime
-			   objects with this lifetime. */
+			   objects with the lifetime. */
 } a_try_supplement;
 
 #endif /* ifdef CIL */
@@ -5044,7 +5044,9 @@ typedef struct an_object_lifetime {
 			  block).  This is the common case of an object
 			  lifetime that exactly matches a scope.  Includes
 			  as a special case scopes for exception handlers
-			  (catch clauses).
+			  (catch clauses).  Also, scopes for constructors
+			  and destructors have a separate lifetime for
+			  their constructor_inits lists.
 	iek_expr_node	Full expression; points to enk_object_lifetime node
 			  which is the top node of expression.  Used for
 			  temporaries that last to end of full expression.
@@ -5069,6 +5071,11 @@ typedef struct an_object_lifetime {
 			New; points to new/delete supplement.  Used only when
 			  exceptions are enabled, to identify the lifetime
 			  for the allocated-but-not-yet-constructed space.
+	iek_dynamic_init
+			Dynamic initialization; points to the dynamic
+			  initialization entry.  Used for temporaries created
+			   in constructor-call dynamic initializations that
+			   initialize variables.
   */
   a_tagged_pointer
 		entity;	/* Entity with which this object lifetime is
@@ -5086,6 +5093,26 @@ typedef struct an_object_lifetime {
 			/* The object lifetime that is the nearest enclosing
 			   lifetime around this one, or NULL if this is the
 			   lifetime for the file scope. */
+  a_dynamic_init_ptr
+		parent_dynamic_init;
+			/* The point in the dynamic inits list of the parent
+			   lifetime where the present object lifetime
+			   appears.  NULL if this lifetime is not on the
+			   child list of another lifetime. */
+  an_object_lifetime_ptr
+		child_lifetime;
+			/* If this object lifetime has object lifetimes under
+			   it, this is the first on a list linked by the
+			   "next" field.  NULL otherwise.  However: since the
+			   topmost file-scope object lifetime cannot point to a
+			   function-scope object lifetime, such entries are
+			   not placed on the list. */
+  an_object_lifetime_ptr
+		next;
+			/* The next object lifetime on a list of sibling
+			   lifetimes, or NULL if there are no more siblings.
+			   Linked in reverse order of creation, so the
+			   lifetimes created last are first on the list. */
 } an_object_lifetime;
 
 
@@ -5197,11 +5224,18 @@ typedef struct a_scope {
       a_constructor_init_ptr
 		constructor_inits;
 			/* List of constructor initializer entries; non-NULL
-			   for scopes associated with C++ constructors only.
-			   The list identifies all subobjects and nonstatic
-			   data members of the object being initialized by the
-			   constructor, arranged in the order in which the
-			   initialization should be performed (ARM 12.6.2). */
+			   for scopes associated with C++ constructors and
+			   destructors only.  The list identifies all
+			   subobjects and nonstatic data members of the
+			   object being initialized by the constructor,
+			   or being destroyed by the destructor, arranged
+			   in the order in which the initialization or
+			   destruction should be performed (ARM 12.6.2). */
+      an_object_lifetime_ptr
+		lifetime_of_constructor_inits;
+			/* If non-NULL, points to an object lifetime for
+			   the entities created on the constructor_inits
+			   list. */
       a_variable_ptr
                 this_param_variable;
 			/* If the scope is for a C++ nonstatic member
@@ -5237,7 +5271,7 @@ typedef struct a_scope {
 			/* Object lifetime that is equivalent to the full
 			   scope lifetime.  NULL if the scope contains no
 			   objects that require destruction (and therefore
-			   always in C mode). */
+			   always NULL in C mode). */
   a_constant_ptr
                 constants;
                         /* List of named constants of this scope, NULL if
