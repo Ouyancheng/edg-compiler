@@ -6590,10 +6590,9 @@ End a name scope by popping an entry off the scope stack.
   db_enter(3, "pop_scope");
   ssep = &scope_stack[depth_scope_stack];
   kind = ssep->kind;
-  il_scope = ssep->il_scope;
   if (kind == (a_scope_kind)sck_function) {
     /* If the scope is for a routine, get a pointer to the routine. */
-    curr_routine = il_scope->variant.routine.ptr;
+    curr_routine = ssep->il_scope->variant.routine.ptr;
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
@@ -6725,6 +6724,7 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   }  /* for */
+  il_scope = ssep->il_scope;
   if (ssep->first_scope != NULL) {
     /* Transfer the list of scopes nested within the current scope
        to the IL scope entry if there is one, or otherwise add it to
