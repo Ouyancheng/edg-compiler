@@ -769,7 +769,7 @@ Open the intermediate language file.
        IL file name.  If the input file is stdin, the name cannot be
        generated. */
     if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) == 0) {
-      str_command_line_error(ec_il_file_must_be_specified:
+      str_command_line_error(ec_cl_il_file_must_be_specified,
                              primary_source_file_name);
     }  /* if */
     il_file_name = derived_name(primary_source_file_name, IL_FILE_SUFFIX);
