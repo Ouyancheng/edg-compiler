@@ -1090,7 +1090,7 @@ to default values.
                  nested_class_defined_outside_of_parent = FALSE;
       pte->variant.class_struct_union.originally_unnamed = FALSE;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-      pte->variant.class_struct_union.is_nonstd_anonymous_union = FALSE;
+      pte->variant.class_struct_union.is_nonstd_anonymous_union_type = FALSE;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
       pte->variant.class_struct_union.is_template_class = FALSE;
       pte->variant.class_struct_union.is_nonreal_class = FALSE;

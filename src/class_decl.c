@@ -10204,7 +10204,13 @@ moreover, several fields of *decl_info may be updated by this routine.
         record_symbol_declaration(SRK_DECLARATION, sym, err_pos,
                                   (a_source_sequence_entry_ptr)NULL);
       }  /* if */
-      member_type->variant.class_struct_union.is_nonstd_anonymous_union = TRUE;
+      if (!has_name(member_type)) {
+        /* Only the types of anonymous unions whose type itself (as opposed
+           to the associated member object) is anonymous are marked as being
+           nonstandard anonymous union types. */
+        member_type
+           ->variant.class_struct_union.is_nonstd_anonymous_union_type = TRUE;
+      }  /* if */
     }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
     decl_info->is_anonymous_union = TRUE;

@@ -1,5 +1,26 @@
 Version 2.46
 
+3/5/01   Nonstandard anonymous union types now marked in IL
+
+The class types of anonymous-union-like constructs are now marked as such
+provided the type itself is anonymous (as opposed, e.g., to being named
+through a typedef declaration).  A new flag is_nonstd_anonymous_union_type
+was added to the class/struct/union variant of a_type entries (IL CHANGE,
+but only in configurations where ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE).
+
+  typedef struct {
+    int i;
+    double d;
+  } Anon;
+  struct S {
+    Anon;     // Nonstandard anonymous union construct but the associated type
+              // "Anon" is not anonymous and therefore not marked.
+    struct {  // Nonstandard anonymous union construct with an unnamed type:
+      char c; // marked as such in the IL entry for that type.
+      long l;
+    };
+  };
+
 3/4/01   C99 __NAN__ and __INFINITY__
 
 In C99 mode, there are now predefined constants __NAN__ and
