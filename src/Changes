@@ -1,5 +1,13 @@
 Version 2.13
 
+12/8/92  Access checking on declarators
+
+Access errors for qualified names used in declarators are
+no longer issued.  This is necessary to allow out of line definitions
+of member functions of private classes.  Access checking is still
+done in all cases, however, the decision to issue or not issue the access
+errors is now delayed until we know how the qualified name is being used.
+
 12/8/92  Relaxation of pointer-to-function type checking
 
 The comparison and assignment in the following are now allowed,
