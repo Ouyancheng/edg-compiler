@@ -528,7 +528,7 @@ EXTERN a_boolean
 #endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 #endif /* VAR_INITIALIZERS */
                                                                               ;
-			       /* TRUE if '.x' and '[expr]' designators should be accepted. */
+                /* TRUE if '.x' and '[expr]' designators should be accepted. */
 
 EXTERN a_boolean
 		extended_designators_allowed
@@ -541,7 +541,7 @@ EXTERN a_boolean
 #endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 #endif /* VAR_INITIALIZERS */
                                                                               ;
-		 /* TRUE if 'x:' and '[expr ... expr]' designators should be accepted. */
+       /* TRUE if 'x:' and '[expr ... expr]' designators should be accepted. */
 
 EXTERN a_boolean
 		variadic_macros_allowed
@@ -554,7 +554,7 @@ EXTERN a_boolean
 #endif /* VARIADIC_MACROS_ENABLING_POSSIBLE */
 #endif /* VAR_INITIALIZERS */
                                                                               ;
-			   /* TRUE if '#define VM(x, ...) __VA_ARGS__' should be accepted. */
+             /* TRUE if '#define VM(x, ...) __VA_ARGS__' should be accepted. */
 
 EXTERN a_boolean
 		extended_variadic_macros_allowed
@@ -567,7 +567,7 @@ EXTERN a_boolean
 #endif /* VARIADIC_MACROS_ENABLING_POSSIBLE */
 #endif /* VAR_INITIALIZERS */
                                                                               ;
-		          /* TRUE if '#define EVM(args ...) args' should be accepted. */
+                 /* TRUE if '#define EVM(args ...) args' should be accepted. */
 
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed

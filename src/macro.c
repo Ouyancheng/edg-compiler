@@ -2252,8 +2252,9 @@ end_arg_expansion:;
                                     &sect_len);
       }  /* if */
       if (sect_len != 0) {
-        (void)memcpy(src_loc, text_loc, size_t_arg(sect_len));
-      }
+        (void)memcpy(src_loc, text_loc,
+                     size_t_arg(sect_len)); /*lint !e 668 */
+      }  /* if */
       if (rts_kind == rt_argument && map->modif_list != NULL) {
         /* If this is an expanded argument value, and there are any source
            modifications to the raw text to produce the expanded text
