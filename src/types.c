@@ -1026,7 +1026,7 @@ because any exception it can handle would be caught by type_1's handler.
          ignore a strict literal interpretation of 15.4 para 2, even
          though it is very explicit about when a masking error is required and
          does not provide a loophole when the base class is inaccessible. */
-      masked = (bcp != NULL && is_accessible_base_class(bcp, type_2));
+      masked = (bcp != NULL && is_accessible_base_class(bcp));
 #endif /* if 0 */
     } else if (is_pointer_type(type_1) && is_pointer_type(type_2)) {
       /* A pointer-type masks another pointer-type if the latter can be
