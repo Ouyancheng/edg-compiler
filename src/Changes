@@ -1,5 +1,13 @@
 Version 2.35
 
+1/10/97 Microsoft compatibility: keywords with single-underscore prefix
+
+Support for single-underscore versions of Microsoft keywords has been
+augmented.  Now _int8, _int16, _int32, and _int64 are recognized; also
+_try, _finally, _leave, and _except; also _unaligned and _declspec.
+(Support for a number of other Microsoft single-underscore keywords was
+already provided.)
+
 1/9/97  Abort when a partial specialization nontype argument is deduced
         from an array bound
 
