@@ -1,5 +1,29 @@
 Version 2.37
 
+9/22/97   Duplicate diagnostic on ctor-initializer with inaccessible
+          destructor
+
+Two identical errors were issued on the following when it was compiled with
+exceptions enabled; the redundancy has now been eliminated.
+
+  struct A {
+    A();
+  private:
+    ~A();
+  };
+  struct B {
+    A a[3];
+    B() : a() { }    // Redundant diagnostics on inaccessible A::~A()
+    ~B();
+  } b;
+
+9/22/97   Bug in putting out destructor information on ctor-initializer
+          for arrays (when exceptions are enabled)
+
+When support for exception handling was enabled, the IL put out to
+represent the destructor sequence for partially constructed member arrays
+was sometimes incorrect.  Now fixed.
+
 9/22/97   Instantiation of noninline member functions in unnamed namespaces
 
 Noninline member functions in unnamed namespaces should be treated as static
