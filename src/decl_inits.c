@@ -720,6 +720,7 @@ The syntax is:
   an_expr_node_ptr               arg_list;
   a_class_symbol_supplement_ptr  cssp = NULL;
   a_routine_ptr                  rp;
+  a_source_position              expr_pos;
 
   db_enter(3, "initializer");
 
@@ -825,6 +826,7 @@ The syntax is:
        object of the same type as long as dynamic initialization is otherwise
        allowed. */
     /* Scan the expression on the right hand side of the equal sign. */
+    copy_source_position(pos_curr_token, expr_pos);
     expression = scan_argument_expression();
     if (cssp == NULL || cssp->constructor == NULL) {
       /* The case of C-style structs.  No constructor exists, but simple
@@ -860,7 +862,7 @@ The syntax is:
       /* Look for a constructor to convert the right hand side to the
          required class type. */
       if (!select_constructor(cssp->constructor, &rp,
-                              &expression, source_pos)) {
+                              &expression, &expr_pos)) {
         /* No such constructor was found.  Abort the initialization. */
         err = TRUE;
 #if 0
@@ -870,7 +872,7 @@ The syntax is:
         if (!have_access_to_symbol(cssp->copy_constructor)) {
           /* It is an error if the copy constructor is inaccessible, even
              though it is being optimized away. */
-          pos_error(ec_inaccessible_copy_constructor, source_pos);
+          pos_error(ec_inaccessible_copy_constructor, &expr_pos);
           err = TRUE;
         }  /* if */
 #endif /* if 0 */
@@ -1174,7 +1176,7 @@ constructor initialization is required; in such cases default constructors
 are invoked.
 
 There are rules governing order of initialization, virtual base classes, and
-which subojects require initialization and therefore must be implicitly
+which subobjects require initialization and therefore must be implicitly
 initialized.  These are addressed in the course of the processing.
 */
 {
@@ -1475,7 +1477,7 @@ initialized.  These are addressed in the course of the processing.
     cip_list = virtual_list;
   }  /* if */
   /* Make a pass over the new list, adding default constructors where
-     appropriate.  Items on the list are all subojects and members that
+     appropriate.  Items on the list are all subobjects and members that
      require constructor initialization (or have a destructor), plus
      (optionally) additional items for which the user specified an initial
      value. */
