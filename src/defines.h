@@ -166,6 +166,7 @@ Flags to be set when using the KAI inliner.
 #define C_GEN_BE_GENERATES_ANSI_C 1
 #define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
+#define MAKE_ALL_FUNCTIONS_UNPROTOTYPED 0
 
 #ifndef RUNTIME_USES_NAMESPACES
 #define RUNTIME_USES_NAMESPACES 1
