@@ -621,18 +621,18 @@ and indentation is the indentation desired.
         (void)str_name_linkage(buffer, &(rp->source_corresp));
         put_string(buffer);
         if (C_dialect == C_dialect_cplusplus && !rp->compiler_generated) {
-          an_exception_specification_ptr  esp = rp->exception_specifications;
-          if (esp == NULL) {
+          a_throw_specification_ptr  tsp = rp->throw_specification;
+          if (tsp == NULL) {
             put_string("throws any");
-          } else if (esp->type == NULL && esp->next == NULL) {
+          } else if (tsp->type == NULL && tsp->next == NULL) {
             put_string("throws none");
           } else {
             (void)sprintf(buffer, "throws (");
-            (void)str_type(&buffer[strlen(buffer)], esp->type);
-            for (esp = esp->next; esp != NULL; esp = esp->next) {
+            (void)str_type(&buffer[strlen(buffer)], tsp->type);
+            for (tsp = tsp->next; tsp != NULL; tsp = tsp->next) {
               put_string(buffer);
               buffer[0] = 0;
-              (void)str_type(buffer, esp->type);
+              (void)str_type(buffer, tsp->type);
             }  /* for */
             (void)sprintf(&buffer[strlen(buffer)], ")");
             put_string(buffer);
@@ -3012,13 +3012,22 @@ the compiler-generated flag should be cleared.
      is given a storage class of sc_extern since there is no definition
      in the current translation unit. */
   decl_var_or_routine(&locator, (a_storage_class)sc_extern, rout_type,
-                      (an_exception_specification_ptr)NULL,
                       /*is_implicit_function=*/FALSE,
                       /*if_function_def_with_body=*/FALSE,
                       /*is_inline=*/FALSE, /*is_main_function=*/FALSE, &sym,
                       &linkage, &old_type, &ext_sym);
   sym->variant.routine.ptr->compiler_generated = TRUE;
-
+#if 0
+#else
+#define exceptions_disallowed FALSE
+#endif /* if 0 */
+  if (!exceptions_disallowed) {
+    a_throw_specification_ptr tsp;
+    /* No explicit throw specification, meaning anything may be thrown. */
+    tsp = alloc_throw_specification((a_throw_spec_kind)tsk_any);
+    tsp->decl_position = pos_curr_token;
+    sym->variant.routine.ptr->throw_specification = tsp;
+  }  /* if */
   db_exit();
 }  /* make_global_operator_new_or_delete_symbol */
 
@@ -7286,7 +7295,9 @@ Clear the fields of a function information block to default values.
 {
   func_info->prototype_scope_symbols     = NULL;
   func_info->param_id_list               = NULL;
-  func_info->exception_specifications    = NULL;
+  func_info->throw_specification         = NULL;
+  func_info->throw_position.seq          = 0;
+  func_info->throw_position.column       = SP_COL_UNKNOWN;
   func_info->scope_number                = NO_SCOPE_NUMBER;
   func_info->any_prototype_names_omitted = FALSE;
 }  /* clear_func_info */

@@ -78,7 +78,7 @@ static unsigned long
 		num_variables_allocated,
 		num_fields_allocated,
 		num_routines_allocated,
-                num_exception_specifications_allocated,
+                num_throw_specifications_allocated,
 		num_asm_entries_allocated,
 		num_labels_allocated,
 		num_expr_nodes_allocated,
@@ -4634,27 +4634,27 @@ to it.
 }  /* alloc_field */
 
 
-an_exception_specification_ptr alloc_exception_specification(void)
+a_throw_specification_ptr alloc_throw_specification(a_throw_spec_kind kind)
 /*
-Allocate an exception specification, clear it to default values, and
+Allocate a throw specification entry, clear it to default values, and
 return a pointer to it.  The entry is allocated in the file scope memory
 region.
 */
 {
-  an_exception_specification_ptr  esp;
+  a_throw_specification_ptr  tsp;
 
-  esp = (an_exception_specification_ptr)alloc_il(
-                                         sizeof(an_exception_specification));
+  tsp = (a_throw_specification_ptr)alloc_il(sizeof(a_throw_specification));
 #if DEBUG
-  num_exception_specifications_allocated++;
+  num_throw_specifications_allocated++;
 #endif /* DEBUG */
-  esp->next = NULL;
-  esp->type = NULL;
-  esp->decl_position.seq = 0;
-  esp->decl_position.column = SP_COL_UNKNOWN;
-  esp->redundant = FALSE;
-  return esp;
-}  /* alloc_exception_specification */
+  tsp->next = NULL;
+  tsp->kind = kind;
+  tsp->redundant = FALSE;
+  tsp->type = NULL;
+  tsp->decl_position.seq = 0;
+  tsp->decl_position.column = SP_COL_UNKNOWN;
+  return tsp;
+}  /* alloc_throw_specification */
 
 
 a_routine_ptr alloc_routine(void)
@@ -4689,7 +4689,7 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
   rp->befriending_classes     = NULL;
   rp->virtual_function_number = 0;
-  rp->exception_specifications = NULL;
+  rp->throw_specification     = NULL;
 #ifdef FIL
   rp->is_fortran_entry        = FALSE;
   rp->local_routine_scope     = NULL;
@@ -6091,9 +6091,8 @@ Display and return the amount of space used for various IL tables.
   db_space_used("variable", num_variables_allocated, a_variable);
   db_space_used("field", num_fields_allocated, a_field);
   db_space_used("routine", num_routines_allocated, a_routine);
-  db_space_used("exception specification",
-                num_exception_specifications_allocated,
-                an_exception_specification);
+  db_space_used("exception specification", num_throw_specifications_allocated,
+                a_throw_specification);
   db_space_used("asm entry", num_asm_entries_allocated, an_asm_entry);
   db_space_used("label", num_labels_allocated, a_label);
   db_space_used("expr node", num_expr_nodes_allocated, an_expr_node);
@@ -6255,7 +6254,7 @@ of the front end.
   num_variables_allocated                = 0;
   num_fields_allocated                   = 0;
   num_routines_allocated                 = 0;
-  num_exception_specifications_allocated = 0;
+  num_throw_specifications_allocated     = 0;
   num_asm_entries_allocated              = 0;
   num_labels_allocated                   = 0;
   num_expr_nodes_allocated               = 0;

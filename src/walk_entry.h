@@ -442,12 +442,11 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->type, a_type_ptr, iek_type);
       }
       break;
-    case iek_exception_specification:
+    case iek_throw_specification:
       {
-        an_exception_specification_ptr ptr =
-                                   (an_exception_specification_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_exception_specification_ptr,
-                       iek_exception_specification);
+        a_throw_specification_ptr ptr = (a_throw_specification_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_throw_specification_ptr,
+                       iek_throw_specification);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
       }
       break;
@@ -464,8 +463,8 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef CFE
         walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
-        walk_list(ptr->exception_specifications,
-                  an_exception_specification_ptr, iek_exception_specification);
+        walk_list(ptr->throw_specification, a_throw_specification_ptr,
+                  iek_throw_specification);
 #endif /* ifdef CFE */
 #ifdef FFE
         walk_ptr(ptr->local_routine_scope, a_scope_ptr, iek_scope);

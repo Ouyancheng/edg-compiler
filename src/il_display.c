@@ -1708,8 +1708,8 @@ Display the indicated routine.
     disp_unsigned_long("virtual_function_number",
                        (unsigned long)ptr->virtual_function_number);
   }  /* if */
-  disp_ptr("exception_specifications", (char *)ptr->exception_specifications,
-           iek_exception_specification);
+  disp_ptr("throw_specification", (char *)ptr->throw_specification,
+           iek_throw_specification);
 #endif /* ifdef CFE */
 #ifdef FFE
   disp_boolean("is_fortran_entry", (a_boolean)ptr->is_fortran_entry);
@@ -2055,14 +2055,14 @@ Display the indicated switch clause.
 }  /* disp_switch_clause */
 
 
-static void disp_exception_specification(an_exception_specification_ptr ptr)
+static void disp_throw_specification(an_throw_specification_ptr ptr)
 /*
-Display the indicated exception-specification entry.
+Display the indicated throw-specification entry.
 */
 {
-  disp_ptr("next", (char *)ptr->next, iek_exception_specification);
+  disp_ptr("next", (char *)ptr->next, iek_throw_specification);
   disp_ptr("type", (char *)ptr->type, iek_type);  
-}  /* disp_exception_specification */
+}  /* disp_throw_specification */
 
 
 static void disp_handler(a_handler_ptr ptr)
@@ -2930,9 +2930,8 @@ This routine is called during IL walking.
         case iek_field:
           disp_field((a_field_ptr)entry_ptr);
           break;
-        case iek_exception_specification:
-          disp_exception_specification(
-                                 (an_exception_specification_ptr)entry_ptr);
+        case iek_throw_specification:
+          disp_throw_specification((a_throw_specification_ptr)entry_ptr);
           break;
         case iek_switch_clause:
           disp_switch_clause((a_switch_clause_ptr)entry_ptr);

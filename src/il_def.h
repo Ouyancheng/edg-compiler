@@ -2169,32 +2169,54 @@ typedef a_byte an_opname_kind;
 Data structures related to routines:
 */
 #ifdef CIL
-/* An exception specification entry is used in C++ only. */
-typedef struct an_exception_specification *an_exception_specification_ptr;
-typedef struct an_exception_specification {
-  an_exception_specification_ptr
+/* An enumeration of C++ throw specification kinds. */
+enum a_throw_spec_kind_tag {
+  tsk_none,		/* Specifies that no exceptions will be thrown by
+			   a given routine, e.g.,
+			     void f() throw ();              */
+  tsk_list_entry,	/* Specifies that only the listed exceptions will
+			   be thrown by a given routine, e.g.,
+			     void f() throw (int,char);      */
+  tsk_any               /* Specifies that any exception may be thrown by a
+			   a given routine, e.g.,
+			     void f();                       */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_throw_spec_kind;
+
+/* An throw specification entry is used in C++ only. */
+typedef struct a_throw_specification *a_throw_specification_ptr;
+typedef struct a_throw_specification {
+  a_throw_specification_ptr
 		next;
-			/* Pointer to the next in the linked list of
-			   exception specification entries defined for a given
-			   routine. */
+			/* Pointer to the next in the linked list of throw
+			   specification entries defined for a given routine.
+			   Note that this is always NULL when the kind is
+			   tsk_none or tsk_any; it is also NULL for the last
+			   entry in an tsk_list_entry list. */
+  a_throw_spec_kind
+		kind;
+			/* Indicates whether this entry specifies one of a
+			   list of types that will be thown, or specifies
+			   that nothing will be thrown, or specifies that
+			   anything will be thrown. */
+  a_byte_boolean
+		redundant;
+			/* TRUE when kind == tsk_list_entry and another entry
+			   with the same type already appears in the list. */
   a_type_ptr	type;
-			/* Pointer to the type declared in the exception
-			   specification.  It is NULL to indicate that no
-			   exception will be thrown for a given function, e.g.,
-			     void f() throw ();
-			   (A NULL type pointer will appear only in list with
-			   a single entry.  If a list has more than one entry
-			   all type pointers will be non-NULL.) */
+			/* When kind == tsk_list_entry, a pointer to the type
+                           declared; NULL otherwise. */
   a_source_position
 		decl_position;
 			/* Source position of the declaration of this
-			   exception specification. */
-  a_byte_boolean
-		redundant;
-			/* TRUE when another exception of the same type
-			   already appears in the list of exception
-                           specifications. */
-} an_exception_specification;
+			   exception specification.  When kind is tsk_none,
+			   it is the source position of "throw".  When kind is
+			   tsk_list_entry, it is the source position of the
+			   type.  When kind is tsk_any, it is the source
+			   position where "throw" would have appeared, e.g.,
+			   the position of the ";" in "void f();". */
+} a_throw_specification;
 #endif /* ifdef CIL */
 
 typedef struct a_routine {
@@ -2302,15 +2324,12 @@ typedef struct a_routine {
                            this function; it is unique among the virtual
 			   functions of a given class.  When is_virtual is
 			   FALSE, this field is undefined. */
-  an_exception_specification_ptr
-		exception_specifications;
-			/* In C++ only, pointer to a linked list of entries
-			   describing the exception specifications declared
-			   for this routine, or NULL if none was declared.
-			   (Note that a NULL pointer means "any exception
-			   might be thrown", whereas a pointer to a list of
-			   exactly one entry in which the entry's type pointer
-			   is NULL means "no exception will be thrown.") */
+  a_throw_specification_ptr
+		throw_specification;
+			/* In C++ only, pointer to an entry or a linked list
+			   of entries describing the exception specification
+			   declared for this routine.  NULL in C mode or if
+			   exceptions are disabled for this compilation . */
 #endif /* ifdef CIL */
 #ifdef FIL
   a_byte_boolean
