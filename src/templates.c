@@ -14666,15 +14666,6 @@ added, FALSE if it was already on the list.
                                       trans_unit_for_symbol(tip->instance_sym),
                          "add_to_instantiations_required_list:",
                          "symbol for wrong translation unit");
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-    /* If this is an exported template, make sure that the mangled name
-       of the template has been generated.  This must be done before
-       update_auto_instantiation_flags is called. */
-    if (template_is_exported(tip->template_sym)) {
-      (void)get_mangled_name_of_template(tip->template_sym,
-                                         /*okay_to_create=*/TRUE);
-    }  /* if */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if EXPENSIVE_CHECKING
     /* Make sure none of the template arguments depend on template
        parameters. */
@@ -15656,6 +15647,20 @@ if one already exists.
 }  /* create_or_remove_instantiation_request_file */
 
 
+static void ensure_name_has_been_mangled(a_template_instance_ptr tip)
+/*
+If "tip" is an instance of an exported template, make sure that the
+mangled name of the template has been generated.  This must be done before
+update_auto_instantiation_flags is called.
+*/
+{
+  if (template_is_exported(tip->template_sym)) {
+    (void)get_mangled_name_of_template(tip->template_sym,
+                                       /*okay_to_create=*/TRUE);
+  }  /* if */
+}  /* ensure_name_has_been_mangled */
+
+
 static void check_if_entity_should_be_automatically_instantiated(
 					a_template_instance_ptr tip)
 /*
@@ -16389,6 +16394,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
          This check is done when the entry is first added to the list, and
          again if the instantiation required flag is set to TRUE. */
       check_if_entity_should_be_automatically_instantiated(tip);
+      ensure_name_has_been_mangled(tip);
     }  /* if */
     /* See if the entity should be instantiated as a result of an
        assignment by the automatic instantiation mechanism. */
@@ -17255,6 +17261,7 @@ specific definition that made it unnecessary.
          tip != NULL;
          tip = tip->next_in_instantiation_list) {
       check_if_entity_should_be_automatically_instantiated(tip);
+      ensure_name_has_been_mangled(tip);
     }  /* for */
   }  /* if */
   if (any_instantiations_required() && use_template_info_file &&
