@@ -1059,6 +1059,9 @@ error code.
     case ec_bad_member_storage_class:
       m = "invalid storage class for a class member";
       break;
+    case ec_local_class_function_def_missing:
+      m = "member function of local class -- definition is required";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
