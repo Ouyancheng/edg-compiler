@@ -351,27 +351,6 @@ Write any common code needed in all C output files.
                                                                    f_C_output);
     startline((a_seq_number)0);
     fputs("#define __trunc(i,n) (i&((1<<n)-1))", f_C_output);
-    /* Definition of __inline__ depending on whether or not compiler
-       supports "inline".  gcc supports __inline__ directly. */
-    startline((a_seq_number)0);
-    fputs("#ifndef __inline__", f_C_output);
-    startline((a_seq_number)0);
-    fputs("#ifndef __GNUC__", f_C_output);
-    startline((a_seq_number)0);
-    fputs("#define __inline__", f_C_output);
-    startline((a_seq_number)0);
-    fputs("#endif", f_C_output);
-    startline((a_seq_number)0);
-    fputs("#endif", f_C_output);
-#if sun && sparc
-    /* For variable argument lists under gcc, include <stdarg.h>. */
-    startline((a_seq_number)0);
-    fputs("#ifdef __GNUC__", f_C_output);
-    startline((a_seq_number)0);
-    fputs("#include <stdarg.h>", f_C_output);
-    startline((a_seq_number)0);
-    fputs("#endif", f_C_output);
-#endif /* sun && sparc */
   }  /* if */
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -1603,9 +1582,10 @@ is TRUE, this is for the heading of a function being declared with a body.
     dump_param_list(routine, scope, /*names_only=*/TRUE);
 #if sun && sparc
     if (extra_info->has_ellipsis) {
-      /* Put out an ellipsis as "__builtin_va_alist", which is recognized by
-         the Sun cc compiler, or seen as just the name of the parameter
-         by gcc. */
+      /* This takes advantage of a special feature of the Sun C compiler
+         to handle variable argument lists.  The name "__builtin_va_alist"
+         is recognized by the Sun compiler along with some other reserved
+         identifiers found in the stdarg.h include file. */
       /* Suppress the comma if the ellipsis is the only argument. */
       if (extra_info->param_type_list != NULL) fputs(", ", f_C_output);
       fputs("__builtin_va_alist", f_C_output);
@@ -3961,28 +3941,6 @@ char_compare:
 #endif /* ifdef FFE */
     case eok_call:
       /* N operand operator. */
-#ifdef CFE
-#if sun && sparc
-      /* Recognize a special call that should be turned into a use of
-         va_arg for gcc variable argument lists. */
-      if (operand_1->kind == (an_expr_node_kind)enk_routine_address) {
-        a_routine_ptr called_rout = operand_1->variant.routine;
-        char          *name = called_rout->source_corresp.name;
-        if (name != NULL && name[0] == '_' &&
-            strncmp(name, "__va_arg_func__", 15) == 0) {
-          /* Yes, this is the special call.  Put out
-               va_arg(first-arg, type-returned)
-          */
-          (void)fprintf(f_C_output, "va_arg(");
-          dump_expression(operand_2, /*need_parens=*/TRUE);
-          (void)fprintf(f_C_output, ", ");
-          simple_type_reference("", expr->type);
-          (void)fprintf(f_C_output, ")");
-          break;
-        }  /* if */
-      }  /* if */
-#endif /* sun && sparc */
-#endif /* ifdef CFE */
 #ifdef FFE
       if (operand_1->kind == (an_expr_node_kind)enk_routine_address) {
         called_rout = operand_1->variant.routine;
@@ -8547,14 +8505,6 @@ routine has a body (dump nothing if it has no body).
   /* Dump the routine interface. */
   startline(routine->source_corresp.decl_position.seq);
     
-#ifdef CFE
-  if (routine->is_inline &&
-      routine->storage_class == (a_storage_class)sc_static) {
-    /* Put out "inline" in a special way so it can be supported if the
-       underlying C compiler recognizes it. */
-    (void)fprintf(f_C_output, "__inline__ ");
-  }  /* if */
-#endif /* ifdef CFE */
   dump_storage_class(routine->storage_class);
 #ifdef FFE
   if (fortran_main) {
