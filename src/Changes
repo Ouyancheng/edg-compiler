@@ -1,5 +1,21 @@
 Version 3.6
 
+12/20/04 Nit in %c scanf checking in Microsoft C mode
+
+The checking done for the %c, %s, and %[ scanf specifiers was
+configured wrong for Microsoft C mode because the plain char
+type is defined as either ik_signed_char or ik_unsigned_char
+in that mode (instead of the usual ik_char).  As a consequence,
+an incorrect incompatibility remark was issued in some cases.
+Now fixed.
+
+  #pragma __scanf_args
+  extern void scanf(const char*, const char*, ...);
+  void junk(char *in) {
+    char c1;
+    scanf(in, "%c", &c1);  // Got incorrect remark in Microsoft C mode
+  }
+
 12/19/04 GNU C++ and Microsoft compatibility: friend class declaration finds
          names made visible by using-directives
 

@@ -6402,7 +6402,7 @@ after_precision:;
         if (l_size) {
           required_type = integer_type(targ_wchar_t_int_kind);
         } else {
-          required_type = integer_type((an_integer_kind)ik_char);
+          required_type = integer_type(plain_char_int_kind);
         }  /* if */
         break;
       case 's':
@@ -6411,7 +6411,7 @@ after_precision:;
         if (l_size) {
           required_type = integer_type(targ_wchar_t_int_kind);
         } else {
-          required_type = integer_type((an_integer_kind)ik_char);
+          required_type = integer_type(plain_char_int_kind);
         }  /* if */
         add_pointer = TRUE;
         /* *indirect is not set on purpose. */
@@ -6471,7 +6471,7 @@ after_precision:;
         if (l_size) {
           required_type = integer_type(targ_wchar_t_int_kind);
         } else {
-          required_type = integer_type((an_integer_kind)ik_char);
+          required_type = integer_type(plain_char_int_kind);
         }  /* if */
         break;
       default:
