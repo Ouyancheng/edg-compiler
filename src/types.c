@@ -3116,6 +3116,146 @@ distinguishable_determined:;
 }  /* overload_distinguishable */
 
 
+a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
+                             a_type_predicate_function_ptr  func,
+                             a_type_tree_traversal_flag_set flags)
+/*
+Traverse the type tree indicated type type_ptr and for each type in the
+tree call func, which returns a boolean value.  Terminate the traversal as
+soon as TRUE is returned by func, or as soon as func returns a flag forcing
+the end of the traversal.  This function returns TRUE if func has returned
+TRUE for any type in the tree.  The input parameter "flags" is a bit vector
+containing directives about how thoroughly to traverse the tree (e.g., is a
+routine type a leaf node, or should the return type be examined? what about
+its parameters?).
+*/
+{
+  a_boolean   force_end_of_traversal = FALSE;
+  a_type_ptr  tp;
+  a_boolean   status;
+
+  if (flags & TTT_SKIP_TYPEDEFS) type_ptr = skip_typedefs(type_ptr);
+  status = func(type_ptr, &force_end_of_traversal);
+  if (status || force_end_of_traversal) {
+    /* The function has either return TRUE or determined that no further
+       traversal is appropriate because FALSE is the proper status. */
+  } else {
+    /* Traverse the tree. */
+    switch (type_ptr->kind) {
+      case tk_error:
+      case tk_void:
+      case tk_integer:
+      case tk_float:
+      case tk_template_param:
+      case tk_unknown:
+        /* Leaf nodes -- no further traversal required. */
+        break;
+      case tk_pointer:
+        tp = type_ptr->variant.pointer.type;
+        status = traverse_type_tree(tp, func, flags);
+        break;
+      case tk_routine:
+        /* Conditional traversal of contained types. */
+        if (flags & TTT_RETURN_TYPE) {
+          tp = type_ptr->variant.routine.return_type;
+          if (traverse_type_tree(tp, func, flags)) {
+            status = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+        if (flags & TTT_THIS_PARAM_TYPE) {
+          tp = type_ptr->variant.routine.extra_info->implicit_this_param_type;
+          if (traverse_type_tree(tp, func, flags)) {
+            status = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+        if (flags & TTT_PARAM_TYPES) {
+          a_param_type_ptr  ptp;
+          for (ptp = type_ptr->variant.routine.extra_info->param_type_list;
+               ptp != NULL;
+               ptp = ptp->next) {
+            tp = ptp->type;
+            if (traverse_type_tree(tp, func, flags)) {
+              status = TRUE;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        break;
+      case tk_array:
+        tp = type_ptr->variant.array.element_type;
+        status = traverse_type_tree(tp, func, flags);
+        break;
+      case tk_class:
+      case tk_struct:
+      case tk_union:
+        /* Conditional traversal of contained types. */
+#if 0
+        /* To be implemented when needed. */
+#endif /* if 0 */
+        break;
+      case tk_typeref:
+        tp = type_ptr->variant.typeref.type;
+        status = traverse_type_tree(tp, func, flags);
+        break;
+      case tk_ptr_to_member:
+        tp = type_ptr->variant.ptr_to_member.class_of_which_a_member;
+        status = traverse_type_tree(tp, func, flags);
+        if (!status) {
+          tp = type_ptr->variant.ptr_to_member.type;
+          status = traverse_type_tree(tp, func, flags);
+        }  /* if */
+        break;
+#if CHECKING
+      default:
+        internal_error("traverse_type_tree: bad type kind");
+#endif /* CHECKING */
+    }  /* switch */
+  }  /* if */
+  return status;
+}  /* traverse_type_tree */
+
+
+a_boolean ttt_is_local_class(a_type_ptr  type_ptr,
+                             a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is a local class
+(i.e., a class defined within a function or block scope, including any
+class nested within a local class).  They are easily recognizable from
+their name linkage; any class declared at file scope must have either
+internal or external name linkage.
+*/
+{
+  a_boolean  is_local = FALSE;
+
+  /* Doesn't really have to be set, but is to avoid a not-used warning. */
+  *force_end_of_traversal = FALSE;
+  if (is_immediate_class_type(type_ptr)) {
+    if (type_ptr->source_corresp.name_linkage ==
+                                          (a_name_linkage_kind)nlk_none) {
+      is_local = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_local;
+}  /* ttt_is_local_class */
+
+
+a_boolean ttt_is_template_param(a_type_ptr  type_ptr,
+                                a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is a template
+parameter type.
+*/
+{
+  /* Doesn't really have to be set, but is to avoid a not-used warning. */
+  *force_end_of_traversal = FALSE;
+  return is_template_param(type_ptr);
+}  /* ttt_is_template_param */
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
