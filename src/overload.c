@@ -3649,6 +3649,7 @@ C++ mode.
          of the member. */
       this_class = type_pointed_to(this_var->type);
       this_class = skip_typerefs(this_class);
+      check_assertion(member_sym->is_class_member);
       member_class = member_sym->parent.class_type;
       if (this_class == member_class) {
         /* The class is right already.  This is the usual case. */
@@ -3748,8 +3749,36 @@ case).  call_position gives the source position of the call.
     /* The function needs a selector. */
     if (!*have_selector) {
       /* Try to generate a selector. */
-      if (make_this_pointer_operand(overloaded_function_symbol, /* sic */
-                                    call_position,
+      a_symbol_ptr sym = overloaded_function_symbol;
+      a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
+      if (fund_sym->kind == (a_symbol_kind)sk_overloaded_function &&
+          !fund_sym->is_class_member) {
+        check_assertion(fund_sym->synthesized_namespace_projection);
+        /* This symbol was fabricated because of a lookup.  It could
+           contain member and non-member symbols, so we can't just get
+           the class type from the overloaded function symbol.  Find
+           the symbol in the overload set that corresponds to
+           function_symbol and use that. */
+        for (sym = fund_sym->variant.overloaded_function.symbols;
+             ;
+             sym = sym->next) {
+          check_assertion(sym != NULL);
+          fund_sym = fundamental_symbol_of(sym);
+          /* If the symbol is a member function template, see if the
+             function_symbol is an instance of the template.  Otherwise,
+             just compare the pointers. */
+          if (fund_sym->kind == (a_symbol_kind)sk_function_template ?
+                (function_symbol->variant.routine.instance_ptr != NULL &&
+                 function_symbol->variant.routine.instance_ptr->template_sym ==
+                                                                    fund_sym) :
+                (fund_sym == function_symbol)) break;
+        }  /* for */
+        /* Remove any namespace projection symbols. */
+        while (sym->kind == (a_symbol_kind)sk_namespace_projection) {
+          sym = namespace_projection_fundamental_symbol(sym);
+        }  /* while */
+      }  /* if */
+      if (make_this_pointer_operand(sym, call_position,
                                     /*check_cast_access=*/
                                        !function_operand->
                                          access_control_error_reported,
