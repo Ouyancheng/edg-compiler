@@ -342,7 +342,7 @@ if it has been used.
 
 static void expand_struct_stmt_stack(void)
 /*
-Reallocate the structure statement stack container, copying the contents
+Reallocate the structured statement stack container, copying the contents
 of the present one into the new one.  Also reset static variables defining
 the size and state of the stack:  size_struct_stmt_stack_container,
 struct_stmt_stack_container, and struct_stmt_stack.
@@ -964,7 +964,7 @@ See also 3.6.5.2.
 
 static void expression_statement(void)
 /*
-Scan a (possibly nonexistent) expression statement.
+Scan an expression statement.
 */
 {
   a_statement_ptr  sp;
