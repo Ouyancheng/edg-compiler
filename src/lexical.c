@@ -4872,7 +4872,7 @@ This routine cannot be used when fetching raw preprocessing tokens.
   /* If there is no cached token or if the token is the end-of-source token
      which is used to terminate the token cache, then disregard this token
      and fetch the next token using the slower method. */
-  if (ctp != NULL && ctp->token != (a_token_kind)tok_end_of_source) {
+  if (ctp != NULL && ctp->token != (a_byte_token_kind)tok_end_of_source) {
     /* There is a cached token from which we can get then token kind. */
     ntoken = (a_token_kind)ctp->token;
   } else {
@@ -4932,9 +4932,9 @@ cannot be used when fetching raw preprocessing tokens.
      which is used to terminate the token cache, then disregard this token
      and fetch the next token using the slower method.  Also do this if the
      second token is NULL or end-of-source. */
-  if (ctp != NULL && ctp->token != (a_token_kind)tok_end_of_source &&
+  if (ctp != NULL && ctp->token != (a_byte_token_kind)tok_end_of_source &&
       ctp->next != NULL &&
-      ctp->next->token != (a_token_kind)tok_end_of_source) {
+      ctp->next->token != (a_byte_token_kind)tok_end_of_source) {
     /* There is a cached token from which we can get then token kind. */
     ntoken = (a_token_kind)ctp->token;
     *token_2 = (a_token_kind)ctp->next->token;

@@ -118,11 +118,12 @@ static int getpid(void)
 #include <sysent.h>
 #else /* !define(__cplusplus) */
 /* Function definitions for non MS-DOS compilers. */
-/* The SUN does not have the getpid() and unlink() calls defined in include
-   files. */
+/* The SUN does not have the getpid(), unlink(), and time() calls defined 
+   in include files. */
 EXTERN_C int getpid(void);
 /* Unlink (delete) a file. */
 EXTERN_C int unlink(char *path);
+EXTERN_C time_t time(time_t tloc);
 #endif /* __cplusplus */
 #endif /* __MSDOS__ */
 
@@ -1489,7 +1490,7 @@ static time_t get_time(void)
 Return the current wall clock time.
 */
 {
-  return (time(NULL));
+  return (time((time_t*)NULL));
 }  /* get_time */
 
 
