@@ -1,5 +1,20 @@
 Version 2.21
 
+12/19/93 address_taken flag in variables and routines
+
+An address_taken flag has been added to the routine entry.  The
+address_taken flag in variables is now set more precisely: in a
+case like "a[1] = 1" the address_taken flag of "a" is no longer
+set.  Some errors on taking the address of a bit field that were
+formerly missed are now caught:
+
+  struct A {int i:8;} a;
+  int i = 1;
+  void f() {
+    &(i ? a.i : a.i);  // error caught now
+  }
+
+
 12/18/93 Pointers to interchangeable types not interchangeable in strict mode
 
 In strict mode, pointers to interchangeable types (e.g., "int *" and
