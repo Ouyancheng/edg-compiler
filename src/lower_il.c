@@ -9939,10 +9939,7 @@ static void promote_types_out_of_function(a_scope_ptr   scope,
                                           a_routine_ptr routine)
 /*
 Promote the types in the indicated scope (a function or block scope that
-is part of the indicated routine) to the file scope.  When promoting out
-of a member function, the local types are placed on a list associated
-with the outermost enclosing class, for later promotion out of the class
-(and into the file scope) along with the class members.
+is part of the indicated routine) to the file scope.
 */
 {
   a_type_ptr type, next_type;
@@ -9950,37 +9947,7 @@ with the outermost enclosing class, for later promotion out of the class
   /* See if there are types to promote. */
   type = scope->types;
   if (type != NULL) {
-    /* Promote local types to file scope.  When promoting out of a member
-       function, promote the types to the end of the promoted_local_types
-       list of the class. */
-    a_type_ptr last_class_type;
-    a_type_ptr routine_class = NULL;
-
-    if (routine->source_corresp.is_class_member) {
-      routine_class = routine->source_corresp.parent.class_type;
-      /* Promoting out of a member function.  Get the promoted_local_types
-         list. */
-      /* If the class is a nested class, work out to the outermost
-         enclosing class.  This is important for ordering reasons, because
-         we want all these promoted local types to have access to all of
-         the types in all of the surrounding classes. */
-      while (routine_class->source_corresp.is_class_member &&
-             /* Stop at a nested class that's defined outside of its parent
-                class, because local types of that should be put out at the
-                point of the definition. */
-             !routine_class->variant.class_struct_union.
-                                      nested_class_defined_outside_of_parent) {
-        routine_class = routine_class->source_corresp.parent.class_type;
-      }  /* while */
-      last_class_type = routine_class->variant.class_struct_union.extra_info->
-                                                          promoted_local_types;
-      if (last_class_type != NULL) {
-        /* Find the end of the list. */
-        while (last_class_type->next != NULL) {
-          last_class_type = last_class_type->next;
-        }  /* while */
-      }  /* if */
-    }  /* if */
+    /* Promote local types to file scope. */
     for (; type != NULL; type = next_type) {
       next_type = type->next;
 #if DEBUG
@@ -9997,22 +9964,8 @@ with the outermost enclosing class, for later promotion out of the class
       mangle_promoted_entity_name(&type->source_corresp, routine, scope);
       /* Clear the is_local_function flag in the type and any subtypes. */
       clear_is_local_to_function_flag_in_type(type);
-      if (routine_class == NULL) {
-        /* Not promoting from a member function: just add to the file-scope
-           types list. */
-        add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
-      } else {
-        /* Promoting from a member function: add to the list associated with
-           the class. */
-        if (last_class_type == NULL) {
-          routine_class->variant.class_struct_union.extra_info->
-                                                   promoted_local_types = type;
-        } else {
-          last_class_type->next = type;
-        }  /* if */
-        last_class_type = type;
-        type->next = NULL;
-      }  /* if */
+      /* Add to the end of the file-scope types list. */
+      add_to_types_list(type, DEPTH_OF_FILE_SCOPE);
       /* If the type is an enum, mangle the names of its constants. */
       if (is_immediate_enum_type(type)) {
         a_constant_ptr enum_con;

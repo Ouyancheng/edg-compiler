@@ -1,5 +1,24 @@
 Version 2.38
 
+12/11/97  Ordering problem in generated C code, local class with template
+          base
+
+When C code is being generated, if a local class of a member function
+has a base class that is a template class, the order of the types in
+the generated C could be incorrect and cause a compilation error.
+Now fixed.
+
+  template <class T> struct A {};
+  struct B {
+    void f() {
+      struct C : public A<int> { int i; ~C() {} } c;
+      c.i = 1;
+    }
+  } b;
+  int main () {
+    b.f();
+  }
+
 12/11/97  Obscure bug in minimal inlining
 
 A change made recently (Changes entry of 12/2/97), which added an
