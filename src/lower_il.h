@@ -625,6 +625,46 @@ typedef struct a_destructor_wrapper_info_block {
 			   destruction, if needed.  NULL otherwise. */
 } a_destructor_wrapper_info_block;
 
+
+/*
+Return TRUE if the indicated constructor routine needs added implied arguments.
+This must match make_ctor_implied_arg_list.  ctor_needs_vtt_argument
+is TRUE (only in the IA-64 ABI) if the constructor takes a VTT parameter.
+*/
+#if !IA64_ABI
+#define ctor_needs_implied_arg_list(ctor_routine)                     \
+  ((ctor_routine)->source_corresp.parent.class_type->                 \
+                 variant.class_struct_union.any_virtual_base_classes)
+#else /* IA64_ABI */
+#define ctor_needs_vtt_argument(ctor_routine)                         \
+  ((ctor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none || \
+   ((ctor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject && \
+    (ctor_routine)->source_corresp.parent.class_type->                \
+                 variant.class_struct_union.any_virtual_base_classes))
+#define ctor_needs_implied_arg_list(ctor_routine)                     \
+  ctor_needs_vtt_argument(ctor_routine)
+#endif /* IA64_ABI */
+
+
+/*
+Return TRUE if the indicated destructor routine needs added implied arguments.
+This must match make_dtor_implied_arg_list.  dtor_needs_vtt_argument
+is TRUE (only in the IA-64 ABI) if the destructor takes a VTT parameter.
+*/
+#if !IA64_ABI
+#define dtor_needs_implied_arg_list(dtor_routine) TRUE
+#else /* IA64_ABI */
+#define dtor_needs_vtt_argument(dtor_routine) \
+  ((dtor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none || \
+   ((dtor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject && \
+    (dtor_routine)->source_corresp.parent.class_type->                 \
+                 variant.class_struct_union.any_virtual_base_classes))
+#define dtor_needs_implied_arg_list(dtor_routine) \
+  ((dtor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none || \
+   dtor_needs_vtt_argument(dtor_routine))
+#endif /* IA64_ABI */
+
+
 extern a_boolean il_lowering_needed(void);
 
 extern void pop_context(void);
@@ -942,12 +982,14 @@ extern void lower_full_expr(an_expr_node_ptr expr,
                             a_boolean        is_lvalue,
                             a_statement_ptr  statement);
 
-extern a_param_type_ptr unlowered_param_type_list(a_type_ptr routine_type);
+extern a_param_type_ptr unlowered_param_type_list_for_routine(
+                                                  a_routine_ptr routine);
 
 extern a_param_type_ptr param_type_for_this(a_type_ptr routine_type);
 
 extern void lower_arg_expr_list(an_expr_node_ptr expr_list,
                                 a_type_ptr       called_rout_type,
+                                a_routine_ptr    called_rout,
                                 a_param_type_ptr param);
 
 extern an_expr_operator_kind lowered_assignment_operator(a_type_ptr type);

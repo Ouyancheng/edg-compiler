@@ -3316,7 +3316,7 @@ aggregate constant for the region table entry.
   } else if (is_delete) {
     /* Check for the 2-argument version of delete; we need array information
        for that because we need the size of the entity. */
-    a_param_type_ptr param1 = unlowered_param_type_list(routine->type);
+    a_param_type_ptr param1 = unlowered_param_type_list_for_routine(routine);
     check_assertion(param1 != NULL);
     if (param1->next != NULL) {
       /* Two-argument form.  Need array information. */

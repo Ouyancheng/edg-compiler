@@ -5431,7 +5431,7 @@ yet.
   entry_rout_type->variant.routine.extra_info->assoc_routine = NULL;
   /* Copy the parameter list. */
   entry_rout_type->variant.routine.extra_info->param_type_list = NULL;
-  src_ptp = unlowered_param_type_list(overriding_rout_type);
+  src_ptp = unlowered_param_type_list_for_routine(overriding_function);
   prev_ptp = NULL;
   for (; src_ptp != NULL; src_ptp = src_ptp->next) {
     ptp = alloc_param_type(src_ptp->type);
@@ -7064,7 +7064,7 @@ not lowered at this time (see lower_constructor_code).
   /* Add a parameter for each virtual base class.  See the ARM, top of
      p. 296.  add_constructor_params does the similar processing for param
      variables. */
-  /* If you change this, see also unlowered_param_type_list,
+  /* If you change this, see also unlowered_param_type_list_full,
      add_constructor_params, ctor_needs_implied_arg_list,
      make_ctor_implied_arg_list, var_for_copy_constructor_source,
      and add_constructor_wrapper_code. */
@@ -7117,7 +7117,7 @@ not lowered at this time (see lower_destructor_code).
   /* Add an int parameter that will indicate whether or not we have a
      complete object and whether or not the storage should be freed.
      add_destructor_params does the similar processing for param variables. */
-  /* If you change this, see also unlowered_param_type_list,
+  /* If you change this, see also unlowered_param_type_list_full,
      add_destructor_params, dtor_needs_implied_arg_list,
      make_dtor_implied_arg_list, and lower_destructor_code. */
   added_param = alloc_param_type(integer_type((an_integer_kind)ik_int));
@@ -7951,10 +7951,13 @@ that are boolean controlling expressions.
 }  /* lower_expr_list */
 
 
-a_param_type_ptr unlowered_param_type_list(a_type_ptr routine_type)
+static a_param_type_ptr unlowered_param_type_list_full(
+                                                    a_type_ptr    routine_type,
+                                                    a_routine_ptr routine)
 /*
-routine_type is a lowered or unlowered routine type.  Return the original
-unlowered parameter type list for the routine, i.e., if the type has been
+routine_type is a lowered or unlowered routine type.  If routine is
+non-NULL, it is the associated routine.  Return the original unlowered
+parameter type list for the routine, i.e., if the type has been
 lowered, return the list after any implicit parameters added by lowering.
 */
 {
@@ -7970,7 +7973,8 @@ lowered, return the list after any implicit parameters added by lowering.
        extra arguments added by lowering, if any. */
     /* "this" parameter. */
     if (rtsp->this_class != NULL) param = param->next;
-    if (rtsp->assoc_routine_is_ctor) {
+    if (routine != NULL &&
+        routine->special_kind == (a_special_function_kind)sfk_constructor) {
 #if !IA64_ABI
       /* For constructors, a parameter is added for each virtual base
          class. */
@@ -7986,15 +7990,22 @@ lowered, return the list after any implicit parameters added by lowering.
         }  /* for */
       }  /* if */
 #else /* IA64_ABI */
-      /* For constructors, a parameter is added for the VTT. */
-      param = param->next;
+      /* For constructors, a parameter is sometimes added for the VTT. */
+      if (ctor_needs_vtt_argument(routine)) param = param->next;
 #endif /* IA64_ABI */
-    } else if (rtsp->assoc_routine_is_dtor) {
-      /* For destructors, a single parameter is always added. */
+    } else if (routine != NULL &&
+               routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor) {
+#if !IA64_ABI
+      /* For destructors, a control parameter is always added. */
       param = param->next;
-#if IA64_ABI
-      /* And under the IA64 ABI a VTT parameter is always added. */
-      param = param->next;
+#else /* IA64_ABI */
+      if (dtor_needs_implied_arg_list(routine)) {
+        /* Skip the control parameter. */
+        param = param->next;
+        /* And sometimes the VTT parameter. */
+        if (dtor_needs_vtt_argument(routine)) param = param->next;
+      }  /* if */
 #endif /* IA64_ABI */
     }  /* if */
     /* If the routine returns its value via a copy constructor, an extra
@@ -8007,7 +8018,18 @@ lowered, return the list after any implicit parameters added by lowering.
     if (rtsp->value_returned_by_cctor) param = param->next;
   }  /* if */
   return param;
-}  /* unlowered_param_type_list */
+}  /* unlowered_param_type_list_full */
+
+
+a_param_type_ptr unlowered_param_type_list_for_routine(a_routine_ptr routine)
+/*
+Return the original unlowered parameter type list for the indicated routine,
+i.e., if its type has been lowered, return the list after any implicit
+parameters added by lowering.
+*/
+{
+  return unlowered_param_type_list_full(routine->type, routine);
+}  /* unlowered_param_type_list_for_routine */
 
 
 a_param_type_ptr param_type_for_this(a_type_ptr routine_type)
@@ -8035,11 +8057,13 @@ a_param_type entry for the "this" parameter.
 
 void lower_arg_expr_list(an_expr_node_ptr expr_list,
                          a_type_ptr       called_rout_type,
+                         a_routine_ptr    called_rout,
                          a_param_type_ptr param)
 /*
 Do IL lowering of the indicated list of expressions and everything under it.
 The expressions are the argument list for a call.  The type of the routine
-being called is called_rout_type (the type may be lowered or not).  Note
+being called is called_rout_type (the type may be lowered or not).
+If the routine is known, called_rout is non-NULL and points to it.  Note
 that if the routine requires control arguments like a "this" pointer, such
 arguments are *not* in expr_list.  If param is non-NULL, start at that
 parameter (this is used when the called routine is a copy constructor,
@@ -8054,7 +8078,7 @@ to skip the input parameter).
     /* The caller is telling us where to start in the list. */
   } else {
     /* Start with the first parameter. */
-    param = unlowered_param_type_list(called_rout_type);
+    param = unlowered_param_type_list_full(called_rout_type, called_rout);
   }  /* if */
   /* Track the current parameter type as we go through the list. */
   for (expr = expr_list; expr != NULL; expr = expr->next) {
@@ -9909,6 +9933,7 @@ the top node of the indicated statement (which is an expression statement).
   a_routine_type_supplement_ptr rtsp;
   an_expr_node_ptr              prev_arg_node, arg_node, temp_node, first_arg;
   an_expr_operator_kind         op = expr->variant.operation.kind;
+  a_routine_ptr                 routine = NULL;
 
   lower_os_type(expr->type);
   first_arg = arg_node = expr->variant.operation.operands;
@@ -9956,11 +9981,13 @@ the top node of the indicated statement (which is an expression statement).
     /* Change the result type of the call to "void". */
     expr->type = void_type();
   }  /* if */
-  /* Lower the rest of the arguments. */
-  lower_arg_expr_list(arg_node, rout_type, (a_param_type_ptr)NULL);
   if (first_arg->kind == (an_expr_node_kind)enk_routine_address) {
     /* We know the specific routine being called. */
-    a_routine_ptr routine = routine_from_node(first_arg);
+    routine = routine_from_node(first_arg);
+  }  /* if */
+  /* Lower the rest of the arguments. */
+  lower_arg_expr_list(arg_node, rout_type, routine, (a_param_type_ptr)NULL);
+  if (routine != NULL) {
 #if IA64_ABI
     if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
         routine->special_kind == (a_special_function_kind)sfk_destructor) {

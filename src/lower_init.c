@@ -1375,18 +1375,6 @@ subobject.  Insert the statement at *insert_location and update
 }  /* add_bitwise_copy */
 
 
-/*
-Return TRUE if the indicated constructor routine needs added implied arguments.
-This must match make_ctor_implied_arg_list.
-*/
-#if !IA64_ABI
-#define ctor_needs_implied_arg_list(ctor_routine)                     \
-  ((ctor_routine)->source_corresp.parent.class_type->                 \
-                 variant.class_struct_union.any_virtual_base_classes)
-#else /* IA64_ABI */
-#define ctor_needs_implied_arg_list(ctor_routine) TRUE
-#endif /* IA64_ABI */
-
 void make_ctor_implied_arg_list(a_routine_ptr    ctor_routine,
                                 an_expr_node_ptr *implied_arg_list,
                                 an_expr_node_ptr *end_implied_arg_list)
@@ -1457,11 +1445,23 @@ There is an implied argument for the VTT.
 }  /* make_ctor_implied_arg_list */
 
 
+static an_expr_node_ptr dtor_control_argument(a_boolean have_complete_object,
+                                              a_boolean free_storage)
 /*
-Return TRUE if the indicated destructor routine needs added implied arguments.
-This must match make_dtor_implied_arg_list.
+Build a node passed to a destructor to control the kind of processing
+done.  have_complete_object is TRUE if the destruction is of a
+complete object.  free_storage is TRUE if the destructor should
+free the object's storage.
 */
-#define dtor_needs_implied_arg_list(dtor_routine) TRUE
+{
+  an_expr_node_ptr node;
+
+  /* 0x2 bit means "have complete object".  0x1 bit means "free storage". */
+  node = node_for_integer_constant(
+                    (have_complete_object? 2L : 0L) | (free_storage ? 1L : 0L),
+                    (an_integer_kind)ik_int);
+  return node;
+}  /* dtor_control_argument */
 
 
 void make_dtor_implied_arg_list(a_routine_ptr    dtor_routine,
@@ -1479,27 +1479,31 @@ destructor for a complete object.
   a_type_ptr       class_type;
   an_expr_node_ptr implied_arg_node;
 #if IA64_ABI
-  a_constant null_constant;
+  a_constant       null_constant;
 #endif /* IA64_ABI */
 
-  /* If you change this, see also dtor_needs_implied_arg_list, above. */
-  *implied_arg_list = *end_implied_arg_list = NULL;
-  /* Get the class type. */
-  class_type = dtor_routine->source_corresp.parent.class_type;
-  prelower_class_type(class_type);
-  /* 0x2 bit means "have complete object".  0x1 bit means "free storage"
-     which does not apply here. */
-  implied_arg_node = node_for_integer_constant(have_complete_object ? 2L : 0L,
-                                               (an_integer_kind)ik_int);
-  *implied_arg_list = implied_arg_node;
+  if (dtor_needs_implied_arg_list(dtor_routine)) {
+    *implied_arg_list = *end_implied_arg_list = NULL;
+    /* Get the class type. */
+    class_type = dtor_routine->source_corresp.parent.class_type;
+    prelower_class_type(class_type);
+    /* The first argument indicates whether we have a complete object. */
+    implied_arg_node = dtor_control_argument(have_complete_object,
+                                             /*free_storage=*/FALSE);
+    *implied_arg_list = implied_arg_node;
 #if IA64_ABI
-  /* Add a NULL VTT argument. */
-  make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
-                           &null_constant);
-  implied_arg_node = alloc_node_for_constant(&null_constant);
-  (*implied_arg_list)->next = implied_arg_node;
+    if (dtor_needs_vtt_argument(dtor_routine)) {
+      /* Add a NULL VTT argument. */
+      make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
+                               &null_constant);
+      implied_arg_node = alloc_node_for_constant(&null_constant);
+      (*implied_arg_list)->next = implied_arg_node;
+    }  /* if */
 #endif /* IA64_ABI */
-  *end_implied_arg_list = implied_arg_node;
+    *end_implied_arg_list = implied_arg_node;
+  } else {
+    *implied_arg_list = *end_implied_arg_list = NULL;
+  }  /* if */
 }  /* make_dtor_implied_arg_list */
 
 
@@ -1751,10 +1755,8 @@ for the IA-64 ABI (see "Array operator new cookies", section 2.7).
   } else if (new_routine != NULL) {
     /* No padding is required for a call to "::operator new[](size_t, 
        void *)". */
-    a_type_ptr       rout_type;
     a_param_type_ptr param;
-    rout_type = skip_typerefs(new_routine->type);
-    param = unlowered_param_type_list(rout_type);
+    param = unlowered_param_type_list_for_routine(new_routine);
     if (!new_routine->source_corresp.is_class_member &&
         new_routine->source_corresp.parent.namespace_ptr == NULL &&
         param->next != NULL && param->next->next == NULL && 
@@ -2555,44 +2557,65 @@ default_arg_list.
   this_param_var->assoc_param_type = new_rtsp->param_type_list;
   this_param_var->is_this_parameter = TRUE;
   last_param_var = this_param_var;
+  /* Make expression lists for constructor or destructor implied
+     arguments. */
+  if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
 #if IA64_ABI
-  if (new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete ||
-      (new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject &&
-       !new_rtsp->this_class->variant.class_struct_union.
-                                                  any_virtual_base_classes)) {
+    if (new_routine->special_kind == (a_special_function_kind)sfk_constructor&&
+        ctor_needs_implied_arg_list(new_routine)) {
+      /* We're calling a constructor from a constructor, and the
+         outer routine has parameters for the implied arguments.  They
+         will be copied below so we don't need implied arguments. */
+    } else
 #endif /* IA64_ABI */
-    /* Make expression lists for constructor or destructor implied
-       arguments. */
-    if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
+    /* Do not add code here. */
+    {
+      /* We're calling a constructor from something that doesn't have
+         parameters for the implied arguments, so make them if necessary. */
       make_ctor_implied_arg_list(routine, &implied_arg_list,
                                  &end_implied_arg_list);
-    } else if (routine->special_kind ==
-                                  (a_special_function_kind)sfk_destructor) {
+    }  /* if */
+  } else if (routine->special_kind == (a_special_function_kind)sfk_destructor){
+#if IA64_ABI
+    if (new_routine->special_kind == (a_special_function_kind)sfk_destructor &&
+        dtor_needs_vtt_argument(new_routine)) {
+      /* Calling the IA-64 internal destructor from a subobject
+         destructor that has a VTT parameter, which will be copied
+         below.  We do need to construct the argument that
+         indicates whether we have a complete object and whether
+         the storage should be freed (no, for both). */
+      check_assertion(new_routine->ctor_dtor_kind ==
+                                           (a_ctor_or_dtor_kind)cdk_subobject);
+      implied_arg_list = dtor_control_argument(/*have_complete_object=*/FALSE,
+                                               /*free_storage=*/FALSE);
+      end_implied_arg_list = implied_arg_list;
+    } else if (new_routine->ctor_dtor_kind ==
+                                           (a_ctor_or_dtor_kind)cdk_deleting) {
+      /* Calling the IA-64 internal destructor from the deleting
+         destructor.  We need the argument that indicates freeing storage
+         and a complete object. */
+      a_constant null_constant;
+      implied_arg_list = dtor_control_argument(/*have_complete_object=*/TRUE,
+                                               /*free_storage=*/TRUE);
+      end_implied_arg_list = implied_arg_list;
+      if (dtor_needs_vtt_argument(routine)) {
+        /* Add a NULL VTT argument. */
+        make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
+                                 &null_constant);
+        implied_arg_list->next = alloc_node_for_constant(&null_constant);
+        end_implied_arg_list = implied_arg_list->next;
+      }  /* if */
+    } else
+#endif /* IA64_ABI */
+    /* Do not add code here. */
+    {
+      /* We're calling a destructor from something that doesn't have
+         parameters for the implied arguments, so make them if necessary. */
+      check_assertion(!dtor_needs_implied_arg_list(new_routine));
       make_dtor_implied_arg_list(routine, /*have_complete_object=*/TRUE,
                                  &implied_arg_list, &end_implied_arg_list);
     }  /* if */
-#if IA64_ABI
-  } else if (routine->special_kind == 
-                                    (a_special_function_kind)sfk_destructor) {
-    /* Add the argument that indicates whether virtual bases should be
-       destroyed. */
-    implied_arg_list = node_for_integer_constant(
-                                ((new_routine->ctor_dtor_kind == 
-                                 (a_ctor_or_dtor_kind)cdk_deleting) ? 3 : 0),
-                                (an_integer_kind)ik_int);
-    if (new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
-      /* Add a NULL VTT argument. */
-      /* Allocate an expression that is a NULL VTT pointer. */
-      a_constant null_constant;
-      make_zero_of_proper_type(make_virtual_table_table_pointer_type(),
-                               &null_constant);
-      implied_arg_list->next = alloc_node_for_constant(&null_constant);
-      end_implied_arg_list = implied_arg_list->next;
-    }  else {
-      end_implied_arg_list = implied_arg_list;
-    }  /* if */
   }  /* if */
-#endif /* IA64_ABI */
   /* Do not process parameters with default argument values, since they
      are removed from the routine's interface. */
   for (param_type = new_rtsp->param_type_list->next; 
@@ -2660,7 +2683,8 @@ default_arg_list.
     /* Lower the default argument expressions.  Note that this must be done
        after the copy because you can't copy an expression once it has been
        lowered -- temporaries might have been added. */
-    lower_arg_expr_list(default_arg_list, routine_type, src_param_type);
+    lower_arg_expr_list(default_arg_list, routine_type, routine,
+                        src_param_type);
   }  /* if */
   if (implied_arg_list != NULL) {
     /* Add the implicit arguments to the front of the default argument
@@ -2725,23 +2749,23 @@ default_arg_list.
 }  /* define_default_version_of_routine */
 
 
-static void copy_and_lower_param_type_list(a_type_ptr       routine_type,
+static void copy_and_lower_param_type_list(a_routine_ptr    routine,
                                            a_param_type_ptr last_param_type,
                                            a_boolean        do_default_args,
                                            a_boolean        do_lowering)
 /*
 Copy the parameter type entries given by the unlowered parameter list of the
-routine_type, adding them to the list of which last_param_type is presently
+given routine, adding them to the list of which last_param_type is presently
 the end.  Add indirections to parameters with copy constructors as the types
 are processed.  If do_default_args is FALSE, parameter types corresponding to
-default arguments are not copied.  If do_lowering is TRUE, the routine_type is
+default arguments are not copied.  If do_lowering is TRUE, the routine type is
 modified; if not, only the new parameters are modified.
 */
 {
   a_type_ptr       pass_through_param_type;
   a_param_type_ptr src_param_type, param_type;
 
-  for (src_param_type = unlowered_param_type_list(routine_type); 
+  for (src_param_type = unlowered_param_type_list_for_routine(routine); 
        src_param_type != NULL && 
          (do_default_args || !src_param_type->has_default_arg);
        src_param_type = src_param_type->next) {
@@ -2843,7 +2867,7 @@ wrapper routine is created; the original routine is returned.
        constructor case).  Do not process parameters with default argument
        values, since they are removed from the routine's interface. */
     new_rtsp = new_routine->type->variant.routine.extra_info;
-    copy_and_lower_param_type_list(routine_type, new_rtsp->param_type_list, 
+    copy_and_lower_param_type_list(routine, new_rtsp->param_type_list, 
                                    /*do_default_args=*/FALSE,
                                    /*do_lowering=*/TRUE);
     define_default_version_of_routine(routine, new_routine, 
@@ -2960,17 +2984,17 @@ destructors in the IA-64 ABI.
     rlep->next = routine->variant.ctor_dtor.alternate_entry_points;
     routine->variant.ctor_dtor.alternate_entry_points = rlep;
     last_param_type = new_rtsp->param_type_list;
-    if (kind == (a_ctor_or_dtor_kind)cdk_subobject && 
-        rtsp->this_class->
-                       variant.class_struct_union.any_virtual_base_classes) {
-      /* If this is a subobject constructor or destructor for a class with
-         virtual bases, add a VTT parameter. */
+    if ((new_routine->special_kind==(a_special_function_kind)sfk_constructor &&
+         ctor_needs_vtt_argument(new_routine)) ||
+        (new_routine->special_kind==(a_special_function_kind)sfk_destructor &&
+         dtor_needs_vtt_argument(new_routine))) {
+      /* Add a VTT parameter if necessary. */
       param_type = alloc_param_type(make_virtual_table_table_pointer_type());
       last_param_type->next = param_type;
       last_param_type = param_type;
     }  /* if */
     /* Copy the remainder of the parameters. */
-    copy_and_lower_param_type_list(routine_type, last_param_type, 
+    copy_and_lower_param_type_list(routine, last_param_type, 
                                    /*do_default_args=*/TRUE,
                                    /*do_lowering=*/FALSE);
   }  /* if */
@@ -5158,6 +5182,7 @@ C99 mode for the same reason.
   a_boolean          local_static_that_requires_dynamic_init = FALSE;
   a_dynamic_init_ptr latest_initialization_on_entry;
   a_boolean          have_complete_object = TRUE;
+  a_routine_ptr      ctor_routine;
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -5468,7 +5493,8 @@ do_assignment:;
                                           /*using_as_dest=*/TRUE);
       /* Cast the entity node pointer to the right type to eliminate
          qualifier and type-as-subobject differences. */
-      ctor_routine_type = dip->variant.constructor.ptr->type;
+      ctor_routine = dip->variant.constructor.ptr;
+      ctor_routine_type = ctor_routine->type;
       ctor_routine_type = skip_typerefs(ctor_routine_type);
       this_param_type = implicit_this_param_type_of(ctor_routine_type);
       entity_node = add_cast_if_necessary(entity_node,
@@ -5483,18 +5509,7 @@ do_assignment:;
         /* Cast the expression to the right type to eliminate qualifier and
            type-as-subobject differences.  Use the pointer version of
            the parameter reference type. */
-        param = unlowered_param_type_list(ctor_routine_type);
-#if IA64_ABI
-        { a_routine_ptr ctor_routine = dip->variant.constructor.ptr;
-          if (ctor_routine->ctor_dtor_kind == 
-                                          (a_ctor_or_dtor_kind)cdk_subobject &&
-              type_pointed_to(this_param_type)->variant.class_struct_union.
-                                                   any_virtual_base_classes) {
-            /* Skip the VTT parameter. */
-            param = param->next;
-          }  /* if */
-        }
-#endif /* IA64_ABI */
+        param = unlowered_param_type_list_for_routine(ctor_routine);
         source_node = add_cast_if_necessary(source_node,
                                             make_pointer_type(
                                                 type_pointed_to(param->type)));
@@ -5518,7 +5533,7 @@ do_assignment:;
         /* Construct a simple entity (not an array). */
         /* Lower any added arguments. */
         lower_arg_expr_list(dip->variant.constructor.args, ctor_routine_type,
-                            param);
+                            ctor_routine, param);
 #if ABI_COMPATIBILITY_VERSION >= 233
         if (exceptions_enabled && (options & LDIO_THROW) &&
             dip->variant.constructor.is_implicit_copy_for_copy_initialization){
@@ -6040,7 +6055,7 @@ arrays with class elements.
     /* Prepare the argument list for the "new" call. */
     check_assertion_str(new_routine != NULL,
                        "lower_array_new: placement new with null new_routine");
-    lower_arg_expr_list(ndsp->arg, new_routine->type,
+    lower_arg_expr_list(ndsp->arg, new_routine->type, new_routine,
                         (a_param_type_ptr)NULL);
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     if (dip != NULL && ndsp->freeing_of_storage_on_exception != NULL) {
@@ -6486,7 +6501,8 @@ The subtree of the node has not yet been lowered.
   an_init_pos_descr           ipd;
 
   if (!ndsp->placement_new && ndsp->routine != NULL) {
-    a_param_type_ptr params = unlowered_param_type_list(ndsp->routine->type);
+    a_param_type_ptr params =
+                          unlowered_param_type_list_for_routine(ndsp->routine);
     if (params != NULL && params->next != NULL) {
       /* Treat an operator new with default arguments as a placement new. */
       check_assertion_str(params->next->has_default_arg,
@@ -6523,7 +6539,8 @@ The subtree of the node has not yet been lowered.
     /* Preserve any additional parameters from the constructor call. */
     if (dip->variant.constructor.args != NULL) {
       lower_arg_expr_list(dip->variant.constructor.args,
-                          ctor_routine->type, (a_param_type_ptr)NULL);
+                          ctor_routine->type, ctor_routine,
+                          (a_param_type_ptr)NULL);
       end_implied_arg_list->next = dip->variant.constructor.args;
     }  /* if */
     /* Make the constructor call. */
@@ -6539,7 +6556,7 @@ The subtree of the node has not yet been lowered.
   } else {
     /* Non-array case, or array case that does not require special handling. */
     /* Lower the arguments for the "new" call. */
-    lower_arg_expr_list(ndsp->arg, ndsp->routine->type,
+    lower_arg_expr_list(ndsp->arg, ndsp->routine->type, ndsp->routine,
                         (a_param_type_ptr)NULL);
     delete_args = NULL;
     if (ndsp->placement_new && dip != NULL &&
@@ -10559,7 +10576,7 @@ destructor scope, and also lower the user code.
     this_param_node = add_cast_if_necessary(this_param_node, void_star_type());
     /* If the delete routine takes two arguments, add a second argument
        of type size_t that gives the size of the class. */
-    param1 = unlowered_param_type_list(delete_routine->type);
+    param1 = unlowered_param_type_list_for_routine(delete_routine);
 #if CHECKING
     if (param1 == NULL) {
       internal_error("lower_destructor_code: bad delete rout 1st param");

@@ -1,5 +1,25 @@
 Version 3.2
 
+3/28/03  Unnecessary wrapper routines for IA-64 ABI constructors
+
+In some cases when the IA-64 ABI is used, IL lowering generated
+some unnecessary wrapper routines for references to constructors,
+in particular in array "new" operations.  This was harmless but
+inefficient.  The unnecessary wrapper routines are no longer
+generated.
+
+  struct A {
+    A();
+  };
+  A::A() {}
+  struct B {
+    int A::*i; 
+    A a; 
+  };
+  int main() {
+    B *p = new B[10]();
+  }
+
 3/27/03  Performance improvement of string literals in IA-64 ABI
 
 Special processing is required for function-scope string literals when
