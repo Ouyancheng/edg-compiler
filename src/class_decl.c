@@ -5093,7 +5093,7 @@ declared member functions.
                                               /*is_specialization=*/FALSE);
       /* A member function declaration within a class definition is always
          the initial declaration. */
-      sssdp->first_declaration = TRUE;
+      if (sssdp != NULL) sssdp->first_declaration = TRUE;
     } else {
       /* For a definition enter the function type as the "declared_type" in
          the routine entry itself. */
