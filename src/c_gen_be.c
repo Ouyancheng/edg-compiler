@@ -494,18 +494,13 @@ the next call of this routine.
       }  /* if */
 #ifdef FFE
     }  /* if */
-  } else if (curr_statement_function != NULL &&
-             scope_depth == DEPTH_OF_FILE_SCOPE+2) {
-    /* Parameters of statement functions have the statement function name
-       added as a prefix. */
-    (void)sprintf(name_buffer, "_%s_%s",
-                  curr_statement_function->source_corresp.name,
-                  source_corresp->name);
-    new_name = name_buffer;
 #endif /* ifdef FFE */
   } else {
-    /* Not file-scope name; add the scope as a prefix to the original name. */
-    (void)sprintf(name_buffer, "_%d_%s", source_corresp->scope_depth,
+    /* Not file-scope name; add the declaration position as a prefix to
+       the original name. */
+    (void)sprintf(name_buffer, "_%lu_%lu_%s",
+                  (unsigned long)source_corresp->decl_position.seq,
+                  (unsigned long)source_corresp->decl_position.column,
                   source_corresp->name);
     new_name = name_buffer;
   }  /* if */
