@@ -2152,6 +2152,9 @@ list.  This function performs that task.
     end->next = file_ssep->next;
     if (file_ssep->next != NULL) {
       file_ssep->next->prev = end;
+    } else {
+      /* Update the file scope source sequence list end pointer: */
+      scope_stack[DEPTH_OF_FILE_SCOPE].end_of_source_sequence_list = end;
     }  /* if */
     start->prev = file_ssep;
     file_ssep->next = start;
