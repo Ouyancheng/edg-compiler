@@ -5618,6 +5618,8 @@ for header names in #include and #line directives.
   a_boolean     may_have_zero_characters = (ctoken == tok_string_literal);
   a_boolean     is_header_name = (ctoken == tok_header_name);
   a_boolean     is_wide = (*curr_char_loc == 'L');
+  a_source_line_modif_ptr
+                slmp;
 
   *err = FALSE;
   *num_chars = 0;
@@ -5695,6 +5697,11 @@ for header names in #include and #line directives.
            markers are removed when the file name is constructed later
            (see proc_include). */
         curr_char_loc += LE_ESCAPE_LEN;
+      } else if (ch == LE_END_OF_INSERTION && is_header_name) {
+        /* In header names, there can be macro expansions. */
+        check_assertion(is_header_name);
+        slmp = assoc_source_line_modif(curr_char_loc);
+        leave_insertion(slmp, curr_char_loc);
       } else {
         /* Newline -- error, quoted string unclosed. */
         /* Similar error for other strange cases of incomplete strings, which
@@ -5709,6 +5716,10 @@ for header names in #include and #line directives.
         *err = TRUE;
         goto return_point;
       }  /* if */
+    } else if (ch == ATTENTION_MARKER) {
+      /* In header names, there can be macro expansions. */
+      check_assertion(is_header_name);
+      go_into_insertion(slmp, curr_char_loc);
     } else {
       /* Normal character. */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
@@ -6766,7 +6777,10 @@ end_of_token_scan_b:;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 return_from_token_scan:
-  if (start_of_curr_token != NULL) {
+  if (start_of_curr_token != NULL &&
+      /* Header names can include macro expansions and therefore the
+         characters of the token are not necessarily contiguous. */
+      ctoken != tok_header_name) {
     len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
   }  /* if */
   curr_token_is_inert_macro = is_inert_macro;
@@ -6777,7 +6791,10 @@ return_from_token_scan:
                      gotten_from_cache ? " (from cache)" : "",
                      pos_curr_token.seq, pos_curr_token.column,
                      token_names[(int)ctoken]);
-    if (start_of_curr_token != NULL) {
+    if (start_of_curr_token != NULL &&
+        /* Header names can include macro expansions and therefore the
+           characters of the token are not necessarily contiguous. */
+        ctoken != tok_header_name) {
       /* Print token string if valid. */
       fprintf(f_debug, ", \"%.*s\"", (int)len_of_curr_token,
                                      start_of_curr_token);
