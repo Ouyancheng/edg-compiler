@@ -5095,9 +5095,7 @@ Do IL lowering of the indicated template argument and everything under it.
       lower_constant(template_arg->variant.constant);
       break;
     case tak_template:
-      /* FIXME - template template arguments. */
-      unexpected_condition_str2("lower_template_arg:",
-                                "template template arg not impl");
+      /* Template template argument.  No lowering required. */
       break;
     default: unexpected_condition(); break;
   }  /* switch */
