@@ -102,6 +102,7 @@ typedef enum /*an_option_kind*/ {
 #if RESTRICT_ALLOWED
   optk_restrict,
 #endif /* RESTRICT_ALLOWED */
+  optk_long_lifetime_temps,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -425,7 +426,6 @@ EXTERN char	*pch_dir_name /* = NULL*/;
 			/* Directory in which PCH files are to be stored.
 			   NULL if no directory has been specified. */
 
-
 #if RESTRICT_ALLOWED
 EXTERN a_boolean
 		restrict_recognized
@@ -437,6 +437,18 @@ EXTERN a_boolean
 			   When this flag is FALSE, "restrict" is not entered
 			   into the symbol table. */
 #endif /* RESTRICT_ALLOWED */
+
+EXTERN a_boolean
+		long_lifetime_temps
+#if VAR_INITIALIZERS
+                                    = FALSE
+#endif /* VAR_INITIALIZERS */
+                                           ;
+			/* If FALSE, temporaries have lifetimes that end at
+			   end of full expression.  If TRUE, temporaries
+			   have lifetimes that end at end of scope, label,
+			   or end of switch clause. */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

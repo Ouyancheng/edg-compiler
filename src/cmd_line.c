@@ -356,10 +356,18 @@ Initialize the option information table.
   add_option_description(optk_pch_dir, "pch_dir",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+#if RESTRICT_ALLOWED
   add_option_description(optk_restrict, "restrict",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_restrict, "no_restrict",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* RESTRICT_ALLOWED */
+  add_option_description(optk_long_lifetime_temps, "long_lifetime_temps",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_long_lifetime_temps, "short_lifetime_temps",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 }  /* initialize_option_descriptions */
@@ -872,6 +880,7 @@ Process the arguments on the command line that invoked the compiler.
         /* This option implies C++ dialect. */
         C_dialect = C_dialect_cplusplus;
         allow_anachronisms = TRUE;
+        long_lifetime_temps = TRUE;
         break;
       case optk_cfront_3_0_mode:
         /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
@@ -882,6 +891,7 @@ Process the arguments on the command line that invoked the compiler.
         /* This option implies C++ dialect. */
         C_dialect = C_dialect_cplusplus;
         allow_anachronisms = TRUE;
+        long_lifetime_temps = TRUE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back
@@ -1159,6 +1169,10 @@ Process the arguments on the command line that invoked the compiler.
         restrict_recognized = opt_value;
         break;
 #endif /* RESTRICT_ALLOWED */
+      case optk_long_lifetime_temps:
+        /* Long or short lifetime temporaries. */
+        long_lifetime_temps = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1244,13 +1258,13 @@ Process the arguments on the command line that invoked the compiler.
   anachronism_error_severity = allow_anachronisms ? es_warning : es_error;
   /* Choose the style of preprocessing. */
   pcc_preprocessing_mode = (C_dialect == C_dialect_pcc);
-  if (any_cfront_mode()) {
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
+  if (any_cfront_mode()) {
     /* When configured that way, use old-style preprocessing for cfront
        compatibility mode. */
     pcc_preprocessing_mode = TRUE;
-#endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
   }  /* if */
+#endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
 
   /* Add the default directories to the end of the include search path.
      The list is then any -I directories, in the order they were specified,
