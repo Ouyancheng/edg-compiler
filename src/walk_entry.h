@@ -1628,6 +1628,9 @@ do_set_proper_definition_needed_flag:
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
         walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
         switch (ptr->kind) {
+          case templk_none:
+            /* This is an error case; presumably diagnosed in the front end. */
+            break;
           case templk_function:
           case templk_member_function:
             remap_ptr(ptr->prototype_instantiation.routine, a_routine_ptr,
