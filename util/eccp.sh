@@ -153,6 +153,10 @@ std_incl=1
 #
 instantiation_mode_specified=0
 #
+# Remove #line directives from the generated C
+#
+strip_line_dirs=0
+#
 # Go through every argument, identify it, and add it a list if appropriate.
 #
 while [ -n "$1" ]
@@ -410,6 +414,10 @@ do
 #     Link using the purify command
       link_using_purify=1
       ;;
+    -strip_line_dirs)
+#     Remove #line directives from generated C
+      strip_line_dirs=1
+      ;;
     -sun*)
 #     SunOS 4.n option, as in "-sun4" -- ignored.
       ;;
@@ -586,6 +594,14 @@ do
     cc_tmp_file=$TMPDIR/$$cc
     if [ $fe_only -ne 1 ]
     then
+#
+# Remove #line directives if requested to do so.
+#
+      if [ $strip_line_dirs -eq 1 ] ; then
+        # Replace the #line directives with blank lines.
+        sed -e "s/#line.*//" $basefile.int.c >/tmp/$$sld
+        mv -f /tmp/$$sld $basefile.int.c
+      fi
       $cc_command $ccsdb $ccpic -c $basefile.int.c >$cc_tmp_file 2>&1
       status=$?
 #
