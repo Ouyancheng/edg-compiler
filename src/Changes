@@ -1,5 +1,28 @@
 Version 2.41
 
+1/24/99   Code for conversion function call that requires derived->base
+          conversion afterwards
+
+In some cases, when code was generated to call a conversion function
+in a context where the result of the conversion function needs to
+be converted from a derived class to a base class, and where the
+derived class cannot be copied bitwise, the final conversion was
+omitted.  Now fixed.
+
+  struct B {
+    int m;
+    B(int a=0) { m=a; }
+  };
+  struct C : virtual public B {
+    C(int a) : B(a) {}
+  } e1(1);
+  struct A1 {
+    operator C() { return (e1); }
+  } a1;
+  int main() {
+    B b = a1;  // Bad code was generated here
+  }
+
 1/23/99   Preinclude command-line option uses include search path
 
 The command-line preinclude option now searches the include search

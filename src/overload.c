@@ -7802,7 +7802,7 @@ happen only in C++ mode.
       /* The routine is a conversion function.  Do the conversion and then
          try to find a copy constructor that can copy the result of the
          conversion for the caller. */
-      user_convert_operand(source_operand, /*dest_type=*/(a_type_ptr)NULL,
+      user_convert_operand(source_operand, dest_type,
                            conversion, (a_conv_descr *)NULL,
                            /*force_temp_for_class_bitwise_copy=*/FALSE);
       /* See if the result of the conversion is already in a temporary. */
