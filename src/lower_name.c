@@ -1729,10 +1729,10 @@ expressions on nontype template parameters in function signatures.
   switch (op) {
     case eok_inegate:
     case eok_fnegate:
-      opkind = onk_minus;
+      opkind = (an_opname_kind)onk_minus;
       break;
     case eok_not:
-      opkind = onk_not;
+      opkind = (an_opname_kind)onk_not;
       break;
     case eok_cast:
     case eok_base_class_cast:
@@ -1743,74 +1743,74 @@ expressions on nontype template parameters in function signatures.
       name = "cs";
       break;
     case eok_complement:
-      opkind = onk_compl;
+      opkind = (an_opname_kind)onk_compl;
       break;
     case eok_iadd:
     case eok_fadd:
-      opkind = onk_plus;
+      opkind = (an_opname_kind)onk_plus;
       break;
     case eok_isubtract:
     case eok_fsubtract:
-      opkind = onk_minus;
+      opkind = (an_opname_kind)onk_minus;
       break;
     case eok_imultiply:
     case eok_fmultiply:
-      opkind = onk_star;
+      opkind = (an_opname_kind)onk_star;
       break;
     case eok_idivide:
     case eok_fdivide:
-      opkind = onk_divide;
+      opkind = (an_opname_kind)onk_divide;
       break;
     case eok_ieq:
     case eok_feq:
-      opkind = onk_eq;
+      opkind = (an_opname_kind)onk_eq;
       break;
     case eok_ine:
     case eok_fne:
-      opkind = onk_ne;
+      opkind = (an_opname_kind)onk_ne;
       break;
     case eok_igt:
     case eok_fgt:
-      opkind = onk_gt;
+      opkind = (an_opname_kind)onk_gt;
       break;
     case eok_ilt:
     case eok_flt:
-      opkind = onk_lt;
+      opkind = (an_opname_kind)onk_lt;
       break;
     case eok_ige:
     case eok_fge:
-      opkind = onk_ge;
+      opkind = (an_opname_kind)onk_ge;
       break;
     case eok_ile:
     case eok_fle:
-      opkind = onk_le;
+      opkind = (an_opname_kind)onk_le;
       break;
     case eok_remainder:
-      opkind = onk_remainder;
+      opkind = (an_opname_kind)onk_remainder;
       break;
     case eok_shiftl:
-      opkind = onk_shift_left;
+      opkind = (an_opname_kind)onk_shift_left;
       break;
     case eok_shiftr:
-      opkind = onk_shift_right;
+      opkind = (an_opname_kind)onk_shift_right;
       break;
     case eok_and:
-      opkind = onk_ampersand;
+      opkind = (an_opname_kind)onk_ampersand;
       break;
     case eok_or:
-      opkind = onk_or;
+      opkind = (an_opname_kind)onk_or;
       break;
     case eok_xor:
-      opkind = onk_excl_or;
+      opkind = (an_opname_kind)onk_excl_or;
       break;
     case eok_land:
-      opkind = onk_and_and;
+      opkind = (an_opname_kind)onk_and_and;
       break;
     case eok_lor:
-      opkind = onk_or_or;
+      opkind = (an_opname_kind)onk_or_or;
       break;
     case eok_question:
-      opkind = onk_question;
+      opkind = (an_opname_kind)onk_question;
       break;
     default:
       unexpected_condition_str("mangled_expr_operator_name: bad operator");
