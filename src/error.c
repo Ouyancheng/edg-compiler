@@ -2037,6 +2037,9 @@ error code.
     case ec_bad_scope_for_definition:
       m = "%n cannot be defined in the current scope";
       break;
+    case ec_throw_specification_not_allowed:
+      m = "throw specification is not allowed";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
