@@ -1,5 +1,12 @@
 Version 2.27
 
+10/25/94 (int)1.5 in integral constant expression
+
+The change made in version 2.26 to allow additional forms of expressions
+as integral constant expressions (9/14/94) in non-strict mode
+unfortunately broke cases that cast a floating-point constant to
+an integral type.  Now fixed.
+
 10/25/94 Promotion of bit fields under MAKE_ALL_FUNCTIONS_UNPROTOTYPED
 
 Unsigned bit fields passed to unsigned parameters are now promoted

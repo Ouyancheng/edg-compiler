@@ -3678,15 +3678,17 @@ static void scan_extended_integral_constant_expression(a_boolean  allow_comma,
 /*
 Scan a constant expression that is an extended form of an integral constant
 expression.  It is extended in that it allows addressing expressions that
-reduce to an integer value.  The expression is scanned as an initializer
-constant expression, then checked to see if it is a constant with integer
-representation.  If not, an error is issued and the constant is changed
-to an error constant.  The constant is returned in *operand.  If
-allow_comma is TRUE, a top-level comma is allowed in the expression.
-prec_level is the precedence level to be used in scanning the expression.
-The constant returned might be an error constant or a template parameter
-constant.  This routine exists mainly to allow the sorts of constant
-expressions used in the implementation of offsetof.
+produce an integer constant when cast to an integral type.  The caller
+will be casting the result of this call to an integral type.  The
+expression is scanned as an initializer constant expression, then checked
+to see if it is a constant with integer or floating-point representation.
+If not, an error is issued and the constant is changed to an error
+constant.  The constant is returned in *operand.  If allow_comma is TRUE,
+a top-level comma is allowed in the expression.  prec_level is the
+precedence level to be used in scanning the expression.  The constant
+returned might be an error constant or a template parameter constant.
+This routine exists mainly to allow the sorts of constant expressions
+used in the implementation of offsetof.
 */
 {
   an_expr_stack_entry expr_stack_entry;
@@ -3700,12 +3702,14 @@ expressions used in the implementation of offsetof.
   do_operand_transformations(operand, TOPT_NO_OPTIONS);
   /* Make a constant from the operand. */
   extract_constant_from_operand(operand, &con);
-  /* Check that the constant is represented as an integer. */
+  /* Check that the constant is represented as an integer or floating
+     constant. */
   if (!is_error_constant(&con) &&
       con.kind != (a_constant_repr_kind)ck_integer &&
+      con.kind != (a_constant_repr_kind)ck_float &&
       con.kind != (a_constant_repr_kind)ck_template_param) {
-    /* The expression doesn't reduce to a value that is represented as
-       an integer. */
+    /* The expression doesn't reduce to a value that will be an integer
+       constant once cast to an integral type. */
     error_in_operand(ec_expr_not_integral_constant, operand);
   }  /* if */
   pop_expr_stack();
