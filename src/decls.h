@@ -243,6 +243,9 @@ typedef int a_decl_flag_set;
 #define DSI_CONSTRUCTOR_DESTRUCTOR_ALLOWED 0x20
 			/* If this bit is set allow the declaration of a
                            constructor or a destructor. */
+#define DSI_SUPPRESS_MISSING_TYPE_SPEC_WARNING 0x40
+                        /* If this bit is set do not issue a warning on a
+                           missing type specifier. */
 /* Constants defining bits in the output bit vector returned from
    decl_specifiers. */
 #define DSO_NO_OUTPUT_FLAGS 0x0
