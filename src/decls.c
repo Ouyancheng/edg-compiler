@@ -5546,10 +5546,25 @@ In C++ mode an error is issued if a type definition appears in a type-name
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   if (is_abstract_declarator_start()) {
     di_flags = DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED;
+    if (vla_enabled && depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+      /* Note that int[*] is not allowed, but int(*)[*] is okay.  Therefore
+         we turn on DI_VLA_ASTERISK_ALLOWED and check for the error case
+         once the scan has been completed. */
+      di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
+    }  /* if */
     declarator(di_flags, &do_flags, *type_ptr,
                /*member_parent_type=*/(a_type_ptr)NULL,
                (a_symbol_locator *)NULL, type_ptr,
                &declarator_ssep, (a_func_info_block_ptr)NULL);
+    if (di_flags & DI_VLA_ALLOWED) {
+      /* VLA checking was done. */
+      if (is_array_type(*type_ptr) &&
+          is_or_contains_vla_type_with_unspecified_bound(*type_ptr)) {
+        /* This is an array in which the variable bound is unspecified in
+           one of its dimensions. */
+        pos_error(ec_vla_with_unspecified_bound_not_allowed, &start_pos);
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (any_cfront_mode() &&
       check_member_function_typedef(*type_ptr, &start_pos)) {

@@ -1836,11 +1836,19 @@ nonstatic data member of a class.
              declaration.  */
           add_vla_fixup_entry(*new_type_ptr, dim_expr, (a_symbol_ptr)NULL);
         } else {
-          /* Generate a stmk_set_vla_size statement for the VLA to indicate
-             when (at runtime) the VLA dimension expression is to be
-             evaluated to fix the size of the array. */
-          set_vla_size_statement(make_vla_dimension(*new_type_ptr, dim_expr),
-                                 &start_pos);
+          /* Create a VLA dimension entry to record the expression. */
+          a_vla_dimension_ptr  vdp;
+
+          vdp = make_vla_dimension(*new_type_ptr, dim_expr);
+          if (in_expression_context()) {
+            /* Don't put out an stmk_set_vla_size statement if this is an
+               expression context (e.g., a sizeof or cast). */
+          } else {
+            /* Generate an stmk_set_vla_size statement for the VLA to indicate
+               when (at runtime) the VLA dimension expression is to be
+               evaluated to fix the size of the array. */
+            set_vla_size_statement(vdp, &start_pos);
+          }  /* if */
         }  /* if */
       } else {
         (*new_type_ptr)->variant.array.variant.element_count_expr = dim_expr;
