@@ -8546,72 +8546,75 @@ static void turn_class_definition_into_declaration(a_type_ptr  class_type)
              any_virtual_functions_including_in_base_classes = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   ssep = class_type->source_corresp.source_sequence_entry;
-  if (class_type->variant.class_struct_union.
-                       nested_class_defined_outside_of_parent) {
+  if (ssep != NULL) {
+    if (class_type->variant.class_struct_union.
+                         nested_class_defined_outside_of_parent) {
 #if CHECKING
-    /* This won't work for local classes. */
-    check_assertion_str2(!class_type->source_corresp.is_local_to_function,
-                         "turn_class_definition_into_declaration:",
-                         "local classes not supported");
+      /* This won't work for local classes. */
+      check_assertion_str2(!class_type->source_corresp.is_local_to_function,
+                           "turn_class_definition_into_declaration:",
+                           "local classes not supported");
 #endif /* CHECKING */
-    drop_from_file_scope_source_sequence_list(ssep, &next_ssep);
-    /* Start at the point in the source sequence list corresponding to the
-       beginning of the class or namespace definition. */
-    ssep = class_type->source_corresp.parent.class_type->
-                                   source_corresp.source_sequence_entry;
-    /* Loop through the list till a secondary declaration pointing to
-       class_type is found. */
-    for (ssep = ssep->next; ssep != NULL; ssep = ssep->next) {
-      if (ssep->entity.kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
-        sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
-        if (sssdp->entity.ptr == (char *)class_type) {
-          /* A match.  Reset the source sequence entry pointer in the
-             routine entry and break out of the loop. */
-          class_type->source_corresp.source_sequence_entry = ssep;
-          break;
-        }  /* if */
-      }  /* if */
-#if CHECKING
-      if (ssep->next == NULL) {
-        unexpected_condition_str2("turn_class_definition_into_declaration:",
-                                  "source sequence secondary decl not found");
-      }  /* if */
-#endif /* CHECKING */
-    }  /* for */
-  } else {
-    check_assertion(ssep->entity.ptr == (char *)class_type);
-    last_ssep = ssep->next;
-    for (;;) {
-      if (last_ssep->entity.kind ==
-                     (a_byte_il_entry_kind)iek_src_seq_end_of_construct &&
-          ((a_src_seq_end_of_construct_ptr)last_ssep->entity.ptr)->
-                                          entity.ptr == ssep->entity.ptr) {
-        break;
-      }  /* if */
-      if (last_ssep->entity.kind ==
-                     (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
-        sssdp = (a_src_seq_secondary_decl_ptr)last_ssep->entity.ptr;
-        if (sssdp->friend_decl &&
-            sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
-          a_routine_ptr rp = (a_routine_ptr)sssdp->entity.ptr;
-          if (rp->source_corresp.source_sequence_entry == last_ssep) {
-            rp->source_corresp.source_sequence_entry = NULL;
+      drop_from_file_scope_source_sequence_list(ssep, &next_ssep);
+      /* Start at the point in the source sequence list corresponding to the
+         beginning of the class or namespace definition. */
+      ssep = class_type->source_corresp.parent.class_type->
+                                     source_corresp.source_sequence_entry;
+      /* Loop through the list till a secondary declaration pointing to
+         class_type is found. */
+      for (ssep = ssep->next; ssep != NULL; ssep = ssep->next) {
+        if (ssep->entity.kind ==
+                           (an_il_entry_kind)iek_src_seq_secondary_decl) {
+          sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+          if (sssdp->entity.ptr == (char *)class_type) {
+            /* A match.  Reset the source sequence entry pointer in the
+               routine entry and break out of the loop. */
+            class_type->source_corresp.source_sequence_entry = ssep;
+            break;
           }  /* if */
         }  /* if */
+#if CHECKING
+        if (ssep->next == NULL) {
+          unexpected_condition_str2("turn_class_definition_into_declaration:",
+                                  "source sequence secondary decl not found");
+        }  /* if */
+#endif /* CHECKING */
+      }  /* for */
+    } else {
+      check_assertion(ssep->entity.ptr == (char *)class_type);
+      last_ssep = ssep->next;
+      for (;;) {
+        if (last_ssep->entity.kind ==
+                       (a_byte_il_entry_kind)iek_src_seq_end_of_construct &&
+            ((a_src_seq_end_of_construct_ptr)last_ssep->entity.ptr)->
+                                            entity.ptr == ssep->entity.ptr) {
+          break;
+        }  /* if */
+        if (last_ssep->entity.kind ==
+                       (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
+          sssdp = (a_src_seq_secondary_decl_ptr)last_ssep->entity.ptr;
+          if (sssdp->friend_decl &&
+              sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
+            a_routine_ptr rp = (a_routine_ptr)sssdp->entity.ptr;
+            if (rp->source_corresp.source_sequence_entry == last_ssep) {
+              rp->source_corresp.source_sequence_entry = NULL;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        last_ssep = last_ssep->next;
+      }  /* for */
+      ssep->next = last_ssep->next;
+      if (last_ssep->next != NULL) {
+        last_ssep->next->prev = ssep;
       }  /* if */
-      last_ssep = last_ssep->next;
-    }  /* for */
-    ssep->next = last_ssep->next;
-    if (last_ssep->next != NULL) {
-      last_ssep->next->prev = ssep;
+      sssdp = alloc_src_seq_secondary_decl();
+      sssdp->entity = ssep->entity;
+      ssep->entity.ptr = (char *)sssdp;
+      ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+      sssdp->decl_position = class_type->source_corresp.decl_position;
+      sssdp->declared_type = class_type;
+      sssdp->autonomous_tag_decl = class_type->autonomous_primary_tag_decl;
     }  /* if */
-    sssdp = alloc_src_seq_secondary_decl();
-    sssdp->entity = ssep->entity;
-    ssep->entity.ptr = (char *)sssdp;
-    ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
-    sssdp->decl_position = class_type->source_corresp.decl_position;
-    sssdp->declared_type = class_type;
-    sssdp->autonomous_tag_decl = class_type->autonomous_primary_tag_decl;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   class_type->variant.class_struct_union.
