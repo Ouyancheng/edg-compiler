@@ -3251,14 +3251,15 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
        assoc_scope check is used to exclude the prototype
        instantiation from being considered nonreal for lookup
        purposes. */
-    cssp = symbol_supplement_for_class(class_type);
     if (class_type->variant.class_struct_union.is_nonreal_class &&
         class_type->
                   variant.class_struct_union.extra_info->assoc_scope == NULL) {
       is_proxy_or_nonreal_class_lookup = TRUE;
     }  /* if */
-    any_nonreal_base_classes = cssp->any_nonreal_base_classes;
   }  /* if */
+  class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
+  cssp = class_symbol->variant.class_struct_union.extra_info;
+  any_nonreal_base_classes = cssp->any_nonreal_base_classes;
   /* Determine whether the thing being looked up is a template dependent
      conversion operator name in an expression context.  When looking for
      such names, the ordinary lookup is suppressed causing an unknown
@@ -3288,6 +3289,14 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
        part of the search when looking for a dependent conversion operator in
        an expression context. */
     if (!dependent_conversion_operator) {
+      /* Bypass the normal loop when looking for the assignment operator.
+         This is an optimization as the inactive list for assignment operators
+         is usually long. */
+      if (locator->is_operator_name &&
+          locator->variant.opname == (an_opname_kind)onk_assign) {
+        sym = cssp == NULL ? NULL : cssp->assignment_operator;
+        if (sym != NULL) goto end_lookup; else goto bypass_inactive_search;
+      }  /* if */
       /* First, search the list of inactive symbols.  These are class
          members for classes that are no longer active.  Or, in C,
          fields of structs/unions. */
@@ -3355,6 +3364,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         goto end_lookup;
       }  /* if */
     }  /* if */
+bypass_inactive_search:
     if (is_proxy_or_nonreal_class_lookup &&
         !(options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) {
       /* When looking up a name in a proxy or nonreal class, the name is
@@ -3419,8 +3429,6 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
          for the class.  The symbols for those are not entered in the
          normal symbol table; they're pointed to from the class symbol
          supplement. */
-      class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
-      cssp = class_symbol->variant.class_struct_union.extra_info;
       if (locator->symbol_header == class_symbol->header) {
         /* Looking up the class name within itself.  Return the constructor if
            there is one. */

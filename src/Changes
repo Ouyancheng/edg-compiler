@@ -1,5 +1,12 @@
 Version 3.1
 
+10/30/02 Performance improvement in looking up operator=
+
+Because each class has an operator= function, the inactive list for
+operator= can become very long.  class_qualified_id_lookup now uses
+an alternate method of looking up operator=, resulting in a significant
+performance improvement for programs that have a large number of classes.
+
 10/30/02 Performance improvement in handling of type lists
 
 Some changes were made to accelerate the routine move_to_end_of_types_list
