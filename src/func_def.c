@@ -940,9 +940,7 @@ on a prior declaration.
                              DEPTH_OF_FILE_SCOPE,
                              /*suppress_redecl_error=*/TRUE);
     sym->header = hdr;
-    rp = make_routine(type_ptr, (a_storage_class)sc_static,
-                      /*at_file_or_namespace_scope=*/TRUE,
-                      /*add_to_list=*/TRUE);
+    rp = make_routine(type_ptr, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
     sym->variant.routine.ptr = rp;
     set_source_corresp(&(rp->source_corresp), sym);
     set_class_membership(sym, &rp->source_corresp, class_type);

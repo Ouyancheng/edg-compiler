@@ -3651,10 +3651,9 @@ of the function, and again overloading is a possibility.
        the routine body. */
     sym = enter_symbol((a_symbol_kind)sk_routine, locator, DEPTH_OF_FILE_SCOPE,
                        /*suppress_redecl_error=*/FALSE);
-    sym->variant.routine.ptr =
-                       make_routine(function_type, (a_storage_class)sc_static,
-                                    /*at_file_or_namespace_scope=*/TRUE,
-                                    /*add_to_list=*/FALSE);
+    sym->variant.routine.ptr = make_routine(function_type,
+                                            (a_storage_class)sc_static,
+                                            NO_SCOPE_DEPTH);
     /* Set the source correspondence. */
     set_source_corresp(&sym->variant.routine.ptr->source_corresp, sym);
   } else {
@@ -4136,8 +4135,7 @@ special function kind (e.g., constructor, destructor), if any.
      which its class is declared. */
   /* Member functions are static by default. */
   rtn = make_routine(member_type, (a_storage_class)sc_static,
-                     /*at_file_or_namespace_scope=*/FALSE,
-                     /*add_to_list=*/TRUE);
+                     decl_scope_level);
   sym->variant.routine.ptr = rtn;
   /* Set the source correspondence, including the access specifier. */
   set_source_corresp(&rtn->source_corresp, sym);
@@ -4403,8 +4401,7 @@ void decl_member_function_template(a_symbol_locator     *locator,
                                   locator, sym, &overload_sym);
   }  /* if */
   rtn = make_routine(member_type, (a_storage_class)sc_unspecified,
-                     /*at_file_or_namespace_scope=*/FALSE,
-                     /*add_to_list=*/FALSE);
+                     NO_SCOPE_DEPTH);
   tssp = template_supplement_for_symbol(sym);
   tssp->variant.function.routine = rtn;
   /* Set the source correspondence, including the access specifier. */

@@ -216,8 +216,7 @@ extern a_variable_ptr make_variable(
 
 extern a_routine_ptr make_routine(a_type_ptr      type_ptr,
                                   a_storage_class storage_class,
-                                  a_boolean       at_file_or_namespace_scope,
-                                  a_boolean       add_to_list);
+                                  a_scope_depth   scope_depth);
 
 extern a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                        a_symbol_locator *locator,
