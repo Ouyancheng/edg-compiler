@@ -1,5 +1,45 @@
 Version 2.19
 
+8/18/93 Automatic Template Instantiation
+
+Automatic template instantiation is now supported.  A complete
+prototype implementation of a linker feedback mechanism is provided.
+This mechanism includes new functionality in the front end, modifications
+to the eccp driver script, and a new tool called edg_prelink which
+is run before the linker to provide the necessary instantiations.
+
+Partial support is also provided for an environment in which a given
+compilation generates all of the instantiations referenced by that
+translation unit.  This mechanism requires that the linker be
+able to discard all but one definition of each template entity.
+The main component of the front end that is provided to support
+this is a mechanism that ensures that each static data member
+of a template class is initialized only once.
+
+Automatic instantiation is enabled by default and may be disabled
+using the -T command line option.  The default is specified by 
+a configuration parameter in the lang_feat.h file.
+
+Please see the internal documentation for additional information.
+
+8/18/93 Implicit inclusion of template definition files
+
+Applications that use templates and that were written in an
+environment that uses cfront 3.0 typically include header
+files that declare class and function templates but do not
+include the source files that provide the definitions of
+noninline functions and static data members.  The implicit
+include features allows such applications to be compiled without
+the need to add explicit includes of the template definition files.
+The template definition files needed to compile a given program
+will be automatically included.  This requires a file naming
+convention similar to the one employed by cfront.  Implicit
+inclusion is disabled by default and may be enabled using the
+-B command line option.  The default is specified by a configuration
+parameter in the lang_feat.h file.
+
+Please see the internal documentation for additional information.
+
 8/16/93 Declaring nonlocal variable or function with a local type
 
 A warning is now issued in C++ mode if a nonlocal variable or function is
