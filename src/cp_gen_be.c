@@ -2444,12 +2444,6 @@ source sequence entry points to the switch clause.
   if (need_break) {
     set_output_position_for_stmt(&scp->break_position);
     write_str("break;");
-#if CHECKING
-  } else if (seq_number_from_stmt_source_position(scp->break_position) != 0) {
-    /* There is a position for the break, but we determined we don't need
-       a break. */
-    internal_error("gen_switch_clause: break problem");
-#endif /* CHECKING */
   }  /* if */
 }  /* gen_switch_clause */
 
