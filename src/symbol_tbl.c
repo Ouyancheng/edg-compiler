@@ -3853,8 +3853,10 @@ if no default constructor is found.  This routine is only used in C++ mode.
        There may be more than one.  For instance, there may be a constructor
        with no arguments and one with one argument with a default value. */
     for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-      if (is_default_constructor(sym->variant.routine.ptr,
-                                 /*is_declarative_context=*/FALSE)) {
+      if (sym->kind == (a_symbol_kind)sk_function_template) {
+        /* Function templates are not considered. */
+      } else if (is_default_constructor(sym->variant.routine.ptr,
+                                       /*is_declarative_context=*/FALSE)) {
         /* sym is a default constructor. */
         if (ctor_sym != NULL) {
           /* A default constructor had already been found, so there's
@@ -4004,9 +4006,11 @@ matching constructors.  If a bitwise copy is allowed, return NULL and
        There may be more than one.  For instance, there may be a copy
        constructor that can copy a const object and another that cannot. */
     for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
-      if (is_copy_constructor(sym->variant.routine.ptr,
-                              sym->parent.class_type, &qualifiers,
-                              /*is_declarative_context=*/FALSE)) {
+      if (sym->kind == (a_symbol_kind)sk_function_template) {
+        /* Function templates are not considered. */
+      } else if (is_copy_constructor(sym->variant.routine.ptr,
+                                     sym->parent.class_type, &qualifiers,
+                                     /*is_declarative_context=*/FALSE)) {
         if ((required_qualifiers & qualifiers) != required_qualifiers) {
           /* A copy constructor was found that cannot copy the sort of object
              that we need to be able to copy. Keep looking for a suitable copy
