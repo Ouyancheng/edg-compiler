@@ -10312,6 +10312,7 @@ diagnostics.
 
 static void scan_gnu_declarator_attributes(char*             *asm_name,
                                            an_attribute_ptr  *attributes,
+                                           a_boolean         *new_attributes,
                                            a_storage_class   declared_storage,
                                            a_boolean         is_function)
 /*
@@ -10346,6 +10347,7 @@ The attributes are appended to the list pointed to by *attributes.
       an_attribute_ptr  *last_declarator_attribute = 
                                               last_attribute_link(attributes);
       *last_declarator_attribute = scan_attributes();
+      *new_attributes = TRUE;
     }  /* if */
   }  /* if */
   *asm_name = asm_sym_name;
@@ -10438,6 +10440,7 @@ of local variables (and types, etc.) of functions and in blocks.
   an_attribute_ptr             specifier_attributes = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr             *last_specifier_attribute;
+  a_boolean                    has_postfix_attributes = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean                    access_checks_deferred = FALSE;
   a_token_kind                 final_token = tok_semicolon;
@@ -10804,6 +10807,7 @@ continue_with_declaration:
                      is_function_type(local_type_ptr));
 #if GNU_EXTENSIONS_ALLOWED
       scan_gnu_declarator_attributes(&asm_name, &declarator_attributes,
+                                     &has_postfix_attributes,
                                      declared_storage_class, is_function);
       /* Combine the specifier and declarator attributes (they are separated
          again at the end of the loop). */
@@ -11123,7 +11127,7 @@ continue_with_declaration:
 #if GNU_EXTENSIONS_ALLOWED
           /* GCC does not allow "void f() __attribute((...)) {}".  It
              does, however, allow "void __attribute((...)) f() {}". */
-          if (declarator_attributes != NULL) {
+          if (has_postfix_attributes) {
             pos_error(ec_attributes_in_rout_defn, &locator.source_position); 
           }  /* if */
           /* GNU C doesn't allow "void f() asm("bar") {}". */
