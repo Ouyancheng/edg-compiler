@@ -919,6 +919,14 @@ EXTERN a_boolean
 			   statement. */
 
 /*
+Clear the global flags representing current lint or pragma state that have
+specific lifetimes (e.g., they persist for one statement or one declaration).
+*/
+extern void clear_decl_lint_and_pragma_globals(void);
+#define clear_stmt_lint_and_pragma_globals()                           \
+  lint_notreached_flag = FALSE
+
+/*
 Data structure used to save information about a token so that the token
 can be cached and then rescanned.  Note that this is never done with
 pp-tokens.  See cache_curr_token et al.
