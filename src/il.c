@@ -4992,8 +4992,8 @@ there are separate variables that are set already.
 
 void empty_func_shareable_constants_table(void)
 /*
-Empty out the function-scope shareable constants table (actually, it's a
-list), and liberate the constants therein by clearing their "next" fields.
+Empty out the function-scope shareable constants table, and liberate the
+constants therein by clearing their "next" fields.
 */
 {
   a_constant_ptr scp, next_scp;

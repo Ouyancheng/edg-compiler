@@ -498,9 +498,7 @@ typedef struct a_scope_stack_entry {
 			   scope.  Only used if the scope is a function scope.
 			   These are constants that refer to something local
 			   to the scope, and therefore cannot be shared at 
-			   the file scope.  The only meaningful case is
-			   a constant indicating the address of a local
-			   variable. */
+			   the file scope. */
   a_routine_fixup_ptr
 		last_routine_fixup;
 			/* Defined for sck_class_struct_union scopes only:
