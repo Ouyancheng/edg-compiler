@@ -1,5 +1,28 @@
 Version 2.44
 
+6/21/00  Non-constant sizeofs -- SIZEOF_TYPE_IS_UNKNOWN
+
+In some cases when using the C++ generating back end it is difficult
+or impossible to fully duplicate the layout algorithm of the target C/C++
+compiler.  In such cases, the sizes of primitive types and simple
+classes may be knowable, but the sizes of complicated classes may
+not.  By defining SIZEOF_TYPE_IS_UNKNOWN to a function-like macro
+that tests a type and returns TRUE for the complicated cases, one
+can now make sizeofs of complicated types unknown at compile time.
+(And therefore the value determined by layout processing will be
+irrelevant.)  Such sizeofs will be represented as expression nodes
+and will therefore be passed through to the generated code as
+sizeofs and not a specific constant value.  However, because they
+are considered non-constant, they cannot be used in constant
+expressions, e.g., as array bounds.  Because of that, when this
+feature is used the front end is not completely standard-conforming.
+
+A setting that makes non-POD class sizes unknown is
+
+  #define SIZEOF_TYPE_IS_UNKNOWN(type) \
+    (is_class_struct_union_type(type) && \
+     !symbol_supplement_for_class(type)->is_POD)
+
 6/21/00  Use of make_variable instead of alloc_variable
 
 To ease the type-dependent customization of a_variable nodes, every allocation

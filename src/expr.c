@@ -3910,6 +3910,28 @@ Syntax:
       }  /* if */
       make_expression_operand(node, node->type, result);
     }  /* if */
+#ifdef SIZEOF_TYPE_IS_UNKNOWN
+  } else if (SIZEOF_TYPE_IS_UNKNOWN(sizeof_type)) {
+    /* The size of this type is not known at compile time.  This is
+       used with the C++-generating back end when it is difficult or
+       impossible to duplicate the layout algorithm of the target
+       compiler.  Some types (e.g., int) might be easy to know, and
+       some (e.g., non-POD classes) might not be.  SIZEOF_TYPE_IS_UNKNOWN
+       is a function-like macro that returns TRUE for the complicated
+       cases. */
+    if (in_constant_expression) {
+      /* Not allowed in a constant expression. */
+      pos_error(ec_expr_not_constant, &start_position);
+      make_error_operand(result);
+    } else {
+      /* Make an expression node to represent the sizeof. */
+      an_expr_node_ptr node =
+                        alloc_expr_node((an_expr_node_kind)enk_runtime_sizeof);
+      node->type = integer_type(targ_size_t_int_kind);
+      node->variant.runtime_sizeof.type = sizeof_type;
+      make_expression_operand(node, node->type, result);
+    }  /* if */
+#endif /* defined(SIZEOF_TYPE_IS_UNKNOWN) */
   } else {
     /* The result of a sizeof is an integer indicating the size of the operand
        in bytes, of type size_t (see ISO C 6.3.3.4 and <stddef.h>). */
