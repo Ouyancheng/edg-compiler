@@ -382,6 +382,14 @@ typedef struct a_pending_pragma {
 		id_position;
 			/* Source position of the identifier that indicates
 			   the kind of pragma being processed. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		source_sequence_entry;
+			/* Pointer to source sequence entry that represents
+			   the place this pragma appears within the current
+			   file or function scope relative to other
+			   declarations, statements, comments, etc. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   unsigned int
 		discard_cache_when_done:1;
 			/* TRUE if the token_cache may be discarded when the

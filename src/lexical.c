@@ -478,6 +478,9 @@ possible.
   ppp->descr_ptr = pdp;
   ppp->discard_cache_when_done = TRUE;
   ppp->has_been_scanned = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  ppp->source_sequence_entry = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Initialize any pragma-specific information. */
   switch (pdp->kind) {
     case pk_lint_varargs_count:
@@ -603,6 +606,18 @@ pbk_immediate pragmas are processed here.
 #if 0
         /* Do include_in_il processing. */
 #endif
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* Add an empty entry for this pragma to the source sequence list.
+           It will be changed to an eok_pragma entry and completed when the
+           corresponding IL pragma entry is created (or removed if it turns
+           out that no IL pragma entry is created). */
+        if (ppp->source_sequence_entry == NULL) {
+          /* This entry is just being thrown away.  How should it be handled
+           in the source sequence list?  For example, should an IL entry be
+           created for it? */
+          ppp->source_sequence_entry = add_empty_source_sequence_entry();
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         free_pending_pragma(ppp);
         break;
       case pbk_other:
@@ -681,6 +696,21 @@ is TRUE any new pragmas are added to the end of the existing list.
     /* An entry can't be on both lists. */
     check_assertion(!(add_to_new_list == TRUE &&
                       remove_from_curr_list == FALSE));
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Add an empty entry for this pragma to the source sequence list.
+       It will be changed to an eok_pragma entry and completed when the
+       corresponding IL pragma entry is created (or removed if it turns
+       out that no IL pragma entry is created). */
+    if (ppp->source_sequence_entry == NULL) {
+      if (remove_from_curr_list && !add_to_new_list) {
+        /* This entry is just being thrown away.  How should it be handled
+           in the source sequence list?  For example, should an IL entry be
+           created for it? */
+      } else {
+        ppp->source_sequence_entry = add_empty_source_sequence_entry();
+      }  /* if */
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (remove_from_curr_list) {
       if (prev_ppp != NULL) {
         /* Make the previous entry on the list point to the entry after this
