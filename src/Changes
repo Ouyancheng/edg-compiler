@@ -1,5 +1,18 @@
 Version 2.27
 
+10/19/94 Bug in setting the offset of an indirect base class
+
+A bug has been fixed in setting the offset of an indirect base class that
+is the indirect base class of a virtual base class (in cfront layout
+compatibility mode only).
+
+10/19/94 Bug in creating virtual function tables
+
+A bug has been fixed in creating virtual function tables: at times the
+virtual function number in the routine entry failed to correspond to a
+element actually belonging to the vtbl.  (The problem was caused by an
+unlikely combination of factors, including ambiguous base classes.)
+
 10/19/94 Error recovery bug in declarator scanning
 
 An internal error has been fixed in continuing from errors on array-of-
