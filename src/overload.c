@@ -5027,14 +5027,17 @@ gives the source position of the member name reference.
         /* Some adjustment is required.  Find out how the classes are
            related to one another. */
         bcp = find_base_class_of(class_struct_union_type, desired_class);
-        check_assertion(bcp != NULL);
-        /* Cast the left operand to the proper type. */
-        base_class_cast_operand(operand_1, bcp, is_arrow_operator,
-                                /*check_cast_access=*/
+        if (bcp == NULL) {
+          check_assertion(total_errors != 0);
+        } else {
+          /* Cast the left operand to the proper type. */
+          base_class_cast_operand(operand_1, bcp, is_arrow_operator,
+                                  /*check_cast_access=*/
                                                 !access_control_error_reported,
-                                /*is_implicit_cast=*/TRUE,
-                                /*implicit_in_naming=*/FALSE,
-                                /*is_object_pointer=*/TRUE);
+                                  /*is_implicit_cast=*/TRUE,
+                                  /*implicit_in_naming=*/FALSE,
+                                  /*is_object_pointer=*/TRUE);
+        }  /* if */
         class_struct_union_type = desired_class;
       }  /* if */
       /* If the member symbol is a projection symbol (i.e., it's inherited
