@@ -580,6 +580,7 @@ check_abbreviation()
 --no_rtti
 --no_special_subscript_cost
 --no_standard_includes
+--no_stdarg_builtin
 --no_sun
 --no_svr4
 --no_typename
@@ -628,6 +629,7 @@ check_abbreviation()
 --short_lifetime_temps
 --signed_chars
 --special_subscript_cost
+--stdarg_builtin
 --strict
 --strict_warnings
 --strip
@@ -1062,6 +1064,8 @@ process_option()
          --no_parse_templates | \
          --export_template | \
          --no_export_template | \
+         --stdarg_builtin | \
+         --no_stdarg_builtin | \
          --ignore_std | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
