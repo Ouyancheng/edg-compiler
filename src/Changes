@@ -1,5 +1,16 @@
 Version 2.43
 
+9/10/99  Command line allows function-style macros
+
+The "-D" command-line option has been extended to allow function-style macros.
+For example:
+
+  edgcpfe '-Df(X)=a##X' ...
+
+is essentially equivalent to "#define f(X) a##X" inserted before the first
+source line.  (Note that some quoting may be required to prevent command line
+interpreters from treating some characters -- like parentheses -- specially.)
+
 9/9/99   Abort in C-generating back end when implicitly defined function
          is marked with dllimport (Microsoft mode)
 
