@@ -1,5 +1,35 @@
 Version 2.42
 
+7/1/99  Variadic macros
+
+Two variants of macro definitions that can be invoked with a variable number
+of arguments are now supported.  These extensions can be enabled with the
+options --variadic_macros and --extended_variadic_macros (unless the
+configuration flag VARIADIC_MACROS_ENABLING_ALLOWED is FALSE).  Both
+extensions also allow trailing macro arguments to be omitted as in this
+example:
+
+  #define M(a, b) a(b)
+  void M(f); /* expands to "void f();", no warning or error */
+
+The option --variadic_macros enables variadic macros as proposed for C9X:
+
+  #define D(fmt, ...) printf(fmt, __VA_ARGS__)
+  /* The "..." matches an arbitrary number of macro arguments that can be
+     referred to by __VA_ARGS__ (includes the separating commas). */
+  D("%c%s\n", 'E', "DG"); /* Expands to "printf("%c%s\n", 'E', "DG");" */
+  D("EDG\n"); /* Expands to "printf("EDG\n", );" -- note the extra comma. */
+
+The option --extended_variadic_macros adds to this the ability to name the
+variadic parameter and a special meaning to the token pasting operator ("##"):
+when it is followed by an empty variadic argument (named or not), the
+preceding parameter or continuous sequence of nonwhitespace characters (not
+part of a parameter) is erased.  For example:
+
+  #define E(fmt, args...) printf(fmt , args)
+  E("%c%s\n", 'E', "DG"); /* Expands to "printf("%c%s\n", 'E', "DG");" */
+  E("EDG\n"); /* Expands to "printf("EDG\n");" -- no extra comma. */
+
 6/30/99 ## operator dropped in IL
 
 When the token pasting operator ("##") was not followed by a macro parameter,

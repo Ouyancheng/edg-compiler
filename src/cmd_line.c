@@ -796,6 +796,24 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+#if VARIADIC_MACROS_ENABLING_POSSIBLE
+  add_option_description(optk_variadic_macros,
+                         "variadic_macros",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_variadic_macros,
+                         "no_variadic_macros",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_extended_variadic_macros,
+                         "extended_variadic_macros",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_extended_variadic_macros,
+                         "no_extended_variadic_macros",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* VARIADIC_MACROS_ENABLING_POSSIBLE */
   add_option_description(optk_system_include_dir, "sys_include", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
@@ -2059,9 +2077,20 @@ enable_microsoft_mode:
         designators_allowed = opt_value;
         break;
       case optk_extended_designators:
-        /* Ordinary designators should or should not be accepted. */
+        /* Ordinary and extended designators should or should not be
+           accepted. */
         designators_allowed = opt_value;
         extended_designators_allowed = opt_value;
+        break;
+      case optk_variadic_macros:
+        /* Ordinary variadic macros should or should not be accepted. */
+        variadic_macros_allowed = opt_value;
+        break;
+      case optk_extended_variadic_macros:
+        /* Ordinary and extended variadic macros should or should not be
+           accepted. */
+        variadic_macros_allowed = opt_value;
+        extended_variadic_macros_allowed = opt_value;
         break;
       case optk_include_file_suffixes:
         /* Specifies the list of suffixes to be used when searching for an
@@ -2491,6 +2520,16 @@ enable_microsoft_mode:
         /* If late tiebreaker was not explicitly set by a command line
            option, force it off. */
         do_late_ovl_res_tiebreaker = FALSE;
+      }  /* if */
+    }  /* if */
+    if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
+      /* Support for extended variadic macros is turned off by default in
+         strict mode. */
+      extended_variadic_macros_allowed = FALSE;
+      if (!(option_kind_used[(int)optk_variadic_macros])) {
+        /* Support for variadic macros is turned off by default in strict
+           mode. */
+        variadic_macros_allowed = FALSE;
       }  /* if */
     }  /* if */
     /* Make sure that strict ANSI messages come out even if the

@@ -6532,6 +6532,11 @@ id_scan:
         /* Raw preprocessing tokens wanted, so do not look up the
            identifier. */
       } else {
+        /* If variadic macros are allowed, '__VA_ARGS__' should appear only in
+           the replacement list of such macros. */
+        check_use_of_VA_ARGS(
+                    (sizeof_t)(end_of_curr_token - start_of_curr_token + 1),
+                    start_of_curr_token);
         /* Look up the identifier in the symbol table. */
         assoc_symbol = find_symbol(start_of_curr_token,
                                    (sizeof_t)((end_of_curr_token -
@@ -6578,7 +6583,7 @@ id_scan:
 	       processing a pragma that is explicitly designated as requiring
 	       keyword recognition. */
             if (!fetch_pp_tokens &&
-	        (!in_preprocessing_directive ||
+                (!in_preprocessing_directive ||
                  (caching_pragma_tokens && recognize_keywords_in_pragma))) {
               ctoken = assoc_symbol->variant.keyword.token;
               /* Check for a keyword that is not yet implemented.  If one is

@@ -847,6 +847,15 @@ designated initializers can be enabled.
 #define DESIGNATED_INITIALIZER_ENABLING_POSSIBLE FALSE
 #endif /* ifndef DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 
+
+/*
+Flag that is TRUE if variadic macros and extended variadic macros can be
+enabled.
+*/
+#ifndef VARIADIC_MACROS_ENABLING_POSSIBLE
+#define VARIADIC_MACROS_ENABLING_POSSIBLE FALSE
+#endif /* VARIADIC_MACROS_ENABLING_POSSIBLE */
+
 /*
 Flag that is TRUE to enable a special nonstandard weighting of the
 conversion for the integral operand of the [] operator in overload resolution.
@@ -1081,7 +1090,23 @@ of the global variable extended_designators_allowed.
 #define DEFAULT_EXTENDED_DESIGNATORS_ALLOWED FALSE
 #endif /* DEFAULT_EXTENDED_DESIGNATORS_ALLOWED */
 
+/*
+Flag that is TRUE if a macro with a variable number of arguments can be
+introduced by adding a final '...' macro parameter.  It is the initial value
+of the global variable variadic_macros_allowed.
+*/
+#ifndef DEFAULT_VARIADIC_MACROS_ALLOWED
+#define DEFAULT_VARIADIC_MACROS_ALLOWED FALSE
+#endif /* DEFAULT_VARIADIC_MACROS_ALLOWED */
 
+/*
+Flag that is TRUE if a macro with a variable number of arguments can be
+introduced by appending '...' to the name of the last macro parameter.  It is
+the initial value of the global variable extended_variadic_macros_allowed.
+*/
+#ifndef DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED
+#define DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED FALSE
+#endif /* DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED */
 
 /*
 Flag that is TRUE if the tiebreaker processing in overload resolution

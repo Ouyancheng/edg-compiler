@@ -606,6 +606,9 @@ FALSE, respectively).
     } else {
       /* Do nothing if state is FAIL, INTERMED or ONCE. */
     }  /* if */
+    /* The identifier __VA_ARGS__ is not allowed if variadic macros are
+       accepted. */
+    check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
     /* Look to see if there is a macro with this name. */
     assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
                                &locator_for_curr_id);
@@ -670,6 +673,9 @@ Scan and process an #undef directive.
     syntax_error(ec_exp_identifier);
     some_error_in_curr_directive = TRUE;
   } else {
+    /* The identifier __VA_ARGS__ is not allowed if variadic macros are
+       accepted. */
+    check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
     /* Look to see if there is a macro with this name. */
     assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
                                &locator_for_curr_id);
@@ -1394,6 +1400,9 @@ Scan and process a #pragma directive.
 
   /* Identify the pragma that is being processed. */
   if (get_token() == tok_identifier) {
+    /* The identifier __VA_ARGS__ is not allowed if variadic macros are
+       accepted. */
+    check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
     /* Save the position of the start of the token(s) that identify
        the kind of pragma being processed. */
     id_position = pos_curr_token;

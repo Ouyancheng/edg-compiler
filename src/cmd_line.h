@@ -181,6 +181,8 @@ typedef enum /*an_option_kind*/ {
   optk_system_include_dir,
   optk_designators,
   optk_extended_designators,
+  optk_variadic_macros,
+  optk_extended_variadic_macros,
   optk_include_file_suffixes,
   optk_last		/* Must be last. */
 } an_option_kind;
@@ -516,6 +518,19 @@ EXTERN a_boolean
                            that uses an unqualified name should be accepted. */
 
 EXTERN a_boolean
+		designators_allowed
+#if VAR_INITIALIZERS
+                                             =
+#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
+                                               DEFAULT_DESIGNATORS_ALLOWED
+#else /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+                                               FALSE
+#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			       /* TRUE if '.x' and '[expr]' designators should be accepted. */
+
+EXTERN a_boolean
 		extended_designators_allowed
 #if VAR_INITIALIZERS
                                         =
@@ -529,17 +544,30 @@ EXTERN a_boolean
 		 /* TRUE if 'x:' and '[expr ... expr]' designators should be accepted. */
 
 EXTERN a_boolean
-		designators_allowed
+		variadic_macros_allowed
 #if VAR_INITIALIZERS
                                              =
-#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
-                                               DEFAULT_DESIGNATORS_ALLOWED
-#else /* !DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+#if VARIADIC_MACROS_ENABLING_POSSIBLE
+                                               DEFAULT_VARIADIC_MACROS_ALLOWED
+#else /* !VARIADIC_MACROS_ENABLING_POSSIBLE */
                                                FALSE
-#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
+#endif /* VARIADIC_MACROS_ENABLING_POSSIBLE */
 #endif /* VAR_INITIALIZERS */
                                                                               ;
-			       /* TRUE if '.x' and '[expr]' designators should be accepted. */
+			   /* TRUE if '#define VM(x, ...) __VA_ARGS__' should be accepted. */
+
+EXTERN a_boolean
+		extended_variadic_macros_allowed
+#if VAR_INITIALIZERS
+                                    =
+#if VARIADIC_MACROS_ENABLING_POSSIBLE
+                                      DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED
+#else /* !VARIADIC_MACROS_ENABLING_POSSIBLE */
+                                      FALSE
+#endif /* VARIADIC_MACROS_ENABLING_POSSIBLE */
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+		          /* TRUE if '#define EVM(args ...) args' should be accepted. */
 
 EXTERN a_boolean
 		pointer_to_member_call_optimization_allowed

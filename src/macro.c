@@ -962,6 +962,9 @@ beyond the operator has not yet been fetched.
       expand_macros = FALSE;
       if (get_token() == tok_identifier) {
         /* First form -- "defined identifier". */
+        /* The identifier __VA_ARGS__ is not allowed if variadic macros are
+           accepted. */
+        check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
         assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
                                    &locator_for_curr_id);
       } else {
@@ -976,6 +979,9 @@ beyond the operator has not yet been fetched.
           error(ec_exp_identifier);
           unget_token();
         } else {
+          /* The identifier __VA_ARGS__ is not allowed if variadic macros are
+             accepted. */
+          check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
           assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
                                      &locator_for_curr_id);
           if (get_token() != tok_rparen) {
@@ -1361,6 +1367,14 @@ Add an entry to the list of a_macro_arg entries in use.
 }  /* add_to_macro_arg_list */
 
 
+#define ARG_VALUES_SIZE 50
+			/* For parameter counts in the normal range, the
+			   arg_values array provides quick look-up.  For
+			   parameters beyond that, a slow linear search
+			   is used. */
+static a_macro_arg_ptr arg_values[ARG_VALUES_SIZE];
+
+
 /*
 Add an a_macro_arg entry to the end of the current list of argument values.
 The first ARG_VALUES_SIZE arguments are indexed in arg_values.  All entries
@@ -1418,6 +1432,114 @@ nothing.
 }  /* free_macro_arg_entries */
 
 
+static void adjust_length_for_magic_arg(a_repl_text_seq_kind kind,
+                                        char                 *rtp,
+                                        sizeof_t             n_params,
+                                        sizeof_t             *length)
+/*
+Check if this is followed by an empty substitution of the variadic macro
+parameter.  If so, the last chunk of nonwhitespace characters should be
+removed.  This strange behavior is emulated only when extended variadic macros
+ are enabled.  Some compilers implement this to work around the following
+problem:
+	#define M(fmt, args) printf(fmt , ## args)
+	void f() { M("Hello.\n"); }
+Without the "deletion effect", the macro would generate an extraneous comma.
+*/
+{
+  sizeof_t arg_number;
+  /* Move to the next section, skipping the rt_paste placeholder. */
+  char *ahead = rtp+1;
+  get_macro_repl_text_number(arg_number, ahead);
+  if ((a_repl_text_seq_kind)*(ahead++) == rt_raw_argument) {
+    a_macro_arg_ptr map;
+
+    get_macro_repl_text_number(arg_number, ahead);
+    get_arg_value(arg_number, map);
+    if (arg_number == n_params &&
+        (map->raw_len == 0 ||
+         (map->raw_text[0] == LE_ESCAPE &&
+          map->raw_text[1] == LE_END_OF_INSERTION))) {
+      /* The last macro parameter (presumably variadic) is empty or missing.
+         So we adjust the section length to not include the last chunk of
+         nonwhitespace characters or if the "##" was preceded by a macro
+         parameter, the whole parameter is elided: */
+      if (kind == rt_text) {
+        char *back = rtp-1;
+        while (*back == ' ' || *back == '\t') { --back; }
+        while (*back != ' ' && *back != '\t') { --back; }
+        *length -= (rtp-back)-1;
+      } else {
+        *length = 0;
+      }
+    }  /* if */
+  }  /* if */
+}  /* adjust_length_for_magic_arg */
+
+
+static sizeof_t length_of_replacement_text(char *rtp,
+                                           sizeof_t n_params,
+                                           a_macro_def_ptr mdp)
+/*
+Compute the length (in bytes/characters) of the replacement text described by
+the sequence of sections pointed to by rtp.  n_params is the number of macro
+parameters of the macro described by mdp.
+*/
+{
+  sizeof_t result = 0;
+
+  for (; *rtp != (int)rt_null;) {
+    sizeof_t             sect_len, rts_number;
+    a_repl_text_seq_kind rts_kind = (a_repl_text_seq_kind)*(rtp++);
+    /* Extract the section length or argument number. */
+    get_macro_repl_text_number(rts_number, rtp);
+    if (rts_kind == rt_text) {
+      sect_len = rts_number;
+      rtp += sect_len;
+    } else if (rts_kind == rt_paste) {
+      /* Just a placeholder for "##"; it will not take up space in the
+         expansion. */
+      sect_len = 0;
+    } else {
+      a_macro_arg_ptr map;
+      /* Other section kinds have an associated parameter number. */
+      get_arg_value(rts_number, map);
+      switch (rts_kind) {
+        case rt_raw_argument:
+          sect_len = map->raw_len;
+          /* Don't count an LE_INERT_MACRO escape if present, since it
+             will be removed. */
+          if (map->raw_text[0] == LE_ESCAPE &&
+              map->raw_text[1] == LE_INERT_MACRO) sect_len -= LE_ESCAPE_LEN;
+          break;
+        case rt_stringized_raw_argument:
+          /* Determine the length of the stringized version of the
+             argument. */
+          sect_len = stringized_arg(map, (char **)NULL);
+          break;
+        case rt_argument:
+          /* Note that the length here is without any source modifications
+             (like macro expansions); they are handled later. */
+          sect_len = map->raw_len;
+          break;
+#if CHECKING
+        default:
+          internal_error("macro_invocation: expansion section unknown");
+#endif /* CHECKING */
+      }  /* switch */
+    }  /* if */
+    /* When extended variadic macros are enabled, a "##" followed by an empty
+       variadic argument has a special deletion effect. */
+    if (extended_variadic_macros_allowed && mdp->variadic &&
+        (a_repl_text_seq_kind)*rtp == rt_paste) {
+      adjust_length_for_magic_arg(rts_kind, rtp, n_params, &sect_len);
+    }  /* if */
+    result += sect_len;
+  }  /* for */
+  return result;
+}  /* length_of_replacement_text */
+
+
 a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
                               a_boolean     *rescan)
 /*
@@ -1436,7 +1558,7 @@ associated global variables will also have been set).
   a_boolean	  got_proper_closing_token = FALSE;
   a_boolean	  special_repl_text = FALSE;
   a_macro_arg_ptr special_macro_arg = NULL;
-  sizeof_t        sect_len, rts_number;
+  sizeof_t        sect_len, rts_number, n_params = 0;
   a_repl_text_seq_kind
 		  rts_kind;
   a_boolean       any_white_space_skipped;
@@ -1469,12 +1591,6 @@ associated global variables will also have been set).
   a_boolean       token_pasting_off_end;
   a_boolean       too_many_args_diag_given = FALSE;
   a_macro_arg_ptr map, prev_end_of_macro_arg_list = end_of_macro_arg_list;
-#define ARG_VALUES_SIZE 50
-			/* For parameter counts in the normal range, the
-			   arg_values array provides quick look-up.  For
-			   parameters beyond that, a slow linear search
-			   is used. */
-  a_macro_arg_ptr arg_values[ARG_VALUES_SIZE];
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -1776,10 +1892,21 @@ do_argument_again:
           /* Ignore initial white space. */
           any_white_space_skipped = FALSE;
           need_end_of_token_marker = FALSE;
-          while (curr_token != tok_newline &&
-                 curr_token != tok_end_of_source &&
-                 ((curr_token != tok_comma && curr_token != tok_rparen) ||
-                  paren_count != 0)) {
+          /* A macro argument will end when encountering:
+               (a) the end of the current line or the current translation
+                   unit, or
+               (b) outside parentheses introduced in the argument (i.e., when
+                   paren_count == 0):
+                     (b1) a right parenthesis, or
+                     (b2) a comma when we are not in the last argument
+                          (pp->next == NULL) of a variadic macro.
+          */
+          while (!(curr_token == tok_newline ||
+                   curr_token == tok_end_of_source ||
+                   (paren_count == 0 &&
+                    (curr_token == tok_rparen ||
+                     (curr_token == tok_comma &&
+                      !(pp != NULL && pp->next == NULL && mdp->variadic)))))) {
             sizeof_t raw_text_len;
             /* Track nesting of parentheses. */
             if (curr_token == tok_lparen) {
@@ -1939,7 +2066,10 @@ do_argument_again:
 end_arg_expansion:;
           /* Advance to the next argument (unless we've given an error about
              too many arguments). */
-          if (pp != NULL) pp = pp->next;
+          if (pp != NULL) {
+            pp = pp->next;
+            ++n_params;
+          }
           /* Keep looping while a comma is the next token. */
           not_done = (curr_token == tok_comma);
           if (not_done) {
@@ -1951,10 +2081,13 @@ end_arg_expansion:;
       /* Check that all of the formal parameters were taken. */
       if (pp != NULL) {
         /* An argument is missing.  This is an error, except in pcc
-           preprocessing mode, SVR4 C mode, and Microsoft mode. */
-        diagnostic(pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode
+           preprocessing mode, SVR4 C mode, and Microsoft mode. It is also
+           fine when variadic macros are allowed. */
+        if (!variadic_macros_allowed) {
+          diagnostic(pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode
                                         ? es_warning : es_discretionary_error,
-                   ec_too_few_macro_args);
+                     ec_too_few_macro_args);
+        }
         /* Set the rest of the parameters to null strings. */
         do {
           map = alloc_macro_arg();
@@ -1962,6 +2095,7 @@ end_arg_expansion:;
           map->raw_text[0] = LE_ESCAPE;
           map->raw_text[1] = LE_END_OF_INSERTION;
           pp = pp->next;
+          ++n_params;
         } while (pp != NULL);
       }  /* if */
       /* Check for closing parenthesis.  Note that if it is present, the
@@ -2029,47 +2163,7 @@ end_arg_expansion:;
     if (!repl_text_len_precomputed) repl_text_len = strlen(repl_text);
   } else {
     /* Normal replacement text, with sections. */
-    repl_text_len = 0;
-    for (rtp = repl_text; *rtp != (int)rt_null;) {
-      rts_kind = (a_repl_text_seq_kind)*(rtp++);
-      /* Extract the section length or argument number. */
-      get_macro_repl_text_number(rts_number, rtp);
-      if (rts_kind == rt_text) {
-        sect_len = rts_number;
-        rtp += sect_len;
-      } else if (rts_kind == rt_paste) {
-        /* Just a placeholder for "##"; it will not take up space in the
-           expansion. */
-        sect_len = 0;
-      } else {
-        /* Other section kinds have an associated parameter number. */
-        get_arg_value(rts_number, map);
-        switch (rts_kind) {
-          case rt_raw_argument:
-            sect_len = map->raw_len;
-            /* Don't count an LE_INERT_MACRO escape if present, since it
-               will be removed. */
-            if (map->raw_text[0] == LE_ESCAPE &&
-                map->raw_text[1] == LE_INERT_MACRO) sect_len -= LE_ESCAPE_LEN;
-            break;
-          case rt_stringized_raw_argument:
-            /* Determine the length of the stringized version of the
-               argument. */
-            sect_len = stringized_arg(map, (char **)NULL);
-            break;
-          case rt_argument:
-            /* Note that the length here is without any source modifications
-               (like macro expansions); they are handled later. */
-            sect_len = map->raw_len;
-            break;
-#if CHECKING
-          default:
-            internal_error("macro_invocation: expansion section unknown");
-#endif /* CHECKING */
-        }  /* switch */
-      }  /* if */
-      repl_text_len += sect_len;
-    }  /* for */
+    repl_text_len = length_of_replacement_text(repl_text, n_params, mdp);
   }  /* if */
   /* repl_text_len now indicates the size of the expansion.  Note that
      in the case of an expanded argument value, the expansion may be
@@ -2135,6 +2229,12 @@ end_arg_expansion:;
             internal_error("macro_invocation: expansion section unknown");
 #endif /* CHECKING */
         }  /* switch */
+      }  /* if */
+      /* When extended variadic macros are enabled, a "##" followed by an empty
+         variadic argument has a special deletion effect. */
+      if (extended_variadic_macros_allowed && mdp->variadic &&
+          (a_repl_text_seq_kind)*rtp == rt_paste) {
+        adjust_length_for_magic_arg(rts_kind, rtp, n_params, &sect_len);
       }  /* if */
       if (sect_len != 0) {
         (void)memcpy(src_loc, text_loc, size_t_arg(sect_len));
@@ -2693,6 +2793,7 @@ Scan and process a #define directive.
 		  last_param,
 		  param_list;
   a_boolean	  object_like;
+  a_boolean	  variadic = FALSE;
   a_boolean	  redefinition = FALSE;
   a_source_position
                   start_pos;
@@ -2724,6 +2825,9 @@ Scan and process a #define directive.
     error(ec_exp_identifier);
     some_error_in_curr_directive = TRUE;
   } else {
+    /* The macro name __VA_ARGS__ is not allowed if variadic macros are
+       accepted. */
+    check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
     /* Look to see if there is a macro with this name. */
     assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
                                &locator_for_curr_id);
@@ -2789,10 +2893,14 @@ Scan and process a #define directive.
         /* Not empty. */
         add_stop_token(tok_comma);
         do {
-          /* Scan one parameter identifier, build an entry for it. */
-          if (curr_token != tok_identifier) {
+          /* Scan one parameter identifier or a terminating ellipsis (for
+             variadic macros), and build an entry for it. */
+          a_boolean is_variadic_parameter = variadic_macros_allowed &&
+                                            (curr_token == tok_ellipsis);
+          if (!is_variadic_parameter && curr_token != tok_identifier) {
             (void)required_token(tok_identifier, ec_exp_identifier);
-          } else if (id_matches_macro_param_name(param_list)) {
+          } else if (!is_variadic_parameter &&
+                     id_matches_macro_param_name(param_list)) {
             /* Duplicate parameter name. */
             error(ec_duplicate_macro_param_name);
             (void)get_token();
@@ -2800,13 +2908,24 @@ Scan and process a #define directive.
             /* Add the parameter to the list. */
             param_num++;
             pp = alloc_macro_param();
-            pp->name = alloc_fe((sizeof_t)(len_of_curr_token+1));
+            if (!is_variadic_parameter) {
+              pp->name = alloc_fe((sizeof_t)(len_of_curr_token+1));
+              (void)memcpy(pp->name, start_of_curr_token,
+                           size_t_arg(len_of_curr_token));
+              pp->name[len_of_curr_token] = '\0';
+              /* If variadic macros are allowed, macro parameters explicitly
+                 called __VA_ARGS__ should be refused. */
+              check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
+            } else {
+              /* A variadic parameter named "..." in the parameter list is
+                 referred to as "__VA_ARGS__" in the replacement list. */
+              variadic = TRUE;
+              pp->name = alloc_fe(sizeof("__VA_ARGS__"));
+              (void)memcpy(pp->name, "__VA_ARGS__", sizeof("__VA_ARGS__"));
+            }  /* if */
 #if DEBUG
-            param_name_string_space += len_of_curr_token+1;
+            param_name_string_space += strlen(pp->name)+1;
 #endif /* DEBUG */
-            (void)memcpy(pp->name, start_of_curr_token,
-                         size_t_arg(len_of_curr_token));
-            pp->name[len_of_curr_token] = '\0';
             if (param_list == NULL) {
               param_list = pp;
             } else {
@@ -2820,9 +2939,18 @@ Scan and process a #define directive.
                                (int)param_num, pp->name);
             }  /* if */
 #endif /* DEBUG */
+            /* Eat the identifier or ellipsis that names the parameter: */
             (void)get_token();
+            /* A parameter of the form "id ..." is also possible and means
+               "id" is a variadic parameter (ordinarily, just "..." is used
+               and the implied name is "__VA_ARGS__"). */
+            if (extended_variadic_macros_allowed && !variadic &&
+                curr_token == tok_ellipsis) {
+              variadic = TRUE;
+              (void)get_token();
+            }  /* if */
           }  /* if */
-        } while (loop_token(tok_comma));
+        } while (!variadic && loop_token(tok_comma));
         remove_stop_token(tok_comma);
       }  /* if */
       /* Check for closing parenthesis.  required_token is not used because
@@ -2876,7 +3004,7 @@ Scan and process a #define directive.
                               &any_white_space_skipped) == tok_newline) {
             error(ec_paste_cannot_be_last);
           } else {
-            /* Insert a '##' placeholder so that the IL accurately reflects
+            /* Insert a "##" placeholder so that the IL accurately reflects
                the source. */
             put_start_of_non_text_section(rt_paste, 0);
             if (param_num != 0) {
@@ -3052,6 +3180,7 @@ redef_error:
     mdp->object_like    = object_like;
     mdp->param_list     = param_list;
     mdp->repl_text      = repl_text;
+    mdp->variadic       = variadic;
     /* Put the macro def block pointer into the symbol entry. */
     assoc_symbol->variant.macro_def = mdp;
 def_done:;
@@ -3291,6 +3420,9 @@ token-list.
     error(ec_exp_identifier);
     err = TRUE;
   } else {
+    /* The identifier __VA_ARGS__ is not allowed if variadic macros are
+       accepted. */
+    check_use_of_VA_ARGS(len_of_curr_token, start_of_curr_token);
     /* Find or make a predicate entry for the name. */
     predicate_entry = find_or_make_predicate_entry(start_of_curr_token,
                                                    len_of_curr_token);

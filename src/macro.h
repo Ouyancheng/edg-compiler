@@ -87,6 +87,20 @@ extern void macro_one_time_init(void);
 
 extern void macro_init(void);
 
+/* When variadic macros are enabled, the identifier __VA_ARGS__ can only
+   appear in the replacement lists of variadic macros.  The following check
+   appears in a few places, including lexical analysis of identifiers. */
+#if VARIADIC_MACROS_ENABLING_POSSIBLE
+#define check_use_of_VA_ARGS(len, buf)                             \
+  if (variadic_macros_allowed &&                                      \
+      len == sizeof("__VA_ARGS__")-1 &&                               \
+      strncmp(buf, "__VA_ARGS__", sizeof("__VA_ARGS__")-1) == 0) {    \
+    error(ec_VA_ARGS_not_allowed);                                    \
+  }  /* if */
+#else
+#define check_use_of_VA_ARGS(len, buf)
+#endif
+
 #endif /* MACRO_H */
 
 /******************************************************************************

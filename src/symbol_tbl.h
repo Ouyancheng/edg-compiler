@@ -390,6 +390,9 @@ typedef struct a_macro_def {
 			   incompatible with creating a precompiled header
 			   file; TRUE, e.g., for predefined macros __DATE__
 			   and __TIME__. */
+  a_bit_field	variadic:1;
+			/* TRUE if the formal parameter list of this macro
+			   ended with the ellipsis token (an extension). */
   a_macro_param_ptr
 		param_list;
 			/* Pointer to a list of entries describing the
