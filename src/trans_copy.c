@@ -2522,6 +2522,7 @@ inline functions, if appropriate.
           db_entity_info((char *)primary_routine, iek_routine);
         }  /* if */
 #endif /* DEBUG */
+#if MAINTAIN_NEEDED_FLAGS
         /* If the suppress_inline_body flag indicates that this function
            is assigned to this compilation and that was noted in a secondary
            translation unit, mark the function as needed in the primary
@@ -2529,6 +2530,7 @@ inline functions, if appropriate.
         if (!primary_routine->suppress_inline_body) {
           mark_as_needed((char *)primary_routine, iek_routine);
         }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
       }  /* if */
     }  /* if */
   }  /* if */
