@@ -167,13 +167,13 @@ on the override_list.
         sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
         /* Set the instantiation_required flag for the virtual function. */
         set_instance_required(sym, /*value=*/TRUE, /*defer_inline=*/TRUE);
-#if DO_IL_LOWERING
+#if DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS
         /* Force the class definition to be kept, because if it is removed the
            virtual function table variable will be detached, and later the
            instance-required flag will be cleared on the virtual functions of
            the class because there is no virtual function table. */
         set_class_keep_definition_in_il(class_type);
-#endif /* DO_IL_LOWERING */
+#endif /* DO_IL_LOWERING && MAINTAIN_NEEDED_FLAGS */
       }  /* if */
 next_function:;
     }  /* for */
