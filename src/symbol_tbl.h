@@ -710,7 +710,7 @@ typedef struct a_conversion_header {
 
 /*
 List of conversion header entries that serve as a lookup list for conversion
-functions symbols.
+function symbols.
 */
 EXTERN a_conversion_header_ptr
 		conversion_header_list;
