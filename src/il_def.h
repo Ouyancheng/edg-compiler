@@ -4806,6 +4806,8 @@ typedef a_byte a_lowered_eh_construct_kind;
 enum an_expr_operator_kind_tag {
   /* When the expression node kind is "enk_operation", these are the possible
      operators. */
+  /* If you add operators to this list, be sure to update db_operator_names
+     and il_display.c. */
   /* Note that the left operand of assignment operators and ".",
      the function designator of a call, and the operands of
      pre/post-increment/decrement operators are addresses, since they
@@ -4862,6 +4864,14 @@ enum an_expr_operator_kind_tag {
   eok_ppost_decr,       /* Pointer post decrement. */
   eok_ppre_incr,        /* Pointer pre increment. */
   eok_ppre_decr,        /* Pointer pre decrement. */
+  eok_lvalue_from_call_result,
+			/* C mode only: placed above an eok_call that returns
+			   a struct, produces the address of the struct
+			   value (this can be implemented by storing the
+			   value in a temporary and returning the address of
+			   the temporary).  This is used in allowing
+			   subscripting of rvalue arrays in C mode, an
+			   extension to ANSI/ISO C. */
 #endif /* ifdef CIL */
 #ifdef FIL
   eok_xnegate,          /* Complex negation. */
@@ -7130,6 +7140,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "i++", "i--", "++i", "--i",
    "f++", "f--", "++f", "--f",
    "p++", "p--", "++p", "--p",
+   "lvalue<==",
 #endif /* ifdef CIL */
 #ifdef FIL
    "x-", "len ", "&", "loc ", "test",

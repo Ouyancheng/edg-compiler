@@ -7111,6 +7111,10 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             }  /* if */
             break;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+          case eok_lvalue_from_call_result:
+            /* Not expected in C++. */
+            unexpected_condition_str(
+                                    "lower_expr: eok_lvalue_from_call_result");
           default:
             /* No action on most operators. */
             break;

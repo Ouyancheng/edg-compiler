@@ -3502,6 +3502,11 @@ precedence confusion.
       gen_pm_simple_field_selection(operand_1, operand_2);
       write_tok_ch(')');
       processed = TRUE;
+    } else if (op == (an_expr_operator_kind)eok_lvalue_from_call_result) {
+      /* Used in C mode to allow subscripting of an rvalue array.  The
+         operand expression is put out as an rvalue, and the underlying
+         C compiler will presumably do the right thing. */
+      gen_expr_with_parens(operand_1);
     } else if (op == (an_expr_operator_kind)eok_lvalue_cast) {
       /* Lvalue cast. */
       gen_cast(type_pointed_to(node->type));
@@ -4167,6 +4172,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "--";
           operand_1_is_lvalue = TRUE;
           break;
+        case eok_lvalue_from_call_result:
+          /* This operator shouldn't get past gen_lvalue. */
+          unexpected_condition_str(
+                            "gen_expr: eok_lvalue_from_call_result as rvalue");
         case eok_iadd:
         case eok_fadd:
         case eok_padd:

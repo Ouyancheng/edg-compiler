@@ -4843,10 +4843,6 @@ address of the temporary is returned.  This routine is only used in C++ mode.
   an_expr_node_ptr  node;
 
   orig_operand = *operand;
-#if 0
-  do_operand_transformations(operand,
-                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
-#endif
   if (is_error_operand(operand)) {
     /* Error operand -- leave alone. */
 #if CHECKING
@@ -5330,21 +5326,13 @@ subtree, some of which will no longer have array type.
       conv_class_operand_to_object_pointer(&operand);
       expr = make_node_from_operand(&operand);
     } else {
-      /* C mode.  Create a temporary variable, copy the class rvalue to it,
-         and return the address of the variable. */
-      a_variable_ptr   var = alloc_temporary_variable(expr_type);
-      an_expr_node_ptr var_lvalue_node, assign_node, var_addr_node;
-
-      /* Make "var = expr". */
-      var_lvalue_node = var_lvalue_expr(var);
-      var_lvalue_node->next = expr;
-      assign_node = make_operator_node((an_expr_operator_kind)eok_sassign,
-                                       expr_type, var_lvalue_node);
-      /* Make "(var = expr), &var". */
-      var_addr_node = var_lvalue_expr(var);
-      assign_node->next = var_addr_node;
-      expr = make_operator_node((an_expr_operator_kind)eok_comma,
-                                var_addr_node->type, assign_node);
+      /* C mode.  Use an eok_lvalue_from_call_result operation. */
+      check_assertion(is_operation_node(expr) &&
+                      expr->variant.operation.kind ==
+                                              (an_expr_operator_kind)eok_call);
+      expr = make_operator_node(
+                            (an_expr_operator_kind)eok_lvalue_from_call_result,
+                            make_pointer_type(expr->type), expr);
     }  /* if */
   }  /* if */
   return expr;
