@@ -310,8 +310,10 @@ int main(int argc, char *argv[])
   }  /* for */
   fprintf(codes_output_file, "\n} an_error_code;\n\n");
   /* Generate the error text array. */
-  fprintf(data_output_file, "char *error_text[%0d] = {\n",
+  /* Output the number of error codes to the error code file. */
+  fprintf(codes_output_file, "#define NUMBER_OF_ERROR_CODES %0d\n",
           number_of_errors);
+  fprintf(data_output_file, "char *error_text[NUMBER_OF_ERROR_CODES] = {\n");
   for (i = 0; i < number_of_errors; ++i) {
     char	*ptr;
     /* If this is not the first time through, terminate the previous line. */
