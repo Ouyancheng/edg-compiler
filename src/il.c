@@ -2575,29 +2575,37 @@ would not be considered "identical", since the type qualifiers are different.
 a_boolean expr_tree_contains_template_param_constant(an_expr_node_ptr  node,
                                                      a_constant_ptr    cp)
 /*
-cp is a pointer to a simple template parameter constant.  Return TRUE if
-node refers to that constant directly or contains it among its operands.
+cp is either a pointer to a simple template parameter constant or else
+NULL (indicating any template param constant will do).  If cp is NULL, return
+TRUE if node is or contains any template parameter constant.  If it is not
+NULL, return TRUE if node refers to that particular constant directly or
+contains it among its operands.
 */
 {
   a_boolean         found = FALSE;
   a_constant_ptr    cp2;
   an_expr_node_ptr  op;
 
-  check_assertion(cp->variant.template_param.kind ==
+  check_assertion(cp == NULL ||
+                  cp->variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_param);
   if (node->kind == (an_expr_node_kind)enk_constant) {
     cp2 = node->variant.constant;
     if (cp2->kind == (a_constant_repr_kind)ck_template_param) {
-      switch (cp2->variant.template_param.kind) {
-        case tpck_param:
-          found = eq_constants(cp, cp2);
-          break;
-        case tpck_expression:
-          found = expr_tree_contains_template_param_constant(
+      if (cp == NULL) {
+        found = TRUE;
+      } else {
+        switch (cp2->variant.template_param.kind) {
+          case tpck_param:
+            found = eq_constants(cp, cp2);
+            break;
+          case tpck_expression:
+            found = expr_tree_contains_template_param_constant(
                                 cp2->variant.template_param.variant.expr, cp);
-          break;
-        default:;
-      }  /* switch */
+            break;
+          default:;
+        }  /* switch */
+      }  /* if */
     }  /* if */
   } else if (node->kind == (an_expr_node_kind)enk_operation) {
     for (op = node->variant.operation.operands; op != NULL; op = op->next) {
