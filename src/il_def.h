@@ -8344,6 +8344,9 @@ EXTERN struct il_header_tag {
 			/* TRUE if the source program was compiled as old-style
 			   (pcc-compatible) C. */
   a_byte_boolean
+		c99_mode;
+			/* TRUE if the source program was compiled as C99. */
+  a_byte_boolean
 		enum_type_is_integral;
 			/* Records whether enum types are considered to be
 			   integral; normally, TRUE in C mode and FALSE in
