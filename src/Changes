@@ -479,7 +479,11 @@ deallocation of memory is required for the variable.
 
 The C-generating back end accepts IL containing VLA information and puts out
 VLA constructs, so VLA_ALLOWED should be configured to TRUE only if the
-underlying C compiler also supports VLAs.
+underlying C compiler also supports VLAs.  As of this release, the code
+output by the C-generating back end is not always valid C, in that
+it sometimes has declarations following initializing assignments in
+a single scope.  This is judged to be a small problem, since few people
+want to read in C and generate C.
 
 6/1/97    pointer_types_have_same_repr macro
 
