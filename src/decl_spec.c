@@ -1531,12 +1531,23 @@ to indicate whether an enumeration is actually defined.
       end_of_enum_con_list = NULL;
       /* Scan the list of enumerated constants. */
       do {
+        a_source_sequence_entry_ptr  enum_con_ssep = NULL;
+
         add_stop_token(tok_comma);
         add_stop_token(tok_assign);
         if (curr_token != tok_identifier) {
           (void)required_token(tok_identifier, ec_exp_identifier);
           set_to_error_locator(locator);
         } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if DEBUG
+          if (debug_level >= 4) {
+            fprintf(f_debug, "adding empty ss entry for enum_con \"%s\":\n",
+                    locator_for_curr_id.symbol_header->identifier);
+          }  /* if */
+#endif /* DEBUG */
+          enum_con_ssep = add_empty_source_sequence_entry();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           locator = locator_for_curr_id;
           /* Advance past the identifier. */
           (void)get_token();
@@ -1653,7 +1664,8 @@ to indicate whether an enumeration is actually defined.
           }  /* if */
           enum_con->source_corresp.access = access;
         }  /* if */
-        mark_defined(enum_sym, &locator.source_position);
+        record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, enum_sym,
+                                  &locator.source_position, enum_con_ssep);
         /* Add the enumeration constant to the list under the enumerated
            type. */
         if (end_of_enum_con_list == NULL) {
