@@ -5276,11 +5276,6 @@ type is passed in as type_cast_to.  The result is returned in *result.
       if (err) {
         /* Some previous error. */
         make_error_operand(result);
-      } else if (is_class_struct_union_type(type_cast_to)) {
-        /* A class with no constructor, followed by (), e.g., "A()" --
-           this is an error. */
-        pos_ty_error(ec_no_constructor, &lparen_pos, type_cast_to);
-        make_error_operand(result);
       } else if (curr_expr_kind_is_const()) {
         /* This cast is inherently non-constant.  If it has not been
            rejected for some other reason in a constant expression,
@@ -5288,10 +5283,23 @@ type is passed in as type_cast_to.  The result is returned in *result.
         pos_error(ec_expr_not_constant, &lparen_pos);
         make_error_operand(result);
       } else if (is_reference_type(type_cast_to)) {
-        /* Disallow a cast to a reference type; this may or may not turn
-           out to be allowed by the standard for C++. */
+        /* Disallow a cast to a reference type without operands; this may
+           or may not turn out to be allowed by the standard for C++. */
         pos_error(ec_bad_cast, &lparen_pos);
         make_error_operand(result);
+      } else if (is_class_struct_union_type(type_cast_to)) {
+        /* A class with no constructor, followed by (), e.g., "A()" --
+           initialization is to zero. */
+        an_expr_node_ptr temp_init_node =
+                  create_expr_temporary(type_cast_to,
+                                        /*result_is_addr=*/FALSE,
+                                        curr_expr_is_evaluated(),
+                                        (a_boolean)expr_stack->
+                                                 in_return_by_cctor_expression,
+                                        &start_position);
+        a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
+        set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
+        make_expression_operand(temp_init_node, temp_init_node->type, result);
       } else {
         /* A non-class type followed by (); generate an "undefined" value
            of the type.  We actually use 0, because it can be cast to all
