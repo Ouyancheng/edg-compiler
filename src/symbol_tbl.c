@@ -11135,7 +11135,7 @@ whether __global, __symbolic, and __hidden are treated as keywords.
   set_keyword_visibility("__global", keywords_visible);
   set_keyword_visibility("__symbolic", keywords_visible);
   set_keyword_visibility("__hidden", keywords_visible);
-  /* Skip the "enabled_ldscope" or "disable_ldscope" token. */
+  /* Skip the "enable_ldscope" or "disable_ldscope" token. */
   (void)get_token();
 }  /* ldscope_pragma */
 
