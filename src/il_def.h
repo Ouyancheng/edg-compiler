@@ -9045,6 +9045,13 @@ typedef struct a_scope {
 			   TRUE once the function body processing is
 			   finished.  That includes IL lowering if
 			   appropriate.  FALSE otherwise. */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  a_byte_boolean
+		scope_orphaned_list_header_generated;
+			/* TRUE if a scope orphaned list header entry has
+			   been generated for this scope.  This is done right
+			   after IL lowering, if any. */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   union {
     /* When kind == sck_file, no variant fields. */
 #ifdef FIL

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -2996,6 +2996,7 @@ processing for add_scope_orphaned_il_lists.
       curr_translation_unit->last_scope_orphaned_list_header->next = solhp;
     }  /* if */
     curr_translation_unit->last_scope_orphaned_list_header = solhp;
+    scope->scope_orphaned_list_header_generated = TRUE;
   }  /* if */
   /* Process subscopes of this scope. */
   for (block_scope = scope->scopes;
@@ -13330,6 +13331,6 @@ when the IL has been read back into memory.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

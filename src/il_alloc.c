@@ -2806,6 +2806,9 @@ points to the associated routine if the kind is sck_function.
   sp->next   = NULL;
   sp->number = number;
   sp->function_body_processing_finished = FALSE;
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  sp->scope_orphaned_list_header_generated = FALSE;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   set_scope_kind(sp, kind, assoc_routine);
   sp->assoc_block                 = NULL;
   sp->lifetime                    = NULL;

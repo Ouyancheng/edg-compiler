@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1899,8 +1899,7 @@ end_sizeof:;
         }  /* if */
 #else /* !KEEP_IN_IL_WALK */
         /* Not needed flag walk or keep_in_il walk. */
-        if (kind == (a_scope_kind)sck_function ||
-            kind == (a_scope_kind)sck_block) {
+        if (ptr->scope_orphaned_list_header_generated) {
           /* The local types and static variables at function scope or
              block scope within a function are in the file scope memory region.
              They will be processed during the file scope memory region
@@ -1909,7 +1908,8 @@ end_sizeof:;
           remap_list_ptr(ptr->types, a_type_ptr, iek_type);
           remap_list_ptr(ptr->variables, a_variable_ptr, iek_variable);
         } else {
-          /* Not a function or block scope. */
+          /* Not a function or block scope, or one for which the orphan
+             lists have not been generated yet. */
           walk_list(ptr->types, a_type_ptr, iek_type);
           walk_list(ptr->variables, a_variable_ptr, iek_variable);
         }  /* if */
@@ -2978,6 +2978,6 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1993 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
