@@ -8642,7 +8642,7 @@ the insertion.
       if (debug_level >= 4) {
         (void)fprintf(f_debug, "Promoting type out of class: ");
         db_type_name(type);
-        (void)fprintf(f_debug, "; promotion_scope = ");
+        (void)fprintf(f_debug, "\n  promotion_scope = ");
         db_scope(promotion_scope);
         (void)fprintf(f_debug, "; *insert_pointer = ");
         if (*insert_pointer == NULL) {
@@ -9336,6 +9336,12 @@ have been promoted out of those classes.
       nsp = namespace_type->source_corresp.parent.namespace_ptr;
       check_assertion(nsp != NULL && !nsp->is_namespace_alias);
       scope = nsp->variant.assoc_scope;
+#if DEBUG
+      if (debug_level >= 4) {
+        db_scope_type_list(il_header.primary_scope, 2);
+        db_scope_type_list(scope, 4);
+      }  /* if */
+#endif /* DEBUG */
       /* Move the namespace_type, and all types preceding it on the namespace
          types list, into the file scope following prev_type.  Since the
          types list of the namespace is updated on each of these promotions,
