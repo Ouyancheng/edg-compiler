@@ -322,6 +322,9 @@ of "mp".  Adjust the exponent accordingly.
       shift_left_mantissa(mp, 1);
       (*exponent)--;
     }  /* while */
+  } else {
+    /* Clear the exponent if the mantissa is zero. */
+    *exponent = 0;
   }  /* if */
 }  /* normalize_mantissa */
 

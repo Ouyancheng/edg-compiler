@@ -1,5 +1,12 @@
 Version 3.5
 
+5/17/04  Embedded C: Spurious error on integer to fixed-point conversion
+
+Compile-time conversion of an integer zero to a fixed-point type resulted
+in a spurious out-of-range error.  Now fixed.
+
+  _Accum x = 0;
+
 5/17/04  Null reference in unevaluated expression
 
 Code that binds a reference to a null address has formerly gotten
