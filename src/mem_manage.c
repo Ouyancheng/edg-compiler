@@ -1095,6 +1095,7 @@ Do one-time initialization of variables related to the mem_manage routines.
 are handled in mem_manage_init.)
 */
 {
+#if !STANDALONE_UTILITY_PROGRAM
   /* Save variables from mem_manage.h and mem_manage.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {
@@ -1106,6 +1107,7 @@ are handled in mem_manage_init.)
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* mem_manage_one_time_init */
 
 
