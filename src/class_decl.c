@@ -7425,7 +7425,8 @@ been completed (C++ only).
               complete_type_is_needed(local_type);
               if (C_mode() && is_function_type(local_type) &&
                   member_storage_class != (a_storage_class)sc_typedef) {
-                error(ec_function_type_not_allowed);
+                pos_error(ec_function_type_not_allowed,
+                          &locator.source_position);
                 local_type = error_type();
               } else if (is_incomplete_type(local_type)) {
                 /* As a C extension (and in C++ in microsoft mode), allow an
@@ -7447,8 +7448,9 @@ been completed (C++ only).
                                                                     )) {
                   /* Okay -- unless we're in ANSI-C mode. */
                   if (strict_ansi_mode) {
-                    diagnostic(strict_ansi_error_severity,
-                               ec_incomplete_type_not_allowed);
+                    pos_diagnostic(strict_ansi_error_severity,
+                                   ec_incomplete_type_not_allowed,
+                                   &locator.source_position);
                   }  /* if */
                 } else if (is_template_param_type(local_type)) {
                   check_assertion
@@ -7477,7 +7479,8 @@ been completed (C++ only).
                          void operator?:();
                        in which the param list is not processed. */
                   } else {
-                    error(ec_incomplete_type_not_allowed);
+                    pos_error(ec_incomplete_type_not_allowed,
+                              &locator.source_position);
                   }  /* if */
                   local_type = error_type();
                 }  /* if */
