@@ -12255,7 +12255,19 @@ a thrown exception) if that is appropriate.
     if (*dip == NULL) okay = FALSE;
   } else {
     /* The entity being initialized has a non-class type. */
-    if (!string_case) {
+    if (string_case) {
+      a_constant_ptr con;
+      check_assertion(is_constant_operand(&result));
+      con = &result.variant.constant;
+      /* Return the ck_string constant under the ck_address constant. */
+      check_assertion(con->kind == (a_constant_repr_kind)ck_address &&
+                      con->variant.address.kind ==
+                                           (an_address_base_kind)abk_constant);
+      con = con->variant.address.variant.constant;
+      check_assertion(con->kind == (a_constant_repr_kind)ck_string);
+      copy_constant(con, constant);
+      *is_constant = TRUE;
+    } else {
       /* Convert to the required type. */
       prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
                                /*initializing_return_value=*/FALSE,
@@ -12263,28 +12275,29 @@ a thrown exception) if that is appropriate.
                                static_lifetime,
                                /*is_copy_initialization=*/TRUE,
                                ec_bad_initializer_type);
-    }  /* if */
-    switch (result.kind) {
-      case ok_error:
-        /* Some sort of error; message was already issued. */
-        okay = FALSE;
-        discard_curr_expr_object_lifetime();
-        break;
-      case ok_expression:
-        { an_expr_node_ptr expr = result.variant.expression;
-          expr = wrap_up_full_expression(expr);
-          *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
-          (*dip)->variant.expression = expr;
-        }
-        break;
-      case ok_constant:
-        copy_constant(&result.variant.constant, constant);
-        *is_constant = TRUE;
-        break;
-      default:
-        unexpected_condition_str(
+      switch (result.kind) {
+        case ok_error:
+          /* Some sort of error; message was already issued. */
+          okay = FALSE;
+          discard_curr_expr_object_lifetime();
+          break;
+        case ok_expression:
+          { an_expr_node_ptr expr = result.variant.expression;
+            expr = wrap_up_full_expression(expr);
+            *dip = alloc_expr_dynamic_init(
+                                          (a_dynamic_init_kind)dik_expression);
+            (*dip)->variant.expression = expr;
+          }
+          break;
+        case ok_constant:
+          copy_constant(&result.variant.constant, constant);
+          *is_constant = TRUE;
+          break;
+        default:
+          unexpected_condition_str(
               "scan_aggregate_class_initializer_expression: bad operand kind");
-    }  /* switch */
+      }  /* switch */
+    }  /* if */
   }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
