@@ -1209,6 +1209,7 @@ state.
         tssp->parameters = NULL;
         tssp->innermost_instantiation_scope = NO_SCOPE_DEPTH;
         tssp->declaration_scope = NO_SCOPE_NUMBER;
+	tssp->pending_instantiations = 0;
         if (sym_kind == (a_symbol_kind)sk_class_template) {
           tssp->variant.class.instantiations = NULL;
           tssp->variant.class.type_kind      = (a_type_kind)tk_error;
