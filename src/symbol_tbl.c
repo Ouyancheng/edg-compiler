@@ -1183,17 +1183,22 @@ have to set it directly.
 #endif /* DEBUG */
 
   /* Hash the symbol's identifier.  This involves taking the identifier's
-     first, last, and middle 3 characters.  Of course, if the identifier has
-     fewer than 5 characters, take the entire identifier. */
-  if (length > 5) {
+     first 3, last 3, and middle 3 characters.  Of course, if the identifier
+     has 9 or fewer characters, take the entire identifier. */
+  ptr = identifier;
+  if (length > 9) {
+    hash_value = (int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr;
     ptr = identifier + (length >> 1) - 1;
-    hash_value = (int)*identifier;
-    hash_value = (hash_value * HASH_FACTOR) + (int)*(identifier + length - 1);
+    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr;
+    ptr = identifier + length - 3;
     hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
     hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
     hash_value = (hash_value * HASH_FACTOR) + (int)*ptr;
   } else {
-    ptr = identifier;
     for (a = 0; a < length; a++) {
       hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
     }  /* for */
