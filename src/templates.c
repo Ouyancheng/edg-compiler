@@ -7012,20 +7012,6 @@ defer_inline is TRUE.
 #endif /* DEBUG */
   if (instantiation_mode == tim_can_instantiate) {
     /* Leave the instantiation_required flag unchanged in this mode. */
-  } else if (pending_class_definitions != 0) {
-    /* A class definition is in progress.  Any nonclass instantiations
-       must be deferred until all class definitions are complete.
-       Add this instantiation request to the list of deferred
-       instantiations. */
-    a_symbol_list_entry_ptr	slep;
-    slep = alloc_symbol_list_entry();
-    slep->symbol = sym;
-    /* Add this entry to the end of the deferred instantiations list. */
-    if (deferred_instantiations == NULL) deferred_instantiations = slep;
-    if (deferred_instantiations_tail != NULL) {
-      deferred_instantiations_tail->next = slep;
-    }  /* if */
-    deferred_instantiations_tail = slep;
   } else if (instantiation_mode == tim_all && !value) {
     /* An "unused" instantiation is being added to the list. */
     if (too_many_unused_instantiations(tip->template_sym, tssp)) {
@@ -7040,7 +7026,25 @@ defer_inline is TRUE.
          static member function -- anywhere else?).  Do not instantiate
          the function. */
     add_to_list = FALSE;
-  } else if (value) {
+  } else if (!value) {
+    /* When value is FALSE we still add the entry to the instantiations
+       required list. */
+    tip->instantiation_required = FALSE;
+  } else if (pending_class_definitions != 0) {
+    /* A class definition is in progress.  Any nonclass instantiations
+       must be deferred until all class definitions are complete.
+       Add this instantiation request to the list of deferred
+       instantiations. */
+    a_symbol_list_entry_ptr	slep;
+    slep = alloc_symbol_list_entry();
+    slep->symbol = sym;
+    /* Add this entry to the end of the deferred instantiations list. */
+    if (deferred_instantiations == NULL) deferred_instantiations = slep;
+    if (deferred_instantiations_tail != NULL) {
+      deferred_instantiations_tail->next = slep;
+    }  /* if */
+    deferred_instantiations_tail = slep;
+  } else {
     a_boolean	flag_already_set = tip->instantiation_required;
     tip->instantiation_required = TRUE;
     if (!flag_already_set) {
@@ -7103,10 +7107,6 @@ defer_inline is TRUE.
         }  /* if */
       }  /* if */
     }  /* if */
-  } else {
-    /* When value is FALSE we still add the entry to the instantiations
-       required list. */
-    tip->instantiation_required = FALSE;
   }  /* if */
   if (add_to_list) {
     /* The entry is added to the instantiations list even if the instantiation
