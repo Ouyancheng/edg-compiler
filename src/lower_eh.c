@@ -2951,7 +2951,7 @@ statement if necessary.
                                           &insert_location);
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
     /* Non-portable schemes: generate an enk_lowered_eh_construct/
-       leck_routine_prologue expression node. */
+       leck_function_prologue expression node. */
   { an_expr_node_ptr node = alloc_lowered_eh_construct_node(
                           (a_lowered_eh_construct_kind)leck_function_prologue);
     an_eh_prologue_supplement_ptr psp =
