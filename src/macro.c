@@ -487,14 +487,10 @@ Clear a macro definition entry to default values.
 */
 {
   mdp->object_like                         = TRUE;
-  mdp->try_to_scan_and_save_constant_value = FALSE;
-  mdp->is_manifest_constant                = FALSE;
   mdp->cannot_be_redefined                 = FALSE;
   mdp->ref_suppresses_pch_file             = FALSE;
   mdp->param_list                          = NULL;
   mdp->repl_text                           = NULL;
-  mdp->constant_token_kind                 = tok_error;
-  mdp->constant_value                      = NULL;
 #if RECORD_MACROS_IN_IL
   mdp->macro                               = NULL;
 #endif /* RECORD_MACROS_IN_IL */
@@ -2161,54 +2157,6 @@ copy_done:;
     free_macro_arg_entries(prev_end_of_macro_arg_list);
     expand_top_level_pcc_macro(slmp, &token_pasting_off_end);
   }  /* if */
-  /* If this is the first time we are expanding an object-like macro that
-     appears to expand simply to a literal constant, scan and convert
-     the constant now, and save its value. */
-  /* Suppress this scan if there was possible token pasting off the
-     end of the macro expansion -- we wouldn't want to save such a value. */
-  if (mdp->try_to_scan_and_save_constant_value && !token_pasting_off_end) {
-    if (save_fetch_pp_tokens) {
-      /* The constant is not being converted, so do not scan it this
-         time, but keep the flag set and try again next time. */
-    } else {
-      /* Try to scan the constant. */
-      mdp->try_to_scan_and_save_constant_value = FALSE;
-      /* Scan using a low-level routine rather than get_token so that
-         adjacent string literals will not be concatenated and integer
-         constants in preprocessing #if expressions will not have their
-         lengths adjusted. */
-      curr_char_loc = rescan_loc;
-      start_of_curr_token = curr_char_loc;
-      mdp->constant_token_kind = ctoken =
-                               scan_literal_constant(mdp->constant_token_kind);
-      /* If the constant was converted okay, save its value. */
-      if (ctoken != tok_error) {
-        set_source_corresp(&(const_for_curr_token.source_corresp),
-                           macro_symbol);
-        mdp->constant_value = fs_constant(const_for_curr_token.kind);
-        copy_constant(&const_for_curr_token, mdp->constant_value);
-        /* If the constant is a string constant, the string text was
-           allocated at the file scope, and therefore can be used without
-           copying here.  See alloc_text_of_string_literal in il.c. */
-        mdp->is_manifest_constant = TRUE;
-        /* Put the macro constant on the list of constants in the IL, for
-           use in generating symbolic debug information. */
-        add_to_constants_list(mdp->constant_value, /*at_file_scope=*/TRUE);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  if (mdp->is_manifest_constant) {
-    /* This object-like macro is simply a constant.  We do not have
-       to scan the expansion.  This is a speed optimization. */
-    if (!save_fetch_pp_tokens) {
-      copy_constant(mdp->constant_value, &const_for_curr_token);
-    }  /* if */
-    ctoken = mdp->constant_token_kind;
-    *rescan = FALSE;
-    /* Concatenation of adjacent string literals and adjustment of integer
-       constant lengths in preprocessing #if expressions, if appropriate,
-       is done back in get_token. */
-  }  /* if */
   if (!*rescan) {
     /* Here, we have a case where we have changed the source line because
        of a macro expansion, and we also know that the replacement text
@@ -2653,8 +2601,6 @@ Scan and process a #define directive.
   a_boolean	  redefinition = FALSE;
   a_source_position
                   start_pos;
-  a_boolean	  try_to_scan_and_save_constant_value = FALSE;
-  a_token_kind    constant_token_kind = tok_error;
   a_boolean       need_end_of_token_marker;
   static char     str_end_of_token_marker[LE_ESCAPE_LEN] =
                                                 { LE_ESCAPE, LE_END_OF_TOKEN };
@@ -2794,21 +2740,6 @@ Scan and process a #define directive.
     /* Ignore leading white space.  See standard, 3.8.3, semantics. */
     any_white_space_skipped = FALSE;
     need_end_of_token_marker = FALSE;
-    /* If the definition of the macro is simply a literal constant,
-       and the macro is object-like, set a flag indicating that the
-       literal constant value should be saved and reused when the macro
-       is first expanded.  This is to speed up expansion of the macro.
-       Note that the literal constant cannot actually be scanned and
-       converted in this routine, because that might yield errors;
-       therefore, we wait until the macro is actually expanded. */
-    if (object_like && (curr_token == tok_pp_number ||
-                        curr_token == tok_float_constant ||
-                        curr_token == tok_char_constant ||
-                        curr_token == tok_string_literal)) {
-      constant_token_kind = curr_token;
-      try_to_scan_and_save_constant_value = TRUE;
-      /* More checking coming in the loop. */
-    }  /* if */
     while (curr_token != tok_newline) {
       if (curr_token == tok_paste) {
         /* "##".  Can be preceded and/or followed by a parameter, but
@@ -2939,14 +2870,6 @@ Scan and process a #define directive.
           }  /* if */
           (void)mdefn_get_token(param_list, &param_num,
                                 &any_white_space_skipped);
-          /* If the expansion looks so far like just a literal constant,
-             a newline should be next; otherwise, the expansion is
-             something more complicated and the special case does not
-             apply. */
-          if (try_to_scan_and_save_constant_value &&
-              curr_token != tok_newline) {
-            try_to_scan_and_save_constant_value = FALSE;
-          }  /* if */
         }  /* if */
       }  /* if */
     }  /* while */
@@ -3006,9 +2929,6 @@ Scan and process a #define directive.
         }  /* switch */
       }  /* for */
       fprintf(f_debug, "  end\n");
-      if (try_to_scan_and_save_constant_value) {
-        fprintf(f_debug, "try_to_scan_and_save_constant_value = TRUE\n");
-      }  /* if */
     }  /* if */
 #endif /* DEBUG */
     mdp = NULL;
@@ -3051,17 +2971,12 @@ redef_error:
     if (mdp == NULL) {
       mdp = alloc_macro_def();
     } else {
-      /* Reuse an existing macro definition on a non-benign redefinition.
-         This clears the is_manifest_constant flag, for one thing. */
+      /* Reuse an existing macro definition on a non-benign redefinition. */
       clear_macro_def(mdp);
     }  /* if */
     mdp->object_like    = object_like;
-    mdp->try_to_scan_and_save_constant_value
-                        = try_to_scan_and_save_constant_value;
     mdp->param_list     = param_list;
     mdp->repl_text      = repl_text;
-    mdp->constant_token_kind
-			= constant_token_kind;
     /* Put the macro def block pointer into the symbol entry. */
     assoc_symbol->variant.macro_def = mdp;
 def_done:;
@@ -4074,10 +3989,6 @@ command line -D options.
       /* Enter the definition. */
       mdp->object_like = TRUE;
       mdp->repl_text = new_repl_text;
-      /* We don't special-case expansion of literal constants here; the
-         payoff doesn't seem worth it.  If we wanted to, we would set
-         mdp->try_to_scan_and_save_constant_value if value_start seems
-         to be a literal constant. */
     }  /* if */
     if (err) {
       str_command_line_error(ec_cl_invalid_macro_definition, du_str);

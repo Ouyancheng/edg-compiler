@@ -9024,10 +9024,9 @@ Promote the constants on the constants list of the indicated scope
      it seems unwise to put any there in this case.  Besides, the constants
      we are promoting here are rare -- they're member constants of classes,
      which are an extension (enum constants don't appear on the constant
-     list).  Namespace member constants might be a little less rare.
-     Note that since we are promoting constants out of a class or namespace,
-     all the constants will already be allocated in the file scope memory
-     region (fortunately). */
+     list).  Note that since we are promoting constants out of a class or
+     namespace, all the constants will already be allocated in the file
+     scope memory region (fortunately). */
   /* Promote the constants to the end of the file-scope constants list. */
   for (constant = scope->constants;
        constant != NULL;

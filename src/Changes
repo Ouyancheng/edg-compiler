@@ -1,5 +1,24 @@
 Version 2.36
 
+3/31/97   Special processing for manifest constant macros eliminated
+
+Macros that are defined to be a simple constant, e.g.,
+
+  #define X 12
+
+have heretofore been given special processing: the first time the
+macro was expanded, the constant was converted, and thereafter the
+saved value was used instead of rescanning the macro text.
+
+This has proven error-prone, and on the latest report of a bug in this
+area, we decided to remove it.  It was intended originally as a
+speed optimization, but timing tests show a negligible benefit.
+
+A consequence of this change is that manifest constant macros no longer
+appear as IL constant entries on the file scope constants list.
+(Member constants promoted out of classes by IL lowering can still
+appear on that list.)
+
 3/31/97   Double name mangling on static data member
 
 In some cases, the mangled name for a static data member had double name

@@ -251,9 +251,8 @@ char *alloc_text_of_string_literal(sizeof_t size)
 Allocate space for the text of a string literal, and return a pointer to it.
 The space allocated is large enough to contain "size" characters.
 This routine exists as a way of tracking the space use.  The space is always
-allocated at the file scope, because (a) string values can be shared (at
-least in non-pcc mode), and (b) strings that are values of manifest constant
-macros need to be there.
+allocated at the file scope, because string values can be shared (at
+least in non-pcc mode).
 */
 {
 #if DEBUG

@@ -366,18 +366,6 @@ typedef struct a_macro_def {
   a_bit_field	object_like:1;
 			/* TRUE if this macro is object-like (i.e., has no
 			   parameters). */
-  a_bit_field	try_to_scan_and_save_constant_value:1;
-			/* TRUE if the macro is object-like and its definition
-			   appears to be a single literal constant, so
-			   the constant value should be scanned and saved
-			   when the macro is expanded.  At that point, this
-			   flag will be set to FALSE, is_manifest_constant
-			   will be set to TRUE, and constant_value will
-			   point to the constant value. */
-  a_bit_field	is_manifest_constant:1;
-			/* TRUE if the expansion of this (object-like) macro
-			   is a literal constant, and its value is given
-			   by constant_value. */
   a_bit_field	cannot_be_redefined:1;
 			/* TRUE if this is a predefined macro that cannot
 			   be redefined later.  This is TRUE for ANSI
@@ -397,16 +385,6 @@ typedef struct a_macro_def {
 			   on where to insert argument values, do pasting,
 			   etc.  See below.  NULL for special macros that
 			   require code expansion (e.g., __LINE__). */
-  a_token_kind	constant_token_kind;
-			/* If is_manifest_constant is TRUE, this indicates
-			   the kind of token that the macro expands to
-			   (e.g., tok_int_constant).  When try_to_scan_...
-			   is TRUE, this indicates the same thing, but in
-			   pp-token terms (e.g., tok_pp_number). */
-  a_constant_ptr
-	       	constant_value;
-			/* If is_manifest_constant is TRUE, this points to
-			   the value of the literal constant. */
 #if RECORD_MACROS_IN_IL
   a_macro_ptr	macro;	/* The IL macro entry.  NULL for predefined macros
 			   and those defined on the command line. */

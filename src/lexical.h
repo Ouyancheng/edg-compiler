@@ -1412,8 +1412,6 @@ extern a_boolean is_nonstandard_character(char ch);
 extern void skip_white_space(void);
 /* Get next token. */
 extern a_token_kind get_token(void);
-/* Scan a literal constant. */
-extern a_token_kind scan_literal_constant(a_token_kind kind);
 /* Generate a line-identifying directive in preprocessing output. */
 extern void gen_pp_line_info(char kind,
 		             int  increment);

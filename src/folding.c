@@ -93,8 +93,8 @@ pointer type to another and casting integer constants to pointer types.
 {
   cp->type = new_type;
   cp->implicit_cast = TRUE;
-  /* Clear the source correspondence information.  If this was a
-     manifest constant macro, the new constant should no longer be
+  /* Clear the source correspondence information.  If this was a named
+     constant, the new constant should no longer be
      associated with the original constant. */
   break_source_corresp(&cp->source_corresp);
 }  /* implicit_cast */

@@ -5387,41 +5387,6 @@ See standard, 3.8.1.
 }  /* adjust_pp_int_constant */
 
 
-a_token_kind scan_literal_constant(a_token_kind kind)
-/*
-Scan a literal constant token, according to the value of kind:
-Integer or floating point for tok_pp_number, character for 
-tok_char_constant, and string literal for tok_string_literal.
-Return the type of token scanned, or tok_error if there was an error.
-This is used in scanning the expansion of a macro that expands simply
-to a constant, in order to be able to save its value.
-Note that adjacent string literals are not supposed to be concatenated,
-and integer constants are not adjusted in length even if we are
-within a preprocessing #if expression, since we want the generic
-reusable value of the constant.
-*/
-{
-  a_token_kind ctoken;
-
-  switch (kind) {
-    case tok_pp_number:
-      ctoken = scan_number();
-      break;
-    case tok_char_constant:
-      ctoken = scan_char_constant();
-      break;
-    case tok_string_literal:
-      ctoken = scan_string_literal();
-      break;
-#if CHECKING
-    default:
-      internal_error("scan_literal_constant: bad kind");
-#endif /* CHECKING */
-  }  /* switch */
-  return(ctoken);
-}  /* scan_literal_constant */
-
-
 static void concat_adjacent_string_literals(void)
 /*
 The current token (not in curr_token yet, but in const_for_curr_token) is

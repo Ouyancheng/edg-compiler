@@ -3381,26 +3381,9 @@ put it on a list of constants).
      "master" copy by going up the source correspondence link and back
      down again. */
   if ((assoc_symbol = ((a_symbol_ptr)cp->source_corresp.assoc_info)) != NULL) {
-    if (assoc_symbol->kind == (a_symbol_kind)sk_constant) {
-      /* Constant (enumeration). */
-      scp = assoc_symbol->variant.constant;
-    } else {
-      /* Macro defined as a manifest constant. */
-#if CHECKING
-      if (assoc_symbol->kind != (a_symbol_kind)sk_macro) {
-        internal_error("alloc_shareable_constant: bad assoc_symbol kind");
-      } else if (!assoc_symbol->variant.macro_def->is_manifest_constant) {
-        internal_error("alloc_shareable_constant: macro not manifest const");
-      }  /* if */
-#endif /* CHECKING */
-      /* Fetch the reference copy of the manifest constant value. */
-      scp = assoc_symbol->variant.macro_def->constant_value;
-#if CHECKING
-      if (scp == NULL) {
-        internal_error("alloc_shareable_constant: macro con not allocated");
-      }  /* if */
-#endif /* CHECKING */
-    }  /* if */
+    /* Constant (enumeration). */
+    check_assertion(assoc_symbol->kind == (a_symbol_kind)sk_constant);
+    scp = assoc_symbol->variant.constant;
 #if CHECKING
     if (cp->implicit_cast != scp->implicit_cast) {
       /* Someone did an implicit cast on the constant without clearing the
@@ -3635,9 +3618,8 @@ caller is responsible for sorting that out.)
 void add_to_constants_list(a_constant_ptr con_ptr,
                            a_boolean      at_file_scope)
 /*
-Add the given constant to the constants list for the file scope (for
-manifest constant macros and (at the end of compilation) for shareable
-constants) or the current scope (for member constants, which are not shared).
+Add the given constant to the constants list for the file scope
+or the current scope.  This is used for member constants.
 */
 {
   a_scope_stack_entry_ptr ssep;

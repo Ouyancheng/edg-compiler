@@ -4806,23 +4806,20 @@ interleaved with the variables.
 
 static void dump_constant_decl(a_constant_ptr constant)
 /*
-Dump out one constant declaration as a #define.
+Dump out one constant declaration.
 */
 {
   if (annotate) {
     /* Dump any pragmas associated with the constant. */
     dump_decl_associated_pragmas(&constant->source_corresp);
     set_output_position(&constant->source_corresp.decl_position);
-    end_output_line_if_begun();
-    disable_line_wrapping();
-    start_comment();
-    write_tok_str("#define ");
+    write_tok_str("enum {");
     dump_constant_name(constant);
-    write_space();
+    write_tok_str(" = ");
+    check_assertion_str(is_integral_or_enum_type(constant->type),
+                        "dump_constant_decl: non-integral constant");
     dump_constant(constant);
-    end_comment();
-    enable_line_wrapping();
-    end_output_line();
+    write_tok_str("};");
   }  /* if */
 }  /* dump_constant_decl */
 
