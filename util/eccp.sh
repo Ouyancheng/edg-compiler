@@ -70,13 +70,6 @@ automatic_instantiation=1
 export TMPDIR
 TMPDIR=${TMPDIR-/tmp}
 #
-# Other variables used in automatic instantiation mode
-#
-if [ $automatic_instantiation -eq 1 ] ; then
-  compile_command=$0
-  instantiation_libraries="$LIBDIR/libC.a"
-fi
-#
 # Suffix to be applied to the standard C++ library (libC.a) to select a
 # special version.
 #
@@ -99,6 +92,13 @@ cc_command="$EDG_C_TO_OBJ_COMPILER $EDG_C_TO_OBJ_DEFAULT_OPTIONS"
 # option.
 #
 gen_c_in_curr_dir=${EDG_GEN_C_IN_CURR_DIR-0}
+#
+# Other variables used in automatic instantiation mode
+#
+if [ $automatic_instantiation -eq 1 ] ; then
+  compile_command=$0
+  instantiation_libraries="$LIBDIR/libC$EDG_LIB_SUFFIX.a"
+fi
 #
 # Flag that indicates that the old instantiation information file
 # format (without the current directory) should be used.
