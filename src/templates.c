@@ -1128,7 +1128,8 @@ itself recursively to process classes nested within this class.
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
           if (gpp_mode && templ_rout->is_virtual) flag_value = TRUE;
         }
-        set_instance_required(sym, flag_value, SIR_DEFER_INLINE | SIR_GPP_FORCE_INLINE);
+        set_instance_required(sym, flag_value,
+                              SIR_DEFER_INLINE | SIR_GPP_FORCE_INLINE);
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
