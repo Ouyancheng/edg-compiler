@@ -1107,6 +1107,8 @@ is in fact valid.
       process_bad_trans_unit_corresp(routine);
     }  /* if */
     if (match && !trans_unit_test_mode && !routine->is_inline &&
+        (!routine->is_prototype_instantiation ||
+         routine->assoc_template->is_exported) &&
         routine->defined && corresp_routine->defined) {
       /* Multiple definition. */
       report_multiple_definitions(routine);
