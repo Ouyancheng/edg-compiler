@@ -1758,7 +1758,7 @@ It is called once for each member of the overload set.
 
   db_enter(5, "member_of_overload_set_matches_template_type");
   result = matches_template_type(type, templ_type, &templ_arg_list,
-                        /*allow_conversion=*/FALSE, /*a_base_class_ptr*/NULL);
+                        /*allow_conversion=*/FALSE, (a_base_class_ptr*)NULL);
   if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
   db_exit();
   return result;
