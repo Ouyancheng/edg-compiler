@@ -1758,6 +1758,12 @@ specification is handled later (see check_throw_specification).
         end_of_list->next = tstp;
       }  /* if */
       end_of_list = tstp;
+      if (!tstp->redundant && !is_error_type(tstp->type)) {
+        /* Mark the type as having been used in an exception.  (Also, if it
+           "contains" any classes, they are marked as requiring external
+           linkage.) */
+        set_used_in_exception_flag(tstp->type);
+      }  /* if */
     }  /* if */
     /* If the next token is not a comma, it should be a right paren -- but
        check for a few other tokens that (in error cases) should also force
