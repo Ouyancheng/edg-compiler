@@ -7431,6 +7431,9 @@ TRUE if the declaration following this one is such a continuation.
     /* Generate other leading specifiers. */
     if (rout->is_inline && !decl_within_function) write_tok_str("inline ");
     if (rout->is_virtual && decl_within_class) write_tok_str("virtual ");
+    if (rout->is_explicit_constructor && decl_within_class) {
+      write_tok_str("explicit ");
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
     { a_decl_modifier decl_modifiers = rout->decl_modifiers;
