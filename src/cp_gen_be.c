@@ -4374,7 +4374,7 @@ Generate code for the indicated statement.
     case stmk_asm:
       /* asm statement. */
       write_tok_str("asm(");
-      gen_constant(statement->variant.asm_entry->asm_string,
+      gen_constant(statement->variant.asm_entry->variant.asm_string,
                    /*need_parens=*/FALSE);
       write_tok_ch(')');
       write_tok_ch(';');
