@@ -3150,7 +3150,8 @@ this is not allowed, an error will be issued by the caller.
                 microsoft_type_dependent_for_init_scope) &&
                old_sym->kind == (a_symbol_kind)sk_variable &&
                new_sym->kind == (a_symbol_kind)sk_variable &&
-               old_sym->variant.variable.declared_in_for_init) {
+               old_sym->variant.variable.declared_in_for_init &&
+               !new_sym->variant.variable.declared_in_for_init) {
       /* Microsoft Visual C++ 7.0 (and later) supports a nonstandard for-init
          declaration mode that makes the declared variable visible outside the
          for-statement, but it does not conflict with the declaration of other
