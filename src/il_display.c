@@ -1025,11 +1025,13 @@ do_struct_union:
         disp_type_qualifiers(ptr->variant.typeref.qualifiers);
         (void)printf("\n");
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
       if (ptr->variant.typeref.explicit_memory_attribute_made_implicit) {
         disp_boolean("explicit_memory_attribute_made_implicit",
                      (a_boolean)ptr->variant.typeref.
                                       explicit_memory_attribute_made_implicit);
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case tk_ptr_to_member:
       (void)printf("tk_ptr_to_member\n");
