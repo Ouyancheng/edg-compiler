@@ -331,7 +331,8 @@ and build *dip_ptr to represent the initialization.
     /* Scan a potentially non-constant initializer expression.  The result
        of the scan is a constant if the expression is constant, and an
        expression node if not. */
-    scan_initializer_expression(type, &is_constant, &expression, &constant);
+    scan_initializer_expression(type, /*static_lifetime=*/FALSE,
+                                &is_constant, &expression, &constant);
   } else {
     /* Non-constant is not allowed. */
     scan_constant_initializer_expression(type, &constant);
@@ -1339,20 +1340,11 @@ returned set to TRUE.
       /* It's a class type and there's a constructor. */
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
-      scan_class_parenthesized_initializer(vp_type, vp_type, &init_dip);
+      scan_class_parenthesized_initializer(vp_type, vp_type,
+                                           /*fill_in_dtor=*/TRUE, &init_dip);
       /* If no dynamic init entry was created, there must have been an
          error. */
-      if (init_dip == NULL) {
-        init_err = TRUE;
-      } else if (init_dip->destructor == NULL && cssp->destructor != NULL) {
-        /* The expression scan failed to add the constructor, so do it now. */
-
-        init_dip->destructor =
-                           select_destructor(vp_type, vp_type, source_pos,
-                                             /*honor_virtual=*/FALSE,
-                                             /*evaluated=*/TRUE,
-                                             /*suppress_access_check=*/FALSE);
-      }  /* if */
+      if (init_dip == NULL) init_err = TRUE;
     } else {
       /* An entity with no constructor.  (If it's a C-style struct with no
          constructor, initialization with bitwise copy is allowed -- e.g.,
@@ -2158,6 +2150,7 @@ scan_paren:
                returned.  The scan function returns dip set to NULL if it
                finds no constructor for which the arguments match. */
             scan_class_parenthesized_initializer(init_type, object_class_type,
+                                           /*fill_in_dtor=*/exceptions_enabled,
                                                  &dip);
             if (dip == NULL) {
               /* Create a fake initializer to represent the error. */

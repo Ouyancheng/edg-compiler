@@ -52,6 +52,7 @@ extern void scan_new_array_dimension_expression(a_boolean        *is_constant,
                                                 a_constant       *constant);
 
 extern void scan_initializer_expression(a_type_ptr       required_type,
+                                        a_boolean        static_lifetime,
                                         a_boolean        *is_constant,
                                         an_expr_node_ptr *expression,
                                         a_constant       *constant);
@@ -67,6 +68,7 @@ extern a_boolean scan_class_initializer_expression(
 extern void scan_class_parenthesized_initializer(
                                           a_type_ptr         class_type,
                                           a_type_ptr         object_class_type,
+                                          a_boolean          fill_in_dtor,
                                           a_dynamic_init_ptr *dip);
 
 extern void scan_template_argument_constant_expression(a_type_ptr param_type,

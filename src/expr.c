@@ -7384,6 +7384,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
                                       throw_type,
                                       curr_expr_is_potentially_evaluated(),
                                       /*in_return_by_cctor_expression=*/FALSE,
+                                           /* Or at least it can't matter. */
                                       &operand.position);
         dip->variant.expression = node;
       }  /* if */
@@ -9153,13 +9154,15 @@ constant class members (an extension).
 
 
 void scan_initializer_expression(a_type_ptr       required_type,
+                                 a_boolean        static_lifetime,
                                  a_boolean        *is_constant,
                                  an_expr_node_ptr *expression,
                                  a_constant       *constant)
 /*
 Scan an initializer expression.  See sections 3.4 and 3.5.7 in the standard.
 The expression is converted to required_type; an error is issued if it
-is incompatible with that type.  The expression can be constant or
+is incompatible with that type.  The entity being initialized has static
+lifetime if static_lifetime is TRUE.  The expression can be constant or
 nonconstant; on return, *is_constant is set accordingly, and the result
 is returned either in *expression or in *constant.  Note that the
 required_type may not be an array type.  This routine is not used when
@@ -9301,6 +9304,7 @@ appropriate.
 
 void scan_class_parenthesized_initializer(a_type_ptr         class_type,
                                           a_type_ptr         object_class_type,
+                                          a_boolean          fill_in_dtor,
                                           a_dynamic_init_ptr *dip)
 /*
 Scan a parenthesized initializer for an object of type class_type.
@@ -9315,7 +9319,8 @@ This routine is used for constructs like
 object_class_type indicates the class type of the full object being
 initialized.  It is the same as class_type, or a derived type thereof.
 On return, the current position is following the closing parenthesis of
-the initializer.
+the initializer.  If fill_in_dtor is TRUE, any required destruction will
+be indicated in the dynamic initialization.
 */
 {
   an_expr_stack_entry           expr_stack_entry;
@@ -9342,10 +9347,15 @@ the initializer.
     discard_curr_expr_object_lifetime();
   } else {
     /* Set the dynamic init entry to represent constructor initialization. */
-    /* The destructor is not set because we don't know whether the caller wants
-       it (for a ctor-initializer, when exception handling is off, for
-       example, it's not wanted). */
-    *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+    if (fill_in_dtor) {
+      *dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_constructor,
+                                     class_type,
+                                     /*evaluated=*/TRUE,
+                                     /*in_return_by_cctor_expression=*/FALSE,
+                                     &start_position);
+    } else {
+      *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+    }  /* if */
     (*dip)->variant.constructor.ptr = conversion_routine;
     (*dip)->variant.constructor.args = arg_list;
     /* If there's an object lifetime around the initialization, transfer it
