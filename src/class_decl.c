@@ -5486,7 +5486,7 @@ back down to find A<T>::B).
          classes will be the nested class that corresponds to curr_sym: find
          a symbol for that nested class. */
       tp = sym->variant.class_struct_union.type;
-      if (is_unnamed_class_symbol(curr_sym)) {
+      if (is_unnamed_class_symbol(curr_sym) || curr_sym->is_error) {
         /* Unusual case of an unnamed class -- e.g., an anonymous union.
            Look through the types list associated with the parent class. */
         tp = tp->variant.class_struct_union.extra_info->assoc_scope->types;
