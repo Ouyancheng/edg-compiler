@@ -796,8 +796,7 @@ extern void do_binary_operation(an_expr_operator_kind op,
 			        an_operand            *result,
 			        a_source_position     *operator_position);
 
-extern a_boolean check_boolean_controlling_expr(an_operand *operand,
-                                                a_boolean  ptr_to_member_okay);
+extern a_boolean check_boolean_controlling_expr(an_operand *operand);
 
 extern a_boolean still_an_lvalue(a_type_ptr type_before_cast,
 			         a_type_ptr type_cast_to);

@@ -3046,8 +3046,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         }  /* if */
         break;
       case tok_not:
-        (void)check_boolean_controlling_expr(&operand,
-                                             /*ptr_to_member_okay=*/FALSE);
+        (void)check_boolean_controlling_expr(&operand);
         op = (an_expr_operator_kind)eok_not;
         do_promotion = FALSE;
         result_type = integer_type((an_integer_kind)ik_int);
@@ -5460,11 +5459,9 @@ standard.
     if (!operand_1_transformations_done) {
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     }  /* if */
-    (void)check_boolean_controlling_expr(operand_1,
-                                         /*ptr_to_member_okay=*/FALSE);
+    (void)check_boolean_controlling_expr(operand_1);
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-    (void)check_boolean_controlling_expr(&operand_2,
-                                         /*ptr_to_member_okay=*/FALSE);
+    (void)check_boolean_controlling_expr(&operand_2);
     if (!known_result) {
       /* Normal case: the result is not known. */
       result_type = get_logical_result_type(operand_1, &operand_2);
@@ -5568,7 +5565,7 @@ class type if necessary.
      this is done even for the cases where a class type has been converted
      to such a type, because the subroutine does some additional checking
      and some normalization of the expression. */
-  if (check_boolean_controlling_expr(result, /*ptr_to_member_okay=*/TRUE)) {
+  if (check_boolean_controlling_expr(result)) {
     /* Issue a remark if the expression is constant.  The check is here
        instead of check_boolean_controlling_expr because we don't want
        to issue diagnostics for things like "i = 1&&2;".  Do not issue

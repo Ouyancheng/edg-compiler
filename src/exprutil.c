@@ -10015,13 +10015,12 @@ value of 0 or 1) with the indicated two operands.
 }  /* get_logical_result_type */
 
 
-a_boolean check_boolean_controlling_expr(an_operand *operand,
-                                         a_boolean  ptr_to_member_okay)
+a_boolean check_boolean_controlling_expr(an_operand *operand)
 /*
 Do some checks on a boolean controlling expression (e.g., "i != 0" in 
-"(i != 0) ? j : k").  Check that it's a scalar (arithmetic or pointer),
-or, if ptr_to_member_okay is TRUE, a pointer to member; return FALSE if
-not.  Also normalize the expression to "!= 0" form if necessary.
+"(i != 0) ? j : k").  Check that it's a scalar (arithmetic or pointer)
+or a pointer to member; return FALSE if not.  Also normalize the
+expression to "!= 0" form if necessary.
 */
 {
   a_boolean             okay, add_ne_0;
@@ -10034,7 +10033,7 @@ not.  Also normalize the expression to "!= 0" form if necessary.
 
   /* Save the operand's source position. */
   orig_operand = *operand;
-  if (ptr_to_member_okay && is_ptr_to_member_type(operand->type)) {
+  if (is_ptr_to_member_type(operand->type)) {
     /* Pointer to member type is okay. */
     okay = TRUE;
   } else {
