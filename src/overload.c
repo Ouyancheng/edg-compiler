@@ -1501,18 +1501,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
        Don't do this in cfront mode. */
     if (!any_cfront_mode() &&
         arg_operand != NULL && is_an_lvalue(arg_operand)) {
-      a_constant_ptr con_var_value = NULL;
-      if (is_constant_operand(arg_operand)) {
-        a_constant_ptr con = &arg_operand->variant.constant;
-        if (con_is_exact_addr_of_variable(con)) {
-          con_var_value =
-                     var_constant_value(con->variant.address.variant.variable);
-        }  /* if */
-      } else if (is_expression_operand(arg_operand)) {
-        con_var_value =
-             value_of_constant_var_lvalue_expr(arg_operand->variant.expression,
-                                               (a_variable **)NULL);
-      }  /* if */
+      a_constant_ptr con_var_value =
+                             value_of_constant_var_lvalue_operand(arg_operand);
       if (con_var_value != NULL) {
         /* The operand is an lvalue for a constant-valued variable.
            Make an operand for the constant value, because it might be

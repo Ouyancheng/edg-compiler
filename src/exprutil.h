@@ -753,6 +753,9 @@ extern a_constant_ptr value_of_constant_var_lvalue_expr(
                                                       an_expr_node_ptr node,
                                                       a_variable_ptr   *p_var);
 
+extern a_constant_ptr value_of_constant_var_lvalue_operand(
+                                                          an_operand *operand);
+
 extern void conv_lvalue_to_rvalue(an_operand *operand);
 
 extern a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,

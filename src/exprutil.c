@@ -7404,6 +7404,29 @@ variable.
 }  /* value_of_constant_var_lvalue_expr */
 
 
+a_constant_ptr value_of_constant_var_lvalue_operand(an_operand *operand)
+/*
+operand is an operand for an lvalue.  If it is an lvalue for a
+constant-valued variable, return a pointer to the constant that is the
+variable's value.  Otherwise, return NULL.
+*/
+{
+  a_constant_ptr con_var_value = NULL;
+
+  if (is_constant_operand(operand)) {
+    a_constant_ptr con = &operand->variant.constant;
+    if (con_is_exact_addr_of_variable(con)) {
+      con_var_value= var_constant_value(con->variant.address.variant.variable);
+    }  /* if */
+  } else if (is_expression_operand(operand)) {
+    con_var_value =
+                 value_of_constant_var_lvalue_expr(operand->variant.expression,
+                                                   (a_variable **)NULL);
+  }  /* if */
+  return con_var_value;
+}  /* value_of_constant_var_lvalue_operand */
+
+
 static an_expr_node_ptr conv_lvalue_expr_to_rvalue(
                                                an_expr_node_ptr node,
                                                a_boolean        *constant_case,

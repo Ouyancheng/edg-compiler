@@ -10907,6 +10907,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
             (is_qualified_type(operand_3.type) &&
              is_bit_field_operand(&operand_3))) {
           /* We can't do this on bit-field operands, however. */
+        } else if (value_of_constant_var_lvalue_operand(&operand_2) != NULL ||
+                   value_of_constant_var_lvalue_operand(&operand_3) != NULL) {
+          /* This doesn't apply for constant-valued variables -- they are
+             always treated as rvalues in the Microsoft compiler. */
         } else {
           result_type = make_unqualified_type(result_type);
           microsoft_lvalue_cv_qual_adjustment(&operand_2, result_type);

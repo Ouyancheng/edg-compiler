@@ -1,5 +1,17 @@
 Version 2.46
 
+11/18/01 Microsoft mode: const var as operand of "?" operator
+
+A previous change (see 11/14/00 entry below) dropped cv-qualifiers
+on operands of "?".  It turns out MSVC++ doesn't do this when the
+operand is a const-valued variable.  The behavior has been adjusted 
+to match MSVC++.
+
+  const int n1 = 1000;
+  const int n2 = 1000;
+  const int n3 =  0 > 1 ? n1 : n2;
+  int x[n3];  // Formerly got an error in Microsoft mode
+
 11/18/01 Memory region problem with use of const local var in nontype
          template argument
 
