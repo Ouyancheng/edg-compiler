@@ -4832,8 +4832,11 @@ is returned TRUE if the parameter is not a reference parameter.
         a_type_qualifier_set  qualifiers = TQ_NONE;
         a_boolean             is_base_class_match = FALSE;
 
-        if (is_assignment_operator_for_copy(sym, &is_ref_arg, &qualifiers,
-                                            &is_base_class_match)) {
+        if (sym->kind == (a_symbol_kind)sk_function_template) {
+          /* Function templates are not considered. */
+        } else if (is_assignment_operator_for_copy(sym, &is_ref_arg,
+                                                   &qualifiers,
+                                                   &is_base_class_match)) {
           /* Found an assignment operator that can copy the current class. */
           if (is_base_class_match) {
             any_base_class_match = TRUE;
