@@ -329,6 +329,8 @@ we keep scanning till the end of the declarator and return leaving both
 *may_be_decl and *may_be_expr TRUE.
 */
 {
+  a_boolean  pointer_operator_seen = FALSE;
+
   db_enter(4, "prescan_declarator");
   /* Look for one or more instances of a sequence of tokens corresponding
      to ptr-operator.  Syntax:
@@ -339,6 +341,7 @@ we keep scanning till the end of the declarator and return leaving both
      in expressions, so their presence means this is a declaration. */
   for (;;) {
     if (curr_token == tok_star || curr_token == tok_ampersand) {
+      pointer_operator_seen = TRUE;
       /* Cache and bypass the "*" or "&". */
       cache_curr_token(token_cache_ptr);
       (void)get_token();
@@ -404,7 +407,7 @@ we keep scanning till the end of the declarator and return leaving both
         *may_be_decl = FALSE;
         goto done;
       } else if (abstract_declarator_allowed && cfront_compatibility_mode &&
-                 curr_token == tok_identifier) {
+                 curr_token == tok_identifier && !pointer_operator_seen) {
         /* Cfront bug.  In a context in which a parameter declaration
            must be distinguished from an argument expression, cfront seems
            always to treat "type-name ( identifier ... )" as an expression,
