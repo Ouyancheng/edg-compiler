@@ -1,5 +1,12 @@
 Version 2.29
 
+5/16/95  Inconsistent linkage specifications for variables
+
+The severity of the diagnostic issued for inconsistent linkage
+specifications for variables has been increased to a warning (and an error
+in -A mode).  (Such inconsistencies for functions continue to be reported
+as errors in all cases.)
+
 5/16/95  Setting the IL referenced flag for nested types
 
 The IL referenced flag is no longer automatically set for nested class and
