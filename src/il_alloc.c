@@ -946,6 +946,7 @@ allocated.
   tap->kind = kind;
   tap->is_array_bound_of_unknown_type = FALSE;
   tap->explicitly_specified = FALSE;
+  tap->template_template_param_checked = FALSE;
 #if CHECKING
   tap->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

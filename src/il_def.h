@@ -3670,6 +3670,11 @@ typedef struct a_template_arg {
 			   with an instance of the function template, this flag
 			   is set if any reference to the template explicitly
 			   specified the argument. */
+  a_bit_field	template_template_param_checked:1;
+			/* TRUE for template template arguments if the template
+			   parameter list of the argument template has already
+			   been compared with that of the parameter
+                           template.  Used only in the front end. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == tak_type. */

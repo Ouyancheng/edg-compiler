@@ -1463,6 +1463,33 @@ supplement already associated with ct_symbol.
 }  /* find_class_template_member */
 
 
+static a_boolean template_arg_has_value(a_template_arg_ptr	tap)
+/*
+Return TRUE if the template argument specified by "tap" has been given a value.
+*/
+{
+  a_boolean	arg_okay = FALSE;
+  if (tap == NULL) {
+    /* This argument is invalid. */
+  } else if (is_type_templ_arg(tap)) {
+    /* A type argument -- the argument is okay if the type has been
+       filled in. */
+    arg_okay = tap->variant.type != NULL;
+  } else if (is_nontype_templ_arg(tap)) {
+    /* A nontype argument -- the argument is okay if the constant has
+       been filled in or if it is an array bound of unknown type. */
+    arg_okay = (tap->is_array_bound_of_unknown_type ||
+                tap->variant.constant != NULL);
+  } else {
+    /* A template template argument -- the argument is okay if the template
+       has been filled in. */
+    arg_okay = tap->variant.templ.ptr != NULL;
+  }  /* if */
+  return arg_okay;
+}  /* template_arg_has_value */
+			
+
+
 static a_boolean all_templ_params_have_values(
 				a_template_arg_ptr	templ_arg_list,
 				a_template_param_ptr	templ_param_list)
@@ -1479,24 +1506,7 @@ for each parameter.
   tpp = templ_param_list;
   tap = templ_arg_list;
   for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
-    a_boolean	arg_okay = FALSE;
-    if (tap == NULL) {
-      /* This argument is invalid. */
-    } else if (is_type_templ_arg(tap)) {
-      /* A type argument -- the argument is okay if the type has been
-         filled in. */
-      arg_okay = tap->variant.type != NULL;
-    } else if (is_nontype_templ_arg(tap)) {
-      /* A nontype argument -- the argument is okay if the constant has
-         been filled in or if it is an array bound of unknown type. */
-      arg_okay = (tap->is_array_bound_of_unknown_type ||
-                  tap->variant.constant != NULL);
-    } else {
-      /* A template template argument -- the argument is okay if the template
-         has been filled in. */
-      arg_okay = tap->variant.templ.ptr != NULL;
-    }  /* if */
-    if (!arg_okay) {
+    if (!template_arg_has_value(tap)) {
       result = FALSE;
       break;
     }  /* if */
@@ -4735,6 +4745,35 @@ prototype instantiation is considered as a potential match.
 }  /* find_template_class */
 
 
+static a_boolean tentatively_matching_template_param_lists(
+					a_template_param_ptr	list1,
+					a_template_param_ptr	list2)
+/*
+Compare the two template parameter lists to see if they have the same number
+of parameters, and that the parameters are of matching kinds.  The types of
+nontype parameters, and the parameter lists of template template parameters
+are not checked at this point.
+*/
+{
+  a_template_param_ptr	tpp1;
+  a_template_param_ptr	tpp2;
+  a_boolean		result = TRUE;
+
+  for (tpp1 = list1, tpp2 = list2; tpp2 != NULL && tpp1 != NULL;
+       tpp1 = tpp1->next, tpp2 = tpp2->next) {
+    a_symbol_ptr	sym1 = tpp1->param_symbol;
+    a_symbol_ptr	sym2 = tpp2->param_symbol;
+    if (sym1->kind != sym2->kind) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  /* Make sure we are at the end of both lists. */
+  if (tpp1 != NULL || tpp2 != NULL) result = FALSE;
+  return result;
+}  /* tentatively_matching_template_param_lists */
+
+
 static a_template_arg_ptr create_initial_template_arg_list(
 			a_template_param_ptr		templ_param_list,
 			a_template_arg_ptr		partial_arg_list,
@@ -4802,15 +4841,16 @@ another template parameter.
         } else if (is_template_templ_arg(tap)) {
           /* A template template argument can only be used if its parameter
              list is compatible with that of the template template
-             parameter. */
+             parameter. In cases where the template template parameter
+             of templ_templ depends on another template parameter, we can't
+             fully check the template parameter lists for compatibility.  This
+             check will be done later. */
           a_template_symbol_supplement_ptr	arg_template;
           arg_template = template_supplement_for_template(
                                              specified_tap->variant.templ.ptr);
-          if (equiv_template_param_lists(
+          if (tentatively_matching_template_param_lists(
                            arg_template->cache.decl_info->parameters,
-                           tpp->variant.templ->cache.decl_info->parameters,
-                           /*issue_errors=*/FALSE, ETP_NO_OPTIONS,
-                           (a_source_position*)NULL)) {
+                           tpp->variant.templ->cache.decl_info->parameters)) {
             tap->variant.templ = specified_tap->variant.templ;
           } else {
             arg_kind_mismatch = TRUE;
@@ -4913,35 +4953,6 @@ a specified parameter.
   for (; pos > 1; pos--) tpp = tpp->next;
   return tpp;
 }  /* get_template_param_by_list_pos */
-
-
-static a_boolean tentatively_matching_template_param_lists(
-					a_template_param_ptr	list1,
-					a_template_param_ptr	list2)
-/*
-Compare the two template parameter lists to see if they have the same number
-of parameters, and that the parameters are of matching kinds.  The types of
-nontype parameters, and the parameter lists of template template parameters
-are not checked at this point.
-*/
-{
-  a_template_param_ptr	tpp1;
-  a_template_param_ptr	tpp2;
-  a_boolean		result = TRUE;
-
-  for (tpp1 = list1, tpp2 = list2; tpp2 != NULL && tpp1 != NULL;
-       tpp1 = tpp1->next, tpp2 = tpp2->next) {
-    a_symbol_ptr	sym1 = tpp1->param_symbol;
-    a_symbol_ptr	sym2 = tpp2->param_symbol;
-    if (sym1->kind != sym2->kind) {
-      result = FALSE;
-      break;
-    }  /* if */
-  }  /* for */
-  /* Make sure we are at the end of both lists. */
-  if (tpp1 != NULL || tpp2 != NULL) result = FALSE;
-  return result;
-}  /* tentatively_matching_template_param_lists */
 
 
 static a_boolean matches_template_template_param(
@@ -6279,8 +6290,8 @@ set *copy_error to TRUE.
              conversion. */
           *copy_error = TRUE;
         } else if (!f_identical_types(skip_typerefs(new_const_type),
-                               skip_typerefs(type_from_constant),
-                               ITF_NO_FLAGS)) {
+                                      skip_typerefs(type_from_constant),
+                                      ITF_NO_FLAGS)) {
           /* Attempt to convert the constant. */
           if (!conv_nontype_arg_to_required_type(new_tap, new_const_type,
                                                  source_pos)) {
@@ -7025,6 +7036,116 @@ template arguments with which the template function routine was instantiated.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
+static a_boolean equiv_substituted_templ_param_lists(
+				a_template_param_ptr	tpp,
+				a_template_param_ptr	templ_tpp,
+				a_template_arg_ptr	templ_arg_list,
+				a_template_param_ptr	templ_param_list,
+				a_source_position	*source_pos,
+				a_boolean		*copy_error)
+/*
+"tpp" and "templ_tpp" are corresponding lists of template parameters.  For
+each parameter in "templ_tpp" substitute the template parameter values
+with the template argument values specified by "templ_arg_list".  The
+resulting substituted parameter should match the corresponding parameter
+from "tpp".  Return TRUE if the lists match.
+*/
+{
+  a_boolean	err = FALSE;
+  for (; !err && tpp != NULL && templ_tpp != NULL;
+       tpp = tpp->next, templ_tpp = templ_tpp->next) {
+    a_symbol_ptr	sym = tpp->param_symbol;
+    a_symbol_ptr	templ_sym = templ_tpp->param_symbol;
+    if (sym->kind != templ_sym->kind) {
+      /* Parameter kind mismatch (e.g., one is a type and one is
+         a nontype). */
+      err = TRUE;
+    } else if (sym->kind == (a_symbol_kind)sk_type) {
+      /* No further checking is needed for type parameters. */
+    } else if (sym->kind == (a_symbol_kind)sk_constant) {
+      /* A nontype parameter.  Compare the type of the constants. */
+      a_type_ptr	templ_type;
+      templ_type = templ_tpp->variant.constant.ptr->type;
+      templ_type = copy_type_with_substitution(templ_type, templ_arg_list,
+                                               templ_param_list, source_pos,
+                                               CTWS_NO_OPTIONS, copy_error);
+      if (!f_types_are_compatible(tpp->variant.constant.ptr->type,
+                                  templ_type, TCF_REDECLARATION) ||
+          *copy_error) {
+        /* Nontype parameters with different types. */
+        err = TRUE;
+      }  /* if */
+    } else {
+      /* A template template parameter. Check its parameter list. */
+      check_assertion(sym->kind == (a_symbol_kind)sk_class_template);
+      if (!equiv_substituted_templ_param_lists(
+                         tpp->variant.templ->cache.decl_info->parameters,
+                         templ_tpp->variant.templ->cache.decl_info->parameters,
+                         templ_arg_list, templ_param_list,
+                         source_pos, copy_error) || *copy_error) {
+        /* The template template parameters do not have matching template
+           parameter lists. */
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return !err;
+}  /* equiv_substituted_templ_param_lists */
+
+
+static void check_template_template_argument_types(
+				a_template_arg_ptr	templ_arg_list,
+				a_template_param_ptr	templ_param_list,
+				a_source_position	*source_pos,
+				a_boolean		*copy_error)
+/*
+For any template template parameters in templ_param_list that depend on
+other template parameters, go through the template parameters of the
+template template parameter and create a substituted version of the
+template parameter.  The substituted parameter is then compared with
+the corresponding template from the template argument list.  If the
+substitution process results in an error, or if the templates parameters
+do not match, copy_error is set to TRUE.
+*/
+{
+  a_template_arg_ptr	tap;
+  a_template_param_ptr	tpp;
+
+  for (tap = templ_arg_list, tpp = templ_param_list;
+       tap != NULL; tap = tap->next, tpp = tpp->next) {
+    /* Any previous template arguments could potentially be used in the
+       parameter list of the template template parameter.  Don't attempt
+       to check a template template argument if any of the earlier
+       arguments do not have values yet. */
+    a_template_param_ptr		param;
+    a_template_param_ptr		templ_param;
+    a_template_symbol_supplement_ptr	arg_template;
+    if (!template_arg_has_value(tap)) break;
+    /* Only consider template template arguments. */
+    if (!is_template_templ_arg(tap)) continue;
+    /* Don't do any further processing if the template parameter list of the
+       template template parameter does not involve any template parameters. */
+    if (!tpp->variant.templ->variant.class_template.involves_template_param) {
+      continue;
+    }  /* if */
+    /* Skip this check if it has already been completed.  Otherwise, set the
+       flag that indicates the check has been done. */
+    if (tap->template_template_param_checked) continue;
+    tap->template_template_param_checked = TRUE;
+    arg_template = template_supplement_for_template(tap->variant.templ.ptr);
+    param = arg_template->cache.decl_info->parameters;
+    templ_param = tpp->variant.templ->cache.decl_info->parameters;
+    if (!equiv_substituted_templ_param_lists(param, templ_param,
+                                             templ_arg_list, templ_param_list,
+                                             source_pos, copy_error)) {
+      /* The template parameter list don't match.  Report a copy error. */
+      *copy_error = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+}  /* check_template_template_argument_types */
+
+
 static void add_to_substituted_types_list(
 			a_template_symbol_supplement_ptr	tssp,
 			a_template_arg_ptr			templ_arg_list,
@@ -7125,6 +7246,16 @@ the field in the template symbol supplement has been set.
 	       					    &templ_sym->decl_position,
 						    CTWS_NO_OPTIONS,
 						    &copy_error);
+      if (!copy_error) {
+        /* If possible, check that any template template parameters that
+           depend on other template parameters match the argument
+           templates (all prior template arguments must have values before
+           this can be done). */
+        check_template_template_argument_types(templ_arg_list,
+                                               templ_param_list,
+                                               &templ_sym->decl_position,
+                                               &copy_error);
+      }  /* if */
       if (copy_error) templ_rout_type = NULL;
       if (templ_rout_type != NULL) {
         /* Reset the flags in the param type entry to reflect whether the

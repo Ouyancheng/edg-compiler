@@ -1,5 +1,15 @@
 Version 3.2
 
+5/5/03   Template template parameters that depend on other template parameters
+
+Support is now provided for template template parameters that have template
+parameter lists that depend on other template parameters.  Formerly, an
+error was issued for such cases.
+
+  template <class T, template <T t> class X> class A {};
+  template <int I> struct B {};
+  A<int, B> b;
+
 5/2/03   GNU mode: Unrecognized attributes with multiple arguments
 
 In GNU mode, unrecognized attributes are normally ignored with a warning.
