@@ -2575,7 +2575,6 @@ will be involved in overloading.
                 /* Look for a match on the list of instantiations. */
                 a_symbol_ptr sym;
                 sym = find_template_function(other_decl, type,
-                                             (a_param_type_ptr)NULL,
                                              &locator->source_position);
                 if (sym != NULL) {
                   /* Found a match. */
@@ -3373,7 +3372,15 @@ otherwise, set *ext_sym to NULL.
            distinguishable" for a reason given by the error code returned. */
         pos_error(error_code, &locator->source_position);
         redecl_error_already_issued = TRUE;
+        /* We can't add a symbol to the overload list, so change to locator
+           to an error locator to prevent hiding the overload symbol when the
+           new symbol is entered.. */
+        set_to_error_locator(*locator);
       } else if (template_function_specific_decl) {
+        /* This is an explicit declaration of a template function.  Its symbol
+           is already on the template's function instantiation list, but it
+           needs to be added to the overload list as well, to assure that it
+           will be found by the ordinary overload resolution algorithm. */
         sym = linked_symbol;
         overload_symbol = add_symbol_to_overload_list(sym, homonym_symbol);
         sym->variant.routine.instance_ptr->specific_decl = TRUE;
