@@ -6818,7 +6818,7 @@ Note that the bug only operates in one direction, i.e., "i + l" does not
 yield an int.
 */
 {
-  if (microsoft_mode &&
+  if (microsoft_bugs &&
       targ_sizeof_long == targ_sizeof_int &&
       is_integral_type(operand_1->type) &&
       is_integral_type(operand_2->type)) {
