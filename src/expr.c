@@ -12262,6 +12262,8 @@ see expr.h).
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tok_imaginary_unit:
+      /* The EDG-specific token "__I__" representing an imaginary value such
+         that __I__*__I__ == -1. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tok_float_constant:
       { a_boolean float_con_allowed = TRUE;
