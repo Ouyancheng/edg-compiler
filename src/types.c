@@ -1399,6 +1399,11 @@ funcs_not_identical:;
                                          pm_member_type(type_2),
                                          il_identical));
           break;
+        case tk_template_param:
+          /* Template parameter types are identical only if the pointers
+             match, and that has already been checked for. */
+          identical = FALSE;
+          break;
 #if CHECKING
         default:
           internal_error("f_identical_types: bad type");
