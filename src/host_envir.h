@@ -585,7 +585,7 @@ Automatically TRUE if BACK_END_IS_CP_GEN_BE is TRUE.
 #endif /* !defined(RECORD_MACROS_IN_IL) */
 
 /*
-Flag that is TRUE to include a set of EDG provided set test pragmas in the
+Flag that is TRUE to include a set of EDG provided test pragmas in the
 front end.
 */
 #ifndef INCLUDE_EDG_TEST_PRAGMAS
