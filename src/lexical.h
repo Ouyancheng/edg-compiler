@@ -772,11 +772,11 @@ extern a_boolean loop_token(a_token_kind token);
 /* Look ahead at the token following the current one. */
 extern a_token_kind next_token(void);
 /* Get a C++ destructor name, like "~A". */
-extern a_boolean f_get_destructor_name();
+extern a_boolean f_get_destructor_name(void);
 #define get_destructor_name()                                         \
   ((curr_token == tok_compl) ? f_get_destructor_name() : FALSE)
 /* Get a C++ operator name, like "operator+". */
-extern a_boolean f_get_opname();
+extern a_boolean f_get_opname(void);
 #define get_opname()                                         \
   ((curr_token == tok_operator) ? f_get_opname() : FALSE)
 /* Get a C++ class-qualifier, like "A::". */
