@@ -2158,6 +2158,7 @@ do_assoc_type:
 #ifdef CFE
   disp_ptr("scopes", (char *)ptr->scopes, iek_scope);
   disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
+  disp_ptr("asm_entries", (char *)ptr->asm_entries, iek_asm_entry);
 #endif /* ifdef CFE */
 #ifdef FFE
   disp_ptr("entries", (char *)ptr->entries, iek_entry_description);
@@ -2649,6 +2650,18 @@ do_base_class:
   disp_ptr("initializer", (char *)ptr->initializer, iek_dynamic_init);
 }  /* disp_constructor_init */
 
+
+static void disp_asm_entry(an_asm_entry_ptr ptr)
+/*
+Display the indicated asm entry.
+*/
+{
+  disp_source_corresp(&ptr->source_corresp);
+  disp_ptr("next", (char *)ptr->next, iek_asm_entry);
+  disp_ptr("asm_string", (char *)ptr->asm_string, iek_constant);
+}  /* disp_asm_entry */
+
+
 #endif /* CFE */
 #if ORPHAN_PROCESSING_NEEDED
 
@@ -2777,6 +2790,9 @@ This routine is called during IL walking.
           break;
         case iek_constructor_init:
           disp_constructor_init((a_constructor_init_ptr)entry_ptr);
+          break;
+        case iek_asm_entry:
+          disp_asm_entry((an_asm_entry_ptr)entry_ptr);
           break;
 #if ORPHAN_PROCESSING_NEEDED
         case iek_orphaned_il_list:
