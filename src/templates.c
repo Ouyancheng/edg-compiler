@@ -7204,7 +7204,7 @@ that follows.
       /* Ignore it. */
     } else if (sym == NULL) {
       /* No symbol, which means the lookup failed. */
-      pos_st_error(ec_undefined_identifier, &locator.source_position,
+      pos_st_error(ec_not_a_template_name, &locator.source_position,
                    locator.symbol_header->identifier);
     } else if (is_function_type(type) && is_function_or_template_symbol(sym)) {
       sym = find_matching_template_instance(sym, type);
