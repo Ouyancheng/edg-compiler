@@ -1334,6 +1334,10 @@ this function points to a tree that includes a dynamic-init entry.
 }  /* get_initializer */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static a_boolean scan_initializer_list(a_type_ptr            *type,
                                        a_variable_ptr        vp,
                                        a_boolean             static_lifetime,

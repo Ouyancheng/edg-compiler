@@ -10050,6 +10050,10 @@ static void check_operator_new_and_delete(a_symbol_ptr  tag_sym)
 }  /* check_operator_new_and_delete */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
                                 a_scope_depth    orig_decl_level,

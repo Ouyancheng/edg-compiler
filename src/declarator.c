@@ -95,6 +95,10 @@ type symbol for the typedef, for use in diagnostics.
 }  /* is_cfront_member_function_typedef */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static a_type_qualifier_set collect_type_qualifiers(
                                        a_decl_pos_block_ptr  decl_pos_block)
 /*
@@ -2712,6 +2716,10 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
 }  /* pointer_declarator */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void scan_real_declarator_id(
                           a_decl_flag_set   input_flags,
                           a_decl_flag_set   *output_flags,

@@ -576,6 +576,10 @@ C mode.
 }  /* tag_currently_being_defined */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_symbol_locator  *locator,
                                   a_boolean         *is_friend_decl,
@@ -1138,6 +1142,10 @@ case return TRUE).
 }  /* namespace_scope_should_be_pushed */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static a_boolean class_specifier(a_boolean         vacuous_decl_allowed,
                                  a_boolean         is_friend_decl,
                                  a_boolean         is_ref_within_new_expr,
@@ -1962,6 +1970,10 @@ the template.
 }  /* class_specifier */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void enum_specifier(a_boolean         vacuous_decl_allowed,
                            a_type_ptr        *type_ptr,
                            a_boolean         *declares_something,
@@ -2564,6 +2576,10 @@ return_point:;
 }  /* enum_specifier */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void typename_specifier(a_type_ptr            *type_ptr,
                         a_decl_pos_block_ptr  decl_pos_block)
 /*

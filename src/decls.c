@@ -5095,6 +5095,10 @@ is not a template declaration scope.
 }  /* decl_function_template */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void define_static_data_member(a_symbol_locator   *locator,
                                       a_storage_class    storage_class,
                                       a_type_ptr         type_ptr,
@@ -5255,6 +5259,10 @@ the symbol and its linkage (which is always "none").
 }  /* define_static_data_member */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void decl_typedef(a_symbol_locator             *locator,
                   a_type_ptr                   type_ptr,
                   a_type_ptr                   class_type,
