@@ -808,7 +808,7 @@ static void lower_c99_compound_assignment(an_expr_node_ptr  expr,
                                           char              *rout_name,
                                           a_routine_ptr     *xop_routine)
 /*
-Rewrite a compound assignment x @= y as x = op@(x, y).  The original
+Rewrite a compound assignment x @= y as x = x @ y.  The original
 expression is given by expr.  If necessary, use a temporary to avoid
 evaluating the left side more than once.  The name and IL entry for the
 called routine (op@) are rout_name and xop_routine, respectively.
