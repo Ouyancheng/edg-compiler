@@ -719,6 +719,11 @@ are accepted.
 			     "pointer_default", MSAT_INTERFACE);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "value", /*is_unnamed=*/FALSE, NULL);
+  /* [pragma] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "pragma", MSAT_ANY);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
+                          "pragma_statement", /*is_unnamed=*/TRUE, NULL);
   /* [progid] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
 			     "progid", MSAT_CLASS | MSAT_STRUCT);
@@ -749,9 +754,24 @@ are accepted.
   /* [public] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "public", MSAT_TYPEDEF);
+  /* [range] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "range", MSAT_METHOD | MSAT_PARAMETER);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "low", /*is_unnamed=*/TRUE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "high", /*is_unnamed=*/TRUE, NULL);
   /* [rdx] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
 			     "rdx", MSAT_DATA_MEMBER);
+  /* [readonly] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "readonly", MSAT_METHOD);
+  /* [ref] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "ref",
+                              MSAT_PARAMETER | MSAT_METHOD |
+                              MSAT_ROUTINE | MSAT_TYPEDEF);
   /* [registration_script] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
 			     "registration_script", MSAT_CLASS | MSAT_STRUCT);
@@ -870,6 +890,19 @@ are accepted.
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "model", /*is_unnamed=*/FALSE,
                           "apartment,neutral,single,free,both");
+  /* [transmit_as] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "transmit_as", MSAT_TYPEDEF);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
+                          "type", /*is_unnamed=*/FALSE, NULL);
+  /* [uidefault] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "uidefault", MSAT_METHOD);
+  /* [unique] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "unique",
+                              MSAT_PARAMETER | MSAT_METHOD |
+                              MSAT_ROUTINE | MSAT_TYPEDEF);
   /* [usesgetlasterror] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "usesgetlasterror", MSAT_ANY);
@@ -880,6 +913,12 @@ are accepted.
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "uuid", /*is_unnamed=*/FALSE, NULL);
+  /* [v1_enum] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "v1_enum", MSAT_ENUM);
+  /* [vararg] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "vararg", MSAT_METHOD);
   /* [version] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "version",
@@ -892,6 +931,12 @@ are accepted.
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, NULL);
+  /* [wire_marshal] */
+  /* The Microsoft documentation does not describe the type argument. */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "wire_marshal", MSAT_TYPEDEF);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
+                          "type", /*is_unnamed=*/FALSE, NULL);
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   /* These are special attributes included for testing purposes. */
   /* [edg_test_1] */
