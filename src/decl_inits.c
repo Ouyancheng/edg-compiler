@@ -305,13 +305,15 @@ routine is called in C++ mode only.
 
 static a_constant_ptr scan_initializer_of_simple_object(
                                          a_boolean           nonconst_allowed,
+                                         a_boolean           static_lifetime,
                                          a_type_ptr          type,
                                          a_dynamic_init_ptr  *dip_ptr)
 /*
 Scan a initializer for a non-aggregate object (i.e., not an array and not
 a class/struct/union object).  If nonconst_allowed is TRUE (always the case
 in C++, sometimes otherwise) a nonconstant expression is allowed; if not,
-a constant is required.  type is the data type of the object being
+a constant is required.  If static_lifetime is TRUE, the underlying entity
+has static storage duration.  type is the data type of the object being
 initialized.  dip_ptr is a pointer to a dynamic init pointer; if the latter
 is NULL, a dynamic init entry may be allocated and returned, but if *dip_ptr
 is non-NULL, build the initialization information into the object it points
@@ -331,8 +333,8 @@ and build *dip_ptr to represent the initialization.
     /* Scan a potentially non-constant initializer expression.  The result
        of the scan is a constant if the expression is constant, and an
        expression node if not. */
-    scan_initializer_expression(type, /*static_lifetime=*/FALSE,
-                                &is_constant, &expression, &constant);
+    scan_initializer_expression(type, static_lifetime, &is_constant,
+                                &expression, &constant);
   } else {
     /* Non-constant is not allowed. */
     scan_constant_initializer_expression(type, &constant);
@@ -858,7 +860,8 @@ ref field of a class object (or an array of same) remains uninitialized.
        brace-enclosed) value. */
     dip = NULL;
     init_con = scan_initializer_of_simple_object(/*nonconst_okay=*/!C_mode(),
-                                                 local_type, &dip);
+                                                 static_lifetime, local_type,
+                                                 &dip);
     if (init_con == NULL) {
       /* Returning NULL means a nonconstant expression was scanned, and so
          a dynamic init entry was allocated and returned.  Create a dynamic
@@ -1354,7 +1357,8 @@ returned set to TRUE.
          a dynamic init entry representing an expression. */
       nonconstant_allowed = (!C_mode() || !static_lifetime);
       init_con = scan_initializer_of_simple_object(nonconstant_allowed,
-                                                   vp_type, &init_dip);
+                                                   static_lifetime, vp_type,
+                                                   &init_dip);
       /* The closing right paren will not have been consumed, as it is
          the arg list for a constructor call is scanned, so bypass it
          explicitly. */
@@ -1414,7 +1418,8 @@ returned set to TRUE.
     nonconstant_allowed = (!C_mode() || !static_lifetime);
     /* Scan the initializer.  Either a constant pointer is returned or else
        a dynamic init entry representing an expression. */
-    init_con = scan_initializer_of_simple_object(nonconstant_allowed, vp_type,
+    init_con = scan_initializer_of_simple_object(nonconstant_allowed,
+                                                 static_lifetime, vp_type,
                                                  &init_dip);
     /* If an extra opening brace was ignored earlier, ignore the matching
        closing brace now.  Check also for an extra comma (required in C++
@@ -2149,9 +2154,10 @@ scan_paren:
                on the arguments present, a constructor will be selected and
                returned.  The scan function returns dip set to NULL if it
                finds no constructor for which the arguments match. */
-            scan_class_parenthesized_initializer(init_type, object_class_type,
+            scan_class_parenthesized_initializer(
+                                           init_type, object_class_type,
                                            /*fill_in_dtor=*/exceptions_enabled,
-                                                 &dip);
+                                           &dip);
             if (dip == NULL) {
               /* Create a fake initializer to represent the error. */
               a_constant_ptr  cp;
@@ -2168,6 +2174,7 @@ scan_paren:
                dik_none for now.  It will be adjusted after the scan. */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
             (void)scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
+                                                    /*static_lifetime=*/FALSE,
                                                     init_type, &dip);
             if (new_cip != NULL) new_cip->initializer = dip;
             remove_stop_token(tok_rparen);
