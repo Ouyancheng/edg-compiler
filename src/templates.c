@@ -101,7 +101,8 @@ able to if the template itself has not yet been defined.
                          (a_function_instantiation_entry_ptr)NULL);
         /* Scan the base specifiers list, if any, and the body of the class. */
         (void)scan_class_definition(tp, DEPTH_OF_FILE_SCOPE,
-                                    /*is_local_class=*/FALSE);
+                                    /*is_local_class=*/FALSE,
+                                    /*is_prototype_instantiation=*/FALSE);
         pop_scope();
         /* In the normal case the current token should be end_of_source,
            which was inserted to mark the end of the cached token stream.
@@ -114,6 +115,56 @@ able to if the template itself has not yet been defined.
   }  /* if */
   db_exit();
 }  /* instantiate_template_class */
+
+
+void instantiate_class_template(a_symbol_ptr  template_sym,
+                                a_type_ptr    prototype_type)
+/*
+*/
+{
+  a_template_symbol_supplement_ptr  tssp;
+  a_token_cache                     *p_token_cache;
+
+  db_enter(3, "instantiate_class_template");
+  tssp = template_sym->variant.template.extra_info;
+  p_token_cache = &tssp->body_token_cache;
+#if CHECKING
+  if (p_token_cache->first_token == NULL) {
+    /* The template itself has not yet been defined. */
+    internal_error("instantiate_class_template: bad cache");
+  } else if (instantiation_in_progress(prototype_type)) {
+    /* The template is currently being instantiated. */
+    internal_error("instantiate_class_template: already being instantiated");
+  };
+#endif /* CHECKING */
+#if DEBUG
+  if (debug_level >= 3) {
+    db_symbol(template_sym, "prototype instantiation of: ", 2);
+  }  /* if */
+#endif /* DEBUG */
+  rescan_reusable_cache(p_token_cache);
+#if CHECKING
+  if (curr_token != tok_lbrace && curr_token != tok_colon) {
+    internal_error("instantiate_class_template: bad 1st token in cache");
+  }  /* if */
+#endif /* CHECKING */
+  (void)push_scope((a_scope_kind)sck_template_instantiation,
+                   tssp->declaration_scope, prototype_type,
+                   (a_routine_ptr)NULL,
+                   (a_function_instantiation_entry_ptr)NULL);
+  /* Scan the base specifiers list, if any, and the body of the class. */
+  (void)scan_class_definition(prototype_type, DEPTH_OF_FILE_SCOPE,
+                              /*is_local_class=*/FALSE,
+                              /*is_prototype_instantiation=*/TRUE);
+  pop_scope();
+  /* In the normal case the current token should be end_of_source,
+     which was inserted to mark the end of the cached token stream.
+     If necessary, keep flushing until end-of-source is found. */
+  while (curr_token != tok_end_of_source) (void)get_token();
+  /* Advance past the end-of-source token. */
+  (void)get_token();
+  db_exit();
+}  /* instantiate_class_template */
 
 
 void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
@@ -1295,18 +1346,16 @@ a_symbol_ptr find_template_function(a_symbol_ptr        templ_sym,
 
 
 
-static a_boolean class_template_declaration(
-                                     a_template_param_ptr  template_param_list,
-                                     a_symbol_ptr          *p_sym_ptr,
-                                     a_boolean             *tag_resolution)
+static a_boolean class_template_declaration(a_template_param_ptr  templ_params,
+                                            a_symbol_ptr          *p_sym_ptr,
+                                            a_boolean             *resolution)
 /*
 If this turns out to be a class template declaration, scan it and return
-TRUE, setting *p_sym_ptr to the class template symbol and, if this is a
-defining declaration, setting *p_token_cache to the token cache for the
-entire declaration (from "class" through the closing right brace).  If it
-is not a class declaration, return FALSE.  If a class template had been
-declared previously but not defined, and this is a defining declaration,
-return *tag_resolution TRUE.
+TRUE, setting *p_sym_ptr to the class template symbol.  If it is not a class
+declaration, return FALSE.  If a class template had been declared previously
+but not defined, and this is a defining declaration, return *resolution
+TRUE.  In addition, if this is a defining declaration, cache all the tokens
+that make up the declaration and do a prototype instantiation.
 */
 {
   a_boolean                         is_class_template_decl = FALSE;
@@ -1386,7 +1435,7 @@ return *tag_resolution TRUE.
         is_redecl = TRUE;
         tssp = sym->variant.template.extra_info;
         if (!sym->defined) {
-          *tag_resolution = TRUE;
+          *resolution = TRUE;
         } else if (is_definition) {
           /* Attempting to redefine a class template. */
           pos_sy_error(ec_already_defined, &locator.source_position, sym);
@@ -1420,7 +1469,7 @@ return *tag_resolution TRUE.
          type entries for instantiations are created. */
       tssp->variant.class.type_kind = type_kind;
 
-      tssp->parameters = template_param_list;
+      tssp->parameters = templ_params;
       tssp->declaration_scope = scope_stack[decl_scope_level].number;
     }  /* if */
     if (is_definition) {
@@ -1437,7 +1486,7 @@ return *tag_resolution TRUE.
                                            (a_name_linkage_kind)nlk_internal;
       append_addr = &prototype_type->
                      variant.class_struct_union.extra_info->template_arg_list;
-      for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
+      for (tpp = templ_params; tpp != NULL; tpp = tpp->next) {
         param_sym = tpp->param_symbol;
         if (param_sym->kind == (a_symbol_kind)sk_type) {
           tap = alloc_template_arg(/*is_arg_type=*/TRUE);
@@ -1478,6 +1527,10 @@ return *tag_resolution TRUE.
       /* Add an end-of-source token to the end of the token cache to assure
          that we don't scan past the end of the cache in the actual scan. */
       terminate_token_cache(&tssp->body_token_cache);
+      /* Do a "prototype instantiation" of the class template -- i.e.,
+         parse the declarative information looking for gross syntax
+         errors. */
+      instantiate_class_template(sym, prototype_type);
     } else {
       /* This is not a class template definition, so we have no need to
          cache the tokens. */
