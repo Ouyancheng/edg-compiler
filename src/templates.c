@@ -5707,8 +5707,15 @@ points to the template parameter list.
       /* If the template parameter has any type qualifiers, the argument type
          will have to have a set of type qualifiers that includes any on the
          template parameter.  Remove any that are shared in common and then
-         do a check. */
+         do a check.  After removing common qualifiers, the template type
+         must usually be unqualified in order for the types to match.  If the
+         MTT_ALLOW_ADDED_QUALIFIERS flag is set, any additional qualifiers
+         will be ignored.  This occurs when the template type is a qualified
+         array type. */
       skip_common_type_qualifiers(&type, &templ_type);
+      if ((flags & MTT_ALLOW_ADDED_QUALIFIERS) != 0) {
+        templ_type = skip_typerefs(templ_type);
+      }  /* if */
     }  /* if */
     if (is_qualified_type(templ_type)) {
       /* The qualifier on templ_type did not also appear on type, so there is
@@ -5865,7 +5872,7 @@ points to the template parameter list.
           match = matches_template_type_for_class_type(type, templ_type,
                                                        templ_arg_list,
                                                        templ_param_list);
-          if (!match && (flags & MTT_ALLOW_BASE_CONVERSION) != 0) {
+          if (!match && (flags & MTT_ALLOW_INEXACT_DEDUCTION) != 0) {
             a_base_class_ptr	bcp;
             a_type_ptr		matching_base_class = NULL;
             /* See if the type matches a base class type of actual argument
@@ -5963,11 +5970,17 @@ points to the template parameter list.
           }  /* if */
           /* If the bounds match, check the element type. */
           if (match) {
+            an_mtt_flag_set		 element_flags = new_flags;
             tp = type->variant.array.element_type;
             ttp = templ_type->variant.array.element_type;
+            if ((flags & MTT_ALLOW_INEXACT_DEDUCTION) != 0) {
+              /* When inexact deductions are allowed, allow qualifiers
+		 to be added under array types. */
+              element_flags |= MTT_ALLOW_ADDED_QUALIFIERS;
+            }  /* if */
             match = matches_template_type(tp, ttp, templ_arg_list,
                                           templ_param_list,
-                                          new_flags);
+                                          element_flags);
           }  /* if */
           break;
         case tk_pointer:

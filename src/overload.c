@@ -2211,13 +2211,13 @@ if the deduction succeeds, FALSE if it fails.
      the bindings for the template arguments.  This is needed during the
      matching process to ensure that each argument is used consistently
      and also later routine to build the instantiation.  The
-     MTT_ALLOW_BASE_CONVERSION option is used to allow an argument requiring
-     a conversion from Derived<T> to Base<T>.  This conversion was not
-     allowed by the ARM but has been blessed by the standards committee. */
+     MTT_ALLOW_INEXACT_DEDUCTION option is used to allow an argument requiring
+     a conversion from Derived<T> to Base<T>, and to allow qualifiers to be
+     added under an array type. */
   if (matches_template_type(arg_type, param_type, template_arg_list,
                             tssp->variant.function.decl_cache.
                                                          decl_info->parameters,
-                            MTT_ALLOW_BASE_CONVERSION)) {
+                            MTT_ALLOW_INEXACT_DEDUCTION)) {
     deduction_okay = TRUE;
   } else if (is_pointer_type(arg_type) || is_ptr_to_member_type(arg_type)) {
     /* Normal deduction failed.  For pointer types, see if a qualification

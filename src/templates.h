@@ -213,9 +213,12 @@ Bit vector used to pass flags into matches_template_type.
 typedef unsigned int an_mtt_flag_set;
 
 #define MTT_NO_FLAGS 0x00
-#define MTT_ALLOW_BASE_CONVERSION 0x01
+#define MTT_ALLOW_INEXACT_DEDUCTION 0x01
 			/* TRUE when a conversion from Derived<T>
-			   to Base<T> may be done if needed. */
+			   to Base<T> may be done if needed, and qualifiers
+			   under an array type can be added.  Qualifiers
+			   on top-level types are handled outside of the
+			   deduction process. */
 #define MTT_UNKNOWN_THIS_CLASS_TYPE 0x02
 			/* TRUE if the this class type may not
 			   be known yet.  When this flag is set, a
@@ -224,6 +227,9 @@ typedef unsigned int an_mtt_flag_set;
 #define MTT_IS_CONVERSION_TEMPLATE 0x04
 			/* TRUE if argument deduction is being done in the
 			   context of a conversion template return type. */
+#define MTT_ALLOW_ADDED_QUALIFIERS 0x08
+			/* TRUE the template type can be more cv-qualified
+			   than the other type. */
 
 extern a_boolean matches_template_type_with_qualification_conversion(
 				a_type_ptr           type,

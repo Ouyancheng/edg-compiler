@@ -1,5 +1,20 @@
 Version 3.4
 
+1/20/04  Template argument deduction with arrays with added qualifiers
+
+When calling a function template, the standard permits the parameter
+type to be more cv-qualifier than the argument, when the parameter is
+a reference type.  The front end did not correctly handle cases in
+which an array type was more cv-qualified than the argument array.
+This would result in the function being discarded by the type deduction
+process.  Now fixed.
+
+  template <class T, int I> void f(const T (&array)[I]) {}
+  int main() {
+     int a[] = { 1, 2, 3 };
+     f(a);
+  }
+
 1/16/04  Missing type_info virtual function table with multiple translation
          units
 
