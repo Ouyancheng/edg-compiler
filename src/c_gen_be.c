@@ -1599,6 +1599,15 @@ Output the definition of the indicated struct or union type.
   a_field_ptr field;
 
   if (start_unreferenced_bracket(&type->source_corresp)) {
+#if USER_CONTROL_OF_STRUCT_PACKING
+    if (type->variant.class_struct_union.max_member_alignment > 0) {
+      /* Put out a #pragma pack directive to indicate the special alignment
+         requirements for this struct. */
+      set_unknown_output_position();
+      (void)fprintf(f_C_output, "#pragma pack(%d)\n",
+                    type->variant.class_struct_union.max_member_alignment);
+    }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     /* Dump any pragmas associated with the type. */
     dump_decl_associated_pragmas(&type->source_corresp);
     set_output_position(&type->source_corresp.decl_position);
@@ -1723,6 +1732,13 @@ Output the definition of the indicated struct or union type.
     }  /* if */
     indent -= 2;
     write_tok_str("};");
+#if USER_CONTROL_OF_STRUCT_PACKING
+    if (type->variant.class_struct_union.max_member_alignment > 0) {
+      /* Restore the packing alignment to a default state. */
+      set_unknown_output_position();
+      (void)fprintf(f_C_output, "#pragma pack()\n");
+    }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
     end_unreferenced_bracket(&type->source_corresp);
   }  /* if */
 }  /* dump_struct_union_definition */
