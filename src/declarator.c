@@ -2421,6 +2421,12 @@ to FALSE if the entity being declared is not initializable.
       *parenthesized_initializer_allowed = FALSE;
     }  /* if */
   }  /* if */
+  if (locator->specific_symbol != NULL &&
+      locator->specific_symbol->kind == (a_symbol_kind)sk_namespace) {
+    /* A namespace name cannot be a declarator. */
+    pos_error(ec_namespace_name_not_allowed, &declarator_pos);
+    set_to_error_locator(*locator);
+  }  /* if */
   if (!(input_flags & DI_OPERATOR_NAME_ALLOWED)) {
     if (locator->is_operator_name || locator->is_conversion_name) {
       pos_error(ec_operator_name_not_allowed, &locator->source_position);
