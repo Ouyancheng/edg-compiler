@@ -2730,7 +2730,7 @@ of constructors and destructors.
     /* Predefined substitution. */
     char *last_name = "";
     if (ch2 == 't') {
-      write_id_str("std::", dctl);
+      write_id_str("std", dctl);
       last_name = "3std";
     } else if (ch2 == 'a') {
       write_id_str("std::allocator", dctl);
