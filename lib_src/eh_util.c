@@ -88,7 +88,7 @@ Used by the EH runtime when unexpected needs to be called.  Ensures
 that unexpected does not return.
 */
 {
-  unexpected();
+  STD_NAMESPACE::unexpected();
   abort();
 }  /* __call_unexpected */
 
@@ -99,7 +99,7 @@ Used by the EH runtime when terminate needs to be called.  Ensures
 that terminate does not return.
 */
 {
-  terminate();
+  STD_NAMESPACE::terminate();
   abort();
 }  /* __call_terminate */
 

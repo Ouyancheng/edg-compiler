@@ -18,6 +18,7 @@ Declarations for exception handling.
 #include <stdlib.h>
 #include "config.h"
 #include "runtime.h"
+#include "exception.h"
 #include "rtti.h"
 #include "vec_newdel.h"
 
@@ -332,22 +333,14 @@ EXTERN_C void* __throw_alloc(a_type_info_impl_ptr  type_info,
 			     an_ETS_flag_set	   flags,
 			     an_access_flag_string access_flags);
 
-EXTERN void terminate(void);
-
 EXTERN_C void __call_terminate(void);
-
-extern a_void_function_ptr set_terminate(a_void_function_ptr);
 
 EXTERN a_void_function_ptr
 		__default_terminate_routine
                                   initial_value((a_void_function_ptr)abort);
 			/* Pointer to the terminate routine to be used. */
 
-EXTERN void unexpected(void);
-
 EXTERN_C void __call_unexpected(void);
-
-extern a_void_function_ptr set_unexpected(a_void_function_ptr);
 
 EXTERN a_void_function_ptr
 		__default_unexpected_routine
