@@ -10733,37 +10733,33 @@ and their parents headed by block_list.
 }  /* block_is_on_parent_list */
 
 
-static void pop_block_context(a_statement_ptr last_statement)
+static void lower_end_of_block(a_statement_ptr last_statement)
 /*
-Pop the current context, which is a context for a block statement.
-Generate any destructor calls required at the end of the block and
-pop the scope context.  last_statement points to the last statement
-within the block, or is NULL if there are no statements in the block.
+The current context is a context for a block statement.  Generate any
+destructor calls required at the end of the block and pop the context.
+last_statement points to the last statement within the block, or is
+NULL if there are no statements in the block.
 */
 {
   a_statement_ptr    block_statement;
-  a_scope_ptr        scope;
   an_insert_location insert_location;
 
   block_statement = curr_context->block;
-  scope = block_statement->variant.block.extra_info->assoc_scope;
-  if (scope != NULL) {
-    /* Insert any required destructor calls after the last statement
-       in the block if the end of the block is reachable. */
-    if (block_statement->variant.block.extra_info->end_of_block_reachable) {
-      if (last_statement == NULL) {
-        /* The block is empty, so insert at its beginning. */
-        set_block_start_insert_location(block_statement, &insert_location);
-      } else {
-        /* Insert after the last statement. */
-        set_insert_location(last_statement, &insert_location);
-      }  /* if */
-      gen_required_destructor_calls(curr_context, &insert_location,
-                                    /*make_block=*/FALSE);
+  /* Insert any required destructor calls after the last statement
+     in the block if the end of the block is reachable. */
+  if (block_statement->variant.block.extra_info->end_of_block_reachable) {
+    if (last_statement == NULL) {
+      /* The block is empty, so insert at its beginning. */
+      set_block_start_insert_location(block_statement, &insert_location);
+    } else {
+      /* Insert after the last statement. */
+      set_insert_location(last_statement, &insert_location);
     }  /* if */
+    gen_required_destructor_calls(curr_context, &insert_location,
+                                  /*make_block=*/FALSE);
   }  /* if */
   pop_context();
-}  /* pop_block_context */
+}  /* lower_end_of_block */
 
 
 static void lower_statement(a_statement_ptr statement)
@@ -10779,7 +10775,7 @@ Do IL lowering of the indicated statement and everything under it.
   an_insert_location insert_location;
   a_statement_ptr    last_statement, goto_block, label_block, body_statement;
   a_statement_ptr    block_statement;
-  a_boolean          make_block;
+  a_boolean          function_block, make_block;
   an_expr_node_ptr   return_expr;
   a_variable_ptr     temp_var;
   a_dynamic_init_ptr dip;
@@ -10909,13 +10905,19 @@ Do IL lowering of the indicated statement and everything under it.
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_block:
-        /* Push the block context around the processing of the block. */
-        scope = statement->variant.block.extra_info->assoc_scope;
-        push_context(&context, scope, statement);
+        /* Push a block context around the processing of the block.
+           Do not do that if this is the topmost block in a function,
+           because the push_context has already been done in lower_scope
+           for that case. */
+        function_block = (curr_context->block == statement);
+        if (!function_block) {
+          scope = statement->variant.block.extra_info->assoc_scope;
+          push_context(&context, scope, statement);
+        }  /* if */
         lower_statement_list(statement->variant.block.statements,
                              &last_statement);
         /* Generate any required destructor calls and pop the context. */
-        pop_block_context(last_statement);
+        if (!function_block) lower_end_of_block(last_statement);
         break;
       case stmk_switch:
         /* If there is a body statement that is a block statement, push
@@ -10934,10 +10936,8 @@ Do IL lowering of the indicated statement and everything under it.
         lower_statement_list(body_statement, &last_statement);
         lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
                                  switch_context);
-        if (block_statement != NULL) {
-          /* Generate any required destructor calls and pop the context. */
-          pop_block_context(last_statement);
-        }  /* if */
+        /* Generate any required destructor calls and pop the context. */
+        if (block_statement != NULL) lower_end_of_block(last_statement);
         break;
       case stmk_init:
         lower_stmk_init(statement);
