@@ -123,6 +123,24 @@ Flags to be set when using the KAI inliner.
 
 #else /* !defined(_WIN32) */
 
+#ifdef __LINUX__
+
+/* Linux version. */
+
+#define __ANSIC__ 1
+#define COMPILE_MULTIPLE_SOURCE_FILES 1
+#define INCLUDE_EDG_TEST_PRAGMAS 1
+#define TARG_ALIGNOF_DOUBLE 4
+#define TARG_ALIGNOF_LONG_DOUBLE 4
+#define TARG_SIZEOF_LONG_DOUBLE 12
+#define TARG_JMP_BUF_NUM_ELEMENTS 6
+#define C_GEN_BE_GENERATES_ANSI_C 1
+#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_long)
+#define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
+
+
+#else /* ifndef __LINUX__ */
+
 /* Options for UnixWare test version. */
 #define __ANSIC__ 1
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
@@ -147,6 +165,7 @@ Flags to be set when using the KAI inliner.
 #define SVR4_TRAP_NULL_POINTER_REFERENCES 1
 #endif /* ifndef SVR4_TRAP_NULL_POINTER_REFERENCES */
 
+#endif /* ifdef __LINUX__ */
 #endif /* defined(_WIN32) */
 #endif /* defined(sun) */
 
