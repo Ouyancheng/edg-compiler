@@ -3610,7 +3610,7 @@ static a_boolean ttt_contains_template_param_constant(
 {
   an_expr_node_ptr    count;
   a_template_arg_ptr  tap;
-  a_boolean           found;
+  a_boolean           found = FALSE;
 
   if (is_array(type_ptr)) {
     if (type_ptr->variant.array.is_variable_size_array) {
@@ -3632,11 +3632,16 @@ static a_boolean ttt_contains_template_param_constant(
     while (type_ptr->source_corresp.class_of_which_a_member != NULL) {
       type_ptr = type_ptr->source_corresp.class_of_which_a_member;
     }  /* while */
+    /* Examing each template argument, if any. */
     for (tap = type_ptr->variant.class_struct_union.extra_info->
                                                          template_arg_list;
          tap != NULL;
          tap = tap->next) {
       if (!tap->is_type) {
+        /* A non-type argument.  See if a template parameter constant is
+           used -- e.g.,
+             template <class T, int I> class A { B<I> *b; . . . };
+           where the template argument for B<I> is template para constant I. */
         if (tap->variant.constant->kind ==
                                (a_constant_repr_kind)ck_template_param &&
             (specific_template_param_constant == NULL ||
@@ -3696,9 +3701,10 @@ routine type a leaf node, or should the return type be examined? what about
 its parameters?).
 */
 {
-  a_boolean   force_end_of_traversal = FALSE;
-  a_type_ptr  tp;
-  a_boolean   status;
+  a_boolean           force_end_of_traversal = FALSE;
+  a_type_ptr          tp;
+  a_template_arg_ptr  tap;
+  a_boolean           status;
 
   if (flags & TTT_SKIP_TYPEDEFS) type_ptr = skip_typedefs(type_ptr);
   status = func(type_ptr, &force_end_of_traversal);
@@ -3776,12 +3782,8 @@ check_enclosing_classes:
 	  /* For nested classes only the outermost class can have
 	     template arguments.  Find the outermost class before doing
 	     the check. */
-          a_type_ptr	      cowam_type = type_ptr;
-          a_template_arg_ptr  tap;
-          cowam_type = type_ptr->source_corresp.class_of_which_a_member;
-          while (cowam_type != NULL) {
-            type_ptr = cowam_type;
-            cowam_type = cowam_type->source_corresp.class_of_which_a_member;
+          while (type_ptr->source_corresp.class_of_which_a_member != NULL) {
+            type_ptr = type_ptr->source_corresp.class_of_which_a_member;
           }  /* while */
           for (tap = type_ptr->variant.class_struct_union.extra_info->
                                                           template_arg_list;
