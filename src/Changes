@@ -1,5 +1,18 @@
 Version 3.3
 
+6/24/03  Incorrect virtual function tables with no RTTI, no Cfront
+         compatibility
+
+In the mode where the ABI selected is the Cfront-like ABI but without
+full Cfront compatibility (IA64_ABI FALSE and
+CFRONT_OBJECT_CODE_COMPATIBILITY FALSE) and RTTI information is
+turned off (e.g., with SUPPRESS_TYPEINFO_VARIABLES_WHEN_RTTI_DISABLED
+TRUE and --no_rtti), IL lowering sometimes did not generate a virtual
+function table for a base class that shares a virtual function
+table with another base class, if the other base class did not itself
+contain any overridden virtual functions.  This could result in incorrect
+dynamic call behavior at runtime.  Now fixed.
+
 6/24/03  Spurious correspondence errors on unnamed class types
 
 Under some circumstances the front end produced spurious correspondence

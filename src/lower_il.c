@@ -4593,7 +4593,7 @@ FALSE means either the base class does not need a virtual function table
       needed = FALSE;
 #if ABI_CHANGES_FOR_RTTI
     } else if (generate_rtti_typeinfo) {
-      /* When RTTI information is generated, entry [0] of the virtual function
+      /* When RTTI information is generated, an entry in the virtual function
          table identifies the type of the complete object, so a separate
          instance is needed for each derived class even if the derived
          class does not override any virtual functions. */
@@ -4610,6 +4610,32 @@ FALSE means either the base class does not need a virtual function table
          function in the derived class, which is more often than is really
          needed. */
       needed = TRUE;
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
+#if !IA64_ABI
+    } else if (bcp->type->variant.class_struct_union.extra_info->
+                                    virtual_function_info_base_class != NULL) {
+      /* This base class shares its virtual function table pointer with
+         one or more base classes.  See whether any of the base classes
+         that share have overridden functions. */
+      a_base_class_ptr      sharing_bcp =
+                             bcp->type->variant.class_struct_union.extra_info->
+                                              virtual_function_info_base_class;
+      a_derivation_step_ptr dsp;
+      /* A virtual function table can't be shared with a virtual base, so
+         there can only be one derivation. */
+      check_assertion(sharing_bcp->derivation->next == NULL);
+      for (dsp = sharing_bcp->derivation->path;
+           dsp != NULL;
+           dsp = dsp->next) {
+        a_base_class_ptr other_bcp = corresp_base_class(dsp->base_class, bcp);
+        if (other_bcp->overriding_virtual_functions != NULL) {
+          /* This base class has overridden functions, so we need a
+             separate instance. */
+          needed = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+#endif /* !IA64_ABI */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     } else {
       /* In other cases, no separate instance is needed. */
