@@ -755,19 +755,11 @@ return a pointer to it.
 }  /* alloc_based_type_list_member */
 
 
-static a_class_type_supplement_ptr alloc_class_type_supplement(void)
+void clear_class_type_supplement(a_class_type_supplement_ptr  ctsp)
 /*
-Allocate a class-type-supplement entry, initialize its fields, and return
-a pointer to it.
+Give an pointer to a class-type-supplement entry, initialize its fields.
 */
 {
-  a_class_type_supplement_ptr ctsp;
-
-  ctsp = (a_class_type_supplement_ptr)alloc_il(
-			      sizeof(a_class_type_supplement));
-#if DEBUG
-  num_class_type_supplements_allocated++;
-#endif /* DEBUG */
   ctsp->base_classes                      = NULL;
   ctsp->size_without_virtual_base_classes = 0;
   ctsp->alignment_without_virtual_base_classes = 1;
@@ -799,9 +791,7 @@ a pointer to it.
   ctsp->promoted_local_types              = NULL;
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
-
-  return ctsp;
-}  /* alloc_class_type_supplement */
+}  /* clear_class_type_supplement */
 
 
 void set_type_kind(a_type_ptr  pte,
@@ -866,10 +856,19 @@ to default values.
       pte->variant.class_struct_union.definition_needed = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
       /* The class type supplement is only allocated in C++ mode. */
-      pte->variant.class_struct_union.extra_info = 
-                                           (C_dialect == C_dialect_cplusplus) ?
-                                                alloc_class_type_supplement() :
-                                                NULL;
+      if (C_mode()) {
+        pte->variant.class_struct_union.extra_info = NULL;
+      } else {
+        a_class_type_supplement_ptr  ctsp;
+
+        ctsp = (a_class_type_supplement_ptr)alloc_il(
+                                             sizeof(a_class_type_supplement));
+#if DEBUG
+        num_class_type_supplements_allocated++;
+#endif /* DEBUG */
+        clear_class_type_supplement(ctsp);
+        pte->variant.class_struct_union.extra_info = ctsp;
+      }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
       pte->variant.class_struct_union.max_member_alignment = 0;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
