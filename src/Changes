@@ -1,5 +1,15 @@
 Version 2.26
 
+9/7/94   Qualifiers on function types
+
+If a multiply declared function had a type with a top-level qualifier, the
+redeclaration was not properly recognized and an internal error occurred in
+trying to create an overload set.  This has now been fixed.  For example:
+
+  typeref void T();
+  extern const T f;
+  const T f;                   // Internal error has been eliminated
+
 9/7/94   address_taken on routines and variables in IL lowering
 
 IL lowering did not set address_taken on routines passed to __vec_new
