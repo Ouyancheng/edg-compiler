@@ -1060,10 +1060,12 @@ nested class.
                definition.  The primary source sequence entry was deferred
                till now, when the class definition is complete. */
 #if CHECKING
-            a_source_sequence_entry_ptr  ssep = rp->source_corresp.
+            if (!sym->is_error) {
+              a_source_sequence_entry_ptr  ssep = rp->source_corresp.
                                                     source_sequence_entry;
-            check_assertion(ss_entry_kind(ssep) ==
+              check_assertion(ss_entry_kind(ssep) ==
                                 (an_il_entry_kind)iek_src_seq_secondary_decl);
+            }  /* if */
 #endif /* CHECKING */
             /* Now put out the source sequence entry for the routine, after
                clearing the source-sequence pointer to be sure it will be
