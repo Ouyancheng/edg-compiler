@@ -1809,6 +1809,8 @@ See comment above.
   if (first) {
     /* Open the directory and save the directory pointer in a static
        variable that can be used on subsequent calls. */
+    /* If no directory name was specified, use the current directory. */
+    if (dir_name == NULL) dir_name = ".";
     dir = opendir(dir_name);
     check_assertion(dir != NULL);
   }  /* if */
