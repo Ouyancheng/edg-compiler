@@ -5533,10 +5533,11 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
         /* There is a current "this" parameter.  See if it matches the
            variable in the operand. */
         if (this_var == operand_var) {
-          /* Yes.  Issue a warning and change the operand to an lvalue for
-             the "this" variable. */
+          /* Yes.  Issue an anachronism diagnostic and change the operand
+             to an lvalue for the "this" variable. */
           is_this = TRUE;
-          pos_warning(ec_assignment_to_this, &operand->position);
+          pos_diagnostic(anachronism_error_severity, ec_assignment_to_this,
+                         &operand->position);
           make_lvalue_variable_operand(this_var, operand,
                                        operand->xref_entries_list);
           current_routine_entry()->assignment_to_this_done = TRUE;
