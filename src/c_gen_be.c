@@ -513,31 +513,6 @@ the next call of this routine.
 }  /* get_name */
 
 
-static char *get_vr_name(a_source_correspondence *source_corresp)
-/*
-Similar to get_name; used to get names for variables and routines.  Adds
-a special prefix to file-scope static names so that they will not
-conflict with identical names in separately-compiled modules.
-*/
-{
-  char *new_name;
-
-  if (source_corresp->name_linkage == (a_name_linkage_kind)nlk_internal &&
-      source_corresp->name[0] != '_') {
-    /* Name is at file scope, but is not external.  Add a prefix so
-       that it will not conflict with external names.  See dump_variable.
-       Leave names beginning with "_" alone. */
-    (void)sprintf(name_buffer, "_S%s_%s", module_name,
-                               source_corresp->name);
-    new_name = name_buffer;
-  } else {
-    /* Otherwise, use get_name to get the name. */
-    new_name = get_name(source_corresp);
-  }  /* if */
-  return(new_name);
-}  /* get_vr_name */
-
-
 static char *get_var_name(a_variable_ptr variable)
 /*
 Return a pointer to the name for the indicated variable.
@@ -561,12 +536,21 @@ Return a pointer to the name for the indicated variable.
       (void)sprintf(name_buffer, "_result_%s", variable->source_corresp.name);
     }  /* if */
     name = name_buffer;
-  } else {
-    name = get_vr_name(&variable->source_corresp);
-  }  /* if */
-#else /* !defined(FFE) */
-  name = get_vr_name(&variable->source_corresp);
+  } else
 #endif /* ifdef FFE */
+  if (variable->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_internal &&
+      variable->source_corresp.name[0] != '_') {
+    /* Name is at file scope, but is not external.  Add a prefix so
+       that it will not conflict with external names.  See dump_variable.
+       Leave names beginning with "_" alone. */
+    (void)sprintf(name_buffer, "_S%s_%s", module_name,
+                               variable->source_corresp.name);
+    name = name_buffer;
+  } else {
+    /* Nothing special about this case. */
+    name = get_name(&variable->source_corresp);
+  }  /* if */
   return name;
 }  /* get_var_name */
 
@@ -775,12 +759,11 @@ Return a pointer to the name for the indicated routine.
 #ifdef FFE
   if (routine->storage_class == (a_storage_class)sc_intrinsic) {
     name = get_intrinsic_rout_name(routine, /*as_actual_argument=*/FALSE);
-  } else {
-    name = get_vr_name(&routine->source_corresp);
-  }  /* if */
-#else /* !defined(FFE) */
-  name = get_vr_name(&routine->source_corresp);
+  } else
 #endif /* ifdef FFE */
+  {
+    name = get_name(&routine->source_corresp);
+  }
   return name;
 }  /* get_rout_name */
 
