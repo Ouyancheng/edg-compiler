@@ -3441,7 +3441,8 @@ and are handled elsewhere.
       record_function_template_instantiation(inst);
     }  /* for */
     /* Also process prototype instantiation. */
-    if (canonical_il_entry_of(templ) != (char*)templ) {
+    if (((a_template_ptr)canonical_il_entry_of(templ))->canonical_template !=
+                                                  templ->canonical_template) {
       set_trans_unit_corresp(iek_routine,
                              tssp->variant.function.routine,
                              ((a_symbol_ptr)canonical_template_entry_of(templ)
@@ -3449,6 +3450,8 @@ and are handled elsewhere.
                                   ->variant.template_info
                                   ->variant.function.routine);
     } else {
+      /* The prototype instantiation in the translation unit of the canonical
+         template entry. */
       set_no_trans_unit_corresp(iek_routine, tssp->variant.function.routine);
     }  /* if */
   } else {
