@@ -5608,7 +5608,7 @@ static an_expr_node_ptr conv_lvalue_expr_to_rvalue(
                                                a_boolean        *constant_case,
                                                a_constant_ptr   *con_value)
 /*
-mode is an expression that is the address for an lvalue.  Create an
+node is an expression that is the address for an lvalue.  Create an
 expression for the corresponding rvalue, and return a pointer to it.
 If the difference between the two is only that a constant variable was
 replaced by its value, return *constant_case TRUE.  If con_value is non-NULL
@@ -5916,7 +5916,18 @@ not an lvalue, it is left alone.
           if (con_value != NULL) {
             /* The value of the expression is a constant.  Make a constant
                operand instead of the expression operand. */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+            /* Save the expression (variable) that formed the constant, so
+               that we can record it in the new constant operand. */
+            an_expr_node_ptr  expr =
+               var_rvalue_expr(operand->variant.expression->variant.variable);
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
             make_constant_operand(con_value, operand);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+            if (!curr_expr_kind_is(ek_pp) && constant_case) {
+              operand->variant.constant.expr = expr;
+            }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
           } else {
             /* The value of the expression is not a constant. */
             operand->variant.expression = node;
