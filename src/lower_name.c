@@ -886,7 +886,7 @@ entity processed.
             unexpected_condition();
         }  /* switch */
       }  /* if */
-      if (result == TRUE) {
+      if (result) {
         /* We found a substitution for this entity. */
         add_substitution_index_to_mangled_name(index, mctl);
         break;
@@ -1182,7 +1182,7 @@ as well as whether or not the type is extern "C", are emitted.
   check_assertion(type->kind == (a_type_kind)tk_routine);
 #if !IA64_ABI
   /* We always emit markers in the Cfront-like ABI. */
-  check_assertion(do_markers == TRUE);
+  check_assertion(do_markers);
 #endif /* !IA64_ABI */
   /* The encoding for a function type is "F" followed by the encoding
      for the parameter types.  mangled_function_name takes care of putting
