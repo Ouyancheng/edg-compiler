@@ -3377,6 +3377,28 @@ char_compare:
         dump_assign(operand_1, expr->variant.operation.kind, operand_2);
       }  /* if */
       break;
+    case eok_bassign:
+      /* Block assignment, generated only by IL lowering of C++ code. */
+#if __BSD__
+      /* BSD UNIX -- use bcopy. */
+      fputs("bcopy(", f_C_output);
+      dump_lvalue(operand_2);
+      fputc(',', f_C_output);
+      dump_lvalue(operand_1);
+#else
+      /* System V or ANSI -- use memcpy. */
+      fputs("memcpy(", f_C_output);
+      dump_lvalue(operand_1);
+      fputc(',', f_C_output);
+      dump_lvalue(operand_2);
+#endif /* __BSD__ */
+      /* Add the length of the move. */
+      { a_type_ptr operand_1_type = type_pointed_to(operand_1->type);
+        operand_1_type = skip_typerefs(operand_1_type);
+        (void)fprintf(f_C_output, ",%lu)",
+                                  (unsigned long)operand_1_type->size);
+      }
+      break;
     case eok_subscript:
       dump_expression(operand_1, /*need_parens=*/TRUE);
       fputc('[', f_C_output);
