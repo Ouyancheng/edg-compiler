@@ -587,15 +587,15 @@ Scan a throw specification, which may be empty or take either of two forms:
   throw ()
 
 A throw specification with a list of names means "these types will be
-thrown".  A throw specification the an empty list ("throw ()") means "no
-exception with be thrown".  An empty throw specification means "any
+thrown".  A throw specification with an empty list ("throw ()") means "no
+exception will be thrown".  An empty throw specification means "any
 exception may be thrown".
 
 Update the func_info block with a pointer to the appropriate kind of throw
 specification entry.
 
 Diagnostics are issued on redundant types on a list, but if this is a
-redeclaration of a routine, reconciliation with the previously throw
+redeclaration of a routine, reconciliation with the previous throw
 specification is handled later (see check_exception_specification).
 */
 {
@@ -1742,12 +1742,16 @@ information should be ignored or if an error should be issued.
         tp = tp->variant.typeref.type;
       }  /* while */
       if (any_typedefs) {
-        /* The type contains typedefs.  Make a copy that can be updated. */
-        *type = copy_routine_type_with_param_types(*type);
-        tp = skip_typerefs(*type);
+        /* The type contains typedefs.  This is probably a valid thing to
+           do, but we can't implement it because we fold the calling
+           convention into the function type.  Even copying the type
+           would not help, because the type that results cannot be displayed
+           without a typedef somewhere in it.  Give an error. */
+        pos_error(ec_calling_convention_not_allowed, decl_pos);
+      } else {
+        check_assertion(tp->kind == (a_type_kind)tk_routine);
+        tp->variant.routine.extra_info->calling_convention= calling_convention;
       }  /* if */
-      check_assertion(tp->kind == (a_type_kind)tk_routine);
-      tp->variant.routine.extra_info->calling_convention = calling_convention;
     }  /* if */
   }  /* if */
   if (discard) {
@@ -1863,6 +1867,7 @@ Clear the pointer stored in "var" if it is used.
 
 static void collect_microsoft_pointer_declarator_qualifiers(
                                               a_type_qualifier_set *qualifiers,
+                                              a_source_position    *qual_pos,
                                               a_call_conv_descr    *call_conv,
                                               a_variable_ptr       *based_var,
                                               a_source_position    *based_pos)
@@ -1871,7 +1876,8 @@ Collect a set of pointer declarator qualifiers in Microsoft mode.  Aside
 from the standard const/volatile, Microsoft mode also allows near/far,
 calling conventions like __cdecl, and __based.  Scan all of those, and
 return information about what was scanned in *qualifiers, *call_conv, and
-*based_var.  If a __based qualifier is scanned, *based_pos is set to its
+*based_var.  If qualifiers are scanned, *qual_pos is set to their starting
+position.  If a __based qualifier is scanned, *based_pos is set to its
 source position.  It's permissible for the input to contain no qualifiers.
 */
 {
@@ -1884,6 +1890,7 @@ source position.  It's permissible for the input to contain no qualifiers.
     if (is_type_qualifier() || is_microsoft_memory_attribute()) {
       /* Normal qualifiers like const, and declarator-only qualifiers like
          near. */
+      *qual_pos = pos_curr_token;
       new_qualifiers = collect_type_qualifiers();
       if ((new_qualifiers & TQ_NEAR) && (*qualifiers & TQ_FAR )) {
         /* Incompatible near and far specifications. */
@@ -1924,6 +1931,66 @@ source position.  It's permissible for the input to contain no qualifiers.
     }  /* if */
   }  /* for */
 }  /* collect_microsoft_pointer_declarator_qualifiers */
+
+
+static a_type_qualifier_set get_original_type_qualifiers(a_type_ptr type)
+/*
+Get and return the type qualifiers of the indicated type, including any
+memory attributes that were explicit in the source but are implicit in
+the type itself.
+*/
+{
+  a_type_qualifier_set qualifiers = TQ_NONE;
+
+  /* Loop through the typerefs and accumulate qualifiers. */
+  for (;;) {
+    if (type->kind == (a_type_kind)tk_typeref) {
+      qualifiers |= type->variant.typeref.qualifiers;
+      if (type->variant.typeref.explicit_memory_attribute_made_implicit) {
+        /* A memory attribute was explicitly specified in the source but
+           it's implied in the typeref.  Add it in. */
+        qualifiers |= is_far_type(type->variant.typeref.type) ? TQ_FAR :
+                                                                TQ_NEAR;
+      }  /* if */
+      type = type->variant.typeref.type;
+    } else if (type->kind == (a_type_kind)tk_array) {
+      /* If an array appears, the new qualifiers must be compatible with those
+         on the element type.  This is true in both C and C++. */
+      type = array_element_type(type);
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
+  return qualifiers;
+}  /* get_original_type_qualifiers */
+
+
+static void check_for_addition_of_incompatible_qualifiers(
+                                              a_type_ptr           type,
+                                              a_type_qualifier_set *qualifiers,
+                                              a_source_position    *pos)
+/*
+The memory attribute qualifiers in the set *qualifiers are about to be added
+to the indicated type.  If there is some conflict between the new qualifiers
+and the existing ones (explicit and implied), issue an error (at position
+*pos) and remove the incompatible qualifiers from *qualifiers.
+*/
+{
+  a_type_qualifier_set new_qualifiers = *qualifiers;
+
+  if (new_qualifiers & (TQ_NEAR | TQ_FAR)) {
+    /* Adding a memory attribute.  See if there is a conflicting one
+       already. */
+    a_type_qualifier_set old_qualifiers = get_original_type_qualifiers(type);
+    if (((old_qualifiers & TQ_NEAR) && (new_qualifiers & TQ_FAR)) ||
+        ((new_qualifiers & TQ_NEAR) && (old_qualifiers & TQ_FAR))) {
+      /* Incompatible memory attributes. */
+      pos_error(ec_mem_attrib_incompatible, pos);
+      new_qualifiers &= ~(TQ_NEAR | TQ_FAR);
+      *qualifiers = new_qualifiers;
+    }  /* if */
+  }  /* if */
+}  /* check_for_addition_of_incompatible_qualifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -2015,6 +2082,7 @@ unbound qualifiers are just thrown away.
   a_variable_ptr		based_var = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_type_qualifier_set		pending_qualifiers;
+  a_source_position		pending_qualifiers_pos;
   a_call_conv_descr		ccd;
   a_source_position		based_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2035,6 +2103,7 @@ unbound qualifiers are just thrown away.
          int far *p;
     */
     collect_microsoft_pointer_declarator_qualifiers(&pending_qualifiers,
+                                                    &pending_qualifiers_pos,
                                                     &ccd,
                                                     &based_var,
                                                     &based_pos);
@@ -2077,6 +2146,9 @@ unbound qualifiers are just thrown away.
            return them to the caller.  Note that qualifiers like const
            do not get here (they're handled at the end of the loop). */
         if (complete_type != NULL) {
+          check_for_addition_of_incompatible_qualifiers(complete_type,
+                                                        &pending_qualifiers,
+                                                      &pending_qualifiers_pos);
           complete_type = make_qualified_type(complete_type,
                                               pending_qualifiers);
         } else {
@@ -2220,6 +2292,7 @@ unbound qualifiers are just thrown away.
     if (microsoft_mode) {
       /* Microsoft mode allows several kinds of qualifiers. */
       collect_microsoft_pointer_declarator_qualifiers(&qualifiers,
+                                                      &pending_qualifiers_pos,
                                                       &ccd,
                                                       &based_var,
                                                       &based_pos);
@@ -3133,9 +3206,19 @@ function_lparen:
                                   &locator->source_position);
       }  /* if */
       if (inner_left_qualifiers != TQ_NONE) {
-        new_type_ptr = make_qualified_type(new_type_ptr,
-                                           inner_left_qualifiers);
-        inner_left_qualifiers = TQ_NONE;
+        if (new_type_ptr->kind == (a_type_kind)tk_array) {
+          /* A case like
+               int (__near *p)[5];
+             The qualifiers cannot be applied to the array now because they
+             go on the element type and the element type is not attached yet.
+             Leave them in inner_left_qualifiers for the next time around the
+             loop. */
+        } else {
+          /* Function case.  The qualifiers can be added now. */
+          new_type_ptr = make_qualified_type(new_type_ptr,
+                                             inner_left_qualifiers);
+          inner_left_qualifiers = TQ_NONE;
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3179,7 +3262,7 @@ function_lparen:
     if (inner_left_call_conv.call_conv != (a_calling_convention)cc_default) {
       if (complete_type != NULL) {
         update_calling_convention(&complete_type, &inner_left_call_conv,
-                                  &locator->source_position);
+                                  &declarator_pos);
       } else {
         check_assertion(left_call_conv.call_conv ==
                         (a_calling_convention)cc_default);
@@ -3188,6 +3271,9 @@ function_lparen:
     }  /* if */
     if (inner_left_qualifiers != TQ_NONE) {
       if (complete_type != NULL) {
+        check_for_addition_of_incompatible_qualifiers(complete_type,
+                                                      &inner_left_qualifiers,
+                                                      &declarator_pos);
         complete_type = make_qualified_type(complete_type,
                                             inner_left_qualifiers);
       } else {
@@ -3228,7 +3314,7 @@ function_lparen:
          type to the caller. */
       if (complete_type != NULL) {
         update_calling_convention(&complete_type, &unbound_call_conv,
-                                  &locator->source_position);
+                                  &declarator_pos);
       } else {
         *p_unbound_call_conv = unbound_call_conv;
       }  /* if */
@@ -3238,6 +3324,9 @@ function_lparen:
          type (if it exists).  If it does not exist, return the unbound
          type qualifiers to the caller. */
       if (complete_type != NULL) {
+        check_for_addition_of_incompatible_qualifiers(complete_type,
+                                                      &unbound_qualifiers,
+                                                      &declarator_pos);
         complete_type = make_qualified_type(complete_type, unbound_qualifiers);
       } else {
         *p_unbound_qualifiers = unbound_qualifiers;
