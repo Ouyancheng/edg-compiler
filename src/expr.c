@@ -10591,6 +10591,14 @@ EOPT_DISALLOW_COMMA_OPERATOR).
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(operand_1);
     operand_will_not_be_used_because_of_error(&operand_2);
+  } else if (!C_mode() && is_template_dependent_context() &&
+             (is_or_contains_template_param(operand_1->type) ||
+              is_or_contains_template_param(operand_2.type))) {
+    /* If either operand has a template parameter type, just produce
+       an expression with a generic operator. */
+    template_binary_operation((an_expr_operator_kind)eok_comma,
+                              operand_1, &operand_2,
+                              result, &operator_position);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         (is_overloadable_type_operand(operand_1) ||
