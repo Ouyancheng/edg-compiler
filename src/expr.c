@@ -4879,7 +4879,8 @@ C-style casts and C++ functional-notation type conversions.
                                                                variant.routine;
           a_symbol_ptr  rout_sym =
                             (a_symbol_ptr)(routine->source_corresp.assoc_info);
-          pos_warning(ec_bad_cast, start_position);
+          pos_warning(ec_ptr_to_member_cast_to_ptr_to_function,
+                      start_position);
           make_function_designator_operand(rout_sym,
                                          (a_boolean)operand->is_qualified_name,
                                            start_position,

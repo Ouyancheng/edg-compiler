@@ -25,17 +25,24 @@
 # "REMOVED;".  This will retain its sequence number but eliminate it from
 # the generated tables.
 #
-# The tag is an alias for a given error code that is used by the command
-# line processing routines to override the severity of a diagnostic.  If
-# no tag is specified, the error code (with the ec_ removed) is used as
-# the tag.
+# The tag is an alias for a given error code to be used by the end-user
+# to name that error in the command-line options that change the severities
+# of diagnostics.  If no tag is specified, the error code (with the "ec_"
+# removed) is used as the tag.
 #
 # Some messages are used as part of the message formatting process.  These
-# messages should have a tag oF INTERNAL.  This stops the message from
+# messages should have a tag of INTERNAL.  This stops the message from
 # being entered in the tag table and also prevents the message from appearing
 # in the automatically generated documentation file.
 #
 # Any quote characters within the text string must be escaped.
+#
+# The text string includes markers indicating the location of fill-ins
+# in the message (e.g., %t for a type).  Full information on those fill-in
+# codes can be found in the internal documentation.  The sequence
+# \='something' following a fill-in code indicates specific text (in LaTeX
+# form) to be used for that fill-in when the message is shown in the error
+# messages appendix of the internal documentation.
 #
 # Lines that begin with a "#", and blank lines, are ignored by mk_errinfo.
 #
@@ -657,6 +664,7 @@ ec_cl_invalid_error_tag;;"invalid error tag: "
 ec_cl_invalid_error_number;;"invalid error number: "
 ec_param_type_ptr_to_array_of_unknown_bound;;"parameter type involves pointer to array of unknown bound"
 ec_param_type_ref_array_of_unknown_bound;;"parameter type involves reference to array of unknown bound"
+ec_ptr_to_member_cast_to_ptr_to_function;;"pointer-to-member-function cast to pointer to function"
 
 ###############################################################################
 #                                                             \  ___  /       #
