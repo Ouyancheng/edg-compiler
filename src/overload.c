@@ -3668,8 +3668,11 @@ an lvalue as its first operand, e.g., "LAA;PI;IP".
   if (unary_operator) {
     switch (kind) {
       case onk_plus:
+        /* Unary "+" takes an arithmetic or pointer (sic!) operand. */
+        operand_type_pattern = "A;P";
+        break;
       case onk_minus:
-        /* Unary "+" and "-" take an arithmetic operand. */
+        /* Unary "-" takes an arithmetic operand. */
         operand_type_pattern = "A";
         break;
       case onk_not:
