@@ -1810,7 +1810,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
 
 static void check_and_set_sun_mode_options()
 /*
-Set the option needed to emulate the pecularities of the Sun CC 5.0 compiler,
+Set the option needed to emulate the peculiarities of the Sun CC 5.0 compiler,
 and check that no other modes conflict with this one.  (The processing of
 some modes, like ANSI, exclude the Sun mode already.  Hence those are not
 checked again here.)
