@@ -1,5 +1,14 @@
 Version 2.39
 
+2/17/98   Small bugs in supplying source range information
+
+A number of small bugs have been fixed in supplying source range
+information when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  They involved:
+  -- non-standard enum declarations
+  -- bit-field declarator with an explcit length
+  -- identifier of a conversion function
+  -- a "vacuous" class declaration that follows the class's definition
+
 2/16/98   Access check on elided constructor in strict mode
 
 A change in the processing for copy-initialization, made in version 2.38
