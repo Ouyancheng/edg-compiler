@@ -156,9 +156,9 @@ so the integer representation is just some host integral type.
 typedef unsigned long an_integer_value;
 typedef long a_signed_integer_value;
 /* Minimum and maximum values that can be represented in an_integer_value. */
-#define MAX_INTEGER_VALUE MAX_LONG
-#define MIN_INTEGER_VALUE MIN_LONG
-#define MAX_UNSIGNED_INTEGER_VALUE MAX_ULONG
+#define MAX_INTEGER_VALUE LONG_MAX
+#define MIN_INTEGER_VALUE LONG_MIN
+#define MAX_UNSIGNED_INTEGER_VALUE ULONG_MAX
 /* The printf formatting specifier to be used to print the integer type. */
 #define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%ld"  /* long */
 #define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%lu"  /* unsigned long */
