@@ -7709,6 +7709,7 @@ locator_for_curr_id.
   pip->identifier_range.start = null_source_position;
   pip->identifier_range.end = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  pip->old_style_id_pos = null_source_position;
   db_exit();
   return(pip);
 }  /* alloc_param_id */

@@ -852,6 +852,12 @@ typedef struct a_param_id {
 			   of declaration, to be transferred to the associated
 			   parameter variable entry if one is created. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_source_position
+		old_style_id_pos;
+			/* For an old-style parameter, the source position of
+			   the initial reference (i.e., of the declaration
+			   within the parenthesized comma-list of parameter
+			   names). */
 } a_param_id;
 
 
