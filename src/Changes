@@ -1,5 +1,11 @@
 Version 3.2
 
+2/20/03  Use of uninitialized variable in process_overloaded_operator_arrow
+
+Some code in process_overloaded_operator_arrow (used to check the
+left operand of the "->" operator for overloading) used an uninitialized
+structure in some cases, which could lead to a crash.  Now fixed.
+
 2/20/03  Abort in extract_constant_from_operand, "?" operator in C mode
 
 An abort in extract_constant_from_operand has been fixed.  The

@@ -2072,11 +2072,11 @@ is the "->".
                                      &pos_curr_token,
                                      tsn,
                                      &result, &processed);
-      set_operand_position(&result, &operand->position, &end_pos_curr_token,
-                           &pos_curr_token);
     }  /* if */
     if (processed) {
       /* An operator-> function was found and applied. */
+      set_operand_position(&result, &operand->position, &end_pos_curr_token,
+                           &pos_curr_token);
       copy_operand(&result, operand);
       /* Check that the return type of the operator-> function is valid. */
       if (!is_valid_op_arrow_return_type(result.type)) {
