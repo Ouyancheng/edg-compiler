@@ -661,6 +661,9 @@ already exists.
     check_assertion_str2(f_template_info != NULL,
                          "close_or_remove_template_info_file:",
                          "tempate info file not opened");
+    if (fclose(f_template_info)) {
+      str_catastrophe(ec_file_write_error, "template information file");
+    }  /* if */
   } else {
     /* Delete any old version of the template information file. */
     if (is_regular_file(template_info_file_name)) {
