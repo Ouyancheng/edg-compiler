@@ -705,7 +705,9 @@ typedef struct a_symbol a_symbol_dummy_typedef;
 typedef struct a_type a_type_dummy_typedef;
 typedef struct a_source_file a_source_file_dummy_typedef;
 
-extern struct a_type *unqualified_display_type(struct a_type *type);
+extern struct a_type *unqualified_display_type(
+                                            struct a_type *type,
+                                            a_boolean     drop_local_typedefs);
 
 extern char *format_type_string(struct a_type *type,
                                 sizeof_t      *len_ptr);

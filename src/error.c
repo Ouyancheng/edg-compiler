@@ -2575,16 +2575,19 @@ do_tag_name:
 }  /* form_type_specifier */
 
 
-a_type_ptr unqualified_display_type(a_type_ptr type)
+a_type_ptr unqualified_display_type(a_type_ptr type,
+                                    a_boolean  drop_local_typedefs)
 /*
 Drop type qualifiers but not typedefs from the indicated type and return
 what's left.  This is used to remove type qualifiers to get to the underlying
-type for display purposes.
+type for display purposes.  Function-local typedefs are also dropped if
+drop_local_typedefs is TRUE.
 */
 {
   /* Drop type qualifiers but stop on a typedef. */
   while (type->kind == (a_type_kind)tk_typeref &&
-         type->source_corresp.name == NULL) {
+         (type->source_corresp.name == NULL ||
+          (drop_local_typedefs && type->source_corresp.is_local_to_function))){
     type = type->variant.typeref.type;
   }  /* while */
   return type;
@@ -2601,7 +2604,8 @@ Add the first of possibly two parts of a type reference.
   a_type_ptr local_type, unqualified_type;
 
   /* Drop type qualifiers but not typedefs. */
-  unqualified_type = unqualified_display_type(type);
+  unqualified_type = unqualified_display_type(type,
+                                              /*drop_local_typedefs=*/FALSE);
   if (unqualified_type->kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
     local_type = unqualified_type->variant.pointer.type;
@@ -2671,7 +2675,7 @@ array, print out the dimension information.
   a_type_ptr local_type;
 
   /* Drop type qualifiers but not typedefs. */
-  type = unqualified_display_type(type);
+  type = unqualified_display_type(type, /*drop_local_typedefs=*/FALSE);
   if (type->kind == (a_type_kind)tk_pointer) {
     local_type = type->variant.pointer.type;
     if (need_parens) add_string_to_segment(")", seg_ptr);
