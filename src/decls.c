@@ -1878,6 +1878,8 @@ scope is that of a class definition.
   /* If a pragma indicating special argument checking appeared (e.g.,
      for printf args), remember that in the function type. */
   extra_info->arg_pragma = arg_pragma;
+  if (is_constructor) extra_info->assoc_routine_is_ctor = TRUE;
+  if (is_destructor) extra_info->assoc_routine_is_dtor = TRUE;
   arg_pragma = (an_arg_pragma_kind)apk_none;
   extra_info->param_type_list = NULL;
   if (curr_token == tok_rparen) {
@@ -8420,6 +8422,12 @@ and for the instantiation of template functions.
     fixup_parameters(scope_ptr->variant.routine.parameters,
                      rtsp->param_type_list);
   }  /* if */
+  check_assertion(rtsp->assoc_routine_is_ctor ==
+                  (rout_ptr->special_kind ==
+                                   (a_special_function_kind)sfk_constructor));
+  check_assertion(rtsp->assoc_routine_is_dtor ==
+                  (rout_ptr->special_kind ==
+                                   (a_special_function_kind)sfk_destructor));
   /* Enter the constructor initializers.  If the current token is a ":",
      explicit initialization for the constructor follows, but even without
      an explicit initializer, any implicit initializers should be recorded. */
