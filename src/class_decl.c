@@ -3910,7 +3910,8 @@ static void decl_static_data_member(a_symbol_locator *locator,
                                     an_access_specifier access,
                                     a_boolean        is_nonreal_class,
                                     a_symbol_ptr     corresp_prototype_tag_sym,
-                                    a_source_sequence_entry_ptr  ssep)
+                                    a_source_sequence_entry_ptr  ssep,
+                                    a_decl_flag_set  dso_flags)
 /*
 Do processing for a static data member, including entering it in the symbol
 table.
@@ -3976,6 +3977,7 @@ table.
       }  /* if */
     }  /* if */
   }  /* if */
+  update_microsoft_variable_info(var, dso_flags);
   /* Check for the case in which the type is or contains a routine type for
      which default arguments have been specified. */
   if (curr_routine_fixup != NULL &&
@@ -6596,7 +6598,7 @@ Scan the body of a class definition, including the base classes list.
               decl_static_data_member(&locator, class_type, local_type,
                                       access, is_nonreal_instantiation,
                                       corresp_prototype_tag_sym,
-                                      declarator_ssep);
+                                      declarator_ssep, dso_flags);
             } else {
               /* Non-static data member (= field). */
               /* The type specified must be complete. */

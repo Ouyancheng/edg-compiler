@@ -2018,6 +2018,7 @@ type based on the template argument list and the template parameter list
   a_template_instance_ptr           tip;
   a_routine_ptr                     templ_rout, rp;
   a_type_ptr			    rout_type = NULL;
+  a_decl_flag_set		    dso_flags;
 
   db_enter(4, "make_template_function");
 #if CHECKING
@@ -2049,7 +2050,6 @@ type based on the template argument list and the template parameter list
        because additional error checking is done during the declaration
        processing. */
     a_decl_flag_set	do_flags;
-    a_decl_flag_set	dso_flags;
     a_symbol_locator    locator;
     a_func_info_block	func_info;
     a_storage_class     storage_class;
@@ -2090,6 +2090,8 @@ type based on the template argument list and the template parameter list
   rp->is_template_function = TRUE;
   set_source_corresp(&rp->source_corresp, sym);
   rp->source_corresp.name_linkage = templ_rout->source_corresp.name_linkage;
+  /* Update the Microsoft attribute information. */
+  update_microsoft_routine_info(rp, dso_flags);
   /* Add it to the file scope routines list. */
   add_to_routines_list(rp, /*at_file_scope=*/TRUE);
   /* Create the associated function instantiation entry and link it
