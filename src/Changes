@@ -1,5 +1,19 @@
 Version 2.30
 
+8/13/95  C++-generating back end: bug in computing hidden-name info
+
+The front-end routine that, given a declaration, computes hidden-name
+information for that entity and/or other entities of the same, has been
+reworked (partly to provide support in conjunction with namespaces), and   
+as a result a few bugs have been fixed -- for instance, correct C++ code
+is now generated for:
+
+  int main() {
+    int A = 27;
+    enum A { B=32 };
+    enum A o = B;
+  }
+
 8/13/95  C++-generating back end: Bug with array --> pointer decay as lvalue
 
 The C++-generating back end has been fixed to deal properly with
