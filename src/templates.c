@@ -1594,6 +1594,7 @@ static a_boolean function_template_declaration(a_symbol_ptr  *sym)
   } else {
     decl_function_template(&locator, type, sym, storage_class,
                            (dso_flags & DSO_INLINE) != 0);
+    if (is_error_locator(locator)) err = TRUE;
     tssp = (*sym)->variant.template.extra_info;
     tssp->variant.function.decl_token_cache = local_token_cache;
     tssp->variant.function.func_info = func_info;
@@ -1933,26 +1934,32 @@ entry is pushed on the scope stack.
     /* The declaration was successfully scanned as a class template
        declaration. */
   } else if (function_template_declaration(&sym)) {
-    /* Go back through the template params and be sure there are only type
-       args.  The other kind is allowed only for class templates. */
-    tssp = sym->variant.template.extra_info;
-    tssp->parameters = template_param_list;
-    tssp->declaration_scope = scope_stack[decl_scope_level].number;
-    rout_type = tssp->variant.function.routine->type;
-    for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
-      param_sym = tpp->param_symbol;
-      if (param_sym->kind != (a_symbol_kind)sk_type) {
-        pos_error(ec_not_a_type_arg, &param_sym->decl_position);
-      } else if (!param_sym->referenced ||
-                 (template_param_appears_in_type_tree(
+    if (sym->class_of_which_a_member != NULL) {
+      /* Out-of-line definition of a member function of a class template.
+         Don't impose requirements on the use of template parameters in the
+         parameters. */
+    } else {
+      /* Go back through the template params and be sure there are only type
+         args.  The other kind is allowed only for class templates. */
+      tssp = sym->variant.template.extra_info;
+      tssp->parameters = template_param_list;
+      tssp->declaration_scope = scope_stack[decl_scope_level].number;
+      rout_type = tssp->variant.function.routine->type;
+      for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
+        param_sym = tpp->param_symbol;
+        if (param_sym->kind != (a_symbol_kind)sk_type) {
+          pos_error(ec_not_a_type_arg, &param_sym->decl_position);
+        } else if (!param_sym->referenced ||
+                   (template_param_appears_in_type_tree(
                                     param_sym->variant.type,
                                     rout_type->variant.routine.return_type) &&
-                  !template_param_appears_in_param_list(
+                    !template_param_appears_in_param_list(
                                     param_sym->variant.type, rout_type))) {
-        pos_sy2_error(ec_not_used_in_template_function_params,
-                     &param_sym->decl_position, param_sym, sym);
-      }  /* if */
-    }  /* for */
+          pos_sy2_error(ec_not_used_in_template_function_params,
+                       &param_sym->decl_position, param_sym, sym);
+        }  /* if */
+      }  /* for */
+    }  /* if */
   } else {
     /* Error. */
   }  /* if */
