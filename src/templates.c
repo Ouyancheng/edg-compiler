@@ -5524,9 +5524,14 @@ instantiated.
   for (arg_num = 1; ptp != NULL; ptp = ptp->next, arg_num++) {
     if (ptp == param) break;
   }  /* for */
-  /* Reset the flag that indicates that this default value has not yet
-     been evaluated. */
-  ptp->has_unevaluated_template_default = FALSE;
+  if (ptp->default_being_instantiated) {
+    /* This default argument (for this instance) is already being instantiated.
+       Don't attempt another instantiation. */
+    error(ec_recursive_def_arg_instantiation);
+    goto done;
+  }  /* if */
+  /* Indicate that an instantiation of this default argument is pending. */
+  ptp->default_being_instantiated = TRUE;
   tip = rout_sym->variant.routine.instance_ptr;
   check_assertion(tip != NULL);
   template_sym = tip->template_sym;
@@ -5599,6 +5604,11 @@ instantiated.
     /* Pop the template instantiation scope. */
     pop_template_instantiation_scope();
   }  /* if */
+done:
+  /* Reset the flag that indicates that this default value has not yet
+     been evaluated. */
+  ptp->has_unevaluated_template_default = FALSE;
+  ptp->default_being_instantiated = TRUE;
 }  /* instantiate_default_argument */
 
 

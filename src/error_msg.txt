@@ -1054,6 +1054,7 @@ ec_cl_sun_incompatible_with_cfront;;"Sun mode is incompatible with cfront mode"
 ec_cl_strict_ansi_incompatible_with_sun;;"strict ANSI mode is incompatible with Sun mode"
 ec_cl_sun_mode_only_in_cplusplus;;"Sun mode is only allowed when compiling C++"
 ec_template_template_param_same_name_as_templ_param;;"a template template parameter cannot have the same name as one of its template parameters"
+ec_recursive_def_arg_instantiation;;"recursive instantiation of default argument"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

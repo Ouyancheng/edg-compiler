@@ -2141,6 +2141,9 @@ typedef struct a_param_type {
 			   (and semantically checked) only if the default
 		           value is needed.  This flag is TRUE if the default
 			   value is present, but has not yet been evaluated. */
+  a_bit_field	default_being_instantiated:1;
+			/* TRUE if the default argument is in the process of
+			   being instantiated. */
   a_bit_field	type_involves_deduced_template_param:1;
 			/* TRUE if the type entry associated with the
 			   parameter involves a template parameter in a

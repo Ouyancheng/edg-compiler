@@ -556,6 +556,7 @@ at file scope.
   ptp->passed_via_copy_constructor = FALSE;
   ptp->has_default_arg = FALSE;
   ptp->has_unevaluated_template_default = FALSE;
+  ptp->default_being_instantiated = FALSE;
   ptp->type_involves_deduced_template_param = FALSE;
   ptp->qualifiers = TQ_NONE;
 #if CHECKING
