@@ -1904,7 +1904,8 @@ evaluated (but not checked to see if the match is good enough).
         /* The extension allowing a standard conversion of a derived class to
            a base class was used. */
         arg_match->match_level = aml_std_conversion;
-        determine_downward_cast_derivation(arg_type, param_type, arg_match);
+        arg_match->downward_cast_derivation =
+                                            base_class_conv_needed->derivation;
       } else {
         /* Normal case: exact match. */
         arg_match->match_level = aml_exact;
