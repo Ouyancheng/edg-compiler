@@ -6770,6 +6770,24 @@ End a name scope by popping an entry off the scope stack.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   }  /* for */
   il_scope = ssep->il_scope;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if DEBUG
+  if (debug_level >= 3) {
+    if (il_scope != NULL) {
+      a_source_sequence_entry_ptr  src_seq_ptr;
+
+      src_seq_ptr = il_scope->source_sequence_list;
+      if (src_seq_ptr != NULL) {
+        fprintf(f_debug, "source sequence list:\n");
+        for (; src_seq_ptr != NULL; src_seq_ptr = src_seq_ptr->next) {
+          fputs("  ", f_debug);
+          db_source_sequence_entry(src_seq_ptr);
+        }  /* for */            
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (ssep->first_scope != NULL) {
     /* Transfer the list of scopes nested within the current scope
        to the IL scope entry if there is one, or otherwise add it to
@@ -7146,6 +7164,60 @@ for the symbol.
   }  /* if */
   /* Put the decl_position in the symbol. */
   if (save_as_decl_position) {
+    /* This is a defining declaration. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (sym_ptr->decl_position.seq != source_position->seq ||
+        sym_ptr->decl_position.column != source_position->column) {
+      /* What's more, it is a definition that follows a previous declaration.
+         The previous declaration should be recorded as a secondary. */
+      a_source_correspondence       *scp;
+      a_source_sequence_entry_ptr   ssep;
+      a_src_seq_secondary_decl_ptr  sssdp;
+
+      scp = source_corresp_entry_for_symbol(sym_ptr);
+      if (scp != NULL && (ssep = scp->source_sequence_entry) != NULL) {
+        /* A source sequence entry has been located. */
+        if (ssep->entity.kind !=
+                           (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
+          /* It is not already a secondary declaration, so create one.
+             Current:               Change to:
+
+                 entity                       entity
+                    ^                           ^
+                    |                           |
+                    |         ==>       src-seq-secondary-decl
+                    |                           ^
+                    v                           |
+               src-seq-entry             src-seq-entry
+
+             which eventually will look like this:
+
+                                    entity
+                                     ^   ^
+                                     |   |
+                  src-seq-secondary-decl |
+                          ^              |
+                          |              v
+                   src-seq-entry ... src-seq-entry
+
+             where the second source-sequence-entry in the new construct
+             (the one at which the entity will point back) has not yet been
+             created at this point in the processing. */
+          sssdp = alloc_src_seq_secondary_decl();
+          sssdp->decl_position = sym_ptr->decl_position;
+          sssdp->entity = ssep->entity;
+          /* Update the tagged-pointer of the current source sequence entry
+             to refer to the secondary-decl entry. */
+          ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+          ssep->entity.ptr = (char *)sssdp;
+          /* Note that there is no back pointer from the entity to the
+             secondary-decl entry.   When the new source sequence entry is
+             created, the back pointer will refer to it. */
+          scp->source_sequence_entry = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     sym_ptr->decl_position = *source_position;
   }  /* if */
 }  /* mark_declared */
