@@ -9192,7 +9192,7 @@ Do IL lowering of the indicated statement and everything under it.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       case stmk_set_vla_size:        /* Not expected in C++. */
       case stmk_alloc_vla_variable:  /* Not expected in C++. */
-      case stmk_vla_typedef:         /* NOt expected in C++. */
+      case stmk_vla_typedef:         /* Not expected in C++. */
 #if CHECKING
       default:
         internal_error("lower_statement: bad kind");
