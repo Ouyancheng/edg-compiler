@@ -86,12 +86,12 @@ typedef struct a_param_id {
 
 typedef struct a_func_info_block *a_func_info_block_ptr;
 typedef struct a_func_info_block {
+  a_type_ptr	class_ptr;
+			/* Pointer to a class (or struct or union) type
+			   entry if this is a member function; NULL for
+			   all other functions.  This field is set by the
+                           caller of function_declarator. */
   /* Information about the parameter list in a function declarator. */
-  a_scope_number
-		scope_number;
-			/* The scope number used for the function prototype
-			   scope for the parameters, to be reused for the
-			   function scope if a body is found. */
   a_symbol_ptr	prototype_scope_symbols;
 			/* List of symbols in the prototype scope, linked
 			   on the next_in_scope field.  NULL if none.
@@ -103,6 +103,11 @@ typedef struct a_func_info_block {
 			/* List of entries giving parameter names, NULL if
 			   there were none.  Used for both old-style and
 			   new-style parameter names. */
+  a_scope_number
+		scope_number;
+			/* The scope number used for the function prototype
+			   scope for the parameters, to be reused for the
+			   function scope if a body is found. */
   a_byte_boolean
 		any_prototype_names_omitted;
 			/* TRUE if the parameter list is a prototype list,
