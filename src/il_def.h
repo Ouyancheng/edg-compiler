@@ -1120,7 +1120,7 @@ typedef struct a_class_type_supplement {
 			   be the offset to a pointer to a virtual function
 			   table.)  If virtual_function_info_base_class is
 			   non-NULL, this is still the offset within the
-			   current classs.  If virtual_function_count is zero
+			   current class.  If virtual_function_count is zero
 			   this field is undefined.  */
   a_base_class_ptr
 		virtual_function_info_base_class;
@@ -1129,7 +1129,8 @@ typedef struct a_class_type_supplement {
 			   if the current class uses the virtual function
 			   table pointer of its base class), this is the
 			   base class involved in the sharing.  It is not
-			   necessarily a direct base class. */
+			   necessarily a direct base class.  This field is
+			   NULL if the virtual function info is not shared. */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous
