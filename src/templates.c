@@ -5291,6 +5291,26 @@ existing type is simply used.
 }  /* rescan_template_type_default_arg */
 
 
+static a_boolean template_param_used_in_type(a_symbol_ptr param_sym,
+                                             a_type_ptr   tp)
+/*
+Returns TRUE if the template parameter specified by param_sym is used in
+the type specified by tp.
+*/
+{
+  a_boolean	result;
+
+  if (param_sym->kind == (a_symbol_kind)sk_type) {
+    result =
+           is_or_contains_specific_template_param(tp, param_sym->variant.type);
+  } else {
+    result = type_contains_specific_template_param_constant(
+                                              tp, param_sym->variant.constant);
+  }  /* if */
+  return result;
+}  /* template_param_used_in_type */
+
+
 static a_boolean template_param_appears_in_param_list
 				(a_symbol_ptr param_sym,
                                  a_type_ptr   rout_type,
@@ -5307,32 +5327,14 @@ arguments.
   a_boolean         found = FALSE;
   a_boolean	    only_in_default_args;
   a_param_type_ptr  ptp;
-  a_type_ptr	    tparam_type;
-  a_constant_ptr    tparam_constant;
-  a_boolean	    is_type_param;
 
-  is_type_param = param_sym->kind == (a_symbol_kind)sk_type;
-  if (is_type_param) {
-    tparam_type = param_sym->variant.type;
-  } else {
-    tparam_constant = param_sym->variant.constant;
-  }  /* if */
   /* Only do this check if the pointer passed by the caller is non-NULL. */
   only_in_default_args = (only_used_in_default_args != NULL);
   ptp = rout_type->variant.routine.extra_info->param_type_list;
   for (; ptp != NULL; ptp = ptp->next) {
     if (ptp->type_involves_template_param) {
-      if (is_type_param) {
-        if (is_or_contains_specific_template_param(ptp->type, tparam_type)) {
-          found = TRUE;
-        }  /* if */
-      } else {
-        if (type_contains_specific_template_param_constant(ptp->type,
-                                                           tparam_constant)) {
-          found = TRUE;
-        }  /* if */
-      }  /* if */
-      if (found) {
+      if (template_param_used_in_type(param_sym, ptp->type)) {
+        found = TRUE;
         if (!ptp->has_default_arg) only_in_default_args = FALSE;
       }  /* if */
       /* If we've found all the information we are looking for then stop. */
@@ -5600,6 +5602,9 @@ when the associated function argument was omitted.
 {
   a_template_param_ptr   tpp;
   a_type_ptr	         rout_type = skip_typerefs(type);
+  a_boolean		 is_conversion_operator;
+
+  is_conversion_operator = is_special_function_symbol(sym, sfk_conversion);
   for (tpp = template_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr param_sym = tpp->param_symbol;
     a_boolean	 only_in_default_args;
@@ -5608,14 +5613,21 @@ when the associated function argument was omitted.
       pos_error(ec_default_template_arg_not_allowed,
                 &param_sym->decl_position);
     }  /* if */
-    /* Make sure that all template parameters are used by
-       function parameter types and not just by parameters
-       with default arguments.  If an error occurs set the
-       cannot_be_called flag to prevent an instantiation from
-	 being attempted with an incomplete set of template arguments. */
-    param_used = template_param_appears_in_param_list
-                                        (param_sym, rout_type,
-                                         &only_in_default_args);
+    if (is_conversion_operator) {
+      /* For conversion operator functions, the template parameters must be
+         used in the return type. */
+      param_used =  template_param_used_in_type(
+                            param_sym, rout_type->variant.routine.return_type);
+      only_in_default_args = FALSE;
+    } else {
+      /* Make sure that all template parameters are used by
+         function parameter types and not just by parameters
+         with default arguments.  If an error occurs set the
+         cannot_be_called flag to prevent an instantiation from
+         being attempted with an incomplete set of template arguments. */
+      param_used = template_param_appears_in_param_list
+                                 (param_sym, rout_type, &only_in_default_args);
+    }  /* if */
     if (!param_used) {
       pos_sy2_error(ec_not_used_in_template_function_params,
                     &param_sym->decl_position, param_sym, sym);
@@ -5861,8 +5873,9 @@ declaration.
     /* Avoid spurious errors -- skip the check for template params, since
        this might have been intended to be a member function. */
   } else {
-    /* Go back through the template params and be sure there are only
-       type args.  The other kind is allowed only for class templates. */
+    /* Go back through the template params and make sure that all of the
+       template parameters were used in a way that effects the function
+       signature. */
     check_function_template_param_usage(sym, type, template_param_list, tssp);
   }  /* if */
   *p_tssp = tssp;
