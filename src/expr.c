@@ -12697,7 +12697,11 @@ See section 3.3.16 of the standard.
         } else if (save_token == tok_shift_left_assign ||
                    save_token == tok_shift_right_assign) {
           /* <<= and >>=. */
-          if (C_dialect == C_dialect_pcc) {
+          if (C_dialect == C_dialect_pcc
+#if FIXED_POINT_ALLOWED
+              && !is_fixed_point_type(operand_1->type)
+#endif /* FIXED_POINT_ALLOWED */
+                                                      ) {
             /* In K&R first edition (see appendix A, section 7.5), the shift
                operators << and >> "perform the usual arithmetic conversions
                on their operands, each of which must be integral.  Then the

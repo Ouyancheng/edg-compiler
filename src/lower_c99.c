@@ -40,9 +40,9 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 /* Forward declarations (needed because of mutual recursion situations). */
 static void lower_c99_constant_list(a_constant_ptr constant_list);
 static void lower_c99_statement(a_statement_ptr statement);
-static void lower_c99_cast(an_expr_node_ptr expr);
 #if LOWER_FIXED_POINT
 static void lower_c99_fixed_point_constant(a_constant_ptr constant);
+static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
 #endif /* LOWER_FIXED_POINT */
 
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
@@ -410,8 +410,6 @@ types.
 #endif /* LOWER_COMPLEX || (VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS) */
 #if LOWER_COMPLEX
 
-static void lower_c99_operator(an_expr_node_ptr expr);
-
 /* Pointers to lowered versions of complex types, once allocated. */
 static a_type_ptr lowered_complex_float = NULL;
 static a_type_ptr lowered_complex_double = NULL;
@@ -533,30 +531,6 @@ static a_routine_ptr  cast_clong_double_to_long_double = NULL;
 static a_routine_ptr  cast_cfloat_to_ifloat = NULL;
 static a_routine_ptr  cast_cdouble_to_idouble = NULL;
 static a_routine_ptr  cast_clong_double_to_ilong_double = NULL;
-
-
-static an_expr_node_ptr add_c99_lowered_cast_if_necessary(
-                                                    an_expr_node_ptr node,
-                                                    a_type_ptr       new_type)
-/*
-If the given node represents an expression of a type identical to new_type,
-return the node unchanged.  Otherwise, modify the node to add a cast on top
-of it and lower that cast.
-*/
-{
-  if (!il_identical_types(node->type, new_type)) {
-    if (!is_bool_type(new_type)) {
-      /* Normal cast. */
-      node = add_cast(node, new_type);
-    } else {
-      /* Cast to bool. */
-      node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
-                                new_type, node);
-    }  /* if */
-    lower_c99_cast(node);
-  }  /* if */
-  return node;
-}  /* add_c99_lowered_cast_if_necessary */
 
 
 static char* select_name_from_float_kind(a_float_kind  fkind,
@@ -784,141 +758,6 @@ Transform the given complex expression ("z1!=z2") into a function call
                                           expr->variant.operation.operands);
   overwrite_node(expr, xne_call);
 }  /* lower_c99_xne */
-
-
-static a_boolean is_fixed_address(an_expr_node_ptr expr)
-/*
-Return TRUE if the given expression (an lvalue) is for a simple variable
-whose address does not change.  x[i], for example, is changeable because
-the value of "i" might change.  The expression must also have no side
-effects to be considered simple.  The safe answer is FALSE.
-*/
-{
-  a_boolean is_fixed = FALSE;
-
-  if (is_variable_address_node(expr)) {
-    /* Simple variable address. */
-    is_fixed = TRUE;
-  }  /* if */
-  return is_fixed;
-}  /* is_fixed_address */
-
-
-static void lower_c99_compound_assignment(an_expr_node_ptr  expr,
-                                          char              *rout_name,
-                                          a_routine_ptr     *xop_routine)
-/*
-Rewrite a compound assignment x @= y as x = x @ y.  The original
-expression is given by expr.  If necessary, use a temporary to avoid
-evaluating the left side more than once.  The name and IL entry for the
-called routine (op@) are rout_name and xop_routine, respectively.
-*/
-{
-  an_expr_node_ptr  lhs = expr->variant.operation.operands, rhs = lhs->next;
-  an_expr_node_ptr  lhs_copy, lhs_for_init = NULL, xop_call, assignment;
-  a_type_ptr        op_type = skip_typerefs(rhs->type);
-
-  if (!is_fixed_address(lhs)) {
-    /* The left-hand-side expression address is not invariant, so copy it to
-       a temporary to avoid evaluating it more than once. */
-    lhs_for_init = lhs;
-    lhs = make_lvalue_reusable_copy(lhs_for_init, /*vars_can_change=*/TRUE);
-  }  /* if */
-  lhs_copy = make_lvalue_reusable_copy(lhs, /*vars_can_change=*/TRUE);
-  lhs_copy = add_indirection_to_node(lhs_copy);
-  lhs_copy = add_c99_lowered_cast_if_necessary(lhs_copy, op_type);
-  lhs_copy->next = rhs;
-  xop_call = make_prototyped_runtime_call(rout_name, xop_routine,
-                                          op_type, op_type, op_type,
-                                          lhs_copy);
-  xop_call = add_c99_lowered_cast_if_necessary(xop_call, expr->type);
-  lhs->next = xop_call;
-  assignment =  make_operator_node(which_binary_operator(tok_assign, 
-                                                         expr->type),
-                                   expr->type, lhs);
-  /* Rewrite eok_xassign as eok_sassign. */
-  lower_c99_operator(assignment);
-  if (lhs_for_init != NULL) {
-    /* Add a comma expression to force the initialization of the temporary
-       before any part of the compound assignment is evaluated. */
-    assignment = make_comma_node(lhs_for_init, assignment);
-  }  /* if */
-  overwrite_node(expr, assignment);
-}  /* lower_c99_compound_assignment */
-
-
-static void lower_c99_xadd_assign(an_expr_node_ptr  expr)
-/*
-Transform the given complex expression ("z1 += z2") into a simple assignment
-and a function call (compatible with C89).
-*/
-{
-  a_type_ptr    op_type = expr->variant.operation.operands->next->type;
-  char          *rout_name;
-  a_float_kind  fkind;
-
-  op_type = skip_typerefs(op_type);
-  check_assertion(is_complex_type(op_type));
-  fkind = op_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(fkind, xadd_routine_name);
-  lower_c99_compound_assignment(expr, rout_name, &xadd_routine[(int)fkind]);
-}  /* lower_c99_xadd_assign */
-
-
-static void lower_c99_xsubtract_assign(an_expr_node_ptr  expr)
-/*
-Transform the given complex expression ("z1 -= z2") into a simple assignment
-and a function call (compatible with C89).
-*/
-{
-  a_type_ptr    op_type = expr->variant.operation.operands->next->type;
-  char          *rout_name;
-  a_float_kind  fkind;
-
-  op_type = skip_typerefs(op_type);
-  check_assertion(is_complex_type(op_type));
-  fkind = op_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(fkind, xsubtract_routine_name);
-  lower_c99_compound_assignment(expr, rout_name,
-                                &xsubtract_routine[(int)fkind]);
-}  /* lower_c99_xsubtract_assign */
-
-
-static void lower_c99_xmultiply_assign(an_expr_node_ptr  expr)
-/*
-Transform the given complex expression ("z1 *= z2") into a simple assignment
-and a function call (compatible with C89).
-*/
-{
-  a_type_ptr    op_type = expr->variant.operation.operands->next->type;
-  char          *rout_name;
-  a_float_kind  fkind;
-
-  op_type = skip_typerefs(op_type);
-  check_assertion(is_complex_type(op_type));
-  fkind = op_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(fkind, xmultiply_routine_name);
-  lower_c99_compound_assignment(expr, rout_name,
-                                &xmultiply_routine[(int)fkind]);
-}  /* lower_c99_xmultiply_assign */
-
-
-static void lower_c99_xdivide_assign(an_expr_node_ptr  expr)
-/*
-Transform the given complex expression ("z1 /= z2") into a simple assignment
-and a function call (compatible with C89).
-*/
-{
-  a_type_ptr    op_type = expr->variant.operation.operands->next->type;
-  char          *rout_name;
-  a_float_kind  fkind;
-
-  op_type = skip_typerefs(op_type);
-  check_assertion(is_complex_type(op_type));
-  fkind = op_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(fkind, xdivide_routine_name);
-  lower_c99_compound_assignment(expr, rout_name, &xdivide_routine[(int)fkind]);
-}  /* lower_c99_xdivide_assign */
 
 
 static void lower_c99_jmultiply(an_expr_node_ptr  expr)
@@ -1270,29 +1109,6 @@ Transform the given complex cast expression into a function call
   }  /* if */
 }  /* lower_c99_complex_cast */
 
-
-void post_lower_c99_bool_cast(an_expr_node_ptr expr)
-/*
-Called after transform_bool_cast to check for and do any additional
-lowering on the "!= 0" comparison generated, e.g., for complex values.
-*/
-{
-  check_assertion(is_operation_node(expr));
-  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_xne) {
-    /* Do further lowering for complex != 0. */
-    /* Lower the complex zero constant. */
-    lower_c99_expr(expr->variant.operation.operands->next,
-                   /*used_as_lvalue=*/FALSE);
-    lower_c99_xne(expr);
-  } else if (expr->variant.operation.kind == (an_expr_operator_kind)eok_fne&&
-             is_imaginary_type(expr->variant.operation.operands->next->type)) {
-    /* Do further lowering for imaginary != 0. */
-    /* Lower the imaginary zero constant. */
-    lower_c99_expr(expr->variant.operation.operands->next,
-                   /*used_as_lvalue=*/FALSE);
-  }  /* if */
-}  /* post_lower_c99_bool_cast */
-
 #endif /* LOWER_COMPLEX */
 #if LOWER_FIXED_POINT
 
@@ -1550,7 +1366,42 @@ destination) to a runtime call).
 
 #endif /* LOWER_FIXED_POINT */
 
-static void lower_c99_cast(an_expr_node_ptr  expr)
+void post_lower_c99_bool_cast(an_expr_node_ptr expr)
+/*
+Called from lower_bool_cast to check for and do any additional
+lowering on the "!= 0" comparison generated, e.g., for complex values.
+*/
+{
+  check_assertion(is_operation_node(expr));
+#if LOWER_COMPLEX
+  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_xne) {
+    /* Do further lowering for complex != 0. */
+    /* Lower the complex zero constant. */
+    lower_c99_expr(expr->variant.operation.operands->next,
+                   /*used_as_lvalue=*/FALSE);
+    lower_c99_xne(expr);
+  } else if (expr->variant.operation.kind == (an_expr_operator_kind)eok_fne&&
+             is_imaginary_type(expr->variant.operation.operands->next->type)) {
+    /* Do further lowering for imaginary != 0. */
+    /* Lower the imaginary zero constant. */
+    lower_c99_expr(expr->variant.operation.operands->next,
+                   /*used_as_lvalue=*/FALSE);
+  } else
+#endif /* LOWER_COMPLEX */
+  {
+#if LOWER_FIXED_POINT
+    if (expr->variant.operation.kind == (an_expr_operator_kind)eok_fxne) {
+      /* Do further lowering for fixed-point != 0. */
+      lower_c99_expr(expr->variant.operation.operands->next,
+                     /*used_as_lvalue=*/FALSE);
+      lower_c99_fixed_point_operation(expr);
+    }  /* if */
+#endif /* LOWER_FIXED_POINT */
+  }
+}  /* post_lower_c99_bool_cast */
+
+
+void lower_c99_cast(an_expr_node_ptr  expr)
 /*
 Transform the given cast expression into a function call (compatible with C89).
 */
@@ -1867,7 +1718,7 @@ incremented or decremented will no longer be one.
     case eok_psubtract_assign:
       /* Binary operators: Simply scale up the integer operand. */
       offset = expr->variant.operation.operands->next;
-      offset = add_c99_lowered_cast_if_necessary(offset, ptrdiff_type);
+      offset = add_lowered_cast_if_necessary(offset, ptrdiff_type);
       scale_factor->next = offset;
       expr->variant.operation.operands->next =
                       make_operator_node((an_expr_operator_kind)eok_imultiply,
@@ -1998,7 +1849,7 @@ done:;
 }  /* lower_runtime_sizeof */
 
 
-static void lower_c99_operator(an_expr_node_ptr  expr)
+void lower_c99_operator(an_expr_node_ptr  expr)
 /*
 The given expression should be an operation: Replace it by IL that is
 compatible with C89 IL.  Nontrivial transformations are needed (among
@@ -2031,19 +1882,14 @@ _Bool type, and VLA types.
       lower_c99_xne(expr);
       break;
     case eok_xassign:
+      /* Complex assignment becomes structure assignment. */
       expr->variant.operation.kind = (an_expr_operator_kind)eok_sassign;
       break;
     case eok_xadd_assign:
-      lower_c99_xadd_assign(expr);
-      break;
     case eok_xsubtract_assign:
-      lower_c99_xsubtract_assign(expr);
-      break;
     case eok_xmultiply_assign:
-      lower_c99_xmultiply_assign(expr);
-      break;
     case eok_xdivide_assign:
-      lower_c99_xdivide_assign(expr);
+      rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
       break;
     case eok_jmultiply:
       lower_c99_jmultiply(expr);
@@ -2088,6 +1934,16 @@ _Bool type, and VLA types.
       lower_c99_fixed_point_operation(expr);
 #endif /* LOWER_FIXED_POINT */
       break;
+    case eok_fxadd_assign:
+    case eok_fxsubtract_assign:
+    case eok_fxmultiply_assign:
+    case eok_fxdivide_assign:
+    case eok_fxshiftl_assign:
+    case eok_fxshiftr_assign:
+#if LOWER_FIXED_POINT
+      rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
+#endif /* LOWER_FIXED_POINT */
+      break;
 #endif /* FIXED_POINT_ALLOWED */
     case eok_iadd_assign:
     case eok_isubtract_assign:
@@ -2099,14 +1955,6 @@ _Bool type, and VLA types.
     case eok_and_assign:
     case eok_or_assign:
     case eok_xor_assign:
-#if FIXED_POINT_ALLOWED
-    case eok_fxadd_assign:
-    case eok_fxsubtract_assign:
-    case eok_fxmultiply_assign:
-    case eok_fxdivide_assign:
-    case eok_fxshiftl_assign:
-    case eok_fxshiftr_assign:
-#endif /* FIXED_POINT_ALLOWED */
     case eok_fadd_assign:
     case eok_fsubtract_assign:
     case eok_fmultiply_assign:
@@ -2114,7 +1962,7 @@ _Bool type, and VLA types.
       /* Compound assignments to bool don't exist in C89, and
          must be lowered to get the value reduced to 0/1. */
       if (is_bool_type(expr->type)) {
-        lower_bool_compound_assignment(expr, /*is_lvalue=*/FALSE);
+        rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
       }  /* if */
       break;
     case eok_ipost_incr:
@@ -2324,8 +2172,15 @@ constructs.
       tmp = (a_variable_ptr)constant->source_corresp.assoc_info;
     }  /* if */
     overwrite_node(expr, var_rvalue_expr(tmp));
-  }  /* if */
+  } else
 #endif /* LOWER_COMPLEX */
+  {
+#if LOWER_FIXED_POINT
+    if (fixed_point_enabled && is_fixed_point_type(expr->type)) {
+      lower_c99_constant(expr->variant.constant);
+    }  /* if */
+#endif /* LOWER_FIXED_POINT */
+  }  /* if */
 }  /* lower_c99_constant_expr */
 
 
@@ -2771,9 +2626,9 @@ storage for the given VLA variable.
   an_expr_node_ptr  result = var_lvalue_expr(vla_var), size_expr;
   a_type_ptr        size_type = integer_type(targ_size_t_int_kind);
 
-  result = add_c99_lowered_cast_if_necessary(result, void_star_type());
+  result = add_lowered_cast_if_necessary(result, void_star_type());
   size_expr = vla_size_expr(vla_var->type, /*byte_count=*/TRUE);
-  size_expr = add_c99_lowered_cast_if_necessary(size_expr, size_type);
+  size_expr = add_lowered_cast_if_necessary(size_expr, size_type);
   result->next = size_expr;
   result = make_prototyped_runtime_call("__vla_alloc", &vla_alloc_routine,
                                         void_type(), void_star_type(),
@@ -2825,7 +2680,7 @@ well).
   a_variable_ptr    vla_var = stmt->variant.vla_variable;
   an_expr_node_ptr  arg = var_lvalue_expr(vla_var);
 
-  arg = add_c99_lowered_cast_if_necessary(arg, void_star_type());
+  arg = add_lowered_cast_if_necessary(arg, void_star_type());
   set_statement_kind(stmt, (a_statement_kind)stmk_expr);
   stmt->expr = make_prototyped_runtime_call("__vla_dealloc",
                                             &vla_dealloc_routine,

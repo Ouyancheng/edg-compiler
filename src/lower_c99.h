@@ -39,16 +39,19 @@ lower_c99.h -- Declarations related to lower_c99.c.
     or_vla_lowering_needed()) &&                                             \
    !suppress_il_lowering && total_errors == 0)
 
+
+extern void lower_c99_cast(an_expr_node_ptr expr);
+
 extern void lower_c99_constant(a_constant_ptr constant);
+
+extern void lower_c99_operator(an_expr_node_ptr expr);
 
 extern void lower_c99_expr(an_expr_node_ptr expr,
                            a_boolean        used_as_lvalue);
 
 extern void lower_c99_full_expr(an_expr_node_ptr expr);
 
-#if LOWER_COMPLEX
 void post_lower_c99_bool_cast(an_expr_node_ptr expr);
-#endif /* LOWER_COMPLEX */
 
 extern void lower_c99_il_memory_region(a_memory_region_number region_number);
 

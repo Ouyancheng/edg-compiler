@@ -350,8 +350,10 @@ static void change_node_to_operation(an_expr_node_ptr      node,
                                      an_expr_operator_kind op,
                                      a_type_ptr            type,
                                      an_expr_node_ptr      operand);
-static a_boolean is_assignment_to_temp(an_expr_node_ptr expr,
-                                       a_variable_ptr   *temp_var);
+static an_expr_node_ptr make_reusable_copy_full(
+                                             an_expr_node_ptr expr,
+                                             a_boolean        vars_can_change,
+                                             an_expr_node_ptr *temp_init_node);
 static void lower_type(a_type_ptr type);
 static void lower_os_constant(a_constant_ptr constant);
 static void lower_variable(a_variable_ptr variable);
@@ -374,6 +376,8 @@ static void lower_boolean_controlling_expr(an_expr_node_ptr expr,
 static void lower_related_class_cast(an_expr_node_ptr node,
                                      a_boolean        is_lvalue,
                                      a_boolean        lower_source);
+static void change_result_type_of_operator_returning_bool(
+                                                        an_expr_node_ptr expr);
 static void adjust_bool_operation_types(an_expr_node_ptr expr,
                                         a_boolean        *p_adjusted,
                                         a_boolean        see_if_possible);
@@ -1954,6 +1958,35 @@ Change an existing node into a cast of operand_node to new_type.
 }  /* change_to_cast */
 
 
+an_expr_node_ptr add_lowered_cast_if_necessary(an_expr_node_ptr node,
+                                               a_type_ptr       new_type)
+/*
+If the given node represents an expression of a type identical to new_type,
+return the node unchanged.  Otherwise, modify the node to add a cast on top
+of it and lower that cast.  A cast to bool type (in either C++ or C99
+mode) forces the value to be 0/1 even if it was already of bool type.
+*/
+{
+  /* This doesn't currently handle C++ things like related-class casts. */
+  if (!is_bool_type(new_type)) {
+    if (!il_identical_types(node->type, new_type)) {
+        /* Normal cast. */
+      node = add_cast(node, new_type);
+      if (C_mode()) {
+        lower_c99_cast(node);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Cast to bool. */
+    node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
+                              new_type, node);
+    lower_bool_cast(node);
+    if (!C_mode()) change_result_type_of_operator_returning_bool(node);
+  }  /* if */
+  return node;
+}  /* add_c99_lowered_cast_if_necessary */
+
+
 an_expr_node_ptr add_cast_to_char_star(an_expr_node_ptr node)
 /*
 Add a cast to "char *" to the node and return the cast node.  If the
@@ -2397,14 +2430,8 @@ object if complete_object is TRUE.  Return a pointer to the new node.
     /* IA-64 ABI. */
     temp_init_node = NULL;
     /* Get the offset to the virtual base out of the virtual table. */
-    second_use = make_reusable_copy(node, /*vars_can_change=*/FALSE);
-    if (is_assignment_to_temp(node, &temp_var)) {
-      /* The node expression is complex and a temporary was used.
-         We will have to use a comma expression to ensure that the
-         temporary is set before the use in the "+". */
-      temp_init_node = node;
-      node = var_rvalue_expr(temp_var);
-    }  /* if */
+    second_use = make_reusable_copy_full(node, /*vars_can_change=*/FALSE,
+                                         &temp_init_node);
     vbase_offset = make_vtbl_entry_expr(second_use,
                                         bcp->vbase_offset_index);
     /* The vbase offset is stored in bytes.  Cast node to a "char*" so
@@ -2627,6 +2654,16 @@ indicated type.
   if (op == (an_expr_operator_kind)eok_pmassign) {
     /* Pointer-to-member assignment.  Lower now. */
     op = lowered_ptr_to_member_assignment_operator(type);
+#if LOWER_FIXED_POINT
+  } else if (op == (an_expr_operator_kind)eok_fxassign) {
+    /* Fixed-point assignment becomes integer assignment. */
+    op = (an_expr_operator_kind)eok_iassign;
+#endif /* LOWER_FIXED_POINT */
+#if LOWER_COMPLEX
+  } else if (op == (an_expr_operator_kind)eok_xassign) {
+    /* Complex assignment becomes structure assignment. */
+    op = (an_expr_operator_kind)eok_sassign;
+#endif /* LOWER_COMPLEX */
   }  /* if */
   return op;
 }  /* lowered_assignment_operator */
@@ -2637,7 +2674,7 @@ static a_boolean is_assignment_to_temp(an_expr_node_ptr expr,
 /*
 If the expression expr is an assignment to a temporary, set *temp_var
 pointing to the temporary variable and return TRUE.  Otherwise, return
-FALSE.
+FALSE and *temp_var set to NULL.
 */
 {
   a_boolean is_assign_to_temp = FALSE;
@@ -2715,8 +2752,10 @@ temporary.
 }  /* assign_expr_to_temp_and_make_expr_for_reuse */
 
 
-an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
-                                    a_boolean        vars_can_change)
+static an_expr_node_ptr make_reusable_copy_full(
+                                              an_expr_node_ptr expr,
+                                              a_boolean        vars_can_change,
+                                              an_expr_node_ptr *temp_init_node)
 /*
 Return a copy of the expression tree pointed to by expr.  If the expression
 has side effects, or if its value is affected by the values of variables
@@ -2724,12 +2763,17 @@ and vars_can_change is TRUE, the original expression will be changed so
 that its value is stored in a temporary, and the copy will reference the
 temporary.  expr should be an rvalue (although make_lvalue_reusable_copy
 calls this routine after it has discarded the troublesome lvalue cases).
-vars_can_change TRUE is used when arbitrary user code might be
-executed in the interval between the original use of the variable and
-the use of the copy.  If, on the other hand, only code generated by
-IL lowering will execute in that interval, one can know that no variables
-used in the expression will be altered and vars_can_change should be
-FALSE.
+vars_can_change TRUE means arbitrary user code might be executed in the
+interval between the original use of the variable and the use of the copy.
+If, on the other hand, only code generated by IL lowering will execute in
+that interval, one can know that no (user) variables used in the expression
+will be altered and vars_can_change should be FALSE.  If temp_init_node
+is non-NULL, expr and the place where the copy will be used are unordered
+with respect to one another; any temporary initialization code is
+therefore moved out of expr as well and returned in *temp_init_node
+(if *temp_init_node is non-NULL already, the new code is added to the code
+already there).  The caller should then arrange to insert the initialization
+code somewhere where it will be executed before both expr and the copy.
 */
 {
   an_expr_node_ptr expr_copy;
@@ -2750,20 +2794,57 @@ FALSE.
   } else {
     /* Change the original expression to assign the value to a temporary,
        and use the temporary for the reuse. */
-    expr_copy = assign_expr_to_temp_and_make_expr_for_reuse(expr);
+    temp_var = assign_expr_to_temp(expr);
+    expr_copy = var_rvalue_expr(temp_var);
+    if (temp_init_node != NULL) {
+      /* Move the initialization of the temporary onto the temp_init_node
+         list, and replace expr itself by a reference to the temporary. */
+      an_expr_node_ptr init = copy_node(expr);
+      overwrite_node(expr, var_rvalue_expr(temp_var));
+      if (*temp_init_node == NULL) {
+        *temp_init_node = init;
+      } else {
+        /* Add the initialization code to the list of existing code. */
+        *temp_init_node = make_comma_node(*temp_init_node, init);
+      }  /* if */
+    }  /* if */
   }  /* if */
+  return expr_copy;
+}  /* make_reusable_copy_full */
+
+
+an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
+                                    a_boolean        vars_can_change)
+/*
+Simpler interface to make_reusable_copy_full, without the temp_init_node
+parameter.
+*/
+{
+  an_expr_node_ptr expr_copy;
+
+  expr_copy = make_reusable_copy_full(expr, vars_can_change,
+                                      (an_expr_node_ptr *)NULL);
   return expr_copy;
 }  /* make_reusable_copy */
 
 
-an_expr_node_ptr make_lvalue_reusable_copy(an_expr_node_ptr expr,
-                                           a_boolean        vars_can_change)
+static an_expr_node_ptr make_lvalue_reusable_copy_full(
+                                              an_expr_node_ptr expr,
+                                              a_boolean        vars_can_change,
+                                              an_expr_node_ptr *temp_init_node)
 /*
 Return a copy of the expression tree pointed to by expr.  If the expression
 has side effects, or if its value is affected by the values of variables
 and vars_can_change is TRUE, the original expression will be changed so
 that its value is stored in a temporary, and the copy will reference the
-temporary.  expr should be an lvalue.
+temporary.  expr should be an lvalue.  If temp_init_node is non-NULL,
+expr and the place where the copy will be used are unordered with
+respect to one another; any temporary initialization code is therefore
+moved out of expr as well and returned in *temp_init_node (if
+*temp_init_node is non-NULL already, the new code is added to the code
+already there).  The caller should then arrange to insert the
+initialization code somewhere where it will be executed before both
+expr and the copy.
 */
 {
   a_boolean             special_case = FALSE;
@@ -2779,7 +2860,8 @@ temporary.  expr should be an lvalue.
          address, then add the bit field selection to that. */
       special_case = TRUE;
       operand2 = operand1->next;
-      operand1_copy = make_lvalue_reusable_copy(operand1, vars_can_change);
+      operand1_copy = make_lvalue_reusable_copy_full(operand1, vars_can_change,
+                                                     temp_init_node);
       expr_copy = field_lvalue_selection_expr(operand1_copy,
                                               operand2->variant.field);
     } else if (op == (an_expr_operator_kind)eok_question) {
@@ -2788,10 +2870,13 @@ temporary.  expr should be an lvalue.
       special_case = TRUE;
       operand2 = operand1->next;
       operand3 = operand2->next;
-      operand3_copy = make_lvalue_reusable_copy(operand3, vars_can_change);
-      operand2_copy = make_lvalue_reusable_copy(operand2, vars_can_change);
+      operand3_copy = make_lvalue_reusable_copy_full(operand3, vars_can_change,
+                                                     temp_init_node);
+      operand2_copy = make_lvalue_reusable_copy_full(operand2, vars_can_change,
+                                                     temp_init_node);
       operand2_copy->next = operand3_copy;
-      operand1_copy = make_reusable_copy(operand1, vars_can_change);
+      operand1_copy = make_reusable_copy_full(operand1, vars_can_change,
+                                              temp_init_node);
       operand1_copy->next = operand2_copy;
       expr_copy = make_operator_node((an_expr_operator_kind)eok_question,
                                      expr->type, operand1_copy);
@@ -2799,13 +2884,29 @@ temporary.  expr should be an lvalue.
       /* For a "," operator, make a reusable copy of the second operand. */
       special_case = TRUE;
       operand2 = operand1->next;
-      expr_copy = make_lvalue_reusable_copy(operand2, vars_can_change);
+      expr_copy = make_lvalue_reusable_copy_full(operand2, vars_can_change,
+                                                 temp_init_node);
     }  /* if */
   }  /* if */
   if (!special_case) {
     /* For other cases, use the rvalue copy. */
-    expr_copy = make_reusable_copy(expr, vars_can_change);
+    expr_copy = make_reusable_copy_full(expr, vars_can_change, temp_init_node);
   }  /* if */
+  return expr_copy;
+}  /* make_lvalue_reusable_copy_full */
+
+
+an_expr_node_ptr make_lvalue_reusable_copy(an_expr_node_ptr expr,
+                                           a_boolean        vars_can_change)
+/*
+Simpler interface to make_lvalue_reusable_copy_full, without the temp_init_node
+parameter.
+*/
+{
+  an_expr_node_ptr expr_copy;
+
+  expr_copy = make_lvalue_reusable_copy_full(expr, vars_can_change,
+                                             (an_expr_node_ptr *)NULL);
   return expr_copy;
 }  /* make_lvalue_reusable_copy */
 
@@ -9146,7 +9247,6 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 
-
 static void change_result_type_of_operator_returning_bool(
                                                          an_expr_node_ptr expr)
 /*
@@ -9169,20 +9269,18 @@ already), do nothing.
 }  /* change_result_type_of_operator_returning_bool */
 
 
-static void transform_bool_cast(an_expr_node_ptr expr)
+void lower_bool_cast(an_expr_node_ptr expr)
 /*
-Transform an eok_bool_cast operation into a comparison with zero.
-Note that this just generates the comparison; it does not lower it if
-that is necessary.  See lower_bool_cast.
+Lower an eok_bool_cast node, which converts an operand to bool.
 */
 {
   an_expr_node_ptr      operand = expr->variant.operation.operands;
   an_expr_node_ptr      zero_node;
   a_constant            zero_constant;
   an_expr_operator_kind op;
-  a_type_ptr            operand_type;
+  a_type_ptr            operand_type, orig_type, result_type;
 
-  /* A cast to bool in C++ or C99 is rewritten as a "!= 0" test in C99. */
+  /* A cast to bool in C++ or C99 is rewritten as a "!= 0" test in C89. */
   operand = integral_promote_node(operand);
   /* underlying_type is needed here for the pointer-to-member case
      if the type is already lowered. */
@@ -9190,29 +9288,28 @@ that is necessary.  See lower_bool_cast.
   make_zero_of_proper_type(operand_type, &zero_constant);
   zero_node = alloc_node_for_constant(&zero_constant);
   operand->next = zero_node;
-  op = which_binary_operator(tok_ne, operand_type);
-  set_node_operator(expr, op, expr->type, operand);
-}  /* transform_bool_cast */
-
-
-void lower_bool_cast(an_expr_node_ptr expr)
-/*
-Lower an eok_bool_cast node, which converts an operand to bool.
-*/
-{
-  /* The bulk of the work is done by transform_bool_cast. */
-  transform_bool_cast(expr);
-  /* Note that the result type may still be "bool" here; if so, a cast will
-     be inserted later.  The type will be "int" if adjust_bool_operation_types
-     has discovered this case can be optimized. */
+  result_type = orig_type = expr->type;
   if (C_mode()) {
-#if LOWER_COMPLEX
-    /* Do additional lowering for the complex and imaginary cases. */
+    /* In C99, the result type of the comparison is "int".  A cast will
+       have to be added later, because we really want a "bool" result. */
+    result_type = integer_type((an_integer_kind)ik_int);
+  }  /* if */
+  op = which_binary_operator(tok_ne, operand_type);
+  set_node_operator(expr, op, result_type, operand);
+  /* Note that in C++ the result type may still be "bool" here; if so, a
+     cast will be inserted later.  The type will be "int" if
+     adjust_bool_operation_types has discovered this case can be optimized.
+     In C mode, the result type is always "int". */
+  if (C_mode()) {
+    /* Do additional lowering for the complex, imaginary, and fixed-point
+       cases. */
+    an_expr_node_ptr expr_copy;
     post_lower_c99_bool_cast(expr);
-#endif /* LOWER_COMPLEX */
+    /* Add a final cast to bool, because that's what we really need. */
+    expr_copy = copy_node(expr);
+    change_to_cast(expr, expr_copy, orig_type);
   } else if (expr->variant.operation.kind == (an_expr_operator_kind)eok_pmne) {
     /* For the pointer-to-member case, the comparison must be lowered. */
-    an_expr_node_ptr  zero_node = expr->variant.operation.operands->next;
     mark_as_not_visited(zero_node->variant.constant);
     /* Note that zero_node is not lowered; that allows the subroutine to
        generate better code. */
@@ -9311,48 +9408,28 @@ lvalue to its logical "not".
 }  /* lower_bool_incr_decr */                  
 
 
-#if !LOWER_LVALUE_RETURNING_OPERATIONS
-/*ARGSUSED*/ /* <-- is_lvalue is not used in that case. */
-#endif /* !LOWER_LVALUE_RETURNING_OPERATIONS */
-void lower_bool_compound_assignment(an_expr_node_ptr expr,
-                                    a_boolean        is_lvalue)
+static an_expr_operator_kind corresponding_operator_for_compound_assignment(
+                                                      an_expr_operator_kind op)
 /*
-Lower a compound assignment operator that assigns to a bool.  They are
-special in that the computed value must be reduced to 0/1 before the
-assignment.  expr is being used as an lvalue if is_lvalue is TRUE.
+op is a compound assignment operator.  Return the corresponding simple
+operator.  For example, eok_iadd_assign is translated to eok_iadd.
 */
 {
-  an_expr_operator_kind op = expr->variant.operation.kind;
-  an_expr_node_ptr      op1 = expr->variant.operation.operands;
-  an_expr_node_ptr      op2 = op1->next;
-  an_expr_node_ptr      op1_for_operation, op_node, op2_node, ne_node;
-  a_variable_ptr        temp_var = NULL;
-  a_boolean             vars_can_change;
-  a_type_ptr            dest_type = rvalue_type(type_pointed_to(op1->type));
-  a_boolean             result_is_lvalue = expr->variant.operation.
-                                        returns_lvalue_instead_of_usual_rvalue;
-
-  /* The operator
-       x @= y      (for any appropriate operator @)
-     where x is bool, becomes
-       x = (x @ y) != 0;
-     x is, of course, evaluated only once.  If x is not simple, a
-     temporary and a comma expression are used to be sure of the order
-     of evaluation:
-       (temp = (x @ y) != 0, x = temp)
-  */
-  vars_can_change = node_has_side_effects(op2, (a_boolean *)NULL);
-  if (is_invariant_expr(op1, vars_can_change)) {
-    op1_for_operation = make_lvalue_reusable_copy(op1, vars_can_change);
-  } else {
-    /* Use a temporary to save the value of the expression. */
-    temp_var = make_local_temporary(integer_type((an_integer_kind)ik_int));
-    op1_for_operation = op1;
-    op1 = make_lvalue_reusable_copy(op1_for_operation, vars_can_change);
-  }  /* if */
-  op1_for_operation = add_indirection_to_node(op1_for_operation);
-  /* Determine the corresponding operator. */
   switch (op) {
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_xadd_assign:
+      op = (an_expr_operator_kind)eok_xadd;
+      break;
+    case eok_xsubtract_assign:
+      op = (an_expr_operator_kind)eok_xsubtract;
+      break;
+    case eok_xmultiply_assign:
+      op = (an_expr_operator_kind)eok_xmultiply;
+      break;
+    case eok_xdivide_assign:
+      op = (an_expr_operator_kind)eok_xdivide;
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_iadd_assign:
       op = (an_expr_operator_kind)eok_iadd;
       break;
@@ -9367,21 +9444,6 @@ assignment.  expr is being used as an lvalue if is_lvalue is TRUE.
       break;
     case eok_remainder_assign:
       op = (an_expr_operator_kind)eok_remainder;
-      break;
-    case eok_shiftl_assign:
-      op = (an_expr_operator_kind)eok_shiftl;
-      break;
-    case eok_shiftr_assign:
-      op = (an_expr_operator_kind)eok_shiftr;
-      break;
-    case eok_and_assign:
-      op = (an_expr_operator_kind)eok_and;
-      break;
-    case eok_or_assign:
-      op = (an_expr_operator_kind)eok_or;
-      break;
-    case eok_xor_assign:
-      op = (an_expr_operator_kind)eok_xor;
       break;
 #if FIXED_POINT_ALLOWED
     case eok_fxadd_assign:
@@ -9415,55 +9477,133 @@ assignment.  expr is being used as an lvalue if is_lvalue is TRUE.
     case eok_fdivide_assign:
       op = (an_expr_operator_kind)eok_fdivide;
       break;
+    case eok_padd_assign:
+      op = (an_expr_operator_kind)eok_padd;
+      break;
+    case eok_psubtract_assign:
+      op = (an_expr_operator_kind)eok_psubtract;
+      break;
+    case eok_shiftl_assign:
+      op = (an_expr_operator_kind)eok_shiftl;
+      break;
+    case eok_shiftr_assign:
+      op = (an_expr_operator_kind)eok_shiftr;
+      break;
+    case eok_and_assign:
+      op = (an_expr_operator_kind)eok_and;
+      break;
+    case eok_or_assign:
+      op = (an_expr_operator_kind)eok_or;
+      break;
+    case eok_xor_assign:
+      op = (an_expr_operator_kind)eok_xor;
+      break;
+    case eok_add_assign:
+      op = (an_expr_operator_kind)eok_add;
+      break;
+    case eok_subtract_assign:
+      op = (an_expr_operator_kind)eok_subtract;
+      break;
+    case eok_multiply_assign:
+      op = (an_expr_operator_kind)eok_multiply;
+      break;
+    case eok_divide_assign:
+      op = (an_expr_operator_kind)eok_divide;
+      break;
     default:
-      unexpected_condition_str("lower_bool_compound_assignment: bad operator");
+      unexpected_condition_str(
+               "corresponding_operator_for_compound_assignment: bad operator");
   }  /* switch */
-  op1_for_operation->next = NULL;
-  op1_for_operation = add_cast_if_necessary(op1_for_operation, op2->type);
-  op1_for_operation->next = op2;
-  /* Make the (x @ y) operation. */
-  op_node = make_operator_node(op, op2->type, op1_for_operation);
-  /* Add a cast to bool and lower it. */
-  ne_node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
-                               dest_type, op_node);
-  lower_bool_cast(ne_node);
-  ne_node->type = integer_type((an_integer_kind)ik_int);
-  if (temp_var == NULL) {
-    /* Change the original expression to an assignment:
-       x = (x @ y) != 0
-    */
-    ne_node = add_cast_if_necessary(ne_node, dest_type);
-    op1->next = ne_node;
-    set_node_operator(expr, (an_expr_operator_kind)eok_iassign,
-                      expr->type, op1);
-    expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                              result_is_lvalue;
+  return op;
+}  /* corresponding_operator_for_compound_assignment */
+
+
+#if !LOWER_LVALUE_RETURNING_OPERATIONS
+/*ARGSUSED*/ /* <-- is_lvalue is not used in that case. */
+#endif /* !LOWER_LVALUE_RETURNING_OPERATIONS */
+void rewrite_compound_assignment(an_expr_node_ptr expr,
+                                 a_boolean        is_lvalue)
+/*
+Rewrite a compound assignment x @= y as x = x @ y.  If x has side effects,
+a temporary will be used, and the code will be something like
+(temp = &x, *temp = *temp @ y).  expr is being used as an lvalue if
+is_lvalue is TRUE.
+*/
+{
+  an_expr_operator_kind op = expr->variant.operation.kind;
+  an_expr_node_ptr      op1 = expr->variant.operation.operands;
+  an_expr_node_ptr      op2 = op1->next;
+  a_boolean             vars_can_change;
+  an_expr_node_ptr      op1_for_operation, temp_init_node = NULL, op_node;
+  a_type_ptr            result_type = rvalue_type(type_pointed_to(op1->type));
+  a_type_ptr            operation_type;
+  a_boolean             result_is_lvalue = expr->variant.operation.
+                                        returns_lvalue_instead_of_usual_rvalue;
+
+  /* Make a copy of op1 to be used as the left operand of the underlying
+     operation.  op1 itself will be used as the left operand of the
+     assignment. */ 
+  op1->next = NULL;
+  vars_can_change = node_has_side_effects(op2, (a_boolean *)NULL);
+  op1_for_operation = make_lvalue_reusable_copy_full(op1, vars_can_change,
+                                                     &temp_init_node);
+  op1_for_operation = add_indirection_to_node(op1_for_operation);
+  /* Determine the operation type, which is usually the second operand
+     type. */
+  operation_type = op2->type;
+  if (op == (an_expr_operator_kind)eok_fxadd_assign ||
+      op == (an_expr_operator_kind)eok_fxsubtract_assign ||
+      op == (an_expr_operator_kind)eok_fxmultiply_assign ||
+      op == (an_expr_operator_kind)eok_fxdivide_assign) {
+    /* Fixed-point operations.  If the second operand is integral, the
+       operation type is given by the first operand. */
+    if (is_integral_or_enum_type(op2->type)) operation_type = result_type;
+  } else if (op == (an_expr_operator_kind)eok_fxshiftl_assign ||
+             op == (an_expr_operator_kind)eok_fxshiftr_assign ||
+             op == (an_expr_operator_kind)eok_shiftl_assign ||
+             op == (an_expr_operator_kind)eok_shiftr_assign) {
+    /* Shifts.  The operation type is given by the first operand. */
+    operation_type = result_type;
   } else {
-    /* Using a temporary. */
-    /* Add the comma expression and final assignment from the temporary,
-         (temp = (x @ y) != 0, x = temp)
-    */
-    op_node = var_lvalue_expr(temp_var);
-    op_node->next = ne_node;
-    op_node = make_operator_node((an_expr_operator_kind)eok_iassign,
-                                 ne_node->type, op_node);
-    op1->next = add_cast_if_necessary(var_rvalue_expr(temp_var), dest_type);
-    op2_node = make_operator_node((an_expr_operator_kind)eok_iassign,
-                                  expr->type, op1);
-    op2_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                              result_is_lvalue;
+    /* Normal case.  The second operand type is the operation type,
+       and the first operand is cast to that type. */
+    op1_for_operation = add_lowered_cast_if_necessary(op1_for_operation,
+                                                      operation_type);
+  }  /* if */
+  /* Determine the corresponding non-assignment operator. */
+  op = corresponding_operator_for_compound_assignment(op);
+  /* Make the (x @ y) operation. */
+  op1_for_operation->next = op2;
+  op_node = make_operator_node(op, operation_type, op1_for_operation);
+  if (C_mode()) {
+    lower_c99_operator(op_node);
+  }  /* if */
+  /* Cast the result of the operation to the result type. */
+  op_node = add_lowered_cast_if_necessary(op_node, result_type);
+  /* Assign the result to op1. */
+  op_node = make_assignment_expr(op1,
+                                 lowered_assignment_operator(result_type),
+                                 op_node);
+  if (result_is_lvalue) {
+    op_node->type = expr->type;
+    op_node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+  }  /* if */
+  if (temp_init_node != NULL) {
 #if LOWER_LVALUE_RETURNING_OPERATIONS
     if (result_is_lvalue) {
-      lower_operations_returning_lvalue_instead_of_usual_rvalue(op2_node,
+      lower_operations_returning_lvalue_instead_of_usual_rvalue(op_node,
                                                                 is_lvalue);
     }  /* if */
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
-    op_node = make_comma_node(op_node, op2_node);
+    /* Add a comma expression to initialize the temporary used.  This
+       ensures that the temporary is initialized before it is used in
+       either operand. */
+    op_node = make_comma_node(temp_init_node, op_node);
     op_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                               result_is_lvalue;
-    overwrite_node(expr, op_node);
   }  /* if */
-}  /* lower_bool_compound_assignment */
+  overwrite_node(expr, op_node);
+}  /* rewrite_compound_assignment */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -11270,7 +11410,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                  must be lowered to get the value reduced to 0/1. */
               a_type_ptr operand_type = type_pointed_to(operand_node->type);
               if (is_bool_type(operand_type)) {
-                lower_bool_compound_assignment(expr, is_lvalue);
+                rewrite_compound_assignment(expr, is_lvalue);
               }  /* if */
             }  /* if */
             break;

@@ -745,6 +745,10 @@ extern void change_to_cast(an_expr_node_ptr node,
                            an_expr_node_ptr operand_node,
                            a_type_ptr       new_type);
 
+extern an_expr_node_ptr add_lowered_cast_if_necessary(
+                                                    an_expr_node_ptr node,
+                                                    a_type_ptr       new_type);
+
 extern an_expr_node_ptr add_cast_to_char_star(an_expr_node_ptr node);
 
 #if DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
@@ -1016,8 +1020,8 @@ extern void lower_bool_cast(an_expr_node_ptr expr);
 
 extern void lower_bool_incr_decr(an_expr_node_ptr expr);
 
-extern void lower_bool_compound_assignment(an_expr_node_ptr expr,
-                                           a_boolean        is_lvalue);
+extern void rewrite_compound_assignment(an_expr_node_ptr expr,
+                                        a_boolean        is_lvalue);
 
 extern void lower_virtual_function_call(an_expr_node_ptr expr);
 
