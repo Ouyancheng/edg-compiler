@@ -7044,8 +7044,9 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         qualifier_type = type_symbol_type(qualifier_sym);
         if (!identical_types(field_sel_type, qualifier_type) &&
             find_base_class_of(field_sel_type, qualifier_type) == NULL) {
-          pos_ty_error(ec_invalid_destructor_name,
+          pos_ty2_error(ec_destructor_qualifier_type_mismatch,
                        &locator_for_curr_id.source_position,
+                       qualifier_type,
                        field_sel_type);
           set_to_error_locator(locator_for_curr_id);
           error_already_issued = TRUE;
