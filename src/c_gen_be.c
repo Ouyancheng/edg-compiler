@@ -120,9 +120,9 @@ static a_seq_number
 			   indicates that the output position is unknown. */
 static a_column_number
 		curr_output_column;
-			/* A value of 0 for the column indicates that nothing
-			   has been written, i.e., a line has not been
-			   begun yet. */
+			/* The number of characters written to the current
+			   line of output.  Zero means nothing has been
+			   written so far. */
 static unsigned long
 		indent;
 			/* Number of spaces to indent at the start of a
@@ -474,6 +474,7 @@ file.
     (void)fprintf(f_C_output, " \"%s\"", curr_output_file->file_name);
   }  /* if */
   (void)putc('\n', f_C_output);
+  curr_output_column = 0;
 }  /* write_line_directive */
 
 
@@ -554,7 +555,7 @@ etc.
       }  /* while */
     }  /* if */
   }  /* if */
-  if (started_new_line || curr_output_column <= 1) {
+  if (started_new_line || curr_output_column == 0) {
     if (annotate) {
       /* Starting a new line of output; do the current indentation. */
       do_indentation();
@@ -583,17 +584,23 @@ the next time a specific output position is requested.
 }  /* set_unknown_output_position */
 
 
+/*
+Write the indicated character to the output file.  It is not necessarily a
+complete token.  This is the macro version.
+*/
+#define m_write_ch(ch)                                                \
+{ (void)putc((ch), f_C_output);                                       \
+  curr_output_column++;                                               \
+}  /* m_write_ch */
+
+
 static void write_ch(char ch)
 /*
 Write the indicated character to the output file.  It is not necessarily a
-complete token.
+complete token.  This is the non-macro version.
 */
 {
-  /* Start the current line if we have not started it yet. */
-  if (curr_output_column == 0) curr_output_column = 1;
-  (void)putc(ch, f_C_output);
-  /* Keep track of the current column number on output. */
-  curr_output_column++;
+  m_write_ch(ch);
 }  /* write_ch */
 
 
@@ -601,25 +608,27 @@ complete token.
 Write a space to the output file.
 */
 #define write_space() write_ch(' ');
+#define m_write_space() m_write_ch(' ');
+
+
+/*
+Write the indicated string to the output file.  It is not necessarily a
+complete token.  This is the macro version.
+*/
+#define m_write_str(str)                                              \
+{ register char *p = (str);                                           \
+  register char ch;                                                   \
+  while ((ch = *p++) != '\0') m_write_ch(ch);                         \
+}  /* m_write_str */
 
 
 static void write_str(char *str)
 /*
 Write the indicated string to the output file.  It is not necessarily a
-complete token.
+complete token.  This is the non-macro version.
 */
 {
-  register char *p;
-  register char ch;
-
-  /* Start the current line if we have not started it yet. */
-  if (curr_output_column == 0) curr_output_column = 1;
-  p = str;
-  while ((ch = *p++) != '\0') {
-    (void)putc(ch, f_C_output);
-    /* Keep track of the current column number on output. */
-    curr_output_column++;
-  }  /* while */
+  m_write_str(str);
 }  /* write_str */
 
 
@@ -638,38 +647,67 @@ it is too long).
     /* The current line number is unknown, so do not use a #line directive. */
     end_output_line();
   }  /* if */
-  curr_output_column = 1;
 }  /* continue_on_new_line */
 
 
 /*
-Start a continuation line if adding len characters to the current output
+Write the indicated character to the output file.  It's a complete token,
+which means a long line could be broken before or after it.  This is
+the macro version.
+*/
+#define m_write_tok_ch(ch)                                            \
+{ if (curr_output_column >= MAX_OUTPUT_LINE_SIZE) {                   \
+    continue_on_new_line();                                           \
+  }  /* if */                                                         \
+  m_write_ch(ch);                                                     \
+}  /* m_write_tok_ch */
+
+
+static void write_tok_ch(char ch)
+/*
+Write the indicated character to the output file.  It's a complete token,
+which means a long line could be broken before or after it.  This is
+the non-macro version.
+*/
+{
+  m_write_tok_ch(ch);
+}  /* write_tok_ch */
+
+
+/*
+Start a continuation line if adding "len" characters to the current output
 line would make it too long.
 */
 #define ensure_enough_room_on_line(len)                               \
-{ if (curr_output_column == 0) curr_output_column = 1;                \
-  if (curr_output_column + (len) > MAX_OUTPUT_LINE_SIZE + 1) {        \
+{ if (curr_output_column + (len) > MAX_OUTPUT_LINE_SIZE) {            \
     continue_on_new_line();                                           \
   }  /* if */                                                         \
 }  /* ensure_enough_room_on_line */
+
+
+/*
+Write the indicated string to the output file.  It's a complete token (or
+several), which means a long line could be broken before or after it.
+This is the macro version.
+*/
+#define m_write_tok_str(str)                                          \
+{ register char *p = (str);                                           \
+  sizeof_t      len = strlen(p);                                      \
+  register char ch;                                                   \
+  ensure_enough_room_on_line(len);                                    \
+  while ((ch = *p++) != '\0') (void)putc(ch, f_C_output);             \
+  curr_output_column += len;                                          \
+}  /* m_write_tok_str */
 
 
 static void write_tok_str(char *str)
 /*
 Write the indicated string to the output file.  It's a complete token (or
 several), which means a long line could be broken before or after it.
+This is the non-macro version.
 */
 {
-  register sizeof_t len = strlen(str);
-  register char     *p;
-  register char     ch;
-
-  ensure_enough_room_on_line(len);
-  /* Write the characters. */
-  p = str;
-  while ((ch = *p++) != '\0') (void)putc(ch, f_C_output);
-  /* Keep track of the current column number on output. */
-  curr_output_column += len;
+  m_write_tok_str(str);
 }  /* write_tok_str */
 
 
@@ -681,7 +719,7 @@ to be a complete token.
 {
   char buffer[50];
   (void)sprintf(buffer, "%ld", num);
-  write_tok_str(buffer);
+  m_write_tok_str(buffer);
 }  /* write_num */
 
 
@@ -693,7 +731,7 @@ to be a complete token.
 {
   char buffer[50];
   (void)sprintf(buffer, "%lu", num);
-  write_tok_str(buffer);
+  m_write_tok_str(buffer);
 }  /* write_unsigned_num */
 
 
@@ -870,7 +908,7 @@ Write a temporary name generated from the given IL pointer.
   static char buffer[50];
 
   (void)sprintf(buffer, "__T%lu", unique_id_for_il_pointer(ptr));
-  write_tok_str(buffer);
+  m_write_tok_str(buffer);
 }  /* dump_temp_name */
 
 
@@ -893,24 +931,26 @@ name is NULL in the source correspondence, generate a name.
     if (is_C_reserved_word(name)) {
       /* Add two underscores at the start of the name. */
       ensure_enough_room_on_line(strlen(name)+2);
-      write_str("__");
+      write_ch('_');
+      write_ch('_');
       write_str(name);
     } else {
-      write_tok_str(name);
+      m_write_tok_str(name);
     }  /* if */
   } else if (scp->class_of_which_a_member != NULL) {
     /* No prefix on members of classes. */
-    write_tok_str(name);
+    m_write_tok_str(name);
   } else {
     /* Not file-scope name; add the declaration position as a prefix to
        the original name. */
     ensure_enough_room_on_line(strlen(name)+14);
-    write_str("__");
+    m_write_ch('_');
+    m_write_ch('_');
     write_unsigned_num((unsigned long)scp->decl_position.seq);
-    write_str("_");
+    m_write_ch('_');
     write_unsigned_num((unsigned long)scp->decl_position.column);
-    write_str("_");
-    write_str(name);
+    m_write_ch('_');
+    m_write_str(name);
   }  /* if */
 }  /* dump_name */
 
@@ -922,7 +962,7 @@ Print the name of the indicated variable.
 {
   if (variable->is_this_parameter) {
     /* "this" parameter in C++. */
-    write_tok_str("this");
+    m_write_tok_str("this");
 #if !C_GEN_BE_GENERATES_ANSI_C
   } else if (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
@@ -933,9 +973,10 @@ Print the name of the indicated variable.
        Leave __link (used for C++ startup) alone. */
     ensure_enough_room_on_line(strlen(variable->source_corresp.name) + 2 +
                                strlen(module_id));
-    write_str(variable->source_corresp.name);
-    write_str("__");
-    write_str(module_id);
+    m_write_str(variable->source_corresp.name);
+    m_write_ch('_');
+    m_write_ch('_');
+    m_write_str(module_id);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   } else {
     /* Nothing special about this case. */
@@ -988,7 +1029,7 @@ Handle unprintable characters and necessary escapes.
 #endif /* SUNCC */
                  ) {
     if (ch == '"' || ch == '\'' || ch == '\\') write_ch('\\');
-    write_ch(ch);
+    m_write_ch(ch);
   } else {
     char buffer[10];
     (void)sprintf(buffer, "\\%03o",
@@ -1102,7 +1143,7 @@ Output the indicated constant.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
                                                                           ) {
         /* ... then prefix the constant with an explicit cast. */
-        write_tok_str("(");
+        write_tok_ch('(');
         dump_cast(orig_type);
         need_cast_close_paren = TRUE;
       }  /* if */
@@ -1122,10 +1163,10 @@ Output the indicated constant.
         if (sign_of_integer_constant(constant) < 0) {
           /* Negative value.  Put in parentheses. */
           need_close_paren = TRUE;
-          write_tok_str("(");
+          write_tok_ch('(');
         }  /* if */
         /* Write the literal form of the constant. */
-        write_str(str_for_integer_constant(constant));
+        m_write_str(str_for_integer_constant(constant));
         ikind = con_type->variant.integer.int_kind;
         /* Put out a suffix if needed. */
 #if C_GEN_BE_GENERATES_ANSI_C
@@ -1133,19 +1174,19 @@ Output the indicated constant.
            a prefix cast is used (see above). */
         if (!int_kind_is_signed[(int)ikind]) {
           /* Unsigned constant. */
-          write_str("U");
+          m_write_ch('U');
         }  /* if */
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
         if (ikind == (an_integer_kind)ik_long           ||
             ikind == (an_integer_kind)ik_unsigned_long) {
-          write_str("L");
+          m_write_ch('L');
 #if LONG_LONG_ALLOWED
        } else if (ikind == (an_integer_kind)ik_long_long ||
                   ikind == (an_integer_kind)ik_unsigned_long_long) {
           write_str("LL");
 #endif /* LONG_LONG_ALLOWED */
         }  /* if */
-        if (need_close_paren) write_tok_str(")");
+        if (need_close_paren) write_tok_ch(')');
       }  /* if */
       break;
     case ck_string:
@@ -1158,7 +1199,7 @@ Output the indicated constant.
       } else {
         a_targ_size_t a;
         char          ch;
-        write_str("\"");
+        m_write_ch('"');
         for (a = 0; a < constant->variant.string.length; a++) {
           ch = constant->variant.string.value[a];
           /* Suppress the last character if it is a null. */
@@ -1166,21 +1207,21 @@ Output the indicated constant.
             dump_char(ch);
           }  /* if */
         }  /* for */
-        write_str("\"");
+        m_write_ch('"');
       }
       break;
     case ck_float:
       /* Put parentheses around the constant in case it's negative. */
-      write_tok_str("(");
+      write_tok_ch('(');
       fkind = con_type->variant.float_kind;
 #if C_GEN_BE_GENERATES_ANSI_C
       /* Output the floating-point constant. */
-      write_str(fp_to_string(fkind, &constant->variant.float_value));
+      m_write_str(fp_to_string(fkind, &constant->variant.float_value));
       /* Add a suffix if necessary. */
       if (fkind == (a_float_kind)fk_float) {
-        write_str("F");
+        m_write_ch('F');
       } else if (fkind == (a_float_kind)fk_long_double) {
-        write_str("L");
+        m_write_ch('L');
       }  /* if */
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
       /* Generating K&R C.  Suffixes are not allowed. */
@@ -1189,7 +1230,7 @@ Output the indicated constant.
       /* Output the floating-point constant. */
       write_tok_str(fp_to_string(fkind, &constant->variant.float_value));
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
-      write_tok_str(")");
+      write_tok_ch(')');
       break;
     case ck_address:
       /* Address constant. */
@@ -1261,7 +1302,7 @@ Output the indicated constant.
       }  /* if */
       if (need_ptr_cast) {
         /* Start with a cast to the desired result type. */
-        write_tok_str("(");
+        write_tok_ch('(');
         dump_cast(orig_type);
         /* Look for cases where a pointer is implicitly cast to a strange type
            (e.g., "char").  The original code probably did this conversion
@@ -1278,7 +1319,7 @@ Output the indicated constant.
         }  /* if */
       }  /* if */
       if (offset != 0) {
-        write_tok_str("(");
+        write_tok_ch('(');
         if (need_scaling_cast) {
           /* Need a cast to "char *" to get the offset scaling right. */
           write_tok_str("(char *)");
@@ -1304,21 +1345,21 @@ Output the indicated constant.
         default:
           unexpected_condition_str("dump_constant: bad addr constant kind");
       }  /* switch */
-      if (need_ampersand) write_tok_str(")");
+      if (need_ampersand) write_tok_ch(')');
       if (offset != 0) {
         /* Add in the (signed) offset. */
         write_tok_str(" + ");
         write_num((long)offset);
-        write_tok_str(")");
+        write_tok_ch(')');
       }  /* if */
-      if (need_second_ptr_cast) write_tok_str(")");
-      if (need_ptr_cast) write_tok_str(")");
+      if (need_second_ptr_cast) write_tok_ch(')');
+      if (need_ptr_cast) write_tok_ch(')');
       break;
     case ck_aggregate:  /* Only appears in initializers; not handled here. */
     default:
       unexpected_condition_str("dump_constant: bad constant kind");
   }  /* switch */
-  if (need_cast_close_paren) write_tok_str(")");
+  if (need_cast_close_paren) write_tok_ch(')');
 }  /* dump_constant */
 
 
@@ -1691,10 +1732,10 @@ Print the first of possibly two parts of a type reference.
                          /*need_paren=*/TRUE,
                          /*need_trailing_space=*/TRUE);
     /* Output "*" for pointer. */
-    write_tok_str("*");
+    write_tok_ch('*');
     /* Output the type qualifiers on the pointer, if any. */
     dump_pointer_type_qualifiers(qual_type, type);
-    if (need_paren) write_tok_str("(");
+    if (need_paren) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     /* If qual_type != type, it's because a local typedef appears on top
@@ -1702,7 +1743,7 @@ Print the first of possibly two parts of a type reference.
     dump_type_first_part(type->variant.routine.return_type,
                          /*need_paren=*/TRUE,
                          /*need_trailing_space=*/TRUE);
-    if (need_paren) write_tok_str("(");
+    if (need_paren) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     /* If qual_type != type, it's because a local typedef appears on top
@@ -1710,7 +1751,7 @@ Print the first of possibly two parts of a type reference.
     dump_type_first_part(type->variant.array.element_type,
                          /*need_paren=*/TRUE,
                          /*need_trailing_space=*/TRUE);
-    if (need_paren) write_tok_str("(");
+    if (need_paren) write_tok_ch('(');
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     dump_type_specifier(qual_type);
@@ -1732,7 +1773,8 @@ parameter variable.
       param_var = param_var->next;
       if (param_var == NULL) break;
       /* Put out a separator and keep looping. */
-      write_tok_str(", ");
+      write_tok_ch(',');
+      write_space();
     }  /* for */
   }  /* if */
 }  /* dump_param_id_list */
@@ -1751,7 +1793,7 @@ is non-NULL, in which case that is the function scope.
   a_variable_ptr                param_var;
 
   if (scope != NULL) param_var = scope->variant.routine.parameters;
-  write_tok_str("(");
+  write_tok_ch('(');
   /* A routine is put out as unprototyped if its interface is unprototyped
      or if this is the definition and the definition is old-style (i.e.,
      there was a prototyped declaration and then an old-style definition). */
@@ -1828,7 +1870,8 @@ is non-NULL, in which case that is the function scope.
           if (param == NULL) break;
           /* There are more parameters, so output a separator and keep
              looping. */
-          write_tok_str(", ");
+          write_tok_ch(',');
+          write_space();
         }  /* for */
         if (rtsp->has_ellipsis) {
           /* There is an ellipsis. */
@@ -1843,7 +1886,7 @@ is non-NULL, in which case that is the function scope.
     }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   }  /* if */
-  write_tok_str(")");
+  write_tok_ch(')');
 }  /* dump_function_declarator */
 
 
@@ -1853,13 +1896,13 @@ Generate an array declarator for the indicated array type.
 */
 {
   check_assertion(!type->variant.array.is_variable_size_array);
-  write_tok_str("[");
+  write_tok_ch('[');
   /* For unknown-bound arrays, put nothing between the []. */
   if (type->variant.array.variant.number_of_elements != 0) {
     write_unsigned_num((unsigned long)type->
                                      variant.array.variant.number_of_elements);
   }  /* if */
-  write_tok_str("]");
+  write_tok_ch(']');
 }  /* dump_array_declarator */
 
 
@@ -1880,22 +1923,22 @@ out first if anything is generated.
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
-    if (need_paren) write_tok_str(")");
+    if (need_paren) write_tok_ch(')');
     dump_type_second_part(type->variant.pointer.type, /*need_paren=*/TRUE);
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
-    if (need_paren) write_tok_str(")");
+    if (need_paren) write_tok_ch(')');
     dump_type_second_part(type->variant.ptr_to_member.type,
                           /*need_paren=*/TRUE);
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
-    if (need_paren) write_tok_str(")");
+    if (need_paren) write_tok_ch(')');
     dump_function_declarator(type, (a_scope_ptr)NULL);
     dump_type_second_part(type->variant.routine.return_type,
                           /*need_paren=*/TRUE);
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
-    if (need_paren) write_tok_str(")");
+    if (need_paren) write_tok_ch(')');
     dump_array_declarator(type);
     dump_type_second_part(type->variant.array.element_type,
                           /*need_paren=*/TRUE);
@@ -1979,7 +2022,7 @@ Print a typedef declaration.
     write_tok_str("typedef ");
     dump_declaration_using_type(type->variant.typeref.type,
                                 &type->source_corresp);
-    write_tok_str(";");
+    write_tok_ch(';');
     end_unreferenced_bracket(&type->source_corresp);
   }  /* if */
 }  /* dump_typedef_decl */
@@ -2035,7 +2078,7 @@ Output the definition of the indicated enum type.
       /* Stop if at the end of the list of constants. */
       if (enum_con == NULL) break;
       /* Not the end of the list, so output a separator and keep looping. */
-      write_tok_str(",");
+      write_tok_ch(',');
       incr_integer_value(&next_enum_value.variant.integer_value);
     }  /* for */
     write_tok_str("};");
@@ -2070,7 +2113,7 @@ Output the definition of the indicated struct or union type.
         /* Not a bit field. */
         /* Note that a name will be generated for an anonymous union in C++. */
         dump_declaration_using_type(field->type, &field->source_corresp);
-        write_tok_str(";");
+        write_tok_ch(';');
       } else {
         /* Bit field. */
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -2115,7 +2158,7 @@ Output the definition of the indicated struct or union type.
               local_type.variant.integer.int_kind = eff_ikind;
             }  /* if */
             dump_declaration_using_type(eff_type, &field->source_corresp);
-            write_tok_str(";");
+            write_tok_ch(';');
           }  /* if */
         } else
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -2136,7 +2179,7 @@ Output the definition of the indicated struct or union type.
           }  /* if */
           write_tok_str(": ");
           write_unsigned_num((unsigned long)field->bit_size);
-          write_tok_str(";");
+          write_tok_ch(';');
         }
       }  /* if */
       if (annotate) {
@@ -2197,7 +2240,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
         if (start_unreferenced_bracket(&type->source_corresp)) {
           set_output_position(&type->source_corresp.decl_position);
           dump_tag_reference(type);
-          write_tok_str(";");
+          write_tok_ch(';');
           end_unreferenced_bracket(&type->source_corresp);
         }  /* if */
       } else if (type->size != 0) {
@@ -2253,9 +2296,9 @@ static void dump_cast(a_type_ptr type)
 Generate a cast to the indicated type.
 */
 {
-  write_tok_str("(");
+  m_write_tok_ch('(');
   dump_type(type, /*add_pointer_to=*/FALSE);
-  write_tok_str(")");
+  m_write_tok_ch(')');
 }  /* dump_cast */
 
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -2267,9 +2310,9 @@ Generate a cast to pointer-to the indicated type.
 {
   /* Can't use dump_cast because we don't have the pointer type and
      we can't call make_pointer_type in the "back end". */
-  write_tok_str("(");
+  write_tok_ch('(');
   dump_type(type, /*add_pointer_to=*/TRUE);
-  write_tok_str(")");
+  write_tok_ch(')');
 }  /* dump_cast_to_pointer_to */
 
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -2284,7 +2327,7 @@ the ampersand since C will assume one.
   if (is_function_type(type)) {
     if (annotate) {
       start_comment();
-      write_tok_str("&");
+      write_tok_ch('&');
       end_comment();
     }  /* if */
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -2296,12 +2339,12 @@ the ampersand since C will assume one.
     dump_cast_to_pointer_to(type);
     if (annotate) {
       start_comment();
-      write_tok_str("&");
+      write_tok_ch('&');
       end_comment();
     }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   } else {
-    write_tok_str("&");
+    write_tok_ch('&');
   }  /* if */
 }  /* dump_ampersand */
 
@@ -2346,26 +2389,6 @@ selection operation).
 }  /* dump_field_from_second_operand */
 
 
-static void dump_simple_field_selection(an_expr_node_ptr node)
-/*
-Generate a simple field selection "operand_1 . operand_2".
-*/
-{
-  an_expr_node_ptr operand_1 = node->variant.operation.operands;
-
-  if (operand_1->kind == (an_expr_node_kind)enk_variable) {
-    /* Optimize "(*p).i" as "p->i". */
-    dump_expression(operand_1);
-    write_tok_str("->");
-  } else {
-    /* Normal "." case. */
-    dump_lvalue(operand_1);
-    write_tok_str(".");
-  }  /* if */
-  dump_field_from_second_operand(node);
-}  /* dump_simple_field_selection */
-
-
 static void dump_adding_indirection(an_expr_node_ptr node)
 /*
 Dump the indicated expression with an additional indirection on the front
@@ -2393,9 +2416,9 @@ of an assignment).  It's also used for a normal "*" for indirection.
         op == (an_expr_operator_kind)eok_padd_subsc) {
       /* The expression is a pointer addition.  It can be rewritten as
          a subscripting operation (i.e., *(a+b) becomes a[b]). */
-      write_tok_str("(");
+      write_tok_ch('(');
       dump_expr_with_parens(operand_1);
-      write_tok_str("[");
+      write_tok_ch('[');
       dump_expression(operand_2);
       write_tok_str("])");
       processed = TRUE;
@@ -2404,9 +2427,18 @@ of an assignment).  It's also used for a normal "*" for indirection.
       /* The expression is a field selection, which has an implicit "&"
          in front of it (in C terms).  Adding the indirection removes 
          the "&". */
-      write_tok_str("(");
-      dump_simple_field_selection(node);
-      write_tok_str(")");
+      write_tok_ch('(');
+      if (operand_1->kind == (an_expr_node_kind)enk_variable) {
+        /* Optimize "(*p).i" as "p->i". */
+        dump_expression(operand_1);
+        write_tok_str("->");
+      } else {
+        /* Normal "." case. */
+        dump_lvalue(operand_1);
+        m_write_tok_ch('.');
+      }  /* if */
+      dump_field_from_second_operand(node);
+      write_tok_ch(')');
       processed = TRUE;
     }  /* if */
   }  /* if */
@@ -2414,7 +2446,7 @@ of an assignment).  It's also used for a normal "*" for indirection.
     /* Not a special case: write "*expression". */
     write_tok_str("(*");
     dump_expr_with_parens(node);
-    write_tok_str(")");
+    write_tok_ch(')');
   }  /* if */
 }  /* dump_adding_indirection */
 
@@ -2434,10 +2466,10 @@ an expression.  In effect, add an indirection to the expression.
   if (node->kind == (an_expr_node_kind)enk_operation &&
       node->variant.operation.kind == (an_expr_operator_kind)eok_lvalue_cast) {
     operand_1 = node->variant.operation.operands;
-    write_tok_str("(");
+    write_tok_ch('(');
     dump_cast(type_pointed_to(node->type));
     dump_lvalue(operand_1);
-    write_tok_str(")");
+    write_tok_ch(')');
   } else {
     /* Normal case. */
     dump_adding_indirection(node);
@@ -2504,7 +2536,7 @@ ANSI C), copy the struct to a temp and select the field from the temp.
        (expr2, variable.field)
   */
   struct_expr = expr->variant.operation.operands;
-  write_tok_str("(");
+  write_tok_ch('(');
   if (optimizable_rvalue_selection(expr, &comma_case)) {
     /* This is an optimizable case.  Add the field selection to the existing
        reference to a struct/union variable. */
@@ -2529,9 +2561,9 @@ ANSI C), copy the struct to a temp and select the field from the temp.
     dump_temp_name((char *)expr);
   }  /* if */
   /* Add the field selection. */
-  write_tok_str(".");
+  write_tok_ch('.');
   dump_field_from_second_operand(expr);
-  write_tok_str(")");
+  write_tok_ch(')');
 }  /* dump_rvalue_selection */
 
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -2624,9 +2656,9 @@ by parentheses.
       }  /* if */
     }  /* if */
   }  /* if */
-  write_tok_str("(");
+  m_write_tok_ch('(');
   dump_expression(node);
-  write_tok_str(")");
+  m_write_tok_ch(')');
 }  /* dump_boolean_controlling_expression */
 
 #if CHECKING
@@ -2689,7 +2721,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   switch (expr->kind) {
     case enk_operation:
       /* Expression operation. */
-      if (need_parens) write_tok_str("(");
+      if (need_parens) m_write_tok_ch('(');
       operand_1 = expr->variant.operation.operands;
       operand_2 = operand_1->next;
       expr_type = skip_typerefs(expr->type);
@@ -2703,7 +2735,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "-";
           break;
         case eok_not:
-          write_tok_str("!");
+          write_tok_ch('!');
           dump_boolean_controlling_expression(operand_1);
           goto done_with_operation;
         case eok_cast:
@@ -2715,7 +2747,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                (to "pointer to array").  Skip that cast. */
             if (annotate) {
               start_comment();
-              write_tok_str("&");
+              write_tok_ch('&');
               end_comment();
             }  /* if */
             dump_variable_name(operand_1->variant.variable);
@@ -2727,7 +2759,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                underlying C compiler. */
             write_tok_str("((unsigned long)");
             dump_expr_with_parens(operand_1);
-            write_tok_str(")");
+            write_tok_ch(')');
           } else {
             /* Normal case. */
             dump_expr_with_parens(operand_1);
@@ -2925,9 +2957,9 @@ process_assignment:
           /* Write the left operand. */
           dump_lvalue(operand_1);
           /* Write the operation string and the right operand. */
-          write_space();
-          write_tok_str(opstr);
-          write_space();
+          m_write_space();
+          m_write_tok_str(opstr);
+          m_write_space();
 #if SUNCC
           if (remainder_special_case) {
             /* The Sun cc compiler has a bug with "i %= 1" -- It generates no
@@ -2937,7 +2969,7 @@ process_assignment:
 #endif /* SUNCC */
           dump_expr_with_parens(operand_2);
 #if SUNCC
-          if (remainder_special_case) write_tok_str(")");
+          if (remainder_special_case) write_tok_ch(')');
 #endif /* SUNCC */
 #if !C_GEN_BE_GENERATES_ANSI_C
           /* If the destination is a bit field, finish off the sign-extension/
@@ -2972,28 +3004,28 @@ process_assignment:
             /* Add the length of the move. */
             { a_type_ptr operand_1_type = type_pointed_to(operand_1->type);
               operand_1_type = skip_typerefs(operand_1_type);
-              write_tok_str(",");
+              write_tok_ch(',');
               /* No cast to size_t or the like is needed; in BSD and System V
                  the length is int, and in ANSI C the function is prototyped
                  so the conversion will be implicit. */
               write_unsigned_num((unsigned long)operand_1_type->size);
-              write_tok_str(")");
+              write_tok_ch(')');
             }
           }  /* if */
           goto done_with_operation;
         case eok_subscript:
           dump_expr_with_parens(operand_1);
-          write_tok_str("[");
+          write_tok_ch('[');
           dump_expr_with_parens(operand_2);
-          write_tok_str("]");
+          write_tok_ch(']');
           goto done_with_operation;
         case eok_field:
           dump_ampersand(type_pointed_to(expr_type));
-          write_tok_str("(");
+          m_write_tok_ch('(');
           dump_lvalue(operand_1);
-          write_tok_str(".");
+          m_write_tok_ch('.');
           dump_field_from_second_operand(expr);
-          write_tok_str(")");
+          m_write_tok_ch(')');
           goto done_with_operation;
         case eok_value_field:
           dump_rvalue_selection(expr);
@@ -3015,7 +3047,7 @@ process_assignment:
           if (expr->variant.operation.kind ==
               (an_expr_operator_kind)eok_extract_bit_field) {
             dump_lvalue(operand_1);
-            write_tok_str(".");
+            write_tok_ch('.');
             dump_field_from_second_operand(expr);
           } else {
             /* eok_value_bit_field, extraction from rvalue struct/union. */
@@ -3023,7 +3055,7 @@ process_assignment:
           }  /* if */
 #if !C_GEN_BE_GENERATES_ANSI_C
           if (is_signed) {
-            write_tok_str(",");
+            write_tok_ch(',');
             write_unsigned_num((unsigned long)field->bit_size);
             write_tok_str("))");
           }  /* if */
@@ -3068,7 +3100,7 @@ process_assignment:
           /* pcc does not allow operands of "?" to be void expressions.
              If they are, enclose them in (expr,0). */
           void_operand = is_void_type(operand_2->type);
-          if (void_operand) write_tok_str("(");
+          if (void_operand) write_tok_ch('(');
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           dump_expr_with_parens(operand_2);
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -3077,7 +3109,7 @@ process_assignment:
           write_tok_str(" : ");
 #if !C_GEN_BE_GENERATES_ANSI_C
           void_operand = is_void_type(operand_2->next->type);
-          if (void_operand) write_tok_str("(");
+          if (void_operand) write_tok_ch('(');
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           dump_expr_with_parens(operand_2->next);
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -3088,7 +3120,7 @@ process_assignment:
           /* N operand operator. */
           /* Put out the function to call. */
           dump_lvalue(operand_1);
-          write_tok_str("(");
+          write_tok_ch('(');
 #if CHECKING
           /* Keep track of parameter types to check for arguments to old-style
              functions that aren't widened. */
@@ -3126,10 +3158,11 @@ process_assignment:
 #endif /* CHECKING */
             call_argument = call_argument->next;
             if (call_argument != NULL) {
-              write_tok_str(", ");
+              write_tok_ch(',');
+              write_space();
             }  /* if */
           }  /* for */
-          write_tok_str(")");
+          write_tok_ch(')');
           goto done_with_operation;
         default:
           unexpected_condition_str("dump_operation: bad expression operator");
@@ -3144,39 +3177,39 @@ process_assignment:
       /* General-case processing: */
       if (operand_2 == NULL) {
         /* Unary operator; operator goes first. */
-        write_tok_str(opstr);
+        m_write_tok_str(opstr);
       }  /* if */
       /* Generate the first operand. */
       if (pointer_comparison) write_tok_str("(void *)");
       dump_expr_with_parens(operand_1);
       if (operand_2 != NULL) {
         /* Two-operand operator. */
-        write_space();
-        write_tok_str(opstr);
-        write_space();
+        m_write_space();
+        m_write_tok_str(opstr);
+        m_write_space();
         if (pointer_comparison) write_tok_str("(void *)");
         dump_expr_with_parens(operand_2);
       }  /* if */
 done_with_operation:
-      if (need_parens) write_tok_str(")");
+      if (need_parens) m_write_tok_ch(')');
       break;
     case enk_constant:
       dump_constant(expr->variant.constant);
       break;
     case enk_variable_address:
-      if (need_parens) write_tok_str("(");
+      if (need_parens) m_write_tok_ch('(');
       dump_ampersand(expr->variant.variable->type);
       dump_variable_name(expr->variant.variable);
-      if (need_parens) write_tok_str(")");
+      if (need_parens) m_write_tok_ch(')');
       break;
     case enk_variable:
       dump_variable_name(expr->variant.variable);
       break;
     case enk_routine_address:
-      if (need_parens) write_tok_str("(");
+      if (need_parens) m_write_tok_ch('(');
       dump_ampersand(expr->variant.routine->type);
       dump_routine_name(expr->variant.routine);
-      if (need_parens) write_tok_str(")");
+      if (need_parens) m_write_tok_ch(')');
       break;
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
@@ -3342,11 +3375,11 @@ the list pointed to by "ipdp".
   dump_variable_name(variable);
   for (; ipdp != NULL; ipdp = ipdp->next) {
     if (is_array_type(ipdp->type)) {
-      write_tok_str("[");
+      write_tok_ch('[');
       write_unsigned_num((unsigned long)ipdp->curr_elem);
-      write_tok_str("]");
+      write_tok_ch(']');
     } else {
-      write_tok_str(".");
+      write_tok_ch('.');
       dump_field_name(ipdp->curr_field);
     }  /* if */
   }  /* for */
@@ -3435,7 +3468,7 @@ described by the list pointed to by "ipdp" to the constant pointed to by
     /* BSD UNIX -- use bcopy. */
     write_tok_str("bcopy((char *)");
     dump_constant(constant);
-    write_tok_str(",");
+    write_tok_ch(',');
     dump_var_for_init(variable, ipdp);
 #else /* !__BSD__ */
     /* System V or ANSI -- use memcpy. */
@@ -3446,12 +3479,12 @@ described by the list pointed to by "ipdp" to the constant pointed to by
 #endif /* __BSD__ */
     /* Add the string length as the length of the move.  strcpy cannot be
        used because the string might contain extra nulls, or none. */
-    write_tok_str(",");
+    write_tok_ch(',');
     /* No cast to size_t or the like is needed; in BSD and System V
        the length is int, and in ANSI C the function is prototyped
        so the conversion will be implicit. */
     write_unsigned_num((unsigned long)constant->variant.string.length);
-    write_tok_str(")");
+    write_tok_ch(')');
   } else {
     /* Normal case (not string); generate an assignment statement. */
     dump_var_for_init(variable, ipdp);
@@ -3459,7 +3492,7 @@ described by the list pointed to by "ipdp" to the constant pointed to by
     dump_constant(constant);
   }  /* if */
   /* Add the final semicolon to the assigning statement. */
-  write_tok_str(";");
+  write_tok_ch(';');
   unset_init_file(save_f_C_output);
 }  /* dump_init_assignment */
 
@@ -3505,7 +3538,7 @@ open braces that were deferred until this point.
     write_tok_str(" = ");
     for (; num_initializer_open_braces_deferred > 0;
          num_initializer_open_braces_deferred--) {
-      write_tok_str("{");
+      write_tok_ch('{');
     }  /* if */
   }  /* if */
 }  /* start_initializer_constants */
@@ -3599,7 +3632,7 @@ prove to be needed.
 */
 {
   if (initializer_constants_started) {
-    write_tok_str("{");
+    write_tok_ch('{');
   } else {
     num_initializer_open_braces_deferred++;
   }  /* if */
@@ -3616,7 +3649,7 @@ do not put out the closing brace either.
   if (num_initializer_open_braces_deferred > 0) {
     num_initializer_open_braces_deferred--;
   } else {
-    write_tok_str("}");
+    write_tok_ch('}');
   }  /* if */
 }  /* initializer_close_brace */
 
@@ -3637,7 +3670,7 @@ i.e., instead of "abc" (no final null) dump 'a','b','c'.
     ch = constant->variant.string.value[a];
     write_ch(ch);
     write_ch('\'');
-    if (a != len-1) write_str(", ");
+    if (a != len-1) write_tok_ch(',');
   }  /* for */
 }  /* dump_exploded_string */
 
@@ -3667,7 +3700,7 @@ value.
       temp |= ch;
     }  /* for */
     write_unsigned_num(temp);
-    if (a != len-TARG_SIZEOF_WCHAR_T) write_str(", ");
+    if (a != len-TARG_SIZEOF_WCHAR_T) write_tok_ch(',');
   }  /* for */
 }  /* dump_exploded_wide_string */
 
@@ -3750,22 +3783,22 @@ temporary file (see start_initializer_assignments).
       start_initializer_constants();
       if (constant == NULL) {
         /* Initialize to zero. */
-        write_tok_str("0");
+        write_tok_ch('0');
       } else if (is_wide_string_constant(constant)) {
         /* If the initial value is a wide string constant, the string must
            be dumped specially. */
-        write_tok_str("{");
+        write_tok_ch('{');
         dump_exploded_wide_string(constant);
-        write_tok_str("}");
+        write_tok_ch('}');
       } else if (constant->kind == (a_constant_repr_kind)ck_string &&
                  constant->variant.string.
                             value[constant->variant.string.length-1] != '\0') {
         /* If the initial value is a string without the trailing null, the
            individual characters must be dumped, instead of the string
            literal. */
-        write_tok_str("{");
+        write_tok_ch('{');
         dump_exploded_string(constant);
-        write_tok_str("}");
+        write_tok_ch('}');
       } else {
         /* Normal case -- output the constant value. */
         dump_constant(constant);
@@ -3828,7 +3861,7 @@ temporary file (see start_initializer_assignments).
       if (!*gen_assignments) {
         /* Do any first-time processing necessary. */
         start_initializer_constants();
-        write_tok_str("0");
+        write_tok_ch('0');
       }  /* if */
     } else {
       /* Loop through the list of constants and process each one.
@@ -3857,7 +3890,7 @@ temporary file (see start_initializer_assignments).
         elem_con = elem_con->next;
         if (elem_con == NULL) break;
         /* Put out a comma between constants. */
-        if (!*gen_assignments) write_str(", ");
+        if (!*gen_assignments) write_tok_ch(',');
         /* Advance to the next element in the aggregate. */
         /* Only the first field of a union is initialized, so there shouldn't
            be more than one constant on the aggregate list for a union. */
@@ -4079,7 +4112,7 @@ parameters.
             !is_array_type(variable->type)))) {
         dump_initializer(variable, init_con, /*is_dynamic_init=*/FALSE);
       }  /* if */
-      write_tok_str(";");
+      write_tok_ch(';');
       if (!is_link) end_unreferenced_bracket(&variable->source_corresp);
     }  /* if */
   }  /* if */
@@ -4262,7 +4295,7 @@ handled in declaration processing in dump_variable.
         dump_variable_name(variable);
         write_tok_str(" = ");
         dump_constant(dip->variant.constant);
-        write_tok_str(";");
+        write_tok_ch(';');
         break;
       case dik_expression:
         /* Initialization to an expression.  Output
@@ -4273,7 +4306,7 @@ handled in declaration processing in dump_variable.
         /* Parentheses are required because of the possibility that the
            top-level operator is a ",". */
         dump_expr_with_parens(dip->variant.expression);
-        write_tok_str(";");
+        write_tok_ch(';');
         break;
       default:
         unexpected_condition_str("dump_dynamic_init: bad kind");
@@ -4337,7 +4370,7 @@ Generate C for a statement.
 
   if (statement == NULL) {
     /* Empty statement. */
-    write_tok_str(";");
+    write_tok_ch(';');
     goto routine_end;
   }  /* if */
   kind = statement->kind;
@@ -4359,7 +4392,7 @@ Generate C for a statement.
       check_result_not_used_flag(statement->expr);
 #endif /* CHECKING */
       dump_expression(statement->expr);
-      write_tok_str(";");
+      write_tok_ch(';');
       break;
     case stmk_if:
       write_tok_str("if ");
@@ -4434,7 +4467,7 @@ Generate C for a statement.
 #endif /* CHECKING */
         dump_expression(incr);
       }  /* if */
-      write_tok_str(")");
+      write_tok_ch(')');
       indent += 2;
       dump_statement(statement->variant.for_loop.statement);
       indent -= 2;
@@ -4442,17 +4475,17 @@ Generate C for a statement.
     case stmk_goto:
       write_tok_str("goto ");
       dump_label_name(statement->variant.label);
-      write_tok_str(";");
+      write_tok_ch(';');
       break;
     case stmk_label:
       if (start_unreferenced_bracket(
                                   &statement->variant.label->source_corresp)) {
         set_output_position_for_stmt(&statement->position);
         dump_label_name(statement->variant.label);
-        write_tok_str(":");
+        write_tok_ch(':');
         end_unreferenced_bracket(&statement->variant.label->source_corresp);
       }  /* if */
-      write_tok_str(";");
+      write_tok_ch(';');
       break;
     case stmk_return:
       write_tok_str("return");
@@ -4460,16 +4493,16 @@ Generate C for a statement.
         write_space();
         dump_expression(statement->expr);
       }  /* if */
-      write_tok_str(";");
+      write_tok_ch(';');
       break;
     case stmk_block:
-      write_tok_str("{");
+      write_tok_ch('{');
       indent += 2;
       dump_block(statement);
       indent -= 2;
       set_output_position_for_stmt(
                          &statement->variant.block.extra_info->final_position);
-      write_tok_str("}");
+      write_tok_ch('}');
       break;
     case stmk_end_test_while:
       write_tok_str("do ");
@@ -4478,7 +4511,7 @@ Generate C for a statement.
       indent -= 2;
       write_tok_str("while ");
       dump_boolean_controlling_expression(statement->expr);
-      write_tok_str(";");
+      write_tok_ch(';');
       break;
     case stmk_switch:
       write_tok_str("switch (");
@@ -4556,7 +4589,7 @@ position_set:;
           do {
 	    write_tok_str("case ");
 	    dump_constant(constant);
-	    write_tok_str(":");
+	    write_tok_ch(':');
 	  } while ((constant = constant->next) != NULL);
 	}  /* if */
         need_break = TRUE;
@@ -4588,7 +4621,7 @@ position_set:;
 	/* Outdent for the dependent statements and the case label. */
 	indent -= 4;
       }  /* for */
-      write_tok_str("}");
+      write_tok_ch('}');
       break;
     case stmk_init:
       /* Dynamic initialization. */
@@ -4653,7 +4686,7 @@ its subtree.
           /* Declare the temporary. */
           dump_general_declaration_using_type(op1_type, NO_NAME, NO_VARIABLE,
                                               (char *)node);
-          write_tok_str(";");
+          write_tok_ch(';');
         }  /* if */
       }  /* if */
       for (operand = op1; operand != NULL; operand = operand->next) {
@@ -4780,7 +4813,7 @@ function.  scope is the associated scope.
     dump_general_declaration_using_type(param_var->type,
                                         &param_var->source_corresp,
                                         param_var, NO_TEMP);
-    write_tok_str(";");
+    write_tok_ch(';');
   }  /* for */
 }  /* dump_old_style_parameter_decls */
 
@@ -4914,7 +4947,7 @@ if this routine has a body (dump nothing if it has no body).
     if (!is_definition) {
       /* A declaration of the routine. */
       dump_declaration_using_type(rout->type, &rout->source_corresp);
-      write_tok_str(";");
+      write_tok_ch(';');
     } else {
       /* The definition of the routine. */
       dump_routine_definition(rout);
@@ -5126,7 +5159,7 @@ Generate C from the intermediate language.
       if (!file_scope_init_routine_called) missing_call_of_init_routine = TRUE;
       copy_and_delete_file(&f_file_scope_inits);
     }  /* if */
-    write_tok_str("}");
+    write_tok_ch('}');
     if (missing_call_of_init_routine) {
       /* There was no opportunity to call the file-scope initialization
          routine.  In C++, generate a __link variable that will get it called.
