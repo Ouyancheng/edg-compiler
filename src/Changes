@@ -1,5 +1,11 @@
 Version 2.20
 
+9/29/93  Cross-reference output for overloaded function call
+
+The cross-reference output line for a call of an overloaded function
+formerly indicated "A", for address-taken.  It now indicates the
+correct "R" for referenced.
+
 9/28/93  Interaction between automatic inclusion and -tused and -tall
 
 A bug has been fixed that would, under certain conditions, result in
