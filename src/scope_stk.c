@@ -2416,6 +2416,111 @@ NULL.
 }  /* end_of_scope_symbol_check */
 
 
+/*
+Available list of entries of type a_name_hidden_by_old_for_init.
+*/
+static a_name_hidden_by_old_for_init_ptr avail_names_hidden_by_old_for_init;
+
+
+static 
+a_name_hidden_by_old_for_init_ptr alloc_name_hidden_by_old_for_init(void)
+/*
+Return an entry of type a_name_hidden_by_old_for_init, with its fields
+cleared, either allocating a brand new one or taking one from the available
+list.
+*/
+{
+  a_name_hidden_by_old_for_init_ptr  nhp;
+
+  if (avail_names_hidden_by_old_for_init == NULL) {
+    nhp = (a_name_hidden_by_old_for_init_ptr)
+                            alloc_fe(sizeof(a_name_hidden_by_old_for_init));
+  } else {
+    nhp = avail_names_hidden_by_old_for_init;
+    avail_names_hidden_by_old_for_init = nhp->next;
+  }  /* if */
+  nhp->next = NULL;
+  nhp->symbol = NULL;
+  nhp->already_hidden = FALSE;
+  return nhp;
+}  /* alloc_name_hidden_by_old_for_init */
+
+
+static void free_names_hidden_by_old_for_init(
+                                      a_name_hidden_by_old_for_init_ptr  nhp)
+/*
+Return each of the entries of type a_name_hidden_by_old_for_init on the list
+headed by nhp to the available list.  Update the hidden_by_old_for_init
+flag in the associated symbol.
+*/
+{
+  a_name_hidden_by_old_for_init_ptr  next_nhp;
+
+  while (nhp != NULL) {
+    next_nhp = nhp->next;
+    /* Update the hidden_by_old_for_init flag in the associated symbol. */
+    nhp->symbol->hidden_by_old_for_init = nhp->already_hidden;
+    nhp->symbol = NULL;
+    /* Return the entry to the available list. */
+    nhp->next = avail_names_hidden_by_old_for_init;
+    avail_names_hidden_by_old_for_init = nhp;
+    nhp = next_nhp;
+  }  /* while */
+}  /* free_names_hidden_by_old_for_init */
+
+
+static void record_names_hidden_by_old_for_init(a_symbol_ptr for_init_decl)
+/*
+for_init_decl is head of a list of symbols declared in a for-init block scope
+that has just been popped of the scope stack -- the scoping rules governing
+these symbols are the standard rules.  build a list of names that would have
+been hidden in the current scope under the old rules but are visible under
+the new rules.  This list can be used to issue diagnostics -- to avoid
+silently giving programs different behavior than they had under the old
+(cfront-style) rules.
+*/
+{
+  a_scope_stack_entry_ptr            ssep = &scope_stack[depth_scope_stack];
+  a_symbol_ptr                       previously_hidden_sym;
+  a_symbol_locator                   locator;
+  a_name_hidden_by_old_for_init_ptr  nhp;
+
+  check_assertion(ssep->kind == (a_scope_kind)sck_block ||
+                  ssep->kind == (a_scope_kind)sck_function);
+  while (for_init_decl != NULL) {
+    /* Manufacture a locator to do a lookup. */
+    make_locator_for_symbol(for_init_decl, &locator);
+    locator.specific_symbol = NULL;
+    previously_hidden_sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
+    if (previously_hidden_sym != NULL) {
+      /* Lookup was successful. */
+      if (previously_hidden_sym->decl_scope == ssep->number) {
+        /* Ignore symbols found in the current scope. */
+      } else {
+        /* A symbol from a surrounding scope.  Be sure it hasn't already been
+           entered. */
+        nhp = ssep->names_hidden_by_old_for_init;
+        for (; nhp != NULL; nhp = nhp->next) {
+          if (nhp->symbol == previously_hidden_sym) break;
+        }  /* for */
+        if (nhp == NULL) {
+          /* Create a name-[would-have-been-]hidden-by-old-for-init entry. */
+          nhp = alloc_name_hidden_by_old_for_init();
+          nhp->symbol = previously_hidden_sym;
+          /* Save the flag in the symbol so it can be restored later. */
+          nhp->already_hidden = previously_hidden_sym->hidden_by_old_for_init;
+          previously_hidden_sym->hidden_by_old_for_init = TRUE;
+          /* Add the entry to the list for the current scope. */
+          nhp->next = ssep->names_hidden_by_old_for_init;
+          ssep->names_hidden_by_old_for_init = nhp;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    for_init_decl = for_init_decl->next_in_scope;
+  }  /* while */
+}  /* record_names_hidden_by_old_for_init */
+
+
 static void nested_class_anachronism_processing(a_symbol_ptr symbol_list,
                                                 a_boolean    do_tags,
                                                 a_boolean    do_typedefs)
@@ -2932,6 +3037,7 @@ End a name scope by popping an entry off the scope stack.
         (void)fputc('"', f_debug);
       } else {
         fputs(", kind = ", f_debug);
+        if (ssep->is_for_init_block) (void)fputs("for-init ", f_debug);
         (void)db_scope_kind(kind);
       }  /* if */
       (void)fputc('\n', f_debug);
@@ -3055,6 +3161,11 @@ End a name scope by popping an entry off the scope stack.
                            "pop_scope: curr_object_lifetime is not that of",
                            "file scope");
       curr_object_lifetime = ssep->saved_curr_object_lifetime;
+    }  /* if */
+    /* Dispose of the list of entries of type a_name_hidden_by_old_for_init.
+       The are no longer needed once the scope has been completed. */
+    if (ssep->names_hidden_by_old_for_init != NULL) {
+      free_names_hidden_by_old_for_init(ssep->names_hidden_by_old_for_init);
     }  /* if */
   }  /* if */      
   check_assertion_str2(ssep->defer_access_checks == FALSE &&
@@ -3380,6 +3491,15 @@ End a name scope by popping an entry off the scope stack.
     a_scope_kind skind = scope_stack[decl_scope_level].kind;
     if (is_scope_kind_that_affects_declarative_level(skind)) break;
   }  /* for */
+  if (ssep->is_for_init_block) {
+    /* A for-init block is being popped.  Its declarations are going out of
+       scope.  But in older versions of C++ they would have remained in scope
+       till the end of the containing block.  Track declarations that were
+       formerly hidden (say, with cfront) but are now visible (under the new
+       for-init scoping rules). */
+    record_names_hidden_by_old_for_init(
+                                   assoc_pointers_block_of(ssep)->symbols);
+  }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
   if (depth_scope_stack != NO_SCOPE_DEPTH) {
     pointers_block = assoc_pointers_block_of(&scope_stack[depth_scope_stack]);
@@ -3730,6 +3850,7 @@ are handled in scope_stk_init.)
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(num_classes_on_scope_stack),
+      pch_saved_var_array_elem(avail_names_hidden_by_old_for_init),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -3751,6 +3872,7 @@ of the front end.
 #if CHECKING
   pushing_template_instantiation_scope = FALSE;
 #endif /* CHECKING */
+  avail_names_hidden_by_old_for_init = NULL;
 }  /* scope_stk_init */
 
 /******************************************************************************
