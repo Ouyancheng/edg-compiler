@@ -2759,6 +2759,15 @@ Generate an expression operation.
           end_comment();
         }  /* if */
         dump_variable_name(operand_1->variant.variable);
+      } else if (is_pointer_type(operand_1->type) &&
+                 is_integral_type(expr_type) &&
+                 expr_type->size < TARG_SIZEOF_POINTER) {
+        /* Casting from a pointer type to a smaller integral type.  Go by
+           way of unsigned long to avoid errors or warnings from the
+           underlying C compiler. */
+        write_tok_str("((unsigned long)");
+        dump_expr_with_parens(operand_1);
+        write_tok_str(")");
       } else {
         /* Normal case. */
         dump_expr_with_parens(operand_1);
