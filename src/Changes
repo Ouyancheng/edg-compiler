@@ -1,5 +1,17 @@
 Version 3.1
 
+10/4/02  Spurious error on static member template friend declaration
+
+A spurious error was issued if a friend declaration referred to an instance
+of a static member function template.  This has been fixed.
+
+  struct A {
+    template <class T> static void f();
+  };
+  struct B {
+    friend void A::f<int>();
+  };
+
 10/03/02 Internal error on function reference with explicit template arguments
 
 An internal error (in explicit_arg_list_identifies_specialization)

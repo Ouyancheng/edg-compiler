@@ -5470,6 +5470,9 @@ points to the template parameter list.
     fprintf(f_debug, "matches_template_type starting evaluation of type: ");
     db_type(orig_type);
     fprintf(f_debug, "\n");
+    fprintf(f_debug, "template type: ");
+    db_type(templ_type);
+    fprintf(f_debug, "\n");   
   }  /* if */
 #endif /* DEBUG */
   /* When this routine calls itself recursively, the recursive calls

@@ -11363,13 +11363,17 @@ the IL, the template header is passed via template_decl.
         if (decl_info.is_constructor) di_flags |= DI_IS_CONSTRUCTOR;
         if (decl_info.storage_class == (a_storage_class)sc_typedef) {
           di_flags |= DI_IS_TYPEDEF_DECLARATION;
-        } else if (decl_info.storage_class != (a_storage_class)sc_static) {
+        } else if (decl_info.storage_class != (a_storage_class)sc_static &&
+                   !friend_specified) {
           /* The storage class "static" was not specified and it is not a
              typedef declaration.   Therefore, if this turns out to be a member
              function declaration, it will be a nonstatic member function.
              This is important because when the routine type is created,
              function_declarator needs to know whether to add an implicit
-             this-param pointer to the type. */
+             this-param pointer to the type.  Don't set this for friend
+             declarations because we can't know yet whether the friend
+             (if it is a class member) refers to a static or nonstatic
+             function. */
           di_flags |= DI_NONSTATIC_MEMBER;
         }  /* if */
         if (friend_specified) {
