@@ -44,6 +44,8 @@ static void lower_c99_cast(an_expr_node_ptr expr);
 
 #if LOWER_COMPLEX
 
+static void lower_c99_operator(an_expr_node_ptr expr);
+
 /* Pointers to lowered versions of complex types, once allocated. */
 static a_type_ptr lowered_complex_float = NULL;
 static a_type_ptr lowered_complex_double = NULL;
@@ -509,6 +511,8 @@ called routine (op@) are rout_name and xop_routine, respectively.
   assignment =  make_operator_node(which_binary_operator(tok_assign, 
                                                          expr->type),
                                    expr->type, lhs);
+  /* Rewrite eok_sassign as eok_xassign. */
+  lower_c99_operator(assignment);
   if (lhs_for_init != NULL) {
     /* Add a comma expression to force the initialization of the temporary
        before any part of the compound assignment is evaluated. */
