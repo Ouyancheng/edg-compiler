@@ -4,7 +4,7 @@ Version 2.30
 
 As part of the changeover to support namespaces, the field
 class_of_which_a_member in a_source_correspondence has been eliminated.
-Formerly, a non-NULL class_of_which_a_member_pointer was the indication
+Formerly, a non-NULL class_of_which_a_member pointer was the indication
 that an IL entry was a class member; now you should check the new flag
 is_class_member.  And when is_class_member is TRUE, the variant field
 parent.class_type in the source correspondence substructure will give
