@@ -1,5 +1,14 @@
 Version 2.30
 
+10/2/95  C++-generating back end: template friends
+
+The C++-generating back end now deals correctly with template friend
+declarations in classes:
+
+  struct A {
+    template <class T> friend void f(T) {}
+  };
+
 10/2/95  IL CHANGE: Removal of accessible base class IL entry
 
 The accessible base class IL entry is vestigial when ABI_CHANGES_FOR_RTTI
