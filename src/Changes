@@ -10,14 +10,15 @@ a function:
   void (&pf3)() throw(int) = f;         // Error
   void (&pf6)() throw() = ff;           // Error
 
-12/11/96 Internal error caused by badly formed aggregate initializer
+12/11/96 Internal error caused by badly formed IL for aggregate initializer
 
-A bug has been fixed in building the initializer for an aggregate, the type
-of whose subject(s) is a class with a destructor but no constructor.  The
-problem only appeared when support for exceptions was enabled and had to do
-with recording the destructor to be called if an exception were thrown
-before the aggregate was completely initialized; the internal error that
-resulted appeared during IL-lowering.  Here's an example:
+A bug has been fixed in building the IL to represent the initializer for an
+aggregate with a subobject whose type is a class with a destructor but no
+constructor.  The problem only appeared when support for exceptions was
+enabled and had to do with recording the destructor to be called if an
+exception were thrown before the aggregate was completely initialized; the
+internal error that resulted appeared during IL-lowering.  Here's an
+example:
 
   struct S {
     int i;
