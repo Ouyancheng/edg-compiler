@@ -5052,7 +5052,7 @@ if is_lvalue is TRUE.  Return NULL if the expression cannot be generated.
          reference const-valued local variables. */
       check_assertion(curr_expr_kind_is_const());
     } else {
-      expr = is_lvalue ? var_lvalue_expr(variable) : var_rvalue(variable);
+      expr = is_lvalue ? var_lvalue_expr(variable) : var_rvalue_expr(variable);
     }  /* if */
   }  /* if */
   return expr;
