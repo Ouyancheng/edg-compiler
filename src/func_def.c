@@ -429,13 +429,19 @@ routine type, and return a pointer to it.
 
 
 static void decl_parameter(a_param_id_ptr    param_id,
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+                           a_type_ptr        declared_type,
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                            a_param_type_ptr  ptp,
                            a_boolean         function_instantiation)
 /*
 Enter the declaration of an identifier for a parameter.  The param_id
 points to an sk_parameter symbol, which under ordinary circumstances, is
 turned into an sk_variable symbol; but if function_instantiation is TRUE,
-a new symbol is created and entered in the symbol table.
+a new symbol is created and entered in the symbol table.  When declared
+types are recorded, declared_type points to the type of this parameter as
+it was originally declared (before any transformations such as array-to-
+pointer decay).
 */
 {
   a_symbol_ptr      sym;
@@ -485,34 +491,9 @@ a new symbol is created and entered in the symbol table.
   /* Create the parameter variable. */
   vp = make_param_variable(tp, param_id->storage_class);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (!function_instantiation) {
     /* Record the type exactly as it was declared (before array-to-pointer
-       decay, etc.).  This is done only for parameters of functions that
-       are declared explicitly; template functions are handled specially
-       because the param_id entry is the one associated with the template
-       declaration and may involve template parameter types. */
-    vp->declared_type = param_id->declared_type;
-  } else {
-    /* The declared type of a template instance can be inferred from the
-       declared type in the param-id entry (from the template declaration)
-       and from the param-type entry (now recorded in tp). */
-    if (is_error_type(tp)) {
-      /* Avoid problems on error cases. */
-    } else if (is_function_type(param_id->declared_type)) {
-      /* Undo the change of a function type to pointer-to-function type. */
-      check_assertion(is_pointer_type(tp) &&
-                      is_function_type(type_pointed_to(tp)));
-      vp->declared_type = type_pointed_to(tp);
-    } else if (is_array_type(param_id->declared_type)) {
-      /* Undo array-to-pointer decay. */
-      check_assertion(is_pointer_type(tp));
-      vp->declared_type = alloc_type((a_type_kind)tk_array);
-      vp->declared_type->variant.array.element_type = type_pointed_to(tp);
-    } else {
-      /* No change required. */
-      vp->declared_type = tp;
-    }  /* if */
-  }  /* if */
+       decay, etc.). */
+    vp->declared_type = declared_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   add_to_parameters_list(vp);
   sym = param_id->symbol;
@@ -617,6 +598,9 @@ and for the instantiation of template functions.
   a_routine_type_supplement_ptr  rtsp;
   a_scope_number                 scope_number;
   a_param_id_ptr                 param_id;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_param_id_ptr                 orig_param_id = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_scope_ptr                    scope_ptr;
   a_struct_stmt_stack_state      saved_sss_state;
   a_boolean                      is_instantiation;
@@ -826,6 +810,20 @@ and for the instantiation of template functions.
         }  /* for */
       }  /* if */
     }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (is_instantiation) {
+      /* When source sequence list generation is enabled, we save the param-id
+         list of the instantiation.  This allows a meaningful record of the
+         declared_type information later on.  If that record is unneeded, the
+         param-id list of the template suffices. */
+      a_symbol_ptr  rout_sym =
+                            (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
+      a_template_instance_ptr  tip = rout_sym->variant.routine.instance_ptr;
+      orig_param_id = tip->param_id_list;
+    } else {
+      orig_param_id = func_info->param_id_list;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     param_id = func_info->param_id_list;
     ptp = rtsp->param_type_list;
     /* Be sure param-id and param-type lists are in sync. */
@@ -833,7 +831,13 @@ and for the instantiation of template functions.
     for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
       /* Declare each parameter identifier to have the associated type
          from the parameter type list. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      decl_parameter(param_id, orig_param_id->declared_type,
+                     ptp, is_instantiation);
+      orig_param_id = orig_param_id->next;
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
       decl_parameter(param_id, ptp, is_instantiation);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (is_instantiation && param_id->next != NULL && ptp->next == NULL &&
           is_or_contains_error_type(ptp->type)) {
         /* Something may have gone wrong while parsing the template.  This

@@ -82,6 +82,12 @@ typedef struct a_routine_fixup {
 			   needs to be added to the source sequence list
 			   during fixup. */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  a_byte_boolean
+		preserve_param_id_list;
+			/* TRUE if the param_id_list in the func_info field
+			   should not be deallocated with this fixup
+			   (presumably because it is also pointed to by
+			   another structure). */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_routine_fixup;
 
@@ -202,6 +208,7 @@ initialize it.
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   rfp->is_partial_instantiation = FALSE;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  rfp->preserve_param_id_list = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   clear_func_info(&rfp->func_info);
   /* We don't know whether this cache will be reused or not.  Make it
@@ -221,6 +228,11 @@ associated with it, to their respective available-lists.
 {
   free_def_arg_expr_fixup(rfp->def_arg_expr_fixup_list);
   rfp->def_arg_expr_fixup_list = NULL;
+  if (rfp->preserve_param_id_list) {
+    /* Clear the param_id_list field of rfp->func_info so that the list won't
+       be deallocated by done_with_func_info. */
+    rfp->func_info.param_id_list = NULL;
+  }  /* if */
   done_with_func_info(rfp->func_info);
   rfp->next = avail_routine_fixup;
   avail_routine_fixup = rfp;
@@ -10049,13 +10061,14 @@ member.  Determine whether a diagnostic is actually required and put it out.
 
 
 static a_symbol_ptr class_member_declaration(
-                        a_type_ptr             class_type,
-                        a_class_def_state_ptr  class_state,
-                        a_boolean              is_member_template,
-			a_template_param_ptr   templ_param_list,
-                        a_boolean              *skip_semicolon_check,
-                        a_type_ptr             *member_template_instance_type,
-                        a_decl_pos_block_ptr   decl_pos_block_ptr)
+                      a_type_ptr               class_type,
+                      a_class_def_state_ptr    class_state,
+                      a_boolean                is_member_template,
+                      a_template_param_ptr     templ_param_list,
+                      a_boolean                *skip_semicolon_check,
+                      a_type_ptr               *member_template_instance_type,
+                      a_template_instance_ptr  instance,
+                      a_decl_pos_block_ptr     decl_pos_block_ptr)
 /*
 Scan a member declaration appearing inside a class definition.  class_type
 is the type of the class.  class_state points to a block of information
@@ -10184,6 +10197,7 @@ to be returned to the caller.
     a_symbol_locator                  locator;
     a_type_ptr                        local_type;
     a_func_info_block                 func_info;
+    a_boolean                         preserve_param_id_list = FALSE;
     a_template_symbol_supplement_ptr  tssp;
     a_source_position                 declarator_start_pos;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -10466,6 +10480,16 @@ to be returned to the caller.
       } else if (is_member_template_rescan) {
         *member_template_instance_type = local_type;
         remove_stop_token(tok_comma);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* Set the declared type immediately, before the func_info block is
+           discarded. */
+        instance->declared_type = func_info.declared_type;
+        /* Also save the parameter-id list to later reconstruct the declared
+           types of parameters for the associated parameter variables. */
+        instance->param_id_list = func_info.param_id_list;
+        /* Clear the func_info field to prevent deallocation: */
+        func_info.param_id_list = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         goto next_declaration;
       } else if (is_member_template) {
         /* Process the member function template. */
@@ -10524,14 +10548,19 @@ to be returned to the caller.
                entry, since default arg fixup depends on it. */
             if (rout_sym->variant.routine.instance_ptr != NULL) {
               a_type_ptr  declared_type = func_info.declared_type;
-              
-              rout_sym->variant.routine.instance_ptr->
-                         declared_type_for_default_arg_fixup = declared_type;
+              a_template_instance_ptr
+                          tip = rout_sym->variant.routine.instance_ptr;
+
+              tip->declared_type_for_default_arg_fixup = declared_type;
               if (declared_type == NULL) {
                 declared_type = form_declared_type(local_type, &func_info);
               }  /* if */
-              rout_sym->variant.routine.instance_ptr->
-                                             declared_type = declared_type;
+              tip->declared_type = declared_type;
+              /* Save the param_id_list so we can accurately represent the
+                 actual declared type of the parameters later on. */
+              tip->param_id_list = func_info.param_id_list;
+              /* Do no let the param_id_list be deallocated later on: */
+              preserve_param_id_list = TRUE;
             }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           }  /* if */
@@ -10550,7 +10579,9 @@ to be returned to the caller.
            scanned). */
         curr_routine_fixup->symbol = rout_sym;
         curr_routine_fixup->func_info = func_info;
+        curr_routine_fixup->preserve_param_id_list = preserve_param_id_list;
       } else {
+        if (preserve_param_id_list) { func_info.param_id_list = NULL; }
         done_with_func_info(func_info);
       }  /* if */
       if (curr_token == tok_assign) {
@@ -10823,7 +10854,8 @@ is the template parameter list for the function template.
   sym = class_member_declaration(class_type, class_state_ptr,
                                  /*is_member_template=*/TRUE,
                                  templ_param_list, &skip_semicolon_check,
-                                 &dummy_type, decl_pos_block_ptr);
+                                 &dummy_type, /*instance=*/NULL,
+                                 decl_pos_block_ptr);
   if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
   if (sym == NULL) {
     /* An error has already been issued. */
@@ -10840,12 +10872,15 @@ is the template parameter list for the function template.
 }  /* class_member_template_declaration */
 
 
-a_type_ptr rescan_member_template_declaration(a_type_ptr  class_type)
+a_type_ptr rescan_member_template_declaration(
+                                          a_type_ptr               class_type,
+                                          a_template_instance_ptr  instance)
 /*
 The current token is the start of a member template function declaration
 which is being rescanned as part of its instantiation.  class_type is the
 parent type.  A pointer to the member type (the result of calling
-decl_specifiers and declarator) is returned.
+decl_specifiers and declarator) is returned.  instance is the template
+instance record associated with this instantiation.
 */
 {
   a_type_ptr           member_template_instance_type = NULL;
@@ -10863,7 +10898,7 @@ decl_specifiers and declarator) is returned.
                                  /*is_member_template=*/FALSE,
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
-                                 &member_template_instance_type,
+                                 &member_template_instance_type, instance,
                                  (a_decl_pos_block *)NULL);
   curr_routine_fixup = saved_routine_fixup;
   db_exit();
@@ -11495,7 +11530,8 @@ nested classes when their definition appears outside of the class template.
         (void)class_member_declaration(class_type, &class_state,
                                        /*is_template_member=*/FALSE,
                                        (a_template_param_ptr)NULL,
-                                       &skip_semicolon_check, &dummy_type,
+                                       &skip_semicolon_check,
+                                       &dummy_type, /*instance=*/NULL,
                                        (a_decl_pos_block *)NULL);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member

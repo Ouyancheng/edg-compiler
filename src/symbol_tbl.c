@@ -9504,6 +9504,7 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->declared_type               = NULL;
   tip->declared_type_for_default_arg_fixup
                                    = NULL;
+  tip->param_id_list               = NULL;
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   tip->partial_instantiation       = NULL;
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
