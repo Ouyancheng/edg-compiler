@@ -1,5 +1,27 @@
 Version 2.20
 
+10/28/93 Include file search order -- new default behavior
+
+It used to be that, by default, the primary include search directory was
+the directory of the primary source file, except in pcc mode, where it was
+whatever directory of current input file belonged to.  With this change the
+pcc-mode behavior (which is the approach that predominates on UNIX systems)
+has become the default, and the former default behavior is no longer
+supported.  Support has also been added for a stack model, as employed in
+Microsoft C compilers -- see STACK_REFERENCED_INCLUDE_DIRECTORIES, defined
+in lang_feat.h.
+
+Since behavior in this area is left "implementation defined" by the ANSI C
+standard, implementations can modify push_primary_include_search_dir and
+pop_primary_include_search_dir in host_envir.c to meet the requirements of
+particular environments.
+
+10/27/93 IL CHANGE -- New field in a_source_file
+
+A new field, name_as_written, has been added to a_source_file.  It is
+required for the implicit inclusion feature in automatic template
+instantiation.
+
 10/25/93 Disambiguating expressions and declarations
 
 A bug has been fixed so that the following is now parsed correctly:
