@@ -1512,9 +1512,10 @@ The calling routine must also provide local variables
 /*
 Pop macro corresponding to push_generated_routine_context.
 */
-#define pop_generated_routine_context(region_number)                  \
+#define pop_generated_routine_context(scope, region_number)           \
 { pop_context();                                                      \
   pop_object_lifetime();                                              \
+  eliminate_all_object_lifetimes(scope);                              \
   curr_object_lifetime = saved_curr_object_lifetime;                  \
   depth_innermost_function_scope = saved_depth_innermost_function_scope; \
   done_with_memory_region(region_number);                             \
@@ -1690,7 +1691,7 @@ The routine must have a "this" parameter.
     return_stmt = alloc_statement((a_statement_kind)stmk_return);
     return_stmt->expr = call_node;
     insert_statement(return_stmt, &insert_location);
-    pop_generated_routine_context(new_routine_il_region);
+    pop_generated_routine_context(new_routine_scope, new_routine_il_region);
     routine = new_routine;
   }  /* if */
   return routine;
@@ -2665,14 +2666,19 @@ in *cap (a destruction).
   a_memory_region_number region_number;
   a_memory_region_number region_to_switch_back_to;
   a_context              context;
-  /* The return_memo_list is saved and restored because we may be inside
-     a routine. */
-  a_return_memo_ptr      saved_return_memo_list = return_memo_list;
+  a_routine_ptr          routine;
   an_object_lifetime_ptr saved_curr_object_lifetime;
   a_scope_depth          saved_depth_innermost_function_scope;
+  a_return_memo_ptr      saved_return_memo_list;
 
+  /* The return_memo_list is saved and restored because we may be inside
+     a routine. */
+  saved_return_memo_list = return_memo_list;
   /* Create a routine. */
   scope = file_scope_term_insert_location(&insert_location, &region_number);
+  /* Save the routine pointer because the scope won't be around at the
+     end of this routine. */
+  routine = scope->variant.routine.ptr;
   push_generated_routine_context(scope, region_number);
   /* Generate the code for the destruction. */
   gen_one_cleanup_action(cap, &insert_location);
@@ -2680,8 +2686,8 @@ in *cap (a destruction).
   cap->variant.object.init_pos_descr.variable->referenced_non_locally = TRUE;
   free_return_memo_list(return_memo_list);
   return_memo_list = saved_return_memo_list;
-  pop_generated_routine_context(region_number);
-  return scope->variant.routine.ptr;
+  pop_generated_routine_context(scope, region_number);
+  return routine;
 }  /* make_destruction_routine */
 
 
@@ -2899,7 +2905,15 @@ be kept, FALSE if it should be deleted.
   if (lifetime != NULL) {
     /* The dynamic init defines a lifetime that surrounds the initialization.
        Make it the current object lifetime (and restore the old one later). */
-    curr_object_lifetime = lifetime;
+    if (processing_file_scope_init_routine) {
+      /* When generating the file-scope initialization routine, the object
+         lifetime is in the file scope but we need it in the function scope,
+         so make a copy. */
+      push_object_lifetime(iek_none, (char *)NULL, lifetime->kind);
+      lifetime = curr_object_lifetime;
+    } else {
+      curr_object_lifetime = lifetime;
+    }  /* if */
     if (keep_object_lifetime_info_in_lowered_il) {
       a_statement_ptr block_stmt;
       /* This dynamic initialization entry defines an object lifetime that
@@ -2924,7 +2938,7 @@ be kept, FALSE if it should be deleted.
       set_block_start_insert_location(block_stmt, &insert_location2);
       eff_insert_location = &insert_location2;
       /* Rebind the object lifetime to the block. */
-      unbind_object_lifetime(lifetime);
+      if (lifetime->entity.ptr != NULL) unbind_object_lifetime(lifetime);
       bind_object_lifetime(lifetime, iek_block,
                            (char *)block_stmt->variant.block.extra_info);
     }  /* if */
@@ -5311,7 +5325,7 @@ Do lowering on the file-scope dynamic initializations list.
     add_scope_orphaned_il_lists(scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
     processing_file_scope_init_routine = FALSE;
-    pop_generated_routine_context(region_number);
+    pop_generated_routine_context(scope, region_number);
     file_scope->dynamic_inits = NULL;
   }  /* if */
 }  /* lower_file_scope_dynamic_inits */
