@@ -3839,7 +3839,8 @@ unit.
       if (db_active && 
           (debug_level >= 3 ||
            db_flag_is_set("dump_symbols"))) {
-        if (kind != (a_scope_kind)sck_namespace || is_namespace_wrapup) {
+        if ((kind != (a_scope_kind)sck_namespace &&
+             kind != (a_scope_kind)sck_file) || is_namespace_wrapup) {
           if (sym == pointers_block->symbols) {
             fputs("Wrapping up ", f_debug);
             if (scope_ptr != NULL) {
@@ -3870,6 +3871,9 @@ unit.
         /* Don't check symbols in namespaces and namespace extensions because
            we don't have complete information yet.  This will be done at the
            end of the file scope. */
+      } else if (kind == (a_scope_kind)sck_file && !is_namespace_wrapup) {
+        /* File scope symbols are not checked until the file scope is popped
+           again after processing all translation units. */
       } else {
         end_of_scope_symbol_check(sym, curr_routine);
 #if RECORD_HIDDEN_NAMES_IN_IL
@@ -3920,15 +3924,17 @@ unit.
          definition.  When a namespace extension is done, the symbols are
          added directly to the inactive list. */
       if (kind == (a_scope_kind)sck_class_struct_union ||
-          (kind == (a_scope_kind)sck_namespace && !is_namespace_wrapup) ||
+          ((kind == (a_scope_kind)sck_namespace ||
+            kind == (a_scope_kind)sck_file) && !is_namespace_wrapup) ||
           kind == (a_scope_kind)sck_template_declaration) {
         add_symbol_to_inactive_list(sym);
       }  /* if */
     }  /* for */
-    if (kind == (a_scope_kind)sck_namespace) {
-      /* Synthesized namespace projections are not removed from namespace
-         scopes because they may be reused if an extension scope is
-         opened. */
+    if (kind == (a_scope_kind)sck_namespace ||
+        kind == (a_scope_kind)sck_file) {
+      /* Synthesized namespace projections are not removed from file
+         and namespace scopes because they may be reused if an extension
+         scope is opened. */
     } else {
       /* Remove any synthesized namespace projection symbols from the
          others_symbols list of the symbol header. */
@@ -3960,7 +3966,7 @@ unit.
     if (C_dialect == C_dialect_cplusplus && scope_ptr != NULL) {
       if (kind == (a_scope_kind)sck_function ||
           kind == (a_scope_kind)sck_block ||
-          kind == (a_scope_kind)sck_file ||
+          (kind == (a_scope_kind)sck_file && is_namespace_wrapup) ||
           (kind == (a_scope_kind)sck_namespace && is_namespace_wrapup)) {
         /* Issue a diagnostic on non-extern member functions that have been
            referenced but not defined. */
