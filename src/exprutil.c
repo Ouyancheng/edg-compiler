@@ -5070,7 +5070,8 @@ invalid (i.e., incomplete); an error node is returned for that case.
 If virtual_suppressed is TRUE, the function was named via a qualified name
 and that has suppressed calling it as virtual; that's also reflected in
 is_virtual, but knowing that the user did it explicitly controls whether
-a diagnostic is put out in some cases.
+a diagnostic is put out in some cases.  function_type can be NULL in
+a prototype instantiation case.
 */
 {
   an_expr_operator_kind         op;
@@ -5081,7 +5082,9 @@ a diagnostic is put out in some cases.
   a_dynamic_init_ptr            dip;
   a_routine_ptr                 rp = NULL;
 
-  function_type = skip_typerefs(function_type);
+  if (function_type != NULL) {
+    function_type = skip_typerefs(function_type);
+  }  /* if */
   if (function_node->kind == (an_expr_node_kind)enk_routine_address) {
     /* We know which routine is being called. */
     rp = function_node->variant.routine;
@@ -5092,7 +5095,8 @@ a diagnostic is put out in some cases.
      function returning a class/struct/enum type that is incomplete
      at the point of declaration of the function so long as it is completed
      by the time the function is defined or called (if it is). */
-  if (!check_function_return_type(function_type, err_pos,
+  if (function_type != NULL &&
+      !check_function_return_type(function_type, err_pos,
                                   /*is_expr_use=*/TRUE, rp)) {
     /* There was some error in the return type, and a diagnostic was issued. */
     call_node = error_node();
@@ -5112,7 +5116,11 @@ a diagnostic is put out in some cases.
   }  /* if */
   /* Determine the return type, dealing with reference types and
      cv-qualifiers. */
-  return_type = il_return_type_of(function_type);
+  if (function_type != NULL) {
+    return_type = il_return_type_of(function_type);
+  } else {
+    return_type = type_of_unknown_templ_param_nontype;
+  }  /* if */
   /* Determine the operator to use for the call. */
   if (is_ptr_to_member_type(function_node->type)) {
     /* Call using a pointer-to-member-function. */
@@ -5126,16 +5134,18 @@ a diagnostic is put out in some cases.
   }  /* if */
   /* Make an expression for the function call. */
   call_node = make_operator_node(op, return_type, function_node);
-  rtsp = function_type->variant.routine.extra_info;
-  if (rtsp->value_returned_by_cctor) {
-    temp_init_node = create_expr_temporary(return_type,
-                                           /*result_is_addr=*/FALSE,
-                                           err_pos);
-    dip = temp_init_node->variant.init.dynamic_init;
-    set_dynamic_init_kind(dip,
+  if (function_type != NULL) {
+    rtsp = function_type->variant.routine.extra_info;
+    if (rtsp->value_returned_by_cctor) {
+      temp_init_node = create_expr_temporary(return_type,
+                                             /*result_is_addr=*/FALSE,
+                                             err_pos);
+      dip = temp_init_node->variant.init.dynamic_init;
+      set_dynamic_init_kind(dip,
                       (a_dynamic_init_kind)dik_call_returning_class_via_cctor);
-    dip->variant.expression = call_node;
-    call_node = temp_init_node;
+      dip->variant.expression = call_node;
+      call_node = temp_init_node;
+    }  /* if */
   }  /* if */
 done:
   return call_node;
@@ -5155,31 +5165,36 @@ a pointer-to-member-function call if the type of function_node is
 pointer-to-member-function.  The arguments of the call are already
 attached to function_node.  A skip_typerefs need not have been done
 on function_type.  *call_pos gives the source position of the call.
+function_type can be NULL in a prototype instantiation case.
 */
 {
   an_expr_node_ptr call_node;
   a_type_ptr       return_type;
 
-  function_type = skip_typerefs(function_type);
+  if (function_type != NULL) {
+    function_type = skip_typerefs(function_type);
+  }  /* if */
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
                              virtual_suppressed, call_pos);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, call_node->type, result);
   result->position = *call_pos;
-  /* A function call returning a reference is an lvalue. */
-  return_type = function_type->variant.routine.return_type;
-  if (is_reference_type(return_type)) {
-    conv_object_pointer_to_lvalue(result);
-    call_node->implicit_reference_indirection = TRUE;
+  if (function_type != NULL) {
+    /* A function call returning a reference is an lvalue. */
+    return_type = function_type->variant.routine.return_type;
+    if (is_reference_type(return_type)) {
+      conv_object_pointer_to_lvalue(result);
+      call_node->implicit_reference_indirection = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_bugs && !C_mode() &&
-             is_class_struct_union_type(return_type)) {
-    /* In Microsoft C++ mode, a function that returns a class type is
-       considered to return an lvalue. */
-    conv_class_operand_to_object_pointer(result);
-    conv_object_pointer_to_lvalue(result);
+    } else if (microsoft_bugs && !C_mode() &&
+               is_class_struct_union_type(return_type)) {
+      /* In Microsoft C++ mode, a function that returns a class type is
+         considered to return an lvalue. */
+      conv_class_operand_to_object_pointer(result);
+      conv_object_pointer_to_lvalue(result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
   }  /* if */
 }  /* make_function_call */
 
@@ -5216,6 +5231,9 @@ in *result.
     if (is_ptr_to_member_type(function_node->type)) {
       /* Call using a pointer-to-member-function. */
       function_type = pm_member_type(function_node->type);
+    } else if (is_template_param_type(function_node->type)) {
+      /* Call in a prototype instantiation. */
+      function_type = NULL;
     } else {
       /* Normal call using a pointer to function. */
       function_type = type_pointed_to(function_node->type);
