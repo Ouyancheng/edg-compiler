@@ -403,6 +403,15 @@ this function is called; it is set to TRUE If the base class is found.
   a_boolean		done;
 #endif /* ifndef __EDG_IA64_ABI */
 
+#if DEBUG
+  if (__debug_level >= 4) {
+    fprintf(__f_debug, "find_base_class_at_addr:\n");
+    fprintf(__f_debug, "  looking in:\n");
+    __db_type_info(*obj_info);
+    fprintf(__f_debug, "  for base class:\n");
+    __db_type_info(*base_info);
+  }  /* if */
+#endif /* DEBUG */
   ptr = obj_ptr;
 #ifdef __EDG_IA64_ABI
   if (typeid(*obj_info) == typeid(abi::__si_class_type_info)) {
@@ -420,11 +429,11 @@ this function is called; it is set to TRUE If the base class is found.
          bcsp++) {
       if (bcsp->__offset_flags & BCS_VIRTUAL) {
         a_vtbl_entry_ptr vtbl, vbase_offset;
-        vtbl = *((a_vtbl_entry_ptr *)base_ptr);
+        vtbl = *((a_vtbl_entry_ptr *)ptr);
         vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + get_offset(bcsp));
-        new_ptr = (void *)(((char *)base_ptr) + *vbase_offset);
+        new_ptr = (void *)(((char *)ptr) + *vbase_offset);
       } else {
-        new_ptr = (void *)(((char *)base_ptr) + get_offset(bcsp));
+        new_ptr = (void *)(((char *)ptr) + get_offset(bcsp));
       }  /* if */
       if (new_ptr == base_ptr &&
           matching_type_info(bcsp->__base_type, base_info)) {
@@ -575,7 +584,7 @@ following information:
        complete object type. */
     result = complete_object_ptr;
   } else {
-    a_boolean	access_okay = FALSE;
+    a_boolean	access_okay = TRUE;
 #if ABI_COMPATIBILITY_VERSION >= 241
     /* Before doing the conversion, find the base class pointed to by the
        source pointer.  Make sure this points to an accessible base class.
@@ -589,6 +598,7 @@ following information:
       /* The static type of the source is the same as the dynamic type. */
       access_okay = TRUE;
     } else {
+      access_okay = FALSE;
       (void)find_base_class_at_addr(complete_object_ptr, source_ptr,
                                     object_tiip, source_tiip, &access_okay);
     }  /* if */
