@@ -1942,21 +1942,36 @@ information should be ignored or if an error should be issued.
       pos_remark(ec_calling_convention_ignored_for_type, decl_pos);
     } else {
       /* A calling convention applied to a function type. */
-      a_type_ptr	tp = *type;
-      a_boolean         any_typedefs = FALSE;
-      /* Skip past any typerefs.  See if any of them are typedefs. */
-      while (tp->kind == (a_type_kind)tk_typeref) {
-        any_typedefs |= typeref_is_typedef(tp);
-        tp = tp->variant.typeref.type;
-      }  /* while */
-      if (any_typedefs) {
-        /* The type contains typedefs.  This is probably a valid thing to
-           do, but we can't implement it because we fold the calling
-           convention into the function type.  Even copying the type
-           would not help, because the type that results cannot be displayed
-           without a typedef somewhere in it.  Give an error. */
+      if (is_qualified_type(*type)) {
+        /* The type involves qualifiers on top of a routine type.  This is an
+           unusual situation that can only occur when a type qualifier is
+           applied to a typedef that points to a routine type.  If a calling
+           convention were allowed to be declared on top of that, it would
+           cause the underlying routine type to be modified; but that would
+           affect the meaning of the typedef that points to it.  Another
+           approach would be to copy the routine type, add the calling
+           convention to the copy, and then reapply the qualifier directly to
+           the copy, but this has implementation difficulties: among other
+           things, without a typedef in the resulting type tree the type can't
+           be represented outside the IL (e.g., in diagnostics).  Here's an
+           example of what is disallowed:
+             typedef void F(int);
+             typedef const F CF;
+             extern CF __stdcall f;     // __stdcall is not allowed here
+           This should be a very rarely encountered limitation, since type
+           qualifiers are uncommon on routine types to begin with. */
+        /* An error is issued, since to just to ignore the declaration (even
+           with a warning) could give the user a false impression. */
         pos_error(ec_calling_convention_not_allowed, decl_pos);
       } else {
+        a_type_ptr  tp = *type;
+        a_boolean   any_typedefs = FALSE;
+
+        /* Skip past any typerefs.  See if any of them are typedefs. */
+        while (tp->kind == (a_type_kind)tk_typeref) {
+          any_typedefs |= typeref_is_typedef(tp);
+          tp = tp->variant.typeref.type;
+        }  /* while */
         check_assertion(tp->kind == (a_type_kind)tk_routine);
         rtsp = tp->variant.routine.extra_info;
         if (rtsp->has_ellipsis) {
@@ -1969,7 +1984,16 @@ information should be ignored or if an error should be issued.
                specified is being ignored. */
             discard = TRUE;
           }  /* if */
-        } else {
+        } else if (rtsp->calling_convention != calling_convention) {
+          /* The underlying routine type needs to be updated. */
+          if (any_typedefs) {
+            /* Copy the routine type, since it's about to be modified and we
+               don't want to change the meaning of the typedef.  But that
+               means *type has to be adjusted. */
+            tp = copy_routine_type_with_param_types(tp);
+            *type = tp;
+            rtsp = tp->variant.routine.extra_info;
+          }  /* if */
           rtsp->calling_convention = calling_convention;
         }  /* if */
       }  /* if */

@@ -1,5 +1,19 @@
 Version 2.37
 
+9/16/97   Microsoft compatibility: calling convention applied to typedef
+
+Support for calling conventions has been extended to remove the restriction
+on their use with typedef types in most cases.  For example:
+
+  typedef void F(int);
+  F __stdcall f;         // Error is no longer issued
+
+However, when a typedef introduces a type qualifier on top of a routine
+type, the calling convention specification continues to be disallowed.
+
+  typedef const F FC;
+  FC __stdcall g;        // Still an error
+
 9/16/97   Microsoft compatibility: __based in a cast operation
 
 Based pointer types are now accepted in cast operations:
