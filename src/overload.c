@@ -1413,10 +1413,14 @@ is TRUE.
            above, and bitwise copies that drop type qualifiers under
            a reference would be allowed by here after we've gone to the
            trouble of rejecting them above. */
+        /* is_reference_binding is TRUE because the parameter has a class
+           type and therefore the argument will be copied by a copy
+           constructor, whose input parameter has a reference type.
+           This is simulated for the bitwise copy case. */
         (conversion_to_class_possible(orig_arg_operand, param_type,
                                       /*is_copy_initialization=*/TRUE,
                                       /*try_bitwise_copy=*/FALSE,
-                                      param_is_reference,
+                                      /*is_reference_binding=*/TRUE,  /* sic */
                                       &conversion, (a_conv_descr *)NULL,
                                       &ambiguous,
                                       (a_candidate_function_ptr *)NULL) ||
@@ -6551,6 +6555,7 @@ be a constructor call.
                        /*virtual_suppressed=*/FALSE,
                        &orig_operand.position, operand);
     if (conversion->std.cast_base_class != NULL &&
+        dest_type != NULL &&
         is_class_struct_union_type(dest_type)) {
       /* In some cases, the result of a conversion function is a class
          object of a derived type, and is being bound to a reference to
@@ -7815,11 +7820,14 @@ found to be acceptable, and *conversion describes it.
   a_dynamic_init_ptr dip;
 
   /* See if the conversion is possible. */
+  /* is_reference_binding is TRUE because this is copy-initialization,
+     and the result of the conversion will be the input to a copy
+     constructor, whose parameter is a reference. */
   if (conversion_usable_or_possible(source_operand, param_type,
                                     param_type,
                                     /*try_user_conversions=*/TRUE,
                                     /*need_lvalue_result=*/FALSE,
-                                    /*is_reference_binding=*/FALSE,
+                                    /*is_reference_binding=*/TRUE,
                                     err_code, &source_operand->position,
                                     &conversion,
                                     &local_conversion)) {
