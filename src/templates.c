@@ -9390,7 +9390,7 @@ initially used when processing the declaration of a partial specialization.
   a_type_ptr			prototype_type;
   a_class_symbol_supplement_ptr	prototype_cssp;
 
- if (sym->kind == (a_symbol_kind)sk_class_template) {
+  if (sym->kind == (a_symbol_kind)sk_class_template) {
     a_template_param_ptr	templ_param_list;
     a_class_type_supplement_ptr	prototype_ctsp;
     a_template_arg_ptr		templ_arg_list;
@@ -9450,9 +9450,6 @@ initially used when processing the declaration of a partial specialization.
       /* A normal prototype (not a partial specialization). */
       prototype_ctsp->template_arg_list = templ_arg_list;
     }  /* if */
-    /* Call a routine that manages the correspondence of entities between
-      translation units to notify it of the new instance. */
-    record_instantiation(prototype_sym, tssp);
   } else {
     /* For a class nested within a class template, the member class
        symbol of the prototype instantiation is used. */
@@ -9466,6 +9463,13 @@ initially used when processing the declaration of a partial specialization.
   prototype_type->variant.class_struct_union.is_prototype_instantiation = TRUE;
   prototype_type->variant.class_struct_union.is_nonreal_class = TRUE;
   prototype_cssp->template_info = tssp;
+  if (sym->kind == (a_symbol_kind)sk_class_template) {
+    /* Call a routine that manages the correspondence of entities between
+       translation units to notify it of the new instance.  Note that this
+       must occur after the type has been marked as being a prototype
+       instantiation. */
+    record_instantiation(prototype_sym, tssp);
+  }  /* if */
 }  /* create_prototype_type */
 
 

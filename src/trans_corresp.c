@@ -836,7 +836,7 @@ all_instantiations list of the associated template symbol supplement.
       if (inst != proto) {
         class_type = type_symbol_type(inst);
         clear_type_correspondence(class_type, visited);
-        if (visited) {
+        if (visited && find_class_template_instantiation(tssp, inst) == NULL) {
           add_instantiation(tssp, inst);
         }  /* if */
       }  /* if */
@@ -2562,6 +2562,11 @@ translation unit correspondence pointer if one is found.
     a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(nsp_sym);
     if (checked_trans_unit_corresp_pointer_of(nsp) == NULL) {
       /* Mark this namespace as visited to avoid infinite recursion. */
+#if DEBUG
+      if (db_flag_is_set("trans_corresp")) {
+        fprintf(f_debug, "DBG> Guard: ");
+      }  /* if */
+#endif /* DEBUG */
       set_no_trans_unit_corresp(nsp);
     }  /* if */
     for (; sym != NULL; sym = sym->next) {
@@ -2784,7 +2789,7 @@ supplement for an instantiation that matches inst.
   }  /* if */
   if (is_type_symbol(inst)) {
     tssp = primary_template_of((a_symbol_ptr)tssp->il_template_entry
-                                             ->source_corresp.assoc_info)
+                                                 ->source_corresp.assoc_info)
                                                       ->variant.template_info;
   }  /* if */
   sym_entry = tssp->all_instantiations;
@@ -2804,9 +2809,16 @@ supplement for an instantiation that matches inst.
        class_type and corresp_type do in fact correspond. */
 
     if (in_secondary_trans_unit(class_type)) {
+#if DEBUG
+      if (db_flag_is_set("trans_corresp")) {
+        fprintf(f_debug, "DBG> Tentative: ");
+      }  /* if */
+#endif /* DEBUG */
       set_trans_unit_corresp(class_type, corresp_type);
     }  /* if */
-    if (class_type->variant.class_struct_union.is_prototype_instantiation ==
+    if (class_type->variant.class_struct_union.is_nonreal_class ==
+                  corresp_type->variant.class_struct_union.is_nonreal_class &&
+        class_type->variant.class_struct_union.is_prototype_instantiation ==
            corresp_type
                     ->variant.class_struct_union.is_prototype_instantiation &&
         equiv_template_arg_lists(ctsp->template_arg_list,
@@ -2817,17 +2829,23 @@ supplement for an instantiation that matches inst.
          determined when the body of the class template is instantiated. */
       if ((ctsp->partial_spec_template_arg_list == NULL &&
            corresp_ctsp->partial_spec_template_arg_list == NULL) ||
-          !class_type_has_body(class_type) ||
-          !class_type_has_body(corresp_type) ||
-          equiv_template_arg_lists(
-                             ctsp->partial_spec_template_arg_list,
-                             corresp_ctsp->partial_spec_template_arg_list,
-                             ETA_IS_NONREAL_MEMBER)) {
+          (class_type_has_body(class_type) &&
+           class_type_has_body(corresp_type) &&
+           equiv_template_arg_lists(
+                                 ctsp->partial_spec_template_arg_list,
+                                 corresp_ctsp->partial_spec_template_arg_list,
+                                 ETA_IS_NONREAL_MEMBER))) {
         break;
       }  /* if */
     }  /* if */
   }  /* for */
   if (in_secondary_trans_unit(class_type)) {
+    /* Restore the original correspondence. */
+#if DEBUG
+    if (db_flag_is_set("trans_corresp")) {
+      fprintf(f_debug, "DBG> Undo: ");
+    }  /* if */
+#endif /* DEBUG */
     set_trans_unit_corresp(class_type, saved_corresp);
   }  /* if */
   return sym_entry;
@@ -2875,6 +2893,11 @@ symbol supplement.
     corresp_tssp = ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
                          ->variant.template_info;
     /* Mark the type as visited to avoid infinite recursion. */
+#if DEBUG
+    if (db_flag_is_set("trans_corresp")) {
+      fprintf(f_debug, "DBG> Guard: ");
+    }  /* if */
+#endif /* DEBUG */
     set_no_trans_unit_corresp(class_type);
     if (has_correspondence(templ)) {
       sym_entry = find_class_template_instantiation(corresp_tssp, inst);
@@ -2986,7 +3009,8 @@ template.
       add_instantiation(tssp, inst);
     } else if (is_class_struct_union_symbol(inst)) {
       a_type_ptr               prim = type_symbol_type(inst);
-      if (prim->variant.class_struct_union.is_prototype_instantiation) {
+      if (prim->variant.class_struct_union.is_prototype_instantiation ||
+          prim->variant.class_struct_union.is_nonreal_class) {
         /* Nothing to be done. */
       } else {
         a_symbol_list_entry_ptr
