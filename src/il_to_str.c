@@ -1026,9 +1026,8 @@ by octl.
     case tk_complex:
     case tk_imaginary:
       form_float_kind_name(type->variant.float_kind, octl);
-      octl->output_str(" ");
       octl->output_str(type->kind == (a_type_kind)tk_complex ?
-                       "_Complex " : "_Imaginary ");
+                       " _Complex" : " _Imaginary");
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_float:
