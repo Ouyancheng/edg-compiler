@@ -4702,7 +4702,8 @@ is an error, return NULL.
 }  /* scan_tag_name */
 
 
-static void enum_specifier(a_type_ptr *type_ptr,
+static void enum_specifier(a_boolean  vacuous_decl_allowed,
+                           a_type_ptr *type_ptr,
                            a_boolean  *declares_something,
                            a_boolean  *defines_something)
 /*
@@ -4777,8 +4778,8 @@ to indicate whether an enumeration is actually defined.
        a Plum Hall test that implies that. */
     *declares_something = TRUE;
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
-                            /*check_for_vacuous_decl=*/TRUE,
-                            &effective_decl_level, &tag_resolution);
+                            vacuous_decl_allowed, &effective_decl_level,
+                            &tag_resolution);
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
       if (C_dialect != C_dialect_cplusplus) {
@@ -5167,6 +5168,7 @@ Returns TRUE if there is an error in the specifiers.
   a_boolean    is_volatile_qualified = FALSE;
   a_boolean    is_parameter = (input_flags & DSI_IS_PARAMETER);
   a_boolean    is_member_decl = (input_flags & DSI_IS_MEMBER_DECLARATION);
+  a_boolean    vacuous_decl_allowed;
   a_boolean    declares_something = FALSE;
   a_boolean    defines_something = FALSE;
   a_boolean    void_first_specifier;
@@ -5189,6 +5191,7 @@ Returns TRUE if there is an error in the specifiers.
   *type_ptr = NULL;
   void_first_specifier = (curr_token == tok_void);
   type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED);
+  vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, start_pos);
 
@@ -5450,9 +5453,10 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            if (!class_specifier(/*first_specifier=*/(num_specifiers == 0),
-                                 is_friend_decl, type_ptr,
-                                 &declares_something, &defines_something)) {
+            if (num_specifiers > 0) vacuous_decl_allowed = FALSE;
+            if (!class_specifier(vacuous_decl_allowed, is_friend_decl,
+                                 type_ptr, &declares_something,
+                                 &defines_something)) {
               err = TRUE;
             }  /* if */
             basic_type = bt_struct_union;
@@ -5464,7 +5468,7 @@ process_class_specifier:
             bad_combination_of_type_specifiers = TRUE;
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
-            (void)class_specifier(/*first_specifier=*/FALSE,
+            (void)class_specifier(/*vacuous_decl_allowed=*/FALSE,
                                   /*is_friend_decl=*/FALSE, &dummy_type,
                                   &dummy_flag, &dummy_flag);
           }  /* if */
@@ -5478,7 +5482,9 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            enum_specifier(type_ptr, &declares_something, &defines_something);
+            if (num_specifiers > 0) vacuous_decl_allowed = FALSE;
+            enum_specifier(vacuous_decl_allowed, type_ptr,
+                           &declares_something, &defines_something);
             basic_type = bt_enum;
             is_elaborated_type_specifier = TRUE;
           } else {
@@ -5488,7 +5494,8 @@ process_class_specifier:
             bad_combination_of_type_specifiers = TRUE;
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
-            enum_specifier(&dummy_type, &dummy_flag, &dummy_flag);
+            enum_specifier(/*vacuous_decl_allowed=*/FALSE,
+                           &dummy_type, &dummy_flag, &dummy_flag);
           }  /* if */
           goto no_get_token;
         }  /* if */
@@ -7133,6 +7140,10 @@ of local variables (and types, etc.) of functions and in blocks.
     dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
     /* "inline" is allowed only on function declarations at file scope. */
     dsi_flags |= DSI_INLINE_ALLOWED;
+  } else {
+    /* A "vacuous declaration" of a class, struct, or union only makes sense
+       when we are not at file scope. */
+    dsi_flags |= DSI_VACUOUS_TAG_DECL_ALLOWED;
   }  /* if */
   /* Scan the initial declaration specifiers (including storage class,
      type specifiers, and type qualifiers).  For a function definition,
