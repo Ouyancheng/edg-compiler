@@ -1656,6 +1656,7 @@ The subtree is not processed.
 #endif /* REMAP_ONLY_ROUTINES_NEEDED */
 #endif /* !DO_SUBTREE_WALK */
 
+#ifdef UNDEF_WALK_ENTRY_MACROS_AT_END
 /*
 Get rid of the macros defined in this file so they aren't used accidentally.
 */
@@ -1670,6 +1671,8 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef walk_source_corresp
 #undef report_bad_init_kind
 #undef walk_initializer
+#endif /* ifdef UNDEF_WALK_ENTRY_MACROS_AT_END */
+
 
 /******************************************************************************
 *                                                             \  ___  /       *
