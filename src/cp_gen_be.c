@@ -4219,7 +4219,7 @@ Print a set of Microsoft declaration modifiers.
 {
   if (decl_modifiers &
       (DM_DLLIMPORT | DM_DLLEXPORT | DM_THREAD | DM_NAKED |
-       DM_SELECTANY | DM_NOTHROW | DM_NOVTABLE)) {
+       DM_SELECTANY | DM_NOTHROW | DM_NOVTABLE | DM_NOINLINE)) {
     write_tok_str("__declspec( ");
     if (decl_modifiers & DM_DLLIMPORT) {
       write_tok_str("dllimport ");
@@ -4241,6 +4241,9 @@ Print a set of Microsoft declaration modifiers.
     }  /* if */
     if (decl_modifiers & DM_NOVTABLE) {
       write_tok_str("novtable ");
+    }  /* if */
+    if (decl_modifiers & DM_NOINLINE) {
+      write_tok_str("noinline ");
     }  /* if */
     write_tok_str(") ");
   }  /* if */

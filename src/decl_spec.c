@@ -315,6 +315,9 @@ Scan the Microsoft __declspec specifier, which has the form
                 nothrow
                 novtable
                 noreturn
+                noinline
+                deprecated
+                align( unsigned-integer-literal )
                 uuid ( "hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh" )
                 property ( get = xxx, put = yyy )
                 allocate ( data-segment-name )
@@ -401,6 +404,14 @@ declaration of a class member.
                          &pos_curr_token, modifier);
         } else {
           decl_modifiers->flags |= DM_NORETURN;
+        }  /* if */
+      } else if (strcmp(modifier, "noinline") == 0) {
+        if (is_class_decl) {
+          /* "noinline" is not allowed on a class declaration. */
+          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                         &pos_curr_token, modifier);
+        } else {
+          decl_modifiers->flags |= DM_NOINLINE;
         }  /* if */
       } else if (strcmp(modifier, "align") == 0) {
         scan_declspec_align(decl_modifiers);

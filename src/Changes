@@ -1,5 +1,11 @@
 Version 3.3
 
+7/7/03   Microsoft mode: __declspec(noinline)
+
+In Microsoft mode, the front end now accepts the __declspec(noinline)
+specifier.  When specified on a function declaration, it indicates that
+a back end should not attempt to inline the function.
+
 7/2/03   Microsoft mode: __declspec(align(...))
 
 In Microsoft mode, the front end now accepts declaration specifiers of the

@@ -3080,6 +3080,7 @@ diagnostics.
           case dmt_forceinline:
           case dmt_nothrow:
           case dmt_noreturn:
+          case dmt_noinline:
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           default:

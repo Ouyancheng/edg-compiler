@@ -3374,6 +3374,7 @@ enum a_decl_modifier_tag {
   dmt_nothrow,
   dmt_novtable,
   dmt_noreturn,
+  dmt_noinline,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   dmt_last
 };
@@ -3393,6 +3394,7 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
   /* dmt_nothrow */		"nothrow",
   /* dmt_novtable */		"novtable",
   /* dmt_noreturn */		"noreturn",
+  /* dmt_noinline */		"noinline",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* dmt_last */		"last"
 } /* decl_modifier_names */
@@ -3438,6 +3440,9 @@ about variables and routines.
 #define DM_NORETURN	(1 << (int)dmt_noreturn)
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(noreturn) specifier. */
+#define DM_NOINLINE	(1 << (int)dmt_noinline)
+			/* TRUE if the declaration includes the Microsoft
+			   __declspec(noinline) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
