@@ -643,6 +643,22 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_struct:
           case tk_union:
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+            /* The field list is part of the definition and is walked only if
+               the definition should be walked. */
+            if (ptr->variant.class_struct_union.
+#if NEEDED_FLAG_WALK
+                                                definition_needed
+#else /* !NEEDED_FLAG_WALK (i.e., KEEP_IN_IL_WALK) */
+                                                keep_definition_in_il
+#endif /* NEEDED_FLAG_WALK */
+                                                                     )
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+            /* Do not insert code here. */
+            {
+                walk_list(ptr->variant.class_struct_union.field_list,
+                          a_field_ptr, iek_field);
+            }  /* if */
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             /* Handle the class type supplement inline, because we need
                to have a pointer to the class to decide whether or not to
                process definition-related fields.  The walking of field_list
@@ -651,8 +667,6 @@ the file scope, do not process it (but record an orphan in the latter case).
               goto handle_class_type_supplement_for_class;
             }  /* if */
 #else /* (!NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
-            walk_list(ptr->variant.class_struct_union.field_list,
-                      a_field_ptr, iek_field);
             walk_ptr(ptr->variant.class_struct_union.extra_info,
                      a_class_type_supplement_ptr, iek_class_type_supplement);
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
@@ -1793,9 +1807,7 @@ do_set_proper_definition_needed_flag:
     case iek_class_type_supplement:
       {
         a_class_type_supplement_ptr ptr;
-        a_boolean                   entry_from_class;
         ptr = (a_class_type_supplement_ptr)entry_ptr;
-        entry_from_class = FALSE;
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         goto after_entry_from_class;
 handle_class_type_supplement_for_class:
@@ -1803,7 +1815,6 @@ handle_class_type_supplement_for_class:
            "keep_in_il" walk we have to be able to know where the class type
            is. */
         ptr = ((a_type_ptr)entry_ptr)->variant.class_struct_union.extra_info;
-        entry_from_class = TRUE;
 after_entry_from_class:
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
         /* Fields to be processed even if the definition of the class is
@@ -1834,11 +1845,6 @@ after_entry_from_class:
         {
           /* Fields to be processed only if the definition of the class
              is to be processed: */
-          if (entry_from_class) {
-            walk_list(((a_type_ptr)entry_ptr)->variant.class_struct_union.
-                                                                    field_list,
-                      a_field_ptr, iek_field);
-          }  /* if */
           walk_list(ptr->base_classes, a_base_class_ptr, iek_base_class);
           switch (ptr->anonymous_union_kind) {
             case auk_none:
