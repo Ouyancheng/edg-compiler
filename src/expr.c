@@ -11465,7 +11465,7 @@ standard.
                  has_statement_expression(operand_2.variant.expression)))) {
       /* GNU statement expressions may give rise to source sequence entries,
          which are too expensive to eliminate. */
-      /* do_folding = FALSE; -- already set. */
+      /* reduce = FALSE; -- already set. */
 #endif /* ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
       } else {
         /* Otherwise, we can reduce at our discretion. */
