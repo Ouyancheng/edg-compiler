@@ -1152,6 +1152,7 @@ ec_packed_attribute_cannot_be_used_in_typedef;;"the \"packed\" attribute is not 
 ec_assigned_goto_requires_void_ptr;;"in \"goto *expr\", expr must have type \"void *\""
 ec_nonstd_assigned_goto;;"\"goto *expr\" is nonstandard"
 ec_nonstd_address_of_label;;"taking the address of a label is nonstandard"
+ec_cl_duplicate_file_name;;"file name specified more than once: "
 
 ###############################################################################
 #                                                             \  ___  /       #

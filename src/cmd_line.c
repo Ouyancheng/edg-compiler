@@ -2365,6 +2365,32 @@ order of development of this front end, and is inconsistent and strange.
   }  /* if */
 }  /* check_dialect_and_language_modes */
 
+#if COMPILE_MULTIPLE_TRANSLATION_UNITS
+
+static void check_for_duplicated_file_names(void)
+/*
+Make sure a given file name was not specified more than once.
+*/
+{
+  int	arg1;
+  int	arg2;
+  char	**file_list;
+
+  /* argv_file_list already points to the second file.  Get a pointer
+     to the array of file names, starting with the first one. */
+  file_list = argv_file_list - 1;
+  for (arg1 = 0; arg1 < argc_file_list; arg1++) {
+    for (arg2 = arg1 + 1; arg2 <= argc_file_list; arg2++) {
+      if (compare_file_names(file_list[arg1],
+                             file_list[arg2]) == 0) {
+        str_command_line_error(ec_cl_duplicate_file_name,
+                               file_list[arg1]);
+      }  /* if */
+    }  /* for */
+  }  /* for */
+}  /* check_for_duplicated_file_names */
+
+#endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
 
 void proc_command_line(int argc, char *argv[])
 /*
@@ -3595,6 +3621,8 @@ Call the translation unit routine for the secondary translation units.
 {
   char	*file_name;
 
+  /* Make sure the same file name was not specified more than once. */
+  check_for_duplicated_file_names();
   while (argc_file_list > 0) {
     /* There is another file. */
     argc_file_list--;
