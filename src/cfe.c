@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1998 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -13,7 +13,7 @@ cfe.c -- Main program for C++/C front end.
 
 C front end written by J. Stephen Adamczyk and Eric Schwarz, 1988-1989.
 Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson,
-  1991-1997, and John H. Spicer, 1992-1997.
+  1991-1998, and John H. Spicer, 1992-1998.
 
 */
 
@@ -174,7 +174,7 @@ int EDG_MAIN(int argc, char *argv[])
   /* Exit with the return code appropriate to the highest severity error
      detected. */
   exit_compilation(most_severe_diagnostic);
-  return 0;  /* Not reached; here to keep lint happy. */
+  /*NOTREACHED*/
 }  /* main */
 
 
@@ -184,6 +184,6 @@ int EDG_MAIN(int argc, char *argv[])
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1995 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1998 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -286,7 +286,7 @@ EXTERN a_boolean
 			/* TRUE if the writing of the IL file should be
 			   suppressed. */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-EXTERN enum {vfd_normal, vfd_suppress, vfd_force}
+EXTERN enum {vfd_normal, vfd_suppress, vfd_force} /*lint !e659*/
 		virtual_function_table_definition /* = vfd_normal */;
 			/* If the heuristic used to determine whether a virtual
 			   function table should be defined cannot
