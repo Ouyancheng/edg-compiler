@@ -6840,7 +6840,7 @@ Syntax:
   an_operand        operand;
   a_type_ptr        cast_type, underlying_cast_type, operand_type;
   a_type_ptr        operation_type;
-  a_boolean         cast_type_okay;
+  a_boolean         cast_type_okay, template_param_case = FALSE;
   a_boolean         reference_case = FALSE, err = FALSE;
 
   db_enter(4, "scan_const_cast_operator");
@@ -6895,16 +6895,13 @@ Syntax:
         /* Casting to a pointer or reference to an object type. */
         cast_type_okay = TRUE;
       }  /* if */
+    } else if (is_template_param_type(cast_type)) {
+      /* A cast to a template parameter type is assumed to be okay. */
+      cast_type_okay = TRUE;
     } else {
       /* cast_type is not a pointer, reference, or pointer to member type;
          error. */
       cast_type_okay = FALSE;
-    }  /* if */
-    if (!cast_type_okay) {
-      if (is_or_contains_template_param(cast_type)) {
-        /* With template parameter types we can't really tell.  Assume okay. */
-        cast_type_okay = TRUE;
-      }  /* if */
     }  /* if */
     if (!cast_type_okay) {
       /* Bad const_cast type. */
@@ -6943,6 +6940,7 @@ Syntax:
               is_or_contains_template_param(operation_type)) {
             /* With template parameters, we can't tell whether these would
                have matched.  Assume okay. */
+            template_param_case = TRUE;
           } else {
             err = TRUE;
             pos_error(ec_bad_const_cast, &operand.position);
@@ -6955,14 +6953,25 @@ Syntax:
     /* Some error, previously issued. */
     make_error_operand(result);
   } else {
-    /* The types are already the same except for qualifiers.  The result
-       is just the source cast to the destination type. */
-    /* Note that the cast has been turned into pointer form if it was a
-       reference cast. */
-    cast_operand(operation_type, &operand, /*check_cast_access=*/FALSE,
-                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
-                 /*reinterpret_semantics=*/FALSE);
-    copy_operand(&operand, result);
+    if (template_param_case) {
+      /* Put out a generic operator for a case involving template parameter
+         types. */
+      an_expr_node_ptr expr;
+      prep_generic_operand(&operand);
+      expr = make_operator_node((an_expr_operator_kind)eok_const_cast,
+                                operation_type,
+                                make_node_from_operand(&operand));
+      make_expression_operand(expr, expr->type, result);
+    } else {
+      /* The types are already the same except for qualifiers.  The result
+         is just the source cast to the destination type. */
+      /* Note that the cast has been turned into pointer form if it was a
+         reference cast. */
+      cast_operand(operation_type, &operand, /*check_cast_access=*/FALSE,
+                   /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
+      copy_operand(&operand, result);
+    }  /* if */
     /* For a cast to a reference type, the result is an lvalue. */
     if (reference_case) {
       conv_object_pointer_to_lvalue(result);
@@ -7082,11 +7091,23 @@ Syntax:
             /* Issue warning on oddball cases. */
             pos_warning(warning_suggested, &start_position);
           }  /* if */
-          /* Do the actual cast. */
-          cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,
-                       /*is_implicit_cast=*/FALSE,
-                       /*is_reinterpret_cast=*/FALSE,
-                       /*reinterpret_semantics=*/FALSE);
+          if (is_or_contains_template_param(source_type) ||
+              is_or_contains_template_param(type_cast_to)) {
+            /* Put out a generic operator for a case involving template
+               parameter types. */
+            an_expr_node_ptr expr;
+            prep_generic_operand(result);
+            expr = make_operator_node((an_expr_operator_kind)eok_static_cast,
+                                      type_cast_to,
+                                      make_node_from_operand(result));
+            make_expression_operand(expr, expr->type, result);
+          } else {
+            /* Do the actual cast. */
+            cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,
+                         /*is_implicit_cast=*/FALSE,
+                         /*is_reinterpret_cast=*/FALSE,
+                         /*reinterpret_semantics=*/FALSE);
+          }  /* if */
           if (cast_to_reference) {
             /* The result of a cast to reference is an lvalue. */
             conv_object_pointer_to_lvalue(result);
@@ -7196,10 +7217,22 @@ Syntax:
           /* Issue warning on oddball cases. */
           pos_warning(warning_suggested, &start_position);
         }  /* if */
-        /* Do the actual cast. */
-        cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,
-                     /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/TRUE,
-                     /*reinterpret_semantics=*/TRUE);
+        if (is_or_contains_template_param(source_type) ||
+            is_or_contains_template_param(type_cast_to)) {
+          /* Put out a generic operator for a case involving template parameter
+             types. */
+          an_expr_node_ptr expr;
+          prep_generic_operand(result);
+          expr =make_operator_node((an_expr_operator_kind)eok_reinterpret_cast,
+                                   type_cast_to,
+                                   make_node_from_operand(result));
+          make_expression_operand(expr, expr->type, result);
+        } else {
+          /* Do the actual cast. */
+          cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,
+                      /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/TRUE,
+                       /*reinterpret_semantics=*/TRUE);
+        }  /* if */
         if (cast_to_reference) {
           /* The result of a cast to reference is an lvalue. */
           conv_object_pointer_to_lvalue(result);
