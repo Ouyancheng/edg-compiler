@@ -8140,30 +8140,6 @@ fields, and return a pointer to it.
   return hnp;
 }  /* alloc_hidden_name */
 
-
-void add_to_hidden_names_list(a_hidden_name_ptr  hdp)
-/*
-Add the given hidden-name entry to the hidden names list for the current
-scope.
-*/
-{
-  a_scope_stack_entry_ptr  ssep;
-  a_scope_ptr              sp;
-
-  /* Get pointer to current scope entry. */
-  ssep = &scope_stack[decl_scope_level];
-  /* Create the IL scope if necessary (for block scopes). */
-  sp = ensure_il_scope_exists(ssep);
-  check_assertion_str(sp != NULL, "add_to_routines_list: NULL IL scope");
-  if (sp->hidden_names == NULL) {
-    sp->hidden_names = hdp;
-  } else {
-    ssep->last_hidden_name->next = hdp;
-  }  /* if */
-  ssep->last_hidden_name = hdp;
-
-}  /* add_to_hidden_names_list */
-
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 #if DEBUG
