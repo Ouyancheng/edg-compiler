@@ -6948,8 +6948,37 @@ qualified name.
         /* Keep looping while there are more levels of class qualification.
            Exit from loop is in the middle. */
         a_symbol_ptr	prev_qualifier_sym = qualifier_sym;
-        if (qualifier_sym == NULL || err ||
-            qualifier_sym->kind == (a_symbol_kind)sk_class_template) {
+        a_boolean	invalid_qualifier_sym = FALSE;
+        if (qualifier_sym == NULL || err) {
+          invalid_qualifier_sym = TRUE;
+        } else if (qualifier_sym->kind == (a_symbol_kind)sk_class_template) {
+          invalid_qualifier_sym = TRUE;
+        } else if (is_class_symbol(qualifier_sym)) {
+          /* Get the type associated with the class symbol. */
+          qualifier_type = skip_typerefs(qualifier_sym->
+                                              variant.class_struct_union.type);
+          qualifier_is_type = TRUE;
+          qualifier_type_is_class = TRUE;
+        } else if (is_namespace_symbol(qualifier_sym)) {
+          /* Get the namespace from the symbol entry. */
+          qualifier_namespace = namespace_symbol_namespace(qualifier_sym);
+          qualifier_is_type = FALSE;
+        } else if (qualifier_sym->kind == (a_symbol_kind)sk_type ||
+                   qualifier_sym->kind == (a_symbol_kind)sk_enum_tag) {
+            /* The class symbol points to a type.  This is the case when
+               a class qualifier contains template parameter types or for
+               the last qualifier of a vacuous destructor.  Set
+               class type to the type pointed to. */
+            qualifier_type = qualifier_sym->variant.type;
+            qualifier_is_type = TRUE;
+            qualifier_type_is_class = FALSE;
+            check_assertion(is_template_param_type(qualifier_type) ||
+                            is_vacuous_dtor);
+        } else {
+          /* Some other kind of symbol -- must be an error. */
+          invalid_qualifier_sym = TRUE;
+        }  /* if */
+        if (invalid_qualifier_sym) {
           /* The identifier is followed by a "::" but is not a class symbol. */
           if (!err) {
             if (is_vacuous_dtor) {
@@ -6963,7 +6992,8 @@ qualified name.
           qualifier_type = NULL;
           qualifier_type_is_class = FALSE;
         } else {
-          /* Record the reference on the symbol. */
+          /* The qualifier symbol is valid. Record the reference on the
+             symbol. */
           mark_referenced(qualifier_sym, &pos_curr_token);
           if (qualifier_sym->is_class_member ||
               locator_for_curr_id.specific_symbol->ambiguous) {
@@ -6977,29 +7007,6 @@ qualified name.
                report the ambiguity error.  No access checking will be done
                when an ambiguity error exists. */
             check_ambiguity_and_verify_access(&locator_for_curr_id);
-          }  /* if */
-          if (is_class_symbol(qualifier_sym)) {
-            /* Get the type associated with the class symbol. */
-            qualifier_type = skip_typerefs(qualifier_sym->
-                                            variant.class_struct_union.type);
-            qualifier_is_type = TRUE;
-            qualifier_type_is_class = TRUE;
-          } else if (is_namespace_symbol(qualifier_sym)) {
-            /* Get the namespace from the symbol entry. */
-            qualifier_namespace = namespace_symbol_namespace(qualifier_sym);
-            qualifier_is_type = FALSE;
-          } else {
-            /* The class symbol points to a type.  This is the case when
-               a class qualifier contains template parameter types or for
-               the last qualifier of a vacuous destructor.  Set
-               class type to the type pointed to. */
-            check_assertion(qualifier_sym->kind == (a_symbol_kind)sk_type ||
-                            qualifier_sym->kind == (a_symbol_kind)sk_enum_tag);
-            qualifier_type = qualifier_sym->variant.type;
-            qualifier_is_type = TRUE;
-            qualifier_type_is_class = FALSE;
-            check_assertion(is_template_param_type(qualifier_type) ||
-                            is_vacuous_dtor);
           }  /* if */
         }  /* if */
         /* Skip over the class-name, and the "::".  After the two get_token
