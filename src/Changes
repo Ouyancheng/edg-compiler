@@ -1,5 +1,20 @@
 Version 2.44
 
+6/19/00  C++ generating back end: abort on initialization of non-POD aggregate
+
+The C++ generating back end used to abort when trying to generate C++ code for
+the initialization of certain non-POD aggregate objects.  These cases involve
+the default initialization of a field that itself has a non-POD aggregate
+type.
+
+  struct A { ~A(); };             // Non-POD aggregate
+  struct B { B(); };
+  struct X { int i; A a; B b; };  // Non-POD aggregate
+  X x = { 3 };  // C++ generating back used to abort when attempting to
+                // generate the initializer for x.a.
+
+This is now fixed.
+
 6/16/00  Microsoft compatibility: constructor declared with elaborated name
 
 In Microsoft mode, the front end now accepts constructor declarations starting

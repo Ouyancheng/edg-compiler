@@ -2143,8 +2143,15 @@ initialized is not a reference.
         }  /* if */
         gen_initializer_constant(eff_sub_con, sub_type);
         sub_con = sub_con->next;
-        /* Stop after the last constant. */
-        if (sub_con == NULL) break;
+        /* Stop after the last constant (and ignore dik_zero dynamic
+           initializers since they correspond to trailing fields that are to
+           be default initialized). */
+        if (sub_con == NULL ||
+            (sub_con->kind == (a_constant_repr_kind)ck_dynamic_init &&
+             sub_con->variant.dynamic_init->kind ==
+                                             (a_dynamic_init_kind)dik_zero)) {
+          break;
+        }  /* if */
         if (sub_con->kind == (a_constant_repr_kind)ck_init_repeat) {
           /* A ck_init_repeat constant is used to do default initialization
              (via constructor) on all remaining elements of an array. */
