@@ -1,5 +1,28 @@
 Version 2.23
 
+3/30/94  Function definition with omitted declaration-specifiers
+
+The following declarations, in which the declaration-specifiers are
+missing and the declarator begins with a token other than an identifier,
+are now parsed correctly:
+
+  *f() { return 0; }           // Spurious error eliminated
+  (g)() { return 0; }          // Spurious error eliminated
+
+3/30/94  Enum declaration with omitted declarator
+
+In strict ANSI mode a diagnostic is now issued on an enum declaration with
+an omitted declarator, for example:
+
+  enum E { e1, e2, e3 };
+  enum E;                     // Warning/error in strict ANSI mode
+
+That is, it is a declaration that "declares nothing", since the declarator
+is missing.  (In default mode such a declaration continues to be treated
+as a redeclaration of the enum type.  Thus, in the cross reference output
+the second declaration is reported as a reference to E in strict ANSI mode
+but as a non-defining declaration in default mode.)
+
 3/30/94  Constant folding done in not-evaluated expressions
 
 Constant operation folding is now done in not-evaluated expressions.
