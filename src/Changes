@@ -1,5 +1,14 @@
 Version 2.32
 
+3/5/96    Nontype member of nonreal class incorrectly considered to
+          have an incomplete type
+
+Cases such as this resulted in a spurious error when not using
+implicit typename.  This occurred because the type of T::X was
+incorrectly considered to be incomplete.  This has been fixed.
+
+  template <class T> struct A { int n[sizeof(T::X)]; };
+
 3/4/96    C++-generating back end: fix to deal with cfront bug
 
 cfront has a bug in initialization of static data members that are
