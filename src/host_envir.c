@@ -3042,7 +3042,7 @@ is done after command line processing.
   register_trans_unit_variable(incl_search_path);
   register_trans_unit_variable(sys_incl_search_path);
 #if MODULE_ID_NEEDED
-  register_trans_unit_variable(module_id);
+  register_trans_unit_variable_with_field(module_id, module_id_ptr);
 #endif /* MODULE_ID_NEEDED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* host_envir_one_time_init */

@@ -1174,8 +1174,29 @@ If the indicated namespace is unnamed, give it a name.
      end. */
   if (nsp->source_corresp.name == NULL) {
     /* The namespace is unnamed, so make up a name. */
+    char *module_id;
     /* The name is __N followed by the module id. */
-    char *module_id = make_module_id();
+    check_assertion(!nsp->source_corresp.is_class_member);
+    if (nsp->source_corresp.parent.namespace_ptr != NULL) {
+      /* A nested unnamed namespace.  Just use __N.  The name will be unique
+         within the parent namespace. */
+      module_id = "";
+    } else {
+      a_translation_unit_ptr tup;
+      check_assertion(!nsp->is_namespace_alias);
+      tup = trans_unit_for_scope[nsp->variant.assoc_scope->number];
+      if (curr_translation_unit == tup) {
+        /* Normal case -- the namespace is from the current translation
+           unit. */
+        module_id = make_module_id();
+      } else {
+        /* The namespace is from a translation unit other than the current
+           one. */
+        module_id = *(tup->module_id_ptr);
+        /* The module id must have been generated already. */
+        check_assertion(module_id != NULL);
+      }  /* if */
+    }  /* if */
     name_len = 3 + strlen(module_id) + 1;
     name = alloc_lowered_name_string(name_len);
     (void)strcpy(name, "__N");

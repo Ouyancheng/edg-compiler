@@ -110,6 +110,16 @@ are instantiated.
     set_trans_unit_correspondences();
   }  /* if */
 
+#if MODULE_ID_NEEDED
+  /* Make sure the module id is generated for this translation unit.  This
+     must be done after all non-templates have been compiled (because the
+     module id uses the name of an external symbol sometimes), and before
+     finalize_instantiation_wrapup is called (because the mangled names
+     for some members of unnamed namespaces may have to be determined,
+     and the mangled name for an unnamed namespace uses the module id). */
+  (void)make_module_id();
+#endif /* MODULE_ID_NEEDED */
+
   if (!is_primary_translation_unit && !do_preprocessing_only) {
     /* Check for the presence of a master instance established in a prior
        translation unit. */
