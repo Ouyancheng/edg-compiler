@@ -538,6 +538,10 @@ list of GNU C attributes, if applicable.
       pos_error(ec_shared_parameter, error_pos);
       *type_ptr = error_type();
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+    } else if (type_qualified_with_named_address_space(*type_ptr)) {
+      pos_error(ec_named_address_space_for_parameter, error_pos);
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
     } else {
       /* See if any type qualifiers were specified, and if they are
          okay. */
