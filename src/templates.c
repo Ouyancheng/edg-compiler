@@ -8101,6 +8101,7 @@ matches, a new argument list is returned in *new_arg_list.
 
   *new_arg_list = NULL;
   /* Get the parameter list of the template. */
+  check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
   tssp = template_supplement_for_symbol(template_sym);
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   result_type = substitute_template_arguments(template_sym, templ_arg_list,
