@@ -261,7 +261,7 @@ static an_include_file_history_ptr
 Array of identifier lookup options indexed by identifier lookup mode.  Used
 to translate the lookup mode into a set of identifier lookup options.
 */
-static an_id_lookup_options_set idl_options_for_lookup_mode[ilm_last + 1] = {
+static an_id_lookup_options_set idl_options_for_lookup_mode[(int)ilm_last+1]= {
   /* ilm_normal */		IDL_NO_OPTIONS,
   /* ilm_class_or_namespace */	IDL_MUST_BE_CLASS_OR_NAMESPACE,
   /* ilm_tag */			IDL_MUST_BE_TAG,
@@ -813,7 +813,7 @@ scan the tokens in a Microsoft __asm block.
   a_token_kind  closing_token;
   int           paren_count = 0, bracket_count = 0, brace_count = 0;
   a_boolean	done = FALSE;
-  a_boolean	error = FALSE;
+  a_boolean	err = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_token_kind	prev_token = curr_token;
   a_boolean	skip_this_token;
@@ -854,7 +854,7 @@ scan the tokens in a Microsoft __asm block.
        caching past the end of a class or function in the event of
        a mismatched paren or bracket. */
     if (curr_token == tok_rbrace && brace_count == 0) {
-      error = TRUE;
+      err = TRUE;
       break;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -885,10 +885,10 @@ scan the tokens in a Microsoft __asm block.
       if (curr_token == tok_lbrace) {
         /* Call this routine recursively to scan the brace enclosed asm
            block. */
-        error = cache_token_stream_until_matching_token(
+        err = cache_token_stream_until_matching_token(
                                         cache, coalesce_ids, last_tsn_in_cache,
                                         /*inside_microsoft_asm=*/TRUE);
-        if (error) {
+        if (err) {
           /* Switch out of pp-token mode. */
           in_asm_block_or_function = FALSE;
           fetch_pp_tokens = FALSE;
@@ -970,7 +970,7 @@ scan the tokens in a Microsoft __asm block.
     get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
   }  /* while */
   db_exit();
-  return error;
+  return err;
 }  /* cache_token_stream_until_matching_token */
 
 
@@ -1033,7 +1033,7 @@ be copies to the new cache.
      '{' is encountered, ignore the stop token array until the corresponding
      ')', ']', or '}' is reached. */
   while (stop_tokens[(int)curr_token] == 0) {
-    a_boolean	error;
+    a_boolean	err;
     a_boolean	is_asm_block = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean	one_line_asm;
@@ -1060,10 +1060,10 @@ be copies to the new cache.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
         curr_token == tok_lbrace) {
-      error = cache_token_stream_until_matching_token(
+      err = cache_token_stream_until_matching_token(
                                         cache, coalesce_ids, last_tsn_in_cache,
                                         is_asm_block);
-      if (error) break;
+      if (err) break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (is_asm_block) {
       /* An asm that is not enclosed in braces.  Take all tokens up to a
@@ -3022,8 +3022,8 @@ otherwise, a NULL file pointer will be returned.
                               bad_name = FALSE;
   /* Buffer in which directory names and file names are combined.  Longer
      names will bypass the buffer and be allocated directly via alloc_il. */
-#define BUFFER_SIZE 130
-  char                        buffer[BUFFER_SIZE];
+#define FILE_NAME_BUFFER_SIZE 130
+  char                        buffer[FILE_NAME_BUFFER_SIZE];
   a_directory_name_entry_ptr  search_path;
 
   db_enter(2, "open_file_for_input");
@@ -3065,10 +3065,11 @@ otherwise, a NULL file pointer will be returned.
            replacing the suffixes. */
         temp_file_name = combine_dir_and_file_name(
                                         curr_directory_name_entry->dir_name,
-                                        file_name, buffer, BUFFER_SIZE);
+                                        file_name, buffer,
+                                        FILE_NAME_BUFFER_SIZE);
       }  /* if */
       if (temp_file_name == file_name) {
-        if (strlen(file_name) < (sizeof_t)(BUFFER_SIZE - 1)) {
+        if (strlen(file_name) < (sizeof_t)(FILE_NAME_BUFFER_SIZE - 1)) {
           /* Copy file_name into the buffer.  Its suffix will be replaced
              in the inner loop. */
           (void)strcpy(buffer, file_name);
@@ -3089,7 +3090,8 @@ otherwise, a NULL file pointer will be returned.
         /* Replace the existing suffix with a new one. */
         temp_file_name = replace_file_name_suffix(fsp->suffix,
                                                   temp_file_name, buffer,
-                                                  BUFFER_SIZE, &suffix_loc);
+                                                  FILE_NAME_BUFFER_SIZE,
+                                                  &suffix_loc);
         /* Now try to open the modified file. */
         new_input_file = open_source_file(temp_file_name, &not_found,
                                           &bad_format, &bad_name);
@@ -3137,7 +3139,8 @@ otherwise, a NULL file pointer will be returned.
         /* Try opening the file name with this directory name. */
         temp_file_name = combine_dir_and_file_name(
                                         curr_directory_name_entry->dir_name,
-                                        file_name, buffer, BUFFER_SIZE);
+                                        file_name, buffer,
+                                        FILE_NAME_BUFFER_SIZE);
         /* Now try opening the file.  Exit the loop on success. */
         new_input_file = open_source_file(temp_file_name, &not_found,
                                           &bad_format, &bad_name);
@@ -3167,7 +3170,7 @@ otherwise, a NULL file pointer will be returned.
        before the right one is found.  We don't allocate space for the name 
        until we find a file of that name. */
     if (temp_file_name == buffer) {
-      temp_file_name = alloc_il((sizeof_t)(strlen(buffer)+1));
+      temp_file_name = alloc_il((sizeof_t)(strlen(buffer)+1)); /*lint !e645*/
       (void)strcpy(temp_file_name, buffer);
     }  /* if */
     *full_file_name = temp_file_name;
@@ -3177,6 +3180,7 @@ otherwise, a NULL file pointer will be returned.
   }  /* if */
   db_exit();
   return new_input_file;
+#undef FILE_NAME_BUFFER_SIZE
 }  /* open_file_for_input */
 
 
@@ -5042,8 +5046,7 @@ token.
 */
 {
   register char	ch;
-  register enum {k_decimal, k_octal, k_hex, k_float}
-		kind;
+  register enum {k_decimal, k_octal, k_hex, k_float} kind;
   register a_token_kind 
 		ctoken;
   a_boolean     err = FALSE;
@@ -6433,7 +6436,7 @@ return_from_token_scan:
                                      start_of_curr_token);
       if (debug_level >= 5) {
         /* Print the length of the token. */
-        fprintf(f_debug, " (%0d bytes)", (int)len_of_curr_token);
+        fprintf(f_debug, " (%d bytes)", (int)len_of_curr_token);
       }  /* if */
     }  /* if */
     if (curr_token_is_inert_macro) {
@@ -9362,10 +9365,9 @@ selection operator, in which case it points to the type of the left operand.
                        locator_for_curr_id.symbol_header->identifier);
           err = TRUE;
 	}  /* if */
-      } else if (!strict_ansi_mode && (dtor_type = type_keyword())) {
+      } else if (!strict_ansi_mode && (dtor_type = type_keyword()) != NULL) {
 	/* A type keyword (e.g. int, long, etc.). Get the type
            associated with the keyword. */
-        dtor_type = type_keyword();
         /* If the thing being scanned looks like "T::~int", where T is a
 	   typedef, save the type pointed to as dtor_class_type.  This
 	   will be used later for error checking. */
@@ -9388,7 +9390,8 @@ selection operator, in which case it points to the type of the left operand.
            destructor type that has been found matches the type of the
            left operand. */
         check_assertion(dtor_type != NULL);
-        if (!identical_types(field_sel_type, skip_typerefs(dtor_type))) {
+        if (!identical_types(field_sel_type,
+                             f_skip_typerefs(dtor_type))) { /*lint !e666*/
           pos_ty_error(ec_invalid_destructor_name, &tilde_position,
                        field_sel_type);
           err = TRUE;
@@ -10235,7 +10238,7 @@ being constructed that represents the tokens in the cache.
         add_body_string = FALSE;
       }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-      if (add_body_string) {
+      if (add_body_string) { /*lint !e774*/
         add_token_cache_to_string(&tssp->cache.tokens);
       }  /* if */
       /* This semicolon was inserted, and so should be suppressed if the body
@@ -10284,7 +10287,7 @@ Display the contents of a token cache.
     fprintf(f_debug, "pragma_count: %lu\n", cache->pragma_count);
     for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
       if (count != 0) fprintf(f_debug, "\n");
-      fprintf(f_debug, "Token %0lu:\n", count++);
+      fprintf(f_debug, "Token %lu:\n", count++);
       fprintf(f_debug, "  kind: %s", token_names[(int)ctp->token]);
       if ((a_token_kind)ctp->token == (a_token_kind)tok_identifier &&
           ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
@@ -10302,6 +10305,7 @@ Display the contents of a token cache.
           case teik_pragma:         s = "pragma"; break;
           case teik_pp_token:       s = "pp_token"; break;
           case teik_extracted_body: s = "extracted_body"; break;
+          default:                  unexpected_condition();
         }  /* switch */
         fprintf(f_debug, "  extra_info_kind: %s\n", s);
       }  /* if */
