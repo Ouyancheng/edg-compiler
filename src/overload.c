@@ -4681,12 +4681,14 @@ mode.
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   cssp = class_symbol->variant.class_struct_union.extra_info;
   source_type = source_operand->type;
-  source_type = skip_typerefs(source_type);
   /* Check for a same-class bitwise copy.  The derived-class bitwise copy
      is checked for below. */
+  /* A bitwise copy cannot be done if any type qualifiers are dropped. */
   bitwise_copy_okay = (is_initialization ?
                                    cssp->construction_by_bitwise_copy_allowed :
-                                   cssp->assignment_by_bitwise_copy_allowed);
+                                   cssp->assignment_by_bitwise_copy_allowed) &&
+                      !any_qualifier_missing(dest_type, source_type);
+  source_type = skip_typerefs(source_type);
   if (bitwise_copy_okay && identical_types(class_type, source_type)) {
     /* The source and destination types are the same class type, and a
        bitwise copy is allowed on that type.  That means there are no
