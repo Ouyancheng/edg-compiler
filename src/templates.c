@@ -679,7 +679,7 @@ has a template parameter (type or constant) in its type tree.
 #if 0
 /* Is this correct?? */
 #endif /* if 0 */
-      found = TRUE;
+      found = FALSE;
       break;
     default:
       found = FALSE;
