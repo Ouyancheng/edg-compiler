@@ -2507,6 +2507,7 @@ been completed.
   a_namespace_ptr              nsp;
   a_variable_ptr               vp;
   a_routine_ptr                rp;
+  a_boolean                    saved_defined;
 
   check_assertion_str2(scope->kind == (a_scope_kind)sck_file ||
                          scope->kind == (a_scope_kind)sck_namespace ||
@@ -2567,8 +2568,16 @@ been completed.
     if (rp->source_corresp.needed) {
       /* Marking the routine type as needed was suppressed before (since it
          can be redeclared even after it's called), so do that now. */
+      /* Clear the "needed" flag to keep mark_as_needed from returning
+         immediately. */
       rp->source_corresp.needed = FALSE;
+      /* Clear the "defined" flag to keep the body from being walked again. */
+      saved_defined = rp->defined;
+      rp->defined = FALSE;
+      /* Mark the routine type, etc., as needed. */
       mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
+      /* Restore the "defined" flag. */
+      rp->defined = saved_defined;
     }  /* if */
   }  /* for */
 }  /* set_needed_flags_at_end_of_file_scope */
