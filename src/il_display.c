@@ -2163,6 +2163,9 @@ Display the indicated expression node.
   if (ptr->result_is_not_used) {
     disp_boolean("result_is_not_used", TRUE);
   }  /* if */
+  if (ptr->implicit_reference_indirection) {
+    disp_boolean("implicit_reference_indirection", TRUE);
+  }  /* if */
   disp_name("kind");
 #ifdef FFE
   disp_boolean("allow_reordering", (a_boolean)ptr->allow_reordering);

@@ -3744,6 +3744,12 @@ typedef struct an_expr_node {
   unsigned int	result_is_not_used:1;
 			/* TRUE if the result of the expression is discarded,
 			   i.e., it's a void expression. */
+  unsigned int	implicit_reference_indirection:1;
+			/* TRUE if the operation in this expression node
+			   (typically, an eok_indirect) is or contains an
+			   extra indirection because of a C++ reference.
+			   That is, the indirection is explicit in the IL,
+			   but it was implicit in the source code. */
 #ifdef FIL
   unsigned int	allow_reordering:1;
 			/* TRUE indicates that this expression can be subjected

@@ -5590,6 +5590,7 @@ its kind to the indicated kind.
   node->type = NULL;
   node->next = NULL;
   node->result_is_not_used = FALSE;
+  node->implicit_reference_indirection = FALSE;
 #ifdef FIL
   node->allow_reordering = FALSE;
 #endif /* ifdef FIL */
