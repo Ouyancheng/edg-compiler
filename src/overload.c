@@ -4844,7 +4844,7 @@ member name reference.
       if (projection_member_sym != member_sym &&
           member_sym->kind == (a_symbol_kind)sk_projection) {
         /* This comes up with overload sets that contain using-declarations.
-           Cast from the using-declaration class to the cast of the member. */
+           Cast from the using-declaration class to the class of the member. */
         bcp= member_sym->variant.projection.extra_info->fundamental_base_class;
         base_class_cast_operand(operand_1, bcp, is_arrow_operator,
                                 /*check_cast_access=*/FALSE,
@@ -4916,6 +4916,7 @@ FALSE.  The operand is an rvalue.
 
 
 a_boolean make_this_pointer_operand(a_symbol_ptr      member_sym,
+                                    a_symbol_ptr      projection_member_sym,
                                     a_source_position *member_pos,
                                     a_boolean         check_cast_access,
                                     an_operand        *result)
@@ -4923,9 +4924,13 @@ a_boolean make_this_pointer_operand(a_symbol_ptr      member_sym,
 Make an operand for the "this" pointer of a C++ nonstatic member function.
 The operand made is an rvalue for the value of the pointer.  If we are not
 currently in a nonstatic member function, issue an error and return an
-error operand.  member_sym is the member, or is the overloaded function
-symbol that contains the member, or it can be a projection symbol
-for either of those.  The "this" pointer is cast (if necessary)
+error operand.  member_sym is the referenced member (possibly a projection
+symbol, but the presence or absence of a projection is ignored);
+projection_member_sym is either the same as member_sym or a projection
+thereof, or, for a reference to an overloaded function, the symbol for
+the overload set or a projection thereof -- it identifies the symbol
+that was actually named in the member reference, and a projection symbol
+on it is significant.  The "this" pointer is cast (if necessary)
 to the base class in which that member is defined.  Access checking is
 done on that cast if check_cast_access is TRUE.  If the symbol is a
 member of an unrelated class, issue an error and return an error operand.
@@ -4959,8 +4964,8 @@ not for the explicit case.
          of the member. */
       this_class = type_pointed_to(this_var->type);
       this_class = skip_typerefs(this_class);
-      check_assertion(member_sym->is_class_member);
-      member_class = member_sym->parent.class_type;
+      check_assertion(projection_member_sym->is_class_member);
+      member_class = projection_member_sym->parent.class_type;
       if (this_class == member_class) {
         /* The class is right already.  This is the usual case. */
         bcp = NULL;
@@ -5029,7 +5034,20 @@ not for the explicit case.
            There's no access check on this part of the cast because the access
            to the fundamental base class was checked as part of determining
            access to the symbol. */
-        if (member_sym->kind == (a_symbol_kind)sk_projection) {
+        if (projection_member_sym->kind == (a_symbol_kind)sk_projection) {
+          bcp = projection_member_sym->variant.projection.extra_info->
+                                                        fundamental_base_class;
+          base_class_cast_operand(result, bcp, (a_boolean *)NULL,
+                                  /*check_cast_access=*/FALSE,
+                                  /*is_implicit_cast=*/TRUE,
+                                  /*implicit_in_naming=*/TRUE,
+                                  /*is_object_pointer=*/TRUE);
+        }  /* if */
+        if (projection_member_sym != member_sym &&
+            member_sym->kind == (a_symbol_kind)sk_projection) {
+          /* This comes up with overload sets that contain using-declarations.
+             Cast from the using-declaration class to the class of the
+             member. */
           bcp = member_sym->variant.projection.extra_info->
                                                         fundamental_base_class;
           base_class_cast_operand(result, bcp, (a_boolean *)NULL,
@@ -5128,7 +5146,7 @@ identifier in the call.
           sym = namespace_projection_fundamental_symbol(sym);
         }  /* while */
       }  /* if */
-      if (make_this_pointer_operand(sym, function_position,
+      if (make_this_pointer_operand(function_symbol, sym, function_position,
                                     /*check_cast_access=*/
                                        !function_operand->
                                          access_control_error_reported,

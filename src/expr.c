@@ -1303,6 +1303,7 @@ Syntax:
         !operand->bound_function) {
       a_symbol_ptr func_sym = operand->variant.symbol;
       if (make_this_pointer_operand(func_sym,
+                                    func_sym,
                                     &call_position,
                                     /*check_cast_access=*/
                                        !operand->access_control_error_reported,
@@ -11981,7 +11982,8 @@ normal_function:
             } else {
               /* Normal case: "x" is interpreted as "this->x". */
               /* Make an operand for the "this" pointer. */
-              if (make_this_pointer_operand(projection_sym_ptr,
+              if (make_this_pointer_operand(sym_ptr,
+                                            projection_sym_ptr,
                                           &locator_for_curr_id.source_position,
                                             /*check_cast_access=*/
                                               !locator_for_curr_id.

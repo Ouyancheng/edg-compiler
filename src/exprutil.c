@@ -6528,14 +6528,23 @@ is constructed in *result.
     }  /* if */
     if (function_operand->bound_function) {
       /* Bound function.  bound_function_selector indicates the object. */
+      a_type_ptr this_type = implicit_this_param_type_of(function_type);
       implicit_this_argument = make_node_from_operand(bound_function_selector);
+#if CHECKING
+      /* There shouldn't be a base-class adjustment here.  If there is,
+         make_this_pointer_operand or cast_pointer_for_field_selection
+         did not do their job. */
+      { a_boolean        baseward_cast;
+        a_base_class_ptr bcp;
+        check_assertion(!related_class_pointers(this_type,
+                                                implicit_this_argument->type,
+                                                &baseward_cast,
+                                                &bcp));
+      }
+#endif /* CHECKING */
       /* Cast if necessary to handle any const etc. adjustment. */
-      /* There might be a cast to a base class here if the function has
-         been projected into a derived class with a using declaration.
-         No access checking is done on the cast, because the using
-         declaration adjusts access. */
       cast_node(&implicit_this_argument,
-                implicit_this_param_type_of(function_type),
+                this_type,
                 /*check_cast_access=*/FALSE,  /* sic */
                 /*is_implicit_cast=*/TRUE,
                 /*is_reinterpret_cast=*/FALSE,

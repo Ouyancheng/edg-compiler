@@ -1,5 +1,34 @@
 Version 2.46
 
+7/3/01   C++-generating back end: qualification on overloaded member
+         function accessed via using-declaration
+
+In cases where an overloaded member function is called without an
+explicit object (i.e., an implicit "this" applies), and the access
+to the function is modified by a using-declaration, one of the casts
+in the IL constructed did not have the implicit_in_member_naming
+flag set, which caused the C++-generating back end to generate code
+with unnecessary name qualification.  The generated code was not
+valid in some cases, and was valid but not accepted by some compilers
+in other cases.
+
+  struct A {
+    void f();
+    static void f(char *);
+  };
+  struct B : private A {
+  public: A::f;
+  };
+  struct C : public B {
+    void g() {
+      f();  // Was put out as this->::A::f(), not accepted by some compilers
+    }
+  };
+  int main () {
+    C c;
+    c.g();
+  }
+
 6/29/01  Diagnostic on missing return statement
 
 The front end used to issue an error in struct C++ mode when a value-returning
