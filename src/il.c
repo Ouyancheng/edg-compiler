@@ -1289,7 +1289,7 @@ Dump a string identifying a dynamic-init kind, for debug purposes.
 
 static void db_constant_repr_kind(a_constant_repr_kind  kind)
 /*
-Dump a string identifying a constant-reprsentation kind, for debug purposes.
+Dump a string identifying a constant-representation kind, for debug purposes.
 */
 {
   char *s;
