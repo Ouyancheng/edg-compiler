@@ -8205,7 +8205,7 @@ symbol "used" or "set", if appropriate.
         if (tp->kind == (a_type_kind)tk_template_param) {
           /* We are in the midst of a template definition. */
         } else {
-          /* We are in the midst of a template instantion. */
+          /* We are in the midst of a template instantiation. */
           for(;;) {
             if (tp->kind == (a_type_kind)tk_typeref) {
               if (tp->variant.typeref.is_const ||

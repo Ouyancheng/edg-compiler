@@ -88,7 +88,7 @@ string, and returns true if the two match.
    strncmp(str, start_of_curr_token, size_t_arg(sizeof(str)-1)) == 0)
 
 /*
-Macro that compres the current token (an identifier) with the pragma
+Macro that compares the current token (an identifier) with the pragma
 identifier associated with the specified pragma kind.
 */
 #define curr_id_matches_pragma_id(pragma_kind)				\
