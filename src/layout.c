@@ -960,7 +960,10 @@ targ_microsoft_bit_field_allocation is FALSE.)
               the container type".
     */
 #if IA64_ABI
-   if (field->declared_bit_size != field->bit_size) {
+   if (field->declared_bit_size != field->bit_size &&
+       /* In some (error) cases, named zero length big fields are given
+          a bit size of one (error recovery). */
+       field->declared_bit_size != 0) {
       unsigned long   declared_bit_size = field->declared_bit_size;
       an_integer_kind int_kind = (an_integer_kind)ik_none;
       a_type_ptr      int_type;
