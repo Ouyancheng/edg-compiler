@@ -3323,7 +3323,7 @@ used.
        is currently in the temporary buffer, make a copy and return a
        pointer to the copy. */
     if (buffer != NULL && name_to_try == buffer->buffer) {
-      name_to_try = alloc_il(buffer->size);
+      name_to_try = alloc_primary_file_scope_il(buffer->size);
       (void)strcpy(name_to_try, buffer->buffer);
     }  /* if */
     *name_found = name_to_try;
