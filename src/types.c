@@ -357,26 +357,24 @@ Return the element type of the given array type.
 }  /* array_element_type */
 
 
-a_type_ptr pointer_referenced_type(a_type_ptr pointer_type)
+a_type_ptr type_pointed_to(a_type_ptr pointer_type)
 /*
-Return the referenced type of the given pointer type (i.e., the type pointed
-to).
+Return the type pointed to by the given tk_pointer type entry.
 */
 {
   a_type_ptr tp = skip_typerefs(pointer_type);
 #if CHECKING
   if (tp->kind != (a_type_kind)tk_pointer) {
-    internal_error("pointer_referenced_type: non-pointer type");
+    internal_error("type_pointed_to: not a pointer type");
   }  /* if */
 #endif /* CHECKING */
   return(tp->variant.pointer_type_pointed_to);
-}  /* pointer_referenced_type */
+}  /* type_pointed_to */
 
 
 a_type_ptr type_referenced(a_type_ptr ref_type)
 /*
-Return the type referenced by the given reference type (i.e., the type pointed
-to).
+Return the type referenced by the given tk_reference type entry.
 */
 {
   a_type_ptr tp = skip_typerefs(ref_type);
@@ -1394,7 +1392,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   }  /* if */
 #endif /* CHECKING */
   /* Get the type pointed to and drop type qualifiers and typedefs. */
-  dest_type_pointed_to = pointer_referenced_type(dest_type);
+  dest_type_pointed_to = type_pointed_to(dest_type);
   unqual_dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
   if (source_is_constant && is_null_pointer_constant(source_constant)) {
     /* A null pointer constant may be converted to a pointer to any type.
@@ -1407,7 +1405,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   } else if (is_pointer(source_type)) {
     /* Pointer --> pointer. */
     /* Get the type pointed to and drop type qualifiers and typedefs. */
-    source_type_pointed_to = pointer_referenced_type(source_type);
+    source_type_pointed_to = type_pointed_to(source_type);
     unqual_source_type_pointed_to = skip_typerefs(source_type_pointed_to);
     if (types_are_compatible(unqual_source_type_pointed_to,
                              unqual_dest_type_pointed_to)) {
@@ -1671,9 +1669,9 @@ are allowed.
   } else if (is_pointer(source_type) && is_pointer(dest_type)) {
     /* Pointer --> pointer.  Get the types pointed to. */
     a_type_ptr source_type_pointed_to, dest_type_pointed_to;
-    source_type_pointed_to = pointer_referenced_type(source_type);
+    source_type_pointed_to = type_pointed_to(source_type);
     source_type_pointed_to = skip_typerefs(source_type_pointed_to);
-    dest_type_pointed_to = pointer_referenced_type(dest_type);
+    dest_type_pointed_to = type_pointed_to(dest_type);
     dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
     if (C_dialect == C_dialect_cplusplus &&
         is_class_or_struct(source_type_pointed_to) &&

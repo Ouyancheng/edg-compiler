@@ -583,7 +583,7 @@ Return TRUE if the given constant is a null pointer constant.
            the possibility of qualifiers). */
         if (is_pointer_type(constant->type) &&
             !is_qualified_type(constant->type)) {
-          ptr_type = pointer_referenced_type(constant->type);
+          ptr_type = type_pointed_to(constant->type);
 	  if (is_void_type(ptr_type) && !is_qualified_type(ptr_type)) {
 	    is_null_pointer = TRUE;
 	  }  /* if */
@@ -1816,7 +1816,7 @@ detected, or *err_code == ec_no_error if everything went fine.
     size = 1;
   } else {
     /* Get the size of the thing pointed to. */
-    size = skip_typerefs(pointer_referenced_type(constant_1->type))->size;
+    size = skip_typerefs(type_pointed_to(constant_1->type))->size;
 #if CHECKING
     if (size == 0) internal_error("do_padd: size is zero");
 #endif /* CHECKING */

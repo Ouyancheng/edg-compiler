@@ -50,7 +50,7 @@ extern a_boolean is_complete_class_struct_union_type(a_type_ptr tp);
 extern a_boolean is_aggregate_or_union_type(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);
-extern a_type_ptr pointer_referenced_type(a_type_ptr pointer_type);
+extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);
 extern a_type_ptr type_referenced(a_type_ptr pointer_type);
 
 #define is_const_qualified_type(tp)                                   \
@@ -112,7 +112,7 @@ an lvalue.
 */
 #define lvalue_expr_type(node)                                        \
 (is_error_type((node)->type) ? (node)->type :                         \
-                               pointer_referenced_type((node)->type))
+                               type_pointed_to((node)->type))
 
 /*
 Return TRUE if a routine type is the type of a nonstatic member function.
