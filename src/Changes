@@ -1,5 +1,13 @@
 Version 2.45
 
+12/21/00 Function template entries when using PROTOTYPE_INSTANTIATIONS_IN_IL
+
+When using PROTOTYPE_INSTANTIATIONS_IN_IL, the template entries for
+function templates and member functions of class template always have the
+prototype routine pointer set, even when not doing nonclass prototype
+instantiations.  There is, of course, no definition associated with the
+prototype instantiation in such cases.
+
 12/21/00 C++-generating back end: elaborated type specifier omitted on
          reference to previously invisible name
 
