@@ -1895,7 +1895,8 @@ specified id-linkage block.
                   !idlbp->locator->specific_symbol->is_class_member);
   is_function = idlbp->func_info != NULL;
   is_object = !is_function;
-  if (is_error_locator(*idlbp->locator)) {
+  if (is_error_locator(*idlbp->locator) ||
+      is_or_contains_error_type(idlbp->type)) {
     /* Symbol is compiler-generated as a result of an error, so there are
        no other declarations of the same symbol. */
   } else if (is_object && depth_innermost_function_scope != NO_SCOPE_DEPTH &&
@@ -4304,7 +4305,9 @@ on for use in generating cross-reference output describing this declaration.
   idlb.func_info = func_info;
   idlb.is_definition = is_function_def;
   set_linkage_environment(&idlb, decl_scope_level);
-  check_assertion(idlb.is_friend_decl == ((srk_flags & SRK_FRIEND) != 0));
+  check_assertion(idlb.is_friend_decl == ((srk_flags & SRK_FRIEND) != 0) ||
+                  is_or_contains_error_type(type_ptr));
+  idlb.is_friend_decl = ((srk_flags & SRK_FRIEND) != 0);
   is_friend_decl = idlb.is_friend_decl;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
