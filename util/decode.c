@@ -439,17 +439,18 @@ demangled.
 }  /* demangle_template_arguments */
 
 
-static char *demangle_operator_function_name(char *ptr)
+static a_boolean is_operator_function_name(char *ptr,
+                                           char **demangled_name,
+                                           int  *mangled_length)
 /*
-ptr points to an operator function name.  Demangle it, and output the
-demangled form.  Return a pointer to the character position following what
-was demangled.
+Examine the string beginning at ptr to see if it is the mangled name for
+an operator function.  If so, return TRUE and set *demangled_name to
+the demangled form, and *mangled_length to the length of the mangled form.
 */
 {
   char *s, *end_ptr;
   int  len = 2;
 
-  write_id_str("operator ");
   /* The length-3 codes are tested first to avoid taking their first two
      letters as one of the length-2 codes. */
   if (start_of_id_is("apl", ptr)) {
@@ -543,18 +544,20 @@ was demangled.
   } else if (start_of_id_is("vc", ptr)) {
     s = "[]";
   } else {
-    bad_mangled_name();
-    s = "";
+    s = NULL;
   }  /* if */
-  write_id_str(s);
-  /* Make sure we took the whole name and nothing more. */
-  end_ptr = ptr + len;
-  if (*end_ptr == '\0' || (end_ptr[0] == '_' && end_ptr[1] == '_')) {
-    /* Okay. */
-  } else {
-    bad_mangled_name();
+  if (s != NULL) {
+    /* Make sure we took the whole name and nothing more. */
+    end_ptr = ptr + len;
+    if (*end_ptr == '\0' || (end_ptr[0] == '_' && end_ptr[1] == '_')) {
+      /* Okay. */
+    } else {
+      s = NULL;
+    }  /* if */
   }  /* if */
-  return end_ptr;
+  *demangled_name = s;
+  *mangled_length = len;
+  return (s != NULL);
 }  /* demangle_operator_function_name */
 
 
@@ -577,11 +580,12 @@ original forms).
 {
   char      *p, *pt, *end_ptr;
   a_boolean is_special_name = FALSE, is_template = FALSE;
+  char      *demangled_name;
+  int       mangled_length;
 
   /* See if the name is special in some way. */
   if ((nchars == 0 || nchars >= 4) && ptr[0] == '_' && ptr[1] == '_') {
     /* Name beginning with two underscores. */
-    is_special_name = TRUE;
     p = ptr + 2;
     if (start_of_id_is("ct", p)) {
       /* Constructor. */
@@ -589,9 +593,9 @@ original forms).
       if (mclass == NULL) {
         /* The mangled name for the class is not provided, so handle this as
            a normal name. */
-        is_special_name = FALSE;
       } else {
         /* Output the class name for the constructor name. */
+        is_special_name = TRUE;
         (void)demangle_type_name(mclass, /*base_name_only=*/TRUE);
       }  /* if */
     } else if (start_of_id_is("dt", p)) {
@@ -600,27 +604,35 @@ original forms).
       if (mclass == NULL) {
         /* The mangled name for the class is not provided, so handle this as
            a normal name. */
-        is_special_name = FALSE;
       } else {
         /* Output ~class-name for the destructor name. */
+        is_special_name = TRUE;
         write_id_ch('~');
         (void)demangle_type_name(mclass, /*base_name_only=*/TRUE);
       }  /* if */
     } else if (start_of_id_is("op", p)) {
       /* Conversion function.  Name looks like __opi__... where the part
          after "op" encodes the type (e.g., "opi" is "operator int"). */
+      is_special_name = TRUE;
       write_id_str("operator ");
       end_ptr = demangle_type(p+2);
-    } else {
+    } else if (is_operator_function_name(p, &demangled_name,
+                                         &mangled_length)) {
       /* Operator function. */
-      end_ptr = demangle_operator_function_name(p);
+      is_special_name = TRUE;
+      write_id_str("operator ");
+      write_id_str(demangled_name);
+      end_ptr = p + mangled_length;
+    } else {
+      /* Something unrecognized. */
     }  /* if */
-  } else {
-    /* Not a name beginning with "__". */
+  }  /* if */
+  if (!is_special_name) {
+    /* Not a special name. */
     /* Find the end of the string and set end_ptr. */
     /* Also look for "__pt__" indicating a template class name. */
     if (nchars > 0) {
-      /* We have a count of characters. */
+      /* We have a count of characters, so we know where the end is. */
       unsigned long i;
       for (p = ptr, i = 0; i+6 <= nchars; p++, i++) {
         if (*p == '_' && start_of_id_is("__pt__", p)) {
@@ -1064,7 +1076,7 @@ a pointer to the character position following what was demangled.
 */
 {
   char      *p = ptr, *origname, *mname, *end_ptr;
-  a_boolean static_data_member = FALSE;
+  a_boolean simple_member = FALSE;
 
   origname = p;
   /* Scan through the name (the first part of the mangled name) without
@@ -1104,12 +1116,16 @@ a pointer to the character position following what was demangled.
     if (mname[0] != 'F') {
       /* A class name must be next. */
       end_ptr = demangle_type_name(end_ptr, /*base_name_only=*/FALSE);
-      write_id_str("::");
-      /* If the name ends here, this is a static data member. */
-      if (*end_ptr == '\0') static_data_member = TRUE;
+      /* If the origname is null, don't put out the "::" following the
+         class name (this is a class name with no member name indicated,
+         e.g., "__Q2_1A1B"). */
+      if (origname != p) write_id_str("::");
+      /* If the name ends here, this is a simple member (e.g., a static
+         data member). */
+      if (*end_ptr == '\0') simple_member = TRUE;
     }  /* if */
-    if (static_data_member) {
-      /* Static data member.  Just write the name. */
+    if (simple_member) {
+      /* Simple member.  Just write the name. */
       (void)demangle_name(origname, (unsigned long)0, (char *)NULL);
     } else {
       /* This must be a function. */
