@@ -5699,7 +5699,7 @@ functions befriending_list_test and class_scope_test.
 {
   a_boolean               have_member_privilege = FALSE;
   a_scope_stack_entry_ptr ssep;
-  a_routine_ptr           scope_routine, test_routine = NULL;
+  a_routine_ptr           scope_routine;
   a_scope_depth           scope_depth;
   a_boolean               skipping_to_function = FALSE;
 
@@ -5719,7 +5719,6 @@ functions befriending_list_test and class_scope_test.
         scope_routine = ssep->assoc_routine;
       } else {
         scope_routine = ssep->il_scope->variant.routine.ptr;
-        test_routine = scope_routine;
       }  /* if */
       if (befriending_list_test(scope_routine->befriending_classes,
                                 class_type)) {
@@ -5750,21 +5749,7 @@ functions befriending_list_test and class_scope_test.
            special access to the members of the enclosing classes.  In
            non-strict mode, allow access as an extension. */
         if (strict_ansi_mode) {
-#if 0
           skipping_to_function = TRUE;
-#else /* 0 */
-          /* Until name injection is implemented, use the old ARM formulation
-             that "member functions of a nested class have no special access
-             to the enclosing class".  That is, references outside of
-             member functions do have special access.  This allows nested
-             classes to use their own names in a data member declaration. */
-          /* Note that the test as written also handles friend functions
-             defined inside nested classes (they get no special access). */
-          if (test_routine != NULL) {
-            skipping_to_function = TRUE;
-          }  /* if */
-          test_routine = NULL;
-#endif /* 0 */
         }  /* if */
       }  /* if */
     }  /* if */

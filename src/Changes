@@ -1,5 +1,13 @@
 Version 2.41
 
+1/25/99   Nested class access to enclosing classes in strict mode
+
+Nested classes now have no access to enclosing classes in strict mode.
+Formerly, they had access in certain cases, which was necessary as
+a transitional step until class name injection was implemented.
+Nested classes continue to have access to enclosing classes in
+non-strict mode.
+
 1/25/99   C++-generating back end: constructors in instantiation directives
 
 The C++-generating back end formerly put out instantiation directives
