@@ -3452,20 +3452,6 @@ apply that would make one better than the other, and return
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Use of an anachronism (e.g., calling a const function for a
-     non-const object) can break a tie. */
-  if (cmp == 0 &&
-      arg_match1->anachronism_used != arg_match2->anachronism_used) {
-    if (arg_match1->anachronism_used) {
-      /* Argument 1 uses an anachronism and argument 2 does not, so
-         argument 2 is better. */
-      cmp = -1;
-    } else {
-      /* Argument 2 uses an anachronism and argument 1 does not, so cfp1
-         is better. */
-      cmp = 1;
-    }  /* if */
-  }  /* if */
   return cmp;
 }  /* compare_argument_tiebreakers */
 
@@ -3489,6 +3475,18 @@ Compare two argument match summary entries and return
     /* The match for the "this parameter" of a static member function
        has a "none" match level.  It's no better and no worse than any
        other match. */
+  } else if (arg_match1->anachronism_used != arg_match2->anachronism_used) {
+    /* Use of an anachronism (e.g., calling a const function for a
+       non-const object) makes a match worse. */
+    if (arg_match1->anachronism_used) {
+      /* arg_match1 uses an anachronism and arg_match2 does not, so
+         arg_match2 is better. */
+      cmp = -1;
+    } else {
+      /* arg_match2 uses an anachronism and arg_match1 does not, so
+         arg_match1 is better. */
+      cmp = 1;
+    }  /* if */
   } else if ((int)arg_match1->match_level < (int)arg_match2->match_level) {
     /* arg_match1 is better. */
     cmp = 1;
@@ -4009,6 +4007,25 @@ next_function:;
 }  /* function_candidate_with_same_sig_as_builtin_present */
 
 
+static a_boolean has_anachronism_match(a_candidate_function_ptr cfp)
+/*
+Return TRUE if any of the argument matches for the given candidate
+function required use of anachronisms.
+*/
+{
+  a_boolean                any_anachronism_match = FALSE;
+  an_arg_match_summary_ptr amsp;  
+
+  for (amsp = cfp->arg_matches; amsp != NULL; amsp = amsp->next) {
+    if (amsp->anachronism_used) {
+      any_anachronism_match = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return any_anachronism_match;
+}  /* has_anachronism_match */
+
+
 static void select_best_candidate_functions(
                         a_candidate_function_ptr *candidate_functions,
                         a_source_position        *source_pos,
@@ -4036,6 +4053,7 @@ is set to TRUE.
   an_arg_match_summary_ptr curr_arg;
   int                      cmp;
   a_boolean                overall_ambiguity = FALSE, any_error_match = FALSE;
+  a_boolean                have_candidates_without_anachronisms = FALSE;
 
   db_enter(4, "select_best_candidate_functions");
 #if DEBUG
@@ -4066,14 +4084,18 @@ is set to TRUE.
     number_in_best_match_set = 0;
     prev_cfp = NULL;
     for (cfp = candidates; cfp != NULL; cfp = cfp_next) {
+      a_boolean uses_anachronism = has_anachronism_match(cfp);
       cfp_next = cfp->next;
       /* Look for a candidate that is a builtin operator that has the
          same signature as a function in the candidate set, and eliminate
          the builtin operator. */
-      if (cfp->operand_type_pattern != NULL &&
-          function_candidate_with_same_sig_as_builtin_present(cfp,
-                                                              candidates)) {
-        /* Remove the builtin operator candidate. */
+      /* Also eliminate a candidate that uses anachronism matches, if
+         we've already seen one that used no such matches. */
+      if ((cfp->operand_type_pattern != NULL &&
+           function_candidate_with_same_sig_as_builtin_present(cfp,
+                                                              candidates)) ||
+          (uses_anachronism && have_candidates_without_anachronisms)) {
+        /* Remove the candidate. */
         if (prev_cfp == NULL) {
           candidates = *candidate_functions = cfp_next;
         } else {
@@ -4082,7 +4104,21 @@ is set to TRUE.
         cfp->next = NULL;
         free_candidate_function_list(cfp);
       } else {
-        /* Normal case. */
+        /* The entry stays in the candidate functions set. */
+        if (!uses_anachronism) {
+          /* This candidate uses no anachronism matches. */
+          if (!have_candidates_without_anachronisms) {
+            /* Any previously-considered candidates must require anachronism
+               matches.  Remove them. */
+            if (prev_cfp != NULL) {
+              prev_cfp->next = NULL;
+              free_candidate_function_list(candidates);
+              number_in_best_match_set = 0;
+              candidates = *candidate_functions = cfp;
+            }  /* if */
+            have_candidates_without_anachronisms = TRUE;
+          }  /* if */
+        }  /* if */
         cfp->in_best_match_set = TRUE;
         cfp->in_best_match_set_for_some_argument = FALSE;
         number_in_best_match_set++;

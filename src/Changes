@@ -1,5 +1,33 @@
 Version 3.4
 
+8/14/03  Microsoft compatibility: binding reference to non-const to rvalue
+         in overload resolution
+
+MSVC++ allows binding a reference to non-const to a class rvalue.
+As of MSVC++ 7.1, this is viewed as an anachronism and in overload
+resolution such a binding is considered worse that any
+non-anachronism binding.  This is now implemented when microsoft_version
+is >= 1310.
+
+  // MSVC++ 7.1 outputs 2, but it will call 1 if function 2 is removed.
+  // MSVC++ 7.0 outputs 1
+  extern "C" int printf(const char *, ...);
+  struct A { A() {} ~A() {} } a;
+  A f() { return a; }
+  void g(A &, int) { printf("1\n"); }
+  void g(const A&, float) { printf("2\n"); }
+  int main() {
+    g(f(), 0);
+  }
+
+As part of this change, the handling of anachronisms in overload
+resolution has been revamped.  Now, a function with an anachronism match
+on an argument (which wouldn't be viable at all in the standard language)
+is considered only if there are no viable functions that make use of
+no anachronism matches.  Formerly, the anachronism match was just
+considered worse on that particular argument, which could lead
+to ambiguities.
+
 8/14/03  GNU C++ mode: Attributes on static data members
 
 In GNU C++ mode, the front end now correctly processes attributes on static
