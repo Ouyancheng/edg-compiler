@@ -457,7 +457,7 @@ definition of the routine is needed, and not just the declaration.
                         "set_routine_definition_needed: trivial default ctor");
     set_routine_definition_needed_flag(rout);
 #if DEBUG
-    if (db_flag_is_set("needed_flags")) {
+    if (db_trace("needed_flags", rout, iek_routine)) {
 #if ONE_INSTANTIATION_PER_OBJECT
       fprintf(f_debug, "Setting definition_needed (%lu) on rout  ",
                        needed_flag_bit_number);
@@ -579,7 +579,7 @@ definition of the class is needed, and not just the declaration.
   if (!class_definition_needed_flag_is_set(type)) {
     set_class_definition_needed_flag(type);
 #if DEBUG
-    if (db_flag_is_set("needed_flags")) {
+    if (db_trace("needed_flags", type, iek_type)) {
 #if ONE_INSTANTIATION_PER_OBJECT
       fprintf(f_debug, "Setting definition_needed (%lu) on ",
                        needed_flag_bit_number);
@@ -672,7 +672,7 @@ as needed.
       /* The flag is not set, so set it and keep walking. */
       set_needed_flag(scp);
 #if DEBUG
-      if (db_flag_is_set("needed_flags")) {
+      if (db_trace("needed_flags", entry_ptr, entry_kind)) {
         if (entry_kind == iek_type ||
             entry_kind == iek_variable ||
             entry_kind == iek_routine ||
@@ -1080,7 +1080,7 @@ declaration.
   if (!rout->keep_definition_in_il) {
     rout->keep_definition_in_il = TRUE;
 #if DEBUG
-    if (db_flag_is_set("needed_flags")) {
+    if (db_trace("needed_flags", rout, iek_routine)) {
       fprintf(f_debug, "Setting keep_definition_in_il on rout  ");
       db_name(&rout->source_corresp);
       fprintf(f_debug, "\n");
@@ -1122,7 +1122,7 @@ declaration.
   if (!type->variant.class_struct_union.keep_definition_in_il) {
     type->variant.class_struct_union.keep_definition_in_il = TRUE;
 #if DEBUG
-    if (db_flag_is_set("needed_flags")) {
+    if (db_trace("needed_flags", type, iek_type)) {
       fprintf(f_debug, "Setting keep_definition_in_il on ");
       db_abbreviated_type(type);
       fprintf(f_debug, "\n");
@@ -1222,7 +1222,7 @@ to be kept.
     /* Set the flag. */
     il_entry_prefix_of(entry_ptr).keep_in_il = TRUE;
 #if DEBUG
-    if (db_flag_is_set("needed_flags")) {
+    if (db_trace("needed_flags", entry_ptr, entry_kind)) {
       if (entry_kind == iek_type) {
         fprintf(f_debug, "Setting keep_in_il on type ");
         db_abbreviated_type((a_type_ptr)entry_ptr);

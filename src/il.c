@@ -231,60 +231,24 @@ Dump the name of a type.  If it's a class generated on the basis of a
 template, dump the template arguments, too.
 */
 {
-  a_class_type_supplement_ptr ctsp;
-
-  db_name(&tp->source_corresp);
-#if NEED_NAME_MANGLING
-  if (!tp->source_corresp.name_has_been_mangled) {
-#endif /* NEED_NAME_MANGLING */
-    if (is_immediate_class_type(tp)) {
-      ctsp = tp->variant.class_struct_union.extra_info;
-      if (ctsp != NULL) {
-        db_template_arg_list(ctsp->template_arg_list);
-        db_template_arg_list(ctsp->partial_spec_template_arg_list);
-      }  /* if */
-    }  /* if */
-#if NEED_NAME_MANGLING
-  }  /* if */
-#endif /* NEED_NAME_MANGLING */
+  fprintf(f_debug, "%s", db_name_str(&tp->source_corresp, iek_type));
 }  /* db_type_name */
 
 
 void db_name(a_source_correspondence *sc)
 /*
-Dump the name from a source correspondence (if any).
+Dump the name from a source correspondence (if any).  This doesn't provide
+template arguments on template classes.
 */
 {
-  char *name;
-
   if (sc == NULL) {
     fputs("<no source corresp>", f_debug);
   } else {
-#if NEED_NAME_MANGLING
-    if (sc->name_has_been_mangled) {
-      name = sc->name;
-    } else {
-#endif /* NEED_NAME_MANGLING */
-      if (sc->is_class_member) {
-        db_type_name(sc->parent.class_type);
-        fputs("::", f_debug);
-      } else if (sc->parent.namespace_ptr != NULL) {
-        db_name(&sc->parent.namespace_ptr->source_corresp);
-        fputs("::", f_debug);
-      }  /* if */
-      name = unmangled_name_of(sc);
-      if (name == NULL) name = sc->name;
-#if NEED_NAME_MANGLING
-    }  /* if */
-#endif /* NEED_NAME_MANGLING */
-    if (name != NULL) {
-      fputs(name, f_debug);
-    } else {
-      fprintf(f_debug, "<NULL>@%lx", (unsigned long)sc);
-    }  /* if */
+    fprintf(f_debug, "%s", db_name_str(sc, iek_none));
   }  /* if */
 }  /* db_name */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
 Buffer into which names are written for db_name_str
@@ -336,6 +300,7 @@ entity is not from the primary translation unit.
   return db_name_str_buffer->buffer;
 }  /* db_name_str */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 void db_entity_info(char             *entry,
                     an_il_entry_kind kind)
@@ -9852,7 +9817,7 @@ related to "needed" flags.
     rout->defined = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
 #if DEBUG
-    if (db_flag_is_set("needed_flags")) {
+    if (db_trace("needed_flags", rout, iek_routine)) {
       fprintf(f_debug, "Setting defined on rout ");
       db_name(&rout->source_corresp);
       fprintf(f_debug, "\n");
@@ -11359,7 +11324,7 @@ eliminate_unneeded_scope_orphaned_list_entries).
   a_memory_region_number  n = rp->assoc_scope;
 
 #if DEBUG
-  if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
+  if (debug_level >= 3 || db_trace("dump_elim", rp, iek_routine)) {
     fprintf(f_debug, "Removing function body for ");
     db_name(&rp->source_corresp);
     fputc('\n', f_debug);
@@ -11463,7 +11428,7 @@ cleared.
          pointer is cleared when that happens). */
       check_assertion(!il_entry_prefix_of(friend_class).keep_in_il);
 #if DEBUG
-      if (debug_level >= 4 || db_flag_is_set("dump_elim")) {
+      if (debug_level >= 4 || db_trace("dump_elim", friend_class, iek_type)) {
         fputs("  Befriended ", f_debug);
         db_abbreviated_type(friend_class);
         fputs(" is already eliminated", f_debug);
@@ -11480,7 +11445,8 @@ cleared.
         next_clep = clep->next;
         if (clep->class_type == class_type) {
 #if DEBUG
-          if (debug_level >= 4 || db_flag_is_set("dump_elim")) {
+          if (debug_level >= 4 ||
+              db_trace("dump_elim", friend_class, iek_type)) {
             fputs("  ", f_debug);
             db_type_name(friend_class);
             fputs(" no longer befriended by ", f_debug);
@@ -11531,7 +11497,8 @@ cleared.
       if (clep->class_type == class_type) {
         /* A match -- link around it. */
 #if DEBUG
-          if (debug_level >= 4 || db_flag_is_set("dump_elim")) {
+          if (debug_level >= 4 ||
+              db_trace("dump_elim", friend_rout, iek_routine)) {
             fputs("  Routine ", f_debug);
             db_name(&friend_rout->source_corresp);
             fputs(" no longer befriended by ", f_debug);
@@ -11781,7 +11748,7 @@ entry into one representing a nondefining declaration.
 {
   db_enter(4, "turn_class_definition_into_declaration");
 #if DEBUG
-  if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
+  if (debug_level >= 3 || db_trace("dump_elim", class_type, iek_type)) {
     fputs("Removing definition of ", f_debug);
     db_abbreviated_type(class_type);
     fputc('\n', f_debug);
@@ -11989,7 +11956,7 @@ because, for example, they appear on orphan lists.
       for (vp = solhp->orphaned_variables; vp != NULL; vp = next_vp) {
         next_vp = vp->next;
 #if DEBUG
-        if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
+        if (debug_level >= 3 || db_trace("dump_elim", vp, iek_variable)) {
           fprintf(f_debug, "%semoving orphaned variable ",
                   il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
           db_name(&vp->source_corresp);
@@ -12015,7 +11982,7 @@ because, for example, they appear on orphan lists.
         next_tp = tp->next;
         keep = type_is_to_be_kept_in_il(tp);
 #if DEBUG
-        if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
+        if (debug_level >= 3 || db_trace("dump_elim", tp, iek_type)) {
           fprintf(f_debug, "%semoving orphaned type ",
                   keep ? "Not r" : "R");
           db_abbreviated_type(tp);
@@ -12124,7 +12091,7 @@ eliminated, if appropriate.
   for (vp = scope->variables; vp != NULL; vp = next_vp) {
     next_vp = vp->next;
 #if DEBUG
-    if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
+    if (debug_level >= 3 || db_trace("dump_elim", vp, iek_variable)) {
       fprintf(f_debug, "%semoving variable ",
               il_entry_prefix_of(vp).keep_in_il ? "Not r" : "R");
       db_name(&vp->source_corresp);
@@ -12154,7 +12121,7 @@ eliminated, if appropriate.
     next_tp = tp->next;
     keep = type_is_to_be_kept_in_il(tp);
 #if DEBUG
-    if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
+    if (debug_level >= 3 || db_trace("dump_elim", tp, iek_type)) {
       fprintf(f_debug, "%semoving ",
               keep ? "Not r" : "R");
       if (has_name(tp)) {
@@ -12204,7 +12171,7 @@ eliminated, if appropriate.
   for (rp = scope->routines; rp != NULL; rp = next_rp) {
     next_rp = rp->next;
 #if DEBUG
-    if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
+    if (debug_level >= 3 || db_trace("dump_elim", rp, iek_routine)) {
       fprintf(f_debug, "%semoving routine ",
               il_entry_prefix_of(rp).keep_in_il ? "Not r" : "R");
       db_name(&rp->source_corresp);
@@ -12294,7 +12261,9 @@ eliminated, if appropriate.
   for (hnp = scope->hidden_names; hnp != NULL; hnp = next_hnp) {
     next_hnp = hnp->next;
 #if DEBUG
-    if (debug_level >= 3 || db_flag_is_set("dump_elim")) {
+    if (debug_level >= 3 ||
+        db_trace("dump_elim", hnp->entity.ptr,
+                              (an_il_entry_kind)hnp->entity.kind)) {
       fprintf(f_debug, "%semoving hidden name entry for ",
               il_entry_prefix_of(hnp->entity.ptr).keep_in_il ? "Not r" : "R");
       if (hnp->entity.kind == (a_byte_il_entry_kind)iek_type) {
