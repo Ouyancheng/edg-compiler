@@ -1,5 +1,44 @@
 Version 2.15
 
+2/24/93  Dynamic-init entries appear only at file scope
+
+add_to_dynamic_inits_list has been modified to add a dynamic-init entry
+at the file scope only.  This confirms the existing convention.
+
+2/23/93  Bug with member function linkage in "local" instantiation mode
+
+Whereas in local instantiation mode noninline member functions of
+compiler-generated template classes have internal linkage, it was
+incorrect to apply this rule to user-defined template classes as well.
+This resulted in spurious errors, e.g.,
+
+  template <class T> class Y {};
+  struct Y<char> {
+    Y();
+    ~Y();
+  };
+  Y<char> yc;
+
+for which the compiler complained that Y<char>::Y() and Y<char>::~Y)()
+are referenced but not defined.
+
+With this fix user-defined template classes (and their noninline member
+functions and static data members) are given external linkage even in
+local instantiation mode.
+
+2/23/93  Elaborated-type-specifier using template param name
+
+An elaborated type specifier involving the name of a template parameter
+was processed incorrectly during prototype instantiation of class
+templates -- e.g.,
+
+  template <class T> class A {
+    struct T t;                     // Spurious error no longer issued
+  };
+
+This construct is now scanned during prototype instantiation as though
+the class-key were omitted.
+
 2/23/93  Recursive instantiations involving functions and static data members
 
 The end-of-compilation processing of instantiations has been modified
@@ -61,19 +100,19 @@ the recursion is halted.
 In this example struct X should be entered in the global scope bug was
 not.  This has been corrected.
 
-template <class T> struct A {
-	friend void f(struct X x);
-};
+  template <class T> struct A {
+    friend void f(struct X x);
+  };
 
 2/23/93  Improved error recovery when scanning template arguments
 
 Error recovery has been improved when too many template arguments are
 supplied.
 
-template <class T> class A {
-	void f();
-};
-void A<int, 1>::f(){}
+  template <class T> class A {
+    void f();
+  };
+  void A<int, 1>::f(){}
 
 2/23/93  Incorrect error message given for incomplete type
 
@@ -81,8 +120,8 @@ Cases such as this were giving an incorrect error message.  Instead
 of saying "incomplete type not allowed" the message "B is not a class
 name" was issued.  This has been corrected.
 
-	class X;
-	int X::B::* pmi;
+  class X;
+  int X::B::* pmi;
 
 2/23/93  Constant-valued variables in "?" and "," operators
 
@@ -95,9 +134,7 @@ variables even inside "?" and "," operators:
   {
     long i;
     i = ((i < 0) ? aa : bb);  // constant values substituted
-
   }
-
 
 2/22/93  Support for cfront name lookup bug
 
@@ -112,26 +149,22 @@ TRUE.
 
 The following code illustrated an instance in which the bug occurs:
 
-struct B   {
-	void func(const char*);	// Needs to be here
-};
-
-struct D : public B {
-public:
-	D();
-	void Init(const char* );
-};
-
-struct func {
-	func( const char* msg);
-};
-
-D::D(){}
-
-void D::Init(const char* t)
-{
-	new func(t);
-}
+  struct B   {
+    void func(const char*);	// Needs to be here
+  };
+  struct D : public B {
+  public:
+    D();
+    void Init(const char* );
+  };
+  struct func {
+    func( const char* msg);
+  };
+  D::D() { }
+  void D::Init(const char* t)
+  {
+    new func(t);
+  }
 
 For the bad lookup to occur:
 
@@ -150,6 +183,49 @@ For the bad lookup to occur:
    may appear between the destructor and the offending reference.
    This has the effect that the bad lookup applies to only one class at
    any given point in time.
+
+2/22/93  Disallow const/volatile qualifier on operator new and delete
+
+An error (instead of a warning) is now issued when a type qualifier is
+specified on an operator new or delete declaration, e.g.:
+
+  class X {
+    void* operator new(size_t) const { /* ... */ };      // Error
+  };
+
+2/22/93  Incomplete types in class template definitions
+
+An error is now reported if an incomplete type (other than one that is
+or involves a template parameter) is used to declare a data member in
+class template declaration.  (It used to be that the error was
+suppressed during prototype instantiation, on the assumption that the
+type might become complete by the time the first real instantiation is
+done.)  For example:
+
+  class A;
+  template <class T> class B {
+    A a;                        // Error issued on incomplete type A
+    T b;                        // No error -- T is template param
+  };
+  class A { /* ... */ };        // Definition appears to late
+
+We do not believe the ARM provides clear guidance on this matter, but a
+paper by Stroustrup et al. (X3J16 document 92-133, Nov 1992), which
+deals with name binding, may be read to imply support for this behavior,
+and it is likely that the standard will incorporate the approach
+described there.
+
+A corollary is that an undefined instance of a class template may not
+appear in the template definition, since it cannot in principle be
+instantated until after the template definition is completed, unless a
+user definition is provided.  For example:
+
+  template <class T> class A;
+  class A<int> { /* ... */ };
+  template <class T> class A {
+    A<int> ai;                   // Okay -- A<int> is already defined
+    A<double> di;                // Eror -- A<double> is incomplete
+  };
 
 2/22/93  Fixed bug in cfront transitional nested type handling
 
@@ -193,16 +269,17 @@ involve other template parameters.
 
 2/19/93  Use of template parameter as the type of a nontype parameter
 
-A template parameter could be used as the type of a nontype parameter,
-but could not be used as part of a type expression.  For example,
+The use of a template parameter as the type of a nontype parameter was
+allowed, but there was no support for using a template parameter as part
+of a type in a nontype parameter declaration.  For instance,
 
-	template <class T, T i> struct A {};   // Allowed
-	template <class T, T* i> struct A {};  // Not allowed
+  template <class T, T i> struct A {};     // Allowed
+  template <class T, T* i> struct A {};    // Previously unsupported
 
 The second example caused an internal error.
 
-This feature has been generalized to allow use of template type parameters
-in arbitrarily complex declarations of template nontype parameters.
+Now template type parameters may be used in arbitrarily complex
+declarations of template nontype parameters.
 
 2/19/93  Reachability of code following "while" and "for" loops
 
