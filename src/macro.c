@@ -2149,7 +2149,8 @@ parameter number (the first parameter is numbered 1).
     num++;
     if (*start_of_curr_token == pp->name[0] &&    /* Test for speed. */
         len_of_curr_token == strlen(pp->name) &&
-        strncmp(start_of_curr_token, pp->name, (int)len_of_curr_token) == 0) {
+        strncmp(start_of_curr_token, pp->name,
+                size_t_arg(len_of_curr_token)) == 0) {
       /* The identifier matches a macro parameter. */
       pnum = num;
       break;

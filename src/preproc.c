@@ -86,7 +86,7 @@ string, and returns true if the two match.
 */
 #define curr_id_is(str)                                               \
   (len_of_curr_token == sizeof(str)-1 &&                              \
-   strncmp(str, start_of_curr_token, sizeof(str)-1) == 0)
+   strncmp(str, start_of_curr_token, size_t_arg(sizeof(str)-1)) == 0)
 
 
 static a_pp_directive_kind identify_dir_keyword(void)
