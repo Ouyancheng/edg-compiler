@@ -108,6 +108,13 @@ top of a class type).
    (type)->kind == (a_type_kind)tk_union)
 
 /*
+Return TRUE is a type is a direct non-union class type.
+*/
+#define is_class_or_struct(tp)                                        \
+  ((tp)->kind == (a_type_kind)tk_class ||                             \
+   (tp)->kind == (a_type_kind)tk_struct)
+
+/*
 Return TRUE if a type is a direct error type (i.e., not a typeref on
 top of such a type).
 */

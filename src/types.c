@@ -115,10 +115,6 @@ predicates.
 /* VLA (variable-length array) types (called only if is_array() is TRUE). */
 #define array_is_vla(tp) ((tp)->variant.array.is_vla)
 
-/* Struct types are simply struct types (or, in C++, class/struct types). */
-#define is_class_or_struct(tp)                                        \
-  ((tp)->kind == (a_type_kind)tk_struct || (tp)->kind == (a_type_kind)tk_class)
-
 /* Union types are simply union types. */
 #define is_union(tp) ((tp)->kind == (a_type_kind)tk_union)
 

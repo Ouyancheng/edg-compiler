@@ -1236,10 +1236,6 @@ done:
 }  /* verify_class_type_correspondence */
 
 
-#define is_class_or_struct(type)                                       \
-  ((type)->kind == (a_type_kind)tk_class ||                            \
-   (type)->kind == (a_type_kind)tk_struct)
-
 static a_boolean verify_type_correspondence(a_type_ptr  type)
 /*
 Check that the recorded translation unit correspondence for the given type
