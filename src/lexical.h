@@ -1129,6 +1129,15 @@ EXTERN sizeof_t	len_of_curr_token;
 EXTERN a_source_position
 		pos_curr_token;
 			/* The start position of the current token. */
+
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+EXTERN a_source_position
+		end_pos_curr_token;
+			/* The end position of the current token -- that is,
+			   the source position of the last character of the
+			   token. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
 EXTERN int	kind_of_white_space_skipped;
 			/* Kind of white space skipped by the most recent
 			   call to skip_white_space (not necessarily
