@@ -382,15 +382,16 @@ static a_boolean prescan_ptr_operator(a_token_cache  *token_cache_ptr)
 
 static a_boolean prescan_abstract_declarator(a_token_cache  *token_cache_ptr)
 {
-  a_boolean  is_abstract_declarator;
+  a_boolean  is_abstract_declarator = TRUE;
 
+#if CHECKING
+  if (!is_abstract_declarator_start()) {
+    internal_error("prescan_abstract_declarator: bad start token");
+  }  /* if */
+#endif /* CHECKING */
   if (curr_token == tok_rparen) {
     /* The token sequence "( )" could be an empty abstract declarator. */
-    is_abstract_declarator = TRUE;
-  } else if (!is_abstract_declarator_start()) {
-    is_abstract_declarator = FALSE;
   } else {
-    is_abstract_declarator = TRUE;
     if (prescan_ptr_operator(token_cache_ptr) && curr_token == tok_rparen) {
       cache_curr_token(token_cache_ptr);
       (void)get_token();
@@ -475,7 +476,7 @@ this is something other than a declaration; otherwise return FALSE.
     cache_curr_token(token_cache_ptr);
     /* Advance to the first token within the parentheses. */
     (void)get_token();
-    if (abstract_declarator_allowed) {
+    if (abstract_declarator_allowed && is_abstract_declarator_start()) {
       if (!prescan_abstract_declarator(token_cache_ptr)) {
         /* It can't be an abstract declarator, so it must be treated as an
            expression. */
