@@ -2843,12 +2843,14 @@ extern a_boolean is_member_enum_symbol(a_symbol_ptr sym);
    (microsoft_bugs && is_member_enum_symbol(sym)))
 
 /* Return TRUE if a symbol is a class symbol, a class template symbol,
-   or a type template parameter. */
+   a template parameter symbol, or a typedef to a template parameter.
+   Note that a template parameter symbol is considered even if the type
+   referred to is not a class type. */
 #define is_class_or_class_proxy_symbol(sym)                               \
   (is_class_symbol(sym) ||					      \
    (sym)->kind == (a_symbol_kind)sk_class_template ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type &&			      \
-    is_template_param_type((sym)->variant.type)))
+    (is_template_param_type((sym)->variant.type) || (sym)->is_template_param)))
 
 /* Return TRUE if the symbol is a template class symbol. */
 #define is_template_class_symbol(sym)				      \
