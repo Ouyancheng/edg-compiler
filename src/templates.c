@@ -4728,6 +4728,22 @@ instantiation.
       decl_state->decl_scope_err = TRUE;
     }  /* if */
   }  /* if */
+  if (sym != NULL && !decl_state->decl_scope_err) {
+    /* Make sure the symbol found is a class template symbol or a class
+       symbol.  If the class symbol is not a member of a class template,
+       that error will be diagnosed later.  Issue an error if this is
+       a qualified name.  If it is not a qualified name, clear the symbol
+       and let a redeclaration error be reported later. */ 
+    if (sym->kind != (a_symbol_kind)sk_class_template &&
+        !is_class_struct_union_symbol(sym)) {
+      if (locator.is_qualified_name) {
+        pos_sy_error(ec_sym_not_a_class_template, &locator.source_position,
+                     sym);
+        decl_state->decl_scope_err = TRUE;
+      }  /* if */
+      sym = NULL;
+    }  /* if */
+  }  /* if */
   if (!locator.is_qualified_name && !decl_state->decl_scope_err &&
       !decl_state->is_template_friend &&
       decl_state->number_of_template_param_clauses > 1) {
@@ -6470,7 +6486,10 @@ instantiation, then you don't know what X is.
   ssep = &scope_stack[depth_scope_stack];
   check_assertion(ssep->kind == (a_scope_kind)sck_template_declaration);
   tp = prescan_and_find_declarator(token_cache);
-  if (tp != NULL) {
+  if (tp != NULL) tp = skip_typerefs(tp);
+  /* The following is_class_struct_union_type test is needed because in
+     certain error cases the type may not be a class type. */
+  if (tp != NULL && is_class_struct_union_type(tp)) {
     /* Skip out to the nearest enclosing class that has a template argument
        list. */
     while (tp->source_corresp.is_class_member &&
