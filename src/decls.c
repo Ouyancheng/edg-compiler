@@ -7389,7 +7389,8 @@ continue_with_declaration:
                  &dim_expr_ptr);
       is_function = is_function_type(local_type_ptr);
       is_main_function = FALSE;
-      if (is_function && locator.symbol_header->identifier != NULL &&
+      if (is_function && !is_error_locator(locator) &&
+          locator.symbol_header->identifier != NULL &&
           (strcmp(locator.symbol_header->identifier, "main") == 0)) {
         /* Recognizing a declaration of function "main" is more than checking
            the identifier. */
