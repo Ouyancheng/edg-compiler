@@ -11245,6 +11245,7 @@ continue_with_declaration:
           !(gcc_mode && curr_token == tok_assign && 
             local_storage_class == (a_storage_class)sc_typedef) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
+          !locator.is_error && !is_error_type(local_type_ptr) &&
           !locator.is_conversion_name) {
         report_missing_type_specifier(&declarator_start_pos, is_function,
                                       /*is_function_def=*/FALSE,

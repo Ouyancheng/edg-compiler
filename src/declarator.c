@@ -4359,6 +4359,17 @@ function_lparen:
         }  /* if */
         complete_type = void_type();
       }  /* if */
+    } else {
+      /* Not a conversion function, constructor, or destructor, therefore
+         something where a specifier is expected.  If we inherited a
+         specifier type of unknown from the first declarator in a
+         declaration, e.g., in a case like
+           operator int(), j;
+         issue an error. */
+      if (is_unknown_type(specifiers_type)) {
+        pos_error(ec_missing_decl_specifiers, &declarator_pos);
+        complete_type = error_type();
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Combine the derived type list with the earlier complete type
