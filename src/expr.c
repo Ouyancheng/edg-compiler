@@ -6176,7 +6176,7 @@ in the implementation of offsetof.
        con.kind == (a_constant_repr_kind)ck_template_param ||
        (will_cast && con.kind == (a_constant_repr_kind)ck_float)) &&
       (will_cast ||
-       is_integral_type(con.type) ||
+       is_integral_or_enum_type(con.type) ||
        is_template_param_type(con.type))) {
     /* Okay. */
   } else if (!is_error_constant(&con)) {
