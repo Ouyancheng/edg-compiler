@@ -10286,10 +10286,12 @@ member.  Determine whether a diagnostic is actually required and put it out.
 }  /* report_missing_constructor */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
+#if !GENERATE_SOURCE_SEQUENCE_LISTS || !PROTOTYPE_INSTANTIATIONS_IN_IL
 /*ARGSUSED*/ /* instance is not used unless source sequence lists are
-                generated. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+                generated.  Similarly, template_decl is not used unless
+                source sequence entries are generated and prototype
+                instantiations are recorded in the IL. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS || !PROTOTYPE_INSTANTIATIONS_IN_IL */
 static a_symbol_ptr class_member_declaration(
                       a_type_ptr               class_type,
                       a_class_def_state_ptr    class_state,
@@ -10298,9 +10300,7 @@ static a_symbol_ptr class_member_declaration(
                       a_boolean                *skip_semicolon_check,
                       a_type_ptr               *member_template_instance_type,
                       a_template_instance_ptr  instance,
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
                       a_template_decl_ptr      template_decl,
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                       a_decl_pos_block_ptr     decl_pos_block_ptr)
 /*
 Scan a member declaration appearing inside a class definition.  class_type
@@ -11118,10 +11118,6 @@ next_declaration:;
 }  /* class_member_declaration */
 
 
-#if !(GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL)
-/*ARGSUSED*/ /* template_decl is used only when source sequence entries are
-                recorded for prototype instantiations. */
-#endif /* !(GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_...) */
 a_symbol_ptr class_member_template_declaration(
                                      a_type_ptr            class_type,
                                      a_template_param_ptr  templ_param_list,
@@ -11151,9 +11147,7 @@ is the template parameter list for the function template.
                                  /*is_member_template=*/TRUE,
                                  templ_param_list, &skip_semicolon_check,
                                  &dummy_type, (a_template_instance_ptr)NULL,
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
                                  template_decl,
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                                  decl_pos_block_ptr);
   if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
   if (sym == NULL) {
@@ -11198,9 +11192,7 @@ instance record associated with this instantiation.
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
                                  &member_template_instance_type, instance,
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
                                  /*template_decl=*/NULL,
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                                  (a_decl_pos_block *)NULL);
   curr_routine_fixup = saved_routine_fixup;
   db_exit();
@@ -11854,9 +11846,7 @@ nested classes when their definition appears outside of the class template.
                                        &skip_semicolon_check,
                                        &dummy_type,
                                        (a_template_instance_ptr)NULL,
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
                                        /*template_decl=*/NULL,
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                                        (a_decl_pos_block *)NULL);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member

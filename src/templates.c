@@ -11670,7 +11670,8 @@ function declaration.  storage_class, decl_modifiers, and type indicate
 information returned from decl_specifiers and declarator.
 */
 {
-  a_symbol_ptr  sym = NULL;
+  a_symbol_ptr         sym = NULL;
+  a_template_decl_ptr  template_decl = NULL;
 
   db_enter(4, "function_template_declaration");  
   /* Set a flag in each param type entry whose associated type is or
@@ -11685,14 +11686,13 @@ information returned from decl_specifiers and declarator.
   }  /* if */
   decl_state->prototype_scope_symbols = func_info->prototype_scope_symbols;
   /* Process a function template declaration. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+  template_decl = decl_state->template_decl;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
   decl_function_template(locator, type, func_info, &sym, storage_class,
                          decl_modifiers, decl_state->decl_info,
                          decl_state->effective_decl_level,
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-                         decl_state->template_decl,
-#else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL) */
-                         /*template_decl=*/NULL,
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
+                         template_decl,
                          decl_state->is_specialization);
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_member_function &&
       decl_state->is_specialization) {
@@ -12121,16 +12121,16 @@ any non-empty template parameter lists that were scanned.
       pos_error(ec_exp_declaration, &pos_curr_token);
     } else if (decl_state->is_member_decl && !decl_state->is_template_friend) {
       /* A member template declaration. */
-      a_source_position	decl_start_pos;
+      a_template_decl_ptr  template_decl = NULL;
+      a_source_position	   decl_start_pos;
       decl_start_pos = pos_curr_token;
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+      template_decl = decl_state->template_decl;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
       sym = class_member_template_declaration(decl_state->class_declared_in,
                                               decl_state->
                                                      decl_info->parameters,
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-                                              decl_state->template_decl,
-#else /* !(GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL) */
-                                              /*template_decl=*/NULL,
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
+                                              template_decl,
                                               &decl_state->decl_pos_block);
       complete_function_template_decl(decl_state, sym,
                                       (a_func_info_block *)NULL,
