@@ -1,5 +1,22 @@
 Version 2.40
 
+9/22/98   TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED
+
+Configuration flag TARG_ENUM_BIT_FIELDS_ARE_ALWAYS_UNSIGNED is now set
+to FALSE when TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE (for improved
+Microsoft compatibility); otherwise, it is set to TRUE when
+CFRONT_OBJECT_CODE_COMPATIBILITY is TRUE; otherwise, the default is now
+FALSE.  This setting can affect whether the value extracted from an enum
+bit field is treated as signed or unsigned (i.e., is potentially sign
+extended or not).
+
+9/22/98   Enum types larger than "int"
+
+In C++ (except in Microsoft mode) enum types are now permitted to be
+stored as integer types larger than "int".  The type selected is the
+smallest integer type greater than int that is large enough to contain
+the largest of the enumeration constants.
+
 9/22/98   Excessive memory use when using memory mapped PCH files
 
 Version 2.39 introduced a bug that could result in an excessive amount
