@@ -2,7 +2,6 @@
 # Run the EDG C++ front end into the system cc to compile C++.
 # Interface and command-line options are similar to CC.
 # CPFE may be set to the executable to use for the C++ front end.
-# If CPFE is not set, "cpfe" is used.
 #
 # Predefined preprocessing variables.
 #
@@ -34,6 +33,10 @@ PATCH=${EDG_PATCH_PATH-$EDG_BASE/lib/patch}
 #
 MUNCH=${EDG_MUNCH_PATH-$EDG_BASE/lib/edg_munch}
 #
+# Flag indicating whether to use "patch" or "munch" for static initialization.
+#
+patch_mode=${EDG_PATCH_MODE-1}
+#
 # Options to be passed to the nm command when using munch
 #
 EDG_MUNCH_NM_OPTIONS=${EDG_MUNCH_NM_OPTIONS-""}
@@ -58,10 +61,6 @@ EDG_DEFAULT_LIB_PATHS=${EDG_DEFAULT_LIB_PATHS-"-L/lib -L/usr/lib"}
 #
 EDG_DECODE=${EDG_DECODE_PATH-$EDG_BASE/lib/edg_decode}
 #
-# Flag indicating whether to use "patch" or "munch" for static initialization.
-#
-patch_mode=${EDG_PATCH_MODE-1}
-#
 # Flag indicating whether to do automatic instantiation by default
 #
 automatic_instantiation=1
@@ -78,10 +77,14 @@ if [ $automatic_instantiation -eq 1 ] ; then
   instantiation_libraries="$LIBDIR/libC.a"
 fi
 #
-# Suffix to be applied to the standard C++ library names to select a
-# special version.  The names with no suffix are libC.a and libstd.a.
+# Suffix to be applied to the standard C++ library (libC.a) to select a
+# special version.
 #
 EDG_LIB_SUFFIX=${EDG_LIB_SUFFIX-" "}
+#
+# Library names to be used on the link command
+#
+EDG_STD_LIBS=${EDG_STD_LIBS-"-lstd"}
 #
 # C compiler to use to compile the output and any options to be used with
 # this compiler by default.
@@ -672,7 +675,7 @@ then
 #     the variable link_command_suffix.
       link_command="$cc_command $c_to_obj_options $Loptions -L$LIBDIR \
                        -o $executable \
-                       $ofiles $lfiles $loptions -lstd$EDG_LIB_SUFFIX \
+                       $ofiles $lfiles $loptions $EDG_STD_LIBS \
 		       $EDG_C_TO_OBJ_LIBRARIES"
       link_command_suffix=" -lC$EDG_LIB_SUFFIX"
       if [ $link_using_purify -eq 1 ] ; then
