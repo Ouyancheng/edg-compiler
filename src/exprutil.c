@@ -1846,13 +1846,18 @@ The position of the current token will be used as the operand position.
 
   check_assertion(sym->kind == (a_symbol_kind)sk_constant);
   con_ptr = sym->variant.constant;
-  if (is_reference_type(con_ptr->type)) {
+  copy_constant(con_ptr, &constant);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  /* Detach any associated expression on template argument values accessed
+     as the values of template parameters. */
+  constant.expr = NULL;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  if (is_reference_type(constant.type)) {
     /* The constant has a reference type.  This happens for a constant
        that is an argument for a nontype template parameter that has
        a reference type. */
     /* Make a version of the constant with pointer type, and make an lvalue
        based on that constant. */
-    copy_constant(con_ptr, &constant);
     underlying_type = type_pointed_to(constant.type);
     constant.type = make_pointer_type(underlying_type);
     if (curr_expr_kind_is_const() ||
@@ -1880,10 +1885,10 @@ The position of the current token will be used as the operand position.
     operand->type = underlying_type;
   } else {
     /* Normal (non-reference) case. */
-    make_constant_operand(con_ptr, operand);
+    make_constant_operand(&constant, operand);
     if (is_template_dependent_context() &&
-        con_ptr->kind == (a_constant_repr_kind)ck_template_param &&
-        con_ptr->variant.template_param.kind ==
+        constant.kind == (a_constant_repr_kind)ck_template_param &&
+        constant.variant.template_param.kind ==
                        (a_template_param_constant_kind)tpck_unknown_function) {
       /* Unknown functions in prototype instantiations start out as function
          designators. */
