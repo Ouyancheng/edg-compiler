@@ -1731,6 +1731,34 @@ EXTERN a_byte_boolean
 #endif /* VAR_INITIALIZERS*/
 ;
 
+/* Array that indicates, for each integer kind, the unsigned integer kind of
+   the same size. */
+EXTERN an_integer_kind
+		unsigned_int_kind_of[(int)ik_last+1]
+#if VAR_INITIALIZERS
+= {
+  ik_unsigned_char,		/* ik_char */
+  ik_unsigned_char,		/* ik_signed_char */
+  ik_unsigned_char,		/* ik_unsigned_char */
+  ik_unsigned_short,		/* ik_short */
+  ik_unsigned_short,		/* ik_unsigned_short */
+  ik_unsigned_int,		/* ik_int */
+  ik_unsigned_int,		/* ik_unsigned_int */
+  ik_unsigned_long,		/* ik_long */
+  ik_unsigned_long,		/* ik_unsigned_long */
+#if LONG_LONG_ALLOWED
+  ik_unsigned_long_long,	/* ik_long_long */
+  ik_unsigned_long_long,	/* ik_unsigned_long_long */
+#endif /* LONG_LONG_ALLOWED */
+#ifdef FIL
+  ik_unsized,			/* ik_unsized */
+#endif /* ifdef FIL */
+  111		/* ik_last ("111" is just an unusual value used to check the
+		   correctness of the initialization order) */
+}
+#endif /* VAR_INITIALIZERS*/
+;
+
 enum a_float_kind_tag {
   /* Enumeration of the possible float kinds.  Some of these may be the
      same on the target, but they are kept distinct in the front end. */

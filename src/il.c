@@ -11161,6 +11161,14 @@ in il_init.)
     internal_error(
                    "il_one_time_init: incorrect initialization of pragma_ids");
   }  /* if */
+  /* Variable in il_def.h: */
+  /* Check that unsigned_int_kind_of is correctly initialized.  This
+     guards against someone changing the enumeration and forgetting to update
+     the initialization. */
+  if (unsigned_int_kind_of[(int)ik_last] != 111) {
+    internal_error(
+         "il_one_time_init: incorrect initialization of unsigned_int_kind_of");
+  }  /* if */
 #endif /* CHECKING */
 
   /* Save variables from il.h and il.c that are needed for precompiled
