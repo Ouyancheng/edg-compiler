@@ -10910,7 +10910,7 @@ See section 3.3.16 of the standard.
             lower_c99_operator(result->variant.expression);
           }  /* if */
 #endif /* DO_C99_IL_LOWERING */
-       }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

@@ -88,7 +88,7 @@ with C89).
 #if CHECKING
     default:
       internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
   }  /* switch */
   xnegate_call = make_runtime_rout_call(rout_name, &xnegate_routine,
                                         return_type,
@@ -121,7 +121,7 @@ Transform the given complex expression ("z1+z2") into a function call
 #if CHECKING
     default:
       internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
   }  /* switch */
   xadd_call = make_runtime_rout_call(rout_name, &xadd_routine, return_type,
                                      expr->variant.operation.operands);
@@ -153,7 +153,7 @@ Transform the given complex expression ("z1-z2") into a function call
 #if CHECKING
     default:
       internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
   }  /* switch */
   xsubtract_call = make_runtime_rout_call(rout_name, &xsubtract_routine,
                                           return_type,
@@ -186,7 +186,7 @@ Transform the given complex expression ("z1*z2") into a function call
 #if CHECKING
     default:
       internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
   }  /* switch */
   xmultiply_call = make_runtime_rout_call(rout_name, &xmultiply_routine,
                                           return_type,
@@ -219,7 +219,7 @@ Transform the given complex expression ("z1/z2") into a function call
 #if CHECKING
     default:
       internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
   }  /* switch */
   xdivide_call = make_runtime_rout_call(rout_name, &xdivide_routine,
                                         return_type,
@@ -252,7 +252,7 @@ Transform the given complex expression ("z1==z2") into a function call
 #if CHECKING
     default:
       internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
   }  /* switch */
   xeq_call = make_runtime_rout_call(rout_name, &xeq_routine, return_type,
                                     expr->variant.operation.operands);
@@ -284,7 +284,7 @@ Transform the given complex expression ("z1!=z2") into a function call
 #if CHECKING
     default:
       internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
   }  /* switch */
   xne_call = make_runtime_rout_call(rout_name, &xne_routine, return_type,
                                     expr->variant.operation.operands);
@@ -316,7 +316,7 @@ Transform the given complex expression ("z1 += z2") into a function call
 #if CHECKING
     default:
       internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
   }  /* switch */
   xadd_assign_call = make_runtime_rout_call(rout_name, &xadd_assign_routine,
                                             return_type,
@@ -349,7 +349,7 @@ Transform the given complex expression ("z1 -= z2") into a function call
 #if CHECKING
     default:
       internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
   }  /* switch */
   xsubtract_assign_call = make_runtime_rout_call(
                             rout_name, &xsubtract_assign_routine, return_type,
@@ -382,7 +382,7 @@ Transform the given complex expression ("z1 *= z2") into a function call
 #if CHECKING
     default:
       internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
   }  /* switch */
   xmultiply_assign_call = make_runtime_rout_call(
                             rout_name, &xmultiply_assign_routine, return_type,
@@ -415,7 +415,7 @@ Transform the given complex expression ("z1 /= z2") into a function call
 #if CHECKING
     default:
       internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
   }  /* switch */
   xdivide_assign_call = make_runtime_rout_call(
                               rout_name, &xdivide_assign_routine, return_type,
@@ -467,7 +467,7 @@ Transform the given cast expression into a function call (compatible with C89).
 #if CHECKING
             default:
               internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
           }  /* switch */
           break;
         case fk_double:
@@ -483,7 +483,7 @@ Transform the given cast expression into a function call (compatible with C89).
 #if CHECKING
             default:
               internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
           }  /* switch */
           break;
         case fk_long_double:
@@ -499,13 +499,13 @@ Transform the given cast expression into a function call (compatible with C89).
 #if CHECKING
             default:
               internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
           }  /* switch */
           break;
 #if CHECKING
           default:
             internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
       }  /* switch */
       cast_call = make_runtime_rout_call(routine_name, routine, dst_type, src);
     } else if (is_imaginary_type(src_type)) {
@@ -526,7 +526,7 @@ Transform the given cast expression into a function call (compatible with C89).
 #if CHECKING
         default:
           internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
       }  /* switch */
       /* Before creating a complex value, be sure the imaginary value is cast
          to the needed precision. */
@@ -551,7 +551,7 @@ Transform the given cast expression into a function call (compatible with C89).
 #if CHECKING
         default:
           internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
       }  /* switch */
       /* Before creating a complex value, be sure the real value is cast
          to the needed precision. */
@@ -580,7 +580,7 @@ Transform the given cast expression into a function call (compatible with C89).
 #if CHECKING
         default:
           internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
       }  /* switch */
       cast_call = make_runtime_rout_call(
                            routine_name, routine,
@@ -610,7 +610,7 @@ Transform the given cast expression into a function call (compatible with C89).
 #if CHECKING
         default:
           internal_error("invalid floating-point kind");
-#endif CHECKING
+#endif /* CHECKING */
       }  /* switch */
       cast_call = make_runtime_rout_call(
                            routine_name, routine,
