@@ -2916,7 +2916,7 @@ form.
 
 
 #if STANDALONE_UTILITY_PROGRAM
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 /*
 Main program for il_display as a program.  The program is invoked by
 

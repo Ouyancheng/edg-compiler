@@ -34,7 +34,7 @@ Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson, 1991.
 #endif /* BACK_END_IS_C_GEN_BE */
 
 
-main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   an_error_severity most_severe_diagnostic = es_none, diagnostic_level;
 
