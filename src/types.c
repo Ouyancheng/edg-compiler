@@ -3652,9 +3652,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
          always allowed. */
       okay = TRUE;
     } else if (!C_mode() && is_template_dependent_context() &&
-               (is_or_contains_template_param(unqual_dest_type_pointed_to) ||
-                is_or_contains_template_param(unqual_source_type_pointed_to))){
-      /* Conversions between template parameter types are always allowed. */
+               (is_template_dependent_type(unqual_dest_type_pointed_to) ||
+                is_template_dependent_type(unqual_source_type_pointed_to))) {
+      /* Conversions between template-dependent types are always allowed. */
       okay = TRUE;
     } else {
       /* The types pointed to are not compatible.  See if the pointers are
@@ -4114,8 +4114,8 @@ pointers to members).
           }  /* if */
         }  /* if */
       } else if (is_template_dependent_context() &&
-                 (is_or_contains_template_param(source_type_pointed_to) ||
-                  is_or_contains_template_param(dest_type_pointed_to))) {
+                 (is_template_dependent_type(source_type_pointed_to) ||
+                  is_template_dependent_type(dest_type_pointed_to))) {
         /* Conversion to or from a template-dependent type is allowed. */
         okay = TRUE;
       }  /* if */
@@ -6724,7 +6724,7 @@ has been used in an exception handling or RTTI construct.
     if (!has_name(type_ptr) &&
         !is_immediate_class_type(type_ptr) &&
         /* Do not put types from prototype instantiations on the list. */
-        !is_or_contains_template_param(type_ptr)) {
+        !is_template_dependent_type(type_ptr)) {
       check_assertion(type_ptr->next == NULL);
       type_ptr->next = il_header.nontag_types_used_in_exception_or_rtti;
       il_header.nontag_types_used_in_exception_or_rtti = type_ptr;

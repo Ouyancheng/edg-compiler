@@ -5113,7 +5113,7 @@ If none is found, create one and add it to the list.
   a_based_type_fixup_ptr  btfp, prev_btfp;
 
   if (!prototype_instantiations_in_il &&
-      is_or_contains_template_param(base_type)) {
+      is_template_dependent_type(base_type)) {
     /* Don't bother adding a fixup entry for base types that shouldn't escape
        the front end anyway.  In other words, if T is a template param type,
        we don't need a fixup entry for T A<T>::* but we do need one for
