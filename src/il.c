@@ -4491,7 +4491,8 @@ they are not already present.
 {
   a_type_ptr        orig_base_type, ptr;
   a_based_type_kind kind;
-  a_boolean         set_const_qualified, set_volatile_qualified;
+  a_boolean         base_type_const_qualified, base_type_volatile_qualified;
+  a_boolean         is_array = FALSE;
 
   orig_base_type = base_type;
   /* According to ANSI C 3.5.3: "If the specification of an array type
@@ -4501,19 +4502,23 @@ they are not already present.
      to the ultimate element type.  This can only happen with typedefs,
      as in "typedef int A[2][3]; const A a;", which makes "a" an
      array of array of const int. */
-  set_const_qualified = is_const && !is_const_qualified_type(base_type);
-  set_volatile_qualified =
-                        is_volatile && !is_volatile_qualified_type(base_type);
-  if (set_const_qualified || set_volatile_qualified) {
+  if (is_array_type(base_type)) {
+    base_type = underlying_array_element_type(base_type);
+    is_array = TRUE;
+  }  /* if */
+  base_type_const_qualified = is_const_qualified_type(base_type);
+  base_type_volatile_qualified = is_volatile_qualified_type(base_type);
+  if ((is_const && !base_type_const_qualified) ||
+      (is_volatile && !base_type_volatile_qualified)) {
     /* Some qualifiers need to be added. */
-    if (is_array_type(base_type)) {
-      base_type = underlying_array_element_type(base_type);
+    /* The typeref(s) containing qualifiers, if any, are removed to get down
+       to the real base type, to which the new qualifiers are added. */
+    if (base_type_const_qualified || base_type_volatile_qualified) {
+      base_type = make_unqualified_type(base_type);
+      /* Merge the existing qualifiers with the new ones. */
+      is_const |= base_type_const_qualified;
+      is_volatile |= base_type_volatile_qualified;
     }  /* if */
-    /* Type qualifiers are added by adding a typeref entry which includes
-       the type qualifiers.  The original type is not modified. */
-    /* See if a typeref for the base type has already been allocated.
-       If one was allocated, a pointer to it is stored in the based_types
-       list for the base type, and the pointer type can be reused. */
     /* Determine the based type kind. */
     if (is_const) {
       if (is_volatile) {
@@ -4524,6 +4529,8 @@ they are not already present.
     } else {
       kind = (a_based_type_kind)btk_volatile;
     }  /* if */
+    /* See if the properly qualified version of base_type already exists.
+       If so, a pointer to it is stored in the based_types for base_type. */
     ptr = get_based_type(base_type, kind, /*class_type=*/(a_type_ptr)NULL);
     if (ptr == NULL) {
       /* No allocated entry, need to allocate one. */
@@ -4535,7 +4542,7 @@ they are not already present.
          to it in the based_types list. */
       add_based_type_list_member(base_type, kind, ptr);
     }  /* if */
-    if (base_type != orig_base_type) {
+    if (is_array) {
       /* For the strange array case, the array type entries must be
          copied in order to avoid changing the typedef type. */
       ptr = copy_array_type_replacing_element_type(orig_base_type, ptr);
