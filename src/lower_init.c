@@ -1681,8 +1681,8 @@ dip->variant.constructor.args has already been lowered.
       }  /* for */
 #else /* IA64_ABI */
       /* Use the subobject entry point. */
-      dip->variant.constructor.ptr = 
-                     alternate_entry_point(dip->variant.constructor.ptr,
+      ctor_routine = dip->variant.constructor.ptr = 
+                     alternate_entry_point(ctor_routine,
                                            (a_ctor_or_dtor_kind)cdk_subobject,
                                            /*define_now=*/FALSE);
 #endif /* IA64_ABI */
@@ -1710,7 +1710,8 @@ dip->variant.constructor.args has already been lowered.
   /* If no entry point has been specified yet, use the complete object 
      entry point. */
   if (ctor_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
-    ctor_routine = alternate_entry_point(ctor_routine,
+    ctor_routine = dip->variant.constructor.ptr = 
+                   alternate_entry_point(ctor_routine,
                                          (a_ctor_or_dtor_kind)cdk_complete,
                                          /*define_now=*/FALSE);
   }  /* if */
