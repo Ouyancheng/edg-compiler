@@ -1759,6 +1759,9 @@ error code.
     case ec_not_a_class_template:
       m = "%t is not a class template";
       break;
+    case ec_bad_template_arg_use:
+      m = "invalid use of template argument %t";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
