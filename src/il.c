@@ -340,17 +340,21 @@ information, such as its address and translation unit.
   tucp = scp == NULL ? NULL : scp->trans_unit_corresp;
   if (tucp != NULL) {
     /* Display the correspondence information. */
-    fprintf(f_debug, "corresp = %p, canonical = %p, primary = %p", tucp,
+    fprintf(f_debug, "corresp = %p, canonical = %p, primary = %p\n", tucp,
             tucp->canonical, tucp->primary);
   }  /* if */
   if (in_secondary_trans_unit(entry) && in_file_scope(entry)) {
     copy_addr = trans_unit_copy_address_of(entry);
+    if (copy_addr != NULL) {
+      fprintf(f_debug, "copy address = %p", copy_addr);
+      /* Check for a second level copy address. */
+      copy_addr = trans_unit_copy_address_of(copy_addr);
+      if (copy_addr != NULL) {
+        fprintf(f_debug, ", %p", copy_addr);
+      }  /* if */
+      fprintf(f_debug, "\n");
+    }  /* if */
   }  /* if */
-  if (copy_addr != NULL) {
-    fprintf(f_debug, "%scopy address = %p", tucp != NULL ? ", " : "",
-            copy_addr);
-  }  /* if */
-  if (tucp != NULL || copy_addr != NULL) fprintf(f_debug, "\n");
 }  /* db_entity_info */
 
 
