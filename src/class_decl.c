@@ -159,6 +159,153 @@ with the indicated scope stack entry.
 }  /* add_to_routine_fixup_list */
 
 
+/*
+Data structure in which to track partial overriding of an overload set of
+virtual functions and to track override failures.
+*/
+typedef struct an_override_registry_entry *an_override_registry_entry_ptr;
+typedef struct an_override_registry_entry {
+  an_override_registry_entry_ptr
+		next;
+			/* Next in a linked list, or NULL when this is the
+			   last entry on the list. */
+  a_symbol_ptr	overridden_sym;
+			/* Pointer to an sk_member_function or
+			   sk_overloaded_function symbol a base class virtual
+			   function that is a candidate to be overridden by a
+			   member function declaration in the current class. */
+  a_base_class_ptr
+		base_class;
+			/* Pointer to the base class entry in which the
+			   overridden symbol appears.  This is significant only
+			   when a base class occurs more than once in a
+			   derivation. */
+  a_symbol_list_entry_ptr
+		override_failures;
+			/* A linked list of entries each of which represents
+			   a declaration in the derived class that has the
+			   same name for not the right type, so it does
+			   not succeed in overriding overridden_sym. */
+  unsigned int	virtual_function_count;
+			/* The number of virtual functions that may be
+			   overridden -- >1 if overridden_sym is overloaded,
+			   1 otherwise. */
+  unsigned int	override_count;
+			/* The number of declarations in the current class
+			   that override virtual functions in the overload set.
+			   When override_count > 0 and < virtual_function_count
+			   then the overriding of the members of the overload
+			   is partial. */
+} an_override_registry_entry;
+
+
+/* Available list of partial-override entries. */
+static an_override_registry_entry_ptr avail_override_registry_entries;
+
+
+static an_override_registry_entry_ptr alloc_override_registry_entry(void)
+/*
+Return a pointer to a new partial-override entry, after initializing its
+fields.
+*/
+{
+  an_override_registry_entry_ptr  orep;
+
+  /* Reuse a entry from the available list; otherwise, allocate a new entry. */
+  if (avail_override_registry_entries != NULL) {
+    orep = avail_override_registry_entries;
+    avail_override_registry_entries = avail_override_registry_entries->next;
+  } else {
+    orep = (an_override_registry_entry_ptr)alloc_fe(
+                                           sizeof(an_override_registry_entry));
+  }  /* if */
+  /* Initialize its fields. */
+  orep->next                   = NULL;
+  orep->overridden_sym         = NULL;
+  orep->base_class             = NULL;
+  orep->override_failures      = NULL;
+  orep->virtual_function_count = 0;
+  orep->override_count         = 0;
+
+  return orep;
+}  /* alloc_override_registry_entry */
+
+
+static void free_override_registry_entry(an_override_registry_entry_ptr  orep)
+/*
+Place a partial-override entry on the available list, so it can be reused.
+*/
+{
+  orep->next = avail_override_registry_entries;
+  avail_override_registry_entries = orep;
+}  /* free_override_registry_entry */
+
+
+/*
+A class-definition-state block, which tracks properties of the class as its
+definition proceeds.
+*/
+typedef struct a_class_def_state* a_class_def_state_ptr;
+typedef struct a_class_def_state {
+  a_bit_field	is_first_field:1;
+			/* TRUE until the first nonstatic data member of the
+			   class has been seen. */
+  a_bit_field	class_aggregate_ruled_out:1;
+			/* TRUE if a property of the class (e.g., the
+			   declaration of a virtual function) disqualifies it
+			   as an "aggregate". */
+  a_bit_field	any_named_fields:1;
+			/* TRUE if any named fields are declared. */
+  a_bit_field	any_nonpublic_members:1;
+			/* TRUE if any private or protected members are
+			   declared. */
+  a_bit_field	any_friend_decls:1;
+			/* TRUE if any friend declarations are encountered. */
+  a_bit_field	any_const_or_ref_fields:1;
+			/* TRUE if any nonstatic data members have reference
+			   or const-qualified type. */
+  a_bit_field	is_nonreal_instantiation:1;
+			/* TRUE if the class is a prototype instantiation of
+			   a class template. */
+  a_bit_field	is_local_class:1;
+			/* TRUE if the class is local to a function. */
+  an_access_specifier
+		access;
+			/* The current access. */
+  an_override_registry_entry_ptr
+		override_registry;
+			/* The registry of virtual function overrides for
+			   the current class. */
+  a_field_ptr	end_of_field_list;
+			/* The last nonstatic data member declared for the
+			   current class. */
+  a_symbol_ptr	corresp_prototype_tag_sym;
+			/* If the current class is a instance of a class
+			   template, a pointer to the symbol for the
+			   prototype instantiation of that template. */
+} a_class_def_state;
+
+
+static void initialize_class_def_state(a_class_def_state_ptr cdsp)
+/*
+Initialize fields of a class-definition-state block.
+*/
+{
+  cdsp->is_first_field = TRUE;
+  cdsp->class_aggregate_ruled_out = FALSE;
+  cdsp->any_named_fields = FALSE;
+  cdsp->any_nonpublic_members = FALSE;
+  cdsp->any_friend_decls = FALSE;
+  cdsp->any_const_or_ref_fields = FALSE;
+  cdsp->is_nonreal_instantiation = FALSE;
+  cdsp->is_local_class = FALSE;
+  cdsp->access = (an_access_specifier)as_public;
+  cdsp->override_registry = NULL;
+  cdsp->end_of_field_list = NULL;
+  cdsp->corresp_prototype_tag_sym = NULL;
+}  /* initialize_class_def_state */
+
+
 static
 a_boolean prescan_function_definition(a_token_sequence_number *first_tsn,
                                       a_token_sequence_number *last_tsn)
@@ -1185,88 +1332,6 @@ TRUE.
 }  /* shares_virtual_function_info */
 
 
-/*
-Data structure in which to track partial overriding of an overload set of
-virtual functions and to track override failures.
-*/
-typedef struct an_override_registry_entry *an_override_registry_entry_ptr;
-typedef struct an_override_registry_entry {
-  an_override_registry_entry_ptr
-		next;
-			/* Next in a linked list, or NULL when this is the
-			   last entry on the list. */
-  a_symbol_ptr	overridden_sym;
-			/* Pointer to an sk_member_function or
-			   sk_overloaded_function symbol a base class virtual
-			   function that is a candidate to be overridden by a
-			   member function declaration in the current class. */
-  a_base_class_ptr
-		base_class;
-			/* Pointer to the base class entry in which the
-			   overridden symbol appears.  This is significant only
-			   when a base class occurs more than once in a
-			   derivation. */
-  a_symbol_list_entry_ptr
-		override_failures;
-			/* A linked list of entries each of which represents
-			   a declaration in the derived class that has the
-			   same name for not the right type, so it does
-			   not succeed in overriding overridden_sym. */
-  unsigned int	virtual_function_count;
-			/* The number of virtual functions that may be
-			   overridden -- >1 if overridden_sym is overloaded,
-			   1 otherwise. */
-  unsigned int	override_count;
-			/* The number of declarations in the current class
-			   that override virtual functions in the overload set.
-			   When override_count > 0 and < virtual_function_count
-			   then the overriding of the members of the overload
-			   is partial. */
-} an_override_registry_entry;
-
-
-/* Available list of partial-override entries. */
-static an_override_registry_entry_ptr avail_override_registry_entries;
-
-
-static an_override_registry_entry_ptr alloc_override_registry_entry(void)
-/*
-Return a pointer to a new partial-override entry, after initializing its
-fields.
-*/
-{
-  an_override_registry_entry_ptr  orep;
-
-  /* Reuse a entry from the available list; otherwise, allocate a new entry. */
-  if (avail_override_registry_entries != NULL) {
-    orep = avail_override_registry_entries;
-    avail_override_registry_entries = avail_override_registry_entries->next;
-  } else {
-    orep = (an_override_registry_entry_ptr)alloc_fe(
-                                           sizeof(an_override_registry_entry));
-  }  /* if */
-  /* Initialize its fields. */
-  orep->next                   = NULL;
-  orep->overridden_sym         = NULL;
-  orep->base_class             = NULL;
-  orep->override_failures      = NULL;
-  orep->virtual_function_count = 0;
-  orep->override_count         = 0;
-
-  return orep;
-}  /* alloc_override_registry_entry */
-
-
-static void free_override_registry_entry(an_override_registry_entry_ptr  orep)
-/*
-Place a partial-override entry on the available list, so it can be reused.
-*/
-{
-  orep->next = avail_override_registry_entries;
-  avail_override_registry_entries = orep;
-}  /* free_override_registry_entry */
-
-
 static void update_override_registry(
                              an_override_registry_entry_ptr *registry_ptr,
                              a_symbol_ptr                   overridden_sym,
@@ -1525,11 +1590,11 @@ continue_outer_loop:;
 
 
 static a_boolean check_for_virtual_function(
-                            a_boolean                       virtual_specified,
-                            a_symbol_ptr                    rout_sym,
-                            a_type_ptr                      class_type,
-                            a_source_position               *source_pos,
-                            an_override_registry_entry_ptr  *registry_ptr)
+                                     a_boolean             virtual_specified,
+                                     a_symbol_ptr          rout_sym,
+                                     a_type_ptr            class_type,
+                                     a_class_def_state_ptr class_state,
+                                     a_source_position     *source_pos)
 /*
 A nonstatic member function, represented by rout_sym, has been declared
 and, depending on the value of virtual_specified, may have been explicitly
@@ -1544,16 +1609,17 @@ from explicit specification or from "inheriting" its virtualness, mark the
 routine entry and return TRUE; otherwise return FALSE.
 */
 {
-  a_boolean                    is_virtual, overloaded;
-  a_boolean                    is_nonreal_instantiation;
-  a_base_class_ptr             bcp;
-  a_symbol_ptr                 symbol_list, sym, sym_next;
-  a_symbol_ptr                 sym_for_override_registry;
-  a_routine_ptr                rout, rp;
-  a_scope_ptr                  base_class_scope;
-  a_class_type_supplement_ptr  ctsp;
-  a_virtual_function_number    virtual_function_number = 0;
-  a_boolean                    any_override_candidates = FALSE;
+  a_boolean                       is_virtual, overloaded;
+  a_boolean                       is_nonreal_instantiation;
+  a_base_class_ptr                bcp;
+  a_symbol_ptr                    symbol_list, sym, sym_next;
+  a_symbol_ptr                    sym_for_override_registry;
+  a_routine_ptr                   rout, rp;
+  a_scope_ptr                     base_class_scope;
+  a_class_type_supplement_ptr     ctsp;
+  a_virtual_function_number       virtual_function_number = 0;
+  a_boolean                       any_override_candidates = FALSE;
+  an_override_registry_entry_ptr  *registry_ptr;
 
   db_enter(4, "check_for_virtual_function");
   is_virtual = virtual_specified;
@@ -1571,10 +1637,10 @@ routine entry and return TRUE; otherwise return FALSE.
       /* Some kind of error on the name. */
       goto done;
     } else{
-      is_nonreal_instantiation =
-                    symbol_supplement_for_class(class_type)->is_nonreal_class;
+      is_nonreal_instantiation = class_state->is_nonreal_instantiation;
     }  /* if */
   }  /* if */
+  registry_ptr = &class_state->override_registry;
   /* We scan symbols on the inactive list, since we are only interested in
      functions declared in base classes. */
   symbol_list = rout_sym->header->inactive_symbols;
@@ -1721,7 +1787,7 @@ routine entry and return TRUE; otherwise return FALSE.
                        in the partial-override-registry.  This allows for a
                        diagnostic later if the rest of the members are not
                        also overridden. */
-                    if (registry_ptr != NULL) {
+                    if (!rout->compiler_generated) {
                       update_override_registry(registry_ptr,
                                                sym_for_override_registry,
                                                (a_symbol_ptr)NULL, bcp);
@@ -1739,7 +1805,7 @@ routine entry and return TRUE; otherwise return FALSE.
             if (!overloaded) break;
             sym = sym->next;
           } while (sym != NULL);
-          if (any_override_candidates && registry_ptr != NULL) {
+          if (any_override_candidates && !rout->compiler_generated) {
             check_assertion(sym_for_override_registry != NULL);
             update_override_registry(registry_ptr, sym_for_override_registry,
                                      rout_sym, bcp);
@@ -4132,11 +4198,10 @@ static a_symbol_ptr decl_member_function(
                              a_type_ptr                     class_type,
                              a_type_ptr                     member_type,
                              a_func_info_block_ptr          func_info,
-                             an_access_specifier            access,
+                             a_class_def_state_ptr          class_state,
                              a_boolean                      is_virtual,
                              a_boolean                      compiler_generated,
                              a_special_function_kind        spec_kind,
-                             an_override_registry_entry_ptr *registry_ptr,
                              a_decl_modifier		    decl_modifiers)
 /*
 For a member function declaration:  create a symbol entry and a routine entry
@@ -4198,7 +4263,7 @@ special function kind (e.g., constructor, destructor), if any.
   /* Set the source correspondence, including the access specifier. */
   set_source_corresp(&rtn->source_corresp, sym);
   set_class_membership(sym, &rtn->source_corresp, class_type);
-  rtn->source_corresp.access = access;
+  rtn->source_corresp.access = class_state->access;
   /* Member functions should have the same name linkage as the class of
      which they are members.  (In cfront mode that may mean internal
      linkage -- if and when its linkage is promoted to C++, the linkage of
@@ -4365,8 +4430,8 @@ special function kind (e.g., constructor, destructor), if any.
        virtual.  Even if it wasn't, its virtualness can be inherited.  In
        either case record the relationship between the current routine and
        its appearance in the base classes of the current class. */
-    if (check_for_virtual_function(is_virtual, sym, class_type,
-                                   &locator->source_position, registry_ptr)) {
+    if (check_for_virtual_function(is_virtual, sym, class_type, class_state,
+                                   &locator->source_position)) {
       /* Classes with virtual functions require constructors. */
       cssp->constructor_required = TRUE;
       /* Classes with virtual functions cannot be constructed or assigned
@@ -4727,21 +4792,19 @@ source-sequence entry for the declarator; otherwise it is NULL.
 #if !DECL_MODIFIERS_IN_USE
 /* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
 #endif /* !DECL_MODIFIERS_IN_USE */
-static void decl_static_data_member(a_symbol_locator *locator,
-                                    a_type_ptr       class_type,
-                                    a_type_ptr       member_type,
-                                    an_access_specifier access,
-                                    a_boolean        is_nonreal_class,
-                                    a_symbol_ptr     corresp_prototype_tag_sym,
-                                    a_source_sequence_entry_ptr  ssep,
-                                    a_decl_modifier  decl_modifiers)
+static void decl_static_data_member(a_symbol_locator            *locator,
+                                    a_type_ptr                  class_type,
+                                    a_type_ptr                  member_type,
+                                    a_class_def_state_ptr       class_state,
+                                    a_source_sequence_entry_ptr ssep,
+                                    a_decl_modifier             decl_modifiers)
 /*
 Do processing for a static data member, including entering it in the symbol
 table.
 */
 {
-  a_symbol          *sym;
-  a_variable        *var;
+  a_symbol_ptr    sym, prototype_tag_sym;
+  a_variable_ptr  var;
 
   db_enter(3, "decl_static_data_member");
   /* Create the variable entry for the static data member. */
@@ -4772,12 +4835,12 @@ table.
        or sc_unspecified when during a final fixup pass. */
     var->storage_class = (a_storage_class)sc_extern;
   }  /* if */
-  var->source_corresp.access = access;
+  var->source_corresp.access = class_state->access;
 
   if (curr_token == tok_assign) {
     if ((is_const_qualified_type(member_type) &&
          is_integral_type(member_type)) ||
-        (is_nonreal_class &&
+        (class_state->is_nonreal_instantiation &&
          is_or_contains_template_param(member_type))) {
       /* A const integral or const enumeration type may be initialized inside
          the class definition (9.5.2).   This makes the static data member
@@ -4807,14 +4870,15 @@ table.
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   /* Special processing for static data members of template classes. */
-  if (corresp_prototype_tag_sym != NULL || is_nonreal_class) {
+  prototype_tag_sym = class_state->corresp_prototype_tag_sym;
+  if (prototype_tag_sym != NULL || class_state->is_nonreal_instantiation) {
     /* A nonnull instance_ptr marks this static data member as a member of
        a (real or nonreal) instantiation of a class template. */
     if (!is_error_locator(*locator)) {
       a_template_instance_ptr  tip = alloc_template_instance();
       sym->variant.static_data_member.instance_ptr = tip;
       tip->instance_sym = sym;
-      if (is_nonreal_class) {
+      if (class_state->is_nonreal_instantiation) {
         /* A member of a prototype instantiation. */
         tip->template_sym = sym;
         tip->template_info = alloc_template_symbol_supplement(
@@ -4826,7 +4890,7 @@ table.
            that was created for it in the prototype instantiation.  This will
            enable the compiler to generate a definition if a defining template
            is declared. */
-        find_static_data_member_template(sym, corresp_prototype_tag_sym);
+        find_static_data_member_template(sym, prototype_tag_sym);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5806,13 +5870,12 @@ static void decl_nonstatic_data_member(
                        a_symbol_locator             *locator,
                        a_type_ptr                   class_type,
                        a_type_ptr                   *member_type,
-                       an_access_specifier          access,
+                       a_class_def_state_ptr        class_state,
                        a_boolean                    unnamed_field,
                        a_boolean                    is_anonymous_union,
                        a_boolean                    is_nonstd_anonymous_union,
                        a_boolean                    is_mutable,
-                       a_source_sequence_entry_ptr  ssep,
-                       a_field_ptr                  *end_of_list)
+                       a_source_sequence_entry_ptr  ssep)
 /*
 Scan a nonstatic data member of a class, struct, or union, create a field
 entry to represent it in the IL, and create an entry in the symbol table
@@ -5893,7 +5956,7 @@ class, struct, or union.
      symbol. */
   set_class_membership(member_sym, &field->source_corresp, class_type);
   if (C_dialect == C_dialect_cplusplus) {
-    field->source_corresp.access = access;
+    field->source_corresp.access = class_state->access;
     field->is_mutable = is_mutable;
   }  /* if */
   if (member_sym != NULL && !is_anonymous_union) {
@@ -5908,12 +5971,12 @@ class, struct, or union.
     cannot_bind_to_curr_construct();
   }  /* if */
   /* Add the field to the temporary list for this class/struct/union. */
-  if (*end_of_list == NULL) {
+  if (class_state->end_of_field_list == NULL) {
     class_type->variant.class_struct_union.field_list = field;
   } else {
-    (*end_of_list)->next = field;
+    class_state->end_of_field_list->next = field;
   }  /* if */
-  *end_of_list = field;
+  class_state->end_of_field_list = field;
   if (C_dialect == C_dialect_cplusplus) {
     /* In C++ we need to keep track of whether any members have reference
        type. */
@@ -6213,8 +6276,10 @@ when exception support is enabled.
 
 
 static void generate_special_function(a_type_ptr               class_type,
+                                      a_class_def_state_ptr    class_state,
                                       a_param_type_ptr         ptp,
                                       a_special_function_kind  sfkind)
+
 /*
 Create a routine entry for a compiler generated constructor, destructor, or
 assignment operator.  The created routine is a member function of the class
@@ -6288,11 +6353,8 @@ routine body is generated at this time.
   /* Create a symbol and enter it in the symbol table, and create a routine
      entry and add it to the routines list for the current scope. */
   (void)decl_member_function(&locator, class_type, rout_type, &func_info,
-                             (an_access_specifier)as_public,
-                             /*is_virtual=*/FALSE,
-                             /*compiler_generated=*/TRUE, sfkind,
-                             (an_override_registry_entry_ptr *)NULL,
-                             DM_NONE);
+                             class_state, /*is_virtual=*/FALSE,
+                             /*compiler_generated=*/TRUE, sfkind, DM_NONE);
   done_with_func_info(func_info);
   /* It can be that the head of symbols list for the scope has been
      modified (it may have been changed to an sk_overloaded_function, or
@@ -6511,7 +6573,9 @@ done:;
 }  /* default_copy_constructor_check */
 
 
-static void check_special_member_functions(a_type_ptr  class_type)
+static void check_special_member_functions(a_type_ptr            class_type,
+                                           a_class_def_state_ptr class_state)
+
 /*
 Check for the existence of constructors (including copy constructor) and
 destructor among the user defined member functions for the class specified
@@ -6529,7 +6593,7 @@ The routine body is not generated until it is known to be needed.
   cssp = symbol_supplement_for_class(class_type);
   if (cssp->constructor_required && cssp->constructor == NULL) {
     /* A default constructor needs to be generated. */
-    generate_special_function(class_type, (a_param_type_ptr)NULL,
+    generate_special_function(class_type, class_state, (a_param_type_ptr)NULL,
                               (a_special_function_kind)sfk_constructor);
   }  /* if */
   if (cssp->constructor != NULL && !cssp->has_copy_constructor) {
@@ -6542,11 +6606,11 @@ The routine body is not generated until it is known to be needed.
        a template parameter. */
     ptp->type_involves_template_param =
                                   is_or_contains_template_param(class_type);
-    generate_special_function(class_type, ptp,
+    generate_special_function(class_type, class_state, ptp,
                               (a_special_function_kind)sfk_constructor);
   }  /* if */
   if (cssp->destructor_required && cssp->destructor == NULL) {
-    generate_special_function(class_type, (a_param_type_ptr)NULL,
+    generate_special_function(class_type, class_state, (a_param_type_ptr)NULL,
                               (a_special_function_kind)sfk_destructor);
   }  /* if */
   /* Create a default assignment operator to copy an object of the current
@@ -6571,7 +6635,7 @@ The routine body is not generated until it is known to be needed.
          contains a template parameter. */
       ptp->type_involves_template_param =
                                   is_or_contains_template_param(class_type);
-      generate_special_function(class_type, ptp,
+      generate_special_function(class_type, class_state, ptp,
                                 (a_special_function_kind)sfk_operator);
     }  /* if */
   }  /* if */
@@ -7481,13 +7545,14 @@ returned TRUE if this is a microsoft-style anonymous union.
 }  /* check_missing_declarator_in_member_declaration */
 
 
-static void check_complete_member_type(a_type_ptr         *type,
-                                       a_symbol_locator   *locator,
-                                       a_storage_class    storage_class,
-                                       a_source_position  *decl_start_pos,
-                                       a_boolean          *return_type_def_err,
-                                       a_decl_flag_set    dso_flags,
-                                       a_boolean          is_nonreal_class)
+static void check_complete_member_type(
+                                 a_type_ptr              *type,
+                                 a_symbol_locator        *locator,
+                                 a_class_def_state_ptr   class_state,
+                                 a_storage_class         storage_class,
+                                 a_source_position       *decl_start_pos,
+                                 a_boolean               *return_type_def_err,
+                                 a_decl_flag_set         dso_flags)
 /*
 This routine is called after declarator to perform some checks on the type
 produced by the combined processing of decl_specifiers and declarator. "type"
@@ -7554,7 +7619,7 @@ instantiation.
       }  /* for */
     }  /* if */
   }  /* if */
-  if (is_nonreal_class && is_function_type(*type)) {
+  if (class_state->is_nonreal_instantiation && is_function_type(*type)) {
     /* The class is a non-real template instantiation.  Go through the
        parameters for this function type, and if any of the associated types
        involves a template parameter, mark the param type entry; this is
@@ -7651,16 +7716,11 @@ declaration, and *storage_class is the storage class that was specified.
 }  /* is_invalid_use_of_virtual */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* access and is_non_aggregate_class are otherwise unused. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void check_field_type(a_symbol_locator     *locator,
-                             a_type_ptr           *member_type,
-                             a_boolean            is_first_field,
-                             a_boolean            is_unnamed,
-                             an_access_specifier  access,
-                             a_boolean            is_non_aggregate_class,
-                             a_source_position    *decl_start_pos)
+static void check_field_type(a_symbol_locator        *locator,
+                             a_type_ptr              *member_type,
+                             a_class_def_state_ptr   class_state,
+                             a_boolean               is_unnamed,
+                             a_source_position       *decl_start_pos)
 /*
 Check that the type of a nonstatic data member is valid, and report incomplete
 types and incorrect types on bit-field declarations.  *locator is the symbol
@@ -7682,11 +7742,11 @@ the diagnostics that may be issued.
         (curr_token == tok_rbrace ||
          (curr_token == tok_semicolon && next_token() == tok_rbrace)) &&
         !is_incomplete_type(underlying_array_element_type(field_type)) &&
-        !is_first_field && (C_mode()
+        !class_state->is_first_field && (C_mode()
 #if MICROSOFT_EXTENSIONS_ALLOWED
          /* Allowed in Microsoft C++ but only for aggregates. */
-         || (microsoft_mode && !is_non_aggregate_class &&
-             access == (an_access_specifier)as_public)
+         || (microsoft_mode && !class_state->class_aggregate_ruled_out &&
+             class_state->access == (an_access_specifier)as_public)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                        )) {
       /* Okay -- unless we're in ANSI-C mode. */
@@ -7820,78 +7880,14 @@ member.  Determine whether a diagnostic is actually required and put it out.
   }  /* if */
 }  /* report_missing_constructor */
 
-/*
-A class-definition-status block, which tracks properties of the class as its
-definition proceeds.
-*/
-typedef struct a_class_def_status* a_class_def_status_ptr;
-typedef struct a_class_def_status {
-  a_bit_field	is_first_field:1;
-			/* TRUE until the first nonstatic data member of the
-			   class has been seen. */
-  a_bit_field	class_aggregate_ruled_out:1;
-			/* TRUE if a property of the class (e.g., the
-			   declaration of a virtual function) disqualifies it
-			   as an "aggregate". */
-  a_bit_field	any_named_fields:1;
-			/* TRUE if any named fields are declared. */
-  a_bit_field	any_nonpublic_members:1;
-			/* TRUE if any private or protected members are
-			   declared. */
-  a_bit_field	any_friend_decls:1;
-			/* TRUE if any friend declarations are encountered. */
-  a_bit_field	any_const_or_ref_fields:1;
-			/* TRUE if any nonstatic data members have reference
-			   or const-qualified type. */
-  a_bit_field	is_nonreal_instantiation:1;
-			/* TRUE if the class is a prototype instantiation of
-			   a class template. */
-  a_bit_field	is_local_class:1;
-			/* TRUE if the class is local to a function. */
-  an_access_specifier
-		access;
-			/* The current access. */
-  an_override_registry_entry_ptr
-		override_registry;
-			/* The registry of virtual function overrides for
-			   the current class. */
-  a_field_ptr	end_of_field_list;
-			/* The last nonstatic data member declared for the
-			   current class. */
-  a_symbol_ptr	corresp_prototype_tag_sym;
-			/* If the current class is a instance of a class
-			   template, a pointer to the symbol for the
-			   prototype instantiation of that template. */
-} a_class_def_status;
-
-
-static void initialize_class_def_status(a_class_def_status_ptr status_ptr)
-/*
-Initialize fields of a class-definition-status block.
-*/
-{
-  status_ptr->is_first_field = TRUE;
-  status_ptr->class_aggregate_ruled_out = FALSE;
-  status_ptr->any_named_fields = FALSE;
-  status_ptr->any_nonpublic_members = FALSE;
-  status_ptr->any_friend_decls = FALSE;
-  status_ptr->any_const_or_ref_fields = FALSE;
-  status_ptr->is_nonreal_instantiation = FALSE;
-  status_ptr->is_local_class = FALSE;
-  status_ptr->access = (an_access_specifier)as_public;
-  status_ptr->override_registry = NULL;
-  status_ptr->end_of_field_list = NULL;
-  status_ptr->corresp_prototype_tag_sym = NULL;
-}  /* initialize_class_def_status */
-
 
 static void class_member_declaration(
                                 a_type_ptr              class_type,
-                                a_class_def_status_ptr  status_ptr,
+                                a_class_def_state_ptr   class_state,
                                 a_boolean               *skip_semicolon_check)
 /*
 Scan a member declaration appearing inside a class definition.  class_type
-is the type of the class.  status_ptr points to a block of information
+is the type of the class.  class_state points to a block of information
 tracking general information about the class.  *skip_semicolon_check is
 returned TRUE if the caller should suppress the check for a semicolon
 following the member declaration.
@@ -7946,17 +7942,17 @@ following the member declaration.
                            "bad parent type on nested type");
     }  /* if */
 #endif /* CHECKING */
-    if (status_ptr->access != (an_access_specifier)as_public) {
+    if (class_state->access != (an_access_specifier)as_public) {
       /* Strictly speaking, any nonpublic member prevents a class from being
          an aggregate -- keep track. */
-      status_ptr->any_nonpublic_members = TRUE;
+      class_state->any_nonpublic_members = TRUE;
     }  /* if */
   } /* if */
   no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
   type_explicitly_specified =
                          dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
   friend_specified = dso_flags & DSO_FRIEND;
-  if (friend_specified) status_ptr->any_friend_decls = TRUE;
+  if (friend_specified) class_state->any_friend_decls = TRUE;
   virtual_specified = (dso_flags & DSO_VIRTUAL) != 0;
   inline_specified = (dso_flags & DSO_INLINE) != 0;
   explicit_specified = (dso_flags & DSO_EXPLICIT) != 0;
@@ -8119,11 +8115,9 @@ following the member declaration.
         /* Check whether this is a non-standard typedef declaration. */
         cfront_member_function_typedef =
             declarator_output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
-        check_complete_member_type(&local_type, &locator,
+        check_complete_member_type(&local_type, &locator, class_state,
                                    member_storage_class, &decl_start_pos,
-                                   &return_type_def_err, dso_flags,
-                                   (a_boolean)status_ptr->
-                                                 is_nonreal_instantiation);
+                                   &return_type_def_err, dso_flags);
       }  /* if */
     }  /* if */
     remove_stop_token(tok_colon);
@@ -8215,11 +8209,11 @@ following the member declaration.
         if (is_constructor || virtual_specified) {
           /* A class with a user-defined constructor or a virtual function
              cannot be an "aggregate" (8.5.1). */
-          status_ptr->class_aggregate_ruled_out = TRUE;
-        } else if (status_ptr->access != (an_access_specifier)as_public) {
+          class_state->class_aggregate_ruled_out = TRUE;
+        } else if (class_state->access != (an_access_specifier)as_public) {
           /* Strictly speaking, any nonpublic member prevents a class from
              being an aggregate -- keep track. */
-          status_ptr->any_nonpublic_members = TRUE;
+          class_state->any_nonpublic_members = TRUE;
         }  /* if */
         if (is_destructor) {
           spec_kind = (a_special_function_kind)sfk_destructor;
@@ -8235,13 +8229,11 @@ following the member declaration.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Create a symbol for the member function. */
         rout_sym = decl_member_function(&locator, class_type, local_type,
-                                        &func_info, status_ptr->access,
+                                        &func_info, class_state,
                                         virtual_specified,
                                         /*compiler_generated=*/FALSE,
-                                        spec_kind,
-                                        &status_ptr->override_registry,
-                                        decl_modifiers);
-        if (status_ptr->is_nonreal_instantiation) {
+                                        spec_kind, decl_modifiers);
+        if (class_state->is_nonreal_instantiation) {
           /* During the prototype instantiation, save the token sequence
              number associated with this declaration so that it can be used
              for matching purposes during real instantiations. */
@@ -8253,13 +8245,14 @@ following the member declaration.
                cases). */
             tssp->token_sequence_number = curr_token_sequence_number;
           }  /* if */
-        } else if (status_ptr->corresp_prototype_tag_sym != NULL) {
+        } else if (class_state->corresp_prototype_tag_sym != NULL) {
           /* The class must be the instantiation of a class template (or a
              class nested within such an instantiation). Bind the current
              member function symbol to the function template symbol
              established during prototype instantiation. */
-          a_type_ptr  tp = status_ptr->corresp_prototype_tag_sym->
-                                   variant.class_struct_union.type;
+          a_symbol_ptr  prototype_sym = class_state->corresp_prototype_tag_sym;
+          a_type_ptr    tp = prototype_sym->variant.class_struct_union.type;
+
           if (tp->kind == (a_type_kind)tk_union &&
               tp->variant.class_struct_union.
                     extra_info->anonymous_union_kind !=
@@ -8269,9 +8262,7 @@ following the member declaration.
                find_member_function_template should not be called, since it
                can't handle this sort of thing. */
           } else if (!is_error_locator(locator)) {
-            find_member_function_template(rout_sym,
-                                          status_ptr->
-                                              corresp_prototype_tag_sym);
+            find_member_function_template(rout_sym, prototype_sym);
           }  /* if */
         }  /* if */
         if (explicit_specified) {
@@ -8335,7 +8326,7 @@ following the member declaration.
           /* Advance past the optional semicolon. */
           (void)get_token();
         }  /* if */
-        if (!friend_specified && status_ptr->is_nonreal_instantiation) {
+        if (!friend_specified && class_state->is_nonreal_instantiation) {
           /* A member function of a nonreal class serves as a template, and
              since this is the definition the template_info associated with
              this member function must be updated, based on the template_info
@@ -8364,7 +8355,7 @@ following the member declaration.
              functions. */
           scan_pure_specifier(rout_sym, class_type,
                               suppress_pure_specifier_error);
-        } else if (!friend_specified && status_ptr->is_local_class) {
+        } else if (!friend_specified && class_state->is_local_class) {
           /* A member function declared in a local class definition (which is
              the current case) must be defined within the class definition
              if it is used.  If this is a virtual function, issue the error
@@ -8422,10 +8413,10 @@ following the member declaration.
       decl_typedef(&locator, local_type, class_type, &typedef_sym_ptr,
                    declarator_ssep);
       /* Note: access will have been set in decl_typedef. */
-      if (status_ptr->access != (an_access_specifier)as_public) {
+      if (class_state->access != (an_access_specifier)as_public) {
         /* Strictly speaking, any nonpublic member prevents a class from being
            an aggregate -- keep track. */
-        status_ptr->any_nonpublic_members = TRUE;
+        class_state->any_nonpublic_members = TRUE;
       }  /* if */
       if (curr_routine_fixup != NULL &&
           curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
@@ -8446,11 +8437,11 @@ following the member declaration.
       /* Provide support for the nonstandard declaration of a member constant
          of scalar type -- e.g., "const int I = 2;". */
       decl_nonstd_member_constant(&locator, class_type, local_type,
-                                  status_ptr->access, declarator_ssep);
-      if (status_ptr->access != (an_access_specifier)as_public) {
+                                  class_state->access, declarator_ssep);
+      if (class_state->access != (an_access_specifier)as_public) {
         /* Strictly speaking, any nonpublic member prevents a class from
            being an aggregate -- keep track. */
-        status_ptr->any_nonpublic_members = TRUE;
+        class_state->any_nonpublic_members = TRUE;
       }  /* if */
     } else {
       if (C_dialect == C_dialect_cplusplus) {
@@ -8464,7 +8455,7 @@ following the member declaration.
           error(ec_incomplete_type_not_allowed);
           local_type = error_type();
         }  /* if */
-        if (status_ptr->is_local_class) {
+        if (class_state->is_local_class) {
           /* Static data members are not allowed in local classes. */
           pos_error(ec_static_not_allowed, &decl_start_pos);
           /* Set the type for this invalid static member to error type.
@@ -8483,16 +8474,12 @@ following the member declaration.
                                               /*is_definition=*/FALSE,
                                               &decl_start_pos);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        decl_static_data_member(&locator, class_type, local_type,
-                                status_ptr->access,
-                                (a_boolean)status_ptr->
-                                               is_nonreal_instantiation,
-                                status_ptr->corresp_prototype_tag_sym,
+        decl_static_data_member(&locator, class_type, local_type, class_state,
                                 declarator_ssep, decl_modifiers);
-        if (status_ptr->access != (an_access_specifier)as_public) {
+        if (class_state->access != (an_access_specifier)as_public) {
           /* Strictly speaking, any nonpublic member prevents a class from
              being an aggregate -- keep track. */
-          status_ptr->any_nonpublic_members = TRUE;
+          class_state->any_nonpublic_members = TRUE;
         }  /* if */
       } else {
         /* Non-static data member (= field). */
@@ -8503,41 +8490,37 @@ following the member declaration.
           pos_error(ec_function_type_not_allowed, &locator.source_position);
           local_type = error_type();
         } else {
-          check_field_type(&locator, &local_type,
-                           (a_boolean)status_ptr->is_first_field,
-                           unnamed_field, status_ptr->access,
-                           (a_boolean)status_ptr->class_aggregate_ruled_out,
+          check_field_type(&locator, &local_type, class_state, unnamed_field,
                            &decl_start_pos);
         }  /* if */
         /* Set the flag to record that at least one named field was
            encountered. */
-        if (!unnamed_field) status_ptr->any_named_fields = TRUE;
+        if (!unnamed_field) class_state->any_named_fields = TRUE;
         decl_nonstatic_data_member(&locator, class_type, &local_type,
-                                   status_ptr->access, unnamed_field,
+                                   class_state, unnamed_field,
                                    is_anonymous_union,
                                    is_nonstd_anonymous_union,
-                                   mutable_specified, declarator_ssep,
-                                   &status_ptr->end_of_field_list);
-        if (!status_ptr->class_aggregate_ruled_out) {
-          if (status_ptr->access != (an_access_specifier)as_public) {
+                                   mutable_specified, declarator_ssep);
+        if (!class_state->class_aggregate_ruled_out) {
+          if (class_state->access != (an_access_specifier)as_public) {
             if (unnamed_field) {
               /* Unnamed bit fields are not subject to initialization (and
                  are not even members, according to WP 9.6) so a nonpublic
                  one (whatever that means) has no effect on aggregate
-                 status. */
+                 state. */
             } else {
               /* No class with private or protected nonstatic data members
                  is an aggregate (WP 8.5.1). */
-              status_ptr->class_aggregate_ruled_out = TRUE;
+              class_state->class_aggregate_ruled_out = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
-        if (!status_ptr->any_const_or_ref_fields && !unnamed_field &&
+        if (!class_state->any_const_or_ref_fields && !unnamed_field &&
             !is_anonymous_union && (is_reference_type(local_type) ||
                                     is_const_qualified_type(local_type))) {
-          status_ptr->any_const_or_ref_fields = TRUE;
+          class_state->any_const_or_ref_fields = TRUE;
         }  /* if */
-        status_ptr->is_first_field = FALSE;
+        class_state->is_first_field = FALSE;
       }  /* if */
       if (C_dialect == C_dialect_cplusplus) {
         /* Issue an error if there appears to be an attempt to initialize a
@@ -8585,12 +8568,12 @@ completed (C++ only).
   a_stop_token_array               save_stop_token_array;
   a_template_symbol_supplement_ptr class_tssp;
   a_token_sequence_number	   token_number_of_closing_brace;
-  a_class_def_status               status;
+  a_class_def_state                class_state;
   a_boolean                        skip_semicolon_check;
 
   db_enter(3, "scan_class_definition");
-  initialize_class_def_status(&status);
-  status.is_local_class = is_local_class;
+  initialize_class_def_state(&class_state);
+  class_state.is_local_class = is_local_class;
   /* Set a flag to indicate whether we scanning a class template declaration
      for the sake of producing a "prototype instantiation" of the template.
      Note that this is only set for the outermost class, not for classes
@@ -8623,7 +8606,7 @@ completed (C++ only).
          "nonreal" (i.e., based on template arguments that include the dummy
          types and constants of template parameters rather than real types and
          constants). Note that for nested classes the flag is set later. */
-      status.is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
+      class_state.is_nonreal_instantiation = cssp->is_nonreal_class = TRUE;
       if (tag_sym->is_class_member &&
           (curr_token == tok_lbrace || curr_token == tok_colon)) {
         /* This is a definition of a nested class.  See if the enclosing class
@@ -8634,16 +8617,16 @@ completed (C++ only).
     }  /* if */
     /* Find the prototype instantiation symbol associated with this
        real instantiation. */
-    status.corresp_prototype_tag_sym =
+    class_state.corresp_prototype_tag_sym =
                             corresp_prototype_for_class_symbol(tag_sym);
 #if USER_CONTROL_OF_STRUCT_PACKING
-    if (status.corresp_prototype_tag_sym != NULL) {
+    if (class_state.corresp_prototype_tag_sym != NULL) {
       /* The class is an instantiation of a class template (or a class nested
          within such an instantiation).  Overwrite the alignment entered for
          this class (which was based on the instantiation context) with the
          alignment in force at the point of the template definition, as
          recorded in the type of the prototype instantiation. */
-      a_type_ptr  tp = status.corresp_prototype_tag_sym->
+      a_type_ptr  tp = class_state.corresp_prototype_tag_sym->
                                          variant.class_struct_union.type;
       class_type->variant.class_struct_union.max_member_alignment =
                          tp->variant.class_struct_union.max_member_alignment;
@@ -8662,7 +8645,7 @@ completed (C++ only).
       scan_base_specifier_list(class_type);
       remove_stop_token(tok_lbrace);
       /* A class with base classes is not an "aggregate" (ARM 8.4.1). */
-      status.class_aggregate_ruled_out = TRUE;
+      class_state.class_aggregate_ruled_out = TRUE;
       /* If there is a base specifier list and this is a class or struct
          declaration, it has to be definition, which means the next token
          should be a brace. */
@@ -8706,14 +8689,14 @@ completed (C++ only).
     } else {
       if (class_type->kind == (a_type_kind)tk_class) {
         /* Members of a C++ class have private access by default. */
-        status.access = (an_access_specifier)as_private;
+        class_state.access = (an_access_specifier)as_private;
       } else {
         /* Members of a C++ struct or union have public access by default,
            which is also the implicit access control for C struct and union
            fields. */
-        status.access = (an_access_specifier)as_public;
+        class_state.access = (an_access_specifier)as_public;
       }  /* if */
-      scope_stack[decl_scope_level].current_access = status.access;
+      scope_stack[decl_scope_level].current_access = class_state.access;
       do {
         add_stop_token(tok_semicolon);
         /* Move cached #pragma declarations (if any) to the current scope
@@ -8724,7 +8707,7 @@ completed (C++ only).
           /* An access specification may appear anywhere amid the member
              declarations.  Check for it each time through the loop, and adjust
              the value of access accordingly. */
-          if (scan_access_specification(&status.access)) {
+          if (scan_access_specification(&class_state.access)) {
             /* An access specifier was found.  This next check catches cases
                like "...public: }". */
             if (curr_token == tok_rbrace) {
@@ -8740,7 +8723,7 @@ completed (C++ only).
         /* Scan a member declaration. */
         if (curr_token == tok_semicolon && 
             (C_dialect == C_dialect_cplusplus ||
-             !(status.is_first_field && next_token() == tok_rbrace))) {
+             !(class_state.is_first_field && next_token() == tok_rbrace))) {
           /* No declaration -- just a semicolon.  Issue a warning (or error in
              strict ANSI mode).  Note: in C mode we bypass the "extra ':'"
              diagnostic when there are no fields in the struct -- i.e.,
@@ -8774,7 +8757,7 @@ completed (C++ only).
           }  /* if */
           /* Check for a using declaration. */
           if (curr_token == tok_using) {
-            member_using_declaration(class_type, status.access);
+            member_using_declaration(class_type, class_state.access);
             goto next_declaration;
           }  /* if */
           /* Check for an access adjustment declaration. */
@@ -8786,7 +8769,7 @@ completed (C++ only).
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct.  Its semantics are the same
                as a using-declaration. */
-            member_using_declaration(class_type, status.access);
+            member_using_declaration(class_type, class_state.access);
             goto next_declaration;
           }  /* if */
           /* Check for template declaration. */
@@ -8804,7 +8787,8 @@ completed (C++ only).
           }  /* if */
         }  /* if */
 
-        class_member_declaration(class_type, &status, &skip_semicolon_check);
+        class_member_declaration(class_type, &class_state,
+                                 &skip_semicolon_check);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member
              declaration.  It's optional after the last declaration (that's
@@ -8839,16 +8823,17 @@ next_declaration:
         /* Keep processing member declarations until the closing brace. */
       } while (curr_token != tok_rbrace && curr_token != tok_end_of_source);
     }  /* if */
-    if (C_mode() && curr_token == tok_rbrace && !status.any_named_fields) {
+    if (C_mode() && curr_token == tok_rbrace &&
+        !class_state.any_named_fields) {
       /* In C mode, there must be at least one named field.  This covers
          both "struct S { };" and "struct S { int:1; };", the latter producing
          undefined behavior according to the C standard.  Issue an error
          and also create a dummy field to reduce error recovery problems
          down the line. */
       error(ec_no_named_fields);
-      add_error_field(class_type, &status.end_of_field_list);
+      add_error_field(class_type, &class_state.end_of_field_list);
     }  /* if */
-    if (!status.is_nonreal_instantiation &&
+    if (!class_state.is_nonreal_instantiation &&
         may_be_added_to_types_list(class_type, effective_decl_level)) {
       /* The type will already have been added to the current scope's types
          list.  However, it should be moved to the end of the list (unless
@@ -8880,15 +8865,19 @@ next_declaration:
        with the current token, which is the closing brace. */
     error_position = tag_sym->decl_position;
     if (C_dialect == C_dialect_cplusplus) {
+      /* Reset the access to "public" for compiler-generated functions, if
+         any. */
+      class_state.access = (an_access_specifier)as_public;
       /* Classes with no constructors, no private or protected members, no
          base classes, and no virtual functions are used to declare
          "aggregate" objects (ARM 8.4.1). */
-      if (!status.class_aggregate_ruled_out) {
+      if (!class_state.class_aggregate_ruled_out) {
         /* May be an aggregate. */
-        if (strict_ansi_mode && status.any_nonpublic_members) {
+        if (strict_ansi_mode && class_state.any_nonpublic_members) {
           /* In strict mode we'll take the WP literally -- an aggregate class
              may have no nonpublic members (even if they are something other
              than nonstatic data members). */
+          class_state.class_aggregate_ruled_out = TRUE;
         } else {
           cssp->is_class_aggregate = TRUE;
         }  /* if */
@@ -8899,19 +8888,19 @@ next_declaration:
          any, are entered.  (No diagnostic is issued on a const member that
          has a default constructor, since it will be initialized properly
          when the default constructor for the current class is generated. */
-      if (status.any_const_or_ref_fields && cssp->constructor == NULL) {
+      if (class_state.any_const_or_ref_fields && cssp->constructor == NULL) {
         /* The current class has no user-defined constructor and at least
            one const or ref nonstatic data member.  A diagnostic may be
            required. */
         report_missing_constructor(tag_sym);
       }  /* if */
-      if (!status.is_nonreal_instantiation) {
+      if (!class_state.is_nonreal_instantiation) {
         /* Check to see if a remark should be issued on direct base classes
            with nonvirtual destructors. */
         check_base_class_destructors(class_type);
         /* Create compiler-generated default constructor, copy constructor,
            destructor, and assignment operator, if any is needed. */
-        check_special_member_functions(class_type);
+        check_special_member_functions(class_type, &class_state);
       }  /* if */
       /* Set shares_virtual_function_info for a base class of class_type, if
          appropriate. */
@@ -8922,7 +8911,7 @@ next_declaration:
        class. */
     do_class_layout(class_type);
     if (C_dialect == C_dialect_cplusplus) {
-      if (!status.is_nonreal_instantiation) {
+      if (!class_state.is_nonreal_instantiation) {
         /* Check for inherited conversion functions.  This must be done before
            rescanning inline function definitions. */
         project_base_class_conversion_functions(class_type);
@@ -8952,7 +8941,7 @@ next_declaration:
       }  /* if */
       /* Issue a warning on a class with all private constructors and no
          friend functions. */
-      if (!status.any_friend_decls) {
+      if (!class_state.any_friend_decls) {
         a_symbol_ptr  ctor_sym = cssp->constructor;
         a_boolean     is_overloaded = FALSE;
 
@@ -8978,12 +8967,12 @@ next_declaration:
           }  /* if */
         }  /* if */
       }  /* if */
-      if (status.override_registry != NULL) {
+      if (class_state.override_registry != NULL) {
         /* Check for incomplete overriding of virtual functions, and issue
            diagnostics where appropriate. */
-        check_override_registry(status.override_registry, tag_sym);
+        check_override_registry(class_state.override_registry, tag_sym);
         /* All entries on the list have been freed, so clear the pointer. */
-        status.override_registry = NULL;
+        class_state.override_registry = NULL;
       }  /* if */
     }  /* if */
     /* Process pragmas associated with the closing brace before the current
@@ -8995,7 +8984,7 @@ next_declaration:
     add_end_of_construct_source_sequence_entry((char *)class_type,
                                                (a_byte_il_entry_kind)iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if (delayed_nested_class_def && !status.is_nonreal_instantiation &&
+    if (delayed_nested_class_def && !class_state.is_nonreal_instantiation &&
         !is_template_class_type(class_type) && cssp->is_instance) {
       /* The class being defined is a non-template class nested within a
          template class.  This is its instantiation, so create a class
@@ -9013,7 +9002,7 @@ next_declaration:
 
       /* Restore the scope stack to its original state. */
       pop_class_reactivation_scope();
-      if (!status.is_nonreal_instantiation) {
+      if (!class_state.is_nonreal_instantiation) {
         if (class_type->variant.class_struct_union.
                    referenced_by_class_instantiation_placeholder_typeref) {
           /* A placeholder indicating that an instantiation occurred inside
