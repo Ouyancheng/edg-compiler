@@ -156,12 +156,6 @@ typedef struct an_insert_location {
 		insert_before;
 			/* If TRUE, the insertion is to be done before the
 			   indicated expression. */
-      a_byte_boolean
-		add_conditional_test;
-			/* If TRUE, the insertion makes the existing expression
-			   into the test expression of a conditional, and the
-			   inserted expression is inserted as the "then"
-			   part of the conditional. */
     } expr;
     struct {
       a_statement_ptr
@@ -192,7 +186,6 @@ Clear an insert location and set its expr_insert field to expr_insert.
   if (expr_insert) {
     insert_location->variant.expr.ptr = NULL;
     insert_location->variant.expr.insert_before = FALSE;
-    insert_location->variant.expr.add_conditional_test = FALSE;
   } else {
     insert_location->variant.statement.ptr = NULL;
     insert_location->variant.statement.insert_at_block_start = FALSE;
@@ -2078,11 +2071,9 @@ will be after the expression added.
   orig_expr = insert_location->variant.expr.ptr;
   /* Make a comma node that has the original node and the expression
      being inserted as its operands.  The original node is actually copied
-     so that the comma node can be put at the address of the original node.
-     In the add_conditional_test case, an "&&" node is built instead of
-     a comma node (see below). */
+     so that the comma node can be put at the address of the original node. */
   orig_expr_copy = copy_node(orig_expr);
-  /* Order the operands of the comma/&& operator depending on whether the
+  /* Order the operands of the comma operator depending on whether the
      insertion is supposed to be before or after the original expression. */
   if (insert_location->variant.expr.insert_before) {
     first_operand = inserted_expr;
@@ -2093,21 +2084,12 @@ will be after the expression added.
   }  /* if */
   first_operand->next = second_operand;
   second_operand->next = NULL;
-  /* Turn the original node into a comma/&& node. */
+  /* Turn the original node into a comma node. */
   orig_expr_next = orig_expr->next;
   clear_expr_node(orig_expr, (an_expr_node_kind)enk_operation);
   orig_expr->next = orig_expr_next;
-  if (insert_location->variant.expr.add_conditional_test) {
-    /* add_conditional_test case -- make an "&&" operator.  This is used
-       to represent the equivalent of an "if" statement. */
-    set_node_operator(orig_expr, (an_expr_operator_kind)eok_land,
-                      integer_type((an_integer_kind)ik_int), first_operand);
-    insert_location->variant.expr.add_conditional_test = FALSE;
-  } else {
-    /* Normal case -- create a comma operator. */
-    set_node_operator(orig_expr, (an_expr_operator_kind)eok_comma,
-                      second_operand->type, first_operand);
-  }  /* if */
+  set_node_operator(orig_expr, (an_expr_operator_kind)eok_comma,
+                    second_operand->type, first_operand);
   /* Change the insert location so that it inserts after the
      comma operator just created. */
   insert_location->variant.expr.insert_before = FALSE;
@@ -2165,15 +2147,28 @@ dependent statements of the "if".  This routine also handles the
 case of inserting an if-equivalent into the middle of an expression.
 */
 {
-  a_statement_ptr if_stmt, block_stmt;
+  a_statement_ptr  if_stmt, block_stmt;
+  an_expr_node_ptr question_node, op2_node, op3_node, zero_node;
+  a_type_ptr       void_type_ptr;
 
   if (insert_location->expr_insert) {
     /* Insert within an expression. */
-    /* Insert the test expression at the right place, and set the next insert
-       position to add the conditional test on the next insert. */
-    insert_expr(test_expr, insert_location);
-    *insert_location2 = *insert_location;
-    insert_location2->variant.expr.add_conditional_test = TRUE;
+    /* Insert "test_expr ? (void)0 : (void)0" at the right place. */
+    void_type_ptr = void_type();
+    /* The second and third operands are each "(void)0". */
+    zero_node = node_for_integer_constant(0L, (an_integer_kind)ik_int);
+    op2_node = make_operator_node((an_expr_operator_kind)eok_cast,
+                                  void_type_ptr, zero_node);
+    zero_node = node_for_integer_constant(0L, (an_integer_kind)ik_int);
+    op3_node = make_operator_node((an_expr_operator_kind)eok_cast,
+                                  void_type_ptr, zero_node);
+    test_expr->next = op2_node;
+    op2_node->next = op3_node;
+    question_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                       void_type_ptr, test_expr);
+    insert_expr(question_node, insert_location);
+    /* The insert location is before the "(void)0" of the second operand. */
+    set_expr_insert_location(op2_node, insert_location2);
   } else {
     /* Insert within a statement sequence.  Allocate an "if" statement with
        a block statement under it. */
@@ -2181,8 +2176,8 @@ case of inserting an if-equivalent into the middle of an expression.
     if_stmt->expr = test_expr;
     if_stmt->variant.if_stmt.then_statement = block_stmt =
                                  alloc_statement((a_statement_kind)stmk_block);
-    set_block_start_insert_location(block_stmt, insert_location2);
     insert_statement(if_stmt, insert_location);
+    set_block_start_insert_location(block_stmt, insert_location2);
   }  /* if */
 }  /* insert_if_statement */
 
