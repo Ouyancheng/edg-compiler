@@ -515,7 +515,8 @@ Write a #line directive for the indicated line number and file.
     if (gen_old_style_line_dirs) process_escapes = FALSE;
     (void)putc(' ', f_C_output);
     (void)putc('"', f_C_output);
-    write_file_name(curr_output_file->file_name, f_C_output, process_escapes);
+    (void)write_file_name(curr_output_file->file_name, f_C_output,
+                          process_escapes);
     (void)putc('"', f_C_output);
   }  /* if */
   (void)putc('\n', f_C_output);

@@ -2204,7 +2204,8 @@ else.  This routine should only be called when generate_pp_output is TRUE.
     fprintf(f_pp_output, " %lu \"",  (unsigned long)eff_line_number);
     /* Put out the file name.  For ANSI/ISO output, add escapes as
        necessary. */
-    write_file_name(curr_ise->file_name, f_pp_output, !pcc_preprocessing_mode);
+    (void)write_file_name(curr_ise->file_name, f_pp_output,
+                          /*process_escapes=*/!pcc_preprocessing_mode);
     fputc('"', f_pp_output);
 #if GEN_EXTRA_LINE_ID_INFO
     if (pcc_preprocessing_mode) {

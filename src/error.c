@@ -2308,8 +2308,10 @@ the output.
       if (strcmp(*file_name, FILE_NAME_FOR_STDIN) == 0) {
         *line_len += fprintf(stderr, "Line %lu", *line_number);
       } else {
-        *line_len += fprintf(stderr, "\"%s\", line %lu", *file_name,
-                                                          *line_number);
+        *line_len += fprintf(stderr, "\"");
+        *line_len += write_file_name(*file_name, stderr,
+                                     /*process_escapes=*/TRUE);
+        *line_len += fprintf(stderr, "\", line %lu", *line_number);
       }  /* if */
       if (column_needed) {
         *line_len += fprintf(stderr, " (col. %d)", error_pos->column);
