@@ -3280,7 +3280,7 @@ entry is pushed on the scope stack.
 #endif /* CHECKING */
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry so they can be examined and acted upon in subsequent processing. */
-  select_curr_construct_pragmas(/*is_decl=*/TRUE);
+  (void)select_curr_construct_pragmas(/*is_decl=*/TRUE);
   saved_curr_default_args = curr_default_args;
   curr_default_args = NULL;
   *defines_something = FALSE;
@@ -4835,9 +4835,9 @@ assumed if the return type is omitted.
     if (saved_instantiation_mode == tim_all) {
       /* In tim_all mode the can_instantiate pragma is treated as an
          instantiate pragma. */
-      pragma_kind = pk_instantiate;
+      pragma_kind = (a_pragma_kind)pk_instantiate;
     } else {
-      pragma_kind = pk_can_instantiate;
+      pragma_kind = (a_pragma_kind)pk_can_instantiate;
     }  /* if */
   } else if (pragma_kind != (a_pragma_kind)pk_instantiate &&
              pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {

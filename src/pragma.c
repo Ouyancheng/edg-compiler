@@ -256,7 +256,7 @@ Return a pending pragma entry to the available list.
      remove it from the source sequence list. */
   if (ppp->source_sequence_entry != NULL &&
       ppp->source_sequence_entry->entity.kind ==
-                                      (an_il_entry_kind)iek_none) {
+                                      (a_byte_il_entry_kind)iek_none) {
     a_src_seq_sublist_ptr  sublist = NULL;
     remove_from_source_sequence_list(ppp->source_sequence_entry, &sublist);
     ppp->source_sequence_entry = NULL;
@@ -572,7 +572,7 @@ there is additional processing to be done.
   if (entity_ptr != NULL) {
     check_assertion(ppp->descr_ptr->binding_kind ==
                                 (a_pragma_binding_kind)pbk_next_construct);
-    pp->entity.kind = entity_kind;
+    pp->entity.kind = (a_byte_il_entry_kind)entity_kind;
     pp->entity.ptr = entity_ptr;
     if (entity_kind == (an_il_entry_kind)iek_statement) {
       ((a_statement_ptr)entity_ptr)->has_associated_pragma = TRUE;
@@ -808,7 +808,7 @@ Initialize the pragma description table.
 					 (a_pragma_kind_description_ptr)NULL;
   }  /* for */
   (void)add_next_construct_pragma_description
-		(pk_printf_args,
+		((a_pragma_kind)pk_printf_args,
 		 record_arg_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
@@ -819,7 +819,7 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/FALSE,
                  es_error);
   (void)add_next_construct_pragma_description
-		(pk_scanf_args,
+		((a_pragma_kind)pk_scanf_args,
 	         record_arg_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/TRUE,
@@ -833,7 +833,7 @@ Initialize the pragma description table.
   /* Change lint comment error severities to es_none. */
 #endif 
   (void)add_next_construct_pragma_description
-		(pk_lint_argsused,
+		((a_pragma_kind)pk_lint_argsused,
 		 (a_next_construct_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/TRUE,
 		 /*may_bind_to_decl=*/TRUE,
@@ -844,7 +844,7 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/FALSE,
                  es_warning);
   (void)add_next_construct_pragma_description
-		(pk_lint_varargs_count,
+		((a_pragma_kind)pk_lint_varargs_count,
 		 (a_next_construct_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/TRUE,
 		 /*may_bind_to_decl=*/TRUE,
@@ -855,7 +855,7 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/FALSE,
                  es_warning);
   (void)add_next_construct_pragma_description
-		(pk_lint_not_reached,
+		((a_pragma_kind)pk_lint_not_reached,
 		 (a_next_construct_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/TRUE,
 		 /*may_bind_to_decl=*/FALSE,
@@ -866,7 +866,7 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/FALSE,
                  es_warning);
   (void)add_immediate_pragma_description
-		(pk_instantiate,
+		((a_pragma_kind)pk_instantiate,
 	         instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
@@ -876,7 +876,7 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/TRUE,
                  es_error);
   (void)add_immediate_pragma_description
-		(pk_do_not_instantiate,
+		((a_pragma_kind)pk_do_not_instantiate,
 		 instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
@@ -886,7 +886,7 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/TRUE,
                  es_error);
   (void)add_immediate_pragma_description
-		(pk_can_instantiate,
+		((a_pragma_kind)pk_can_instantiate,
 		 instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*global=*/FALSE,
@@ -898,7 +898,7 @@ Initialize the pragma description table.
 #if 0
 #else
   (void)add_next_construct_pragma_description
-		(pk_test_next_decl,
+		((a_pragma_kind)pk_test_next_decl,
 		 (a_next_construct_pragma_function_ptr)NULL,
 		  /*is_pseudo_pragma=*/FALSE,
 		  /*may_bind_to_decl=*/TRUE,
@@ -909,7 +909,7 @@ Initialize the pragma description table.
                   /*processing_C_code_in_pragma=*/FALSE,
                   es_error);
   (void)add_next_construct_pragma_description
- 		(pk_test_next_statement,
+ 		((a_pragma_kind)pk_test_next_statement,
 		 (a_next_construct_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*may_bind_to_decl=*/FALSE,
@@ -920,7 +920,7 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/FALSE,
                  es_error);
   (void)add_immediate_pragma_description
-		(pk_test_immediate,
+		((a_pragma_kind)pk_test_immediate,
                  (an_immediate_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
@@ -930,7 +930,7 @@ Initialize the pragma description table.
                  /*processing_C_code_in_pragma=*/FALSE,
                  es_error);
   (void)add_other_pragma_description
-		(pk_test_other,
+		((a_pragma_kind)pk_test_other,
 	         (an_other_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,

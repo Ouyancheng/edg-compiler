@@ -3247,8 +3247,8 @@ normal_comment:
             }  /* if */
 #endif /* DEBUG */
             determine_comment_pos_if_not_yet_done();
-            (void)add_curr_token_pseudo_pragma(pk_lint_not_reached,
-                                               &comment_start_pos);
+            (void)add_curr_token_pseudo_pragma
+                     ((a_pragma_kind)pk_lint_not_reached, &comment_start_pos);
             curr_char_loc += 10;
           } else if (ch == 'A' && curr_char_loc[1] == 'R' &&
                      strncmp(curr_char_loc+2, "GSUSED", 6) == 0 &&
@@ -3262,7 +3262,7 @@ normal_comment:
             }  /* if */
 #endif /* DEBUG */
             determine_comment_pos_if_not_yet_done();
-            (void)add_curr_token_pseudo_pragma(pk_lint_argsused,
+            (void)add_curr_token_pseudo_pragma((a_pragma_kind)pk_lint_argsused,
                                                &comment_start_pos);
             curr_char_loc += 8;
           } else if (ch == 'V' && curr_char_loc[1] == 'A' &&
@@ -3300,8 +3300,8 @@ normal_comment:
             }  /* if */
 #endif /* DEBUG */
             determine_comment_pos_if_not_yet_done();
-            ppp = add_curr_token_pseudo_pragma(pk_lint_varargs_count,
-					       &comment_start_pos);
+            ppp = add_curr_token_pseudo_pragma
+		   ((a_pragma_kind)pk_lint_varargs_count, &comment_start_pos);
             ppp->variant.lint_varargs_count = varargs_count;
           }  /* if */
         }  /* if */
