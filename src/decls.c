@@ -4738,7 +4738,7 @@ declaration.
         pos_error(ec_qualified_void_return_type, &locator->source_position);
       }  /* if */
     }  /* if */
-    if (c99_mode) {
+    if (c99_mode && !gcc_mode) {
       /* In C99 mode, if a function is declared "inline" every time it is
          declared in a given translation unit and is never declared with an
          explicitly specified storage class, then its definition is regarded
@@ -5545,7 +5545,7 @@ skip_overloading:;
     }  /* if */
   }  /* if */
   if (func_info->is_inline) routine_ptr->is_inline = TRUE;
-  if (c99_mode) {
+  if (c99_mode && !gcc_mode) {
     /* In C99 mode the suppress_inline_body flag is set only if that is
        justified by every declaration of a given inline function. */
     if (redeclaration) {
