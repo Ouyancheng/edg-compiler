@@ -258,6 +258,12 @@ typedef struct a_struct_stmt_stack_entry {
 			   it contains case labels, this points to the case
 			   clause for the case label most recently encountered;
 			   otherwise, it is NULL. */
+  a_constant_ptr
+		discarded_case_label_constants;
+			/* When kind == stmk_switch, this points to a list
+			   constant entries that were discarded because they
+			   belonged to the same switch-clause as a default
+			   label; NULL otherwise. */
   a_statement_ptr
 		extra_block;
 			/* If non-NULL, points to an stmk_block statement
