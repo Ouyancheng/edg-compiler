@@ -1,5 +1,12 @@
 Version 2.35
 
+1/7/97   Internal error on IL lowering of covariant return types
+
+In cases where an overriding virtual function had a return type that
+is covariant with the functions it overrides in some base classes
+and not in others, IL lowering aborted in
+add_covariant_return_type_entry_routines.  Now fixed.
+
 1/7/97   Partial lowering of EH: cleanup state at switch clauses
 
 When IL lowering is configured to do partial lowering of exception handling

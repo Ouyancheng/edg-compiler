@@ -10323,13 +10323,16 @@ when a base class return type is needed.  Definitions will be put out later.
       if (ovf->overriding_function == routine) {
         /* This is an override for the function we care about. */
         a_base_class_ptr adjustment_bcp = ovf->return_adjustment_base_class;
-        check_assertion(adjustment_bcp != NULL);
-        if (adjustment_bcp->offset != 0 || adjustment_bcp->is_virtual) {
-          /* The adjustment offset is non-NULL, or the base class is
-             virtual, so an entry/wrapper routine is needed. */
-          (void)make_covariant_return_type_entry_routine(
+        /* Ignore this entry if in this case the override is not covariant.
+           (It is covariant for the overrides in other base classes.) */
+        if (adjustment_bcp != NULL) {
+          if (adjustment_bcp->offset != 0 || adjustment_bcp->is_virtual) {
+            /* The adjustment offset is non-NULL, or the base class is
+               virtual, so an entry/wrapper routine is needed. */
+            (void)make_covariant_return_type_entry_routine(
                                                         routine,
                                                         ovf->primary_function);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
