@@ -5163,8 +5163,6 @@ type based on the template argument list and the template parameter list
      onto the front of the instantiation list for the template. */
   tip = alloc_template_instance();
   tip->template_sym = templ_sym;
-  tip->next = tssp->variant.function.instantiations;
-  tssp->variant.function.instantiations = tip;
   templ_rout = tssp->variant.function.routine;
   /* All IL routines must be at the file scope level, so switch to that
      memory region if necessary to allocate the routine entry. */
@@ -5296,6 +5294,8 @@ type based on the template argument list and the template parameter list
      point at each other. */
   tip->instance_sym = sym;
   sym->variant.routine.instance_ptr = tip;
+  tip->next = tssp->variant.function.instantiations;
+  tssp->variant.function.instantiations = tip;
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   {
