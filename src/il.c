@@ -11781,11 +11781,13 @@ first_op_volatile_test:
       tblock->suppress_warning = TRUE;
       break;
     case eok_dynamic_cast:
-      /* A dynamic_cast to a reference to a polymorphic class type can throw
-         an exception. */
+      /* A dynamic_cast to a reference from an object with a polymorphic
+         class type can throw an exception. */
       node_type = node->type;
+      operand_type = node->variant.operation.operands->type;
       if (is_reference_type(node_type) &&
-          is_polymorphic_class_type(type_pointed_to(node_type))) {
+          is_pointer_type(operand_type) &&
+          is_polymorphic_class_type(type_pointed_to(operand_type))) {
         has_side_effects = TRUE;
       }  /* if */
       break;

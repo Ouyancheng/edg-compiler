@@ -1,6 +1,25 @@
 Version 3.4
 
-1/5/03   Microsoft compatibility: Restrictions on __interface types
+1/5/04   Incorrect side effect analysis on dynamic_cast
+
+The determination of whether an expression has side effects was
+wrong for some dynamic_casts to reference types, specifically
+those that cast from a polymorphic type to a non-polymorphic
+type.  Formerly, the code concluded that such casts did
+not have a potential side effect, when in fact they do: they
+can throw an exception.  This error could cause code to
+be removed and the exception not to be thrown.  Now fixed.
+
+  struct A { };
+  struct B {
+    virtual void f() {}
+  };
+  int main() {
+    B *p = new B;
+    dynamic_cast<A &>(*p);  // Throws exception, has side effect
+  }
+
+1/5/04   Microsoft compatibility: Restrictions on __interface types
 
 Two changes were made to the verification of restrictions on __interface
 types in Microsoft C++ modes.  First, the front end now accepts __interface
