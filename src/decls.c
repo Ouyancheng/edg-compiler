@@ -7962,15 +7962,21 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
 }  /* type_keyword */
 
 
-a_boolean check_function_return_type(a_type_ptr         return_type,
+a_boolean check_function_return_type(a_type_ptr         rout_type,
                                      a_source_position  *err_pos,
                                      a_boolean          is_call)
 /*
-Issue an error if the specified type is not a valid function return type.
+Given a routine type, check the that the return type is valid, issuing an
+error if not, and also set the routine calling method flag if appropriate.
 */
 {
+  a_type_ptr     return_type;
   an_error_code  error_code;
+  a_boolean      err = FALSE;
 
+  /* Any type qualifiers on the return type are dropped because rvalues
+     do not have qualified types. */
+  return_type = skip_typerefs(rout_type->variant.routine.return_type);
   /* If return_type is an uninstantiated template class, force its
      instantiation. */
   check_for_uninstantiated_template_class(return_type);
@@ -7979,22 +7985,44 @@ Issue an error if the specified type is not a valid function return type.
      3.5.4.3 on function declarators, enforced previously by
      add_to_derived_type_list.  In addition, a reference type (including a
      reference to an array or function) may also be returned (ARM 8.2.5). */
-  if (is_void_type(return_type) ||
-      (is_object_type(return_type) && !is_array_type(return_type)) ||
-      is_reference_type(return_type)) {
+  if (is_void_type(return_type)) {
     /* Okay. */
-  } else if (!is_error_type(return_type)) {
-    /* Bad return type. */
+  } else if (is_error_type(return_type)) {
+    /* No diagnostic this time. */
+  } else {
     if (is_call) {
-      error_code = ec_calling_function_with_incomplete_return_type;
-    } else if (is_class_struct_union_type(return_type) &&
-               is_incomplete_type(return_type)) {
-      error_code = ec_incomplete_return_type_not_allowed;
+      /* The type check is simpler on function calls, because function and
+         array types have already been filtered out. */
+      check_assertion(!is_array_type(return_type) &&
+                      !is_function_type(return_type));
+      if (is_incomplete_type(return_type)) {
+        err = TRUE;
+        error_code = ec_calling_function_with_incomplete_return_type;
+      }  /* if */
     } else {
-      error_code = ec_bad_function_return_type;
+      /* Declaration case. */
+      if ((is_object_type(return_type) && !is_array_type(return_type)) ||
+          is_reference_type(return_type)) {
+        /* err = FALSE; */
+      } else {
+        err = TRUE;
+        if (is_class_struct_union_type(return_type) &&
+               is_incomplete_type(return_type)) {
+          error_code = ec_incomplete_return_type_not_allowed;
+        } else {
+          error_code = ec_bad_function_return_type;
+        }  /* if */
+      }  /* if */
     }  /* if */
-    pos_error(error_code, err_pos);
+    if (!err) {
+      /* If the function is one that returns its value to a caller-supplied
+         location using a copy constructor, mark the routine type. */
+      set_routine_calling_method_flag(rout_type);
+    } else {
+      pos_error(error_code, err_pos);
+    }  /* if */
   }  /* if */
+  return !err;
 }  /* check_function_return_type */
 
 
@@ -8025,15 +8053,9 @@ and for the instantiation of template functions.
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
   rout_type = skip_typerefs(rout_ptr->type);
   /* Issue an error if this is an invalid return type. */
-  (void)check_function_return_type(rout_type->variant.routine.return_type,
+  (void)check_function_return_type(rout_type,
                                    &rout_ptr->source_corresp.decl_position,
                                    /*is_call=*/FALSE);
-  /* Check whether the routine needs special support for returning a class
-     object by value.   This flag is set in declarator (i.e., as soon as the
-     routine type is seen) and usually that is sufficient.  However, with
-     inlined friend functions a class that is referenced as a return type may
-     not have been completely defined. */
-  set_routine_calling_method_flag(rout_type);
 #if 0
   /* Similarly, check for value parameters that must be passed using a copy
      constructor. */
