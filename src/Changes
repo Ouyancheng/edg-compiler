@@ -1,5 +1,30 @@
 Version 2.37
 
+9/23/97   Source-sequence representation of functions defined within class
+          definitions
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is
+configured to TRUE, the source-sequence representation of member and friend
+functions defined within a non-local class is as though the definition had
+actually appeared immediately after the end of the class definition.  This
+transformation is reflected in the generated C++; it may be required when
+the initial reference to a function template instantiation appears in a
+member function body.  For example:
+
+  template <class T> void f(T) { ... }
+  class A {
+    void f() { f(*this); }
+  };
+
+is represented as though the source had contained:
+
+  template <class T> void f(T) { ... }
+  class A {
+    inline void f();
+  };
+  template<> void f(A);
+  void A::f() { f(*this); }
+
 9/23/97   New representation for template entities in diagnostic output
 
 A new means of representing template entities in diagnostics has been
