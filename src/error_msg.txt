@@ -1413,6 +1413,7 @@ ec_operator_not_allowed;;"this operator is not allowed at this point; use parent
 ec_nonconstant_flexible_array_member_init;;"flexible array member initializer must be constant"
 ec_register_name_on_nonregister;;"register names can only be used for register variables"
 ec_void_named_register;;"named-register variables cannot have void type"
+ec_nonstd_qualifier_in_global_scope_decl;;"nonstandard qualified name in global scope declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -3546,6 +3546,9 @@ to FALSE if the entity being declared is not initializable.
           /* The declarator name is qualified by the current namespace. */
           if (is_template_decl && !do_dependent_name_processing) {
             severity = es_error;
+          } else if (is_specialization_or_instantiation &&
+                     !strict_ansi_mode) {
+            severity = es_remark;
           } else if (gpp_mode || 
                      (microsoft_mode &&
                       curr_scope_id_lookup(&locator_for_curr_id,
