@@ -2309,12 +2309,19 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 }  /* impl_pointer_conversion */
 
 
-a_boolean this_param_types_correspond(a_type_ptr rout_type_1,
-                                      a_type_ptr rout_type_2)
+a_boolean this_param_types_correspond(
+                                   a_type_ptr rout_type_1,
+                                   a_type_ptr rout_type_2,
+                                   a_boolean  check_as_conversion,
+                                   a_boolean  check_as_operands)
 /*
 Return TRUE if the "this" parameter types of the two function types given
 match if one ignores any difference in the underlying class.  If neither
 function type has a "this" parameter, they are also considered to match.
+If check_as_conversion is TRUE, rout_type_1 and rout_type_2 are the
+destination and source types of a conversion.  If check_as_operands is
+TRUE, the two types are the types of the operands of an operation.
+If neither is TRUE, the types are checked for an exact match.
 */
 {
   a_boolean  correspond = FALSE;
@@ -2339,23 +2346,57 @@ function type has a "this" parameter, they are also considered to match.
   } else {
     this_type_1 = type_pointed_to(this_type_1);
     this_type_2 = type_pointed_to(this_type_2);
-    if (!type_qualifiers_match(this_type_1, this_type_2)) {
-      /* The type qualifiers do not match. */
-      /* correspond = FALSE;  -- already set. */
+    if (!cfront_compatibility_mode) {
+      if (!type_qualifiers_match(this_type_1, this_type_2)) {
+        /* The type qualifiers do not match. */
+        /* correspond = FALSE;  -- already set. */
+      } else {
+        /* The underlying types are assumed to be appropriate class types. */
+        correspond = TRUE;
+      }  /* if */
     } else {
-      /* The underlying types are assumed to be appropriate class types. */
-      correspond = TRUE;
+      /* In cfront compatibility mode, allow type qualifiers on the "this"
+         parameter to be dropped.  For example:
+           struct A { void f() const; };
+           void (A::*fp)() = &A::f;  // allowed as an extension
+         Note that this is backwards from what you would expect, but it
+         makes sense: it's okay to put a pointer to const function into
+         a pointer to non-const, because when you call the function it
+         won't modify the object, which is okay, but it wouldn't be good
+         to call a non-const function through a pointer to const function. */
+      if (check_as_operands) {
+        /* On operands, the type qualifiers are ignored. */
+        correspond = TRUE;
+      } else if (type_qualifiers_match(this_type_1, this_type_2)) {
+        correspond = TRUE;
+      } else if (check_as_conversion) {
+        /* The type qualifiers do not match, but this is a conversion,
+           so that may be okay. */
+        if (any_qualifier_missing(this_type_2, this_type_1)) {
+          /* Some type qualifiers are being added; that's never okay. */
+          /* correspond = FALSE;  -- already set. */
+        } else {
+          /* Some type qualifiers are being dropped; that's okay as an
+             extension. */
+          correspond = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return correspond;
 }  /* this_param_types_correspond */
 
 
-static a_boolean function_types_correspond(a_type_ptr rout_type_1,
-                                           a_type_ptr rout_type_2)
+static a_boolean function_types_correspond(
+                                   a_type_ptr rout_type_1,
+                                   a_type_ptr rout_type_2,
+                                   a_boolean  check_as_operands_not_conversion)
 /*
 Return TRUE if the two function types given are compatible if one ignores any
 difference in the underlying class of their "this" parameter types.
+If check_as_operands_not_conversion is TRUE, the two types are the types
+of the operands of an operation; if FALSE, rout_type_1 and rout_type_2
+are the destination and source types of a conversion.
 */
 {
   a_boolean correspond;
@@ -2366,19 +2407,25 @@ difference in the underlying class of their "this" parameter types.
                                    rout_type_2->variant.routine.return_type) &&
                param_types_are_compatible(rout_type_1, rout_type_2,
                                     TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) &&
-               this_param_types_correspond(rout_type_1, rout_type_2);
+               this_param_types_correspond(rout_type_1, rout_type_2,
+                                           !check_as_operands_not_conversion,
+                                           check_as_operands_not_conversion);
   return correspond;
 }  /* function_types_correspond */
 
 
-static a_boolean member_types_correspond(a_type_ptr member_type_1,
-                                         a_type_ptr member_type_2)
+static a_boolean member_types_correspond(
+                                   a_type_ptr member_type_1,
+                                   a_type_ptr member_type_2,
+                                   a_boolean  check_as_operands_not_conversion)
 /*
 Return TRUE if the member types from two pointer-to-member types match
 allowing for a possible difference due to the associated class type.
 Specifically, this means that when comparing function types, the
 difference in the underlying class of the "this" parameter type must
-be ignored.
+be ignored.  If check_as_operands_not_conversion is TRUE, the two types
+are the types of the operands of an operation; if FALSE, member_type_1
+and member_type_2 are the destination and source types of a conversion.
 */
 {
   a_boolean correspond;
@@ -2393,7 +2440,8 @@ be ignored.
        of the "this" parameter.  Note that this test must be done even
        when the class types are the same, because the routines may
        be from base classes. */
-    correspond = function_types_correspond(member_type_1, member_type_2);
+    correspond = function_types_correspond(member_type_1, member_type_2,
+                                           check_as_operands_not_conversion);
   }  /* if */
   return correspond;
 }  /* member_types_correspond */
@@ -2447,7 +2495,8 @@ pointers to members).
     if (is_same_class_or_base_class_thereof(pm_class_type(dest_type),
                                             pm_class_type(source_type)) &&
         member_types_correspond(skip_typerefs(dest_type_pointed_to),
-                                skip_typerefs(source_type_pointed_to))) {
+                                skip_typerefs(source_type_pointed_to),
+                                check_as_operands_not_conversion)) {
       /* We leave the ambiguity and accessibility check to be done when
          the cast is done. */
       okay = TRUE;
