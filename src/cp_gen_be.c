@@ -5867,6 +5867,14 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     /* Force use of a qualified name when a constructor is called explicitly
        (a Microsoft extension). */
     force_qualified_name = TRUE;
+  } else if (rout->special_kind == (a_special_function_kind)sfk_destructor &&
+             !rout->is_virtual) {
+    /* On an explicit destructor call, use a qualified name unless doing
+       so might suppress virtual-ness on the call.  Using the qualified name
+       more often than necessary is good, because the Sun C++ compiler
+       doesn't accept some valid cases if they do not use the qualified
+       form. */
+    force_qualified_name = TRUE;
   }  /* if */
   if (suppress_this && selection_class == naming_class && !rout->is_virtual) {
     /* For the simplest case, with "this->" suppressed, use the normal name

@@ -1,3 +1,14 @@
+Version 3.1
+
+5/13/02  C++-generating back end: explicit destructor call, Sun C++
+
+The Sun C++ compiler has a bug with explicit destructor calls that
+don't use qualified names to name the destructor.  The change of
+4/28/02 ran into this bug.  We've backed this out partly by forcing
+use of a qualified name on a destructor call of a non-virtual
+destructor.
+
+-------------------------------------------------------------------------------
 Version 3.0, May 9, 2002
 
 5/7/02   Exported templates
