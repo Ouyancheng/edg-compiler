@@ -479,6 +479,8 @@ extern void make_lowered_field(char          *field_name,
 
 extern a_type_ptr void_star_type(void);
 
+extern a_type_ptr char_star_type(void);
+
 extern a_type_ptr make_vptp_type(void);
 
 extern void overwrite_node(an_expr_node_ptr node,
