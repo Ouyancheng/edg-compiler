@@ -1,5 +1,27 @@
 Version 2.34
 
+12/17/96 Default initialization of const variable
+
+Except in -A mode we failed to issue an error on the following (which is
+ill-formed because class Derived lacks a user-declared default constructor
+for the default-initialization of const variable d):
+
+  struct Base {
+    virtual ~Base () { }
+    virtual void f () const { }
+  };
+  struct Derived : public Base {
+    ~Derived () { }
+    void f () const { }
+  };
+  const Derived d;                     // Error was issued only in -A mode
+  static void g (const Base& x) { x.f(); };
+  int main () { g(d); return 0; }
+
+The side effect in this case was that the virtual function table was not
+defined and an abort occurred at run time.  This has been fixed: the error
+is now issued by default.
+
 12/15/96 Enum types are not treated as integral
 
 In C++ mode enum types are no longer treated as integral types.
