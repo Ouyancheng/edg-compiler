@@ -255,7 +255,7 @@ static char	*error_source_line = NULL;
 static char	*after_end_of_error_source_line = NULL;
 			/* Address past the last element of error_source_line,
 			   as an aid to checking for overflow, etc.  A variable
-			   because error_source_line line can reallocated
+			   because error_source_line line can be reallocated
 			   larger if needed. */
 
 /*
@@ -2049,7 +2049,7 @@ array, print out the dimension information.
                            ! is_pointer_or_reference_type(local_type)),
                           seg_ptr);
   } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
-    /* C*++ pointer to member type. */
+    /* C++ pointer to member type. */
     if (need_parens) add_string_to_segment(")", seg_ptr);
     form_type_second_part(type->variant.ptr_to_member.type,
                           /*needs_parens=*/TRUE, seg_ptr);
@@ -2886,6 +2886,54 @@ return_point:
 #if !STANDALONE_UTILITY_PROGRAM
 
 /*
+Size of the local buffer used to buffer characters going to stderr.
+Should be comparable in size to a source line.
+*/
+#define MAX_PUTCBUFFER_CHARS 100
+
+static void flush_putcbuffer(char *putcbuffer,
+                             int  *num_putcbuffer_chars)
+/*
+Flush characters out of the local buffer putcbuffer to stderr.
+*num_putcbuffer_chars indicates how many characters there are in the buffer;
+it is reset to 0.
+*/
+{
+  if (*num_putcbuffer_chars > 0) {
+     fprintf(stderr, "%.*s", *num_putcbuffer_chars, putcbuffer);
+     *num_putcbuffer_chars = 0;
+  }  /* if */
+}  /* flush_putcbuffer */
+
+
+static void add_to_putcbuffer(char *putcbuffer,
+                              int  *num_putcbuffer_chars,
+                              char out_char)
+/*
+Add out_char to the local buffer putcbuffer.  Increment the number of
+characters in the buffer, *num_putcbuffer_chars.  Flush the buffer
+to stderr if it is full.
+*/
+{
+  /* Flush the buffer if it is full. */
+  if (*num_putcbuffer_chars == MAX_PUTCBUFFER_CHARS) {
+    flush_putcbuffer(putcbuffer, num_putcbuffer_chars);
+  }  /* if */
+  /* Add the character to the buffer. */
+  putcbuffer[*num_putcbuffer_chars] = out_char;
+  (*num_putcbuffer_chars)++;
+}  /* add_to_putcbuffer */
+
+
+/*
+Put out_char into a local buffer for later writing to stderr.  This is
+done to avoid lots of costly system calls in the usual case that stderr
+is unbuffered.
+*/
+#define putcb(out_char)                                               \
+  add_to_putcbuffer(putcbuffer, &num_putcbuffer_chars, (out_char));
+
+/*
 Macro to write source line characters in the first pass, and spaces over
 and the caret on the second pass.  Exits to "end_of_loop" upon finding the
 column for the caret in the second pass.
@@ -2895,9 +2943,9 @@ column for the caret in the second pass.
     goto end_of_loop;                                                 \
   } else {                                                            \
     if (!pass_for_caret || (out_char) == '\t') {                      \
-      putc((out_char), stderr);                                       \
+      putcb(out_char);                                                \
     } else {                                                          \
-      putc(' ', stderr);                                              \
+      putcb(' ');                                                     \
     }  /* if */                                                       \
     curr_column++;                                                    \
   }  /* if */                                                         \
@@ -2920,6 +2968,8 @@ a blank line instead of the caret line.
   char                    ch;
   a_source_line_modif_ptr slmp;
   int                     i;
+  char                    putcbuffer[MAX_PUTCBUFFER_CHARS];
+  int                     num_putcbuffer_chars = 0;
 
   /* Start by finding the right line.  The logical source line originally
      came from one or more physical lines ended by "\"s (line splices).
@@ -3015,17 +3065,18 @@ a blank line instead of the caret line.
       }  /* for */
 end_of_loop:
       /* For the pass that writes the caret, write the caret at this point. */
-      if (pass_for_caret) putc('^', stderr);
+      if (pass_for_caret) putcb('^');
     }  /* if */
     /* For both passes, end the output line. */
-    putc('\n', stderr);
+    putcb('\n');
+    flush_putcbuffer(putcbuffer, &num_putcbuffer_chars);
     /* After the first pass (writing the source), go on to the second pass
        (writing the caret). */
   }  /* for */
 }  /* write_orig_source_line */
 
-#if !STANDALONE_UTILITY_PROGRAM
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if !STANDALONE_UTILITY_PROGRAM
 
 static void write_error_source_line(a_source_position *source_pos)
 /*
@@ -3042,6 +3093,8 @@ instead of the caret line.
   a_boolean       pass_for_caret;
   a_column_number curr_column;
   int             i;
+  char            putcbuffer[MAX_PUTCBUFFER_CHARS];
+  int             num_putcbuffer_chars = 0;
 
   /* Take two passes -- the first to write the source line, the second to
      write the caret.  Because of the presence of tabs in the source line,
@@ -3071,10 +3124,11 @@ instead of the caret line.
 
 end_of_loop:
       /* For the pass that writes the caret, write the caret at this point. */
-      if (pass_for_caret) putc('^', stderr);
+      if (pass_for_caret) putcb('^');
     }  /* if */
     /* For both passes, end the output line. */
-    putc('\n', stderr);
+    putcb('\n');
+    flush_putcbuffer(putcbuffer, &num_putcbuffer_chars);
     /* After the first pass (writing the source), go on to the second pass
        (writing the caret). */
   }  /* for */
@@ -3152,7 +3206,6 @@ be forgotten.
           fputc(' ', file);
           (*line_len)++;
         }  /* for */
-        for (; trailing_space_count-- > 0;) fputc(' ', file);
         *line_len += fprintf(file, "%.*s", chars_to_take, msg);
         msg += chars_to_take;
         len -= chars_to_take;
