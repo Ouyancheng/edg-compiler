@@ -448,42 +448,17 @@ it and remapping pointers.
 
 
 static void copy_function_bodies_from_secondary_to_primary_IL(
-                                                            a_scope_ptr scope);
-
-
-static void copy_type_list_function_bodies_from_secondary_to_primary_IL(
-                                                          a_type_ptr type_list)
-/*
-Copy the bodies of any functions on the indicated type list to the
-primary translation unit IL.
-*/
-{
-  a_type_ptr type;
-
-  if (!C_mode()) {
-    for (type = type_list; type != NULL; type = type->next) {
-      if (is_immediate_class_type(type)) {
-        a_scope_ptr class_scope =
-                      type->variant.class_struct_union.extra_info->assoc_scope;
-        if (class_scope != NULL) {
-          copy_function_bodies_from_secondary_to_primary_IL(class_scope);
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-}  /* copy_type_list_function_bodies_from_secondary_to_primary_IL */
-
-
-static void copy_function_bodies_from_secondary_to_primary_IL(
                                                              a_scope_ptr scope)
 /*
 Copy the bodies of any functions in the indicated scope (a file,
-namespace, or class scope in a secondary translation unit) to the
-primary translation unit IL.
+namespace, class, function, or block scope in a secondary translation unit)
+to the primary translation unit IL.
 */
 {
   a_routine_ptr   routine;
+  a_type_ptr      type;
   a_namespace_ptr nsp;
+  a_scope_ptr     sub_scope;
 
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
     if (routine->assoc_scope != NULL_region_number) {
@@ -493,17 +468,31 @@ primary translation unit IL.
       check_assertion_str(rout_scope != NULL,
             "copy_function_bodies_from_secondary_to_primary_IL: body missing");
       /* Handle local classes (and their member functions). */
-      copy_type_list_function_bodies_from_secondary_to_primary_IL(
-                                                            rout_scope->types);
+      copy_function_bodies_from_secondary_to_primary_IL(rout_scope);
       move_routine_body_to_primary(routine);
     }  /* if */
   }  /* for */
-  copy_type_list_function_bodies_from_secondary_to_primary_IL(scope->types);
+  if (!C_mode()) {
+    for (type = scope->types; type != NULL; type = type->next) {
+      if (is_immediate_class_type(type)) {
+        a_scope_ptr class_scope =
+                      type->variant.class_struct_union.extra_info->assoc_scope;
+        if (class_scope != NULL) {
+          copy_function_bodies_from_secondary_to_primary_IL(class_scope);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
       copy_function_bodies_from_secondary_to_primary_IL(
                                                      nsp->variant.assoc_scope);
     }  /* if */
+  }  /* for */
+  for (sub_scope = scope->scopes;
+       sub_scope != NULL;
+       sub_scope = sub_scope->next) {
+    copy_function_bodies_from_secondary_to_primary_IL(sub_scope);
   }  /* for */
 }  /* copy_function_bodies_from_secondary_to_primary_IL */
 
@@ -2618,6 +2607,7 @@ therefore will not be copied.
               && !il_entry_prefix_of(sp).il_lowering_flag
 #endif /* DO_IL_LOWERING */
                                                          ) {
+            check_assertion(!in_secondary_trans_unit(sp));
             finish_function_body_processing(sp,
                                             /*discard_function_body=*/FALSE);
           }  /* if */
