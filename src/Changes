@@ -98,8 +98,8 @@ The front end used to systematically apply typedef declaration attributes
 to a copy of the underlying type.  This caused problems with class types
 (and, potentially, with enumeration types).  To avoid such problems, the
 front end now no longer attempts to copy class types and enumeration types.
-Instead, the attributes are applied to the typedef type entry itself (or in
-some cases to the underlying type).
+Instead, the attributes are either applied to the original underlying type,
+to the typedef entry itself, or they are ignored with a warning.
 
   typedef struct S { int i; } ST __attribute__((unused));
   void f(ST *p) {
