@@ -6328,7 +6328,8 @@ This routine is only used in C++ mode.
       conversion_routine = tssp->variant.function.routine;
       conv_routine_type = conversion_routine->type;
       return_type = return_type_of(conv_routine_type);
-      if (!matches_template_type(skip_typerefs(dest_type),
+      if (!matches_template_type(is_reference_binding ?
+                                          dest_type : skip_typerefs(dest_type),
                                  return_type,
                                  &template_arg_list,
                                  tssp->variant.function.decl_cache.
