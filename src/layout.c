@@ -1177,12 +1177,11 @@ targ_microsoft_bit_field_allocation is FALSE.)
      directive.  (I.e., the bit field is aligned independently from the
      directive wrt. the origin of the containing object, but in absolute
      terms the field may end up being unaligned.)  For such environments, the
-     adjustment is made later on.  Also, later versions of the GNU ABI do
-     not apply packing directives to zero-length bit fields. */
+     adjustment is made later on.  Also, the GNU IA-64 ABI does not apply
+     packing directives to zero-length bit fields. */
   if (targ_user_control_of_struct_packing_affects_bit_fields
 #if IA64_ABI
-      && !(emulate_gnu_abi_bugs && gnu_abi_bugs_version >= 30300 &&
-           field->bit_size == 0)
+      && !(emulate_gnu_abi_bugs && field->bit_size == 0)
 #endif /* IA64_ABI */
                              ) {
     adjust_alignment_for_packing(&container_alignment, lob->class_type);
