@@ -1250,6 +1250,9 @@ Syntax:
       overloaded_function_case = TRUE;
       overloaded_function_symbol = operand->variant.symbol;
       /* routine_type = NULL;  -- already set. */
+    } else if (is_or_contains_template_param(operand->type)) {
+      /* A call in a prototype instantiation. */
+      routine_type = NULL;
     } else {
       /* Normal function, or call using pointer-to-member-function. */
       /* Convert to rvalue.  This conversion is needed particularly for the
@@ -1265,18 +1268,11 @@ Syntax:
              (p->*pmf)(1, 2);
         */
         routine_type = pm_member_type(operand->type);
-      } else if (is_template_param_type(operand->type)) {
-        /* A call in a prototype instantiation. */
-        routine_type = operand->type;
       } else if (check_function_pointer_operand(operand)) {
         routine_type = type_pointed_to(operand->type);
         /* If we can tell which routine is being called, set routine to
            the routine entry.  Otherwise, leave it NULL. */
         routine = routine_from_function_operand(operand);
-      }  /* if */
-      if (routine_type != NULL && is_template_param_type(routine_type)) {
-        /* The routine type is unknown, in a prototype instantiation. */
-        routine_type = NULL;
       }  /* if */
     }  /* if */
     /* Change the kind in the reference entry for the function from an
