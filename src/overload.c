@@ -1199,6 +1199,14 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
 #endif /* CHECKING */
   }  /* if */
   orig_arg_operand = arg_operand;
+  arg_operand_is_simple_string_literal = FALSE;
+  if (arg_operand != NULL) {
+    /* Remember whether the argument is a simple string literal.  This is
+       done early so that it is set before the lvalue-->rvalue conversion
+       is done on the string literal. */
+    arg_operand_is_simple_string_literal =
+                                         arg_operand->is_simple_string_literal;
+  }  /* if */
   /* Try an exact match or one involving trivial conversions.  This is
      case [1] in the ARM.  Trivial conversions are
        From:      To:
@@ -1232,6 +1240,7 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
        we have only a type for the argument, and no arg_operand. */
     arg_type = type_after_array_to_pointer_transformation(arg_type);
     arg_operand = NULL;
+    /* arg_operand_is_simple_string_literal is left alone on purpose. */
   } else if ((arg_operand != NULL ?
                               (is_a_function_designator(arg_operand) &&
                                !is_indefinite_function_operand(arg_operand)) :
@@ -1336,11 +1345,8 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
   arg_is_class_type = is_immediate_class_type(unqual_arg_type);
   /* Determine whether the argument is constant. */
   arg_operand_is_constant = FALSE;
-  arg_operand_is_simple_string_literal = FALSE;
   arg_operand_constant = NULL;
   if (arg_operand != NULL && is_an_rvalue(arg_operand)) {
-    arg_operand_is_simple_string_literal =
-                                         arg_operand->is_simple_string_literal;
     /* For a constant argument, get the constant value. */
     arg_operand_is_constant = is_constant_operand(arg_operand);
     if (arg_operand_is_constant) {
@@ -1451,6 +1457,11 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
       if (std_conversion.promotion) {
         /* This standard conversion is a promotion. */
         arg_summary->match_level = aml_promotion;
+      } else if (std_conversion.conv_of_string_literal_to_ptr_to_nonconst) {
+        /* The deprecated conversion from a string literal to a pointer to
+           nonconst counts as an exact match (it's worse than other exact
+           matches that do not use that deprecated conversion). */
+        arg_summary->match_level = aml_exact;
       } else if (cfront_2_1_mode && param_is_reference &&
                  std_conversion.cast_base_class == NULL) {
         /* cfront 2.1 has a bug: when a reference parameter is initialized
@@ -2425,7 +2436,7 @@ overload resolution [over.ics.rank], and return
   -1 if conv1 is a worse conversion than conv.
 
 The comparisons that involve rank ordering (e.g., promotion versus
-conversion) are skipped is skip_rank_comparisons is TRUE.  This is used
+conversion) are skipped if skip_rank_comparisons is TRUE.  This is used
 as a speed optimization if those have already been handled.
 
 init_conv_after_udc is TRUE if the conversions are the standard conversions
@@ -2603,7 +2614,22 @@ apply that would make one better than the other, and return
        }
   */
   check_assertion(arg_match1 != NULL && arg_match2 != NULL);
-  if (arg_match1->conversion.std.type_qualifiers_added ||
+  /* Use of the deprecated conversion of a string literal to a pointer to
+     nonconst can break a tie. */
+  if (arg_match1->conversion.std.conv_of_string_literal_to_ptr_to_nonconst !=
+      arg_match2->conversion.std.conv_of_string_literal_to_ptr_to_nonconst) {
+    if (arg_match1->conversion.std.conv_of_string_literal_to_ptr_to_nonconst) {
+      /* Argument 1 uses the deprecated conversion and argument 2 does not,
+         so argument 2 is better. */
+      cmp = -1;
+    } else {
+      /* Argument 2 uses the deprecated conversion and argument 1 does not,
+         so argument 1 is better. */
+      cmp = 1;
+    }  /* if */
+  }  /* if */
+  if (cmp == 0 &&
+      arg_match1->conversion.std.type_qualifiers_added ||
       arg_match2->conversion.std.type_qualifiers_added) {
     /* There is the possibility of a tie-breaker because of a difference
        in adding cv-qualifiers. */

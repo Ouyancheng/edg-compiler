@@ -505,6 +505,11 @@ typedef struct a_std_conv_descr {
 			/* TRUE if the conversion could not be done because
 			   of an incompatibility of exception
 			   specifications. */
+  a_byte_boolean
+		conv_of_string_literal_to_ptr_to_nonconst;
+			/* TRUE if the conversion is the deprecated conversion
+			   of a string literal to "char *", or a wide string
+			   literal to "wchar_t *". */
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this conversion is done. */

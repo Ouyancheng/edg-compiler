@@ -2947,6 +2947,7 @@ Clear a standard conversion description to default values.
   std_conv->promotion = FALSE;
   std_conv->ptr_or_pm_to_bool = FALSE;
   std_conv->conv_failed_because_of_exception_specifications = FALSE;
+  std_conv->conv_of_string_literal_to_ptr_to_nonconst = FALSE;
   std_conv->warning_suggested = ec_no_error;
 }  /* clear_std_conv_descr */
 
@@ -3620,6 +3621,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
           /* A deprecated conversion in standard C++ allows conversion of
              a string literal or wide string literal to a pointer to
              non-const ([conv.array] paragraph 2). */
+          std_conv->conv_of_string_literal_to_ptr_to_nonconst = TRUE;
         } else if (cfront_2_1_mode && 
                    is_void(unqual_dest_type_pointed_to) &&
                    is_void(unqual_source_type_pointed_to)) {
