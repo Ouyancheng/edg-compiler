@@ -1,5 +1,17 @@
 Version 2.31
 
+1/11/96   Unreported error on case label
+
+The duplicate-case-label error on the following is now reported:
+
+  void f(int i) {
+    switch (i) {
+      case 0:
+      default:
+      case 0:;                 // Error, previously unreported
+    }
+  }
+
 1/11/96   Include file history list now saved in the precompiled header
 
 Formerly, the include file history list was not saved and restored
