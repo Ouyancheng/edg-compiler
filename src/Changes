@@ -1,5 +1,27 @@
 Version 3.4
 
+2/26/04  Error recovery on template copy constructor that copies by value
+
+An abort in select_overloaded_copy_constructor ensued after an
+error on a template copy constructor that copies its own class
+by value.  Now fixed.
+
+  struct Y {
+    Y(){}
+    ~Y(){}
+  };
+  struct X : Y {
+    X();
+    X(X&);
+    operator Y*();
+    X(Y*);
+    template <class T> X(T&){}
+    template <class T> X(T, int i=0){}
+  };
+  X f() {
+    return X();
+  }
+
 2/26/04  Spurious error on redeclared dependent typedef
 
 A spurious error was issued if a typedef name was redeclared with a

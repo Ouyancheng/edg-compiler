@@ -1998,6 +1998,7 @@ if this is the function declarator in a friend function declaration.
                 pos_ty_error(ec_bad_constructor_param,
                              &pos_of_first_param_type, parent_type);
                 extra_info->param_type_list->type = error_type();
+                extra_info->param_type_list->passed_via_copy_constructor=FALSE;
                 may_be_copy_constructor = FALSE;
               }  /* if */
             }  /* if */
