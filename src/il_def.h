@@ -5433,15 +5433,6 @@ typedef struct a_scope {
 			   in the order in which the initialization or
 			   destruction should be performed (ARM 12.6.2). */
       an_object_lifetime_ptr
-		lifetime_of_constructor_inits;
-			/* If non-NULL, points to an object lifetime for
-			   the entities created on the constructor_inits
-			   list.  Cleanup for this lifetime should be done
-			   after the cleanup for the function lifetime.
-			   It's implied at that point, rather than being in
-			   the object lifetime parent chain explicitly.
-			   Only non-NULL when exception handling is enabled. */
-      an_object_lifetime_ptr
 		lifetime_of_local_static_vars;
 			/* If non-NULL, points to an object lifetime for
 			   the local static variables declared within the
