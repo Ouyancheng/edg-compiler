@@ -1983,7 +1983,7 @@ prototype scope, update the end-of-construct entry to point to rp.
     sseocp->entity.ptr = (char *)rp;
   }  /* if */
 }  /* fixup_end_of_func_prototype_ss_entry */
-    
+
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static void function_declarator(a_type_ptr        *new_type_ptr,
@@ -2024,6 +2024,7 @@ scope is that of a class definition.
   a_symbol_locator        param_locator;
   a_type_ptr              bottom_derived_type;
   a_boolean               done;
+  a_boolean               any_params;
   a_source_position       start_pos, param_type_pos;
   a_routine_type_supplement_ptr
                           extra_info;
@@ -2064,6 +2065,7 @@ scope is that of a class definition.
       /* In C, f() is an old-style empty parameter list. */
       extra_info->prototyped = FALSE;
     }  /* if */
+    any_params = FALSE;
   } else if (curr_token == tok_ellipsis && C_dialect == C_dialect_cplusplus) {
     if (is_destructor) {
       /* Destructors are allowed no arguments. */
@@ -2076,6 +2078,7 @@ scope is that of a class definition.
     }  /* if */
     /* Advance past the ellipsis. */
     (void)get_token();
+    any_params = FALSE;
   } else {
     /* Determine whether this is an old-style list of identifiers or
        a prototyped parameter list. */
@@ -2086,52 +2089,55 @@ scope is that of a class definition.
       /* Not a member function -- examine the first token. */
       extra_info->prototyped = is_prototyped_parameter_list_start();
     }  /* if */
-    if (extra_info->prototyped) {
-      /* ANSI function prototype, as in
+    any_params = TRUE;
+  }  /* if */
+  if (extra_info->prototyped) {
+    /* ANSI function prototype, as in
 
          int f(int a, char *b)
                or
          int f(int, char *)
 
-      */
-      if (C_dialect == C_dialect_cplusplus) {
-        a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-        while (ssep->kind == (a_scope_kind)sck_class_reactivation) {
-          --ssep;
-        }  /* if */
-        if (ssep->kind == (a_scope_kind)sck_pragma) {
-          /* Disallow default arguments in function declarations within a
-             pragma. */
-        } else {
-          /* In C++ mode a default argument may be declared with the parameter
-             unless the function is a user-defined overloaded operator (except
-             operator()(), as an extension) or a user-defined conversion.  Note
-             that locator may be NULL (e.g., with abstract declarators). */
-          /* operator new() can also take default arguments in the second and
-             successive arguments -- this is implied by ARM 13.4, which
-             excludes operator new() from the restrictions that are listed for
-             overloaded operators in general.  We don't set the flag till after
-             the first parameter has been seen, however; see below. */
-          if (locator != NULL && !locator->is_conversion_name &&
-              (!locator->is_operator_name ||
-               locator->variant.opname == (an_opname_kind)onk_function_call)) {
-            default_arg_expr_allowed = TRUE;
-          }  /* if */
+    */
+    if (any_params && C_dialect == C_dialect_cplusplus) {
+      a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+      while (ssep->kind == (a_scope_kind)sck_class_reactivation) {
+        --ssep;
+      }  /* if */
+      if (ssep->kind == (a_scope_kind)sck_pragma) {
+        /* Disallow default arguments in function declarations within a
+           pragma. */
+      } else {
+        /* In C++ mode a default argument may be declared with the parameter
+           unless the function is a user-defined overloaded operator (except
+           operator()(), as an extension) or a user-defined conversion.  Note
+           that locator may be NULL (e.g., with abstract declarators). */
+        /* operator new() can also take default arguments in the second and
+           successive arguments -- this is implied by ARM 13.4, which
+           excludes operator new() from the restrictions that are listed for
+           overloaded operators in general.  We don't set the flag till after
+           the first parameter has been seen, however; see below. */
+        if (locator != NULL && !locator->is_conversion_name &&
+            (!locator->is_operator_name ||
+             locator->variant.opname == (an_opname_kind)onk_function_call)) {
+          default_arg_expr_allowed = TRUE;
         }  /* if */
       }  /* if */
-      /* Push a function prototype scope for the parameters. */
-      (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
-                       *new_type_ptr, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
-                       (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
-      /* Remember the scope number for later use if and when a body appears. */
-      func_info->scope_number = scope_stack[depth_scope_stack].number;
-      last_param_type = NULL;
-      switch_to_file_scope_region(&region_to_switch_back_to);
+    }  /* if */
+    /* Push a function prototype scope for the parameters. */
+    (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
+                     *new_type_ptr, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL);
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    /* Remember the scope number for later use if and when a body appears. */
+    func_info->scope_number = scope_stack[depth_scope_stack].number;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (func_info != &local_func_info_block) {
-        ss_entry_start_prev = init_param_source_sequence_sublist();
-      }  /* if */
+    if (func_info != &local_func_info_block) {
+      ss_entry_start_prev = init_param_source_sequence_sublist();
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (any_params) {
+      last_param_type = NULL;
       do {
         add_stop_token(tok_comma);
         copy_source_position(pos_curr_token, param_type_pos);
@@ -2481,66 +2487,66 @@ scope is that of a class definition.
         }  /* if */
         remove_stop_token(tok_comma);
       } while (!done);
-      /* Save the list of symbols for the prototype scope (usually NULL, but
-         can have symbols for named types declared within the prototype). */
-      if (func_info != &local_func_info_block) {
-        /* Note that a pointer to the current entry of scope_stack is not saved
-           from earlier in this routine because scope_stack might have been
-           reallocated in the interim. */
-        func_info->prototype_scope_symbols =
+    }  /* if */
+    /* Save the list of symbols for the prototype scope (usually NULL, but
+       can have symbols for named types declared within the prototype). */
+    if (func_info != &local_func_info_block) {
+      /* Note that a pointer to the current entry of scope_stack is not saved
+         from earlier in this routine because scope_stack might have been
+         reallocated in the interim. */
+      func_info->prototype_scope_symbols =
                                         scope_stack[depth_scope_stack].symbols;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        /* Add a source sequence entry marking the end of the function
-           prototype scope. */
-        add_end_of_construct_source_sequence_entry(
+      /* Add a source sequence entry marking the end of the function
+         prototype scope. */
+      add_end_of_construct_source_sequence_entry(
                                            (char *)NULL,
                                            (a_byte_il_entry_kind)iek_routine);
-        /* Record the start and end of the prototype scope. */
-        terminate_param_source_sequence_sublist(func_info,
-                                                ss_entry_start_prev);
+      /* Record the start and end of the prototype scope. */
+      terminate_param_source_sequence_sublist(func_info,
+                                              ss_entry_start_prev);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      }  /* if */
-      switch_back_to_original_region(region_to_switch_back_to);
-      /* Pop the function prototype scope. */
-      pop_scope();
-    } else {
-      /* Old-style list of identifiers. */
-      if (func_info == &local_func_info_block) {
-        /* This type of parameter list is not valid in abstract declarators
-           and non-top-level function declarators. */
-        error(ec_param_id_list_needs_function_def);
-      } else if (C_dialect == C_dialect_cplusplus) {
-        /* This type of parameter list is an anachronism in C++. */
-        diagnostic(anachronism_error_severity, ec_old_style_parameter_list);
-      }  /* if */
-      do {
-        add_stop_token(tok_comma);
-        /* Scan the list of identifiers. */
-        if (curr_token != tok_identifier) {
-          /* Error, expected identifier. */
-          (void)required_token(tok_identifier, ec_exp_identifier);
-        } else {
-          /* See if the identifier is also a typedef name.  Such a name is
-             not allowed (3.7.1, constraints).  In pcc mode, however, this
-             is allowed. */
-          if (C_dialect != C_dialect_pcc && curr_id_is_type_name()) {
-            error(C_mode() ? ec_typedef_cannot_be_param_name :
-                             ec_type_cannot_be_param_name);
-            /* Enter the parameter anyway, for best error recovery. */
-          }  /* if */
-          /* Add the identifier to the parameter id list. */
-          add_to_param_id_list(&locator_for_curr_id, (a_type_ptr)NULL,
-                               (a_source_position*)NULL,
-                               (a_storage_class)sc_unspecified, func_info,
-                               (a_source_sequence_entry_ptr)NULL,
-                               &last_param_id);
-          /* Advance past the identifier. */
-          (void)get_token();
-        }  /* if */
-        remove_stop_token(tok_comma);
-        /* Keep looping on a comma, stop otherwise. */
-      } while (loop_token(tok_comma));
     }  /* if */
+    switch_back_to_original_region(region_to_switch_back_to);
+    /* Pop the function prototype scope. */
+    pop_scope();
+  } else if (any_params) {
+    /* Old-style list of identifiers. */
+    if (func_info == &local_func_info_block) {
+      /* This type of parameter list is not valid in abstract declarators
+         and non-top-level function declarators. */
+      error(ec_param_id_list_needs_function_def);
+    } else if (C_dialect == C_dialect_cplusplus) {
+      /* This type of parameter list is an anachronism in C++. */
+      diagnostic(anachronism_error_severity, ec_old_style_parameter_list);
+    }  /* if */
+    do {
+      add_stop_token(tok_comma);
+      /* Scan the list of identifiers. */
+      if (curr_token != tok_identifier) {
+        /* Error, expected identifier. */
+        (void)required_token(tok_identifier, ec_exp_identifier);
+      } else {
+        /* See if the identifier is also a typedef name.  Such a name is
+           not allowed (3.7.1, constraints).  In pcc mode, however, this
+           is allowed. */
+        if (C_dialect != C_dialect_pcc && curr_id_is_type_name()) {
+          error(C_mode() ? ec_typedef_cannot_be_param_name :
+                           ec_type_cannot_be_param_name);
+          /* Enter the parameter anyway, for best error recovery. */
+        }  /* if */
+        /* Add the identifier to the parameter id list. */
+        add_to_param_id_list(&locator_for_curr_id, (a_type_ptr)NULL,
+                             (a_source_position*)NULL,
+                             (a_storage_class)sc_unspecified, func_info,
+                             (a_source_sequence_entry_ptr)NULL,
+                             &last_param_id);
+        /* Advance past the identifier. */
+        (void)get_token();
+      }  /* if */
+      remove_stop_token(tok_comma);
+      /* Keep looping on a comma, stop otherwise. */
+    } while (loop_token(tok_comma));
   }  /* if */
   if (func_info == &local_func_info_block) {
     if (local_func_info_block.param_id_list != NULL) {
@@ -8628,7 +8634,7 @@ and for the instantiation of template functions.
   is_instantiation = (flags & SFB_IS_INSTANTIATION) != 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!func_info->function_type_from_typedef &&
-      func_info->param_id_list != NULL &&
+      func_info->prototype_scope_ss_entry_start != NULL &&
       depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
     a_source_sequence_entry_ptr  starting_ssep, ending_ssep;
@@ -8690,7 +8696,7 @@ and for the instantiation of template functions.
   } else {
     /* Correctly declared function type. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    if (func_info->param_id_list != NULL &&
+    if (func_info->prototype_scope_ss_entry_start != NULL &&
         depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
         depth_template_declaration_scope == NO_SCOPE_DEPTH) {
       /* Step through the segment of file-scope source sequence entries
@@ -8720,17 +8726,14 @@ and for the instantiation of template functions.
             for (; param_id != NULL; param_id = param_id->next) {
               if (param_id->source_sequence_entry == ssep) break;
             }  /* for */
-            if (param_id != NULL) {
-              /* Take the entry off the file-scope list and add one (also
-                 empty so far) to the function-scope list. */
-              ssep->next = stack_ptr->source_sequence_avail_list;
-              stack_ptr->source_sequence_avail_list = ssep;
-              param_id->source_sequence_entry =
-                                            add_empty_source_sequence_entry();
-              break;
-            } else {
-              /* Param type within a type entry.  Fall though. */
-            }  /* if */
+            check_assertion(param_id != NULL);
+            /* Take the entry off the file-scope list and add one (also
+               empty so far) to the function-scope list. */
+            ssep->next = stack_ptr->source_sequence_avail_list;
+            stack_ptr->source_sequence_avail_list = ssep;
+            param_id->source_sequence_entry =
+                                          add_empty_source_sequence_entry();
+            break;
           default:
             /* For types (as well as other miscellany, such as fields in a
                C struct definition), add the entries to a sublist of the
