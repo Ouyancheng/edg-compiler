@@ -844,7 +844,7 @@ routine.
 }  /* create_proxy_or_nonreal_class_member */
 
 
-a_symbol_ptr add_member_to_proxy_or_nonreal_class
+static a_symbol_ptr add_member_to_proxy_or_nonreal_class
 					(a_type_ptr	          class_type,
 					 an_id_lookup_options_set options,
 					 a_symbol_locator         *locator)

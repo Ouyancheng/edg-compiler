@@ -240,11 +240,6 @@ extern a_symbol_list_entry_ptr argument_dependent_lookup(
 					a_symbol_locator	*locator,
 					a_type_list_entry_ptr	*type_list);
 
-extern a_symbol_ptr add_member_to_proxy_or_nonreal_class
-					(a_type_ptr	          class_type,
-					 an_id_lookup_options_set options,
-					 a_symbol_locator         *locator);
-
 extern
 a_type_ptr proxy_class_for_template_param(a_type_ptr   templ_param_type);
 
