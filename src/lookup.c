@@ -1432,7 +1432,7 @@ lookup processing.
 {
   a_symbol_ptr		sym = NULL;
   a_symbol_ptr		active_sym;
-  a_symbol_ptr		prev_active_sym;
+  a_symbol_ptr		prev_active_sym = NULL;
 
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
