@@ -597,7 +597,6 @@ what was done in the stack entry.
 
   if (depth_debug_stack >= debug_stack_size - 1) {
     sizeof_t	new_size;
-    sizeof_t	old_size;
     if (debug_stack_size == 0) {
       new_size = DEBUG_STACK_INITIAL_ALLOCATION;
     } else {
