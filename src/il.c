@@ -5494,21 +5494,21 @@ of the front end.
   curr_il_region_number = NULL_region_number;
   curr_initial_il_walk_flag_setting = curr_fs_initial_il_walk_flag_setting =
                                                    0;  /* Arbitrary: 0 or 1. */
-  /* Variable in il_def.h: */
 #if CHECKING
-#if ORPHAN_PROCESSING_NEEDED
-  /* Check that the table of il-entry sizes is correctly initialized, i.e.,
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  /* Variable in il_file.h: */
+  /* Check that the table of IL-entry sizes is correctly initialized, i.e.,
      that the enumeration an_il_entry_kind and the array sizeof_il_entry
      are in sync. */
   if (sizeof_il_entry[(int)iek_last] != IEK_LAST_CHECK_SIZE) {
     internal_error("il_init: bad initialization of sizeof_il_entry");
   }  /* if */
-#endif /* if ORPHAN_PROCESSING_NEEDED */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 #if DEBUG
+  /* Variable in il_def.h: */
   /* Check that the table of storage class names is correctly initialized.
      This guards against someone changing the enumeration and forgetting to
      update db_storage_class_names. */
-
   if (db_storage_class_names[(int)sc_last] == NULL ||
       strcmp(db_storage_class_names[(int)sc_last], "last") != 0) {
     internal_error(
