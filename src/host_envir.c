@@ -1922,7 +1922,7 @@ Set module_id to the string.
        can be used as part of the module ID. */
     for (variable = scope->variables;
          variable != NULL; variable = variable->next) {
-      /* Only consider varibles that are defined.  Make sure that the
+      /* Only consider variables that are defined.  Make sure that the
          init_kind is not none -- this eliminates tentative definitions. */
       if (variable->storage_class == (a_storage_class)sc_unspecified &&
           variable->init_kind != (an_init_kind)initk_none) {
