@@ -3,7 +3,7 @@ Version 3.5
 7/23/04  Embedded C: Diagnostic on argument of fixed-point overflow pragmas
 
 When the argument of a fixed-point overflow pragma was neither "SAT" not
-"DEFAULT" the front end issued a misleading error saying "ON," "OFF," or
+"DEFAULT" the front end issued a misleading warning saying "ON," "OFF," or
 "DEFAULT" was expected.  This is now fixed (the diagnostic now correctly
 says that "SAT" or "DEFAULT" is expected).
 
