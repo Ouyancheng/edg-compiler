@@ -19,8 +19,8 @@ derived class, not using the name of the base class.  For example:
 	class D : public B { void mf()};
 
         void D::mf() {
-		int A::* pmi1 = &A::i;	// error - protected member
-		int B::* pmi2 = &B::i;	// OK
+		int B::* pmi1 = &B::i;	// error - protected member
+		int D::* pmi2 = &D::i;	// OK
 	}
 
 Using "&A::i" is illegal since it would allow "i" to be updated by saying
