@@ -1,5 +1,26 @@
 Version 2.32
 
+4/1/96    Protected member access check suppressed for pointer to member in
+          Microsoft mode
+
+The Microsoft Visual C++ compiler (version 1.51 at least) does not do the
+protected member access check on pointers to members, so that error is now
+suppressed in Microsoft-compatibility mode.
+
+  class Base {
+  protected:
+    void f();
+  };
+  class Derived : public Base {
+    void d();
+  };
+  void Derived::d() {
+    void (Base::*fp)() = Base::f;  // Okay in Microsoft mode
+  }
+
+Also, the diagnostic for the special protected member access check has been
+made a discretionary error (in all modes).
+
 3/29/96   Abort when not using checking code
 
 A bug has been fixed that would cause an abort to occur in
