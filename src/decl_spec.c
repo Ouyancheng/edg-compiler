@@ -845,7 +845,9 @@ used for diagnostics.
         ctsp->uuid_string = extended_decl_info->decl_modifiers.uuid_string;
       }  /* if */
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (extended_decl_info->decl_modifiers.is_deprecated) {
     class_type->source_corresp.is_deprecated = TRUE;
   }  /* if */
