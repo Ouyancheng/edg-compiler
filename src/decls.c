@@ -4095,14 +4095,18 @@ skip_overloading:;
                              "decl_routine: bad opname kind");
       }  /* if */
 #endif /* CHECKING */
-      routine_ptr->compiler_generated = FALSE;
-      check_assertion_str(sym->decl_position.seq == 0,
-                          "decl_routine: decl position already set");
-      /* Record the new source position, both in the symbol and in the
-         routine entry. */
-      sym->decl_position = locator->source_position;
-      routine_ptr->source_corresp.decl_position = sym->decl_position;
-      suppress_diagnostic = TRUE;
+      if (!redeclaration) {
+        /* This is probably a block-extern declaration. */
+      } else {
+        routine_ptr->compiler_generated = FALSE;
+        check_assertion_str(sym->decl_position.seq == 0,
+                            "decl_routine: decl position already set");
+        /* Record the new source position, both in the symbol and in the
+           routine entry. */
+        sym->decl_position = locator->source_position;
+        routine_ptr->source_corresp.decl_position = sym->decl_position;
+        suppress_diagnostic = TRUE;
+      }  /* if */
     }  /* if */
 #if ASM_FUNCTION_ALLOWED
     if (storage_class == (a_storage_class)sc_asm ||

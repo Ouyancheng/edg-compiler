@@ -1,5 +1,14 @@
 Version 2.33
 
+9/25/96 Declaring a predeclared operator new/delete at function/block scope
+
+An internal error used to occur when a function/block scope declaration
+specified a predeclared operator new or delete:
+
+  void f() {
+    void *operator new(size_t);   // Internal error is no longer produced
+  }
+
 9/25/96 Diagnostic on unreferenced function parameters
 
 A new error code, ec_unreferenced_function_param, is now used to report
