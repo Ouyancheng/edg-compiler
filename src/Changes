@@ -1,5 +1,13 @@
 Version 2.37
 
+9/2/97    Missing test for exceeding maximum number of scopes
+
+The front end did not check for overflow when the next scope number was
+incremented.  If the scope number exceeded the value that could be
+stored in a short, unpredictable behavior, including aborts and
+internal errors, could occur.  An overflow test has been added, and
+the size of a_scope_number has been changed to a long.
+
 8/25/97   Cost of builtin conversions in overload resolution should ignore
           cv-qualifiers
 

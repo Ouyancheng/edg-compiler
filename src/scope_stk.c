@@ -826,6 +826,10 @@ to the declaration information for the template declaration scope being pushed.
     ssep->number       = scope_number_to_reuse;
   } else {
     /* Assign a new scope number for other kinds of scopes. */
+    if (next_scope_number == MAX_SCOPE_NUMBER) {
+      /* The number of scopes exceeds the size of the scope number field. */
+      catastrophe(ec_program_too_large);
+    }  /* if */
     ssep->number       = next_scope_number++;
   }  /* if */
   /* Save the current IL memory region for restoration by pop_scope.  That's

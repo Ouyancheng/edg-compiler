@@ -6480,8 +6480,8 @@ number is created.  In C++, a class/struct/union has a true scope
 associated with it.  These scope numbers are mostly of interest to the
 front end.
 */
-typedef short a_scope_number;
-#define MAX_SCOPE_NUMBER SHRT_MAX
+typedef long a_scope_number;
+#define MAX_SCOPE_NUMBER LONG_MAX
 #define NO_SCOPE_NUMBER (-1)
 			/* Scope number used for things without scope. */
 #define FILE_SCOPE_NUMBER 0
