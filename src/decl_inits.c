@@ -1982,7 +1982,9 @@ this function points to a tree that includes a dynamic-init entry.
              lower-level list.  In either case, however, if a comma was
              just taken, it is "extra" and no extra comma should be allowed
              outside the loop. */
-          if (curr_token == tok_rbrace) {
+          if (!any_more_initializers) {
+            /* We already know nothing follows. */
+          } else if (curr_token == tok_rbrace) {
             took_extra_comma = any_more_initializers;
             any_more_initializers = FALSE;
           } else if (designator_coming((a_boolean *)NULL)) {
