@@ -1,5 +1,12 @@
 Version 2.46
 
+1/10/01  #ident/#pragma ident string incorrectly rendered by C/C++-generating
+         back ends
+
+The C- and C++-generating back ends used to replace special (e.g., tab)
+characters in #ident/#pragma ident directives by their escaped form
+(e.g., '\t').  This is now fixed.
+
 1/9/01   Internal error when initializing a block extern variable length array
 
 The front end used to abort when encountering a block extern variable with

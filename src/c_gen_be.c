@@ -1782,7 +1782,11 @@ Dump a single #pragma from the IL entry.
 #else /* !USE_PRAGMA_IDENT_IN_GENERATED_CODE */
       write_str("#ident ");
 #endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
-      dump_constant(pp->variant.ident_string);
+      /* Don't use gen_constant because special characters should not
+         be escaped (e.g., a tab character should not be emitted as '\t'). */
+      write_str("\"");
+      write_str(pp->variant.ident_string->variant.string.value);
+      write_str("\"");
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
     } else {
       check_assertion_str(pp->pragma_text != NULL,
