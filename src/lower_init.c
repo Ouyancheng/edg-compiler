@@ -1742,15 +1742,15 @@ The routine must have a "this" parameter.
        are removed from the routine's interface. */
     for (; src_param_type != NULL && !src_param_type->has_default_arg;
          src_param_type = src_param_type->next) {
-      pass_through_param_type = src_param_type->type;
       /* If the parameter is passed via a copy constructor and it has
          not been lowered, replace it by a pointer to the object.
          Note that a second copy constructor call (i.e., one within
          the generated routine) is not necessary. */
       if (src_param_type->passed_via_copy_constructor &&
           !visited_yet(src_param_type)) {
-        pass_through_param_type = make_pointer_type(pass_through_param_type);
+        add_indirection_to_cctor_param_type(src_param_type);
       }  /* if */
+      pass_through_param_type = src_param_type->type;
       param_type = alloc_param_type(pass_through_param_type);
       /* It is not necessary to clear il_lowering_flag; the entry does not need
          to be lowered.  Also note that the parameter types will be lowered

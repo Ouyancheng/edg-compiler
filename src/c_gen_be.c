@@ -284,11 +284,13 @@ static void dump_cast(a_type_ptr type);
 static void dump_declaration_using_type(a_type_ptr              type,
                                         a_source_correspondence *scp);
 static void dump_general_declaration_using_type(
-                                       a_type_ptr              type,
-                                       a_source_correspondence *scp,
-                                       a_variable_ptr          var,
-                                       char                    *temp,
-                                       a_boolean               suppress_const);
+                                      a_type_ptr              type,
+                                      a_source_correspondence *scp,
+                                      a_variable_ptr          var,
+                                      char                    *temp,
+                                      a_type_qualifier_set    added_qualifiers,
+                                      a_boolean               suppress_const);
+
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens);
 /* Interfaces to dump_expr for the usual cases. */
@@ -1284,14 +1286,20 @@ is non-NULL, in which case that is the function scope.
                names. */
             dump_general_declaration_using_type(param_var->type,
                                                 &param_var->source_corresp,
-                                                param_var, NO_TEMP,
+                                                param_var, NO_TEMP, TQ_NONE,
                                                 /*suppress_const=*/FALSE);
             param_var = param_var->next;
           } else
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
           {
             /* This is just a declaration, so put out the type and no name. */
-            dump_declaration_using_type(param->type, NO_NAME);
+            /* If the type was qualified in the original, and the qualifiers
+               were removed in C++, restore them here. */
+            dump_general_declaration_using_type(param->type, NO_NAME,
+                                                NO_VARIABLE, NO_TEMP,
+                                                (a_type_qualifier_set)
+                                                             param->qualifiers,
+                                                /*suppress_const=*/FALSE);
           }
           param = param->next;
           if (param == NULL) break;
@@ -1329,11 +1337,12 @@ il_to_str routines.
 
 
 static void dump_general_declaration_using_type(
-                                        a_type_ptr              type,
-                                        a_source_correspondence *scp,
-                                        a_variable_ptr          var,
-                                        char                    *temp,
-                                        a_boolean               suppress_const)
+                                      a_type_ptr              type,
+                                      a_source_correspondence *scp,
+                                      a_variable_ptr          var,
+                                      char                    *temp,
+                                      a_type_qualifier_set    added_qualifiers,
+                                      a_boolean               suppress_const)
 /*
 Output a declaration built around a type.  "type" gives the type.  The
 rest of the arguments specify the name, if any, to be placed in the
@@ -1342,8 +1351,9 @@ correspondence entry for the entity being declared, or NULL if there is
 no name.  If var is non-NULL, it points to a variable being declared (and
 &scp == &var->source_corresp); var is ignored if scp is NULL.  If temp is
 non-NULL, it gives the address of an IL entry from which a temporary name
-is to be generated.  If suppress_const is TRUE, suppress generation
-of top-level "const" in ANSI C mode.
+is to be generated.  If added_qualifiers is not zero, the indicated
+qualifiers are added on top of the type.  If suppress_const is TRUE,
+suppress generation of top-level "const" in ANSI C mode.
 */
 {
   a_form_type_options_set options = FTO_NO_OPTIONS;
@@ -1352,7 +1362,7 @@ of top-level "const" in ANSI C mode.
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL || temp != NULL),
-                       TQ_NONE, options, &octl);
+                       added_qualifiers, options, &octl);
   /* Write the name if there is one. */
   if (scp != NULL) {
     /* Write the name. */
@@ -1380,7 +1390,7 @@ correspondence entry for the entity being declared, or NULL if there is
 no name.
 */
 {
-  dump_general_declaration_using_type(type, scp, NO_VARIABLE, NO_TEMP,
+  dump_general_declaration_using_type(type, scp, NO_VARIABLE, NO_TEMP, TQ_NONE,
                                       /*suppress_const=*/FALSE);
 }  /* dump_declaration_using_type */
 
@@ -1593,7 +1603,7 @@ Output the definition of the indicated struct or union type.
            can assign to this member and the overall struct. */
         dump_general_declaration_using_type(field->type,
                                             &field->source_corresp,
-                                            NO_VARIABLE, NO_TEMP,
+                                            NO_VARIABLE, NO_TEMP, TQ_NONE,
                                             /*suppress_const=*/TRUE);
         write_tok_ch(';');
       } else {
@@ -1640,7 +1650,7 @@ Output the definition of the indicated struct or union type.
             }  /* if */
             dump_general_declaration_using_type(eff_type,
                                                 &field->source_corresp,
-                                                NO_VARIABLE, NO_TEMP,
+                                                NO_VARIABLE, NO_TEMP, TQ_NONE,
                                                 /*suppress_const=*/TRUE);
             write_tok_ch(';');
           }  /* if */
@@ -3511,7 +3521,7 @@ out in this way to guarantee their alignment.
     set_output_position(&constant->source_corresp.decl_position);
     write_tok_str("static ");
     dump_general_declaration_using_type(constant->type, NO_NAME,
-                                        NO_VARIABLE, (char *)constant,
+                                        NO_VARIABLE, (char *)constant, TQ_NONE,
                                         /*suppress_const=*/FALSE);
     write_tok_str(" = {");
     dump_exploded_wide_string(constant);
@@ -3951,7 +3961,7 @@ parameters.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
         dump_general_declaration_using_type(var_type,
                                             &variable->source_corresp,
-                                            variable, NO_TEMP,
+                                            variable, NO_TEMP, TQ_NONE,
                                             suppress_const);
 #if !C_GEN_BE_GENERATES_ANSI_C
       }  /* if */
@@ -4567,7 +4577,7 @@ its subtree.
         } else {
           /* Declare the temporary. */
           dump_general_declaration_using_type(op1_type, NO_NAME, NO_VARIABLE,
-                                              (char *)node,
+                                              (char *)node,  TQ_NONE,
                                               /*suppress_const=*/FALSE);
           write_tok_ch(';');
         }  /* if */
@@ -4699,7 +4709,7 @@ function.  scope is the associated scope.
     set_output_position(&param_var->source_corresp.decl_position);
     dump_general_declaration_using_type(param_var->type,
                                         &param_var->source_corresp,
-                                        param_var, NO_TEMP,
+                                        param_var, NO_TEMP, TQ_NONE,
                                         /*suppress_const=*/FALSE);
     write_tok_ch(';');
   }  /* for */

@@ -3745,6 +3745,22 @@ not lowered at this time (see lower_destructor_code).
 }  /* lower_destructor_routine_type */
 
 
+void add_indirection_to_cctor_param_type(a_param_type_ptr ptp)
+/*
+ptp points to a parameter type entry for a parameter passed via a copy
+constructor.  Change it to add an indirection to the type.
+*/
+{
+  /* If the original type was qualified on the definition of
+     the function (and the qualifiers were removed because they
+     only mean something inside the function), put the
+     qualifiers back on the type under the pointer. */
+  ptp->type = make_pointer_type(make_qualified_type(ptp->type,
+                                                    ptp->qualifiers));
+  ptp->qualifiers = TQ_NONE;
+}  /* add_indirection_to_cctor_param_type */
+
+
 void lower_type(a_type_ptr type)
 /*
 Do IL lowering of the indicated type and everything under it.
@@ -3875,7 +3891,7 @@ Do IL lowering of the indicated type and everything under it.
               /* If the parameter must be passed using a copy constructor,
                  change its type to pointer-to-class. */
               if (ptp->passed_via_copy_constructor) {
-                ptp->type = make_pointer_type(ptp->type);
+                add_indirection_to_cctor_param_type(ptp);
               } /* if */
               /* Clear the default_arg_expr field to make the IL more
                  like C IL.  Note this throws away the expression. */
