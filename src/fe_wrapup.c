@@ -33,14 +33,14 @@ fe_wrapup.c - End of front end processing.
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
-#if NEED_NAME_MANGLING
+#if MANGLE_ALL_NAMES
 #include "lower_name.h"
 #if DO_IL_LOWERING
 #define name_mangling_needed() (il_lowering_needed())
 #else /* !DO_IL_LOWERING */
 #define name_mangling_needed() (!C_mode())
 #endif /* DO_IL_LOWERING */
-#endif /* NEED_NAME_MANGLING */
+#endif /* MANGLE_ALL_NAMES */
 #if DEBUG
 #include "exprutil.h"
 #include "macro.h"
@@ -311,7 +311,7 @@ it needs to be executed after all templates have been instantiated.
        types in secondary translation units are removed. */
     do_based_type_fixup();
   }  /* if */
-#if NEED_NAME_MANGLING
+#if MANGLE_ALL_NAMES
   if (name_mangling_needed()) {
     /* Do name mangling for all entities.  This has to be done before
        the names for statics referenced from templates are externalized. */
@@ -325,7 +325,7 @@ it needs to be executed after all templates have been instantiated.
     }  /* if */
 #endif /* DO_IL_LOWERING */
   }  /* if */
-#endif /* NEED_NAME_MANGLING */
+#endif /* MANGLE_ALL_NAMES */
 }  /* file_scope_il_wrapup_part_1 */
 
 
@@ -500,7 +500,7 @@ already been copied over.
     /* Remove the definitions of any static data members instantiated only for
        the purpose of determining their size. */
     remove_unneeded_static_data_member_instantiations();
-#if NEED_NAME_MANGLING
+#if MANGLE_ALL_NAMES
     if (name_mangling_needed()) {
       /* Do final name mangling, which can make names that can no longer
          be embedded in other names, and therefore must be done very late.
@@ -510,7 +510,7 @@ already been copied over.
          parent classes and functions need to be around still). */
       do_final_name_mangling();
     }  /* if */
-#endif /* NEED_NAME_MANGLING */
+#endif /* MANGLE_ALL_NAMES */
     /* Do removal of unneeded IL entities for the primary translation
        unit.  That was done for secondary translation units in part 3. */
     file_scope_il_wrapup_remove_unneeded_il();

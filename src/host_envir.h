@@ -1082,21 +1082,37 @@ TRUE.
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 
 /*
+Flag that indicates that all names should be mangled in C++.
+Set by default when IL lowering is done.  Can be set explicitly in
+other cases if that's desired.
+*/
+#ifndef MANGLE_ALL_NAMES
+#if DO_IL_LOWERING
+#define MANGLE_ALL_NAMES TRUE
+#else /* !DO_IL_LOWERING */
+#define MANGLE_ALL_NAMES FALSE
+#endif /* DO_IL_LOWERING */
+#endif /* ifndef MANGLE_ALL_NAMES */
+#if !MANGLE_ALL_NAMES && DO_IL_LOWERING
+ #error -- Mangling of all names is needed with IL lowering.
+#endif /* !MANGLE_ALL_NAMES && DO_IL_LOWERING */
+
+/*
 Flag that is TRUE if name mangling is needed.  Automatically TRUE if
 IL lowering is used or if automatic template instantiation is selected.
 Enabling Microsoft extensions also requires mangling to support the special
 __FUNCDNAME__ identifier.
 */
 #ifndef NEED_NAME_MANGLING
-#if DO_IL_LOWERING || AUTOMATIC_TEMPLATE_INSTANTIATION || \
+#if MANGLE_ALL_NAMES || AUTOMATIC_TEMPLATE_INSTANTIATION || \
     MICROSOFT_EXTENSIONS_ALLOWED
 #define NEED_NAME_MANGLING TRUE  /* Do not change this. */
-#else /* !DO_IL_LOWERING ... */
+#else /* !(MANGLE_ALL_NAMES ...) */
 #define NEED_NAME_MANGLING FALSE
-#endif /* DO_IL_LOWERING ... */
+#endif /* MANGLE_ALL_NAMES ... */
 #endif /* ifndef NEED_NAME_MANGLING */
 #if !NEED_NAME_MANGLING && \
-    (DO_IL_LOWERING || AUTOMATIC_TEMPLATE_INSTANTIATION || \
+    (MANGLE_ALL_NAMES || AUTOMATIC_TEMPLATE_INSTANTIATION || \
      MICROSOFT_EXTENSIONS_ALLOWED)
  #error -- Name mangling code is needed.
 #endif /* !NEED_NAME_MANGLING  && ... */
