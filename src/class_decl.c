@@ -5185,12 +5185,23 @@ of the function, and again overloading is a possibility.
       sym = normal_id_lookup(locator, IDL_FRIEND_LOOKUP);
     }  /* if */
     if (is_template_dependent_context()) {
-      /* If the friend declaration appears in a template dependent context,
-         create a dummy routine and associated symbol.  Return that instead of
-         calling decl_routine. */
-      sym = decl_dependent_friend_function(locator, function_type, func_info);
-      goto done;
+      if (func_info->is_definition && locator->is_qualified_name) {
+        /* A member function cannot be defined in a friend declaration. */
+        pos_sy_error(ec_bad_scope_for_definition,
+                     &locator->source_position, sym);
+        sym = NULL;
+        set_to_error_locator(*locator);
+      } else {
+        /* If the friend declaration appears in a template dependent context,
+           create a dummy routine and associated symbol.  Return that instead
+           of calling decl_routine. */
+        sym = decl_dependent_friend_function(locator, function_type,
+                                             func_info);
+        goto done;
+      }  /* if */
     }  /* if */
+  }  /* if */    
+  if (!is_error_locator(*locator)) {
     if (!(microsoft_mode || any_cfront_mode()) ||
         (sym != NULL && sym->ambiguous)) {
       check_ambiguity_and_verify_access(locator);
@@ -5204,15 +5215,7 @@ of the function, and again overloading is a possibility.
         !is_member_function_symbol(sym)) {
       /* If sym represents a member of a class, but it is not a member
          function.  Issue an error. */
-      if (is_template_dependent_context() && is_proxy_member_symbol(sym)) {
-        /* The nominated function is a member of a proxy class.  Such a member
-           must be "made up" (but cannot be defined). */
-        if (func_info->is_definition) {
-          /* A member function cannot be defined in a friend declaration. */
-          pos_sy_error(ec_bad_scope_for_definition,
-                       &locator->source_position, sym);
-        }  /* if */
-      } else if (sym->kind == (a_symbol_kind)sk_projection) {
+      if (sym->kind == (a_symbol_kind)sk_projection) {
         /* A member of a base class. */
         pos_error(ec_inherited_member_not_allowed, &locator->source_position);
       } else {
