@@ -3284,9 +3284,9 @@ pointed to by cssp.
          the symbol table or put on the class scope entry's symbol list.
          Note also that the setting of the ambiguous flag in the overload
          symbol is copied into each new symbol. */
+      a_boolean  ambiguous = orig_sym->variant.projection.ambiguous;
       new_sym = make_projection_symbol(sym, class_type, base_class,
-                                       (a_derivation_step_ptr)NULL,
-                                       orig_sym->variant.projection.ambiguous);
+                                       (a_derivation_step_ptr)NULL, ambiguous);
       new_sym->variant.projection.access =
                                       compute_access(access_for_symbol(sym),
                                                      base_class_access);
