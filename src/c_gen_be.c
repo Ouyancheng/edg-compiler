@@ -4199,23 +4199,12 @@ value.
 */
 {
   a_targ_size_t a, len;
-  unsigned char ch;
-  unsigned int  i;
   unsigned long temp;
   
   len = constant->variant.string.length;
   for (a = 0; a < len; a += targ_sizeof_wchar_t) {
     /* Assemble the right number of bytes into one integer. */
-    temp = 0;
-    for (i = 0; i < targ_sizeof_wchar_t; i++) {
-      if (targ_little_endian) {
-        ch = constant->variant.string.value[a + (targ_sizeof_wchar_t - 1) - i];
-      } else {
-        ch = constant->variant.string.value[a + i];
-      }  /* if */
-      temp <<= targ_char_bit;
-      temp |= ch;
-    }  /* for */
+    temp = extract_wide_char_from_string(constant->variant.string.value + a);
     write_unsigned_num(temp);
     if (a != len-targ_sizeof_wchar_t) write_tok_ch(',');
   }  /* for */

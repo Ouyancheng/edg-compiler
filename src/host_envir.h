@@ -1450,6 +1450,8 @@ extern void change_non_id_characters(char *str);
 extern char *make_module_id(void);
 #endif /* MODULE_ID_NEEDED */
 
+extern unsigned long extract_wide_char_from_string(char *str);
+
 extern void host_envir_one_time_init(void);
 
 extern void host_envir_early_init(void);

@@ -2578,6 +2578,29 @@ and return 1.
 
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
+unsigned long extract_wide_char_from_string(char *str)
+/*
+str points at a wide character represented as a sequence of normal chars.
+Extract the wide character value and return it.
+*/
+{
+  unsigned long wc = 0;
+  unsigned char ch;
+  int           i;
+
+  for (i = 0; i < targ_sizeof_wchar_t; i++) {
+    if (targ_little_endian) {
+      ch = (unsigned char)str[(targ_sizeof_wchar_t - 1) - i];
+    } else {
+      ch = (unsigned char)str[i];
+    }  /* if */
+    wc <<= targ_char_bit;
+    wc |= ch;
+  }  /* for */
+  return wc;
+}  /* extract_wide_char_from_string */
+
+
 void host_envir_one_time_init(void)
 /*
 Do one-time initialization related to host specific processing.  This
