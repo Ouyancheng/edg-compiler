@@ -7825,6 +7825,43 @@ are enabled.
 
 #endif /* GENERATE_EH_TABLES */
 
+static void destroy_curr_lifetime_temporaries(
+                                       a_statement_ptr    *statement,
+                                       a_boolean          *any_temps_destroyed,
+                                       an_insert_location *insert_location)
+/*
+Destroy any temporaries that are active in the current object lifetime.
+If any destructions are done, *any_temps_destroyed is returned TRUE,
+*statement is turned into a block, statement is set to the new location
+of the original statement, the destructions are inserted at the beginning
+of the block, and *insert_location is returned set to allow insertion after
+the destructions and before the original statement.
+*/
+{
+  a_dynamic_init_ptr dip;
+
+  *any_temps_destroyed = FALSE;
+  for (dip = curr_context->latest_initialization;
+       dip != NULL;
+       dip = dip->next_in_destruction_list) {
+    if (dip->has_temporary_lifetime &&
+        !dip->is_freeing_of_storage_on_exception &&
+        !dip->destruction_is_for_partially_constructed_aggregate &&
+        !dip->is_guard_var_for_local_static_var_init) {
+      /* Found a destruction for a temporary.  */
+      /* If this is the first one, make an insert location by rewriting
+         the statement as a block. */
+      if (!*any_temps_destroyed) {
+        *any_temps_destroyed = TRUE;
+        turn_statement_into_block(*statement, insert_location, statement);
+      }  /* if */
+      /* Generate the cleanup action. */
+      gen_one_destruction(dip, insert_location);
+    }  /* if */
+  }  /* for */
+}  /* destroy_curr_lifetime_temporaries */
+
+
 static void destroy_long_lifetime_temporaries_before_statement(
                                                     a_statement_ptr *statement)
 /*
@@ -7838,7 +7875,6 @@ Called only in long lifetime temporaries mode.
   a_boolean          any_temps_destroyed = FALSE;
   a_boolean          need_to_destroy_temps;
   an_insert_location insert_location;
-  a_dynamic_init_ptr dip;
 
   /* We need to destroy the temporaries only if the statement is reachable
      by flowing into it from the preceding code.  For statements other than
@@ -7858,24 +7894,8 @@ Called only in long lifetime temporaries mode.
   if (need_to_destroy_temps) {
     /* Go through the list of destructions, find the ones for temporaries,
        and generate destruction code. */
-    for (dip = curr_context->latest_initialization;
-         dip != NULL;
-         dip = dip->next_in_destruction_list) {
-      if (dip->has_temporary_lifetime &&
-          !dip->is_freeing_of_storage_on_exception &&
-          !dip->destruction_is_for_partially_constructed_aggregate &&
-          !dip->is_guard_var_for_local_static_var_init) {
-        /* Found a destruction for a temporary.  */
-        /* If this is the first one, make an insert location by rewriting
-           the label as a block. */
-        if (!any_temps_destroyed) {
-          any_temps_destroyed = TRUE;
-          turn_statement_into_block(*statement, &insert_location, statement);
-        }  /* if */
-        /* Generate the cleanup action. */
-        gen_one_destruction(dip, &insert_location);
-      }  /* if */
-    }  /* for */
+    destroy_curr_lifetime_temporaries(statement, &any_temps_destroyed,
+                                      &insert_location);
   }  /* if */
   if (exceptions_enabled && any_temps_destroyed) {
     /* Set the current cleanup state, but not if the current statement
@@ -8406,7 +8426,10 @@ Generate any cleanup actions required preceding the indicated goto statement.
         /* Destroy any long lifetime temporaries.  If the statement is turned
            into a block, statement will be updated to point to the original
            statement. */
-        destroy_long_lifetime_temporaries_before_statement(&statement);
+        a_boolean          any_temps_destroyed;
+        an_insert_location insert_location;
+        destroy_curr_lifetime_temporaries(&statement, &any_temps_destroyed,
+                                          &insert_location);
       }  /* if */
     } else {
       /* Some lifetimes are being exited. */
