@@ -294,13 +294,10 @@ extern void warning(an_error_code error_code);
 extern void pos_ty_warning(an_error_code     error_code,
                            a_source_position *error_pos,
                            struct a_type     *type);
-#if 0
-/* This routine is not currently used by the compiler. */
 extern void pos_ty2_warning(an_error_code     error_code,
                             a_source_position *error_pos,
                             struct a_type     *type1,
                             struct a_type     *type2);
-#endif /* 0 */
 extern void pos_opt_ty2_warning(an_error_code     error_code,
                                 a_source_position *error_pos,
                                 struct a_type     *type1,
