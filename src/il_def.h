@@ -499,10 +499,9 @@ typedef struct a_src_seq_secondary_decl {
 
 
 /*
-A source sequence end of construct entry is pointed to from a source
-sequence entry to mark the end of a class or enum definition, the end of
-a function prototype list, or the end of a block.  The kind of construct
-is determined by examining the tagged pointer.
+A source sequence end of construct entry is pointed to from a source sequence
+entry to mark the end of a class or enum definition or the end of a block.
+ The kind of construct is determined by examining the tagged pointer.
 */
 typedef struct a_src_seq_end_of_construct *a_src_seq_end_of_construct_ptr;
 typedef struct a_src_seq_end_of_construct {
@@ -512,11 +511,9 @@ typedef struct a_src_seq_end_of_construct {
 			   that marks the end of the construct. */
   a_tagged_pointer
 		entity;
-			/* Entry identifying the entity (a class or enum type,
-			   a routine entry, or a block statement) for which
-			   this is the terminating token.  (Note that the
-			   end-of-construct for a routine is actually the
-			   end of its function prototype scope.) */
+			/* Entry identifying the entity (a class or enum type
+			   or a block statement) for which
+			   this is the terminating token. */
 } a_src_seq_end_of_construct;
 
 
