@@ -1709,6 +1709,20 @@ confusion.  Do the output in the way described by octl.
       form_pm_constant(constant, /*minimal_casts=*/!octl->gen_compilable_code,
                        need_parens, octl);
       break;
+#if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
+    case ck_stack_offset:
+      octl->output_str("<stack-offset-of: ");
+      form_name(&constant->variant.stack_offset.variable->source_corresp,
+                iek_variable, octl);
+      if (constant->variant.stack_offset.offset != 0) {
+        octl->output_str("+");
+        form_unsigned_num(
+                         (unsigned long)constant->variant.stack_offset.offset,
+                         octl);
+      }  /* if */
+      octl->output_str(">");
+      break;
+#endif /* DO_IL_LOWERING && ... */
     case ck_dynamic_init:
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<dynamic-init-constant>");
