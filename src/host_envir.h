@@ -1060,11 +1060,17 @@ extern sizeof_t seek_to_page_alignment(FILE *file);
 extern void open_mapped_il_temp_file(void);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
-#if (BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C) || DO_IL_LOWERING
+/*
+Determine whether the module ID routines are needed.  They are needed
+if IL lowering is used or when the C generating back end is not
+generating ANSI C.  We only test for IL lowering because IL lowering
+is required when using the C generating back end.
+*/
+#if DO_IL_LOWERING
 #define MODULE_ID_NEEDED TRUE
-#else /* !(BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C) || DO_IL_LOWERING */
+#else /* !DO_IL_LOWERING */
 #define MODULE_ID_NEEDED FALSE
-#endif /* (BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C) || DO_IL_LOWERING */
+#endif /* !DO_IL_LOWERING */
 
 #if MODULE_ID_NEEDED
 extern void change_non_id_characters(char *str);
