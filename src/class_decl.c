@@ -7535,7 +7535,7 @@ is set to NULL by this function.
     }  /* if */
     if (exceptions_enabled && compiler_generated) {
       /* A compiler generated constructor, destructor, or assignment
-         operator is assumed to through any exception that can be thrown
+         operator is assumed to throw any exception that can be thrown
          a base-class function it will call. */
       form_exception_specification_for_generated_function(rtn);
     }  /* if */
