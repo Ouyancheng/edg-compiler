@@ -2160,10 +2160,10 @@ Display the indicated field.
     disp_unsigned_long("offset_bit_remainder",
                        (unsigned long)ptr->offset_bit_remainder);
     disp_unsigned_long("bit_size", (unsigned long)ptr->bit_size);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
     disp_ptr("bit_size_constant", (char *)ptr->bit_size_constant,
              iek_constant);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
     if (ptr->declared_bit_size != ptr->bit_size) {
       disp_unsigned_long("declared_bit_size", ptr->declared_bit_size);
 #if BACK_END_IS_C_GEN_BE

@@ -9108,9 +9108,9 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   (void)get_token();
   /* Scan the integral size in bits of the bit-field. */
   scan_fs_integral_constant_expression(&constant);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
   field->bit_size_constant = alloc_shareable_constant(&constant);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
   if (is_error_constant(&constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */
     declared_bit_field_size = bit_field_size = targ_char_bit;

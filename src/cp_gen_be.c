@@ -4327,11 +4327,11 @@ declaration following this one is such a continuation.
   if (field->is_bit_field) {
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
     if (field->bit_size_constant != NULL) {
       gen_constant(field->bit_size_constant, /*need_parens=*/FALSE);
     } else
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
     /* Do not insert code here */
     {
       write_unsigned_num((unsigned long)field->bit_size);

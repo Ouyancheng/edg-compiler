@@ -1892,9 +1892,9 @@ to it.
 #if CHECKING
   fp->avoid_codecenter_warnings = 0;
 #endif /*CHECKING */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
   fp->bit_size_constant    = NULL;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   fp->get_property_name    = NULL;
   fp->put_property_name    = NULL;

@@ -1010,9 +1010,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_field_ptr, iek_field);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         definition_needed_if_class(ptr->type);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
         walk_ptr(ptr->bit_size_constant, a_constant_ptr, iek_constant);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->get_property_name, iek_other_text, 0);
         walk_string_ptr(ptr->put_property_name, iek_other_text, 0);

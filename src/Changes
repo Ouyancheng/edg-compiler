@@ -1,5 +1,20 @@
 Version 3.4
 
+10/16/03 Use of RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL vs.
+         RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+The configuration macro RECORD_CONSTANT_EXPRESSIONS_IN_IL was originally
+introduced (see Changes entry of 10/18/99) to record the detailed structure
+of constant expressions for source analysis purposes.  The introduction of
+the IA-64 ABI required this facility for other purposes in some circumstances.
+A new configuration macro RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL was
+therefore introduced for source analysis applications, so that the original
+RECORD_CONSTANT_EXPRESSIONS_IN_IL could be used for cases that are needed by
+both the IA-64 ABI implementation and source analysis applications.  However,
+a few places that are only needed by source analysis applications were still
+guarded by the original RECORD_CONSTANT_EXPRESSIONS_IN_IL macro (mostly uses
+of the bit_size_constant field in a_field entries).  This is now fixed.
+
 10/16/03 GNU IA-64 ABI: Spurious padding after base with bit field
 
 GNU C++ 3.3.x has a bug that causes it to sometimes insert extra padding

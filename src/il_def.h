@@ -6162,12 +6162,12 @@ typedef struct a_field {
 			   and have not been declared in the source,
 			   e.g., the virtual function table pointer. */
   bitfield_to_avoid_codecenter_warnings()
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
   a_constant_ptr
 		bit_size_constant;
 			/* An IL constant representing the size of the bit
 			   field.  (NULL if this is not a bit field.) */ 
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   char		*get_property_name,
 		*put_property_name;
