@@ -9774,7 +9774,8 @@ enum an_ms_attribute_arg_kind_tag {
   msaak_boolean,
   msaak_string,
   msaak_uuid,
-  msaak_enumeration
+  msaak_enumeration,
+  msaak_other
 };
 
 /* Define as "a_byte" to explicitly control storage size. */
@@ -9798,7 +9799,7 @@ typedef struct an_ms_attribute_arg {
     /* When kind is msaak_boolean. */
     a_boolean	bool_value;
 			/* The boolean value specified. */
-    /* When kind is msaak_string. */
+    /* When kind is msaak_string or msaak_other. */
     char	*string;
 			/* The string specified. */
     /* When kind is msaak_uuid. */
@@ -9826,6 +9827,10 @@ typedef struct an_ms_attribute {
 			/* Pointer to the next attribute in an attribute
 			   block, or NULL if there are no more attributes in
 			   the block. */
+  a_tagged_pointer
+		entity;
+			/* Information about the entity to which the
+			   attribute applies. */
   char		*name;
 			/* The name of the attribute. */
   char		*string;

@@ -8510,6 +8510,17 @@ stop_token_array.
 }  /* flush_tokens */
 
 
+void flush_tokens_without_warning(void)
+/*
+This routine is like flush_tokens, except that the warning that is sometimes
+issues when several lines are flushed is suppressed.
+*/
+{
+  flush_tokens_with_stop_tokens_and_warning_flag(
+          curr_stop_token_stack_entry->stop_tokens, /*suppress_warning=*/TRUE);
+}  /* flush_tokens_without_warning */
+
+
 void flush_to_closing_paren(void)
 /*
 Flush tokens until we reach an unmatched right parenthesis.

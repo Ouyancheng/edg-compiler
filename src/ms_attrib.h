@@ -25,14 +25,16 @@ ms_attrib.h -- Declarations related to ms_attrib.c (Microsoft attribute
 Value that identifies the kind of entity to which a given attribute kind
 applies.
 */
-typedef enum /* an_ms_attribute_target */ {
-  msat_none,
-  msat_class,
-  msat_method,
-  msat_parameter,
-  msat_standalone,
-  mast_last
-} an_ms_attribute_target;
+#define MSAT_NONE	0x0
+#define MSAT_STANDALONE	0x1
+#define MSAT_CLASS	0x2
+#define MSAT_METHOD	0x4
+#define MSAT_PARAMETER	0x8
+
+/*
+Storage size used to represent a target bit set.
+*/
+typedef a_byte	an_ms_attribute_target;
 
 /*
 Entry used to represent a parameter description for a Microsoft attribute.
@@ -97,7 +99,8 @@ extern an_ms_attribute_ptr scan_microsoft_attributes(a_boolean	is_parameter);
 
 extern
 void apply_microsoft_attributes(an_ms_attribute_ptr	*attributes,
-				a_source_correspondence	*scp,
+				char			*entity,
+				an_il_entry_kind	kind,
 				an_ms_attribute_target	target);
 
 extern void verify_standalone_attributes(an_ms_attribute_ptr	*attributes);

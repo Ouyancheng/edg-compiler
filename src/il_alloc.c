@@ -3617,6 +3617,8 @@ and return a pointer to it.
   msap->kind = (an_ms_attribute_kind)msak_none;
   msap->next = NULL;
   msap->next_in_block = NULL;
+  msap->entity.kind = (a_byte_il_entry_kind)iek_none;
+  msap->entity.ptr  = NULL;
   msap->string = NULL;
   msap->arg_list = NULL;
   msap->name = NULL;
@@ -3649,6 +3651,7 @@ values, and return a pointer to it.
       msaap->variant.bool_value = 0;
       break;
     case msaak_string:
+    case msaak_other:
       msaap->variant.string = NULL;
       break;
     case msaak_uuid:

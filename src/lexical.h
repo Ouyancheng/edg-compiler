@@ -1966,6 +1966,7 @@ extern void flush_tokens_with_stop_tokens_and_warning_flag(
 				a_boolean		suppress_warning);
 extern void flush_to_closing_paren(void);
 extern void flush_tokens(void);
+extern void flush_tokens_without_warning(void);
 extern void flush_to_end_of_arg_list(void);
 
 /*
