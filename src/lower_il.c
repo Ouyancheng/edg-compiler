@@ -9257,7 +9257,8 @@ the try-block has been rewritten).
     for (handler = tsp->handlers;
          handler->next != NULL;
          handler = handler->next) {}
-    final_position = handler->statement->variant.block.extra_info->position;
+    final_position = handler->statement->variant.block.extra_info->
+                                                                final_position;
   }
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   statement->variant.block.extra_info->final_position = final_position;
