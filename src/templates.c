@@ -329,6 +329,9 @@ might not be able to if the template itself has not yet been defined.
       class_type->size = 1;
     } else {
       /* We proceed with the instantiation. */
+      /* Since this is the class's definition, set the declaration sequence
+         number. */
+      set_decl_sequence_number(instance_sym);
       /* Increment the count of instantiations-in-progress for the current
          class template.  It will be decremented when the instantiation is
          complete. */
@@ -358,6 +361,7 @@ might not be able to if the template itself has not yet been defined.
         internal_error("f_instantiate_template_class: bad 1st token in cache");
       }  /* if */
 #endif /* CHECKING */
+      mark_defined(instance_sym, &instance_sym->decl_position);
       /* Scan the base specifiers list, if any, and the body of the class. */
       (void)scan_class_definition(class_type, DEPTH_OF_FILE_SCOPE,
                                   /*is_local_class=*/FALSE,
@@ -428,6 +432,7 @@ encountered.
     internal_error("instantiate_class_template: bad 1st token in cache");
   }  /* if */
 #endif /* CHECKING */
+  mark_defined(template_sym, &template_sym->decl_position);
   /* Scan the base specifiers list, if any, and the body of the class. */
   (void)scan_class_definition(prototype_type, DEPTH_OF_FILE_SCOPE,
                               /*is_local_class=*/FALSE,
@@ -2562,7 +2567,7 @@ that make up the declaration and do a prototype instantiation.
       tssp->declaration_scope = scope_stack[decl_scope_level].number;
     }  /* if */
     if (is_definition) {
-      *defines_something = sym->defined = TRUE;
+      *defines_something = TRUE;
       prototype_sym = make_template_class_symbol(sym, &sym->decl_position);
       /* Add the new symbol to the head of the instantiation list. */
       prototype_sym->next = tssp->variant.class_template.instantiations;
@@ -2573,6 +2578,11 @@ that make up the declaration and do a prototype instantiation.
       set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
       prototype_type->source_corresp.name_linkage =
                                            (a_name_linkage_kind)nlk_internal;
+#if 0
+      mark_defined(prototype_sym, &prototype_sym->decl_position);
+#else
+      prototype_sym->defined = TRUE;
+#endif /* if 0 */
       /* Build the template argument list for the prototype instantiation
          of this template.  Loop through the template parameters and
          create a corresponding template argument for each. */
@@ -3336,7 +3346,7 @@ entry is pushed on the scope stack.
   if (prototype_type != NULL) {
 #if CHECKING
     if (sym == NULL || sym->kind != (a_symbol_kind)sk_class_template ||
-        !sym->defined || (tssp = sym->variant.template_info) == NULL ||
+        (tssp = sym->variant.template_info) == NULL ||
         tssp->variant.class_template.instantiations == NULL ||
         tssp->variant.class_template.instantiations->
                          variant.class_struct_union.type != prototype_type) {
