@@ -1,6 +1,11 @@
 Version 2.06
 
-5/7/92   Allow null initializer for a field in a ctor-initializer list
+5/7/92   Address of overloaded static member function is a normal pointer
+
+It was considered to be a pointer to member, with the usual result being
+an error about mismatched types.
+
+5/7/92   Allow empty initializer for a field in a ctor-initializer list
 
 This used to be disallowed with a complaint about "i()":
 
