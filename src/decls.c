@@ -681,10 +681,8 @@ Check to see if any type qualifiers that are specified are meaningful.
 }  /* check_type_qualifiers */
 
 
-static void check_operator_function_params(
-                               a_symbol_locator *locator,
-                               a_param_type_ptr param_types,
-                               a_boolean        is_nonstatic_member_function)
+void check_operator_function_params(a_routine_ptr      rout,
+                                    a_source_position  *pos)
 /*
 Check the argument list on the declaration of a user-defined conversion
 or overloaded operator function.  For conversion functions, no arguments
@@ -697,66 +695,67 @@ operator kinds.  Issue a diagnostic if an error is found.
   a_boolean         any_class_type_params = FALSE;
   an_opname_kind    opname;
   a_type_ptr        tp;
+  a_boolean         is_nonstatic_member_function;
   an_error_code     error_code = ec_no_error;
 
   db_enter(4, "check_operator_function_params");
-  if (locator != NULL) {
-    /* Locator is NULL for abstract declarators. */
-    if (locator->is_conversion_name) {
-      /* Any parameter is too many for a conversion function. */
-      if (param_types != NULL) {
-	error(ec_too_many_args_for_conversion);
+  if (rout->special_kind == (a_special_function_kind)sfk_conversion) {
+    /* Any parameter is too many for a conversion function. */
+    if (rout->type->variant.routine.extra_info->param_type_list != NULL) {
+      pos_error(ec_too_many_args_for_conversion, pos);
+    }  /* if */
+  } else if (rout->special_kind == (a_special_function_kind)sfk_operator) {
+    /* It's an operator.  Get the specific kind. */
+    opname = rout->opname_kind;
+    is_nonstatic_member_function =
+                routine_type_is_nonstatic_member_function(rout->type);
+    /* Make a pass over the param types list to count the number of
+       arguments to see if there are any parameters that are of class type
+       or reference-to-class type.  Note that param_count is initialized to
+       0 except in the case of nonstatic member functions, for which it is
+       initialized to 1. This is because the implicit "this" parameter is
+       counted in the latter case. */
+    param_count = is_nonstatic_member_function ? 1 : 0;
+    ptp = rout->type->variant.routine.extra_info->param_type_list;
+    for (; ptp != NULL; ptp = ptp->next) {
+      param_count++;
+      tp = ptp->type;
+      if (is_reference_type(tp)) tp = type_pointed_to(tp);
+      if (is_class_struct_union_type(tp)) any_class_type_params = TRUE;
+    }  /* if */
+    if (opname == onk_compl || opname == onk_not || opname == onk_arrow) {
+      /* Unary operator must have exactly one argument. */
+      if (param_count > 1) {
+	error_code = ec_too_many_args_for_operator;
+      } else if (param_count < 1) {
+	error_code = ec_too_few_args_for_operator;
       }  /* if */
-    } else if (locator->is_operator_name) {
-      /* It's an operator.  Get the specific kind. */
-      opname = locator->variant.opname;
-      /* Make a pass over the param_types list to count the number of
-         arguments to see if there are any parameters that are of class type
-         or reference-to-class type.  Note that param_count is initialized to
-         0 except in the case of nonstatic member functions, for which it is
-         initialized to 1. This is because the implicit "this" parameter is
-         counted in the latter case. */
-      param_count = is_nonstatic_member_function ? 1 : 0;
-      for (ptp = param_types; ptp != NULL; ptp = ptp->next) {
-	param_count++;
-	tp = ptp->type;
-	if (is_reference_type(tp)) tp = type_pointed_to(tp);
-	if (is_class_struct_union_type(tp)) any_class_type_params = TRUE;
+    } else if (param_count == 1 &&
+	       (opname == onk_plus || opname == onk_minus ||
+		opname == onk_star || opname == onk_ampersand ||
+		opname == onk_plus_plus || opname == onk_minus_minus)) {
+       /* These operators can be either unary or binary.  It is legal for
+	  them to have exactly one argument. */
+    } else if (opname == onk_function_call) {
+      /* Function call must have one or more arguments. */
+      if (param_count == 0) {
+	error_code = ec_too_few_args_for_operator;
       }  /* if */
-      if (opname == onk_compl || opname == onk_not || opname == onk_arrow) {
-	/* Unary operator must have exactly one argument. */
-	if (param_count > 1) {
-	  error_code = ec_too_many_args_for_operator;
-	} else if (param_count < 1) {
-	  error_code = ec_too_few_args_for_operator;
-	}  /* if */
-      } else if (param_count == 1 &&
-		 (opname == onk_plus || opname == onk_minus ||
-		  opname == onk_star || opname == onk_ampersand ||
-		  opname == onk_plus_plus || opname == onk_minus_minus)) {
-	 /* These operators can be either unary or binary.  It is legal for
-	    them to have exactly one argument. */
-      } else if (opname == onk_function_call) {
-	/* Function call must have one or more arguments. */
-	if (param_count == 0) {
-	  error_code = ec_too_few_args_for_operator;
-	}  /* if */
-      } else {
-	/* Binary operator must have exactly two arguments. */
-	if (param_count > 2) {
-	  error_code = ec_too_many_args_for_operator;
-	} else if (param_count < 2) {
-	  error_code = ec_too_few_args_for_operator;
-	}  /* if */
+    } else {
+      /* Binary operator must have exactly two arguments. */
+      if (param_count > 2) {
+	error_code = ec_too_many_args_for_operator;
+      } else if (param_count < 2) {
+	error_code = ec_too_few_args_for_operator;
       }  /* if */
-      if (error_code != ec_no_error) error(error_code);
-      /* If operator function is not a nonstatic member and does not have
-	 operands of class type or reference-to-class type, issue an error.
-	 This restriction does not apply to new and delete, however. */
-      if (!is_nonstatic_member_function && !any_class_type_params &&
-	  opname != onk_new && opname != onk_delete) {
-	error(ec_no_args_with_class_type);
-      }  /* if */
+    }  /* if */
+    if (error_code != ec_no_error) pos_error(error_code, pos);
+    /* If operator function is not a nonstatic member and does not have
+       operands of class type or reference-to-class type, issue an error.
+       This restriction does not apply to new and delete, however. */
+    if (!is_nonstatic_member_function && !any_class_type_params &&
+	opname != onk_new && opname != onk_delete) {
+      pos_error(ec_no_args_with_class_type, pos);
     }  /* if */
   }  /* if */
   db_exit();
@@ -1187,12 +1186,6 @@ scope is that of a class definition.
         /* Keep looping on a comma, stop otherwise. */
       } while (loop_token(tok_comma));
     }  /* if */
-  }  /* if */
-  if (C_dialect == C_dialect_cplusplus) {
-    /* If this is a user-defined conversion or an overloaded operator,
-       check for errors in the argument list. */
-    check_operator_function_params(locator, extra_info->param_type_list,
-                                   is_nonstatic_member_function);
   }  /* if */
   /* Check for closing right parenthesis.  We temporarily clear the stop
      token array values for tok_comma and tok_assign, in order to flush past
@@ -2374,11 +2367,16 @@ otherwise, set *ext_sym to NULL.
          list of the file scope. */
       routine_ptr = make_routine(type_ptr, storage_class,
                                  /*at_file_scope=*/TRUE);
-      if (locator->is_operator_name) {
-        routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
-        routine_ptr->opname_kind = locator->variant.opname;
-      } else if (locator->is_conversion_name) {
-        routine_ptr->special_kind = (a_special_function_kind)sfk_conversion;
+      if (C_dialect == C_dialect_cplusplus) {
+        if (locator->is_operator_name) {
+          routine_ptr->special_kind = (a_special_function_kind)sfk_operator;
+          routine_ptr->opname_kind = locator->variant.opname;
+        } else if (locator->is_conversion_name) {
+          routine_ptr->special_kind = (a_special_function_kind)sfk_conversion;
+        }  /* if */
+        /* If this is a user-defined conversion or an overloaded operator,
+           check for errors in the argument list. */
+        check_operator_function_params(routine_ptr, &locator->source_position);
       }  /* if */
     } else {
       /* There is an existing IL entry that we are reusing. */
