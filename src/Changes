@@ -1,5 +1,13 @@
 Version 2.15
 
+3/23/92 IL walk routines speeded up
+
+The routines that walk the intermediate language tree have been speeded
+up.  This was accomplished largely by moving a lot of code from il_walk.c
+out to a new file walk_entry.h, and then compiling it twice with
+different macro settings so as to avoid a lot of extra testing during
+processing.
+
 3/22/93 C-generating back end no longer outputs useless code
 
 The annotation comments and the code for unreferenced entities formerly
