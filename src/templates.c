@@ -872,7 +872,7 @@ itself recursively to process classes nested within this class.
     /* Static data members are eligible for a compiler-generated definition
        only if a template definition appears in the source.  However, it
        still needs to appear on the instantiation-required list (because
-       instantiation is required required somewhere in the program even if
+       instantiation is required somewhere in the program even if
        not in the current translation unit).  The instantiation of a static
        data member is required only if the static data member is referenced. */
     var = class_type->variant.class_struct_union.extra_info->
