@@ -2195,8 +2195,10 @@ might not be able to if the template itself has not yet been defined.
 #if DEBUG
       if (debug_level >= 3 || db_flag_is_set("instantiations")) {
         fprintf(f_debug, "Beginning full instantiation of: ");
-        db_type(class_type);
-        db_symbol(template_sym, "\nbased on: ", 2);
+        db_symbol_name(instance_sym);
+        fprintf(f_debug, " based on ");
+        db_symbol_name(template_sym);
+        fprintf(f_debug, "\n");
       }  /* if */
 #endif /* DEBUG */
       /* Find the outermost enclosing class type.  The template arguments
@@ -2719,7 +2721,9 @@ A pointer to the head of the list is returned in tcsp.
 #endif /* CHECKING */
 #if DEBUG
   if (debug_level >= 3 || db_flag_is_set("instantiations")) {
-    db_symbol(template_sym, "prototype instantiation of: ", 2);
+    fprintf(f_debug, "Prototype instantiation of: ");
+    db_symbol_name(template_sym);
+    fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
   /* Update the type_kind of the instance with the type_kind from the
@@ -3301,8 +3305,10 @@ Instantiate the body of the template function associated with tip.
 #if DEBUG
   if (debug_level >= 3 || db_flag_is_set("instantiations")) {
     fprintf(f_debug, "instantiating: ");
-    db_symbol(rout_sym, "", 0);
-    db_symbol(template_sym, "\nbased on: ", 2);
+    db_symbol_name(rout_sym);
+    fprintf(f_debug, " based on ");
+    db_symbol_name(template_sym);
+    fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
   if (func_info_ptr->is_inline) {
@@ -4234,8 +4240,11 @@ prototype instantiation is considered as a potential match.
     record_instantiation(sym, tssp);
 #if DEBUG
     if (debug_level >= 3 || db_flag_is_set("instantiations")) {
-      db_symbol(sym, "Partial instantiation of: ", 2);
-      db_symbol(class_template_sym, "template: ", 2);
+      fprintf(f_debug, "Partial instantiation of: ");
+      db_symbol_name(sym);
+      fprintf(f_debug, " based on ");
+      db_symbol_name(class_template_sym);
+      fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
   } else {
