@@ -1229,6 +1229,27 @@ handling but not for RTTI.
 #endif /* ABI_CHANGES_FOR_RTTI && (ABI_COMPATIBILITY_VERSION <= 228) */
 
 /*
+This switch controls whether or not the ABI changes for array
+new and delete are done.  New runtime routines are added, and the
+way array sizes are recorded by the runtime is different.
+The changes are upward-compatible (you can use old object code
+with new object code and the new library).  If the switch is off,
+compatibility with versions up to 2.28 is preserved, but the
+array new and delete language features are turned off.
+*/
+#ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+#if ABI_COMPATIBILITY_VERSION <= 228
+#define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE FALSE /* Versions up to 2.28. */
+#else /* ABI_COMPATIBILITY_VERSION > 228 */
+#define ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE TRUE  /* Versions after 2.28. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 228 */
+#endif /* ifndef ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
+#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && (ABI_COMPATIBILITY_VERSION <= 228)
+ #error -- ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE TRUE is incompatible with \
+           ABI_COMPATIBILITY_VERSION <= 228
+#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE && ... */
+
+/*
 This switch controls whether or not operations with
 returns_lvalue_instead_of_usual_rvalue TRUE are rewritten by IL lowering.
 These are operations (specifically, assignments, prefix ++/--, and
@@ -1328,6 +1349,22 @@ lowering and the ABI changes for RTTI aren't enabled.
 #else /* !DO_IL_LOWERING */
 #define RTTI_ENABLING_POSSIBLE TRUE
 #endif /* DO_IL_LOWERING */
+
+/*
+Determine whether array new and delete can be enabled.  They cannot be if
+we are doing IL lowering and the ABI changes for array new and delete
+aren't enabled.
+*/
+#if DO_IL_LOWERING
+#if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
+#define ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE TRUE
+#else /* !ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
+#define ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE FALSE
+#endif /* ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE */
+#else /* !DO_IL_LOWERING */
+#define ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE TRUE
+#endif /* DO_IL_LOWERING */
+
 #endif /* !defined(TARG_DEF_H) */
 
 

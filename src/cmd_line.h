@@ -123,6 +123,9 @@ typedef enum /*an_option_kind*/ {
 #endif /* RTTI_ENABLING_POSSIBLE */
   optk_building_runtime,
   optk_bool_is_keyword,
+#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
+  optk_array_new_and_delete,
+#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -281,6 +284,21 @@ EXTERN a_boolean
 			   (RTTI) is enabled.  Significant only in C++ mode.
 			   RTTI cannot be enabled if the extended typeinfo
 			   for it is not generated. */
+EXTERN a_boolean
+		array_new_and_delete_enabled
+#if VAR_INITIALIZERS
+                             =
+#if ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
+                               DEFAULT_ARRAY_NEW_AND_DELETE_ENABLED
+#else /* !ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
+                               FALSE
+#endif /* ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE */
+#endif /* VAR_INITIALIZERS */
+                                                                   ;
+			/* TRUE if support for array new and delete is
+			   enabled.  Significant only in C++ mode.  They
+			   cannot be enabled if the ABI changes for them
+			   are not enabled. */
 EXTERN an_integer_kind
 		plain_char_int_kind;
 			/* Integer kind for a "plain" char, dependent on
