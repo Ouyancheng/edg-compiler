@@ -21,6 +21,7 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 
 #include "lang_feat.h"
 #include "lower_il.h"
+#include "debug.h"
 #include "error.h"
 #include "il.h"
 #include "cmd_line.h"
@@ -11932,42 +11933,20 @@ Display and return the amount of space used for various IL lowering tables.
 {
   unsigned long num, size, total, grand_total = 0;
 
-  fprintf(f_debug, "\nIL lowering table use:\n");
-  fprintf(f_debug, "%25s %8s %8s %8s\n", "Table", "Number", "Each", "Total");
+  db_space_used_header("IL lowering table use:");
 
-#define write_one(name, counter, type)                                \
-{ num = counter; size = sizeof(type); total = num*size;               \
-  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num, size, total);  \
-  grand_total += total;                                               \
-}  /* write_one */
-#define write_loss(avail_list, counter, type)                         \
-{ type          *ptr;                                                 \
-  unsigned long count = 0;                                            \
-  for (ptr = avail_list; ptr != NULL; ptr = ptr->next) count++;       \
-  if (count != counter) {                                             \
-    fprintf(f_debug, "%25s %8s %8s %8lu lost\n", "", "", "", counter-count); \
-  }  /* if */                                                         \
-}  /* write_loss */
-#define write_onel(name, avail_list, counter, type)                   \
-{ write_one(name, counter, type);                                     \
-  write_loss(avail_list, counter, type);                              \
-}  /* write_onel */
+  db_space_used("Name strings", allocated_name_string_length, char);
+  db_space_used_lost("init pos modifier", avail_init_pos_modifiers,
+                    num_init_pos_modifiers_allocated, an_init_pos_modifier);
+  db_space_used_lost("required dtor call", avail_required_destructor_calls,
+                     num_required_destructor_calls_allocated,
+                     a_required_destructor_call);
+  db_space_used("orphaned type list", num_orphaned_types_lists_allocated,
+                an_orphaned_types_list);
 
-  write_one("Name strings", allocated_name_string_length, char);
-  write_onel("init pos modifier", avail_init_pos_modifiers,
-             num_init_pos_modifiers_allocated, an_init_pos_modifier);
-  write_onel("required dtor call", avail_required_destructor_calls,
-             num_required_destructor_calls_allocated,
-             a_required_destructor_call);
-  write_one("orphaned type list", num_orphaned_types_lists_allocated,
-            an_orphaned_types_list);
-
-  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
+  db_space_used_total();
 
   return grand_total;
-#undef write_one
-#undef write_loss
-#undef write_onel
 }  /* show_lowering_space_used */
 #endif /* DEBUG */
 
