@@ -1,5 +1,14 @@
 Version 2.46
 
+2/2/01   Inaccurate declared type information in routine entries
+
+The front end records the type as declared in the source in routine entries
+and attempts to reuse the type already associated with the routine for that
+purpose.  However, in configurations where EXTRA_SOURCE_POSITIONS_IN_IL or
+RECORD_NAME_IN_PARAM_TYPE_ENTRY are TRUE, this often results in invalid
+information regarding the names and positions of parameters.  This is now
+fixed.
+
 2/2/01   Source positions on preserved expressions for constant expressions
 
 When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, when constant expressions
