@@ -4349,6 +4349,20 @@ process_assignment:
           void_operand = is_void_type(operand_2->type);
           if (void_operand) write_tok_ch('(');
 #endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
+#if SUNPRO_C_IS_C_GEN_BE_TARGET
+          /* The SUNPRO C compiler doesn't like "?" operators where the
+             branches are struct rvalues with different type qualifiers.
+             That's a bug -- in standard C the qualifiers on rvalues are
+             dropped.  For the simple (variable) case, do some casting to
+             drop the type qualifiers. */
+          if (is_class_struct_union_type(expr_type) &&
+              is_variable_node(operand_2) &&
+              is_qualified_type(operand_2->variant.variable->type)) {
+            write_tok_ch('*');
+            dump_cast_to_pointer_to(expr_type);
+            write_tok_ch('&');
+          }  /* if */
+#endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
           dump_expr_with_parens(operand_2);
 #if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
           if (void_operand) write_tok_str(",0)");
@@ -4358,6 +4372,16 @@ process_assignment:
           void_operand = is_void_type(operand_2->next->type);
           if (void_operand) write_tok_ch('(');
 #endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
+#if SUNPRO_C_IS_C_GEN_BE_TARGET
+          /* See comment above.*/
+          if (is_class_struct_union_type(expr_type) &&
+              is_variable_node(operand_2->next) &&
+              is_qualified_type(operand_2->next->variant.variable->type)) {
+            write_tok_ch('*');
+            dump_cast_to_pointer_to(expr_type);
+            write_tok_ch('&');
+          }  /* if */
+#endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
           dump_expr_with_parens(operand_2->next);
 #if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
           if (void_operand) write_tok_str(",0)");
