@@ -1,5 +1,19 @@
 Version 3.0
 
+3/19/02  Use of va_start with no ellipsis parameter
+
+In GNU C mode, the front end now issues an error when va_start is used
+in a function with no ellipsis parameter.  In other modes, a warning is
+issued instead, but not if the function has no prototyped declaration.
+(This is the case only in configurations with built-in support for the
+va_start macro.)
+
+  #include <stdarg.h>
+  void f(int i) {
+    va_list ap;
+    va_start(ap, i);  /* Error in GNU C mode; warning otherwise. */
+  }
+
 3/19/02  Spurious error on qualified template-id in ctor-initializer
 
 A spurious error was issued when a qualified template-id was used as
