@@ -5516,6 +5516,7 @@ assumed if the return type is omitted.
       if (sym == NULL) {
         /* Not a currently defined symbol. */
         pos_error(ec_invalid_instantiation_pragma_argument, &start_pos);
+        err = TRUE;
       } else if (is_template_class_and_not_specific_def_symbol(sym)) {
          /* Process all member functions and static data members. */
 	update_instantiation_flags_for_class(sym, pragma_kind, &start_pos);
