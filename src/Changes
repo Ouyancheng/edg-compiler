@@ -311,7 +311,7 @@ Several changes to provide greater compatibility with cfront in overload
 resolution.  These apply only in cfront mode.
 
 (a)  A null pointer constant must be spelled "0" to be convertible to
-     a pointer or pointer member type.  This replaces the change made
+     a pointer or pointer to member type.  This replaces the change made
      on 4/5/95 ("conversions of class operands to pointer type when
      they are operands of builtin operators").  This change applies only
      in overload resolution determination of the best function;
