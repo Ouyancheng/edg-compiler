@@ -103,7 +103,9 @@ enum an_operand_kind_tag {
 			   pointer-to-member.  That's guaranteed in the data
 			   member case; in the member function case, it's
 			   possible (likely, even) that the function will be
-			   called instead.  Not used in C. */
+			   called instead.  The function is never an overloaded
+			   function (ok_indefinite_function would be used
+			   instead).  Not used in C. */
   ok_undefined_symbol	/* An undefined symbol encountered while scanning an
 			   expression.  Could be an implicit function
 			   declaration or a genuine undefined symbol.
