@@ -4061,7 +4061,7 @@ as the current token; otherwise, it is consumed.
       free_pending_pragma_list(pragmas_bound_to_template);
     }  /* if */
   }
-  if (prototype_type != NULL) {
+  if (!nonglobal_decl_err && prototype_type != NULL) {
 #if CHECKING
     if (sym == NULL || sym->kind != (a_symbol_kind)sk_class_template ||
         (tssp = sym->variant.template_info) == NULL ||
