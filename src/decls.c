@@ -4310,6 +4310,15 @@ skip_overloading:;
                                                     variant.variable.used) {
         sym->variant.variable.used = TRUE;
       }  /* if */
+      /* If this looked like a tentative definition to the caller (C-mode
+         only), see if the variable was initialized at the previous
+         declaration.  If so, this is not a tentative definition. */
+      if (srk_flags & SRK_TENTATIVE_DEF) {
+        if (variable_ptr->init_kind != (an_init_kind)initk_none) {
+          srk_flags &= ~(SRK_TENTATIVE_DEF | SRK_DEFINITION);
+          check_assertion(srk_flags & SRK_DECLARATION);
+        }  /* if */
+      }  /* if */
     }  /* if */
     /* Link the symbol to the IL variable entry. */
     sym->variant.variable.ptr = variable_ptr;
