@@ -4896,6 +4896,18 @@ a new symbol is created and entered in the symbol table.
     }  /* if */
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
+#if 0
+#else
+/* For parameters of ordinary functions the calls to mark_defined and
+   mark_variable_value_set are done in scan_function_body.  It's done here
+   for instantiations because of there is a different binding between
+   param-id and symbol.  It would probably be better to integrate the
+   processing better. */
+    if (function_instantiation) {
+      mark_defined(sym, &sym->decl_position, (a_decl_seq_info_ptr)NULL);
+      mark_variable_value_set(sym);
+    }  /* if */
+#endif /* if 0 */
 #if DEBUG
     if (debug_level >= 3) {
       db_symbol(sym, "Changed from parameter symbol: ", 4);
