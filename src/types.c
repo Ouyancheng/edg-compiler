@@ -4122,6 +4122,234 @@ set the force_external_linkage flag for each class and enum type in the tree.
   }  /* if */
 }  /* set_used_in_exception_flag */
 
+
+/* Type of service function called by traverse_and_modify_type_tree to return
+   TRUE if the type was modified or FALSE if it was not. */
+typedef a_boolean a_type_modifier_function(
+                                    a_type_ptr                      type,
+                                    a_type_tree_traversal_flag_set  flags,
+                                    a_type_ptr                      *new_type);
+typedef a_type_modifier_function *a_type_modifier_function_ptr;
+
+
+/*ARGSUSED*/ /* flags is not required but is part of the general interface. */
+static a_boolean tmtt_strip_local_typedef(
+                                    a_type_ptr                      type,
+                                    a_type_tree_traversal_flag_set  flags,
+                                    a_type_ptr                      *new_type)
+/*
+Strip local typedef from type, returning TRUE if a modification was done.
+The modified type (or the original type if no modification was done) is
+returned in *new_type.
+*/
+{
+  *new_type = strip_local_typedefs(type);
+  return (type != *new_type);
+}  /* tmtt_strip_local_typedef */
+
+
+static a_type_ptr traverse_and_modify_type_tree(
+                                         a_type_ptr                     type,
+                                         a_type_modifier_function_ptr   func,
+                                         a_type_tree_traversal_flag_set flags)
+/*
+Travese the type tree represented by type and at each level call func to
+perform optional modification of the subtree.  If the subtree is modified,
+a new tree is to contain it is build.
+*/
+{
+  a_type_ptr              new_type = type;
+  a_type_ptr              tp, tp2;
+  a_param_type_ptr        ptp, new_ptp, prev_ptp;
+  a_type_ptr              new_return_type, new_this_param_type;
+  a_type_ptr              first_new_type_for_param_types_list;
+  int                     reusable_param_types;
+  a_memory_region_number  region_to_switch_back_to;
+
+  /* Traverse the tree. */
+  switch (type->kind) {
+    case tk_error:
+    case tk_void:
+    case tk_float:
+    case tk_integer:
+    case tk_unknown:
+      /* Leaf nodes -- no further traversal required. */
+      break;
+    case tk_pointer:
+      /* If the type pointed to is modified, then a new pointer or
+         reference type must be created. */
+      if (func(type->variant.pointer.type, flags, &tp)) {
+        if (type->variant.pointer.is_reference) {
+          new_type = make_reference_type(tp);
+        } else {
+          new_type = make_pointer_type(tp);
+        }  /* if */
+      }  /* if */
+      break;
+    case tk_routine:
+      /* We can reuse "type" as long as we can reuse the return type and all
+         its param types.  Otherwise we will need to allocate a new type
+         entry. Go through "type" until we find that a new type was returned
+         from the type-modification function. */
+      reusable_param_types = 0;
+      first_new_type_for_param_types_list = NULL;
+      new_return_type = type->variant.routine.return_type;
+      if (func(new_return_type, flags, &tp)) {
+        new_return_type = tp;
+      }  /* if */
+      new_this_param_type =
+                 type->variant.routine.extra_info->implicit_this_param_type;
+      if (new_this_param_type != NULL &&
+          func(new_this_param_type, flags, &tp)) {
+        new_this_param_type = tp;
+        goto make_new_type;
+      } else if (new_return_type != type->variant.routine.return_type) {
+        goto make_new_type;
+      }  /* if */
+      /* Now examine each of the parameters. */
+      for (ptp = type->variant.routine.extra_info->param_type_list;
+           ptp != NULL;
+           ptp = ptp->next) {
+        if (func(ptp->type, flags, &tp)) {
+          /* A modification was made, so a new routine type will be required.
+             Remember tp so we can avoid calling the type modification
+             function again for this param type entry. */
+          first_new_type_for_param_types_list = tp;
+          goto make_new_type;
+        }  /* if */
+        /* Keep track of the number of param type entries for which reuse of
+           the existing type is okay. */
+        ++reusable_param_types;
+      }  /* for */
+      /* Falling through to here means that no changes are required for this
+         type.  Therefore it can simply be reused. */
+      break;
+make_new_type:
+      /* Make a routine type based on "type".  Checking for reusable types
+         has already been done for the return type and possibly for some of
+         the parameter types. */
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      new_type = alloc_type((a_type_kind)tk_routine);
+      switch_back_to_original_region(region_to_switch_back_to);
+      /* Fill in the return type.  It has already been determined. */
+      new_type->variant.routine.return_type = new_return_type;
+      /* Clone the routine type supplement, except for the pointers. */
+      *(new_type->variant.routine.extra_info) =
+                                       *(type->variant.routine.extra_info);
+      new_type->variant.routine.extra_info->assoc_routine = NULL;
+      new_type->variant.routine.extra_info->implicit_this_param_type =
+                                                     new_this_param_type;
+      /* Make copies of the entries on type's param types list, making the
+         appropriate substitutions for template parameter type entries. */
+      prev_ptp = NULL;
+      for (ptp = type->variant.routine.extra_info->param_type_list;
+           ptp != NULL;
+           ptp = ptp->next) {
+        if (reusable_param_types > 0) {
+          /* We have already called copy_type_with_substitution for this
+             parameter and we know we can reuse the existing type. */
+          tp = ptp->type;
+          --reusable_param_types;
+        } else if (first_new_type_for_param_types_list != NULL) {
+          /* We have already called copy_type_with_substitution for this
+             parameter and the type returned contained a substitution; we can
+             use that type. */
+          tp = first_new_type_for_param_types_list;
+          first_new_type_for_param_types_list = NULL;
+        } else {
+          tp = ptp->type;
+          (void)func(ptp->type, flags, &tp);
+        }  /* if */
+        /* Allocate the param type entry and copy default arg info. */
+        new_ptp = alloc_param_type(tp);
+        if (ptp->has_default_arg) {
+          new_ptp->has_default_arg = TRUE;
+          if (!ptp->type_involves_template_param) {
+            new_ptp->default_arg_expr= copy_expr_tree(ptp->default_arg_expr);
+          }  /* if */
+        }  /* if */
+        /* Add the new param type entry to the param types list. */
+        if (prev_ptp == NULL) {
+          new_type->variant.routine.extra_info->param_type_list = new_ptp;
+        } else {
+          prev_ptp->next = new_ptp;
+        }  /* if */
+        prev_ptp = new_ptp;
+      }  /* if */
+      set_routine_calling_method_flag(new_type);
+      /* A brand new type has been created -- add it to the file scope types
+         list. */
+      add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE);
+      break;
+    case tk_array:
+      /* Make an array type based on "type", making modifications as
+         required in the element type.  Note that if the element type doesn't
+         require modification, we don't create a new type entry. */
+      if (func(type->variant.array.element_type, flags, &tp)) {
+        /* Create a new array type. */
+        switch_to_file_scope_region(&region_to_switch_back_to);
+        new_type = alloc_type((a_type_kind)tk_array);
+        switch_back_to_original_region(region_to_switch_back_to);
+        *new_type = *type;
+        new_type->variant.array.element_type = tp;
+        add_to_types_list(new_type, DEPTH_OF_FILE_SCOPE);
+      }  /* if */
+      break;
+    case tk_typeref:
+      if (func(type->variant.typeref.type, flags, &tp)) {
+        new_type = make_qualified_type(tp, type->variant.typeref.is_const,
+                                       type->variant.typeref.is_volatile);
+      }
+      break;
+    case tk_template_param:
+      /* tptk_member template param types point to a parent type.  However,
+         since class types are not themselves modified by this routine, do
+         nothing for such cases. */
+    case tk_class:
+    case tk_struct:
+    case tk_union:
+      /* No action required. */
+      break;
+    case tk_ptr_to_member:
+      (void)func(type->variant.ptr_to_member.type, flags, &tp);
+      (void)func(type->variant.ptr_to_member.class_of_which_a_member, flags,
+                 &tp2);
+      if (tp != type->variant.ptr_to_member.type ||
+          tp2 != type->variant.ptr_to_member.class_of_which_a_member) {
+        /* Make a pointer-to-member type.  The current pointer-to-member type
+           points to two types, so the new type is based on modified versions
+           of one or both. */
+        new_type = ptr_to_member_type(tp, tp2);
+      }  /* if */
+      break;
+#if CHECKING
+    default:
+      internal_error("traverse_and_modify_type_tree: bad type kind");
+#endif /* CHECKING */
+  }  /* switch */
+  return new_type;
+}  /* traverse_and_modify_type_tree */
+
+
+a_type_ptr strip_local_typedefs(a_type_ptr  type)
+/*
+If type contains one or more typedefs that are local to a function (whether
+at the top level or embedded somewhere within the tree) remove them and
+return the modified type to the caller.  If no modification is done return
+the original type.
+*/
+{
+  while (type->kind == (a_type_kind)tk_typeref &&
+         type->source_corresp.is_local_to_function) {
+    /* The top level type is a local typedef. */
+    check_assertion(!type->variant.typeref.is_const &&
+                    !type->variant.typeref.is_volatile);
+    type = type->variant.typeref.type;
+  }  /* while */
+  return traverse_and_modify_type_tree(type, tmtt_strip_local_typedef,
+                                       TTT_NO_INPUT_FLAGS);
+}  /* strip_local_typedefs */
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
