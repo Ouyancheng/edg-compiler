@@ -7107,9 +7107,9 @@ typedef struct a_routine {
                            scope. */
   a_type_ptr    type;
                         /* Type of this routine.  Points to a type entry with
-                           kind == tk_routine, which gives the return type
-                           and parameter information.  There may be typerefs
-			   on top of the tk_routine type. */
+                           kind == tk_routine (or to a typeref that refers to
+                           such a type), which gives the return type and
+                           parameter information. */
 #ifdef FIL
                         /* Fortran SUBROUTINEs have a type of tk_void. */
 #endif /* ifdef FIL */
