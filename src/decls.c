@@ -5269,7 +5269,7 @@ specifier is restored.
   a_name_linkage_kind kind;
 
   db_enter(3, "linkage_specification");
-  if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+  if (decl_scope_level != depth_innermost_namespace_scope) {
     error(ec_linkage_specifier_not_allowed);
     err = TRUE;
   }  /* if */
