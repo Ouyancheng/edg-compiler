@@ -1,5 +1,25 @@
 Version 2.32
 
+5/7/96  Cfront compatibility bug: ordering within virtual function table
+
+A cfront-object-code incompatibility has been fixed in connection with
+how virtual function numbers are assigned in the routine entries of
+virtual member functions that belong to an overload set.  Here's a simple
+example:
+
+  class A {
+    void f();
+    void g();
+    void f(int);
+  };
+
+We used to assign virtual function numbers (which amounts to assigning
+slots in the virtual function table) in strict declaration order.  But
+cfront groups overloaded functions together, so that A::f(int) occupies the
+second slot and A::g() the third.  When ABI_COMPATIBILITY_VERSION >= 232 we
+use an algorithm that produces results that match cfront's; otherwise, the
+old behavior is retained.
+
 5/6/76  IL CHANGE: field removed from a_class_type_supplement
 
 The field anonymous_union_object.storage_class is no longer required and
