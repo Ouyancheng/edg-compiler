@@ -47,6 +47,9 @@ typedef int an_id_lookup_options_set;
 				   union name, or a typedef of one of those. */
 #define IDL_MUST_BE_TAG 0x2	/* The symbol must be a class, struct, union,
 				   or enum (not a typedef of one of those). */
+#define IDL_CONSTRAINTS (IDL_MUST_BE_CLASS | IDL_MUST_BE_TAG)
+				/* The set of all options that impose
+				   constraints on the symbol to be found. */
 #define IDL_SUPPRESS_AMBIGUITY_CHECK_AND_ACCESS_CONTROL 0x4
 				/* Suppress the check for ambiguity and
 				   the access control check. */
