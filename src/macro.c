@@ -558,7 +558,7 @@ as a local pointer, and therefore may be updated if macro_buffer is
 reallocated; that's why an extra level of indirection is used.
 */
 {
-  a_source_line_modif_ptr    slmp, old_slmp;
+  a_source_line_modif_ptr    slmp, old_slmp, parent_slmp;
   sizeof_t                   len;
   a_boolean                  need_copy;
 
@@ -601,6 +601,9 @@ reallocated; that's why an extra level of indirection is used.
                      map->raw_text+map->raw_len)) {
       /* This modification is to the raw_text of the argument. */
       new_line_loc = *src_loc + (old_line_loc - map->raw_text);
+      /* We don't know the parent modification (and in fact it probably has
+         not been created yet). */
+      parent_slmp = NULL;
     } else {
       /* Find the prototype modification whose text is modified by this
          location. */
@@ -616,12 +619,13 @@ reallocated; that's why an extra level of indirection is used.
         if (ptr_in_range(old_line_loc, slmp->inserted_text,
                          slmp->end_inserted_text)) break;
       }  /* for */
+      parent_slmp = slmp->assoc_copy_modif;
 #if CHECKING
-      if (slmp->assoc_copy_modif == NULL) {
-        internal_error("copy_modif_list: assoc_copy_modif == NULL");
+      if (parent_slmp == NULL) {
+        internal_error("copy_modif_list: parent_slmp == NULL");
       }  /* if */
 #endif /* CHECKING */
-      new_line_loc = (slmp->assoc_copy_modif)->inserted_text +
+      new_line_loc = parent_slmp->inserted_text +
                      (old_line_loc - slmp->inserted_text);
     }  /* if */
     /* Now new_line_loc is set correctly.  Make a new copy of the inserted
@@ -644,9 +648,12 @@ reallocated; that's why an extra level of indirection is used.
     slmp = add_source_line_modif(new_line_loc, old_slmp->num_chars_to_delete,
                                  text_loc, text_loc+len-1);
     slmp->assoc_macro = old_slmp->assoc_macro;
+    slmp->source_position = old_slmp->source_position;
     /* Link the prototype modification to its copy, for use in resolving
        line_locs on later iterations of this loop. */
     old_slmp->assoc_copy_modif = slmp;
+    /* Put in the parent pointer if it's known. */
+    if (parent_slmp != NULL) set_parent_modif(slmp, parent_slmp);
   }  /* for */
   /* Drop any local pointer registrations. */
   registered_pointers = save_registered_pointers;
@@ -1258,7 +1265,8 @@ associated global variables will also have been set).
   a_source_line_modif_ptr
 		  slmp,
                   slmp2,
-                  end_modif_list;
+                  end_modif_list,
+                  parent_slmp;
   unsigned long   sequence_id;
   a_boolean       need_end_of_token_marker;
   a_boolean       is_macro_call = TRUE;  /* Assume. */
@@ -1354,13 +1362,17 @@ end_scan_for_macro_modifs:;
      seeing whether or not the macro name appears inside text that came
      from a macro expansion. */
   temp_ptr = start_of_curr_token;
+  /* During this process, we also set parent_slmp to point to the source
+     line modification whose text includes the macro invocation, or NULL
+     if the invocation is in the primary source line. */
+  parent_slmp = NULL;
   recursion_depth = 0;
   if (!within_curr_source_line(temp_ptr)) {
     /* This location is within a macro expansion. */
     /* Find the source modification that contains this location, and
        see if it's associated with the macro we are about to expand.  If
        so, the macro name is inert and should be left alone. */
-    slmp = assoc_source_line_modif(temp_ptr);
+    parent_slmp = slmp = assoc_source_line_modif(temp_ptr);
     do {
       if (slmp->assoc_macro == mdp) {
         /* The identifier does appear within its own expansion. */
@@ -1855,7 +1867,8 @@ copy_done:;
                                                        delete_source_from_loc),
                                rescan_loc, rescan_loc+repl_text_len);
   slmp->assoc_macro = mdp;
-  copy_source_position(start_pos, slmp->macro_invocation_position);
+  slmp->source_position = start_pos;
+  set_parent_modif(slmp, parent_slmp);
   if (C_dialect == C_dialect_pcc &&
       within_curr_source_line(delete_source_from_loc)) {
     /* In pcc mode, in order to more closely approximate the token-pasting

@@ -440,7 +440,9 @@ typedef struct a_source_line_modif {
 			   is important in that the macro name is protected
 			   from expansion within its own expansion.  If
 			   this is NULL, the expansion did not come from
-			   a macro. */
+			   a macro (it might have come from deletion of
+			   a comment or insertion of the text of a macro
+			   argument so macro expansion can be done on it). */
   unsigned long	sequence_id;
 			/* An integer indicating the sequence in which 
 			   modifications were added to the source line
@@ -456,11 +458,11 @@ typedef struct a_source_line_modif {
 			   entry generated in the current expansion of that
 			   argument.  NULL when not used. */
   a_source_position
-		macro_invocation_position;
-			/* When assoc_macro is non-NULL, this indicates the
-			   source position at which the macro invocation
-			   began.  Useful when the macro invocation runs
-			   several lines. */
+		source_position;
+			/* When source_position.seq != 0, this indicates
+			   the source position associated with this
+			   modification.  This is particularly useful when
+			   the modification is for a multi-line macro call. */
 } a_source_line_modif;
 
 EXTERN a_source_line_modif_ptr
@@ -721,6 +723,11 @@ extern a_source_line_modif_ptr assoc_source_line_modif(char *loc_in_line);
                                      f_parent_source_line_modif(slmp))
 extern a_source_line_modif_ptr f_parent_source_line_modif(
                                                  a_source_line_modif_ptr slmp);
+/* Set the parent pointer of ins_slmp to point to slmp. */
+#define set_parent_modif(ins_slmp, slmp)                              \
+{ (ins_slmp)->parent_modif = (slmp);                                  \
+  (ins_slmp)->parent_modif_determined = TRUE;                         \
+}  /* set_parent_modif */
 /* Find the source line modification that affects the attention marker
    at a given source location. */
 extern a_source_line_modif_ptr nested_source_line_modif(char *loc_in_line);
@@ -809,8 +816,7 @@ If you change this, also change go_into_insertion.
 */
 #define walk_into_insertion(slmp, ins_slmp, loc_in_line)              \
 { (ins_slmp) = nested_source_line_modif(loc_in_line);                 \
-  (ins_slmp)->parent_modif = (slmp);                                  \
-  (ins_slmp)->parent_modif_determined = TRUE;                         \
+  set_parent_modif(ins_slmp, slmp);                                   \
   if ((ins_slmp)->inserted_text != (ins_slmp)->end_inserted_text) {   \
     /* Text replacement; continue with the text in the expansion. */  \
     (loc_in_line) = (ins_slmp)->inserted_text;                        \

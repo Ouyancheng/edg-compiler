@@ -612,6 +612,9 @@ invocations.
      added. */
   slmp->sequence_id         = ++sequence_id_for_source_line_modifs;
   slmp->assoc_copy_modif    = (a_source_line_modif_ptr)NULL;
+  slmp->source_position.seq = 0;
+  slmp->source_position.column
+                            = SP_COL_UNKNOWN;
   if (line_loc != NULL) {
     /* Normal case: line_loc points to the point of insertion.  Save the
        original character, and replace it with a marker that will call
@@ -788,8 +791,9 @@ the parent_modif_determined flag to see if the parent is already known.
        out which. */
     parent_slmp = assoc_source_line_modif(line_loc);
   }  /* if */
-  slmp->parent_modif = parent_slmp;
-  slmp->parent_modif_determined = TRUE;
+  /* Call a macro to store the value and set the parent_modif_determined
+     flag. */
+  set_parent_modif(slmp, parent_slmp);
   return parent_slmp;
 }  /* f_parent_source_line_modif */
 
@@ -1693,27 +1697,27 @@ when speed is critical.
 */
 {
   char                    *adj_loc_in_line;
-  a_source_line_modif_ptr slmp, parent_slmp;
+  a_source_line_modif_ptr slmp, parent_slmp, orig_slmp;
   an_orig_line_modif_ptr  olmp                     = orig_line_modif_list;
   char                    *start_of_curr_phys_line = curr_source_line;
   a_seq_number            seq_number               = curr_seq_number;
   int                     trigraph_adjustment      = 0;
 
   adj_loc_in_line = loc_in_line;
+  orig_slmp = NULL;
   if (!within_curr_source_line(adj_loc_in_line)) {
     /* If loc_in_line is not in curr_source_line, it must be in a macro
        expansion or macro argument.  Find the location in curr_source_line
        that begins the macro expansion that ultimately generates
        adj_loc_in_line.  This gives us a source line position we can
-       convert. */
-    slmp = assoc_source_line_modif(adj_loc_in_line);
+       convert.  Remember the innermost modification entry in orig_slmp
+       so the position can be put into it once determined. */
+    orig_slmp = slmp = assoc_source_line_modif(adj_loc_in_line);
     for (;;) {
-      /* If a source line modification is for a macro, it gives us
-         the source position of the macro invocation, and we need do no
-         further work.  This is particularly useful for multi-line macro
-         invocations. */
-      if (slmp->assoc_macro != NULL) {
-        copy_source_position(slmp->macro_invocation_position, *position_var);
+      /* If a source line modification includes a source position, we
+         are done. */
+      if (slmp->source_position.seq != 0) {
+        *position_var = slmp->source_position;
         goto have_position;
       }  /* if */
       parent_slmp = parent_source_line_modif(slmp);
@@ -1767,7 +1771,11 @@ when speed is critical.
      back up the column so that it indicates the newline (or is zero, for
      the end of file line case). */
   if (*adj_loc_in_line == '\0') position_var->column--;
-have_position:;
+have_position:
+  /* Save the position determined in the innermost source line modification
+     that covers this location.  That will make succeeding calls of
+     this routine faster. */
+  if (orig_slmp != NULL) orig_slmp->source_position = *position_var;
 }  /* conv_line_loc_to_source_pos */
 
 
