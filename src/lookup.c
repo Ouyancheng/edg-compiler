@@ -2127,7 +2127,9 @@ static a_symbol_ptr lookup_conversion_template_instance(
 			a_symbol_list_entry_ptr		conversion_templates)
 /*
 Find the conversion template instance that matches the type specified
-by the conversion type in the locator.
+by the conversion type in the locator.  conversion_templates can
+be NULL, in which case this routine is still called to (possibly) do the
+template dependent context processing.
 
 If we are in a prototype instantiation context, return an unknown function
 symbol that has the result type recorded in the ck_template_param constant.
@@ -2139,7 +2141,7 @@ symbol that has the result type recorded in the ck_template_param constant.
     /* A template context.  Create an unknown function symbol to
        represent the conversion function. */
     result_sym = create_unknown_conversion_symbol(locator, class_type);
-  } else {
+  } else if (conversion_templates != NULL) {
     /* A normal (nondependent) context.  Try to find a matching
        template conversion instance. */
     result_sym = find_conversion_template_instance(locator, class_type,
@@ -2281,10 +2283,8 @@ that do normal id lookup processing.
         a_class_symbol_supplement_ptr	cssp;
         check_assertion(class_type != NULL);
         cssp = symbol_supplement_for_class(class_type);
-        if (cssp->conversion_template_list != NULL) {
-          sym = lookup_conversion_template_instance(
+        sym = lookup_conversion_template_instance(
                           locator, class_type, cssp->conversion_template_list);
-        }  /* if */
       }  /*if */
     }  /* if */
     if (sym != NULL) break;
@@ -3139,7 +3139,6 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                  add_to_active_list, insert_sym, &sym,
                                  !(options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS));
         if (sym == NULL && locator->is_conversion_name &&
-            cssp->conversion_template_list != NULL &&
             (options & IDL_USING_DECLARATION) == 0) {
           /* We still haven't found a symbol, we are looking for a conversion
              function,  and this class has conversion function templates.

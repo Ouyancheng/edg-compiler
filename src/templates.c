@@ -10390,34 +10390,45 @@ existing type is simply used.
   a_source_position           saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_type_ptr				tp;
+  static int				pending_instantiations = 0;
 
   if (param_ptr->def_arg_involves_template_param) {
-    /* Push the template instantiation scope.  Note that the instance symbol
-       passed to push_scope is NULL because we don't yet know which instance
-       is being instantiated.  Also note that a class type is not being
-       passed for the same reason. */
-    a_template_cache_ptr	tcp = &param_ptr->default_arg.cache;
-    push_template_instantiation_scope(tcp->decl_info,
-                                      (a_type_ptr)NULL,
-				      (a_routine_ptr)NULL,
-				      (a_symbol_ptr)NULL,
-				      template_sym, arg_list,
-                                      /*push_stop_tokens=*/TRUE,
-				      PS_NO_OPTIONS);
-    saved_pos_curr_token = pos_curr_token;
-    saved_error_position = error_position;
+    if (pending_instantiations == max_pending_instantiations) {
+      error(ec_recursive_inst_of_templ_default_arg);
+      tp = error_type();
+    } else {
+      a_template_cache_ptr	tcp;
+      /* Increment the count of pending default argument instantiations.
+         This is used to detect infinite recursion. */
+      ++pending_instantiations;
+      /* Push the template instantiation scope.  Note that the instance symbol
+         passed to push_scope is NULL because we don't yet know which instance
+         is being instantiated.  Also note that a class type is not being
+         passed for the same reason. */
+      tcp = &param_ptr->default_arg.cache;
+      push_template_instantiation_scope(tcp->decl_info,
+                                        (a_type_ptr)NULL,
+				        (a_routine_ptr)NULL,
+				        (a_symbol_ptr)NULL,
+				        template_sym, arg_list,
+                                        /*push_stop_tokens=*/TRUE,
+				        PS_NO_OPTIONS);
+      saved_pos_curr_token = pos_curr_token;
+      saved_error_position = error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    saved_curr_construct_end_position = curr_construct_end_position;
+      saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    rescan_reusable_cache(&tcp->tokens);
-    tp = delayed_scan_of_template_default_type_arg();
-    error_position = saved_error_position;
-    pos_curr_token = saved_pos_curr_token;
+      rescan_reusable_cache(&tcp->tokens);
+      tp = delayed_scan_of_template_default_type_arg();
+      error_position = saved_error_position;
+      pos_curr_token = saved_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    curr_construct_end_position = saved_curr_construct_end_position;
+      curr_construct_end_position = saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Pop the template instantiation scope. */
-    pop_template_instantiation_scope();
+      /* Pop the template instantiation scope. */
+      pop_template_instantiation_scope();
+      --pending_instantiations;
+    }  /* if */
   } else {
     tp = param_ptr->default_arg.type;
   }  /* if */
@@ -12328,6 +12339,7 @@ that follows.
     report_exception_spec_errors(&func_info);
     if (is_error_locator(locator)) {
       /* Ignore it. */
+      sym = NULL;
     } else if (sym == NULL) {
       /* No symbol, which means the lookup failed. */
       pos_st_error(ec_not_a_template_name, &locator.source_position,
