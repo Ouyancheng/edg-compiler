@@ -1,5 +1,11 @@
 Version 3.4
 
+9/25/03  IA-64 ABI: Flag offset_is_set on generated fields
+
+The flag offset_is_set of a_field entries (present only in configurations
+with the IA-64 ABI) was never set for compiler-generated fields.  This could
+lead to erroneous object layouts.  This is now fixed.
+
 9/22/03  Microsoft compat: explicit constructors and copy-initialization
 
 In Microsoft bugs mode, some instances of copy-initialization are
