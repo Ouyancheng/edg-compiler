@@ -5178,7 +5178,8 @@ If none is found, create one and add it to the list.
        the front end anyway.  In other words, if T is a template param type,
        we don't need a fixup entry for T A<T>::* but we do need one for
        int A<T>::* (in which examples the base-types are T and int,
-       respectively). */
+       respectively), because the base_type T is not going to be in
+       the IL, but the base type int is. */
   } else {
     prev_btfp = NULL;
     for (btfp = based_type_fixup_list; btfp != NULL; btfp = btfp->next) {
@@ -5300,13 +5301,19 @@ is already an entry of the indicated kind on the list.
   /* Add the entry to the front of the existing based_types list. */
   btlmp->next = base_type->based_types;
   base_type->based_types = btlmp;
-  if (btlmp->kind == (a_based_type_kind)btk_ptr_to_member) {
+  if (!prototype_instantiations_in_il &&
+      btlmp->kind == (a_based_type_kind)btk_ptr_to_member) {
     a_type_ptr tp = based_type->variant.ptr_to_member.class_of_which_a_member;
     if (!is_class_struct_union_type(tp) ||
         tp->variant.class_struct_union.is_nonreal_class) {
       /* Either the class specified in this ptr-to-member type is a template
          param type or a nonreal instantiation -- update the fixup list so
-         this type doesn't leak into the back end. */
+         this type doesn't leak into the back end.  Pointers-to-members
+         are odd, because the base type is the member type, so a
+         template-dependent pointer to member type can be attached to
+         a base type that is not template-dependent.  The base type must
+         stay in the IL, and the based type entry must not, so we
+         arrange to remove the based type entry later in a fixup pass. */
       btlmp->front_end_only = TRUE;
       add_to_based_type_fixup_list(base_type);
     }  /* if */
