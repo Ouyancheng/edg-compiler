@@ -856,7 +856,6 @@ its source correspondence entry.
 #define unmangled_name_of(scp) ((scp)->name)
 #endif /* NEED_NAME_MANGLING */
 
-#if BACK_END_IS_CP_GEN_BE
 /*
 Macro that returns TRUE if an IL entry has a name before any name mangling
 that was done.  This is useful when testing entities like classes and
@@ -866,7 +865,6 @@ information.)
 */
 #define has_name_before_mangling(entry) \
   (unmangled_name_of(&(entry)->source_corresp) != NULL)
-#endif /* BACK_END_IS_CP_GEN_BE */
 
 /*
 Clear the parent information in the indicated entity to remove the entity

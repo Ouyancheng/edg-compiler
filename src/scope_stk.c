@@ -3339,7 +3339,8 @@ NULL.
         (!sym->is_class_member ||
          sym->parent.class_type == scp->parent.class_type)) {
       /* Okay */
-    } else if (scp->is_class_member && !has_name(scp->parent.class_type)) {
+    } else if (scp->is_class_member &&
+               !has_name_before_mangling(scp->parent.class_type)) {
       /* Okay: probably a member of a possibly nonstandard anonymous union. */
     } else if (sym->kind == (a_symbol_kind)sk_type &&
                sym->variant.type.is_injected_class_name) {
