@@ -86,6 +86,7 @@ Flags to be set when using the KAI inliner.
 #define USE_INIT_SECTION_IN_GENERATED_C 1
 #define LONG_LONG_ALLOWED 1  /* Since gcc is used to compile output. */
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 0
+#define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
 #else /* !defined(SOLARIS) */
 /* SunOS version. */
 #ifndef C_GEN_BE_GENERATES_ANSI_C
