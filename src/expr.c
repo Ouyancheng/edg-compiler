@@ -14232,8 +14232,9 @@ FALSE and a pointer to the expression tree in *expression.
       } else {
         constant_sign = sign_of_integer_constant(constant);
         if (is_vla_decl) {
-          if (constant_sign <= 0) {
-            /* VLA bounds must be positive. */
+          if (constant_sign < 0) {
+            /* VLA bounds must be positive (or possibly zero in GNU C mode;
+               the zero-length case is checked by the caller). */
             error(ec_array_size_must_be_positive);
             set_error_constant(constant);
           }  /* if */
