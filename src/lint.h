@@ -158,6 +158,10 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,num_array_elements)*/
 /*lint -esym(765,num_array_elements)*/
 #endif /* !DO_IL_LOWERING */
+#if !BACK_END_IS_CP_GEN_BE
+/*lint -esym(759,is_address_of_string_constant)*/
+/*lint -esym(765,is_address_of_string_constant)*/
+#endif /* !BACK_END_IS_CP_GEN_BE */
 #if !DEBUG
 /*lint -esym(749,pfs_last)*/
 #endif /* !DEBUG */
