@@ -1706,7 +1706,7 @@ by means of recursive calls.
   a_template_arg_ptr  tap;
 
   tp = skip_typerefs(tp);
-  if (tparam_type == tp) {
+  if (identical_types(tp, tparam_type)) {
     found = TRUE;
   } else {
     switch (tp->kind) {
