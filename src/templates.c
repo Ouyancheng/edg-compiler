@@ -5313,10 +5313,8 @@ type should not be used in the matching process.
 */
 {
   a_boolean                         match = FALSE;
-  a_symbol_ptr                      sym = NULL;
-  a_type_ptr                        rout_type, templ_rout_type;
+  a_type_ptr                        templ_rout_type;
   a_template_symbol_supplement_ptr  tssp;
-  a_template_instance_ptr           tip;
   a_param_type_ptr                  ptp, other_ptp;
   a_routine_type_supplement_ptr	    curr_rtsp;
   a_routine_type_supplement_ptr	    templ_rtsp;
@@ -5375,47 +5373,6 @@ type should not be used in the matching process.
        type. */
     if (templ_rout_type == NULL) goto done;
   }  /* if */
-  /* Make a pass over the entries representing instantiations of the function
-     template to see if any of them match the current type signature. */
-  for (tip = tssp->variant.function.instantiations;
-       tip != NULL;
-       tip = tip->next) {
-    a_routine_ptr	rout;
-    /* We used to skip entries that represent specific declarations.
-       This is no longer done because these entries must be examined this
-       routine is called during instantiation pragma processing. */
-    sym = tip->instance_sym;
-    /* Ignore symbols for which instance_sym has not yet been set.  This
-       happens when verify_routine_type_matches_template is called. */
-    if (sym == NULL) continue;
-    rout = sym->variant.routine.ptr;
-    rout_type = skip_typerefs(rout->type);
-    if (explicit_arg_list != NULL) {
-      if (!equiv_template_arg_lists(*templ_arg_list, rout->template_arg_list,
-                                    ETA_IGNORE_UNKNOWN_ARG_VALUES)) {
-        /* The explicitly specified template argument list does not match
-           the one associated with this instance. */
-        continue;
-      }  /* if */
-    }  /* if */
-    if (is_decl_context) {
-      /* In declaration contexts we do not yet know whether the type
-         has an implicit this type.  Consequently, a NULL implicit this
-         type should be considered a match for a non-NULL one in the
-         routine we are matching with. */
-      match = unknown_implicit_this_identical_types(curr_type, rout_type);
-    } else {
-      /* In nondeclarative contexts, the implicit this parameter types must
-         match exactly. */
-      match = identical_types(curr_type, rout_type);
-    }  /* if */
-    if (!match) continue;
-    /* Falling through to here means curr_type exactly matches the function
-       type for sym.  Skip over the remaining processing and return sym to
-       the caller. */
-    *instance_sym = sym;
-    goto done;
-  }  /* for */
   /* Falling through to here means the type signature passed in does not
      match any existing template function based on the function template in
      question, but that it is not disqualified on other grounds.  Try to match
@@ -5434,6 +5391,32 @@ type should not be used in the matching process.
   if (match) {
     match = wrapup_function_template_argument_deduction(
                          *templ_arg_list, templ_sym, templ_param_list) != NULL;
+  }  /* if */
+  if (match) {
+    /* Look for a previously created instance with a matching set of template
+       arguments. */
+    a_template_instance_ptr           tip;
+    a_symbol_ptr                      sym;
+    for (tip = tssp->variant.function.instantiations;
+         tip != NULL;
+         tip = tip->next) {
+      a_routine_ptr	rout;
+      /* We used to skip entries that represent specific declarations.
+         This is no longer done because these entries must be examined this
+         routine is called during instantiation pragma processing. */
+      sym = tip->instance_sym;
+      /* Ignore symbols for which instance_sym has not yet been set.  This
+         happens when verify_routine_type_matches_template is called. */
+      if (sym == NULL) continue;
+      rout = sym->variant.routine.ptr;
+      if (equiv_template_arg_lists(*templ_arg_list, rout->template_arg_list,
+                                   ETA_NO_OPTIONS)) {
+        /* The template argument lists match.  Return the symbol for this
+           template. */
+        *instance_sym = sym;
+        break;
+      }  /* if */
+    }  /* for */
   }  /* if */
 done:
   if (!match && *templ_arg_list != NULL) {
