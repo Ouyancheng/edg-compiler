@@ -1,5 +1,20 @@
 Version 2.13
 
+12/11/92  Better handling of errors in old-style parameter declarations
+
+Several changes were made to improve error reporting in old-style param
+declarations:
+
+(1)  void f(x)
+       struct S { int i; };  // Error now issued in C++ mode, and warning
+                             //     no longer issued in pcc mode.
+       struct S x;
+     { /* ... */ }
+
+(2)  void f()
+       int i;                // In C mode: now reported as an invalid
+     { /* ... */ }           //      param declrather than a syntax error
+
 12/9/92  Inexact match on nontype template arguments
 
 In non-strict mode, in a reference to a class template, the argument
