@@ -2038,7 +2038,6 @@ routine that is being called to allocate the memory.  This is used
 for the IA-64 ABI (see "Array operator new cookies", section 2.7).
 */
 {
-  a_type_ptr                    size_type;
   a_targ_size_t                 padding_size = 0;
   a_boolean                     need_padding = TRUE;
   an_expr_node_ptr              padding_node = NULL;
@@ -2064,12 +2063,16 @@ for the IA-64 ABI (see "Array operator new cookies", section 2.7).
     }  /* if */
   }  /* if */
   if (need_padding) {
-    /* The amount of padding is equal to the maximum of the size of size_t and
-       the alignment of an element in the array.  */
-    padding_size = type->alignment;
-    size_type = integer_type((an_integer_kind)targ_size_t_int_kind);
-    if (size_type->size > padding_size) {
-      padding_size = size_type->size;
+    /* The amount of padding is equal to the maximum of the size of the
+       cookie and the alignment of an element in the array. */
+    /* The standard IA-64 ABI cookie is a size_t. */
+    padding_size = integer_type((an_integer_kind)targ_size_t_int_kind)->size;
+#if IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+    /* The variant cookie is a struct containing two size_t fields. */
+    padding_size *= 2;
+#endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+    if (type->alignment > padding_size) {
+      padding_size = type->alignment;
     }  /* if */
   } /* if */
   if (padding_size != 0 || even_if_zero) {
@@ -2407,8 +2410,37 @@ IA-64 ABI, the routines called are different.
   }  /* if */
 #else /* IA64_ABI */
   an_expr_node_ptr assign_node, arg_entity_node = entity_node;
+#if IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+  an_expr_node_ptr assign_elem_size_node;
+#endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
   if (prefix_size_node != NULL) {
     an_expr_node_ptr cookie_ptr_node, cookie_value_node;
+#if IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+    /* Generate code to set the array element size field in the variant
+       array cookie.  The variant cookie is a struct containing two size_t
+       fields, in the order element_size, element_count.  The normal
+       code below will set the second field to the number of elements. */
+    /* Build a constant node for the size of the array elements. */
+    an_expr_node_ptr size_elem_node =
+                                 size_elem_node_from_pointer_type(entity_type);
+    /* entity_node contains the address of the allocation.  Cast it to
+       "size_t *" then subtract 2 to get to the first field. */
+    cookie_ptr_node = add_cast_if_necessary(
+                                          entity_node,
+                                          make_pointer_type(
+                                          integer_type(targ_size_t_int_kind)));
+    entity_node = make_reusable_copy(entity_node, /*vars_can_change=*/FALSE);
+    cookie_ptr_node->next = node_for_integer_constant(2L,
+                                                      targ_size_t_int_kind);
+    cookie_ptr_node = make_operator_node((an_expr_operator_kind)eok_psubtract,
+                                         cookie_ptr_node->type,
+                                         cookie_ptr_node);
+    /* Generate the assignment expression.  It is inserted below. */
+    assign_elem_size_node = make_assignment_expr(
+                                            cookie_ptr_node,
+                                            (an_expr_operator_kind)eok_iassign,
+                                            size_elem_node);
+#endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
     /* If there was padding, we must set the value indicating how many
        elements there are.  Compute the address of the "cookie". */
 
@@ -2436,6 +2468,9 @@ IA-64 ABI, the routines called are different.
                                 (a_routine_ptr)NULL, (a_routine_ptr)NULL,
                                 zero_storage);
   if (prefix_size_node != NULL) {
+#if IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+    assign_node = make_comma_node(assign_elem_size_node, assign_node);
+#endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
     call_node = make_comma_node(assign_node, call_node);
   }  /* if */
 #endif /* IA64_ABI */

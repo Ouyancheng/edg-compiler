@@ -127,6 +127,22 @@ This is needed, for example, for the ARM architecture.
 #endif /* ifndef IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
 
 /*
+TRUE to use the variant representation of array cookies with
+the IA-64 ABI.  The variant form uses a struct as follows
+for the array allocation cookie:
+  struct array_cookie {
+    std::size_t element_size; // element_size != 0
+    std::size_t element_count;
+  };
+rather than the simple size_t value of the standard IA-64 ABI.
+This variant version is used for the ARM architecture.  See
+3.2.2.1 in the ARM EABI document.
+*/
+#ifndef IA64_ABI_USE_VARIANT_ARRAY_COOKIES
+#define IA64_ABI_USE_VARIANT_ARRAY_COOKIES FALSE
+#endif /* ifndef IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
+
+/*
 The early GNU implementations of the IA-64 ABI (e.g., versions 3.2 and 3.3)
 had several bugs.  Set the following FLAG to TRUE if those bugs should be
 emulated by this implementation.  This is the initial value of the global

@@ -1,5 +1,13 @@
 Version 3.5
 
+6/7/04   Variant cookie for IA-64 ABI array allocation
+
+The front end now supports a variant form of the cookie used
+to record an array allocation in the IA-64 ABI.  This variant
+form matches the requirements of the ARM EABI and is enabled
+by IA64_ABI_USE_VARIANT_ARRAY_COOKIES.  The runtime has also
+been updated to support this.
+
 6/2/04   Wide string not accepted in _Pragma operator
 
 Wide string literals were not accepted in C99 _Pragma operators.
