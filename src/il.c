@@ -2727,13 +2727,14 @@ Make a copy of an unshared constant and return pointer to the copy.
                                           (an_address_base_kind)abk_constant) {
       a_constant_ptr old_constant_pointed_to =
                                 old_constant->variant.address.variant.constant;
-      if (in_file_scope(new_constant) !=
-                                      in_file_scope(old_constant_pointed_to)) {
+      if (!in_file_scope(old_constant_pointed_to)) {
         /* For an address constant pointing to a constant, the constant must be
            copied too if it's in the wrong memory region.  This comes up for
            addresses of strings; without this copy the ck_address could end
            up in the file scope memory region with the ck_string pointed to
            in the function scope memory region. */
+        /* This also comes up in inlining, when we make a copy of a constant
+           from one function scope memory region to another. */
         /* The copy is made unshared because if the original constant was
            unshared we want the copy to be unshared as well, and we don't
            know for sure whether the original constant is unshared. */
