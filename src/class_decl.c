@@ -719,6 +719,7 @@ old_class under new_class.
 {
   a_base_class_ptr new_base_class, bcp;
 
+  db_enter(4, "corresponding_base_class");
   for (bcp = new_class->variant.class_struct_union.extra_info->base_classes;
        bcp != NULL;
        bcp = bcp->next) {
@@ -746,8 +747,9 @@ old_class under new_class.
         } else {
           a_derivation_step_ptr  step;
           for (step = bcp->derivation; step != NULL; step = step->next) {
-            if (step->base_class->type == old_class &&
-                congruent_paths(step->next, base_class->derivation)) {
+            if (step->base_class->type ==
+                               base_class->derivation->base_class->type &&
+                congruent_paths(step, base_class->derivation)) {
               new_base_class = bcp;
               goto done;
             }  /* if */
@@ -776,7 +778,14 @@ old_class under new_class.
 #else
   new_base_class = NULL;
 #endif /* CHECKING */
-done:;
+done:
+  db_exit();
+#if DEBUG
+  if (debug_level >= 4) {
+    fputs("found base class: ", f_debug);
+    db_base_class(new_base_class, FALSE);
+  }  /* if */
+#endif /* DEBUG */
   return new_base_class;
 }  /* corresponding_base_class */
 
