@@ -1234,13 +1234,14 @@ a_boolean reference_to_trivial_default_constructor(
                                               a_type_ptr         class_type,
                                               a_source_position  *pos)
 /*
-Return TRUE if class_type has an associated trivial default constructor.
-(This should never be the case for PODs, for classes with any user-declared
+If class_type has an associated trivial default constructor, record a
+reference to it -- checking its accessibility, updating the cross-reference
+listing if appropriate, and assuring that it is defined, which is done (even
+though the function is not actually called) in case the definition has side
+effects.  If class_type does have a trivial default constructor (which
+should never be the case for PODs, for classes with any user-declared
 constructors, or for classes with an implicitly declared nontrivial default
-constructor.)  If a trivial default constructor is found, record a reference
-to it -- checking its accessibility, updating the cross-reference listing if
-appropriate, and assuring that it is defined, which is done (even though the
-function is not actually called) in case the definition has side effects.
+constructor), return TRUE.
 */
 {
   a_symbol_ptr   ctor_sym;
