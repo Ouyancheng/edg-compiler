@@ -253,7 +253,7 @@ typedef struct a_scope_stack_entry {
 			   be suppressed. */
   a_bit_field	instantiation_scope_pushed:1;
 			/* TRUE if, when pushing a class and template
-			   reactivation scope that a template instantiation
+			   reactivation scope, a template instantiation
 			   scope was pushed. */
   a_bit_field /* a_name_linkage_kind */
 		default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
