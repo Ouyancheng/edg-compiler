@@ -4752,6 +4752,12 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
         suppress_this = TRUE;
       }  /* if */
     }  /* if */
+    if (!microsoft_mode || microsoft_version != 1000) {
+      /* Now that we've done all the work, suppress "this->" only in
+         Microsoft version 4.2 mode, where it's needed to get around some
+         bugs.  Otherwise, it doesn't seem to add much. */
+      suppress_this = FALSE;
+    }  /* if */
     if (!suppress_this) {
       /* Put out object pointer and "->". */
       gen_expr_with_parens(object_expr);
