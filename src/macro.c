@@ -75,7 +75,8 @@ static char	*after_end_of_aux_buffer_for_pcc_macros;
 static a_symbol_ptr
 		Pragma_macro_symbol;
 			/* Pointer to the symbol entry for the special
-			   macro "_Pragma", which is used in C99 mode. */
+			   macro "_Pragma", which is used in C99 mode and
+			   GNU modes. */
 
 static a_symbol_ptr
 		microsoft_pragma_macro_symbol;
@@ -4991,7 +4992,7 @@ command line -D options.
   base_file_macro_symbol = enter_predef_macro((char *)NULL, "__BASE_FILE__",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
-  if (c99_mode) {
+  if (c99_mode || gnu_mode) {
     /* Like the special macros defined above, _Pragma is entered as a
        predefined macro but is handled specially during replacement. */
     Pragma_macro_symbol = enter_predef_macro((char *)NULL, "_Pragma",

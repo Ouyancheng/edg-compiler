@@ -1,5 +1,12 @@
 Version 3.4
 
+3/8/04   GNU compatibility: _Pragma accepted in GNU modes
+
+The C99 _Pragma operator is now accepted in gcc and g++ modes.
+
+  _Pragma("test_next_decl")
+  int i;
+
 3/5/04   Microsoft compatibility: Comma separator for __declspec attributes
 
 In Microsoft modes, the front end now accepts an optional comma after a
