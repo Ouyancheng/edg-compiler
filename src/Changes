@@ -1,5 +1,17 @@
 Version 3.4
 
+8/14/03  GNU C++ mode: Attributes on static data members
+
+In GNU C++ mode, the front end now correctly processes attributes on static
+data member definitions (including generic definitions of static data members
+of class templates).  Previously, such attributes were either ignored or
+diagnosed as errors.  For example:
+
+  struct D { D(); };
+  struct S { static D x; };
+  __attribute__((init_priority(3000)))  // Previously ignored in GNU C++ mode.
+    D S::x;
+
 8/14/03  Microsoft compatibility: copy constructors preferred in overload
          resolution
 

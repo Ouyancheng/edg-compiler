@@ -4233,9 +4233,11 @@ declaration.
     set_to_error_locator(*locator);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  /* Allow the attributes specified to modify the type with which the
-     variable was declared. */
-  type_ptr = apply_attributes_to_variable_type(attributes, type_ptr);
+  if (attributes != NULL) {
+    /* Allow the attributes specified to modify the type with which the
+       variable was declared. */
+    type_ptr = apply_attributes_to_variable_type(attributes, type_ptr);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   check_upc_variable_decl(locator, type_ptr, storage_class);
@@ -4580,8 +4582,10 @@ declaration.
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
-    /* Apply the attributes to the variable declaration. */
-    apply_attributes_to_variable(attributes, variable_ptr);
+    if (attributes != NULL) {
+      /* Apply the attributes to the variable declaration. */
+      apply_attributes_to_variable(attributes, variable_ptr);
+    }  /* if */
     /* Record the assembly name. */
     if (asm_name != NULL) {
       if (is_register) {
@@ -6927,10 +6931,12 @@ is not necessarily the canonical entry for the template being declared.
 }  /* decl_function_template */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
+#if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+                information is being recorded in the IL.  Similarly,
+                attributes is only used in configurations supporting GNU
+                extensions. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED */
 static void define_static_data_member(a_symbol_locator   *locator,
                                       a_storage_class    storage_class,
                                       a_type_ptr         type_ptr,
@@ -6938,6 +6944,7 @@ static void define_static_data_member(a_symbol_locator   *locator,
                                       a_source_sequence_entry_ptr  ssep,
                                       a_symbol_ptr       *symbol_ptr,
                                       an_id_linkage_kind *linkage_ptr,
+                                      an_attribute_ptr   attributes,
                                       a_decl_pos_block   *decl_pos_block)
 /*
 Enter the definition of a static data member.  *locator gives the symbol
@@ -7080,6 +7087,11 @@ the symbol and its linkage (which is always "none").
       }  /* if */
       record_symbol_declaration(srk_flags, sym, &locator->source_position,
                                 ssep);
+#if GNU_EXTENSIONS_ALLOWED
+      if (attributes != NULL) {
+        apply_attributes_to_variable(attributes, var);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       update_decl_pos_info(&var->source_corresp, decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -11665,7 +11677,7 @@ continue_with_declaration:
         define_static_data_member(&locator, local_storage_class,
                                   local_type_ptr, has_initializer,
                                   declarator_ssep, &symbol_ptr, &linkage,
-                                  &decl_pos_block);
+                                  attributes, &decl_pos_block);
         var_ptr = symbol_ptr->variant.static_data_member.variable;
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */

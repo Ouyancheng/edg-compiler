@@ -3369,7 +3369,8 @@ user later during real instantiations.
 
 
 static void static_data_member_prototype_instantiation(
-					a_symbol_ptr	template_sym)
+                                              a_symbol_ptr      template_sym,
+                                              an_attribute_ptr  attributes)
 /*
 This routine is called to do a "prototype instantiation" of a template
 static data member.
@@ -3387,6 +3388,15 @@ user later during real instantiations.
 
   db_enter(3, "static_data_member_prototype_instantiation");
   var_ptr = template_sym->variant.static_data_member.variable;
+#if GNU_EXTENSIONS_ALLOWED
+  if (attributes != NULL) {
+    /* Allow the attributes specified to modify the type with which the
+       static data member was defined. */
+    var_ptr->type = apply_attributes_to_variable_type(attributes,
+                                                      var_ptr->type);
+    apply_attributes_to_variable(attributes, var_ptr);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   var_ptr->declared_type = var_ptr->type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4014,6 +4024,11 @@ and the class instantiation will detect the runaway case.
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
   ++(tssp->pending_instantiations);
+#if GNU_EXTENSIONS_ALLOWED
+  if (tssp->attributes != NULL) {
+    apply_attributes_to_variable(tssp->attributes, var_ptr);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Call mark_defined *after* the template instantiation scope is pushed --
      correct behavior for source sequence entry generation depends on it. */
   mark_defined(static_data_member_sym, &tip->template_sym->decl_position);
@@ -14614,6 +14629,7 @@ any non-empty template parameter lists that were scanned.
   a_boolean			    is_class_template = FALSE;
   a_cached_token_ptr		    ctp;
   a_boolean			    invalid_decl = FALSE;
+  an_attribute_ptr                  attributes = NULL;
 
   db_enter(3, "template_declaration");
   /* Now that we know where the template declaration begins (and the template
@@ -14693,7 +14709,6 @@ any non-empty template parameter lists that were scanned.
       a_func_info_block       func_info;
       a_storage_class         storage_class;
       a_decl_modifiers_block  decl_modifiers;
-      an_attribute_ptr        attributes = NULL;
 
       /* Scan the decl. specifiers and the declaration. */
       clear_func_info(&func_info);
@@ -14730,8 +14745,14 @@ any non-empty template parameter lists that were scanned.
                                  decl_state, &locator, storage_class,
                                  do_flags, type, &tssp);
         /* Save a pointer to the token cache for the initializer.  tssp
-           may be NULL in error cases. */
-        if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
+           may be NULL in error cases.  For GNU modes also save any
+           attributes that will need to be applied during instantiation. */
+        if (tssp != NULL) {
+          p_template_body_cache = &tssp->cache.tokens;
+#if GNU_EXTENSIONS_ALLOWED
+          tssp->attributes = attributes;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        }  /* if */
       } else if (is_function_type(type)) {
         sym = function_template_declaration(
                  decl_state, &locator, &func_info, storage_class,
@@ -14876,7 +14897,7 @@ any non-empty template parameter lists that were scanned.
       }  /* if */
     } else {
       check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
-      static_data_member_prototype_instantiation(sym);
+      static_data_member_prototype_instantiation(sym, attributes);
     }  /* if */
   }  /* if */
   /* Extract the bodies of any member functions, nested classes, or

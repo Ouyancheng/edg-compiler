@@ -2472,6 +2472,9 @@ and return a pointer to it.
   tssp->il_template_entry = NULL;
   tssp->all_instantiations = NULL;
   tssp->name = NULL;
+#if GNU_EXTENSIONS_ALLOWED
+  tssp->attributes = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   tssp->is_specific_definition = FALSE;
   tssp->is_nonreal_member = FALSE;
   tssp->is_error = FALSE;

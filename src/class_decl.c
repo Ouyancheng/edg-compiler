@@ -8111,8 +8111,10 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
-    /* Apply the attributes to the variable declaration. */
-    apply_attributes_to_variable(attributes, var);
+    if (attributes != NULL) {
+      /* Apply the attributes to the variable declaration. */
+      apply_attributes_to_variable(attributes, var);
+    }  /* if */
     /* If applicable, record the asm-name. */
     if (asm_name != NULL) {
       var->asm_name_or_reg.name = asm_name;

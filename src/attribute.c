@@ -1330,7 +1330,8 @@ invalid attributes.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
       case ak_init_priority:
-        if (is_file_or_namespace_scope(&scope_stack[depth_scope_stack]) &&
+        if ((is_file_or_namespace_scope(&scope_stack[depth_scope_stack]) ||
+             vp->source_corresp.is_class_member) &&
             is_class_struct_union_type(vp->type)) {
           vp->init_priority = ap->variant.init_priority;
         } else {

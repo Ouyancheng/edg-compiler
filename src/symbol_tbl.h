@@ -1852,6 +1852,12 @@ typedef struct a_template_symbol_supplement {
   char		*name;
 			/* The mangled name of the entity.  Used for exported
 			   templates. */
+#if GNU_EXTENSIONS_ALLOWED
+  struct an_attribute
+		*attributes;
+			/* GNU attributes specified on this template.  They
+			   need to be applied to every instantiation. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field
 		is_specific_definition:1;
 			/* TRUE if the template is a specific definition of

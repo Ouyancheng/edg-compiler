@@ -535,7 +535,9 @@ pointer decay).
   ptp->name = vp->source_corresp.name;
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
 #if GNU_EXTENSIONS_ALLOWED
-  apply_attributes_to_variable(param_id->attributes, vp);
+  if (param_id->attributes != NULL) {
+    apply_attributes_to_variable(param_id->attributes, vp);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   {
