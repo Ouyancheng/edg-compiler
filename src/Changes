@@ -1,5 +1,21 @@
 Version 3.6
 
+11/22/04 GNU C++ compatibility: Floating-point in-class initializers
+
+In GNU C++ mode the front end now accepts in-class initializers for static
+data members of a const floating-point type (normally only const integer and
+enumeration types allow for in-class initializers).  For example:
+
+  struct S {
+    static double const F = 3.2;  // Now accepted in GNU C++ mode.
+  };
+
+As with the standard (integer or enumeration) case, the initializer does not
+make the declaration a definition.  An out-of-class definition is therefore
+still needed.  E.g., for the example above:
+
+  double const S::F;
+
 11/22/04 Microsoft compatibility: value of __cplusplus for 7.1
 
 In older versions of MSVC++, the macro__cplusplus was defined as 1

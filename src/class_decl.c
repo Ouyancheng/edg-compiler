@@ -8078,7 +8078,8 @@ if p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
   var->source_corresp.access = class_state->access;
   if (curr_token == tok_assign) {
     if ((is_const_qualified_type(member_type) &&
-         is_integral_or_enum_type(member_type)) ||
+         (is_integral_or_enum_type(member_type) ||
+          (gpp_mode && is_floating_type(member_type)))) ||
         (class_state->is_nonreal_instantiation &&
          is_template_param_type(member_type))) {
       /* A const integral or const enumeration type may be initialized inside

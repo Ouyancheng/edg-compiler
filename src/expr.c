@@ -17010,36 +17010,34 @@ copy-initialization ("="-form).
 
   db_enter(3, "scan_member_constant_initializer_expression");
 
-  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
-  push_expr_stack((an_expression_kind)ek_integral_constant, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/FALSE);
-  /* Scan the constant expression. */
   if (gnu_mode) {
     /* GNU C and C++ allow more than the standard allows. */
-    scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
-                                               /*will_cast=*/FALSE,
-                                               PREC_LOWEST,
-                                               &result);
+    scan_constant_initializer_expression(required_type, constant);
   } else {
+    check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+    push_expr_stack((an_expression_kind)ek_integral_constant,
+                    &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    /* Scan the constant expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  }  /* if */
-  /* Convert to the required type. */
-  prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
-                           (a_conv_descr_ptr)NULL,
-                           /*initializing_return_value=*/FALSE,
-                           /*initializing_variable=*/TRUE,  /* Arbitrary. */
-                           /*static_lifetime=*/FALSE,
-                           /*is_copy_initialization=*/TRUE,
-                           /*processed_arg=*/FALSE,
-                           /*nontype_template_arg=*/FALSE,
-                           ec_bad_initializer_type);
-  /* Make a constant from the operand. */
-  extract_constant_from_operand(&result, constant);
-  pop_expr_stack();
+    /* Convert to the required type. */
+    prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
+                             (a_conv_descr_ptr)NULL,
+                             /*initializing_return_value=*/FALSE,
+                             /*initializing_variable=*/TRUE,  /* Arbitrary. */
+                             /*static_lifetime=*/FALSE,
+                             /*is_copy_initialization=*/TRUE,
+                             /*processed_arg=*/FALSE,
+                             /*nontype_template_arg=*/FALSE,
+                             ec_bad_initializer_type);
+    /* Make a constant from the operand. */
+    extract_constant_from_operand(&result, constant);
+    pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  curr_construct_end_position = result.end_position;
+    curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
 
 #if DEBUG
   if (debug_level >= 3) {
