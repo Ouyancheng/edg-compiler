@@ -1520,7 +1520,7 @@ the primary translation unit, respectively) that are being merged.
 static void merge_befriending_classes_lists(a_class_list_entry_ptr *plist1,
                                             a_class_list_entry_ptr list2)
 /*
-Merge the befriending lists pointed to by *plist1 and plist2, and
+Merge the befriending lists pointed to by *plist1 and list2, and
 update *plist1 to point to the merged list.
 */
 {
