@@ -379,7 +379,8 @@ extern a_statement_ptr make_call_assignment_statement(
 
 extern a_switch_clause_ptr alloc_switch_clause(void);
 
-extern an_accessible_base_class_ptr alloc_accessible_base_class(void);
+extern an_accessible_base_class_ptr alloc_accessible_base_class(
+                                                         a_base_class_ptr bcp);
 
 extern a_handler_ptr alloc_handler(void);
 

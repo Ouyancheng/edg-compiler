@@ -6004,10 +6004,10 @@ to it.
 }  /* alloc_switch_clause */
 
 
-an_accessible_base_class_ptr alloc_accessible_base_class(void)
+an_accessible_base_class_ptr alloc_accessible_base_class(a_base_class_ptr bcp)
 /*
-Allocate an accessible_base_class, clear it to default values, and return a
-pointer to it.
+Allocate an accessible_base_class, clear it to default values and set the
+base class to bcp, and return a pointer to it.
 */
 {
   register an_accessible_base_class_ptr abcp;
@@ -6018,7 +6018,7 @@ pointer to it.
   num_accessible_base_classes_allocated++;
 #endif /* DEBUG */
   abcp->next       = NULL;
-  abcp->base_class = NULL;
+  abcp->base_class = bcp;
 
   return abcp;
 }  /* alloc_accessible_base_class */
