@@ -47,6 +47,20 @@ EXTERN a_boolean
 			/* -A option: issue warnings on nonstandard
 			   features used, disable features that conflict
 			   with ANSI C (i.e., asm). */
+EXTERN a_boolean
+                cfront_compatibility_mode /* = FALSE */;
+                        /* -c option:  accept language features supported
+                            by cfront release 2.1. */
+EXTERN a_boolean
+                allow_anachronisms
+#if VAR_INITIALIZERS
+                          = DEFAULT_ALLOW_ANACHRONISMS
+#endif /* VAR_INITIALIZERS */
+                                                      ;
+                        /* Indicates whether anachronisms should be
+                           accepted.  The default is supplied by a
+                           configuration parameter. */
+
 EXTERN int	init_debug_level /* = 0 */;
 			/* Initial debug level: n in -dn option, or 0
 			   by default. */
@@ -178,6 +192,9 @@ EXTERN a_boolean
 			          = DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS
 #endif /* VAR_INITIALIZERS */
                                                                          ;
+                        /* Specifies whether dollar signs are allowed
+                           in identifiers.  The default is supplied by
+                           a configuration parameter. */
 
 
 

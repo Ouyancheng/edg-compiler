@@ -254,7 +254,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "AEPCKMHNnsuvwrmpV$I:D:U:e:L:X:S:o:i:d:"
+#define COMMAND_LIST "AEPCKMHNabnsuvwrmpV$I:D:U:e:L:X:S:o:i:d:"
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
@@ -312,6 +312,16 @@ Process the arguments on the command line that invoked the compiler.
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
 #endif /* DO_IL_LOWERING */
+      case 'a':
+        /* Allow anachronisms. Toggle the value (use the non-default value)
+           of the flag that specifies whether anachronisms should be
+           accepted. */
+        allow_anachronisms = !DEFAULT_ALLOW_ANACHRONISMS;
+        break;
+      case 'b':
+        /* cfront compatibility mode. */
+        cfront_compatibility_mode = TRUE;
+        break;
       case 'n':
         /* Suppress execution of back end. */
         suppress_back_end = TRUE;
@@ -476,6 +486,10 @@ unknown_option:
     /* Strict ANSI mode is incompatible with K&R/pcc mode. */
     if (C_dialect == C_dialect_pcc) {
       command_line_error("strict ANSI mode is incompatible with K&R mode");
+    }  /* if */
+    /* Strict ANSI mode is incompatible with cfront compatibility mode. */
+    if (cfront_compatibility_mode) {
+      command_line_error("strict ANSI mode is incompatible with cfront mode");
     }  /* if */
     if ((int)error_threshold > (int)es_warning) {
       /* Make sure warnings come out. */
