@@ -8981,26 +8981,31 @@ for a return, because the caller will do the destruction).
   *p_dip = NULL;
   if (operand_is_temp_init(source_operand)) {
     /* The operand is an enk_temp_init. */
-    is_usable_temp_init = TRUE;
     temp_init_node = source_operand->variant.expression;
     dip = temp_init_node->variant.init.dynamic_init;
-    /* Take the dynamic init off whatever destruction list it is on, if any,
-       because it will be given to the caller, who will put it on a
-       list at that level. */
-    remove_from_destruction_list(dip);
-    temp_init_node->variant.init.static_temp = FALSE;
-    dip->has_temporary_lifetime = FALSE;
-    if (suppress_dtor && dip->destructor != NULL) {
-      /* We don't want destruction indicated here (because someone else
-         will take care of the destruction), so clear the destructor pointer.
-         Note that in these cases the destructor field was filled in
-         but the destructor routine has not been marked as referenced,
-         because we're in a cctor elision initializer expression
-         (see alloc_dtor_dynamic_init and fix_up_dynamic_init_dtors). */
-      dip->destructor = NULL;
+    /* Avoid problems with dynamic inits with kind dik_none, created for
+       functional-notation casts with no arguments (e.g., X()) for classes
+       with no constructors. */
+    if (dip->kind != (a_dynamic_init_kind)dik_none) {
+      is_usable_temp_init = TRUE;
+      /* Take the dynamic init off whatever destruction list it is on, if any,
+         because it will be given to the caller, who will put it on a
+         list at that level. */
+      remove_from_destruction_list(dip);
+      temp_init_node->variant.init.static_temp = FALSE;
+      dip->has_temporary_lifetime = FALSE;
+      if (suppress_dtor && dip->destructor != NULL) {
+        /* We don't want destruction indicated here (because someone else
+           will take care of the destruction), so clear the destructor pointer.
+           Note that in these cases the destructor field was filled in
+           but the destructor routine has not been marked as referenced,
+           because we're in a cctor elision initializer expression
+           (see alloc_dtor_dynamic_init and fix_up_dynamic_init_dtors). */
+        dip->destructor = NULL;
+      }  /* if */
+      *p_temp_init_node = temp_init_node;
+      *p_dip = dip;
     }  /* if */
-    *p_temp_init_node = temp_init_node;
-    *p_dip = dip;
   }  /* if */
   return is_usable_temp_init;
 }  /* is_temp_init_usable_in_optimization */
