@@ -2408,6 +2408,17 @@ else.  This routine should only be called when generate_pp_output is TRUE.
     fprintf(f_pp_output, " %lu \"",  (unsigned long)eff_line_number);
     /* Put out the file name.  For ANSI/ISO output, add escapes as
        necessary. */
+    if (microsoft_mode && microsoft_version >= 1300 &&
+        curr_ise->is_include_file && *curr_ise->dir_entry->dir_name == '\0' &&
+        !is_absolute_file_name(curr_ise->file_name)) {
+      /* When a file is found via inspection of the current directory, the
+         Microsoft compiler (starting with version 7.0) output the file
+         name as a fully qualified name. */
+      (void)write_file_name(current_directory_name, f_pp_output,
+                            /*process_escapes=*/!pcc_preprocessing_mode);
+      (void)write_file_name(DIRECTORY_SEPARATOR_STRING, f_pp_output,
+                            /*process_escapes=*/!pcc_preprocessing_mode);
+    }  /* if */
     (void)write_file_name(curr_ise->file_name, f_pp_output,
                           /*process_escapes=*/!pcc_preprocessing_mode);
     fputc('"', f_pp_output);

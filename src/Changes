@@ -1,5 +1,12 @@
 Version 3.6
 
+1/11/05  Microsoft compatibility: path names in #line directives
+
+The Microsoft compiler (versions 7.0 and beyond) outputs complete path
+names in #line directives in preprocessed output for files found in the
+current directory portion of the include search path.  We now emulate
+this behavior in Microsoft mode when microsoft_version is >= 1300.
+
 1/10/05  Abort on use of local namespace alias in some configurations
 
 In configurations with RECORD_FORM_OF_NAME_REFERENCE set to TRUE, using a
