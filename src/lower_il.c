@@ -10609,11 +10609,23 @@ or a namespace scope).  *insert_pointer indicates the insertion position,
 and is updated after the insertion.
 */
 {
+  a_type_ptr local_types = NULL, end_local_types = NULL;
+
   check_assertion(scope->kind == (a_scope_kind)sck_class_struct_union);
   /* Promote the types to the end of the proper types list.  Also promote
      members out of any classes encountered on the types list. */
   promote_type_list(scope->types, promotion_scope, insert_pointer,
-                    (a_type_ptr *)NULL, (a_type_ptr *)NULL);
+                    &local_types, &end_local_types);
+  /* If there are any promoted local types, move them to the insert point. */
+  if (local_types != NULL) {
+    if (insert_pointer == NULL) {
+      promotion_scope->types = local_types;
+    } else {
+      end_local_types->next = (*insert_pointer)->next;
+      (*insert_pointer)->next = local_types;
+    }  /* if */
+    *insert_pointer = end_local_types;
+  }  /* if */
   /* Clear the list of promoted types.  Since the scope is for a class,
      we know it cannot be on the scope stack now, and therefore we do
      not need to update a corresponding last pointer. */

@@ -1,5 +1,11 @@
 Version 2.42
 
+4/15/99  IL lowering: internal error in lower_il.c (promotion of local types)
+
+A problem in IL lowering could cause an internal error in lower_il.c
+on processing of local types promoted out of a member function.  The test
+case involves templates and is obscure and convoluted.
+
 4/15/99  Unlowered pointer-to-member type remains in catch parameter
 
 In versions configured without IL file write/read, a catch parameter
