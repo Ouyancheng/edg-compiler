@@ -2311,6 +2311,7 @@ of curr_object_lifetime (which is assumed to be its former parent).
     olp->next = curr_object_lifetime->child_lifetime;
     curr_object_lifetime->child_lifetime = olp;
     olp->parent_lifetime = curr_object_lifetime;
+    olp->parent_destruction_sublist = curr_object_lifetime->destructions;
 #if DEBUG
     if (debug_level >= 4) {
       fputs("after restoration:\n", f_debug);

@@ -1,5 +1,25 @@
 Version 2.36
 
+6/17/97   Incorrect cleanup state information in ctor-initializers
+
+When a constructor definition contains a ctor-initializer whose evaluation
+creates destructible temporaries, the object lifetime information for
+that ctor-initializer did not point to the correct previous initialization
+in the parent lifetime.  As a consequence, if an exception is thrown
+within the ctor-initializer list, some members constructed earlier
+were not destroyed.
+
+  struct A {
+    A();
+    ~A();
+  };
+  int f() { throw 0; }
+  struct B {
+    A a;
+    int i;
+    B() : i((A(),f())) {}  // Constructed member "a" is not destroyed
+  };
+
 6/17/97   Partial lowering of EH -- useless dynamic init entry for freeing
           of storage after array new eliminated
 
