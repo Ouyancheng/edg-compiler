@@ -2486,7 +2486,16 @@ extern a_symbol_ptr make_predeclared_function_symbol(
 extern void make_global_operator_new_or_delete_symbol(an_opname_kind  opname);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+
 extern void make_predeclared_alloca_symbol(void);
+
+EXTERN a_symbol_ptr
+		predeclared_size_t_symbol;
+			/* Symbol for predeclared "size_t", in microsoft
+			   mode.*/
+
+extern void make_predeclared_size_t_symbol(void);
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_symbol_ptr find_default_constructor(a_type_ptr  class_type,

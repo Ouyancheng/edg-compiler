@@ -1,5 +1,12 @@
 Version 2.39
 
+4/20/98   Microsoft compatibility: predeclared size_t
+
+In Microsoft compatibility mode size_t is now predeclared in the global
+namespace.  (Determining the particular integer type to which it is set is
+based on how TARG_SIZE_T_INT_KIND is configured; see also the Changes entry
+for 2/10/97.)
+
 4/18/98   Internal error on expansion of macro that is unclosed string ending
           in "\"
 

@@ -4931,6 +4931,31 @@ C compatibility mode).
   db_exit();
 }  /* make_predeclared_alloca_symbol */
 
+
+void make_predeclared_size_t_symbol(void)
+/*
+Create a symbol and type entry for size_t (only in Microsoft mode).
+C++ note: for Microsoft compatibility, the entries are recorded in the file
+scope, not in namespace std.
+*/
+{
+  a_symbol_locator  locator;
+  a_type_ptr        tp;
+
+  db_enter(5, "make_predeclared_size_t_symbol");
+  check_assertion(microsoft_mode);
+  clear_locator(&locator, &null_source_position);
+  (void)find_symbol("size_t", (sizeof_t)6, &locator);
+  tp = integer_type(targ_size_t_int_kind);
+  decl_typedef(&locator, tp, (a_type_ptr)NULL, &predeclared_size_t_symbol,
+               (a_source_sequence_entry_ptr)NULL,
+               (a_decl_pos_block_ptr)NULL);
+  /* Setting the defined flag to FALSE indicates there is (as yet) no explicit
+     definition in the source program. */
+  predeclared_size_t_symbol->defined = FALSE;
+  db_exit();
+}  /* make_predeclared_size_t_symbol */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr find_default_constructor(a_type_ptr  class_type,
@@ -8726,6 +8751,9 @@ of the front end.
   /* Initialize the predeclared symbol for namespace "std". */
   symbol_for_namespace_std = NULL;
   builtin_va_list_type = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  predeclared_size_t_symbol = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
   /* Global variable declared in symbol_ref.c. */

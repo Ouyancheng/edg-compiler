@@ -837,9 +837,13 @@ source file's compilation.
     enter_system_specific_predeclared_symbols();
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && C_mode()) {
-    /* Add a symbol for predeclared _alloca. */
-    make_predeclared_alloca_symbol();
+  if (microsoft_mode) {
+    if (C_mode()) {
+      /* Add a symbol for predeclared _alloca. */
+      make_predeclared_alloca_symbol();
+    }  /* if */
+    /* Add a symbol for predeclared size_t. */
+    make_predeclared_size_t_symbol();
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* The primary source file pointer is updated when the file is opened. */

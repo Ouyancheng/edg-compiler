@@ -5359,6 +5359,17 @@ return a pointer to it in *symbol_ptr.
         /* However, in C++ we may still need an sk_type symbol,
            since tags and typedefs do not occupy the same name space. */
         if (sym->kind == (a_symbol_kind)sk_type) {
+          a_symbol_reference_kind  ref_kind = SRK_DECLARATION;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (microsoft_mode && sym == predeclared_size_t_symbol &&
+              !sym->defined) {
+            /* This is a redeclaration of the predeclared symbol for size_t.
+               We know it's the first explicit declaration because the defined
+               flag is not set. */
+            ref_kind |= SRK_DEFINITION;
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           if (C_mode()) {
             /* Allowing a benign redeclaration is an extension in C, so issue
                a warning. */
@@ -5366,11 +5377,11 @@ return a pointer to it in *symbol_ptr.
                              strict_ansi_error_severity : es_warning,
                            ec_duplicate_typedef, &locator->source_position);
           }  /* if */
-          record_symbol_declaration(SRK_DECLARATION, sym,
-                                    &locator->source_position,
+          record_symbol_declaration(ref_kind, sym, &locator->source_position,
                                     declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          { a_src_seq_secondary_decl_ptr  sssdp;
+          if (!(ref_kind & SRK_DEFINITION)) {
+            a_src_seq_secondary_decl_ptr  sssdp;
 
             sssdp = set_src_seq_secondary_decl_type(
                                               (char *)sym->variant.type,
@@ -5385,7 +5396,7 @@ return a pointer to it in *symbol_ptr.
                                                       decl_pos_block);
             }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-          }
+          }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           goto return_point;
         } else {
