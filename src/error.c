@@ -910,6 +910,12 @@ error code.
       m =
         "within a class, the class name may only be declared as a constructor";
       break;
+    case ec_unary_colon_colon_in_declarator:
+      m = "unary \"::\" is not allowed on a name in a declarator";
+      break;
+    case ec_name_not_found_in_file_scope:
+      m = "no such name declared in the file scope";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
