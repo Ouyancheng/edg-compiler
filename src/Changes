@@ -1,5 +1,10 @@
 Version 2.13
 
+12/3/92  Speed optimization in constant sharing
+
+The hash used in looking for shareable constants has been improved to
+avoid long lists in certain unlikely cases.
+
 12/3/92  Speed optimization in IL lowering
 
 The scanning of orphaned entries in IL lowering has been improved to avoid
