@@ -2393,6 +2393,37 @@ done:;
 }  /* dump_enum_definition */
 
 
+static void dump_bit_field_padding(a_field_ptr field)
+/*
+Dump out declarations to describe padding after the indicated bit field,
+which has a declared size that is larger than its base type.
+*/
+{
+  unsigned long padding = field->declared_bit_size - field->bit_size;
+  unsigned long bits = field->offset_bit_remainder + field->bit_size;
+  char     *bf_type;
+
+#if ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
+  bf_type = "char";
+#else /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
+  bf_type = "int";
+#endif /* ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
+  bits = bits % targ_char_bit;
+  /* Bits in the first chunk, to finish out the current byte. */
+  bits = targ_char_bit - bits;
+  while (padding > 0) {
+    if (bits > padding) bits = padding;
+    write_space();
+    write_tok_str(bf_type);
+    write_tok_ch(':');
+    write_unsigned_num((a_host_large_unsigned)bits);
+    write_tok_ch(';');
+    padding -= bits;
+    bits = targ_char_bit;
+  }  /* while */
+}  /* dump_bit_field_padding */
+
+
 static void dump_struct_union_definition(a_type_ptr type,
                                          a_boolean  output_final_semi)
 /*
@@ -2401,6 +2432,7 @@ final semicolon if output_final_semi is TRUE.
 */
 {
   a_field_ptr field;
+  a_boolean   union_alignment_needed = FALSE;
 
   if (start_unreferenced_bracket(&type->source_corresp)) {
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -2526,10 +2558,15 @@ final semicolon if output_final_semi is TRUE.
           if (field->bit_field_alignment_type != NULL) {
             /* Put out an alignment indication for a field that was declared
                larger than the underlying base type. */
-            dump_type(field->bit_field_alignment_type,
-                      /*add_pointer_to=*/FALSE);
-            write_tok_str(": 0;");
-            write_space();
+            if (type->kind == (a_type_kind)tk_union) {
+              /* For the union case, do this at the end. */
+              union_alignment_needed = TRUE;
+            } else {
+              dump_type(field->bit_field_alignment_type,
+                        /*add_pointer_to=*/FALSE);
+              write_tok_str(": 0;");
+              write_space();
+            }  /* if */
           }  /* if */
 #if C_GEN_BE_GENERATES_ANSI_C
           /* If the field is signed, make that explicit, so the choice is
@@ -2588,29 +2625,16 @@ final semicolon if output_final_semi is TRUE.
                in the final byte.  Note that we can only put out unnamed
                fields; we don't want to change the initialization order
                of the struct. */
-            unsigned long padding = field->declared_bit_size - field->bit_size;
-            unsigned long bits = field->offset_bit_remainder + field->bit_size;
-            char *bf_type;
-#if ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
-            bf_type = "char";
-#else /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
-            bf_type = "int";
-#endif /* ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
-            bits = bits % targ_char_bit;
-            /* Bits in the first chunk, to finish out the current byte. */
-            bits = targ_char_bit - bits;
-            while (padding > 0) {
-              if (bits > padding) bits = padding;
-              write_space();
-              write_tok_str(bf_type);
-              write_tok_ch(':');
-              write_unsigned_num((a_host_large_unsigned)bits);
-              write_tok_ch(';');
-              padding -= bits;
-              bits = targ_char_bit;
-            }  /* while */
+            if (type->kind == (a_type_kind)tk_union) {
+              /* Handle unions at the end.  It doesn't do any good to put
+                 out padding as another field -- it wouldn't go after the
+                 field just put out. */
+              union_alignment_needed = TRUE;
+            } else {
+              dump_bit_field_padding(field);
+            }  /* if */
           }  /* if */
-        }
+        }  /* if */
       }  /* if */
       if (annotate) {
         /* Display the offset in an annotation comment. */
@@ -2631,6 +2655,47 @@ final semicolon if output_final_semi is TRUE.
         write_space();
       }  /* if */
     }  /* for */
+    if (union_alignment_needed) {
+      /* Put out extra fields to force alignment for the struct when
+         there are fields that did not fit in their base types. */
+      char *bf_type;
+#if ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
+      bf_type = "char";
+#else /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
+      bf_type = "int";
+#endif /* ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
+      for (field = type->variant.class_struct_union.field_list;
+           field != NULL;
+           field = field->next) {
+        if (field->bit_field_alignment_type != NULL) {
+          /* Put out a declaration to force alignment for the entire
+             structure. */
+          write_space();
+          dump_type(field->bit_field_alignment_type,
+                    /*add_pointer_to=*/FALSE);
+          write_space();
+          /* The field is named, because some compilers complain about
+             unnamed fields in unions.  However, it's at the end, so it does
+             not affect initialization semantics. */
+          dump_temp_name((char *)field);
+          write_tok_ch(';');
+        }  /* if */
+        if (field->declared_bit_size > field->bit_size) {
+          /* Put out a struct with (we hope) the same size as the full
+             declared field. */
+          write_space();
+          write_tok_str("struct { ");
+          write_tok_str(bf_type);
+          write_tok_str(":");
+          write_unsigned_num((a_host_large_unsigned)field->bit_size);
+          write_tok_ch(';');
+          dump_bit_field_padding(field);
+          write_str(" } _");
+          dump_temp_name((char *)field);
+          write_tok_ch(';');
+        }  /* if */
+      }  /* for */
+    }  /* if */
     if (next_initializable_field(type->variant.class_struct_union.field_list)==
                                                                         NULL) {
       /* Avoid a zero-sized struct for the bizarre case "struct {int :0;}"
