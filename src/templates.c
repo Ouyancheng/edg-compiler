@@ -6485,7 +6485,7 @@ are looked up, if needed.  The symbol of the new instance is returned.
   tssp = template_sym->variant.template_info;
   tap = orig_type->variant.class_struct_union.extra_info->template_arg_list;
   orig_is_prototype = orig_type->
-                        variant.class_struct_union.is_prototype_instantiation;\
+                        variant.class_struct_union.is_prototype_instantiation;
   /* Get the template symbol of the template associated with the original
      type. */
   orig_instance_sym =
