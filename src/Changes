@@ -1,5 +1,22 @@
 Version 3.4
 
+8/27/03  Microsoft mode: Abort while removing source sequence entry
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS was set to
+TRUE, the front end sometimes triggered an internal error in Microsoft mode
+when attempting to remove a source sequence entry associated with the
+definition of a dllimport member function instantiation.  For example:
+
+  template<typename T> struct B {
+    __declspec(dllimport) B();
+  };
+  template<typename T> B<T>::B() {}
+  template struct B<void>;  // Used to abort while eliminating the source
+                            // sequence entry for the (useless) definition
+                            // of B<void>::B().
+
+This is now fixed.
+
 8/26/03  Microsoft compatibility: Explicit instantiation of dllimport class
 
 In Microsoft mode, the front end will no longer instantiate the members of
