@@ -2,7 +2,8 @@ Version 3.1
 
 7/16/02  GNU C mode: Abort on too large enumerator constant
 
-The front end would sometimes abort when processing too large an enumerator constant.
+The front end would sometimes abort when processing too large an enumerator
+constant.  For example:
 
   enum a { i = 0x400000000000000000000000000 }; // Used to abort
 
