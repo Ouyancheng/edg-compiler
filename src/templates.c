@@ -3518,11 +3518,9 @@ It is FALSE if the instantiation scope was pushed by the caller.
   a_param_type_ptr		ptp;
   a_type_ptr			templ_rout_type;
   a_type_ptr			rout_type;
-  a_func_info_block		*func_info_ptr;
 
   templ_rout_type = skip_typerefs(templ_rout->type);
   rout_type = skip_typerefs(rout_ptr->type);
-  func_info_ptr = func_info_for_template(tssp);
   daefp = tssp->variant.function.def_arg_expr_list;
   if (daefp != NULL) {
     templ_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
@@ -3556,9 +3554,8 @@ It is FALSE if the instantiation scope was pushed by the caller.
                          daefp->cache.decl_info->declaration_scope,
                          (a_type_ptr)NULL,
                          (a_routine_ptr)NULL);
-        if (func_info_ptr->prototype_scope_symbols != NULL) {
-          reactivate_prototype_scope_symbols(
-                                     func_info_ptr->prototype_scope_symbols);
+        if (tip->prototype_scope_symbols != NULL) {
+          reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
         }  /* if */
         /* Update the default argument expression entry to point to the
            current param type entry. */
@@ -3570,10 +3567,6 @@ It is FALSE if the instantiation scope was pushed by the caller.
         delayed_scan_of_default_arg_expr(daefp->param_type,
                                          /*check_for_errors=*/FALSE);
         daefp = daefp->next;
-        /* Restore the prototype scope symbols pointer in the func_info
-           block. It shouldn't have changed, but we do it to be safe. */
-        func_info_ptr->prototype_scope_symbols =
-             assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
         /* Pop the reactivated function prototype scope off the stack. */
         pop_scope();
         if (push_instantiation_scope) {
@@ -3978,6 +3971,8 @@ type based on the template argument list and the template parameter list
                                 &dso_flags, &do_flags, &locator,
                                 &rout_type, &func_info, &storage_class,
                                 &decl_modifiers, templ_rout);
+      /* Save the prototype scope symbols in the instance pointer. */
+      tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
       done_with_func_info(func_info);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       locator_position = locator.source_position;
