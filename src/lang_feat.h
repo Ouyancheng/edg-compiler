@@ -94,14 +94,6 @@ considered compatible.
 #endif /* ifndef PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED */
 
 /*
-Flag that is TRUE if the "long long" data type and the associated language
-features (e.g., suffixes for constants) are allowed.
-*/
-#ifndef LONG_LONG_ALLOWED
-#define LONG_LONG_ALLOWED FALSE
-#endif /* ifndef LONG_LONG_ALLOWED */
-
-/*
 Flag that is TRUE if pointers to incomplete arrays should be allowed
 in pointer addition and subtraction operations, e.g.,
 
@@ -329,6 +321,17 @@ is set when ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE.
 #endif /* ifndef DEFAULT_ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
+/*
+Flag that is TRUE if the "long long" data type and the associated language
+features (e.g., suffixes for constants) are allowed.
+*/
+#ifndef LONG_LONG_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define LONG_LONG_ALLOWED TRUE  /* Default for Microsoft mode. */
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define LONG_LONG_ALLOWED FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ifndef LONG_LONG_ALLOWED */
 
 /*
 Flag that is TRUE if comments appearing within the text of an asm function
@@ -344,7 +347,6 @@ on to the back end).  May be TRUE only if ASM_FUNCTION_ALLOWED is TRUE.
            ASM_FUNCTION_ALLOWED is true
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
 #endif /* !ASM_FUNCTION_ALLOWED  */
-
 
 /*
 Flag that is TRUE if "#pragma pack(n)" and command-line option
