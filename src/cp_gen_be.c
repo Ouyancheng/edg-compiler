@@ -2230,10 +2230,13 @@ entry.
     default:
       unexpected_condition();
   }  /* switch */
+  /* Always put out an access declaration instead of a "using" declaration,
+     for the sake of old compilers that don't accept "using" declarations.
+     If the underlying compiler accepts both, they mean the same thing.
+     If the underlying compiler accepts only access declarations, then
+     valid access declarations as input should produce valid access
+     declarations as output. */
   /* Write the access declaration, which is just a qualified name. */
-#if 0
-  /* This should be changed to sometimes put out a "using". */
-#endif /* 0 */
   gen_qualified_name(scp, entry_kind);
   write_tok_ch(';');
   write_space();
