@@ -29,7 +29,7 @@ basic_hdrs.h -- Inclusion of low-level universal header files.
 /* Target configuration. */
 #include "targ_def.h"
 
-#endif /* ifndef BASIC_NDRS_H */
+#endif /* ifndef BASIC_HDRS_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *
