@@ -27,9 +27,15 @@ namespace std {
     _bool before(const type_info&) const;
     const char* name() const;
   private:
-    type_info(const type_info&);  // Not actually defined
     type_info& operator=(const type_info&);  // Not actually defined
     void* _type_info;
+#if 0
+#else /* 0 */
+  protected:
+    // Protected instead of private to suppress the "no accessible
+    // constructor" warning
+#endif /* 0 */
+    type_info(const type_info&);  // Not actually defined
   };
 
   class bad_cast : public exception {
