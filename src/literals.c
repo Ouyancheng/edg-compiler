@@ -1053,6 +1053,29 @@ processing, and in wide characters if the string is wide).
 }  /* conv_string_literal */
 
 
+static void widen_string_literal(a_constant_ptr con)
+/*
+Change the indicated narrow string literal into a wide string literal.
+*/
+{
+  a_targ_size_t narrow_str_len = con->variant.string.length;
+  char          *narrow_str = con->variant.string.value;
+  a_targ_size_t wide_str_len = narrow_str_len * targ_sizeof_wchar_t;
+  char          *wide_str = alloc_text_of_string_literal(wide_str_len);
+  char          *wide_ptr = wide_str;
+  a_targ_size_t i;
+
+  for (i = 0; i < narrow_str_len; i ++) {
+    unsigned long ch = (unsigned long)(unsigned char)narrow_str[i];
+    put_wide_char_into_string(ch, &wide_ptr);
+  }  /* for */
+  clear_constant(con, (a_constant_repr_kind)ck_string);
+  con->type = wide_string_type(narrow_str_len);
+  con->variant.string.length = wide_str_len;
+  con->variant.string.value = wide_str;
+}  /* widen_string_literal */
+
+
 void concat_string_literals(a_token_cache_ptr cache,
                             a_boolean         wide_literals)
 /*
@@ -1067,7 +1090,9 @@ This routine implements the lexical concatenation of section 2.1.1.2, phase
 6, of the C standard.  The nulls from the initial strings are discarded in
 doing the concatenation, and the one from the last string is copied as
 the final null of the concatenated string; see ANSI C 3.1.4.
-All the strings will be wide or not wide; wide_literals indicates which.
+If wide_literals is FALSE, the result is a narrow string, and all the
+strings will be narrow.  If wide_literals is TRUE, the result is a
+wide string, and the strings can be narrow or wide.
 */
 {
   a_targ_size_t      total_len = 0, str_len, null_len;
@@ -1105,6 +1130,10 @@ All the strings will be wide or not wide; wide_literals indicates which.
       /* String constant. */
       check_assertion_str(con->kind == (a_constant_repr_kind)ck_string,
                           "concat_string_literals: constant not ck_string");
+      if (wide_literals && !is_wchar_t_array_type(con->type)) {
+        /* Widen this constant before concatenating it. */
+        widen_string_literal(ctp->variant.constant);
+      }  /* if */
       /* Determine the length of this string literal. */
       str_len = con->variant.string.length;
       /* Except on the last constant, subtract out the space for the

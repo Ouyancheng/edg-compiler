@@ -7193,12 +7193,20 @@ curr_token is already set in that case.
     }  /* if */
     /* End the loop if the new token is not a string literal. */
     if (curr_token != tok_string_literal) break;
-    /* Also end the loop if the new string is wide and the old is not, or
-       vice-versa.  In C mode, and in C++ mode when wchar_t is not a keyword,
-       if wchar_t is char, wide and non-wide string literals will be
-       concatenated.  An error constant is accepted in all modes. */
     if (!is_error_constant(&const_for_curr_token) &&
-        wide_strings != !is_char_array_type(const_for_curr_token.type)) break;
+        wide_strings != !is_char_array_type(const_for_curr_token.type)) {
+      /* The new string is wide and the old is not, or vice-versa.
+         In C99 or gcc/g++ modes, this is okay (the concatenation is
+         wide).  In other modes, it's an error, except that in the
+         degenerate case in C mode, or in C++ mode when wchar_t is
+         not a keyword, where wchar_t is char, wide string literals
+         are effectively the same as non-wide string literals and
+         they will be concatenated. */
+      if (!(c99_mode || gnu_mode)) {
+        diagnostic(es_discretionary_error, ec_mixed_string_concatenation);
+      }  /* if */
+      wide_strings = TRUE;
+    }  /* if */
     /* This string literal is okay, and will be added to the concatenation
        in the token cache. */
   }  /* for */

@@ -1,5 +1,17 @@
 Version 3.4
 
+8/21/03  Concatenation of narrow and wide string literals
+
+Adjacent string literals are concatenated into a longer
+string literal.  In C89 and C++98, attempting to concatenate
+a narrow and a wide string literal causes undefined behavior
+(an error with the EDG front end).  In C99, however, it is
+well-defined (the result is a wide string literal), and
+gcc and g++ also allow it.  Such mixed string concatenation is
+now allowed in the appropriate modes.  In the other modes,
+a discretionary error is now issued, but the concatenation
+is done anyway.
+
 8/21/03  C++-generating back: multi-line #pragmas put out wrong
 
 As of version 3.3, the C++-generating back end started putting out

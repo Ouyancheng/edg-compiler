@@ -1329,6 +1329,7 @@ ec_invalid_ms_attr_uuid_value;;"invalid argument value for the %sq attribute par
 ec_too_many_ms_attr_args;;"too many attribute arguments"
 ec_conv_from_inaccessible_base_class;;"conversion from inaccessible base class %t is not allowed"
 ec_cl_export_template_requires_distinct_templ_sigs;;"option \"export\" requires distinct template signatures"
+ec_mixed_string_concatenation;;"narrow and wide string literals cannot be concatenated"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
