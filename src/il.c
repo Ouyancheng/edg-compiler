@@ -2813,6 +2813,7 @@ kind indicates the scope kind (e.g., function, block).
   sp->labels              = NULL;
   sp->routines            = NULL;
   sp->scopes              = NULL;
+  sp->dynamic_inits       = NULL;
 #ifdef FIL
   sp->entries             = NULL;
   sp->namelist_groups     = NULL;
