@@ -3211,7 +3211,7 @@ Display the indicated class type supplement entry.
       case auk_variable:
         (void)printf("auk_variable\n");
         disp_name("anonymous_union_object.storage_class");
-        disp_storage_class(ptr->anonymous_union_object.storage_class);
+        disp_storage_class_name(ptr->anonymous_union_object.storage_class);
         break;
       case auk_field:
         (void)printf("auk_field\n");
