@@ -201,8 +201,7 @@ Return the IL scope with which a hidden-name table entry should be associated.
   }  /* while */
   /* Create the IL scope if necessary (for block scopes). */
   sp = ensure_il_scope_exists(ssep);
-  check_assertion_str(sp != NULL,
-                      "record_defeatable_name_hiding: NULL IL scope");
+  check_assertion_str(sp != NULL, "hidden_name_scope: NULL IL scope");
   return sp;
 }  /* hidden_name_scope */
 
@@ -236,8 +235,8 @@ checked later whenever a new instance of the template is generated.
      the template in a list in the scope stack entry for the function.  Then
      when the function scope is popped, fixup entries associated with the
      function scope can be removed.  (This is required because the memory
-     region to which the current IL scope entry may no longer be valid once
-     the function scope is popped.) */
+     region to which the current IL scope entry points may no longer be
+     valid once the function scope is popped.) */
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     slep = alloc_symbol_list_entry();
     slep->symbol = hidden_sym;
