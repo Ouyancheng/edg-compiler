@@ -2641,11 +2641,11 @@ static a_type_ptr drop_tiebreaker_ref_ptr_types(
                                            an_arg_match_summary_ptr arg)
 /*
 Drop a reference type from the top of the indicated type, or a pointer
-type if this is a "this" parameter (since that is reference-like).
-Then return the modified type.  This is used in preparing a parameter
-type for comparison in the const tie-breaker processing.  arg is the
-argument match entry for the parameter, which indicates whether or not
-the parameter is a "this" parameter.
+type if this is a "this" parameter (since that is treated like a
+reference in the standard).  Then return the modified type.  This is
+used in preparing a parameter type for comparison in the const tie-breaker
+processing.  arg is the argument match entry for the parameter, which
+indicates whether or not the parameter is a "this" parameter.
 */
 {
   /* Drop a first-level reference (or the similar pointer in the "this"
@@ -2653,31 +2653,6 @@ the parameter is a "this" parameter.
   if (is_reference_type(param_type) ||
       (arg->is_match_for_this_param && is_pointer_type(param_type))) {
     param_type = type_pointed_to(param_type);
-    if (any_cfront_mode()) {
-      /* In cfront mode, ignore arrays under references.  There's a
-         case like that in the NIH libraries. */
-      if (is_array_type(param_type)) {
-        param_type = underlying_array_element_type(param_type);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  if (any_cfront_mode()) {
-    /* Drop any pointer types.  This is required for a case like
-         typedef int A[9];
-         void g(A env);
-         void g(const A& env);
-         extern const A env;			
-         void f() { g(env); }
-       which is accepted by cfront 3.0.2.  Also this variation:
-         typedef int A[9];
-         void g(int *);
-         void g(const A&);
-         extern A env;			
-         void f() { g(env); }
-    */
-    while (is_pointer_type(param_type)) {
-      param_type = type_pointed_to(param_type);
-    }  /* while */
   }  /* if */
   return param_type;
 }  /* drop_tiebreaker_ref_ptr_types */
@@ -2718,39 +2693,59 @@ This checks for the const/volatile tie-breaker of rule [1] in ARM 13.2.
     check_assertion(arg2 != NULL);
     if (arg1->conversion.std.type_qualifiers_added ||
         arg2->conversion.std.type_qualifiers_added) {
-      /* There is the possibility that a tie-breaker applies on this pair
-         of arguments.  An additional test is needed: the tie-breaker
-         really has to do with one sequence being a subsequence of the
-         other, so make sure that the destination types are compatible. */
+      /* There is the possibility of a tie-breaker because of a difference
+         in adding cv-qualifiers. */
       /* Get the corresponding parameter types. */
       param_type1 = arg1->param_type;
       param_type2 = arg2->param_type;
       /* Some arguments have no parameter type (e.g., an ellipsis match). */
       if (param_type1 != NULL && param_type2 != NULL) {
-        a_boolean qualifiers_added;
-        /* Drop a reference type from the top of the parameter types,
-           if present. */
-        param_type1 = drop_tiebreaker_ref_ptr_types(param_type1, arg1);
-        param_type2 = drop_tiebreaker_ref_ptr_types(param_type2, arg2);
-        if (arg1->conversion.std.type_qualifiers_added &&
-            same_type_with_added_qualifiers(param_type2, param_type1,
-					    /*ignore_qualifiers=*/FALSE,
-                                            &qualifiers_added) &&
-            qualifiers_added) {
-          /* param_type1 has more qualifiers than param_type2, and the
-             types are otherwise compatible.  Therefore fewer qualifiers
-             are added to get to param_type2, and argument 2 is better. */
-          cmp = -1;
-        } else if (arg2->conversion.std.type_qualifiers_added &&
-                   same_type_with_added_qualifiers(param_type1, param_type2,
-						   /*ignore_qualifiers=*/
-						                      FALSE,
-                                                   &qualifiers_added) &&
-                   qualifiers_added) {
-          /* param_type2 has more qualifiers than param_type1, and the
-             types are otherwise compatible.  Therefore fewer qualifiers
-             are added to get to param_type1, and argument 1 is better. */
-          cmp = 1;
+        if (any_cfront_mode()) {
+          /* cfront has a very simple tiebreaker test for adding cv-qualifiers.
+             It applies only when the match is exact. */
+          if (arg1->match_level == (an_arg_match_level)aml_exact) {
+            if (arg1->conversion.std.type_qualifiers_added &&
+                !arg2->conversion.std.type_qualifiers_added) {
+              /* Qualifiers are added for param_type1 and not for param_type2,
+                 so param_type2 is better. */
+              cmp = -1;
+            } else if (arg2->conversion.std.type_qualifiers_added &&
+                       !arg1->conversion.std.type_qualifiers_added) {
+              /* Qualifiers are added for param_type2 and not for param_type1,
+                 so param_type1 is better. */
+              cmp = 1;
+            }  /* if */
+          }  /* if */
+        } else {
+          /* Not cfront mode. */
+          a_boolean qualifiers_added;
+          /* Drop a reference type from the top of the parameter types,
+             if present.  This allows testing for a difference in cv-qualifiers
+             immediately below the reference, and also for a difference deeper
+             down in pointer and pointer-to-member types, which would
+             make one conversion sequence a subsequence of the other. */
+          param_type1 = drop_tiebreaker_ref_ptr_types(param_type1, arg1);
+          param_type2 = drop_tiebreaker_ref_ptr_types(param_type2, arg2);
+          if (arg1->conversion.std.type_qualifiers_added &&
+              same_type_with_added_qualifiers(param_type2, param_type1,
+                                              /*ignore_qualifiers=*/FALSE,
+                                              &qualifiers_added) &&
+              qualifiers_added) {
+            /* param_type1 has more qualifiers than param_type2, and the
+               types are otherwise compatible.  Therefore fewer qualifiers
+               are added to get to param_type2, and argument 2 is better. */
+            cmp = -1;
+          } else if (arg2->conversion.std.type_qualifiers_added &&
+                     same_type_with_added_qualifiers(param_type1, param_type2,
+                                                     /*ignore_qualifiers=*/
+                                                                         FALSE,
+                                                     &qualifiers_added) &&
+                     qualifiers_added) {
+            /* param_type2 has more qualifiers than param_type1, and the
+               types are otherwise compatible.  Therefore fewer qualifiers
+               are added to get to param_type1, and argument 1 is better. */
+            cmp = 1;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

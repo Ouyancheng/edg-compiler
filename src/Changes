@@ -1,5 +1,12 @@
 Version 2.36
 
+6/11/97   Overload resolution cv-qualifier tiebreakers in cfront mode
+
+In overload resolution, the tie between two equally-ranked conversions
+can be broken by the fact that one of them adds cv-qualifiers that the
+other one doesn't.  This tiebreaker test in cfront mode has been changed
+to something simpler, which seems to model cfront's behavior better.
+
 6/10/97   Multi-level pointer qualification conversions are exact matches
 
 Pointer conversions that add cv-qualifiers at levels other than the
