@@ -693,6 +693,9 @@ Print the name of a pragma kind.
     case pk_test_other:           s = "pk_test_other";          break;
     case pk_test_bind_next_pass:  s = "pk_test_bind_next_pass"; break;
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
+#if EXPENSIVE_CHECKING
+    case pk_checking_pragma:      s = "pk_checking_pragma";     break;
+#endif /* EXPENSIVE_CHECKING */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
     case pk_unrecognized:         s = "pk_unrecognized";	break;
 #endif /* INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL */

@@ -300,6 +300,10 @@ possible.
     case pk_test_bind_next_pass:
       break;
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
+#if EXPENSIVE_CHECKING
+    case pk_checking_pragma:
+      break;
+#endif /* EXPENSIVE_CHECKING */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
     case pk_unrecognized:
       /* No special initialization is required. */
@@ -597,6 +601,15 @@ otherwise return FALSE.
     }  /* if */
     ppp = next_ppp;
   }  /* while */
+#if EXPENSIVE_CHECKING
+  if (list_start == NULL) {
+    list_start = alloc_pending_pragma
+                     (pragma_description_for_pragma_kind[pk_checking_pragma]);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    list_start->source_sequence_entry = add_empty_source_sequence_entry();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
+#endif /* EXPENSIVE_CHECKING */
   *curr_list_of_curr_construct_pragmas() = list_start;
   /* Call process_curr_token_pragmas to handle other pragma kinds.  This
      ensures that any immediate pragmas will be processed before any
@@ -1443,6 +1456,20 @@ Initialize the pragma description table.
 		 /*ignore_in_back_end=*/FALSE,
                  es_error);
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
+#if EXPENSIVE_CHECKING
+  (void)add_next_construct_pragma_kind_description
+		((a_pragma_kind)pk_checking_pragma,
+		 (a_next_construct_pragma_function_ptr)NULL,
+		 /*is_pseudo_pragma=*/FALSE,
+		 /*may_bind_to_decl=*/TRUE,
+		 /*may_bind_to_stmt=*/TRUE,
+                 /*automatically_include_in_il=*/TRUE,
+                 /*make_text_not_tokens=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+                 es_none);
+#endif /* EXPENSIVE_CHECKING */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   /* When unrecognized pragmas are being included in the IL, we need a
      pragma description that can be used for the unrecognized pragmas.

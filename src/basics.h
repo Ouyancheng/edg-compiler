@@ -440,6 +440,12 @@ extern void debug_exit(void);
 #define CHECKING 1
 #endif /* ifndef CHECKING */
 
+#ifndef EXPENSIVE_CHECKING
+/* Include checking code that involves execution of a significant
+   amount of additional code, so should not be enabled by default. */
+#define EXPENSIVE_CHECKING 0
+#endif /* ifndef EXPENSIVE_CHECKING */
+
 /*
 Macro used to add a 2-bit bit field after any sequence of bit fields.
 By clearing this bit field to zero we can avoid warnings about

@@ -1898,6 +1898,10 @@ pointer to it.
       pp->variant.dummy = 0;
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
       break;
+#if EXPENSIVE_CHECKING
+    case pk_checking_pragma:
+      break;
+#endif /* EXPENSIVE_CHECKING */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
     case pk_unrecognized:
       /* No special initialization is required. */
