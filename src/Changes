@@ -1,5 +1,21 @@
 Version 2.44
 
+6/5/00   No warning on undefined special class members in unnamed namespaces
+
+The front end used to warn about unreferenced and undefined class member
+declarations in unnamed namespaces.  However, such declarations are a common
+technique to prevent compiler-generated declarations.  For example:
+
+  namespace {
+    struct S {
+      S();      // No longer causes a warning to be emitted
+      void f(); // Still causes a warning if undefined
+    };
+  }
+
+The front end has therefore been modified to not warn about undefined and
+unreferenced constructors, destructors and assignment operators.
+
 5/31/00  C++-generating back end: output of wide character constants
 
 The C++-generating back end now correctly puts out wide character
