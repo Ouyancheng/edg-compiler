@@ -670,14 +670,46 @@ TRUE in default mode because the ATT/USL iostream library depends on it.
 #endif /* ifndef DEFAULT_ALLOW_COPY_ASSIGNMENT_OP_WITH_BASE_CLASS_PARAM */
 
 /*
+Flag that is TRUE if, by default, a "guiding declaration" of a function
+template instance is allowed.  It is the initial value of global variable
+guiding_decls_allowed, which is also controlled by command line option
+--[no_]guiding_decls.
+
+A guiding declaration is a function declaration that matches a function
+template, does not introduce a function definition (i.e., it implies an
+instantiation of the template body and not a explicit specialization), and
+is subject to different argument matching rules than those that apply to the
+template itself (and therefore it affects overload resolution).  Here's an
+example:
+
+  template <class T> void f(T) { ... }
+  void f(int);                        // guiding declaration in old C++
+
+However, in the current version of the C++ standard there is no concept of
+guiding declaration, and so in strict ANSI mode guiding_decls_allowed is
+FALSE by default.  This means, in the example above, that function f is not
+regarded as an instance of function template f.  Furthermore, it means that
+there are two functions named "f" that take an "int" parameter, the one that
+is explicitly declared and the one that is an instance of the template; a
+call of "f(0)" would invoke the former, whereas a call of "f<int>(0)" would
+be required to invoke the latter.
+*/
+#ifndef DEFAULT_GUIDING_DECLS_ALLOWED
+#define DEFAULT_GUIDING_DECLS_ALLOWED TRUE
+#endif /* ifndef DEFAULT_GUIDING_DECLS_ALLOWED */
+
+/*
 Flag that is TRUE if, by default, template specializations may be declared
 using the "old syntax" -- i.e., if the "template <>" syntax is not required.
 It is the initial value of global variable old_specializations_allowed,
 which is also controlled by command line option --[no_]old_specializations.
+(When old_specializations_allowed is TRUE but guiding_decls_allowed is FALSE,
+the effect is that old-style specializations for non-member functions will
+not be recognized as such.)
 */
 #ifndef DEFAULT_OLD_SPECIALIZATIONS_ALLOWED
 #define DEFAULT_OLD_SPECIALIZATIONS_ALLOWED TRUE
-#endif /* ifndef DEFAULT_OLD_SPECIALIZATIONS_ALLOWED */
+#endif /* if DEFAULT_GUIDING_DECLS_ALLOWED */
 
 /*
 Flag that is TRUE to support the extension to allow implicit conversions
