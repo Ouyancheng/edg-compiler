@@ -527,10 +527,10 @@ error code.
       m = "expected \"while\"";
       break;
     case ec_label_already_defined:
-      m = "label %n has already been defined";
+      m = "%n has already been defined";
       break;
-    case ec_label_never_defined:
-      m = "label %n was referenced but not defined";
+    case ec_never_defined:
+      m = "%n was referenced but not defined";
       break;
     case ec_continue_must_be_in_loop:
       m = "a continue statement may only be used within a loop";
@@ -675,9 +675,6 @@ error code.
     case ec_external_name_clash:
       m = "name conflicts with previously used external name %sq";
       break;
-    case ec_routine_definition_missing:
-      m = "function %n was referenced but not defined";
-      break;
     case ec_unrecognized_pragma:
       m = "unrecognized #pragma";
       break;
@@ -726,14 +723,8 @@ error code.
     case ec_constant_string_subscript_out_of_range:
       m = "constant string subscript out of range";
       break;
-    case ec_variable_declared_but_not_referenced:
-      m = "variable %n declared and never referenced";
-      break;
-    case ec_routine_declared_but_not_referenced:
-      m = "routine %n declared and never referenced";
-      break;
-    case ec_label_declared_but_not_referenced:
-      m = "label %n declared and never referenced";
+    case ec_declared_but_not_referenced:
+      m = "%n declared and never referenced";
       break;
     case ec_pcc_address_of_array:
       m = "\"&\" applied to an array has no effect";
@@ -743,9 +734,6 @@ error code.
       break;
     case ec_old_style_incompatible_param:
       m = "argument is incompatible with formal parameter";
-      break;
-    case ec_parameter_declared_but_not_referenced:
-      m = "parameter %n declared and never referenced";
       break;
     case ec_printf_arg_mismatch:
       m = "invalid argument type for format string conversion";
@@ -1169,7 +1157,7 @@ error code.
       m = "type differs from base class virtual function by return type alone";
       break;
     case ec_ambiguous_virtual_function_override:
-      m = "redefinition of virtual function %n is ambiguous";
+      m = "redefinition of virtual %n is ambiguous";
       break;
     case ec_pure_specifier_on_nonvirtual_function:
       m = "pure specifier (\"= 0\") allowed only on virtual functions";
@@ -1229,7 +1217,7 @@ error code.
       m = "linkage specification is incompatible with previous declaration";
       break;
     case ec_overloaded_function_linkage:
-      m = "more than one instance of overloaded function %n has \"C\" linkage";
+      m = "more than one instance of overloaded %n has \"C\" linkage";
       break;
     case ec_ambiguous_default_constructor:
       m = "more than one default constructor for class %t";
@@ -1292,7 +1280,7 @@ error code.
       m = "base class %t assumed (anachronism)";
       break;
     case ec_member_already_initialized:
-      m = "member %n has already been initialized";
+      m = "%n has already been initialized";
       break;
     case ec_missing_base_class_or_member_name:
       m = "name of member or base class is missing";
@@ -1375,7 +1363,7 @@ error code.
       m = "operator delete() may not be overloaded";
       break;
     case ec_no_match_for_addr_of_overloaded_function:
-      m = "no instance of overloaded function %n matches the required type";
+      m = "no instance of overloaded %n matches the required type";
       break;
     case ec_delete_count_anachronism:
       m = "delete array size expression ignored (anachronism)";
@@ -1417,16 +1405,16 @@ error code.
       m = "operator %s() may not be declared virtual";
       break;
     case ec_class_with_op_new_but_no_op_delete:
-      m = "class %n has an operator new() but no operator delete()";
+      m = "%n has an operator new() but no operator delete()";
       break;
     case ec_class_with_op_delete_but_no_op_new:
-      m = "class %n has an operator delete() but no operator new()";
+      m = "%n has an operator delete() but no operator new()";
       break;
     case ec_class_with_virtual_func_but_nonvirtual_dtor:
-      m = "class %n has virtual functions but destructor is nonvirtual";
+      m = "%n has virtual functions but destructor is nonvirtual";
       break;
     case ec_no_access_to_constructors:
-      m = "there is no access to the constructors for class %n";
+      m = "there is no access to the constructors for %n";
       break;
     case ec_nonstd_member_function_redeclaration:
       m = "redeclaring a member function is nonstandard";
@@ -1442,7 +1430,7 @@ error code.
        "member function with the same name as its class must be a constructor";
       break;
     case ec_nested_class_anachronism:
-      m = "using nested class %n (anachronism)";
+      m = "using nested %n (anachronism)";
       break;
     case ec_too_many_params_for_destructor:
       m = "a destructor may not have parameters";
@@ -1456,13 +1444,13 @@ error code.
       break;
     case ec_protected_access_problem:
       m =
-      "protected member %n is not accessible through this pointer or object";
+      "protected %n is not accessible through this pointer or object";
       break;
     case ec_param_not_allowed:
       m = "a parameter is not allowed";
       break;
     case ec_unimplemented_keyword:
-      m = "%n is reserved for future use as a keyword";
+      m = "%no is reserved for future use as a keyword";
       break;
     case ec_asm_not_allowed:
       m = "\"asm\" declaration not allowed";
@@ -1607,6 +1595,32 @@ the length of the type qualifier added.
 }  /* form_type_qualifier */
 
 
+static void form_class_name(a_type_ptr      type,
+                            msg_segment_ptr seg_ptr)
+/*
+Add the class name of the specified type followed by "::" to the message
+segment being constructed at "seg_ptr".  Use "<unnamed>" if the class
+has no user name.
+*/
+{
+  char 	*s;
+
+  if (type != NULL && C_dialect == C_dialect_cplusplus) {
+    /* Check for nested classes. */
+    if (type->source_corresp.class_of_which_a_member != NULL) {
+      form_class_name(type->source_corresp.class_of_which_a_member, seg_ptr);
+    }  /* if */
+    if (type->source_corresp.name != NULL) {
+      s = type->source_corresp.name;
+    } else {
+      s = "<unnamed>";
+    }  /* if */
+    add_string_to_segment(s, seg_ptr);
+    add_string_to_segment("::", seg_ptr);
+  }  /* if */
+}  /* form_class_name */
+
+
 static void form_type_specifier(a_type_ptr      type,
                                 msg_segment_ptr seg_ptr)
 /*
@@ -1617,17 +1631,17 @@ Add the type specifier to the type string being formed.
 
   switch (type->kind) {
     case tk_error:
-      s = "<error type>";
+      s = "<error>";
       break;
     case tk_unknown:
-      s = "<unknown type>";
+      s = "<unknown>";
       break;
     case tk_void:
       s = "void";
       break;
     case tk_integer:
       if (type->variant.integer.enum_type) {
-        s = "enum ";
+        if (C_dialect != C_dialect_cplusplus) s = "enum ";
         goto do_tag_name;
       }  /* if */
       if (type->variant.integer.explicitly_signed) {
@@ -1645,6 +1659,9 @@ Add the type specifier to the type string being formed.
       if (C_dialect != C_dialect_cplusplus) s = "union ";
     case tk_class:
 do_tag_name:
+      if (type->source_corresp.class_of_which_a_member != NULL) {
+        form_class_name(type->source_corresp.class_of_which_a_member, seg_ptr);
+      }  /* if */
       add_string_to_segment(s, seg_ptr);
       if (type->source_corresp.name != NULL) {
         s = type->source_corresp.name;
@@ -1675,28 +1692,6 @@ typeref_done:
   }  /* switch */
   if (s != NULL) add_string_to_segment(s, seg_ptr);
 }  /* form_type_specifier */
-
-
-static void form_class_name(a_type_ptr      type,
-                            msg_segment_ptr seg_ptr)
-/*
-Add the class name of the specified type followed by "::" to the message
-segment being constructed at "seg_ptr".  Use "<unnamed>" if the class
-has no user name.
-*/
-{
-  char 	*s;
-
-  if (type != NULL && C_dialect == C_dialect_cplusplus) {
-    if (type->source_corresp.name != NULL) {
-      s = type->source_corresp.name;
-    } else {
-      s = "<unnamed>";
-    }  /* if */
-    add_string_to_segment(s, seg_ptr);
-    add_string_to_segment("::", seg_ptr);
-  }  /* if */
-}  /* form_class_name */
 
 
 static void form_type_first_part(a_type_ptr      type,
@@ -1841,8 +1836,10 @@ Format a string that represents the type pointed to by "tp" into the message
 segment described by "seg_ptr".
 */
 {
+  add_string_to_segment("\"", seg_ptr);
   form_type_first_part(tp, /*need_parens=*/FALSE, seg_ptr);
   form_type_second_part(tp, /*need_parens=*/FALSE, seg_ptr);
+  add_string_to_segment("\"", seg_ptr);
 }  /* summarize_type */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -1866,7 +1863,7 @@ segment described by seg_ptr.  The generated format is:
     conv_seq_to_file_and_line(sym->decl_position.seq, &file_name, &full_name,
                               &line_number, &at_end_of_source);
     if (at_end_of_source) {
-      add_string_to_segment(" (at end of source: \"", seg_ptr);
+      add_string_to_segment(" (at end of source)", seg_ptr);
     } else {
       add_string_to_segment(" (declared at line ", seg_ptr);
 #if CHECKING
@@ -1938,7 +1935,7 @@ and the name is that of "sym".
   a_symbol_ptr  fund_sym;	/* Pointer to the fundamental symbol of
 				   argument "sym" if it exists.  Otherwise,
 				   the value will be that of "sym". */
-  a_boolean	is_routine = FALSE;
+  char		*entity_kind;
   a_boolean	is_constructor = FALSE;
   a_boolean	is_destructor = FALSE;
   a_boolean	is_overloaded = FALSE;
@@ -1946,58 +1943,87 @@ and the name is that of "sym".
 
   /* Determine the fundamental symbol of this symbol. */
   fund_sym = fundamental_symbol_of(sym);
-  add_string_to_segment("\"", seg_ptr);
   switch (fund_sym->kind) {
     case sk_keyword:
+      /* The name of a keyword is extracted from the token_names array, and
+         is handled differently from other symbols. */
+      if (! seg_ptr->variant.symbol.name_only) {
+        add_string_to_segment("keyword ", seg_ptr);
+      } /* if */
+      add_string_to_segment("\"", seg_ptr);
       add_string_to_segment(token_names[(int)fund_sym->variant.keyword_token],
                             seg_ptr);
       break;
-
     case sk_macro:
-    case sk_label:
-    case sk_type:
-    case sk_class_or_struct_tag:
-    case sk_union_tag:
-    case sk_enum_tag:
+      entity_kind = "macro ";
       goto symbol_name;
-
+    case sk_label:
+      entity_kind = "label ";
+      goto symbol_name;
+    case sk_type:
+      entity_kind = "type ";
+      goto symbol_name;
+    case sk_class_or_struct_tag:
+      if (C_dialect == C_dialect_cplusplus) {
+        entity_kind = "class ";
+      } else {
+        entity_kind = "struct ";
+      }  /* if */
+      goto symbol_name;
+    case sk_union_tag:
+      entity_kind = "union ";
+      goto symbol_name;
+    case sk_enum_tag:
+      entity_kind = "enum ";
+      goto symbol_name;
     case sk_variable:
       type = fund_sym->variant.variable->type;
+      if (fund_sym->variant.variable->is_parameter) {
+        entity_kind = "parameter ";
+      } else {
+        entity_kind = "variable ";
+      }  /* if */
       goto symbol_name;
-
     case sk_extern_variable:
       type = fund_sym->variant.extern_symbol_descr->type;
+      entity_kind = "variable ";
       goto symbol_name;
-
     case sk_constant:
       type = fund_sym->variant.constant->type;
+      entity_kind = "constant ";
       goto symbol_name;
-
     case sk_routine:
     case sk_member_function:
       type = routine_symbol_type(fund_sym);
       routine = fund_sym->variant.routine;
-      is_routine = TRUE;
+      entity_kind = "function ";
       goto symbol_name;
-
     case sk_extern_routine:
       type = fund_sym->variant.extern_symbol_descr->type;
       routine = fund_sym->variant.extern_symbol_descr->variant.routine;
-      is_routine = TRUE;
+      entity_kind = "function ";
       goto symbol_name;
-
     case sk_overloaded_function:
-      is_routine = TRUE;
+      entity_kind = "function ";
       goto symbol_name;
-
     case sk_static_data_member:
       type = fund_sym->variant.variable->type;
+      entity_kind = "member ";
       goto symbol_name;
-
     case sk_field:
       type = fund_sym->variant.field.ptr->type;
-
+      if (C_dialect == C_dialect_cplusplus) {
+        entity_kind = "member ";
+      } else {
+        entity_kind = "field ";
+      }  /* if */
 symbol_name:
+      /* Add the entity kind is not specified as name only. */
+      if (! seg_ptr->variant.symbol.name_only) {
+        add_string_to_segment(entity_kind, seg_ptr);
+      } /* if */
+      /* Add the beginning double quote. */
+      add_string_to_segment("\"", seg_ptr);
       /* Check if this is a C++ constructor, destructor or conversion 
          routine. */
       if (routine != NULL) {
@@ -2025,24 +2051,22 @@ symbol_name:
         add_string_to_segment(sym->header->identifier, seg_ptr);
       }  /* if */
       if (type != NULL &&
+          ! seg_ptr->variant.symbol.name_only &&
           (seg_ptr->variant.symbol.full_type || is_overloaded) ) {
         form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
-      } else if (is_routine && (! seg_ptr->variant.symbol.name_only)) {
-        add_string_to_segment("()", seg_ptr);
       }  /* if */
       break;
-
 #if CHECKING
     case sk_projection:
       /* Cannot have a projection of a projection symbol.  This is an
          error. */
       internal_error("form_symbol_name: projection of projection kind");
       break;
-
     default:
       internal_error("form_symbol_name: unsupported symbol kind");
 #endif /* CHECKING */
   }  /* switch */
+  /* Add the closing double quote mark. */
   add_string_to_segment("\"", seg_ptr);
 
   /* Add the declaration position as requested. */
