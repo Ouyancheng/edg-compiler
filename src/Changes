@@ -580,13 +580,13 @@ When "long double" is used, "sscanf" is used instead of "strtod" to
 convert strings into floating point values.  This should not be an
 issue, provided the host "sscanf" routine is robust with respect to
 precision and handling of values that are out of range.  If the host's
-"ssanf" routine is not sufficiently robust it may be necessary to
+"sscanf" routine is not sufficiently robust it may be necessary to
 implement an alternate means of performing the conversion, or to revert
 to using "double" to represent floating point values.
 
 6/17/98   Common offsetof variants allowed in nontype template expressions
 
-The common variants of the macro offsetsof use operations that aren't,
+The common variants of the macro offsetof use operations that aren't,
 strictly speaking, allowed in constant expressions.  Previously, the
 processing for integral constant expressions had been changed to
 allow such expressions in non-strict mode.  Now, the processing for
@@ -705,7 +705,7 @@ Likewise for constants slightly smaller than -FLT_MAX.
 6/5/98    Microsoft compatibility: pure specifier on function definition
 
 In Microsoft compatibility mode a pure specifier may appear on a virtual
-funtion definition:
+function definition:
 
   class A {
     virtual void f() = 0 { ... }    // No syntax error in Microsoft mode
@@ -1828,7 +1828,7 @@ void f(int *record) {
       default:
         continue;
     }
-    // contine label is inserted here, but end of block was not marked
+    // continue label is inserted here, but end of block was not marked
     // as reachable.
   }
 }
