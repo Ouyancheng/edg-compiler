@@ -336,11 +336,11 @@ Initialize the option information table.
   add_option_description(optk_output_file_name, "output", 'o',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
-#if BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C
+#if BACK_END_IS_C_GEN_BE
   add_option_description(optk_module_list_for_union_init, "module_init", 'i',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
-#endif /* BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C */
+#endif /* BACK_END_IS_C_GEN_BE */
 #if DEBUG
   add_option_description(optk_debug, "db", 'd',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
@@ -1576,16 +1576,19 @@ common_cfront_mode_settings:
         /* Specify output file for preprocessing output or IL. */
         ofile_name = opt_arg;
         break;
-#if BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C
+#if BACK_END_IS_C_GEN_BE
       case optk_module_list_for_union_init:
+#if !C_GEN_BE_GENERATES_ANSI_C
         /* Save a string of comma-separated module names that will be linked
            with this one.  This is used by c_gen_be to generate calls
            to file-scope initialization routines that handle union
            initialization.  This option is only needed if c_gen_be is being
-           used to generate C output for testing. */
+           used to generate C output for testing, and then only if K&R
+           C is being generated. */
         module_list_for_union_init = opt_arg;
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
         break;
-#endif /* BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C */
+#endif /* BACK_END_IS_C_GEN_BE */
 #if DEBUG
       case optk_debug:
         /* Set debug level. */
