@@ -8377,7 +8377,9 @@ continue_with_declaration:
       if (storage_class == (a_storage_class)sc_typedef) {
         /* A case like "typedef int;" or "typedef struct { int i; };" */
         set_err_pos_to_curr_token();
-        warning(ec_missing_typedef_name);
+        diagnostic(strict_ansi_mode ?
+                     strict_ansi_error_severity : es_warning,
+                   ec_missing_typedef_name);
       } else if (!declares_something) {
         if (defines_something &&
             (storage_class != (a_storage_class)sc_unspecified ||
