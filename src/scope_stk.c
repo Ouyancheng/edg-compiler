@@ -4251,7 +4251,12 @@ End a name scope by popping an entry off the scope stack.
          scope_orphaned_list_headers list so they can be found when processing
          the file scope memory region.  Note that processing for block scopes
          is done at the end of the function scope to give IL lowering a chance
-         to add variables and types in block scopes. */
+         to add variables and types in block scopes.
+         Trivial default constructors cannot contain macros and pragmas that
+         must be preserved when the routine is discarded, so there is no need
+         to seek such entities for collection on the orphan lists.  Other
+         discarded functions (like Microsoft dllimport routines) appear in
+         the source and hence may contain such orphans. */
       add_scope_orphaned_il_lists(il_scope);
     }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
