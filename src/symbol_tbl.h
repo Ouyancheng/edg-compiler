@@ -817,6 +817,9 @@ typedef struct a_template_instance {
   unsigned int	explicit_do_not_instantiate:1;
 			/* TRUE if instantiation has been explicitly 
 			   suppressed by a do_not_instantiate pragma. */
+  unsigned int	explicit_can_instantiate:1;
+			/* TRUE if instantiation has been explicitly declared
+                           as being possible by a can_instantiate pragma. */
   a_source_position
 		explicit_instantiation_pos;
 			/* The position of the instantiation request pragma

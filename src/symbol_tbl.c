@@ -7382,6 +7382,7 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->explicit_instantiation            = FALSE;
   tip->already_instantiated              = FALSE;
   tip->explicit_do_not_instantiate       = FALSE;
+  tip->explicit_can_instantiate         = FALSE;
   tip->explicit_instantiation_pos.seq    = 0;
   tip->explicit_instantiation_pos.column = 0;
   db_exit();
