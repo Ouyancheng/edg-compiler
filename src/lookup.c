@@ -1006,7 +1006,6 @@ namespace in which the lookup is being done, or is NULL for a file
 scope lookup.  options specifies the options being used for the lookup.
 */
 {
-  a_symbol_ptr	fund_curr_sym;
   a_boolean	err = FALSE;
 
   /* Make sure the lookup set points to the fundamental symbol. */
@@ -1043,6 +1042,7 @@ scope lookup.  options specifies the options being used for the lookup.
   } else if (already_in_lookup_set(curr_sym, new_sym)) {
     /* The symbol is already present -- nothing more to do. */
   } else {
+    a_symbol_ptr	fund_curr_sym;
     fund_curr_sym = fundamental_symbol_of(curr_sym);
     if (!is_function_or_template_symbol(new_sym) ||
         !is_function_or_template_symbol(fund_curr_sym)) {
@@ -1082,10 +1082,15 @@ scope lookup.  options specifies the options being used for the lookup.
            contexts. */
        set_namespace_projection_symbol(curr_sym, new_sym,
                                        depth_scope_stack);
-      } else if (fund_curr_sym->kind == (a_symbol_kind)sk_undefined) {
+      } else if (curr_sym->kind == (a_symbol_kind)sk_namespace_projection &&
+                 fund_curr_sym->kind == (a_symbol_kind)sk_undefined) {
         /* The current symbol is an sk_undefined symbol.  Use a "real" symbol
            if one is available, for better error recovery. */
-        set_namespace_projection_symbol(curr_sym, new_sym, depth_scope_stack);
+        curr_sym->variant.namespace_projection.fundamental_symbol = NULL;
+        curr_sym = add_symbol_to_lookup_set(curr_sym, new_sym, locator,
+                                            qualified_lookup,
+                                            qualifier_namespace, options,
+                                            &err);
       }  /* if */
     } else {
       /* Both symbols are functions. */
@@ -1099,16 +1104,20 @@ scope lookup.  options specifies the options being used for the lookup.
     curr_sym->ambiguous = TRUE;
   }  /* if */
 #if EXPENSIVE_CHECKING
-  check_assertion_str2(fundamental_symbol_of(curr_sym) != NULL,
-                       "add_symbol_to_lookup_set:", "NULL fund_sym");
-  if (curr_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    a_symbol_ptr	overload_sym;
-    overload_sym = curr_sym->variant.overloaded_function.symbols;
-    for (; overload_sym != NULL; overload_sym = overload_sym->next) {
-      check_assertion_str2(fundamental_symbol_of(overload_sym) != NULL,
-                           "add_symbol_to_lookup_set:", "NULL fund_sym");
-    }  /* for */
-  }  /* if */
+  {
+    a_symbol_ptr	fund_curr_sym;
+    fund_curr_sym = fundamental_symbol_of(curr_sym);
+    check_assertion_str2(fund_curr_sym != NULL,
+                         "add_symbol_to_lookup_set:", "NULL fund_sym");
+    if (fund_curr_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      a_symbol_ptr	overload_sym;
+      overload_sym = fund_curr_sym->variant.overloaded_function.symbols;
+      for (; overload_sym != NULL; overload_sym = overload_sym->next) {
+        check_assertion_str2(fundamental_symbol_of(overload_sym) != NULL,
+                             "add_symbol_to_lookup_set:", "NULL fund_sym");
+      }  /* for */
+    }  /* if */
+  }
 #endif /* EXPENSIVE_CHECKING */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("lookup_set")) {

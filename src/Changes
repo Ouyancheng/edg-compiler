@@ -1,5 +1,11 @@
 Version 2.37
 
+6/24/97   Internal error in using-directive lookup in error case
+
+An internal error could result when an sk_undefined symbol is included
+in a lookup set with an overload set from a namespace made visible
+by a using-directive.  This has been fixed.
+
 6/24/97   Microsoft compatibility: function parameter type involving pointer
           or reference to array of unknown bounds
 
