@@ -1,5 +1,25 @@
 Version 2.32
 
+2/15/96   Hidden name table and anonymous unions
+
+When names from an anonymous union are promoted into the surrounding scope
+(and RECORD_HIDDEN_NAMES_IN_IL is configured to TRUE), the hidden name
+table for that scope is now updated.  This fixes a bug that caused the
+C++-generating back end to produce incorrect code for the following:
+
+  static union {
+    short x;
+  };
+  void f()
+  {
+    union {
+      short x;
+    };
+    x = 37;
+    ::x = 47;
+  }
+
+
 2/14/96   Conflict between user-declared and predeclared class type_info
 
 When ABI_CHANGES_FOR_RTTI is configured to TRUE, an error is now issued for
