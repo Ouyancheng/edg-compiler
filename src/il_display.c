@@ -2447,8 +2447,7 @@ Display the indicated dynamic_init structure.
       break;
     case dik_constant:
       (void)printf("dik_constant\n");
-      disp_ptr("constant", (char *)ptr->variant.constant, iek_constant);
-      break;
+      goto do_constant;
     case dik_expression:
       (void)printf("dik_expression\n");
       disp_ptr("expression", (char *)ptr->variant.expression, iek_expr_node);
@@ -2463,11 +2462,8 @@ Display the indicated dynamic_init structure.
       break;
     case dik_nonconstant_aggregate:
       (void)printf("dik_nonconstant_aggregate\n");
-      disp_ptr("aggr_const", (char *)ptr->variant.aggregate.aggr_const,
-               iek_constant);
-      disp_ptr("dynamic_init_list",
-               (char *)ptr->variant.aggregate.dynamic_init_list,
-               iek_dynamic_init);
+do_constant:
+      disp_ptr("constant", (char *)ptr->variant.constant, iek_constant);
       break;
     case dik_member_copy:
       (void)printf("dik_member_copy\n");

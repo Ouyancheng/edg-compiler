@@ -1132,7 +1132,7 @@ void db_dynamic_initializer(a_dynamic_init_ptr  dip,
       goto destructor_on_next_line;
     case dik_nonconstant_aggregate:
       fputs("aggregate with non-constants:\n", f_debug);
-      db_nonconstant_aggregate(dip->variant.aggregate.aggr_const->
+      db_nonconstant_aggregate(dip->variant.constant->
                                         variant.aggregate.first_constant,
                                level);
 destructor_on_next_line:
@@ -3641,6 +3641,7 @@ the associated variant fields to default values.
     case dik_base_class_copy:
       break;
     case dik_constant:
+    case dik_nonconstant_aggregate:
       dip->variant.constant = NULL;
       break;
     case dik_expression:
@@ -3650,10 +3651,6 @@ the associated variant fields to default values.
       dip->variant.constructor.routine = NULL;
       dip->variant.constructor.args = NULL;
       dip->variant.constructor.is_copy_constructor_for_subobject = FALSE;
-      break;
-    case dik_nonconstant_aggregate:
-      dip->variant.aggregate.aggr_const = NULL;
-      dip->variant.aggregate.dynamic_init_list = NULL;
       break;
 #if CHECKING
     default:
@@ -3891,14 +3888,10 @@ expression node.
                internal_copy_list_of_expr_trees(dip->variant.constructor.args);
       break;
     case dik_constant:
+    case dik_nonconstant_aggregate:
       /* The constant pointed to is unshared and must be copied. */
       new_dip->variant.constant =
                                  copy_unshared_constant(dip->variant.constant);
-      break;
-    case dik_nonconstant_aggregate:
-      /* The constant pointed to is unshared and must be copied. */
-      new_dip->variant.aggregate.aggr_const =
-                     copy_unshared_constant(dip->variant.aggregate.aggr_const);
       break;
 #if CHECKING
     case dik_member_copy:

@@ -348,11 +348,14 @@ typedef struct a_dynamic_init {
        The field or base class to be copied is given in the constructor init
        entry that points to this entry.  A bitwise copy of the field or base
        class is implied. */
-    /* When kind == dik_constant: */
+    /* When kind == dik_constant or dik_nonconstant_aggregate: */
     a_constant_ptr
 		constant;
-			/* The constant initial value.  Not a ck_aggregate
-			   constant.  This is an unshared constant. */
+			/* The constant initial value.  Always an unshared
+                           constant.  When kind is dik_nonconstant_aggregate
+                           (used only in C++) it points to a ck_aggregate
+                           constant entry for which one or more of the entries
+			   on its linked list are ck_dynamic_init constants. */
     /* When kind == dik_expression: */
     an_expr_node_ptr
 		expression;
@@ -386,22 +389,6 @@ typedef struct a_dynamic_init {
 			   args pointer is NULL in such cases; the address of
 			   the subobject to be copied must be computed. */
     } constructor;
-    /* When kind == dik_nonconstant_aggregate: */
-    /* Used with C++ only. */
-    struct {
-      a_constant_ptr
-		aggr_const;
-			/* Pointer to a ck_aggregate constant entry that heads
-			   a linked list of constant entries to be applied to
-			   the initialization of the components (fields or
-			   array elements) of the aggregate object.  This is
-			   an unshared constant. */
-      a_dynamic_init_ptr
-		dynamic_init_list;
-			/* Pointer to a linked list of dynamic-init entries
-			   representing all non-constant initializers in the
-			   ck_aggregate "constant" list. */
-    } aggregate;
   } variant;
 } a_dynamic_init;
 
@@ -3270,13 +3257,12 @@ typedef struct a_scope {
   a_dynamic_init_ptr
 		dynamic_inits;
 			/* List of dynamic initializations to be done in the
-			   scope, in the order they should be done.  May
-			   appear in a file (C++ only), function, or block
-			   scope.  Note that since in C++ function or block
-			   scope initializations are not necessarily done at
-			   the start of the scope, stmk_init statements will
-			   appear to indicate the points within the code where
-			   each initialization should be done. */
+			   scope, in the order they should be done (C++ only).
+                           Used only at file scope scope; in a function
+			   or block scope, where initializations may occur
+			   anywhere, stmk_init statements are used to indicate
+			   the points within the code where each initialization
+			   should be done. */
 #endif /* ifdef CIL */
 #ifdef FIL
   an_entry_description_ptr

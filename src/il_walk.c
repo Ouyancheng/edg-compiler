@@ -1144,6 +1144,7 @@ and the entry pointer is to an entry in the file scope, just return
               /* No pointers. */
               break;
             case dik_constant:
+            case dik_nonconstant_aggregate:
               walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
               break;
             case dik_expression:
@@ -1155,12 +1156,6 @@ and the entry pointer is to an entry in the file scope, just return
                         iek_routine);
               walk_list(ptr->variant.constructor.args, an_expr_node_ptr,
                         iek_expr_node);
-              break;
-            case dik_nonconstant_aggregate:
-              walk_ptr(ptr->variant.aggregate.aggr_const, a_constant_ptr,
-                       iek_constant);
-              remap_ptr(ptr->variant.aggregate.dynamic_init_list,
-                        a_dynamic_init_ptr, iek_dynamic_init);
               break;
 #ifdef CHECKING
             default:
