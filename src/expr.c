@@ -2145,7 +2145,8 @@ bound with the function in *bound_function_selector.
   /* Scan the second operand. */
   (void)get_token();
   /* See if an identifier (or equivalent) is next. */
-  gid_flags = GID_DTOR_RECOGNIZED | GID_IS_FIELD_SELECTION_OPERAND;
+  gid_flags = GID_DTOR_RECOGNIZED | GID_IS_FIELD_SELECTION_OPERAND |
+              GID_IS_EXPR_CONTEXT;
   if (C_dialect == C_dialect_cplusplus) {
     /* In C++, explicit calls of destructors are allowed for simple types
        and classes without destructors.  For example, p->int::~int(). */
@@ -8745,7 +8746,8 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
      name.  If not, look the name up as a normal identifier.  This routine
      also handles operator names. */
   sym_ptr = coalesce_and_lookup_generalized_identifier
-                                            (GID_NO_OPTIONS, ilm_normal, &err);
+                                            (GID_IS_EXPR_CONTEXT,
+                                             ilm_normal, &err);
   if (locator_for_curr_id.is_semivisible_nested_type) {
     /* The symbol in the locator is a nested class that is not visible
        according to the ARM lookup rules but is returned in support of the
