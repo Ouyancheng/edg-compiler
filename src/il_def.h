@@ -155,6 +155,12 @@ typedef struct a_source_correspondence {
                            end, points to the associated front end symbol,
                            or NULL if there is no associated symbol.  Must
                            be cast to the proper pointer type for use. */
+#if DO_IL_LOWERING
+			/* When IL lowering is done, this is used in
+			   ck_ptr_to_member constants changed to ck_aggregate
+			   constants to point to an associated variable that
+			   is initialized with the ck_aggregate value. */
+#endif /* DO_IL_LOWERING */
   char          *name;
                         /* Pointer to null-terminated name, or NULL if
                            there is no corresponding source entity. */
