@@ -900,7 +900,7 @@ typedef struct a_type {
                 any_const_member;
                         /* TRUE if any member of the class, struct, or union
                            is const-qualified. */
-    } class;
+    } class_struct_union;
     /* When kind == tk_typeref: */
     struct {
       a_type_ptr

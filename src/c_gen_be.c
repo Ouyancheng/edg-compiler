@@ -1745,7 +1745,7 @@ Dump the definition ({...}) if body is TRUE.
   (void)fprintf(f_C_output, "struct %s", get_name(&type->source_corresp));
   if (body) {
     fputs(" {", f_C_output);
-    field = type->variant.class.field_list;
+    field = type->variant.class_struct_union.field_list;
     indent += 2;
     if (field == NULL) {
       /* In the bizarre case "struct {int :0;}" the struct has no component
@@ -1850,7 +1850,7 @@ Dump the definition ({...}) if body is TRUE.
   (void)fprintf(f_C_output, "union %s", get_name(&type->source_corresp));
   if (body) {
     fputs(" {", f_C_output);
-    field = type->variant.class.field_list;
+    field = type->variant.class_struct_union.field_list;
     indent += 2;
     if (field == NULL) {
       /* In the bizarre case "union {int :0;}" the union has no component
@@ -4498,7 +4498,7 @@ characters should be put out separately (to initialize a substring, probably).
           break;
         case tk_struct:
         case tk_union:
-          ipdp->curr_field = type->variant.class.field_list;
+          ipdp->curr_field = type->variant.class_struct_union.field_list;
 #if CHECKING
           if (ipdp->curr_field == NULL) {
             internal_error("dump_initializer: bad field");
