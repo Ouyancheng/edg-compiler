@@ -423,6 +423,10 @@ extern void free_return_memo_list(a_return_memo_ptr rmp);
 
 extern void turn_statement_into_block(a_statement_ptr statement);
 
+extern void turn_branch_into_block(a_statement_ptr        statement,
+                                   an_insert_location_ptr insert_location,
+                                   a_statement_ptr        *orig_statement);
+
 extern void gen_required_destructor_calls(
                                    a_context_ptr          outer_context,
                                    an_insert_location_ptr insert_location);

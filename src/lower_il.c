@@ -5937,9 +5937,9 @@ original statement under it.
 }  /* turn_statement_into_block */
 
 
-static void turn_branch_into_block(a_statement_ptr        statement,
-                                   an_insert_location_ptr insert_location,
-                                   a_statement_ptr        *orig_statement)
+void turn_branch_into_block(a_statement_ptr        statement,
+                            an_insert_location_ptr insert_location,
+                            a_statement_ptr        *orig_statement)
 /*
 Turn a branch statement (goto or return) into a block, and set *insert_location
 so that statements can be inserted at the beginning of the block (i.e.,
