@@ -1239,6 +1239,14 @@ do_struct_union:
                                       explicit_memory_attribute_made_implicit);
       }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if BACK_END_IS_CP_GEN_BE
+      if (ptr->surrounding_name_linkage_state !=
+                                              (a_name_linkage_kind)nlk_none) {
+        disp_name_linkage("surrounding_name_linkage_state",
+                          (a_name_linkage_kind)ptr->variant.typeref.
+                                              surrounding_name_linkage_state);
+      }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
       break;
     case tk_ptr_to_member:
       (void)printf("tk_ptr_to_member\n");
