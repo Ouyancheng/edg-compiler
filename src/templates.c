@@ -1917,36 +1917,40 @@ and the class instantiation will detect the runaway case.
 
 a_boolean equiv_template_arg_lists(a_template_arg_ptr list1,
                                    a_template_arg_ptr list2,
-                                   a_boolean          error_matches_anything)
+                                   a_boolean          error_matches_anything,
+				   a_boolean	      is_nonreal_member)
 /*
 Return TRUE if the two linked lists of template arguments for a given template
 class or template function are equivalent -- that is, if corresponding type
 arguments refer to the same type and corresponding constant arguments refer to
 the same constant.  If error_matches_anything is TRUE, an error type
 or constant will match anything (this is used for compatibility checking
-instead of equivalence checking).
+instead of equivalence checking).  is_nonreal_member indicates that the
+template is a member of a nonreal class and has no template parameter
+list.  In such cases, a NULL argument list, and argument lists of different
+lengths are permitted. 
 */
 {
   a_boolean           equiv;
   a_template_arg_ptr  arg1 = list1, arg2 = list2;
 
   db_enter(4, "equiv_template_arg_lists");
-#if CHECKING
   /* There is no way to produce a NULL template argument list, so the real
      code doesn't need to check for that. */
-  if (arg1 == NULL || arg2 == NULL) {
-    internal_error("equiv_template_arg_lists: NULL arg list");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion_str2(is_nonreal_member || (list1 != NULL && list2 != NULL),
+                       "equiv_template_arg_lists:", " NULL arg list");
   /* Assume they are equivalent, until we find evidence to the contrary. */
   equiv = TRUE;
   /* Loop through both lists in step, comparing arguments. */
-  do {
+  while (arg1 != NULL && arg2 != NULL) {
     /* For a given class, argument lists should always have the same sequence
        of type and constant arguments. */
-    check_assertion_str(arg1->is_type == arg2->is_type,
-                        "equiv_template_arg_lists: arg inconsistency");
-    if (!arg1->is_type) {
+    if (arg1->is_type != arg2->is_type) {
+      equiv = FALSE;
+      check_assertion_str(is_nonreal_member,
+                          "equiv_template_arg_lists: arg inconsistency");
+      break;
+    } else if (!arg1->is_type) {
       /* Both are constant arguments.  If they are not identical, this is a
          mismatch. */
       a_constant_ptr con1 = arg1->variant.constant;
@@ -1979,15 +1983,16 @@ instead of equivalence checking).
     /* Advance to the next arguments in step. */
     arg1 = arg1->next;
     arg2 = arg2->next;
-#if CHECKING
     /* For a given function argument lists should always be exactly the same
        length. */
-    if ((arg1 == NULL) != (arg2 == NULL)) {
-      internal_error("equiv_template_arg_lists: unequal arg list lengths");
-    }  /* if */
-#endif /* CHECKING */
-  } while (arg1 != NULL);
-
+    check_assertion_str(is_nonreal_member || (arg1 == NULL) == (arg2 == NULL),
+                        "equiv_template_arg_lists: unequal arg list lengths");
+  }  /* while */
+  if (equiv) {
+    /* Make sure we are at the end of both argument lists.  This might not
+       be the case for nonreal members. */
+    if (arg1 != NULL || arg2 != NULL) equiv = FALSE;
+  }  /* if */
   db_exit();
   return equiv;
 }  /* equiv_template_arg_lists */
@@ -2074,7 +2079,8 @@ included in the search.
     old_list = prototype_sym->variant.class_struct_union.type->
                      variant.class_struct_union.extra_info->template_arg_list;
     if (equiv_template_arg_lists(old_list, *new_list,
-                                 /*error_matches_anything=*/FALSE)) {
+                                 /*error_matches_anything=*/FALSE,
+                                 tssp->is_nonreal_member)) {
       /* A match.  Set sym which will suppress any further search. */
       sym = prototype_sym;
     }  /* if */
@@ -2094,7 +2100,8 @@ included in the search.
       old_list = sym->variant.type->
                      variant.class_struct_union.extra_info->template_arg_list;
       if (equiv_template_arg_lists(old_list, *new_list,
-                                   /*error_matches_anything=*/FALSE)) {
+                                   /*error_matches_anything=*/FALSE,
+                                   tssp->is_nonreal_member)) {
         /* We've found a match.  Remove the found symbol from its current
            position in the instantiation list and add it to the front. */
         if (prev_sym != NULL) {
@@ -2121,13 +2128,18 @@ included in the search.
     /* Now create a new type entry. */
     class_type = alloc_type(tssp->variant.class_template.type_kind);
     sym->variant.class_struct_union.type = class_type;
+    if (tssp->is_nonreal_member) {
+      /* Instantiations of a nonreal member template (for example,
+         T::A<int>) are created as nonreal instantiations. */
+      sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
+    }  /* if */
     /* If this is a "real instantiation" leave the type incomplete; it will
        become complete when it is instantiated.  However, if it is based on
-       template parameters and is therefore a "nonreal" instantiation, give it
-       a size and alignment to permit it to pass through subsequent processing
-       without causing spurious errors. */
-    for (tap = *new_list; tap != NULL; tap = tap->next) {
-      if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
+       template parameters and is therefore a "nonreal" instantiation, give
+       it a size and alignment to permit it to pass through subsequent
+         processing without causing spurious errors. */
+      for (tap = *new_list; tap != NULL; tap = tap->next) {
+        if (!sym->variant.class_struct_union.extra_info->is_nonreal_class) {
         if (template_arg_involves_template_param(tap)) {
           sym->variant.class_struct_union.extra_info->is_nonreal_class = TRUE;
         }  /* if */
@@ -4138,7 +4150,8 @@ structure.
     a_template_arg_ptr	arg_list;
     arg_list = tip->instance_sym->variant.routine.ptr->template_arg_list;
     if (equiv_template_arg_lists(arg_list, *new_list,
-                                 /*error_matches_anything=*/FALSE)) {
+                                 /*error_matches_anything=*/FALSE,
+                                 /*is_nonreal_member=*/FALSE)) {
       /* We've found a match.  Remove the found function instantiation entry
          from its current position in the instantiation list and add it to
          the front. */
@@ -9389,6 +9402,15 @@ Initializations for template.
   octl.output_str = put_str_to_temp_text_buffer;
   octl.gen_compilable_code = TRUE;
 #endif /* RECORD_TEMPLATES_IN_IL */
+  /* Allocate a type to be used for template parameter constants whose
+     real types cannot be known.  This type will be used for all such
+     constants that are created. */
+  type_of_unknown_templ_param_constant =
+                                    alloc_type((a_type_kind)tk_template_param);
+  set_type_size(type_of_unknown_templ_param_constant);
+  type_of_unknown_templ_param_constant->variant.template_param.kind = 
+                     (a_template_param_type_kind)tptk_type_of_unknown_constant;
+
 }  /* templates_init */
 
 /******************************************************************************

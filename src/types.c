@@ -1905,7 +1905,9 @@ checking instead of equivalence checking).
                                                             template_arg_list,
                              type_2->variant.class_struct_union.extra_info->
                                                             template_arg_list,
-                             error_matches_anything)) {
+                             error_matches_anything,
+                             cssp_1->class_template->
+                                   variant.template_info->is_nonreal_member)) {
             equiv = TRUE;
           }  /* if */
         }  /* if */
@@ -2132,7 +2134,7 @@ for more information.
                                                           parent.class_type));
                 }  /* if */
                 break;
-              case tptk_type_of_member_constant:
+              case tptk_type_of_unknown_constant:
                 /* Should never happen. */
                 break;
 #if CHECKING

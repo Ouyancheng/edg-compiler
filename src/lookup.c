@@ -485,16 +485,27 @@ as the class type, and use as a base class.
 
 
 /*
-Macro that returns TRUE if the lookup options being used require that
-a nonreal class member returned by the lookup must be a type.  If the
-macro returns FALSE then the noreal class member must not be a type.
+Macro that returns the symbol kind for a nonreal member created for the
+current lookup options.  The symbol is created as a class template
+if a "treat as template ID" lookup is done.  The symbol is created as a
+type if the lookup is a "must be class or namespace", "must be tag" or
+"typename lookup".  In addition, if "implicit typename" is enabled, we
+also force the member to be a type when doing a "tentative type" lookup.
+Implicit typename mode is used to compile code that was not written
+using "typename".  If the symbol is not considered to be a class
+template or a type, then it is created as a constant.
 */
-#define nonreal_member_must_be_type(options)			\
-  ((options & IDL_MUST_BE_CLASS_OR_NAMESPACE ||			\
-    options & IDL_MUST_BE_TAG ||				\
-    options & IDL_MUST_BE_CLASS ||				\
-    options & IDL_TYPENAME_LOOKUP) ||				\
-   (implicit_typename_enabled && (options & IDL_TENTATIVE_TYPE_LOOKUP)))
+#define nonreal_member_symbol_kind(options)			\
+  ((a_symbol_kind)((options & IDL_TREAT_AS_TEMPLATE_ID)		\
+    ? sk_class_template						\
+    : 								\
+      (options & IDL_MUST_BE_CLASS_OR_NAMESPACE ||		\
+       options & IDL_MUST_BE_TAG ||				\
+       options & IDL_MUST_BE_CLASS ||				\
+       options & IDL_TYPENAME_LOOKUP) ||				\
+      (implicit_typename_enabled && (options & IDL_TENTATIVE_TYPE_LOOKUP)) \
+        ? sk_type						\
+        : sk_constant))
 
 
 a_symbol_ptr create_proxy_or_nonreal_class_member
@@ -519,20 +530,15 @@ routine.
   a_class_symbol_supplement_ptr cssp;
   a_scope_depth                 depth = NO_SCOPE_DEPTH;
   a_symbol_ptr                  sym;
-  a_boolean                     is_type;
-  a_source_correspondence       *scp;
+  a_source_correspondence       *scp = NULL;
 
   db_enter(4, "create_proxy_or_nonreal_class_member");
-  /* Determine whether the member to be created is a type or not.  The
-     symbol is created as a type if the lookup is a "must be class or
-     namespace", "must be tag" or "typename lookup".  In addition,
-     if "implicit typename" is enabled, we also force the member to be
-     a type when doing a "tentative type" lookup.  Implicit typename mode
-     is used to compile code that was not written using "typename". */
-  is_type = nonreal_member_must_be_type(options);
+  /* Determine the symbol kind to be created.  The symbol can be a
+     type, constant, or class template, depending on the kind of
+     lookup being done. */
+  kind = nonreal_member_symbol_kind(options);
   /* Create a symbol for the member.  mark_declared is not called
      because this symbol is not visible to the user. */
-  kind = (a_symbol_kind)(is_type ? sk_type : sk_constant);
   sym = alloc_symbol(kind, locator->symbol_header, &locator->source_position);
   /* Get the scope number from the symbol supplement.  The scope depth
      will be the scope depth of the class plus one. */
@@ -542,28 +548,46 @@ routine.
   depth = class_type->source_corresp.scope_depth;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
   /* Create the type or constant. */
-  if (is_type) {
-    a_type_ptr	type = alloc_type((a_type_kind)tk_template_param);
-    type->variant.template_param.kind =
+  switch (kind) {
+    case sk_type:
+    {
+      a_type_ptr	type = alloc_type((a_type_kind)tk_template_param);
+      type->variant.template_param.kind =
                                     (a_template_param_type_kind)tptk_member;
-    set_type_size(type);
-    sym->variant.type = type;
-    scp = &type->source_corresp;
-  } else {
-    /* Create a ck_template_param constant.  We don't know the type of the
-       constant so we allocate a tk_template_param to use as the type. */
-    a_constant_ptr  constant;
-    constant = fs_constant((a_constant_repr_kind)ck_template_param);
-    set_template_param_constant_kind(constant,
+      set_type_size(type);
+      sym->variant.type = type;
+      scp = &type->source_corresp;
+      break;
+    }
+    case sk_constant:
+    {
+      /* Create a ck_template_param constant.  We don't know the type of the
+         constant so we use a special template parameter type that represents
+         the type of an unknown constant. */
+      a_constant_ptr  constant;
+      constant = fs_constant((a_constant_repr_kind)ck_template_param);
+      set_template_param_constant_kind(constant,
                                   (a_template_param_constant_kind)tpck_member);
-    sym->variant.constant = constant;
-    constant->type = alloc_type((a_type_kind)tk_template_param);
-    set_type_size(constant->type);
-    constant->type->variant.template_param.kind = 
-                   (a_template_param_type_kind)tptk_type_of_member_constant;
-    scp = &constant->source_corresp;
-  }  /* if */
-  set_source_corresp_with_scope_depth(scp, sym, depth);
+      sym->variant.constant = constant;
+      constant->type = type_of_unknown_templ_param_constant;
+      scp = &constant->source_corresp;
+      break;
+    }
+    case sk_class_template:
+    {
+      /* This is a template used in a context like T::A<int>.  A template
+         symbol is created for T::A.  Indicate that this template is
+         a nonreal class member. */
+      a_template_symbol_supplement_ptr	tssp;
+      tssp = sym->variant.template_info;
+      tssp->is_nonreal_member = TRUE;
+      tssp->variant.class_template.type_kind = tk_class;
+      break;
+    }
+    default:
+      unexpected_condition();
+  }  /* switch */
+  if (scp != NULL) set_source_corresp_with_scope_depth(scp, sym, depth);
   set_class_membership(sym, scp, class_type);
 #if DEBUG
   if (debug_level >= 4) {
@@ -2358,7 +2382,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
         /* Found an acceptable symbol. */
         if (is_proxy_or_nonreal_class_lookup && !implicit_typename_enabled &&
-            is_type_symbol(sym) != nonreal_member_must_be_type(options)) {
+            sym->kind != nonreal_member_symbol_kind(options)) {
           /* The nonreal class member found is a type when a nontype is
              expected or vice-versa.  Ignore this symbol when not using
              implicit-typename. */
@@ -2366,8 +2390,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                    !implicit_typename_enabled &&
                    sym->kind == (a_symbol_kind)sk_projection &&
                    sym->variant.projection.fund_sym_is_nonreal_member &&
-                   is_type_symbol(fund_sym) !=
-                                       nonreal_member_must_be_type(options)) {
+                   fund_sym->kind != nonreal_member_symbol_kind(options)) {
           /* The symbol is a projection symbol in derived class that points
              to a nonreal member of a base class.  Ignore this symbol
              when not using implicit-typename, if it is a type when a nontype
@@ -2417,8 +2440,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
               !implicit_typename_enabled &&
               sym->kind == (a_symbol_kind)sk_projection &&
               sym->variant.projection.fund_sym_is_nonreal_member &&
-              is_type_symbol(fund_sym) !=
-                                       nonreal_member_must_be_type(options)) {
+              fund_sym->kind != nonreal_member_symbol_kind(options)) {
           /* The symbol is a projection symbol in derived class that points
              to a nonreal member of a base class.  Ignore this symbol
              when not using implicit-typename, if it is a type when a nontype

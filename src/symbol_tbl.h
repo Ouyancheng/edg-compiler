@@ -1216,6 +1216,10 @@ typedef struct a_template_symbol_supplement {
 		is_specific_definition:1;
 			/* TRUE if the template is a specific definition of
 			   a member template. */
+  a_bit_field	is_nonreal_member:1;
+			/* TRUE if the template was created as a member of
+			   a proxy or nonreal class and does not represent
+			   an actual template declaration. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When symbol kind = sk_class_template: */

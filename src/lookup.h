@@ -96,6 +96,13 @@ represented as a bit set:
 				   creation of a conversion operator function
 				   based on a template that matches the
 				   specified type. */
+#define IDL_TREAT_AS_TEMPLATE_ID 0x4000
+				/* For a class-qualified lookup, indicates
+				   that if a proxy class member is created
+				   for this lookup, the member created
+				   should be a template, and that the
+				   template argument list that follows
+				   the identifier should be coalesced. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

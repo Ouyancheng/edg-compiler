@@ -1547,6 +1547,7 @@ and return a pointer to it.
   tssp->il_template_entry = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
   tssp->is_specific_definition = FALSE;
+  tssp->is_nonreal_member = FALSE;
 #if CHECKING 
   tssp->avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */

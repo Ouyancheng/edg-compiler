@@ -29,6 +29,7 @@ and parsing of them into tokens.
 #include "class_decl.h"
 #include "decls.h"
 #include "def_arg.h"
+#include "disambig.h"
 #include "literals.h"
 #include "macro.h"
 #include "pch.h"
@@ -6301,128 +6302,91 @@ Flush tokens in an argument list.
 }  /* flush_to_end_of_arg_list */
 
 
-a_symbol_ptr coalesce_template_class_reference
-			(a_symbol_ptr		   template_sym,
-			 an_identifier_options_set options,
-			 a_boolean		   *err)
+static
+a_template_arg_ptr scan_nonreal_member_template_arg_list(a_boolean *any_errors)
 /*
-The current identifier is a class template name.  Look for an optional
-template argument list.  If an argument list is present, scan the argument
-list and call a routine to lookup or create the symbol and type information
-for an instance of the class template.  The template argument list is
-required unless either the GID_TEMPLATE_ARGS_OPTIONAL flag is set in the
-"options" argument, or the class template pointed to by "template_sym"
-is the same as the class template associated with the innermost instantiation
-scope.   If no errors occur while scanning the argument list, we call
-a routine to lookup the appropriate instance (or generate one if needed).
+The template is a member of a proxy or nonreal class.  This occurs
+as a result of constructs like T::A<int>.  In such cases there is
+no template parameter list to use as a basis for the template
+arguments that are scanned.
+
+For each argument, determine whether it is a type or nontype.  This is
+done using the disambiguation routines.
+
+any_errors is set to TRUE if any errors are detected by this routine.
+Its value is unchanged if no errors are detected.
 */
 {
-  a_source_position               start_position;
-  a_source_position               locator_pos;
-  a_template_param_ptr            param_ptr;
+  a_template_arg_ptr              arg_ptr;
   a_template_arg_ptr              arg_list = NULL;
   a_template_arg_ptr              last_arg = NULL;
-  a_symbol_ptr                    new_sym = NULL;
-  a_symbol_ptr			  current_instantiation_sym;
-  a_boolean                       any_errors = FALSE;
-  a_memory_region_number          region_to_switch_back_to;
-  a_symbol_ptr                    sym;
   a_boolean                       is_type_param;
   a_type_ptr                      argument_type;
   a_constant_ptr                  constant;
+
+  do {
+    /* If the current token is a ">" then exit the loop.  This should only be
+       possible on the first iteration if we have an empty argument list. */
+    if (curr_token == tok_gt) break;
+    add_stop_token(tok_comma);
+    /* Determine the kind of template argument. */
+    is_type_param = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                                     DFS_SINGLE_TYPE_REQUIRED);
+    arg_ptr = alloc_template_arg(is_type_param);
+    if (is_type_param) {
+      a_source_position  arg_pos;
+
+      arg_pos = pos_curr_token;
+      type_name(&argument_type);
+      arg_ptr->variant.type = argument_type;
+    } else {  /* else executed when !is_type_param */
+      /* Scan a constant.  We can't know the type, so use the special
+         type of an unknown template parameter constant. */
+      constant = fs_constant((a_constant_repr_kind)ck_error);
+      scan_template_argument_constant_expression(
+                               type_of_unknown_templ_param_constant, constant);
+      arg_ptr->variant.constant = constant;
+    }  /* if */
+    /* Link this entry on to the argument list. */
+    if (arg_list == NULL) arg_list = arg_ptr;
+    if (last_arg != NULL) last_arg->next = arg_ptr;
+    last_arg = arg_ptr;
+    remove_stop_token(tok_comma);
+  } while (loop_token(tok_comma));
+  if (curr_token != tok_gt) {
+    /* We should have been at the end of the template argument list. */
+    pos_error(ec_exp_gt, &pos_curr_token);
+    flush_to_end_of_arg_list();
+    *any_errors = TRUE;
+  }  /* if */
+  return arg_list;
+}  /* scan_nonreal_member_template_arg_list */
+
+
+static
+a_template_arg_ptr scan_template_argument_list(a_symbol_ptr	template_sym,
+					       a_boolean        *any_errors)
+/*
+Scan a comma separated list of arguments.  The arguments can be
+type names, constant expressions, or addresses of objects or functions
+with external linkage, or of static class members.  It is not necessary
+to distinguish between the type and constant case because we can use the
+type of the formal parameter to make this selection.
+
+template_sym points to the template with which this argument list is
+associated.  any_errors is set to TRUE if any errors are detected by
+this routine.  Its value is unchanged if no errors are detected.
+*/
+{
+  a_template_param_ptr            param_ptr;
+  a_symbol_ptr                    sym;
+  a_type_ptr                      argument_type;
+  a_constant_ptr                  constant;
   a_template_arg_ptr              arg_ptr;
-  a_token_kind			  next_tok;
-  a_boolean			  class_is_being_instantiated;
-  a_boolean			  arg_list_coalesced = FALSE;
+  a_template_arg_ptr              arg_list = NULL;
+  a_template_arg_ptr              last_arg = NULL;
+  a_boolean                       is_type_param;
 
-  db_enter(3, "coalesce_template_class_reference");
-
-  *err = FALSE;
-  next_tok = next_token();
-  /* Save source position for error reporting. */
-  start_position = pos_curr_token;
-  /* Save the current locator. */
-  locator_pos = locator_for_curr_id.source_position;
-  if (template_sym->kind != (a_symbol_kind)sk_class_template) {
-    /* The symbol is not a class template symbol.  If the symbol
-       is a type symbol followed by what looks like the beginning
-       of a template argument list (i.e., a "<") issue an error
-       indicating that the current symbol is not a class template.
-       If the symbol is not a type symbol simply return without
-       doing anything because the "<" may be a less than sign.  This
-       test is also suppressed when processing the type name in a new
-       expression and the operand of a field selection operation
-       because they may legitimately be followed by a less than sign. */
-    if (is_type_symbol(template_sym) && next_tok == tok_lt &&
-        !(options & GID_IS_NEW_TYPE_NAME) &&
-        !(options & GID_IS_FIELD_SELECTION_OPERAND)) {
-      pos_sy_error(ec_unexpected_template_arg_list, &start_position,
-                   template_sym);
-      add_stop_token(tok_gt);
-      flush_to_end_of_arg_list();
-      remove_stop_token(tok_gt);
-      make_specific_symbol_error_locator(&locator_for_curr_id);
-      new_sym = template_sym;
-      any_errors = TRUE;
-      goto normal_exit;
-    } else {
-      /* Just return the symbol that was passed in. */
-      new_sym = template_sym;
-      goto skip_processing;
-    }  /* if */
-  }  /* if */
-  /* Determine whether the class template (or a member of the class template)
-     is currently being instantiated.  This affects how references to the
-     class template name are handled. */
-  current_instantiation_sym = template_sym;
-  class_is_being_instantiated =
-            current_class_symbol_if_class_template(&current_instantiation_sym);
-  if (next_tok != tok_lt) {
-    if (options & GID_CLASS_TEMPLATE_REQUIRED) {
-      /* The caller wants the class template symbol.  Just return the
-         class template symbol that we started with. */
-      new_sym = template_sym;
-      goto skip_processing;
-    } else {
-      /* There is no template argument list.  If we are in an instantiation of
-          this class template, use the symbol associated with the innermost
-          instantiation of this class, otherwise just return the class
-          template symbol. */
-      new_sym = current_instantiation_sym;
-      if (class_is_being_instantiated) {
-        /* We have the symbol for the current instantiation of the
-           class template. */
-        goto normal_exit;
-      } else {
-        if (options & GID_TEMPLATE_ARGS_OPTIONAL) {
-           /* Template arguments are not required -- simply return the
-              symbol of the class template. */
-           goto skip_processing;
-        } else {
-          /* Issue an error and return an error locator. */
-          pos_sy_error(ec_missing_template_arg_list, &start_position,
-                       template_sym);
-          make_specific_symbol_error_locator(&locator_for_curr_id);
-          new_sym = locator_for_curr_id.specific_symbol;
-          any_errors = TRUE;
-          goto normal_exit;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  /* Always allocate template arguments at the file scope. */
-  switch_to_file_scope_region(&region_to_switch_back_to);
-  add_stop_token(tok_gt);
-  /* Get the angle bracket token. */
-  (void)get_token();
-  /* Get token following opening angle bracket. */
-  (void)get_token();
-  /* Scan a comma separated list of arguments.  The arguments can be
-     type names, constant expressions, or addresses of objects or functions
-     with external linkage, or of static class members (WP 14.2).  It
-     is not necessary to distinguish between the type and constant case
-     because we can use the type of the formal parameter to make this
-     selection. */
   param_ptr = template_sym->variant.template_info->cache.decl_info->parameters;
   do {
     /* If the current token is a ">" then exit the loop.  This should only be
@@ -6526,14 +6490,138 @@ a routine to lookup the appropriate instance (or generate one if needed).
       /* The next parameter doesn't have a default value (note that
 	 nontype parameters cannot have defaults).  Issue an error. */
       sym_error(ec_too_few_template_args, template_sym);
-      any_errors = TRUE;
+      *any_errors = TRUE;
     }  /* if */
   } else if (curr_token == tok_comma) {
     /* All of the formal parameters have been accounted for and there are
        more actuals -- too many arguments were supplied. */
     pos_sy_error(ec_too_many_template_args, &pos_curr_token, template_sym);
     flush_to_end_of_arg_list();
-    any_errors = TRUE;
+    *any_errors = TRUE;
+  }  /* if */
+  return arg_list;
+}  /* scan_template_argument_list */
+
+
+a_symbol_ptr coalesce_template_class_reference
+			(a_symbol_ptr		   template_sym,
+			 an_identifier_options_set options,
+			 a_boolean		   *err)
+/*
+The current identifier is a class template name.  Look for an optional
+template argument list.  If an argument list is present, scan the argument
+list and call a routine to lookup or create the symbol and type information
+for an instance of the class template.  The template argument list is
+required unless either the GID_TEMPLATE_ARGS_OPTIONAL flag is set in the
+"options" argument, or the class template pointed to by "template_sym"
+is the same as the class template associated with the innermost instantiation
+scope.   If no errors occur while scanning the argument list, we call
+a routine to lookup the appropriate instance (or generate one if needed).
+*/
+{
+  a_source_position               start_position;
+  a_source_position               locator_pos;
+  a_template_arg_ptr              arg_list = NULL;
+  a_symbol_ptr                    new_sym = NULL;
+  a_symbol_ptr			  current_instantiation_sym;
+  a_boolean                       any_errors = FALSE;
+  a_memory_region_number          region_to_switch_back_to;
+  a_token_kind			  next_tok;
+  a_boolean			  class_is_being_instantiated;
+  a_boolean			  arg_list_coalesced = FALSE;
+
+  db_enter(3, "coalesce_template_class_reference");
+
+  *err = FALSE;
+  next_tok = next_token();
+  /* Save source position for error reporting. */
+  start_position = pos_curr_token;
+  /* Save the current locator. */
+  locator_pos = locator_for_curr_id.source_position;
+  if (template_sym->kind != (a_symbol_kind)sk_class_template) {
+    /* The symbol is not a class template symbol.  If the symbol
+       is a type symbol followed by what looks like the beginning
+       of a template argument list (i.e., a "<") issue an error
+       indicating that the current symbol is not a class template.
+       If the symbol is not a type symbol simply return without
+       doing anything because the "<" may be a less than sign.  This
+       test is also suppressed when processing the type name in a new
+       expression and the operand of a field selection operation
+       because they may legitimately be followed by a less than sign. */
+    if (is_type_symbol(template_sym) && next_tok == tok_lt &&
+        !(options & GID_IS_NEW_TYPE_NAME) &&
+        !(options & GID_IS_FIELD_SELECTION_OPERAND)) {
+      pos_sy_error(ec_unexpected_template_arg_list, &start_position,
+                   template_sym);
+      add_stop_token(tok_gt);
+      flush_to_end_of_arg_list();
+      remove_stop_token(tok_gt);
+      make_specific_symbol_error_locator(&locator_for_curr_id);
+      new_sym = template_sym;
+      any_errors = TRUE;
+      goto normal_exit;
+    } else {
+      /* Just return the symbol that was passed in. */
+      new_sym = template_sym;
+      goto skip_processing;
+    }  /* if */
+  }  /* if */
+  /* Determine whether the class template (or a member of the class template)
+     is currently being instantiated.  This affects how references to the
+     class template name are handled. */
+  current_instantiation_sym = template_sym;
+  class_is_being_instantiated =
+            current_class_symbol_if_class_template(&current_instantiation_sym);
+  if (next_tok != tok_lt) {
+    if (options & GID_CLASS_TEMPLATE_REQUIRED) {
+      /* The caller wants the class template symbol.  Just return the
+         class template symbol that we started with. */
+      new_sym = template_sym;
+      goto skip_processing;
+    } else {
+      /* There is no template argument list.  If we are in an instantiation of
+          this class template, use the symbol associated with the innermost
+          instantiation of this class, otherwise just return the class
+          template symbol. */
+      new_sym = current_instantiation_sym;
+      if (class_is_being_instantiated) {
+        /* We have the symbol for the current instantiation of the
+           class template. */
+        goto normal_exit;
+      } else {
+        if (options & GID_TEMPLATE_ARGS_OPTIONAL) {
+           /* Template arguments are not required -- simply return the
+              symbol of the class template. */
+           goto skip_processing;
+        } else {
+          /* Issue an error and return an error locator. */
+          pos_sy_error(ec_missing_template_arg_list, &start_position,
+                       template_sym);
+          make_specific_symbol_error_locator(&locator_for_curr_id);
+          new_sym = locator_for_curr_id.specific_symbol;
+          any_errors = TRUE;
+          goto normal_exit;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Always allocate template arguments at the file scope. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  add_stop_token(tok_gt);
+  /* Get the angle bracket token. */
+  (void)get_token();
+  /* Get token following opening angle bracket. */
+  (void)get_token();
+  if (!template_sym->variant.template_info->is_nonreal_member) {
+    /* Scan the template argument list. */
+    arg_list = scan_template_argument_list(template_sym, &any_errors);
+  } else {
+    /* The template is a member of a proxy or nonreal class.  This occurs
+       as a result of constructs like T::A<int>.  In such cases there is
+       no template parameter list to use as a basis for the template
+       arguments that are scanned.  Scan the template arguments that
+       have been supplied. */
+    arg_list = scan_nonreal_member_template_arg_list(&any_errors);
   }  /* if */
   /* We should now be at the closing angle bracket.  Note that we don't
      scan the token after the closing angle because we update the current
@@ -7346,13 +7434,21 @@ qualified name.
                this is a template reference or simply a less than sign.
                We must assume it could be a less than sign and do a normal
                (nonclass) lookup. */
-            lookup_options = next_tok == tok_lt ? IDL_NO_OPTIONS :
-                                                IDL_MUST_BE_CLASS_OR_NAMESPACE;
+            lookup_options = next_tok == tok_lt
+                                   ? IDL_NO_OPTIONS
+                                   : IDL_MUST_BE_CLASS_OR_NAMESPACE;
             if ((options & GID_IS_TYPENAME) != 0) {
               /* If this name followed the typename keyword, indicate that the
                  name found must be a type.  This affects creation of members
-                 of proxy classes. */
+                 of proxy classes. A "<" seen in a qualified name that follows
+                 "typename" is considered to be the start of a template
+                 argument list. */
               lookup_options |= IDL_TYPENAME_LOOKUP;
+              if (next_tok == tok_lt) {
+                lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
+              }  /* if */
+            } else if (implicit_typename_enabled &&
+                       (options & GID_IS_TYPENAME) != 0) {
             }  /* if */
             if (qualifier_is_type) {
               /* Look up the name in the class specified by the qualifier

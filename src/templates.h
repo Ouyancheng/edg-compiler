@@ -121,7 +121,8 @@ extern void f_instantiate_template_class(a_type_ptr  type);
 extern a_boolean equiv_template_arg_lists(
                                     a_template_arg_ptr list1,
                                     a_template_arg_ptr list2,
-                                    a_boolean          error_matches_anything);
+                                    a_boolean          error_matches_anything,
+                                    a_boolean          is_nonreal_member);
 
 extern void prescan_function_template_default_arg_expr(a_param_type_ptr  ptp);
 
@@ -159,6 +160,11 @@ extern void update_auto_instantiation_flags(void);
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 extern void instantiation_pragma(a_pending_pragma_ptr	ppp);
+
+EXTERN a_type_ptr
+		type_of_unknown_templ_param_constant /* = NULL */;
+			/* A type used for template parameter constants whose
+			   real type cannot be known. */
 
 /* tp is a class type.  If it is incomplete, see if it is a template class in
    need of instantiation and, if so, instantiate it. */
