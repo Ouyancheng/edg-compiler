@@ -8154,6 +8154,9 @@ fields, and return a pointer to it.
   hnp->entity.ptr                       = NULL;
   hnp->global_qualification_needed      = FALSE;
   hnp->elaborated_type_specifier_needed = FALSE;
+#if CHECKING
+  hnp->avoid_codecenter_warnings        = 0;
+#endif /* CHECKING */
 
   return hnp;
 }  /* alloc_hidden_name */

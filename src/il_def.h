@@ -4736,6 +4736,7 @@ typedef struct a_hidden_name {
 			   name redeclared by nontype declaration in the
 			   current scope, so that the hiding can be defeated
 			   by using an elaborated type specifier. */
+  bitfield_to_avoid_codecenter_warnings();
 } a_hidden_name;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
