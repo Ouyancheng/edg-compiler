@@ -62,6 +62,15 @@ extern a_type_ptr array_element_type(a_type_ptr array_type);
 extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);
 extern a_type_ptr type_referenced(a_type_ptr pointer_type);
 
+/*
+Return TRUE if a type is a direct class type (i.e., not a typeref on
+top of a class type).
+*/
+#define is_immediate_class_type(type)                                 \
+  ((type)->kind == (a_type_kind)tk_class  ||                          \
+   (type)->kind == (a_type_kind)tk_struct ||                          \
+   (type)->kind == (a_type_kind)tk_union)
+
 #define is_const_qualified_type(tp)                                   \
   ((tp)->kind == (a_type_kind)tk_typeref && f_is_const_qualified_type(tp))
 #define is_volatile_qualified_type(tp)                                \
