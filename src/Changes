@@ -54,9 +54,10 @@ dynamic call behavior at runtime.  Now fixed.
 6/24/03  Spurious correspondence errors on unnamed class types
 
 Under some circumstances the front end produced spurious correspondence
-errors on unnamed class types that acquired a "name for linkage purposes"
-through a typedef.  For example, errors were produced for two identical
-translation units containing the following declarations:
+errors in a multiple-translation-unit compilation involving unnamed
+class types that acquire a "name for linkage purposes" through a typedef.
+For example, errors were produced on compiling two identical source files
+containing the following declarations:
 
   template<typename T> struct S {
     typedef T *P;
@@ -68,7 +69,9 @@ translation units containing the following declarations:
   typedef S<E>::P SEP;
   typedef S<N>::P SNP;
 
-This is now fixed.
+This is now fixed.  Note that the multiple-translation-unit mode
+is used only in some special configurations, or in the presence
+of exported templates.
 
 6/24/03  Diagnostic on member typedef with same name as enclosing class
 
