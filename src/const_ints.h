@@ -74,7 +74,7 @@ const_ints.h -- Declarations related to manipulation of target integer
 /* Create a mask in which the "bits" low order bits of the integer value
    are set to one.  bits must be at least one. */
 #define make_integer_value_mask(mask, bits)				\
-  *(mask) = (an_integer_value)(~0) >> (BITS_IN_AN_INTEGER_VALUE - (bits))
+  *(mask) = (~(an_integer_value)0) >> (BITS_IN_AN_INTEGER_VALUE - (bits))
 
 
 /* Sign extend an integer value.  The current value consists of "bits"
