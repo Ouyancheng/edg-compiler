@@ -145,6 +145,14 @@ typedef struct a_source_file {
 			   exist. */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   a_byte_boolean
+		is_include_file;
+			/* TRUE if this is a file that was included
+			   (explicitly or implicitly).  FALSE for the
+			   primary source file of this compilation and for
+			   source file entries associated with any primary
+			   source files from which precompiled header
+			   information has beed restored. */
+  a_byte_boolean
 		included_by_system_include;
 			/* TRUE if this is a file that was included using
 			   the #include <file.h> notation.  FALSE for
