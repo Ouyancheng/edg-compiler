@@ -1,5 +1,25 @@
 Version 2.35
 
+2/14/97 IL CHANGE: first_declaration flag in secondary declaration source
+        sequence entry; used in C++-generating back end
+
+A new field first_declaration has been added to the secondary declaration
+entry of the (optional) source sequence list.  This field is now used
+by the C++-generating back end to do a better job of naming classes
+in the generated output (the initial declaration can never use a
+qualified name).
+
+2/14/97 C++-generating back end: friend functions in namespaces
+
+The C++-generating back end now generates the proper form of the
+name of a friend function that is a member of a namespace.
+
+  namespace N {
+    struct A {
+      friend void f() {}  // Proper qualified name put out
+    };
+  }
+
 2/13/97 Abort in trim_mem_block when using precompiled header option
 
 The front end could abort when using the precompiled header options.
