@@ -576,12 +576,12 @@ routine modifies some entry that might be earlier on the list, set
         /* This is a secondary declaration. */
         sec_decl = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
         entry_ptr = sec_decl->entity.ptr;
-        entry_kind = sec_decl->entity.kind;
+        entry_kind = (an_il_entry_kind)sec_decl->entity.kind;
       } else {
         /* This is a primary declaration. */
         sec_decl = NULL;
         entry_ptr = ssep->entity.ptr;
-        entry_kind = ssep->entity.kind;
+        entry_kind = (an_il_entry_kind)ssep->entity.kind;
       }  /* if */
       if (function_local) {
         /* Keep all function-local source sequence entries. */
