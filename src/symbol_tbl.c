@@ -6560,6 +6560,7 @@ of the template.
   ssep->depth_innermost_ss_list_scope = depth_innermost_ss_list_scope;
   ssep->depth_innermost_file_scope_region_ss_list_scope =
                       depth_innermost_file_scope_region_ss_list_scope;
+  ssep->depth_template_declaration_scope = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ssep->depth_innermost_instantiation_scope =
                                        depth_innermost_instantiation_scope;
