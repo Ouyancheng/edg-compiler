@@ -9023,7 +9023,7 @@ prep_elision_initializer_operand.
         conversion_to_temp_done = TRUE;
       }  /* if */
       if (!err) {
-        if (dropping_qualifiers && !cfront_compatibility_mode) {
+        if (dropping_qualifiers) {
           /* Type qualifiers were dropped. */
           error_in_operand(ec_qualifier_dropped_in_ref_init, source_operand);
           err = TRUE;
