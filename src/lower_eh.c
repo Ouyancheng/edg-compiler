@@ -3086,7 +3086,7 @@ param_type is the type of the catch parameter.
     /* Initializing a reference parameter, so copy the pointer into
        the parameter, instead of copying the object pointed to. */
     source_node = var_lvalue_expr(caught_object_addr);
-   } else {
+  } else {
     /* Normal case (not a reference). */
     source_node = var_rvalue_expr(caught_object_addr);
   }  /* if */
