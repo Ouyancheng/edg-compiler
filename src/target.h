@@ -491,6 +491,17 @@ processing.
 */
 #define TARG_MINIMUM_STRUCT_ALIGNMENT 1
 
+#if BACK_END_IS_C_GEN_BE
+/*
+Switch that is TRUE if the C-generating back end should generate ANSI C
+instead of K&R C.
+*/
+#ifndef C_GEN_BE_GENERATES_ANSI_C
+/* (The default is to generate ANSI C if the compiler used to compile this
+   code is an ANSI C compiler.) */
+#define C_GEN_BE_GENERATES_ANSI_C __STDC__
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+#endif /* BACK_END_IS_C_GEN_BE */
 
 #if DO_IL_LOWERING
 
