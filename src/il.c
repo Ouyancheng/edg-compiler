@@ -637,11 +637,10 @@ class_struct_union:
       }  /* if */
       break;
     case tk_ptr_to_member:
-      fputs("ptr-to-member (", f_debug);
+      fputs("pointer to ", f_debug);
       db_abbreviated_type(tp->variant.ptr_to_member.type);
-      fputs(" , of ", f_debug);
+      fputs(" member of ", f_debug);
       db_abbreviated_type(tp->variant.ptr_to_member.class_of_which_a_member);
-      fputc(')', f_debug);
       break;
     default:
       fputs("<bad type>", f_debug);
@@ -2372,6 +2371,7 @@ to default values.
     case tk_ptr_to_member:
       pte->variant.ptr_to_member.class_of_which_a_member = FALSE;
       pte->variant.ptr_to_member.type                    = FALSE;
+      break;
 #if CHECKING
     default:
       internal_error("alloc_type: bad type kind");
@@ -2705,6 +2705,25 @@ Make or find a type entry for an void type, and return a pointer to it.
   }  /* if */
   return (il_void_type);
 }  /* void_type */
+
+
+a_type_ptr ptr_to_member_type(a_type_ptr  member_type,
+                              a_type_ptr  class_type)
+/*
+Allocate and return a pointer-to-member type, initializing its fields based
+on the specified member and class types.
+*/
+{
+  a_type_ptr  tp;
+
+  tp = fs_type((a_type_kind)tk_ptr_to_member);
+  tp->variant.ptr_to_member.type = member_type;
+  tp->variant.ptr_to_member.class_of_which_a_member = class_type;
+  /* If member_type is NULL we are creating an incomplete type; otherwise,
+     set its type and alignment. */
+  if (member_type != NULL) set_type_size(tp);
+  return tp;
+}  /* ptr_to_member_type */
 
 
 a_type_ptr get_based_type(a_type_ptr        base_type,
