@@ -1,5 +1,31 @@
 Version 2.24
 
+6/29/94  Overridding the severity of diagnostic messages
+
+Command line options have been added that allow a user to
+override the severity of specified diagnostics.  The new severity
+may only be used to alter the severity of diagnostics whose original
+severity is less severe than an error.  A new severity called
+discretionary error has been added.  A discretionary error may have
+its severity altered by the severity overriding mechanism.
+
+6/29/94  Option to display error numbers
+
+When using the severity overridding mechanism, it is sometimes helpful
+to know the error number of a given diagnostic.  The --display_error_number
+command line option causes the error number to be displayed as part
+of the diagnostic output.
+
+6/29/94  New error message files
+
+As part of the error severity overriding mechanism, the method used
+to add and modify error messages has been changed.  Two new files
+(error_msg.txt and error_tag.txt) have been added.  A new utility
+program (mk_errinfo) translates these files into header files
+(err_codes.h and err_date.h) compiled into the front end.
+See the comments in the .txt files and the utilities chapter in
+the internals manual for more information.
+
 6/29/94 result_is_not_used flag maintenance in IL lowering
 
 A bug in IL lowering has been fixed.  The problem was that some
