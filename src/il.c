@@ -2804,16 +2804,18 @@ which must be either the file scope or a namespace scope.
 }  /* add_to_namespaces_list */
 
 
-void add_to_using_decls_list(a_using_decl_ptr  udp)
+void add_to_using_decls_list(a_using_decl_ptr  udp,
+			     a_scope_depth     depth)
 /*
-Add the given using-decl entry to the using_decls list for the current scope.
+Add the given using-decl entry to the using_decls list for the scope
+specified by depth.
 */
 {
   a_scope_stack_entry_ptr     ssep;
   a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
 
-  ssep = &scope_stack[depth_scope_stack];
+  ssep = &scope_stack[depth];
   sp = ensure_il_scope_exists(ssep);
   pointers_block = assoc_pointers_block_of(ssep);
   if (sp->using_decls == NULL) {

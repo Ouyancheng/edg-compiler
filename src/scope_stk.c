@@ -611,12 +611,13 @@ using-directives specified after the point of definition of the template.
 }  /* add_active_using_directive_to_scope */
 
 
-void add_active_using_directive(a_using_decl_ptr udp)
+void add_active_using_directive(a_using_decl_ptr udp,
+				a_scope_depth    depth)
 /*
-Add a new active using directive entry that was specified in the current scope.
+Add a new active using directive entry to the scope specified by depth.
 */
 {
-  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth];
 
   add_active_using_directive_to_scope(udp, ssep,
                             (a_decl_sequence_number)udp->decl_sequence_number);
@@ -1801,11 +1802,11 @@ namespace being popped and applying them to the file scope.
      using-directive of the namespace scope specified by nsp. */
   while (udp != NULL) {
     if (udp->is_using_directive) {
-      a_namespace_ptr	nsp;
+      a_namespace_ptr	udp_nsp;
       check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_namespace);
       /* Get a pointer to the namespace to be used. */
-      nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
-      make_using_directive(nsp, &null_source_position,
+      udp_nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
+      make_using_directive(udp_nsp, DEPTH_OF_FILE_SCOPE, &null_source_position,
                            /*compiler_generated=*/TRUE);
     }  /* if */
     udp = udp->next;
@@ -1835,7 +1836,8 @@ template instantiation process.
                   kind == (a_scope_kind)sck_namespace_extension);
   assoc_namespace = ssep->assoc_namespace;
   pop_scope();
-  if (microsoft_bugs && kind == (a_scope_kind)sck_namespace_extension) {
+  if (microsoft_bugs && microsoft_version <= 1200 &&
+      kind == (a_scope_kind)sck_namespace_extension) {
     /* Make any using-directives in this namespace visible in the file
        scope (to emulate a Microsoft bug). */
     microsoft_using_directive_bug_processing(assoc_namespace);

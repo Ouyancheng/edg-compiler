@@ -951,7 +951,8 @@ Call namespace_is_enclosed_by_scope for the current scope.
 
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
 
-extern void add_active_using_directive(a_using_decl_ptr udp);
+extern void add_active_using_directive(a_using_decl_ptr udp,
+				       a_scope_depth    depth);
 
 extern void report_for_init_difference(a_symbol_ptr       sym,
                                        a_source_position  *pos);

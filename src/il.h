@@ -549,7 +549,8 @@ extern a_scope_ptr ensure_il_scope_exists(struct a_scope_stack_entry *ssep);
 
 extern void add_to_namespaces_list(a_namespace_ptr  nsp);
 
-extern void add_to_using_decls_list(a_using_decl_ptr  udp);
+extern void add_to_using_decls_list(a_using_decl_ptr  udp,
+				    a_scope_depth     depth);
 
 extern void add_to_scopes_list(a_scope_ptr                scope_ptr,
                                struct a_scope_stack_entry *ssep);
