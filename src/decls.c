@@ -1668,101 +1668,113 @@ issued a similar error).  Return FALSE if there is some error.
     } else {
       /* The old and new types are incompatible.  Issue a warning instead of
          an error for certain cases in SVR4 C compatibility mode. */
-      if (SVR4_C_mode && decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-        /* The SVR4 algorithm is such that an error is issued if the
-           incompatibility of a block extern declaration is with a visible
-           declaration, but only a warning is given otherwise.  For example:
-             extern int f();
-             extern int ff();
-             void g() { extern float f(); }                    // Error
-             void gg() { int ff = 0; { extern float ff(); } }  // Warning
-           Determine whether there's an intervening declaration that hides
-           an original at file scope by looping through the symbol list.
-           Since this only happens in C mode it is pretty straightforward. */
-        a_symbol_ptr  sym;
-        a_boolean     non_file_scope_decl_found = FALSE;
-        a_boolean     file_scope_decl_found = FALSE;
+      if (SVR4_C_mode) {
+        if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+          if (types_are_SVR4_compatible(old_type, type_ptr)) {
+            severity = es_warning;
+            /* Record the most recent type as the external symbol's type. */
+            esdp->type = type_ptr;
+            goto issue_diagnostic;
+          }  /* if */
+        } else {
+          /* The SVR4 algorithm is such that an error is issued if the
+             incompatibility of a block extern declaration is with a visible
+             declaration, but only a warning is given otherwise.  For example:
+               extern int f();
+               extern int ff();
+               void g() { extern float f(); }                    // Error
+               void gg() { int ff = 0; { extern float ff(); } }  // Warning
+             Determine whether there's an intervening declaration that hides
+             an original at file scope by looping through the symbol list.
+             Since this only happens in C mode it is pretty straightforward. */
+          a_symbol_ptr  sym;
+          a_boolean     non_file_scope_decl_found = FALSE;
+          a_boolean     file_scope_decl_found = FALSE;
 
-        for (sym = ext_sym->header->symbol; sym != NULL; sym = sym->next) {
-          if (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) {
-            /* Found a symbol of the right sort. */
-            if (sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
-              if (is_tag_symbol(sym)) {
-                /* Ignore a tag symbol and look for a routine or variable
-                   at file scope. */
-              } else {
-                /* Special handling of symbols encountered at file scope. */
-                if ((is_routine && sym->kind == (a_symbol_kind)sk_routine) ||
-                    (!is_routine && sym->kind == (a_symbol_kind)sk_variable)) {
-                  file_scope_decl_found = TRUE;
+          for (sym = ext_sym->header->symbol; sym != NULL; sym = sym->next) {
+            if (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) {
+              /* Found a symbol of the right sort. */
+              if (sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+                if (is_tag_symbol(sym)) {
+                  /* Ignore a tag symbol and look for a routine or variable
+                     at file scope. */
+                } else {
+                  /* Special handling of symbols encountered at file scope. */
+                  if ((is_routine &&
+                       sym->kind == (a_symbol_kind)sk_routine) ||
+                      (!is_routine &&
+                       sym->kind == (a_symbol_kind)sk_variable)) {
+                    file_scope_decl_found = TRUE;
+                  }  /* if */
+                  break;
                 }  /* if */
-                break;
-              }  /* if */
-            } else if (non_file_scope_decl_found) {
-              /* We've already located an intervening declaration. */
-            } else if (is_routine) {
-              /* Current declaration is a routine. */
-              if (sym->kind != (a_symbol_kind)sk_routine) {
-                /* An intervening declaration of something other than a
-                   function.  This redeclaration is hidden from the original
-                   declaration, so issue a warning instead of an error. */
-                non_file_scope_decl_found = TRUE;
-              }  /* if */
-            } else {
-              /* Current declaration is a variable. */
-              if (sym->kind == (a_symbol_kind)sk_variable) {
-                if (sym->variant.variable.ptr == NULL) {
-                  /* This is a symbol not yet bound to an IL entry, and so it
-                     it is the one just now being created.  Skip past it. */
-                } else if (sym->defined &&
-                           sym->decl_scope !=
-                                    scope_stack[DEPTH_OF_FILE_SCOPE].number) {
-                  /* This is an intervening declaration of a local variable or
-                     a parameter. (We check the defined flag to rule out an
-                     intervening block extern declaration.) */
+              } else if (non_file_scope_decl_found) {
+                /* We've already located an intervening declaration. */
+              } else if (is_routine) {
+                /* Current declaration is a routine. */
+                if (sym->kind != (a_symbol_kind)sk_routine) {
+                  /* An intervening declaration of something other than a
+                     function.  This redeclaration is hidden from the original
+                     declaration, so issue a warning instead of an error. */
                   non_file_scope_decl_found = TRUE;
                 }  /* if */
               } else {
-                /* An intervening declaration of something other than a
-                   variable.  This redeclaration is hidden from the original
-                   declaration, so issue a warning instead of an error. */
-                non_file_scope_decl_found = TRUE;
+                /* Current declaration is a variable. */
+                if (sym->kind == (a_symbol_kind)sk_variable) {
+                  if (sym->variant.variable.ptr == NULL) {
+                    /* This is a symbol not yet bound to an IL entry, and so
+                       it is the one just now being created.  Skip past it. */
+                  } else if (sym->defined &&
+                             sym->decl_scope !=
+                                    scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+                    /* This is an intervening declaration of a local variable
+                       of a parameter. (We check the defined flag to rule out
+                       an intervening block extern declaration.) */
+                    non_file_scope_decl_found = TRUE;
+                  }  /* if */
+                } else {
+                  /* An intervening declaration of something other than a
+                     variable.  This redeclaration is hidden from the original
+                     declaration, so issue a warning instead of an error. */
+                  non_file_scope_decl_found = TRUE;
+                }  /* if */
               }  /* if */
             }  /* if */
-          }  /* if */
-        }  /* for */
-        if (non_file_scope_decl_found || !file_scope_decl_found) {
-          /* Either there was no other declaration in scope (e.g., when the
-             external symbol records another block extern declaration) or else
-             there was an intervening declaration.  Just issue a warning. */
-          severity = es_warning;
-          if (types_are_SVR4_compatible(old_type, type_ptr)) {
-            /* Record the most recent type as the external symbol's type. */
-            esdp->type = type_ptr;
-          } else {
-            okay = FALSE;
-            if (file_scope_decl_found) {
-              /* Retain the IL entry on the external symbol. */
-            } else {
-              /* Force "abandonment" of the IL entry associated with the
-                 current external symbol. */
-              if (is_routine) {
-                esdp->variant.routine.ptr->superseded_external = TRUE;
-                esdp->variant.routine.ptr = NULL;
-              } else {
-                check_assertion_str2((esdp->variant.variable->storage_class ==
-                                             (a_storage_class)sc_extern) &&
-                                     (esdp->variant.variable->init_kind ==
-                                             (an_init_kind)initk_none),
-                                     "reconcile_external_symbol_types:",
-                                     "can't set superseded_external");
-                esdp->variant.variable->superseded_external = TRUE;
-                esdp->variant.variable = NULL;
-              }  /* if */
+          }  /* for */
+          if (non_file_scope_decl_found || !file_scope_decl_found) {
+            /* Either there was no other declaration in scope (e.g., when the
+               external symbol records another block extern declaration) or
+               else there was an intervening declaration.  Issue a warning. */
+            severity = es_warning;
+            if (types_are_SVR4_compatible(old_type, type_ptr)) {
+              /* Record the most recent type as the external symbol's type. */
               esdp->type = type_ptr;
+            } else {
+              okay = FALSE;
+              if (file_scope_decl_found) {
+                /* Retain the IL entry on the external symbol. */
+              } else {
+                /* Force "abandonment" of the IL entry associated with the
+                   current external symbol. */
+                if (is_routine) {
+                  esdp->variant.routine.ptr->superseded_external = TRUE;
+                  esdp->variant.routine.ptr = NULL;
+                } else {
+                  check_assertion_str2(
+                             (esdp->variant.variable->storage_class ==
+                                             (a_storage_class)sc_extern) &&
+                             (esdp->variant.variable->init_kind ==
+                                             (an_init_kind)initk_none),
+                             "reconcile_external_symbol_types:",
+                             "can't set superseded_external");
+                  esdp->variant.variable->superseded_external = TRUE;
+                  esdp->variant.variable = NULL;
+                }  /* if */
+                esdp->type = type_ptr;
+              }  /* if */
             }  /* if */
+            goto issue_diagnostic;
           }  /* if */
-          goto issue_diagnostic;
         }  /* if */
       }  /* if */
       severity = es_error;
