@@ -197,7 +197,7 @@ written out as part of the PCH cannot be freed until after the PCH is
 written.
 */
 #if STANDALONE_UTILITY_PROGRAM
-#define may_be_building_new_pch() /* Nothing. */
+#define may_be_building_new_pch() (FALSE)
 #else /* !STANDALONE_UTILITY_PROGRAM */
 #define may_be_building_new_pch() (header_stop_position_pending)
 #endif /* !STANDALONE_UTILITY_PROGRAM */
