@@ -2867,11 +2867,12 @@ confusion.  Do the output in the way described by octl.
     case ck_template_param:
       check_assertion(!octl->gen_compilable_code);
       switch (constant->variant.template_param.kind) {
-        case tpck_param:
         case tpck_member:
           if (constant->variant.template_param.variant.is_address) {
             octl->output_str("&");
           }  /* if */
+          /*FALLTHROUGH*/
+        case tpck_param:
           form_name(&constant->source_corresp, iek_constant, octl);
           break;
         case tpck_expression:
