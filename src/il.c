@@ -6657,6 +6657,7 @@ be added on a tested condition in the IL.
     case eok_ige: case eok_fge: case eok_pge:
     case eok_ile: case eok_fle: case eok_ple:
     case eok_pmne: case eok_pmeq:
+    case eok_bool_cast:
       returns_bool = TRUE;
       break;
     default:
