@@ -3926,7 +3926,15 @@ typedef struct a_base_class {
 			   of view of the base class in reference to a class
 			   derived from it; virtual_function_info_base_class,
 			   a pointer in a_class_type_supplement, denotes the
-			   sharing from the opposite point of view. */
+			   sharing from the opposite point of view.  Note
+			   that this flag reflects the Cfront-like ABI
+			   view of the world, and will be set only if the
+			   class declares virtual functions itself.  In the
+			   IA-64 ABI, a class that declares no virtual
+			   functions but inherits some can have a primary
+			   base class (primary_base_class non-NULL) but
+			   that base class will have
+			   shares_virtual_function_info NULL. */
   a_bit_field	ignore_during_dependent_lookup:1;
 			/* TRUE if this base class should not be considered
 			   when looking up dependent names.  This is the case
@@ -4233,6 +4241,9 @@ typedef struct a_class_type_supplement {
 		primary_base_class;
 			/* The primary base class for this class, i.e., the
 			   most derived class with which this class shares
+			   virtual function info.  NULL if none.  Differs from
+			   virtual_function_info_base_class in that the latter
+			   points to the least-derived class that shares
 			   virtual function info. */
 #endif /* !IA64_ABI */
   a_targ_size_t size_without_virtual_base_classes;
