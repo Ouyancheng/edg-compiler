@@ -1,5 +1,22 @@
 Version 2.28
 
+2/28/95  Maximum class size
+
+Global variable targ_max_class_object_size defines the maximum allowable
+size of a class, struct, or union; it is checked during class layout
+processing.
+  
+ - When TARG_MAX_CLASS_OBJECT_SIZE is nonzero, targ_max_class_object_size
+   has the smaller of TARG_MAX_CLASS_OBJECT_SIZE and the maximum offset as
+   implied by TARG_DELTA_INT_KIND; for instance, if TARG_DELTA_INT_KIND is
+   ik_short (which is the default) then targ_max_class_object_size is 32K.
+
+ - When TARG_MAX_CLASS_OBJECT_SIZE is zero, targ_max_class_object_size will
+   have the same value as targ_size_t_max. (This is equivalent to the
+   previous behavior, which means larger classes are allowed, but it also
+   means integer overflow errors may be issued during IL lowering if
+   TARG_DELTA_INT_KIND is too small.)
+
 2/28/95  Default size of pointers to data members
 
 The default size of pointers to data members has been changed to be the
