@@ -9402,6 +9402,7 @@ scope) along with the class members.
         a_local_static_variable_init_ptr lsvip =
                               find_local_static_variable_init(variable, scope);
         variable->init_kind = lsvip->init_kind;
+        variable->promoted_local_static_init = TRUE;
         switch (lsvip->init_kind) {
           case initk_none:
           case initk_zero:

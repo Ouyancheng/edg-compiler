@@ -3699,6 +3699,12 @@ typedef struct a_variable {
 			   inlining as the remapping for the "this" parameter
 			   of a constructor. */
 #endif /* MINIMAL_INLINING */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+  a_bit_field	promoted_local_static_init:1;
+			/* TRUE if this variable is a local static variable with
+			   an attached a_local_static_initialization entry, which
+			   has been promoted out of its function. */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
