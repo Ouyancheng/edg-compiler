@@ -1,5 +1,14 @@
 Version 3.4
 
+2/19/04  Incorrect use of mmap could cause memory corruption
+
+A change in the specification of the mmap function since the time that
+the precompiled header processing routines were originally written
+resulted in an inappropriate use of mmap.  In some unusual cases,
+this could cause the use of corrupted memory resulting in incorrect
+behavior and/or aborts.  This problem, while possible in theory, has
+not actually been observed.
+
 2/18/04  Use of uninitialized field after error on cast of bound function
 
 The front end referenced an uninitialized field after issuing an

@@ -1058,32 +1058,6 @@ variable lists.
 }  /* read_saved_variables */
 
 
-#if USE_MMAP_FOR_MEMORY_REGIONS
-static
-a_boolean address_can_be_mapped(a_void_ptr	addr,
-		                sizeof_t	size)
-/*
-Check whether the specified address can be used for a memory
-mapping operation.  It does this by trying to map a piece of the
-IL file to a particular address.  If it succeeds, the mapping is
-undone so that the address is available for establishing the real mapping.
-*/
-{
-  a_void_ptr	new_addr;
-  a_boolean	successful;
-
-  /* The purpose of this call is simply to establish some kind of
-     mapping at the desired address.  The mapping will never be
-     used, so it doesn't matter whether or not there is anything at
-     that location in the file. */
-  new_addr = map_input_file_to_region(f_pch_input, 0, size, addr);
-  successful = new_addr != NULL;
-  if (successful) unmap_memory(addr, size);
-  return successful;
-}  /* address_can_be_mapped */
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-
-
 static void write_mem_alloc_history(void)
 /*
 Write the memory allocation history information to the PCH output
@@ -1139,20 +1113,12 @@ restore the memory regions.
       break;
     }  /* if */
   }  /* for */
+#if !USE_MMAP_FOR_MEMORY_REGIONS
   if (successful) {
     /* The memory allocations that have been done so far are compatible
        with those done in the original compilation.  Perform the
        remaining allocations needed to read in the memory regions. */
     for (; n < new_alloc_history_entries; ++n) {
-#if USE_MMAP_FOR_MEMORY_REGIONS
-      /* Don't actually allocate the memory, just make sure the address
-         space is available for mapping. */
-      if (!address_can_be_mapped(new_alloc_history[n].addr,
-                                 new_alloc_history[n].size)) {
-        successful = FALSE;
-        break;
-      }  /* if */
-#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
       /* Allocate the needed block. */
       (void)alloc_new_mem_block(new_alloc_history[n].size);
       if (!equivalent_mem_alloc_history(mem_alloc_history[n],
@@ -1160,13 +1126,13 @@ restore the memory regions.
         successful = FALSE;
         break;
       }  /* if */
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     }  /* for */
 #if 0
     /* How should this memory be freed if a failure occurred during
        allocation? */
 #endif /* 0 */
   }  /* if */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   if (!successful) {
     mismatch_reason = ec_memory_mismatch;
     if (automatic_pch_processing && verbose_pch_messages) {

@@ -2669,17 +2669,9 @@ file to a memory region.
 {
   int		fd = fileno(file); /*lint !e718 !e746*/
   a_void_ptr	result_addr;
-  int		mmap_flags = MAP_FIXED;
 
-#ifdef __linux__
-  /* MAP_FIXED is not used because it does not work properly on Linux.
-     The Linux mmap will succeed even if the block had been previously
-     mapped.  Instead, we compare the resulting address with the
-     address requested. */
-  mmap_flags = 0;
-#endif /* ifdef __linux__ */
   result_addr = (a_void_ptr)mmap((caddr_t)address, size,
-                            PROT_WRITE | PROT_READ, MAP_PRIVATE | mmap_flags,
+                            PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
                             fd, (off_t)offset);
   /* mmap returns (caddr_t)-1 if the operation fails. */
   if (result_addr == (caddr_t)-1 || result_addr != address) {
