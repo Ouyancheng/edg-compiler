@@ -10344,10 +10344,8 @@ any non-empty template parameter lists that were scanned.
       a_func_info_block       func_info;
       a_storage_class         storage_class;
       a_decl_modifiers_block  decl_modifiers;
-      a_source_position	      decl_start_pos;
 
       /* Scan the decl. specifiers and the declaration. */
-      decl_start_pos = pos_curr_token;
       clear_func_info(&func_info);
       scan_template_declaration(/*is_initial_decl=*/TRUE,
                                 decl_state->is_member_decl,
