@@ -2320,6 +2320,7 @@ not.
     case iek_routine:
     case iek_asm_entry:
     case iek_label:
+    case iek_namespace:
 #if RECORD_TEMPLATES_IN_IL
     case iek_template:
 #endif /* RECORD_TEMPLATES_IN_IL */
