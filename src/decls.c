@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -36,6 +36,7 @@ decls.c -- Scanning of declarations.
 #include "folding.h"
 #include "templates.h"
 #include "types.h"
+#include "pragma.h"
 #if ASM_FUNCTION_ALLOWED
 #include "asm_func.h"
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -9114,7 +9115,7 @@ and for the instantiation of template functions.
 }  /* scan_function_body */
 
 
-void record_lint_argsused_and_varargs_state(a_type_ptr  rout_type)
+void record_lint_argsused_and_varargs_state(a_symbol_ptr  rout_sym)
 /*
 Set fields in the routine type to reflect the current argsused and varargs
 state, as indicated by a comment immediately preceding the current function
@@ -9122,29 +9123,38 @@ definition.
 */
 {
   a_pending_pragma_ptr           ppp;
-  a_pragma_kind                  kind;
-
-  /* Go though the pragmas that are meant to apply to the current
-     declaration. */
-  for(ppp = scope_stack[depth_scope_stack].pragmas_bound_to_curr_decl_or_stmt;
-      ppp != NULL;
-      ppp = ppp->next) {
-    kind = ppp->descr_ptr->kind;
-    if (kind == (a_pragma_kind)pk_lint_argsused) {
-      rout_type->variant.routine.extra_info->lint_argsused_flag = TRUE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      (void)add_pragma_to_il(ppp, (an_il_entry_kind)iek_none, (char *)NULL,
-                             /*at_file_scope=*/FALSE);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    } else if (kind == (a_pragma_kind)pk_lint_varargs_count) {
-      rout_type->variant.routine.extra_info->lint_varargs_count =
-                                            ppp->variant.lint_varargs_count;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      (void)add_pragma_to_il(ppp, (an_il_entry_kind)iek_none, (char *)NULL,
-                             /*at_file_scope=*/FALSE);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_routine_type_supplement_ptr  rtsp = NULL;
+  
+  /* Determine whether a lint argsused comment immediately preceded this
+     function definition. */
+  ppp = get_specific_pragmas((a_pragma_kind)pk_lint_argsused, rout_sym,
+                             (a_statement_ptr)NULL);
+  if (ppp != NULL) {
+    /* There is a currenly active argsused comment. */
+    rtsp = rout_sym->variant.routine.ptr->type->variant.routine.extra_info;
+    rtsp->lint_argsused_flag = TRUE;
+#if 0
+    /* The pending-pragma entry has been unlinked from the scope stack entry
+       list, but it still must be returned to the available list. */
+    free_pending_pragma_list(ppp);
+#endif /* if 0 */
+  }  /* if */
+  /* Determine whether a lint varargs count comment immediately preceded this
+     function definition. */
+  ppp = get_specific_pragmas((a_pragma_kind)pk_lint_varargs_count,
+                             rout_sym, (a_statement_ptr)NULL);
+  if (ppp != NULL) {
+    /* There is a currenly active varargs comment. */
+    if (rtsp == NULL) {
+      rtsp = rout_sym->variant.routine.ptr->type->variant.routine.extra_info;
     }  /* if */
-  }  /* for */
+    rtsp->lint_varargs_count = ppp->variant.lint_varargs_count;
+#if 0
+    /* The pending-pragma entry has been unlinked from the scope stack entry
+       list, but it still must be returned to the available list. */
+    free_pending_pragma_list(ppp);
+#endif /* if 0 */
+  }  /* if */
 }  /* record_lint_argsused_and_varargs_state */
 
 
@@ -9313,7 +9323,7 @@ specified (rather than defaulted to "int").
   /* If a lint-style "argsused" or "varargs" comment appeared, record that in
      the function type.  That will suppress any warnings about unused
      parameters or variable arguments. */
-  record_lint_argsused_and_varargs_state(routine_ptr->type);
+  record_lint_argsused_and_varargs_state(symbol_ptr);
   if (!is_member_function_def &&
       storage_class == (a_storage_class)sc_unspecified &&
       routine_ptr->source_corresp.name != NULL &&
@@ -10851,6 +10861,6 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1994 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
