@@ -3678,8 +3678,8 @@ entities.
              members. */
         } else if (is_tag_symbol(type_sym) &&
                    !(is_type_symbol(sym) ||
-                     is_template_symbol(sym) ||
-                     is_namespace_symbol(sym))) {
+                     is_namespace_symbol(sym) ||
+                     symbol_is_or_contains_template(sym))) {
           /* Tag names have their own name space. */
         } else {
           f_report_bad_trans_unit_corresp((char*)type, &sym->decl_position);
