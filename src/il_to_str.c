@@ -1190,23 +1190,34 @@ initializations.  Do the output in the way described by octl.
   underlying_object_type = skip_typerefs(underlying_object_type);
   if (underlying_object_type->kind == (a_type_kind)tk_array &&
       !do_indirection) {
-    /* For an array, exploit the implicit decay to pointer.
-       This is particularly helpful in cases where the underlying
-       variable is something like
-         struct _iobuf x[];
-       for which the array has zero size but the element size is
-       known. */
-    need_ampersand = FALSE;
-    underlying_object_type= underlying_object_type->variant.array.element_type;
-    /* If the constant type desired is exactly the type that results from
-       the type decay, we don't need a cast.  Otherwise, we do. */
-    need_ptr_cast = TRUE;
-    if (orig_type->kind == (a_type_kind)tk_pointer) {
-      if (orig_type->variant.pointer.type == underlying_object_type) {
-        need_ptr_cast = FALSE;
+    /* For an array, we may be able to exploit the implicit decay to
+       pointer to avoid the "&". */
+    /* If the constant is the address of the array instead of a pointer
+       to the first element, favor the "&x" notation.  Don't do that for
+       pcc mode, though, because pcc gives warnings on that and uses
+       the pointer-to-element type anyway. */
+    if (!constant->implicit_cast && !octl->gen_pcc_code) {
+      /* Keep the ampersand. */
+    } else {
+      /* Exploit the implicit decay to pointer.
+         This is particularly helpful in cases where the underlying
+         variable is something like
+           struct _iobuf x[];
+         for which the array has zero size but the element size is
+         known. */
+      need_ampersand = FALSE;
+      underlying_object_type =
+                            underlying_object_type->variant.array.element_type;
+      /* If the constant type desired is exactly the type that results from
+         the type decay, we don't need a cast.  Otherwise, we do. */
+      need_ptr_cast = TRUE;
+      if (orig_type->kind == (a_type_kind)tk_pointer) {
+        if (orig_type->variant.pointer.type == underlying_object_type) {
+          need_ptr_cast = FALSE;
+        }  /* if */
       }  /* if */
+      underlying_object_type = skip_typerefs(underlying_object_type);
     }  /* if */
-    underlying_object_type = skip_typerefs(underlying_object_type);
   }  /* if */
   /* Look at the offset. */
   offset = constant->variant.address.offset;
