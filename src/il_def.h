@@ -561,10 +561,6 @@ typedef struct a_src_seq_secondary_decl {
   unsigned int	friend_decl:1;
 			/* TRUE when the declaration is a friend declaration;
 			   "entity" will refer to a routine or class. */
-  unsigned int	member_constant_decl:1;
-			/* TRUE when the declaration is an "in-class" static
-			   data member declaration for which an initializer
-			   was specified (9.5.2). */
   bitfield_to_avoid_codecenter_warnings();
 } a_src_seq_secondary_decl;
 
@@ -3323,12 +3319,13 @@ typedef struct a_variable {
 			     union { int i, j };
 			   the IL to represent the source construct "i" is
 			   "<anonymous-parent-object>.i". */
-  unsigned int	defined:1;
-			/* TRUE if the variable has actually been defined.
-			   (It is only FALSE for static data members that have
-			   been declared but not defined, for uninitialized
-			   variables declared "extern", and in C for variables
-			   with "tentative definitions".) */
+  unsigned int	is_member_constant:1;
+			/* TRUE if the variable represents a static data
+			   member for which an initializer was specified at
+			   its declaration within the class definition
+			   (9.5.2).  (It is referred to as a "member constant"
+			   in part because it can be used in constant
+			   expressions elsewhere in the class definition.) */
 #if DO_IL_LOWERING
   unsigned int  initialization_rewritten_as_assignment:1;
 			/* TRUE if IL lowering has rewritten some part of
