@@ -376,78 +376,6 @@ if it turns out that no IL pragma entry is created).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
-void process_curr_token_pragmas(void)
-/*
-Called by get_token to process pragmas that were found before the
-token that is about to become the previous token.
-
-Any pragmas that bind to the next statement/declaration should have
-already been removed from the list (assuming that the pragmas were
-legally placed).  Diagnostics are issued for any such pragmas that
-remain on the list.
-
-pbk_other pragmas are moved to the pragma list associated with either
-the file scope (if the global flag is set) or the associated with
-the current scope stack entry.
-
-pbk_immediate pragmas are processed here.
-*/
-{
-  a_pending_pragma_ptr		ppp;
-  a_pragma_kind_description_ptr	pkdp;
-
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Create source sequence entries for any pragmas that don't yet have
-     them. */
-  add_source_sequence_entry_to_curr_token_pragmas();
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  ppp = curr_token_pragmas;
-  while (ppp != NULL) {
-    a_pending_pragma_ptr	next_ppp = ppp->next;
-    pkdp = ppp->descr_ptr;
-    switch (pkdp->binding_kind) {
-      case pbk_next_construct:
-        if (pkdp->error_severity != es_none) {
-          an_error_code	error_code;
-          /* Select the appropriate error based on the kinds of constructs
-             that this pragma may bind to. */
-          if (pkdp->may_bind_to_decl && pkdp->may_bind_to_stmt) {
-            error_code = ec_pragma_must_precede_decl_or_stmt;
-          } else if (pkdp->may_bind_to_decl) {
-            error_code = ec_pragma_must_precede_declaration;
-          } else {
-            error_code = ec_pragma_must_precede_statement;
-          }  /* if */
-          if (pkdp->error_severity != es_none) {
-            pos_diagnostic(pkdp->error_severity, error_code,
-                           &ppp->id_position);
-          }  /* if */
-        }  /* if */
-        free_pending_pragma(ppp);
-        break;
-      case pbk_immediate:
-        /* Immediate pragmas are processed when the token they precede is
-           discarded. */
-        if (pkdp->variant.immediate_processing_function != NULL) {
-          (*pkdp->variant.immediate_processing_function)(ppp);
-        }  /* if */
-#if 0
-        /* Do automatically_include_in_il processing. */
-#endif
-        free_pending_pragma(ppp);
-        break;
-      case pbk_other:
-      default:
-        unexpected_condition_str
-			("process_curr_token_pragmas: bad binding kind");
-        break;
-    }  /* switch */
-    ppp = next_ppp;
-  }  /* while */
-  curr_token_pragmas = NULL;
-}  /* process_curr_token_pragmas */
-
-
 a_boolean select_curr_construct_pragmas(a_boolean	add_to_list)
 /*
 This routine scans the current token pragma list for any pbk_next_construct
@@ -652,6 +580,81 @@ or sp pointer must be supplied.  The IL entry is then added to the IL.
   }  /* if */
   add_pragma_to_il(ppp, entity_kind, entity, class_type, at_file_scope);
 }  /* create_il_entry_for_pragma */
+
+
+void process_curr_token_pragmas(void)
+/*
+Called by get_token to process pragmas that were found before the
+token that is about to become the previous token.
+
+Any pragmas that bind to the next statement/declaration should have
+already been removed from the list (assuming that the pragmas were
+legally placed).  Diagnostics are issued for any such pragmas that
+remain on the list.
+
+pbk_other pragmas are moved to the pragma list associated with either
+the file scope (if the global flag is set) or the associated with
+the current scope stack entry.
+
+pbk_immediate pragmas are processed here.
+*/
+{
+  a_pending_pragma_ptr		ppp;
+  a_pragma_kind_description_ptr	pkdp;
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Create source sequence entries for any pragmas that don't yet have
+     them. */
+  add_source_sequence_entry_to_curr_token_pragmas();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  ppp = curr_token_pragmas;
+  while (ppp != NULL) {
+    a_pending_pragma_ptr	next_ppp = ppp->next;
+    pkdp = ppp->descr_ptr;
+    switch (pkdp->binding_kind) {
+      case pbk_next_construct:
+        if (pkdp->error_severity != es_none) {
+          an_error_code	error_code;
+          /* Select the appropriate error based on the kinds of constructs
+             that this pragma may bind to. */
+          if (pkdp->may_bind_to_decl && pkdp->may_bind_to_stmt) {
+            error_code = ec_pragma_must_precede_decl_or_stmt;
+          } else if (pkdp->may_bind_to_decl) {
+            error_code = ec_pragma_must_precede_declaration;
+          } else {
+            error_code = ec_pragma_must_precede_statement;
+          }  /* if */
+          if (pkdp->error_severity != es_none) {
+            pos_diagnostic(pkdp->error_severity, error_code,
+                           &ppp->id_position);
+          }  /* if */
+        }  /* if */
+        free_pending_pragma(ppp);
+        break;
+      case pbk_immediate:
+        /* Immediate pragmas are processed when the token they precede is
+           discarded. */
+        if (pkdp->automatically_include_in_il) {
+          /* Create an IL entry for pragmas that should automatically be
+             included in the IL. */
+          create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL,
+                                     (a_statement_ptr)NULL);
+        }  /* if */
+        if (pkdp->variant.immediate_processing_function != NULL) {
+          (*pkdp->variant.immediate_processing_function)(ppp);
+        }  /* if */
+        free_pending_pragma(ppp);
+        break;
+      case pbk_other:
+      default:
+        unexpected_condition_str
+			("process_curr_token_pragmas: bad binding kind");
+        break;
+    }  /* switch */
+    ppp = next_ppp;
+  }  /* while */
+  curr_token_pragmas = NULL;
+}  /* process_curr_token_pragmas */
 
 
 a_pending_pragma_ptr extract_specific_pragmas(a_pragma_kind    kind,
@@ -1053,7 +1056,7 @@ Initialize the pragma description table.
      contexts. */
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_unrecognized,
-                 (a_next_construct_pragma_function_ptr)NULL,
+                 (an_immediate_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*global=*/FALSE,
                  /*automatically_include_in_il=*/TRUE,  /* Do not change. */
