@@ -1099,9 +1099,15 @@ and call a subroutine for class members.
   }  /* if */                                                         \
 }  /* check_ambiguity_and_verify_access */
 
+/*
+Return TRUE if access1 represents greater accessibility than access2.
+*/
+#define is_more_accessible(access1, access2)    \
+    ((int)(access1) < (int)(access2))
 
-extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
-                                     an_id_lookup_options_set options);
+extern a_boolean max_access_of_overloaded_function(
+                                             a_symbol_ptr        sym,
+                                             an_access_specifier *max_access);
 
 /*
 If symbol is a projection symbol, change it to the fundamental symbol pointed
@@ -1139,6 +1145,9 @@ public members are accessible, which means
    ((bcp)->access == (an_access_specifier)as_protected &&             \
     have_protected_member_access_privilege(derived_class)))
 
+
+extern a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
+                                     an_id_lookup_options_set options);
 
 extern a_symbol_ptr class_qualified_id_lookup(
                                          a_symbol_locator         *locator,
