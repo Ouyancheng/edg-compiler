@@ -830,6 +830,9 @@ error code.
     case ec_type_identifier_not_allowed:
       m = "type identifier is not allowed";
       break;
+    case ec_type_definition_not_allowed:
+      m = "type definition is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
