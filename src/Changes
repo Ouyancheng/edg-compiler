@@ -1,5 +1,12 @@
 Version 2.29
 
+5/20/95  Direct base class with a nonvirtual destructor
+
+The diagnostic reporting that a direct base class has a nonvirtual
+destructor is now suppressed in cases where calling the implicitly
+generated derived class destructor and calling the base class destructor
+are sure to have the same effect.
+
 5/20/95  Checking callability of elided copy constructor on reference binding
 
 When a reference is bound to an rvalue of class type, the WP [dcl.init.ref]
@@ -36,10 +43,11 @@ failure during IL lowering.  It only appeared when compiling with both
 
 When microsoft_mode is TRUE, "__based" is recognized as a keyword in
 pointer declarator contexts and the tk_pointer type entry is associated
-with a variable entry; the variable must be of pointer type.  A new variant
-field, base_variable, has been added to a_type.  Based pointers are
-otherwise handled like ordinary pointers and are just passed through to
-the back end.
+with a variable entry.  Only the form __based(variable) is recognized,
+where variable is of pointer type; the other (16-bit mode) forms are not.
+A new variant field, base_variable, has been added to a_type.  Based
+pointers are otherwise handled like ordinary pointers and are just passed
+through to the back end.
 
 5/18/95  Access checking on conversion functions
 
