@@ -7090,6 +7090,19 @@ next_function:;
 }  /* try_conversion_function_match */
 
 
+static a_type_ptr rvalue_return_type_of(a_type_ptr conv_func_type)
+/*
+Return the return type of the conversion function with the indicated
+routine type, assuming that the value will be converted to an rvalue.
+*/
+{
+  a_type_ptr return_type = return_type_of(conv_func_type);
+  /* Drop cv-qualifiers from non-class values. */
+  return_type = rvalue_type(return_type);
+  return return_type;
+}  /* rvalue_return_type_of */
+
+
 static a_symbol_ptr find_conversion_function(a_type_ptr class_type,
                                              a_type_ptr dest_type)
 /*
@@ -7103,6 +7116,7 @@ deal with differences like
   operator int();
 
 For which one needs to know the exact type of the operand to be converted.
+It also assumes that the converted value will be used as an rvalue.
 This routine is useful as a quick way of seeing whether or not a particular
 type appears on the list of conversion functions.
 */
@@ -7124,7 +7138,7 @@ type appears on the list of conversion functions.
     conversion_symbol = slep->symbol;
     reduce_projection_symbol_to_fundamental_symbol(conversion_symbol);
     conv_routine_type = routine_symbol_type(conversion_symbol);
-    return_type = return_type_of(conv_routine_type);
+    return_type = rvalue_return_type_of(conv_routine_type);
     if (identical_types(dest_type, return_type)) {
       /* Found the required function. */
       goto end_of_search;
@@ -8005,7 +8019,7 @@ for the previous operand.
                                       fundamental_symbol_of(conversion_symbol);
             a_type_ptr   conv_routine_type =
                                    routine_symbol_type(base_conversion_symbol);
-            a_type_ptr   return_type = return_type_of(conv_routine_type);
+            a_type_ptr   return_type= rvalue_return_type_of(conv_routine_type);
             adjust_specific_type_for_previous_specific_type(specific_type,
                                                             return_type);
           }  /* for */
@@ -8088,7 +8102,7 @@ in some way, e.g., two pointers that must have the same type.
         conversion_symbol = slep->symbol;
         base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
         conv_routine_type = routine_symbol_type(base_conversion_symbol);
-        return_type = return_type_of(conv_routine_type);
+        return_type = rvalue_return_type_of(conv_routine_type);
         if (type_matches_type_code(return_type, *type_pattern_position)) {
           /* We've found a conversion function to an appropriate type.  Make
              sure it's not a type we've already checked while examining a

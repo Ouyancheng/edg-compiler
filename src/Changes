@@ -1,5 +1,28 @@
 Version 3.1
 
+9/16/02  Operator overloading, conversion function returning reference
+         to const enum
+
+In cases where a conversion function returns a reference to a const
+enum, operator overloading processing could sometimes give a spurious
+ambiguity, considering the enum and const enum solutions different
+solutions, whereas -- because the returned value is used as an rvalue --
+only the cv-unqualified version should be considered.  Now fixed.
+
+  enum primary {red, green, blue };
+  struct port {
+    operator const primary&( ) { return value; }
+    primary value;
+  };
+  primary func () {
+    port    pp;
+    primary tint = red;
+    if (red == pp) {  // Formerly got ambiguity
+      tint = green;
+    }
+    return tint;
+  }
+
 9/16/02  GNU compatibility: Flexible array member constraints
 
 In GNU C and C++ mode, the front end requires that a flexible array member
