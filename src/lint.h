@@ -289,6 +289,7 @@ extern int fileno(FILE *);
 /*lint -esym(765,make_dtor_implied_arg_list)*/
 /*lint -esym(759,do_type_name_mangling)*/
 /*lint -esym(765,do_type_name_mangling)*/
+/*lint -esym(769,ec_mangled_name_too_long)*/
 #else /* !IA64_ABI */
 /*lint -esym(759,add_cast_to_char_star)*/
 /*lint -esym(765,add_cast_to_char_star)*/
