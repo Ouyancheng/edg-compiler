@@ -4262,9 +4262,8 @@ Convert a function designator operand to a pointer to function expression
 operand.
 */
 {
-  an_operand    orig_operand;
-  a_symbol_ptr  func_sym, fund_sym;
-  a_routine_ptr routine = NULL;
+  an_operand   orig_operand;
+  a_symbol_ptr func_sym, fund_sym;
 
   /* If you change this routine, see also the code in
      type_after_function_to_pointer_transformation that does a similar
@@ -4295,26 +4294,16 @@ operand.
   } else if (is_constant_operand(operand)) {
     /* Since the operand becomes "pointer-to" and the constant already has that
        type, just copy the type from the constant. */
-    a_constant_ptr con = &operand->variant.constant;
-    operand->type = con->type;
-    /* Determine the underlying routine if possible. */
-    if (con->kind == (a_constant_repr_kind)ck_address &&
-        con->variant.address.kind == (an_address_base_kind)abk_routine) {
-      routine = con->variant.address.variant.routine;
-    }  /* if */
+    operand->type = operand->variant.constant.type;
   } else if (is_expression_operand(operand)) {
     /* Expression operand.  Since the operand becomes "pointer-to" and the
        expression already has that type, just copy the type from the
        expression. */
-    an_expr_node_ptr expr = operand->variant.expression;
-    operand->type = expr->type;
-    /* Determine the underlying routine if possible. */
-    if (is_routine_address_node(expr)) routine = expr->variant.routine;
+    operand->type = operand->variant.expression->type;
   } else if (is_sym_for_member_operand(operand)) {
     /* Converting a qualified member name to a pointer-to-member. */
     func_sym = operand->variant.symbol;
     fund_sym = fundamental_symbol_of(func_sym);
-    routine = fund_sym->variant.routine.ptr;
     /* Make an operand for a pointer-to-member constant. */
     make_ptr_to_member_constant_operand(fund_sym, func_sym,
                                         &orig_operand.position,
@@ -4336,17 +4325,6 @@ operand.
     /* Note that we do not check for the nonstandard "taking address of member
        function without using &" here; it will be checked once we know
        which of the functions is actually wanted. */
-    /* "routine" is not set here, because we do not know which routine is
-       being referenced.  That will happen later. */
-  }  /* if */
-  if (routine != NULL) {
-    /* We know the routine being called.  Check that its return type is
-       complete.  This is clearly necessary when the routine is called.
-       We think it's also appropriate when the address of the routine is
-       taken (the C standard says that the return type must be complete
-       when necessary, and this seems like such a case). */
-    check_function_return_type(routine->type, &operand->position,
-                               /*is_expr_use=*/TRUE);
   }  /* if */
   operand->state = (an_operand_state)os_rvalue;
   operand->came_from_reference = FALSE;
