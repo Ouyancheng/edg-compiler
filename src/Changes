@@ -86,7 +86,7 @@ is now suppressed.
 8/21/00  Linker errors when building some configurations
 
 A mistake in conditional compilation directives could cause linker errors when
-building the front end with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE while
+building the front end with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE and
 both MICROSOFT_EXTENSIONS_ALLOWED and MAINTAIN_NEEDED_FLAGS set to FALSE.
 This is now fixed.
 
