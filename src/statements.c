@@ -3284,6 +3284,7 @@ __leave instead of a continue.
     /* Error.  Since no continue statement is actually added to the IL,
        treat this as an empty statement. */
     empty_statement();
+    sp = NULL;
   } else {
     dest_label = sssep->continue_label;
     if (dest_label == NULL) {
