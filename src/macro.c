@@ -1050,22 +1050,19 @@ with \.  Return the macro argument created.
   length = curr_char_loc - start_of_curr_token;
   map = alloc_macro_arg();
   ensure_arg_raw_text_space(length, map);
-  end_of_string = curr_char_loc - 1;
-  /* Back up to the '"' that terminates the pragma string. */
-  while (*end_of_string != '"') end_of_string--;
+  end_of_string = end_of_curr_token;
   /* Copy the characters to the macro argument. */
   { char	*src = start_of_curr_token + 1;
     char	*dest = map->raw_text;
     for (; src < end_of_string;) {
-      /* If this is a \" or \\, ignore the initial character. Don't do this
-         if the \ is the last character of the string. */
-      if (*src == '\\' && src != end_of_string) {
+      /* If this is a \" or \\, ignore the initial character. */
+      if (*src == '\\') {
         char	next = *src+1;
         if (next == '"' || next == '\\') ++src;
       }  /* if */
       *dest++ = *src++;
     }  /* for */
-    /* Append an end-of-assertion escape. */
+    /* Append an end-of-insertion escape. */
     *dest++ = LE_ESCAPE;
     /* Compute the length of the string, including the LE_ESCAPE but not
        the LE_END_OF_INSERTION. */
@@ -1077,20 +1074,17 @@ with \.  Return the macro argument created.
 
 
 static void scan_pragma_string(a_macro_arg_ptr		map,
-			       char			*pragma_start,
 			       a_source_position	*start_of_dir_position)
 /*
 The replacement text for "map" points to the string of a _Pragma operator.
-Scan the contents of that string as tokens.  pragma_start points to the
-beginning of the _Pragma token in the source line.  start_of_dir_position
+Scan the contents of that string as tokens.  start_of_dir_position
 is the source position of the _Pragma token.
 */
 {
   a_source_line_modif_ptr	slmp;
   char				*save_delete_source_from_loc;
   char				*save_curr_char_loc;
-  a_pointer_registration_ptr
-				save_registered_pointers = registered_pointers;
+  a_pointer_registration_ptr	save_registered_pointers = registered_pointers;
   a_pointer_registration	save_delete_source_from_loc_reg;
   a_pointer_registration	save_curr_char_loc_reg;
 
@@ -1104,10 +1098,12 @@ is the source position of the _Pragma token.
   save_delete_source_from_loc = delete_source_from_loc;
   save_curr_char_loc = curr_char_loc;
   delete_source_from_loc = NULL;
-  /* Replace the _Pragma and string with the copied contents of the
-     string. */
-  slmp = add_source_line_modif(pragma_start,
-                               (sizeof_t)(start_of_curr_token - pragma_start),
+  /* Insert a modification for the copied contents of the string at the
+     current token.  It doesn't really matter what is replaced; we're
+     going to remove the modification later.  It just needs to be linked
+     into the lexical data structure temporarily. */
+  slmp = add_source_line_modif(start_of_curr_token,
+                               len_of_curr_token,
                                &map->raw_text[0],
                                &map->raw_text[map->raw_len - 1]);
   slmp->is_isolated_text = TRUE;
@@ -1119,6 +1115,7 @@ is the source position of the _Pragma token.
     pkdp = look_up_pragma_id(&id_position);
     record_pragma(pkdp, start_of_dir_position, &id_position);
   }
+  rem_source_line_modif(slmp);
   /* Restore the saved lexical state variables. */
   delete_source_from_loc = save_delete_source_from_loc;
   curr_char_loc = save_curr_char_loc;
@@ -1138,17 +1135,11 @@ The first component of "string" is the pragma identifier, which may be followed
 by pragma arguments.
 */
 {
-  a_boolean			save_fetch_pp_tokens = fetch_pp_tokens;
-  a_boolean			save_expand_macros = expand_macros;
-  a_pointer_registration	pragma_start_reg;
-  a_pointer_registration_ptr
-				save_registered_pointers = registered_pointers;
-  char				*pragma_start;
-  a_source_position		start_of_dir_position;
+  a_boolean		save_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean		save_expand_macros = expand_macros;
+  a_source_position	start_of_dir_position;
 
-  register_pointer_variable(pragma_start, pragma_start_reg);
-  pragma_start = start_of_curr_token;
-  /* The inside of the _Pragma directive should be processed as a pp-token. */
+  /* The inside of the _Pragma directive should be processed as pp-tokens. */
   fetch_pp_tokens = TRUE;
   expand_macros = FALSE;
   /* Record the position of the start of the pragma. */
@@ -1165,8 +1156,8 @@ by pragma arguments.
     a_macro_arg_ptr	map;
     map = copy_pragma_string();
     /* Scan the tokens from the pragma string. */
-    scan_pragma_string(map, pragma_start, &start_of_dir_position);
-    /* Bypass the scanned string. */
+    scan_pragma_string(map, &start_of_dir_position);
+    /* Bypass the scanned string and check for the closing parenthesis.. */
     (void)get_token();
     if (curr_token != tok_rparen) error(ec_exp_rparen);
   }  /* if */
@@ -1174,8 +1165,6 @@ by pragma arguments.
      macros. */
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
-  /* Unlink the registered pointers for this function from the list. */
-  registered_pointers = save_registered_pointers;
 }  /* scan_pragma_operator */
 
 
