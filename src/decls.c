@@ -3941,10 +3941,10 @@ on for use in generating cross-reference output describing this declaration.
         }  /* if */
       }  /* if */
       if (!linked_redecl_error) {
-        if (!sym->variant.routine.instance_ptr->specific_decl) {
+        if (!sym->variant.routine.instance_ptr->specific_decl &&
+            homonym_symbol != NULL) {
           a_boolean	use_namespace;
-          check_assertion_str(homonym_symbol != NULL,
-                              "decl_routine: expected non-null homonym sym");
+
           check_assertion_str(sym->parent.namespace_ptr ==
                                 homonym_symbol->parent.namespace_ptr,
                              "decl_routine: namespace mismatch");
