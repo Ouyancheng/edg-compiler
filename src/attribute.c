@@ -615,9 +615,6 @@ that do take arguments.
             break;
           }  /* if */
         }  /* for */
-        if (i == (int)fak_last) {
-          pos_st_warning(ec_unrecognized_format_function_type, &pos, name);
-        }  /* if */
         attribute->variant.format.kind = (a_format_attribute_kind)i;
         /* Read the arguments that indicate the format string argument
            and the start of the variable arguments. */
@@ -645,8 +642,14 @@ that do take arguments.
             attribute->variant.format.first_subst_arg = (int)param_number;
           }  /* if */
         }  /* for */
-        /* All went well. */
-        result = TRUE;
+        if (attribute->variant.format.kind ==
+                                          (a_format_attribute_kind)fak_last) {
+          /* An unrecognized format function type is not a fatal error. */
+          pos_st_warning(ec_unrecognized_format_function_type, &pos, name);
+        } else {
+          /* All went well. */
+          result = TRUE;
+        }  /* if */
       }
       break;
     case ak_format_arg:
@@ -1489,7 +1492,7 @@ messages about any invalid attributes.
               rtsp->fmt_arg = ap->variant.format.fmt_arg;
               break;
             case fak_strftime:
-              /* The EDG support does not support strftime format
+              /* The EDG front end does not support strftime format
                  checking, so this form of the attribute is silently
                  ignored. */
               break;
