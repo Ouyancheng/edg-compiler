@@ -789,6 +789,8 @@ ec_class_qualified_name_required;;"class-qualified name is required"
 ec_argument_list_types_add_on;INTERNAL;"argument types are: (%s)"
 ec_operand_types_add_on;INTERNAL;"operand types are: %s"
 ec_using_declaration_ignored;;"using-declaration of %n ignored"
+ec_not_an_actual_member;;"%n has no actual member %sq"
+ec_nonstd_global_qualifier_on_friend_decl;;"global-scope qualifier (leading \"::\") on friend declaration is nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
