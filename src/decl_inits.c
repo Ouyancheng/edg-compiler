@@ -2711,6 +2711,10 @@ initialized.  These are addressed in the course of the processing.
     add_stop_token(tok_lbrace);
     /* Loop through the comma-separated list of initializers. */
     do {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      a_source_position  init_start_pos = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
       new_cip = NULL;
       array_type = NULL;
       add_stop_token(tok_comma);
@@ -2979,9 +2983,6 @@ scan_paren:
         /* Advance past the identifier. */
         (void)get_token();
         copy_source_position(pos_curr_token, lparen_pos);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        if (new_cip != NULL) new_cip->ctor_init_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         if (required_token(tok_lparen, ec_exp_lparen)) {
           if (is_class_struct_union_type(init_type) &&
               (array_type == NULL || curr_token == tok_rparen)) {
@@ -3020,6 +3021,7 @@ scan_paren:
                                            &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
             if (new_cip != NULL) {
+              new_cip->ctor_init_range.start = init_start_pos;
               new_cip->ctor_init_range.end = curr_construct_end_position;
             }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3056,7 +3058,10 @@ scan_paren:
                definition is triggered (in case there are side-effects). */
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-            if (new_cip != NULL) new_cip->ctor_init_range.end = pos_curr_token;
+            if (new_cip != NULL) {
+              new_cip->ctor_init_range.start = init_start_pos;
+              new_cip->ctor_init_range.end = pos_curr_token;
+            }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             /* Bypass the right paren. */
             (void)get_token();
@@ -3086,6 +3091,7 @@ scan_paren:
               }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
               if (new_cip != NULL) {
+                new_cip->ctor_init_range.start = init_start_pos;
                 new_cip->ctor_init_range.end = pos_curr_token;
               }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3118,6 +3124,7 @@ scan_paren:
                 detach_from_object_lifetime_tree(init_expr_lifetime_of(dip));
 #if EXTRA_SOURCE_POSITIONS_IN_IL
                 if (new_cip != NULL && curr_token == tok_rparen) {
+                  new_cip->ctor_init_range.start = init_start_pos;
                   new_cip->ctor_init_range.end = pos_curr_token;
                 }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
