@@ -4227,9 +4227,14 @@ and record it in the class's assoc_operator_new_routine field.
 */
 {
   a_symbol_ptr                new_function_symbol;
-  a_class_type_supplement_ptr ctsp = 
-                             class_type->variant.class_struct_union.extra_info;
+  a_class_type_supplement_ptr ctsp;
 
+#if CHECKING
+  if (!is_immediate_class_type(class_type)) {
+    internal_error("set_class_assoc_operator_new_routine: not class type");
+  }  /* if */
+#endif /* CHECKING */
+  ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp->assoc_operator_new_routine == NULL) {
     /* Use the class "new" if there is one, and otherwise the global operator
        new. */
@@ -4309,9 +4314,14 @@ and record it in the class's assoc_operator_delete_routine field.
 */
 {
   a_symbol_ptr                delete_function_symbol;
-  a_class_type_supplement_ptr ctsp = 
-                             class_type->variant.class_struct_union.extra_info;
+  a_class_type_supplement_ptr ctsp;
 
+#if CHECKING
+  if (!is_immediate_class_type(class_type)) {
+    internal_error("set_class_assoc_operator_delete_routine: not class type");
+  }  /* if */
+#endif /* CHECKING */
+  ctsp = class_type->variant.class_struct_union.extra_info;
   if (ctsp->assoc_operator_delete_routine == NULL) {
     /* Use the class "delete" if there is one, and otherwise the global
        operator delete. */
