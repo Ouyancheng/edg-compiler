@@ -499,6 +499,19 @@ pragma warning is issued and the pragma is discarded.
 #endif /* !defined(INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL) */
 
 /*
+Flag that is TRUE if names that are hidden, where the hiding can be defeated
+by used global qualification or an elaborated type specifier, should be
+recorded in the IL.  Automatically TRUE if BACK_END_IS_CP_GEN_BE is TRUE.
+*/
+#ifndef RECORD_HIDDEN_NAMES_IN_IL
+#if BACK_END_IS_CP_GEN_BE
+#define RECORD_HIDDEN_NAMES_IN_IL TRUE /* Do not change this. */
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define RECORD_HIDDEN_NAMES_IN_IL FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* !defined(RECORD_HIDDEN_NAMES_IN_IL) */
+
+/*
 Flag that is TRUE to include a set of EDG provided set test pragmas in the
 front end.
 */
