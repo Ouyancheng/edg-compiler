@@ -1994,8 +1994,14 @@ be customized if additional linkage kinds are added a_name_linkage_kind
                        "routine_linkages_are_compatible:",
                        "unexpected linkage for routine type");
 #if !STANDALONE_UTILITY_PROGRAM
-  if (is_impl_conv &&
-      impl_conv_between_c_and_cpp_function_ptrs_allowed) {
+  if (is_custom_name_linkage_kind_for_rout_type(nlk1) ||
+      is_custom_name_linkage_kind_for_rout_type(nlk2)) {
+    /* Custom code may be added here to specify compatibilities involving
+       implementation-defined name linkages.  By default, assume no
+       compatibility if the linkages are not identical. */
+    compat = (nlk1 == nlk2);
+  } else if (is_impl_conv &&
+             impl_conv_between_c_and_cpp_function_ptrs_allowed) {
     /* Implicit conversion -- extern "C" and extern "C++" function types
        are treated as compatible. */
     compat = TRUE;
