@@ -2483,8 +2483,7 @@ given type.
   a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(type);
   a_boolean   new_canon = FALSE;
 
-  check_assertion(trans_unit_corresp_of(type) != NULL &&
-                  type_has_definition(type));
+  check_assertion(type_has_definition(type));
   if (canon != type && (!type_has_definition(canon) ||
                         !in_secondary_trans_unit(type))) {
     /* The canonical entry is about to change. */
@@ -2495,6 +2494,9 @@ given type.
     /* Work from the noncanonical entry to set the correspondences of
        members. */
     type = canon;
+  } else if (trans_unit_corresp_of(type) == NULL) {
+    /* This is presumably the first time we see this instantiation. */
+    set_no_trans_unit_corresp(iek_type, type);
   }  /* if */
   establish_trans_unit_correspondences_for_class(type);
   if (new_canon) {
@@ -2596,8 +2598,11 @@ return FALSE.
        match, the type is restored to its previous state wrt. correspondence
        checking. */
     a_boolean  visited = (trans_unit_corresp_of(type_1) != NULL);
-    // clear_type_correspondence(type_1, /*visited=*/FALSE);
-    check_assertion(!visited); //FIXME
+#if 0 /*FIXME*/
+    clear_type_correspondence(type_1, /*visited=*/FALSE);
+#else /*FIXME*/
+    check_assertion(!visited);
+#endif /*FIXME*/
     set_trans_unit_corresp(iek_type, type_1, type_2);
     if (is_immediate_class_type(type_1)) {
       establish_trans_unit_correspondences_for_class(type_1);
@@ -3141,8 +3146,12 @@ and are handled elsewhere.
       a_type_ptr    class_type = tssp
                               ->variant.class_template.prototype_instantiation
                               ->variant.class_struct_union.type;
-      set_trans_unit_corresp(iek_type, class_type,
-                             proto_inst->variant.class_struct_union.type);
+      if (canonical_il_entry_of(templ) != (char*)templ) {
+        set_trans_unit_corresp(iek_type, class_type,
+                               proto_inst->variant.class_struct_union.type);
+      } else {
+        set_no_trans_unit_corresp(iek_type, class_type);
+      }  /* if */
       establish_trans_unit_correspondences_for_class(class_type);
     }  /* if */
   } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
@@ -3400,8 +3409,12 @@ entities.
       /* Record the correspondence. */
       set_trans_unit_corresp(iek_template, templ, corresp_templ);
       if (assoc_sym_defined(templ) &&
-          !assoc_sym_defined(canonical_il_entry_of(templ))) {
+          (!assoc_sym_defined(canonical_il_entry_of(templ)) ||
+           !in_secondary_trans_unit(templ))) {
+        /* Prefer definition as canonical entries, especially if they are
+           in the primary translation unit. */
         trans_unit_corresp_of(templ)->canonical = (char*)templ;
+        /* Update all_instantiations (FIXME). */
       }  /* if */
       establish_instantiation_correspondences(templ);
     } else {
