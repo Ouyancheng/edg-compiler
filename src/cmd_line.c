@@ -1459,7 +1459,7 @@ Process the arguments on the command line that invoked the compiler.
       /* Enable recognition of operator keywords and digraphs. */
       alternative_tokens_allowed = TRUE;
       wchar_t_is_keyword = TRUE;
-/*    bool_is_keyword = TRUE; -- set when bool is ready. */
+      bool_is_keyword = TRUE;
       /* Temporary lifetime is short. */
       long_lifetime_temps = FALSE;
 #if RTTI_ENABLING_POSSIBLE

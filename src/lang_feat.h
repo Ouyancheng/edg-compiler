@@ -429,7 +429,7 @@ the default value for the global flag bool_is_keyword, the value of
 which may be modified using command line options.
 */
 #ifndef DEFAULT_BOOL_IS_KEYWORD
-#define DEFAULT_BOOL_IS_KEYWORD FALSE
+#define DEFAULT_BOOL_IS_KEYWORD TRUE
 #endif /* ifndef DEFAULT_BOOL_IS_KEYWORD */
 
 /*
