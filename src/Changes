@@ -1,5 +1,35 @@
 Version 2.15
 
+2/19/93  Bug in scanning type qualifier lists
+
+A bug has been fixed to correctly parse a type qualifier list that is
+followed by what appears to be type specifier.  For instance, the following
+is now processed correctly:
+
+  typedef int * const I;
+  typedef int * const I;        // Spurious error no longer issued on "I"
+
+2/19/93  Virtual function overridden in a class template
+
+Virtual functions overridden in a class template where the return type
+involved a template argument were not handled properly during prototype
+instantiation.  Spurious errors have been eliminated on programs of this
+sort:
+
+  class A {
+    virtual int f();
+  };
+  template <class T> class B {
+    virtual T g();
+  };
+  template <class T> class C : public A, public B<T> {
+    T f();                     // No error during prototype instantiation
+    int g();                   // No error during prototype instantiation
+  };
+
+Errors will still be reported during real instantiations of C (except
+C<int>).
+
 2/18/93   Bug in argument widening done in IL lowering
 
 The argument widening done when MAKE_ALL_FUNCTIONS_UNPROTOTYPED is true
