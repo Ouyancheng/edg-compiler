@@ -419,9 +419,9 @@ Flag that is TRUE if GNU C builtin operators should be accepted in support of
 */
 #ifndef GCC_BUILTIN_VARARGS
 #ifdef __linux__
-#define GCC_BUILTIN_VARARGS 1
+#define GCC_BUILTIN_VARARGS TRUE
 #else /* !__linux__ */
-#define GCC_BUILTIN_VARARGS 0
+#define GCC_BUILTIN_VARARGS FALSE
 #endif /* __linux__ */
 #endif /* ifndef GCC_MINOR_VERSION */
 
