@@ -1986,6 +1986,7 @@ types; just put out the base encoded name.
     if (store_at != NULL) store_at += section_length;
   }  /* if */
   if (!suppress_param_encoding) {
+    a_boolean do_return_type;
     if (routine->source_corresp.is_class_member) {
       /* Class member function.  Put out the qualifiers on the member function
          type. */
@@ -1994,10 +1995,16 @@ types; just put out the base encoded name.
       mangled_name_length += section_length;
       if (store_at != NULL) store_at += section_length;
     }  /* if */
-    /* Now output the function type, including the parameter types. */
+    /* Templates have their return types included. */
+    do_return_type = mangle_as_template;
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
+        routine->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* No return type on constructors or destructors. */
+      do_return_type = FALSE;
+    }  /* if */
+    /* Output the function type, including the parameter types. */
     section_length = mangled_encoding_for_function_type(routine_type,
-                                                        /*do_return_type=*/
-                                                            mangle_as_template,
+                                                        do_return_type,
                                                         store_at);
     mangled_name_length += section_length;
     if (store_at != NULL) store_at += section_length;
