@@ -714,13 +714,16 @@ the exponent is out of range, set err to TRUE.
 static void store_hex_fp_value(a_mantissa_ptr		mp,
 			       long			exponent,
 			       a_float_kind		kind,
-			       an_internal_float_value	*float_value)
+			       an_internal_float_value	*float_value,
+			       a_boolean		any_digits)
 /*
 mp contains the hexadecimal digits specified as the mantissa value
 of a floating point value.  Exponent is the effective exponent to
 be used (the combination of an explicit exponent and the implied
 exponent based on the position of the decimal point).  kind specifies
-the type of floating point value being used.
+the type of floating point value being used.  any_digits is TRUE if
+there were any non-zero digits specified (i.e., it is FALSE is the
+value is zero).
 
 Store the value into "float_value".  The value stored is of the kind
 specified by kind.
@@ -747,7 +750,11 @@ specified by kind.
   /* Zero the memory so that comparisons are easy even if we do not
      fill the whole area reserved for the float value. */
   memzero((char *)float_value, sizeof(an_internal_float_value));
-  if (kind == (a_float_kind)fk_float) {
+  if (!any_digits) {
+    /* We need a flag to indicate that we had a zero, because we can end up
+       with a zero mantissa because of the possible presence of an implicit
+       bit. */
+  } else if (kind == (a_float_kind)fk_float) {
     val = (mp->parts[0] >> 9) | ((exponent + 127) << 23);
     memcpy((char*)float_value, (char*)&val, sizeof(val));
   } else if (kind == (a_float_kind)fk_double) {
@@ -940,7 +947,7 @@ fit in the indicated type.
   /* Check whether the resulting value fits in the type being used. */
   check_and_denormalize_hex_fp_value(&mantissa, &exponent, kind, err, inexact);
   /* Store the value in the appropriate kind of floating point value. */
-  store_hex_fp_value(&mantissa, exponent, kind, float_value);
+  store_hex_fp_value(&mantissa, exponent, kind, float_value, any_digits);
   /* If an underflow occurred, set the flag that indicates that the resulting
      value is not an exact representation of the specified value. */
   if (mantissa.underflow) *inexact = mantissa.underflow;
