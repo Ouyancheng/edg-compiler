@@ -378,7 +378,8 @@ Install the keywords in the symbol table.
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (gcc_mode) {
+  if (gcc_mode && !c99_mode) {
+    /* "inline" will already have been entered in C99 mode. */
     enter_keyword((a_token_kind)tok_inline, "inline");
   } else if (gpp_mode) {
     enter_keyword((a_token_kind)tok_null, "__null");
