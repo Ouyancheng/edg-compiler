@@ -1,10 +1,10 @@
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2003 Edison Design Group Inc.                        [_]          *
+* Copyright 2003-2004 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -58,10 +58,10 @@ extern unsigned int fxp_hash(a_fixed_point_value *value);
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
-* Edison Design Group C Front End                            - | \^/ | -      *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2003 Edison Design Group Inc.                        [_]          *
+* Copyright 2003-2004 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
