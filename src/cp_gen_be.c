@@ -191,6 +191,8 @@ Macro to test a type kind to see if it is a tag (class or enum).
 static void gen_enum_definition(a_type_ptr type);
 static void gen_class_definition(a_type_ptr type);
 static void gen_lvalue(an_expr_node_ptr node);
+static void gen_dynamic_init(a_dynamic_init_ptr dip,
+                             a_boolean          parenthesized_init);
 static void gen_statement(a_statement_ptr statement);
 static void gen_declaration(void);
 static void gen_declaration_using_type(a_type_ptr                   type,
@@ -610,14 +612,15 @@ This is used to skip over a non-autonomous declaration or definition.
 }  /* skip_type_and_delay_definition */
 
 
-static void skip_embedded_declarations(
-                                      a_source_sequence_entry_ptr stop_on_decl)
+static void skip_embedded_declarations(void)
 /*
-Skip over the source sequence entries for any type declarations or
-implicit function declarations that appear within a statement or
-certain contexts in declarations.  If stop_on_decl is non-NULL, it
-points to the source sequence entry for a declaration that should end
-the scan here.  Encountering a non-declaration also ends the scan.
+Skip over the source sequence entries for any non-autonomous type declarations
+or (in C mode) implicit function declarations that appear within an
+expression, e.g.,
+
+  p = (struct A *)0;
+  i = f();
+
 */
 {
   a_type_ptr                   type;
@@ -626,12 +629,7 @@ the scan here.  Encountering a non-declaration also ends the scan.
   a_routine_ptr                rout;
 
   for (; curr_source_sequence_entry != NULL;) {
-    if (curr_source_sequence_entry == stop_on_decl) {
-      /* This source sequence entry is part of whatever follows, so
-         leave it alone. */
-      break;
-    } else if (curr_src_seq_entry_is_type_decl(&type, &sec_decl,
-                                               &is_definition)) {
+    if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
       if (is_autonomous_decl(type, sec_decl)) break;
       /* A non-autonomous type declaration (e.g., a type declared in
          a cast in an expression).  Skip it and mark it for later
@@ -1010,6 +1008,13 @@ Write a temporary name generated from the given IL pointer.
 }  /* gen_temp_name */
 
 
+/* Interface routines to gen_name. */
+#define gen_routine_name(routine) gen_name(&(routine)->source_corresp)
+#define gen_constant_name(constant) gen_name(&(constant)->source_corresp)
+#define gen_type_name(type) gen_name(&(type)->source_corresp)
+#define gen_field_name(field) gen_name(&(field)->source_corresp)
+
+
 static void gen_name(a_source_correspondence *scp)
 /*
 Output the name of the entity whose source correspondence information
@@ -1032,7 +1037,7 @@ is given by scp.  If the entity is unnamed, generate a name.
       }  /* if */
     }  /* if */
     if (qualifier_needed) {
-      gen_name(&class_type->source_corresp);
+      gen_type_name(class_type);
       write_tok_str("::");
     }  /* if */
   }  /* if */
@@ -1057,13 +1062,6 @@ Output the name of the indicated variable.
     gen_name(&var->source_corresp);
   }  /* if */
 }  /* gen_variable_name */
-
-
-/* Interface routines to gen_name. */
-#define gen_routine_name(routine) gen_name(&(routine)->source_corresp)
-#define gen_constant_name(constant) gen_name(&(constant)->source_corresp)
-#define gen_type_name(type) gen_name(&(type)->source_corresp)
-#define gen_field_name(field) gen_name(&(field)->source_corresp)
 
 
 static void gen_char(char ch)
@@ -1355,9 +1353,13 @@ Output the indicated constant.
       }  /* for */
       write_tok_ch('}');
       break;
-#if 0
-    /* Need ck_dynamic_init. */
-#endif /* 0 */
+    case ck_dynamic_init:
+      /* Dynamic initialization for an element of an aggregate. */
+      gen_dynamic_init(constant->variant.dynamic_init,
+                       /*parenthesized_init=*/FALSE);
+      break;
+    case ck_init_repeat:
+      /* This should not come up in things that must be output. */
     default:
       unexpected_condition_str("gen_constant: bad constant kind");
   }  /* switch */
@@ -1706,34 +1708,6 @@ entry).
 }  /* gen_pointer_type_qualifiers */
 
 
-static a_boolean routine_type_requires_no_return_type(a_type_ptr type)
-/*
-type is a routine type.  Return TRUE if it is a type for which the return
-type should not be displayed (a constructor, destructor, or conversion
-function).
-*/
-{
-  a_boolean                     no_return_type = FALSE;
-  a_routine_type_supplement_ptr rtsp;
-  a_routine_ptr                 rout;
-
-  type = skip_typerefs(type);
-  rtsp = type->variant.routine.extra_info;
-  rout = rtsp->assoc_routine;
-  if (rout != NULL) {
-    a_special_function_kind kind = rout->special_kind;
-    if (kind == (a_special_function_kind)sfk_constructor ||
-        kind == (a_special_function_kind)sfk_destructor ||
-        kind == (a_special_function_kind)sfk_conversion) {
-      /* Do not put out the return type for a constructor, destructor, or
-         conversion function. */
-      no_return_type = TRUE;
-    }  /* if */
-  }  /* if */
-  return no_return_type;
-}  /* routine_type_requires_no_return_type */
-
-
 static void gen_type_first_part(a_type_ptr type,
                                 a_boolean  need_paren,
 				a_boolean  need_trailing_space)
@@ -1785,14 +1759,9 @@ is not empty, because it contains a name or a derived type).
        typedef, but they can get here if the typedef is not yet defined
        (see is_not_yet_defined_typedef).  Drop all qualifiers here, always,
        to get around that.  They don't mean anything anyway. */
-    if (routine_type_requires_no_return_type(type)) {
-      /* Do not put out the return type for a constructor, destructor, or
-         conversion function. */
-    } else {
-      gen_type_first_part(type->variant.routine.return_type,
-                          /*need_paren=*/TRUE,
-                          /*need_trailing_space=*/TRUE);
-    }  /* if */
+    gen_type_first_part(type->variant.routine.return_type,
+                        /*need_paren=*/TRUE,
+                        /*need_trailing_space=*/TRUE);
     if (need_paren) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
@@ -2008,13 +1977,8 @@ out first if anything is generated.
     /* Function type. */
     if (need_paren) write_tok_ch(')');
     gen_function_declarator(type, (a_scope_ptr)NULL);
-    if (routine_type_requires_no_return_type(type)) {
-      /* Do not put out the return type for a constructor, destructor, or
-         conversion function. */
-    } else {
-      gen_type_second_part(type->variant.routine.return_type,
-                           /*need_paren=*/TRUE);
-    }  /* if */
+    gen_type_second_part(type->variant.routine.return_type,
+                         /*need_paren=*/TRUE);
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     if (need_paren) write_tok_ch(')');
@@ -2043,6 +2007,29 @@ NULL if there is no name.
 }  /* gen_type */
 
 
+static void set_decl_position(a_source_correspondence      *scp,
+                              a_src_seq_secondary_decl_ptr sec_decl)
+/*
+Position the output file properly for the declaration position indicated
+in the given source correspondence, or in the secondary declaration
+entry if sec_decl is non-NULL.
+*/
+{
+  a_source_position *eff_pos;
+
+  if (sec_decl != NULL) {
+    /* This is a secondary declaration, so use the position in the secondary
+       declaration entry. */
+    eff_pos = &sec_decl->decl_position;
+  } else {
+    /* Normal case -- use the position in the source correspondence. */
+    eff_pos = &scp->decl_position;
+  }  /* if */
+  /* Adjust the output file to the right position. */
+  set_output_position(eff_pos);
+}  /* set_decl_position */
+
+
 static void gen_declaration_using_type(a_type_ptr                   type,
                                        a_source_correspondence      *scp,
                                        a_src_seq_secondary_decl_ptr sec_decl)
@@ -2060,15 +2047,7 @@ declaration.
   /* Write the name if there is one. */
   if (scp != NULL) {
     /* Set the source position for the name. */
-    if (sec_decl != NULL) {
-      /* For a secondary declaration, get the position from the secondary
-         declaration source sequence entry. */
-      set_output_position(&sec_decl->decl_position);
-    } else {
-      /* For the primary declaration, use the position in the entity's
-         source correspondence entry. */
-      set_output_position(&scp->decl_position);
-    }  /* if */
+    set_decl_position(scp, sec_decl);
     /* Write the name. */
     gen_name(scp);
   }  /* if */
@@ -2131,7 +2110,7 @@ is the one associated with the definition of the enum.
        enumerator, as in
          enum E { e1, e2 = sizeof(struct A *) };
     */
-    skip_embedded_declarations(enum_con->source_corresp.source_sequence_entry);
+    skip_embedded_declarations();
   }  /* for */
   /* The current source sequence entry should now be the end-of-construct
      marker for the enum. */
@@ -2194,8 +2173,10 @@ is the one associated with the definition of the class.
   gen_type_name(type);
   /* Put out the class definition. */
   write_tok_str(" { ");
-  push_name_context(&context,
-                    type->variant.class_struct_union.extra_info->assoc_scope);
+  if (il_header.source_language == sl_Cplusplus) {
+    push_name_context(&context,
+                     type->variant.class_struct_union.extra_info->assoc_scope);
+  }  /* if */
   /* Go through the source sequence list and generate the members of the
      class. */
   for (;;) {
@@ -2244,32 +2225,9 @@ is the one associated with the definition of the class.
     }  /* switch */
   }  /* for */
 done:;
-  pop_name_context();
+  if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
 }  /* gen_class_definition */
-
-
-static void set_decl_position(a_source_correspondence      *scp,
-                              a_src_seq_secondary_decl_ptr sec_decl)
-/*
-Position the output file properly for the declaration position indicated
-in the given source correspondence, or in the secondary declaration
-entry if sec_decl is non-NULL.
-*/
-{
-  a_source_position *eff_pos;
-
-  if (sec_decl != NULL) {
-    /* This is a secondary declaration, so use the position in the secondary
-       declaration entry. */
-    eff_pos = &sec_decl->decl_position;
-  } else {
-    /* Normal case -- use the position in the source correspondence. */
-    eff_pos = &scp->decl_position;
-  }  /* if */
-  /* Adjust the output file to the right position. */
-  set_output_position(eff_pos);
-}  /* set_decl_position */
 
 
 static void gen_typedef_definition(a_type_ptr                   type,
@@ -2438,6 +2396,40 @@ Generate a cast to the indicated type.
   gen_type(type, NO_NAME);
   m_write_tok_ch(')');
 }  /* gen_cast */
+
+
+static void gen_argument_list(an_expr_node_ptr arg,
+                              a_type_ptr       rout_type)
+/*
+Write out an argument list with surrounding parentheses.  rout_type is the
+type of the routine being called.
+*/
+{
+  a_param_type_ptr param;
+
+  rout_type = skip_typerefs(rout_type);
+  param = rout_type->variant.routine.extra_info->param_type_list;
+  write_tok_ch('(');
+  for (; arg != NULL;) {
+    if (param != NULL && param->passed_via_copy_constructor) {
+      /* For an argument passed using a copy constructor, optimize out
+         the copy constructor reference. */
+      check_assertion_str(arg->kind == (an_expr_node_kind)enk_temp_init,
+                          "gen_argument_list: cctor arg not enk_temp_init");
+      gen_dynamic_init(arg->variant.init.dynamic_init,
+                       /*parenthesized_init=*/FALSE);
+    } else {
+      /* Normal case. */
+      gen_expr_with_parens(arg);
+    }  /* if */
+    arg = arg->next;
+    if (arg != NULL) {
+      write_tok_str(", ");
+      if (param != NULL) param = param->next;
+    }  /* if */
+  }  /* for */
+  write_tok_ch(')');
+}  /* gen_argument_list */
 
 
 static void gen_expr(an_expr_node_ptr expr,
@@ -2708,18 +2700,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* N operand operator. */
           /* Put out the function to call. */
           gen_lvalue(operand_1);
-          write_tok_ch('(');
-          { an_expr_node_ptr call_argument;
-            /* Put out the arguments. */
-            for (call_argument = operand_2; call_argument != NULL;) {
-              gen_expr_with_parens(call_argument);
-              call_argument = call_argument->next;
-              if (call_argument != NULL) {
-                write_tok_str(", ");
-              }  /* if */
-            }  /* for */
-            write_tok_ch(')');
-          }
+          gen_argument_list(operand_2, type_pointed_to(operand_1->type));
           goto done_with_operation;
         default:
           unexpected_condition_str("gen_expr: bad expression operator");
@@ -2758,10 +2739,39 @@ done_with_operation:
       gen_variable_name(expr->variant.variable);
       break;
     case enk_routine_address:
-      if (need_parens) m_write_tok_ch('(');
+      if (need_parens) write_tok_ch('(');
       write_tok_ch('&');
       gen_routine_name(expr->variant.routine);
-      if (need_parens) m_write_tok_ch(')');
+      if (need_parens) write_tok_ch(')');
+      break;
+    case enk_throw:
+      /* Throw. */
+      if (need_parens) write_tok_ch('(');
+      write_tok_str("throw");
+      /* A NULL pointer means a rethrow, e.g., "throw;". */
+      if (expr->variant.throw_info != NULL) {
+        write_space();
+        gen_dynamic_init(expr->variant.throw_info->dynamic_init,
+                         /*parenthesized_init=*/FALSE);
+      }  /* if */
+      if (need_parens) write_tok_ch(')');
+      break;
+    case enk_temp_init:
+      /* Temporary creation/initialization. */
+      { a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+        if (need_parens) write_tok_ch('(');
+        if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+          /* For a class temporary requiring a constructor, use the form
+             A(arg1, arg2, ...). */
+          gen_type_name(dip->variant.constructor.ptr->
+                                       source_corresp.class_of_which_a_member);
+          gen_dynamic_init(dip, /*parenthesized_init=*/TRUE);
+        } else {
+          /* Other cases -- just put out the value. */
+          gen_dynamic_init(dip, /*parenthesized_init=*/FALSE);
+        }  /* if */
+        if (need_parens) write_tok_ch(')');
+      }
       break;
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
@@ -2770,6 +2780,19 @@ done_with_operation:
       unexpected_condition_str("gen_expr: bad expr node kind");
   }  /* switch */
 }  /* gen_expr */
+
+
+static void gen_full_expression(an_expr_node_ptr expr)
+/*
+Generate code for the indicated expression, which is a full expression
+(it's not part of another expression).
+*/
+{
+  gen_expression(expr);
+  /* Ignore any type declarations or implicit function declarations in the
+     expression. */
+  skip_embedded_declarations();
+}  /* gen_full_expression */
 
 
 static void gen_boolean_controlling_expression(an_expr_node_ptr expr)
@@ -2783,6 +2806,21 @@ by parentheses.
   gen_expression(expr);
   m_write_tok_ch(')');
 }  /* gen_boolean_controlling_expression */
+
+
+static void gen_full_boolean_controlling_expression(an_expr_node_ptr expr)
+/*
+Generate code for the indicated expression, which is the controlling expression
+of a statement or short-circuit operator, and also a full expression
+(it's not part of another expression).  The expression is surrounded
+by parentheses.
+*/
+{
+  gen_boolean_controlling_expression(expr);
+  /* Ignore any type declarations or implicit function declarations in the
+     expression. */
+  skip_embedded_declarations();
+}  /* gen_full_boolean_controlling_expression */
 
 
 static void set_output_position_for_stmt(a_stmt_source_position *spos)
@@ -2829,14 +2867,14 @@ Generate code for the indicated "for" statement.
   }  /* if */
   /* Generate the termination-test expression if there is one. */
   if (statement->expr != NULL) {
-    gen_boolean_controlling_expression(statement->expr);
+    gen_full_boolean_controlling_expression(statement->expr);
   }  /* if */
   write_tok_ch(';');
   /* Generate the increment expression if there is one. */
   if (statement->variant.for_loop.extra_info->increment != NULL) {
     an_expr_node_ptr incr = statement->variant.for_loop.extra_info->increment;
     write_space();
-    gen_expression(incr);
+    gen_full_expression(incr);
   }  /* if */
   write_tok_str(") ");
   /* Generate the dependent statement. */
@@ -3024,7 +3062,7 @@ Generate code for the indicated switch statement.
   a_statement_ptr body_statement;
 
   write_tok_str("switch (");
-  gen_expression(statement->expr);
+  gen_full_expression(statement->expr);
   write_tok_str(") ");
   /* Generate the body statement.  During the processing, when statements
      that correspond to case labels turn up, the case labels will be
@@ -3185,26 +3223,13 @@ static void gen_statement(a_statement_ptr statement)
 Generate code for the indicated statement.
 */
 {
-  a_statement_kind            kind;
-  a_switch_clause_ptr         scp;
-  a_source_sequence_entry_ptr stop_on_decl = NULL;
-  a_statement_ptr             next_statement;
-  a_routine_ptr               curr_routine;
+  a_statement_kind    kind;
+  a_switch_clause_ptr scp;
 
   if (statement == NULL) {
     /* Empty statement. */
     write_tok_ch(';');
     goto done;
-  }  /* if */
-  /* If this statement is followed by another statement, and that statement
-     is an stmk_decl, determine the source sequence entry for the
-     declaration with which that next statement begins.  This is used
-     later to limit the extent of processing of declarations within the
-     current statement. */
-  next_statement = statement->next;
-  if (next_statement != NULL &&
-      next_statement->kind == (a_statement_kind)stmk_decl) {
-    stop_on_decl = next_statement->source_sequence_entry;
   }  /* if */
   kind = statement->kind;
   /* Check the current source sequence entry. */
@@ -3245,14 +3270,14 @@ Generate code for the indicated statement.
   switch (kind) {
     case stmk_expr:
       /* Expression statement: generate "expr;". */
-      gen_expression(statement->expr);
+      gen_full_expression(statement->expr);
       write_tok_ch(';');
       break;
     case stmk_if:
       /* "if" statement: generate "if (expr) statement" or
                                   "if (expr) statement else statement". */
       write_tok_str("if ");
-      gen_boolean_controlling_expression(statement->expr);
+      gen_full_boolean_controlling_expression(statement->expr);
       write_space();
       /* Generate the "then" part. */
       gen_statement(statement->variant.if_stmt.then_statement);
@@ -3265,7 +3290,7 @@ Generate code for the indicated statement.
     case stmk_while:
       /* "while" statement: generate "while (expr) statement". */
       write_tok_str("while ");
-      gen_boolean_controlling_expression(statement->expr);
+      gen_full_boolean_controlling_expression(statement->expr);
       write_space();
       /* Generate the dependent statement. */
       gen_statement(statement->variant.loop_statement);
@@ -3276,7 +3301,7 @@ Generate code for the indicated statement.
       /* Generate the dependent statement. */
       gen_statement(statement->variant.loop_statement);
       write_tok_str("while ");
-      gen_boolean_controlling_expression(statement->expr);
+      gen_full_boolean_controlling_expression(statement->expr);
       write_tok_ch(';');
       break;
     case stmk_for:
@@ -3301,13 +3326,19 @@ Generate code for the indicated statement.
     case stmk_return:
       /* "return" statement: generate "return;" or "return expr;". */
       write_tok_str("return");
-      /* Suppress the return expression on constructors. */
-      curr_routine = curr_function_scope->variant.routine.ptr;
-      if (statement->expr != NULL &&
-          curr_routine->special_kind !=
+      if (statement->expr != NULL) {
+        /* The return has an expression. */
+        /* Suppress the return expression on constructors. */
+        a_routine_ptr curr_routine = curr_function_scope->variant.routine.ptr;
+        if (curr_routine->special_kind !=
                                     (a_special_function_kind)sfk_constructor) {
-        write_space();
-        gen_expression(statement->expr);
+          write_space();
+          gen_expression(statement->expr);
+        }  /* if */
+      } else if (statement->variant.return_dynamic_init != NULL) {
+        /* The return value is passed via a copy constructor call. */
+        gen_dynamic_init(statement->variant.return_dynamic_init,
+                         /*parenthesized_init=*/FALSE);
       }  /* if */
       write_tok_ch(';');
       break;
@@ -3336,6 +3367,12 @@ Generate code for the indicated statement.
            processing source sequence entries until a non-declaration is found,
            but if another stmk_decl follows this one we stop on the first
            declaration associated with that one. */
+        a_source_sequence_entry_ptr stop_on_decl = NULL;
+        a_statement_ptr             next_statement = statement->next;
+        if (next_statement != NULL &&
+            next_statement->kind == (a_statement_kind)stmk_decl) {
+          stop_on_decl = next_statement->source_sequence_entry;
+        }  /* if */
         /* Note that there will always be at least an end-of-construct entry
            for the closing brace of the function, so we won't run off the
            end of the list. */
@@ -3349,33 +3386,90 @@ Generate code for the indicated statement.
     default:
       unexpected_condition_str("gen_statement: bad statement kind");
   }  /* switch */
-  /* Skip over the source sequence entries for any types or implicit
-     function declarations in the statement.  Don't do this for blocks
-     because (a) they don't have such declarations and (b) the scan
-     would run off the end of the scope/function. */
-  if (kind != (a_statement_kind)stmk_block) {
-    skip_embedded_declarations(stop_on_decl);
-  }  /* if */
 done:;
   write_space();
 }  /* gen_statement */
 
 
-static void gen_dynamic_init(a_dynamic_init_ptr dip)
+static void gen_dynamic_init(a_dynamic_init_ptr dip,
+                             a_boolean          parenthesized_init)
 /*
-Output the indicated dynamic initialization.
+Output the indicated dynamic initialization.  If parenthesized_init is
+TRUE, put parentheses around the initializer; this is the parenthesized
+form of initialization, e.g.,
+
+  A x(y);
+
+If parenthesized_init is FALSE, this is an initialization with "="
+semantics (but the "=" is put out by the caller, if at all); put nothing
+around the initializer, and do copy constructor elision if possible
+(e.g., put out "j" instead of "A(j)"; the current context must be one
+where the type of thing being initialized is clear).  If no initialization
+is indicated, nothing is put out (in either mode).
 */
 {
+  /* Note that the destructor, if any, is implicit and need not be put out. */
   switch (dip->kind) {
+    case dik_none:
+      /* No initialization. */
+      break;
     case dik_constant:
-      write_tok_str(" = ");
+    case dik_nonconstant_aggregate:
+      /* Constant (simple or aggregate). */
+      /* An aggregate constant cannot be put out in a parenthesized
+         initializer. */
+      check_assertion_str(!parenthesized_init ||
+                          dip->variant.constant->kind !=
+                                            (a_constant_repr_kind)ck_aggregate,
+                          "gen_dynamic_init: aggregate in parens");
+      if (parenthesized_init) write_tok_ch('(');
       gen_constant(dip->variant.constant);
+      if (parenthesized_init) write_tok_ch(')');
       break;
     case dik_expression:
-      write_tok_str(" = ");
-      /* Parentheses are required because of the possibility that the top-level
-         operator is a ",". */
+      /* Expression. */
+      /* Parentheses are required (a) if parenthesized_init is TRUE, and
+         (b) if parenthesized_init is FALSE, because of the possibility that
+         the top-level operator is a ",". */
       gen_expr_with_parens(dip->variant.expression);
+      break;
+    case dik_constructor:
+      { a_routine_ptr    ctor;
+        a_type_ptr       class_type;
+        an_expr_node_ptr args;
+        a_boolean        const_object_okay, volatile_object_okay;
+
+        /* Initialization by constructor.  The forms are as follows:
+             parenthesized_init
+               TRUE                        (arg1, arg2, ...)
+               FALSE copy constructor      arg1          <-- cctor elision case
+                     not copy constructor  T(arg1, arg2, ...)
+        */
+        ctor = dip->variant.constructor.ptr;
+        class_type = ctor->source_corresp.class_of_which_a_member;
+        args = dip->variant.constructor.args;
+        if (!parenthesized_init && is_copy_constructor(ctor, class_type,
+                                                       &const_object_okay,
+                                                      &volatile_object_okay)) {
+          /* This is the copy constructor elision case -- we don't have to
+             write the copy constructor because it's implied. */
+          gen_expression(args);
+        } else {
+          /* This is the non-elision case. */
+          if (parenthesized_init && args == NULL) {
+            /* This is a default constructor, so do not list the
+               initialization. */
+          } else {
+            if (!parenthesized_init) {
+              /* For the non-parenthesized case, start with the name of the
+                 class as the constructor name. */
+              gen_type_name(class_type);
+            }  /* if */
+            /* Put out the argument list in parentheses. */
+            gen_argument_list(args, ctor->type);
+          }
+        }  /* if */
+      }
       break;
     default:
       unexpected_condition_str("gen_dynamic_init: bad kind");
@@ -3388,6 +3482,9 @@ static void gen_initializer(a_variable_ptr var)
 Output the initializer, if any, for the indicated variable.
 */
 {
+  a_boolean          parenthesized_init;
+  a_dynamic_init_ptr dip;
+
   switch (var->init_kind) {
     case initk_none:
       /* No initializer. */
@@ -3397,7 +3494,25 @@ Output the initializer, if any, for the indicated variable.
       gen_constant(var->initializer.constant);
       break;
     case initk_dynamic:
-      gen_dynamic_init(var->initializer.dynamic);
+      /* Dynamic initialization. */
+      dip = var->initializer.dynamic;
+      if (dip->kind == (a_dynamic_init_kind)dik_none) {
+        /* No initialization at all.  (The dynamic init is here because
+           there is a destructor, but it's implicit.) */
+        break;
+      }  /* if */
+      /* Use the parenthesized initialization form, e.g.,
+           A x(y);
+         For classes with constructors, and the "=" form, e.g.,
+           A x = y;
+         Otherwise. */
+      if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+        parenthesized_init = TRUE;
+      } else {
+        write_tok_str(" = ");
+        parenthesized_init = FALSE;
+      }  /* if */
+      gen_dynamic_init(dip, parenthesized_init);
       break;
     case initk_zero:
       /* initk_zero is only produced by IL lowering. */
@@ -3481,54 +3596,12 @@ function.
 }  /* gen_old_style_parameter_decls */
 
 
-static void gen_func_definition_type(a_routine_ptr  rout,
-                                     a_scope_ptr    scope,
-                                     a_name_context *context)
+static void gen_function_definition(a_scope_ptr scope)
 /*
-Generate the routine name and type, including the parameter declarations,
-for the definition of the indicated routine.  scope is the associated scope.
-context is a name context entry (a local variable in the caller) to be
-pushed onto the name context stack at the appropriate point.
+Generate the definition of the routine associated with the indicated
+scope, starting with the opening brace of the top-level block.
 */
 {
-  a_type_ptr type = rout->type;
-
-  /* The storage class and "inline" have already been written if
-     necessary. */
-  /* Write the specifiers and the first part of the declarator. */
-  gen_type_first_part(type, /*need_paren=*/FALSE,
-                      /*need_trailing_space=*/TRUE);
-  /* Write the name. */
-  gen_routine_name(rout);
-  /* Push a name context for the function. */
-  push_name_context(context, scope);
-  /* Write the second part of the declarator. */
-  gen_function_declarator(type, scope);
-  if (routine_type_requires_no_return_type(type)) {
-    /* Do not put out the return type for a constructor, destructor, or
-       conversion function. */
-  } else {
-    gen_type_second_part(type->variant.routine.return_type,
-                         /*need_paren=*/TRUE);
-  }  /* if */
-  /* For an old-style function, declare the parameters. */
-  if (!rout->type->variant.routine.extra_info->prototyped) {
-    gen_old_style_parameter_decls();
-  }  /* if */
-  write_space();
-}  /* gen_func_definition_type */
-
-
-static void gen_function_definition(a_routine_ptr rout)
-/*
-Generate the definition of the indicated routine.  The information preceding
-the return type specifier (e.g., storage class) has already been put out
-by gen_routine_decl.
-*/
-{
-  a_scope_ptr            scope;
-  a_memory_region_number scope_region_number;
-  a_name_context         context;
   /* Save state variables for functions for the case where a member function
      is nested inside another function. */
   a_scope_ptr            saved_curr_function_scope = curr_function_scope;
@@ -3537,43 +3610,18 @@ by gen_routine_decl.
   a_statement_ptr        saved_curr_switch_statement = curr_switch_statement;
   unsigned long          saved_num_curr_switch_statements =
                                                     num_curr_switch_statements;
-  a_source_sequence_entry_ptr
-                         saved_curr_source_sequence_entry =
-                                                    curr_source_sequence_entry;
 
-  scope_region_number = rout->assoc_scope;
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-  /* Read the information for the function from the IL file.  This must be
-     read before the interface is generated in order to get the parameter
-     names. */
-  read_memory_region(scope_region_number);
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  scope = il_header.region_scope_entry[scope_region_number];
   curr_function_scope = scope;
   curr_scope_within_function = scope;
   curr_switch_statement = NULL;
   num_curr_switch_statements = 0;
-  /* Follow the source sequence list for the function. */
-  curr_source_sequence_entry = scope->source_sequence_list;
-  adv_to_signif_source_sequence_entry();
-   /* Generate the routine name and the parameter declarations. */
-  gen_func_definition_type(rout, scope, &context);
   /* Generate the body statement. */
   gen_statement(scope->assoc_block);
-  /* Pop the name context for the function (pushed in
-     gen_func_definition_type). */
-  pop_name_context();
-  curr_function_scope = NULL;
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-  /* Now that we're done with the function, free its IL information. */
-  free_memory_region(scope_region_number);
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Restore function state variables to their states on entry. */
   curr_function_scope = saved_curr_function_scope;
   curr_scope_within_function = saved_curr_scope_within_function;
   curr_switch_statement = saved_curr_switch_statement;
   num_curr_switch_statements = saved_num_curr_switch_statements;
-  curr_source_sequence_entry = saved_curr_source_sequence_entry;
 }  /* gen_function_definition */
 
 
@@ -3584,9 +3632,14 @@ sequence entry.
 */
 {
   a_routine_ptr                rout;
+  a_type_ptr                   rout_type;
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition = FALSE;
   a_storage_class              storage_class;
+  a_name_context               context;
+  a_scope_ptr                  scope = NULL;
+  a_memory_region_number       scope_region_number;
+  a_source_sequence_entry_ptr  saved_curr_source_sequence_entry;
 
   /* Note that compiler-generated routines don't appear on the source sequence
      lists, so they never get here. */
@@ -3597,10 +3650,23 @@ sequence entry.
     rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
     is_definition = (rout->assoc_scope != NULL_region_number);
   }  /* if */
+  rout_type = rout->type;
   /* Advance past the source sequence entry for the routine. */
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
   set_decl_position(&rout->source_corresp, sec_decl);
+  if (is_definition) {
+    /* This is a definition of the routine.  Determine the scope for the
+       routine. */
+    scope_region_number = rout->assoc_scope;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    /* Read the information for the function from the IL file.  This must be
+       read before the interface is generated in order to get the parameter
+       names. */
+    read_memory_region(scope_region_number);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+    scope = il_header.region_scope_entry[scope_region_number];
+  }  /* if */
   /* Output the storage class. */
   storage_class = rout->storage_class;
   /* Determine the proper storage class to display. */
@@ -3616,17 +3682,71 @@ sequence entry.
     }  /* if */
   }  /* if */
   gen_storage_class(storage_class);
+  /* Generate other leading specifiers. */
   if (rout->is_inline) write_tok_str("inline ");
   if (rout->is_virtual) write_tok_str("virtual ");
-  /* Output the routine name and its type. */
+  /* Generate a declaration for the routine name with the right type. */
+  if (rout_type->kind == (a_type_kind)tk_typeref) {
+    /* If the function type comes from a typedef, handle the declaration
+       in the conventional way.  This can only occur for declarations. */
+    gen_declaration_using_type(rout_type, &rout->source_corresp, sec_decl);
+  } else {
+    /* Normal routine case.  Do the declaration in a special way because
+       (a) function definitions use information from the function parameter
+       variables, and (b) we need to suppress return types on constructors,
+       destructors, etc. */
+    a_boolean return_type_needed = TRUE;
+    if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+        rout->special_kind == (a_special_function_kind)sfk_destructor ||
+        rout->special_kind == (a_special_function_kind)sfk_conversion) {
+      /* Do not put out the return type for a constructor, destructor, or
+         conversion function. */
+      return_type_needed = FALSE;
+    }  /* if */
+    if (return_type_needed) {
+      /* Write the type specifiers and the first part of the declarator. */
+      gen_type_first_part(rout_type, /*need_paren=*/FALSE,
+                          /*need_trailing_space=*/TRUE);
+    }  /* if */
+    /* Position the output file to the declaration position (again). */
+    set_decl_position(&rout->source_corresp, sec_decl);
+    /* Write the routine name. */
+    gen_routine_name(rout);
+    if (is_definition) {
+      /* For a definition, push a name context for the function. */
+      push_name_context(&context, scope);
+      /* Follow the source sequence list for the function. */
+      saved_curr_source_sequence_entry = curr_source_sequence_entry;
+      curr_source_sequence_entry = scope->source_sequence_list;
+      adv_to_signif_source_sequence_entry();
+    }  /* if */
+    /* Write the second part of the declarator. */
+    gen_function_declarator(rout_type, scope);
+    if (return_type_needed) {
+      gen_type_second_part(rout_type->variant.routine.return_type,
+                           /*need_paren=*/TRUE);
+    }  /* if */
+  }  /* if */
   if (!is_definition) {
     /* A declaration of the routine. */
-    gen_declaration_using_type(rout->type, &rout->source_corresp, sec_decl);
     /* Finish the declaration. */
     write_tok_ch(';');
   } else {
     /* The definition of the routine. */
-    gen_function_definition(rout);
+    /* For an old-style function, declare the parameters. */
+    if (!rout_type->variant.routine.extra_info->prototyped) {
+      gen_old_style_parameter_decls();
+    }  /* if */
+    write_space();
+    /* Generate the body of the function. */
+    gen_function_definition(scope);
+    /* Pop the name context for the function. */
+    pop_name_context();
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    /* Now that we're done with the function, free its IL information. */
+    free_memory_region(scope_region_number);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+    curr_source_sequence_entry = saved_curr_source_sequence_entry;
   }  /* if */
 }  /* gen_routine_decl */
 
