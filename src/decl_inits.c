@@ -317,10 +317,18 @@ If there is an error, issue an error and return an error constant.
            is set from the string length. */
         set_initialized_array_size(&array_type, num_elems);
         local_type = array_type;
+      } else if (array_type->variant.array.is_variable_size_array) {
+        /* This should only happen during prototype instantiations where the
+           array length is a template parameter dependent constant. */
+        an_expr_node_ptr  size_expr =
+                         array_type->variant.array.variant.element_count_expr;
+        check_assertion(size_expr->kind == (an_expr_node_kind)enk_constant &&
+                        size_expr->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_template_param);
+        
       } else {
         /* The object being initialized is an array that has a definite
            size.  See if the string will fit in the array. */
-        check_assertion(!array_type->variant.array.is_variable_size_array);
         array_length = array_type->variant.array.variant.number_of_elements;
         if (num_elems > array_length) {
           /* The string is longer than the array.  Check to see if the
