@@ -1,9 +1,38 @@
 Version 2.07
 
+6/16/92  Fixed bug in default arg expression processing in member function
+         declarations.
+
+The function prototype scope is reactivated and its parameter symbols are
+reentered before default argument expressions in class member function
+declarations are scanned.  This fixes bugs such as the failure to report
+the error in the following:
+
+  class A {
+    static int i;
+    void f(int i, int j = i);
+  };
+
+6/15/92  Added new sk_parameter symbols to fix bug in default arg
+         expression processing.
+
+Symbols of a new kind, sk_parameter, are now created in the function
+prototype scope when parameter declarations are processed; they are used
+in detecting the appearance of parameter names in default argument
+expressions (prohibited in ARM 8.2.6).  Consequently, the previously
+undetected error in the following declaration is now reported:
+
+  static int i;
+  void f(int i, int j = i);
+
+When a function body is present, sk_parameter symbols from the function
+prototype scope are turned into sk_variable symbols in the function
+scope.
+
 6/12/92  Symbol names are not available when STANDALONE_UTILITY_PROGRM.
 
-Conditional compilation added to suppress symbol name expansion when error.c
-is part of a utility program.
+Conditional compilation added to suppress symbol name expansion when
+error.c is part of a utility program.
 
 6/5/92  Added protected member access check of ARM 11.5.
 
@@ -25,12 +54,12 @@ compiler-generated casts.
 
 In nonconstant expressions, constant addressing expressions are now
 always kept in expression form rather than in constant address form.  
-That provides more information for alising analysis.
+That provides more information for aliasing analysis.
 
 6/5/92  Added support for various diagnostic message fill-ins.
 
-Support was added to allow type and symbol names to be inserted in diagnostic
-messages along with strings.
+Support was added to allow type and symbol names to be inserted in
+diagnostic messages along with strings.
 
 6/4/92  Destructor inheritance disallowed.
 
