@@ -1,5 +1,17 @@
 Version 2.29
 
+4/6/95   Casts of pointer-to-data-members to related classes
+
+The recent change of representation for pointers to data members (in 2.28)
+makes pointers to data members unsigned (even if the same size as
+before, i.e., sizeof(short), is selected).  A bit of code generated
+by IL lowering to do casts of pointers to data members to related
+classes was, as a consequence, adding a very large number in cases
+where it was attempting to add a negative offset to such a pointer.
+This worked okay if the size of pointers to data members was the same
+as int or long, but not if it was the same as short.  The code now
+uses a subtraction to adjust the offset in that case.
+
 4/6/95   Bug with default arguments in --long_lifetime_temps mode
 
 Temporaries required in default argument expressions had been
