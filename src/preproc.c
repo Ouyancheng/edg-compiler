@@ -1083,7 +1083,7 @@ assumed if the return type is omitted.
       }  /* if */
     }  /* if */
     /* Get the token after the identifier -- it should be a newline. */
-    get_token();
+    (void)get_token();
   } else if (is_decl_start(/*expr_context=*/FALSE,
                     /*real_declarator_allowed=*/TRUE) ||
              is_declarator_start()) {

@@ -5703,7 +5703,8 @@ NULL.
            do this for non-real template class instantiations.  Don't
 	   do this for tags reentered from the prototype scope because they
 	   will have added when the prototype scope was popped. */
-        if ((sym->kind == sk_enum_tag || is_real_class_symbol(sym)) &&
+        if ((sym->kind == (a_symbol_kind)sk_enum_tag ||
+	     is_real_class_symbol(sym)) &&
 	    !sym->reentered_from_prototype_scope) {
           add_to_types_list(type_ptr, DEPTH_OF_FILE_SCOPE);
         }  /* if */

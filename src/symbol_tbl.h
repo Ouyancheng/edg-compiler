@@ -818,7 +818,7 @@ typedef struct a_template_symbol_supplement {
       unsigned int
 		dummy:2;
 			/* Extra field that can be initialized to prevent
-			   spurious reference to uninitizlized data warnings
+			   spurious reference to uninitialized data warnings
 			   from CodeCenter. */
 #endif /* CHECKING */
     } function;
