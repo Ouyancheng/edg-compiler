@@ -187,6 +187,17 @@ static void scan_initializer_of_simple_object(
                                        a_type_ptr      *type,
                                        a_dynamic_init  *dip,
                                        a_boolean       *err)
+/*
+Scan a initializer for a non-aggregate object (i.e., not an array and not
+a class/struct/union object).  If nonconst_allowed is TRUE (always the case
+in C++, sometimes otherwise) a nonconstant expression is allowed; if not,
+a constant is required.  convert_array_to_ptr is passed to the expression
+scanning routine to control whether an array should be represented as a
+pointer to the first element.  *type is the data type of the object being
+initialized.  *dip is the dynamic init entry to be updated, even in the case
+of constant initializers.  *err is returned TRUE when an error was detected
+in scanning the initializer or converting it to the required type.
+*/
 {
   an_expr_node_ptr    expression;
   a_boolean           is_constant;
