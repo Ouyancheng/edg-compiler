@@ -617,13 +617,16 @@ extern void make_constructor_dynamic_init(a_routine_ptr    ctor_routine,
 extern a_boolean user_defined_conversion_possible(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,
+                                  a_boolean          is_initialization,
                                   a_routine_ptr      *conversion_routine,
+                                  a_boolean          *class_bitwise_copy,
                                   a_boolean          *failed);
 
 extern void user_convert_operand(an_operand         *operand,
                                  a_type_ptr         dest_type,
                                  a_boolean          result_may_be_lvalue,
                                  a_routine_ptr      conversion_routine,
+                                 a_boolean          class_bitwise_copy,
                                  an_expression_kind expression_kind);
 
 extern void prep_elision_initializer_operand(

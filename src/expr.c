@@ -3870,7 +3870,7 @@ conversions.
 {
   a_type_ptr       source_type;
   an_error_code    warning_suggested;
-  a_boolean        failed = FALSE;
+  a_boolean        failed = FALSE, class_bitwise_copy;
   a_routine_ptr    conversion_routine;
   an_expr_node_ptr func_ptr_node, object_node;
 
@@ -3901,12 +3901,14 @@ conversions.
         !is_const_expr_kind(expression_kind) &&
         !is_void_type(type_cast_to) &&
         user_defined_conversion_possible(operand, type_cast_to,
+                                         /*is_initialization=*/TRUE,
                                          &conversion_routine,
+                                         &class_bitwise_copy,
                                          &failed)) {
       /* A user-defined conversion can be done. */
       user_convert_operand(operand, type_cast_to,
                            /*result_may_be_lvalue=*/cast_to_reference,
-                           conversion_routine,
+                           conversion_routine, class_bitwise_copy,
                            expression_kind);
     } else if (failed) {
       /* A user-defined conversion was our only hope, and it failed.
