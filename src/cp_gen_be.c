@@ -1428,27 +1428,27 @@ to be a complete token.
   }
   goto done;
 digit5:
-  digit = num/10000;
-  digitch = digit + '0';
+  digit = (unsigned int)(num/10000);
+  digitch = (char)(digit + '0');
   m_write_ch_no_pending_check(digitch);
   num = num - digit*10000;
 digit4:
-  digit = num/1000;
-  digitch = digit + '0';
+  digit = (unsigned int)(num/1000);
+  digitch = (char)(digit + '0');
   m_write_ch_no_pending_check(digitch);
   num = num - digit*1000;
 digit3:
-  digit = num/100;
-  digitch = digit + '0';
+  digit = (unsigned int)(num/100);
+  digitch = (char)(digit + '0');
   m_write_ch_no_pending_check(digitch);
   num = num - digit*100;
 digit2:
-  digit = num/10;
-  digitch = digit + '0';
+  digit = (unsigned int)(num/10);
+  digitch = (char)(digit + '0');
   m_write_ch_no_pending_check(digitch);
   num = num - digit*10;
 digit1:
-  digitch = (int)num + '0';
+  digitch = (char)(num + '0');
   m_write_ch_no_pending_check(digitch);
 done:;
 }  /* write_unsigned_num */
