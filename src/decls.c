@@ -2152,7 +2152,7 @@ declaration of this symbol.
 
   db_enter(4, "enter_local_symbol");
   if (scope_stack[scope_level].kind == (a_scope_kind)sck_func_prototype) {
-    if (kind == sk_variable || kind == sk_constant) {
+    if (kind == sk_variable) {
       /* A variable declared in a function prototype scope is the result of
          an error in an old-style param list. */
     } else {
