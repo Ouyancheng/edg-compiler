@@ -4281,23 +4281,6 @@ is done, is that all the classes have to have been marked first.
 }  /* set_needed_flags_for_typedefs */
 
 
-/*
-Return TRUE if the indicated entry is the canonical entry in a linkage
-correspondence set.
-*/
-#define is_canonical_entry(ptr) \
-  (trans_unit_corresp_of(ptr) != NULL && \
-   trans_unit_corresp_of(ptr)->canonical == (char *)(ptr))
-
-/*
-Return TRUE if the indicated entry is in a secondary translation unit
-and it is the canonical entry in a linkage correspondence set.
-*/
-#define is_secondary_trans_unit_canonical_entry(ptr) \
-  (in_secondary_trans_unit(ptr) && \
-   is_canonical_entry(ptr))
-
-
 void set_needed_flags_at_end_of_file_scope(a_scope_ptr scope)
 /*
 scope is a pointer to the file scope, a namespace scope, or a class scope.
@@ -4336,14 +4319,6 @@ been completed.
   }  /* for */
   /* Check for classes defined in the current scope. */
   for (tp = scope->types; tp != NULL; tp = tp->next) {
-    if (is_secondary_trans_unit_canonical_entry(tp)) {
-      /* A canonical entry is always needed. */
-      /* Turn off end_of_file_scope_needed_flags_phase to avoid walking the
-         subtree, because we're going to do that in a moment. */
-      end_of_file_scope_needed_flags_phase = FALSE;
-      mark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
-      end_of_file_scope_needed_flags_phase = TRUE;
-    }  /* if */
     if (is_immediate_class_type(tp)) {
       /* If the class has been marked to indicate that it is needed,
          then we need to walk the subtree of the class; if not, we can ignore
@@ -4363,10 +4338,9 @@ been completed.
     a_boolean is_needed;
     /* Determine whether this variable should be considered "needed".  This
        is true for variables that are referenced and for most external
-       definitions.  A canonical entry is always needed. */
+       definitions. */
     is_needed = (vp->source_corresp.needed ||
-                 variable_needed_even_if_unreferenced(vp) ||
-                 is_secondary_trans_unit_canonical_entry(vp));
+                 variable_needed_even_if_unreferenced(vp));
     if (is_needed) {
       /* Turn off end_of_file_scope_needed_flags_phase to avoid walking the
          subtree, because we're going to do that in a moment. */
@@ -4380,15 +4354,6 @@ been completed.
     remark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
   }  /* for */
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
-    a_boolean saved_defined = rp->defined;
-    if (is_secondary_trans_unit_canonical_entry(rp)) {
-      /* A canonical entry is always needed. */
-      /* Turn off end_of_file_scope_needed_flags_phase to avoid walking the
-         subtree, because we're going to do that in a moment. */
-      end_of_file_scope_needed_flags_phase = FALSE;
-      mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
-      end_of_file_scope_needed_flags_phase = TRUE;
-    }  /* if */
     /* If the routine is marked as needed, remark it to visit its
        subtree.  The subtree is not visited until this phase, because it
        can change.  Note that the subtree here is the function type,
@@ -4396,6 +4361,7 @@ been completed.
     /* If the "defined" flag is TRUE, the body will already have been
        walked to mark its constituents as needed; we clear the flag to
        keep it from being walked again. */
+    a_boolean saved_defined = rp->defined;
     rp->defined = FALSE;
     remark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
     /* Restore the "defined" flag. */

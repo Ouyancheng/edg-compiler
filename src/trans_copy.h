@@ -25,8 +25,6 @@ extern void copy_secondary_trans_unit_IL_to_primary(void);
 extern
 void mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed(void);
 
-extern
-void rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary(void);
 
 #endif /* ifndef TRANS_COPY_H */
 

@@ -73,6 +73,8 @@ static void copy_address_setup(
                              char             *ptr,
                              an_il_entry_kind kind,
                              a_boolean        known_will_process_in_curr_walk);
+static
+void rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary(void);
 
 
 static char *f_transitive_copy_address_of(char *ptr)
@@ -2604,6 +2606,10 @@ therefore will not be copied.
     }  /* if */
 #endif /* DEBUG */
   }  /* for */
+  /* Sweep the primary translation unit IL tree and look for any
+     pointers to entities in secondary translation units that it uses,
+     and rewrite the pointers as the corresponding primary IL entities. */
+  rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary();
   db_exit();
 }  /* copy_secondary_trans_unit_IL_to_primary */
 
@@ -2835,6 +2841,7 @@ do the termination test.
 }  /* rewrite_secondary_termination_test */
 
 
+static
 void rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary(void)
 /*
 Walk through the primary translation unit IL tree, looking for pointers
@@ -2850,6 +2857,7 @@ before lowering and needed flag marking of the primary IL.
            "rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary");
   if (primary_il_may_reference_other_trans_units) {
     a_boolean first_pass = TRUE;
+    switch_translation_unit(translation_units);
     /* Do two passes so that the il_walk_flag returns to its original value. */
     for (;;) {
       a_remap_function_ptr remap_func = NULL;

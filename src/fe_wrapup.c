@@ -165,9 +165,9 @@ it needs to be executed after all templates have been instantiated.
 
 static void file_scope_il_wrapup_needed_flag_processing(void)
 /*
-Do needed-flag processing as part of file-scope IL wrapup processing.
-The current translation unit is swept to mark external entities and
-the things they reference as "needed".
+Do the needed-flag processing for the current translation unit
+(primary or secondary).  The current translation unit is swept to
+mark external entities and the things they reference as "needed".
 */
 {
 #if MAINTAIN_NEEDED_FLAGS
@@ -191,52 +191,38 @@ the things they reference as "needed".
 }  /* file_scope_il_wrapup_needed_flag_processing */
 
 
-static void file_scope_il_wrapup_part_2(void)
+static void file_scope_il_wrapup_keep_in_il_processing(void)
 /*
-Do more wrapup processing on a translation unit.  This is called both
-for secondary translation units (is_primary_translation_unit is FALSE)
-and for primary translation units (is_primary_translation_unit
-is TRUE).  "Part 2" does needed flag processing for secondary
-translation units (all such translation units must be swept before
-code is removed from any of them, because there can be cross-translation-
-unit references).
-*/
-{
-  if (is_primary_translation_unit) {
-    if (total_errors == 0) {
-      /* Sweep the primary translation unit IL tree and look for any
-         pointers to entities in secondary translation units that it uses,
-         and mark those entities as needed. */
-      mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed();
-    }  /* if */
-  } else {
-    /* Sweep a secondary translation unit IL tree and mark things as
-       needed. */
-    file_scope_il_wrapup_needed_flag_processing();
-  }  /* if */
-}  /* file_scope_il_wrapup_part_2 */
-
-
-static void remove_unneeded_il(void)
-/*
-Remove unneeded IL from the current translation unit (primary or secondary).
+Do the needed-flag keep-in-il processing for the current translation unit
+(primary or secondary).
 */
 {
 #if MAINTAIN_NEEDED_FLAGS
   a_scope_ptr il_scope = curr_translation_unit->primary_scope;
 
-  /* Remove unneeded IL entries if appropriate. */
-  /* Don't bother pruning the IL of unneeded entries if errors were seen. */
-  if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
-  if (okay_to_eliminate_unneeded_il_entries) {
+  if (total_errors == 0) {
     /* Set the "keep_in_il" flag for all file-scope IL entries that must
        be kept to maintain the integrity of the IL. */
     end_of_file_scope_needed_flags_phase = TRUE;
     mark_to_keep_in_il((char *)il_scope, (an_il_entry_kind)iek_scope);
     end_of_file_scope_needed_flags_phase = FALSE;
-    /* Now all IL entries that are really needed are so marked, and other
-       entries that they may depend on are also marked, with "keep_in_il"
-       set to TRUE.  Everything else can be eliminated from the IL. */
+  }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+}  /* file_scope_il_wrapup_keep_in_il_processing */
+
+
+static void file_scope_il_wrapup_remove_unneeded_il(void)
+/*
+Do removal of unneeded IL entities for the current translation unit
+(primary or secondary).
+*/
+{
+#if MAINTAIN_NEEDED_FLAGS
+  a_scope_ptr il_scope = curr_translation_unit->primary_scope;
+
+  /* Don't bother pruning the IL of unneeded entries if errors were seen. */
+  if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
+  if (okay_to_eliminate_unneeded_il_entries) {
     /* Eliminate unneeded function bodies.  Note that the function
        declarations are not removed at this point. */
     eliminate_bodies_of_unneeded_functions();
@@ -245,35 +231,56 @@ Remove unneeded IL from the current translation unit (primary or secondary).
     eliminate_unneeded_il_entries(il_scope);
   }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-}  /* remove_unneeded_il */
+}  /* file_scope_il_wrapup_remove_unneeded_il */
+
+
+static void file_scope_il_wrapup_part_2(void)
+/*
+Do more wrapup processing on a translation unit.  A single call of
+this routine handles all translation units.  "Part 2" does needed
+flag processing and unneeded IL removal for secondary translation units.
+*/
+{
+#if MAINTAIN_NEEDED_FLAGS
+  a_translation_unit_ptr tup;
+
+  /* The processing has three parts:
+       1)  Needed-flag marking
+       2)  Keep-in-il flag marking
+       3)  Removal of unneeded entities
+     Each one of those parts is done for all secondary translation
+     units before the next part is done, because the secondary translation
+     unit IL is all intermingled.  You can't remove entities in one
+     secondary translation unit until you have accounted for references
+     from all other secondary translation units. */
+  if (total_errors == 0) {
+    /* Sweep the primary translation unit IL tree and look for any
+       pointers to entities in secondary translation units that it uses,
+       and mark those entities as needed. */
+    mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed();
+  }  /* if */
+  for (tup = translation_units->next; tup != NULL; tup = tup->next) {
+    switch_translation_unit(tup);
+    file_scope_il_wrapup_needed_flag_processing();
+  }  /* for */
+  for (tup = translation_units->next; tup != NULL; tup = tup->next) {
+    switch_translation_unit(tup);
+    file_scope_il_wrapup_keep_in_il_processing();
+  }  /* for */
+  for (tup = translation_units->next; tup != NULL; tup = tup->next) {
+    switch_translation_unit(tup);
+    file_scope_il_wrapup_remove_unneeded_il();
+  }  /* for */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+}  /* file_scope_il_wrapup_part_2 */
 
 
 static void file_scope_il_wrapup_part_3(void)
 /*
-Do more wrapup processing on a translation unit.  This is called both
-for secondary translation units (is_primary_translation_unit is FALSE)
-and for primary translation units (is_primary_translation_unit
-is TRUE).  "Part 3" does removal of unneeded IL entities for secondary
-translation units (we don't want to start copying any of them until
-all unneeded code is removed from all of them, because there can be
-cross-translation-unit references).
-*/
-{
-  if (is_primary_translation_unit) {
-    /* Nothing. */
-  } else {
-    /* Remove unneeded IL entities in a secondary translation unit. */
-    remove_unneeded_il();
-  }  /* if */
-}  /* file_scope_il_wrapup_part_3 */
-
-
-static void file_scope_il_wrapup_part_4(void)
-/*
 Do the final wrapup processing on a translation unit.  This is
 called both for secondary translation units (is_primary_translation_unit
 is FALSE) and for primary translation units (is_primary_translation_unit
-is TRUE).  "Part 4" does IL lowering and needed flag processing for
+is TRUE).  "Part 3" does IL lowering and needed flag processing for
 the primary translation unit, and pops the file scope for both primary
 and secondary translation units.  When the primary translation unit is
 processed here, code from any secondary translation units will have
@@ -281,12 +288,6 @@ already been copied over.
 */
 {
   if (is_primary_translation_unit) {
-    if (total_errors == 0) {
-      /* Sweep the primary translation unit IL tree and look for any
-         pointers to entities in secondary translation units that it uses,
-         and rewrite the pointers as the corresponding primary IL entities. */
-      rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary();
-    }  /* if */
 #if DO_IL_LOWERING
     /* Lower the file scope. */
     lower_il_memory_region(file_scope_region_number);
@@ -325,9 +326,10 @@ already been copied over.
        The needed-flag processing for secondary translation units
        was done in part 2. */
     file_scope_il_wrapup_needed_flag_processing();
+    file_scope_il_wrapup_keep_in_il_processing();
     /* Do removal of unneeded IL entities for the primary translation
        unit.  That was done for secondary translation units in part 3. */
-    remove_unneeded_il();
+    file_scope_il_wrapup_remove_unneeded_il();
     /* Check for memory regions that were not written out but now should
        be.  Among other things, this deals with functions that have
        keep_definition_in_il set but not definition_needed, and inline
@@ -364,7 +366,7 @@ already been copied over.
 #endif /* DO_IL_LOWERING */
     check_for_done_with_memory_region(file_scope_region_number);
   }  /* if */
-}  /* file_scope_il_wrapup_part_4 */
+}  /* file_scope_il_wrapup_part_3 */
 
 
 static void wrap_up_file_scopes(void)
@@ -388,33 +390,14 @@ Complete the file scope of each of the translation units.
   /* Process the primary translation unit. */
   file_scope_il_wrapup_part_1();
   /* Do more wrapup processing for each of the secondary and primary
-     translation units. */
-  tup = translation_units->next;
-  for (; tup != NULL; tup = tup->next) {
-    switch_translation_unit(tup);
-    file_scope_il_wrapup_part_2();
-  }  /* for */
-  /* Switch back to the primary translation unit. */
-  switch_translation_unit(translation_units);
-  /* Process the primary translation unit. */
+     translation units.  This call processes all the translation units. */
   file_scope_il_wrapup_part_2();
-  /* Do yet more wrapup processing for each of the secondary and primary
-     translation units. */
-  tup = translation_units->next;
-  for (; tup != NULL; tup = tup->next) {
-    switch_translation_unit(tup);
-    file_scope_il_wrapup_part_3();
-  }  /* for */
-  /* Switch back to the primary translation unit. */
-  switch_translation_unit(translation_units);
-  /* Process the primary translation unit. */
-  file_scope_il_wrapup_part_3();
   /* Do the final wrapup processing for each of the secondary and primary
      translation units. */
   tup = translation_units->next;
   for (; tup != NULL; tup = tup->next) {
     switch_translation_unit(tup);
-    file_scope_il_wrapup_part_4();
+    file_scope_il_wrapup_part_3();
   }  /* for */
   /* Copy IL from the secondary translation units to the primary IL.
      This must be done before the lowering of the primary IL.
@@ -427,10 +410,8 @@ Complete the file scope of each of the translation units.
   /* Switch back to the primary translation unit. */
   switch_translation_unit(translation_units);
   /* Process the primary translation unit. */
-  file_scope_il_wrapup_part_4();
-  /* Free the secondary IL file-scope memory regions.  This must be done after
-     rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary has
-     been called (in part 4 wrapup for the primary file scope). */
+  file_scope_il_wrapup_part_3();
+  /* Free the secondary IL file-scope memory regions. */
   if (translation_units->next != NULL) {
     a_memory_region_number n;
     for (n = FILE_SCOPE_REGION_NUMBER + 1;
