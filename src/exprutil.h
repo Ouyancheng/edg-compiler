@@ -746,6 +746,19 @@ Macro that is TRUE if the operand is a function designator.
 	((operand)->state == (an_operand_state)os_function_designator)
 
 /*
+Helper macro for is_const_variable (defined below) to handle the case of
+const floating-point variables which are allowed in GNU C++ constant-
+expressions.
+*/
+#if GNU_EXTENSIONS_ALLOWED
+#define or_is_gpp_const_floating_variable(var) ||                       \
+  (gpp_mode && is_floating_type((var)->type) &&                         \
+   is_const_qualified_type((var)->type))
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define or_is_gpp_const_floating_variable(var)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+/*
 Return TRUE if a variable is a constant identifier usable in
 constant expressions.  Such a variable has const integral or enum type.
 In a prototype instantiation, it could instead have a template parameter type.
@@ -755,7 +768,8 @@ is done in var_constant_value.
 #define is_const_variable(var)                                          \
   ((is_integral_or_enum_type((var)->type) &&                            \
     is_const_qualified_type((var)->type)) ||                            \
-   is_template_param_type((var)->type))
+   is_template_param_type((var)->type)                                  \
+   or_is_gpp_const_floating_variable(var))
 
 
 extern a_ref_entry_ptr copy_ref_entry_list(a_ref_entry_ptr ref_list);
