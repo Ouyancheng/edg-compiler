@@ -672,6 +672,8 @@ extern void lower_statement(a_statement_ptr statement);
 
 extern void lower_il_memory_region(a_memory_region_number region_number);
 
+extern void eliminate_all_object_lifetimes(a_scope_ptr scope);
+
 #if DEBUG
 extern unsigned long show_lowering_space_used(void);
 #endif /* DEBUG */

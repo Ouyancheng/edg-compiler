@@ -8116,66 +8116,6 @@ next_kind:;
 }  /* lower_orphaned_entries */
 
 
-static void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp)
-/*
-Eliminate the indicated object lifetime and all its children.  "Eliminate"
-means to detach them from the IL tree so they're not reachable.  Do nothing
-if olp is NULL.
-*/
-{
-  an_object_lifetime_ptr child_olp;
-
-  if (olp != NULL) {
-    /* Visit all children. */
-    for (child_olp = olp->child_lifetime;
-         child_olp != NULL;
-         child_olp = child_olp->next) {
-      eliminate_object_lifetime_tree(child_olp);
-    }  /* if */
-    /* Watch out for lifetimes that have already been unbound (e.g., those
-       associated with enk_object_lifetime nodes). */
-    if (olp->entity.kind != (a_byte_il_entry_kind)iek_none) {
-      /* Unbind this object lifetime from its attached entity. */
-      unbind_object_lifetime(olp);
-    }  /* if */
-  }  /* if */
-}  /* eliminate_object_lifetime_tree */
-
-
-static void eliminate_all_object_lifetimes(a_scope_ptr scope)
-/*
-Eliminate all object lifetime entries attached to the indicated scope and
-its subtree, because they're not supposed to be passed on to the back end.
-This is done late so that the object lifetimes are available during the
-entire lowering process.  The scope is the top scope in a memory region.
-*/
-{
-  eliminate_object_lifetime_tree(scope->lifetime);
-  if (scope->kind == (a_scope_kind)sck_function) {
-    eliminate_object_lifetime_tree(
-                         scope->variant.routine.lifetime_of_constructor_inits);
-    eliminate_object_lifetime_tree(
-                         scope->variant.routine.lifetime_of_local_static_vars);
-  } else {
-    /* File scope. */
-#if ORPHAN_PROCESSING_NEEDED
-    /* Clear the orphan list for object lifetimes. */
-    char                      *entry_ptr, *next_entry_ptr;
-    an_orphaned_il_entry_list *orphan_header =
-                     &orphaned_file_scope_il_entries[(int)iek_object_lifetime];
-    for (entry_ptr = orphan_header->first_entry;
-         entry_ptr != NULL; 
-         entry_ptr = next_entry_ptr) {
-      next_entry_ptr = fs_orphan_pointer_of(entry_ptr);
-      fs_orphan_pointer_of(entry_ptr) = NULL;
-    }  /* for */
-    orphan_header->first_entry = NULL;
-    orphan_header->last_entry = NULL;
-#endif /* ORPHAN_PROCESSING_NEEDED */
-  }  /* if */
-}  /* eliminate_all_object_lifetimes */
-
-
 void lower_il_memory_region(a_memory_region_number region_number)
 /*
 Rewrite the intermediate language in memory region region_number from
@@ -8250,11 +8190,6 @@ C++ to C, so that a C back end can handle it without change.
        This must be done late so that all the required typeinfo variables
        will have been created already. */
     define_scope_class_typeinfo_vars(scope);
-    if (!keep_object_lifetime_info_in_lowered_il) {
-      /* We're not supposed to pass object lifetime information to the back
-         end, so unlink all object lifetimes from the IL tree. */
-      eliminate_all_object_lifetimes(scope);
-    }  /* if */
     /* Pop the file-scope context. */
     pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
@@ -8262,6 +8197,66 @@ C++ to C, so that a C back end can handle it without change.
   curr_object_lifetime = saved_curr_object_lifetime;
   db_exit();
 }  /* lower_il_memory_region */
+
+
+static void eliminate_object_lifetime_tree(an_object_lifetime_ptr olp)
+/*
+Eliminate the indicated object lifetime and all its children.  "Eliminate"
+means to detach them from the IL tree so they're not reachable.  Do nothing
+if olp is NULL.
+*/
+{
+  an_object_lifetime_ptr child_olp;
+
+  if (olp != NULL) {
+    /* Visit all children. */
+    for (child_olp = olp->child_lifetime;
+         child_olp != NULL;
+         child_olp = child_olp->next) {
+      eliminate_object_lifetime_tree(child_olp);
+    }  /* if */
+    /* Watch out for lifetimes that have already been unbound (e.g., those
+       associated with enk_object_lifetime nodes). */
+    if (olp->entity.kind != (a_byte_il_entry_kind)iek_none) {
+      /* Unbind this object lifetime from its attached entity. */
+      unbind_object_lifetime(olp);
+    }  /* if */
+  }  /* if */
+}  /* eliminate_object_lifetime_tree */
+
+
+void eliminate_all_object_lifetimes(a_scope_ptr scope)
+/*
+Eliminate all object lifetime entries attached to the indicated scope and
+its subtree, because they're not supposed to be passed on to the back end.
+This is done late so that the object lifetimes are available during the
+entire lowering process.  The scope is the top scope in a memory region.
+*/
+{
+  eliminate_object_lifetime_tree(scope->lifetime);
+  if (scope->kind == (a_scope_kind)sck_function) {
+    eliminate_object_lifetime_tree(
+                         scope->variant.routine.lifetime_of_constructor_inits);
+    eliminate_object_lifetime_tree(
+                         scope->variant.routine.lifetime_of_local_static_vars);
+  } else {
+    /* File scope. */
+#if ORPHAN_PROCESSING_NEEDED
+    /* Clear the orphan list for object lifetimes. */
+    char                      *entry_ptr, *next_entry_ptr;
+    an_orphaned_il_entry_list *orphan_header =
+                     &orphaned_file_scope_il_entries[(int)iek_object_lifetime];
+    for (entry_ptr = orphan_header->first_entry;
+         entry_ptr != NULL; 
+         entry_ptr = next_entry_ptr) {
+      next_entry_ptr = fs_orphan_pointer_of(entry_ptr);
+      fs_orphan_pointer_of(entry_ptr) = NULL;
+    }  /* for */
+    orphan_header->first_entry = NULL;
+    orphan_header->last_entry = NULL;
+#endif /* ORPHAN_PROCESSING_NEEDED */
+  }  /* if */
+}  /* eliminate_all_object_lifetimes */
 
 
 #if DEBUG
