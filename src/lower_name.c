@@ -1467,7 +1467,7 @@ should be put out.
       a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
       a_class_type_supplement_ptr   proto_ctsp;
 
-      if (cssp->is_prototype_instantiation) {
+      if (type->variant.class_struct_union.is_prototype_instantiation) {
         proto_ctsp = ctsp;
       } else {
         a_symbol_ptr proto_sym = cssp->corresp_prototype_sym;

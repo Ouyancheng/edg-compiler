@@ -896,10 +896,8 @@ declaration position to eliminate redundant file names in a diagnostic.
       goto symbol_name;
     case sk_class_or_struct_tag:
     case sk_union_tag:
-      { a_class_symbol_supplement_ptr	cssp;
-        cssp = fund_sym->variant.class_struct_union.extra_info;
-        if (C_dialect == C_dialect_cplusplus &&
-            cssp->is_prototype_instantiation) {
+      { if (C_dialect == C_dialect_cplusplus &&
+            is_prototype_instantiation_symbol(fund_sym)) {
           /* This is a symbol for a prototype instantiation of a class
              template.  It is preferable to display "class template X<T>"
              instead of "class X<T>", so fall through to code for

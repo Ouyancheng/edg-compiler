@@ -4096,6 +4096,12 @@ typedef struct a_type {
                            In addition, classes that are nested within
 			   nonreal classes are marked as nonreal. */
       a_bit_field
+		is_prototype_instantiation:1;
+			/* TRUE when this class is a nonreal class that
+		 	   is the prototype instantiation.  Also TRUE for
+			   classes nested within the prototype
+			   instantiation. */
+      a_bit_field
 		is_specialized:1;
 			/* TRUE for class template instances for which the
 			   definition is supplied independently of the class

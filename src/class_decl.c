@@ -11626,7 +11626,7 @@ nested classes when their definition appears outside of the class template.
       variant.class_struct_union.extra_info->surrounding_name_linkage_state =
                           scope_stack[depth_scope_stack].default_name_linkage;
 #endif /* BACK_END_IS_CP_GEN_BE */
-    if (cssp->is_prototype_instantiation ||
+    if (class_type->variant.class_struct_union.is_prototype_instantiation ||
         (scope_stack[depth_scope_stack].in_prototype_instantiation &&
          class_type->source_corresp.is_local_to_function)) {
       /* This is a prototype instantiation or an instantiation of a local
@@ -11683,7 +11683,8 @@ nested classes when their definition appears outside of the class template.
       class_type->variant.class_struct_union.max_member_alignment =
                          tp->variant.class_struct_union.max_member_alignment;
     }  /* if */
-    if (is_template_instantiation && !cssp->is_prototype_instantiation) {
+    if (is_template_instantiation &&
+        !class_type->variant.class_struct_union.is_prototype_instantiation) {
       /* Since a template instantiation may appear out of sequence relative
          to the textual sequence of the source program, reset the alignment
          state (saving the current state to restore it later).  Note that
@@ -11961,7 +11962,8 @@ next_declaration:
        is called. */
     process_curr_token_pragmas();
 #if USER_CONTROL_OF_STRUCT_PACKING
-    if (is_template_instantiation && !cssp->is_prototype_instantiation) {
+    if (is_template_instantiation &&
+        !class_type->variant.class_struct_union.is_prototype_instantiation) {
       /* Now that the class instantiation has been scanned, restore the
          original pack alignment state.  Note that this must occur after the
          pragmas associated with the closing brace have been processed. */
@@ -12117,7 +12119,7 @@ next_declaration:
         add_to_class_fixup_list(class_type, is_template_instantiation);
       }  /* if */
       curr_routine_fixup = saved_routine_fixup;
-      if (cssp->is_prototype_instantiation) {
+      if (class_type->variant.class_struct_union.is_prototype_instantiation) {
         a_template_symbol_supplement_ptr      tssp = class_tssp;
         tssp->variant.class_template.prototype_instantiation = tag_sym;
         tssp->variant.class_template.prototype_instantiation_complete = TRUE;

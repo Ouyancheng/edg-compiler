@@ -599,7 +599,7 @@ and indentation is the indentation desired.
         if (temp_type->variant.class_struct_union.is_nonreal_class) {
           put_string("nonreal");
         }  /* if */
-        if (cssp->is_prototype_instantiation) {
+        if (temp_type->variant.class_struct_union.is_prototype_instantiation) {
           put_string("prototype instantiation");
         }  /* if */
         if (cssp->any_nonreal_base_classes) {
@@ -2324,7 +2324,6 @@ state.
         cssp->has_operator_array_new = FALSE;
         cssp->has_operator_delete = FALSE;
         cssp->has_operator_array_delete = FALSE;
-        cssp->is_prototype_instantiation = FALSE;
         cssp->any_nonstatic_data_members = FALSE;
         cssp->any_nonreal_base_classes = FALSE;
         cssp->instantiation_in_progress = FALSE;

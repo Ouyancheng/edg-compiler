@@ -1416,7 +1416,7 @@ projection symbol.
       if (is_immediate_class_type(tp) && !sym_ptr->is_class_member) {
         a_class_symbol_supplement_ptr  cssp;
         cssp = sym_ptr->variant.class_struct_union.extra_info;
-        if (cssp->is_prototype_instantiation) {
+        if (tp->variant.class_struct_union.is_prototype_instantiation) {
           /* A reference to a top-level prototype instantiation (i.e., not a
              nested class) is put out as a reference to the template itself. */
           sym_for_xref = cssp->class_template;

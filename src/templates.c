@@ -8296,12 +8296,12 @@ and create the template symbol supplement for the class.
   parent_tssp = parent_cssp->template_info;
   class_type = sym->variant.class_struct_union.type;
   cssp = sym->variant.class_struct_union.extra_info;
-  if (!parent_cssp->is_prototype_instantiation) {
+  if (!parent_type->variant.class_struct_union.is_prototype_instantiation) {
     /* Under certain error cases, it is possible to have a real class
        created within a prototype instantiation.  Don't mark such symbols
        as prototype instantiations. */
   } else {
-    cssp->is_prototype_instantiation = TRUE;
+    class_type->variant.class_struct_union.is_prototype_instantiation = TRUE;
     class_type->variant.class_struct_union.is_nonreal_class =
                       parent_type->variant.class_struct_union.is_nonreal_class;
     class_type->variant.class_struct_union.is_template_class = TRUE;
@@ -8698,7 +8698,7 @@ initially used when processing the declaration of a partial specialization.
      of what may be a partial specialization, not in the primary template. */
   tssp->variant.class_template.prototype_instantiation = prototype_sym;
   prototype_cssp = prototype_sym->variant.class_struct_union.extra_info;
-  prototype_cssp->is_prototype_instantiation = TRUE;
+  prototype_type->variant.class_struct_union.is_prototype_instantiation = TRUE;
   prototype_type->variant.class_struct_union.is_nonreal_class = TRUE;
   prototype_cssp->template_info = tssp;
 }  /* create_prototype_type */

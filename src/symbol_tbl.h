@@ -781,11 +781,6 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if a member operator delete[]() has been
 			   declared for this class or a class from which it
 			   is derived. */
-  a_bit_field	is_prototype_instantiation:1;
-			/* TRUE when this class is a nonreal class that
-		 	   is the prototype instantiation.  Also TRUE for
-			   classes nested within the prototype
-			   instantiation. */
   a_bit_field	any_nonstatic_data_members:1;
 			/* TRUE if the class or any of its base classes has
 			   one or more nonstatic data members. */
@@ -3505,7 +3500,8 @@ supplement.
    class template. */
 #define is_prototype_instantiation_symbol(sym)				\
   (is_class_struct_union_symbol(sym) &&					\
-   (sym)->variant.class_struct_union.extra_info->is_prototype_instantiation)
+   (sym)->variant.class_struct_union.type->				\
+                   variant.class_struct_union.is_prototype_instantiation)
 
 /* If a symbol represents a subordinate template, return a pointer to the
    prototype template; otherwise return the symbol provided. */
