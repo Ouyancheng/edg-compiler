@@ -5815,6 +5815,7 @@ of local variables (and types, etc.) of functions and in blocks.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean		       access_checks_deferred = FALSE;
   a_boolean                    restrict_qualified = FALSE;
+  a_boolean                    scope_deactivation_required;
 
   db_enter(3, "declaration");
 
@@ -6184,6 +6185,7 @@ continue_with_declaration:
       is_function = (storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));
       is_main_function = FALSE;
+      scope_deactivation_required = do_flags & DO_SCOPE_DEACTIVATION_REQUIRED;
       if (is_function && !is_error_locator(locator) &&
           locator.symbol_header->identifier != NULL &&
           (strcmp(locator.symbol_header->identifier, "main") == 0)) {
@@ -6425,6 +6427,7 @@ continue_with_declaration:
           /* The presence of a final '}' will already have been checked for. */
           check_assertion(curr_token == tok_rbrace ||
                           curr_token == tok_end_of_source);
+          if (scope_deactivation_required) pop_namespace_reactivation_scope();
           goto advance_past_final_token;
 #if ASM_FUNCTION_ALLOWED
         } else if (storage_class == (a_storage_class)sc_asm) {
@@ -6812,6 +6815,7 @@ continue_with_declaration:
           var_ptr->type = error_type();
         }  /* if */
       }  /* if */
+      if (scope_deactivation_required) pop_namespace_reactivation_scope();
       done_with_func_info(func_info);
       remove_stop_token(tok_comma);
       need_comma_remove_stop_token = FALSE;

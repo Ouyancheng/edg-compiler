@@ -2217,6 +2217,7 @@ to FALSE if the entity being declared is not initializable.
   a_boolean                 err;
   an_identifier_options_set options;
   a_symbol_ptr              sym;
+  a_namespace_ptr           nsp;
 
   declarator_pos = pos_curr_token;
   /* Process the identifier.  This is done if we are at the beginning of a
@@ -2280,11 +2281,19 @@ to FALSE if the entity being declared is not initializable.
     if (coalesce_and_lookup_qualified_name(options, ilm_normal, &err)) {
       /* See if the name is a qualified name, like "A::x" or "::j". */
       if (locator_for_curr_id.is_qualified_name) {
-        *p_member_parent_type = qualifier_class_type(locator_for_curr_id);
-        if (*p_member_parent_type != NULL) {
+        sym = locator_for_curr_id.specific_symbol;
+        if (!namespace_is_enclosed_by_curr_scope(sym)) {
+          /* The current scope is a namespace scope in which sym cannot be
+             defined -- either because it is a member of a class declared at
+             file scope or because is a member (directly or indirectly) of a
+             namespace that is not enclosed by the current namespace scope
+             (see WP 7.3.1.4). */
+          sym_error(ec_bad_scope_for_definition, sym);
+          err = TRUE;
+        } else if ((*p_member_parent_type =
+                        qualifier_class_type(locator_for_curr_id)) != NULL) {
           a_boolean     reactivate_scope = FALSE;
 
-          sym = locator_for_curr_id.specific_symbol;
           /* See if the name is the name of a member function. */
           if (sym->kind == (a_symbol_kind)sk_member_function ||
               sym->kind == (a_symbol_kind)sk_overloaded_function ||
@@ -2315,7 +2324,7 @@ to FALSE if the entity being declared is not initializable.
             /* Reactivate the scope of the parent class.  It will be
                deactivated once the entire declarator has been scanned. */
             push_class_reactivation_scope(*p_member_parent_type);
-            *output_flags |= DO_CLASS_SCOPE_DEACTIVATION_REQUIRED;
+            *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
             if (any_deferred_access_checks()) {
               /* Discard any access errors that occurred while scanning
                  the name of the thing being defined. */
@@ -2326,6 +2335,13 @@ to FALSE if the entity being declared is not initializable.
               perform_deferred_access_checks();
             }  /* if */
           }  /* if */
+        } else {
+          /* This must be a namespace-qualified name. */
+          nsp = qualifier_namespace_ptr(locator_for_curr_id);
+          /* Push the namespace extension scope.  It will be popped when
+             scanning the declarator has been completed. */
+          push_namespace_reactivation_scope(nsp);
+          *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -2660,11 +2676,11 @@ The syntax is:
       member_parent_type = qualifier_class_type(*locator);
       check_assertion(member_parent_type != NULL);
     }  /* if */
-    if (local_do_flags & DO_CLASS_SCOPE_DEACTIVATION_REQUIRED) {
+    if (local_do_flags & DO_SCOPE_DEACTIVATION_REQUIRED) {
       /* A class scope was reactivated to scan a static data member or a
          member function.  It will have to be deactivated when the scanning
          of the top-level declarator is complete. */
-      *output_flags |= DO_CLASS_SCOPE_DEACTIVATION_REQUIRED;
+      *output_flags |= DO_SCOPE_DEACTIVATION_REQUIRED;
     }  /* if */
 #if RESTRICT_ALLOWED
     if (local_do_flags & DO_PARAM_TYPE_IS_RESTRICT_QUALIFIED_ARRAY) {
@@ -2959,14 +2975,17 @@ function_lparen:
       complete_type = bottom_derived_type = error_type();
     }  /* if */
   }  /* if */
-  if (*output_flags & DO_CLASS_SCOPE_DEACTIVATION_REQUIRED) {
+  if (*output_flags & DO_SCOPE_DEACTIVATION_REQUIRED) {
     /* A class scope was reactivated when a qualified name was seen. */
     if (specifiers_type != NULL) {
       /* This is a top-level call to declarator, so the class scope can now
          be deactivated. */
-      pop_class_reactivation_scope();
-      /* Clear the flag, just to be neat. */
-      *output_flags &= ~(a_decl_flag_set)DO_CLASS_SCOPE_DEACTIVATION_REQUIRED;
+      if (scope_stack[depth_scope_stack].kind ==
+                          (a_scope_kind)sck_class_reactivation) {
+        pop_class_reactivation_scope();
+        /* Clear the flag, just to be neat. */
+        *output_flags &= ~(a_decl_flag_set)DO_SCOPE_DEACTIVATION_REQUIRED;
+      }  /* if */
     } else {
       /* Just pass the information up to the caller. */
     }  /* if */
