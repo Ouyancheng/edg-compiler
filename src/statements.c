@@ -2697,6 +2697,7 @@ statement is the top block of a GNU statement expression ({ ... }).
   sssep->is_catch_clause      = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sssep->in_cleanup_statement_of_microsoft_try = FALSE;
+  sssep->in_handler_parameter_declaration = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sssep->switch_has_default_clause
                               = FALSE;
