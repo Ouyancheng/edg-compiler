@@ -3259,6 +3259,11 @@ care about.
 }  /* ttt_is_local_type */
 
 
+/* A pointer to the specific template parameter to be found by
+   ttt_is_template_param or NULL if any template parameter may be found. */
+static a_type_ptr specific_template_param_type;
+
+
 static a_boolean ttt_is_template_param(a_type_ptr  type_ptr,
                                        a_boolean   *force_end_of_traversal)
 /*
@@ -3270,7 +3275,10 @@ parameter type.
   a_boolean  is_templ_param = FALSE;
 
   if (is_template_param(type_ptr)) {
-    *force_end_of_traversal = is_templ_param = TRUE;
+    if (specific_template_param_type == NULL ||
+        identical_types(type_ptr, specific_template_param_type)) {
+      *force_end_of_traversal = is_templ_param = TRUE;
+    }  /* if */
   }  /* if */
   return is_templ_param;
 }  /* ttt_is_template_param */
@@ -3352,8 +3360,16 @@ its parameters?).
       case tk_union:
         /* Conditional traversal of contained types. */
         if (flags & TTT_TEMPLATE_ARGS) {
+	  /* For nested classes only the outermost class can have
+	     template arguments.  Find the outermost class before doing
+	     the check. */
+          a_type_ptr	      cowam_type = type_ptr;
           a_template_arg_ptr  tap;
-
+          cowam_type = type_ptr->source_corresp.class_of_which_a_member;
+          while (cowam_type != NULL) {
+            type_ptr = cowam_type;
+            cowam_type = cowam_type->source_corresp.class_of_which_a_member;
+          }  /* while */
           for (tap = type_ptr->variant.class_struct_union.extra_info->
                                                           template_arg_list;
                tap != NULL;
@@ -3418,8 +3434,28 @@ type entry or is a type tree containing such a type.
                                                TTT_PARAM_TYPES |
                                                TTT_TEMPLATE_ARGS);
 
+  /* This indicates that any template parameter may be found. */
+  specific_template_param_type = NULL;
   return (traverse_type_tree(type_ptr, ttt_is_template_param, ttt_flags));
 }  /* is_or_contains_template_param */
+
+
+a_boolean is_or_contains_specific_template_param(a_type_ptr  type_ptr,
+						 a_type_ptr  tparam_type)
+/*
+Return TRUE if the type pointed to by type_ptr is itself the specific
+template parameter specified by tparam_type or is a type tree
+containing such a reference to the type.
+*/
+{
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_TEMPLATE_ARGS);
+
+  /* This indicates that only a specific template parameter may be found. */
+  specific_template_param_type = tparam_type;
+  return (traverse_type_tree(type_ptr, ttt_is_template_param, ttt_flags));
+}  /* is_or_contains_specific_template_param */
 
 
 /******************************************************************************
