@@ -2881,8 +2881,8 @@ as specified in the control block.
              handler = handler->next) {
           if (handler->dynamic_init != NULL) {
             traverse_dynamic_init(handler->dynamic_init, tblock);
+            if (tblock->terminate) goto end_of_routine;
           }  /* if */
-          if (tblock->terminate) goto end_of_routine;
           traverse_statement(handler->statement, tblock);
           if (tblock->terminate) goto end_of_routine;
         }  /* for */
