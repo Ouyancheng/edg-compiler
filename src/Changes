@@ -772,7 +772,7 @@ between incompatible pointer types, with a warning.  Also implicit
 conversions between pointer types that drop cv-qualifiers. [11/1/01] typedef
 initializers. [11/1/01] Extended asm syntax. [11/2/01] Variables mapped to
 specific registers.  [12/7/01] --preinclude_macros option (like the gcc
---imacros feature).
+--imacros feature). [12/26/01] Do-nothing casts to struct or union types.
 
 8/28/01  C++-generating back end: unnamed classes/structs not given names
 

@@ -7275,8 +7275,9 @@ be set to the source position of the type.
 #if GNU_EXTENSIONS_ALLOWED
       /* GNU C permits casting from a scalar to a union if the scalar's type
          is the type of a member of the union.  The detailed check happens
-         in conversion_possible.  We just let to-union casts go through.  */
-      if (!gcc_mode || !is_union_type(type_cast_to))
+         in conversion_possible.  Also, do-nothing casts to struct types
+         are allowed. */
+      if (!gcc_mode)
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
@@ -7467,6 +7468,13 @@ this routine is called.
       }  /* if */
       err = TRUE;
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (gcc_mode &&
+             is_class_struct_union_type(dest_type) &&
+             identical_types(f_skip_typerefs(source_type),
+                             f_skip_typerefs(dest_type))) {
+    /* GNU C allows a do-nothing cast to a struct or union type. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (curr_expr_kind_is(ek_init_constant)) {
     /* Initializer constant expression: arithmetic/enum --> arithmetic/enum
        and scalar --> pointer are allowed, pointer --> integral as
@@ -8176,6 +8184,13 @@ C-style casts and C++ functional-notation type conversions.
             }  /* if */
           }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
+        } else if (gcc_mode &&
+                   is_class_struct_union_type(type_cast_to) &&
+                   identical_types(f_skip_typerefs(source_type),
+                                   f_skip_typerefs(type_cast_to))) {
+          /* GNU C allows a do-nothing cast to a struct or union type.
+             The result does not change type (even if there is a cv-qualifier
+             difference implied) and it is not forced to an rvalue. */
         } else if (gcc_mode && is_union_type(type_cast_to)) {
           /* It may be possible to convert *operand to the type of one of
              the members of the union.  If so, the conversion is allowed.  */
