@@ -3317,6 +3317,7 @@ branching into it is disallowed).
      warning on unreachable code. */
   check_lint_notreached_flag();
   if (at_function_level) {
+    a_routine_ptr	rout = current_routine_entry();
     /* Function. */
     /* If the code at the end of a function runs off the end, a default
        return must be added.  See 3.6.6.4. */
@@ -3326,14 +3327,32 @@ branching into it is disallowed).
        a return with no expression. */
     if (at_function_level && curr_reachability.reachable) {
       a_statement_ptr sp;
-
+      a_type_ptr        return_type = rout->type->variant.routine.return_type;
+      a_boolean	        implicit_return_from_main = FALSE;
+      an_expr_node_ptr	implicit_return_expr;
+      if (C_dialect == C_dialect_cplusplus && rout == il_header.main_routine) {
+         /* We are falling off the end of main.  In C++ when main is returning
+            an integral value this is treated as a return of zero. */
+        if (is_integral_type(return_type)) {
+          a_constant zero;
+          make_zero_of_proper_type(return_type, &zero);
+          implicit_return_expr = alloc_node_for_constant(&zero);
+          implicit_return_from_main = TRUE;
+        }  /* if */
+      }  /* if */
       /* Suppress the warning if the user told us this code is not
          reachable. */
-      if (curr_reachability.reachable_considering_hints) {
+      if (!implicit_return_from_main &&
+          curr_reachability.reachable_considering_hints) {
         check_void_return_okay();
       }  /* if */
+      /* The statement is not allocated earlier because we don't want it to
+         affect the reachability information. */
       sp = add_statement((a_statement_kind)stmk_return);
-      if (current_routine_entry()->special_kind ==
+      if (implicit_return_from_main) {
+        /* An implicit "return 0" caused by falling off the end of main. */
+        sp->expr = implicit_return_expr;
+      } else if (rout->special_kind ==
                              (a_special_function_kind)sfk_constructor) {
         /* By default constructors return the "this" variable. */
         sp->expr = this_param_value_expr();
