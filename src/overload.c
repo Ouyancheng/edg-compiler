@@ -1753,6 +1753,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       /* Match with standard conversions. */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std = std_conversion;
+      arg_converted_to_rvalue = (arg_operand != NULL &&
+                                 is_an_lvalue(arg_operand));
       if (std_conversion.promotion) {
         /* This standard conversion is a promotion. */
         arg_summary->match_level = aml_promotion;
