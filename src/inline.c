@@ -759,13 +759,7 @@ If not, *failed is set.
           if (is_expr_insert_location(insert_location)) {
             /* Expression insert location. */
             if (stmt_expr != NULL) {
-              if (call_being_inlined->result_is_not_used &&
-                  !node_has_side_effects(stmt_expr, (a_boolean *)NULL)) {
-                /* The return value of the call is not used, and the return
-                   expression has no side effects, so it's not needed. */
-              } else {
-                insert_expr(stmt_expr, insert_location);
-              }  /* if */
+              insert_expr(stmt_expr, insert_location);
             } else {
               if (!is_void_type(f_skip_typerefs(
                              routine_scope_being_inlined->variant.routine.ptr->
