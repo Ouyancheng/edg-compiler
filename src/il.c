@@ -15,10 +15,6 @@ il.c -- Construction of intermediate language trees.
 
 /* Header files common to all files. */
 #include "fe_common.h"
-/* Include types.h before the hdrstop.  It will cause symbol_tbl.h and
-   lexical.h to be pulled in, too, so they don't need to be specified
-   explicitly. */
-#include "types.h"
 
 #if HDRSTOP_RECOGNIZED
 /* Mark the end of the sequence of headers subject to precompiled header
@@ -36,9 +32,12 @@ il.c -- Construction of intermediate language trees.
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 #if !STANDALONE_UTILITY_PROGRAM
-#include "pch.h"
 #include "func_def.h"
+#include "pch.h"
 #include "templates.h"
+#if DEBUG
+#include "class_decl.h"
+#endif /* DEBUG */
 
 /*
 Pointers to shared types.  These are cleared by il_init.
