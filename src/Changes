@@ -1,5 +1,30 @@
 Version 2.20
 
+11/04/93 Default arguments on a friend function in a class template
+
+A bug has been fixed that produced spurious errors in cases where default
+arguments appear on a friend function declaration within a class template
+declaration -- e.g.,
+
+  template <class T> class X {
+    friend void g(T, T* = 0);
+  };
+  template <class T> void g(T, T) { /* ... */ }
+
+11/04/93 Function declared a friend in a class template
+
+A very obscure bug was fixed that resulted in an internal error.  It
+occurred with a template function that was also a friend declared within
+a class template -- something like this:
+
+  template <class T> class X {
+    friend X<T> f(T*);
+  };
+  template <class T> X<T> f(T*) { /* ... */ }
+
+The problem occurred if, during the processing to define f, the return
+type X<T> was instantiated and resulted in a redeclaration of f.
+
 11/04/93 Class specific operator delete may not be instantiated
 
 Under some highly unusual circumstances it is possible for a
