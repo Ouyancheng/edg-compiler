@@ -4699,11 +4699,10 @@ Check whether the a symbol represents a class template and if so,
 call the routine to scan the argument list.  Otherwise just return the
 original symbol.
 */
-#define check_for_class_template(sym)				\
+#define check_for_class_template(sym, err)				\
     (((sym) != NULL && 						\
       (sym)->kind == (a_symbol_kind)sk_class_template) ?	\
-                                   get_template_class(sym) :	\
-                                   sym)
+           coalesce_template_class_reference(sym, GID_NO_OPTIONS, err) : sym)
                             
 
 
@@ -4794,7 +4793,7 @@ will be TRUE.  This routine may only be called in C++ mode.
     }  /* if */
     /* If the class symbol is for a class template, process the argument
        list. */
-    class_symbol = check_for_class_template(class_symbol);
+    class_symbol = check_for_class_template(class_symbol, err);
     /* See if the identifier is followed by "::".  Note that nex_tok is not
        used because the next token may have changed while scanning a
        template argument list. */
@@ -5057,6 +5056,7 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
 */
 {
   a_symbol_ptr symbol;
+  a_boolean    err;
 
   if (get_qualified_name(options)) {
     /* The identifier is a qualified name. */
@@ -5080,7 +5080,7 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
        to a instance of the class template.  Scan the argument list and
        get a pointer to the symbol for the specific instance of the template
        class. */
-    symbol = check_for_class_template(symbol);
+    symbol = check_for_class_template(symbol, &err);
   }  /* if */
   return symbol;
 }  /* get_normal_id_or_qualified_name */

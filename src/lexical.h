@@ -157,6 +157,44 @@ EXTERN char	*token_names[(int)tok_last+1]
 /* These declarations are placed here so that they will be defined before
    symbol_tbl.h is included. */
 
+
+/* Flags used to specify how identifiers are to be scanned by the
+   generalized identifier routines.   is_generalized_identifier_start
+   recognizes only the GID_TEMPLATE_ARGS_OPTIONAL and
+   GID_DTOR_RECOGNIZED flags. */
+typedef int an_identifier_options_set;
+#define GID_NO_OPTIONS                0x00
+#define GID_TEMPLATE_ARGS_OPTIONAL    0x01
+			/* Normally if a class template name is seen it must
+			   be followed by a template argument list, otherwise
+			   an error is issued.  This flag allows the
+			   template argument list to be omitted. */
+#define GID_DTOR_RECOGNIZED           0x02
+			/* Enables recognition of destructor names
+			   ("~" followed by an identifier).  The default
+			   is to not recognize "~" as the start of an
+			   identifier (no error is issued). */
+#define GID_DISALLOW_QUALIFIED_NAME   0x04
+			/* Causes an error to be issued if the identifier
+			   is a qualified name (either A::B or ::i). */
+#define GID_DISALLOW_GLOBAL_QUALIFIER 0x08
+			/* Causes an error to be issued if the identifier
+			   is a global qualifier (::A::B or ::i). */
+#define GID_DISALLOW_OPERATOR_NAME    0x10
+			/* Causes an error to be issued if the identifier
+			   is an operator name of the form "operator =" or
+			   "operator int"). */
+
+/* Lookup modes supported by coalesce_and_lookup_generalized_identifier. */
+typedef enum /* an_identifier_lookup_mode */ {
+  ilm_normal,		/* Find any symbol. */
+  ilm_class,		/* Find only class names. */
+  ilm_tag,		/* Find only tag names. */
+  ilm_tenatative_type	/* Uses IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME
+			   to do the lookup. */
+} an_identifier_lookup_mode;
+
+
 typedef struct a_lint_and_pragma_state *a_lint_and_pragma_state_ptr;
 typedef struct a_lint_and_pragma_state {
   /* Structure used to summarize a state of the lint and pragma flags,
@@ -1022,42 +1060,6 @@ extern a_boolean get_qualified_name(an_id_lookup_options_set options);
 /* Get a C++ qualified name or a normal id. */
 extern a_symbol_ptr get_normal_id_or_qualified_name(
                                              an_id_lookup_options_set options);
-
-/* Flags used to specify how identifiers are to be scanned by the
-   generalized identifier routines.   is_generalized_identifier_start
-   recognizes only the GID_TEMPLATE_ARGS_OPTIONAL and
-   GID_DTOR_RECOGNIZED flags. */
-typedef int an_identifier_options_set;
-#define GID_TEMPLATE_ARGS_OPTIONAL    0x01
-			/* Normally if a class template name is seen it must
-			   be followed by a template argument list, otherwise
-			   an error is issued.  This flag allows the
-			   template argument list to be omitted. */
-#define GID_DTOR_RECOGNIZED           0x02
-			/* Enables recognition of destructor names
-			   ("~" followed by an identifier).  The default
-			   is to not recognize "~" as the start of an
-			   identifier (no error is issued). */
-#define GID_DISALLOW_QUALIFIED_NAME   0x04
-			/* Causes an error to be issued if the identifier
-			   is a qualified name (either A::B or ::i). */
-#define GID_DISALLOW_GLOBAL_QUALIFIER 0x08
-			/* Causes an error to be issued if the identifier
-			   is a global qualifier (::A::B or ::i). */
-#define GID_DISALLOW_OPERATOR_NAME    0x10
-			/* Causes an error to be issued if the identifier
-			   is an operator name of the form "operator =" or
-			   "operator int"). */
-
-/* Lookup modes supported by coalesce_and_lookup_generalized_identifier. */
-typedef enum /* an_identifier_lookup_mode */ {
-  ilm_normal,		/* Find any symbol. */
-  ilm_class,		/* Find only class names. */
-  ilm_tag,		/* Find only tag names. */
-  ilm_tenatative_type	/* Uses IDL_DO_NOT_MAKE_PROJECTION_IF_NOT_TYPE_NAME
-			   to do the lookup. */
-} an_identifier_lookup_mode;
-
 
 /* Push a file onto the input stack. */
 extern void push_input_stack (char                       *file_name,
