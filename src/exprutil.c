@@ -1530,30 +1530,23 @@ expression node.
 	("make_node_from_operand: converting unexpected operand kind");
 #endif /* CHECKING */
   }  /* switch */
+#if RECORD_FORM_OF_NAME_REFERENCE
+  if (operand->name_reference_set) {
+    if (is_routine_address_node(node)) {
+      node->name_reference = find_allocated_name_reference(
+                                        &node->variant.routine->source_corresp,
+                                        &operand->name_reference);
+    } else if (is_variable_address_node(node) ||
+               is_variable_node(node)) {
+      node->name_reference = find_allocated_name_reference(
+                                       &node->variant.variable->source_corresp,
+                                       &operand->name_reference);
+    }  /* if */
+  }  /* if */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
   return node;
 }  /* make_node_from_operand */
-
-
-an_expr_node_ptr make_node_from_operand_preserving_name_reference(
-                                                           an_operand *operand)
-/*
-Like make_node_from_operand, but also transfers form-of-name-reference
-information if present.
-*/
-{
-  an_expr_node_ptr node = make_node_from_operand(operand);
-
-#if RECORD_FORM_OF_NAME_REFERENCE
-  if (operand->name_reference_set &&
-      is_routine_address_node(node)) {
-    node->name_reference = find_allocated_name_reference(
-                                        &node->variant.routine->source_corresp,
-                                        &operand->name_reference);
-  }  /* if */
-#endif /* RECORD_FORM_OF_NAME_REFERENCE */
-  return node;
-}  /* make_node_from_operand_preserving_name_reference */
 
 
 #if RECORD_FORM_OF_NAME_REFERENCE
@@ -1564,7 +1557,7 @@ Transfer the form-of-reference information (if any) from the
 locator_for_curr_id to the indicated operand.
 */
 {
-  if (!C_mode()) {
+  if (!C_mode() && !is_error_operand(operand)) {
     make_name_reference_from_locator(&locator_for_curr_id,
                                      &operand->name_reference);
     operand->name_reference_set = TRUE;
@@ -1667,6 +1660,27 @@ Restore the ref_entries_list too (not usually wanted).
   operand->ref_entries_list = orig_operand->ref_entries_list;
 }  /* restore_operand_details_incl_ref */
 
+#if RECORD_FORM_OF_NAME_REFERENCE
+
+static void restore_operand_form_of_name_reference(an_operand *operand,
+                                                   an_operand *orig_operand)
+/*
+*operand has been subjected to some sort of modification, which may have
+destroyed its form-of-name-reference information.  Restore that information
+(if any) from *orig_operand, which is a copy of *operand before the
+modification.
+*/
+{
+  if (orig_operand->name_reference_set) {
+    operand->name_reference_set = TRUE;
+    operand->name_reference = orig_operand->name_reference;
+  }  /* if */
+}  /* restore_operand_form_of_name_reference */
+
+#else /* !RECORD_FORM_OF_NAME_REFERENCE */
+#define restore_operand_form_of_name_reference(operand, orig_operand) \
+  /* Nothing */
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 void make_error_operand(an_operand *operand)
 /*
@@ -2649,7 +2663,9 @@ user-defined conversions.
         /* Cast the expression node.  If the expression is a constant,
            change its type in place.  Otherwise, add a cast expression
            node. */
-        node = operand->variant.expression;
+        /* Use the function here to get form-of-name-reference information
+           in the expression. */
+        node = make_node_from_operand(operand);
         cast_node(&node, new_type, check_cast_access, is_implicit_cast,
                   is_reinterpret_cast, reinterpret_semantics,
                   &operand->position);
@@ -7437,8 +7453,7 @@ of the call.  An operand for the overall call is constructed in *result.
        list. */
     /* Make the function address node.  This might have type pointer-to-
        member-function in a case like (p->*pmf)(). */
-    function_node =
-            make_node_from_operand_preserving_name_reference(function_operand);
+    function_node = make_node_from_operand(function_operand);
     if (is_ptr_to_member_type(function_node->type)) {
       /* Call using a pointer-to-member-function. */
       function_type = pm_member_type(function_node->type);
@@ -8849,6 +8864,7 @@ not an lvalue, it is left alone.
     /* The ref_entries_list is cleared because it should only contain
        information on lvalue addresses. */
     operand->ref_entries_list = NULL;
+    restore_operand_form_of_name_reference(operand, &orig_operand);
   }  /* if */
 }  /* conv_lvalue_to_rvalue */
 
@@ -9051,6 +9067,7 @@ If the operand is an array rvalue, the conversion is done in some modes
          instead of address-taken. */
       restore_operand_details_incl_ref(operand, &orig_operand);
       operand->is_simple_string_literal= orig_operand.is_simple_string_literal;
+      restore_operand_form_of_name_reference(operand, &orig_operand);
     }  /* if */
   }  /* if */
 }  /* conv_array_operand_to_pointer_operand */

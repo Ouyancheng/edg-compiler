@@ -2392,6 +2392,31 @@ Output the name of the indicated variable, qualified if necessary.
 }  /* gen_variable_name */
 
 
+static void gen_name_from_variable_node(an_expr_node_ptr node)
+/*
+Generate the name of a variable from an enk_variable_address or
+enk_variable node.
+*/
+{
+  a_variable_ptr var;
+
+  check_assertion(is_variable_node(node) || is_variable_address_node(node));
+  var = node->variant.variable;
+#if RECORD_FORM_OF_NAME_REFERENCE
+  if (node->name_reference != NULL) {
+    /* We have information on the exact form of reference, so use that
+       to generate the name. */
+    gen_name_from_name_reference(node->name_reference, &var->source_corresp,
+                                 iek_variable);
+  } else
+#endif /* RECORD_FORM_OF_NAME_REFERENCE */
+  /* Do not insert code here. */
+  {
+    gen_variable_name(var);
+  }  /* if */
+}  /* gen_name_from_variable_node */
+
+
 static void gen_decl_name(a_source_correspondence *scp,
                           an_il_entry_kind        entry_kind,
                           a_boolean               force_unqualified_name)
@@ -5492,7 +5517,7 @@ precedence confusion and need_parens is TRUE.
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_variable_address) {
     /* Address of variable: just write the variable name. */
-    gen_variable_name(node->variant.variable);
+    gen_name_from_variable_node(node);
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_routine_address) {
     /* Address of routine: just write the routine name. */
@@ -7157,11 +7182,11 @@ done_with_operation_after_parens:
     case enk_variable_address:
       if (need_parens) m_write_tok_ch('(');
       gen_ampersand(expr->variant.variable->type);
-      gen_variable_name(expr->variant.variable);
+      gen_name_from_variable_node(expr);
       if (need_parens) m_write_tok_ch(')');
       break;
     case enk_variable:
-      gen_variable_name(expr->variant.variable);
+      gen_name_from_variable_node(expr);
       break;
     case enk_routine_address:
       gen_name_from_routine_address_node(expr);

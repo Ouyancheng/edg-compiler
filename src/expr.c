@@ -13575,6 +13575,7 @@ variable:
                                            /*record_expr=*/TRUE);
             }  /* if */
           }  /* if */
+          set_operand_name_reference_from_locator_for_curr_id(result);
           break;
         case sk_routine:
           if (force_indefinite_routine_due_to_arg_dependent_lookup) {

@@ -1082,9 +1082,6 @@ extern void make_template_param_expr_constant_operand(
 
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
-extern an_expr_node_ptr make_node_from_operand_preserving_name_reference(
-                                                          an_operand *operand);
-
 #if RECORD_FORM_OF_NAME_REFERENCE
 extern void set_operand_name_reference_from_locator_for_curr_id(
                                                           an_operand *operand);
