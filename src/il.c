@@ -10756,10 +10756,18 @@ scope.
     }  /* if */
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+      a_source_sequence_entry_ptr  ssep;
+      int                          i;
+
       fputs("clearing ss-list instantiation insert point and ", f_debug);
       fputs("truncating list:\n  removed entries begin at:\n    ", f_debug);
       db_source_sequence_entry(list_to_be_removed);
-      db_ss_list_for_scope(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope);
+      ssep = new_last;
+      for (i = 10; i > 0; i--) {
+        if (ssep->prev == NULL) break;
+        ssep = ssep->prev;
+      }  /* if */
+      db_source_sequence_list(ssep);
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
@@ -10795,8 +10803,16 @@ that was removed and reset the end-of-list pointer.
                                sssep->saved_last_source_sequence_entry;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
+      a_source_sequence_entry_ptr  ssep;
+      int                          i;
+
       fputs("restoring ss-list: ", f_debug);
-      db_ss_list_for_scope(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope);
+      ssep = fs_ssep->last_source_sequence_entry;
+      for (i = 10; i > 0; i--) {
+        if (ssep->prev == NULL) break;
+        ssep = ssep->prev;
+      }  /* if */
+      db_source_sequence_list(ssep);
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
