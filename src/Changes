@@ -1,5 +1,21 @@
 Version 2.30
 
+8/8/95   Bug in computing derivations of indirect virtual base classes
+
+In the following example:
+
+  class A { public: int i; }; 
+  class B : virtual private A { };
+  class C : public B, virtual private A { friend class D; };
+  class D : private C {
+    void f() { i = 1; };         // spurious error (A::i inaccessible)
+  }; 
+
+the error was issued as a consequence of reporting only one derivation of
+D's base class A (==>C==>B==>A) and omitting the other (==>C==>A).  (The
+spurious error disappeared if the base classes of C were reversed.)  This
+bug has been fixed.
+
 8/7/95   Bug in access checking with indirect virtual base classes
 
 A small bug with access checking in the presence of indirect virtual
