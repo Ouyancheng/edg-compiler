@@ -4239,7 +4239,7 @@ otherwise it is NULL.  The syntax is:
           !is_constructor_or_destructor &&
           (input_flags & DI_PARENTHESIZED_INITIALIZER_ALLOWED)) {
         if (curr_token != tok_rparen && curr_token != tok_ellipsis &&
-            !is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE)) {
+            !is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE)) {
           a_boolean  is_function_decl = FALSE;
           /* This appears to be a parenthesized initializer.  However, it
              might also be a function definition with an old-style parameter
