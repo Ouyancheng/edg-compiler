@@ -3486,11 +3486,11 @@ value.  Several fields are cleared or adjusted.
   break_source_corresp(&ucp->source_corresp);
   if (cp->kind == (a_constant_repr_kind)ck_template_param &&
       (cp->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_param ||
+                      (a_template_param_constant_kind)tpck_param ||
        cp->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_member) ||
+                      (a_template_param_constant_kind)tpck_member ||
        cp->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function) {
+                      (a_template_param_constant_kind)tpck_unknown_function)) {
     /* For some template parameter constants, the name in the source
        correspondence is part of the value.  It was cleared by
        break_source_correspondence, so restore it. */
