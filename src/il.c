@@ -11413,6 +11413,10 @@ dependent on it.  The routine entry itself is dealt with later.
       /* This memory has already been freed. */
     } else {
       sp = il_header.region_scope_entry[n];
+      if (sp->part_of_secondary_trans_unit) {
+        /* Skip memory regions for secondary translation units. */
+        continue;
+      }  /* if */
       check_assertion(sp->kind == (a_scope_kind)sck_function);
       if (!sp->variant.routine.ptr->keep_definition_in_il) {
         /* An unneeded routine definition. */

@@ -1181,7 +1181,8 @@ This routine is called at the end of the compilation to write out
 function memory regions that were not previously written out.
 Such routines remain in the IL tree (a) if unneeded entities are not
 being eliminated, (b) if they are marked with keep_definition_in_il but
-not definition_needed, or (c) if they are inline.
+not definition_needed, (c) if they are inline, or (d) if they are
+part of secondary translation units (perhaps).
 */
 {
   db_enter(5, "check_for_done_with_all_function_memory_regions");
@@ -1194,9 +1195,9 @@ not definition_needed, or (c) if they are inline.
     if (mem_region_table[n] == NULL) {
       /* This memory has already been freed. */
     } else {
-      a_scope_ptr   sp = il_header.region_scope_entry[n];
-      /* Skip the file scope memory regions of secondary translation units. */
-      if (sp->kind != (a_scope_kind)sck_file) {
+      a_scope_ptr sp = il_header.region_scope_entry[n];
+      /* Skip the memory regions of secondary translation units. */
+      if (!sp->part_of_secondary_trans_unit) {
         a_routine_ptr rout;
         check_assertion(sp->kind == (a_scope_kind)sck_function);
         rout = sp->variant.routine.ptr;

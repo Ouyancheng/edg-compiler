@@ -2530,9 +2530,10 @@ Initialize the variable fields of the scope entry pointed to by sp.
                         kind == (a_scope_kind)sck_function,
                       "set_scope_kind: assoc_routine is non-NULL");
   sp->kind   = kind;
+  sp->part_of_secondary_trans_unit = FALSE;
   switch (kind) {
     case sck_file:
-      /* No variant fields. */
+      sp->part_of_secondary_trans_unit = !is_primary_translation_unit;
       break;
     case sck_block:
       sp->variant.assoc_handler = NULL;
@@ -2542,6 +2543,7 @@ Initialize the variable fields of the scope entry pointed to by sp.
       sp->variant.assoc_type = NULL;
       break;
     case sck_function:
+      sp->part_of_secondary_trans_unit = !is_primary_translation_unit;
       sp->variant.routine.ptr                           = assoc_routine;
       sp->variant.routine.parameters                    = NULL;
       sp->variant.routine.constructor_inits             = NULL;
