@@ -862,7 +862,7 @@ file.
 }  /* write_mem_alloc_history */
 
 
-static void read_mem_alloc_history(void)
+static a_boolean read_mem_alloc_history(void)
 /*
 Read the memory allocation history information from the PCH input file and
 restore the memory allocation state.  First, make sure that any memory 
@@ -920,7 +920,15 @@ restore the memory regions.
   }  /* if */
   /* Free the new allocation history information. */
   free_general((a_void_ptr)new_alloc_hist, bytes_in_new_alloc_hist);
+  if (!successful) {
+    mismatch_reason = ec_memory_mismatch;
+#if DEBUG
+    pos_st_warning(mismatch_reason, &null_source_position,
+                   pch_input_file_name);
+#endif /* DEBUG */
+  }  /* if */
   db_exit();
+  return successful;
 }  /* read_mem_alloc_history */
 
 
@@ -1003,6 +1011,12 @@ the PCH file.
       unexpected_condition_str2("read_memory_used_for_memory_regions:",
                                 "map failed");
     }  /* if */
+#if DEBUG
+    if (debug_level >= 0) {
+      fprintf(f_debug, "Mapped bytes from %p for %0lu bytes from PCH\n",
+              mahp->addr, (unsigned long)mahp->size);
+    }  /* if */
+#endif /* DEBUG */
     /* Seek past the area just mapped. */
     if (fseek(f_pch_input, (long)(offset + mahp->size), SEEK_SET) != 0) {
       unexpected_condition_str2("read_memory_used_for_memory_regions:",
@@ -1224,6 +1238,39 @@ write out the precompiled header file.
     }  /* if */
   }  /* if */
 }  /* generate_precompiled_header */
+
+
+void header_stop_no_longer_pending(void)
+/*
+This routine is called when we are no longer generating information that
+may potentially be part of a precompiled header.  We may have just
+generated a precompiled header file, or we may have determined that
+generating one is not possible.  This routine goes back of the
+memory regions that have already been generate and re-calls
+done_with_memory_region so that the IL file can be written (if needed)
+and the memory freed (if appropriate).
+*/
+{
+  a_memory_region_number	n;
+
+  db_enter(3, "header_stop_no_longer_pending");
+  header_stop_position_pending = FALSE;
+  /* Loop through the memory regions.  Skip the front end and file scope
+     memory regions. */
+  for (n = FILE_SCOPE_REGION_NUMBER + 1;
+       n <= highest_used_region_number; ++n) {
+    a_scope_ptr		sp;
+    sp = il_header.region_scope_entry[n];
+    if (sp->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+      /* The scope is still active and will be processed when it is
+         popped off of the scope stack. */
+    } else {
+      /* The scope is no longer active. */
+      done_with_memory_region(n);
+    }  /* if */
+  }  /* for */
+  db_exit();
+}  /* header_stop_no_longer_pending */
 
 
 static a_boolean id_string_matches(void)
@@ -1581,7 +1628,10 @@ may be used.
   a_memory_region_number	n;
 
   if (open_pch_input_file()) {
-    if (pch_is_applicable()) {
+    /* Make sure the the PCH can still be used.  Also make sure that
+       the memory configuration needed by the PCH is compatible with
+       what we can allocate. */
+    if (pch_is_applicable() && read_mem_alloc_history()) {
       /* Everything is OK. */
     } else {
       /* The file is not applicable for some reason. */
@@ -1600,7 +1650,6 @@ may be used.
     pos_st_warning(ec_using_pch, &null_source_position,
                    pch_input_file_name);
     using_a_pch_file = TRUE;
-    read_mem_alloc_history();
     read_saved_variables();
     read_memory_regions();
   }  /* if */

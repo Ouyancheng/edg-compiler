@@ -1153,6 +1153,7 @@ Scan and process a #pragma directive.
            Write the precompiled header now, if possible. */
         if (create_precompiled_header || automatic_pch_processing) {
           generate_precompiled_header();
+          header_stop_no_longer_pending();
         }   /* if */
         while (get_token() != tok_newline);
         processed = TRUE;

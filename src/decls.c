@@ -5384,7 +5384,7 @@ In C++, however, the declaration list is optional (3.4):
              out the IL, symbol table, etc. to a precompiled header file. */
           generate_precompiled_header();
         }  /* if */
-        header_stop_position_pending = FALSE;
+        header_stop_no_longer_pending();
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* For each declaration at file scope, reset the source-sequence insert
