@@ -4438,7 +4438,7 @@ static void add_first_time_test(a_variable_ptr         guarded_var,
                                 a_variable_ptr         *test_var)
 /*
 Add a first-time test sequence that will surround the initialization of the
-local static variable guarded_var.  In effect:
+local static variable guarded_var.  In effect (Cfront-like ABI):
 
   static int test_var;  // Global test var, implicitly init to 0
   {
@@ -4447,6 +4447,20 @@ local static variable guarded_var.  In effect:
       ... real initialization of guarded_var
     }
   }
+
+For the IA-64 ABI, the guard variable is set at the end of the
+initialization (see set_local_static_guard_var):
+
+  static int test_var;  // Global test var, implicitly init to 0
+  {
+    if (test_var == 0) {
+      ... real initialization of guarded_var
+      test_var = 1;
+    }
+  }
+
+See also the additional code below to call __cxa_guard_acquire et al.
+in some configurations.
 
 The sequence is inserted at *insert_location.  *insert_location is updated
 for further insertion after the "if"; *insert_location2 is set for insertion
@@ -4539,8 +4553,8 @@ location is the insert_location2 value (after the assignment statement).
 #endif /* IA64_ABI */
                                                    insert_location2,
                       (an_insert_location *)NULL);
-  /* Make "test_var = 1" and insert it inside the "if" statement. */
 #if !IA64_ABI
+  /* Make "test_var = 1" and insert it inside the "if" statement. */
   (void)insert_var_assignment_statement(*test_var,
                                         (an_expr_operator_kind)eok_iassign,
                                         node_for_integer_constant(1L,
@@ -4579,17 +4593,46 @@ location is the insert_location2 value (after the assignment statement).
     (void)insert_expr_statement(release_node, &release_insert_location);
   }
 #else /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
-  (void)insert_assignment_statement(add_cast_to_char_star(
-                                                   var_lvalue_expr(*test_var)),
-                                    (an_expr_operator_kind)eok_iassign,
-                                    node_for_integer_constant(1L,
-                                                     (an_integer_kind)ik_char),
-                                    insert_location2);
+  /* The guard variable is set to 1 at the end of the initialization.
+     See set_local_static_guard_var. */
 #endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
 #endif /* IA64_ABI */
 }  /* add_first_time_test */
 
+#if IA64_ABI
+#if !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+static void set_local_static_guard_var(
+                                 a_variable_ptr         local_static_guard_var,
+                                 an_insert_location_ptr insert_location)
+/*
+local_static_guard_var is the guard variable associated with the initialization
+of a local static variable.  Add code to set the guard variable to
+indicate that the initialization is complete.  Insert the code at
+*insert_location.
+*/
+{
+  (void)insert_assignment_statement(add_cast_to_char_star(
+                                      var_lvalue_expr(local_static_guard_var)),
+                                    (an_expr_operator_kind)eok_iassign,
+                                    node_for_integer_constant(1L,
+                                                     (an_integer_kind)ik_char),
+                                    insert_location);
+}  /* set_local_static_guard_var */
 
+#endif /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+#endif /* IA64_ABI */
+
+#if !IA64_ABI
+#define USE_EH_GUARD_VAR_CLEANUP TRUE
+#else /* IA64_ABI */
+#if IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+#define USE_EH_GUARD_VAR_CLEANUP TRUE
+#endif /* IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+#endif /* !IA64_ABI*/
+
+#ifndef USE_EH_GUARD_VAR_CLEANUP
+/*ARGSUSED*/ /* The parameters are not used in that case. */
+#endif /* ifndef USE_EH_GUARD_VAR_CLEANUP */
 static void add_local_static_guard_var_cleanup(
                                  a_variable_ptr         local_static_guard_var,
                                  an_object_lifetime_ptr local_static_lifetime,
@@ -4599,14 +4642,18 @@ local_static_guard_var is the guard variable associated with the initialization
 of a local static variable.  local_static_lifetime is the object lifetime
 that surrounds the complete initialization.  Add a dynamic initialization
 entry and associated region table entry to indicate to the runtime that
-the guard variable must be reset to zero if an exception is thrown before
+the guard variable must be reset if an exception is thrown before
 the initialization of the local static variable is completed.  If any
 code is needed, insert it at *insert_location.
 */
 {
+#ifdef USE_EH_GUARD_VAR_CLEANUP
+#undef USE_EH_GUARD_VAR_CLEANUP
   a_dynamic_init_ptr dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
   an_init_pos_descr  ipd;
 
+  /* In the IA-64 ABI, the runtime calls __cxa_guard_abort instead of
+     clearing the variable. */
   dip->variable = local_static_guard_var;
   dip->has_temporary_lifetime = TRUE;
   dip->is_guard_var_for_local_static_var_init = TRUE;
@@ -4615,6 +4662,7 @@ code is needed, insert it at *insert_location.
   set_var_init_pos_descr(local_static_guard_var, &ipd);
   add_dyn_init_cleanup(dip, &ipd, /*set_cond_flag_if_any=*/FALSE,
                        curr_context, insert_location);
+#endif /* ifdef USE_EH_GUARD_VAR_CLEANUP */
 }  /* add_local_static_guard_var_cleanup */
 
 
@@ -5446,6 +5494,15 @@ do_assignment:;
     gen_cleanup_actions(local_static_lifetime, eff_insert_location);
     pop_context();
   }  /* if */
+#if IA64_ABI
+#if !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+  if (lsvip != NULL) {
+    /* Set the guard variable to indicate the local static is initialized
+       after the initialization is completed. */
+    set_local_static_guard_var(local_static_guard_var, insert_location);
+  }  /* if */
+#endif /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
+#endif /* IA64_ABI */
   /* In the whole-variable cases, adjust the initialization specified in
      the variable (it points to the dynamic init entry). */
   if (variable != NULL) {
