@@ -1,5 +1,18 @@
 Version 2.44
 
+6/23/00  Local static variable with constant initial value,
+         when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE
+
+In configurations with RECORD_CONSTANT_EXPRESSIONS_IN_IL set to TRUE
+(e.g., C++-generating back end versions), a const integral local static
+variable with a constant initializer was sometimes not seen to be a
+constant value.  Now fixed.
+
+  int main () {
+    static const int n = 6;
+    int a[n];  // Got error, "constant value is not known"
+  }
+
 6/23/00  Elision of explicit cast above implicit cast in IL
 
 When an explicit cast above an implicit (compiler_generated) cast is

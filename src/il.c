@@ -6457,6 +6457,79 @@ If var_scope is NULL, use the current scope in the scope stack.
   return lsvip;
 }  /* make_local_static_variable_init */
 
+
+static a_scope_ptr find_scope_of_variable(a_variable_ptr variable,
+                                          a_scope_ptr    scope)
+/*
+If the indicated variable is declared in the indicated scope or one of
+its sub-scopes, return the appropriate scope.  Otherwise, return NULL.
+*/
+{
+  a_scope_ptr    result_scope = NULL, subscope;
+  a_variable_ptr test_var;
+
+  /* Check static variables. */
+  for (test_var = scope->variables;
+       test_var != NULL;
+       test_var = test_var->next) {
+    if (test_var == variable) {
+      result_scope = scope;
+      goto end_of_routine;
+    }  /* if */
+  }  /* for */
+  /* Check auto variables. */
+  for (test_var = scope->nonstatic_variables;
+       test_var != NULL;
+       test_var = test_var->next) {
+    if (test_var == variable) {
+      result_scope = scope;
+      goto end_of_routine;
+    }  /* if */
+  }  /* for */
+  /* Check sub-scopes. */
+  for (subscope = scope->scopes;
+       subscope != NULL;
+       subscope = subscope->next) {
+    result_scope = find_scope_of_variable(variable, subscope);
+    if (result_scope != NULL) goto end_of_routine;
+  }  /* for */
+end_of_routine:
+  return result_scope;
+}  /* find_scope_of_variable */
+      
+
+static a_scope_ptr scope_of_local_variable(a_variable_ptr variable)
+/*
+Determine the scope of the indicated local variable and return it.
+innermost_function_scope must be set to indicate the function containing
+the variable or the variable's scope must be on the scope stack.
+*/
+{
+  a_scope_ptr scope = NULL;
+
+  if (innermost_function_scope != NULL) {
+    scope = find_scope_of_variable(variable, innermost_function_scope);
+  }  /* if */
+  if (scope == NULL && depth_scope_stack != NO_SCOPE_DEPTH) {
+    /* While we are still in the front end proper, the subscopes pointer in
+       innermost_function_scope is not set yet.  Use the scope stack to
+       find the subscopes. */
+    a_scope_stack_entry_ptr ssep;
+    for (ssep = &scope_stack[depth_scope_stack];
+         ssep != NULL;
+         ssep = previous_scope_of(ssep)) {
+      if (ssep->il_scope != NULL) {
+        scope = find_scope_of_variable(variable, ssep->il_scope);
+        if (scope != NULL) break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  check_assertion_str(scope != NULL,
+                      "scope_of_local_variable: scope not found");
+  return scope;
+}  /* scope_of_local_variable */
+
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_local_static_variable_init_ptr find_local_static_variable_init(
@@ -6470,8 +6543,9 @@ linked list for the specified scope and points to the specified variable.
 {
   a_local_static_variable_init_ptr  lsvip;
 
-  check_assertion(scope->kind == (a_scope_kind)sck_function ||
-                  scope->kind == (a_scope_kind)sck_block);
+  check_assertion(scope != NULL &&
+                  (scope->kind == (a_scope_kind)sck_function ||
+                   scope->kind == (a_scope_kind)sck_block));
   for (lsvip = scope->local_static_variable_inits;
        lsvip != NULL;
        lsvip = lsvip->next) {
@@ -6497,7 +6571,10 @@ in *init_kind and *initializer.  This is useful for local static variables,
 where the initialization information may be provided remotely in
 a local-static-variable-init entry to sidestep memory region problems
 (the variable is in the file scope memory region, but the initialization
-is in the function scope).
+is in the function scope).  var_scope can be NULL if it is not known;
+it will be determined by this routine.  We must be in a context where
+innermost_function_scope is set to indicate the current function,
+or the variable's scope must be on the scope stack.
 */
 {
   *init_kind = variable->init_kind;
@@ -6505,8 +6582,15 @@ is in the function scope).
   if (*init_kind == (an_init_kind)initk_function_local) {
     /* This is a local static variable whose initialization is described
        by an entry of type a_local_static_variable_init. */
-    a_local_static_variable_init_ptr lsvip =
-                          find_local_static_variable_init(variable, var_scope);
+    a_local_static_variable_init_ptr lsvip;
+
+#if !STANDALONE_UTILITY_PROGRAM
+    if (var_scope == NULL) {
+      /* Determine the scope of the variable. */
+      var_scope = scope_of_local_variable(variable);
+    }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+    lsvip = find_local_static_variable_init(variable, var_scope);
     *init_kind = lsvip->init_kind;
     *initializer = &lsvip->initializer;
   }  /* if */

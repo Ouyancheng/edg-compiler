@@ -5123,17 +5123,21 @@ constant initial value is treated as having a nonconstant initial value.
   if (C_dialect == C_dialect_cplusplus &&
       is_const_variable(var) &&
       !is_volatile_qualified_type(var->type)) {
-    /* Note that we do not deal with the initk_function_local case here,
-       since that is used only for aggregate and dynamic values. */
-    if (var->init_kind == (an_init_kind)initk_static) {
+    an_init_kind       init_kind;
+    an_initializer_ptr initializer;
+    /* initk_function_local initialization can come up with local static
+       variables when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE (the
+       expression is function-local, and that forces the initializer
+       constant to be made function-local as well). */
+    get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &initializer);
+    if (init_kind == (an_init_kind)initk_static) {
       /* The variable has a constant initial value. */
-      con_val = var->initializer.constant;
-    } else if (var->init_kind == (an_init_kind)initk_dynamic) {
+      con_val = initializer->constant;
+    } else if (init_kind == (an_init_kind)initk_dynamic) {
       /* The variable is dynamically initialized.  See if the initialization
          is to a constant. */
-      if (var->initializer.dynamic->kind ==
-                                           (a_dynamic_init_kind)dik_constant) {
-        con_val = var->initializer.dynamic->variant.constant;
+      if (initializer->dynamic->kind == (a_dynamic_init_kind)dik_constant) {
+        con_val = initializer->dynamic->variant.constant;
       }  /* if */
     }  /* if */
     if (con_val != NULL) {
