@@ -3750,10 +3750,21 @@ entities.
   a_symbol_ptr  sym;
 
   check_assertion(templ_sym != NULL);
-  if (is_template_symbol(templ_sym) && !templ_sym->is_template_param &&
-      trans_unit_corresp_of(templ) == NULL) {
+  if (!is_template_symbol(templ_sym) || templ_sym->is_template_param ||
+      trans_unit_corresp_of(templ) != NULL) {
     /* Template definitions for nontemplate members of class templates should
-       not get here.  Nor should template template parameters. */
+       not be processed here.  Nor should template template parameters.
+       If a correspondence has already been established, nothing needs to
+       be done either. */
+  } else if (templ->canonical_template != NULL &&
+             trans_unit_corresp_of(templ->canonical_template) != NULL) {
+    /* Templates are a somewhat unique in that there can be multiple IL
+       entries corresponding to multiple declarations of the same template.
+       In those cases, all entries belong to the same correspondence set. */
+    a_template_ptr  canon = (a_template_ptr)canonical_il_entry_of(
+                                                   templ->canonical_template);
+    set_trans_unit_corresp(iek_template, templ, canon);
+  } else {
     a_template_ptr  corresp_templ = NULL, candidate;
     a_boolean       class_template = is_class_template_symbol(templ_sym);
     a_translation_unit_ptr
