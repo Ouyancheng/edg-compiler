@@ -1,9 +1,15 @@
 Version 2.37
 
+9/16/97   Microsoft compatibility: __declspec(novtable)
+
+In Microsoft compatibility mode, __declspec(novtable) is now implemented
+as an attribute of classes (in C++ mode only).
+
 9/16/97   Microsoft compatibility: calling convention applied to typedef
 
-Support for calling conventions has been extended to remove the restriction
-on their use with typedef types in most cases.  For example:
+In Microsoft compatibility mode, support for calling conventions (e.g.,
+__stdcall) has been extended to remove the restriction on their use with
+typedef types in most cases.  For example:
 
   typedef void F(int);
   F __stdcall f;         // Error is no longer issued
