@@ -1,5 +1,16 @@
 Version 2.43
 
+10/2899  Microsoft compatibility: error in vacuous destructor call
+
+A bug was introduced in 2.42 that caused the following example to be
+rejected in Microsoft bugs mode.  This has been fixed.
+
+  typedef int I;
+  int main () {
+    I *p = 0;
+    p->I::~I();
+  }
+
 10/27/99 Microsoft compatibility: allocation of bitfields in unions
 
 When the configuration variable TARG_MICROSOFT_BIT_FIELD_ALLOCATION was TRUE,

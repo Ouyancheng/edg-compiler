@@ -9690,7 +9690,7 @@ selection operator, in which case it points to the type of the left operand.
       (void)get_token();  /* The "::" that follows the type name. */
       is_qualified_name = TRUE;
     } else if (next_token() == qualifier_separator &&
-               (!microsoft_bugs ||
+               (!microsoft_bugs || is_vacuous_dtor ||
                 is_microsoft_qualifier_start(qualifier_sym))) {
       /* This is an identifier followed by the qualifier separator
          (usually something like "X::").  Scan the qualified name. */
