@@ -1,5 +1,12 @@
 Version 2.40
 
+10/21/98  Template information file not written when there are errors
+
+The template information file (.ti) is no longer written (and any
+existing .ti file is removed) if errors occurred during the
+compilation.  This is done to prevent the prelinker from attempting
+to use a corrupted .ti file.
+
 10/21/98  Recursive instantiation causes compiler loop when using a
           definition list file
 

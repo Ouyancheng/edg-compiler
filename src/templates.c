@@ -682,15 +682,16 @@ could be instantiated, remove the template information  file if one
 already exists.
 */
 {
-  if (any_instantiations_required) {
-    check_assertion_str2(f_template_info != NULL,
-                         "close_or_remove_template_info_file:",
-                         "tempate info file not opened");
+  if (f_template_info != NULL) {
+    /* Close the file if it is open. */
     if (fclose(f_template_info)) {
       str_catastrophe(ec_file_write_error, "template information file");
     }  /* if */
-  } else {
-    /* Delete any old version of the template information file. */
+  }  /* if */
+  if (!any_instantiations_required || total_errors != 0) {
+    /* If there were no instantiations, delete any old version of the
+       template information file.  The file is also deleted if any
+       errors occurred during this compilation. */
     if (is_regular_file(template_info_file_name)) {
       delete_file(template_info_file_name);
     }  /* if */
@@ -12593,9 +12594,10 @@ and "do not instantiate" flags are set here.
     }  /* if */
 #endif /*  ONE_INSTANTIATION_PER_OBJECT */
   }  /* for */
-  if (any_instantiated_entities_added_to_request_file) {
+  if (any_instantiated_entities_added_to_request_file && total_errors == 0) {
     /* This translation unit "adopted" some instantiations that were known
-       not to be defined elsewhere. */
+       not to be defined elsewhere.  Don't write the updated file if any
+       errors occurred. */
     add_entities_to_request_file();
   }  /* if */
   db_exit();
