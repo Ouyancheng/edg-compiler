@@ -257,7 +257,7 @@ static a_boolean		ignore_invalid_nm_output = FALSE;
 
 /* String that is used as the prefix of all diagnostic messages generated
    by the prelinker. */
-static char message_prefix[] = "C++ prelinker";
+static char *message_prefix;
 
 /* TRUE if external names have an extra underscore prefix.  Can be
    modified by a command line option. */
@@ -288,16 +288,6 @@ static a_pl_symbol_ptr	pl_symbol_table[PL_SYMBOL_TABLE_SIZE];
 #define PL_HASH_FACTOR 73
 
 
-static void pl_error(char*   error_string)
-/*
-Prints an error message and exits with an error exit status.
-*/
-{
-  fprintf(stderr, "%s: error: %s\n", message_prefix, error_string);
-  exit (RC_ERROR);
-}
-
-
 void pl_internal_error(char*   error_string)
 /*
 Prints an internal error message and exits with a catastrophic error
@@ -306,8 +296,85 @@ exit status.
 {
   fprintf(stderr, "%s: %s\n", message_prefix, error_string);
   exit (RC_CATASTROPHE);
-}
+}  /* pl_internal_error */
 
+
+typedef enum /*a_pl_error_code*/ {
+  pl_ec_no_longer_needed,
+  pl_ec_assigned_to_file,
+  pl_ec_message_prefix,
+  pl_ec_executing,
+  pl_ec_unrecognized_option,
+  pl_ec_error,
+  pl_ec_out_of_memory,
+  pl_ec_invalid_input,
+  pl_ec_bad_instantiation_information_file,
+  pl_ec_invalid_nm_format_option,
+  pl_ec_command_line_error,
+  pl_ec_instantiation_loop
+} a_pl_error_code;
+
+
+static char *pl_error_text(a_pl_error_code error_code)
+/*
+For a given error code, return a pointer to the associated error
+string.
+*/
+{
+  char*	m;
+  switch (error_code) {
+  case pl_ec_no_longer_needed:
+    m = "%s: %s no longer needed in %s\n";
+    break;
+  case pl_ec_assigned_to_file:
+    m = "%s: %s assigned to file %s\n";
+    break;
+  case pl_ec_message_prefix:
+    m = "C++ prelinker";
+    break;
+  case pl_ec_executing:
+    m = "%s: executing: %s\n";
+    break;
+  case pl_ec_unrecognized_option:
+    m = "Unrecognized option: %c\n";
+    break;
+  case pl_ec_error:
+    m = "%s: error: %s\n";
+    break;
+  case pl_ec_out_of_memory:
+    m = "out of memory";
+    break;
+  case pl_ec_invalid_input:
+    m = "invalid input format";
+    break;
+  case pl_ec_bad_instantiation_information_file:
+    m = "bad instantiation information file -- instantiation assigned to more than one file";
+    break;
+  case pl_ec_invalid_nm_format_option:
+    m = "invalid nm format option";
+    break;
+  case pl_ec_command_line_error:
+    m = "command line error";
+    break;
+  case pl_ec_instantiation_loop:
+    m = "instantiation loop";
+    break;
+  default:
+    pl_internal_error("invalid error code");
+  }  /* switch */
+  return m;
+}  /* pl_error_text */
+
+
+static void pl_error(a_pl_error_code	error_code)
+/*
+Prints an error message and exits with an error exit status.
+*/
+{
+  fprintf(stderr, pl_error_text(pl_ec_error), message_prefix,
+          pl_error_text(error_code));
+  exit (RC_ERROR);
+}
 
 static char *pl_malloc_with_check(sizeof_t size)
 /*
@@ -318,7 +385,7 @@ allocation and generates a catastrophic error.
   char *ptr;
 
   if ((ptr = (char *)malloc(size)) == NULL) {
-    pl_error("out of memory");
+    pl_error(pl_ec_out_of_memory);
   } /* if */
   return (ptr);
 }  /* pl_malloc_with_check */
@@ -514,7 +581,7 @@ static void pl_invalid_input(void)
 Issue an invalid input error and exit.
 */
 {
-  if (!ignore_invalid_nm_output) pl_error("invalid input format");
+  if (!ignore_invalid_nm_output) pl_error(pl_ec_invalid_input);
 }  /* pl_invalid_input */
 
 
@@ -1438,7 +1505,7 @@ Read the existing instantiation assignment information from the
           if (sym->instantiation_file != NULL) {
             /* The symbol is in the instantiation list of more than one file.
 	       This should not happen. */
-	    pl_error("bad instantiation information file -- instantiation assigned to more than one file");
+	    pl_error(pl_ec_bad_instantiation_information_file);
           }  /* if */
           sym->instantiation_file = pifp;
           /* Add this to the front of the list of instantiation entries
@@ -1577,7 +1644,7 @@ the file is flagged as requiring recompilation.
           pifp->recompile = recompile_file;
           done = FALSE;
           if (verbose) {
-            fprintf(stdout, "%s: %s no longer needed in %s\n",
+            fprintf(stdout, pl_error_text(pl_ec_no_longer_needed),
                     message_prefix, psp->name, pifp->filename);
           }  /* if */
         }  /* if */
@@ -1615,8 +1682,8 @@ the file is flagged as requiring recompilation.
           pifp->recompile = TRUE;
           done = FALSE;
           if (verbose) {
-            fprintf(stdout, "%s: %s assigned to file %s\n", message_prefix,
-                    sym->name, pifp->filename);
+            fprintf(stdout, pl_error_text(pl_ec_assigned_to_file),
+                    message_prefix, sym->name, pifp->filename);
           }  /* if */
         }  /* if */
         psp = psp->next;
@@ -1641,7 +1708,7 @@ Execute the command to recompile a file.
   length = strlen(shell_format_string) + strlen(command_line);
   command = (char *)pl_malloc_with_check(length);
   sprintf(command, shell_format_string, command_line);
-  fprintf(stdout, "%s: executing: %s\n", message_prefix, command);
+  fprintf(stdout, pl_error_text(pl_ec_executing), message_prefix, command);
   fflush(stdout);
   result = system(command);
   free(command);
@@ -1886,6 +1953,9 @@ int main(int argc, char *argv[])
   long		number_of_iterations = 0;
   char		*nm_command = NULL;
 
+  /* This must be done before any messages are issued. */
+  message_prefix = pl_error_text(pl_ec_message_prefix);
+
 #define OPTION_LIST "ilnvuc:d:f:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
@@ -1909,7 +1979,7 @@ int main(int argc, char *argv[])
         } else if (strcmp(optarg, "CLIX") == 0) {
           nm_format = nmfk_CLIX;
         } else {
-          pl_error("Invalid nm format option");
+          pl_error(pl_ec_invalid_nm_format_option);
         }  /* if */
         break;
       case 'i':
@@ -1941,8 +2011,8 @@ int main(int argc, char *argv[])
         break;        
 #endif /* DEBUG */
       default:
-        fprintf(stderr, "Unrecognized option: %c\n", optchar);
-        pl_error("command line error");
+        fprintf(stderr, pl_error_text(pl_ec_unrecognized_option), optchar);
+        pl_error(pl_ec_command_line_error);
         break;
     }  /* switch */
   }  /* while */
@@ -2026,7 +2096,7 @@ int main(int argc, char *argv[])
       /* Write the modified info files back to the disk. */
       return_status = pl_update_info_files();
       if (limit_recursion && ++number_of_iterations == PL_MAX_ITERATIONS) {
-        pl_error("instantiation loop");
+        pl_error(pl_ec_instantiation_loop);
       }  /* if */
       if (return_status != 0 || suppress_compilation) done = TRUE;
       if (!done) pl_free_all();
