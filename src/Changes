@@ -20,13 +20,6 @@ purposes.  Implicit typename is enabled by --implicit_typename and
 disabled by --no_implicit_typename; the default is established by
 DEFAULT_IMPLICIT_TYPENAME_ENABLED.
 
-12/29/95  Overloading operator delete
-
-In accord with recent Working Paper changes, deallocation operators may now
-be overloaded, and the restrictions on parameter declarations for operator
-delete and delete[] have been relaxed -- we now require only that there be
-at least one parameter and that the first parameter be of type void *.
-
 12/28/95  New predefined macro for array new and delete support
 
 A macro is now defined when array new and delete are enabled.  This
