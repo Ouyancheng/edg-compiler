@@ -195,12 +195,13 @@ static void ignore_harmless_trailing_comment(void)
 /*
 Ignore a harmless comment at the end of a preprocessing directive.
 If the dialect of C being compiled is pcc, this is done without
-a warning (pcc allows comments at the ends of several kinds of lines).
+a diagnostic (pcc allows comments at the ends of several kinds of lines).
 */
 {
   if (curr_token != tok_newline) {
     if (strict_ansi_mode) {
-      pos_warning(ec_extra_text_in_pp_directive, &pos_curr_token);
+      pos_diagnostic(strict_ansi_error_severity,
+                     ec_extra_text_in_pp_directive, &pos_curr_token);
     }  /* if */
     flush_to_newline();
   }  /* if */

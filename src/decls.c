@@ -875,7 +875,9 @@ type is legal.
              types to be fixed up when struct or union declarations are
              completed. */
           array_of_incomp_struct_or_union = TRUE;
-          if (strict_ansi_mode) warning(ec_bad_array_element_type);
+          if (strict_ansi_mode) {
+            diagnostic(strict_ansi_error_severity, ec_bad_array_element_type);
+          }  /* if */
         } else {
           /* Element type is not okay.  Select a specific error message. */
           if (is_function_type(temp_type)) {
@@ -4790,7 +4792,9 @@ is an error, return NULL.
         /* This is indeed a vacuous declaration.  Leave tag_sym set to NULL
            to force the creation of a new symbol in the current scope. */
         if (tag_kind == (a_symbol_kind)sk_enum_tag && strict_ansi_mode) {
-          pos_warning(ec_nonstd_forward_def_enum, &locator->source_position);
+          pos_diagnostic(strict_ansi_error_severity,
+                         ec_nonstd_forward_def_enum,
+                         &locator->source_position);
         }  /* if */
       } else {
         /* This may be a reference to an existing tag from a containing
@@ -5109,16 +5113,15 @@ to indicate whether an enumeration is actually defined.
         if (!done && curr_token == tok_rbrace) {
            /* Special trick: pcc allows an extra comma at the end of the 
               list.  In ANSI mode, we allow it as an extension, with
-              a warning (the gcc compiler source includes
+              a strict ANSI diagnostic (the gcc compiler source includes
               cases like this, and that source is part of the SPEC benchmark
               suite). */
           done = TRUE;
           if (C_dialect != C_dialect_pcc) {
-            if (strict_ansi_mode) {
-              pos_warning(ec_nonstd_extra_comma, &pos_comma);
-            } else {
-              pos_remark(ec_nonstd_extra_comma, &pos_comma);
-            }  /* if */
+            an_error_severity    severity;
+            severity = strict_ansi_mode ? strict_ansi_error_severity :
+                                          es_remark;
+            pos_diagnostic(severity, ec_nonstd_extra_comma, &pos_comma);
           }  /* if */
         }  /* if */
         remove_stop_token(tok_comma);
@@ -6185,7 +6188,8 @@ exit_loop:
       kind = (a_type_kind)tk_float;
       fkind = (a_float_kind)fk_double;
       if (strict_ansi_mode) {
-        pos_warning(ec_bad_combination_of_type_specifiers, &start_pos);
+        pos_diagnostic(strict_ansi_error_severity,
+                       ec_bad_combination_of_type_specifiers, &start_pos);
       }  /* if */
     } else if (basic_type == bt_double && sign == sign_none &&
                size == size_long) {
@@ -7420,7 +7424,7 @@ of local variables (and types, etc.) of functions and in blocks.
         warning(ec_extra_semicolon);
 #else /* 0 */
         if (strict_ansi_mode) {
-          warning(ec_extra_semicolon);
+          diagnostic(strict_ansi_error_severity, ec_extra_semicolon);
         } else {
           remark(ec_extra_semicolon);
         }  /* if */
@@ -7851,10 +7855,11 @@ continue_with_declaration:
                    C++ mode. */
                 local_storage_class = (a_storage_class)sc_extern;
               } else {  /* a C dialect */
-                /* This is an extension to ANSI C so produce a warning
+                /* This is an extension to ANSI C so produce a diagnostic
                    in strict ANSI C mode. */
                 if (strict_ansi_mode) {
-                  warning(ec_block_scope_function_must_be_extern);
+                  diagnostic(strict_ansi_error_severity,
+                             ec_block_scope_function_must_be_extern);
                 }  /* if */
               }  /* if */
             }  /* if */
@@ -8093,7 +8098,9 @@ a compilation.  The syntax is
        only for an empty file, but also for a file containing only
        preprocessing directives.  pcc allows an empty source file.
        In ANSI mode, it's allowed as an extension. */
-    if (strict_ansi_mode) warning(ec_empty_translation_unit);
+    if (strict_ansi_mode) {
+      diagnostic(strict_ansi_error_severity, ec_empty_translation_unit);
+    }  /* if */
   } else {
     do {
       declaration(/*function_definition_allowed=*/TRUE,

@@ -253,7 +253,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
     if (!is_error_type(bit_field_type)) error(ec_bad_bit_field_type);
     bit_field_type = integer_type((an_integer_kind)ik_int);
   } else {
-    /* Integral base type.  In strict ANSI mode, give a warning about a
+    /* Integral base type.  In strict ANSI mode, give a diagnostic about a
        nonstandard base type (anything other than int, unsigned int, and
        signed int).  In C++, however, any integer type is allowed (ARM 9.6). */
     if (C_dialect != C_dialect_cplusplus && strict_ansi_mode) {
@@ -262,7 +262,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
                                                      (an_integer_kind)ik_int &&
            bit_field_type->variant.integer.int_kind !=
                                            (an_integer_kind)ik_unsigned_int)) {
-        warning(ec_nonstd_bit_field_type);
+        diagnostic(strict_ansi_error_severity, ec_nonstd_bit_field_type);
       }  /* if */
     }  /* if */
   }  /* if */

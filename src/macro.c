@@ -1701,11 +1701,11 @@ end_scan_for_macro_modifs:;
 #endif /* DEBUG */
           /* Generate a warning on an empty macro argument, since that
              is "undefined" behavior according to the standard.  Do not
-             generate the warning if the argument was ended because of
+             generate the diagnostic if the argument was ended because of
              the end of source or of a preprocessing directive. */
           if (strict_ansi_mode && map->raw_len == 0 &&
               (curr_token != tok_end_of_source && curr_token != tok_newline)) {
-            warning(ec_empty_macro_argument);
+            diagnostic(strict_ansi_error_severity, ec_empty_macro_argument);
           }  /* if */
           /* The raw form of the argument has been scanned.  Now scan it
              again with macro expansion.  We do that by temporarily

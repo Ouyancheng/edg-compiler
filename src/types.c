@@ -1870,7 +1870,16 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         /* Allow a character string to be converted to a pointer to any kind
            of char.  This is an extension in both C and C++. */
         okay = TRUE;
-        if (strict_ansi_mode) *warning_suggested = default_warning_code;
+        if (strict_ansi_mode) {
+          /* If strict ANSI violations are being reported as errors then we
+             need to indicate that this is invalid, otherwise just indicate
+             that a warning should be issued. */
+          if (strict_ansi_error_severity == (int)es_error) {
+            okay = FALSE;
+          } else {
+            *warning_suggested = default_warning_code;
+          }  /* if */
+        }  /* if */
       } else if (C_dialect == C_dialect_pcc) {
         /* In pcc mode, allow conversion between incompatible pointer types,
            with a warning. */

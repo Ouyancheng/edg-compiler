@@ -3421,13 +3421,11 @@ is omitted, the type defaults to "int".
   a_constant_ptr   cp;
 
   db_enter(3, "decl_member_constant");
-  /* The current token is the "=".  Pointing to it issue a warning that this
-     is a nonstandard construct. */
-  if (strict_ansi_mode) {
-    warning(ec_nonstd_const_member);
-  } else {
-    remark(ec_nonstd_const_member);
-  }  /* if */
+  /* The current token is the "=".  Pointing to it issue a diagnostic that this
+     is a nonstandard construct.  This is a strict ANSI diagnostic in
+     strict ANSI mode, otherwise it is a remark. */
+  diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_remark,
+             ec_nonstd_const_member);
   /* Advance past the "=". */
   (void)get_token();
   /* Scan the constant expression. */
@@ -5884,7 +5882,8 @@ to indicate whether the class/struct/union is actually defined.
                       next_token() == tok_rbrace))) {
                     /* Okay. */
                   if (strict_ansi_mode) {
-                    warning(ec_incomplete_type_not_allowed);
+                    diagnostic(strict_ansi_error_severity,
+                               ec_incomplete_type_not_allowed);
                   }  /* if */
                 } else {
                   error(ec_incomplete_type_not_allowed);

@@ -436,7 +436,9 @@ for unions and aggregates at that level).
          not allowed.  However, pcc will allow initialization with
          a single value and we allow it as an extension. */
       if (top_level && !brace_flag) {
-        if (strict_ansi_mode) warning(ec_exp_lbrace);
+        if (strict_ansi_mode) {
+          diagnostic(strict_ansi_error_severity, ec_exp_lbrace);
+        }  /* if */
       }  /* if */
       kind = local_type->kind;
       if (kind == (a_type_kind)tk_error) {

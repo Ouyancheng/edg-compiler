@@ -3832,7 +3832,9 @@ for both C-style casts and C++ functional-notation type conversions.
       if ((local_options & EOPT_OPERAND_OF_CAST) && 
           is_pointer_type(type_cast_to)) {
         *int_to_ptr_case = TRUE;
-        if (strict_ansi_mode) warning(ec_cast_not_integral);
+        if (strict_ansi_mode) {
+          diagnostic(strict_ansi_error_severity, ec_cast_not_integral);
+        }  /* if */
       } else {
         error(ec_cast_not_integral);
         err = TRUE;
@@ -4012,7 +4014,9 @@ conversions.
           if (is_pointer_type(source_type) && is_constant_operand(operand) &&
               operand->variant.constant.kind ==
                                             (a_constant_repr_kind)ck_integer) {
-            if (strict_ansi_mode) warning(ec_expr_not_arithmetic);
+            if (strict_ansi_mode) {
+              diagnostic(strict_ansi_error_severity, ec_expr_not_arithmetic);
+            }  /* if */
           } else {
             error(ec_expr_not_arithmetic);
             err = TRUE;
@@ -4034,7 +4038,9 @@ conversions.
               /* Pointer --> integral.  Allowed as an extension.  The check
                  that the integral type is large enough is done below in the
                  call of expl_conversion_possible. */
-              if (strict_ansi_mode) warning(ec_expr_not_arithmetic);
+              if (strict_ansi_mode) {
+                diagnostic(strict_ansi_error_severity, ec_expr_not_arithmetic);
+              }  /* if */
             } else {
               /* Non-arithmetic --> arithmetic. */
               error(ec_expr_not_arithmetic);

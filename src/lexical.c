@@ -191,11 +191,11 @@ static a_constant_ptr
 
 /*
 Flag that indicates whether a dollar sign was found in any identifiers.
-Used in strict ANSI mode to make sure that this is only warned about
+Used in strict ANSI mode to make sure that this diagnostic is only given
 once per compilation unit.
 */
 static a_boolean
-                dollar_in_id_warning_issued;
+                dollar_in_id_diagnostic_issued;
 
 #if DEBUG
 /*
@@ -3825,9 +3825,10 @@ id_scan:
           if (ch == '$') dollar_used = TRUE;
         }  /* while */
         if (dollar_used && allow_dollar_in_id_chars) {
-          if (strict_ansi_mode && !dollar_in_id_warning_issued) {
-            warning(ec_dollar_used_in_identifier);
-            dollar_in_id_warning_issued = TRUE;
+          if (strict_ansi_mode && !dollar_in_id_diagnostic_issued) {
+            diagnostic(strict_ansi_error_severity,
+                       ec_dollar_used_in_identifier);
+            dollar_in_id_diagnostic_issued = TRUE;
           }  /* if */
         }  /* if */
       }
@@ -4841,7 +4842,7 @@ of the front end.
   cached_token_rescan_list = NULL;
   avail_cached_tokens = NULL;
   avail_cached_constants = NULL;
-  dollar_in_id_warning_issued = FALSE;
+  dollar_in_id_diagnostic_issued = FALSE;
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;
