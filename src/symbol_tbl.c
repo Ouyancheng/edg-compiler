@@ -4979,8 +4979,9 @@ the function instantiation entry associated with the function.
   /* Push the stack, initialize the new scope entry. */
   ssep = &scope_stack[++depth_scope_stack];
   /* Determine the scope number. */
-  if ((kind == (a_scope_kind)sck_function &&
-                                   scope_number_to_reuse != NO_SCOPE_NUMBER) ||
+  if ((scope_number_to_reuse != NO_SCOPE_NUMBER &&
+       (kind == (a_scope_kind)sck_function ||
+        kind == (a_scope_kind)sck_func_prototype)) ||
       kind == (a_scope_kind)sck_class_reactivation ||
       kind == (a_scope_kind)sck_template_instantiation) {
     /* For function scopes, reuse the scope used for the parameters
