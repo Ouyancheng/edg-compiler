@@ -268,6 +268,9 @@ int main(int argc, char *argv[])
   a_boolean            is_ctor;
   int		       optchar;
 
+  /* Process command-line options. */
+  /* Suppress getopt's error on non-recognized option. */
+  opterr = 0;
 #define OPTION_LIST "u"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
@@ -277,7 +280,9 @@ int main(int argc, char *argv[])
         skip_underscore_prefix = !TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED;
         break;
       default:
-        fprintf(stderr, "Unrecognized option: %c\n", optchar);
+        if (optind >= argc) optind = argc-1;
+        optarg = argv[optind];
+        fprintf(stderr, "Unrecognized option: %s\n", optarg);
         error_util("command line error");
         break;
     }  /* switch */
