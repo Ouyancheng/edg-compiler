@@ -6952,10 +6952,14 @@ about it).
     fputs("<null>", f_debug);
   } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
     db_scope((a_scope_ptr)olp->entity.ptr);
+  } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_expr_node) {
+    fprintf(f_debug, "expr-node@%lx:", (unsigned long)(olp->entity.ptr));
+    db_expr_summary((an_expr_node_ptr)(olp->entity.ptr));
   } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_none) {
     fputs("<unbound>", f_debug);
   } else {
-    fputs(il_entry_kind_names[(int)olp->entity.kind], f_debug);
+    fprintf(f_debug, "%s@%lx", il_entry_kind_names[(int)olp->entity.kind],
+                               (unsigned long)(olp->entity.ptr));
   }  /* if */
   fputc(']', f_debug);
 }  /* db_object_lifetime_name */
@@ -7090,6 +7094,22 @@ stack, a string supplied by the caller, and the object lifetime "name".
   db_object_lifetime_name(olp);
   fputc('\n', f_debug);
 }  /* db_object_lifetime_with_indentation */
+
+
+void db_object_lifetime_tree(an_object_lifetime_ptr olp)
+/*
+Dump information about the indicated object lifetime and the lifetimes and
+destructions under it.
+*/
+{
+  db_object_lifetime(olp);
+  if (olp != NULL) {
+    an_object_lifetime_ptr  temp = olp->child_lifetime;
+    for (; temp != NULL; temp = temp->next) {
+      db_object_lifetime(temp);
+    }  /* for */
+  }  /* if */
+}  /* db_object_lifetime_tree */
 
 #endif /* DEBUG */
 

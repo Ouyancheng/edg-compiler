@@ -3057,6 +3057,12 @@ End a name scope by popping an entry off the scope stack.
     if (db_flag_is_set("dump_type_lists")) {
       db_type_lists(il_scope, 0);
     }  /* if */
+    if (db_flag_is_set("dump_lifetimes")) {
+      fprintf(f_debug, "Object lifetime for ");
+      db_scope(il_scope);
+      fprintf(f_debug, ":\n");
+      db_object_lifetime_tree(il_scope->lifetime);
+    }  /* if */
 #endif /* DEBUG */
 #if DO_IL_LOWERING
     /* Do IL lowering (change the C++ IL into C IL). */

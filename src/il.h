@@ -716,6 +716,8 @@ extern void db_object_lifetime_stack(void);
 extern void db_pending_destructions(a_dynamic_init_ptr      dip,
                                     an_object_lifetime_ptr  stop_at);
 
+extern void db_object_lifetime_tree(an_object_lifetime_ptr olp);
+
 extern unsigned long show_il_space_used(void);
 #endif /* DEBUG */
 
