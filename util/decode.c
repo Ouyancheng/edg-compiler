@@ -241,6 +241,18 @@ A bad name mangling has been encountered.  Record an error.
 
 #if IA64_ABI
 
+/*ARGSUSED*/
+static char get_char(char                       *ptr,
+                     a_decode_control_block_ptr dctl)
+/*
+Get and return the character pointed to by ptr.  Stub version; this
+does nothing in the IA-64 ABI, but it's called from some low-level routines.
+*/
+{
+  return *ptr;
+}  /* get_char */
+
+
 static a_boolean start_of_id_is(char *str,
                                 char *id)
 /*
