@@ -6043,17 +6043,17 @@ save_end_position:
 
 end_of_token_scan:
   remember_token_start();
-end_of_token_scan_b:
+end_of_token_scan_b:;
   /* The "_b" entry here is for cases where something beyond the end
      of the token has been scanned, and therefore we may be on a new
      line now.  Cases where this is true (perhaps because skip_white_space
      has been called) should call remember_token_start before scanning
      the initial token, and then should branch here after all other
      processing is done. */
+return_from_token_scan:
   if (start_of_curr_token != NULL) {
     len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
   }  /* if */
-return_from_token_scan:
 #if DEBUG
   if (debug_level >= 3) {
     /* Write out the current token. */
