@@ -2367,7 +2367,7 @@ Print a set of Microsoft declaration modifiers.
      __declspec(novtable) and DM_NOVTABLE. */
   if (decl_modifiers &
       (DM_DLLIMPORT | DM_DLLEXPORT | DM_THREAD | DM_NAKED | DM_SELECTANY |
-       DM_NOINLINE)) {
+       DM_NORETURN | DM_NOINLINE)) {
     write_tok_str("__declspec( ");
     if (decl_modifiers & DM_DLLIMPORT) {
       write_tok_str("dllimport ");
@@ -2383,6 +2383,9 @@ Print a set of Microsoft declaration modifiers.
     }  /* if */
     if (decl_modifiers & DM_SELECTANY) {
       write_tok_str("selectany ");
+    }  /* if */
+    if (decl_modifiers & DM_NORETURN) {
+      write_tok_str("noreturn ");
     }  /* if */
     if (decl_modifiers & DM_NOINLINE) {
       write_tok_str("noinline ");

@@ -1,5 +1,19 @@
 Version 3.4
 
+12/1/03  C/C++-generating back ends and Microsoft __declspec(noreturn)
+
+The C- and C++-generating back ends were not reproducing the Microsoft
+__declspec(noreturn) specifier when it appeared in the input source.
+In turn this could cause diagnostics when compiling the generated code.
+For example:
+
+  __declspec(noreturn) void f();
+  int g() {  // Should return a value or not return at all.
+    f();     // Will never return, so no return statement needed.
+  }          // Without the __declspec(noreturn), an error may be issued.
+
+This is now fixed.
+
 12/1/03  C++-generating back end: Function declarations using GNU typeof
 
 In GNU mode, the C++-generating back end incorrectly rendered some function
