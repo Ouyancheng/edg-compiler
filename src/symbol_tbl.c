@@ -503,6 +503,9 @@ and indentation is the indentation desired.
         if (cssp->any_nonreal_base_classes) {
           put_string("has nonreal base class");
         }  /* if */
+        if (cssp->last_field_is_incomplete_array) {
+          put_string("last field is zero-array");
+        }  /* if */
         if (cssp->member_decl_scope != NO_SCOPE_NUMBER) {
           sprintf(buffer, "member_decl_scope %0d\n", cssp->member_decl_scope);
         }  /* if */
@@ -1717,6 +1720,7 @@ state.
         cssp->any_nonstatic_data_members = FALSE;
         cssp->any_nonreal_base_classes = FALSE;
         cssp->instantiation_in_progress = FALSE;
+        cssp->last_field_is_incomplete_array = FALSE;
 #if CHECKING
         cssp->avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */

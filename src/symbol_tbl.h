@@ -763,6 +763,9 @@ typedef struct a_class_symbol_supplement {
 			/* For an real instantiation, this is TRUE if the
 			   full instantiation is in the process of being
 			   generated. */
+  a_bit_field	last_field_is_incomplete_array:1;
+			/* TRUE if the last field of the class is an
+			   incomplete array (Microsoft mode only). */
   bitfield_to_avoid_codecenter_warnings()
 } a_class_symbol_supplement;
 
