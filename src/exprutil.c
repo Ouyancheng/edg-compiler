@@ -6075,8 +6075,13 @@ number of parameters.
       /* As the matching is attempted, templ_arg_list is filled in with
          the bindings for the template arguments.  This is needed during the
          matching process to ensure that each argument is used consistently
-         and also later in this routine to build the instantiation. */
-      if (!matches_template_type(arg_type, param_type, &templ_arg_list)) {
+         and also later in this routine to build the instantiation.  The
+         allow_conversion argument is used to determine whether an
+         argument requiring a conversion from Derived<T> to Base<T> should
+         be considered as a matching type.  This conversion is accepted
+         in normal mode but not in strict ANSI mode. */
+      if (!matches_template_type(arg_type, param_type, &templ_arg_list,
+                                 /*allow_conversion=*/FALSE)) {
         goto done;
       }  /* if */
     }  /* if */
