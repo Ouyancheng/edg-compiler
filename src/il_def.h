@@ -5159,14 +5159,16 @@ enum an_expr_operator_kind_tag {
   eok_ppost_decr,       /* Pointer post decrement. */
   eok_ppre_incr,        /* Pointer pre increment. */
   eok_ppre_decr,        /* Pointer pre decrement. */
-  eok_lvalue_from_call_result,
-			/* C mode only: placed above an eok_call that returns
-			   a struct, produces the address of the struct
-			   value (this can be implemented by storing the
+  eok_lvalue_from_struct_rvalue,
+			/* C mode only: placed above an an expression that
+			   is a struct rvalue, produces the address of the
+			   struct (this can be implemented by storing the
 			   value in a temporary and returning the address of
-			   the temporary).  This is used in allowing
+			   the temporary).  This is used in implementing
 			   subscripting of rvalue arrays in C mode, an
-			   extension to ANSI/ISO C. */
+			   extension to ANSI/ISO C.  The underlying expression
+			   can be a call that returns a struct, a struct
+			   assignment, or a comma operation. */
 #endif /* ifdef CIL */
 #ifdef FIL
   eok_xnegate,          /* Complex negation. */

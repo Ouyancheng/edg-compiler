@@ -3710,7 +3710,7 @@ precedence confusion and need_parens is TRUE.
       gen_pm_simple_field_selection(operand_1, operand_2);
       if (need_parens) write_tok_ch(')');
       processed = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_lvalue_from_call_result) {
+    } else if (op == (an_expr_operator_kind)eok_lvalue_from_struct_rvalue) {
       /* Used in C mode to allow subscripting of an rvalue array.  The
          operand expression is put out as an rvalue, and the underlying
          C compiler will presumably do the right thing. */
@@ -4417,10 +4417,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "--";
           operand_1_is_lvalue = TRUE;
           break;
-        case eok_lvalue_from_call_result:
+        case eok_lvalue_from_struct_rvalue:
           /* This operator shouldn't get past gen_lvalue. */
           unexpected_condition_str(
-                            "gen_expr: eok_lvalue_from_call_result as rvalue");
+                          "gen_expr: eok_lvalue_from_struct_rvalue as rvalue");
         case eok_iadd:
         case eok_fadd:
         case eok_padd:

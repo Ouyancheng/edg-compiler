@@ -5649,56 +5649,10 @@ subtree, some of which will no longer have array type.
       conv_class_operand_to_object_pointer(&operand);
       expr = make_node_from_operand(&operand);
     } else {
-      /* C mode. */
-      if (is_variable_node(expr)) {
-        /* Change value-of-variable to address-of-variable. */
-        expr = var_lvalue_expr(expr->variant.variable);
-      } else {
-        an_expr_operator_kind op;
-        an_expr_node_ptr op1, op2;
-
-        check_assertion(is_operation_node(expr));
-        op = expr->variant.operation.kind;
-        op1 = expr->variant.operation.operands;
-        op2 = op1->next;
-        if (op == (an_expr_operator_kind)eok_indirect) {
-          /* Indirection.  Remove it to get to the underlying address. */
-          expr = expr->variant.operation.operands;
-        } else if (op == (an_expr_operator_kind)eok_comma) {
-          /* Comma operator.  Do a recursive call to process the second
-             operand. */
-          op1->next = op2 = conv_array_rvalue_expr_to_object_pointer(op2);
-          expr->type = op2->type;
-        } else if (op == (an_expr_operator_kind)eok_sassign) {
-          /* Struct assignment.  Rewrite
-               x = y
-             as
-               (*(temp = &x) = y), *temp
-             (The "*" operators are implied by use of the expressions as
-             lvalues.) */
-          an_expr_node_ptr passign, temp_lvalue;
-          a_variable_ptr   temp_var = alloc_temporary_variable(op1->type);
-
-          op1->next = NULL;
-          temp_lvalue = var_lvalue_expr(temp_var);
-          temp_lvalue->next = op1;
-          passign = make_operator_node((an_expr_operator_kind)eok_passign,
-                                       temp_var->type, temp_lvalue);
-          passign->next = op2;
-          expr->variant.operation.operands = passign;
-          expr->next = var_rvalue_expr(temp_var);
-          expr = make_operator_node((an_expr_operator_kind)eok_comma,
-                                    temp_var->type, expr);
-        } else {
-          check_assertion(expr->variant.operation.kind ==
-                                              (an_expr_operator_kind)eok_call);
-          /* Call returning an rvalue.  Use an eok_lvalue_from_call_result
-             node. */
-          expr = make_operator_node(
-                            (an_expr_operator_kind)eok_lvalue_from_call_result,
-                            make_pointer_type(expr->type), expr);
-        }  /* if */
-      }  /* if */
+      /* C mode.  Use an eok_lvalue_from_struct_rvalue node. */
+      expr = make_operator_node(
+                          (an_expr_operator_kind)eok_lvalue_from_struct_rvalue,
+                          make_pointer_type(expr->type), expr);
     }  /* if */
   }  /* if */
   return expr;

@@ -3189,10 +3189,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto done_with_unary_operation;
-        case eok_lvalue_from_call_result:
-          /* Turn the result of a function call into an addressable object.
-             Used in implementing subscripting of rvalue arrays in C.
-             (An extension over ANSI/ISO C.) */
+        case eok_lvalue_from_struct_rvalue:
+          /* Turn a struct rvalue into an lvalue.  Used in implementing
+             subscripting of rvalue arrays in C. (An extension over
+             ANSI/ISO C.) */
           /* Copy the function result to a temporary, and use the address of
              the temporary. */
           dump_temp_name((char *)expr);
@@ -5755,9 +5755,9 @@ its subtree.
                                               /*suppress_const=*/FALSE);
           write_tok_ch(';');
         }  /* if */
-      } else if (op == (an_expr_operator_kind)eok_lvalue_from_call_result) {
+      } else if (op == (an_expr_operator_kind)eok_lvalue_from_struct_rvalue) {
         /* Part of allowing subscripting of rvalue arrays.  Make a temporary
-           into which the result of a function call is copied. */
+           into which a struct rvalue is copied, so we can take its address. */
         dump_general_declaration_using_type(op1_type, NO_NAME, NO_VARIABLE,
                                             (char *)node,  TQ_NONE,
                                             /*suppress_const=*/FALSE);

@@ -26,6 +26,11 @@ with comma expressions and assignment have been resolved.
     return 0;
   }
 
+IL CHANGE: this was done by renaming the eok_lvalue_from_call_result
+operator to eok_lvalue_from_struct_rvalue, and broadening it to apply
+also to struct rvalues produced from constructs other than a function
+call.
+
 4/5/98    Microsoft __declspec(property(...)) processing
 
 In some cases, a field selection for a field declared with the

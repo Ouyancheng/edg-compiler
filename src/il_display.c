@@ -1920,8 +1920,8 @@ Display the name of an expression operator.
     case eok_ppost_decr:        s = "eok_ppost_decr";             break;
     case eok_ppre_incr:         s = "eok_ppre_incr";              break;
     case eok_ppre_decr:         s = "eok_ppre_decr";              break;
-    case eok_lvalue_from_call_result:
-                                s = "eok_lvalue_from_call_result";break;
+    case eok_lvalue_from_struct_rvalue:
+                                s = "eok_lvalue_from_struct_rvalue";break;
 #endif /* ifdef CFE */
 #ifdef FFE
     case eok_xnegate:           s = "eok_xnegate";                break;
