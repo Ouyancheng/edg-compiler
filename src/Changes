@@ -1,5 +1,13 @@
 Version 2.18
 
+6/2/93 Useless function parameter declaration
+
+A warning (or error in strict ANSI mode) is reported on cases like this:
+
+  void f( struct { int i; } );
+
+This will only come up in C mode, since it's already an error in C++ mode.
+
 6/1/93 Cfront compatibility changes
 
 (1) A function qualifier is now accepted (and ignored) on a constructor
