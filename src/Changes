@@ -149,7 +149,7 @@ for more information.
 
 3/29/05  Configuration macro to tie GNU version to GNU ABI version
 
-In GNU modes,setting the new macro TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION
+In GNU modes, setting the new macro TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION
 to TRUE causes the front end to set the global variable gnu_abi_version to
 the value of gnu_version.  E.g., when specifying the command-line options
 "--g++ --gnu_version=30300", the front end not only emulates the C++ dialect
@@ -158,7 +158,8 @@ Since the front end does not emulate GNU ABI versions less than 30200, setting
 the macro TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION to TRUE requires that
 MIN_GNU_VERSION be no less than 30200.  In non-GNU modes, the value of
 gnu_abi_version is still determined by DEFAULT_GNU_ABI_VERSION, even when
-TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION is TRUE.
+TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION is TRUE.  This new option is only
+available when IA64_ABI is TRUE.
 
 3/29/05  Microsoft compatibility: POD_func().field is an lvalue
 

@@ -207,7 +207,8 @@ the version of the GNU C/C++ dialect (indicated by the global variable
 gnu_version) being emulated.  If the GNU ABI is emulated but not the GNU C/C++
 dialect (i.e., gnu_mode is FALSE), the default GNU ABI version is not affected
 by the setting of this macro.  If this macro is set to TRUE, MIN_GNU_VERSION
-cannot be smaller than 30200 (since we don't emulate earlier GNU ABIs).
+cannot be smaller than 30200 (since we don't emulate earlier GNU ABIs).  This
+option is only available for the IA-64-based ABI.
 */
 #ifndef TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION
 #define TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION FALSE
@@ -219,6 +220,11 @@ cannot be smaller than 30200 (since we don't emulate earlier GNU ABIs).
            TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION is TRUE
 #endif /* (MIN_GNU_VERSION) < 30200 */
 #endif /* TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION */
+
+#if TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION && !IA64_ABI
+ #error -- TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION requires that IA64_ABI \
+           be TRUE
+#endif /* TIE_DEFAULT_GNU_ABI_VERSION_TO_GNU_VERSION && !IA64_ABI */
 
 /*
 The GNU C++ version whose IA-64 ABI should be emulated.  This is the initial
