@@ -36,6 +36,7 @@ enum an_expression_kind_tag {
      expression kind. */
   ek_pp,		/* Preprocessing expression (see 3.8.1). */
   ek_integral_constant,	/* Integral constant expression (see 3.4). */
+  ek_template_arg,	/* Nontype template argument (C++). */
   ek_init_constant,	/* Constant expression allowed in initializers (see
 			   3.4).  Limited use in C++. */
   /* Non-constant expression kinds: */
