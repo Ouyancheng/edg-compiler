@@ -1,4 +1,4 @@
-Version 2.28
+Version 2.28, March 2, 1995
 
 1/13/95  Allow multi-character symbol types in HP/UX nm output
 
@@ -11,6 +11,7 @@ type field when the -fHPUX option is used.
 A bug has been fixed in edg_prelink that caused the prelinker to
 incorrectly process the nm output under HP/UX.
 
+-------------------------------------------------------------------------------
 Version 2.27, December 22, 1994
 
 12/20/94 Change in -p option
