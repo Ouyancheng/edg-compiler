@@ -1,5 +1,22 @@
 Version 3.1
 
+7/19/02  GNU C mode: Enumerator constant types
+
+In GNU C mode, enumerator constants take on the first type from the following
+list that can accommodate their value: int, unsigned int, long, unsigned long,
+long long, unsigned long long.  (With the --short_enums option or with the
+packed attribute, the list starts with signed char, unsigned char, short, and
+so forth.)  Different enumerator constants may have different types.
+For example, assuming long is a 32-bit type:
+
+  enum E { x = 0x400, y = 0x4000000000, z = 0x401 };
+
+Here x and z have type int, and y has type long long.  (Previously, this would
+have triggered an error because the type of enumerators was always int in GNU
+C mode, and 0x4000000000 does not fit in an int.) The underlying type of E is
+unsigned long long, because no negative enumerators were seen (this preference
+for unsigned types was already emulated in GNU C mode).
+
 7/16/02  GNU C mode: Abort on too large enumerator constant
 
 The front end would sometimes abort when processing too large an enumerator

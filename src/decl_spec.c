@@ -2958,16 +2958,20 @@ to indicate whether an enumeration is actually defined.
        the definition and switch back when we reach the right brace. */
     *defines_something = TRUE;
     (void)get_token();
-    if (C_dialect == C_dialect_cplusplus) {
+    if (C_dialect == C_dialect_cplusplus || gcc_mode) {
       /* In C++ the type of an enumerator is the same as that of its
          enumeration, but that won't actually be known until the definition
-         is complete.  Set the types in the enum constants later. */
+         is complete.  Set the types in the enum constants later.
+         In GNU C mode, the type of an enumerator can be different for
+         different enumerators of the enumeration. For example, in
+             enum E { x = 0x400, y = 0x4000000000, z = 0x401 }
+         x and z might have type int, while y has type long long. */
       enum_con_type = NULL;
     } else {
       /* In C the type of the constants is always "int", regardless of
          the type of the enumerated type (see 3.5.2.2).  However, it is
          tagged with the enumerated type, so that enum compatibility checking
-         can be done later. */
+         can be done later.  (GNU C mode is different: See above.) */
       check_assertion(!enum_types_can_be_larger_than_int);
       enum_con_type = alloc_type((a_type_kind)tk_integer);
       enum_con_type->variant.integer.int_kind = (an_integer_kind)ik_int;
@@ -3160,7 +3164,9 @@ to indicate whether an enumeration is actually defined.
         enum_con->source_corresp.name_linkage =
                                        enum_type->source_corresp.name_linkage;
         enum_sym->variant.constant = enum_con;
-        if (C_mode()) {
+        if (gcc_mode) {
+          /* Keep the "natural type" of the constant. */
+        } else if (C_mode()) {
           enum_con->type = enum_con_type;
         } else {
           /* In C++ mode leave the type of the constant unchanged for now.
@@ -3329,8 +3335,13 @@ to indicate whether an enumeration is actually defined.
         in_range_for_integer_kind(
              &min_value, &max_value,
              unsigned_int_kind_of[(int)enum_type->variant.integer.int_kind])) {
-      /* GNU C prefers an unsigned underlying type if none of the enumerator
-         constants were negative. */
+      /* GNU C and C++ prefer an unsigned underlying type if none of the
+         enumerator constants were negative.  Note that this does not affect
+         the type of the enumerator constants themselves.  For example:
+             enum E { x = 0x400, y = 0x4000000000, z = 0x401 };
+         Here x and z will have type int, y will have type long long, and the
+         underlying type of E will be unsigned long long (assuming a 32-bit
+         long type). */
       enum_type->variant.integer.int_kind =
                 unsigned_int_kind_of[(int)enum_type->variant.integer.int_kind];
     }  /* if */
