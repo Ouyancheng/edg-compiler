@@ -1,5 +1,20 @@
 Version 3.2
 
+4/1/03   Microsoft compatibility: __noop
+
+The __noop keyword, added in MSVC++ 7.0, is now implemented.
+When used as the "function" in a function call, it indicates
+that the argument list should be discarded.  It is intended
+for use with debug routines, e.g.,
+
+  #if DEBUG
+  #define dbprint printf
+  #else
+  #define dbprint __noop
+  #endif
+
+  dbprint("%d", i);
+
 4/1/03   Subobject copies and generated bitwise operator=
 
 The generated operator= function for a class is defined to do

@@ -367,14 +367,15 @@ Install the keywords in the symbol table.
       enter_underscore_keywords((a_token_kind)tok_int64, "__int64");
     }  /* if */
     enter_underscore_keywords((a_token_kind)tok_based, "__based");
-    if (C_dialect == C_dialect_cplusplus) {
-      enter_underscore_keywords((a_token_kind)tok_uuidof, "__uuidof");
-    }  /* if */
     enter_keyword((a_token_kind)tok_function_name, "__FUNCTION__");
     enter_keyword((a_token_kind)tok_decorated_function_name, "__FUNCDNAME__");
-    enter_keyword((a_token_kind)tok_if_exists, "__if_exists");
-    enter_keyword((a_token_kind)tok_if_not_exists, "__if_not_exists");
-    enter_keyword((a_token_kind)tok_super, "__super");
+    if (C_dialect == C_dialect_cplusplus) {
+      enter_underscore_keywords((a_token_kind)tok_uuidof, "__uuidof");
+      enter_keyword((a_token_kind)tok_if_exists, "__if_exists");
+      enter_keyword((a_token_kind)tok_if_not_exists, "__if_not_exists");
+      enter_keyword((a_token_kind)tok_super, "__super");
+      enter_keyword((a_token_kind)tok_noop, "__noop");
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (gcc_mode) {

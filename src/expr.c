@@ -1282,7 +1282,7 @@ Syntax:
   a_boolean         unknown_dependent_function = FALSE;
   a_symbol_ptr      member_func_sym = NULL;
   a_boolean         ignore_call = FALSE;
-  a_boolean         saved_evaluated;
+  a_boolean         saved_evaluated, saved_potentially_evaluated;
 
   db_enter(4, "scan_function_call");
 
@@ -1500,7 +1500,9 @@ Syntax:
         routine = NULL;
         ignore_call = TRUE;
         saved_evaluated = expr_stack->evaluated;
+        saved_potentially_evaluated = expr_stack->potentially_evaluated;
         expr_stack->evaluated = FALSE;
+        expr_stack->potentially_evaluated = FALSE;
       } else if (check_function_pointer_operand(operand)) {
         routine_type = type_pointed_to(operand->type);
         /* If we can tell which routine is being called, set routine to
@@ -1708,6 +1710,7 @@ Syntax:
     /* Ignore a call of the form 0(x) -- copy the zero to the result. */
     copy_operand(operand, result);
     expr_stack->evaluated = saved_evaluated;
+    expr_stack->potentially_evaluated = saved_potentially_evaluated;
   } else {
     /* Build the call node and an operand for it. */
     assemble_function_call(operand, bound_function_selector, argument_list,
@@ -5188,6 +5191,60 @@ the given expression is true.
 
   db_exit();
 }  /* scan_assume_operator */
+
+
+static void scan_noop_operator(an_operand *result)
+/*
+Scan the Microsoft extension __noop(...).  The argument list is
+not evaluated.  This is used for disabled debug functions, e.g.,
+
+  #if DEBUG
+  #define dbprint printf
+  #else
+  #define dbprint __noop
+  #endif
+
+  dbprint("%d", i);
+
+*/
+{
+  a_source_position   start_position;
+  a_source_position   end_position;
+  an_expr_stack_entry expr_stack_entry;
+  an_expr_node_ptr    arg_list;
+
+  db_enter(4, "scan_noop_operator");
+
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  expr_stack_entry.evaluated = FALSE;
+  expr_stack_entry.potentially_evaluated = FALSE;
+  /* Save the position of the __noop keyword. */
+  start_position = pos_curr_token;
+  (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* The Microsoft compiler allows __noop by itself. */
+  if (curr_token == tok_lparen) {
+    /* Scan the argument list and discard it. */
+    scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                        /*already_after_left_paren=*/FALSE,
+                        &arg_list,
+                        /*overloaded_function_case=*/FALSE,
+                        /*unknown_dependent_function=*/FALSE,
+                        (an_arg_operand_ptr *)NULL,
+                        &end_position);
+  }  /* if */
+  /* The value of __noop is an int 0. */
+  make_integer_constant_operand(result, (a_host_large_integer)0L);
+  set_operand_position(result, &start_position, &end_position,
+                       &start_position);
+  pop_expr_stack();
+
+  db_exit();
+}  /* scan_noop_operator */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -14264,6 +14321,11 @@ see expr.h).
     case tok_assume:
       /* Microsoft __assume(...). */
       scan_assume_operator(&local_result);
+      break;
+
+    case tok_noop:
+      /* __noop operation. */
+      scan_noop_operator(&local_result);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
