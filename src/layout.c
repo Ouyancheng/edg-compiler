@@ -250,10 +250,11 @@ must be unsigned.
 #define UNNAMED_ZERO_LENGTH_BIT_FIELD_SIZE (TARG_MAX_BIT_FIELD_SIZE + 1)
 
 
-void scan_bit_field_size(a_boolean  *unnamed_bit_field,
-                         a_type_ptr *p_base_type,
-                         long       *p_bit_field_size,
-                         a_boolean  *p_is_signed)
+void scan_bit_field_size(a_boolean         *unnamed_bit_field,
+                         a_type_ptr        *p_base_type,
+                         long              *p_bit_field_size,
+                         a_boolean         *p_is_signed,
+                         a_symbol_locator  *locator)
 /*
 Scan the size in a bit-field declaration:
 
@@ -269,39 +270,19 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
 {
   unsigned long bit_field_size, max_size_allowed;
   a_type_ptr    base_type = *p_base_type;
-  a_boolean     err, is_signed = FALSE;
+  a_boolean     err = FALSE, is_signed = FALSE;
   a_constant    constant;
   a_type_ptr    bit_field_type;
 
+  db_enter(3, "scan_bit_field_size");
   /* ANSI C says the type of a bit-field must be int, unsigned int,
      or signed int, but we also allow enums and integral types (see A.6.5.8
      in the Common Extensions appendix).  pcc and C++ (ARM 9.6) allow any
      integral or enum type. */
   bit_field_type = skip_typerefs(base_type);
   if (!is_integral_type(bit_field_type)) {
-    /* Error, not an integral type. */
-    if (is_error_type(bit_field_type)) {
-      /* An error has already been issued. */
-    } else if (is_template_param_type(bit_field_type)) {
-      /* We're in a prototype instantiation -- don't issue an error. */
-    } else {
-      /* Invalid type. */
-      error(ec_bad_bit_field_type);
-    }  /* if */
+    /* Diagnostic has already been issued. */
     bit_field_type = integer_type((an_integer_kind)ik_int);
-  } else {
-    /* Integral base type.  In strict ANSI C mode, give a diagnostic about a
-       nonstandard base type (anything other than int, unsigned int, and
-       signed int). */
-    if (C_dialect != C_dialect_cplusplus && strict_ansi_mode) {
-      if (bit_field_type->variant.integer.enum_type ||
-          (bit_field_type->variant.integer.int_kind !=
-                                                     (an_integer_kind)ik_int &&
-           bit_field_type->variant.integer.int_kind !=
-                                           (an_integer_kind)ik_unsigned_int)) {
-        diagnostic(strict_ansi_error_severity, ec_nonstd_bit_field_type);
-      }  /* if */
-    }  /* if */
   }  /* if */
   /* Note that if the base type was not integral it has been replaced by
      "int" by this point. */
@@ -312,6 +293,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   if (is_error_constant(&constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */
     bit_field_size = TARG_CHAR_BIT;
+    err = TRUE;
   } else {
 #if CHECKING
     if (constant.kind != (a_constant_repr_kind)ck_integer) {
@@ -349,12 +331,15 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
              subject to initialization (cfront sorta allows this but may
              generate bad C code) and cannot be referenced (again cfront
              allows it and generates illegal C). */
-          warning(ec_zero_length_bit_field_must_be_unnamed);
+          pos_warning(ec_zero_length_bit_field_must_be_unnamed,
+                      &locator->source_position);
           *unnamed_bit_field = TRUE;
         }  /* if */
       } else {
-        error(ec_zero_length_bit_field_must_be_unnamed);
+        pos_error(ec_zero_length_bit_field_must_be_unnamed,
+                  &locator->source_position);
         bit_field_size = 1;
+        err = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -391,8 +376,8 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   }  /* if */
   /* Give a warning for a signed one-bit field; ANSI C allows it, but it's
      strange. */
-  if (!*unnamed_bit_field && is_signed && bit_field_size == 1) {
-    warning(ec_signed_one_bit_field);
+  if (!err && !*unnamed_bit_field && is_signed && bit_field_size == 1) {
+    pos_warning(ec_signed_one_bit_field, &locator->source_position);
   }  /* if */
   /* Set base_type to bit_field_type with the proper type qualifiers. */
   if (bit_field_type == skip_typerefs(base_type)) {
@@ -407,6 +392,8 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   *p_base_type = base_type;
   *p_bit_field_size = bit_field_size;
   *p_is_signed = is_signed;
+
+  db_exit();
 }  /* scan_bit_field_size */
 
 

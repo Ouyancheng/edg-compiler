@@ -21,7 +21,9 @@ layout.h -- Declarations related to layout.c (having to do with laying out
 #ifndef IL_H
 #include "il.h"
 #endif /* ifndef IL_H */
-
+#ifndef SYMBOL_TBL_H
+#include "symbol_tbl.h"
+#endif /* ifndef SYMBOL_TBL_H */
 
 /* Data structure to track some information about the layout of a class
    as it is being constructed. */
@@ -50,10 +52,11 @@ typedef struct a_layout_block {
 extern void clear_layout_block(a_layout_block_ptr  lob,
                                a_type_ptr          class_type);
 
-extern void scan_bit_field_size(a_boolean  *unnamed_bit_field,
-                                a_type_ptr *p_base_type,
-                                long       *p_bit_field_size,
-                                a_boolean  *p_is_signed);
+extern void scan_bit_field_size(a_boolean         *unnamed_bit_field,
+                                a_type_ptr        *p_base_type,
+                                long              *p_bit_field_size,
+                                a_boolean         *p_is_signed,
+                                a_symbol_locator  *locator);
 
 extern a_boolean do_alignment(a_targ_size_t    *byte_offset,
                               int              *bit_offset,

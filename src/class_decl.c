@@ -3965,7 +3965,7 @@ class, struct, or union.
   if (curr_token == tok_colon) {
     /* Scan the bit-field size and determine the bit-field type. */
     scan_bit_field_size(&unnamed_field, member_type, &bit_field_size,
-                        &bit_field_is_signed);
+                        &bit_field_is_signed, locator);
   }  /* if */
   /* Create the field entry.  For unnamed fields it will not actually become
      part of the IL. */
@@ -6461,6 +6461,39 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                 } else {
                   error(ec_incomplete_type_not_allowed);
                   local_type = error_type();
+                }  /* if */
+              }  /* if */
+              if (curr_token == tok_colon) {
+                /* Bit-field declaration -- be sure the type is okay.  Do it
+                   here rather than in the subroutine because here we have
+                   the right error position. */
+                a_type_ptr  bit_field_type = skip_typerefs(local_type);
+                if (!is_integral_type(bit_field_type)) {
+                  /* Error, not an integral type. */
+                  if (is_error_type(bit_field_type)) {
+                    /* An error has already been issued. */
+                  } else if (is_template_param_type(bit_field_type)) {
+                    /* We're in a prototype instantiation -- don't issue an
+                       error. */
+                  } else {
+                    /* Invalid type. */
+                    pos_error(ec_bad_bit_field_type, &decl_start_pos);
+                  }  /* if */
+                } else {
+                  /* Integral base type.  In strict ANSI C mode, give a
+                     diagnostic about a nonstandard base type (anything other
+                     than int, unsigned int, and signed int). */
+                  if (C_dialect != C_dialect_cplusplus && strict_ansi_mode) {
+                    if (bit_field_type->variant.integer.enum_type ||
+                        (bit_field_type->variant.integer.int_kind !=
+                                           (an_integer_kind)ik_int &&
+                         bit_field_type->variant.integer.int_kind !=
+                                           (an_integer_kind)ik_unsigned_int)) {
+                      pos_diagnostic(strict_ansi_error_severity,
+                                     ec_nonstd_bit_field_type,
+                                     &decl_start_pos);
+                    }  /* if */
+                  }  /* if */
                 }  /* if */
               }  /* if */
               decl_nonstatic_data_member(&locator, &layout_block, &local_type,
