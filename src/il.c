@@ -7108,6 +7108,11 @@ scan.
                        &con->variant.address.variant.variable->source_corresp);
       }  /* if */
     }  /* if */
+  } else if (expr->kind == (an_expr_node_kind)enk_new_delete) {
+    a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
+    if (ndsp->routine != NULL) {
+      instantiate_il_entity(&ndsp->routine->source_corresp);
+    }  /* if */
   }  /* if */
 }  /* do_instantiations_for_copied_default_arg_expr */
 
