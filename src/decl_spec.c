@@ -73,6 +73,13 @@ keyword (or a memory attribute keyword).
         check_assertion(curr_token == tok_far);
         new_qualifiers = TQ_FAR;
       }  /* if */
+      /* Check for incompatibilities. */
+      if (*qualifiers & new_qualifiers) {
+        warning(ec_dupl_mem_attrib);
+      } else if (*qualifiers != TQ_NONE && new_qualifiers != TQ_NONE) {
+        error(ec_mem_attrib_incompatible);
+        new_qualifiers = TQ_NONE;
+      }  /* if */
       *qualifiers |= new_qualifiers;
       (void)get_token();        
     } else if (curr_token == tok_declspec) {
