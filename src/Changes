@@ -1,5 +1,20 @@
 Version 2.42
 
+3/23/99  Microsoft compatibility: p->k allowed in constant expression
+
+In Microsoft mode, an expression of the form p->k, where k is a member
+constant, is now allowed in a constant expression.
+
+  struct A {
+    enum { i = 1 };
+  } *p;
+  int main () {
+    switch (1) {
+      case p->i: break;
+    }
+    return 0;
+  }
+
 3/23/99  Unqualified name in nonmember using-declaration
 
 An option has been added to permit an unqualified name to be accepted
