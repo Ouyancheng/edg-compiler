@@ -1,5 +1,18 @@
 Version 2.39
 
+3/18/98   Cross-reference entry for old-style function parameter declaration
+
+We now put out cross reference entries for the comma-list of names in
+old-style function parameter declarations.  For instance,
+
+  void f(i)
+  int i;
+  { ... }
+
+With this change a declaration entry is now put out for the "i" that
+appears between the parentheses (along with the definition entry for the
+other occurrence of "i").
+
 3/18/98   Abort on error recovery after bad "else"
 
 The following case provoked an internal error in if_statement after
