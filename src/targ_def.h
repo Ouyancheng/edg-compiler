@@ -973,11 +973,11 @@ in which it will evaluate expressions, one may be able to switch off
 this processing.
 */
 #ifndef DO_UNORDERED_EH_PROCESSING
-#if DO_FULL_PORTABLE_EH_LOWERING
-#define DO_UNORDERED_EH_PROCESSING TRUE /* Do not change this. */
-#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+#if GENERATE_EH_TABLES
+#define DO_UNORDERED_EH_PROCESSING TRUE
+#else /* !GENERATE_EH_TABLES */
 #define DO_UNORDERED_EH_PROCESSING FALSE
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* GENERATE_EH_TABLES */
 #endif /* ifndef DO_UNORDERED_EH_PROCESSING */
 
 /*
