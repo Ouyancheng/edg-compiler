@@ -9,8 +9,7 @@ indicates the definition of the template instance.  The front end records
 this information by means of a secondary-declaration source sequence entry
 when NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and/or
 CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE.  For
-example, if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE
-and the original source looks like this:
+example, if the latter is TRUE and the original source looks like this:
 
   template <class T> struct S { ... };
   S<int> *psi;
@@ -18,11 +17,13 @@ and the original source looks like this:
 the generated C++ would be:
 
   template <class T> struct S { ... };
-  template<> S<int>;
+  template<> S<int>;        // New with this change
   S<int> *psi;
 
-which assumes a full specialization of S<int> appears elsewhere in the
-generated program, once it is needed.
+As before, a full specialization of S<int> will be put out elsewhere in
+the generated program, once it is needed.  But without this change the
+first reference to S<int> would have been preceded its specialization
+declaration, yielding invalid C++.
 
 7/8/97    C++-generating back end: reference of nested class to itself
 
