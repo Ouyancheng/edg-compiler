@@ -10193,21 +10193,30 @@ a constructor.
       }  /* if */
       switch (ctor_init->kind) {
         case cik_virtual_base_class:
-        case cik_direct_base_class:
-          /* Initializing a base class. */
+          /* Initializing a virtual base class. */
           type = ctor_init->variant.base_class->type;
           { a_boolean  saved_qualification_needed = 
-                                   type->source_corresp.qualification_needed;
+                                     type->source_corresp.qualification_needed;
+            a_boolean  saved_visible_as_unqualified_name =
+                              type->source_corresp.visible_as_unqualified_name;
             if (msvc_is_generated_code_target &&
                 msvc_target_version_number <= 1200) {
-              /* MSVC++ 6.0 cannot handle global qualifiers on base class
+              /* MSVC++ 6.0 cannot handle qualifiers on virtual base class
                  initializers.  Versions 7.0 and above fixed the problem. */
               type->source_corresp.qualification_needed = FALSE;
+              type->source_corresp.visible_as_unqualified_name = TRUE;
             }  /* if */
             gen_type_name(type);
             type->source_corresp.qualification_needed =
-                                                   saved_qualification_needed;
+                                                    saved_qualification_needed;
+            type->source_corresp.visible_as_unqualified_name =
+                                             saved_visible_as_unqualified_name;
           }
+          break;
+        case cik_direct_base_class:
+          /* Initializing a direct base class. */
+          type = ctor_init->variant.base_class->type;
+          gen_type_name(type);
           break;
         case cik_field:
           /* Initializing a nonstatic data member. */
