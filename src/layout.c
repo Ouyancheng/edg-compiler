@@ -280,6 +280,13 @@ typedef struct a_layout_block {
 			   is TRUE and when curr_container_type is non-NULL,
 			   the number of bits in the current container that
 			   remain unused. */
+#if IA64_ABI
+  a_targ_size_t
+		curr_base_extent;
+			/* The number of leading bytes occupied by base class
+			   subobjects.  This is used to optimize the layout
+			   process of fields (in the IA-64 ABI). */
+#endif /* IA64_ABI */
 } a_layout_block;
 
 
@@ -296,6 +303,9 @@ Clear the block used to contain information while working out class layout.
   lob->any_overflow = FALSE;
   lob->curr_container_type = NULL;
   lob->curr_container_avail_bits = 0;
+#if IA64_ABI
+  lob->curr_base_extent = 0;
+#endif /* IA64_ABI */
 }  /* clear_layout_block */
 
 
@@ -1615,8 +1625,11 @@ there's no overflow TRUE is returned.
         /* Find an offset at which this field can be placed without creating a
            conflict between empty subobjects.  In unions, only one field
            exists at any time (and unions have no base classes); so there are
-           never conflicts in those cases. */
-        if (!C_mode() && class_type->kind != (a_type_kind)tk_union) {
+           never conflicts in those cases.  No test for conflict is needed if
+           the tentative offset of the field is already beyond the extent of
+           any allocated base class. */
+        if (!C_mode() && class_type->kind != (a_type_kind)tk_union &&
+            save_byte_offset <= lob->curr_base_extent) {
           while (subobject_conflict(lob->class_type, field_type,
                                     save_byte_offset,
                                     /*consider_bases=*/TRUE,
@@ -1972,6 +1985,22 @@ Lay out the nonvirtual direct base class bcp.
 #endif /* IA64_ABI */
 }  /* set_offset_for_nonvirtual_base_class */
 
+#if IA64_ABI
+
+static void update_curr_base_extent(a_layout_block_ptr  lob,
+                                    a_base_class_ptr    bcp)
+/*
+If the given base class extends beyond any previous base class, record the
+new extent.  This is used to accelerate the layout process.
+*/
+{
+  a_targ_size_t  extent = bcp->offset + bcp->type->size - 1;
+  if (extent > lob->curr_base_extent) {
+    lob->curr_base_extent = extent;
+  }  /* if */
+}  /* update_curr_base_extent */
+
+#endif /* IA64_ABI */
 
 static void set_offsets_for_nonvirtual_base_classes(a_layout_block_ptr  lob)
 /*
@@ -2003,6 +2032,9 @@ layout block used to track the layout of the current class.
 #endif /* IA64_ABI */
                                           ) {
       set_offset_for_nonvirtual_base_class(lob, bcp);
+#if IA64_ABI
+      update_curr_base_extent(lob, bcp);
+#endif /* IA64_ABI */
     }  /* if */
   }  /* for */
   db_exit();
@@ -3555,6 +3587,7 @@ for handling virtual bases and functions.
       } else {
         set_offset_for_nonvirtual_base_class(&lob, bcp);
       }  /* if */
+      update_curr_base_extent(&lob, bcp);
     } else {
       /* If there is virtual function info, it comes first. */
       set_offset_for_virtual_function_info(&lob);
