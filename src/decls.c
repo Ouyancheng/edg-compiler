@@ -8386,7 +8386,7 @@ being taken.
              address of) this routine.  No need to do it again. */
           error_code = ec_no_error;
         } else {
-          error_code = ec_calling_function_with_incomplete_return_type;
+          error_code = ec_incomplete_function_return_type;
           rtsp->suppress_diagnostic_on_incomplete_return_type = TRUE;
         }  /* if */
       }  /* if */
@@ -8399,7 +8399,7 @@ being taken.
         err = TRUE;
         if (is_class_struct_union_type(return_type) &&
                is_incomplete_type(return_type)) {
-          error_code = ec_incomplete_return_type_not_allowed;
+          error_code = ec_incomplete_function_return_type;
         } else {
           error_code = ec_bad_function_return_type;
         }  /* if */

@@ -1593,8 +1593,8 @@ error code.
     case ec_bad_constructor_param:
       m = "copy constructor for class %t may not have a parameter of type %t";
       break;
-    case ec_incomplete_return_type_not_allowed:
-      m = "a function may not return an incomplete type";
+    case ec_incomplete_function_return_type:
+      m = "function return type is incomplete";
       break;
     case ec_protected_access_problem:
       m = "protected %n is not accessible through a %t pointer or object";
@@ -1915,9 +1915,6 @@ error code.
       break;
     case ec_unsigned_compare_with_negative:
       m = "pointless comparison of unsigned integer with a negative constant";
-      break;
-    case ec_calling_function_with_incomplete_return_type:
-      m = "a function with an incomplete return type may not be called";
       break;
     case ec_converting_to_incomplete_class:
       m = "cannot convert to incomplete class %t";
