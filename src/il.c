@@ -4688,7 +4688,6 @@ type in a function definition is based on a typedef).
 */
 {
   a_param_type_ptr  old_ptp, new_ptp, prev_new_ptp;
-  a_source_position dummy_decl_pos;
 
   copy_type(from_type, to_type);
   old_ptp = from_type->variant.routine.extra_info->param_type_list;
