@@ -1324,7 +1324,9 @@ scope is that of a class definition.
   if (C_dialect == C_dialect_cplusplus) {
     a_type_ptr            this_param_type = NULL;
     a_type_qualifier_set  qualifiers;
+#if RESTRICT_ALLOWED
     a_boolean             restrict_qualified = FALSE;
+#endif /* RESTRICT_ALLOWED */
 
     /* Create a pointer to the implicit this parameter.  This can be done
        for nonstatic function declarations within a class definition or
@@ -1414,7 +1416,9 @@ scope is that of a class definition.
   db_exit();
 }  /* function_declarator */
 
-
+#if !RESTRICT_ALLOWED
+/*ARGSUSED*/ /* <-- because "restrict_allowed" is not used. */
+#endif /* !RESTRICT_ALLOWED */
 void array_declarator(a_type_ptr *new_type_ptr,
                       a_boolean  nonconstant_dimension_allowed,
                       a_boolean  restrict_allowed,
@@ -1565,6 +1569,11 @@ same value may appear more than once.
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 
+#if !MICROSOFT_KEYWORDS_ALLOWED
+/*ARGSUSED*/ /* <-- because calling_convention_allowed, p_calling_convention,
+                    and p_nested_declarator_may_follow are only used when
+                    Microsoft keywords are allowed. */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 a_type_ptr pointer_declarator
                      (a_type_ptr           specifiers_type,
                       a_boolean   	   reference_allowed,
@@ -1616,15 +1625,19 @@ NULL.
   a_boolean      		err;
   a_type_ptr     		class_type;
   a_type_ptr     		rout_type;
-  a_calling_convention		calling_convention = cc_default;
+#if MICROSOFT_KEYWORDS_ALLOWED
+  a_calling_convention		calling_convention;
   a_source_position		calling_convention_pos;
   a_boolean			first_loop = TRUE;
   a_boolean			last_operator_is_calling_convention;
   a_boolean			is_calling_convention = FALSE;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
   db_enter(3, "pointer_declarator");
+#if MICROSOFT_KEYWORDS_ALLOWED
   calling_convention = p_calling_convention != NULL
                                        ? *p_calling_convention : cc_default;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   for (;;) {
     /* Add a pointer type to the top of the existing type.  Note that this
        works out right.  For example, if one has
@@ -1636,12 +1649,14 @@ NULL.
        "const pointer to int" to "volatile pointer to const pointer to int"
        on successive iterations. */
     a_boolean	get_token_needed = TRUE;
+#if MICROSOFT_KEYWORDS_ALLOWED
     a_boolean	calling_convention_significant;
     calling_convention_significant =
           first_loop && calling_convention == (a_calling_convention)cc_default;
     last_operator_is_calling_convention = is_calling_convention;
     is_calling_convention = FALSE;
     first_loop = FALSE;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
     err = FALSE;
     if (curr_token == tok_star ||
         (reference_allowed && curr_token == tok_ampersand)) {
@@ -1797,7 +1812,8 @@ NULL.
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
-  /* Check for an unbound qualifier used where none is allowed. */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  /* Check for an calling convention used where none is allowed. */
   if (calling_convention != cc_default && !calling_convention_allowed) {
     pos_diagnostic(es_discretionary_error, ec_calling_convention_not_allowed,
                    &calling_convention_pos);
@@ -1808,6 +1824,7 @@ NULL.
   if (p_nested_declarator_may_follow) {
     *p_nested_declarator_may_follow = !last_operator_is_calling_convention;
   }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   db_exit();
   return complete_type;
 }  /* pointer_declarator */
@@ -1981,7 +1998,7 @@ The syntax is:
   a_boolean       is_friend_decl = FALSE;
   a_boolean       class_scope_deactivation_required = FALSE;
   a_calling_convention
-		  calling_convention;
+		  calling_convention = 0;
   a_boolean	  nested_declarator_may_follow;
 
   db_enter(3, "declarator");
@@ -2006,8 +2023,10 @@ The syntax is:
   }  /* if */
   /* Set the locator to indicate there is no identifier. */
   if (locator != NULL) set_to_error_locator(*locator);
+#if MICROSOFT_KEYWORDS_ALLOWED
   calling_convention = p_calling_convention != NULL
                                           ? *p_calling_convention : cc_default;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   /* Look for any initial "*" list indicating pointer types. */
   complete_type = pointer_declarator(specifiers_type,
                                      /*reference_allowed=*/
@@ -2039,6 +2058,7 @@ The syntax is:
         goto function_lparen;
       }  /* if */
     }  /* if */
+#if MICROSOFT_KEYWORDS_ALLOWED
     if (!nested_declarator_may_follow) {
       /* Constructs such as
            int __cdecl (*fp)();
@@ -2046,6 +2066,7 @@ The syntax is:
       pos_error(ec_calling_convention_may_not_precede_nested_declarator,
                 &declarator_pos);
     }  /* if */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
     add_stop_token(tok_rparen);
     /* Get the nested declarator, removing the flag allowing parenthesized
        initializers from the input_flags bit vector.  (The other flags are
