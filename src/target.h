@@ -39,8 +39,8 @@ of cfront compatibility that is desired.  When testing these flags for
 behavior that did not change between 2.1 and 3.0 the general flag should
 be used.
 */
-#define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY FALSE
-#define CFRONT_3_0_OBJECT_CODE_COMPATIBILITY TRUE
+#define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY TRUE
+#define CFRONT_3_0_OBJECT_CODE_COMPATIBILITY FALSE
 #define CFRONT_OBJECT_CODE_COMPATIBILITY \
                            (CFRONT_2_1_OBJECT_CODE_COMPATIBILITY ||   \
                             CFRONT_3_0_OBJECT_CODE_COMPATIBILITY)
