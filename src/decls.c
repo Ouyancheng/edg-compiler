@@ -2103,7 +2103,7 @@ specified id-linkage block.
       }  /* if */
       if (is_template_instance) {
         if (!idlbp->is_definition &&
-            !prior_decl->variant.routine.ptr->defined) {
+            !routine_has_been_defined(prior_decl->variant.routine.ptr)) {
           /* A specific declaration of a function template instance for which
              a specific definition has not been seen.  The storage class of
              this declaration must agree with the storage class of the
@@ -2772,7 +2772,7 @@ created; the caller must set it.
           a_symbol_ptr  rout_sym = (a_symbol_ptr)(*routine_ptr)->
                                                     source_corresp.assoc_info;
           if (func_info->is_definition &&
-              (*routine_ptr)->assoc_scope != NULL_region_number) {
+              routine_has_been_defined(*routine_ptr)) {
             /* This error can come up when the same extern "C" function is
                defined in two different namespaces -- e.g.,
                  namespace N { extern "C" void f() { } }
@@ -4682,7 +4682,7 @@ on for use in generating cross-reference output describing this declaration.
       routine_ptr = linked_symbol->variant.routine.ptr;
       check_assertion_str(routine_ptr != NULL,
                           "decl_routine: linked symbol routine is missing");
-      if (routine_ptr->assoc_scope != NULL_region_number
+      if (routine_has_been_defined(routine_ptr)
 #if ASM_FUNCTION_ALLOWED
           || routine_ptr->storage_class == (a_storage_class)sc_asm
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -4924,7 +4924,7 @@ on for use in generating cross-reference output describing this declaration.
          declarations at local scope are handled separately. */
       sym = linked_symbol;
       routine_ptr = sym->variant.routine.ptr;
-      if (routine_ptr->defined) {
+      if (routine_has_been_defined(routine_ptr)) {
         old_decl_has_body = TRUE;
       } else if (sym->defined) {
         /* In C++ the defined flag may have been set without the body having
@@ -6496,7 +6496,8 @@ typedef, we must make sure to propagate that to its members.
     if (name_linkage == (a_name_linkage_kind)nlk_cplusplus_external ||
         name_linkage == (a_name_linkage_kind)nlk_external) {
       routine->storage_class = (a_storage_class)
-                              (routine->defined ? sc_unspecified : sc_extern);
+                                  (routine->assoc_scope != NULL_region_number ?
+                                                   sc_unspecified : sc_extern);
     }  /* if */
   }  /* for */
   for (var = scope->variables; var != NULL; var = var->next) {
