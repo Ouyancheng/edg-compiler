@@ -5046,7 +5046,7 @@ class_type.
 }  /* related_ptr_to_member_type */
 
 
-a_type_ptr make_pointer_type(a_type_ptr underlying_type)
+a_type_ptr make_pointer_type(a_type_ptr pointed_to_type)
 /*
 Allocate a pointer type record and initialize it.  Attempt to find and reuse
 an existing entry if possible.
@@ -5057,18 +5057,18 @@ an existing entry if possible.
   /* See if a pointer type for the type pointed to has already been allocated.
      If one was allocated, a pointer to it is stored in the based_types list
      for the base type, and the pointer type can be reused. */
-  ptr = get_based_type(underlying_type, (a_based_type_kind)btk_pointer,
+  ptr = get_based_type(pointed_to_type, (a_based_type_kind)btk_pointer,
                        (a_type_qualifier_set)TQ_NONE,
                        /*expl_mem_attr_implicit=*/FALSE,
                        /*class_type=*/(a_type_ptr)NULL);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
     ptr = alloc_type((a_type_kind)tk_pointer);
-    ptr->variant.pointer.type = underlying_type;
+    ptr->variant.pointer.type = pointed_to_type;
     set_type_size(ptr);
     /* Remember the existence of this pointer type by putting a pointer
        to it in the based_types list. */
-    add_based_type_list_member(underlying_type, (a_based_type_kind)btk_pointer,
+    add_based_type_list_member(pointed_to_type, (a_based_type_kind)btk_pointer,
                                ptr);
   }  /* if */
 
@@ -5077,7 +5077,7 @@ an existing entry if possible.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-a_type_ptr make_based_pointer_type(a_type_ptr     underlying_type,
+a_type_ptr make_based_pointer_type(a_type_ptr     pointed_to_type,
 				   a_variable_ptr variable)
 /*
 Allocate a pointer type for a based pointer, and initialize it.
@@ -5087,7 +5087,7 @@ Allocate a pointer type for a based pointer, and initialize it.
 
   /* No allocated entry, need to allocate one. */
   ptr = alloc_type((a_type_kind)tk_pointer);
-  ptr->variant.pointer.type = underlying_type;
+  ptr->variant.pointer.type = pointed_to_type;
   ptr->variant.pointer.base_variable = variable;
   set_type_size(ptr);
   return ptr;
@@ -5095,7 +5095,7 @@ Allocate a pointer type for a based pointer, and initialize it.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-a_type_ptr make_reference_type(a_type_ptr underlying_type)
+a_type_ptr make_reference_type(a_type_ptr pointed_to_type)
 /*
 Allocate a reference type record and initialize it.  Attempt to find and reuse
 an existing entry if possible.
@@ -5107,19 +5107,19 @@ an existing entry if possible.
      allocated.  If one was allocated, a pointer to it is stored in the
      based_types list for the base type, and the reference type can be
      reused. */
-  ptr = get_based_type(underlying_type, (a_based_type_kind)btk_reference,
+  ptr = get_based_type(pointed_to_type, (a_based_type_kind)btk_reference,
                        (a_type_qualifier_set)TQ_NONE,
                        /*expl_mem_attr_implicit=*/FALSE,
                        /*class_type=*/(a_type_ptr)NULL);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
     ptr = alloc_type((a_type_kind)tk_pointer);
-    ptr->variant.pointer.type = underlying_type;
+    ptr->variant.pointer.type = pointed_to_type;
     ptr->variant.pointer.is_reference = TRUE;
     set_type_size(ptr);
     /* Remember the existence of this reference type by putting a pointer
        to it in the based_types list. */
-    add_based_type_list_member(underlying_type,
+    add_based_type_list_member(pointed_to_type,
                                (a_based_type_kind)btk_reference, ptr);
   }  /* if */
 
@@ -7600,7 +7600,7 @@ selections for anonymous unions.
 {
   an_expr_operator_kind op;
   an_expr_node_ptr      field_node;
-  a_type_ptr            selection_type, underlying_type;
+  a_type_ptr            selection_type, pointed_to_type;
   a_type_qualifier_set  qualifiers;
 
   /* Make the expression node for the field. */
@@ -7613,8 +7613,8 @@ selections for anonymous unions.
                                (an_expr_operator_kind)eok_field;
   /* The selected field has all the type qualifiers of both the field
      and the selecting pointer. */
-  underlying_type = type_pointed_to(node->type);
-  qualifiers = get_type_qualifiers(underlying_type);
+  pointed_to_type = type_pointed_to(node->type);
+  qualifiers = get_type_qualifiers(pointed_to_type);
   selection_type = make_field_selection_type(field, qualifiers);
   selection_type = make_pointer_type(selection_type);
   /* Make the field selection node. */
