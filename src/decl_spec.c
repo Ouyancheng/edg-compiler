@@ -413,7 +413,11 @@ declaration of a class member.
       if (strcmp(modifier, "deprecated") == 0) {
         decl_modifiers->is_deprecated = TRUE;
       } else if (strcmp(modifier, "dllexport") == 0) {
-        if (decl_modifiers->flags & DM_DLLIMPORT) {
+        if (is_class_decl && C_mode()) {
+          /* "dllexport" is not allowed on a struct declaration in C. */
+          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                         &pos_curr_token, modifier);
+        } else if (decl_modifiers->flags & DM_DLLIMPORT) {
           /* The dllimport and dllexport attributes are mutually
              exclusive. */
           warning(ec_bad_combination_of_dll_attributes);
@@ -421,7 +425,11 @@ declaration of a class member.
           decl_modifiers->flags |= DM_DLLEXPORT;
         }  /* if */
       } else if (strcmp(modifier, "dllimport") == 0) {
-        if (decl_modifiers->flags & DM_DLLEXPORT) {
+        if (is_class_decl && C_mode()) {
+          /* "dllimport" is not allowed on a struct declaration in C. */
+          pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
+                         &pos_curr_token, modifier);
+        } else if (decl_modifiers->flags & DM_DLLEXPORT) {
           /* The dllimport and dllexport attributes are mutually
              exclusive. */
           warning(ec_bad_combination_of_dll_attributes);
@@ -462,7 +470,7 @@ declaration of a class member.
         }  /* if */
       } else if (!C_mode() && strcmp(modifier, "novtable") == 0) {
         if (!is_class_decl) {
-          /* "novtable" is allowed only on a class declaration. */
+          /* "novtable" is allowed only on a C++ class declaration. */
           pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                          &pos_curr_token, modifier);
         } else {
@@ -488,7 +496,7 @@ declaration of a class member.
         scan_declspec_align(decl_modifiers);
       } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
         if (!is_class_decl) {
-          /* "uuid" is allowed only on a class declaration. */
+          /* "uuid" is allowed only on a C++ class declaration. */
           pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                          &pos_curr_token, modifier);
           if (next_token() == tok_lparen) {
@@ -578,7 +586,7 @@ declaration of a class member.
             break;
           }  /* if */
         }  /* if */
-      } else if (!C_mode() && strcmp(modifier, "intrin_type") == 0) {
+      } else if (strcmp(modifier, "intrin_type") == 0) {
         if (!is_class_decl) {
           /* "intrin_type" only makes sense on a class declaration
              (but Microsoft compilers appear to accept it anywhere). */
@@ -715,118 +723,121 @@ class_definition is TRUE if the modifiers appeared on a class definition
 used for diagnostics.
 */
 {
-  a_class_type_supplement_ptr ctsp;
-
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  /* If there were any class-wide modifiers or memory attributes
-     specified, record them in the class type supplement. */
-#if NEAR_AND_FAR_ALLOWED
-  ctsp->qualifiers = extended_decl_info->qualifiers;
-#endif /* NEAR_AND_FAR_ALLOWED */
-#if DECL_MODIFIERS_IN_USE
-  if (extended_decl_info->decl_modifiers.flags != DM_NONE) {
-    /* The following processing is more complicated that it needs to be so as
-       to allow for the easy addition of decl-modifiers. */
-    a_boolean        any_invalid_redecl = FALSE;
-    a_boolean        invalid_modifier, invalid_redecl;
-    int              bit_number;
-    a_decl_modifier  modifier_value;
-
-    for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
-      modifier_value = (1 << bit_number);
-      if ((extended_decl_info->decl_modifiers.flags & modifier_value) != 0) {
-        /* This bit is set. */
-        invalid_modifier = FALSE;
-        invalid_redecl = FALSE;
-        switch (bit_number) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          case dmt_dllimport:
-            if (ctsp->decl_modifiers & DM_DLLEXPORT) {
-              if (is_incomplete_type(class_type)) {
-                /* No definition has been seen yet: replace dllexport by
-                   dllimport. */
-                ctsp->decl_modifiers &= ~DM_DLLEXPORT;
-              } else {
-                /* A definition was already seen and that froze the dllimport/
-                   dllexport setting.  Just ignore this one. */
-                extended_decl_info->decl_modifiers.flags &= ~modifier_value;
+  if (!C_mode()) {
+    a_class_type_supplement_ptr
+                     ctsp = class_type->variant.class_struct_union.extra_info;
+    /* If there were any class-wide modifiers or memory attributes
+       specified, record them in the class type supplement. */
+  #if NEAR_AND_FAR_ALLOWED
+    if (ctsp != NULL) {
+      ctsp->qualifiers = extended_decl_info->qualifiers;
+    }  /* if */
+  #endif /* NEAR_AND_FAR_ALLOWED */
+  #if DECL_MODIFIERS_IN_USE
+    if (extended_decl_info->decl_modifiers.flags != DM_NONE) {
+      /* The following processing is more complicated that it needs to be so as
+         to allow for the easy addition of decl-modifiers. */
+      a_boolean        any_invalid_redecl = FALSE;
+      a_boolean        invalid_modifier, invalid_redecl;
+      int              bit_number;
+      a_decl_modifier  modifier_value;
+  
+      for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
+        modifier_value = (1 << bit_number);
+        if ((extended_decl_info->decl_modifiers.flags & modifier_value) != 0) {
+          /* This bit is set. */
+          invalid_modifier = FALSE;
+          invalid_redecl = FALSE;
+          switch (bit_number) {
+  #if MICROSOFT_EXTENSIONS_ALLOWED
+            case dmt_dllimport:
+              if (ctsp->decl_modifiers & DM_DLLEXPORT) {
+                if (is_incomplete_type(class_type)) {
+                  /* No definition has been seen yet: replace dllexport by
+                     dllimport. */
+                  ctsp->decl_modifiers &= ~DM_DLLEXPORT;
+                } else {
+                  /* A definition was already seen and that froze the dllimport/
+                     dllexport setting.  Just ignore this one. */
+                  extended_decl_info->decl_modifiers.flags &= ~modifier_value;
+                }  /* if */
               }  /* if */
-            }  /* if */
-            break;
-          case dmt_dllexport:
-            if (ctsp->decl_modifiers & DM_DLLIMPORT) {
-              if (is_incomplete_type(class_type)) {
-                /* No definition has been seen yet: replace dllimport by
-                   dllexport. */
-                ctsp->decl_modifiers &= ~DM_DLLIMPORT;
-              } else {
-                /* A definition was already seen and that froze the dllimport/
-                   dllexport setting.  Just ignore this one. */
-                extended_decl_info->decl_modifiers.flags &= ~modifier_value;
+              break;
+            case dmt_dllexport:
+              if (ctsp->decl_modifiers & DM_DLLIMPORT) {
+                if (is_incomplete_type(class_type)) {
+                  /* No definition has been seen yet: replace dllimport by
+                     dllexport. */
+                  ctsp->decl_modifiers &= ~DM_DLLIMPORT;
+                } else {
+                  /* A definition was already seen and that froze the dllimport/
+                     dllexport setting.  Just ignore this one. */
+                  extended_decl_info->decl_modifiers.flags &= ~modifier_value;
+                }  /* if */
               }  /* if */
-            }  /* if */
-            break;
-          case dmt_novtable:
-            break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          default:
-            invalid_modifier = TRUE;
-            break;
-        }  /* switch */
-        /* If this modifier is invalid, reset the bit in the new modifiers. */
-        if (invalid_modifier || invalid_redecl) {
-          extended_decl_info->decl_modifiers.flags &= (~modifier_value);
+              break;
+            case dmt_novtable:
+              break;
+  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            default:
+              invalid_modifier = TRUE;
+              break;
+          }  /* switch */
+          /* If this modifier is invalid, reset the bit in the new modifiers. */
+          if (invalid_modifier || invalid_redecl) {
+            extended_decl_info->decl_modifiers.flags &= (~modifier_value);
+          }  /* if */
+          if (invalid_modifier) {
+            pos_st_diagnostic(es_discretionary_error,
+                              ec_decl_modifiers_invalid_for_this_decl,
+                              err_pos, decl_modifier_names[bit_number]);
+          }  /* if */
+          any_invalid_redecl |= invalid_redecl;
         }  /* if */
-        if (invalid_modifier) {
-          pos_st_diagnostic(es_discretionary_error,
-                            ec_decl_modifiers_invalid_for_this_decl,
-                            err_pos, decl_modifier_names[bit_number]);
-        }  /* if */
-        any_invalid_redecl |= invalid_redecl;
-      }  /* if */
-    }  /* for */
-    if (any_invalid_redecl) {
-      pos_diagnostic(es_discretionary_error,
-                     ec_decl_modifiers_incompatible_with_previous_decl,
-                     err_pos);
-    }  /* if */
-    /* Update the routine entry with any valid modifiers that were found. */
-    ctsp->decl_modifiers |= extended_decl_info->decl_modifiers.flags;
-  }  /* if */
-#endif /* DECL_MODIFIERS_IN_USE */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (extended_decl_info->inheritance_kind != (an_inheritance_kind)ihk_none) {
-    /* Set the specified inheritance kind, unless a different inheritance
-       kind has already been locked in -- either explicitly through a prior
-       declaration or implicitly, based on the setting of global variable
-       default_inheritance_kind, if a pointer-to-member declaration has
-       been seen. */
-    if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
-      ctsp->inheritance_kind = extended_decl_info->inheritance_kind;
-    } else if (ctsp->inheritance_kind !=
-                                  extended_decl_info->inheritance_kind) {
-      /* Inheritance kind has already been set for this class. */
-      pos_stsy_error(ec_inheritance_kind_already_set,
-                     &extended_decl_info->inheritance_kind_pos,
-                     inheritance_kind_names[(int)ctsp->inheritance_kind],
-                     (a_symbol_ptr)class_type->source_corresp.assoc_info);
-    }  /* if */
-    if (ctsp->inheritance_kind == extended_decl_info->inheritance_kind) {
-      ctsp->inheritance_kind_is_explicit = TRUE;
-    }  /* if */
-  }  /* if */
-  if (extended_decl_info->decl_modifiers.uuid_string != NULL) {
-    if (ctsp->uuid_string != NULL) {
-      /* Issue an error if __declspec(uuid(...)) strings are present and
-         they aren't identical. */
-      if (strcmp(ctsp->uuid_string,
-                 extended_decl_info->decl_modifiers.uuid_string) != 0) {
+      }  /* for */
+      if (any_invalid_redecl) {
         pos_diagnostic(es_discretionary_error,
                        ec_decl_modifiers_incompatible_with_previous_decl,
                        err_pos);
       }  /* if */
-    } else {
-      ctsp->uuid_string = extended_decl_info->decl_modifiers.uuid_string;
+      /* Update the routine entry with any valid modifiers that were found. */
+      ctsp->decl_modifiers |= extended_decl_info->decl_modifiers.flags;
+    }  /* if */
+  #endif /* DECL_MODIFIERS_IN_USE */
+  #if MICROSOFT_EXTENSIONS_ALLOWED
+    if (extended_decl_info->inheritance_kind != (an_inheritance_kind)ihk_none) {
+      /* Set the specified inheritance kind, unless a different inheritance
+         kind has already been locked in -- either explicitly through a prior
+         declaration or implicitly, based on the setting of global variable
+         default_inheritance_kind, if a pointer-to-member declaration has
+         been seen. */
+      if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
+        ctsp->inheritance_kind = extended_decl_info->inheritance_kind;
+      } else if (ctsp->inheritance_kind !=
+                                    extended_decl_info->inheritance_kind) {
+        /* Inheritance kind has already been set for this class. */
+        pos_stsy_error(ec_inheritance_kind_already_set,
+                       &extended_decl_info->inheritance_kind_pos,
+                       inheritance_kind_names[(int)ctsp->inheritance_kind],
+                       (a_symbol_ptr)class_type->source_corresp.assoc_info);
+      }  /* if */
+      if (ctsp->inheritance_kind == extended_decl_info->inheritance_kind) {
+        ctsp->inheritance_kind_is_explicit = TRUE;
+      }  /* if */
+    }  /* if */
+    if (extended_decl_info->decl_modifiers.uuid_string != NULL) {
+      if (ctsp->uuid_string != NULL) {
+        /* Issue an error if __declspec(uuid(...)) strings are present and
+           they aren't identical. */
+        if (strcmp(ctsp->uuid_string,
+                   extended_decl_info->decl_modifiers.uuid_string) != 0) {
+          pos_diagnostic(es_discretionary_error,
+                         ec_decl_modifiers_incompatible_with_previous_decl,
+                         err_pos);
+        }  /* if */
+      } else {
+        ctsp->uuid_string = extended_decl_info->decl_modifiers.uuid_string;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (extended_decl_info->decl_modifiers.is_deprecated) {
@@ -867,7 +878,7 @@ kinds of errors.
 {
   for (;;) {
 #if NEAR_AND_FAR_ALLOWED
-    if (is_class_decl && is_near_or_far()) {
+    if (is_class_decl && !C_mode() && is_near_or_far()) {
       /* Memory attribute like "near". */
       scan_near_or_far(&extended_decl_info->qualifiers);
       continue;
@@ -884,7 +895,8 @@ kinds of errors.
       /* This is a class declaration, so if the next token is an identifier
          it is probably the class name.  But it might also be the "inheritance
          kind". */
-      if (scan_inheritance_kind(&extended_decl_info->inheritance_kind,
+      if (!C_mode() &&
+          scan_inheritance_kind(&extended_decl_info->inheritance_kind,
                                 &extended_decl_info->inheritance_kind_pos)) {
         continue;
       }  /* if */
@@ -2059,9 +2071,8 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
     if (microsoft_mode or_near_and_far_enabled()) {
       a_boolean  local_err;
-
       /* Scan the decl-modifiers that apply to an entire class.  They will be
-         passed on to scan_function_definition and applied to each member
+         passed on to scan_class_definition and applied to each member
          declaration, where appropriate. */
       scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
                                    /*is_member_decl=*/FALSE,
@@ -2889,7 +2900,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
-  if (!C_mode() && (microsoft_mode or_near_and_far_enabled()) &&
+  if ((microsoft_mode or_near_and_far_enabled()) &&
       tag_sym->kind != (a_symbol_kind)sk_type) {
     update_extended_decl_info_for_class(class_type, &extended_decl_info,
                                         is_class_definition,
