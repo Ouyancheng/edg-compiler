@@ -4744,6 +4744,9 @@ way, determine to which other IL entry this might correspond.
            to find the named member instead. */
         root = NULL;
       } else {
+        /* Make sure the parent class has been processed. */
+        determine_correspondence(&scp->parent.class_type->source_corresp,
+                                 (an_il_entry_kind)iek_type);
         /* Search for the outermost parent class, but stop at a class type
            that has no correspondence or at one that is a prototype
            instantiation of a true class template. */
