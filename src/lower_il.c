@@ -4303,86 +4303,6 @@ Do IL lowering of the indicated asm entry and everything under it.
 }  /* lower_asm_entry */
 
 
-static void lower_full_expr(an_expr_node_ptr expr,
-                            a_boolean        is_bool_controlling_expr)
-/*
-Lower a "full" expression, i.e., one that is not part of some
-larger expression tree.  The expression is not an lvalue.
-If is_bool_controlling_expr is TRUE, this expression is a boolean
-controlling expression (e.g., the expression in an "if").
-*/
-{
-  a_context          context;
-  an_insert_location insert_location;
-  a_boolean          context_placed_around_expr = FALSE;
-  an_object_lifetime_ptr
-                     saved_curr_object_lifetime;
-  an_expr_node_ptr   expr_to_lower = expr;
-
-  if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
-    /* An expression with an associated object lifetime. */
-    /* Set curr_object_lifetime for the lowering of the subexpression, then
-       restore it later. */
-    saved_curr_object_lifetime = curr_object_lifetime;
-    curr_object_lifetime = expr->variant.object_lifetime.ptr;
-    expr_to_lower = expr->variant.object_lifetime.expr;
-    push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
-    curr_context->assoc_expr = expr;
-    context_placed_around_expr = TRUE;
-  }  /* if */
-  lower_expr(expr_to_lower, /*is_lvalue=*/FALSE);
-  if (context_placed_around_expr) {
-    if (any_cleanup_actions(curr_context)) {
-      /* Generate initialization assignments for any flags needed for
-         conditional destruction. */
-      gen_expr_conditional_flag_var_initializations(expr_to_lower);
-      /* Generate any cleanup actions for temporaries built within
-         the expression.  Note that this is a special "insert after"
-         mode, which can only be used in very limited circumstances,
-         e.g., at the top of an expression tree. */
-      set_after_expr_insert_location(expr_to_lower, &insert_location);
-      gen_cleanup_actions(curr_context, &insert_location);
-      /* The insertions may have changed the type of the node, so copy the
-         type up to the enk_object_lifetime node. */
-      expr->type = expr_to_lower->type;
-    }  /* if */
-    pop_context();
-    curr_object_lifetime = saved_curr_object_lifetime;
-    if (!keep_object_lifetime_info_in_lowered_il) {
-      /* Not keeping object lifetime information, so eliminate this node. */
-      unbind_object_lifetime(expr->variant.object_lifetime.ptr);
-      overwrite_node(expr, expr_to_lower);
-      expr_to_lower = expr;
-    }  /* if */
-  }  /* if */
-  if (is_bool_controlling_expr) {
-    /* This expression is a boolean controlling expression, which is supposed
-       to have a "!= 0" on top if the expression doesn't guarantee a 0/1
-       value.  If the rewriting has disturbed that, add a "!= 0" test. */
-    check_assertion(is_integral_type(expr_to_lower->type));
-    if (is_constant_node(expr_to_lower)) {
-      /* A constant here ought to be okay already. */
-    } else if (is_operation_node(expr) &&
-               is_operator_returning_bool(expr->variant.operation.kind)) {
-      /* The top of the expression is an operator that returns a boolean
-         value, so it's okay. */
-    } else {
-      /* A variable (e.g., a generated temporary), or an operator that is
-         not guaranteed to return a boolean value.  Add a "!= 0". */
-      an_expr_node_ptr copy_expr_to_lower = copy_node(expr_to_lower);
-      a_constant       zero_constant;
-      an_expr_node_ptr zero_node;
-
-      make_zero_of_proper_type(expr_to_lower->type, &zero_constant);
-      zero_node = alloc_node_for_constant(&zero_constant);
-      copy_expr_to_lower->next = zero_node;
-      change_node_to_operation(expr_to_lower, (an_expr_operator_kind)eok_ine,
-                               copy_expr_to_lower->type, copy_expr_to_lower);
-    }  /* if */
-  }  /* if */
-}  /* lower_full_expr */
-
-
 void lower_expr_list(an_expr_node_ptr expr_list,
                      unsigned int     is_lvalue_mask)
 /*
@@ -5841,6 +5761,54 @@ other operand.
 }  /* wrap_throw */
 
 
+static void lower_enk_object_lifetime(an_expr_node_ptr expr,
+                                      a_boolean        is_lvalue)
+/*
+Lower an enk_object_lifetime expression and its subtree.  This defines
+an object lifetime for the evaluation of the subexpression.  The expression
+is being used as an lvalue if is_lvalue is TRUE.  The expression is
+a full expression (i.e., it's not part of some larger expression), because
+an enk_object_lifetime should only occur at the top of a full expression.
+*/
+{
+  a_context          context;
+  an_insert_location insert_location;
+  an_object_lifetime_ptr
+                     saved_curr_object_lifetime = curr_object_lifetime;
+  an_expr_node_ptr   expr_to_lower;
+
+  /* Set curr_object_lifetime for the lowering of the subexpression, then
+     restore it later. */
+  curr_object_lifetime = expr->variant.object_lifetime.ptr;
+  expr_to_lower = expr->variant.object_lifetime.expr;
+  push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
+  curr_context->assoc_expr = expr;
+  /* Lower the subexpression. */
+  lower_expr(expr_to_lower, is_lvalue);
+  if (any_cleanup_actions(curr_context)) {
+    /* Generate initialization assignments for any flags needed for
+       conditional destruction. */
+    gen_expr_conditional_flag_var_initializations(expr_to_lower);
+    /* Generate any cleanup actions for temporaries built within
+       the expression.  Note that this is a special "insert after"
+       mode, which can only be used in very limited circumstances,
+       e.g., at the top of an expression tree. */
+    set_after_expr_insert_location(expr_to_lower, &insert_location);
+    gen_cleanup_actions(curr_context, &insert_location);
+    /* The insertions may have changed the type of the node, so copy the
+       type up to the enk_object_lifetime node. */
+    expr->type = expr_to_lower->type;
+  }  /* if */
+  pop_context();
+  curr_object_lifetime = saved_curr_object_lifetime;
+  if (!keep_object_lifetime_info_in_lowered_il) {
+    /* Not keeping object lifetime information, so eliminate this node. */
+    unbind_object_lifetime(expr->variant.object_lifetime.ptr);
+    overwrite_node(expr, expr_to_lower);
+  }  /* if */
+}  /* lower_enk_object_lifetime */
+
+
 void lower_expr(an_expr_node_ptr expr,
                 a_boolean        is_lvalue)
 /*
@@ -6126,7 +6094,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     case enk_throw:
       lower_throw(expr);
       break;
-    case enk_object_lifetime:  /* Not expected at this level. */
+    case enk_object_lifetime:
+      lower_enk_object_lifetime(expr, is_lvalue);
+      break;
 #if CHECKING
     default:
       internal_error("lower_expr: bad kind");
@@ -6137,6 +6107,39 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     curr_full_expression = NULL;
   }  /* if */
 }  /* lower_expr */
+
+
+static void lower_boolean_controlling_expr(an_expr_node_ptr expr)
+/*
+Lower a boolean controlling expression, e.g., the expression in an "if"
+statement.  The expression is not an lvalue.
+*/
+{
+  lower_normal_expr(expr);
+  /* This expression is supposed to have something on top that guarantees
+     a 0/1 value.  If the rewriting has disturbed that, add a "!= 0" test. */
+  check_assertion(is_integral_type(expr->type));
+  if (is_operation_node(expr) &&
+      is_operator_returning_bool(expr->variant.operation.kind)) {
+    /* The top of the expression is an operator that returns a boolean
+       value, so it's okay. */
+  } else if (is_constant_node(expr)) {
+    /* A constant here ought to be okay already. */
+  } else {
+    /* A variable (e.g., a generated temporary), an operator that is
+       not guaranteed to return a boolean value, or something else
+       that is not guaranteed to return 0/1.  Add a "!= 0". */
+    an_expr_node_ptr copy_expr = copy_node(expr);
+    a_constant       zero_constant;
+    an_expr_node_ptr zero_node;
+
+    make_zero_of_proper_type(expr->type, &zero_constant);
+    zero_node = alloc_node_for_constant(&zero_constant);
+    copy_expr->next = zero_node;
+    change_node_to_operation(expr, (an_expr_operator_kind)eok_ine,
+                             copy_expr->type, copy_expr);
+  }  /* if */
+}  /* lower_boolean_controlling_expr */
 
 
 /*
@@ -6828,7 +6831,7 @@ Do IL lowering of the indicated statement and everything under it.
     }  /* if */
     switch (statement->kind) {
       case stmk_expr:
-        lower_full_expr(statement->expr, /*is_bool_controlling_expr=*/FALSE);
+        lower_normal_expr(statement->expr);
         break;
       case stmk_asm:
         /* No processing required. */
@@ -6868,7 +6871,7 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_return:
         return_expr = statement->expr;
         if (return_expr != NULL) {
-          lower_full_expr(return_expr, /*is_bool_controlling_expr=*/FALSE);
+          lower_normal_expr(return_expr);
         }  /* if */
         /* Keep track of whether or not we have already turned the return
            statement into a block.  We haven't so far. */
@@ -6944,16 +6947,16 @@ Do IL lowering of the indicated statement and everything under it.
         add_to_return_memo_list(return_statement);
         break;
       case stmk_if:
-        lower_full_expr(statement->expr, /*is_bool_controlling_expr=*/TRUE);
+        lower_boolean_controlling_expr(statement->expr);
         lower_statement(statement->variant.if_stmt.then_statement);
         lower_statement(statement->variant.if_stmt.else_statement);
         break;
       case stmk_while:
-        lower_full_expr(statement->expr, /*is_bool_controlling_expr=*/TRUE);
+        lower_boolean_controlling_expr(statement->expr);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_end_test_while:
-        lower_full_expr(statement->expr, /*is_bool_controlling_expr=*/TRUE);
+        lower_boolean_controlling_expr(statement->expr);
         lower_statement(statement->variant.loop_statement);
         break;
       case stmk_for:
@@ -6973,13 +6976,11 @@ Do IL lowering of the indicated statement and everything under it.
             }  /* if */
           }  /* if */
           if (statement->expr != NULL) {
-            lower_full_expr(statement->expr,
-                            /*is_bool_controlling_expr=*/TRUE);
+            lower_boolean_controlling_expr(statement->expr);
           }  /* if */
           lower_statement(statement->variant.for_loop.statement);
           if (extra_info->increment != NULL) {
-            lower_full_expr(extra_info->increment,
-                            /*is_bool_controlling_expr=*/FALSE);
+            lower_normal_expr(extra_info->increment);
           }  /* if */
         }
         break;
@@ -7028,7 +7029,7 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         break;
       case stmk_switch:
-        lower_full_expr(statement->expr, /*is_bool_controlling_expr=*/FALSE);
+        lower_normal_expr(statement->expr);
         /* If there is a body statement and it has a scope, push it as
            context around the processing of the switch clauses. */
         scope = NULL;
