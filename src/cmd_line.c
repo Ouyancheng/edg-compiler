@@ -1475,6 +1475,7 @@ Set the various flags appropriate to C99 mode.
     /* Support for restricted pointers is turned on by default in C99 mode. */
     restrict_enabled = TRUE;
   }  /* if */
+#if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
   if (!extended_designators_allowed &&
       !(option_kind_used[(int)optk_extended_designators])) {
     /* Support for extended designators is turned on by default in
@@ -1486,6 +1487,7 @@ Set the various flags appropriate to C99 mode.
       designators_allowed = TRUE;
     }  /* if */
   }  /* if */
+#endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 #if COMPOUND_LITERAL_ENABLING_POSSIBLE
   if (!compound_literals_allowed &&
       !(option_kind_used[(int)optk_compound_literals])) {
@@ -1722,8 +1724,8 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_vla]) {
     command_line_error(ec_cl_vla_option_only_in_C);
   }  /* if */
-  vla_enabled = FALSE;
 #endif /* VLA_ALLOWED */
+  vla_enabled = FALSE;
   if (option_kind_used[(int)optk_designators]) {
     command_line_error(ec_cl_designators_option_only_in_C);
   }  /* if */
@@ -1735,6 +1737,7 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_compound_literals]) {
     command_line_error(ec_cl_compound_literals_option_only_in_C);
   }  /* if */
+  compound_literals_allowed = FALSE;
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
   /* Universal character names are allowed. */

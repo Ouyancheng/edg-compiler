@@ -1,5 +1,12 @@
 Version 2.45
 
+11/18/00 Compound literals off in C++ mode even if on by default
+
+Compound literals (a C99 feature) are not supported in C++ mode.
+Due to an oversight, we did not turn them off in C++ if they are
+enabled by default by setting DEFAULT_COMPOUND_LITERALS_ALLOWED
+to TRUE.  Now, they are turned off as intended.
+
 11/16/00 Abort on designator referring to a flexible array member
 
 A designation referring to a flexible array member used to trigger an
