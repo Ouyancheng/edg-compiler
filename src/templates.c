@@ -10337,6 +10337,7 @@ any non-empty template parameter lists that were scanned.
   a_boolean			    prototype_okay = FALSE;
   a_boolean			    is_class_template = FALSE;
   a_cached_token_ptr		    ctp;
+  a_boolean			    invalid_decl = FALSE;
 
   db_enter(3, "template_declaration");
   /* Now that we know where the template declaration begins (and the template
@@ -10451,8 +10452,7 @@ any non-empty template parameter lists that were scanned.
         set_to_named_error_locator(locator);
       }  /* if */
       if (!is_function_type(type) && 
-          (locator.specific_symbol != NULL ||
-           (is_error_locator(locator) && curr_token == tok_assign))) {
+          locator.specific_symbol != NULL) {
         sym = template_static_data_member_declaration(
                                  decl_state, &locator, do_flags, type, &tssp);
 #if RECORD_TEMPLATES_IN_IL
@@ -10480,6 +10480,10 @@ any non-empty template parameter lists that were scanned.
         if (!is_error_locator(locator)) {
           pos_st_error(ec_bad_template_declaration, &locator.source_position,
                        locator.symbol_header->identifier);
+        } else {
+          /* Record that this declaration was invalid so that we can flush
+             to the end of the declaration, if necessary. */
+          invalid_decl = TRUE;
         }  /* if */
       }  /* if */
       done_with_func_info(func_info);
@@ -10552,6 +10556,15 @@ any non-empty template parameter lists that were scanned.
     }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
   }
+  if (invalid_decl) {
+    /* The declaration was invalid -- flush to the end of the declaration
+       if necessary. */
+    add_stop_token(tok_semicolon);
+    add_stop_token(tok_rbrace);
+    flush_tokens();
+    remove_stop_token(tok_semicolon);
+    remove_stop_token(tok_rbrace);
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     if (sym != NULL) db_symbol(sym, "template symbol: ", 2);
