@@ -185,6 +185,8 @@ constructor initializer is present, a colon.
   if (curr_token == tok_lbrace) {
     /* The left brace marks the start of the function body.  Cache all the
        tokens up to the right brace. */
+    cache_curr_token(&dsfp->token_cache);
+    (void)get_token();
     cache_token_stream(&dsfp->token_cache);
   }  /* if */
   remove_stop_token(tok_rbrace);
