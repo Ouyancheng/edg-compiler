@@ -138,7 +138,7 @@ static a_decl_sequence_number
 			   numbers for symbols. */
 
 #if DEBUG
-#define DEBUG_LINE_LENGTH 79
+#define DEBUG_LINE_LENGTH ((unsigned int)79)
 /* Macros used within db_symbol, referencing local variables defined
    in that routine. */
 /* put_separator appends the separator to the current line, along with a
