@@ -1,5 +1,30 @@
 Version 2.32
 
+5/30/96 Partial initialization of multidimensional array of class
+
+The correct dynamic-init entries are now produced for cases like this:
+
+  struct S {
+    S();
+    S(int);
+  };
+  S s1[2][2] = { 1 };                 // Now correctly represented
+  S s2[2][2] = { 1,1,1 };             // Now correctly represented
+  S s3[2][2] = { { 1 }, { 1 } };      // Now correctly represented
+
+5/29/96 Declaring a destructor or conversion function with nested declarator
+
+Declarations of a destructor or conversion function using nested-declarator
+syntax are now supported:
+
+  struct S {
+    int i;
+    (~S)();                                 // Now allowed
+    (operator int)();                       // Now allowed
+  };
+  (S::~S)() { }                             // Now allowed
+  (S::operator int)() { return i; }         // Now allowed
+
 5/24/96 Minor adjustments to typeid
 
 Two minor changes to typeid:
