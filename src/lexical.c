@@ -7473,7 +7473,7 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
       a_source_position	identifier_pos;
       identifier_pos = locator_for_curr_id.source_position;
       /* If the qualifier is a type, qualifier_type will point to the
-         type and qualifier_namespace will be NULL.  If the the qualifier
+         type and qualifier_namespace will be NULL.  If the qualifier
          is a namespace, qualifier_type will be NULL and qualifier_namespace
          will point to the namespace. */
       qualifier_is_type = locator_for_curr_id.is_class_member;
