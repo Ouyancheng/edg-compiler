@@ -2126,9 +2126,9 @@ template-dependent expression.
       break;
     case ck_integer:
 #if IA64_ABI
-      if (emulate_gnu_abi_bugs && has_name(con)) {
+      if (emulate_gnu_abi_bugs && in_dependent_expr && has_name(con)) {
         /* g++ 3.2 puts out the names of enum constants instead of their
-           values. */
+           values in dependent expressions. */
         mangled_entity_reference(&con->source_corresp,
                                  iek_constant,
                                  (a_routine_info_block *)NULL,
