@@ -1829,8 +1829,8 @@ search path.  file_name must be allocated in IL storage.
   FILE  *input_file;
 
   db_enter(2, "open_file_and_push_input_stack");
-  input_file = open_file_for_input(file_name, search_path, 
-                                   /*suffixes=*/(char *)NULL, &full_file_name);
+  input_file = open_file_for_input(file_name, search_path,
+                                   /*replace_suffix=*/FALSE, &full_file_name);
   push_input_stack(input_file, file_name, full_file_name);
   db_exit();
 }  /* open_file_and_push_input_stack */
@@ -1838,7 +1838,7 @@ search path.  file_name must be allocated in IL storage.
 
 FILE *open_file_for_input(char                       *file_name,
                           a_directory_name_entry_ptr search_path,
-                          char                       *suffixes,
+                          a_boolean                  replace_suffix,
                           char                       **full_file_name)
 /*
 Try to open file_name, and return a pointer to the file if the open is
@@ -1864,6 +1864,9 @@ returned.
      names will bypass the buffer and be allocated directly via alloc_il. */
 #define BUFFER_SIZE 130
   char                        buffer[BUFFER_SIZE];
+  char                        *suffix_loc = NULL;
+  a_file_suffix_ptr           fsp;
+  a_boolean                   done;
 
   db_enter(2, "open_file_for_input");
   new_input_file = NULL;
@@ -1874,68 +1877,111 @@ returned.
     /* Special code for stdin; no open needed. */
     temp_file_name = file_name;
     new_input_file = stdin;
-  } else if (curr_ise == NULL || is_absolute_file_name(file_name)) {
-    /* File name is absolute, so search path is not used. */
-    if (suffixes == NULL) {
+  } else if (replace_suffix) {
+    /* We need to try a set of suffixes till we find a file we can open. */
+    check_assertion(depth_input_stack == 0);
+    curr_directory_name_entry = search_path;
+    done = FALSE;
+    for (;;) {
+      if (is_absolute_file_name(file_name)) {
+        if (strlen(file_name) < BUFFER_SIZE - 1) {
+          /* Copy file_name into the buffer.  It's suffix will be replaced
+             in the inner loop. */
+          (void)strcpy(buffer, file_name);
+          temp_file_name = buffer;
+        } else {
+          /* Since we're going to try to modify the file name in place, by
+             replacing it's current suffix with another, allocate storage
+             for it. */
+          temp_file_name = alloc_il((sizeof_t)(strlen(file_name)+1));
+          (void)strcpy(temp_file_name, file_name);
+        }  /* if */
+        /* Set done to keep from doing the outer loop more than once. */
+        done = TRUE;
+      } else if (search_path == NULL) {
+        /* No search path was provided, so we'll just return NULL. */
+        break;
+      } else {
+        /* We need to traverse the search path.  Merge the current entry in
+           the path with the file name and use that name as the base for
+           replacing the suffixes. */
+        temp_file_name = combine_dir_and_file_name(
+                                        curr_directory_name_entry->dir_name,
+                                        file_name, buffer, BUFFER_SIZE);
+      }  /* if */
+      /* Loop through the linked list of suffixes. */
+      for (fsp = implicit_instantiation_file_suffix_list;
+           fsp != NULL;
+           fsp = fsp->next) {
+        /* Replace the existing suffix with a new one. */
+        temp_file_name = replace_file_name_suffix(fsp->suffix,
+                                                  temp_file_name, buffer,
+                                                  BUFFER_SIZE, &suffix_loc);
+        /* Now try to open the modified file. */
+        new_input_file = open_source_file(temp_file_name, &not_found,
+                                          &bad_format, &bad_name);
+        /* If not_found is FALSE then either temp_file_name is non-NULL
+           (i.e., the input file was opened) or else there was an error
+           on the open.  In either case, stop searching. */
+        if (!not_found) {
+          done = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+      /* Test for outer loop. */
+      if (done || (curr_directory_name_entry =
+                         curr_directory_name_entry->next) == NULL) {
+        /* If done is TRUE it is because the file has been found or the
+           directory path is not being searched.  If we are searching the
+           directory path we want to stop after processing the last entry. */
+        break;
+      }  /* if */
+    }  /* for */
+  } else {
+    if (curr_ise == NULL || is_absolute_file_name(file_name)) {
+      /* File name is absolute, so search path is not used. */
       /* Also used for primary source input file; search current directory. */
       temp_file_name = file_name;
       new_input_file = open_source_file(temp_file_name,
                                         &not_found, &bad_format, &bad_name);
+    } else if (search_path == NULL) {
+      /* No search path, so file can't be found.  Issue a catastrophic error.
+         Use special message to make it clearer, since problem may be that
+         there are no -I options on the command line. */
+      str_catastrophe(ec_empty_include_search_path, file_name);
     } else {
-      internal_error("open_file_for_input: suffixes not yet implemented");
-    }  /* if */
-  } else {
-    /* File name is relative, use search path. */
-    if (search_path == NULL) {
-      /* No search path, so file can't be found. */
-      if (suffixes == NULL) {
-        /* Issue a catastrophic error, since the file cannot be opened.
-           Use special message to make it clearer, since problem may be that
-           there are no -I options on the command line. */
-        str_catastrophe(ec_empty_include_search_path, file_name);
-      }  /* if */
-    } else {
+      /* File name is relative, use search path. */
       curr_directory_name_entry = search_path;
       while (curr_directory_name_entry != NULL) {
-        if (suffixes == NULL) {
-          /* Try opening the file name with this directory name. */
-          temp_file_name = combine_dir_and_file_name(
-                                          curr_directory_name_entry->dir_name,
-                                          file_name, buffer, BUFFER_SIZE);
-          /* Now try opening the file.  Exit the loop on success. */
-          new_input_file = open_source_file(temp_file_name, &not_found,
-                                            &bad_format, &bad_name);
-          if (new_input_file != NULL) {
-            /* The file was opened successfully.  Exit the loop. */
-            break;
-          } else if (not_found) {
-              /* The file could not be found.  Keep looking. */
-              curr_directory_name_entry = curr_directory_name_entry->next;
-          } else {
-            /* File could not be opened because of an error on the open. */
-            if (bad_format) {
-              str_catastrophe(ec_source_file_has_bad_format, file_name);
-            } else if (bad_name) {
-              str_catastrophe(ec_illegal_source_file_name, file_name);
-            } else {
-              /* Possibly some other reason. */
-              break;
-            }  /* if */
-          }  /* if */
+        /* Try opening the file name with this directory name. */
+        temp_file_name = combine_dir_and_file_name(
+                                        curr_directory_name_entry->dir_name,
+                                        file_name, buffer, BUFFER_SIZE);
+        /* Now try opening the file.  Exit the loop on success. */
+        new_input_file = open_source_file(temp_file_name, &not_found,
+                                          &bad_format, &bad_name);
+        if (new_input_file != NULL) {
+          /* The file was opened successfully.  Exit the loop. */
+          break;
         } else {
-          internal_error("open_file_for_input: suffixes not yet implemented");
+          /* Issue a catastrophic error if the file could not be opened
+             because of an error. */
+          if (bad_format) {
+            str_catastrophe(ec_source_file_has_bad_format, file_name);
+          } else if (bad_name) {
+            str_catastrophe(ec_illegal_source_file_name, file_name);
+          }  /* if */
         }  /* if */
+        /* The file could not be found.  Keep looking. */
+        curr_directory_name_entry = curr_directory_name_entry->next;
       }  /* while */
     }  /* if */
-  }  /* if */
-  if (new_input_file == NULL) {
-    /* The file could not be opened. */
-    if (suffixes != NULL) {
-      /* It is okay to return a NULL file pointer. */
-    } else {
+    if (new_input_file == NULL) {
+      /* The file could not be opened. */
       str_catastrophe(ec_source_file_could_not_be_opened, file_name);
     }  /* if */
-  } else {
+  }  /* if */
+  if (new_input_file != NULL) {
     /* If the name is in "buffer", allocate it now.  The names are generated 
        there first because many directory/file name combinations might be tried
        before the right one is found.  We don't allocate space for the name 
