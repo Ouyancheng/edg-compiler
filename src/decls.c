@@ -2100,7 +2100,6 @@ issued a similar error).  Return FALSE if there is some error.
             goto issue_diagnostic;
           }  /* if */
         }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_mode && is_routine && C_mode()) {
         if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
           sym = NULL;
@@ -2123,7 +2122,6 @@ issued a similar error).  Return FALSE if there is some error.
           esdp->variant.routine.ptr = NULL;
         }  /* if */
         okay = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
       severity = es_error;
       /* Record an error type as the external symbol's type, to avoid
@@ -2819,7 +2817,8 @@ not be TRUE.
     /* The Microsoft Visual C++ compiler always uses the calling convention
        from the declaration of a member function, even if the calling
        convention on the definition is different. */
-    if (routine_ptr->source_corresp.is_class_member) {
+    if (microsoft_mode &&
+        routine_ptr->source_corresp.is_class_member) {
       skip_typerefs(routine_ptr->type)->variant.routine.extra_info->
                                   calling_convention = orig_calling_convention;
     }  /* if */
@@ -3735,10 +3734,12 @@ on for use in generating cross-reference output describing this declaration.
              be overloaded, so it was not checked. */
           routines_compat = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          /* Check that the calling conventions are compatible. */
-          if (!calling_conventions_are_compatible(routine_ptr->type,
-                                                  type_ptr)) {
-            routines_compat = FALSE;
+          if (microsoft_mode) {
+            /* Check that the calling conventions are compatible. */
+            if (!calling_conventions_are_compatible(routine_ptr->type,
+                                                    type_ptr)) {
+              routines_compat = FALSE;
+            }  /* if */
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
@@ -3764,7 +3765,6 @@ on for use in generating cross-reference output describing this declaration.
                type. */
             *old_type = routine_ptr->type;
             if (is_function_def) routine_ptr->type = type_ptr;
-#if MICROSOFT_EXTENSIONS_ALLOWED
           } else if (microsoft_mode && C_mode()) {
             /* In Microsoft C mode "anything goes" as far as function
                redeclarations are concerned. */
@@ -3774,7 +3774,6 @@ on for use in generating cross-reference output describing this declaration.
             if (is_function_def || !old_decl_has_body) {
               routine_ptr->type = type_ptr;
             }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           } else {
             /* Issue an error on incompatible declarations. */
             pos_sy_error(ec_not_compatible_with_previous_decl,
@@ -4112,7 +4111,6 @@ skip_overloading:;
   update_routine_decl_modifiers(routine_ptr, decl_modifiers,
                                 &locator->source_position, redeclaration,
                                 is_function_def);
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && func_info->is_main_function) {
     /* main should use __cdecl calling convention.  If that's not the default
        for the compilation, set it now. */
@@ -4131,7 +4129,6 @@ skip_overloading:;
       }  /* if */
     }  /* if */
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Link the symbol to the IL routine entry. */
   sym->variant.routine.ptr = routine_ptr;
   if (*ext_sym != NULL &&
@@ -6234,9 +6231,6 @@ clause is to be attached.  catch_pos is the source position of "catch".
 }  /* handler_declaration */
 
 
-#if !GENERATE_SOURCE_SEQUENCE_LISTS && !MICROSOFT_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* is_asm_statement is not referenced.*/
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS && !MICROSOFT_EXTENSIONS_ALLOWED */
 an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
                                  a_boolean  is_asm_statement)
 /*
@@ -6279,19 +6273,16 @@ instructions (unquoted).
     cannot_bind_to_curr_construct();
   }  /* if */
   copy_source_position(pos_curr_token, asm_pos);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* In Microsoft mode the token after the asm must be fetched in pp-token
-     mode. */
-  fetch_pp_tokens = TRUE;
-  /* Skip past the "asm". */
-  (void)get_token();
-  fetch_pp_tokens = FALSE;
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Skip past the "asm". */
-  (void)get_token();
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
+    /* In Microsoft mode the token after the asm must be fetched in pp-token
+       mode. */
+    fetch_pp_tokens = TRUE;
+  }  /* if */
+  /* Skip past the "asm". */
+  (void)get_token();
+  if (microsoft_mode) {
+    /* Restore the flag to do normal token fetching. */
+    fetch_pp_tokens = FALSE;
     if (!is_asm_statement) {
       /* A Microsoft asm statement may not appear at file scope. */
     } else if (curr_token == tok_lparen) {
@@ -6332,7 +6323,6 @@ instructions (unquoted).
       goto make_asm_entry;
     }  /* if */
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
@@ -6349,9 +6339,7 @@ instructions (unquoted).
   remove_stop_token(tok_rparen);
   /* Check for and skip the semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
-#if MICROSOFT_EXTENSIONS_ALLOWED
 make_asm_entry:
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
   /* Update the IL. */
   if (asm_decl_allowed) {
     /* Allocate and set the asm-entry. */
