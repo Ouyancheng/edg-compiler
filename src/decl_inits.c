@@ -1739,6 +1739,102 @@ the default constructor (if one exists) is called.
 }  /* def_initializer */
 
 
+static void add_as_child_of_curr_object_lifetime(an_object_lifetime_ptr  olp)
+/*
+Restore *olp to the object lifetime tree -- it was detached earlier, but is
+added back, but possibly in a different position on the child_lifetime list
+of curr_object_lifetime (which is assumed to be its former parent).
+*/
+{
+  db_enter(4, "add_as_child_of_curr_object_lifetime");
+  if (olp != NULL) {
+    check_assertion_str2(olp->parent_lifetime == NULL,
+                         "add_as_child_of_curr_object_lifetime:",
+                         "non-NULL parent_lifetime");
+    olp->next = curr_object_lifetime->child_lifetime;
+    curr_object_lifetime->child_lifetime = olp;
+    olp->parent_lifetime = curr_object_lifetime;
+#if DEBUG
+    if (debug_level >= 4) {
+      fputs("after restoration:\n", f_debug);
+      db_object_lifetime(olp);
+      db_object_lifetime(curr_object_lifetime);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  db_exit();
+}  /* add_as_child_of_curr_object_lifetime */
+
+
+static void detach_from_object_lifetime_tree(an_object_lifetime_ptr  olp)
+/*
+Detach the object lifetime *olp from the object lifetime tree, leaving it
+otherwise intact.  It will be restored later -- but possibly in a different
+position on the child_lifetime list of its parent.  Note: this routine
+assumes that the parent lifetime of *olp is the lifetime currently on top
+of the object lifetime stack.
+*/
+{
+  db_enter(4, "detach_from_object_lifetime_tree");
+  if (olp != NULL) {
+    check_assertion_str2(olp->parent_lifetime == curr_object_lifetime,
+                         "detach_from_object_lifetime_tree:",
+                         "parent is not curr_object_lifetime");
+    check_assertion_str2(curr_object_lifetime->child_lifetime != NULL,
+                         "detach_from_object_lifetime_tree:",
+                         "parent has NULL child_lifetime");
+    if (olp == curr_object_lifetime->child_lifetime) {
+      curr_object_lifetime->child_lifetime = olp->next;
+    } else {
+      an_object_lifetime_ptr  prev_sibling;
+
+      for (prev_sibling = curr_object_lifetime->child_lifetime;
+           prev_sibling != NULL && prev_sibling->next != olp;
+           prev_sibling = prev_sibling->next) { }
+      check_assertion_str2(prev_sibling != NULL,
+                           "detach_from_object_lifetime_tree:",
+                           "not on child_lifetime list of parent");
+      prev_sibling->next = olp->next;
+    }  /* if */
+    olp->parent_lifetime = NULL;
+#if DEBUG
+    if (debug_level >= 4) {
+      fputs("after detaching:\n", f_debug);
+      db_object_lifetime(olp);
+      db_object_lifetime(curr_object_lifetime);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  db_exit();
+}  /* detach_from_object_lifetime_tree */
+
+
+static an_object_lifetime_ptr init_expr_lifetime_of(a_dynamic_init_ptr  dip)
+/*
+Given a dynamic init entry, return a (possibly NULL) pointer to an object
+lifetime representing the full-expression lifetime that is the initialization.
+(This may be given directly by the init_expr_lifetime field or indirectly, if
+this is a dik_expression dynamic init entry.
+*/
+{
+  an_object_lifetime_ptr  olp = NULL;
+
+  if (dip != NULL) {
+    olp = dip->init_expr_lifetime;
+    if (olp == NULL) {
+      if (dip->kind == (a_dynamic_init_kind)dik_expression &&
+          dip->variant.expression->kind ==
+                             (an_expr_node_kind)enk_object_lifetime) {
+        /* An enk_object_lifetime node will always be the top-most node if
+           if a lifetime was pushed for the full-expression. */
+        olp = dip->variant.expression->variant.object_lifetime.ptr;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return olp;
+}  /* init_expr_lifetime_of */
+
+
 a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
                                         a_boolean      user_defined)
 /*
@@ -2222,6 +2318,11 @@ scan_paren:
               cp = alloc_constant((a_constant_repr_kind)ck_error);
               set_error_constant(cp);
               dip->variant.constant = cp;
+            } else {
+              /* If the initializer produced an object lifetime for the full
+                 expression, remove it temporarily from the object lifetime
+                 tree and restore it in the correct position later. */
+              detach_from_object_lifetime_tree(init_expr_lifetime_of(dip));
             }  /* if */
             dip->is_constructor_init = TRUE;
             new_cip->initializer = dip;
@@ -2236,6 +2337,10 @@ scan_paren:
                                                 /*static_lifetime=*/FALSE,
                                                 /*force_object_lifetime=*/TRUE,
                                                 init_type, &dip);
+            /* If the initializer produced an object lifetime for the full
+               expression, remove it temporarily from the object lifetime
+               tree and restore it in the correct position later. */
+            detach_from_object_lifetime_tree(init_expr_lifetime_of(dip));
             dip->is_constructor_init = TRUE;
             if (new_cip != NULL) new_cip->initializer = dip;
             remove_stop_token(tok_rparen);
@@ -2289,6 +2394,16 @@ scan_paren:
     a_type_ptr            object_class_type;
 
     next_cip = cip->next;
+    if (cip->initializer != NULL) {
+      /* If the initializer had produced an object lifetime for the full
+         expression, it was temporarily removed from the object lifetime tree;
+         Now that we are reconsidering the initializers in the canonical order
+         (not the order in the source), restore the object lifetime.  This
+         assures that the order of the child-lifetime list will reflect the
+         the actual order of construction. */
+      add_as_child_of_curr_object_lifetime(
+                               init_expr_lifetime_of(cip->initializer));
+    }  /* if */
     if (cip->initializer == NULL ||
         cip->initializer->kind == (a_dynamic_init_kind)dik_none ||
         exceptions_enabled) {
