@@ -248,7 +248,7 @@ to translate the lookup mode into a set of identifier lookup options.
 */
 static an_id_lookup_options_set idl_options_for_lookup_mode[ilm_last + 1] = {
   /* ilm_normal */		IDL_NO_OPTIONS,
-  /* ilm_class */		IDL_MUST_BE_CLASS,
+  /* ilm_class_or_namespace */	IDL_MUST_BE_CLASS_OR_NAMESPACE,
   /* ilm_tag */			IDL_MUST_BE_TAG,
   /* ilm_tentative_type */	IDL_TENTATIVE_TYPE_LOOKUP,
   /* ilm_ctor_initializer_name */ IDL_SKIP_CURR_FUNCTION_SCOPE,
@@ -5848,7 +5848,8 @@ only in C++ mode.
       /* Cfront allows a destructor name to refer to a file scope typedef
          to a particular class. */
       a_symbol_ptr sym;
-      sym = file_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_CLASS);
+      sym = file_scope_id_lookup(&locator_for_curr_id,
+                                 IDL_MUST_BE_CLASS_OR_NAMESPACE);
       if (sym != NULL &&
           sym->kind == (a_symbol_kind)sk_type && is_class_symbol(sym) &&
           sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
@@ -6712,7 +6713,7 @@ qualified name.
       if (next_tok == tok_lt || qualifier_separator == tok_period) {
         lookup_kind = IDL_NO_OPTIONS;
       } else {
-        lookup_kind = IDL_MUST_BE_CLASS;
+        lookup_kind = IDL_MUST_BE_CLASS_OR_NAMESPACE;
       }  /* if */
       if (is_global_qualified_name) {
         /* There was a leading unary "::", so look up the name in the file
@@ -6905,9 +6906,9 @@ qualified name.
 	    err = TRUE;
 	    class_symbol = NULL;
           } else {
-            class_symbol = class_qualified_id_lookup(&locator_for_curr_id,
-                                                     class_type,
-                                                     IDL_MUST_BE_CLASS);
+            class_symbol = class_qualified_id_lookup
+                                           (&locator_for_curr_id, class_type,
+                                            IDL_MUST_BE_CLASS_OR_NAMESPACE);
             /* If the class lookup fails, and a vacuous destructor is
 	       allowed, do another lookup without the requirement that
                a class be found. */

@@ -45,11 +45,14 @@ Options for normal_id_lookup, class_qualified_id_lookup, etc.,
 represented as a bit set:
 */
 typedef int an_id_lookup_options_set;
-#define IDL_MUST_BE_CLASS 0x1	/* The symbol must be a class, struct, or
-				   union name, or a typedef of one of those. */
+#define IDL_MUST_BE_CLASS_OR_NAMESPACE  0x1
+				/* The symbol must be a class, struct, or
+				   union name, a typedef of one of those, or
+                                   a namepace.  In other words, one of the
+                                   things that, in C++, may precede a ::. */
 #define IDL_MUST_BE_TAG 0x2	/* The symbol must be a class, struct, union,
 				   or enum (not a typedef of one of those). */
-#define IDL_CONSTRAINTS (IDL_MUST_BE_CLASS | IDL_MUST_BE_TAG)
+#define IDL_CONSTRAINTS (IDL_MUST_BE_CLASS_OR_NAMESPACE | IDL_MUST_BE_TAG)
 				/* The set of all options that impose
 				   constraints on the symbol to be found. */
 #define IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR 0x4
@@ -315,6 +318,7 @@ enum a_symbol_kind_tag {
   sk_parameter,         /* Parameter name in a function prototype. */
   sk_class_template,    /* Definition of a class template. */
   sk_function_template, /* Definition of a function template. */
+  sk_namespace,         /* Definition of a namespace. */
   sk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -331,7 +335,7 @@ EXTERN char	*symbol_kind_names[(int)sk_last + 1]
    "enum", "variable", "field", "static data member", "member function",
    "routine", "label", "undefined", "extern variable", "extern routine",
    "projection", "overloaded function", "parameter",
-   "class template", "function template",
+   "class template", "function template", "namespace",
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -1487,6 +1491,15 @@ typedef struct a_symbol {
                 template_info;
 			/* Pointer to an entry providing additional info about
 			   a C++ class template or function template. */
+    /* When kind = sk_namespace: */
+    struct {
+      a_symbol_ptr
+		symbols;
+			/* Symbol entries for members of the namespace. */
+      a_namespace_ptr
+		ptr;
+			/* The IL entry for the namespace. */
+    } namespace_info;
   } variant;
 } a_symbol;
 
@@ -2013,6 +2026,10 @@ typedef struct a_scope_stack_entry {
 			   A<T>::f is being defined, this points to the
 			   class type of A<T>.  Contains NULL if the
 			   template is not a member. */
+  a_scope_depth depth_innermost_namespace_scope;
+                        /* Depth of the nearest enclosing namespace scope.
+			   This is a copy of the global variable of the
+                           same name. */
 } a_scope_stack_entry;
 
 
@@ -2093,6 +2110,11 @@ EXTERN a_boolean
 		inside_local_class;
 			/* TRUE if we are currently inside a local class,
 			   i.e., a class defined within a function. */
+EXTERN a_scope_depth
+		depth_innermost_namespace_scope;
+			/* If there are any namespace scopes on the
+                           scope stack, this is the depth of the innermost
+                           one.  Otherwise, NO_SCOPE_DEPTH. */
 EXTERN a_scope_number
 		next_scope_number;
 			/* Next scope number to be assigned.  These are
@@ -2569,12 +2591,15 @@ extern void check_dependent_type_fixup_list(a_type_ptr  class_type);
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
                    is_class_struct_union_type((sym)->variant.type)))
 
-/* Return TRUE if a symbol is a class symbol, class template symbol,
-   or a type template parameter.  This macro should only be used in
+/* Return TRUE if a symbol is one that may be used as part of the
+   qualifier in a qualified name.  This includes class symbols,
+   typedefs to class symbols, type template parameters, class template
+   symbols, and namespace symbols.  This macro should only be used in
    C++ mode. */
-#define is_class_or_class_proxy_symbol(sym)                           \
+#define symbol_may_precede_qualifier(sym)                           \
   ((sym)->kind == (a_symbol_kind)sk_class_template ||		      \
    is_class_symbol(sym) ||                                            \
+   (sym)->kind == (a_symbol_kind)sk_namespace ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
     (sym)->variant.type->kind == (a_type_kind)tk_template_param))
 

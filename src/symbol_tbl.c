@@ -795,6 +795,8 @@ do_variable:
         suppress_newline = TRUE;
       }
       break;
+    case sk_namespace:
+      break;
 #if CHECKING
     default:
       put_string("UNEXPECTED SYMBOL KIND");
@@ -1525,6 +1527,10 @@ state.
     case sk_function_template:
       sym_ptr->variant.template_info =
                              alloc_template_symbol_supplement(sym_ptr->kind);
+      break;
+    case sk_namespace:
+      sym_ptr->variant.namespace_info.symbols = NULL;
+      sym_ptr->variant.namespace_info.ptr = NULL;
       break;
 #if CHECKING
     default:
@@ -5986,7 +5992,8 @@ class_type that is a ck_template_param.
   /* If we are doing a  "must be class", "must be tag" or "tentative type"
      lookup then we create the symbol as a type; otherwise we create it
      as a constant. */
-  is_type = options & IDL_MUST_BE_CLASS || options & IDL_MUST_BE_TAG ||
+  is_type = options & IDL_MUST_BE_CLASS_OR_NAMESPACE ||
+            options & IDL_MUST_BE_TAG ||
             options & IDL_TENTATIVE_TYPE_LOOKUP;
   /* Create a symbol for the member.  mark_declared is not called
      because this symbol is not visible to the user. */
@@ -6189,7 +6196,8 @@ C and C++.
   a_symbol_ptr            active_symbol_list, active_sym, prev_active_sym;
   a_symbol_ptr            insert_sym, tag_symbol;
   a_scope_stack_entry_ptr ssep;
-  a_boolean               must_be_class = (options & IDL_MUST_BE_CLASS);
+  a_boolean               must_be_class_or_namespace
+                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
   a_boolean               must_be_tag   = (options & IDL_MUST_BE_TAG);
   a_boolean		  skip_curr_function_scope =
                                       (options & IDL_SKIP_CURR_FUNCTION_SCOPE);
@@ -6208,11 +6216,11 @@ C and C++.
   a_type_ptr		  class_with_nonreal_base;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
-/* is_class_or_class_proxy_symbol checks for a symbol that is a class,
-   class template, or template type parameter. */
+/* symbol_may_precede_qualifier checks for a symbol that is a class,
+   class template, namespace, or template type parameter. */
 #define is_acceptable_symbol(sym)                                       \
-  ((!must_be_class ||							\
-    is_class_or_class_proxy_symbol(fundamental_symbol_of(sym))) &&  \
+  ((!must_be_class_or_namespace ||					\
+    symbol_may_precede_qualifier(fundamental_symbol_of(sym))) &&  \
    (!must_be_tag   ||						   \
     is_tag_or_tag_proxy_symbol(fundamental_symbol_of(sym))))
 /* Local macro that tests whether or not a symbol on the active list
@@ -6714,14 +6722,16 @@ a_symbol_ptr class_qualified_id_lookup(a_symbol_locator         *locator,
 Look up the identifier indicated by *locator in the class indicated by
 class_type, and return a pointer to the symbol found, or NULL if
 the symbol is not found.  options indicates a set of special options,
-as a bit set.  For example, if IDL_MUST_BE_CLASS is TRUE, the symbol found
-must be a class name.  If the symbol found is a projection symbol, the
+as a bit set.  For example, if IDL_MUST_BE_CLASS_OR_NAMESPACE is TRUE,
+the symbol found must be a class name (or typedef to a class name) or a
+namespace.  If the symbol found is a projection symbol, the
 projection symbol pointer is recorded in the locator and the fundamental
 symbol pointer is returned.  This routine is used in both C and C++ mode.
 */
 {
   a_symbol_ptr sym, tag_symbol, class_symbol;
-  a_boolean    must_be_class = (options & IDL_MUST_BE_CLASS);
+  a_boolean    must_be_class_or_namespace
+                                 = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
   a_boolean    must_be_tag = (options & IDL_MUST_BE_TAG);
   a_class_symbol_supplement_ptr
                cssp;
@@ -6733,7 +6743,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 #define is_acceptable_symbol(sym)                                     \
   ((sym)->is_class_member &&                                          \
    (sym)->parent.class_type == class_type &&                          \
-   (!must_be_class || is_class_or_class_proxy_symbol(sym)) &&	      \
+   (!must_be_class_or_namespace ||				      \
+    symbol_may_precede_qualifier(sym)) &&	     		      \
    (!must_be_tag || is_tag_or_tag_proxy_symbol(sym)))
 
   db_enter(4, "class_qualified_id_lookup");
@@ -6878,24 +6889,27 @@ a_symbol_ptr file_scope_id_lookup(a_symbol_locator         *locator,
 Look up the identifier indicated by *locator in the file scope, and
 return a pointer to the symbol found, or NULL if the symbol is not found.
 options indicates a set of special options, as a bit set.  For example,
-if IDL_MUST_BE_CLASS is TRUE, the symbol found must be a class name.
-Only symbols in the nsk_other name space are considered.  This routine is
-used for the unary "::" qualifier and may only be used in C++ mode.
+if IDL_MUST_BE_CLASS_OR_NAMESPACE is TRUE, the symbol found must be a class
+name (or a typedef to a class name) or a namespace.  Only symbols in the
+nsk_other name space are considered.  This routine is used for the unary
+"::" qualifier and may only be used in C++ mode.
 */
 {
   a_symbol_ptr   sym;
-  a_boolean      must_be_class = (options & IDL_MUST_BE_CLASS);
+  a_boolean      must_be_class_or_namespace
+                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
   a_boolean      must_be_tag = (options & IDL_MUST_BE_TAG);
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* The name space test is needed when searching the file scope, so
    sk_extern_variable and sk_extern_routine are not found.
-   is_class_or_class_proxy_symbol checks for a symbol that is a class,
-   class template, or template type parameter. */
+   symbol_may_precede_qualifier checks for a symbol that is a class,
+   class template, namespace, or template type parameter. */
 #define is_acceptable_symbol(sym)                                     \
   ((sym)->decl_scope == FILE_SCOPE_NUMBER &&                          \
    name_space_for_symbol_kind[sym->kind] == nsk_other &&              \
-   (!must_be_class || is_class_or_class_proxy_symbol(sym)) && 	      \
+   (!must_be_class_or_namespace ||				      \
+    symbol_may_precede_qualifier(sym)) && 	     		      \
    (!must_be_tag || is_tag_symbol(sym)))
 
   db_enter(4, "file_scope_id_lookup");
@@ -7287,6 +7301,7 @@ specific version of the template.
   ssep->object_lifetime_avail_list = NULL;
   ssep->saved_curr_object_lifetime = curr_object_lifetime;
   ssep->templ_member_class_sym   = NULL;
+  ssep->depth_innermost_namespace_scope = depth_innermost_namespace_scope;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
@@ -7488,6 +7503,13 @@ specific version of the template.
          become invisible. */
       ssep->depth_template_declaration_scope =
         depth_template_declaration_scope = NO_SCOPE_DEPTH;
+    }  /* if */
+    if (kind == (a_scope_kind)sck_namespace) {
+      /* Maintain the depth of the innermost namespace scope. */
+#if 0
+      /* Should this also be done for namespace reactivations? */
+#endif
+      depth_innermost_namespace_scope = depth_scope_stack;
     }  /* if */
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_template_instantiation ||
@@ -8631,6 +8653,7 @@ End a name scope by popping an entry off the scope stack.
     depth_of_innermost_scope_that_affects_access_control =
                                   ssep->next_scope_that_affects_access_control;
     curr_deferred_access_scope = ssep->saved_curr_deferred_access_scope;
+    depth_innermost_namespace_scope = ssep->depth_innermost_namespace_scope;
     expr_stack = ssep->saved_expr_stack;
   }  /* if */
   /* Maintain the current declarative level.  It is the same as 
@@ -9310,6 +9333,7 @@ are handled in symbol_tbl_init.)
   name_space_for_symbol_kind[(int)sk_overloaded_function] = nsk_other;
   name_space_for_symbol_kind[(int)sk_class_template]      = nsk_other;
   name_space_for_symbol_kind[(int)sk_function_template]   = nsk_other;
+  name_space_for_symbol_kind[(int)sk_namespace]           = nsk_other;
 #if CHECKING
   /* "undefined" and "routine" must be in the same name space.  See
       decl_default_function. */

@@ -341,7 +341,8 @@ typedef int an_identifier_options_set;
    in lexical.c must also be changed.  */
 typedef enum /* an_identifier_lookup_mode */ {
   ilm_normal,		/* Find any symbol. */
-  ilm_class,		/* Find only class names. */
+  ilm_class_or_namespace,
+                        /* Find only class or namespace names. */
   ilm_tag,		/* Find only tag names. */
   ilm_tentative_type,	/* Uses IDL_TENTATIVE_TYPE_LOOKUP to do the lookup. */
   ilm_ctor_initializer_name,
