@@ -1,5 +1,22 @@
 Version 3.3
 
+7/14/03   GNU IA-64 ABI: Empty base subobject conflicts not ignored
+
+When emulating GNU IA-64 ABI bugs the front end used to ignore base classes
+of nonprimary virtual bases when looking for empty base subobject conflicts.
+However, it appears GNU compilers only do so for base classes of direct
+virtual bases.  The front end has been changed to behave similarly.
+For  example:
+
+  struct E {};
+  struct P: E { virtual void f1(); };
+  struct V: E { virtual void f2(); };
+  struct B: V {};
+  struct D: P, E, B {};
+    // The allocation of virtual base V (of B) in D does consider the
+    // conflict between V's empty base E and D's direct empty base E,
+    // because V is not a direct virtual base of D.
+
 7/11/03  Microsoft compatibility: one-argument operator++() for
          postfix ++
 
