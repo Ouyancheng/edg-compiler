@@ -1208,15 +1208,8 @@ build an argument operand list and return a pointer to it in
         /* Error: too few actual arguments. */
         error(ec_too_few_arguments);
       }  /* if */
-    } else if (fmt_string != NULL) {
-      /* For a printf- or scanf-like function, check that all the formatting
-         specifiers were used. */
-      if (next_printf_scanf_arg_type(is_scanf, &fmt_string, &pss, &indirect)
-                                                                     != NULL) {
-        /* There are no more arguments, but the format string has more
-           formatting specifiers. */
-        warning(ec_too_few_printf_args);
-      }  /* if */
+      /* Suppress the end-of-printf check below. */
+      fmt_string = NULL;
     }  /* if */
   } else {
     /* Old-style parameter list. */
@@ -1224,6 +1217,16 @@ build an argument operand list and return a pointer to it in
         arg_ctr < varargs_count) {
       /* Warning: too few actual arguments. */
       warning(ec_too_few_arguments);
+    }  /* if */
+  }  /* if */
+  if (fmt_string != NULL) {
+    /* For a printf- or scanf-like function, check that all the formatting
+       specifiers were used. */
+    if (next_printf_scanf_arg_type(is_scanf, &fmt_string, &pss, &indirect)
+                                                                     != NULL) {
+      /* There are no more arguments, but the format string has more
+         formatting specifiers. */
+      warning(ec_too_few_printf_args);
     }  /* if */
   }  /* if */
 

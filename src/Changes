@@ -1,5 +1,18 @@
 Version 2.22
 
+2/23/94  Checking for missing arguments at the end of a printf/scanf
+
+The check in a printf/scanf for remaining formatting specifiers for which
+there are no arguments, which was broken many releases back, works
+once again.
+
+  #include <stdio.h>
+  void n()
+  {
+    printf("%s %d\n", "foo");  // Gets a warning once again
+  }
+
+
 2/23/94  Recursion loop in overload resolution fixed
 
 Overload resolution had an infinite recursion loop when a copy constructor
