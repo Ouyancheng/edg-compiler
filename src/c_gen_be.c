@@ -2397,6 +2397,7 @@ Generate code for the indicated expression.  Put parentheses around it if
 there's some possibility of precedence confusion and need_parens is TRUE.
 */
 {
+  an_expr_operator_kind          op;
   an_expr_node_ptr               call_argument;
   char                           *opstr;
   an_expr_node_ptr               operand_1, operand_2;
@@ -2418,15 +2419,20 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   switch (expr->kind) {
     case enk_operation:
       /* Expression operation. */
-      /* Lvalue cases should have been rewritten by IL lowering. */
-      check_assertion_str(!expr->variant.operation.
-                                        returns_lvalue_instead_of_usual_rvalue,
-                          "dump_expr: lvalue-returning operation");
       if (need_parens) m_write_tok_ch('(');
       operand_1 = expr->variant.operation.operands;
       operand_2 = operand_1->next;
       expr_type = skip_typerefs(expr->type);
-      switch (expr->variant.operation.kind) {
+      op = expr->variant.operation.kind;
+      /* Lvalue cases should have been rewritten by IL lowering.  Some "?"
+         and "," cases may remain, where the semantics are the same as in
+         C. */
+      check_assertion_str(!expr->variant.operation.
+                                      returns_lvalue_instead_of_usual_rvalue ||
+                          op == (an_expr_operator_kind)eok_question ||
+                          op == (an_expr_operator_kind)eok_comma,
+                          "dump_expr: lvalue-returning operation");
+      switch (op) {
         /* One-operand operators. */
         case eok_indirect:
           dump_adding_indirection(operand_1);
