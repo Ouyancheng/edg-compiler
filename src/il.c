@@ -286,6 +286,94 @@ Dump the name from a source correspondence (if any).
 }  /* db_name */
 
 
+/*
+Buffer into which names are written for db_name_str
+*/
+static a_text_buffer_ptr
+		db_name_str_buffer;
+
+
+static void put_str_into_db_name_str_buffer(char *str)
+/*
+Output a string into the db_name_str buffer.
+*/
+{
+  add_string_to_text_buffer(db_name_str_buffer, str);
+}  /* put_str_into_db_name_str_buffer */
+
+
+char *db_name_str(a_source_correspondence *scp,
+                  an_il_entry_kind        kind)
+/*
+Return the name of an entity.  The name string is in a buffer and should
+not be expected to stay around for a long time.  kind is the kind of
+entity.  The name includes the translation unit file name if the
+entity is not from the primary translation unit.
+*/
+{
+  an_il_to_str_output_control_block octl;
+  char                              *trans_unit_name;
+
+  /* Set up for use of form_name. */
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = put_str_into_db_name_str_buffer;
+  octl.debug_output = TRUE;
+  if (db_name_str_buffer == NULL) {
+    db_name_str_buffer = alloc_text_buffer(1000);
+  }  /* if */
+  db_name_str_buffer->size = 0;
+  /* Generate a translation unit name if this entity's symbol is
+     not from the primary translation unit. */
+  trans_unit_name = db_symbol_trans_unit((a_symbol_ptr)scp->assoc_info);
+  if (trans_unit_name != NULL) {
+    add_char_to_text_buffer(db_name_str_buffer, '[');
+    add_string_to_text_buffer(db_name_str_buffer, trans_unit_name);
+    add_char_to_text_buffer(db_name_str_buffer, ']');
+  }  /* if */
+  /* Generate the name of this entity. */
+  form_name(scp, kind, &octl);
+  add_char_to_text_buffer(db_name_str_buffer, '\0');
+  return db_name_str_buffer->buffer;
+}  /* db_name_str */
+
+
+void db_entity_info(char             *entry,
+                    an_il_entry_kind kind)
+/*
+Display the name of the indicated entity (one that begins with a
+source correspondence field and has kind "kind") along with some related
+information, such as its address and translation unit.
+*/
+{
+  char *curr;
+  fprintf(f_debug, "%s\n",
+                   db_name_str((a_source_correspondence *)entry, kind));
+  fprintf(f_debug, "address = %lx", (unsigned long)entry);
+  fprintf(f_debug, ", in %s trans unit\n", in_secondary_trans_unit(entry) ?
+                                             "secondary" : "primary");
+  /* Display the correspondence chain. */
+  fprintf(f_debug, "corresp =");
+  for (curr = entry;;) {
+    char *next = trans_unit_corresp_pointer_of(curr);
+    if (next == NULL) {
+      if (curr == entry) {
+        fprintf(f_debug, " NULL");
+      }  /* if */
+      break;
+    } else if (next == curr) {
+      fprintf(f_debug, " (points to self)");
+      break;
+    }  /* if */
+    fprintf(f_debug, " %lx", (unsigned long)next);
+    if (in_secondary_trans_unit(next)) {
+      fprintf(f_debug, "(secondary)");
+    }  /* if */
+    curr = next;
+  }  /* for */
+  fprintf(f_debug, "\n");
+}  /* db_entity_info */
+
+
 static void db_name_linkage(a_name_linkage_kind nlk)
 /*
 Dump the indicated name linkage kind.
@@ -12601,7 +12689,7 @@ in il_init.)
   }  /* if */
 #endif /* NEED_IL_DISPLAY || DEBUG */
 #if DEBUG
-  /* Variable in il_def.h: */
+  /* Variables in il_def.h: */
   /* Check that the table of storage class names is correctly initialized.
      This guards against someone changing the enumeration and forgetting to
      update db_storage_class_names. */
@@ -12664,6 +12752,9 @@ in il_init.)
   /* Initialize certain global variables declared in il.h. */
   temp_text_buffer = NULL;
   size_temp_text_buffer = 0;
+#if DEBUG
+  db_name_str_buffer = NULL;
+#endif /* DEBUG */
 
   /* Save variables from il.h and il.c that are needed for precompiled
      headers */
@@ -12707,6 +12798,7 @@ in il_init.)
       pch_saved_var_array_elem(num_shareable_constants),
       pch_saved_var_array_elem(num_used_shareable_constant_buckets),
       pch_saved_var_array_elem(num_based_type_fixups_allocated),
+      pch_saved_var_array_elem(db_name_str_buffer),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };

@@ -1059,6 +1059,12 @@ extern void db_type_name(a_type_ptr  tp);
 
 extern void db_name(a_source_correspondence *sc);
 
+extern char *db_name_str(a_source_correspondence *sc,
+                         an_il_entry_kind        kind);
+
+extern void db_entity_info(char             *entry,
+                           an_il_entry_kind kind);
+
 extern void db_access_control(an_access_specifier as);
 
 extern void db_constant(a_constant *cp);

@@ -1,6 +1,13 @@
 Version 2.46
 
-11/14/01 Microsoft compatibility: template name used in base class specifier
+10/17/01 --db_name command-line option
+
+A new command-line options --db_name can be used to specify a
+name to be traced during processing.  The tracing code uses the
+db_has_traced_name macro to test whether extra information should
+be generated about an entity.
+
+10/14/01 Microsoft compatibility: template name used in base class specifier
 
 Within the scope of class template the template name may be used
 either with or without a template argument list.  The Microsoft

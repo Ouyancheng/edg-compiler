@@ -51,7 +51,8 @@ typedef enum /*a_debug_action*/ {
   da_set_level,
   da_increase_level,
   da_decrease_level,
-  da_set_flag
+  da_set_flag,
+  da_name
 } a_debug_action;
 
 /*
@@ -311,8 +312,8 @@ for the specified name.
   /* Run through the list of debug requests and see if this name appears. */
   request_ptr = debug_requests;
   while (request_ptr != NULL) {
-    if (strcmp(function_name, request_ptr->name) == 0 &&
-        request_ptr->action == da_set_flag) {
+    if (request_ptr->action == da_set_flag &&
+        strcmp(function_name, request_ptr->name) == 0) {
       result = TRUE;
       break;
     }  /* if */
@@ -320,6 +321,61 @@ for the specified name.
   }  /* while */
   return result;
 }  /* debug_flag_is_set */
+
+
+a_boolean f_db_has_traced_name(a_source_correspondence *scp,
+                               an_il_entry_kind        entry_kind)
+/*
+Return TRUE if the indicated source correspondence has a name that
+is to be traced.  entry_kind indicates the IL entry kind.  If
+entry_kind indicates an entity that does not have a source
+correspondence, do nothing.
+*/
+{
+  a_boolean           result = FALSE;
+  a_debug_request_ptr request;
+
+  if (debug_requests != NULL &&
+      /* Only do this for declarative entries. */
+      source_corresp_for_il_entry((char *)scp, entry_kind) != NULL &&
+      scp->name != NULL) {
+    /* Get the entity name. */
+    char *name = db_name_str(scp, entry_kind);
+    /* Compare it against the list of debug requests. */
+    for (request = debug_requests; request != NULL; request = request->next) {
+      if (request->action == da_name &&
+          strcmp(name, request->name) == 0) {
+        /* A match. */
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* f_db_has_traced_name */
+
+
+a_boolean proc_debug_name_option(char *debug_option)
+/*
+Parse the debug_name option (as received by proc_command_line) and enter
+information about it in the debug requests list.  Its format is
+
+  --db_name=name
+
+Return TRUE if there was an error.
+*/
+{
+  a_debug_request_ptr request;
+
+  db_active = TRUE;
+  request = alloc_debug_request();
+  request->action = da_name;
+  request->name = alloc_general((sizeof_t)(strlen(debug_option) + 1));
+  (void)strcpy(request->name, debug_option);
+  request->next = debug_requests;
+  debug_requests = request;
+  return FALSE;
+}  /* proc_debug_name_option */
 
 
 void debug_enter(int reporting_level, char *function_name)

@@ -356,6 +356,9 @@ Initialize the option information table.
   add_option_description(optk_debug, "db", 'd',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+  add_option_description(optk_debug_name, "db_name", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
 #if !EDG_WIN32
   /* This option is only available on Unix. */
   add_option_description(optk_time_limit, "time_limit", '\0',
@@ -2815,6 +2818,12 @@ Process the arguments on the command line that invoked the compiler.
 	  command_line_error(ec_cl_error_in_debug_option_argument);
 	}  /* if */
         init_debug_level = debug_level;
+        break;
+      case optk_debug_name:
+        /* Set debug name (name to be traced). */
+        if (proc_debug_name_option(opt_arg)) {
+	  command_line_error(ec_cl_error_in_debug_option_argument);
+	}  /* if */
         break;
 #if !EDG_WIN32
       case optk_time_limit:
