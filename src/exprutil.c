@@ -3824,7 +3824,12 @@ issue an error.
      Cfront does not do this checking, so we omit it in cfront mode.
      Also skip this check if it shouldn't be done (e.g., because 
      an access control error has already been issued for the identifier). */
-  if (!any_cfront_mode() && check_protected_access) {
+  if (!any_cfront_mode() && check_protected_access
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* The Microsoft compiler does not do this check. */
+      && !microsoft_mode
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                  ) {
     check_protected_member_access(member_sym, position,
                                   member_proj_sym->parent.class_type);
   }  /* if */
