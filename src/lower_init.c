@@ -1180,7 +1180,7 @@ list given by dip->variant.constructor.args has already been lowered.
   a_routine_ptr    ctor_routine = dip->variant.constructor.ptr;
   an_expr_node_ptr last_node;
   a_statement_ptr  call_stmt;
-  a_type_ptr       class_type, ptr_class_type;
+  a_type_ptr       class_type, this_param_type;
 
 #if CHECKING
   if (dip->kind != (a_dynamic_init_kind)dik_constructor) {
@@ -1190,8 +1190,8 @@ list given by dip->variant.constructor.args has already been lowered.
   /* Cast the entity node pointer to the right type.  It might be a pointer
      to the class type-as-subobject. */
   class_type = ctor_routine->source_corresp.class_of_which_a_member;
-  ptr_class_type = make_pointer_type(class_type);
-  entity_node = add_cast_if_necessary(entity_node, ptr_class_type);
+  this_param_type = implicit_this_param_type_of(ctor_routine->type);
+  entity_node = add_cast_if_necessary(entity_node, this_param_type);
   /* If no implied_arg_list is supplied and the constructor needs one
      (because it initializes a class that has virtual base classes), make
      the implied_arg_list (all entries are NULL pointer values). */
@@ -1211,7 +1211,8 @@ list given by dip->variant.constructor.args has already been lowered.
        type is presently a pointer to the class type-as-subobject.
        Note that when source_node is non-NULL, it is an object of the same
        type as the destination class. */
-    source_node = add_cast_if_necessary(source_node, ptr_class_type);
+    source_node = add_cast_if_necessary(source_node,
+                                        make_pointer_type(class_type));
     last_node->next = source_node;
     last_node = source_node;
   }  /* if */
@@ -1677,7 +1678,7 @@ not a virtual call even if the destructor is virtual.
   a_routine_ptr    dtor_routine = dip->destructor;
   a_statement_ptr  call_stmt;
   an_expr_node_ptr implied_arg_node;
-  a_type_ptr       class_type;
+  a_type_ptr       this_param_type;
 
 #if CHECKING
   if (dtor_routine == NULL) {
@@ -1686,9 +1687,8 @@ not a virtual call even if the destructor is virtual.
 #endif /* CHECKING */
   /* Cast the entity node pointer to the right type.  It might be a pointer
      to the class type-as-subobject. */
-  class_type = dtor_routine->source_corresp.class_of_which_a_member;
-  entity_node = add_cast_if_necessary(entity_node,
-                                      make_pointer_type(class_type));
+  this_param_type = implicit_this_param_type_of(dtor_routine->type);
+  entity_node = add_cast_if_necessary(entity_node, this_param_type);
   /* If the destructor is for a class that has virtual base classes, add
      the implicit complete-object argument. */
   make_dtor_implied_arg_list(dtor_routine, have_complete_object,
