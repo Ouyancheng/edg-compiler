@@ -157,7 +157,11 @@ is not done.
       locator_for_curr_id.is_conversion_name) {
     /* Cannot be a type name. */
   } else {
-    options = GID_DEFER_ACCESS_ERRORS;
+    /* Set the options.  Since this call is a "probe" to determine if the
+       current identifier is a type name, don't issue access errors yet, and
+       don't complain if the name is that of a template but there are no
+       template args (since it may actually be a different use of the name). */
+    options = GID_DEFER_ACCESS_ERRORS | GID_TEMPLATE_ARGS_OPTIONAL;
     if (is_new_type_name) options |= GID_IS_NEW_TYPE_NAME;
     if (is_generalized_identifier_start(options)) {
       /* Look up the current token identifier, which may be a qualified name.
@@ -907,7 +911,7 @@ and return TRUE if it's okay; otherwise issue a diagnostic and return FALSE.
     type_error(ec_bad_member_type_in_ptr_to_member, member_type);
     err = TRUE;
   }  /* if */
-  return err;
+  return !err;
 }  /* check_pm_member_type */
 
 
