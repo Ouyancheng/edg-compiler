@@ -4756,15 +4756,18 @@ for the GNU C multiline string extension.
       ch = local_ch;
       loc_in_line = local_loc_in_line;
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-      /* Ignore carriage return right before newline. */
-      if (*(loc_in_line-1) == '\r') {
+      /* Ignore carriage return right before newline.  Ignore several if
+         they are present (there are Microsoft header files that have
+         backslash, carriage return, carriage return at the end of lines,
+         and that backslash has to be taken as a line splice). */
+      while (*(loc_in_line-1) == '\r') {
         loc_in_line--;
         /* Avoid the line splice test if the line is empty except for the
            carriage return. */
         if (loc_in_line == curr_source_line) {
           goto add_newline_and_line_end_and_return;
         }  /* if */
-      }  /* if */
+      }  /* while */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
       /* End of a line containing at least one character.  Check to see
          if the last character is a backslash.  If so, the current line
@@ -5040,8 +5043,9 @@ entry_for_expand_buffer:
       if (is_eof_char(ch)) goto partial_final_line;
     } while (ch != '\n');
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
-    /* Ignore carriage return right before newline. */
-    if (*(loc_in_line-1) == '\r') {
+    /* Ignore carriage return right before newline.  Ignore several if
+       they are present (there are Microsoft header files that have this). */
+    while (*(loc_in_line-1) == '\r') {
       loc_in_line--;
       curr_column--;
       /* Avoid the line splice test if the line is empty except for the
@@ -5049,7 +5053,7 @@ entry_for_expand_buffer:
       if (curr_column == 0) {
         goto add_newline_and_line_end_and_return;
       }  /* if */
-    }  /* if */
+    }  /* while */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
     /* Check for backslash indicating line-splice.  Go add trailing newline
        and end-of-line, and then exit, if no backslash is present. */
