@@ -20587,7 +20587,7 @@ instantiation.
   a_type_ptr                    type;
   a_symbol_locator              locator;
   a_decl_flag_set               do_flags = DO_NO_OUTPUT_FLAGS;
-  a_decl_flag_set               dso_flags, di_flags;
+  a_decl_flag_set               dso_flags, dsi_flags, di_flags;
   a_type_qualifier_set          qualifiers;
   a_decl_modifiers_block        decl_modifiers;
   a_symbol_ptr                  new_sym;
@@ -20601,6 +20601,7 @@ instantiation.
   a_source_position             template_keyword_pos;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_error_severity		severity_if_not_found = es_error;
+  a_boolean                     accept_static = FALSE, accept_extern = FALSE;
 
   db_enter(3, "instantiation_directive");
   if (!is_pragma) {
@@ -20655,13 +20656,18 @@ instantiation.
     }  /* if */
     /* Bypass the end of statement token. */
     (void)get_token();
-    goto done;
+    goto final_check;
   }  /* if */
   clear_decl_pos_block(&decl_pos_block);
-  (void)decl_specifiers((DSI_EMPTY_DECL_SPECIFIERS_ALLOWED |
-                         DSI_TYPE_SPECIFIER_ALLOWED |
-                         DSI_IS_EXPLICIT_INSTANTIATION),
-                        &dso_flags, &storage_class, &type, &qualifiers,
+  dsi_flags = DSI_EMPTY_DECL_SPECIFIERS_ALLOWED | DSI_TYPE_SPECIFIER_ALLOWED |
+              DSI_IS_EXPLICIT_INSTANTIATION;
+  if (gpp_mode) {
+    /* GNU C++ accepts (and ignores) some storage class specifiers in explicit
+       instantiations. */
+    dsi_flags |= DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+  }  /* if */
+  (void)decl_specifiers(dsi_flags, &dso_flags,
+                        &storage_class, &type, &qualifiers,
                         (an_attribute_ptr*)NULL, (an_ms_attribute_ptr*)NULL,
                         &decl_modifiers, (a_named_register_id*)NULL,
                         &decl_pos_block, (a_upc_block_size*)NULL);
@@ -20707,7 +20713,7 @@ instantiation.
       error(ec_invalid_link_scope);
     }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
-    goto done;
+    goto final_check;
   } else {
     clear_func_info(&func_info);
     di_flags = DI_REAL_DECLARATOR_ALLOWED |
@@ -20792,6 +20798,7 @@ instantiation.
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
+        accept_extern = gpp_mode;
       } else {
         /* A static data member, but of a template class. */
         sym_error(ec_not_instantiatable_entity, sym);
@@ -20853,10 +20860,25 @@ instantiation.
                                        &template_keyword_pos, &decl_pos_block);
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+        accept_extern = gpp_mode;
+        accept_static = gpp_mode && !new_sym->is_class_member;
       }  /* if */
     }  /* if */
   }  /* if */
-done:;
+final_check:;
+  if (storage_class != (a_storage_class)sc_unspecified) {
+    /* GNU C++ only accepts storage class specifiers on function template
+       specializations. */
+    check_assertion(gpp_mode);
+    if ((accept_extern && storage_class == (a_storage_class)sc_extern) ||
+        (accept_static && storage_class == (a_storage_class)sc_static)) {
+      pos_warning(ec_storage_specifier_ignored, start_pos);
+    } else {
+      pos_error((storage_class == (a_storage_class)sc_typedef) ?
+                  ec_typedef_not_allowed : ec_storage_class_not_allowed,
+                start_pos);
+    }  /* if */
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!is_pragma) {
     if (ssep != NULL && ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {

@@ -1,5 +1,19 @@
 Version 3.6
 
+2/16/05  GNU C++ compatibility: storage specifiers on explicit instantiations
+
+In GNU C++ mode, storage specifiers are now sometimes accepted (and ignored,
+with a warning) on explicit instantiations.  Specifically, "extern" is
+accepted on explicit instantiations of function templates, member functions
+of class templates, and static data members of class templates.  "static" is
+accepted only on explicit instantiations of ordinary function templates.
+For example:
+
+  template<typename T> void f(T) {}
+  template static void f(int);  // Accepted in GNU C++; "static" is ignored
+                                // with a warning.  (The instantiation still
+                                // has external linkage.)
+
 2/16/05  GNU C++ compatibility: Redeclaration through using-declaration
 
 In GNU C++ mode, a variable in another namespace can be redeclared in the
