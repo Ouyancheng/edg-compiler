@@ -24,6 +24,93 @@ templates.c -- Support for C++ templates.
 #include "types.h"
 
 
+static a_boolean instantiate_template_class(a_type_ptr  type)
+/*
+*/
+{
+  a_symbol_ptr                      template_sym;
+  a_template_symbol_supplement_ptr  tssp;
+  a_boolean                         success = FALSE;
+  a_token_cache                     *p_token_cache;
+
+  db_enter(3, "instantiate_template_class");
+  type = skip_typerefs(type);
+  template_sym = (symbol_supplement_for_class(type))->class_template;
+  if (template_sym == NULL) {
+    /* Not a class based on a class template.  Return FALSE. */
+  } else {
+    /* There is a class template from which to generate this class. */
+    tssp = template_sym->variant.template.extra_info;
+    p_token_cache = &tssp->template_body;
+    if (p_token_cache->first_token == NULL) {
+      /* The template itself has not yet been instantiated.  The caller will
+         issue an incomplete-type error.  Return FALSE. */
+    } else {
+      /* We proceed with the instantiation. */
+#if DEBUG
+      if (debug_level >= 3) {
+        fprintf(f_debug, "instantiating: ");
+        db_type(skip_typerefs(type));
+        db_symbol(template_sym, "\nbased on: ", 2);
+      }  /* if */
+#endif /* DEBUG */
+      rescan_cached_tokens(p_token_cache);
+      (void)push_scope(sck_template_instantiation, tssp->declaration_scope,
+                       type, (a_routine_ptr)NULL);
+      if (curr_token == tok_struct) {
+        type->kind = (a_type_kind)tk_struct;
+      }  /* if */
+      /* Bypass "class", "struct" or "union". */
+      (void)get_token();
+      /* Bypass the identifier that follows it. */
+#if CHECKING
+      if (curr_token != tok_identifier) {
+        internal_error("instantiate_template_class: missing identifier");
+      }  /* if */
+#endif /* if CHECKING */
+      (void)get_token();
+      /* Scan the base specifiers list, if any, and the body of the the
+         class. */
+      (void)scan_class_definition(type, DEPTH_OF_FILE_SCOPE,
+                                  /*is_local_class=*/FALSE);
+      pop_scope();
+      /* In the normal case the current token should be end_of_source, which
+         was inserted to mark the end of the cached token stream. If necessary,
+         keep flushing until end-of-source is found. */
+      while (curr_token != tok_end_of_source) (void)get_token();
+      /* Advance past the end-of-source token. */
+      (void)get_token();
+      /* Return TRUE. */
+      success = TRUE;
+    }  /* if */
+  }  /* if */
+  db_exit();
+  return success;
+}  /* instantiate_template_class */
+
+
+a_boolean try_template_class_instantiation(a_type_ptr  type)
+/*
+*/
+{
+  a_boolean  success = FALSE;
+
+  if (C_dialect == C_dialect_cplusplus) {
+    if (is_class_struct_union_type(type)) {
+#if CHECKING
+      if (skip_typerefs(type)->size != 0) {
+        /* We assume the check for size (is_incomplete_type or is_object_type)
+           has already been done. */
+        internal_error("try_template_class_instantiation: nonzero size");
+      }  /* if */
+#endif /* CHECKING */
+      success = instantiate_template_class(type);
+    }  /* if */
+  }  /* if */
+  return success;
+}  /* try_template_class_instantiation */
+
+
 static a_boolean equiv_class_template_arg_lists(a_template_arg_ptr  list1,
                                                 a_template_arg_ptr  list2)
 /*
@@ -271,7 +358,6 @@ is not a class declaration, return FALSE.
        that comprise it. */
     if (curr_token == tok_colon || curr_token == tok_lbrace) {
       sym->defined = TRUE;
-      cache_curr_token(p_token_cache);
       /* Now scan the remaining tokens. */
       add_stop_token(tok_semicolon);
       if (curr_token == tok_colon) {
@@ -503,9 +589,10 @@ void template_declaration(void)
 /*
 */
 {
-  a_template_param_ptr  template_param, template_param_list = NULL;
-  a_symbol_ptr          sym;
-  a_token_cache         token_cache;
+  a_template_param_ptr              template_param, template_param_list = NULL;
+  a_symbol_ptr                      sym;
+  a_token_cache                     token_cache;
+  a_template_symbol_supplement_ptr  tssp;
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -539,8 +626,10 @@ void template_declaration(void)
   if (!class_template_declaration(&sym, &token_cache)) {
     function_template_declaration(&sym, &token_cache);
   }  /* if */
-  sym->variant.template.extra_info->parameters = template_param_list;
-  sym->variant.template.extra_info->template_body = token_cache;
+  tssp = sym->variant.template.extra_info;
+  tssp->parameters = template_param_list;
+  tssp->template_body = token_cache;
+  tssp->declaration_scope = scope_stack[decl_scope_level].number;
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol(sym, "template symbol: ", 2);
