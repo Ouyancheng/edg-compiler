@@ -193,6 +193,11 @@ static a_name_context_ptr
 		curr_name_context;
 			/* Current name context stack. */
 
+static a_name_context_ptr
+		avail_name_contexts;
+			/* List of name context entries that have been freed
+			   and are available for reuse. */
+
 /*
 Return TRUE if the current name context is a class.
 */
@@ -358,21 +363,32 @@ Free the hidden-name fixup entry given.
 }  /* free_hidden_name_fixup */
 
 
-static void push_name_context(a_name_context *context,
-                              a_scope_ptr    scope)
+static void push_name_context(a_scope_ptr scope)
 /*
-Push the context entry "context" onto the name context stack, and fill
-in that entry indicate the given scope.  The name context stack is used
+Push a new context entry onto the name context stack, and fill
+in that entry to indicate the given scope.  The name context stack is used
 to avoid class qualifiers on names when inside those classes.
 scope is NULL for a block without an associated scope.
 */
 {
-  a_name_context_ptr parent_context = curr_name_context;
+  a_name_context_ptr ncp;
 
-  curr_name_context = context;
-  curr_name_context->next = parent_context;
-  curr_name_context->assoc_scope = scope;
-  curr_name_context->fixups = NULL;
+  /* Allocate a name context. */
+  if (avail_name_contexts != NULL) {
+    /* Reuse a freed entry. */
+    ncp = avail_name_contexts;
+    avail_name_contexts = avail_name_contexts->next;
+  } else {
+    /* Allocate a new entry. */
+    ncp = (a_name_context_ptr)alloc_general(sizeof(a_name_context));
+  }  /* if */
+  /* Initialize the entry. */
+  ncp->assoc_scope = scope;
+  ncp->access = (an_access_specifier)as_public;
+  ncp->fixups = NULL;
+  /* Put the entry on the stack. */
+  ncp->next = curr_name_context;
+  curr_name_context = ncp;
   if (scope != NULL) {
     /* Go through the hidden names list and mark the hidden entities so
        they will be accessed specially in this and inner scopes. */
@@ -419,10 +435,11 @@ static void pop_name_context(void)
 Pop the top entry off the name context stack.
 */
 {
+  a_name_context_ptr      ncp = curr_name_context;
   a_hidden_name_fixup_ptr hnfp, hnfp_next;
 
   /* Process the hidden-name fixup list. */
-  for (hnfp = curr_name_context->fixups; hnfp != NULL; hnfp = hnfp_next) {
+  for (hnfp = ncp->fixups; hnfp != NULL; hnfp = hnfp_next) {
     hnfp_next = hnfp->next;
     hnfp->next = NULL;
     /* Restore the flag values to their state at the start of the current
@@ -437,7 +454,41 @@ Pop the top entry off the name context stack.
   }  /* for */
   /* Pop the stack. */
   curr_name_context = curr_name_context->next;
+  /* Free the entry by putting it on the available list. */
+  ncp->next = avail_name_contexts;
+  avail_name_contexts = ncp;
 }  /* pop_name_context */
+
+
+static void push_class_reactivation_name_context(a_type_ptr class_type)
+/*
+Push the indicated class onto the name context stack.  If the class is
+a nested class, also push the containing classes.
+*/
+{
+  if (class_type->source_corresp.class_of_which_a_member != NULL) {
+    /* Push the surrounding class(es) for a nested class. */
+    push_class_reactivation_name_context(
+                           class_type->source_corresp.class_of_which_a_member);
+  }  /* if */
+  push_name_context(class_type->variant.class_struct_union.extra_info->
+                                                                  assoc_scope);
+}  /* push_class_reactivation_name_context */
+
+
+static void pop_class_reactivation_name_context(a_type_ptr class_type)
+/*
+Pop the indicated class off the name context stack.  If the class is
+a nested class, also pop the containing classes.
+*/
+{
+  pop_name_context();
+  if (class_type->source_corresp.class_of_which_a_member != NULL) {
+    /* Pop the surrounding class(es) for a nested class. */
+    pop_class_reactivation_name_context(
+                           class_type->source_corresp.class_of_which_a_member);
+  }  /* if */
+}  /* pop_class_reactivation_name_context */
 
 
 static void adv_to_signif_source_sequence_entry(void)
@@ -2911,7 +2962,6 @@ a type specifier (no trailing ";").  The current source sequence entry
 is the one associated with the definition of the class.
 */
 {
-  a_name_context              context;
   a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
 
@@ -2975,7 +3025,7 @@ is the one associated with the definition of the class.
   }  /* if */
   write_tok_str(" { ");
   if (il_header.source_language == sl_Cplusplus) {
-    push_name_context(&context, ctsp->assoc_scope);
+    push_name_context(ctsp->assoc_scope);
     /* Keep track of the current access category, in order to emit a change
        when necessary.  Start with the default based on the class/struct/
        union keyword. */
@@ -4527,7 +4577,6 @@ Generate code for the indicated switch statement.
 {
   a_statement_ptr saved_switch_statement = curr_switch_statement;
   a_statement_ptr body_statement;
-  a_name_context  context;
   a_scope_ptr     scope = NULL;
   a_boolean       need_pop_context = FALSE;
 
@@ -4544,7 +4593,7 @@ Generate code for the indicated switch statement.
   if (body_statement != NULL &&
       body_statement->kind == (a_statement_kind)stmk_block) {
     scope = body_statement->variant.block.extra_info->assoc_scope;
-    push_name_context(&context, scope);
+    push_name_context(scope);
     need_pop_context = TRUE;
   }  /* if */
   if (body_statement != NULL ||
@@ -4721,7 +4770,6 @@ Generate code for a block statement ("{ ... }").
   a_block_ptr     block = statement->variant.block.extra_info;
   a_scope_ptr     scope;
   a_boolean       top_statement_of_switch;
-  a_name_context  context;
 
   /* See if this block is the top-level statement of a switch statement.
      If so, we will look for places where switch clauses should be inserted. */
@@ -4734,7 +4782,7 @@ Generate code for a block statement ("{ ... }").
   write_tok_str("{ ");
   scope = block->assoc_scope;
   /* The block defines a scope if scope != NULL. */
-  push_name_context(&context, scope);
+  push_name_context(scope);
   /* Generate the statements inside the block. */
   gen_statement_list(statement->variant.block.statements,
                      top_statement_of_switch, &last_statement);
@@ -5474,7 +5522,6 @@ declaration or definition.
   a_boolean                     is_definition = FALSE;
   a_boolean                     decl_within_class = FALSE;
   a_storage_class               storage_class;
-  a_name_context                context;
   a_scope_ptr                   scope = NULL;
   a_memory_region_number        scope_region_number;
   a_source_sequence_entry_ptr   func_source_sequence_entry;
@@ -5627,7 +5674,12 @@ declaration or definition.
     gen_decl_name(&rout->source_corresp, iek_routine);
     if (is_definition) {
       /* For a definition, push a name context for the function. */
-      push_name_context(&context, scope);
+      if (rout->source_corresp.class_of_which_a_member != NULL) {
+        /* Push the class(es) for a member function. */
+        push_class_reactivation_name_context(
+                                 rout->source_corresp.class_of_which_a_member);
+      }  /* if */
+      push_name_context(scope);
       /* Follow the source sequence list for the function. */
       saved_curr_source_sequence_entry = curr_source_sequence_entry;
       saved_sublist_parent_source_sequence_entry =
@@ -5671,6 +5723,11 @@ declaration or definition.
     gen_function_definition(scope);
     /* Pop the name context for the function. */
     pop_name_context();
+    if (rout->source_corresp.class_of_which_a_member != NULL) {
+      /* Pop the class(es) for a member function. */
+      pop_class_reactivation_name_context(
+                                 rout->source_corresp.class_of_which_a_member);
+    }  /* if */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     /* Now that we're done with the function, free its IL information. */
     free_memory_region(scope_region_number);
@@ -5773,9 +5830,7 @@ static void process_file_scope_entities(void)
 Process all the file scope entities, and everything under those.
 */
 {
-  a_name_context context;
-
-  push_name_context(&context, il_header.primary_scope);
+  push_name_context(il_header.primary_scope);
   /* Use the source sequence list to visit all the right entries in the
      right order. */
   curr_source_sequence_entry = il_header.primary_scope->source_sequence_list;
@@ -5860,6 +5915,7 @@ Initialize for the C++/C-generating back end.
   num_curr_switch_statements = 0;
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
+  avail_name_contexts = NULL;
 }  /* init_cp_gen_be */
 
 
