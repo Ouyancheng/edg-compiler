@@ -1,5 +1,11 @@
 Version 2.39
 
+3/8/98    Instantiation required flag on pure virtual functions
+
+Some recent changes in setting the instantiation required flag on
+virtual functions inadvertently caused the flag to be set on pure
+virtual functions.  Now corrected.
+
 3/8/98    IL walk and needed flags, with no lowering of exception handling
 
 The code that walks the IL tree to determine "needed" flags has been

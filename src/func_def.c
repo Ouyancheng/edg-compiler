@@ -437,7 +437,7 @@ on the override_list.
     a_routine_ptr rp = class_type->variant.class_struct_union.extra_info->
                                                          assoc_scope->routines;
     for (; rp != NULL; rp = rp->next) {
-      if (rp->is_virtual) {
+      if (rp->is_virtual && !rp->pure_virtual) {
         an_overriding_virtual_function_ptr ovfp;
         a_symbol_ptr                       sym;
         a_template_instance_ptr            tip;
