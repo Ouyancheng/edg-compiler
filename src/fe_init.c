@@ -616,9 +616,9 @@ Initialize target machine characteristics.
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   }
 #endif /* CHECKING */
-#if TARG_CHAR_BIT != CHAR_BIT
-??=error -- the target and host characters must have the same number of bits.
-#endif /* TARG_CHAR_BIT != CHAR_BIT */
+#if TARG_HOST_REPR_CHAR_BIT > CHAR_BIT
+??=error -- TARG_HOST_REPR_CHAR_BIT is defined wrong in target.h.
+#endif /* TARG_HOST_REPR_CHAR_BIT > CHAR_BIT */
   /* The signedness of characters can be set on the command line. */
   if (targ_has_signed_chars) {
     /* Target has signed characters. */

@@ -1,5 +1,14 @@
 Version 2.19
 
+8/10/93 TARG_HOST_STRING_CHAR_BIT
+
+We now provide limited support for configurations where the target
+character is bigger than the host character.  The limitation is that
+individual characters of string literals are still stored as host characters,
+and therefore their values are limited to the host character range.
+Warnings are issued for attempts to specify constants that cannot be
+accurately represented.
+
 8/9/93  IL lowering: rewriting of lvalue-returning operations
 
 IL lowering now correctly rewrites lvalue-returning operations (assignments,

@@ -4147,7 +4147,7 @@ Handle unprintable characters and necessary escapes.
     fputc(ch, f_C_output);
   } else {
     (void)fprintf(f_C_output, "\\%03o",
-                  (unsigned int)(ch&((1<<TARG_CHAR_BIT)-1)));
+                  (unsigned int)(ch&((1<<TARG_HOST_STRING_CHAR_BIT)-1)));
   }  /* if */
 }  /* dump_char */
 

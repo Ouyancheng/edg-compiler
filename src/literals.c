@@ -497,7 +497,11 @@ range_check:
     /* The comparison here is always done as unsigned, even if char or
        wchar_t are signed.  That's because octal and hexadecimal escapes
        are always treated as unsigned.  See 3.1.3.4 constraints. */
-    if (targ_ch > centity_mask) range_error = TRUE;
+    /* Use masking for the check so that this will work when the target
+       char is larger than the host.  In that case, with the current limited
+       implementation, there can be "holes" in the middle of wide character
+       constants, and those holes shouldn't contain any "1" bits. */
+    if ((targ_ch & ~centity_mask) != 0) range_error = TRUE;
   }  /* if */
   if (range_error) {
     conv_line_loc_to_source_pos(*temp_ptr, &error_position);
@@ -559,40 +563,6 @@ and 3.1.3.4 in the ANSI C standard).
 }  /* determine_wide_char_constant_size */
 
 
-/*
-Set variables describing the attributes of the character entity to be
-used to match the type "char".
-*/
-#define set_basic_char_centity_attributes()                           \
-{ unsigned long sign_bit = (unsigned long)1 << (TARG_CHAR_BIT-1);     \
-  centity_mask = sign_bit | (sign_bit - 1);                           \
-}  /* set_basic_char_centity_attributes */
-#define set_char_centity_attributes()                                 \
-{ set_basic_char_centity_attributes();                                \
-  centity_bits = TARG_CHAR_BIT;                                       \
-  centity_is_signed = targ_has_signed_chars;                          \
-}  /* set_char_centity_attributes */
-
-
-/*
-Set variables describing the attributes of the character entity to be
-used to match the type "wchar_t".
-*/
-#define set_basic_wchar_t_centity_attributes()                        \
-{ /* Make the sign bit. */                                            \
-  unsigned long sign_bit = (unsigned long)1 <<                        \
-                              ((TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT)-1);\
-  /* Combine the sign bit with all the bits below the sign bit to     \
-     get the full mask. */                                            \
-  centity_mask = sign_bit | (sign_bit - 1);                           \
-}  /* set_basic_wchar_t_centity_attributes */
-#define set_wchar_t_centity_attributes()                              \
-{ set_basic_wchar_t_centity_attributes();                             \
-  centity_bits = TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT;                   \
-  centity_is_signed = int_kind_is_signed[(int)TARG_WCHAR_T_INT_KIND]; \
-}  /* set_wchar_t_centity_attributes */
-
-
 void conv_char_literal(unsigned long num_chars,
                        an_error_code *err_code,
                        char          **err_pos)
@@ -638,7 +608,10 @@ processing).
     int_kind = (an_integer_kind)TARG_WCHAR_T_INT_KIND;
     determine_wide_char_constant_size(temp_ptr, num_chars, /*add_null=*/FALSE,
                                       &constant_size, &num_elems);
-    set_wchar_t_centity_attributes();
+    centity_mask = (unsigned long)1 << ((TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT)-1);
+    centity_mask = centity_mask | (centity_mask - 1);
+    centity_bits = TARG_SIZEOF_WCHAR_T*TARG_CHAR_BIT;
+    centity_is_signed = int_kind_is_signed[(int)TARG_WCHAR_T_INT_KIND];
   } else {
      /* Normal character constant. */
     if (C_dialect == C_dialect_cplusplus && num_chars == 1) {
@@ -647,7 +620,10 @@ processing).
       int_kind = (an_integer_kind)ik_int;
     }  /* if */
     constant_size = (sizeof_t)num_chars;
-    set_char_centity_attributes();
+    centity_mask = (unsigned long)1 << (TARG_CHAR_BIT-1);
+    centity_mask = centity_mask | (centity_mask - 1);
+    centity_bits = TARG_CHAR_BIT;
+    centity_is_signed = targ_has_signed_chars; 
   }  /* if */
   con_type = integer_type(int_kind);
   /* See if the characters we have will fit in the size we've determined. */
@@ -760,9 +736,12 @@ processing).
   a_targ_size_t num_elems;
   unsigned long chars_taken;
   unsigned long centity_mask;
-  
+
   *err_code = ec_no_error;
   *err_pos = NULL;  /* To make lint happy. */
+  /* Build a mask used to mask individual characters. */
+  centity_mask = (unsigned long)1 << (TARG_HOST_STRING_CHAR_BIT-1);
+  centity_mask = centity_mask | (centity_mask-1);
   temp_ptr = start_of_curr_token+1;
   /* See if this is a wide string literal. */
   if (*start_of_curr_token == 'L') {
@@ -772,11 +751,18 @@ processing).
     temp_ptr++;
     determine_wide_char_constant_size(temp_ptr, num_chars, /*add_null=*/TRUE,
                                       &constant_size, &num_elems);
-    set_basic_wchar_t_centity_attributes();
+    /* Replicate the mask for one character as many times as there are
+       characters in the wide character.  This "inefficient" method is used
+       because it works right even when the target character is larger than
+       the host character.  In that case, there are "holes" in the bit
+       pattern where a "1" bit cannot be represented. */
+    for (i = 1; i < TARG_SIZEOF_WCHAR_T; i++) {
+      centity_mask |= (centity_mask << TARG_CHAR_BIT);
+    }  /* for */
   } else {
     /* Normal string literal.  The "+1" is space for the null. */
     constant_size = (sizeof_t)(num_elems = num_chars+1);
-    set_basic_char_centity_attributes();
+    /* centity_mask is already set. */
   }  /* if */
   /* Allocate enough space to hold the final string, including the null
      added to it. */

@@ -923,7 +923,8 @@ Dump the contents of the indicated constant, for debug purposes.
         } else {
           /* Print non-printable character in octal form.  Truncate
              to right number of bits to avoid problems with signed chars. */
-          fprintf(f_debug, "\\%03o", (unsigned int)(c&((1<<TARG_CHAR_BIT)-1)));
+          fprintf(f_debug, "\\%03o",
+                  (unsigned int)(c&((1<<TARG_HOST_STRING_CHAR_BIT)-1)));
         }  /* if */
       }  /* for */
       fputs("\"", f_debug);

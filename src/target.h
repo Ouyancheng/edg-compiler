@@ -68,6 +68,16 @@ multi-byte integer is at the lowest memory address.
 Char types:
 */
 #define TARG_CHAR_BIT 8
+/* TARG_HOST_STRING_CHAR_BIT is the number of data bits per character used
+   when representing target characters as a string on the host.  One is
+   allowed to make the target char larger than the host char, but individual
+   characters in string literals will be limited by what is representable in
+   a host char. */
+#if TARG_CHAR_BIT > CHAR_BIT
+#define TARG_HOST_STRING_CHAR_BIT CHAR_BIT
+#else /* TARG_CHAR_BIT <= CHAR_BIT */
+#define TARG_HOST_STRING_CHAR_BIT TARG_CHAR_BIT
+#endif /* TARG_CHAR_BIT > CHAR_BIT */
 /* Make the default for character signedness on the target the same as
    for the host.  That's not required; it's just the most common case,
    and doing it this way makes it less likely that this configuration
