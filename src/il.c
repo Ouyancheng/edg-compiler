@@ -270,7 +270,7 @@ Dump a member function (a routine entry), for debug purposes.
   fputs("\",\n    type = ", f_debug);
   db_abbreviated_type(rp->type);
   fputc('\n', f_debug);
-}  /* db_static_data_member */
+}  /* db_member_function */
 
 
 static void db_base_class_field(a_field *fp,
@@ -425,9 +425,9 @@ class_struct_union:
         if (vbcp != NULL) {
           fputs("  collected virtual base classes:\n", f_debug);
           for (; vbcp != NULL; vbcp = vbcp->next) {
-            db_virtual_base_class(vbcp, 0);
+            db_virtual_base_class(vbcp);
           }  /* for */
-        }  /* if *.
+        }  /* if */
         if (vp != NULL) {
           fputs("  static data members:\n", f_debug);
           for (; vp != NULL; vp = vp->next) db_static_data_member(vp);
