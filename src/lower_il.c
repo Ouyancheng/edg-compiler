@@ -6806,7 +6806,7 @@ Do IL lowering of the indicated statement and everything under it.
   an_insert_location   insert_location;
   a_statement_ptr      statement_list, lab_statement;
   a_statement_ptr      last_statement, body_statement, return_statement;
-  a_boolean            make_block;
+  a_boolean            make_block, any_cleanup_on_return;
   an_expr_node_ptr     return_expr;
   a_variable_ptr       temp_var;
   a_cleanup_action_ptr cap;
@@ -6906,13 +6906,16 @@ Do IL lowering of the indicated statement and everything under it.
                              &insert_location, &keep_dynamic_init);
           check_assertion(!keep_dynamic_init);
         }  /* if */
-        if (any_cleanup_actions(nearest_function_context)) {
-          /* Generate any cleanup actions required on exit from the
-             routine.  If the return has an expression, it must be evaluated
-             before the cleanup is done, so change
+        any_cleanup_on_return = any_cleanup_actions(nearest_function_context);
+        if (any_cleanup_on_return || exceptions_enabled) {
+          /* Some code will have to be inserted on return, either for
+             cleanup or to pop the exception handling stack entry.  It has
+             to be inserted after the evaluation of the return expression,
+             if any, and before the return, so change
                return expr;
              into
-               {temp = expr; cleanup-code; return temp;}
+               {temp = expr; return temp;}
+                            ^--- to allow insertion of code here.
           */
           if (return_expr != NULL && !is_constant_node(return_expr)) {
             /* There is a nonconstant return expression, so use a temporary.
@@ -6937,6 +6940,10 @@ Do IL lowering of the indicated statement and everything under it.
                                    lowered_assignment_operator(temp_var->type),
                                    return_expr, &insert_location);
           }  /* if */
+        }  /* if */
+        if (any_cleanup_on_return) {
+          /* Generate any cleanup actions required on exit from the
+             routine.  */
           if (make_block) {
             /* Turn the return into a block so that code can be inserted
                in front of the return. */
