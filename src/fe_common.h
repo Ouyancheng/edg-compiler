@@ -43,7 +43,9 @@ incorporated:
 
 /* Basic configuration declarations.  This header file pulls in basics.h,
    defines.h, lang_feat.h, host_envir.h, and targ_def.h. */
+#ifndef BASIC_HDRS_H
 #include "basic_hdrs.h"
+#endif /* ifndef BASIC_HDRS_H */
 
 /* Errors.  error.h also pulls in err_codes.h. */
 #include "error.h"
