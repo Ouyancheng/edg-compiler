@@ -2314,7 +2314,7 @@ void break_source_corresp(a_source_correspondence *sc)
 /*
 If the indicated source correspondence is attached to a source entity,
 break the correspondence -- i.e., set to default values those fields that
-are tied to a particular source occurence.
+are tied to a particular source occurrence.
 */
 {
   sc->assoc_info        = NULL;
