@@ -3973,8 +3973,9 @@ on the ck_template_param constant pointed to by the expression.
              the new constant. */
           new_expr = alloc_expr_node((an_expr_node_kind)enk_constant);
           *new_expr = *orig_expr;
+          new_expr->next = NULL;
           new_expr->variant.constant = new_cp;
-          type->variant.array.variant.element_count_expr = new_expr;
+          new_array_type->variant.array.variant.element_count_expr = new_expr;
         }  /* if */
       }  /* if */
       new_type = new_array_type;
