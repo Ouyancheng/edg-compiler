@@ -1217,7 +1217,7 @@ routine entry and return TRUE; otherwise return FALSE.
   is_virtual = virtual_specified;
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (rout_sym->kind == (a_symbol_kind)sk_function_template) {
-    rout = rout_sym->variant.template.extra_info->variant.function.routine;
+    rout = rout_sym->variant.templ.extra_info->variant.function.routine;
     is_nonreal_instantiation = TRUE;
     /* If a member function of a template class is marked "virtual" that's
        all we need to know, since no virtual function override information
@@ -2912,7 +2912,7 @@ without it.
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
     if (sym->kind == (a_symbol_kind)sk_function_template) {
-      orig_type = sym->variant.template.extra_info->
+      orig_type = sym->variant.templ.extra_info->
                                           variant.function.routine->type;
 #if CHECKING
     } else if (sym->kind != (a_symbol_kind)sk_member_function) {
@@ -3393,7 +3393,7 @@ special function kind (e.g., constructor, destructor), if any.
 
   if (is_func_template) {
 #if 0
-    rtn = sym->variant.template.extra_info->variant.function.routine;
+    rtn = sym->variant.templ.extra_info->variant.function.routine;
 #else
     /* What about redeclaration when a function template is involved?  Is that
        important to worry about in a prototype instantiation?  For now we'll
@@ -3419,7 +3419,7 @@ special function kind (e.g., constructor, destructor), if any.
     rtn = make_routine(member_type, (a_storage_class)sc_static,
                        /*at_file_scope=*/FALSE, /*add_to_list=*/TRUE);
     if (is_func_template) {
-      sym->variant.template.extra_info->variant.function.routine = rtn;
+      sym->variant.templ.extra_info->variant.function.routine = rtn;
     } else {
       sym->variant.routine.ptr = rtn;
     }  /* if */
@@ -3587,7 +3587,7 @@ and it is legal for virtual member functions only.
   } else {
     pure_specifier_allowed =
              (rout_sym->kind == (a_symbol_kind)sk_function_template) ?
-                  rout_sym->variant.template.extra_info->
+                  rout_sym->variant.templ.extra_info->
                                   variant.function.routine->is_virtual :
                   rout_sym->variant.routine.ptr->is_virtual;
   }  /* if */
@@ -5435,7 +5435,7 @@ back down to find A<T>::B).
          the prototype instantiation (namely, a "nonreal" instantiation for
          which there is also a definition). */
       sym = templ_sym->
-              variant.template.extra_info->variant.class.instantiations;
+              variant.templ.extra_info->variant.class_template.instantiations;
       for (; sym != NULL; sym = sym->next) {
         if (sym->defined &&
             sym->variant.class_struct_union.extra_info->is_nonreal_class) {
