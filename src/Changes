@@ -1,5 +1,22 @@
 Version 2.27
 
+10/31/94 Bug in call of overloaded function with incomplete class parameter
+
+An internal error is no longer issued for the following; an error indicating
+that the parameter type is incomplete is issued instead:
+
+  class B;
+  extern B x;
+  struct A {
+    void f(B b);
+    void f();
+  };
+  void m()
+  {
+    A f;
+    f.f(x);  // Internal error here now gone.
+  }
+
 10/29/94 Bug in synthesizing an implicitly declared copy constructor
 
 When we were generating the body of a copy constructor in ctor_initializer,
