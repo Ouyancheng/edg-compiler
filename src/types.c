@@ -1935,31 +1935,39 @@ not compared.  flags is a set of bit flags that modify the comparison.
   } else {
     /* If either function has a new-style parameter list, the individual
        parameter types must be compatible.  See the C standard, 3.5.4.3. */
-    if (C_dialect == C_dialect_cplusplus) {
-      /* In C++ there is no special handling for old-style functions -- they
-         are treated as though they were prototyped. */
-    } else {
-      /* At least one of the function types has a prototyped param list. */
-      a_routine_type_supplement_ptr  local_rtsp2 = rtsp2;
-      if (!list1_prototyped) {
-        /* Switch the two parameter lists, so that if there is an old-style
-           parameter list involved, it is list2. */
-        list1 = list2;
-        list2 = rtsp1->param_type_list;
-        list1_prototyped = TRUE;
-        list2_prototyped = FALSE;
-        local_rtsp2 = rtsp1;
-      }  /* if */
-      if (!list2_prototyped) {
-        /* The second parameter list is old-style.  */
-        if (!local_rtsp2->old_style_params_scanned) {
-          /* There is no parameter information for the second type, which is
-             an old-style declaration. The prototyped parameter list from
-             the first type is used, and each type on the list will be
-             promoted before comparison. */
+    if (!list2_prototyped) {
+      /* List2 is an old-style param list. */
+      if (C_dialect != C_dialect_cplusplus) {
+        /* In C mode it must be that list1 is prototyped. */
+        if (!rtsp2->old_style_params_scanned) {
+          /* We are comparing a prototyped parameter list (list1) with an
+             old-style list, but there is no parameter information as yet for
+             the second one.  The prototyped parameter list from the first
+             type is used, but each type will be compared with a promoted
+             version of itself. */
           list2 = list1;
         }  /* if */
+      } else {
+        /* In C++ mode it might be that both parameter lists are old-style --
+           in which case they are treated as if prototyped, except that any
+           qualifiers are stripped off the param types before comparison. */
       }  /* if */
+    } else if (!list1_prototyped) {
+      /* It is list1 that is the old-style param list and list2 is prototyped.
+         Reverse them, since the processing that follows assumes that the
+         old-style list, if there is one, is the second. */
+      list1 = list2;
+      list1_prototyped = TRUE;
+      if (C_dialect != C_dialect_cplusplus &&
+          !rtsp1->old_style_params_scanned) {
+        /* Leave list2 unchanged (i.e., the same as what list1 now is), since
+           the param type comparison will be of the unpromoted types on list1
+           and the promoted versions of the same types, from list2. */
+      } else {
+        /* Ordinary case -- the two lists are swapped. */
+        list2 = rtsp1->param_type_list;
+      }  /* if */
+      list2_prototyped = FALSE;
     }  /* if */
     /* Compare the types of the parameters on the two lists. */
     for (; list1 != NULL && list2 != NULL;
