@@ -206,6 +206,13 @@ typedef struct a_name_context {
 			/* TRUE if this context is not visible to cfront
 			   (due to a bug), and should not be used to remove
 			   class qualifiers from name references. */
+  a_byte_boolean
+		inside_class_definition;
+			/* TRUE if assoc_scope indicates a class, and
+			   we are currently inside the definition of that class
+			   (rather than inside some later context -- like a
+			   member function definition -- that reopens that
+			   name context). */
 } a_name_context;
 static a_name_context_ptr
 		curr_name_context;
@@ -467,6 +474,7 @@ This routine is called for both C and C++.
   ncp->access = (an_access_specifier)as_public;
   ncp->fixups = NULL;
   ncp->invisible_to_cfront = FALSE;
+  ncp->inside_class_definition = FALSE;
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
@@ -561,6 +569,26 @@ For a nested class/namespace, also pop the containing classes/namespaces.
     }  /* if */
   }  /* if */
 }  /* pop_name_context_if_member */
+
+
+static a_boolean class_defn_is_in_name_context_stack(a_type_ptr class_type)
+/*
+Return TRUE if we are currently inside the definition of the indicated
+class, i.e., it's in the name context stack marked as a definition.
+*/
+{
+  a_boolean          class_in_stack = FALSE;
+  a_name_context_ptr ncp;
+
+  for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
+    if (ncp->inside_class_definition &&
+        ncp->assoc_scope->variant.assoc_type == class_type) {
+      class_in_stack = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return class_in_stack;
+}  /* class_defn_is_in_name_context_stack */
 
 
 static a_scope_ptr parent_scope_of(a_source_correspondence *scp)
@@ -1576,11 +1604,12 @@ constants, which must have the form of a qualified name).
           !force_qualified_name) {
         /* Reference to class member within its class.  Qualifier is not
            needed. */
-      } else if (entry_kind == iek_type &&
-                 curr_name_context_is_class((a_type_ptr)scp) &&
-                 !force_qualified_name) {
-        /* Reference to class within itself.  Qualifier not needed.
-           This is necessary to avoid some bugs in MSVC++ 5.0. */
+      } else if (microsoft_mode &&
+                 !force_qualified_name &&
+                 scp->is_class_member &&
+                 class_defn_is_in_name_context_stack(scp->parent.class_type)) {
+        /* MSVC++ chokes on use of a qualified name for a class member within
+           the definition of that class, so avoid that in the output. */
       } else {
         gen_class_qualifier(class_type);
       }  /* if */
@@ -2974,6 +3003,7 @@ is the one associated with the definition of the class.
   write_tok_str("{ ");
   if (il_header.source_language == sl_Cplusplus) {
     push_name_context(ctsp->assoc_scope);
+    curr_name_context->inside_class_definition = TRUE;
     /* Keep track of the current access category, in order to emit a change
        when necessary. */
     if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
@@ -6141,7 +6171,7 @@ declaration following this one is such a continuation.
     /* We're currently inside a class definition.  The storage class doesn't
        have the usual meaning: for example, "static" means a static member.
        The only case that comes here, however, is declarations of static data
-       members.  It's not possible to declare of define a nonmember variable
+       members.  It's not possible to declare or define a nonmember variable
        or a static data member of another class inside a class, */
     storage_class = (a_storage_class)sc_static;
   } else {

@@ -1,5 +1,13 @@
 Version 2.37
 
+8/12/97   C++-generating back end, Microsoft compatibility: no qualified name
+          on reference to member within class definition
+
+MSVC++ does not allow a use of a qualified name for a class member
+within the definition of that class (including inside nested classes),
+so the C++-generating back end now uses a simple name for such references.
+This is a refinement of the change made on 7/8/97.
+
 8/12/97   Microsoft compatibility: accessibility of base classes
 
 In Microsoft mode, a base class is now considered accessible if one
