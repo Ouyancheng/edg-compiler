@@ -807,9 +807,10 @@ Syntax:
       }  /* if */
 
       /* The first operand must be a pointer to object. */
-      if (gcc_mode && is_void_type(type_pointed_to(operand_1->type))) {
+      if (gcc_mode && is_pointer_type(operand_1->type) &&
+                      is_void_type(type_pointed_to(operand_1->type))) {
         /* In GNU mode a pointer to "void" can be subscripted. */
-        result_type = void_type();
+        result_type = type_pointed_to(operand_1->type);
       } else if (
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
           /* Pointer to incomplete array is also allowed. */
