@@ -1,5 +1,25 @@
 Version 2.18
 
+6/7/93 Cfront compatibility change for scopes on dependent statements
+
+Consider
+
+  int f(int i) {
+    if (i) for (int j = 1; j <= 10; j++) {}
+    return j;
+  }
+
+In recent editions of the Working Paper, the dependent statement of the
+"if" has an associated scope, as if the "for" were enclosed in {}.
+The reference to "j" in the return is an error because no "j" exists
+at that point.  In the ARM and in cfront 2.1, no implicit scope is created;
+the ARM says the reference to "j" in the return statement is an error
+because it is outside of the dynamic scope of the variable, but cfront 2.1
+accepts the program.  With this change, the front end does not create
+the implicit scope in cfront mode, and therefore approximates the
+cfront 2.1 behavior.  If the dependent statement is a declaration,
+an error is issued.
+
 6/7/93 Cfront compatibility change for friend functions in class definitions
 
 Cfront 2.1 does not correctly look up names in friend functions that are
