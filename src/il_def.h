@@ -685,31 +685,33 @@ typedef struct an_access_adjustment {
   } variant;
 } an_access_adjustment;
 
-typedef struct a_virtual_base_class *a_virtual_base_class_ptr;
-typedef struct a_virtual_base_class {
-  /* An entry representing a virtual base class from which the current class
-     is directly or indirectly derived.  These entries are linked to summarize
-     all the virtual classes in the current class's derivation. */
-  a_virtual_base_class_ptr
-		next;
-			/* Next in linked list of base class entries. */
-  a_type_ptr	class;
-                        /* Pointer to the tk_class or tk_struct type entry
-			   representing a virtual base class of the current
-			   derived class.  Both directly and indirectly
-			   inherited virtual base classes are represented. */
-  a_targ_size_t data_section_offset;
-			/* Byte offset of the data section of this virtual
-			   base class within the current derived class. */
-} a_virtual_base_class;
 
+/* Forward declaration of a_base_class because of recursive definitions of
+   a_base_class and a_derivation_step. */
 typedef struct a_base_class *a_base_class_ptr;
+
+
+typedef struct a_derivation_step *a_derivation_step_ptr;
+typedef struct a_derivation_step {
+  /* Description of one step in the derivation of a projection symbol
+     from a fundamental class member.  A list of these gives a complete
+     reverse history of the derivation, in order from the most derived
+     class to the fundamental class. */
+  a_derivation_step_ptr
+                next;
+			/* The next step in the derivation path.  If next
+			   is NULL, this is the end of the derivation. */
+  a_base_class_ptr
+                base_class;
+			/* A pointer to the base class entry representing
+			   the class to which the current object should
+			   be cast in traversing the derivation path. */
+} a_derivation_step;
+
+
 typedef struct a_base_class {
   /* An entry describing a base class from which the current class is
-     directly derived.  These entries may be linked to represent multiple
-     inheritance.  Only immediate base classes are in the list, since
-     classes from which the base class is derived are represented in its
-     own list of base class entries. */
+     directly or indirectly derived. */
   a_base_class_ptr
                 next;
 			/* Next in linked list of base class entries. */
@@ -717,21 +719,42 @@ typedef struct a_base_class {
                         /* Pointer to the tk_class or tk_struct type entry
 			   representing a base class of the current derived
 			   class.  (Unions may not be used as base classes.) */
+  unsigned int	direct:1;
+			/* TRUE if this is a direct base class of the current
+			   class. */
+  unsigned int	virtual:1;
+			/* TRUE if this is a virtual base class (whether
+			   directly or indirectly inherited). */
+  unsigned int	ambiguous:1;
+			/* TRUE if a direct cast from the current class to this
+			   base class would be ambiguous because it appears
+			   more than once in the derivation. */
+  unsigned int	is_accessible:1;
+			/* TRUE if at least one member of the base class is
+			   accessible in the current class, or else it is a
+			   direct base class. */
   an_access_specifier
                 access; /* The kind of derivation (public or private), as
 			   indicated by the access specifier on the base
 			   class for the current derived class. */
-  a_byte_boolean
-                virtual;
-                        /* TRUE when the base class is declared "virtual"
-                           for the current derived class. */
   a_targ_size_t	offset;
-			/* If virtual is FALSE, the byte offset from the
-			   start of the current derived class to the data
-			   section of this base class.  If virtual is TRUE,
-			   the byte offset to a pointer to the data section
-			   of this base class. */
+			/* The byte offset from the start of the current
+			   derived class to the data section of this base
+			   class. */
+  a_targ_size_t	pointer_offset;
+			/* If the base class is both directly inherited and
+			   virtual, the byte offset from the start of the
+			   current derived class to a pointer to the data
+			   section of the base class; otherwise undefined. */
+  a_derivation_step_ptr
+		derivation;
+			/* Pointer to the "casting path" from the current
+			   class (implicitly at the start of the list) to this
+			   base class; the linked list of step entries always
+			   terminates with a step entry that points to this
+			   base class entry. */
 } a_base_class;
+
 
 typedef struct a_class_list_entry *a_class_list_entry_ptr;
 typedef struct a_class_list_entry {
@@ -750,14 +773,9 @@ typedef struct a_class_type_supplement *a_class_type_supplement_ptr;
 typedef struct a_class_type_supplement {
   a_base_class_ptr
                 base_classes;
-                        /* A linked list of entries describing the base
-                           classes from which this class is directly
-                           derived. */
-  a_virtual_base_class_ptr
-                virtual_base_classes;
-                        /* A linked list of entries describing all the
-                           virtual base classes, both directly and indirectly
-                           inherited, that are included within this class. */
+                        /* A linked list of entries describing all the base
+                           classes, both directly and indirectly inherited,
+			   that are included within this class. */
   a_targ_size_t size_without_virtual_base_classes;
                         /* The size in bytes of the class, excluding the
                            virtual base classes from which it derives. */
