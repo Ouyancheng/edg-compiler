@@ -5027,6 +5027,29 @@ class need not be an immediate base class.
 }  /* base_class_selection_expr */
 
 
+a_dynamic_init_ptr alloc_dtor_dynamic_init(a_dynamic_init_kind kind,
+                                           a_type_ptr          type,
+                                           a_boolean           evaluated)
+/*
+Allocate a dynamic initialization entry, clear it to default values, set
+its kind to kind, and return a pointer to it.  If type is a type that
+requires a destructor, put the destructor routine pointer into the dynamic
+initialization entry.  If evaluated is FALSE, the reference is within an
+unevaluated expression.
+*/
+{
+  a_dynamic_init_ptr dip = alloc_dynamic_init(kind);
+
+  if (is_class_struct_union_type(type)) {
+    /* The type is a class.  If it has a destructor, indicate it in
+       the dynamic initialization. */
+    dip->destructor = select_destructor(type, type, /*honor_virtual=*/FALSE,
+                                        evaluated);
+  }  /* if */
+  return dip;
+}  /* alloc_dtor_dynamic_init */
+
+
 an_expr_node_ptr create_expr_temporary(a_type_ptr temp_type,
                                        a_boolean  result_is_addr,
                                        a_boolean  evaluated)
@@ -5044,19 +5067,8 @@ Only used in C++.
   an_expr_node_ptr   temp_init_node;
 
   /* Allocate the dynamic initialization entry. */
-  dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-  /* See if the temporary needs a destructor. */
-  if (is_class_struct_union_type(temp_type)) {
-    a_symbol_ptr dtor_sym = symbol_supplement_for_class(temp_type)->destructor;
-    if (dtor_sym != NULL) {
-      dip->destructor = dtor_sym->variant.routine.ptr;
-      reference_to_implicitly_invoked_function(dtor_sym,
-                                               &error_position,
-                                               temp_type,
-                                               /*honor_virtual=*/FALSE,
-                                               evaluated);
-    }  /* if */
-  }  /* if */
+  dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type,
+                                evaluated);
   /* Make an enk_temp_init node that points at the dynamic init entry. */
   temp_init_node = alloc_expr_node((an_expr_node_kind)enk_temp_init);
   temp_init_node->variant.init.dynamic_init = dip;

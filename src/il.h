@@ -390,6 +390,11 @@ extern an_expr_node_ptr field_rvalue_selection_expr(an_expr_node_ptr node,
 extern an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
                                                   a_base_class_ptr bcp);
 
+extern a_dynamic_init_ptr alloc_dtor_dynamic_init(
+                                                a_dynamic_init_kind kind,
+                                                a_type_ptr          type,
+                                                a_boolean           evaluated);
+
 extern an_expr_node_ptr create_expr_temporary(a_type_ptr temp_type,
                                               a_boolean  result_is_addr,
                                               a_boolean  evaluated);
