@@ -6609,7 +6609,6 @@ which instantiations are required.
   a_static_data_member_def_ptr        sdmdp;
 
   db_enter(3, "instantiation_wrapup");
-  tdp = instantiations_required;
   for (tdp = instantiations_required; tdp != NULL; tdp = tdp->next) {
     if (tdp->is_function_instantiation) {
       /* Function instantiation. */
@@ -6617,7 +6616,7 @@ which instantiations are required.
         /* No instantiations are done in this mode. */
       } else {
         fiep = tdp->variant.function_instance;
-        if (fiep->instantiation_required) {
+        if (!fiep->instantiation_required) {
           /* Something can appear on the list with this flag FALSE if, for
              instance, a reference that forced instantiation was followed by
              a specific definition that made it unnecessary. */
