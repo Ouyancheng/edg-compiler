@@ -139,7 +139,7 @@ attribute.
 
   bucket = hash_attribute_name(name, length) % ATTRIBUTE_LOOKUP_TABLE_SIZE;
   msakdp->next = attribute_lookup_table[bucket];
-  msakdp->name = copy_string_to_region(FILE_SCOPE_REGION_NUMBER, name);
+  msakdp->name = copy_string_to_region(file_scope_region_number, name);
   msakdp->name_length = length;
   attribute_lookup_table[bucket] = msakdp;
 }  /* add_attribute_lookup_table_entry  */
@@ -268,7 +268,7 @@ case.
 
   msapp = alloc_ms_attribute_param();
   msapp->kind = kind;
-  msapp->name = copy_string_to_region(FILE_SCOPE_REGION_NUMBER, name);
+  msapp->name = copy_string_to_region(file_scope_region_number, name);
   msapp->is_unnamed = is_unnamed;
   /* Link this parameter entry into the list of parameters. */
   if (curr_attribute_descr->parameters == NULL) {
@@ -336,8 +336,14 @@ are accepted.
      by the Microsoft compiler (7.1). */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "aggregates", MSAT_CLASS);
+#if 0
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "clsid", /*is_unnamed=*/FALSE, NULL);
+#else
+  /* FIXME - workaround __uuidof operator problem. */
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
+                          "clsid", /*is_unnamed=*/FALSE, NULL);
+#endif
   /* [coclass] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "coclass", MSAT_CLASS);
@@ -369,6 +375,18 @@ are accepted.
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "id", /*is_unnamed=*/FALSE, NULL);
+  /* [implements_category] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "implements_category", MSAT_METHOD);
+  set_initialization_style_arg_allowed();
+#if 0
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
+                          "implements_category", /*is_unnamed=*/FALSE, NULL);
+#else
+  /* FIXME - workaround __uuidof operator problem. */
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
+                          "implements_category", /*is_unnamed=*/FALSE, NULL);
+#endif
   /* [in] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "in", MSAT_PARAMETER);
@@ -383,15 +401,79 @@ are accepted.
                           "uuid", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "version", /*is_unnamed=*/FALSE, NULL);
-#if 0
-  /* FIXME: incomplete module definition. */
-#endif /* 0 */
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "lcid", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
+                          "control", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "helpstring", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "helpstringdll", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "helpfile", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "helpcontext", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "helpstringcontext", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
+                         "hidden", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
+                         "restricted", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                         "custom", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                         "resource_name", /*is_unnamed=*/FALSE, NULL);
+  /* [object] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "object", MSAT_INTERFACE);
   /* [out] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "out", MSAT_PARAMETER);
-  /* [retval] */
+  /* [perfmon] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "retval", MSAT_PARAMETER);
+			     "perfmon", MSAT_CLASS);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "name", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
+                          "register", /*is_unnamed=*/FALSE, NULL);
+  /* [perf_counter] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "perf_counter", MSAT_DATA_MEMBER);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "namestring", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "helpstring", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "name_res", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "help_res", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "countertype", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "defscale", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
+                          "default_counter", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "detail", /*is_unnamed=*/FALSE, NULL);
+  /* [perf_object] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "perf_object", MSAT_CLASS);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "name_res", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "help_res", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "namestring", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "helpstring", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "detail", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
+                          "no_instances", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "class", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "maxinstnamelen", /*is_unnamed=*/FALSE, NULL);
   /* [provider] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "provider", MSAT_STANDALONE);
@@ -399,6 +481,12 @@ are accepted.
                           "name", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "uuid", /*is_unnamed=*/FALSE, NULL);
+  /* [retval] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "retval", MSAT_PARAMETER);
+  /* [rdx] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "rdxl", MSAT_CLASS);
   /* [request_handler] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "request_handler", MSAT_CLASS);
@@ -419,6 +507,22 @@ are accepted.
                           "style", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "use", /*is_unnamed=*/FALSE, NULL);
+  /* [soap_header] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "soap_header", MSAT_METHOD);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "value", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
+                          "required", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
+                          "in", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
+                          "out", /*is_unnamed=*/FALSE, NULL);
+  /* [soap_method] */
+  make_attribute_description((an_ms_attribute_kind)msak_misc,
+			     "soap_method", MSAT_METHOD);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "name", /*is_unnamed=*/FALSE, NULL);
   /* [uuid] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "uuid", MSAT_CLASS);
@@ -514,7 +618,7 @@ Look up the identifier that names the attribute to be processed.
       /* An unknown attribute -- issue a diagnostic.  This is only a warning
          if we accept unrecognized attributes. */
       pos_st_diagnostic(accept_unrecognized_attributes ? es_warning : es_error,
-                        ec_unrecognized_ms_attribute, &pos_curr_token,
+                        ec_unrecognized_ms_attr, &pos_curr_token,
                         sym_hdr->identifier);
     }  /* if */
     /* Bypass the identifier. */
@@ -610,22 +714,16 @@ Scan a string argument of a Microsoft attribute.  Return the value
 scanned.
 */
 {
-  char	*value = NULL;
+  char		*value = NULL;
+  a_boolean	err;
 
-  if (curr_token != tok_string_literal) {
-    /* An string constant is required. */
+  value = get_string_for_token(&err);
+  if (value == NULL && !err) {
+    /* The current token was not of an expected kind. */
     syntax_error(ec_exp_string_literal);
   } else {
     /* Make a copy of the string in IL memory. */
-    char	*src;
-    sizeof_t	length;
-    src = const_for_curr_token.variant.string.value;
-    /* Subtract one to exclude the null terminator. */
-    length = (sizeof_t)const_for_curr_token.variant.string.length-1;
-    value = copy_string_of_length_to_region(FILE_SCOPE_REGION_NUMBER,
-                                            src, length);
-    /* Bypass the string literal. */
-    (void)get_token();
+    value = copy_string_to_region(file_scope_region_number, value);
   }  /* if */
   return value;
 }  /* scan_ms_attribute_string_arg */
@@ -733,6 +831,17 @@ significant.
   return result;
 }  /* scan_ms_attribute_enum_arg */
 
+#if 0
+
+static char *scan_ms_attribute_uuid_arg(void)
+/*
+*/
+{
+  return NULL;
+}  /* scan_ms_attribute_uuid_arg */
+
+#endif
+
 
 static an_ms_attribute_arg_ptr scan_ms_attribute_arg(
 					an_ms_attribute_param_ptr	param)
@@ -811,7 +920,7 @@ arguments scanned so far, and is used to detect a duplicated argument.
     }  /* for */
     if (msapp == NULL) {
       /* No match was found. */
-      pos_st2_error(ec_invalid_attr_name, &name_pos, attr_descr->name,
+      pos_st2_error(ec_invalid_ms_attr_name, &name_pos, attr_descr->name,
                     param_name);
     } else {
       /* Check for a repeated argument. */
@@ -819,7 +928,7 @@ arguments scanned so far, and is used to detect a duplicated argument.
       for (msaap = arg_list; msaap != NULL; msaap = msaap->next) {
         if (strcmp(msaap->param_name, param_name) == 0) {
           /* The argument has already been given a value. */
-          pos_st_error(ec_duplicate_attr_arg, &name_pos, param_name);
+          pos_st_error(ec_duplicate_ms_attr_arg, &name_pos, param_name);
         }  /* if */
       }  /* for */
     }  /* if */
@@ -851,7 +960,7 @@ list.  Return a pointer to the list of arguments.
        of providing a value for the initial argument. */
     if (!attr_descr->initialization_style_arg_allowed) {
       /* This style of argument is not permitted for this attribute. */
-      str_error(ec_cannot_assign_to_attribute, attr_descr->name);
+      str_error(ec_cannot_assign_to_ms_attr, attr_descr->name);
       flush_tokens();
     } else {
       /* Scan the argument associated with the initial parameter. */
@@ -977,7 +1086,7 @@ declaration.
           attr->kind == (an_ms_attribute_kind)msak_unrecognized) {
         /* An attribute for which we expected a parameter list.  Complain
            of an expected argument list. */
-        str_error(ec_exp_attr_arg_list, attr->name);
+        str_error(ec_exp_ms_attr_arg_list, attr->name);
         flush_tokens();
       } else {
         /* No parameters were expected.  Complain of a missing "," or "]". */
@@ -1086,10 +1195,10 @@ The attributes must apply to the entity kind specified by "target".
     if ((msap->kind_descr->target & target) == 0 &&
         msap->kind_descr->target != MSAT_NONE) {
        if (msap->kind_descr->target == MSAT_STANDALONE) {
-         pos_st_error(ec_invalid_use_of_standalone_attr, &msap->position,
+         pos_st_error(ec_invalid_use_of_standalone_ms_attr, &msap->position,
                       msap->name);
        } else {
-         pos_st_error(ec_invalid_use_of_attr, &msap->position, msap->name);
+         pos_st_error(ec_invalid_use_of_ms_attr, &msap->position, msap->name);
        }  /* if */
     } else {
       /* A valid attribute.  Add it to the new list. */
@@ -1128,7 +1237,7 @@ specified by "attributes" contains only standalone attributes.
   for (msap = *attributes; msap != NULL; msap = msap->next) {
     if (msap->kind_descr->target != MSAT_STANDALONE &&
         msap->kind_descr->target != MSAT_NONE) {
-       pos_st_error(ec_invalid_use_of_attr, &msap->position, msap->name);
+       pos_st_error(ec_invalid_use_of_ms_attr, &msap->position, msap->name);
     }  /* if */
   }  /* for */
   /* Clear the attribute list pointer passed by the caller. */
