@@ -94,7 +94,7 @@ type symbol for the typedef, for use in diagnostics.
 
 static a_type_qualifier_set collect_type_qualifiers(void)
 /*
-Call decl_specifiers to scan one or more type qualifiers, and return
+Call decl_specifiers to scan one or more declarator qualifiers, and return
 a bit vector describing what was found.
 */
 {
@@ -104,8 +104,7 @@ a bit vector describing what was found.
   a_decl_modifier	dummy_decl_modifiers;
   a_type_qualifier_set  qualifiers;
 
-  check_assertion(is_type_qualifier_token(curr_token));
-  (void)decl_specifiers(DSI_COLLECT_TYPE_QUALIFIERS, &dso_flags,
+  (void)decl_specifiers(DSI_COLLECT_DECLARATOR_TYPE_QUALIFIERS, &dso_flags,
                         &dummy_storage_class, &dummy_type_ptr,
                         &qualifiers, &dummy_decl_modifiers);
   check_assertion(qualifiers != TQ_NONE);
@@ -388,7 +387,7 @@ type is legal.
              where the return type and argument types are read from the
              routine type pointed to by "T".  What we need is not to add
              something to *bottom_derived_type (as in other cases) but rather
-             to change it from a "pointer-to-???" type to a "ptr-to-member"
+             to change it from a "pointer-to-?" type to a "ptr-to-member"
              type pointing the class and routine type. */
           tp = ptr_to_member_type(mft_rout_type, mft_class_type);
           copy_type(tp, *bottom_derived_type);
@@ -1409,7 +1408,7 @@ scope is that of a class definition.
     a_boolean             restrict_qualified = FALSE;
 #endif /* RESTRICT_ALLOWED */
 
-    /* Create a pointer to the implicit this parameter.  This can be done
+    /* Create a pointer to the implicit "this" parameter.  This can be done
        for nonstatic function declarations within a class definition or
        for member function declarations outside a class definition when
        a function qualifier is present.  If there is a function qualifier,
@@ -1482,7 +1481,7 @@ scope is that of a class definition.
       this_param_type = member_function_parent_type;
     }  /* if */
     if (this_param_type != NULL) {
-      /* The implicit this param type will be either "const pointer to
+      /* The implicit "this" param type will be either "const pointer to
          class-type" or, if there was a const qualifier on the function,
          "const pointer to const class-type". */
       this_param_type = make_pointer_type(this_param_type);
@@ -1558,12 +1557,12 @@ of a class.
          moreover it must be the top level declaration. */
       *restrict_seen = ((qualifiers & TQ_RESTRICT) != 0);
       if (qualifiers != TQ_RESTRICT) {
-        pos_warning(ec_const_volatile_not_allowed, &qualifier_pos);
+        pos_error(ec_type_qualifier_not_allowed, &qualifier_pos);
       }  /* if */
     } else {
       /* Issue an error. */
       pos_error((qualifiers & TQ_RESTRICT) ?
-                   ec_restrict_not_allowed : ec_const_volatile_not_allowed,
+                   ec_restrict_not_allowed : ec_type_qualifier_not_allowed,
                 &qualifier_pos);
     }  /* if */
   }  /* if */
@@ -1647,18 +1646,22 @@ of a class.
   db_exit();
 }  /* array_declarator */
 
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static a_calling_convention scan_microsoft_qualifiers(void)
+
+static void scan_microsoft_calling_convention(a_calling_convention *call_conv)
 /*
 Scan a list of Microsoft calling conventions (__cdecl, __fastcall, __stdcall).
 Actually, only one calling convention may be specified, but the
-same specifier may appear more than once.
+same specifier may appear more than once.  It can be assumed that
+is_microsoft_calling_convention is TRUE on entry.  *call_conv on entry
+has any calling convention previously scanned, or is cc_default if there
+was no previous calling convention.  On exit it is set to the calling
+convention scanned on this call.
 */
 {
-  a_calling_convention	call_conv = (a_calling_convention)cc_default;
-  while (is_microsoft_calling_convention()) {
-    a_calling_convention	new_call_conv;
+  set_err_pos_to_curr_token();
+  do {
+    a_calling_convention new_call_conv;
     switch (curr_token) {
       case tok_cdecl:
         new_call_conv = (a_calling_convention)cc_cdecl;
@@ -1669,19 +1672,22 @@ same specifier may appear more than once.
       case tok_stdcall:
         new_call_conv = (a_calling_convention)cc_stdcall;
         break;
-      default: unexpected_condition(); break;
+      default: unexpected_condition();
     }  /* switch */
-    if (call_conv != (a_calling_convention)cc_default &&
-        call_conv != new_call_conv) {
-      /* The calling convention has already been set and the new one
-         does not agree with the old one. */
-      error(ec_conflicting_calling_conventions);
+    if (*call_conv != (a_calling_convention)cc_default) {
+      /* A calling convention was specified. */
+      if (*call_conv != new_call_conv) {
+        /* The new calling convention does not agree with the old one. */
+        error(ec_conflicting_calling_conventions);
+      } else {
+        /* The new and old calling conventions are the same. */
+        warning(ec_dupl_calling_convention);
+      }  /* if */
     }  /* if */
-    call_conv = new_call_conv;
+    *call_conv = new_call_conv;
     (void)get_token();
-  }  /* while */
-  return call_conv;
-}  /* scan_microsoft_qualifiers */
+  } while (is_microsoft_calling_convention());
+}  /* scan_microsoft_calling_convention */
 
 
 static
@@ -1744,7 +1750,7 @@ information should be ignored or if an error should be issued.
   }  /* if */
   /* Whether or not we were able to apply the calling convention,
      reset it so that the caller does not attempt to reuse it later. */
-  p_calling_convention->call_conv = (a_calling_convention)cc_default;
+  clear_call_conv_descr(p_calling_convention);
 }  /* update_calling_convention */
 
 
@@ -1807,15 +1813,15 @@ Macro that tests whether a based symbol is present and, if so, issues
 an error and resets the symbol.  This macro expands to nothing when
 Microsoft extensions are not allowed.
 */
-#define based_not_allowed_here(var)					\
-  { if ((var) != NULL) issue_invalid_based_error(&based_pos); var = NULL; }
+#define based_not_allowed_here(var, pos)			      \
+  { if ((var) != NULL) issue_invalid_based_error(&pos); var = NULL; }
 
 #else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Expands to nothing when Microsoft extensions are not being used.
 */
-#define based_not_allowed_here(sym)  /* Nothing */
+#define based_not_allowed_here(sym, pos)  /* Nothing */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -1846,16 +1852,86 @@ Clear the pointer stored in "var" if it is used.
 }  /* make_possibly_based_pointer_type */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- because call_conv_allowed, p_calling_convention,
-                    and p_unbound_calling_convention are only used when
-                    Microsoft keywords are allowed. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void collect_microsoft_pointer_declarator_qualifiers(
+                                              a_type_qualifier_set *qualifiers,
+                                              a_call_conv_descr    *call_conv,
+                                              a_variable_ptr       *based_var,
+                                              a_source_position    *based_pos)
+/*
+Collect a set of pointer declarator qualifiers in Microsoft mode.  Aside
+from the standard const/volatile, Microsoft mode also allows near/far,
+calling conventions like __cdecl, and __based.  Scan all of those, and
+return information about what was scanned in *qualifiers, *call_conv, and
+*based_var.  If a __based qualifier is scanned, *based_pos is set to its
+source position.  It's permissible for the input to contain no qualifiers.
+*/
+{
+  a_type_qualifier_set new_qualifiers, duplicates;
+
+  *qualifiers = TQ_NONE;
+  clear_call_conv_descr(call_conv);
+  *based_var = NULL;
+  for (;;) {
+    if (is_type_qualifier() || is_microsoft_declarator_qualifier()) {
+      /* Normal qualifiers like const, and declarator-only qualifiers like
+         near. */
+      new_qualifiers = collect_type_qualifiers();
+      if ((new_qualifiers & TQ_NEAR) && (*qualifiers & TQ_FAR )) {
+        /* Incompatible near and far specifications. */
+        error(ec_mem_attrib_incompatible);
+        new_qualifiers &= ~TQ_NEAR;
+      }  /* if */
+      if ((new_qualifiers & TQ_FAR ) && (*qualifiers & TQ_NEAR)) {
+        /* Incompatible near and far specifications. */
+        error(ec_mem_attrib_incompatible);
+        new_qualifiers &= ~TQ_FAR;
+      }  /* if */
+      /* Check for repetition of qualifiers.  The Microsoft compiler gives
+         only a warning for these cases, so we do too. */
+      duplicates = (new_qualifiers & *qualifiers);
+      if (duplicates & (TQ_NEAR | TQ_FAR)) {
+        warning(ec_dupl_mem_attrib);
+        duplicates &= ~(TQ_NEAR | TQ_FAR);
+      }  /* if */
+      if (duplicates != TQ_NONE) {
+        warning(ec_dupl_type_qualifier);
+      }  /* if */
+      *qualifiers |= new_qualifiers;
+    } else if (is_microsoft_calling_convention()) {
+      /* Calling conventions like __cdecl. */
+      call_conv->position = pos_curr_token;
+      scan_microsoft_calling_convention(&call_conv->call_conv);
+    } else if (curr_token == tok_based) {
+      /* __based. */
+      if (*based_var != NULL) {
+        /* __based appears more than once. */
+        error(ec_dupl_type_qualifier);
+      }  /* if */
+      *based_pos = pos_curr_token;
+      *based_var = scan_based_modifier();
+    } else {
+      /* Something else; exit the loop. */
+      break;
+    }  /* if */
+  }  /* for */
+}  /* collect_microsoft_pointer_declarator_qualifiers */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- because left_calling_convention,
+                    unbound_calling_convention, left_qualifiers, and
+                    unbound_qualifiers are only used when Microsoft
+		    extensions are allowed. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr pointer_declarator(
                       a_type_ptr            specifiers_type,
                       a_boolean   	    reference_allowed,
-                      a_call_conv_descr_ptr p_calling_convention,
-                      a_call_conv_descr_ptr p_unbound_calling_convention,
+                      a_call_conv_descr_ptr left_calling_convention,
+                      a_call_conv_descr_ptr unbound_calling_convention,
+                      a_type_qualifier_set  *left_qualifiers,
                       a_type_qualifier_set  *unbound_qualifiers)
 /*
 Scan the pointer component of a declarator.  Syntax for C++ (ARM 8.0):
@@ -1888,72 +1964,136 @@ function types.  They are permitted on object declarations, but have
 no meaning.  They are not allowed on pointers to objects or on
 references.
 
-p_calling_convention and p_unbound_calling_convention are pointers
+left_calling_convention and unbound_calling_convention are pointers
 to calling conventions.  The values of these calling conventions
 are returned by this routine.  If the pointer declarator looks like
 
 	__cdecl * __cdecl * __cdecl
 
-the first calling convention is returned in *p_calling_convention,
-the middle one is discarded (by applying it to the pointer type), and the
-last one (not followed by a pointer operator) is returned in
-*p_unbound_calling_convention.  When specifiers_type is not NULL, only
-an unbound calling convention is returned.  The initial calling convention
-is immediately applied to the specifiers type.
-If p_unbound_calling_convention is NULL, an unbound calling convention
-is not allowed (an error is issued).
+the first calling convention is returned in *left_calling_convention
+(but only if specifiers_type is NULL; otherwise, it is applied directly
+to the specifiers type); the middle one is discarded (by applying it
+to the pointer type); and the last one (not followed by a pointer
+operator) is returned in *unbound_calling_convention.  If
+unbound_calling_convention is NULL, an unbound calling convention
+is just thrown away.
 
-When pointer_declarator is called from elsewhere in the compiler
-(e.g., new_type_name), p_calling_convention and p_unbound_calling_convention
-are NULL.
+Also in Microsoft mode, type qualifiers can appear at the beginning of
+the declarator, e.g.,
 
-If any unbound near/far type qualifiers (an extension) are scanned,
-they are returned in *unbound_qualifiers.  unbound_qualifiers is NULL
-if the caller cannot handle unbound qualifiers, in which case they are
-thrown away.
+  int i, const j, const *k;  // Declares j as "const int", k as "const int *"
+
+This routine will see them only at the beginning of a declarator that
+is not immediately next to its specifiers list, as above, because otherwise
+the qualifiers are processed as part of the specifiers.
+
+Type qualifiers get processing similar to that for calling conventions.
+If a pointer declarator looks like
+
+	far * far * far
+
+*left_qualifiers is used to return the first qualifier (but only if
+specifiers_type is NULL; otherwise, the qualifier is applied directly
+to the specifiers type); the middle qualifier is handled internally
+by applying it to the pointer type; and the last (unbound) qualifier
+is returned in *unbound_qualifiers.  If unbound_qualifiers is NULL,
+unbound qualifiers are just thrown away.
 */
 {
   a_type_ptr     		complete_type = specifiers_type;
-  a_boolean      		err;
+  a_boolean      		err = FALSE;
+  a_type_qualifier_set		qualifiers, pending_qualifiers;
   a_type_ptr     		class_type;
   a_type_ptr     		rout_type;
   a_variable_ptr		based_var = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_call_conv_descr		unbound_call_conv;
-  a_call_conv_descr		first_call_conv;
-  a_boolean			first_loop = TRUE;
-  a_boolean			is_call_conv = FALSE;
+  a_call_conv_descr		ccd;
   a_source_position		based_pos;
-
-  unbound_call_conv.call_conv = (a_calling_convention)cc_default;
-  first_call_conv.call_conv = (a_calling_convention)cc_default;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "pointer_declarator");
-  for (;;) {
-    /* Add a pointer type to the top of the existing type.  Note that this
-       works out right.  For example, if one has
-
-       int * const * volatile i;
-
-       the proper type for i is "volatile pointer to const pointer to int".
-       In the loop, the type will be built up from "int" to
-       "const pointer to int" to "volatile pointer to const pointer to int"
-       on successive iterations. */
-    a_boolean	get_token_needed = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    a_boolean	initial_call_conv_or_nonstd_qualifier_allowed;
-    a_boolean	is_nonstd_qualifier = FALSE;
-    /* Set a flag that indicates this is the first pass through the loop. */
-    initial_call_conv_or_nonstd_qualifier_allowed = first_loop;
-    first_loop = FALSE;
-    is_call_conv = FALSE;
+  if (microsoft_mode) {
+    /* Clear parameters used to return left/unbound qualifiers. */
+    if (left_calling_convention != NULL) {
+      clear_call_conv_descr(left_calling_convention);
+    }  /* if */
+    if (unbound_calling_convention != NULL) {
+      clear_call_conv_descr(unbound_calling_convention);
+    }  /* if */
+    if (left_qualifiers != NULL) *left_qualifiers = TQ_NONE;
+    if (unbound_qualifiers != NULL) *unbound_qualifiers = TQ_NONE;
+    /* Scan qualifiers that precede the first pointer or reference, e.g.,
+         int far *p;
+    */
+    collect_microsoft_pointer_declarator_qualifiers(&pending_qualifiers,
+                                                    &ccd,
+                                                    &based_var,
+                                                    &based_pos);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    err = FALSE;
-    if (curr_token == tok_star ||
-        (reference_allowed && curr_token == tok_ampersand)) {
+  /* Loop while there are pointer declarators. */
+  for (;;) {
+    /* See if there is a pointer declarator. */
+    a_boolean another_pointer_declarator = FALSE;
+    a_boolean ptr_to_member_case = FALSE;
+    if ((curr_token == tok_star ||
+         (reference_allowed && curr_token == tok_ampersand))) {
       /* A pointer "*" or reference "&". */
-      set_err_pos_to_curr_token();
+      another_pointer_declarator = TRUE;
+    } else if (C_dialect == C_dialect_cplusplus &&
+               is_ptr_to_member_declarator_start()) {
+      /* A pointer-to-member "Name::*". */
+      another_pointer_declarator = TRUE;
+      ptr_to_member_case = TRUE;
+    }  /* if */
+    /* Exit the loop if there is not another pointer declarator. */
+    if (!another_pointer_declarator) break;
+    set_err_pos_to_curr_token();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      /* Apply pending qualifiers to the complete type being built up, now
+         that we know those are not unbound qualifiers. */
+      if (pending_qualifiers != TQ_NONE) {
+        /* Some qualifiers like near were specified.  Apply them to
+           the complete type or (at the beginning of a nested declarator)
+           return them to the caller.  Note that qualifiers like const
+           do not get here (they're handled at the end of the loop). */
+        if (complete_type != NULL) {
+          complete_type = make_qualified_type(complete_type,
+                                              pending_qualifiers);
+        } else {
+          /* Return left-most qualifiers to the caller. */
+          *left_qualifiers = pending_qualifiers;
+        }  /* if */
+        pending_qualifiers = TQ_NONE;
+      }  /* if */
+      if (ccd.call_conv != (a_calling_convention)cc_default) {
+        /* A calling convention was specified.  Apply it to the complete
+           type or (at the beginning of a nested declaration) return it to
+           the caller. */
+        if (complete_type != NULL) {
+          update_calling_convention(&complete_type, &ccd, &ccd.position);
+        } else {
+          /* Return left-most calling convention to the caller. */
+          *left_calling_convention = ccd;
+          clear_call_conv_descr(&ccd);
+        }  /* if */
+      }  /* if */
+      /* __based is handled when building the pointer type. */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (!ptr_to_member_case) {
+      /* Pointer ("*") or reference ("&") case. */
+      /* Add a pointer type to the top of the existing type.  Note that this
+         works out right.  For example, if one has
+
+           int * const * volatile i;
+
+         the proper type for i is "volatile pointer to const pointer to int".
+         In the loop, the type will be built up from "int" to
+         "const pointer to int" to "volatile pointer to const pointer to int"
+         on successive iterations. */
       if (complete_type != NULL) {
         /* Normal case -- the specifiers type is given, and the pointer or
            reference type can be attached directly to it.  (Or, this is a
@@ -1964,19 +2104,16 @@ thrown away.
 
         temp_type = skip_typerefs(complete_type);
         if (any_cfront_mode() && temp_type != complete_type) {
+          /* Check for a special form of member function typedef that is
+             an extension in cfront mode. */
           is_member_function_typedef =
                   is_cfront_member_function_typedef(complete_type, &rout_type,
                                                     &class_type, &sym);
         }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (curr_token == tok_ampersand) {
-          /* Make sure this was not preceded by __based. */
-          based_not_allowed_here(based_var);
-        }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (curr_token == tok_star) {
+          /* "*" for pointer. */
           if (is_member_function_typedef) {
-            /* This is the proper use of a cfront member function typedef type
+            /* This is a proper use of a cfront member function typedef type
                -- to form a pointer-to-member type.  Do the transformation. */
             complete_type = ptr_to_member_type(rout_type, class_type);
           } else {
@@ -1985,11 +2122,15 @@ thrown away.
               error(ec_pointer_to_reference);
               err = TRUE;
             }  /* if */
+            /* Make the pointer type. */
             complete_type = make_possibly_based_pointer_type
                                    (err ? error_type() : complete_type,
                                     &based_var);
           }  /* if */
         } else {
+          /* "&" for reference. */
+          /* Make sure this was not preceded by __based. */
+          based_not_allowed_here(based_var, based_pos);
           if (is_reference_type(temp_type)) {
             /* Type "reference to reference" is illegal. */
             error(ec_reference_to_reference);
@@ -2004,6 +2145,7 @@ thrown away.
             sym_error(ec_bad_use_of_member_function_typedef, sym);
             err = TRUE;
           }  /* if */
+          /* Make the reference type. */
           complete_type = err ? error_type() :
                                 make_reference_type(complete_type);
         }  /* if */
@@ -2030,12 +2172,10 @@ thrown away.
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
-    /* Check for C++ a pointer-to-member declarator. */
-    } else if (C_dialect == C_dialect_cplusplus &&
-               is_ptr_to_member_declarator_start()) {
-      /* Qualified name followed by "*". */
-      /* Make sure this was not preceded by __based. */
-      based_not_allowed_here(based_var);
+    } else {
+      /* Pointer-to-member declarator. */
+      /* Issue an error if this was preceded by __based. */
+      based_not_allowed_here(based_var, based_pos);
       /* Upon return from is_ptr_to_member_declarator_start the current
          token is tok_ptr_to_member. */
       class_type = qualifier_class_type(locator_for_curr_id);
@@ -2053,127 +2193,65 @@ thrown away.
         }  /* if */
         complete_type = ptr_to_member_type(complete_type, class_type);
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (curr_token == tok_based) {
-      based_pos = pos_curr_token;
-      based_var = scan_based_modifier();
-      get_token_needed = FALSE;
-    } else if (is_microsoft_calling_convention()) {
-      /* A Microsoft calling convention specifier. */
-      a_call_conv_descr		ccd;
-      is_call_conv = TRUE;
-      ccd.position = pos_curr_token;
-      ccd.call_conv = scan_microsoft_qualifiers();
-      if (curr_token_is_ptr_operator()) {
-        /* Another pointer operator is next so we know that
-           this is not an unbound calling convention. */
-        if (initial_call_conv_or_nonstd_qualifier_allowed) {
-          if (specifiers_type != NULL) {
-            /* A specifiers type was present, the calling convention may
-               be applied immediately. */
-            update_calling_convention(&complete_type, &ccd,
-                                      &ccd.position);
-          } else {
-            /* This is the first calling convention and is not unbound. */
-            first_call_conv = ccd;
-          }  /* if */
-        } else {
-          /* This is a calling convention in the middle of a pointer
-             operator list.  Apply it to the complete type built so far. */
-          update_calling_convention(&complete_type, &ccd,
-                                    &ccd.position);
-
-        }  /* if */
-      } else {
-        /* The next token is not a pointer operator.  This is an unbound
-           calling convention. */
-        if (p_unbound_calling_convention == NULL) {
-          /* The caller indicates that we should not accept an unbound
-             calling convention. */
-          pos_diagnostic(es_discretionary_error,
-                         ec_calling_convention_not_allowed,
-                         &ccd.position);
-        } else {
-          unbound_call_conv = ccd;
-        }  /* if */
-      }  /* if */
-      /* Suppress the get_token() that is normally done before scanning
-         the qualifiers below, as this will have been done when scanning
-         the Microsoft qualifiers. */
-      get_token_needed = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else {
-      /* Not a pointer, reference, or pointer-to-member declarator. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      /* In Microsoft mode we can fall through into the qualifier processing
-         section if no pointer operators were found.  This is only done when
-         complete_type is non-null because Microsoft does not allow the
-         nonstandard qualifiers in nested declarators. */
-      if (!microsoft_mode || !initial_call_conv_or_nonstd_qualifier_allowed ||
-          !is_type_qualifier() || complete_type == NULL) break;
-      is_nonstd_qualifier = TRUE;
-      /* Suppress the get_token() that is normally done before scanning
-         the qualifiers below, as this will have been done when scanning
-         the Microsoft qualifiers. */
-      get_token_needed = FALSE;
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
-    /* Take a type qualifier list (const, volatile, or both) if one appears. */
-    if (get_token_needed) (void)get_token();
-    if (is_type_qualifier()) {
-      a_type_qualifier_set  qualifiers;
-
-      set_err_pos_to_curr_token();
-      qualifiers = collect_type_qualifiers();
+    /* Advance past the "*", "&", or "Name::*". */
+    (void)get_token();
+    /* Scan any qualifiers following the pointer declarator, e.g.,
+         int * const x;
+    */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (is_call_conv || based_var != NULL) {
-        /* A misplaced qualifier such as
-             int (__cdecl volatile * x);
-             int __based(p) const *x;
-           This is accepted by the Microsoft compiler, but is is unclear
-           what, if anything, this should mean.  They are discarded. */
-        continue;
-      }  /* if */
-      /* If this is a nonstandard initial qualifier, like the const in
-         "int i, const j", it can only be applied if it appears by itself
-         with no pointer operator following it.  If a pointer operator
-         follows, it is discarded. */
-      if (is_nonstd_qualifier && curr_token_is_ptr_operator()) continue;
+    if (microsoft_mode) {
+      /* Microsoft mode allows several kinds of qualifiers. */
+      collect_microsoft_pointer_declarator_qualifiers(&qualifiers,
+                                                      &ccd,
+                                                      &based_var,
+                                                      &based_pos);
+      /* Break the qualifiers into those like const that are handled
+         immediately and those like near that stay pending into the next
+         iteration of the loop. */
+      pending_qualifiers = (qualifiers & (TQ_NEAR | TQ_FAR));
+      qualifiers -= pending_qualifiers;
+    } else {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Not Microsoft mode; just look for type qualifiers. */
+      qualifiers = TQ_NONE;
+      if (is_type_qualifier()) qualifiers = collect_type_qualifiers();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (qualifiers != TQ_NONE) {
+      /* Some qualifiers were specified. */
 #if RESTRICT_ALLOWED
       /* Check for invalid use of the restrict qualifier. */
-      if (qualifiers & TQ_RESTRICT &&
-          !restrict_qualifier_is_allowed(complete_type, &error_position)) {
-        /* Diagnostic has already been issued.  Just remove TQ_RESTRICT
-           from the qualifier set. */
+      a_type_qualifier_set restrict_bit = (qualifiers & TQ_RESTRICT);
+      if (restrict_bit) {
+        /* Remove the restrict bit from the set to allow easier testing
+           of qualifiers on references below (restrict is allowed). */
         qualifiers &= ~TQ_RESTRICT;
-      }  /* if */
-      /* Check for using qualifiers (other than restrict) with a reference
-         type. */
-      if (is_reference_type(complete_type) &&
-          (qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
-        /* There is at least one qualifier besides restrict.  Clear all but
-           but restrict from the qualifiers set. */
-        qualifiers &= TQ_RESTRICT;
-        /* Issue the diagnostic. */
-        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
-                   ec_qualified_reference_type);
-      }  /* if */
-#else /* !RESTRICT_ALLOWED */
-      if (is_reference_type(complete_type)) {
-        qualifiers = TQ_NONE;
-        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
-                   ec_qualified_reference_type);
+        if (!restrict_qualifier_is_allowed(complete_type, &error_position)) {
+          /* Restrict is not allowed here.  The diagnostic has been issued
+             already.  Turn off the restrict bit. */
+          restrict_bit = 0;
+        }  /* if */
       }  /* if */
 #endif /* RESTRICT_ALLOWED */
-      if (qualifiers != TQ_NONE) {
-        complete_type = make_qualified_type(complete_type, qualifiers);
+      /* Check for using qualifiers on a reference type.  The restrict
+         bit has been removed if it was set, which is good because it is okay
+         to put restrict on a reference. */
+      if (qualifiers != TQ_NONE && is_reference_type(complete_type)) {
+        diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
+                   ec_qualified_reference_type);
+        qualifiers = TQ_NONE;
       }  /* if */
+#if RESTRICT_ALLOWED
+      /* Restore the restrict bit if it was on. */
+      qualifiers |= restrict_bit;
+#endif /* RESTRICT_ALLOWED */
+      /* Add the qualifiers to the complete type being built up. */
+      complete_type = make_qualified_type(complete_type, qualifiers);
     }  /* if */
-  }  /* while */
-
+    /* Keep looping as long as there are pointer declarators. */
+  }  /* for */
 #if DEBUG
   if (debug_level >= 4) {
     if (complete_type != specifiers_type) {
@@ -2184,16 +2262,31 @@ thrown away.
   }  /* if */
 #endif /* DEBUG */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (p_calling_convention != NULL) {
-    check_assertion(p_unbound_calling_convention != NULL);
-    *p_unbound_calling_convention = unbound_call_conv;
-    *p_calling_convention = first_call_conv;
-  }  /* if */
-  if (based_var != NULL) {
-    /* A __based modifier was present that was not followed by a
-       pointer operator.  Issue a warning that the modifier will
-       be discarded. */
-    pos_warning(ec_based_not_followed_by_star, &based_pos);
+  if (microsoft_mode) {
+    /* Return unbound qualifiers to the caller. */
+    if (pending_qualifiers != TQ_NONE) {
+      /* Qualifiers like near and far. */
+      if (unbound_qualifiers != NULL) {
+        *unbound_qualifiers = pending_qualifiers;
+      } else {
+        warning(ec_mem_attrib_ignored);
+      }  /* if */
+    }  /* if */
+    if (ccd.call_conv != (a_calling_convention)cc_default) {
+      /* Calling convention like __cdecl. */
+      if (unbound_calling_convention != NULL) {
+        *unbound_calling_convention = ccd;
+      } else {
+        /* Discard an unbound calling convention. */
+        pos_warning(ec_calling_convention_ignored, &ccd.position);
+      }  /* if */
+    }  /* if */
+    if (based_var != NULL) {
+      /* A __based modifier was present that was not followed by a
+         pointer operator.  Issue a warning that the modifier is
+         being discarded. */
+      pos_warning(ec_based_not_followed_by_star, &based_pos);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
@@ -2550,8 +2643,10 @@ void r_declarator(a_decl_flag_set             input_flags,
                   a_symbol_locator            *locator,
                   a_type_ptr                  *p_complete_type,
                   a_type_ptr                  *p_bottom_derived_type,
-                  a_call_conv_descr_ptr       p_calling_convention,
-                  a_type_qualifier_set        *unbound_qualifiers,
+                  a_call_conv_descr_ptr       p_left_call_conv,
+                  a_call_conv_descr_ptr       p_unbound_call_conv,
+                  a_type_qualifier_set        *p_left_qualifiers,
+                  a_type_qualifier_set        *p_unbound_qualifiers,
                   a_source_sequence_entry_ptr *declarator_ssep,
                   a_func_info_block           *func_info)
 /*
@@ -2582,16 +2677,10 @@ The routine "declarator" is called at the top level, and it calls
 this routine to do the actual work.  This routine can call itself
 recursively to handle nested declarators.
 
-p_calling_convention is used when scanning nested declarators.  If
-a nested declarator contains a calling convention that could not be
-processed at that level, it is returned to the caller in
-p_calling_convention, otherwise the value returned in p_calling_convention
-is cc_default.  When a nested declarator is not involved,
-p_calling_convention should be NULL.
-
-If any unbound near/far type qualifiers (an extension) are scanned, they
-are returned in *unbound_qualifiers.  unbound_qualifiers is NULL if the
-caller cannot handle unbound qualifiers, in which case they are thrown away.
+If left-side or unbound qualifiers are detected, they are returned
+in *p_left_call_conv, *p_unbound_call_conv, *left_qualifiers, and
+*unbound_qualifiers.  See pointer_declarator for more information
+on those.
 
 The syntax is:
 
@@ -2641,9 +2730,9 @@ The syntax is:
   a_boolean       nonconstant_dimension_allowed;
   a_boolean       parenthesized_initializer_allowed;
   a_call_conv_descr
-		  call_conv;
-  a_call_conv_descr
-		  unbound_call_conv;
+                  left_call_conv, inner_left_call_conv, unbound_call_conv;
+  a_type_qualifier_set
+                  left_qualifiers, inner_left_qualifiers, unbound_qualifiers;
 
   db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
@@ -2666,15 +2755,18 @@ The syntax is:
   }  /* if */
   /* Set the locator to indicate there is no identifier. */
   if (locator != NULL) set_to_error_locator(*locator);
-  /* Look for any initial "*" list indicating pointer types. */
+  /* Scan a list of pointer, reference and pointer-to-member declarators. */
   complete_type = pointer_declarator(specifiers_type,
                                      /*reference_allowed=*/
                                        C_dialect == C_dialect_cplusplus,
-                                     &call_conv,
+                                     &left_call_conv,
                                      &unbound_call_conv,
-                                     unbound_qualifiers);
+                                     &left_qualifiers,
+                                     &unbound_qualifiers);
   derived_type = NULL;
   bottom_derived_type = NULL;
+  clear_call_conv_descr(&inner_left_call_conv);
+  inner_left_qualifiers = TQ_NONE;
   /* The next thing is an identifier, or a parenthesis that begins a
      nested declarator.  For the abstract declarator case, the
      identifier is omitted. */
@@ -2692,30 +2784,41 @@ The syntax is:
       if (curr_token == tok_rparen ||
           is_decl_start(/*expr_context=*/FALSE,
                         /*real_declarator_allowed=*/TRUE) ||
-          (C_dialect == C_dialect_cplusplus && curr_token == tok_ellipsis)) {
+          curr_token == tok_ellipsis) {
         /* Function declarator rather than a nested declarator. */
         goto function_lparen;
       }  /* if */
     }  /* if */
+    /* This parenthesis begins a nested declarator. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (unbound_call_conv.call_conv !=
-        (a_calling_convention)cc_default) {
-      /* Constructs such as
-           int __cdecl (*fp)();
-         are not permitted. */
-      pos_error(ec_calling_convention_may_not_precede_nested_declarator,
-                &declarator_pos);
+    if (microsoft_mode) {
+      if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
+        /* Constructs such as
+             int __cdecl (*fp)();
+           are not permitted. */
+        pos_error(ec_calling_convention_may_not_precede_nested_declarator,
+                  &declarator_pos);
+      }  /* if */
+      if (unbound_qualifiers != TQ_NONE) {
+        /* Constructs such as
+             int far (*p);
+           are not permitted. */
+        pos_error(ec_mem_attrib_may_not_precede_nested_declarator,
+                  &declarator_pos);
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     add_stop_token(tok_rparen);
     /* Get the nested declarator, removing the flag allowing parenthesized
        initializers from the input_flags bit vector.  (The other flags are
        passed on in the recursive call.) */
-    r_declarator(~(~input_flags | DI_PARENTHESIZED_INITIALIZER_ALLOWED),
+    r_declarator((input_flags & ~DI_PARENTHESIZED_INITIALIZER_ALLOWED),
                  &local_do_flags, /*specifiers_type=*/(a_type_ptr)NULL,
-                 member_parent_type, locator, &derived_type,
-                 &bottom_derived_type, &unbound_call_conv,
-                 unbound_qualifiers, declarator_ssep, func_info);
+                 member_parent_type, locator,
+                 &derived_type, &bottom_derived_type,
+                 &inner_left_call_conv, &unbound_call_conv,
+                 &inner_left_qualifiers, &unbound_qualifiers,
+                 declarator_ssep, func_info);
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
     } else {
@@ -2747,6 +2850,7 @@ The syntax is:
     (void)required_token(tok_rparen, ec_exp_rparen);
     remove_stop_token(tok_rparen);
   } else {
+    /* Not a nested declarator. */
     /* An identifier is expected next, but is omitted in the 
        abstract declarator. */
     is_name_start = (is_qualified_name_start() || curr_token == tok_operator ||
@@ -2794,7 +2898,7 @@ The syntax is:
      type is attached to the original type "int" (from complete_type).
 
      If a nested declarator was scanned above, there may already be
-     a derived type list, and the new entries are added to its end.
+     a derived type list, and the new entries are added to its bottom.
   */
   while (curr_token == tok_lparen || curr_token == tok_lbracket) {
     if (curr_token == tok_lparen) {
@@ -2946,16 +3050,27 @@ function_lparen:
       if (nonconstant_dimension_allowed) {
         /* In C++ a array declarator that appears in an operator new()
            expression may have a nonconstant expression in the first
-           dimension (ARM 5.3.3).  Subsequent dimension must be constants. */
+           dimension (ARM 5.3.3).  Subsequent dimensions must be constants. */
         nonconstant_dimension_allowed = FALSE;
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
-      /* There is an unbound calling convention.  Attempt to bind it
-         to the array or function declarator just scanned. */
-      update_calling_convention(&new_type_ptr, &unbound_call_conv,
-                                &locator->source_position);
+    if (microsoft_mode) {
+      /* Apply left-side qualifiers that were hanging:
+           int (__cdecl *f)();
+                             ^ We're here now.
+                ^ inner_left_call_conv indicates this.
+         The __cdecl calling convention was returned from the nested
+         declarator scan and goes on top of the function type. */
+      if (inner_left_call_conv.call_conv != (a_calling_convention)cc_default) {
+        update_calling_convention(&new_type_ptr, &inner_left_call_conv,
+                                  &locator->source_position);
+      }  /* if */
+      if (inner_left_qualifiers != TQ_NONE) {
+        new_type_ptr = make_qualified_type(new_type_ptr,
+                                           inner_left_qualifiers);
+        inner_left_qualifiers = TQ_NONE;
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Add the new type to the bottom of the existing derived type list.
@@ -2983,6 +3098,46 @@ function_lparen:
      is set a bit early here so that any errors below from combining the
      two lists will have the right position. */
   copy_source_position(declarator_pos, error_position);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* Apply left-side qualifiers that were hanging, for the case where
+       there were no function or array declarators:
+         typedef void F(int);
+         F (__cdecl *f);
+                       ^ We're here now.
+            ^ inner_left_call_conv indicates this.
+       The __cdecl calling convention was returned from the nested
+       declarator scan and goes on top of the complete type.  If there
+       is no complete type, move these hanging left-side qualifiers to
+       the variables that will apply them to the specifiers type. */
+    if (inner_left_call_conv.call_conv != (a_calling_convention)cc_default) {
+      if (complete_type != NULL) {
+        update_calling_convention(&complete_type, &inner_left_call_conv,
+                                  &locator->source_position);
+      } else {
+        check_assertion(left_call_conv.call_conv ==
+                        (a_calling_convention)cc_default);
+        left_call_conv = inner_left_call_conv;
+      }  /* if */
+    }  /* if */
+    if (inner_left_qualifiers != TQ_NONE) {
+      if (complete_type != NULL) {
+        complete_type = make_qualified_type(complete_type,
+                                            inner_left_qualifiers);
+      } else {
+        check_assertion(left_qualifiers == TQ_NONE);
+        left_qualifiers = inner_left_qualifiers;
+      }  /* if */
+    }  /* if */
+    /* Return the left qualifiers to the caller if they couldn't be handled
+       at this level by applying them to the specifiers type (i.e., in a
+       nested declarator). */
+    if (specifiers_type == NULL) {
+      *p_left_call_conv = left_call_conv;
+      *p_left_qualifiers = left_qualifiers;
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Combine the derived type list with the earlier complete type
      (pointer derived type list plus specifiers_list), making
      the full type.  Note that this involves error checking. */
@@ -3000,19 +3155,27 @@ function_lparen:
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
-    /* If there is an unbound calling convention, attempt to apply it to
-       the complete type (if one exists).  If none exists, return the unbound
-       type to the caller. */
-    if (complete_type != NULL) {
-      update_calling_convention(&complete_type, &unbound_call_conv,
-                                &locator->source_position);
-    } else {
-      /* The complete type is NULL.  Note that this means that there
-         were no pointer types and, as a result, that call_conv cannot
-         already be set. */
-      check_assertion(call_conv.call_conv == (a_calling_convention)cc_default);
-      call_conv = unbound_call_conv;
+  if (microsoft_mode) {
+    if (unbound_call_conv.call_conv != (a_calling_convention)cc_default) {
+      /* If there is an unbound calling convention, attempt to apply it to
+         the complete type (if one exists).  If none exists, return the unbound
+         type to the caller. */
+      if (complete_type != NULL) {
+        update_calling_convention(&complete_type, &unbound_call_conv,
+                                  &locator->source_position);
+      } else {
+        *p_unbound_call_conv = unbound_call_conv;
+      }  /* if */
+    }  /* if */
+    if (unbound_qualifiers != TQ_NONE) {
+      /* If there are unbound type qualifiers, apply them to the complete
+         type (it it exists).  If it does not exists, return the unbound
+         type qualifiers to the caller. */
+      if (complete_type != NULL) {
+        complete_type = make_qualified_type(complete_type, unbound_qualifiers);
+      } else {
+        *p_unbound_qualifiers = unbound_qualifiers;
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3047,10 +3210,6 @@ function_lparen:
   }  /* if */
   *p_complete_type = complete_type;
   *p_bottom_derived_type = bottom_derived_type;
-  if (p_calling_convention != NULL) {
-    /* Return any unapplied calling information to the caller. */
-    *p_calling_convention = call_conv;
-  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     fputs("complete_type: ", f_debug);
@@ -3085,8 +3244,10 @@ the parameters.
 
   r_declarator(input_flags, output_flags, specifiers_type,
                member_parent_type, locator, p_complete_type,
-               &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
-               (a_type_qualifier_set *)NULL, declarator_ssep, func_info);
+               &bottom_derived_type,
+               (a_call_conv_descr_ptr)NULL, (a_call_conv_descr_ptr)NULL,
+               (a_type_qualifier_set *)NULL, (a_type_qualifier_set *)NULL,
+               declarator_ssep, func_info);
 }  /* declarator */
 
 
