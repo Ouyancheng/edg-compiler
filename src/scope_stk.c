@@ -3095,7 +3095,7 @@ NULL.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* Do fixup on the source sequence entry for a tentative definition. */
       if (C_mode() && depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
-          sym->defined) {
+          sym->defined && is_primary_translation_unit) {
         a_source_sequence_entry_ptr   ssep;
         a_src_seq_secondary_decl_ptr  sssdp;
 
