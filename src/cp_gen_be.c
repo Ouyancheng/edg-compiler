@@ -4562,8 +4562,8 @@ precedence confusion and need_parens is TRUE.
       check_assertion(constant->expr == NULL);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       /* Put out the member name without the "&". */
-      form_constant(constant->variant.template_param.constant, need_parens,
-                    &octl);
+      form_constant(constant->variant.template_param.variant.constant,
+		    need_parens, &octl);
       processed = TRUE;
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
