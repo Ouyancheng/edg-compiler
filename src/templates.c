@@ -3786,7 +3786,11 @@ prototype instantiation is considered as a potential match.
     ctsp->template_arg_list = *new_list;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     if (prototype_instantiations_in_il) {
-      ctsp->assoc_template = prototype_sym->variant.class_struct_union.type;
+      if (prototype_sym != NULL) {
+        ctsp->assoc_template = prototype_sym->variant.class_struct_union.type;
+      } else {
+        check_assertion(total_errors != 0);
+      }  /* if */
     }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     set_source_corresp(&(class_type->source_corresp), sym);
