@@ -915,6 +915,7 @@ do_float_complex:
         disp_ptr("base_variable", (char *)ptr->variant.pointer.base_variable,
                  iek_variable);
       }  /* if */
+      disp_decl_modifiers(ptr->variant.pointer.modifiers);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       disp_boolean("is_reference",
                    (a_boolean)ptr->variant.pointer.is_reference);
@@ -1123,6 +1124,12 @@ Display the indicated decl modifiers.
 {
   if (dm != DM_NONE) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
+    if (dm & DM_NEAR) {
+      disp_boolean("near", TRUE);
+    }  /* if */
+    if (dm & DM_FAR) {
+      disp_boolean("far", TRUE);
+    }  /* if */
     if (dm & DM_DLLIMPORT) {
       disp_boolean("dllimport", TRUE);
     }  /* if */

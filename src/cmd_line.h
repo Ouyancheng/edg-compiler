@@ -105,6 +105,9 @@ typedef enum /*an_option_kind*/ {
   optk_long_lifetime_temps,
 #if MICROSOFT_EXTENSIONS_ALLOWED
   optk_microsoft_mode,
+  optk_microsoft_16_mode,
+  optk_far_data_pointers,
+  optk_far_code_pointers,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_wchar_t_is_keyword,
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -502,9 +505,15 @@ EXTERN a_boolean
                                = DEFAULT_MICROSOFT_MODE
 #endif /* VAR_INITIALIZERS */
                                                        ;
-			/* TRUE if microsoft extensions are to be accepted. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+			/* TRUE if Microsoft extensions are to be accepted. */
+EXTERN a_boolean
+		microsoft_16_mode
+#if VAR_INITIALIZERS
+                                  = DEFAULT_MICROSOFT_16_MODE
+#endif /* VAR_INITIALIZERS */
+                                                             ;
+			/* TRUE if Microsoft 16-bit extensions are to be
+			   accepted.  This is a sub-mode of microsoft_mode. */
 EXTERN a_calling_convention
 		default_calling_convention
 #if VAR_INITIALIZERS
@@ -514,6 +523,22 @@ EXTERN a_calling_convention
 			/* The default calling convention.  cc_default is
 			   considered compatible with this calling
 			   convention. */
+EXTERN a_boolean
+		implicit_data_pointer_modifiers
+#if VAR_INITIALIZERS
+                                      = DEFAULT_IMPLICIT_DATA_POINTER_MODIFIERS
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* Implicit modifiers (near/far) to be applied to
+			   data pointers in 16-bit Microsoft mode. */
+EXTERN a_boolean
+		implicit_code_pointer_modifiers
+#if VAR_INITIALIZERS
+                                      = DEFAULT_IMPLICIT_CODE_POINTER_MODIFIERS
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* Implicit modifiers (near/far) to be applied to
+			   code pointers in 16-bit Microsoft mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean

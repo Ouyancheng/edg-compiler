@@ -1289,6 +1289,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
 {
   a_targ_size_t    size;
   a_targ_alignment alignment;
+  a_type_ptr       underlying_type;
 
   db_enter(5, "set_type_size");
   size = type_ptr->size;
@@ -1335,7 +1336,18 @@ set, leave it alone.  Also compute and set the alignment requirement.
         }  /* switch */
         break;
       case tk_pointer:
-        size = size_of_pointer_to(type_pointed_to(type_ptr), &alignment);
+        underlying_type = type_pointed_to(type_ptr);
+        size = size_of_pointer_to(underlying_type, &alignment);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_16_mode &&
+            type_ptr->variant.pointer.modifiers == DM_NONE) {
+          /* Set default pointer modifiers in 16-bit mode. */
+          type_ptr->variant.pointer.modifiers = 
+                                       (is_function_type(underlying_type) ?
+                                              implicit_code_pointer_modifiers :
+                                              implicit_data_pointer_modifiers);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         break;
       case tk_array:
         set_array_type_size(type_ptr);

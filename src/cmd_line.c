@@ -389,6 +389,21 @@ Initialize the option information table.
   add_option_description(optk_microsoft_mode, "no_microsoft",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_16_mode, "microsoft_16",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_far_data_pointers, "far_data_pointers",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_far_data_pointers, "near_data_pointers",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_far_code_pointers, "far_code_pointers",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_far_code_pointers, "near_code_pointers",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if WCHAR_T_ENABLING_POSSIBLE
   add_option_description(optk_wchar_t_is_keyword, "wchar_t_keyword",
@@ -1302,8 +1317,23 @@ common_cfront_mode_settings:
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case optk_microsoft_mode:
-        /* Enable or disable Microsoft extensions. */
+        /* Enable or disable Microsoft extensions, in 32-bit mode. */
         microsoft_mode = opt_value;
+        microsoft_16_mode = FALSE;
+        break;
+      case optk_microsoft_16_mode:
+        /* Enable or disable Microsoft extensions, in 16-bit mode. */
+        check_assertion(opt_value == TRUE);
+        microsoft_mode = TRUE;
+        microsoft_16_mode = TRUE;
+        break;
+      case optk_far_data_pointers:
+        /* Set size of data pointers in Microsoft 16-bit mode. */
+        implicit_data_pointer_modifiers = (opt_value ? DM_FAR : DM_NEAR);
+        break;
+      case optk_far_code_pointers:
+        /* Set size of code pointers in Microsoft 16-bit mode. */
+        implicit_code_pointer_modifiers = (opt_value ? DM_FAR : DM_NEAR);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case optk_wchar_t_is_keyword:
@@ -1558,6 +1588,8 @@ common_cfront_mode_settings:
     /* Set features implied by Microsoft compatibility. */
     targ_enum_types_can_be_smaller_than_int = FALSE;
     stack_referenced_include_directories = TRUE;
+  } else {
+    microsoft_16_mode = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION

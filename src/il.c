@@ -636,6 +636,16 @@ Dump the contents of the indicated type entry, for debug purposes.
       fprintf(f_debug, "%s", float_kind_name(tp->variant.float_kind));
       break;
     case tk_pointer:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      { a_decl_modifier modifiers = tp->variant.pointer.modifiers;
+        if (modifiers & DM_NEAR) {
+          fputs("near ", f_debug);
+        }  /* if */
+        if (modifiers & DM_FAR) {
+          fputs("far ", f_debug);
+        }  /* if */
+      }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (tp->variant.pointer.is_reference) {
         fputs("ref to ", f_debug);
       } else {

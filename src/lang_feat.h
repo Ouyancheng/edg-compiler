@@ -315,6 +315,31 @@ be modified by a command line option.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Flag that is TRUE to enable Microsoft 16-bit mode as the default mode.  This
+is the default value used to initialize microsoft_16_mode, which is a
+sub-option under microsoft_mode.  This may be modified by a command line
+option.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#ifndef DEFAULT_MICROSOFT_16_MODE
+#define DEFAULT_MICROSOFT_16_MODE FALSE
+#endif /* ifndef DEFAULT_MICROSOFT_16_MODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Default implicit modifiers (near/far) applied to pointers in 16-bit Microsoft
+mode.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#ifndef DEFAULT_IMPLICIT_DATA_POINTER_MODIFIERS
+#define DEFAULT_IMPLICIT_DATA_POINTER_MODIFIERS DM_NEAR
+#endif /* ifndef DEFAULT_IMPLICIT_DATA_POINTER_MODIFIERS */
+#ifndef DEFAULT_IMPLICIT_CODE_POINTER_MODIFIERS
+#define DEFAULT_IMPLICIT_CODE_POINTER_MODIFIERS DM_NEAR
+#endif /* ifndef DEFAULT_IMPLICIT_CODE_POINTER_MODIFIERS */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Flag that is TRUE if a stack model is used to manage the include search
 list and FALSE if some other model (by default, a replace-restore model)
 is to be used instead.  This is the default value used to initialize
