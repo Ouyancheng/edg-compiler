@@ -498,6 +498,8 @@ do
          --nonconst_ref_anachronism | \
          --no_nonconst_ref_anachronism | \
 	 --no_preproc_only | \
+         --rtti | \
+         --no_rtti | \
          --force_vtbl)
       feoptions=$feoptions" $1"
 #     Options that require additional processing
