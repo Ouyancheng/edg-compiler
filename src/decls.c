@@ -8517,18 +8517,13 @@ continue_with_declaration:
            union, or enum declaration.  A storage class or qualifier is not
            allowed, nor is "inline". */
         if (storage_class != (a_storage_class)sc_unspecified) {
-          if (C_dialect == C_dialect_cplusplus) {
-            error(ec_storage_class_not_allowed);
-          } else {
-            warning(ec_storage_class_not_allowed);
-          }  /* if */
+          diagnostic(C_dialect == C_dialect_cplusplus && strict_ansi_mode ?
+                       strict_ansi_error_severity : es_warning,
+                     ec_storage_class_not_allowed);
         }  /* if */
         if (is_qualified_type(type_ptr)) {
-          if (C_dialect == C_dialect_cplusplus) {
-            error(ec_const_volatile_not_allowed);
-          } else {
-            warning(ec_const_volatile_not_allowed);
-          }  /* if */
+          diagnostic(C_dialect == C_dialect_cplusplus ? es_error : es_warning,
+                     ec_const_volatile_not_allowed);
         }  /* if */
         if (inline_specified) {
           error(ec_inline_and_nonfunction);
