@@ -794,7 +794,7 @@ scanned.
 static int scan_ms_attribute_enum_arg(an_ms_attribute_param_ptr	param)
 /*
 Scan a enumeration argument of a Microsoft attribute.  Return the value
-that identifiers the element of the enumeration that was specified.
+that identifies the element of the enumeration that was specified.
 The first entry on the list is 1.  Zero is returned if no matching
 entry was found.
 
@@ -896,7 +896,7 @@ static an_ms_attribute_param_ptr get_named_parameter(
 The current token is expected to be an identifier that gives the name of
 the parameter being specified.  Look up the name in the list of parameters
 and return the parameter pointer.  If there is no matching parameter, issue
-an error and return NULL pointer.
+an error and return a NULL pointer.
 
 attr_descr describes the attribute being scanned.  arg_list is the list of
 arguments scanned so far, and is used to detect a duplicated argument.
