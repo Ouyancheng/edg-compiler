@@ -694,13 +694,20 @@ and for the instantiation of template functions.
             for (; param_id != NULL; param_id = param_id->next) {
               if (param_id->source_sequence_entry == ssep) break;
             }  /* for */
-            check_assertion(param_id != NULL);
-            /* Take the entry off the file-scope list and add one (also
-               empty so far) to the function-scope list. */
-            ssep->next = stack_ptr->source_sequence_avail_list;
-            stack_ptr->source_sequence_avail_list = ssep;
-            param_id->source_sequence_entry =
+            if (param_id == NULL) {
+              /* This source sequence entry is not associated with one of the
+                 parameters.  For instance:
+                   void f(a) int a(enum e{x, y}); { ... } 
+                 for which an empty source sequence entry will have been
+                 created for the omitted parameter of function a. */
+            } else {
+              /* Take the entry off the file-scope list and add one (also
+                 empty so far) to the function-scope list. */
+              ssep->next = stack_ptr->source_sequence_avail_list;
+              stack_ptr->source_sequence_avail_list = ssep;
+              param_id->source_sequence_entry =
                                           add_empty_source_sequence_entry();
+            }  /* if */
             break;
           default:
             /* For types (as well as other miscellany, such as fields in a
