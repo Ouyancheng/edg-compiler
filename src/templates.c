@@ -11106,10 +11106,11 @@ set, and its source sequence entry, if any, has been put out.)
       }  /* switch */
       if (!err || sym->is_error) {
         /* Set parent information in the IL entry. */
-        if (sym->is_class_member && !prototype_instantiations_in_il) {
+        if (sym->is_class_member) {
           if (!sym->parent.class_type->
-                                variant.class_struct_union.is_nonreal_class) { 
-            /* Don't set the parent pointer for prototype instantiation
+                                variant.class_struct_union.is_nonreal_class ||
+             prototype_instantiations_in_il) { 
+            /* The parent pointer is not set for prototype instantiation
                members because the parent class will not be written to the
                IL file. */
             set_class_membership((a_symbol_ptr)NULL,
