@@ -1,13 +1,18 @@
 Version 2.28
 
-2/25/95  Pragmas in IL template strings
+2/15/95  Bug in -I- option processing
+
+The -I- option had a bug when more than one directory was specified
+by way of -I options preceding the -I- option.
+
+2/15/95  Pragmas in IL template strings
 
 A bug has been fixed that could cause IL template strings to be
 constructed improperly when pragmas are used inside a template.
 IL template strings are only created when RECORD_TEMPLATES_IN_IL
 is TRUE (e.g., when the C++ generating back end is used).
 
-2/25/95  Flag added for pseudo-pragmas
+2/15/95  Flag added for pseudo-pragmas
 
 A flag has been added to the pragma kind description that indicates
 whether a given pragma kind represents a pseudo pragma.
