@@ -375,9 +375,10 @@ Install the keywords in the symbol table.
     } else {
       enter_unimplemented_keyword("typename", ec_unimplemented_keyword);
     }  /* if */
-    /* Enter "explicit" as a keyword in strict mode. */
-    if (strict_ansi_mode) {
-      enter_unimplemented_keyword("explicit",  ec_unimplemented_keyword);
+    /* Recognition of "explicit" as a keyword may be enabled or disabled by
+       command line options. */
+    if (explicit_keyword_enabled) {
+      enter_keyword((a_token_kind)tok_explicit, "explicit");
     }  /* if */
   }  /* if */
   db_exit();
