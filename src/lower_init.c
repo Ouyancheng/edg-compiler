@@ -3754,6 +3754,7 @@ Do IL lowering of an enk_temp_init expression node.
   an_init_pos_descr  ipd;
   a_boolean          keep_dynamic_init, result_is_addr, result_is_not_used;
   an_insert_location insert_location;
+  a_boolean          is_constructor_init;
 
   dip = expr->variant.init.dynamic_init;
   /* Determine the type of the temporary. */
@@ -3784,6 +3785,9 @@ Do IL lowering of an enk_temp_init expression node.
   expr->variant.variable = dip->variable;
   /* Generate code for the dynamic init. */
   set_var_init_pos_descr(dip->variable, &ipd);
+  /* Test the kind before calling lower_dynamic_init because that routine
+     clears the kind in some cases. */
+  is_constructor_init = (dip->kind == (a_dynamic_init_kind)dik_constructor);
   /* Any code generated for the dynamic initialization will be
      inserted before the (modified) original expression. */
   set_expr_insert_location(expr, &insert_location);
@@ -3798,9 +3802,7 @@ Do IL lowering of an enk_temp_init expression node.
      use the pointer returned from the constructor as the value of
      the expression.  Likewise, if the result of the expression is not
      used, the node for the temporary value or address is not needed. */
-  if ((result_is_addr &&
-      dip->kind == (a_dynamic_init_kind)dik_constructor) ||
-      result_is_not_used) {
+  if ((result_is_addr && is_constructor_init) || result_is_not_used) {
     /* Check for the form (ctor-call(args),  temp)
                        or (ctor-call(args), &temp) as appropriate.
        Note that we do not do the optimization if some other terms have
