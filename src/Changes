@@ -4,13 +4,13 @@ Version 2.44
          function
 
 The result_is_not_used flag was set to TRUE on an expression node
-whose value is indeed used, when (a) the expression is an argument
-to a call of an inline function, (b) the expression has side effects,
-(c) the corresponding parameter is not referemnced within the called
-function, and (d) the function call could not be inlined for some
-reason (e.g., it contains a switch statement).  This caused an
-internal error in dump_expr if the C-generating back end is used.
-Now fixed.
+whose value is indeed used, when (a) the front end is doing inlining,
+(b) the expression is an argument to a call of an inline function,
+(c) the expression has side effects, (d) the corresponding parameter
+is not referenced within the called function, and (e) the function
+call cannot not be inlined for some reason (e.g., the function body
+contains a switch statement).  This caused an internal error in
+dump_expr if the C-generating back end is used.  Now fixed.
 
   inline void f(int a) {
     switch(1) {}
