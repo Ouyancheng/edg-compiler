@@ -1993,7 +1993,6 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
 extern a_template_instance_ptr alloc_template_instance(void);
-extern void add_to_instantiations_required_list(a_template_instance_ptr  tip);
 extern a_param_id_ptr alloc_param_id(void);
 extern void free_param_id(a_param_id_ptr *ppip);
 extern void free_param_id_list(a_param_id_ptr *pidlist);
