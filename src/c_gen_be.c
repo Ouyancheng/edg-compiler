@@ -6469,6 +6469,23 @@ routine or variable has the given source correspondence field and
 
   /* Determine the output file name. */
   C_output_file_name = scp->name;
+  if (f_C_file_list == NULL) {
+    a_boolean cannot_open, bad_name;
+
+    /* Open a file in which the list of generated file names will be
+       returned. */
+    f_C_file_list = open_output_file(il_header.instantiation_file_list_name,
+                                     /*binary_file=*/FALSE,
+                                     /*update_mode=*/FALSE,
+                                     &cannot_open, &bad_name);
+    if (bad_name) {
+      str_command_line_error(ec_cl_invalid_output_file,
+                             il_header.instantiation_file_list_name);
+    } else if (cannot_open) {
+      str_command_line_error(ec_cl_cannot_open_output_file,
+                             il_header.instantiation_file_list_name);
+    }  /* if */
+  }  /* if */
   /* Write the generated file name to the file passed back to the driver. */
   (void)fprintf(f_C_file_list, "%s\n", C_output_file_name);
 #if 0
@@ -6608,24 +6625,9 @@ Generate C from the intermediate language.
 
 #if ONE_INSTANTIATION_PER_OBJECT
   if (il_header.instantiation_file_list_name != NULL) {
-    a_boolean cannot_open, bad_name;
-
     /* Generating one C file per instantiation.  For the primary file, use
        bit number 1 in the per-instantiation "needed" bit vector. */
     needed_flag_bit_number = 1;
-    /* Open a file in which the list of generated file names will be
-       returned. */
-    f_C_file_list = open_output_file(il_header.instantiation_file_list_name,
-                                     /*binary_file=*/FALSE,
-                                     /*update_mode=*/FALSE,
-                                     &cannot_open, &bad_name);
-    if (bad_name) {
-      str_command_line_error(ec_cl_invalid_output_file,
-                             il_header.instantiation_file_list_name);
-    } else if (cannot_open) {
-      str_command_line_error(ec_cl_cannot_open_output_file,
-                             il_header.instantiation_file_list_name);
-    }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Do initialization. */
@@ -6636,12 +6638,14 @@ Generate C from the intermediate language.
 #if ONE_INSTANTIATION_PER_OBJECT
   if (il_header.instantiation_file_list_name != NULL) {
     generate_instantiation_C_output_files();
-    /* Close the file containing the list of generated file names, checking
-       for previous errors. */
-    if (fflush(f_C_file_list) ||
-        ferror(f_C_file_list) ||
-        fclose(f_C_file_list)) {
-      str_catastrophe(ec_file_write_error, "generated C output file list");
+    if (f_C_file_list != NULL) {
+      /* Close the file containing the list of generated file names, checking
+         for previous errors. */
+      if (fflush(f_C_file_list) ||
+          ferror(f_C_file_list) ||
+          fclose(f_C_file_list)) {
+        str_catastrophe(ec_file_write_error, "generated C output file list");
+      }  /* if */
     }  /* if */
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
