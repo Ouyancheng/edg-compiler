@@ -3053,6 +3053,12 @@ void add_reference_indirection(an_operand *result)
   /* Change the references to "use". */
   change_some_ref_kinds(result->ref_entries_list, SRK_REFERENCE, SRK_USE);
   node = add_indirection_to_node(make_node_from_operand(result));
+  /* Mark the node as being an implicit indirection generated for a
+     reference. */
+  node->implicit_reference_indirection = TRUE;
+  if (is_operation_node(node)) {
+    node->variant.operation.compiler_generated = TRUE;
+  }  /* if */
   if (is_an_lvalue(result)) {
     result_type = type_pointed_to(result_type);
     /* Make the node have a pointer type instead of a reference type. */
