@@ -1315,6 +1315,13 @@ typedef struct a_cached_token {
   a_source_position
 		source_position;
 			/* Source position of the token. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		end_source_position;
+			/* The end position of the current token -- that is,
+			   the source position of the last character of the
+			   token. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_byte_token_kind
 		token;
 			/* The token kind (e.g., tok_identifier).  Not valid
