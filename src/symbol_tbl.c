@@ -2109,7 +2109,7 @@ Return TRUE if a protected member of class_type can be accessed from
 derived_class.  We know that we have member access to derived_class but we
 do not know if class_type is a base class of derived_class or if the derivation
 between the two will allow access to a protected member.  This routine
-is used is determining access related to protected derivations.
+is used is determining access to protected members and derivations.
 */
 {
   a_boolean             accessible = FALSE;
@@ -2124,15 +2124,12 @@ is used is determining access related to protected derivations.
     /* The requirement that there be no private derivation steps in the
        derivation from derived_class to class_type guarantees that,
        since we have member access to the derived class, we have access to
-       protected members of class_type, which means we have access to
-       public members of a protected base class of class_type (which is
-       the definition of "accessible" for the protected base class).
-       Note that since we have member access to the derived class and
-       all the steps are public or protected, friendship on any of the
-       steps between the derived class and class_type cannot affect the
-       outcome.  Note that this aspect of the C++ language is particularly
-       poorly specified, so it wouldn't be surprising if this has to be
-       changed. */
+       protected members of class_type.  Note that since we have member
+       access to the derived class and all the steps are public or protected,
+       friendship on any of the steps between the derived class and class_type
+       cannot affect the outcome.  Note that this aspect of the C++ language
+       is particularly poorly specified, so it wouldn't be surprising if this
+       has to be changed. */
     for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
       if (dsp->base_class->access == (an_access_specifier)as_private) {
         /* Private step: no access. */
@@ -2152,9 +2149,13 @@ static a_boolean have_protected_access_from_befriending_list(
                                        a_class_list_entry_ptr befriending_list,
                                        a_type_ptr             class_type)
 /*
-Return TRUE if the class type indicated by class_type is accessible
-(in the sense required when processing a protected derivation) from
+Return TRUE if protected members of class_type are accessible from
 any class on the list of befriending classes given by befriending_list.
+We know that we have member access to the classes on befriending_list but we
+do not know if class_type is a base class of any of those classes or if the
+derivations between the class_type and one of those classes will allow access
+to a protected member.  This routine is used is determining access to
+protected members and derivations.
 */
 {
   a_boolean accessible = FALSE;
@@ -2172,35 +2173,36 @@ any class on the list of befriending classes given by befriending_list.
 
 a_boolean have_protected_member_access_privilege(a_type_ptr class_type)
 /*
-Return TRUE if we currently have member access privilege to some class
-derived from the class indicated by class_type.  This is important in
-determining base class/symbol accessibility when there is a protected
-derivation.  See p. 214 of "The C++ Programming Language", 2nd Edition.
+Return TRUE if we have access to protected members of class_type by
+virtue of having member access privilege to a derived class of class_type.
+This is needed in determining accessibility to protected members and
+in the presence of a protected derivation.  See p. 214 of "The C++
+Programming Language", 2nd Edition, and 11.5 in the ARM.
 */
 {
-  a_boolean have_member_privilege = FALSE;
+  a_boolean have_protected_access = FALSE;
 
   /* This routine looks a lot like have_member_access_privilege. */
   if (class_currently_inside_of != NULL &&
       have_protected_access_from_derived_class(class_type,
                                                class_currently_inside_of)) {
     /* We are currently in a class that is an appropriate derived class
-       of class_type, so we have member access privilege. */
-    have_member_privilege = TRUE;
+       of class_type, so we have access to protected members of class_type. */
+    have_protected_access = TRUE;
   } else if (curr_class_befriending_classes != NULL &&
              have_protected_access_from_befriending_list(
                                  curr_class_befriending_classes, class_type)) {
     /* We are in a class that is a friend of an appropriate derived class
-       of class_type, so we have member access privilege. */
-    have_member_privilege = TRUE;
+       of class_type, so we have access to protected members of class_type. */
+    have_protected_access = TRUE;
   } else if (curr_function_befriending_classes != NULL &&
              have_protected_access_from_befriending_list(
                               curr_function_befriending_classes, class_type)) {
     /* We are in a function that is a friend of an appropriate derived class
-       of class_type, so we have member access privilege. */
-    have_member_privilege = TRUE;
+       of class_type, so we have access to protected members of class_type. */
+    have_protected_access = TRUE;
   }  /* if */
-  return have_member_privilege;
+  return have_protected_access;
 }  /* have_protected_member_access_privilege */
 
 
@@ -2210,10 +2212,12 @@ Return TRUE if the indicated symbol is accessible from the current location
 in the source program.
 */
 {
-  a_boolean             accessible, have_member_access_to_curr_type;
+  a_boolean             accessible;
   a_type_ptr            curr_type;
-  a_derivation_step_ptr dsp;
+  a_derivation_step_ptr dsp, temp_dsp;
   an_access_specifier   access, min_access_needed;
+  a_symbol_ptr          fundamental_symbol;
+  a_boolean             any_protected;
 
   if (access_for_symbol(symbol) == (an_access_specifier)as_public) {
     /* The member is public, so we don't need to know whether or not we have
@@ -2223,121 +2227,142 @@ in the source program.
        declarations. */
     accessible = TRUE;
   } else {
-    /* Keep track of the minimum level of access needed on the fundamental
-       symbol in order for it to be accessible.  Start with public, since
-       we have not established any special member access so far. */
-    min_access_needed = (an_access_specifier)as_public;
-    /* If the member is inherited from a base class, look at the derivation
-       to see if we have access.  Note that projection symbols created for
-       access declarations are considered members of the derived class,
-       and so do not go through this special handling. */
+    /* If the symbol is a projection symbol, determine the fundamental symbol
+       and the derivation path to get there.  Note that projection symbols
+       created for access declarations are considered to be members of the
+       derived class and therefore the derivation is not considered. */
+    fundamental_symbol = symbol;
+    dsp = NULL;
     if (symbol->kind == (a_symbol_kind)sk_projection &&
         !symbol->variant.projection.access_adjustment_made) {
-      curr_type = symbol->class_of_which_a_member;
-      /* Work down the derivation from the projection symbol to the fundamental
-         symbol to see if the base class is accessible.  Along the way,
-         keep track of the minimum access needed in the base class to retain
-         accessibility in the derived class. */
-      for (dsp = symbol->variant.projection.extra_info->
+      /* Projection symbol. */
+      reduce_projection_symbol_to_fundamental_symbol(fundamental_symbol);
+      dsp = symbol->variant.projection.extra_info->
                                             fundamental_base_class->derivation;
-           dsp != NULL;
-           dsp = dsp->next) {
-        /* The rules for derivation are as follows:  If the derivation
-           access for the class is "public", the access of public and
-           protected members stays as it is; if it is "protected", public
-           members become protected and protected members are unaffected;
-           if it is "private", public and protected symbols become private.
-           Members private to the base class become inaccessible to the
-           derived class in every case. (ARM 11.2.)  The following table
-           summarizes the transformations:
-
-                      derivation:
-                             private        protected      public
-           symbol:        -----------------------------------------------
-             public       |  private        protected      public
-                          |
-             protected    |  private        protected      protected
-                          |
-             private      |  inaccessible   inaccessible   inaccessible
-                          |
-             inaccessible |  inaccessible   inaccessible   inaccessible
-
-           Here, we work with the transformation in the other direction,
-           i.e., given the minimum access needed in the derived class and
-           the kind of derivation, what minimum access is needed in the
-           base class:
-
-                      derivation:
-           min needed        private        protected      public
-           in derived:    -----------------------------------------------
-             public       |  impossible     impossible     public
-                          |
-             protected    |  impossible     protected      protected
-                          |
-             private      |  protected      protected      protected
-
-        */
-        /* See if we have member access privilege to the current type.  In
-           the case of a protected derivation, we might have member access here
-           because we have member access to a derived class of the current
-           type. */
-        have_member_access_to_curr_type =
-               have_member_access_privilege(curr_type) ||
-               (dsp->base_class->access == (an_access_specifier)as_protected &&
-                have_protected_member_access_privilege(curr_type));
-        if (have_member_access_to_curr_type) {
-          /* If we have member access privilege to the current type, 
-             the minimum access needed is private. */
-          min_access_needed = (an_access_specifier)as_private;
-        }  /* if */
-        /* First step: Detect the "impossible" cases, the ones where there
-           is no access in the base class that will produce the needed
-           access in the derived class. */
-        if (is_more_accessible(min_access_needed, dsp->base_class->access)) {
-          /* We need more access than is possible.  Therefore the symbol
-             is inaccessible. */
-          accessible = FALSE;
-          goto access_determined;
-        }  /* if */
-        /* Second step: If the minimum access needed is private, we will need
-           at least protected access in the base class. */
-        if (min_access_needed == (an_access_specifier)as_private) {
-          min_access_needed = (an_access_specifier)as_protected;
-        }  /* if */
-        /* See if the base class is accessible.  This code is like
-           is_accessible_base_class but is written in this way to
-           avoid another call of have_member_access_privilege.  Also, the
-           protected derivation special case was done above. */
-        if (dsp->base_class->access == (an_access_specifier)as_public) {
-          /* Public base class.  The base class is accessible. */
-        } else if (have_member_access_to_curr_type) {
-          /* Private or protected base class, and we have member access to
-             the current type; or protected base class, and we have member
-             access to a derived class of the current type.  The base class
-             is accessible. */
-        } else {
-          /* Other cases.  The base class is inaccessible. */
-          accessible = FALSE;
-          goto access_determined;
-        }  /* if */
-        /* The base class is accessible; continue at the next level. */
-        curr_type = dsp->base_class->type;
-      }  /* for */
-      /* The fundamental symbol class is accessible.  Continue with access
-         checking on the fundamental symbol. */
-      reduce_projection_symbol_to_fundamental_symbol(symbol);
     }  /* if */
-    access = access_for_symbol(symbol);
-    /* If we have the needed minimum access, we have access to the symbol
-       without special member access to its class. */
-    if (!is_more_accessible(min_access_needed, access)) {
-      accessible = TRUE;
+    access = access_for_symbol(fundamental_symbol);
+    /* As we go, we keep track of the minimum access we will require on
+       the fundamental symbol to preserve any access in the derived class.
+       The value is a threshold: when we get to the fundamental symbol,
+       we have access if its access is equal to or greater than the
+       min_access_needed. */
+    /* See if we have some special member access privilege to the class
+       we're starting from, in which case the minimum access needed
+       is lower. */
+    curr_type = symbol->class_of_which_a_member;
+    min_access_needed = (an_access_specifier)as_public;
+    if (have_member_access_privilege(curr_type)) {
+      /* We have member access privilege for the current type, so we
+         can access its private members. */
+      min_access_needed = (an_access_specifier)as_private;
     } else {
-      /* We have access if and only if we have member access privilege to the
-         class of which the symbol is a member. */
-      accessible = have_member_access_privilege(
-                                              symbol->class_of_which_a_member);
+      /* If the symbol for which we're trying to determine access is
+         protected, or there are any protected derivation steps, we have
+         to look for any derived classes of the starting point to which we
+         have access, because they might give us some special access
+         to the starting type.  Note that this is checked only on the
+         starting type. */
+#if 0
+      /* Checking is too permissive; the restrictions of ARM 11.5 are
+         not implemented. */
+#endif
+      any_protected = FALSE;
+      if (access == (an_access_specifier)as_protected) {
+        any_protected = TRUE;
+      } else {
+        /* See if there are any protected derivation steps on the
+           derivation. */
+        for (temp_dsp = dsp; temp_dsp != NULL; temp_dsp = temp_dsp->next) {
+          if (temp_dsp->base_class->access ==
+                                           (an_access_specifier)as_protected) {
+            any_protected = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      if (any_protected && have_protected_member_access_privilege(curr_type)) {
+        /* We have member access to a derived class of the current class
+           such that we have access to protected members of the current
+           class. */
+        min_access_needed = (an_access_specifier)as_protected;
+      }  /* if */
     }  /* if */
+    /* If the member is inherited from a base class, work down the derivation
+       from the projection symbol to the fundamental symbol to see if the
+       base class is accessible.  Along the way, keep track of the minimum
+       access required on the fundamental symbol. */
+    for (; dsp != NULL; dsp = dsp->next) {
+      /* The rules for derivation are as follows:  If the derivation
+         access for the class is "public", the access of public and
+         protected members stays as it is; if it is "protected", public
+         members become protected and protected members are unaffected;
+         if it is "private", public and protected symbols become private.
+         Members private to the base class become inaccessible to the
+         derived class in every case. (ARM 11.2.)  The following table
+         summarizes the transformations:
+
+                    derivation:
+                           private        protected      public
+         symbol:        -----------------------------------------------
+           public       |  private        protected      public
+                        |
+           protected    |  private        protected      protected
+                        |
+           private      |  inaccessible   inaccessible   inaccessible
+                        |
+           inaccessible |  inaccessible   inaccessible   inaccessible
+
+         Here, we work with the transformation in the other direction,
+         i.e., given the access we have in the derived class and the
+         kind of derivation, what access do we have in the base class:
+
+                    derivation:
+         access            private        protected      public
+         in derived:    -----------------------------------------------
+           public       |  impossible     impossible     public
+                        |
+           protected    |  impossible     protected      protected
+                        |
+           private      |  protected      protected      protected
+
+         (These access levels are thresholds; a particular value indicates
+         we have access to all members of a class that have access values
+         at or above the indicated access.)
+      */
+      /* Look at the this step in the derivation and see how it affects
+         our access at the next level. */
+      /* Detect the "impossible" cases, the ones where there is no
+         access in the base class that will produce the minimum access
+         needed in the current (derived) class. */
+      if (is_more_accessible(min_access_needed, dsp->base_class->access)) {
+        /* We need more access than is possible.  Therefore the symbol
+           is inaccessible. */
+        accessible = FALSE;
+        goto access_determined;
+      }  /* if */
+      /* If the minimum access needed is private, we will need at least
+         protected access in the base class. */
+      if (min_access_needed == (an_access_specifier)as_private) {
+        min_access_needed = (an_access_specifier)as_protected;
+      }  /* if */
+      /* See if the base class is accessible. */
+      if (!is_accessible_base_class(dsp->base_class, curr_type)) {
+        /* The base class is inaccessible. */
+        accessible = FALSE;
+        goto access_determined;
+      }  /* if */
+      /* The base class is accessible; continue at the next level. */
+      curr_type = dsp->base_class->type;
+      /* See if we have any special privilege at this level that
+         increases our access to the current class. */
+      if (have_member_access_privilege(curr_type)) {
+        /* We have member access privilege for the current type, so we
+           can access its private members. */
+        min_access_needed = (an_access_specifier)as_private;
+      }  /* if */
+    }  /* for */
+    /* If we have the minimum access needed, we have access to the symbol. */
+    accessible = !is_more_accessible(min_access_needed, access);
   }  /* if */
 access_determined:
   return accessible;
