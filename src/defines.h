@@ -63,7 +63,7 @@ Flags to be set when using the KAI inliner.
 #ifndef __ANSIC__
 #define __BSD__ 1
 #endif /* ifndef __ANSIC__ */
-#if SELFCOMP_VERSION
+#ifdef SELFCOMP_VERSION
 /* Self-compiled version. */
 #define ALTERNATE_IL_FILE_FORMAT 0
 #define ONE_INSTANTIATION_PER_OBJECT 0
