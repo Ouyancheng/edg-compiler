@@ -564,6 +564,8 @@ do
 	 --old_line_commands | \
 	 --microsoft | \
 	 --no_microsoft | \
+	 --microsoft_bugs | \
+	 --no_microsoft_bugs | \
 	 --microsoft_16 | \
 	 --far_data_pointers | \
 	 --near_data_pointers | \
