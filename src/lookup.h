@@ -204,11 +204,6 @@ extern a_symbol_list_entry_ptr argument_dependent_lookup(
 					a_symbol_locator	*locator,
 					a_type_list_entry_ptr	*type_list);
 
-extern a_symbol_list_entry_ptr nonmember_operator_function_lookup(
-                                 an_opname_kind kind,
-                                 a_type_ptr	type_1,
-                                 a_type_ptr     type_2);
-
 extern
 a_symbol_ptr create_proxy_or_nonreal_class_member
 					(a_type_ptr	          class_type,

@@ -3282,6 +3282,8 @@ list pointer in type_list.  *type_list should be NULL on the first call.
                              arg_type->variant.routine.return_type, type_list);
         }
         break;
+      default:
+        break;
     }  /* switch */
   }  /* if */
 #if DEBUG
@@ -3400,6 +3402,8 @@ associated namespaces and classes to "namespace_list" and "class_list".
         /* The enclosing class (if any) and namespace should be included. */
         add_parent = TRUE;
       }  /* if */
+      break;
+    default:
       break;
   }  /* switch */
   if (add_parent) {
