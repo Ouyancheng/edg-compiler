@@ -7347,7 +7347,8 @@ return a pointer to it in *symbol_ptr.
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position, declarator_ssep);
 #if IA64_ABI && NEED_NAME_MANGLING
-  if (tp->source_corresp.is_local_to_function) {
+  if (tp->source_corresp.is_local_to_function &&
+      !tp->source_corresp.is_class_member) {
     /* Local typedefs may need to be mangled.  If two (or more) such
        variables in a function have the same name, a discriminator must be
        appended to the mangled name (this is not strictly an ABI issue, but
