@@ -2516,12 +2516,11 @@ new extent.  This is used to accelerate the layout process.
 */
 {
   a_type_ptr     bctp = skip_typerefs(bcp->type);
-  a_targ_size_t  extent = bcp->offset
-                        + bctp->variant.class_struct_union.extra_info
-                              ->size_without_virtual_base_classes
-                        - 1;
-  if (extent > lob->curr_base_extent) {
-    lob->curr_base_extent = extent;
+  a_targ_size_t  next_byte = bcp->offset
+                             + bctp->variant.class_struct_union.extra_info
+                                   ->size_without_virtual_base_classes;
+  if (next_byte > lob->curr_base_extent+1) {
+    lob->curr_base_extent = next_byte-1;
   }  /* if */
 }  /* update_curr_base_extent */
 
