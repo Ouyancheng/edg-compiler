@@ -6560,6 +6560,7 @@ to indicate whether the class/struct/union is actually defined.
     tag_sym = scan_tag_name(tag_kind, &locator, vacuous_decl_allowed,
                             is_ref_within_new_expr, &effective_decl_level,
                             &tag_resolution);
+    if (is_error_locator(locator)) err = TRUE;
   } else {
     /* No tag identifier present. */
     tag_sym = NULL;
@@ -6569,6 +6570,7 @@ to indicate whether the class/struct/union is actually defined.
          the keyword -- e.g., "class A *pa = new class;" -- report the missing
          identifier as a syntax error. */
       syntax_error(ec_exp_identifier);
+      err = TRUE;
     } else if (curr_token == tok_lbrace ||
                (C_dialect == C_dialect_cplusplus && curr_token == tok_colon)) {
       /* This is a tagless class definition. */
@@ -6663,7 +6665,7 @@ skip_tag_scan:
       err = TRUE;
     }  /* if */
   }  /* if */
-  *type_ptr = class_type;
+  *type_ptr = err ? error_type() : class_type;
 #if DEBUG
   if (debug_level >= 3) {
     db_symbol(tag_sym, "tag_sym: ", 4);
