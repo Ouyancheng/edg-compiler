@@ -5275,7 +5275,14 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       if (need_parens) m_write_tok_ch('(');
       if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         /* Lvalue-returning version, used as an rvalue.  Need "&" in front. */
-        gen_ampersand(type_pointed_to(expr->type));
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        if (!is_pointer_type(expr->type)) {
+          m_write_tok_ch('&');
+        } else
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+        {
+          gen_ampersand(type_pointed_to(expr->type));
+        }
         gen_lvalue(expr);
         goto done_with_operation;
       }  /* if */
