@@ -1654,6 +1654,12 @@ Write out attributes that apply to the indicated routine.
   if (rout->no_check_memory_usage) {
     write_tok_str(" __attribute((__no_check_memory_usage__))");
   }  /* if */
+  if (rout->type->kind == (a_type_kind)tk_routine) {
+    /* If this routine is declared using ordinary function declarator
+       syntax (i.e., not using a typedef), generate the associated
+       routine type attributes. */
+    write_routine_type_attributes(rout->type);
+  }  /* if */
   if (rout->section != NULL) {
     write_section_attribute(rout->section);
   }  /* if */
@@ -1661,7 +1667,6 @@ Write out attributes that apply to the indicated routine.
     write_string_argument_attribute(
                       "__alias__", rout->aliased_routine->source_corresp.name);
   }  /* if */
-  write_routine_type_attributes(rout->type);
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   write_ELF_visibility_attribute(rout->ELF_visibility);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */

@@ -3473,7 +3473,6 @@ Write out attributes that apply to the indicated routine.
     write_string_argument_attribute(
                       "__alias__", rout->aliased_routine->source_corresp.name);
   }  /* if */
-  write_routine_type_attributes(rout->type);
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   write_ELF_visibility_attribute(rout->ELF_visibility);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -10493,8 +10492,12 @@ TRUE if the declaration following this one is such a continuation.
            constructor definitions. */
         !(decl_within_class && is_definition)) {
       if (gcc_is_generated_code_target && il_header.source_language == sl_C) {
-        if (rout->suppress_inline_body) {
-          /* GNU C will never spill an "extern __inline__" function. */
+        if (rout->suppress_inline_body &&
+            storage_class == (a_storage_class)sc_unspecified) {
+          /* GNU C will never spill an "extern __inline__" function.
+             (If storage_class was anything but sc_unspecified, a storage
+              class would already have been generated and adding another
+              "extern" could only be an error.) */
           write_tok_str("extern ");
         }  /* if */
         write_tok_str("__inline__ ");

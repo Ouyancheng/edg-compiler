@@ -1,5 +1,11 @@
 Version 3.4
 
+11/26/03 C++-generating back end: Duplicate GNU attributes and specifiers
+
+When generating code for GNU compilers, the C++-generating back sometimes
+duplicated certain function attributes and the "extern" storage class
+specifiers for "extern __inline__" functions.  This is now fixed.
+
 11/24/03 GNU mode treatment of "st" floating-point stack register
 
 When GNU_X86_ASM_EXTENSIONS_ALLOWED is set, the front end accepted the
