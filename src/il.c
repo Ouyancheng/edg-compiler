@@ -3249,6 +3249,8 @@ caller is responsible for sorting that out.)
       internal_error("ensure_il_scope_exists: NULL IL scope");
 #endif /* CHECKING */
     }  /* if */
+    /* Set the scope-stack-entry depth. */
+    sp->depth_in_scope_stack = (scope_stack - ssep);
   }  /* if */
   return sp;
 }  /* ensure_il_scope_exists */
@@ -6917,6 +6919,7 @@ points to the associated routine if the kind is sck_function.
   sp->scopes              = NULL;
   sp->dynamic_inits       = NULL;
   sp->pragma_list         = NULL;
+  sp->depth_in_scope_stack = NO_SCOPE_DEPTH;
 #ifdef FIL
   sp->entries             = NULL;
   sp->namelist_groups     = NULL;

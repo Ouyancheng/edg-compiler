@@ -180,6 +180,14 @@ typedef a_seq_number a_stmt_source_position;
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 
+/* Type of a scope nesting depth.  This is the depth within the scope_stack. */
+/* Defined here (instead of the more obvious symbol_tbl.h) to avoid mutual
+   mutual dependency problems. */
+typedef int	a_scope_depth;
+
+#define NO_SCOPE_DEPTH (-1)
+#define DEPTH_OF_FILE_SCOPE 0
+
 #ifdef CIL
 enum an_access_specifier_tag {
   /* C++ access control:  "public", "private", or "protected" for class
@@ -4903,6 +4911,12 @@ typedef struct a_scope {
 			   bound to specific declarations or statements or
 			   they may be unbound, meaning they have general
 			   effect over this scope. */
+  a_scope_depth depth_in_scope_stack;
+			/* Used during front end processing, the depth in
+			   the scope stack of the entry corresponding to this
+			   IL scope entry; NO_SCOPE_DEPTH once it has been
+			   popped off the scope stack.  Reactivating a class
+			   scopes does not affect this value. */
 #ifdef FIL
   an_entry_description_ptr
                 entries;

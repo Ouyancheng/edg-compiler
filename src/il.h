@@ -21,21 +21,7 @@ il.h -- Declarations related to the intermediate language.
 #include "host_envir.h"
 #endif /* ifndef HOST_ENVIR_H */
 
-
-/* Type of a scope nesting depth.  This is the depth within the scope_stack. */
-/* Defined here (instead of the more obvious symbol_tbl.h) because it's
-   used by add_to_types_list and we want to avoid including symbol_tbl.h
-   from il.h (it would make life complicated for the standalone il_display
-   and c_gen_be). */
-typedef int	a_scope_depth;
-
-/* il_def.h contains the definition of the IL tables.  It's in a separate
-   file so that it can be included in back ends without dragging in all of the
-   front end tables. */
 #include "il_def.h"
-
-#define NO_SCOPE_DEPTH (-1)
-#define DEPTH_OF_FILE_SCOPE 0
 
 /* Current memory region number for IL information. */
 EXTERN a_memory_region_number
