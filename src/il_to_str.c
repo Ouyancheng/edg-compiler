@@ -4068,15 +4068,16 @@ Do the output in the way described by octl.
 }  /* form_routine_type_attributes */
 
 
-void form_type_attributes(
-                   a_type_ptr                             type,
-                   a_boolean                              *need_leading_space,
-                   an_il_to_str_output_control_block_ptr  octl)
+a_boolean form_type_attributes(
+                    a_type_ptr                             type,
+                    a_boolean                              need_leading_space,
+                    an_il_to_str_output_control_block_ptr  octl)
 /*
-Output GNU attributes that apply to the indicated type.
-If *need_leading_space is TRUE, precede the first attribute with a leading
-space.  If an attribute it output, set *need_leading_space to TRUE.
-Do the output in the way described by octl.
+Output GNU attributes that apply to the indicated type.  If need_leading_space
+is TRUE, precede the first attribute with a leading space.  If an attribute is
+output or if need_leading_space is TRUE, return TRUE (this allows the caller
+to determine if a leading space is still needed).  Do the output in the way
+described by octl.
 */
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
@@ -4085,34 +4086,36 @@ Do the output in the way described by octl.
       /* Output an attribute to indicate the explicit alignment. */
       form_unsigned_argument_attribute("__aligned__",
                                        (a_host_large_unsigned)type->alignment,
-                                       need_leading_space, octl);
+                                       &need_leading_space, octl);
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (type->variables_are_implicitly_referenced) {
       /* Output the "unused" attribute. */
-      form_simple_attribute("__unused__", need_leading_space, octl);
+      form_simple_attribute("__unused__", &need_leading_space, octl);
     }  /* if */
     if (type->source_corresp.is_deprecated && !octl->c_generating_back_end) {
       /* If we're generating output for the C-generating back end, we do not
          output the attribute __deprecated__ because any diagnostics it might
          trigger were already issued by the front end. */
-      form_simple_attribute("__deprecated__", need_leading_space, octl);
+      form_simple_attribute("__deprecated__", &need_leading_space, octl);
     }  /* if */
     if (type->kind == (a_type_kind)tk_integer &&
         type->variant.integer.packed) {
       /* Output the "packed" attribute. */
-      form_simple_attribute("__packed__", need_leading_space, octl);
+      form_simple_attribute("__packed__", &need_leading_space, octl);
     }  /* if */
     if (type->kind == (a_type_kind)tk_union &&
         type->variant.class_struct_union.is_transparent) {
-      form_simple_attribute("__transparent_union__", need_leading_space, octl);
+      form_simple_attribute("__transparent_union__", &need_leading_space,
+                            octl);
     }  /* if */
     if (is_pointer_type(type) &&
         is_function_type(type_pointed_to(type))) {
       form_routine_type_attributes(f_skip_typerefs(type_pointed_to(type)),
-                                   need_leading_space, octl);
+                                   &need_leading_space, octl);
     }  /* if */
   }  /* if */
+  return need_leading_space;
 }  /* form_type_attributes */
   
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -4155,36 +4158,36 @@ TRUE.  Do the output in the way described by octl.
 #if BACK_END_IS_CP_GEN_BE
 
 void form_mode_attribute(
-                   a_type_mode_kind                       mode,
-                   a_boolean                              *need_leading_space,
-                   an_il_to_str_output_control_block_ptr  octl)
+                    a_type_mode_kind                       mode,
+                    a_boolean                              need_leading_space,
+                    an_il_to_str_output_control_block_ptr  octl)
 /* 
-Output the type mode in the way described by octl.  If *need_leading_space is
-TRUE, precede the attribute with a leading space.  *need_leading_space is set
-to TRUE in all cases.
+Output the type mode in the way described by octl.  If need_leading_space is
+TRUE, precede the attribute with a leading space.
 */
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
-    if (*need_leading_space) {
+    if (need_leading_space) {
       octl->output_str(" ");
     }  /* if */
     octl->output_str("__attribute__((__mode__(");
     octl->output_str(type_mode_kind_names[(int)mode]);
     octl->output_str(")))");
-    *need_leading_space = TRUE;
   }  /* if */
 }  /* form_mode_attribute */
 
 #endif /* BACK_END_IS_CP_GEN_BE */
 
-void form_variable_attributes(
-                   a_variable_ptr                         var,
-                   a_boolean                              *need_leading_space,
-                   an_il_to_str_output_control_block_ptr  octl)
+a_boolean form_variable_attributes(
+                    a_variable_ptr                         var,
+                    a_boolean                              need_leading_space,
+                    an_il_to_str_output_control_block_ptr  octl)
 /*
 Output the attributes that apply to the indicated variable.
-If *need_leading_space is TRUE, precede the attribute with a leading space.
-*need_leading_space is set to TRUE if an attribute was actually output.
+If need_leading_space is TRUE, precede the first attribute with a leading
+space.  If an attribute is output or if need_leading_space is TRUE, return
+TRUE (this allows the caller to determine if a leading space is still needed).
+Do the output in the way described by octl.
 */
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
@@ -4193,7 +4196,7 @@ If *need_leading_space is TRUE, precede the attribute with a leading space.
       /* Output the alignment attribute. */
       form_unsigned_argument_attribute("__aligned__",
                                        (a_host_large_unsigned)var->alignment,
-                                       need_leading_space, octl);
+                                       &need_leading_space, octl);
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
@@ -4204,61 +4207,65 @@ If *need_leading_space is TRUE, precede the attribute with a leading space.
          initializations are performed in the right order.) */
       form_unsigned_argument_attribute(
                 "__init_priority__", (a_host_large_unsigned)var->init_priority,
-                need_leading_space, octl);
+                &need_leading_space, octl);
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    form_ELF_visibility_attribute(var->ELF_visibility, need_leading_space,
+    form_ELF_visibility_attribute(var->ELF_visibility, &need_leading_space,
                                   octl);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     if (var->is_weak) {
-      form_simple_attribute("__weak__", need_leading_space, octl);
+      form_simple_attribute("__weak__", &need_leading_space, octl);
     }  /* if */
     if (var->has_gnu_unused_attribute) {
-      form_simple_attribute("__unused__", need_leading_space, octl);
+      form_simple_attribute("__unused__", &need_leading_space, octl);
     }  /* if */
     if (var->has_gnu_used_attribute) {
-      form_simple_attribute("__used__", need_leading_space, octl);
+      form_simple_attribute("__used__", &need_leading_space, octl);
     }  /* if */
     if (var->source_corresp.is_deprecated && !octl->c_generating_back_end) {
       /* If we're generating output for the C-generating back end, we do not
          output the attribute __deprecated__ because any diagnostics it might
          trigger were already issued by the front end. */
-      form_simple_attribute("__deprecated__", need_leading_space, octl);
+      form_simple_attribute("__deprecated__", &need_leading_space, octl);
     }  /* if */
     if (var->is_not_common) {
-      form_simple_attribute("__nocommon__", need_leading_space, octl);
+      form_simple_attribute("__nocommon__", &need_leading_space, octl);
     }  /* if */
     if (var->assoc_param_type != NULL &&
         var->assoc_param_type->is_transparent) {
-      form_simple_attribute("__transparent_union__", need_leading_space, octl);
+      form_simple_attribute("__transparent_union__", &need_leading_space,
+                            octl);
     }  /* if */
     if (var->section != NULL) {
       form_string_argument_attribute("__section__", var->section,
-                                     need_leading_space, octl);
+                                     &need_leading_space, octl);
     }  /* if */
     if (var->aliased_variable != NULL) {
       form_string_argument_attribute(
                       "__alias__", var->aliased_variable->source_corresp.name,
-                      need_leading_space, octl);
+                      &need_leading_space, octl);
     }  /* if */
     if (is_pointer_type(var->type) &&
         is_function_type(type_pointed_to(var->type))) {
       form_routine_type_attributes(f_skip_typerefs(type_pointed_to(var->type)),
-                                   need_leading_space, octl);
+                                   &need_leading_space, octl);
     }  /* if */
   }  /* if */
+  return need_leading_space;
 }  /* form_variable_attributes */
 
 
-void form_field_attributes(
+a_boolean form_field_attributes(
                    a_field_ptr                            field,
-                   a_boolean                              *need_leading_space,
+                   a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl)
 /*
 Output the attributes that apply to the indicated field.
-If *need_leading_space is TRUE, precede the attribute with a leading space.
-*need_leading_space is set to TRUE if an attribute was actually output.
+If need_leading_space is TRUE, precede the first attribute with a leading
+space.  If an attribute is output or if need_leading_space is TRUE, return
+TRUE (this allows the caller to determine if a leading space is still needed).
+Do the output in the way described by octl.
 */
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
@@ -4266,109 +4273,115 @@ If *need_leading_space is TRUE, precede the attribute with a leading space.
       /* If we're generating output for the C-generating back end, we do not
          output the attribute __deprecated__ because any diagnostics it might
          trigger were already issued by the front end. */
-      form_simple_attribute("__deprecated__", need_leading_space, octl);
+      form_simple_attribute("__deprecated__", &need_leading_space, octl);
     }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
     if (field->alignment != 0) {
       form_unsigned_argument_attribute("__aligned__",
                                        (a_host_large_unsigned)field->alignment,
-                                       need_leading_space, octl);
+                                       &need_leading_space, octl);
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   }  /* if */
+  return need_leading_space;
 }  /* form_field_attributes */
 
 
-void form_routine_attributes(
+a_boolean form_routine_attributes(
                    a_routine_ptr                          rout,
-                   a_boolean                              *need_leading_space,
+                   a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl)
 /*
 Output the attributes that apply to the indicated routine.
-If *need_leading_space is TRUE, precede the attribute with a leading space.
-*need_leading_space is set to TRUE if an attribute was actually output.
+If need_leading_space is TRUE, precede the first attribute with a leading
+space.  If an attribute is output or if need_leading_space is TRUE, return
+TRUE (this allows the caller to determine if a leading space is still needed).
+Do the output in the way described by octl.
 */
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
     if (rout->is_initialization_routine) {
-      form_simple_attribute("__constructor__", need_leading_space, octl);
+      form_simple_attribute("__constructor__", &need_leading_space, octl);
     }  /* if */
     if (rout->is_finalization_routine) {
-      form_simple_attribute("__destructor__", need_leading_space, octl);
+      form_simple_attribute("__destructor__", &need_leading_space, octl);
     }  /* if */
     if (rout->is_pure) {
-      form_simple_attribute("__pure__", need_leading_space, octl);
+      form_simple_attribute("__pure__", &need_leading_space, octl);
     }  /* if */
     if (rout->is_weak) {
-      form_simple_attribute("__weak__", need_leading_space, octl);
+      form_simple_attribute("__weak__", &need_leading_space, octl);
     }  /* if */
     if (rout->has_gnu_unused_attribute) {
-      form_simple_attribute("__unused__", need_leading_space, octl);
+      form_simple_attribute("__unused__", &need_leading_space, octl);
     }  /* if */
     if (rout->has_gnu_used_attribute) {
-      form_simple_attribute("__used__", need_leading_space, octl);
+      form_simple_attribute("__used__", &need_leading_space, octl);
     }  /* if */
     if (rout->source_corresp.is_deprecated && !octl->c_generating_back_end) {
       /* If we're generating output for the C-generating back end, we do not
          output the attribute __deprecated__ because any diagnostics it might
          trigger were already issued by the front end. */
-      form_simple_attribute("__deprecated__", need_leading_space, octl);
+      form_simple_attribute("__deprecated__", &need_leading_space, octl);
     }  /* if */
     if (rout->allocates_memory) {
-      form_simple_attribute("__malloc__", need_leading_space, octl);
+      form_simple_attribute("__malloc__", &need_leading_space, octl);
     }  /* if */
 #if GNU_NAKED_ATTRIBUTE_ALLOWED
     if (rout->is_naked) {
-      form_simple_attribute("__naked__", need_leading_space, octl);
+      form_simple_attribute("__naked__", &need_leading_space, octl);
     }  /* if */
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED */
     if (rout->no_instrument_function) {
-      form_simple_attribute("__no_instrument_function__", need_leading_space,
+      form_simple_attribute("__no_instrument_function__", &need_leading_space,
                             octl);
     }  /* if */
     if (rout->no_check_memory_usage) {
-      form_simple_attribute("__no_check_memory_usage__", need_leading_space,
+      form_simple_attribute("__no_check_memory_usage__", &need_leading_space,
                             octl);
     }  /* if */
     if (rout->type->kind == (a_type_kind)tk_routine) {
       /* If this routine is declared using ordinary function declarator
          syntax (i.e., not using a typedef), generate the associated
          routine type attributes. */
-      form_routine_type_attributes(rout->type, need_leading_space, octl);
+      form_routine_type_attributes(rout->type, &need_leading_space, octl);
     }  /* if */
     if (rout->section != NULL) {
       form_string_argument_attribute("__section__", rout->section,
-                                     need_leading_space, octl);
+                                     &need_leading_space, octl);
     }  /* if */
     if (rout->aliased_routine != NULL) {
       form_string_argument_attribute(
                       "__alias__", rout->aliased_routine->source_corresp.name,
-                      need_leading_space, octl);
+                      &need_leading_space, octl);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    form_ELF_visibility_attribute(rout->ELF_visibility, need_leading_space,
+    form_ELF_visibility_attribute(rout->ELF_visibility, &need_leading_space,
                                   octl);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
+  return need_leading_space;
 }  /* form_routine_attributes */
 
 
-void form_label_attributes(
+a_boolean form_label_attributes(
                    a_label_ptr                            label,
-                   a_boolean                              *need_leading_space,
+                   a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl)
 /*
 Output the attributes that apply to the indicated label in the way described
-by octl.  If *need_leading_space is TRUE, precede the attribute with a
-leading space.  *need_leading_space is set to TRUE if an attribute was
-actually output.
+by octl.  If need_leading_space is TRUE, precede the first attribute with a
+leading space.  If an attribute is output or if need_leading_space is TRUE,
+return TRUE (this allows the caller to determine if a leading space is still
+needed).
 */
 {
   if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
     if (label->has_gnu_unused_attribute) {
-      form_simple_attribute("__unused__", need_leading_space, octl);
+      form_simple_attribute("__unused__", &need_leading_space, octl);
     }  /* if */
   }  /* if */
+  return need_leading_space;
 }  /* form_label_attributes */
 
 

@@ -3428,10 +3428,8 @@ default arguments should be suppressed (needed for template specializations).
                                           GDO_NO_OPTIONS,
                                           (a_name_reference_ptr)NULL);
 #if GNU_EXTENSIONS_ALLOWED
-          {
-            a_boolean  need_leading_space = TRUE;
-            form_variable_attributes(param_var, &need_leading_space, &octl);
-          }
+          (void)form_variable_attributes(param_var,
+                                         /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
           param_var = param_var->next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3472,8 +3470,8 @@ default arguments should be suppressed (needed for template specializations).
                                extra_qual, FTO_NO_OPTIONS, &octl);
 #if GNU_EXTENSIONS_ALLOWED
           if (param->mode != (a_type_mode_kind)tmk_none) {
-            a_boolean  need_leading_space = TRUE;
-            form_mode_attribute(param->mode, &need_leading_space, &octl);
+            form_mode_attribute(param->mode, /*need_leading_space=*/TRUE,
+                                &octl);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
@@ -3608,8 +3606,7 @@ recorded).
 #if GNU_EXTENSIONS_ALLOWED
   /* If there is a mode attribute, emit it. */
   if (mode != (a_type_mode_kind)tmk_none) {
-    a_boolean  need_leading_space = TRUE;
-    form_mode_attribute(mode, &need_leading_space, &octl);
+    form_mode_attribute(mode, /*need_leading_space=*/TRUE, &octl);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Write the name if there is one. */
@@ -3793,11 +3790,8 @@ is the one associated with the definition of the enum.
   }
   write_tok_ch('}');
 #if GNU_EXTENSIONS_ALLOWED
-  {
-    /* Emit any attributes associated with the type. */
-    a_boolean  need_leading_space = TRUE;
-    form_type_attributes(type, &need_leading_space, &octl);
-  }
+  /* Emit any attributes associated with the type. */
+  (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* gen_enum_definition */
 
@@ -4079,10 +4073,7 @@ declaration following this one is such a continuation.
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  {
-    a_boolean  need_leading_space = TRUE;
-    form_field_attributes(field, &need_leading_space, &octl);
-  }
+  (void)form_field_attributes(field, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list =
@@ -4337,11 +4328,8 @@ is the one associated with the definition of the class.
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
 #if GNU_EXTENSIONS_ALLOWED
-  {
-    /* Emit any attributes associated with the type. */
-    a_boolean  need_leading_space = TRUE;
-    form_type_attributes(type, &need_leading_space, &octl);
-  }
+  /* Emit any attributes associated with the type. */
+  (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (pack_alignment > 0) {
@@ -4438,11 +4426,9 @@ declaration following this one is such a continuation.
                                          GDO_NO_OPTIONS,
                                          (a_name_reference_ptr)NULL);
 #if GNU_EXTENSIONS_ALLOWED
-      {
-        /* Emit any attributes associated with the typedef. */
-        a_boolean  need_leading_space = TRUE;
-        form_type_attributes(under_type, &need_leading_space, &octl);
-      }
+      /* Emit any attributes associated with the typedef. */
+      (void)form_type_attributes(under_type, /*need_leading_space=*/TRUE,
+                                 &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
@@ -8933,12 +8919,9 @@ statement unless suppress_trailing_space is TRUE.
                            iek_label);
       write_tok_ch(':');
 #if GNU_EXTENSIONS_ALLOWED
-      {
-        /* Emit attributes associated with the label. */
-        a_boolean  need_leading_space = TRUE;
-        form_label_attributes(statement->variant.label.ptr,
-                              &need_leading_space, &octl);
-      }
+      /* Emit attributes associated with the label. */
+      (void)form_label_attributes(statement->variant.label.ptr,
+                                  /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
       break;
@@ -9718,11 +9701,8 @@ declaration following this one is such a continuation.
   } else {
     form_var_reg_name(var->asm_name_or_reg.reg, &octl);
   }  /* if */
-  {
-    /* Emit attributes associated with this variable. */
-    a_boolean  need_leading_space = TRUE;
-    form_variable_attributes(var, &need_leading_space, &octl);
-  }
+  /* Emit attributes associated with this variable. */
+  (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Output the initializer, if any, but only if this is a definition.
      For member constants (static data members initialized within the
@@ -9773,11 +9753,8 @@ function.
       gen_declaration_using_type(var->type, &var->source_corresp,
                                  iek_variable);
 #if GNU_EXTENSIONS_ALLOWED
-      {
-        /* Emit attributes associated with this variable. */
-        a_boolean  need_leading_space = TRUE;
-        form_variable_attributes(var, &need_leading_space, &octl);
-      }
+      /* Emit attributes associated with this variable. */
+      (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
     } else if (ss_entry_kind(curr_source_sequence_entry) == iek_statement) {
@@ -10424,9 +10401,7 @@ TRUE if the declaration following this one is such a continuation.
     /* Emit attributes associated with the routine.  For definitions, the
        attributes must be part of the specifier.  For nondefining declarations,
        we put them after the declarator (see below). */
-    a_boolean  need_leading_space = FALSE;
-    form_routine_attributes(rout, &need_leading_space, &octl);
-    if (need_leading_space) {
+    if (form_routine_attributes(rout, /*need_leading_space=*/FALSE, &octl)) {
       write_space();
     }  /* if */
   }  /* if */
@@ -10453,13 +10428,10 @@ TRUE if the declaration following this one is such a continuation.
     /* For a pure virtual function, add "= 0". */
     if (rout->pure_virtual) write_tok_str(" = 0");
 #if GNU_EXTENSIONS_ALLOWED
-    {
-      a_boolean  need_leading_space = TRUE;
-      /* Emit any user-specified assembly symbol for this variable. */
-      form_asm_name(rout->asm_name, &octl);
-      /* Emit attributes associated with the routine. */
-      form_routine_attributes(rout, &need_leading_space, &octl);
-    }
+    /* Emit any user-specified assembly symbol for this variable. */
+    form_asm_name(rout->asm_name, &octl);
+    /* Emit attributes associated with the routine. */
+    (void)form_routine_attributes(rout, /*need_leading_space=*/FALSE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list =

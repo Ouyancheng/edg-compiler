@@ -1730,11 +1730,9 @@ is non-NULL, in which case that is the function scope.
                                                 TQ_NONE,
                                                 /*suppress_const=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
-            {
-              a_boolean  need_leading_space = TRUE;
-              /* Output any attributes associated with the variable. */
-              form_variable_attributes(param_var, &need_leading_space, &octl);
-            }
+            /* Output any attributes associated with the variable. */
+            (void)form_variable_attributes(param_var,
+                                           /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */            
             param_var = param_var->next;
           } else
@@ -2249,12 +2247,9 @@ Print a typedef declaration.
       dump_declaration_using_type(type->variant.typeref.type,
                                   &type->source_corresp);
 #if GNU_EXTENSIONS_ALLOWED
-      {
-        /* Emit any attributes associated with the typedef. */
-        a_boolean  need_leading_space = TRUE;
-        form_type_attributes(type->variant.typeref.type, &need_leading_space,
-                             &octl);
-      }
+      /* Emit any attributes associated with the typedef. */
+      (void)form_type_attributes(type->variant.typeref.type,
+                                 /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
     }  /* if */
@@ -2329,11 +2324,8 @@ if output_final_semi is TRUE.
   }  /* for */
   write_tok_ch('}');
 #if GNU_EXTENSIONS_ALLOWED
-  {
-    /* Emit any attributes associated with the type. */
-    a_boolean  need_leading_space = TRUE;
-    form_type_attributes(type, &need_leading_space, &octl);
-  }
+  /* Emit any attributes associated with the type. */
+  (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (output_final_semi) write_tok_ch(';');
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -2691,10 +2683,7 @@ final semicolon if output_final_semi is TRUE.
                                             TQ_NONE,
                                             /*suppress_const=*/TRUE);
 #if GNU_EXTENSIONS_ALLOWED
-        {
-          a_boolean  need_leading_space = TRUE;
-          form_field_attributes(field, &need_leading_space, &octl);
-        }
+        (void)form_field_attributes(field, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
         write_tok_ch(';');
       } else {
@@ -2773,10 +2762,8 @@ final semicolon if output_final_semi is TRUE.
           write_tok_str(": ");
           write_unsigned_num((a_host_large_unsigned)field->bit_size);
 #if GNU_EXTENSIONS_ALLOWED
-          {
-            a_boolean  need_leading_space = TRUE;
-            form_field_attributes(field, &need_leading_space, &octl);
-          }
+          (void)form_field_attributes(field, /*need_leading_space=*/TRUE,
+                                      &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
           write_tok_ch(';');
           if (field->declared_bit_size > field->bit_size) {
@@ -2877,11 +2864,8 @@ final semicolon if output_final_semi is TRUE.
     indent -= 2;
     write_tok_ch('}');
 #if GNU_EXTENSIONS_ALLOWED
-    {
-      /* Emit any attributes associated with the type. */
-      a_boolean  need_leading_space = TRUE;
-      form_type_attributes(type, &need_leading_space, &octl);
-    }
+    /* Emit any attributes associated with the type. */
+    (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (output_final_semi) write_tok_ch(';');
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -6270,11 +6254,9 @@ parameters.
       } else {
         form_var_reg_name(variable->asm_name_or_reg.reg, &octl);
       }  /* if */
-      {
-        /* Emit attributes associated with this variable. */
-        a_boolean  need_leading_space = TRUE;
-        form_variable_attributes(variable, &need_leading_space, &octl);
-      }
+      /* Emit attributes associated with this variable. */
+      (void)form_variable_attributes(variable, /*need_leading_space=*/TRUE,
+                                     &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Dump the initializer if there is a constant one or if the
          variable should be initialized to zero. */
@@ -7181,12 +7163,9 @@ statement expression, i.e., ({...}).
         dump_label_name(statement->variant.label.ptr);
         write_tok_ch(':');
 #if GNU_EXTENSIONS_ALLOWED
-        {
-          /* Emit attributes associated with the label. */
-          a_boolean  need_leading_space = TRUE;
-          form_label_attributes(statement->variant.label.ptr,
-                                &need_leading_space, &octl);
-        }
+        /* Emit attributes associated with the label. */
+        (void)form_label_attributes(statement->variant.label.ptr,
+                                    /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
         end_unreferenced_bracket(
                                 &statement->variant.label.ptr->source_corresp);
@@ -7561,10 +7540,8 @@ routine whose parameters are being processed.
                                         param_var, NO_TEMP, NO_NAME, TQ_NONE,
                                         /*suppress_const=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
-    {
-      a_boolean  need_leading_space = TRUE;
-      form_variable_attributes(param_var, &need_leading_space, &octl);
-    }
+    (void)form_variable_attributes(param_var, /*need_leading_space=*/TRUE,
+                                   &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     write_tok_ch(';');
   }  /* for */
@@ -8128,16 +8105,13 @@ if this routine has a body (dump nothing if it has no body).
       /* A declaration of the routine. */
       dump_declaration_using_type(rout->type, &rout->source_corresp);
 #if GNU_EXTENSIONS_ALLOWED
-      {
-        /* Unlike the C++-generating back end, we can assume that each
-           function definition will be preceded by a separate declaration.
-           It is therefore sufficient to emit GNU attributes and asm name
-           constructs on the nondefining declarations. */
-        a_boolean  need_leading_space = TRUE;
-        /* The asm name construct must precede all attribute specifications. */
-        form_asm_name(rout->asm_name, &octl);
-        form_routine_attributes(rout, &need_leading_space, &octl);
-      }
+      /* Unlike the C++-generating back end, we can assume that each
+         function definition will be preceded by a separate declaration.
+         It is therefore sufficient to emit GNU attributes and asm name
+         constructs on the nondefining declarations. */
+      /* The asm name construct must precede all attribute specifications. */
+      form_asm_name(rout->asm_name, &octl);
+      (void)form_routine_attributes(rout, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if !USE_INIT_SECTION_IN_GENERATED_C
       if (gcc_is_generated_code_target && routine_is_init_routine(rout)) {

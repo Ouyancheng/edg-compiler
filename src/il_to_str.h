@@ -308,36 +308,36 @@ extern void unmap_template_param(a_template_param_coordinate_ptr  coord);
 
 #if GNU_EXTENSIONS_ALLOWED
 
-extern void form_type_attributes(
+extern a_boolean form_type_attributes(
                    a_type_ptr                             type,
-                   a_boolean                              *need_leading_space,
+                   a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
 
 #if BACK_END_IS_CP_GEN_BE
 extern void form_mode_attribute(
                    a_type_mode_kind                       mode,
-                   a_boolean                              *need_leading_space,
+                   a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
 #endif /* BACK_END_IS_CP_GEN_BE */
 
-extern void form_variable_attributes(
+extern a_boolean form_variable_attributes(
                    a_variable_ptr                         var,
-                   a_boolean                              *need_leading_space,
+                   a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
 
-extern void form_field_attributes(
+extern a_boolean form_field_attributes(
                    a_field_ptr                            field,
-                   a_boolean                              *need_leading_space,
+                   a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
 
-extern void form_routine_attributes(
+extern a_boolean form_routine_attributes(
                    a_routine_ptr                          rout,
-                   a_boolean                              *need_leading_space,
+                   a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
 
-extern void form_label_attributes(
+extern a_boolean form_label_attributes(
                    a_label_ptr                            label,
-                   a_boolean                              *need_leading_space,
+                   a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
 
 extern void form_asm_name(char                                   *asm_name,
