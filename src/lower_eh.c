@@ -1848,6 +1848,8 @@ pointer can be examined.
   a_cleanup_action_ptr
                    next_cleanup, prev_cleanup;
   a_routine_ptr    dtor_routine;
+  a_cleanup_region_number
+                   region_number_to_set;
 
   /* Note that the current memory region must not have been forced to the
      file scope memory region at this point. */
@@ -1885,7 +1887,7 @@ pointer can be examined.
                                  handle_number, insert_location);
   }  /* if */
   /* Assign a region number to this entry. */
-  cap->region_number = next_region_number;
+  region_number_to_set = cap->region_number = next_region_number;
   if (cap->variant.object.conditional_flag_var != NULL) {
     /* This entry needs a conditional flag.  More on this below. */
     an_init_pos_descr ipd;
@@ -1894,15 +1896,6 @@ pointer can be examined.
     /* The code to initialize the object address table entry is put out
        by init_conditional_flag_var. */
     flags_value |= RDF_CONDITIONAL_FLAG;
-  }  /* if */
-  /* Insert an assignment statement that sets the global variable
-     __eh_curr_region to the region number for this entry.  Don't do
-     this in destructor wrappers (the assignment gets done explicitly
-     at the right time).  Note that this is done after the object address
-     table is set. */
-  if (!cap->destructor_wrapper_cleanup) {
-    assign_region_number_to_eh_curr_region(cap->region_number,
-                                           insert_location);
   }  /* if */
   /* Switch to the file scope memory region so the variable and initialization
      constants will be allocated there. */
@@ -1951,6 +1944,38 @@ pointer can be examined.
              !next_cleanup->constructor_wrapper_cleanup;
            prev_cleanup = next_cleanup,
              next_cleanup = next_cleanup->next_exception_cleanup) {}
+    } else if (cap->kind == (a_cleanup_action_kind)cak_destruction &&
+               cap->variant.object.is_expr_temporary &&
+               cap->variant.object.conditional_flag_var != NULL) {
+      /* The new entry is for an expression temporary (from an enk_temp_init)
+         and it uses a conditional flag.  Put it behind any similar entries
+         from the same full expression.  This is used to get around the
+         problem of undefined evaluation order -- enk_temp_init operations
+         that are unsequenced with respect to one another are given a
+         conditional flag and the current region number is always set to
+         the lowest region number in a sequence of entries all having
+         conditional flags.  The other region entries for the same full
+         expression will have higher region numbers but will follow the
+         first region on the list.  That eliminates the need to know
+         at the beginning of the expression how many regions are involved.
+         Note that there can also be cak_new_allocation entries from the
+         same full expression, and the new entry goes behind those too. */
+      a_boolean first_entry = TRUE;
+      for (; next_cleanup != NULL &&
+             is_object_cleanup_action(next_cleanup) &&
+             next_cleanup->variant.object.full_expression ==
+                                           cap->variant.object.full_expression;
+           prev_cleanup = next_cleanup,
+             next_cleanup = next_cleanup->next_exception_cleanup) {
+        if (next_cleanup->kind == (a_cleanup_action_kind)cak_destruction) {
+          if (first_entry) {
+            /* Remember the region number of the first entry as the one to
+               set __eh_curr_region to. */
+            region_number_to_set = next_cleanup->region_number;
+            first_entry = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
   /* If the new entry is being inserted behind some entries already on the
@@ -1975,6 +2000,15 @@ pointer can be examined.
   /* Return to the memory region that was current when this routine was
      entered. */
   switch_back_to_original_region(region_to_switch_back_to);
+  /* Insert an assignment statement that sets the global variable
+     __eh_curr_region to the region number for this entry.  Don't do
+     this in destructor wrappers (the assignment gets done explicitly
+     at the right time).  Note that this is done after the object address
+     table is set. */
+  if (!cap->destructor_wrapper_cleanup) {
+    assign_region_number_to_eh_curr_region(region_number_to_set,
+                                           insert_location);
+  }  /* if */
 }  /* make_region_table_entry */
 
 

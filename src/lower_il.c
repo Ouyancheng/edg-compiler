@@ -283,12 +283,14 @@ in the cleanup entry.
       cap->variant.object.template_static_data_member_init_guard_var = NULL;
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
       cap->variant.object.is_expr_temporary = FALSE;
+      cap->variant.object.conditional_flag_added_for_unsequenced_case = FALSE;
       goto common_fields;
     case cak_new_allocation:
       cap->variant.object.delete_routine = NULL;
 common_fields:
       clear_init_pos_descr(&cap->variant.object.init_pos_descr);
       cap->variant.object.conditional_flag_var = NULL;
+      cap->variant.object.full_expression = NULL;
       break;
     case cak_try_block:
       cap->variant.try_frame = NULL;
@@ -5609,7 +5611,15 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   a_variable_ptr        var, temp_var;
   unsigned int          is_lvalue_mask;
   a_boolean             is_conditional_operator;
+  a_boolean             is_full_expression = FALSE;
 
+  if (curr_full_expression == NULL) {
+    /* There is no current full expression, so this must be it. */
+    curr_full_expression = expr;
+    curr_full_expression_has_unsequenced_temp_inits = FALSE;
+    curr_full_expression_examined_for_unsequenced_temp_inits = FALSE;
+    is_full_expression = TRUE;
+  }  /* if */
   lower_os_type(expr->type);
   switch (expr->kind) {
     case enk_routine_address:
@@ -5866,6 +5876,12 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       internal_error("lower_expr: bad kind");
 #endif /* CHECKING */
   }  /* switch */
+  if (is_full_expression) {
+    /* Done with a top-level expression.  Clear flags. */
+    curr_full_expression = NULL;
+    curr_full_expression_has_unsequenced_temp_inits = FALSE;
+    curr_full_expression_examined_for_unsequenced_temp_inits = FALSE;
+  }  /* if */
 }  /* lower_expr */
 
 
@@ -6083,8 +6099,11 @@ is updated.
       /* If the entity is a local static variable or a conditionally-created
          temporary, generate an "if" statement to test whether or not the
          variable was ever initialized.  Only do the destruction if it
-         was. */
-      if (cap->variant.object.conditional_flag_var != NULL) {
+         was.  If the conditional flag is there only to be able to tell
+         which initializations in a set of unsequenced initializations
+         were done, there's no need to test the flag. */
+      if (cap->variant.object.conditional_flag_var != NULL &&
+          !cap->variant.object.conditional_flag_added_for_unsequenced_case) {
         add_last_time_test(cap->variant.object.conditional_flag_var, 
                            insert_location,
                            &insert_location2);
@@ -7453,6 +7472,9 @@ of the front end.
   /* Variables in lower_il.h: */
   avail_init_pos_modifiers = NULL;
   num_conditional_exprs_inside_of = 0;
+  curr_full_expression = NULL;
+  curr_full_expression_has_unsequenced_temp_inits = FALSE;
+  curr_full_expression_examined_for_unsequenced_temp_inits = FALSE;
 #if DEBUG
   num_init_pos_modifiers_allocated        = 0;
 #endif /* DEBUG */

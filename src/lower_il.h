@@ -189,6 +189,11 @@ typedef struct a_cleanup_action {
 			   needed for local static variables and for
 			   temporaries initialized under conditional
 			   operators. */
+      an_expr_node_ptr
+		full_expression;
+			/* The full expression inside which this entity
+			   is initialized, or NULL if there is no such
+			   expression. */
       /* This field only applies when kind == cak_new_allocation: */
       a_routine_ptr
 		delete_routine;
@@ -214,6 +219,11 @@ typedef struct a_cleanup_action {
 		is_expr_temporary;
 			/* TRUE if the entity to be destroyed is a compiler-
 			   generated expression temporary. */
+      a_byte_boolean
+		conditional_flag_added_for_unsequenced_case;
+			/* TRUE if a conditional flag was added to this
+			   entry only so that one can tell which of a set
+			   of unsequenced initializations have been done. */
     } object;
     /* When kind == cak_try_block: */
     a_variable_ptr
@@ -361,6 +371,19 @@ EXTERN unsigned long
 			/* Count of conditional parts of expressions that we
 			   are inside of.  Incremented on entering conditional
 			   operands of "?:", "&&", and "||". */
+EXTERN an_expr_node_ptr
+		curr_full_expression;
+			/* If doing IL lowering inside an expression, this
+			   is the full expression.  NULL otherwise. */
+EXTERN a_boolean
+		curr_full_expression_has_unsequenced_temp_inits,
+		curr_full_expression_examined_for_unsequenced_temp_inits;
+			/* First is TRUE if the current expression contains
+			   more than one enk_temp_init and they are unsequenced
+			   with respect to one another.  Second indicates
+			   whether a value for the first has been
+			   determined. */
+
 EXTERN a_return_memo_ptr
 		return_memo_list;
 			/* List of return statements found in the current
