@@ -6427,7 +6427,7 @@ initialization (i.e., dip->variable != NULL).
         fprintf(f_C_output, ", ");
         dump_expression(constr_arg, /*need_parens=*/TRUE);
       }  /* for */
-      fprintf(f_C_output, ")");
+      fprintf(f_C_output, ");");
       break;
 #if CHECKING
     case dik_aggregate:
