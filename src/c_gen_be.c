@@ -1255,7 +1255,8 @@ Generate the value of a ck_address constant.
       underlying_object_type= constant->variant.address.variant.constant->type;
       break;
     default:
-      unexpected_condition_str("dump_constant: bad addr constant kind");
+      unexpected_condition_str(
+                              "dump_address_constant: bad addr constant kind");
   }  /* switch */
   underlying_object_type = skip_typerefs(underlying_object_type);
   if (underlying_object_type->kind == (a_type_kind)tk_array) {
@@ -1336,11 +1337,12 @@ Generate the value of a ck_address constant.
       /* Address of a constant, specifically a string. */
       check_assertion_str(constant->variant.address.variant.constant->kind
                                             == (a_constant_repr_kind)ck_string,
-                          "dump_constant: address of nonstring con");
+                          "dump_address_constant: address of nonstring con");
       dump_constant(constant->variant.address.variant.constant);
       break;
     default:
-      unexpected_condition_str("dump_constant: bad addr constant kind");
+      unexpected_condition_str(
+                              "dump_address_constant: bad addr constant kind");
   }  /* switch */
   if (need_ampersand) write_tok_ch(')');
   if (offset != 0) {
