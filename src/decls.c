@@ -8809,12 +8809,8 @@ continue_with_declaration:
             pos_warning(ec_missing_decl_specifiers, &declarator_pos);
           } else {
             pos_error(ec_missing_decl_specifiers, &declarator_pos);
-            if (is_static_data_member) {
-              /* Don't obliterate the specific_symbol pointer in the locator
-                 in the static data member case. */
-            } else {
-              set_to_error_locator(locator);
-            }  /* if */
+            local_type_ptr = error_type();
+            is_function = top_declarator_type_is_function = FALSE;
           }  /* if */
         } else if (!has_explicit_type_specifier) {
           if (is_function) {
