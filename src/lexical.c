@@ -6630,6 +6630,7 @@ containing a function template symbol.
   if (sym->kind == (a_symbol_kind)sk_class_template ||
       sym->kind == (a_symbol_kind)sk_function_template) {
     /* Okay -- the symbol found refers to a template. */
+    result = TRUE;
   } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
     for (sym = sym->variant.overloaded_function.symbols;
          sym != NULL && !result; sym = sym->next) {
