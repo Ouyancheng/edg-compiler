@@ -1125,7 +1125,7 @@ Transform the given complex cast expression into a function call
                                          dst_type, src->type, (a_type_ptr)NULL,
                                          src);
     } else {
-      /* Convert float or integral to complex. */
+      /* Convert floating-point, fixed-point, or integral to complex. */
       check_assertion(is_arithmetic_or_enum_type(src_type));
       /* Create a new complex value x + 0.0*__I__. */
       switch (dst_type->variant.float_kind) {
@@ -1185,9 +1185,9 @@ Transform the given complex cast expression into a function call
                is_fixed_point_type(src_type) ||
 #endif /* FIXED_POINT_ALLOWED */
                is_integral_type(src_type)) {
-      /* A real or integral value converted to an imaginary type is
-         always zero.  Use a comma operator to preserve side-effects of
-         the source expression. */
+      /* A real, fixed-point, or integral value converted to an imaginary type
+         is always zero.  Use a comma operator to preserve side-effects of the
+         source expression. */
       a_constant        zero_constant;
       an_expr_node_ptr  new_expr;
       make_zero_of_proper_type(float_type(dst_type->variant.float_kind),
