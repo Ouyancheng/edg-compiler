@@ -4206,7 +4206,7 @@ This routine cannot be used when fetching raw preprocessing tokens.
 }  /* next_token */
 
 
-static void unget_token(void)
+void unget_token(void)
 /*
 "Unget" the current token, i.e., put it back on the input list so that
 it will be fetched again on the next get_token.  On return, the current
@@ -4341,18 +4341,25 @@ only in C++ mode.
   start_position = pos_curr_token;
   /* Skip past the "operator", check for an operator. */
   token = get_token();
-  opname = opname_for_token(token);
-  if (opname == onk_none) {
-    /* syntax_error is deliberately not called. */
-    error(ec_exp_operator);
-    /* Put back the current token and make a fake error identifier. */
-    unget_token();
-    make_specific_symbol_error_locator(&locator_for_curr_id);
+  if (scan_conversion_operator(&start_position)) {
+    /* This is a conversion operator function -- "operator" followed by
+       a type name. */
   } else {
-    /* Convert the locator to a locator for the operator. */
-    make_opname_locator(token, opname, &locator_for_curr_id, &start_position);
+    /* It must be an overloaded operator name (or an error). */
+    opname = opname_for_token(token);
+    if (opname == onk_none) {
+      /* syntax_error is deliberately not called. */
+      error(ec_exp_operator);
+      /* Put back the current token and make a fake error identifier. */
+      unget_token();
+      make_specific_symbol_error_locator(&locator_for_curr_id);
+    } else {
+      /* Convert the locator to a locator for the operator. */
+      make_opname_locator(token, opname, &locator_for_curr_id,
+                          &start_position);
+    }  /* if */
+    curr_token = tok_identifier;
   }  /* if */
-  curr_token = tok_identifier;
   return TRUE;
 }  /* f_get_opname */
 
