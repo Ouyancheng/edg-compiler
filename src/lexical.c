@@ -463,8 +463,6 @@ away it adds them to the specified token cache.)
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
         curr_token == tok_lbrace) {
       cache_token_stream_until_matching_token(cache);
-      /* Be sure the closing token is not itself a token to stop on. */
-      if (stop_token_array[(int)curr_token] != 0) break;
     }  /* if */
     /* Stop immediatelty when end of source is reached. */
     if (curr_token == tok_end_of_source) break;
