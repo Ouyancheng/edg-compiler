@@ -966,9 +966,9 @@ See ARM 7.2.1c for name encoding.
             case ik_long:           s = "l";  break;
             case ik_unsigned_long:  s = "Ul"; break;
 #if LONG_LONG_ALLOWED
-            case ik_long_long:      s = "ll"; break;
+            case ik_long_long:      s = "L";  break;
             case ik_unsigned_long_long:
-                                    s = "Ull";break;
+                                    s = "UL"; break;
 #endif /* LONG_LONG_ALLOWED */
 #if CHECKING
             default:

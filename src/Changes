@@ -1,5 +1,12 @@
 Version 2.28
 
+1/16/95 Name mangling for "long long"
+
+The change to mangle "long long" as "L" (instead of "ll"), which was
+reported as having been done on 4/11/94, was in fact done only in
+the name demangler (and not lower_name.c; oops).  Now fixed.  This
+means, however, that name mangling for "long long" changes now.
+
 1/13/95 Internal error attempting to instantiate what should be a
         nonreal class (found in STL example)
 
