@@ -11639,6 +11639,7 @@ because, for example, they appear on orphan lists.
       }  /* if */
     }  /* if */
   }  /* for */
+  curr_translation_unit->last_scope_orphaned_list_header = prev_solhp;
 }  /* eliminate_unneeded_scope_orphaned_list_entries */
 
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
