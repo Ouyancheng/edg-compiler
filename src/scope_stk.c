@@ -1731,6 +1731,9 @@ the scope being pushed.
   ssep->tmpl_decl_state		 = NULL;
   ssep->pending_templ_arg_lists  = 0;
   ssep->next_nondependent_call   = NULL;
+  ssep->fp_contract_state        = curr_fp_contract_state;
+  ssep->fenv_access_state        = curr_fenv_access_state;
+  ssep->cx_limited_range_state   = curr_cx_limited_range_state;
 #if IA64_ABI && NEED_NAME_MANGLING
   ssep->local_name_collision_table = NULL;
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
@@ -5320,6 +5323,12 @@ End a name scope by popping an entry off the scope stack.
      will be added directly to the inactive list. */
   if (kind == (a_scope_kind)sck_namespace || kind == (a_scope_kind)sck_file) {
     ssep->assoc_pointers_block->add_symbols_to_inactive_list = TRUE;
+  }  /* if */
+  if (ssep->kind != (a_scope_kind)sck_file) {
+    /* Restore the C99 STDC pragma state. */
+    curr_fp_contract_state        = ssep->fp_contract_state;
+    curr_fenv_access_state        = ssep->fenv_access_state;
+    curr_cx_limited_range_state   = ssep->cx_limited_range_state;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ssep->kind == (a_scope_kind)sck_file ||

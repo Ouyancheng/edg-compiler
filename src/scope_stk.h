@@ -391,6 +391,12 @@ typedef struct a_scope_stack_entry {
 			   string literal sequence numbers should be
 			   assigned. */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+  a_bit_field	fp_contract_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	fenv_access_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_bit_field	cx_limited_range_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+			/* Saved values of the current state of the C99
+			   STDC pragma values.  These are saved when a scope
+			   is entered and restored when the scope is left. */
   bitfield_to_avoid_codecenter_warnings()
   a_scope_pointers_block_ptr
 		assoc_pointers_block;

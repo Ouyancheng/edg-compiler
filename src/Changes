@@ -1,5 +1,17 @@
 Version 3.2
 
+3/1/03   Incorrect setting of C99 STDC pragma information
+
+The settings of C99 STDC pragma information (FP_CONTRACT, FENV_ACCESS,
+and CX_LIMITED_RANGE) were not reset properly when exiting a scope.
+This would, for example, result in the function g() incorrectly having
+its FENV_ACCESS state set to ON instead of DEFAULT.  Now fixed.
+
+  void f() {
+    #pragma STDC FENV_ACCESS ON 
+  }
+  void g() {}
+
 2/28/03  Emulation of GNU bugs in IA-64 object layout algorithm
 
 Some changes were made to the front end to more closely emulate the

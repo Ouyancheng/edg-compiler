@@ -2986,6 +2986,9 @@ enum a_stdc_pragma_kind_tag {
 /* Storage size to be used to hold a STDC pragma kind. */
 typedef a_byte a_stdc_pragma_kind;
 
+/* Number of bits required to hold a STDC pragma value. */
+#define NUM_BITS_FOR_STDC_PRAGMA_VALUE 2
+
 /*
 For a "#pragma STDC ...", indicates the value specified by the pragma.
 */
