@@ -31,7 +31,9 @@ Vertical tab character.
 #define VERTICAL_TAB_CHARACTER '\v'
 #else /* !USING_ISO_C */
 /* K&R C doesn't recognize \v. */
+#ifndef VERTICAL_TAB_CHARACTER
 #define VERTICAL_TAB_CHARACTER '\013'
+#endif /* ifndef VERTICAL_TAB_CHARACTER */
 #endif /* USING_ISO_C */
 
 /*
