@@ -528,6 +528,36 @@ pm_type is a pointer-to-member type.  Return the class type pointed to.
 }  /* pm_class_type */
 
 
+a_type_ptr underlying_type_of_derived_type(a_type_ptr type)
+/*
+If type is a derived type, return the type from which it is derived.
+Otherwise, return NULL.
+*/
+{
+  switch (type->kind) {
+    case tk_pointer:  /* Includes C++ reference too. */
+      type = type_pointed_to(type);
+      break;
+    case tk_ptr_to_member:
+      type = pm_member_type(type);
+      break;
+    case tk_array:
+      type = array_element_type(type);
+      break;
+    case tk_routine:
+      type = type->variant.routine.return_type;
+      break;
+    case tk_typeref:
+      type = type->variant.typeref.type;
+      break;
+    default:
+      type = NULL;
+      break;
+  }  /* switch */
+  return type;
+}  /* underlying_type_of_derived_type */
+
+
 a_boolean is_immediate_type_qualifier(a_type_ptr type)
 /*
 Return TRUE if the type pointed to is a tk_typeref that indicates type
