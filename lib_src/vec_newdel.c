@@ -9,12 +9,10 @@
 ******************************************************************************/
 /*
 
-_vec_newdel.C -- C++ runtime routines for to provide vector new() and 
-                 delete() functionality.  The memory allocated for an
-                 array is preceded by a header which provides space for
-                 the array size.  The array size is later used by
-                 _vec_dtor() to call destructors for undimensioned array
-                 deletes.
+_vec_newdel.C -- C++ runtime routines to provide vector new() and 
+                 delete() functionality.  A hidden structure is used
+                 to track array size for later use by _vec_ctor() and 
+                 _vec_dtor() processing of an undimensioned array .
 
 */
 
@@ -25,67 +23,78 @@ _vec_newdel.C -- C++ runtime routines for to provide vector new() and
 typedef void (*ptr_to_delete_func) (void *);
 
 extern "C" {
-	size_t	_vec_new_size(size_t);
-	void	*_vec_new_init(char *, size_t);
+	void	*_vec_new(void *, size_t);
 	void 	_vec_delete(char *, ptr_to_delete_func);
 }
 
 
-size_t _vec_new_size(size_t array_size)
-/*
-Increment to requested array size by the length of the memory header that
-precedes that user memory.
-*/
-{
-  return array_size + sizeof(new_header);
-}  /* _vec_new_size */
+vec_info_ptr _head_vec_info = NULL;
+				/* Pointer to the beginning of the linked list
+				   of array information. */
+vec_info_ptr _free_vec_info = NULL;
+				/* Pointer to a list of free array information
+				   structures. */
 
 
-void *_vec_new_init(char     *new_ptr,
-                    size_t   array_size)
+void *_vec_new(void     *array_ptr,
+               size_t   array_size)
 
 /*
-Initialize the memory header preceding the user array memory area with the
-array_size.  Return a pointer to the beginning of the user array.
+Construct the "behind the scenes" information to keep track of array
+sizes for constructor or destructor calls.  The new information is added
+to the front of the linked list pointed to by _head_vec_info.
 */
 {
-  if (new_ptr == NULL) {
-    /* Do nothing with a NULL pointer. */
-    return (void *)NULL;
+  register vec_info_ptr info_ptr;
+
+  if (array_ptr != NULL) {
+    if (_free_vec_info != (vec_info_ptr)NULL) {
+      /* Reuse a previously allocated structure. */
+      info_ptr = _free_vec_info;
+      _free_vec_info = info_ptr->next;
+    } else {
+      /* Allocate an array information structure from free memory. */
+      info_ptr = (vec_info_ptr)malloc((size_t)sizeof(vec_info));
+    }  /* if */
+    info_ptr->next       = _head_vec_info;
+    info_ptr->array_ptr  = array_ptr;
+    info_ptr->array_size = array_size;
+    _head_vec_info  = info_ptr;
   }  /* if */
-
-  ((new_header *)new_ptr)->requested_size = array_size;
-#if DEBUG
-  ((new_header *)new_ptr)->magic_number = MAGIC_NUMBER;
-#endif /*DEBUG */
-  return (void *)(new_ptr + sizeof(new_header));
+  return array_ptr;
 }  /* _vec_new */
 
 
 void _vec_delete(char               *array_ptr,
                  ptr_to_delete_func delete_func)
 /*
-After adjusting the array_ptr for the length of the header preceding array,
-call the specified operator delete().
+After locating and freeing the array information block, call the
+specified operator delete().
 */
 {
-  new_header *head_ptr = (new_header *)array_ptr;
+  vec_info_ptr prev_ptr;
+  register vec_info_ptr info_ptr;
 
-  if (array_ptr != NULL) {
-    /* Adjust the pointer to the beginning of the header. */
-    head_ptr = (new_header *)((char *)array_ptr - sizeof(new_header));
-#if DEBUG
-    if (head_ptr->magic_number != MAGIC_NUMBER) {
-      (void)fprintf(stderr, "EDG runtime - _vec_delete(): ");
-      (void)fprintf(stderr, "delete of array not allocated by _vec_new().\n");
-      abort();
+  /* Locate the "hidden" information structure. */
+  for (prev_ptr = (vec_info_ptr)NULL, info_ptr = _head_vec_info;
+       (info_ptr != (vec_info_ptr)NULL) && (info_ptr->array_ptr != array_ptr);
+       prev_ptr = info_ptr, info_ptr = info_ptr->next) {
+  }  /* for */
+  if (info_ptr != (vec_info_ptr)NULL) {
+    /* Unhook this array information from the linked list and add to the front
+       of the free list. */
+    if (prev_ptr == (vec_info_ptr)NULL) {
+      /* This structure is on the beginning of the linked list. */
+      _head_vec_info = info_ptr->next;
+    } else {
+      prev_ptr->next = info_ptr->next;
     }  /* if */
-    head_ptr->magic_number = 0;
-#endif /* DEBUG */
+    info_ptr->next = _free_vec_info;
+    _free_vec_info = info_ptr;
   }  /* if */
 
   /* Call the specified delete function. */
-  (*delete_func)((void *)head_ptr);
+  (*delete_func)((void *)array_ptr);
 }  /* _vec_delete */
 
 
