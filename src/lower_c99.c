@@ -984,6 +984,7 @@ The given expression is a GNU-style binary conditional expression of the form
   tmp->next = op2;
   expr->variant.operation.operands = op1;
   expr->variant.operation.kind = (an_expr_operator_kind)eok_question;
+  if (expr->result_is_not_used) set_expr_result_not_used(expr);
 }  /* lower_binary_conditional */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */

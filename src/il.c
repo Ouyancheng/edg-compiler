@@ -9177,9 +9177,7 @@ the value of the expression is discarded.
 #if GNU_EXTENSIONS_ALLOWED
     } else if (op == (an_expr_operator_kind)eok_binary_question) {
       /* Given a binary question mark operation (a GNU C extension), the
-         first and second operands are not used if the entire operation is
-         not used. */
-      set_expr_result_not_used(operand_1);
+         second operand is not used if the entire operation is not used. */
       set_expr_result_not_used(operand_1->next);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */

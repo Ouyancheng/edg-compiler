@@ -7,12 +7,20 @@ In some obscure cases where the operand of a vacuous destructor call
 is an lvalue assignment, IL lowering did not set the result_is_not_used
 flag correctly on one generated expression node.  This could cause problems
 for back ends, and in particular caused an internal error in
-check_result_not_used_flag in the C-generating back end.
+check_result_not_used_flag in the C-generating back end.  Now fixed.
 
   void fun() {
     int i = 0, k = 1, j = i;
     typedef int Int_t;
     i?(k = j).~Int_t():void();  // Formerly caused abort in C-gen BE
+  }
+
+Also, the flag was not set correctly for the GNU C two-operand "?"
+operator.  Also now fixed.
+
+  int main() {
+    int i = 1;
+    i ?: (void)0;  // Formerly caused abort in C-gen BE
   }
 
 3/3/04   Recorded expression for constant, boolean expression in C mode
