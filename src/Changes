@@ -1,5 +1,14 @@
 Version 2.11
 
+10/27/92 Fixed bug in processing function declarators in C-mode
+
+A bug was fixed in declarator for cases in which a function returns a
+pointer-to-function type; some other conditions were required for the
+problem to show up, including compiling in C-mode.  The following no
+longer provokes an internal error:
+
+  void (*f(int i))(int i, int j) { return 0; }
+
 10/22/92 const_ints.c and const_ints.h added
 
 Two new files have been added.  They will contain routines that manipulate
