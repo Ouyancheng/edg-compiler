@@ -7704,7 +7704,6 @@ with it.  Entries associated with scopes must also have no child entries.
 */
 {
   a_boolean               is_useless = FALSE;
-  an_object_lifetime_ptr  child;
 
   if (olp->destructions != NULL) {
     /* Useless = FALSE. */
