@@ -1119,9 +1119,9 @@ class specified, remove it.
 
 a_scope_depth scope_depth_for_class_ss_list(a_type_ptr  class_type)
 /*
-If class_type is a non-local class, return the depth of the innermost
-currently active namespace scope in which it is nested, or else the depth
-of the file scope.  If it is a local class, return NO_SCOPE_DEPTH.
+If class_type is a "real" non-local class, return the depth of the innermost
+currently active namespace scope in which it is nested, or else the depth of
+the file scope.  If it is a local class or non-real, return NO_SCOPE_DEPTH.
 */
 {
   a_namespace_ptr                nsp;
@@ -1132,15 +1132,23 @@ of the file scope.  If it is a local class, return NO_SCOPE_DEPTH.
       !(cssp = symbol_supplement_for_class(class_type))->is_nonreal_class) {
     if (class_type->variant.class_struct_union.is_template_class &&
         !class_type->variant.class_struct_union.is_specialized) {
+      /* The class is a template instantiation.  That means it's scope is
+         the namespace in which it is referenced (and not, as one might
+         expect, the scope in which it's definition appears) -- see
+         find_instantiation_insert_scope. */
       nsp = cssp->referencing_namespace;
     } else {
       /* If this is a nested class, find the top-most class. */
       while (class_type->source_corresp.is_class_member) {
         class_type = class_type->source_corresp.parent.class_type;
       }  /* while */
+      /* Use the namespace of the top-most class. */
       nsp = class_type->source_corresp.parent.namespace_ptr;
     }  /* if */
-    /* Find the innermost currently active parent namespace. */
+    /* If a namespace was identified, be sure it's still on the stack.  If
+       not (i.e., if its scope was popped), the associated source sequence
+       entries will have migrated to a containing namespace scope or out to
+       the file scope.  Find the innermost currently active namespace. */
     for (;;) {
       if (nsp != NULL) {
         nsp = skip_namespace_aliases(nsp);
@@ -1150,7 +1158,9 @@ of the file scope.  If it is a local class, return NO_SCOPE_DEPTH.
              scope_stack[scope_depth].
                                  explicitly_declared_namespace_extension)) {
           /* Found a currently active namespace scope among the namespace
-             parents of class_type. */
+             parents of class_type.  Note that namespace extension scopes
+             qualify as "active" only when they correspond to an explicit
+             extension-namespace-definition (7.3.1). */
           break;
         } else {
           /* nsp is no longer active on the stack.  Advance to the enclosing
@@ -1165,6 +1175,8 @@ of the file scope.  If it is a local class, return NO_SCOPE_DEPTH.
       }  /* if */
     }  /* for */
 #if EXPENSIVE_CHECKING
+    /* Verify that the source sequence entry for class_type really is on the
+       list of at the inferred scope depth. */
     { a_source_sequence_entry_ptr  ssep;
       for (ssep = scope_stack[scope_depth].source_sequence_list;
            ssep != NULL;
@@ -1194,7 +1206,7 @@ template is defined.
   for (;;) {
     if (sse_ptr->kind == (a_scope_kind)sck_template_instantiation) {
       /* The instantiation context depth is the depth at the point the
-         instantiation is is triggered. */
+         instantiation is triggered. */
       sse_ptr = &scope_stack[sse_ptr->instantiation_context_depth];
     } else if (sse_ptr->depth_innermost_instantiation_scope !=
                                                          NO_SCOPE_DEPTH) {
@@ -1352,8 +1364,8 @@ innermost such class.
     parent_class = NULL;
   }  /* if */
   if (parent_scope_depth == NO_SCOPE_DEPTH) {
-    /* There is not a class parent scope that will serve for the the
-       insert scope.  Look for a namespace parent scope. */
+    /* There is not a class parent scope that will serve for the insert
+       scope.  Look for a namespace parent scope. */
     parent_scope_depth = find_innermost_namespace_scope_depth(curr_sse_ptr);
   }  /* if */
 #if DEBUG
