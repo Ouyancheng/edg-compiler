@@ -332,13 +332,6 @@ EXTERN void*	__caught_object_address;
 			/* The address of the object to be used as the value
 			   of the parameter in the catch clause. */
 
-EXTERN_C int	 __throw(void);
-
-EXTERN_C void* __throw_alloc(a_type_info_impl_ptr  type_info,
-			     a_sizeof_t		   size,
-			     an_ETS_flag_set	   flags,
-			     an_access_flag_string access_flags);
-
 EXTERN_C void __call_terminate(void);
 
 EXTERN a_void_function_ptr

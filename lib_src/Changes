@@ -1,5 +1,20 @@
 Version 2.31
 
+1/12/96  Type of an_object_offset now automatically configured
+
+The type "an_object_offset" is required to match the type specified
+by TARG_DELTA_INT_KIND in the front end.  This is now automatically
+configured by using the __EDG_DELTA_KIND macro defined by the
+front end.
+
+1/12/96  Parameter type mismatch in __throw_alloc and __throw_setup
+
+The front end calls these routines without providing prototypes.
+Consequently, their parameter types must all be promoted types.
+The ETS flag set parameter has been changed from an_ETS_flag_set
+to "int" to make sure that the type always matches the value
+passed by the front end.
+
 1/5/96   Order of destruction of temporaries used by the EH mechanism
 
 Temporary copies of thrown objects are now destroyed in the sequence

@@ -37,7 +37,7 @@ typedef a_byte a_unique_id;
 typedef a_unique_id *a_unique_id_ptr;
 			/* A pointer to a unique ID. */
 
-typedef unsigned short an_object_offset;
+typedef __EDG_DELTA_TYPE an_object_offset;
 			/* Type used to store an offset into an object. */
 
 /* Definitions of the values in the flags field of the base class
