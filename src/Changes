@@ -1,5 +1,12 @@
 Version 3.3
 
+5/30/03  Unset memory reference on error case in Microsoft and g++ modes
+
+In certain error cases, unset memory could be referenced after diagnosing
+errors on an invalid typedef declaration.  Now fixed.
+
+  typedef I (*A)(B);
+
 5/30/03  Incorrect parsing of "<" in function explicit template argument list
 
 When scanning an explicit template argument list of a function template,

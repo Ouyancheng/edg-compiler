@@ -10532,7 +10532,7 @@ of local variables (and types, etc.) of functions and in blocks.
 {
   a_boolean                    local_is_old_style_param_decl;
   a_storage_class              declared_storage_class, local_storage_class;
-  a_type_ptr                   type_ptr, old_type;
+  a_type_ptr                   type_ptr, old_type = NULL;
   a_type_ptr	               local_type_ptr;
   a_boolean                    has_explicit_type_specifier;
   a_boolean	               defines_something;
