@@ -1,5 +1,14 @@
 Version 2.24
 
+6/8/94  IL CHANGE: originally_unnamed field in class types
+
+originally_unnamed in class types now indicates types that were
+originally unnamed.  Most of those remain unnamed, but some get names
+from typedefs.  This flag is used by the C++-generating back end to
+process cases like
+
+  typedef struct { int A; } A;
+
 6/9/94  Fixed internal error relating to use of pbk_other pragmas
 
 An internal error has been fixed that could come up when a pbk_other
