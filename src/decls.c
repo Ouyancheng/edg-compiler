@@ -1150,9 +1150,10 @@ current scope.
   update_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable,
                               (a_source_sequence_entry_ptr)NULL);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Promote symbols for anonymous unions members to the enclosing scope.
+     Error checking is also done. */
   check_anonymous_union_symbols(assoc_object_sym, (a_type_ptr)NULL,
                                 /*is_nonstd=*/FALSE);
-
 }  /* make_anonymous_union_variable */
 
 
