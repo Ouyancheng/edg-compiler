@@ -3374,6 +3374,11 @@ Reserve space at the end of the class object for virtual base classes.
         error(struct_too_large_error());
         lob->any_overflow = TRUE;
       }  /* if */
+    } else {
+      /* Propagate the rounded size without virtual base classes to the
+         layout state block (since that is what will be used to track the
+         layout of virtual bases). */
+      lob->byte_offset = ctsp->size_without_virtual_base_classes;
     }  /* if */
 #endif /* !TARG_REUSE_TAIL_PADDING */
     /* Now see if there are any virtual base class data sections that need to
