@@ -2401,7 +2401,7 @@ text section, if there is one, or is NULL otherwise.
 
 
 /*
-Put a raw-text string (part of a macro definition)into the macro
+Put a raw-text string (part of a macro definition) into the macro
 buffer.  The character will be added to the end of the current text 
 section, if there is one, or a new text section will be begun if necessary.
 */
