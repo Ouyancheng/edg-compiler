@@ -6070,7 +6070,8 @@ function_lparen:
           if (locator != NULL && !is_error_locator(*locator)) {
             func_info->declarator_ssep = *declarator_ssep;
           } else {
-            remove_from_source_sequence_list(*declarator_ssep);
+            a_src_seq_sublist_ptr  sublist = NULL;
+            remove_from_source_sequence_list(*declarator_ssep, &sublist);
             *declarator_ssep = NULL;
           }  /* if */
         }  /* if */
@@ -10165,6 +10166,10 @@ continue_with_declaration:
       }  /* if */
       if (top_declarator_type_is_function) {
         a_param_id_ptr  pid = func_info.param_id_list;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        a_src_seq_sublist_ptr  sublist = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
 
         if (pid != NULL) {
           /* If the function has a non-empty old-style identifier list of
@@ -10183,7 +10188,8 @@ continue_with_declaration:
             if (pid->source_sequence_entry != NULL) {
               check_assertion(ss_entry_kind(pid->source_sequence_entry) ==
                                                  (an_il_entry_kind)iek_none);
-              remove_from_source_sequence_list(pid->source_sequence_entry);
+              remove_from_source_sequence_list(pid->source_sequence_entry,
+                                               &sublist);
               pid->source_sequence_entry = NULL;
             }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

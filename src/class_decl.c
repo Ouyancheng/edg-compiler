@@ -6421,17 +6421,20 @@ Scan the body of a class definition, including the base classes list.
                      list of parameter identifiers -- they're not needed if
                      there's no definition. */
                   a_param_id_ptr  pid = func_info.param_id_list;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+                  a_src_seq_sublist_ptr  sublist = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                   for (; pid != NULL; pid = pid->next) {
                     if (pid->symbol != NULL) {
                       mark_declared(pid->symbol, &pid->symbol->decl_position);
                     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
                     if (pid->source_sequence_entry != NULL) {
-                    check_assertion(
+                      check_assertion(
                                ss_entry_kind(pid->source_sequence_entry) ==
                                               (an_il_entry_kind)iek_none);
                       remove_from_source_sequence_list(
-                                                   pid->source_sequence_entry);
+                                       pid->source_sequence_entry, &sublist);
                       pid->source_sequence_entry = NULL;
                     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -6440,10 +6443,6 @@ Scan the body of a class definition, including the base classes list.
                      needed if there's no definition. */
                   free_param_id_list(&(func_info.param_id_list));
                 }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-              } else {
-                func_info.class_in_which_defined_inline = class_type;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               }  /* if */
               if (curr_routine_fixup != NULL) {
                 curr_routine_fixup->routine = rout_sym->variant.routine.ptr;

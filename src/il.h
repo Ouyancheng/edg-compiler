@@ -646,7 +646,8 @@ extern void add_end_of_construct_source_sequence_entry(
                         (char *)type, (a_byte_il_entry_kind)iek_type);
                    
 extern void remove_from_source_sequence_list(
-                                      a_source_sequence_entry_ptr ssep_ptr);
+                                      a_source_sequence_entry_ptr ssep_ptr,
+                                      a_src_seq_sublist_ptr       *sublist);
 
 extern void remove_sublist_header_and_parent(
                                       a_src_seq_sublist_ptr        sublist,

@@ -7064,7 +7064,8 @@ this entity.
       if (merged) {
         /* Since new_ssep has been added to a sublist, old_ssep can simply be
            removed. */
-        remove_from_source_sequence_list(old_ssep);
+        a_src_seq_sublist_ptr  dummy;
+        remove_from_source_sequence_list(old_ssep, &dummy);
 #if DEBUG
         if (debug_level >= 4) {
           fputs("empty ss entry replaced and sublists merged\n", f_debug);
@@ -7386,13 +7387,14 @@ sequence list.
         is_function_type((a_type_ptr)ptr)) {
       /* Record the function type as an orphan, in case it's not pointed to
          anywhere else. */
-      add_orphaned_file_scope_il_entry(ptr, kind);
+      add_orphaned_file_scope_il_entry(ptr, (an_il_entry_kind)kind);
     }  /* if */
   }  /* if */
 }  /* add_end_of_construct_source_sequence_entry */
 
 
-void remove_from_source_sequence_list(a_source_sequence_entry_ptr  ssep)
+void remove_from_source_sequence_list(a_source_sequence_entry_ptr  ssep,
+                                      a_src_seq_sublist_ptr        *sublist)
 /*
 Remove the source sequence entry pointed to by ssep from the list to which
 it belongs and place it on the appropriate available list (depending on the
@@ -7401,15 +7403,15 @@ memory region in which it was allocated).
 {
   a_source_sequence_entry_ptr  *avail_list_ptr;
   a_scope_stack_entry_ptr      scope_stack_ptr;
-  a_src_seq_sublist_ptr        sublist = NULL;
   a_boolean                    is_on_sublist;
 
   db_enter(4, "remove_from_source_sequence_list");
   /* Entries allocated in the file scope memory region may be on the list of
      the file scope itself or on a side list of a function scope. */
   scope_stack_ptr = &scope_stack[depth_innermost_ss_list_scope];
-  if (in_file_scope(ssep) &&
-      depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE) {
+  if (*sublist != NULL ||
+      (in_file_scope(ssep) &&
+       depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE)) {
     /* A file scope entry on a function scope list. */
     is_on_sublist = TRUE;
     /* Be sure to return the file scope entity to the available list for the
@@ -7435,9 +7437,9 @@ memory region in which it was allocated).
       scope_stack_ptr->il_scope->source_sequence_list = ssep->next;
     } else {
       /* It is a file-scope entry on a sublist of a function scope list. */
-      sublist = sublist_header_of(ssep);
-      check_assertion(sublist->source_sequence_list == ssep);
-      sublist->source_sequence_list = ssep->next;
+      if (*sublist == NULL) *sublist = sublist_header_of(ssep);
+      check_assertion((*sublist)->source_sequence_list == ssep);
+      (*sublist)->source_sequence_list = ssep->next;
     }  /* if */
   }  /* if */
   /* Modify the successor on the list (or the list's tail pointer) to point
@@ -7453,12 +7455,13 @@ memory region in which it was allocated).
       scope_stack_ptr->last_source_sequence_entry = ssep->prev;
     } else {
       /* It is a file-scope entry on a sublist of a function scope list. */
-      if (sublist == NULL) sublist = sublist_header_of(ssep);
-      check_assertion(sublist->last_source_sequence_entry == ssep);
-      sublist->last_source_sequence_entry = ssep->prev;
-      if (sublist->last_source_sequence_entry == NULL) {
-        remove_sublist_header_and_parent(sublist,
-                                         find_sublist_parent(sublist));
+      if (*sublist == NULL) *sublist = sublist_header_of(ssep);
+      check_assertion((*sublist)->last_source_sequence_entry == ssep);
+      (*sublist)->last_source_sequence_entry = ssep->prev;
+      if ((*sublist)->last_source_sequence_entry == NULL) {
+        remove_sublist_header_and_parent(*sublist,
+                                         find_sublist_parent(*sublist));
+        *sublist = NULL;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7484,14 +7487,14 @@ respective linked lists.
 */
 {
   a_scope_stack_entry_ptr  scope_stack_ptr;
-  a_src_seq_sublist_ptr    prev_sublist;
+  a_src_seq_sublist_ptr    prev_sublist, dummy = NULL;
 
   /* Confirm that the function scope is still on the scope stack and that
      the sublist header being removed has an empty list. */
   check_assertion(depth_innermost_ss_list_scope != DEPTH_OF_FILE_SCOPE);
   check_assertion(sublist->source_sequence_list == NULL);
   /* Remove the sublist parent from the function-scope source sequence list. */
-  remove_from_source_sequence_list(parent);
+  remove_from_source_sequence_list(parent, &dummy);
   /* Remove the sublist header from the linked list of sublist headers.
      Note that it is not put on an available list for reuse.  This could be
      done, but it is not likely to make much difference either way. */
