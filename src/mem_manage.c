@@ -772,6 +772,10 @@ of the front end.
      pointers. */
   memzero((char *)orphaned_file_scope_il_entries,
           sizeof(orphaned_file_scope_il_entries));
+  /* Initialize the orphaned_file_scope_il_lists array to NULL
+     pointers. */
+  memzero((char *)orphaned_file_scope_il_lists,
+          sizeof(orphaned_file_scope_il_lists));
 #endif /* IL_WALK_NEEDED */
 }  /* mem_manage_init */
 
