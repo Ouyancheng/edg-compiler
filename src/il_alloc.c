@@ -1010,6 +1010,9 @@ to default values.
       pte->variant.array.is_vla = FALSE;
       pte->variant.array.has_assoc_vla_dimension = FALSE;
       pte->variant.array.variant.number_of_elements = 0;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      pte->variant.array.bound_constant = NULL;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       break;
     case tk_class:
     case tk_struct:
