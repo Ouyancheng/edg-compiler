@@ -1,5 +1,9 @@
 Version 2.43
 
+9/22/99  Microsoft compatibility: "asm" not a keyword in C mode
+
+In Microsoft C mode, "asm" is no longer treated as a keyword.
+
 9/22/99  Comparisons and conditional operators on multilevel pointer types
 
 In C++ mode, the front end now accepts multilevel pointer types with differing
