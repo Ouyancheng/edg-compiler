@@ -3547,7 +3547,8 @@ GDO_FUNCTION_FRIEND_DECL is TRUE, this is a friend declaration for
 a function.  If options & GDO_FORCE_UNQUALIFIED_NAME is TRUE,
 use an unqualified name when naming the entity in the declarator.
 name_ref represents the form of the declarator (or NULL if it wasn't
-recorded).*/
+recorded).
+*/
 {
   a_boolean force_unqualified_name =
                                    (options & GDO_FORCE_UNQUALIFIED_NAME) != 0;
