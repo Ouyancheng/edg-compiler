@@ -289,6 +289,7 @@ typedef enum /*an_il_entry_kind*/ {
 #endif /* ifdef FIL */
 #ifdef CIL
   iek_namespace,	/* a_namespace */
+  iek_using_directive,	/* a_using_directive */
   iek_dynamic_init,	/* a_dynamic_init */
   iek_local_static_variable_init,
 			/* a_local_static_variable_init */
@@ -410,6 +411,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* ifdef FIL */
 #ifdef CIL
 /* iek_namespace */			"namespace",
+/* iek_using_directive */		"using-directive",
 /* iek_dynamic_init */			"dynamic-init",
 /* iek_local_static_variable_init */	"local-static-variable-init",
 /* iek_access_adjustment */		"access-adjustment",
@@ -886,6 +888,38 @@ typedef struct a_namespace {
 			   should never be NULL. */
   } variant;
 } a_namespace;
+
+
+/*
+Data structure representing a using-directive -- namely, a declaration of
+the form "using namespace N", where N is a namespace name.  (Not be to
+confused with a using-declaration, which is of the form "using N::x" or
+"using ::x".)
+*/
+typedef struct a_using_directive *a_using_directive_ptr;
+typedef struct a_using_directive {
+  a_using_directive_ptr
+		next;
+			/* Next in a linked list of using-directives for the
+			   current scope; NULL for the last on the list. */
+  a_namespace_ptr
+		assoc_namespace;
+			/* Pointer to the associated namespace entry; may
+			   point to an entry for which is_namespace_alias is
+			   TRUE. */
+ a_source_position
+		position;
+			/* Source position of keyword "using" in this
+			   using-directive. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+		source_sequence_entry;
+			/* Pointer to source sequence entry that represents
+			   the place this using-directive appears within the
+			   current file, namespace, function, or class scope
+			   relative to other declarations, statements, etc. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+} a_using_directive;
 
 
 /*
@@ -6116,6 +6150,12 @@ typedef struct a_scope {
 			/* List of namespaces defined within the current
 			   scope (C++ only); non-NULL only when the current
 			   scope's kind is sck_file or sck_namespace. */
+  a_using_directive_ptr
+		using_directives;
+			/* List of using-directives appearing within the
+			   current sck_file, sck_namespace, sck_function,
+			   sck_block, or sck_class_struct_union scope (C++
+			   only). */
   a_dynamic_init_ptr
 		dynamic_inits;
 			/* List of dynamic initializations to be done in the

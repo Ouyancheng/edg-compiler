@@ -1033,6 +1033,8 @@ the file scope, do not process it (but record an orphan in the latter case).
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
         walk_list(ptr->namespaces, a_namespace_ptr, iek_namespace);
+        walk_list(ptr->using_directives, a_using_directive_ptr,
+                  iek_using_directive);
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
         walk_list(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
         walk_list(ptr->local_static_variable_inits,
@@ -1234,6 +1236,17 @@ the file scope, do not process it (but record an orphan in the latter case).
         } else {
           walk_ptr(ptr->variant.assoc_scope, a_scope_ptr, iek_scope);
         }  /* if */
+      }
+      break;
+    case iek_using_directive:
+      {
+        a_using_directive_ptr ptr = (a_using_directive_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_using_directive_ptr, iek_using_directive);
+        remap_ptr(ptr->assoc_namespace, a_namespace_ptr, iek_namespace);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        remap_ptr(ptr->source_sequence_entry, a_source_sequence_entry_ptr,
+                  iek_source_sequence_entry);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
     case iek_dynamic_init:

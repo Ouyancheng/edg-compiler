@@ -2640,9 +2640,18 @@ do_assoc_type:
 #ifdef CFE
   disp_ptr("asm_entries", (char *)ptr->asm_entries, iek_asm_entry);
   disp_ptr("scopes", (char *)ptr->scopes, iek_scope);
-  if (ptr->kind == (a_scope_kind)sck_file ||
-      ptr->kind == (a_scope_kind)sck_namespace) {
-    disp_ptr("namespaces", (char *)ptr->namespaces, iek_namespace);
+  switch (ptr->kind) {
+    case sck_file:
+    case sck_namespace:
+      disp_ptr("namespaces", (char *)ptr->namespaces, iek_namespace);
+      /* Fall through. */
+    case sck_function:
+    case sck_block:
+    case sck_class-struct_union:
+      disp_ptr("using_directives", (char *)ptr->using_directives,
+               iek_using_directive);
+      break;
+    default:;
   }  /* if */
   disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
   if (ptr->kind == (a_scope_kind)sck_function ||
@@ -2948,6 +2957,23 @@ Display the indicated namespace entry.
     disp_ptr("assoc_scope", (char *)ptr->variant.assoc_scope, iek_scope);
   }  /* if */
 }  /* disp_namespace */
+
+
+static void disp_using_directive(a_using_directive_ptr  ptr)
+/*
+Display the indicated using-directive entry.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_using_directive);
+  disp_ptr("assoc_namespace", (char *)ptr->assoc_namespace, iek_namespace);
+  disp_unsigned_long("position.seq", (unsigned long)ptr->position.seq);
+  disp_unsigned_long("position.column", (unsigned long)ptr->position.column);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
+           iek_source_sequence_entry);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* disp_using_directive */
 
 
 static void disp_dynamic_init(a_dynamic_init_ptr ptr)
@@ -3486,6 +3512,9 @@ This routine is called during IL walking.
 #ifdef CFE
         case iek_namespace:
           disp_namespace((a_namespace_ptr)entry_ptr);
+          break;
+        case iek_using_directive:
+          disp_using_directive((a_using_directive_ptr)entry_ptr);
           break;
         case iek_dynamic_init:
           disp_dynamic_init((a_dynamic_init_ptr)entry_ptr);

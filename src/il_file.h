@@ -104,6 +104,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #endif /* ifdef FIL */
 #ifdef CIL
   sizeof(a_namespace),
+  sizeof(a_using_directive),
   sizeof(a_dynamic_init),
   sizeof(a_local_static_variable_init),
   sizeof(an_access_adjustment),
