@@ -100,11 +100,11 @@ Support has beed added for out-of-line definitions of member functions
 of class templates; both template definitions and specific defintions
 are allowed.  For example:
 
-  template <class T, int I> class A {
+  template <class T> class A {
     void f(T&);
   };
-  template <class T, int I> void A<T,I>::f(T& t) { /* ... */ }
-  void A<int,1>::f(int& t) { /* ... */ }
+  template <class T> void A<T>::f(T& t) { /* ... */ }
+  void A<int>::f(int& t) { /* ... */ }
 
 11/20/92 Subscript checking made more discriminating
 
