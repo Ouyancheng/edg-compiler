@@ -5170,6 +5170,12 @@ the symbol and its linkage (which is always "none").
   if (storage_class != (a_storage_class)sc_unspecified) {
     pos_error(ec_storage_class_not_allowed, &locator->source_position);
   }  /* if */
+  if (microsoft_mode && sym->kind == (a_symbol_kind)sk_projection) {
+    /* In Microsoft compatibility mode it's permitted to define a static
+       data member by referring to it as an inherited member.  However, only
+       allow this if the reference is unambiguous. */
+    if (!sym->ambiguous) sym = fundamental_symbol_of(sym);
+  }  /* if */
   if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     var = sym->variant.static_data_member.variable;
     if (sym->defined) {

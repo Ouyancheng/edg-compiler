@@ -1,5 +1,16 @@
 Version 2.39
 
+4/27/98   Microsoft compatibility: define static data member using derived
+          class qualifier
+
+In Microsoft compatibility mode a static data member of a base class can
+be defined using a qualified name that refers to the derived class.  For
+example:
+
+  class B { static int x; };
+  class D : public B { };
+  int D::x = 0;                // Allowed in Microsoft mode
+
 4/25/98   Calls of virtual functions during subobject construction in
           the presence of virtual base classes (ABI CHANGE)
 
