@@ -5194,9 +5194,15 @@ otherwise it is NULL.  The syntax is:
             default:;  /* No error. */
           }  /* switch */
           if (s != NULL) {
-            pos_st_error(ec_nonmember_operator_not_allowed,
-                         &locator->source_position, s);
-            set_to_error_locator(*locator);
+            if (locator->variant.opname == (an_opname_kind)onk_assign &&
+                cfront_compatibility_mode && allow_anachronisms) {
+              pos_st_warning(ec_nonmember_operator_not_allowed,
+                             &locator->source_position, s);
+            } else {
+              pos_st_error(ec_nonmember_operator_not_allowed,
+                           &locator->source_position, s);
+              set_to_error_locator(*locator);
+            }  /* if */
           }  /* if */
         }  /* if */
       } else if (locator->is_conversion_name) {
