@@ -3300,16 +3300,16 @@ enable_microsoft_mode:
         trans_unit_test_mode = opt_value;
         break;
 #endif /* ENABLE_TRANS_UNIT_TEST_MODE */
-      case optk_gcc_mode:
 #if GNU_EXTENSIONS_ALLOWED
+      case optk_gcc_mode:
         /* GNU C mode should or should not be used.  This option implies
            ANSI C mode, even in the "--no_gcc" form. In other words,
            --[no_]gcc is short for --c --[no_]gcc.  See --svr4, --c99 and
            --sun for similar behavior. */
         gcc_mode = opt_value;
         C_dialect = C_dialect_ANSI;
-#endif /* GNU_EXTENSIONS_ALLOWED */
         break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
