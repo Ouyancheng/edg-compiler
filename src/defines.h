@@ -29,6 +29,7 @@ Flags to be set for any version that uses the C++ generating back end.
 #define BACK_END_IS_CP_GEN_BE 1
 #define DO_IL_LOWERING 0
 #define CFRONT_2_1_OBJECT_CODE_COMPATIBILITY 0
+#define CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG 0
 #define AUTOMATIC_TEMPLATE_INSTANTIATION 0
 #define INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL 0
 #ifdef _WIN32
