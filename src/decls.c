@@ -6488,7 +6488,8 @@ typedef, we must make sure to propagate that to its members.
     routine->source_corresp.name_linkage = name_linkage;
     if (name_linkage == (a_name_linkage_kind)nlk_cplusplus_external ||
         name_linkage == (a_name_linkage_kind)nlk_external) {
-      routine->storage_class = (a_storage_class)sc_extern;
+      routine->storage_class = (a_storage_class)
+                              (routine->defined ? sc_unspecified : sc_extern);
     }  /* if */
   }  /* for */
   for (var = scope->variables; var != NULL; var = var->next) {
