@@ -3210,12 +3210,12 @@ of nonzero size (such classes actually have size zero).
         break;
       }  /* if */
     }  /* for */
-  #else /* !IA64_ABI */
+#else /* !IA64_ABI */
     /* In the Cfront-like ABI, any field makes the class non-empty. */
     if (type->variant.class_struct_union.field_list != NULL) {
       result = FALSE;
     }  /* if */
-  #endif /* IA64_ABI */
+#endif /* IA64_ABI */
     if (!result) {
       /* The class is already known to be non-empty. */
     } else if (type->variant.class_struct_union.any_virtual_base_classes ||

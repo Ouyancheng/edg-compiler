@@ -8666,7 +8666,7 @@ constructor, but may instead be after an assignment to "this".
                                                             this_param_var);
           vptr_node = var_rvalue_expr(vbase_param_var);
         } else 
-  #endif /* !IA64_ABI */
+#endif /* !IA64_ABI */
         /* Do not insert code here. */
         {
           /* Use the usual code.  Note that if the base class here is
