@@ -5,12 +5,15 @@ Version 2.31
 Defining a variable with type reference-to-template-class used to force
 instantiation of that class; this was a best guess in the original
 implementation of templates, but clarifications in the language definition
-now make it an unlikely interpretation.  Here's an example of where behavior
-has changed:
+now make it an unlikely interpretation.  Here's an example of where
+behavior is now different:
 
   template <class T> class A { };
   extern A<int> a;                   // No instantiation (unchanged)
   A<int> &ra = a;                    // No longer triggers instantiation
+
+(Of course, any subsequent use of ra (or a) that requires the type to be
+complete will cause the instantiation to be performed.)
 
 12/1/95   Spurious diagnostics caused by out-of-scope declarations that
 	  should be ignored
