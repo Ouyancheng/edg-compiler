@@ -502,7 +502,9 @@ static void db_throw_stack_entry(a_throw_stack_entry_ptr tsep)
   fprintf(__f_debug, "typinfo=%p ", (void*)tsep->type_info);
   fprintf(__f_debug, "flags=%0x ", tsep->flags);
   fprintf(__f_debug, "object_address=%p ", (void*)tsep->object_address);
-  if (tsep->is_rethrow) fprintf(__f_debug, "is_rethrow=%0d ", tsep->is_rethrow);
+  if (tsep->is_rethrow) {
+    fprintf(__f_debug, "is_rethrow=%0d ", tsep->is_rethrow);
+  }  /* if */
   if (tsep->discard_entry) {
     fprintf(__f_debug, "discard_entry=%0d ", tsep->discard_entry);
   }  /* if */
