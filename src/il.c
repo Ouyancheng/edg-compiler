@@ -7442,6 +7442,15 @@ will go on a sublist if it was allocated in the file-scope memory region.
       db_ss_list_for_scope(sp);
     }  /* if */
 #endif /* DEBUG */
+    if (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
+        scope_stack_ptr->ss_list_instantiation_insert_point == NULL) {
+      /* This is the first source sequence entry to be entered on the source
+         sequence list since the insert point for instantiations was set to
+         NULL (at the point where a new declaration begins). Record the
+         current entry as the insert point (i.e., the point before which the
+         source sequence entries for an instantiation should be inserted). */
+      scope_stack_ptr->ss_list_instantiation_insert_point = new_ssep;
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* add_to_source_sequence_list */
@@ -7889,6 +7898,13 @@ memory region in which it was allocated).
        function scope list. */
     is_on_sublist = FALSE;
     avail_list_ptr = &scope_stack_ptr->source_sequence_avail_list;
+    if (scope_stack_ptr->ss_list_instantiation_insert_point == ssep) {
+      check_assertion(depth_scope_stack == DEPTH_OF_FILE_SCOPE);
+      /* We are removing the source sequence entry that was marked as the
+         insert point for instantiations.  Update the insert pointer
+         appropriately. */
+      scope_stack_ptr->ss_list_instantiation_insert_point = ssep->next;
+    }  /* if */
   }  /* if */
   /* Modify the predecessor on the list (or the list pointer itself) to
      point to ssep's successor. */
