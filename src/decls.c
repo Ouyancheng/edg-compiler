@@ -11530,8 +11530,8 @@ continue_with_declaration:
         /* If the variable had already been declared previously, old_type
            would be set. */
         a_boolean  decl_invisible_to_initializer =
-                        (microsoft_bugs && has_parenthesized_initializer &&
-                         old_type == NULL);
+                        ((microsoft_bugs || gpp_mode) &&
+                         has_parenthesized_initializer && old_type == NULL);
         /* Advance past the "=". */
         if (curr_token == tok_assign) (void)get_token();
         /* Now scan the initializer. */
