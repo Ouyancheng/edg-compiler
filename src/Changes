@@ -1,5 +1,15 @@
 Version 2.11
 
+9/27/92  Definition of virtual function tables of unreferenced classes
+
+IL lowering has been changed so that the definitions for virtual function
+tables for unreferenced non-external classes are put out.  Previously,
+the definition was not created, which left the virtual function table
+variable an extern variable.  If the back end chose to generate
+the code for the (unreferenced) constructor or destructor, it would
+make reference to the extern virtual function table and get a linkage
+error.
+
 9/26/92  Error on incomplete enum type
 
 The error on an incomplete enum declaration in strict ANSI mode,

@@ -3881,12 +3881,14 @@ is returned TRUE.
      that contains the definition of the lexically first non-inline, virtual,
      non-pure member function of the class.  See ARM 10.8.1c and "New Virtual
      Table Strategy" in the AT&T cfront 2.1 Release Notes. */
-  if (!class_type->source_corresp.referenced) {
-    /* The class is not referenced, so the virtual function table is not
-       needed.  Note that externally-linked classes will always be marked
-       as referenced. */
-    defined_here = FALSE;
-  } else if (class_type->source_corresp.name_linkage !=
+  /* Note that we do not check whether or not the class is referenced.
+     For externally-linked classes, we would always find the class marked
+     as referenced.  For other classes, we put out the definition even if
+     the class is unreferenced because there will be code generated in the
+     (unreferenced) constructor and destructor that references the virtual
+     function table.  We don't want a back end that chooses to generate the
+     code in those unreferenced routines to reference an undefined vtbl. */
+  if (class_type->source_corresp.name_linkage !=
                                  (a_name_linkage_kind)nlk_cplusplus_external) {
     /* Not C++ external linkage, therefore must define any virtual function
        table, if needed. */
