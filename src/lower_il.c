@@ -7413,7 +7413,7 @@ do_assignment:;
       }  /* if */
       /* Indicate to the back end that there will be a non-local reference to
          the variable (from the termination routine). */
-      variable->referenced_non_locally = TRUE;
+      ipdp->variable->referenced_non_locally = TRUE;
     } else {
       /* Destruction of other variables must happen at the end of the current
          scope. */
