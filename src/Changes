@@ -1,5 +1,30 @@
 Version 2.32
 
+5/10/96 IL CHANGE: new flags in a_routine, a_variable, a_type
+
+New flags related to explicit template specialization have been added to
+a_routine, a_variable, and (as a class_struct_union variant) a_type:
+
+  -- is_specialized is TRUE when the definition of an template function,
+     template static data member, or template class, respectively, is
+     supplied explicitly rather than generated from the associated
+     template.
+
+  -- specialized_with_old_syntax is TRUE when the specialization results
+     from something other that a "template<>" declaration.
+
+The specific_def flag in a_routine and a_variable has been removed, as
+has the is_specific_template_def flag in a_class_symbol_supplement.
+
+In a related change, specialized_with_new_syntax has been added to
+a_src_seq_secondary_decl (which is used if GENERATE_SOURCE_SEQUENCE_LISTS
+is set to TRUE); this enables the C++-generating back end to distinguish
+between specializations and guiding declarations:
+
+  template <class T> void f(T);
+  void f(int);                    // guiding declaration
+  template<> void f(int);         // specialization
+
 5/9/69  Nonstandard asm declarations within templates 
 
 An error is now issued if a Microsoft-style asm declaration appears inside
@@ -187,22 +212,6 @@ type are now considered to return lvalues.
     gl(ppp().c);  /* Okay in Microsoft mode. */
     fl(&(ppp())); /* Okay in Microsoft mode. */
   }
-
-4/29/96 IL CHANGE: new flags in a_routine and a_variable
-
-New flags related to explicit template specialization have been added to
-a_routine and a_variable: is_specialization is TRUE when an entity is
-specialized using the template<> syntax, and suppress_instantiation
-replaces the flag specific_def, which has been removed.
-
-In a related change, is_specialization has been added to
-a_src_seq_secondary_decl (which is used if GENERATE_SOURCE_SEQUENCE_LISTS
-is set to TRUE); this enables the C++-generating back end to distinguish
-between specializations and guiding declarations:
-
-  template <class T> void f(T);
-  void f(int);                    // guiding declaration
-  template<> void f(int);         // specialization
 
 4/29/96 Diagnostic issues for a missing type specifier in an explicit
         instantiation
