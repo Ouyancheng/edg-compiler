@@ -1,5 +1,32 @@
 Version 2.07, July 2, 1992
 
+8/19/92  Eliminated use of printf
+
+Printf was used for some catastrophic error situations such as deleting an
+array with vec_del that was not allocating by vec_new and calling a
+pure virtual function.  These cases have been modified to simply abort
+in a function whose name describes the offending condition (i.e.,
+_array_pointer_not_from_vec_new()).
+
+8/18/92  Changed names of source files
+
+The names of the source files were changed as follows:
+
+Old		New
+-------------   -----------
+_delete.C	delete.c
+_handler.C	set_new.c
+_main.C		main.c
+_new.C		new.c
+_newdel.h	newdel.h
+_placenew.C	placenew.c
+_ptrtomembers.C	memberptr.c
+_pure_virt.C	pure_virt.c
+_vec_cctor.C	vec_cctor.c
+_vec_cdtor.C	vec_cdtor.c
+_vec_newdel.C	vec_newdel.c
+
+
 6/24/92  New runtime routine _vec_cctor()
 
 A new C++ runtime routine _vec_cctor() to execute a copy constructor for
