@@ -32,7 +32,7 @@ PATCH=${EDG_PATCH_PATH-$EDG_BASE/lib/patch}
 #
 # "munch" executable
 #
-MUNCH=$EDG_BASE/lib/edg_munch
+MUNCH=${EDG_MUNCH_PATH-$EDG_BASE/lib/edg_munch}
 #
 # "edg_prelink" executable
 #
