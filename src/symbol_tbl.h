@@ -520,6 +520,27 @@ typedef struct a_symbol_list_entry {
 } a_symbol_list_entry;
 
 
+typedef struct a_substituted_type_list_entry
+			*a_substituted_type_list_entry_ptr;
+typedef struct a_substituted_type_list_entry {
+  /* Entry that points to a template argument list and a routine type
+     that resulted from substituting the template parameters of the
+     associated template with the template arguments. */
+  a_substituted_type_list_entry_ptr
+		next;
+			/* Next in a linked list of type list entries; NULL
+			   for the last on the list. */
+  a_template_arg_ptr
+		templ_arg_list;
+			/* Pointer to a template argument list that was used
+			   to create type.  This argument list may contain
+			   unspecified template arguments (i.e., template
+			   arguments with NULL type or constant pointers). */
+  a_type_ptr	type;
+			/* Pointer to a type entry. */
+} a_substituted_type_list_entry;
+
+
 typedef struct a_namespace_list_entry *a_namespace_list_entry_ptr;
 typedef struct a_namespace_list_entry {
   /* Entry created to produce a list of namespaces for some special purpose.
@@ -1402,6 +1423,15 @@ typedef struct a_template_symbol_supplement {
 			   closing ">" of the template parameter list) and
 			   ends with the last token of the function
 			   declarator. */
+      a_substituted_type_list_entry_ptr
+		substituted_types;
+			/* A list of template argument lists and the type
+			   that results from substituting the template
+			   parameters in the template routine types with
+			   specified template arguments.  This is used by
+			   substitute_template_arguments to determine whether
+			   a type has already been produced for a given
+			   template argument list. */
       a_bit_field
 		cannot_be_called:1;
 			/* TRUE if this function cannot be called because
@@ -2716,6 +2746,8 @@ extern void set_membership_in_source_corresp(a_source_correspondence  *scp,
 
 /* Allocation */
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
+extern
+a_substituted_type_list_entry_ptr alloc_substituted_type_list_entry(void);
 extern a_symbol_list_entry_ptr alloc_symbol_list_entry(void);
 extern void free_list_of_symbol_list_entries(a_symbol_list_entry_ptr slep);
 

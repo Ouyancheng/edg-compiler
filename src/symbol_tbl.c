@@ -79,6 +79,7 @@ static unsigned long
 		num_dependent_type_fixups_allocated,
 		num_template_instances_allocated,
 		num_symbol_list_entries_allocated,
+		num_substituted_type_list_entries_allocated,
 		num_template_cache_segments_allocated,
 		num_template_decl_info_allocated,
 		num_namespace_list_entries_allocated,
@@ -1188,6 +1189,26 @@ Allocate a new conversion header and return a pointer to it.
 }  /* alloc_conversion_header */
 
 
+a_substituted_type_list_entry_ptr alloc_substituted_type_list_entry(void)
+/*
+Allocate a new type list entry and return a pointer to it.
+*/
+{
+  register a_substituted_type_list_entry_ptr ptr;
+
+  /* Allocate a new entry. */
+  ptr = (a_substituted_type_list_entry_ptr)
+                               alloc_fe(sizeof(a_substituted_type_list_entry));
+#if DEBUG
+  num_substituted_type_list_entries_allocated++;
+#endif /* DEBUG */
+  ptr->next = NULL;
+  ptr->templ_arg_list = NULL;
+  ptr->type = NULL;
+  return ptr;
+}  /* alloc_substituted_type_list_entry */
+
+
 a_symbol_list_entry_ptr alloc_symbol_list_entry(void)
 /*
 Allocate a new symbol list entry and return a pointer to it.
@@ -1663,6 +1684,7 @@ and return a pointer to it.
       tssp->variant.function.def_arg_expr_list = NULL;
       clear_template_cache(&tssp->variant.function.decl_cache,
                           /*reusable=*/TRUE);
+      tssp->variant.function.substituted_types = FALSE;
       tssp->variant.function.cannot_be_called = FALSE;
 #if CHECKING
       tssp->variant.function.avoid_codecenter_warnings = FALSE;
@@ -8249,6 +8271,9 @@ for space tracking purposes.
                 a_template_instance);
   db_space_used("symbol list entry", num_symbol_list_entries_allocated,
                 a_symbol_list_entry);
+  db_space_used("subst. type list entry",
+                num_substituted_type_list_entries_allocated,
+                a_substituted_type_list_entry);
   db_space_used_lost("template cache segment", avail_template_cache_segments,
                      num_template_cache_segments_allocated,
                      a_template_cache_segment);
@@ -8460,6 +8485,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_symbol_headers_allocated),
       pch_saved_var_array_elem(num_symbol_headers_in_hash_table),
       pch_saved_var_array_elem(num_symbol_list_entries_allocated),
+      pch_saved_var_array_elem(num_substituted_type_list_entries_allocated),
       pch_saved_var_array_elem(num_symbols_allocated),
       pch_saved_var_array_elem(num_template_instances_allocated),
       pch_saved_var_array_elem(num_template_params_allocated),
@@ -8549,6 +8575,7 @@ of the front end.
   num_template_instances_allocated             = 0;
   num_namespace_list_entries_allocated         = 0;
   num_symbol_list_entries_allocated            = 0;
+  num_substituted_type_list_entries_allocated  = 0;
   num_extern_symbol_descrs_allocated           = 0;
   num_vla_fixups_allocated                     = 0;
   num_extern_type_fixups_allocated             = 0;

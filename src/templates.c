@@ -1286,12 +1286,13 @@ void add_to_partial_order_candidates_list(
 			a_symbol_ptr			new_sym,
 			a_template_arg_ptr		templ_arg_list)
 /*
-Add the partial specialization or function template specified by new_sym
-to the candidates list pointed to by psc_list.  If the new entry is a
-poorer match than an entry already on the list, don't add it.  Go through
-the existing list and remove any entries that are poorer candidates than
-the new entry. templ_arg_list is the template argument list is the argument
-list associated with new_sym.
+Add the partial specialization or function template specified by
+new_sym to the candidates list pointed to by psc_list.  If the new
+entry is a poorer match than an entry already on the list, don't add
+it.  Go through the existing list and remove any entries that are
+poorer candidates than the new entry. templ_arg_list is the template
+argument list associated with new_sym, and is only supplied when the
+templates being ordered are class template partial specializations.
 */
 {
   a_partial_order_candidate_ptr	prev_pscp = NULL;
@@ -4282,17 +4283,64 @@ make_new_type:
 }  /* copy_type_with_substitution */
 
 
+static void add_to_substituted_types_list(
+			a_template_symbol_supplement_ptr	tssp,
+			a_template_arg_ptr			templ_arg_list,
+			a_type_ptr				type)
+/*
+Create a new substituted types list entry and add it to the list of
+substituted types associated with tssp.  A copy of the template
+argument list is created so that the original list can be freed by
+the caller.
+*/
+{
+  a_substituted_type_list_entry_ptr	stlep;
+
+  stlep = alloc_substituted_type_list_entry();
+  stlep->templ_arg_list = copy_template_arg_list(templ_arg_list);
+  stlep->type = type;
+  stlep->next = tssp->variant.function.substituted_types;
+  tssp->variant.function.substituted_types = stlep;
+}  /* add_to_substituted_types_list */
+
+
+static a_type_ptr find_substituted_type(
+			a_template_symbol_supplement_ptr	tssp,
+			a_template_arg_ptr			templ_arg_list)
+/*
+Determine whether a type has already been created for a given set of template
+arguments (specified by templ_arg_list).  tssp points to the template symbol
+supplement associated with the function template being used.
+*/
+{
+  a_substituted_type_list_entry_ptr	stlep;
+  a_type_ptr				result_type = NULL;
+
+  for (stlep = tssp->variant.function.substituted_types;
+       stlep != NULL; stlep = stlep->next) {
+    if (equiv_template_arg_lists(templ_arg_list, stlep->templ_arg_list,
+                                 ETA_NO_OPTIONS)) {
+      result_type = stlep->type;
+      break;
+    }  /* if */
+  }  /* for */
+  return result_type;
+}  /* find_substituted_type */
+
+
 a_type_ptr substitute_template_arguments(
 				a_symbol_ptr		templ_sym,
 				a_template_arg_ptr	templ_arg_list,
 				a_template_arg_ptr	*new_arg_list)
 /*
 In the function template specified by templ_sym, replace the template
-parameters in the function type with the values specified by templ_arg_list
-and return the resulting type.  If new_arg_list is non-NULL, templ_arg_list
-is an explicitly specified template argument list that must be converted into
-an argument list appropriate for the specified template.  The new argument
-list is returned in *new_arg_list.
+parameters in the function type with the values specified by
+templ_arg_list and return the resulting type.  If the substitution
+would result in an invalid type, a NULL type is returned.  If
+new_arg_list is non-NULL, templ_arg_list is an explicitly specified
+template argument list that must be converted into an argument list
+appropriate for the specified template.  The new argument list is
+returned in *new_arg_list.
 */
 {
   a_boolean				copy_error = FALSE;
@@ -4300,10 +4348,6 @@ list is returned in *new_arg_list.
   a_type_ptr				templ_rout_type = NULL;
   a_template_param_ptr			templ_param_list;
 
-#if 0
-  /* Add processing here to look up a previously created type based on the
-     template argument list being used. */
-#endif
   tssp = template_supplement_for_symbol(templ_sym);
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   if (new_arg_list != NULL) {
@@ -4317,14 +4361,18 @@ list is returned in *new_arg_list.
     *new_arg_list = templ_arg_list;
   }  /* if */
   if (templ_arg_list != NULL) {
-    templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
-#if 0
-    templ_rout_type = copy_type_with_substitution(templ_rout_type,
-                                                  templ_arg_list,
-	       					  &templ_sym->decl_position,
-						  &copy_error);
-#endif
-    if (copy_error) templ_rout_type = NULL;
+    /* See whether copy_type_with_substitution has already been done for
+       this template argument list.  If so, simply return the type
+       already created. */
+    templ_rout_type = find_substituted_type(tssp, templ_arg_list);
+    if (templ_rout_type == NULL) {
+      /* This is the first time this routine has been called for this
+         template argument list.  Create a new type. */
+      templ_rout_type = skip_typerefs(tssp->variant.function.routine->type);
+      if (copy_error) templ_rout_type = NULL;
+      /* Add the new type to the list of substituted types. */
+      add_to_substituted_types_list(tssp, templ_arg_list, templ_rout_type);
+    }  /* if */
   }  /* if */
   return templ_rout_type;
 }  /* substitute_template_arguments */

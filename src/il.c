@@ -5485,6 +5485,29 @@ type in a function definition is based on a typedef).
 }  /* copy_routine_type_with_param_types */
 
 
+a_template_arg_ptr copy_template_arg_list(a_template_arg_ptr orig_list)
+/*
+Create a copy of the template argument list specified by orig_list
+and return a pointer to the new list.
+*/
+{
+  a_template_arg_ptr	new_list = NULL;
+  a_template_arg_ptr	tail = NULL;
+  a_template_arg_ptr	tap;
+
+  for (tap = orig_list; tap != NULL; tap = tap->next) {
+    a_template_arg_ptr	new_tap;
+    new_tap = alloc_template_arg((a_boolean)tap->is_type);
+    *new_tap = *tap;
+    new_tap->next = NULL;
+    if (new_list == NULL) new_list = tap;
+    if (tail != NULL) tail->next = new_tap;
+    tail = new_tap;
+  }  /* for */
+  return new_list;
+}  /* copy_template_arg_list */
+
+
 a_boolean is_default_constructor(a_routine_ptr  ctor_rout,
                                  a_boolean      is_declarative_context)
 /*
