@@ -320,12 +320,13 @@ Dump a field entry, for debug purposes.
 */
 {
   a_targ_size_t  byte_offset;
-  int            i, bit_offset_at_byte;
+  int            i;
+  long           bit_offset_at_byte;
 
   fputs("\n  ", f_debug);
   if (depth > 0) for (i = depth; i > 0; --i) fputs("  ", f_debug);
   if (C_dialect == C_dialect_cplusplus) {
-    db_access_control(fp->source_corresp.access);
+    db_access_control((an_access_specifier)fp->source_corresp.access);
     (void)fputc(' ', f_debug);
   }  /* if */
   fputs("field \"", f_debug);
@@ -337,7 +338,7 @@ Dump a field entry, for debug purposes.
   if (bit_offset_at_byte > 0 || fp->bit_size > 0) {
     fprintf(f_debug, ", bit offset %lu", fp->bit_offset);
     if (byte_offset > 0) {
-      fprintf(f_debug, " (%lu+%d)", byte_offset, bit_offset_at_byte);
+      fprintf(f_debug, " (%lu+%ld)", byte_offset, bit_offset_at_byte);
     }  /* if */
     if (fp->bit_size > 0) {
       fprintf(f_debug, ", bit size %d", fp->bit_size);
@@ -354,7 +355,7 @@ Dump a static data member (a variable entry), for debug purposes.
 */
 {
   fputs("\n  ", f_debug);
-  db_access_control(vp->source_corresp.access);
+  db_access_control((an_access_specifier)vp->source_corresp.access);
   fputs(" static data member \"", f_debug);
   db_name(&vp->source_corresp);
   fputs("\" (", f_debug);
@@ -371,7 +372,7 @@ Dump a member function (a routine entry), for debug purposes.
 */
 {
   fputs("\n  ", f_debug);
-  db_access_control(rp->source_corresp.access);
+  db_access_control((an_access_specifier)rp->source_corresp.access);
   if (!routine_type_is_nonstatic_member_function(rp->type)) {
     fputs(" static", f_debug);
   }  /* if */
@@ -868,7 +869,7 @@ void db_constant(a_constant *cp)
 Dump the contents of the indicated constant, for debug purposes.
 */
 {
-  long           i;
+  unsigned long  i;
   char           c;
   a_constant_ptr cp2;
   a_variable_ptr vp;
@@ -2163,7 +2164,8 @@ to refine the hash value developed in hash_constant.
       break;
     case tk_array:
       hash_value = hash_type(type->variant.array.element_type) +
-                   type->variant.array.number_of_elements + 307;
+                   (a_constant_hash_value)
+                      (type->variant.array.number_of_elements) + 307;
       break;
     case tk_struct:
     case tk_class:
@@ -3110,7 +3112,7 @@ to default values.
 #endif /* DEBUG */
       rtsp->param_type_list          = NULL;
       rtsp->implicit_this_param_type = NULL;
-      rtsp->value_returned_by_cctor  = NULL;
+      rtsp->value_returned_by_cctor  = FALSE;
       rtsp->prototype_scope          = NULL;
       rtsp->assoc_routine            = NULL;
       rtsp->has_ellipsis             = FALSE;

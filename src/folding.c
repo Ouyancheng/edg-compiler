@@ -79,7 +79,7 @@ size in bits of the integral type.
 #if CHECKING
   if (size == 0) internal_error("get_integer_attributes: zero-sized integer");
 #endif /* CHECKING */
-  *bit_size = size * TARG_CHAR_BIT;
+  *bit_size = (int)(size * TARG_CHAR_BIT);
 }  /* get_integer_attributes */
 
 
@@ -790,7 +790,7 @@ a base class of the derived class).
            casting_base_class != NULL;
            casting_base_class = casting_base_class->next) {
         if (casting_base_class->type == member_class &&
-            casting_base_class->offset == offset) {
+            casting_base_class->offset == (a_targ_size_t)offset) {
           cast_to_base = FALSE;
           goto have_base_class;
         }  /* if */
@@ -802,7 +802,7 @@ a base class of the derived class).
            casting_base_class != NULL;
            casting_base_class = casting_base_class->next) {
         if (casting_base_class->type == new_class &&
-            casting_base_class->offset == -offset) {
+            casting_base_class->offset == (a_targ_size_t)(-offset)) {
           cast_to_base = TRUE;
           goto have_base_class;
         }  /* if */
@@ -1810,7 +1810,7 @@ everything went fine.
     *err_severity = es_error;
   } else {
     result_value = constant_1->variant.integer_value;
-    value_2 = value_of_integer_constant(constant_2, &err);
+    value_2 = (int)value_of_integer_constant(constant_2, &err);
     /* No need to check err because check_shift_count has already
        established that the shift count is reasonable. */
     if (shift_right) {
@@ -2249,8 +2249,10 @@ the object.
          ANSI C allows that for arrays to simplify some coding.  That
          subscript value is flagged later as an error by using_lvalue
          (it calls this routine again). */
-      valid = (constant->variant.address.offset <= object_size);
-      *just_past_end = (constant->variant.address.offset == object_size);
+      valid =
+           (constant->variant.address.offset <= (a_targ_ptrdiff_t)object_size);
+      *just_past_end =
+           (constant->variant.address.offset == (a_targ_ptrdiff_t)object_size);
     } else {
       /* Don't know what the size is, so assume the offset is valid. */
       valid = TRUE;
