@@ -4816,7 +4816,8 @@ ARM 12.8).  This function deals with implicitly called constructors,
 destructors, assignment operators, and conversion functions.
 */
 {
-  a_routine_ptr  rp = sym->variant.routine.ptr;
+  a_routine_ptr                       rp = sym->variant.routine.ptr;
+  a_function_instantiation_entry_ptr  fiep;
 
 #if CHECKING
   if (rp->special_kind != (a_special_function_kind)sfk_constructor &&
@@ -4840,6 +4841,12 @@ destructors, assignment operators, and conversion functions.
      routine. */
   if (rp->compiler_generated && rp->assoc_scope == NULL_region_number) {
     define_special_member_function(rp, sym->class_of_which_a_member, err_pos);
+  }  /* if */
+  /* If the function is an instance of a function template, mark it
+     as requiring an instantiation. */
+  fiep = sym->variant.routine.instance_ptr;
+  if (fiep != NULL) {
+    update_instantiation_required_flag(fiep, TRUE);
   }  /* if */
 }  /* reference_to_implicitly_invoked_function */
 
@@ -5428,7 +5435,6 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
   a_layout_block          layout_block;
   a_boolean               is_template_instantiation;
   a_boolean               is_unreal_instantiation;
-  a_scope_number          prototype_decl_scope = NO_SCOPE_NUMBER;
 
   /* Set a flag to indicate whether we scanning a class template declaration
      for the sake of producing a "prototype instantiation" of the template.
@@ -5963,7 +5969,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                   scan_pure_specifier(rout_sym, class_type,
                                       suppress_pure_specifier_error);
                 } else if (!friend_specified &&
-                           prototype_decl_scope != NO_SCOPE_NUMBER) {
+                           corresp_prototype_tag_sym != NULL) {
                   /* The class must be the instantiation of a class template
                      (or a class nested within such an instantiation). Bind
                      the current member function symbol to the function
