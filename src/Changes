@@ -1,8 +1,8 @@
 Version 2.41
 
-12/18/98  Class member using declaration with "typename"
+12/19/98  Class member using-declaration with "typename"
 
-Support is now provided for class member using declarations of the form
+Support is now provided for class member using-declarations of the form
 "using typename ...".
 
   template <class T> struct B {
