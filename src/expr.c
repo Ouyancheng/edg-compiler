@@ -1001,6 +1001,10 @@ to implement the GNU function __builtin_classify_type.)
         tck = (a_type_class_kind)tck_reference;
       }  /* if */
       break;
+    case tk_ptr_to_member:
+      /* Pointer-to-member types are considered pointer types. */
+      tck = (a_type_class_kind)tck_pointer;
+      break;
     case tk_float:
       tck = (a_type_class_kind)tck_float;
       break;
