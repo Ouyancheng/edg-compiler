@@ -3000,8 +3000,8 @@ Display the indicated access_adjustment entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_access_adjustment);
   disp_access("access", ptr->access);
-  disp_ptr("entity", (char *)ssep->entity.ptr,
-           (an_il_entry_kind)ssep->entity.kind);
+  disp_ptr("entity", (char *)ptr->entity.ptr,
+           (an_il_entry_kind)ptr->entity.kind);
 }  /* disp_access_adjustment */
 
 
