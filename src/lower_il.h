@@ -439,6 +439,7 @@ EXTERN unsigned long
 		num_init_pos_modifiers_allocated;
 #endif /* DEBUG */
 
+extern a_boolean il_lowering_needed(void);
 
 extern void pop_context(void);
 
