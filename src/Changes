@@ -1,5 +1,48 @@
 Version 2.32
 
+6/15/96 Duplicate class-member using-declarations
+
+The restriction on duplicate class-member using-declarations has been
+relaxed, pending further clarification in WP of cases involving aliasing
+and virtual base classes.  This means a strict-mode warning is issued on
+this sort of case:
+
+  struct B { void f(); };
+  struct D : public B {
+    using B::f;
+    using B::f;           // No longer an error -- warning in strict mode
+  };
+
+But it also means this sort of case is handled in a more reasonable way:
+
+  struct V { void f(); };
+  struct B1 : virtual public V { };
+  struct B2 : virtual public V { };
+  struct D : public B1, public B2 {
+    using B1::f();
+    using B2::f();       // No longer an error -- warning in strict mode
+  };
+
+And also this (taken from a test suite):
+
+  struct A { void f(); };
+  struct B : public A { };
+  struct D : public B {
+    using A::f;
+    using B::f;          // No longer an error -- warning in strict mode
+  };
+
+We also issue an new (unmandated) error when two using-declarations apply
+different access specifiers to the same base class member:
+
+  struct A { void f(); };
+  struct B : public A { };
+  struct D : public B {
+    using A::f;          // Makes A::f public in D
+  private:
+    using B::f;          // Error -- makes A::f private in D
+  };
+
 6/14/96 Type decay on conversion functions that return reference to array
         or function
 
