@@ -6947,6 +6947,9 @@ skip_tag_scan:
   return !err;
 }  /* class_specifier */
 
+/* Forward declaration for recursive call. */
+static void check_type_for_linkage_change(a_type_ptr type,
+                                                   int        *count);
 
 static void make_class_externally_linked(a_type_ptr type,
                                          int        *count)
@@ -6955,10 +6958,7 @@ This routine changes the linkage of a type and its components from
 internal to external.  The types it handles directly are class, struct,
 and union types, for which it sets the name_linkage field, adjusts members
 as needed, and searches for other classes that are entailed in its
-definition and marks them external as well.  The routine also deals with
-types that are built up from a class type (pointer to a class, array of
-class, routine with parameter pointer to class, etc.); these are handled
-by recursive calls.
+definition and marks them external as well.
 */
 {
   a_field_ptr                  fp;
@@ -6967,142 +6967,206 @@ by recursive calls.
   a_routine_ptr                rp;
   a_variable_ptr               vp;
   a_type_ptr                   tp;
-  a_param_type_ptr             ptp;
   a_symbol_ptr                 sym;
   a_template_arg_ptr           tap;
 
   db_enter(4, "make_class_externally_linked");
+  /* Mark the class as externally linked immediately, to avoid infinite
+     recursion if it is self referential. */
+  type->source_corresp.name_linkage =
+                                 (a_name_linkage_kind)nlk_cplusplus_external;
+  if (type->source_corresp.class_of_which_a_member == NULL) {
+    /* Increment the count.  This lets the caller know how many classes
+       were changed from internal to external linkage and permits an early
+       termination of this processing.  Note that a count is not made of
+       nested classes, since the optimization relies on classes at file scope
+       only. */
+    (*count)++;
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 3) {
+    fputs("external linkage given to class \"", f_debug);
+    db_type_name(type);
+    fputs("\"\n", f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  /* Be sure any class types involved in the definitions of subobjects
+     of the class are marked external, too. */
+  /* Nonstatic data members (fields) first. */
+  fp = type->variant.class_struct_union.field_list;
+  for (; fp != NULL; fp = fp->next) {
+    check_type_for_linkage_change(fp->type, count);
+  }  /* for */
+  /* Base classes. */
+  ctsp = type->variant.class_struct_union.extra_info;
+  bcp = ctsp->base_classes;
+  for (; bcp != NULL; bcp = bcp->next) {
+    check_type_for_linkage_change(bcp->type, count);
+  }  /* for */
+  if (ctsp->assoc_scope != NULL) {
+    /* A routine entry for a member function needs not only a check of
+       return and parameter types; it may also need its own linkage and
+       storage class set properly. */
+    rp = ctsp->assoc_scope->routines;
+    for (; rp != NULL; rp = rp->next) {
+      if (rp->is_inline) {
+        /* An inline member function remains internally linked even
+           when it is a member of an externally linked class. */
+      } else if (ctsp->template_arg_list != NULL &&
+           instantiation_mode == tim_local) {
+        /* In local instantiation mode the member function remains
+           internally linked. */
+      } else {
+        /* All other functions must be externally linked.  The storage
+           class (extern or unspecified) depends on whether the function
+           was defined in the current translation unit. */
+        rp->source_corresp.name_linkage =
+                 (a_name_linkage_kind)nlk_cplusplus_external;
+        if (rp->assoc_scope == NULL_region_number) {
+          /* No routine body. */
+          rp->storage_class = (a_storage_class)sc_extern;
+        } else {
+          /* Routine is defined in this file.  Mark it referenced in
+             case it's referenced in another file. */
+          rp->storage_class = (a_storage_class)sc_unspecified;
+          rp->source_corresp.referenced = TRUE;
+        }  /* if */
+#if DEBUG
+        if (debug_level >= 3) {
+          fputs("external linkage given to member function \"", f_debug);
+          db_name(&rp->source_corresp);
+          fputs("\"\n", f_debug);
+        }  /* if */
+#endif /* DEBUG */
+      }  /* if */
+      check_type_for_linkage_change(rp->type, count);
+    }  /* for */
+    /* A variable entry for a static data member will need to have its
+       storage class and linkage reset.  In addition, its type
+       must be checked. */
+    vp = ctsp->assoc_scope->variables;
+    for (; vp != NULL; vp = vp->next) {
+      vp->source_corresp.name_linkage =
+                                (a_name_linkage_kind)nlk_cplusplus_external;
+      sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+      if (sym->defined) {
+        vp->storage_class = (a_storage_class)sc_unspecified;
+      } else {
+        vp->storage_class = (a_storage_class)sc_extern;
+      }  /* if */
+#if DEBUG
+      if (debug_level >= 3) {
+        fputs("external linkage given to static data member \"", f_debug);
+        db_name(&vp->source_corresp);
+        fputs("\"\n", f_debug);
+      }  /* if */
+#endif /* DEBUG */
+      check_type_for_linkage_change(vp->type, count);
+    }  /* if */
+    /* Classes nested in the class should also be treated as having external
+       linkage. */
+    tp = ctsp->assoc_scope->types;
+    for (; tp != NULL; tp = tp->next) {
+      check_type_for_linkage_change(tp, count);
+    }  /* if */
+    /* Any class used directly or indirectly in specifying a template class
+       should be externally linked.  This is not explicitly specified by the
+       ARM, but may be inferred. */
+    tap = ctsp->template_arg_list;
+    for (; tap != NULL; tap = tap->next) {
+      if (tap->is_type) {
+        tp = tap->variant.type;
+      } else {
+        tp = tap->variant.constant->type;
+      }  /* if */
+      check_type_for_linkage_change(tp, count);
+    }  /* for */
+  }  /* if */
+  db_exit();
+}  /* make_class_externally_linked */
+
+
+static a_boolean is_candidate_for_linkage_change(a_type_ptr  tp)
+/*
+Return TRUE if the current linkage of this class is internal and there
+is nothing that prevents it from being changed to having external linkage.
+*/
+{
+  a_boolean  is_external_linkage_candidate = FALSE;
+
+  if (tp->source_corresp.is_local_to_function) {
+    /* Local types are ignored, as are types contained within them. */
+#if 0
+    /* It's not clear whether this should be allowed.  If not, an internal
+       error is appropriate here. */
+#endif /* if 0 */
+  } else if (tp->source_corresp.name_linkage !=
+                               (a_name_linkage_kind)nlk_internal) {
+    /* Already marked as having external linkage or no linkage.  Only
+       classes with internal linkage may be changed. */
+  } else if (tp->variant.class_struct_union.extra_info->
+                                                template_arg_list == NULL) {
+    /* Not a template class -- it may become externally linked. */
+    is_external_linkage_candidate = TRUE;
+  } else {
+    /* Template classes are usually externally linked.  The exception is
+       template-generated class when the instantiation mode is tim_local
+       (i.e., when all template classes and template functions referenced
+       in the translation unit are instantiated but are left with internal
+       linkage to avoid errors from the linker). */
+    if (instantiation_mode != tim_local ||
+        symbol_supplement_for_class(tp)->is_specific_template_def) {
+      is_external_linkage_candidate = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_external_linkage_candidate;
+}  /* is_candidate_for_linkage_change */
+
+
+static void check_type_for_linkage_change(a_type_ptr type,
+                                          int        *count)
+/*
+If type is a class type that is eligible for change from internal to
+external linkage, make that change.  If it contains such a type, make
+the change on the contained type.
+*/
+{
+  a_type_ptr                   tp;
+  a_param_type_ptr             ptp;
+
+  db_enter(4, "check_type_for_linkage_change");
   type = skip_typerefs(type);
   switch (type->kind) {
     case tk_class:
     case tk_struct:
     case tk_union:
-      /* Class, struct, or union type.  These are handled directly. */
-      if (type->source_corresp.is_local_to_function) {
-        /* Local types are ignored, as are types contained within them. */
-#if 0
-        /* It's not clear whether this should be allowed.  If not, an internal
-           error is appropriate here. */
-#endif /* if 0 */
-      } else if (type->source_corresp.name_linkage ==
-                               (a_name_linkage_kind)nlk_internal) {
-        /* Mark the class as externally linked immediately, to avoid infinite
-           recursion if it is self referential. */
-        type->source_corresp.name_linkage =
-                                 (a_name_linkage_kind)nlk_cplusplus_external;
-        /* Increment the count.  This lets the caller know how many classes
-           were changed from internal to external linkage. */
-        (*count)++;
-#if DEBUG
-        if (debug_level >= 3) {
-          fputs("external linkage given to class \"", f_debug);
-          db_name(&type->source_corresp);
-          fputs("\"\n", f_debug);
-        }  /* if */
-#endif /* DEBUG */
-        /* Be sure any class types involved in the definitions of subobjects
-           of the class are marked external, too. */
-        /* Nonstatic data members (fields) first. */
-        fp = type->variant.class_struct_union.field_list;
-        for (; fp != NULL; fp = fp->next) {
-          make_class_externally_linked(fp->type, count);
-        }  /* for */
-        /* Base classes. */
-        ctsp = type->variant.class_struct_union.extra_info;
-        bcp = ctsp->base_classes;
-        for (; bcp != NULL; bcp = bcp->next) {
-          make_class_externally_linked(bcp->type, count);
-        }  /* for */
-        if (ctsp->assoc_scope != NULL) {
-          /* A routine entry for a member function needs not only a check of
-             return and parameter types; it may also need its own linkage and
-             storage class set properly. */
-          rp = ctsp->assoc_scope->routines;
-          for (; rp != NULL; rp = rp->next) {
-            if (rp->is_inline) {
-              /* An inline member function remains internally linked even
-                 when it is a member of an externally linked class. */
-            } else if (ctsp->template_arg_list != NULL &&
-                       instantiation_mode == tim_local) {
-              /* In local instantiation mode the member function remains
-                 internally linked. */
-            } else {
-              /* All other functions must be externally linked.  The storage
-                 class (extern or unspecified) depends on whether the function
-                 was defined in the current translation unit. */
-              rp->source_corresp.name_linkage =
-                                   (a_name_linkage_kind)nlk_cplusplus_external;
-              if (rp->assoc_scope == NULL_region_number) {
-                /* No routine body. */
-                rp->storage_class = (a_storage_class)sc_extern;
-              } else {
-                /* Routine is defined in this file.  Mark it referenced in
-                   case it's referenced in another file. */
-                rp->storage_class = (a_storage_class)sc_unspecified;
-                rp->source_corresp.referenced = TRUE;
-              }  /* if */
-#if DEBUG
-              if (debug_level >= 3) {
-                fputs("external linkage given to member function \"", f_debug);
-                db_name(&rp->source_corresp);
-                fputs("\"\n", f_debug);
-              }  /* if */
-#endif /* DEBUG */
-            }  /* if */
-            make_class_externally_linked(rp->type, count);
-          }  /* for */
-          /* A variable entry for a static data member will need to have its
-             storage class and linkage reset.  In addition, its type
-             must be checked. */
-          vp = ctsp->assoc_scope->variables;
-          for (; vp != NULL; vp = vp->next) {
-            vp->source_corresp.name_linkage =
-                                   (a_name_linkage_kind)nlk_cplusplus_external;
-            sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
-            if (sym->defined) {
-              vp->storage_class = (a_storage_class)sc_unspecified;
-            } else {
-              vp->storage_class = (a_storage_class)sc_extern;
-            }  /* if */
-            make_class_externally_linked(vp->type, count);
-          }  /* if */
-          /* Classes nested in the class should also be treated as having
-             external linkage. */
-          tp = ctsp->assoc_scope->types;
-          for (; tp != NULL; tp = tp->next) {
-            make_class_externally_linked(tp, count);
-          }  /* if */
-          /* Any class used directly or indirectly in specifying a template
-             class should be externally linked.  This is not explicitly
-             specified by the ARM, but must be inferred. */
-          tap = ctsp->template_arg_list;
-          for (; tap != NULL; tap = tap->next) {
-            if (tap->is_type) {
-              tp = tap->variant.type;
-            } else {
-              tp = tap->variant.constant->type;
-            }  /* if */
-            make_class_externally_linked(tp, count);
-          }  /* for */
-        }  /* if */
+      tp = type->source_corresp.class_of_which_a_member; 
+      if (tp != NULL) {
+        /* Nested class -- changing the parent's linkage will have as a
+           side effect changing the linkage of its nested classes. */
+        check_type_for_linkage_change(tp, count);
+      } else if (is_candidate_for_linkage_change(type)) {
+        /* Top-level class, struct, or union type.  Change it (and its
+           members, where required) to have external linkage. */
+        make_class_externally_linked(type, count);
       }  /* if */
       break;
     case tk_routine:
       /* For routine types check both the return type and the types of each
          of the parameters. */
-      make_class_externally_linked(type->variant.routine.return_type, count);
+      check_type_for_linkage_change(type->variant.routine.return_type, count);
       ptp = type->variant.routine.extra_info->param_type_list;
       for (; ptp != NULL; ptp = ptp->next) {
-        make_class_externally_linked(ptp->type, count);
+        check_type_for_linkage_change(ptp->type, count);
       }  /* for */
       break;
     case tk_pointer:
       /* For pointer and reference types check the type pointed to. */
-      make_class_externally_linked(type_pointed_to(type), count);
+      check_type_for_linkage_change(type_pointed_to(type), count);
       break;
     case tk_array:
       /* For arrays check the element type. */
-      make_class_externally_linked(array_element_type(type), count);
+      check_type_for_linkage_change(array_element_type(type), count);
       break;
     case tk_ptr_to_member:
       /* For pointer-to-member type check both the class type and the member
@@ -7111,14 +7175,71 @@ by recursive calls.
          the member type is handled independently to allow for the case where
          no member of that type exists. */
       tp = pm_class_type(type);
-      make_class_externally_linked(tp, count);
-      make_class_externally_linked(pm_member_type(type), count);
+      check_type_for_linkage_change(tp, count);
+      check_type_for_linkage_change(pm_member_type(type), count);
+    case tk_integer:
+      /* Check for an enum type that is a member of a class. */
+      if (type->variant.integer.enum_type) {
+        tp = type->source_corresp.class_of_which_a_member;
+        if (tp != NULL) {
+          /* Nested enum -- change the parent's linkage first. */
+          check_type_for_linkage_change(tp, count);
+        }  /* if */
+      }  /* if */
+      break;
     default:
       /* Cannot have a class subtype. */
       break;
   }  /* switch */
   db_exit();
-}  /* make_class_externally_linked */
+}  /* check_type_for_linkage_change */
+
+
+static a_boolean class_members_force_external_linkage(a_type_ptr  class_type)
+/*
+If class_type contains a static data member or a member function that is not
+defined inline, or if has a nested class with such members, return TRUE.
+*/
+{
+  a_scope_ptr    scope;
+  a_boolean      external = FALSE;
+  a_routine_ptr  rp;
+  a_type_ptr     tp;
+
+  scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
+  if (scope == NULL) {
+    /* Class has not been defined. */
+  } else if (scope->variables != NULL) {
+    /* At least one static data member: external linkage is required. */
+    external = TRUE;
+  } else {
+    /* Look for noninline member functions. */
+    for (rp = scope->routines; rp != NULL; rp = rp->next) {
+      if (!rp->is_inline) {
+        /* At least one noninline member function: external linkage is
+           required. */
+        external = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (!external) {
+      /* Look for nested classes whose properties force external linkage not
+         only on the nested class itself but on the parent class as well. */
+      for (tp = scope->types; tp != NULL; tp = tp->next) {
+        if (is_immediate_class_type(tp)) {
+          /* Found a nested class.  Make a recursive call to check it. */
+          if (class_members_force_external_linkage(tp)) {
+            /* Nested class contains static data member or noninline
+               function. */
+            external = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return external;
+}  /* class_members_force_external_linkage */
 
 
 void check_class_linkage(void)
@@ -7149,13 +7270,13 @@ this routine goes on to determine whether they must be made external
 because they were used in declaring an external function or variable.
 */
 {
-  int                          num_internally_linked_classes = 0, count;
-  a_scope_ptr                  scope = il_header.primary_scope, class_scope;
+  int                          num_internally_linked_classes, count;
+  a_scope_ptr                  scope = il_header.primary_scope;
   a_type_ptr                   tp;
   a_routine_ptr                rp;
   a_variable_ptr               vp;
   a_boolean                    external;
-  a_class_type_supplement_ptr  ctsp;
+  a_boolean                    any_candidates_for_linkage_change = FALSE;
 
   db_enter(3, "check_class_linkage");
   /* Search for classes by making a pass over all the types associated with
@@ -7164,32 +7285,18 @@ because they were used in declaring an external function or variable.
   for (tp = scope->types; tp != NULL; tp = tp->next) {
     if (is_immediate_class_type(tp)) {
       /* Found a class. */
-      ctsp = tp->variant.class_struct_union.extra_info;
-      class_scope = ctsp->assoc_scope;
-      if (tp->source_corresp.name_linkage ==
-                               (a_name_linkage_kind)nlk_internal &&
-          class_scope != NULL) {
-        /* Internally linked and defined.  Check for non-inlined functions
-           and static data members. */
+      if (is_candidate_for_linkage_change(tp)) {
+        /* Class has internal linkage but nothing prevents it from changing
+           to external linkage. */
         external = FALSE;
-        if (ctsp->template_arg_list != NULL) {
-          /* This must be a template class, so it should have external
-             linkage. */
-          external = TRUE;
-        } else if (class_scope->variables != NULL) {
-          /* At least one static data member: external linkage is required. */
+        if (tp->variant.class_struct_union.extra_info->
+                                              template_arg_list != NULL) {
+          /* This is a template class, so it should have external linkage.
+             (Template classes that should not have external linkage have been
+             screened out by is_candidate_for_linkage_change. */
           external = TRUE;
         } else {
-          for (rp = class_scope->routines; rp != NULL; rp = rp->next) {
-            if (rp->is_inline) {
-              /* Inline functions do not have external linkage. */
-            } else {
-              /* At least one noninline member function: external linkage is
-                 required. */
-              external = TRUE;
-              break;
-            }  /* if */
-          }  /* for */
+          external = class_members_force_external_linkage(tp);
         }  /* if */
         if (external) {
           /* Make the class externally linked and propagate this external
@@ -7201,12 +7308,12 @@ because they were used in declaring an external function or variable.
           /* Keep track of the fact that at least one class was encountered
              that did not require external linkage on the basis of its
              members. */
-          num_internally_linked_classes = 1;
+          any_candidates_for_linkage_change = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
-  if (num_internally_linked_classes > 0) {
+  if (any_candidates_for_linkage_change) {
     /* At least one class may have retained internal linkage after the
        previous scan.  Since it may have been subsequently referenced in
        declaring another class, it may have had its linkage changed to
@@ -7214,10 +7321,9 @@ because they were used in declaring an external function or variable.
        entries to get an accurate count.  We keep track of the actual number
        of internally linked classes that remain so that we can stop looking
        at routines and variables as soon as possible. */
+    num_internally_linked_classes = 0;
     for (tp = scope->types; tp != NULL; tp = tp->next) {
-      if (is_immediate_class_type(tp) &&
-          tp->source_corresp.name_linkage ==
-                             (a_name_linkage_kind)nlk_internal) {
+      if (is_immediate_class_type(tp) && is_candidate_for_linkage_change(tp)) {
         num_internally_linked_classes++;
       }  /* if */
     }  /* for */
@@ -7231,7 +7337,7 @@ because they were used in declaring an external function or variable.
       if (vp->storage_class != (a_storage_class)sc_static) {
         /* This is an externally linked variable.  Check its type. */
         count = 0;
-        make_class_externally_linked(vp->type, &count);
+        check_type_for_linkage_change(vp->type, &count);
         /* "count" is returned as the number of internally linked classes
            that were changed to externally linked.  Adjust the number of
            internally linked classes remaining.  When it gets down to zero
@@ -7248,7 +7354,7 @@ because they were used in declaring an external function or variable.
       if (rp->storage_class != (a_storage_class)sc_static) {
         /* This is an externally linked routine.  Check its type. */
         count = 0;
-        make_class_externally_linked(rp->type, &count);
+        check_type_for_linkage_change(rp->type, &count);
         /* Again, we can bail out when the number of internally linked classes
            is reduced to zero. */
         num_internally_linked_classes -= count;
