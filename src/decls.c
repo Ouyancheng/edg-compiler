@@ -58,7 +58,8 @@ Macro that is TRUE if the current token is the start of a function
 specifier.
 */
 #define is_function_specifier()                                      \
-  (curr_token == tok_inline   || curr_token == tok_virtual)
+  (curr_token == tok_inline   || curr_token == tok_virtual ||        \
+   curr_token == tok_explicit)
 
 
 a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,

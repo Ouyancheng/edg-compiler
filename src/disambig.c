@@ -245,6 +245,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       /* Function specifiers. */
       case tok_inline:
       case tok_virtual:
+      case tok_explicit:
       /* Friend and typedef. */
       case tok_friend:
       case tok_typedef:
