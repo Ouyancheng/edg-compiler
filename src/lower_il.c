@@ -6670,7 +6670,7 @@ termination.
 */
 {
   a_type_ptr       func_type, struct_type, ptr_struct_type;
-  a_type_ptr       ptr_func_type;
+  a_type_ptr       ptr_func_type, char_type;
   a_targ_size_t    byte_offset;
   a_field_ptr      last_field;
   a_variable_ptr   link_var;
@@ -6686,8 +6686,8 @@ termination.
          char __std__module_id() {...}
          struct __linkl {
            struct __linkl *next;
-           void           (*ctor)();
-           void           (*dtor)();
+           char           (*ctor)();
+           char           (*dtor)();
          };
          static struct __linkl __link = {NULL, __sti__module_id,
                                                __std__module_id};
@@ -6705,11 +6705,12 @@ termination.
     ptr_struct_type = make_pointer_type(struct_type);
     make_field("next", ptr_struct_type, &byte_offset, struct_type,
                &last_field);
-    /* field: void (*ctor)(); */
-    func_type = make_function_type(void_type(), (a_type_ptr)NULL);
+    /* field: char (*ctor)(); */
+    char_type = integer_type(plain_char_int_kind);
+    func_type = make_function_type(char_type, (a_type_ptr)NULL);
     ptr_func_type = make_pointer_type(func_type);
     make_field("ctor", ptr_func_type, &byte_offset, struct_type, &last_field);
-    /* field: void (*dtor)(); */
+    /* field: char (*dtor)(); */
     make_field("dtor", ptr_func_type, &byte_offset, struct_type, &last_field);
     finish_class_type(struct_type, &byte_offset);
     add_to_front_of_file_scope_types_list(struct_type);
@@ -6824,7 +6825,8 @@ pointer to the routine.
   (void)strcpy(name+prefix_len, module_id);
   /* Make a type and routine entry for the routine. */
   init_rout = make_rout_entry(name, (a_storage_class)sc_unspecified,
-                              void_type(), (a_type_ptr)NULL);
+                              integer_type(plain_char_int_kind),
+                              (a_type_ptr)NULL);
   /* Make a memory region, scope, and block for the init routine definition. */
   *init_rout_scope = make_routine_definition(init_rout, /*make_return=*/TRUE,
                                              il_region);
