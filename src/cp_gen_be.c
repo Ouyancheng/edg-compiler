@@ -1433,19 +1433,9 @@ initialized is not a reference.
     form_pm_constant(constant, /*minimal_casts*/TRUE, /*need_parens=*/TRUE,
                      &octl);
   } else if (type != NULL && is_reference_type(type)) {
-    /* Initializing a reference. */
-    if (constant->kind == (a_constant_repr_kind)ck_address) {
-      /* An address constant (the usual case).  Drop one level of "&". */
-      form_address_constant(constant, /*do_indirection=*/TRUE,
-                            /*need_parens=*/TRUE, &octl);
-    } else {
-      /* For other cases, e.g.,
-           int &r = *(int *)5;
-         do an indirection in the code. */
-      write_tok_str("(*");
-      gen_constant(constant, /*need_parens=*/FALSE);
-      write_tok_str(")");
-   }  /* if */
+    /* Initializing a reference.  The constant must be displayed with one
+       level of indirection removed. */
+    form_reference_init_constant(constant, /*need_parens=*/TRUE, &octl);
   } else if (il_header.source_language == sl_C &&
              is_implicitly_cast_integral_constant(constant)) {
     /* An integral constant that can be implicitly converted to another

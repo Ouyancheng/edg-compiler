@@ -121,7 +121,15 @@ is put out.
         form_type(tap->variant.type, octl);
       } else {
         /* Nontype argument. */
-        form_constant(tap->variant.constant, /*need_parens=*/FALSE, octl);
+        a_constant_ptr con = tap->variant.constant;
+        if (is_reference_type(con->type)) {
+          /* A reference parameter.  Display specially -- one level of
+             indirection must be removed. */
+          form_reference_init_constant(con, /*need_parens=*/FALSE, octl);
+        } else {
+          /* Normal (non-reference) case. */
+          form_constant(con, /*need_parens=*/FALSE, octl);
+        }  /* if */
       }  /* if */
       tap = tap->next;
       /* Stop after the last argument. */
@@ -1310,7 +1318,7 @@ Do the output in the way described by octl.
 }  /* form_pm_constant */
 
 
-void form_address_constant(
+static void form_address_constant(
                           a_constant_ptr                        constant,
                           a_boolean                             do_indirection,
                           a_boolean                             need_parens,
@@ -1415,7 +1423,7 @@ in the way described by octl.
        as two casts, but the implicit_cast mechanism only retains
        information on the final type.  In such cases, go by way of a
        cast to unsigned long. */
-    if (is_pointer_type(con_type) ||
+    if (is_ptr_or_ref_type(con_type) ||
         (is_integral_type(con_type) &&
          con_type->size >= targ_sizeof_pointer)) {
       /* Okay. */
@@ -1715,6 +1723,33 @@ confusion.  Do the output in the way described by octl.
   }  /* switch */
   if (need_cast_close_paren) octl->output_str(")");
 }  /* form_constant */
+
+
+void form_reference_init_constant(
+                          a_constant_ptr                        constant,
+                          a_boolean                             need_parens,
+                          an_il_to_str_output_control_block_ptr octl)
+/*
+Output the indicated constant.  It's the initial value of a reference,
+so remove one level of indirection (basically, the constant is an address).
+If need_parens is TRUE, parentheses are placed around the constant if
+there's any possibility of precedence confusion.  Do the output in the
+way described by octl.
+*/
+{
+  if (constant->kind == (a_constant_repr_kind)ck_address) {
+    /* An address constant (the usual case).  Drop one level of "&". */
+    form_address_constant(constant, /*do_indirection=*/TRUE,
+                          need_parens, octl);
+  } else {
+    /* For other cases, e.g.,
+         int &r = *(int *)5;
+       do an indirection in the code. */
+    octl->output_str("(*");
+    form_constant(constant, need_parens, octl);
+    octl->output_str(")");
+  }  /* if */
+}  /* form_reference_init_constant */
 
 
 /******************************************************************************
