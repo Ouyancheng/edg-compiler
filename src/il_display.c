@@ -1454,7 +1454,7 @@ Display the indicated class list and name.
         case tk_class:     type_string = "  tk_class";     break;
         case tk_struct:    type_string = "  tk_struct";    break;
         case tk_union:     type_string = "  tk_union";     break;
-        default:           type_string = "  **UNEXPECTED TYPE**";
+        default:           type_string = "  **BAD TYPE KIND**";
       }  /* switch */
       disp_ptr(type_string, (char *)ptr->class_type, iek_type);
     }  /* for */
@@ -3299,7 +3299,7 @@ Display the indicated class type supplement entry.
         case tk_struct:  (void)printf("struct\n"); break;
         case tk_union:   (void)printf("union\n"); break;
         case tk_class:   (void)printf("class\n"); break;
-        default:         (void)printf("***UNEXPECTED TYPE KIND***\n");
+        default:         (void)printf("**BAD TYPE KIND**\n");
       }  /* switch */
     }  /* if */
   }  /* if */
@@ -3312,7 +3312,7 @@ Display the indicated class type supplement entry.
       case ihk_single:    (void)printf("ihk_single\n"); break;
       case ihk_multiple:  (void)printf("ihk_multiple\n"); break;
       case ihk_virtual:   (void)printf("ihk_virtual\n"); break;
-      default:            (void)printf("***UNEXPECTED INHERITANCE KIND***\n");
+      default:            (void)printf("**BAD INHERITANCE KIND**\n");
     }  /* switch */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
