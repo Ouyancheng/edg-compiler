@@ -5312,7 +5312,7 @@ and type is the type of the argument to be extracted.
                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
                 /*reinterpret_semantics=*/FALSE, &start_position);
     }  /* if */
-    make_expression_operand(va_arg_node, type, result);
+    make_expression_operand(va_arg_node, va_arg_node->type, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
