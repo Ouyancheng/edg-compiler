@@ -46,6 +46,9 @@ extern a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
 
 extern a_constructor_init_ptr dtor_initializer(a_routine_ptr  dtor_rout);
 
+extern void check_for_missing_initializer(a_symbol_ptr       sym,
+                                          a_type_ptr         type);
+
 #endif /* ifndef DECL_INITS_H */
 
 /******************************************************************************

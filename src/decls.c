@@ -9104,101 +9104,17 @@ continue_with_declaration:
              changed if it was an incomplete array and was initialized. */
           local_type_ptr = symbol_ptr->variant.variable.ptr->type;
         }  /* if */
-      } else if (is_definition && !is_error_locator(locator)) {
-        a_variable_ptr  vp = symbol_ptr->variant.variable.ptr;
-        if (vp->init_kind != (an_init_kind)initk_none) {
-          /* Already initialized -- this must be a redeclaration. */
-        } else {
-          /* Determine whether a default initializer should be generated for
-             this symbol, and if so do it.  The function returns TRUE if
-             default initialization was performed (or if it was attempted but
-             an error was reported). */
-          if (!def_initializer(symbol_ptr, &locator.source_position) &&
-              symbol_ptr->kind == (a_symbol_kind)sk_variable) {
-            /* No default initialization, so do some additional checking. */
-            if (is_reference_type(local_type_ptr) &&
-                vp->storage_class != (a_storage_class)sc_extern) {
-              /* Non-extern reference variables must be initialized
-                 (ARM 8.4.3). */
-              sym_error(ec_missing_initializer_on_reference, symbol_ptr);
-            } else if (
-                     type_or_element_type_is_const_qualified(local_type_ptr)) {
-              /* Uninitialized const variable.  In C++ this is permitted only
-                 for externally linked variables.  In ordinary C we issue a
-                 warning for local variables (both static and automatic) here,
-                 but the warning for static file scope variables is given
-                 later. */
-              a_name_linkage_kind  name_linkage =
-                                           (a_name_linkage_kind)vp->
-                                                 source_corresp.name_linkage;
-              if (C_dialect == C_dialect_cplusplus) {
-                if (name_linkage == (a_name_linkage_kind)nlk_none ||
-                    (name_linkage == (a_name_linkage_kind)nlk_internal &&
-                     decl_scope_level == DEPTH_OF_FILE_SCOPE)) {
-                  /* In C++ const qualified variables that are internally
-                     linked must be initialized (ARM 7.1.6). */
-                  sym_error(ec_missing_initializer_on_const, symbol_ptr);
-                }  /* if */
-              } else {
-                /* Ordinary C -- a warning, and only on local variables. */
-                if (name_linkage == (a_name_linkage_kind)nlk_none) {
-                  sym_warning(ec_missing_initializer_on_const, symbol_ptr);
-                }  /* if */
-              }  /* if */
-            } else if (vp->storage_class != (a_storage_class)sc_extern) {
-              /* Check for an uninitialed variable that has members that
-                 ought to be initialized.  Issue a warning in such cases. */
-              a_type_ptr        tp = local_type_ptr;
-
-              if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-              if (is_class_struct_union_type(tp)) {
-                /* The variable is a class-struct-union type or an array
-                   whose element type is a class-struct-union type.  Issue
-                   a warning if there is a const qualified field or a field
-                   of reference type.  Note that this check is not explicitly
-                   mandated by the ARM (though it is implied in 12.6.2:  "The
-                   argument list . . . is the only way to initialize nonstatic
-                   const and reference members").  Cfront issues an error on
-                   class declarations that contain nonstatic const or reference
-                   members and no constructor, but this seems to introduce an
-                   unnecessary incompatibility with C. */
-                a_boolean  init_required = FALSE;
-
-                tp = skip_typerefs(tp);
-                if (tp->variant.class_struct_union.any_const_member ||
-                    (C_dialect == C_dialect_cplusplus &&
-                     symbol_supplement_for_class(tp)->any_ref_member)) {
-                  /* The class itself has a const or ref member that is not
-                     being initialized. */
-                  init_required = TRUE;
-                } else if (C_dialect == C_dialect_cplusplus) {
-                  /* Check each of the base classes.  Note that we don't
-                     check whether there's a constructor in the base class,
-                     since if there were the derived class would have to have
-                     constructor, too. */
-                  a_base_class_ptr  bcp = base_classes_of(tp);
-
-                  for (; bcp != NULL; bcp = bcp->next) {
-                    tp = bcp->type;
-                    if (tp->variant.class_struct_union.any_const_member ||
-                        symbol_supplement_for_class(tp)->any_ref_member) {
-                      /* One of the base classes has a const or ref member
-                         that is not being initialized. */
-                      init_required = TRUE;
-                      break;
-                    }  /* if */
-                  }  /* for */
-                }  /* if */
-                if (init_required) {
-                  pos_sy_diagnostic(C_dialect == C_dialect_cplusplus ?
-                                      (an_error_severity)es_error :
-                                      (an_error_severity)es_warning,
-                                    ec_var_with_uninitialized_field,
-                                    &declarator_pos, symbol_ptr);
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }  /* if */
+      } else if (is_definition && !is_error_locator(locator) &&
+                 symbol_ptr->variant.variable.ptr->init_kind ==
+                                               (an_init_kind)initk_none) {
+        /* Uninitialized variable or static data member is being defined, but
+           no explicit initializer was provided.  Determine whether a default
+           initializer should be generated for this symbol, and if so do it. */
+        if (def_initializer(symbol_ptr, &locator.source_position)) {
+          /* Default initialization was successful. */
+        } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
+          /* No default initialization, so do some additional checking. */
+          check_for_missing_initializer(symbol_ptr, local_type_ptr);
         }  /* if */
       }  /* if */
       copy_source_position(locator.source_position, error_position);

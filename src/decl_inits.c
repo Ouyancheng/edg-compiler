@@ -1535,15 +1535,6 @@ the default constructor (if one exists) is called.
         }  /* if */
       } else {
         /* No constructor. */
-        if (!cssp->any_nonstatic_data_members) {
-          /* We silently and automatically "initialize" an "empty" class object
-             -- i.e., one with no nonstatic data members (none of its own and
-             none in any base classes it may have). */
-          /* Note that the ARM can be read as requiring initialization of
-             const objects even when they are empty.  Other C++ compilers don't
-             enforce such a restriction, however. */
-          def_init_performed = TRUE;
-        }  /* if */
         rp = select_destructor(tp, tp, err_pos,
                                /*honor_virtual=*/FALSE,
                                /*evaluated=*/TRUE);
@@ -2484,6 +2475,123 @@ though neither constructors nor initialization is involved here.)
   db_exit();
   return cip_list;
 }  /* dtor_initializer */
+
+
+void check_for_missing_initializer(a_symbol_ptr       sym,
+                                   a_type_ptr         type)
+/*
+This routine is called when an initializer is missing to issue a diagnostic
+if an initializer should have been provided.  It is used both for variable
+declarations (when sym represents the variable) and for unnamed objects that
+are created by a new expression (in which case sym is NULL).  In both cases
+"type" points to the type of the object.
+*/
+{
+  a_variable_ptr       vp;
+  a_name_linkage_kind  name_linkage;
+  a_boolean            init_required;
+  a_base_class_ptr     bcp;
+
+  db_enter(4, "check_for_missing_initializer");
+  if (sym != NULL) {
+    /* This must be a variable declaration. */
+    vp = sym->variant.variable.ptr;
+  } else {
+    /* This must be a "new" expression. */
+    vp = NULL;
+  }  /* if */
+  if (is_reference_type(type)) {
+    /* Note that a reference type object cannot be produced by new. */
+    if (vp->storage_class != (a_storage_class)sc_extern) {
+      /* Non-extern reference variables must be initialized (ARM 8.4.3). */
+      sym_error(ec_missing_initializer_on_reference, sym);
+    }  /* if */
+  } else {
+    if (is_array_type(type)) type = underlying_array_element_type(type);
+    if (is_const_qualified_type(type)) {
+      if (is_class_struct_union_type(type) &&
+          !symbol_supplement_for_class(type)->any_nonstatic_data_members) {
+        /* Uninitialized const object that is an "empty" class (i.e., one with
+           no nonstatic data members).  No error is issued. */
+        /* Note that the ARM can be read as requiring initialization of
+           const objects even when they are empty.  Other C++ compilers don't
+           enforce such a restriction, however. */
+      } else if (vp != NULL) {
+        /* Uninitialized const variable.  In C++ this is permitted only for
+           externally linked variables.  In ordinary C we issue a warning for
+           local variables (both static and automatic) here, but the warning
+           for static file scope variables is given later. */
+         name_linkage = (a_name_linkage_kind)vp->source_corresp.name_linkage;
+         if (C_dialect == C_dialect_cplusplus) {
+           if (name_linkage == (a_name_linkage_kind)nlk_none ||
+               (name_linkage == (a_name_linkage_kind)nlk_internal &&
+                decl_scope_level == DEPTH_OF_FILE_SCOPE)) {
+             /* In C++ const qualified variables that are internally linked
+                must be initialized (ARM 7.1.6). */
+             sym_error(ec_missing_initializer_on_const, sym);
+           }  /* if */
+         } else {
+           /* Ordinary C -- a warning, and only on local variables. */
+           if (name_linkage == (a_name_linkage_kind)nlk_none) {
+             sym_warning(ec_missing_initializer_on_const, sym);
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Uninitialized const new-object. */
+        error(ec_missing_initializer_on_unnamed_const);
+      }  /* if */
+    } else if (is_class_struct_union_type(type) &&
+               (vp == NULL ||
+                vp->storage_class != (a_storage_class)sc_extern)) {
+      /* The object is a class-struct-union type or an array whose element
+         type is a class-struct-union type.  Issue a warning if there is a
+         const qualified field or a field of reference type.  Note that this
+         check is not explicitly mandated by the ARM (though it is implied in
+         12.6.2:  "The argument list . . . is the only way to initialize
+         nonstatic const and reference members").  Cfront issues an error on
+         class declarations that contain nonstatic const or reference members
+         and no constructor, but this seems to introduce an unnecessary
+         incompatibility with C. */
+      type = skip_typerefs(type);
+      init_required = FALSE;
+      if (type->variant.class_struct_union.any_const_member ||
+          (C_dialect == C_dialect_cplusplus &&
+           symbol_supplement_for_class(type)->any_ref_member)) {
+        /* The class itself has a const or ref member that is not being
+           initialized. */
+        init_required = TRUE;
+      } else if (C_dialect == C_dialect_cplusplus) {
+        /* Check each of the base classes.  Note that we don't check whether
+           there's a constructor in the base class, since if there were the
+           derived class would have to have constructor, too. */
+        for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
+          type = bcp->type;
+          if (type->variant.class_struct_union.any_const_member ||
+              symbol_supplement_for_class(type)->any_ref_member) {
+            /* One of the base classes has a const or ref member
+               that is not being initialized. */
+            init_required = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      if (init_required) {
+        if (sym != NULL) {
+          /* Variable declaration -- display the symbol. */
+          pos_sy_diagnostic(C_dialect == C_dialect_cplusplus ?
+                              (an_error_severity)es_error :
+                              (an_error_severity)es_warning,
+                            ec_var_with_uninitialized_field,
+                            &sym->decl_position, sym);
+        } else {
+          /* New object -- there's no name to display. */
+          error(ec_unnamed_object_with_uninitialized_field);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  db_exit();
+}  /* check_for_missing_initializer */
 
 
 /******************************************************************************
