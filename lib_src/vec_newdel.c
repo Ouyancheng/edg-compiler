@@ -157,8 +157,8 @@ size_t	__array_new_prefix_size = 0;
 #endif /* USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
 
 
-inline void* alloc_array(size_t		size,
-			 a_new_ptr	new_routine)
+static inline void* alloc_array(size_t		size,
+			        a_new_ptr	new_routine)
 /*
 Call the allocation routine to allocate the memory for the array.  Adjust
 the size as needed to provide storage for the prefix information used to
@@ -227,9 +227,9 @@ save the array size.
 /*ARGSUSED*/ /* <-- "number_of_elements" is only used when
                     USE_PREFIX_FOR_ARRAY_ALLOC_INFO is TRUE. */
 #endif /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
-inline a_boolean record_array_alloc_info(void*	array_ptr,
-   				         size_t	size,
-				         int	number_of_elements)
+static inline a_boolean record_array_alloc_info(void*	array_ptr,
+	   				        size_t	size,
+					        int	number_of_elements)
 /*
 Record the size of the array so that it can be retrieved later using
 the array pointer.  Returns TRUE if an error occurred and the size
@@ -276,8 +276,8 @@ could not be recorded.
 /*ARGSUSED*/ /* <-- "element_size" is only used when
                     USE_PREFIX_FOR_ARRAY_ALLOC_INFO is TRUE. */
 #endif /* !USE_PREFIX_FOR_ARRAY_ALLOC_INFO */
-inline size_t get_array_size(void*	array_ptr,
-		 	     size_t	element_size)
+static inline size_t get_array_size(void*	array_ptr,
+			 	    size_t	element_size)
 /*
 */
 {
