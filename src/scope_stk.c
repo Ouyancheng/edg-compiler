@@ -927,6 +927,7 @@ specific version of the template.
   ssep->instantiation_context_scope
                                    = NO_SCOPE_DEPTH;
   ssep->instantiation_common_scope = NO_SCOPE_DEPTH;
+  ssep->saved_depth_of_initial_lookup_scope = depth_of_initial_lookup_scope;
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
@@ -2833,7 +2834,7 @@ End a name scope by popping an entry off the scope stack.
   /* Set the initial name lookup scope to the previous scope on the
      stack.  Note that this could be different than the previous scope
      value in the scope stack entry. */
-  depth_of_initial_lookup_scope = depth_scope_stack-1;
+  depth_of_initial_lookup_scope = ssep->saved_depth_of_initial_lookup_scope;
   /* Determine the memory region to restore for the outer scope. */
   new_memory_region_number = ssep->prev_il_memory_region;
   /* Pop the stack. */
