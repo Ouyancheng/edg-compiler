@@ -1523,35 +1523,61 @@ start of a sequence of declarations.
     }  /* if */
     if (prev_ssep != NULL) {
       /* Back up over empty source sequence entries (they may be deleted later)
-         and those that represent pragmas. */
+         and those that represent pragmas or macros. */
       for(;;) {
         an_il_entry_kind  kind = ss_entry_kind(prev_ssep);
-        if (kind == iek_none || kind == iek_pragma) {
+        if (kind == (an_il_entry_kind)iek_none ||
+#if RECORD_MACROS_IN_IL
+            kind == (an_il_entry_kind)iek_macro ||
+#endif /* RECORD_MACROS_IN_IL */
+            kind == (an_il_entry_kind)iek_pragma) {
           prev_ssep = prev_ssep->prev;
-        } else if (kind == iek_src_seq_sublist &&
-                   ss_entry_kind(assoc_sublist_of(prev_ssep)->
-                                         source_sequence_list) == iek_pragma) {
-          /* A sublist the first entry of which is a pragma -- keep backing
-             up. */
+        } else if (kind == (an_il_entry_kind)iek_src_seq_sublist) {
+          kind = ss_entry_kind(
+                      assoc_sublist_of(prev_ssep)->source_sequence_list);
+          if (kind == (an_il_entry_kind)iek_pragma
+#if RECORD_MACROS_IN_IL
+              || kind == (an_il_entry_kind)iek_macro
+#endif /* RECORD_MACROS_IN_IL */
+                                                    ) {
+            /* A sublist the first entry of which is a pragma or macro -- keep
+               backing up. */
 #if CHECKING
-          /* We are assuming that the sublist was created for one or more
-             global-scope pragmas -- and that nothing else is on its list.
-             Confirm the assumption. */
-          ssep = assoc_sublist_of(prev_ssep)->source_sequence_list;
-          for (; ssep != NULL; ssep = ssep->next) {
-            a_pragma_ptr  pp;
-            check_assertion(ss_entry_kind(ssep) == iek_pragma);
-            pp = (a_pragma_ptr)ssep->entity.ptr;
-            check_assertion(pp->entity.ptr == NULL);
-          }  /* for */
+            /* We are assuming that the sublist was created for one or more
+               global-scope pragmas and/or macros -- and that nothing else
+               is on its list. Confirm the assumption. */
+            ssep = assoc_sublist_of(prev_ssep)->source_sequence_list;
+            for (; ssep != NULL; ssep = ssep->next) {
+              if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma) {
+                a_pragma_ptr  pp = (a_pragma_ptr)ssep->entity.ptr;
+                check_assertion(pp->entity.ptr == NULL);
+#if RECORD_MACROS_IN_IL
+              } else if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro) {
+                /* Okay. */
+#endif /* RECORD_MACROS_IN_IL */
+              } else {
+                unexpected_condition();
+              }  /* if */
+            }  /* for */
 #endif /* CHECKING */
-          prev_ssep = prev_ssep->prev;
+            prev_ssep = prev_ssep->prev;
+          } else {
+            /* Use the sublist entry as the reference. */
+            break;
+          }  /* if */
         } else {
           /* We've found a source sequence entry that can help us find the
              source sequence entry to point to from the decl statement. */
           break;
         }  /* if */
       }  /* for */
+#if DEBUG
+      if (debug_level >= 4 || db_flag_is_set("dump_decl_stmt")) {
+        fputs("before calling declaration, ss list starting at prev_ssep:\n",
+              f_debug);
+        db_source_sequence_list(prev_ssep);
+      }  /* if */
+#endif /* if DEBUG */
     }  /* if */
   }  /* if */
   /* Now process the declaration. */
@@ -1566,14 +1592,15 @@ start of a sequence of declarations.
       /* In the ordinary case, prev_ssep->next is the source sequence entry
          to which the stmk_decl statement should refer.  However, if any
          pragmas have intervened, we advance past any that are not explicitly
-         bound to the next declaration. */
+         bound to the next declaration.  Macros are also skipped -- they
+         should not be pointed to by the stmk_decl statement. */
       ssep = prev_ssep->next;
       while (ssep != NULL) {
-        if (ssep->entity.kind == (a_byte_il_entry_kind)iek_pragma) {
+        if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma) {
           /* The source sequence entry represents a pragma.  See if it's
              a binds-to-next-decl pragma. */
-          a_pragma_kind  kind = ((a_pragma_ptr)ssep->entity.ptr)->kind;
-          if (pragma_description_for_pragma_kind[(int)kind]->
+          a_pragma_kind  pkind = ((a_pragma_ptr)ssep->entity.ptr)->kind;
+          if (pragma_description_for_pragma_kind[(int)pkind]->
                                                         may_bind_to_decl) {
             /* Point the decl-statement at this source sequence entry, since
                it is the first associated with the declaration. */
@@ -1586,10 +1613,14 @@ start of a sequence of declarations.
         } else if (is_sublist_parent(ssep) && ssep->next == NULL) {
           /* Scan the sublist. */
           ssep = assoc_sublist_of(ssep)->source_sequence_list;
-        } else if (ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {
+        } else if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_none) {
           /* Ignore it.  It may be associated with a pragma that has not
              yet been processed. */
           ssep = ssep->next;
+#if RECORD_MACROS_IN_IL
+        } else if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro) {
+          ssep = ssep->next;
+#endif /* RECORD_MACROS_IN_IL */
         } else {
           /* Assume this to be the source sequence entry created by the
              declaration. */
@@ -1599,7 +1630,8 @@ start of a sequence of declarations.
       sp->source_sequence_entry = ssep;
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("dump_decl_stmt")) {
-        fputs("ss list starting at prev_ssep:\n", f_debug);
+        fputs("after calling declaration, ss list starting at prev_ssep:\n",
+              f_debug);
         db_source_sequence_list(prev_ssep);
         fprintf(f_debug, "decl statement points at:%s",
                            ssep == NULL ? " NULL\n" : "\n  ");
