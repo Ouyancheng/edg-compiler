@@ -49,7 +49,8 @@ extern a_boolean class_specifier(a_boolean  first_specifier,
 
 extern a_boolean is_copy_constructor(a_routine_ptr  ctor_rout,
                                      a_type_ptr     class_of_which_a_member,
-                                     a_boolean      *is_const);
+                                     a_boolean      *const_object_okay,
+                                     a_boolean      *volatile_object_okay);
 
 extern void reference_to_special_member_function(a_symbol_ptr  sym);
 
