@@ -1996,7 +1996,7 @@ Cast operand (of class or pointer-to-class type) to its base class
 identified by bcp.  If *is_arrow_operator is TRUE, operand is being
 used as a pointer ("->"); otherwise, it is being used as an object (".").
 *is_arrow_operator will be set to TRUE on return to indicate that the
-operation was normalized into "->" form.  ALternatively, if the caller
+operation was normalized into "->" form.  Alternatively, if the caller
 passes is_arrow_operator == NULL, the operation is assumed to be in
 pointer form.  The cast is assumed to be implicit.  Do access control
 checking on the cast if check_cast_access is TRUE.  implicit_in_naming
