@@ -1,5 +1,20 @@
 Version 3.2
 
+2/6/03   GNU C++ mode: Attributes on members not recorded in IL
+
+In many cases, attributes specified on member functions and static data
+members were not correctly recorded in the IL in GNU C++ mode.  This is
+now fixed.
+
+2/6/03   GNU C++ mode: asm name on class members
+
+In GNU C++ mode, the front end now accepts the "asm name" construct on
+member functions and on static data members.  For example:
+
+  struct S {
+    static void f() asm("S_f");  // Now accepted in GNU C++ mode
+  };
+
 2/6/03   assoc_template not set for predeclared template instance
 
 When guiding declarations are enabled, the assoc_template field was not

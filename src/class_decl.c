@@ -6623,7 +6623,9 @@ static void decl_member_function(a_symbol_locator        *locator,
                                  a_func_info_block_ptr   func_info,
                                  a_class_def_state_ptr   class_state,
                                  a_member_decl_info_ptr  decl_info,
-                                 a_boolean               compiler_generated)
+                                 a_boolean               compiler_generated,
+                                 an_attribute_ptr        attributes,
+                                 char                    *asm_name)
 /*
 For a member function declaration: create a symbol entry and a routine entry
 for the member function, add the symbol to the symbol table, and append the
@@ -6764,6 +6766,16 @@ declared member functions.
                                   (a_boolean)func_info->is_inline);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Apply the attributes to the routine. */
+  if (attributes != NULL) {
+    apply_attributes_to_routine(attributes, rtn);
+  }  /* if */
+  /* Record the assembly name. */
+  if (asm_name != NULL) {
+    rtn->asm_name = asm_name;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (!compiler_generated) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (func_info->is_definition) {
@@ -7489,7 +7501,9 @@ static void decl_static_data_member(a_symbol_locator        *locator,
                                     a_type_ptr              class_type,
                                     a_type_ptr              member_type,
                                     a_class_def_state_ptr   class_state,
-                                    a_member_decl_info_ptr  decl_info)
+                                    a_member_decl_info_ptr  decl_info,
+                                    an_attribute_ptr        attributes,
+                                    char                    *asm_name)
 /*
 Do processing for a static data member, including entering it in the symbol
 table.  *locator is the symbol-locator for the current declaration, class_type
@@ -7513,6 +7527,10 @@ member declaration, respectively.
     /* Abstract class objects are prohibited (ARM 10.3). */
     report_abstract_class_error(ec_abstract_class_object_not_allowed,
                                 member_type, &locator->source_position);
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (attributes != NULL) {
+    member_type = apply_attributes_to_variable_type(attributes, member_type);
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   /* The Microsoft compiler instantiates a template class used as the type
      of a static data member. */
@@ -7677,6 +7695,14 @@ member declaration, respectively.
                                  &locator->source_position,
                                  /*is_redecl=*/FALSE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Apply the attributes to the variable declaration. */
+  apply_attributes_to_variable(attributes, var);
+  /* If applicable, record the asm-name. */
+  if (asm_name != NULL) {
+    var->asm_name_or_reg.name = asm_name;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Check for the case in which the type is or contains a routine type for
      which default arguments have been specified. */
   if (curr_routine_fixup != NULL &&
@@ -9447,7 +9473,8 @@ operator should be created.  No routine body is generated at this time.
   /* Create a symbol and enter it in the symbol table, and create a routine
      entry and add it to the routines list for the current scope. */
   decl_member_function(&locator, class_type, rout_type, &func_info,
-                       class_state, decl_info, /*compiler_generated=*/TRUE);
+                       class_state, decl_info, /*compiler_generated=*/TRUE,
+                       (an_attribute_ptr)NULL, /*asm_name=*/(char*)NULL);
   done_with_func_info(func_info);
   /* It can be that the head of symbols list for the scope has been
      modified (it may have been changed to an sk_overloaded_function, or
@@ -11242,11 +11269,13 @@ the IL, the template header is passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean            any_decl_other_than_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  char                 *asm_name = NULL;
+  a_source_position    asm_name_pos;
+  an_attribute_ptr     specifier_attributes = NULL;
 #if GNU_EXTENSIONS_ALLOWED
-  an_attribute_ptr     prefix_attributes;
-  an_attribute_ptr     *last_prefix_attribute;
+  an_attribute_ptr     *last_specifier_attribute;
+  a_boolean            has_postfix_attributes = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  an_attribute_ptr     attributes = NULL;
 
   db_enter(3, "class_member_declaration");
   *skip_semicolon_check = FALSE;
@@ -11283,17 +11312,12 @@ the IL, the template header is passed via template_decl.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   add_stop_token(tok_colon);
   (void)decl_specifiers(dsi_flags, &dso_flags, &decl_info.storage_class,
-                        &member_type, &qualifiers, 
-#if GNU_EXTENSIONS_ALLOWED
-                        &prefix_attributes,
-#else /* !GNU_EXTENSIONS_ALLOWED */
-                        (an_attribute_ptr *)NULL,
-#endif /* !GNU_EXTENSIONS_ALLOWED */
+                        &member_type, &qualifiers, &specifier_attributes,
                         &decl_info.decl_modifiers,  &decl_info.decl_pos_block,
                         (a_upc_block_size *)NULL);
 #if GNU_EXTENSIONS_ALLOWED
   /* Find the last prefix_attribute. */
-  last_prefix_attribute = last_attribute_link(&prefix_attributes);
+  last_specifier_attribute = last_attribute_link(&specifier_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   decl_info.dso_flags = dso_flags;
   if (C_dialect == C_dialect_cplusplus &&
@@ -11384,6 +11408,9 @@ the IL, the template header is passed via template_decl.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     a_boolean                         is_nonstatic_data_member = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    an_attribute_ptr                  declarator_attributes = NULL;
+    an_attribute_ptr                  attributes = NULL;
+    a_boolean                         is_function;
 
     declarator_start_pos = pos_curr_token;
     add_stop_token(tok_comma);
@@ -11512,19 +11539,18 @@ the IL, the template header is passed via template_decl.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-      /* Look for optional attributes, which are added to the prefix
+      /* Look for optional attributes, which are added to the specifier
          attributes.  Note that the draft GNU C manual for version 3.1
          says that in the future, these attributes may apply only to
          the next declarator, but that they presently apply to all
          declarators. */
       if (gnu_mode) {
-        /* Scan the attributes. */
-        attributes = scan_attributes();
-        /* Add these to the prefix_attributes. */
-        *last_prefix_attribute = attributes;
-        /* And compute what's now the end of the prefix attributes. */
-        last_prefix_attribute = last_attribute_link(last_prefix_attribute);
-        if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        /* Scan the attributes and add them to the specifier attributes. */
+        *last_specifier_attribute = scan_attributes();
+        /* Compute what's now the end of the specifier attributes. */
+        last_specifier_attribute =
+                                last_attribute_link(last_specifier_attribute);
+        if (gcc_mode && depth_innermost_function_scope != NO_SCOPE_DEPTH) {
           /* GNU C allows VLA fields in local classes.  We will scan such
              fields in GNU C mode, but issue a warning that the field will
              be treated as an array of length zero. */
@@ -11539,8 +11565,22 @@ the IL, the template header is passed via template_decl.
          will be ignored for data members.) */
       declarator(di_flags, &decl_info.do_flags, member_type,
                  friend_specified ? (a_type_ptr)NULL : class_type,
-                 &locator, &local_type, &decl_info.declarator_ssep,
-                 &func_info, &decl_info.decl_pos_block, &attributes);
+                 &locator, &local_type, &decl_info.declarator_ssep, &func_info,
+                 &decl_info.decl_pos_block, &declarator_attributes);
+      is_function = (decl_info.storage_class != (a_storage_class)sc_typedef &&
+                     is_function_type(local_type));
+#if GNU_EXTENSIONS_ALLOWED
+      has_postfix_attributes =
+                            (decl_info.do_flags & DO_POSTFIX_ATTRIBUTES) != 0;
+      scan_gnu_declarator_attributes(&asm_name, &asm_name_pos,
+                                     &declarator_attributes,
+                                     &has_postfix_attributes,
+                                     decl_info.storage_class, is_function);
+      /* Combine the specifier and declarator attributes (they are separated
+         again at the end of the loop). */
+      *last_specifier_attribute = declarator_attributes;
+      attributes = specifier_attributes;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       if (!C_mode()) {
         remove_stop_token(tok_lbrace);
         check_completed_member_type(&local_type, &locator, class_state,
@@ -11562,8 +11602,7 @@ the IL, the template header is passed via template_decl.
     }  /* if */
     remove_stop_token(tok_colon);
     remove_stop_token(tok_try);
-    if (!C_mode() && is_function_type(local_type) &&
-        decl_info.storage_class != (a_storage_class)sc_typedef) {
+    if (!C_mode() && is_function) {
       /* Member or friend function. */
       a_boolean  function_def_present = FALSE;
 
@@ -11737,7 +11776,8 @@ the IL, the template header is passed via template_decl.
         /* Create a symbol for the member function. */
         decl_member_function(&locator, class_type, local_type, &func_info,
                              class_state, &decl_info,
-                             /*compiler_generated=*/FALSE);
+                             /*compiler_generated=*/FALSE, attributes,
+                             asm_name);
         rout_sym = decl_info.member_sym;
         if (class_state->is_nonreal_instantiation) {
           /* During the prototype instantiation, save the token sequence
@@ -11976,9 +12016,9 @@ the IL, the template header is passed via template_decl.
                                       !no_decl_specifiers);
       }  /* if */
       /* Typedef declaration. */
-      decl_typedef(&locator, local_type, class_type, (an_attribute_ptr)NULL,
-		   &decl_info.member_sym, decl_info.declarator_ssep,
-		   &decl_info.decl_pos_block);
+      decl_typedef(&locator, local_type, class_type, attributes,
+                   &decl_info.member_sym, decl_info.declarator_ssep,
+                   &decl_info.decl_pos_block);
       /* Note: access will have been set in decl_typedef. */
       if (curr_routine_fixup != NULL &&
           curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
@@ -12036,16 +12076,16 @@ the IL, the template header is passed via template_decl.
       if (decl_info.storage_class == (a_storage_class)sc_static) {
         /* Static data member. */
         decl_static_data_member(&locator, class_type, local_type,
-                                class_state, &decl_info);
+                                class_state, &decl_info, attributes, asm_name);
       } else {
         /* Non-static data member (= field). */
         decl_nonstatic_data_member(&locator, class_type, local_type,
+                                   attributes, class_state, &decl_info);
 #if GNU_EXTENSIONS_ALLOWED
-				   prefix_attributes,
-#else /* !GNU_EXTENSIONS_ALLOWED */
-				   (an_attribute_ptr)NULL,
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-                                   class_state, &decl_info);
+        if (asm_name != NULL) {
+          pos_error(ec_field_with_asm_name_not_allowed, &asm_name_pos);
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         is_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -12067,6 +12107,11 @@ the IL, the template header is passed via template_decl.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     remove_stop_token(tok_comma);
     decl_info.is_first_in_declarator_list = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+    /* We are done with the declarator attributes. */
+    *last_specifier_attribute = NULL;
+    free_attribute_list(declarator_attributes);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Loop for additional declarators. */
   } while (loop_token(tok_comma));
 next_declaration:;
@@ -12087,7 +12132,7 @@ next_declaration:;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   /* We are done with the prefix attributes. */
-  free_attribute_list(prefix_attributes);
+  free_attribute_list( specifier_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (decl_pos_block_ptr != NULL) {
     /* Return to the caller the extra source position information collected

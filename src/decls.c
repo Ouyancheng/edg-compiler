@@ -10319,12 +10319,12 @@ diagnostics.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static void scan_gnu_declarator_attributes(char*             *asm_name,
-                                           a_source_position *asm_name_pos,
-                                           an_attribute_ptr  *attributes,
-                                           a_boolean         *new_attributes,
-                                           a_storage_class   declared_storage,
-                                           a_boolean         is_function)
+void scan_gnu_declarator_attributes(char*              *asm_name,
+                                    a_source_position  *asm_name_pos,
+                                    an_attribute_ptr   *attributes,
+                                    a_boolean          *new_attributes,
+                                    a_storage_class    declared_storage,
+                                    a_boolean          is_function)
 /*
 Scan asm_name constructs and attribute lists following a declarator.
 The resulting asm() symbol name tag is return through asm_name.
@@ -10423,7 +10423,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_decl_modifiers_block       decl_modifiers, local_decl_modifiers;
   a_decl_flag_set              dsi_flags, di_flags;
   a_symbol_ptr                 symbol_ptr = NULL, ext_sym;
-  a_boolean	               decl_specifiers_omitted = FALSE;
+  a_boolean                    decl_specifiers_omitted = FALSE;
   a_boolean                    is_function, is_main_function;
   a_boolean                    is_static_data_member;
   a_symbol_locator             locator;
@@ -10449,7 +10449,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean                    first_declarator = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   char                         *asm_name = NULL;
-  a_source_position	       asm_name_pos;
+  a_source_position            asm_name_pos;
   an_attribute_ptr             specifier_attributes = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr             *last_specifier_attribute;
