@@ -96,7 +96,7 @@ depth in the scope stack, for debugging purposes.
   } else {
     scope_stack_ptr = &scope_stack[depth];
     if (scope_stack_ptr->il_scope == NULL) {
-      db_scope_kind(scope_stack_ptr->kind);
+      (void)db_scope_kind(scope_stack_ptr->kind);
       fprintf(f_debug, " scope %d", (int)scope_stack_ptr->number);
     } else {
       db_scope(scope_stack_ptr->il_scope);

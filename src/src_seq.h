@@ -28,12 +28,6 @@ declaration entry.  It is cast to the indicated pointer type.
 #define ss_entry_ptr(ssep, type) ((type)(ssep)->entity.ptr)
 
 /*
-Return TRUE if the indicated source sequence entry points to a source sequence
-sublist header, i.e., it has kind iek_src_seq_sublist.
-*/
-#define is_sublist_parent(ssep) (ss_entry_kind(ssep) == iek_src_seq_sublist)
-
-/*
 ssep points to an iek_src_seq_sublist source sequence entry.  Such an entry
 resides on the function-scope source sequence list but points to a header
 for a sublist of file-scope source sequence entries.  Fetch and return a
@@ -79,9 +73,6 @@ extern void f_update_source_sequence_list(char                    *entity_ptr,
   }  /* if */                                                            \
 }  /* add_to_source_sequence_list */
 
-
-extern a_src_seq_sublist_ptr sublist_header_of(
-                                            a_source_sequence_entry_ptr ssep);
 
 extern a_source_sequence_entry_ptr add_empty_source_sequence_entry(void);
 
@@ -138,10 +129,6 @@ extern void f_remove_from_source_sequence_list(
 #define remove_from_source_sequence_list(ssep)                          \
   f_remove_from_source_sequence_list(ssep, &scope_stack[depth_scope_stack])
 
-extern void remove_sublist_header_and_parent(
-                                      a_src_seq_sublist_ptr        sublist,
-                                      a_source_sequence_entry_ptr  parent);
-
 extern a_source_sequence_entry_ptr last_matching_source_sequence_entry(
                                                                char *entity);
 
@@ -167,11 +154,6 @@ extern void eliminate_function_body_source_sequence_entries(a_scope_ptr sp);
 extern void eliminate_unneeded_source_sequence_entries(a_scope_ptr sp);
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
-
-extern void src_seq_one_time_init(void);
-
-extern void src_seq_init(void);
-
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 

@@ -137,6 +137,11 @@ static a_source_sequence_entry_ptr
 			   points to the entry in the function scope memory
 			   region that sent us off to the sublist. */
 
+/*
+Return TRUE if the indicated source sequence entry points to a source sequence
+sublist header, i.e., it has kind iek_src_seq_sublist.
+*/
+#define is_sublist_parent(ssep) (ss_entry_kind(ssep) == iek_src_seq_sublist)
 
 /*
 The following variables indicate state within a function.
