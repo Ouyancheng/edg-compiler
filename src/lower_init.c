@@ -2732,6 +2732,53 @@ variable to a zero value.
 }  /* reset_conditional_flag_var */
 
 
+static void add_dyn_init_cleanup(a_dynamic_init_ptr     dip,
+                                 an_init_pos_descr_ptr  ipdp,
+                                 a_boolean              set_cond_flag_if_any,
+                                 a_context_ptr          context,
+                                 an_insert_location_ptr insert_location)
+/*
+The code for the initialization at *dip (for the entity whose position
+is given by ipdp) has just been put out.  The initialization requires
+some kind of later cleanup (e.g., destruction).  Put out anything needed
+to put the dynamic init on the cleanup list.  Set any associated
+conditional flag if set_cond_flag_if_any is TRUE; otherwise, do not
+set it.  context is the effective context for the initialization.
+Any code needed is inserted at *insert_location.
+*/
+{
+  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+
+  check_assertion_str(dedp != NULL,
+                    "add_dyn_init_cleanup: missing destructible entity descr");
+  if (set_cond_flag_if_any && dedp->conditional_flag_var != NULL) {
+    /* This initialization has an associated conditional flag variable,
+       e.g., because it is inside a conditional expression.  Set the
+       flag to nonzero to indicate the initialization has been done. */
+    set_conditional_flag_var(dedp->conditional_flag_var, insert_location);
+  }  /* if */
+  /* Put a copy of the initialization position description into the
+     destruction entity description for use at destruction time. */
+  copy_init_pos_descr(ipdp, &dedp->init_pos_descr);
+  if (exceptions_enabled) {
+    dedp->cleanup_state_to_set_when_starting_destruction = curr_cleanup_state;
+#if GENERATE_EH_TABLES
+    /* Make a region table entry for the entity (and for its conditional
+       flag, if it has one). */
+    make_dyn_init_region_table_entry(dip,
+                                     context->latest_initialization,
+                                     insert_location);
+#endif /* GENERATE_EH_TABLES */
+    /* Insert code to set the current cleanup state. */
+    set_curr_cleanup_state(dip, insert_location);
+  }  /* if */
+  /* Record this dynamic initialization as the last encountered in the
+     context (and therefore the place to start to generate cleanup code if
+     we exit the lifetime after this point). */
+  context->latest_initialization = dip;
+}  /* add_dyn_init_cleanup */
+
+
 /*
 Pointer to the struct type used to provide information to the runtime about
 a needed destruction for a file-scope or local static variable.
@@ -3087,27 +3134,16 @@ code is needed, insert it at *insert_location.
 */
 {
   a_dynamic_init_ptr dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-  a_destructible_entity_descr_ptr
-                     dedp;
   an_init_pos_descr  ipd;
 
   dip->variable = local_static_guard_var;
   dip->has_temporary_lifetime = TRUE;
   dip->is_guard_var_for_local_static_var_init = TRUE;
   add_to_end_of_destructions_list(dip, local_static_lifetime);
-  dip->destructible_entity_descr = dedp = alloc_destructible_entity_descr();
-  dedp->cleanup_state_to_set_when_starting_destruction = curr_cleanup_state;
+  dip->destructible_entity_descr = alloc_destructible_entity_descr();
   set_var_init_pos_descr(local_static_guard_var, &ipd);
-  copy_init_pos_descr(&ipd, &dedp->init_pos_descr);
-#if GENERATE_EH_TABLES
-  /* Add the cleanup region table entry. */
-  make_dyn_init_region_table_entry(dip,
-                                   curr_context->latest_initialization,
-                                   insert_location);
-#endif /* GENERATE_EH_TABLES */
-  /* Set the cleanup state to the cleanup entry. */
-  set_curr_cleanup_state(dip, insert_location);
-  curr_context->latest_initialization = dip;
+  add_dyn_init_cleanup(dip, &ipd, /*set_cond_flag_if_any=*/FALSE,
+                       curr_context, insert_location);
 }  /* add_local_static_guard_var_cleanup */
 
 
@@ -3537,42 +3573,14 @@ do_assignment:;
   /* If the dynamic init entry indicates a destructor call, it requires
      processing to get the destruction done at the right time. */
   if (dip->destructor != NULL) {
-    /* For static variables (local or global), generate code to record
-       at runtime the need for a destruction later. */
     if (static_var_init) {
-      record_needed_destruction(dip, ipdp, eff_insert_location);
+      /* For static variables (local or global), generate code to record
+         at runtime the need for a destruction later. */
+      record_needed_destruction(dip, ipdp, insert_location);
     } else {
       /* Initializations of nonstatic variables. */
-      /* Put a copy of the initialization position description into the
-         destruction entity description for use at destruction time. */
-      a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
-      check_assertion_str(dedp != NULL,
-                      "lower_dynamic_init: missing destructible entity descr");
-      copy_init_pos_descr(ipdp, &dedp->init_pos_descr);
-      if (dedp->conditional_flag_var != NULL) {
-        /* This initialization has an associated conditional flag variable,
-           e.g., because it is inside a conditional expression.  Set the
-           flag to nonzero to indicate the initialization has been done. */
-        set_conditional_flag_var(dedp->conditional_flag_var,
-                                 eff_insert_location);
-      }  /* if */
-      if (exceptions_enabled) {
-        dedp->cleanup_state_to_set_when_starting_destruction =
-                                                            curr_cleanup_state;
-#if GENERATE_EH_TABLES
-        /* Make a region table entry for the entity (and for its conditional
-           flag, if it has one). */
-        make_dyn_init_region_table_entry(dip,
-                                         eff_context->latest_initialization,
-                                         insert_location);
-#endif /* GENERATE_EH_TABLES */
-        /* Insert code to set the current cleanup state. */
-        set_curr_cleanup_state(dip, insert_location);
-      }  /* if */
-      /* Record this dynamic initialization as the last encountered in the
-         current context (and therefore the place to start to generate
-         cleanup code if we exit the lifetime after this point). */
-      eff_context->latest_initialization = dip;
+      add_dyn_init_cleanup(dip, ipdp, /*set_cond_flag_if_any=*/TRUE,
+                           eff_context, insert_location);
     }  /* if */
   }  /* if */
   /* In the whole-variable cases, adjust the initialization specified in
@@ -4020,22 +4028,9 @@ inserted at *insert_location.
                                                       insert_location);
       dedp = dyn_init_to_free_storage->destructible_entity_descr;
     }  /* if */
-    copy_init_pos_descr(ipdp, &dedp->init_pos_descr);
-    if (dedp->conditional_flag_var != NULL) {
-      /* Set the conditional flag variable to nonzero. */
-      set_conditional_flag_var(dedp->conditional_flag_var, insert_location);
-    }  /* if */
-    dedp->cleanup_state_to_set_when_starting_destruction = curr_cleanup_state;
-#if GENERATE_EH_TABLES
-    /* Make a cleanup region table entry to get the storage freed if
-       a throw occurs before the entity is initialized. */
-    make_dyn_init_region_table_entry(dyn_init_to_free_storage,
-                                     curr_context->latest_initialization,
-                                     insert_location);
-#endif /* GENERATE_EH_TABLES */
-    /* Set the cleanup state to the delete cleanup entry. */
-    set_curr_cleanup_state(dyn_init_to_free_storage, insert_location);
-    curr_context->latest_initialization = dyn_init_to_free_storage;
+    add_dyn_init_cleanup(dyn_init_to_free_storage, ipdp,
+                         /*set_cond_flag_if_any=*/TRUE,
+                         curr_context, insert_location);
   }  /* if */
 }  /* set_up_freeing_of_storage_on_exception */
 
@@ -5136,6 +5131,7 @@ constructor scope, and also lower the user code.
              the class is ambiguous. */
           ctsp->assoc_operator_delete_routine != NULL) {
         an_insert_location expr_insert_location;
+        an_init_pos_descr  ipd;
         a_dynamic_init_ptr dyn_init_to_free_storage;
 
         /* Exceptions are enabled.  Record the allocation so it can
@@ -5171,26 +5167,12 @@ constructor scope, and also lower the user code.
                                                     dyn_init_to_free_storage,
                                                     (an_insert_location*)NULL);
         dedp = dyn_init_to_free_storage->destructible_entity_descr;
-        set_var_indirect_init_pos_descr(this_param_var,
-                                        &dedp->init_pos_descr);
-        if (dedp->conditional_flag_var != NULL) {
-          /* Set the conditional_flag variable to nonzero.  The code to
-             initialize it to zero is inserted later in this routine. */
-          set_conditional_flag_var(dedp->conditional_flag_var,
-                                   &expr_insert_location);
-        }  /* if */
-        dedp->cleanup_state_to_set_when_starting_destruction =
-                                                            curr_cleanup_state;
-#if GENERATE_EH_TABLES
-        /* Add the cleanup region table entry. */
-        make_dyn_init_region_table_entry(dyn_init_to_free_storage,
-                                         (a_dynamic_init_ptr)NULL,
-                                         &expr_insert_location);
-#endif /* GENERATE_EH_TABLES */
-        /* Set the cleanup state to the delete cleanup entry. */
-        set_curr_cleanup_state(dyn_init_to_free_storage,
-                               &expr_insert_location);
-        curr_context->latest_initialization = dyn_init_to_free_storage;
+        set_var_indirect_init_pos_descr(this_param_var, &ipd);
+        check_assertion(curr_context->latest_initialization == NULL);
+        /* Add cleanup information. */
+        add_dyn_init_cleanup(dyn_init_to_free_storage, &ipd,
+                             /*set_cond_flag_if_any=*/TRUE,
+                             curr_context, &expr_insert_location);
       }  /* if */
       /* Make "(this = new_rout(size)) != NULL". */
       make_zero_of_proper_type(unqual_this_param_type, &null_constant);
