@@ -182,6 +182,10 @@ extern void decl_typedef(a_symbol_locator             *locator,
 
 extern void record_lint_argsused_and_varargs_state(a_symbol_ptr  rout_sym);
 
+extern void record_arg_pragma(a_pending_pragma_ptr  ppp,
+                              a_symbol_ptr          sym,
+                              a_statement_ptr       sp);
+
 extern void inline_function_definition(a_routine_ptr     routine_ptr,
                                        a_func_info_block *func_info);
 
