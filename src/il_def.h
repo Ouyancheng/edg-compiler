@@ -4424,6 +4424,23 @@ typedef struct a_constructor_init {
 } a_constructor_init;
 
 #endif /* ifdef CIL */
+
+/*
+Numbering for scopes.  Each new scope is given a number.  These
+numbers are unique identifiers for each scope, not simply the nesting
+level of the scope.  Also, each struct or union has a unique scope
+number for its member fields, even though no true scope with that
+number is created.  In C++, a class/struct/union has a true scope
+associated with it.  These scope numbers are mostly of interest to the
+front end.
+*/
+typedef short a_scope_number;
+#define MAX_SCOPE_NUMBER SHRT_MAX
+#define NO_SCOPE_NUMBER (-1)
+			/* Scope number used for things without scope. */
+#define FILE_SCOPE_NUMBER 0
+			/* Scope number for the file scope. */
+
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
 /*
@@ -4445,6 +4462,9 @@ typedef struct a_scope_orphaned_list_header {
 			/* Pointer to the next header on the list. */
   a_routine_ptr	assoc_routine;
 			/* The function that the scope is part of. */
+  a_scope_number
+		scope_number;
+			/* The scope number for the scope. */
   a_type_ptr	orphaned_types;
 			/* Pointer to the orphaned file scope IL type entry
 			   list for a function scope. */
@@ -4462,22 +4482,6 @@ typedef struct a_scope_orphaned_list_header {
 } a_scope_orphaned_list_header;
 
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-
-/*
-Numbering for scopes.  Each new scope is given a number.  These
-numbers are unique identifiers for each scope, not simply the nesting
-level of the scope.  Also, each struct or union has a unique scope
-number for its member fields, even though no true scope with that
-number is created.  In C++, a class/struct/union has a true scope
-associated with it.  These scope numbers are mostly of interest to the
-front end.
-*/
-typedef short a_scope_number;
-#define MAX_SCOPE_NUMBER SHRT_MAX
-#define NO_SCOPE_NUMBER (-1)
-			/* Scope number used for things without scope. */
-#define FILE_SCOPE_NUMBER 0
-			/* Scope number for the file scope. */
 
 enum a_scope_kind_tag {
   /* Kinds of scopes. */

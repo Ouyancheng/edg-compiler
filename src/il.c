@@ -2148,6 +2148,7 @@ processing for add_scope_orphaned_il_lists.
     num_scope_orphaned_list_headers_allocated++;
 #endif /* DEBUG  && !STANDALONE_UTILITY_PROGRAM */
     solhp->assoc_routine = routine;
+    solhp->scope_number = scope->number;
     solhp->orphaned_types = types;
     solhp->orphaned_variables = variables;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
