@@ -3213,48 +3213,27 @@ corresponding instance, or NULL if no corresponding instance is found.
 
 static a_symbol_ptr find_corresponding_symbol_on_symbol_list(
 				a_symbol_ptr		sym_to_find,
+				a_symbol_ptr		symbols,
+				a_boolean		is_routine,
+				a_type_ptr		parent_class,
+				a_namespace_ptr		parent_namespace,
+				char			*canonical_entry,
 				a_translation_unit_ptr	tup)
 /*
-Look through the symbols of the symbol header of sym_to_find
-to find an entry whose canonical IL entry refers to canonical_entry.
-Return a pointer to the symbol found, or NULL if none is found.
+Look through the list of symbols specified by "symbols" to find one
+from the translation unit "tup" that corresponds to "sym_to_find".
+is_routine is TRUE if sym_to_find is a routine symbol.  "parent_class" and
+"parent_namespace" are used to indicate the class or namespace (if any)
+of the corresponding symbol in the other translation unit.
 */
 {
   a_symbol_ptr		result_sym = NULL;
   a_symbol_ptr		sym;
-  a_boolean		is_routine;
-  a_symbol_ptr		parent_sym;
-  a_type_ptr		parent_class = NULL;
-  a_namespace_ptr	parent_namespace = NULL;
-  char			*canonical_entry;
-  an_il_entry_kind	il_kind;
 
-  /* When searching for a routine symbol, we may have to inspect overload
-     sets. */
-  is_routine = is_function_or_template_symbol(sym_to_find);
-  /* Get the canonical IL entry associated with sym_to_find. */
-  canonical_entry = il_entry_for_symbol(sym_to_find, &il_kind);
-  canonical_entry = canonical_il_entry_of(canonical_entry);
-  check_assertion(canonical_entry != NULL);
-  /* If this is a class or namespace member, get the corresponding parent. */
-  if (sym_to_find->is_class_member) {
-    /* Find the corresponding parent class. */
-    parent_sym = (a_symbol_ptr)sym_to_find->
-                                  parent.class_type->source_corresp.assoc_info;
-    parent_sym = find_corresponding_symbol_in_trans_unit(parent_sym, tup);
-    if (parent_sym != NULL) {
-      parent_class = parent_sym->variant.class_struct_union.type;
-    }  /* if */
-  } else if (sym_to_find->parent.namespace_ptr != NULL) {
-    /* Find the corresponding parent namespace. */
-    parent_sym = (a_symbol_ptr)sym_to_find->
-                               parent.namespace_ptr->source_corresp.assoc_info;
-    parent_sym = find_corresponding_symbol_in_trans_unit(parent_sym, tup);
-    if (parent_sym != NULL) {
-      parent_namespace = parent_sym->variant.namespace_info.ptr;
-    }  /* if */
-  }  /* if */
-  for (sym = corresp_symbol_list(sym_to_find); sym != NULL; sym = sym->next) {
+  /* If we did not decide to use a special symbol list above, use the
+     inactive list. */
+  if (symbols == NULL) symbols = corresp_symbol_list(sym_to_find);
+  for (sym = symbols; sym != NULL; sym = sym->next) {
     a_boolean		is_list;
     a_symbol_ptr	sym_to_check;
     /* Check the kind of the symbol to see if it is a potential match. */
@@ -3299,6 +3278,100 @@ Return a pointer to the symbol found, or NULL if none is found.
 }  /* find_corresponding_symbol_on_symbol_list */
 
 
+static a_symbol_ptr find_corresponding_symbol(
+				a_symbol_ptr		sym_to_find,
+				a_translation_unit_ptr	tup)
+/*
+Find the symbol in the translation unit specified by tup that
+corresponds to sym_to_find.  Return a pointer to the symbol found, or
+NULL if none is found.
+*/
+{
+  a_symbol_ptr		result_sym = NULL;
+  a_boolean		is_routine;
+  a_symbol_ptr		parent_sym;
+  a_type_ptr		parent_class = NULL;
+  a_namespace_ptr	parent_namespace = NULL;
+  char			*canonical_entry;
+  an_il_entry_kind	il_kind;
+  a_symbol_ptr		symbols = NULL;
+  a_symbol_list_entry_ptr
+			symbol_list = NULL;
+
+  /* When searching for a routine symbol, we may have to inspect overload
+     sets. */
+  is_routine = is_function_or_template_symbol(sym_to_find);
+  /* Get the canonical IL entry associated with sym_to_find. */
+  canonical_entry = il_entry_for_symbol(sym_to_find, &il_kind);
+  canonical_entry = canonical_il_entry_of(canonical_entry);
+  check_assertion(canonical_entry != NULL);
+  /* If this is a class or namespace member, get the corresponding parent. */
+  if (sym_to_find->is_class_member) {
+    /* Find the corresponding parent class. */
+    a_class_symbol_supplement_ptr	cssp;
+    a_special_function_kind		special_kind;
+    parent_sym = (a_symbol_ptr)sym_to_find->
+                                  parent.class_type->source_corresp.assoc_info;
+    parent_sym = find_corresponding_symbol_in_trans_unit(parent_sym, tup);
+    if (parent_sym != NULL) {
+      parent_class = parent_sym->variant.class_struct_union.type;
+      complete_class_type_is_needed(parent_class);
+      special_kind = special_function_kind_for_symbol(sym_to_find);
+      cssp = parent_sym->variant.class_struct_union.extra_info;
+      /* Constructor and destructor routines are not entered into the symbol
+         table, so are found using the appropriate symbols from the class
+         symbols supplement. */
+      switch (special_kind) {
+        case sfk_constructor:
+          symbols = cssp->constructor;
+          break;
+        case sfk_destructor:
+          symbols = cssp->destructor;
+          break;
+        case sfk_conversion:
+          /* There are two lists of conversion operators.  One for templates
+             and one for non-templates. */
+          if (sym_to_find->kind == (a_symbol_kind)sk_function_template) {
+            symbol_list = cssp->conversion_template_list;
+          } else {
+            symbol_list = cssp->conversion_list;
+          }  /* if */
+          break;
+        default:
+          break;
+      }  /* switch */
+    }  /* if */
+  } else if (sym_to_find->parent.namespace_ptr != NULL) {
+    /* Find the corresponding parent namespace. */
+    parent_sym = (a_symbol_ptr)sym_to_find->
+                               parent.namespace_ptr->source_corresp.assoc_info;
+    parent_sym = find_corresponding_symbol_in_trans_unit(parent_sym, tup);
+    if (parent_sym != NULL) {
+      parent_namespace = parent_sym->variant.namespace_info.ptr;
+    }  /* if */
+  }  /* if */
+  if (symbol_list != NULL) {
+    /* Find the symbol on a list of symbol list entries. */
+    a_symbol_list_entry_ptr	slep;
+    for (slep = symbol_list; slep != NULL; slep = slep->next) {
+      a_symbol_ptr	sym_to_check = slep->symbol;
+      if (is_corresponding_sym_in_trans_unit(canonical_entry,
+                                             sym_to_check, tup)) {
+        result_sym = sym_to_check;
+        break;
+      }  /* if */
+    }  /* for */
+  } else {
+    /* Find the symbol on a list of symbols linked by the next
+       pointer of the symbol. */
+    result_sym = find_corresponding_symbol_on_symbol_list(
+                      sym_to_find, symbols, is_routine, parent_class,
+                      parent_namespace, canonical_entry, tup);
+  }  /* if */
+  return result_sym;
+}  /* find_corresponding_symbol */
+
+
 a_symbol_ptr find_corresponding_symbol_in_trans_unit(
 					a_symbol_ptr		sym_to_find,
 					a_translation_unit_ptr	tup)
@@ -3317,7 +3390,7 @@ that is refers to an entity that corresponds to sym_to_find.
   } else {
     /* The normal case -- look for the corresponding symbol on the inactive
        list. */
-    result_sym = find_corresponding_symbol_on_symbol_list(sym_to_find, tup);
+    result_sym = find_corresponding_symbol(sym_to_find, tup);
   }  /* if */
   return result_sym;
 }  /* find_corresponding_symbol_in_trans_unit */

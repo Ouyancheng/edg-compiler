@@ -879,7 +879,9 @@ NULL or is symbol of the template from which the instance was generated.
   }  /* if */
   if (is_exported) {
     char	*template_name;
-    template_name = get_mangled_name_for_symbol(template_sym);
+    template_name = get_mangled_name_for_symbol(
+                          prototype_template_if_template_symbol(template_sym));
+
     fprintf(f_template_info, ":%s", template_name);
   }  /* if */
   fputs("\n", f_template_info);
@@ -12303,6 +12305,20 @@ reflect an export keyword present on the current declaration.
       pos_error(ec_export_after_definition, &decl_state->export_position);
     }  /* if */
     tssp->il_template_entry->is_exported = TRUE;
+  } else if (decl_state->class_declared_in != NULL &&
+             class_is_exported(decl_state->class_declared_in)) {
+    /* The enclosing class is declared export. */
+    tssp->il_template_entry->is_exported = TRUE;
+  } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+    /* If this is a subordinate template, it is exported if the prototype
+       template is exported. */
+    a_symbol_ptr	proto_sym;
+    proto_sym = prototype_template_of(sym);
+    if (proto_sym != sym) {
+      if (template_is_exported(proto_sym)) {
+        tssp->il_template_entry->is_exported = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (tssp->il_template_entry->is_exported && is_defined) {
     /* Add the template to the list of exported templates. */
@@ -15602,7 +15618,8 @@ a specialized instance.
     a_template_lookup_entry_ptr	tlp;
     /* Look up the mangled name of the template to see if a definition was
        found. */
-    name = get_mangled_name_for_symbol(tip->template_sym);
+    name = get_mangled_name_for_symbol(
+                     prototype_template_if_template_symbol(tip->template_sym));
     tlp = find_exported_template(name, /*add=*/FALSE);
     if (tlp != NULL) {
       /* An exported definition was found.  Record information about the file

@@ -3500,8 +3500,17 @@ extern a_boolean is_proxy_member_symbol(a_symbol_ptr  sym);
     (sym)->kind == (a_symbol_kind)sk_overloaded_function ||           \
     (sym)->kind == (a_symbol_kind)sk_function_template))
 
-extern a_boolean is_special_function_symbol(a_symbol_ptr             sym,
-                                            a_special_function_kind  kind);
+extern
+a_special_function_kind special_function_kind_for_symbol(a_symbol_ptr	sym);
+
+/*
+If sym is a routine symbol of some sort, return TRUE if the special function
+kind recorded in its routine entry is "kind" and FALSE if it is not.  If sym
+is not a routine symbol, return FALSE.
+*/
+#define is_special_function_symbol(sym, kind)				\
+  (special_function_kind_for_symbol(sym) == (a_special_function_kind)(kind))
+
 extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
 
 /* Return TRUE if a symbol is a constructor symbol. */
@@ -3631,6 +3640,13 @@ supplement.
   ((sym)->variant.template_info->prototype_template != NULL &&		\
    !(sym)->variant.template_info->is_specific_definition ?		\
       (sym)->variant.template_info->prototype_template : (sym))
+
+/*
+If "sym" is a template symbol (class or function) return the prototype template
+symbol; otherwise return the original symbol.
+*/
+#define prototype_template_if_template_symbol(sym)			\
+  (is_template_symbol(sym) ? prototype_template_of(sym) : (sym))
 
 /* Return a pointer to the namespace associated with a namespace symbol.
    Remove any namespace aliases that may be present.  The symbol provided

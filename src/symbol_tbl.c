@@ -1315,37 +1315,35 @@ and the scope depth is set to the value passed by the caller.
 }  /* set_source_corresp_with_scope_depth */
 
 
-a_boolean is_special_function_symbol(a_symbol_ptr             sym,
-                                     a_special_function_kind  kind)
+a_special_function_kind special_function_kind_for_symbol(a_symbol_ptr	sym)
 /*
-If sym is a routine symbol of some sort, return TRUE if the special function
-kind recorded in its routine entry is "kind" and FALSE if it is not.  If sym
-is not a routine symbol, return FALSE.
+Return the special function kind of the routine associated with sym.
+If sym is not a routine, or is not a special function, return sfk_none.
 */
 {
-  a_boolean  match;
+  a_special_function_kind	kind;
 
   switch (sym->kind) {
     case sk_routine:
     case sk_member_function:
-      match = (sym->variant.routine.ptr->special_kind == kind);
+      kind = sym->variant.routine.ptr->special_kind;
       break;
     case sk_overloaded_function:
       /* All entries on a list of overloaded functions should have the same
          special function kind, so looking at the first on the list is
          sufficient. */
       sym = sym->variant.overloaded_function.symbols;
-      match = is_special_function_symbol(sym, kind);
+      kind = special_function_kind_for_symbol(sym);
       break;
     case sk_function_template:
-      match = (sym->variant.template_info->
-                        variant.function.routine->special_kind == kind);
+      kind = sym->variant.template_info->
+                                        variant.function.routine->special_kind;
       break;
     default:
-      match = FALSE;
+      kind = sfk_none;
   }  /* switch */
-  return match;
-}  /* is_special_function_symbol */
+  return kind;
+}  /* special_function_kind_for_symbol */
 
 
 a_type_ptr underlying_function_type(a_symbol_ptr  sym)
