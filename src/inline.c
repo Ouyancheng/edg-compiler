@@ -757,9 +757,11 @@ If not, *failed is set.
             if (stmt_expr != NULL) {
               insert_expr(stmt_expr, insert_location);
             } else {
-              if (!is_void_type(f_skip_typerefs(
-                             routine_scope_being_inlined->variant.routine.ptr->
-                                         type)->variant.routine.return_type)) {
+              a_type_ptr routine_return_type = f_skip_typerefs(
+                                                  routine_scope_being_inlined->
+                                                   variant.routine.ptr->type)->
+                                                   variant.routine.return_type;
+              if (!is_void_type(routine_return_type)) {
                 /* The return statement returns nothing and the function
                    expects a return value, so this function cannot be
                    inlined. */
@@ -1136,11 +1138,29 @@ statement).
           } else {
             an_expr_node_ptr inlined_call_expr = insert_location.variant.expr;
             check_assertion(inlined_call_expr != NULL);
-            /* Cast the expression to the original type.  This is necessary
-               when the original type was void and insertions have left us
-               with an expression with some other type. */
-            inlined_call_expr = add_cast_if_necessary(inlined_call_expr,
-                                                      expr->type);
+            /* Make sure the expression has the type expected for the call. */
+            if (is_void_type(expr->type)) {
+              /* For void functions, make sure the type of the expression is
+                 void (it's currently whatever type the last
+                 statement/expression added has.) */
+              inlined_call_expr = add_cast_if_necessary(inlined_call_expr,
+                                                        expr->type);
+            } else {
+              /* For non-void functions, the type of the expression can be
+                 wrong if a constructor has an unreachable return statement.
+                 In that case, add a zero cast to the right type. */
+              if (!il_identical_types(expr->type, inlined_call_expr->type)) {
+                a_constant zero_constant;
+                check_assertion_str(is_pointer_type(expr->type) &&
+                             routine_scope_being_inlined->variant.routine.ptr->
+                      special_kind == (a_special_function_kind)sfk_constructor,
+                                    "do_inlining_of_call: wrong expr type");
+                make_zero_of_proper_type(expr->type, &zero_constant);
+                insert_expr(alloc_node_for_constant(&zero_constant),
+                            &insert_location);
+                inlined_call_expr = insert_location.variant.expr;
+              }  /* if */
+            }  /* if */
             /* Replace the original call node by overwriting it with the
                expression for the inlined call. */
             overwrite_node(expr, inlined_call_expr);
