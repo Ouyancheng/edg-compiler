@@ -167,7 +167,8 @@ By default, configure for ANSI C if __STDC__ is set, and for BSD4.n otherwise.
 #endif /* ifdef __SYSV__ */
 
 #if __ANSIC__ + __BSD__ + __SYSV__ != 1
-??=error -- Exactly one of "__ANSIC__", "__BSD__", and "__SYSV__" must be set.
+ #error -- Exactly one of "__ANSIC__", "__BSD__", and "__SYSV__" must \
+            be set.
 #endif /* __ANSIC__ + ... */
 
 #include <stdio.h>
