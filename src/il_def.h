@@ -843,7 +843,8 @@ typedef struct an_overriding_virtual_function {
 			/* A pointer to the base class entry, on the
 			   base_classes list of the current derived class,
 			   identifying the class of which the overriding
-			   function is a member. */
+			   function is a member; when it is a member of the
+			   current derived class, then this field is NULL. */
 } an_overriding_virtual_function;
 
 
@@ -916,7 +917,9 @@ typedef struct a_base_class {
 			/* Pointer to a linked list of entries representing
 			   functions declared in derived classes that
                            override virtual functions declared in the
-                           current base class. */
+                           current base class.  These entries are sorted by
+			   virtual function number of the routine pointed
+			   to by the primary_function field. */
 } a_base_class;
 
 
