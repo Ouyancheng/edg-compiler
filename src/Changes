@@ -1,5 +1,13 @@
 Version 2.06
 
+5/18/92  Fixed bugs with copy constructors and virtual base classes.
+
+Two fixes in IL lowering: the implied arguments in copy constructor
+calls for classes having virtual base classes are now in the right place
+(before the source pointer); in copy constructor calls generated for
+virtual base classes in front-end generated copy constructors, the
+source argument now has the proper base class selection.
+
 5/18/92  Fixed bug that caused internal error in function_definition.
 
 The problem occurred when duplicate parameter names appeared in a function
