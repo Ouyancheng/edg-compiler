@@ -172,10 +172,6 @@ on the underlying element type of an array.
   ((get_type_qualifiers(tp) & TQ_CONST) != 0)
 #define is_volatile_qualified_type(tp)                                \
   ((get_type_qualifiers(tp) & TQ_VOLATILE) != 0)
-#if RESTRICT_ALLOWED
-#define is_restrict_qualified_type(tp)                                \
-  ((get_type_qualifiers(tp) & TQ_RESTRICT) != 0)
-#endif /* RESTRICT_ALLOWED */
 
 /*
 Check for "top-level" type qualifiers -- i.e., don't look at the element
@@ -183,14 +179,6 @@ type if tp is an array.
 */
 #define is_top_level_qualified_type(tp)                               \
   (get_top_level_type_qualifiers(tp) != TQ_NONE)
-#define is_top_level_const_qualified_type(tp)                         \
-  ((get_top_level_type_qualifiers(tp) & TQ_CONST) != 0)
-#define is_top_level_volatile_qualified_type(tp)                      \
-  ((get_top_level_type_qualifiers(tp) & TQ_VOLATILE) != 0)
-#if RESTRICT_ALLOWED
-#define is_top_level_restrict_qualified_type(tp)                      \
-  ((get_top_level_type_qualifiers(tp) & TQ_RESTRICT) != 0)
-#endif /* RESTRICT_ALLOWED */
 
 /*
 Return TRUE if the type qualifiers on two types match.  Typedefs and
@@ -606,15 +594,6 @@ extern a_boolean routine_linkages_are_compatible(
                                            a_boolean            is_impl_conv);
 
 /*
-Return the type of the variable (lvalue) represented by node.  This mainly
-involves removing the extra "pointer to" in the expression type for
-an lvalue.
-*/
-#define lvalue_expr_type(node)                                        \
-(is_error_type((node)->type) ? (node)->type :                         \
-                               type_pointed_to((node)->type))
-
-/*
 Return TRUE if a routine type is the type of a nonstatic member function.
 The type must be known to be a routine type (not, for example, an error type),
 but it may have typerefs on top of it.
@@ -665,39 +644,24 @@ typedef int a_type_tree_traversal_flag_set;
 			/* When the type being traversed is a function type,
 			   apply the predicate check to the implicit "this"
 			   parameter type. */
-#define TTT_MEMBER_TYPES 0x8
-			/* When the type being traversed is a class type,
-			   apply the predicate check to nested classes,
-			   enums, and typedef names. */
-#define TTT_TYPES_OF_MEMBER_FUNCTIONS 0x10
-			/* When the type being traversed is a class type,
-			   apply the predicate check to types of member
-			   functions. */
-#define TTT_TYPES_OF_DATA_MEMBERS 0x20
-			/* When the type being traversed is a class type,
-			   apply the predicate check to the types of data
-			   members. */
-#define TTT_BASE_CLASSES 0x40
-			/* When the type being traversed is a class type,
-			   apply the predicate check to its base classes. */
-#define TTT_TEMPLATE_ARGS 0x80
+#define TTT_TEMPLATE_ARGS 0x8
 			/* When the type being traversed is a class type,
 			   apply the predicate check to its template args
                            (if it is a template class). */
-#define TTT_SKIP_TYPEREFS 0x100
+#define TTT_SKIP_TYPEREFS 0x10
 			/* Skip over typerefs before applying the predicate
 			   check to a given type. */
-#define TTT_SKIP_TYPEDEFS 0x200
+#define TTT_SKIP_TYPEDEFS 0x20
 			/* Skip over typedefs before applying the predicate
 			   check to a given type. */
-#define TTT_EXCEPTION_SPECS 0x400
+#define TTT_EXCEPTION_SPECS 0x40
 			/* When the type being traversed is a function type,
 			   apply the predicate check to the exception
 			   specification list. */
-#define TTT_STOP_AT_TYPEDEFS 0x800
+#define TTT_STOP_AT_TYPEDEFS 0x80
 			/* When the type encountered is a typedef, stop
 			   the traversal. */
-#define TTT_DEDUCED_CONTEXTS_ONLY 0x1000
+#define TTT_DEDUCED_CONTEXTS_ONLY 0x100
 			/* When the type is traversed, only consider contexts
 			   in which a template argument value can be deduced.
 			   This ignores template parameters used in
