@@ -376,7 +376,7 @@ EXTERN a_boolean
 			/* TRUE if this compilation should use a specified
 			   precompiled header file. */
 
-EXTERN char	*precompiled_header_to_use;
+EXTERN char	*pch_input_file_name;
 			/* When use_precompiled_header is TRUE, this specifies
 			   the name of the precompiled header file to be
 			   used. */

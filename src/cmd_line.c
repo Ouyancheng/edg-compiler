@@ -1018,7 +1018,7 @@ Process the arguments on the command line that invoked the compiler.
         /* Use a precompiled header file as part of this compilation. */
         check_assertion(opt_value == TRUE);
         use_precompiled_header = TRUE;
-        precompiled_header_to_use = optarg;
+        pch_input_file_name = optarg;
         precompiled_header_processing_required = TRUE;
         break;
       case optk_pch:
