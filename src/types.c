@@ -837,8 +837,11 @@ in 16-bit Microsoft mode).
 */
 {
   a_boolean            is_far;
-  a_type_qualifier_set qualifiers = get_type_qualifiers(tp);
+  a_type_qualifier_set qualifiers;
 
+  /* For arrays in C mode, make sure we see the qualifiers on the
+     underlying type. */
+  qualifiers = f_get_type_qualifiers(tp, /*top_level=*/FALSE);
   check_assertion(near_and_far_enabled());
   if (qualifiers & TQ_NEAR) {
     /* near specified explicitly. */
@@ -882,8 +885,8 @@ a_type_qualifier_set get_original_type_qualifiers(a_type_ptr type)
 /*
 Get and return the type qualifiers of the indicated type, including any
 memory attributes that were explicit in the source but are implicit in
-the type itself.  This routine only called when support for near and far is
-enabled (e.g., Microsoft 16-bit mode).
+the type itself.  This routine is called only when support for near and far
+is enabled (e.g., Microsoft 16-bit mode).
 */
 {
   a_type_qualifier_set qualifiers = TQ_NONE;
