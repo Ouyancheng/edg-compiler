@@ -1,5 +1,10 @@
 Version 2.35
 
+1/23/97 Microsoft compatibility: static data member in unnamed class
+
+In Microsoft compatibility mode no diagnostic is issued on a static data
+member declared in an unnamed class.
+
 1/23/97 Microsoft and cfront compatibility: return expression in void function
 
 In Microsoft C compatibility mode, a return statement with a return
