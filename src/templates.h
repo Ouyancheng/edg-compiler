@@ -63,6 +63,11 @@ typedef int an_equiv_templ_arg_options_set;
 			/* TRUE if, in Microsoft bugs mode, top level
 			   qualifiers should be ignored when comparing two
 			   argument lists. */
+#define ETA_IS_PROTOTYPE		0x10
+			/* TRUE if the first template argument list is
+			   the argument list for a prototype instantiation of
+			   a class template or a prototype instantiation of
+			   a partial specialization. */
 
 /*
 Flags used to specify options to copy_type_with_substitution.
