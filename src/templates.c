@@ -9900,7 +9900,7 @@ this is the template parameter list of a template template parameter.
   a_template_param_ptr	template_param;
   a_symbol_ptr         	sym;
   a_boolean		const_type_involves_template_param = FALSE;
-  a_constant_ptr	default_arg_constant;
+  a_constant_ptr	default_arg_constant = NULL;
   a_boolean		def_arg_involves_template_param = FALSE;
 
   /* Scan the declaration of the type of the nontype parameter. */
@@ -9960,18 +9960,24 @@ this is the template parameter list of a template template parameter.
          indicates that the default argument contains a template parameter. */
      def_arg_involves_template_param = TRUE;
     }  /* if */
-    /* Scan the default argument expression.  Rescan a copy of the cache.
-       This is done so that when the default argument is scanned, the
-       last token of the cache is followed by the token that followed
-       it in the original source program with no intervening
-       tok_end_of_source. */
-    rescan_copy_of_cache(&def_arg_cache);
-    default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
-    scan_template_argument_constant_expression(param_type_ptr,
-					       default_arg_constant);
-    if (default_arg_constant->kind ==
+    if (!const_type_involves_template_param ||
+        nonclass_prototype_instantiations) {
+      /* Scan the default argument expression.  Rescan a copy of the cache.
+         This is done so that when the default argument is scanned, the
+         last token of the cache is followed by the token that followed
+         it in the original source program with no intervening
+         tok_end_of_source.  Note that this is also done for defaults whose
+         type is not template dependent.  This is done because, prior to
+         nonclass prototype instantiations, such default arguments were
+         scanned in all cases. */
+      rescan_copy_of_cache(&def_arg_cache);
+      default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
+      scan_template_argument_constant_expression(param_type_ptr,
+  					         default_arg_constant);
+      if (default_arg_constant->kind ==
                                      (a_constant_repr_kind)ck_template_param) {
-      def_arg_involves_template_param = TRUE;
+        def_arg_involves_template_param = TRUE;
+      }  /* if */
     }  /* if */
     /* Update the default argument information in the template parameter. */
     if (def_arg_involves_template_param) {
