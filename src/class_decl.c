@@ -2916,19 +2916,21 @@ of the function, and again overloading is a possibility.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (sym != NULL && sym->defined && func_info->is_definition) {
-        /* Trying to defined a function that's aleady defined. */
-        pos_sy_error(ec_function_redefinition,
-                     &locator->source_position, sym);
-        set_to_error_locator(*locator);
-      } else {
-        if (func_info->is_definition) {
-          mark_defined(sym, &locator->source_position);
+      if (sym != NULL) {
+        if (sym->defined && func_info->is_definition) {
+          /* Trying to defined a function that's aleady defined. */
+          pos_sy_error(ec_function_redefinition,
+                       &locator->source_position, sym);
+          set_to_error_locator(*locator);
         } else {
-          mark_declared(sym, &locator->source_position);
+          if (func_info->is_definition) {
+            mark_defined(sym, &locator->source_position);
+          } else {
+            mark_declared(sym, &locator->source_position);
+          }  /* if */
+          /* Do throw specification compatibility checking. */
+          check_throw_specification(func_info, sym->variant.routine.ptr);
         }  /* if */
-        /* Do throw specification compatibility checking. */
-        check_throw_specification(func_info, sym->variant.routine.ptr);
       }  /* if */
     }  /* if */
   }  /* if */
