@@ -1613,7 +1613,7 @@ Do C99 lowering on the indicated variable and its subtree.
       var->storage_class != (a_storage_class)sc_extern &&
       var->init_kind == (an_init_kind)initk_none) {
     /* GNU C allows variables without initializers to be marked as "nocommon",
-       which indicates that such variables nontentative definitions.
+       which indicates that such variables are nontentative definitions.
        This can be translated to plain C IL by providing an explicitly
        zeroing initializer. */
     var->init_kind = (an_init_kind)initk_zero;
