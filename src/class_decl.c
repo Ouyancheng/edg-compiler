@@ -6191,7 +6191,7 @@ Scan the body of a class definition, including the base classes list.
           a_func_info_block  func_info;
           a_source_sequence_entry_ptr
                              declarator_ssep = NULL;
-          a_boolean          is_ptr_to_member_typedef = FALSE;
+          a_boolean          cfront_member_function_typedef = FALSE;
 
 
           add_stop_token(tok_comma);
@@ -6285,8 +6285,8 @@ Scan the body of a class definition, including the base classes list.
                        friend_specified ? (a_type_ptr)NULL : class_type,
                        &locator, &local_type, &bottom_derived_type,
                        &declarator_ssep, &func_info);
-            is_ptr_to_member_typedef =
-                      declarator_output_flags & DO_PTR_TO_MEMBER_TYPEDEF;
+            cfront_member_function_typedef =
+                  declarator_output_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
             if (!C_mode()) {
               remove_stop_token(tok_lbrace);
               /* Abstract class objects are prohibited (ARM 10.3). */
@@ -6650,12 +6650,16 @@ Scan the body of a class definition, including the base classes list.
             a_symbol_ptr        typedef_sym_ptr;
 
             check_assertion(C_dialect == C_dialect_cplusplus);
-            if (is_ptr_to_member_typedef) {
+            if (cfront_member_function_typedef) {
+              /* This looked like a cfront-style member function typedef.  Be
+                 sure the type was a function type. */
               if (is_function_type(local_type)) {
-                /* Issue a warning. */
+                /* Issue a warning on the extension. *
                 pos_warning(ec_ptr_to_member_typedef,
                             &locator.source_position);
               } else {
+                /* No function type, so what looked like a qualified name
+                   really was -- but they aren't allowed. */
                 pos_error(ec_qualified_name_not_allowed,
                           &locator.source_position);
                 set_to_error_locator(locator);

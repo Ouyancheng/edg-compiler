@@ -5857,7 +5857,7 @@ otherwise it is NULL.  The syntax is:
   a_boolean       is_name_start;
   a_boolean       is_constructor = FALSE, is_destructor = FALSE;
   a_boolean       is_nonstatic_member_function = FALSE;
-  a_boolean       is_ptr_to_member_typedef = FALSE;
+  a_boolean       cfront_member_function_typedef = FALSE;
   a_boolean       nonconstant_dimension_allowed;
   a_boolean       parenthesized_initializer_allowed;
   a_boolean       is_friend_decl = FALSE;
@@ -5927,9 +5927,9 @@ otherwise it is NULL.  The syntax is:
     } else {
       parenthesized_initializer_allowed = FALSE;
     }  /* if */
-    if (local_do_flags & DO_PTR_TO_MEMBER_TYPEDEF) {
-      *output_flags |= DO_PTR_TO_MEMBER_TYPEDEF;
-      is_ptr_to_member_typedef = TRUE;
+    if (local_do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF) {
+      *output_flags |= DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
+      cfront_member_function_typedef = TRUE;
        /* Force function_declarator to add an implicit-this-param pointer
           to the routine type. */
        check_assertion(locator->qualifier_class_type != NULL);
@@ -6012,8 +6012,8 @@ otherwise it is NULL.  The syntax is:
             /* Force function_declarator to add an implicit-this-param pointer
                to the routine type. */
             member_parent_type = locator_for_curr_id.qualifier_class_type;
-            *output_flags |= DO_PTR_TO_MEMBER_TYPEDEF;
-            is_ptr_to_member_typedef = TRUE;
+            *output_flags |= DO_CFRONT_MEMBER_FUNCTION_TYPEDEF;
+            cfront_member_function_typedef = TRUE;
             /* Clear the is_qualified_name flag in the locator, but keep the
                qualifer_class_type around, in case this is a recursive
                declarator call and the function_declarator is called at
@@ -6330,7 +6330,7 @@ function_lparen:
           }  /* if */
           func_info = NULL;
           is_constructor = is_destructor = FALSE;
-        } else if (is_ptr_to_member_typedef) {
+        } else if (cfront_member_function_typedef) {
           check_assertion(func_info == NULL);
           is_nonstatic_member_function = TRUE;
           is_constructor = is_destructor = FALSE;
@@ -10444,11 +10444,15 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
       } else if (storage_class == (a_storage_class)sc_typedef &&
-                 (do_flags & DO_PTR_TO_MEMBER_TYPEDEF)) {
+                 (do_flags & DO_CFRONT_MEMBER_FUNCTION_TYPEDEF)) {
+        /* This looked like a cfront-style member function typedef.  Be sure
+           the type was a function type. */
         if (is_function_type(local_type_ptr)) {
-          /* Issue a warning. */
+          /* Issue a warning on the extension. */
           pos_warning(ec_ptr_to_member_typedef, &locator.source_position);
         } else {
+          /* No function type, so what looked like a qualified name really
+             was -- but they aren't allowed. */
           pos_error(ec_qualified_name_not_allowed, &locator.source_position);
           set_to_error_locator(locator);
         }  /* if */
