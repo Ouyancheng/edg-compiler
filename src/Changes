@@ -86,6 +86,16 @@ extern "C" entities when they are needed.  For example:
 Before, the call in g was put out simply as "f()" in the generated C++,
 which meant the wrong function was called.  Now it is put out as "B::f()".
 
+(11/27/97:)  An additonal fix, for cases like
+
+  namespace A {
+    typedef unsigned I;
+    extern "C" void *f(const void *, int, I);
+  }
+  namespace B {
+    extern "C" void *f(const void *, int, A::I);  // A::I was put out as I
+  }
+
 11/24/97  C++-generating back end: internal error when unneeded entities
           are eliminated
 

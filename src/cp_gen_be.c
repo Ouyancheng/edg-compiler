@@ -2463,6 +2463,10 @@ a function.  If options & GDO_FORCE_UNQUALIFIED_NAME is TRUE,
 use an unqualified name when naming the entity in the declarator.
 */
 {
+  a_boolean force_unqualified_name =
+                                   (options & GDO_FORCE_UNQUALIFIED_NAME) != 0;
+  a_boolean context_pop_needed = FALSE;
+
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL),
@@ -2482,16 +2486,18 @@ use an unqualified name when naming the entity in the declarator.
          different than for ordinary declarations. */
       gen_friend_function_decl_name(scp);
     } else {
-      gen_decl_name(scp, entry_kind,
-                    (options & GDO_FORCE_UNQUALIFIED_NAME) != 0);
+      gen_decl_name(scp, entry_kind, force_unqualified_name);
     }  /* if */
-    /* Push the name context for a class/namespace member. */
-    push_name_context_if_member(scp);
+    if (!force_unqualified_name) {
+      /* Push the name context for a class/namespace member. */
+      push_name_context_if_member(scp);
+      context_pop_needed = TRUE;
+    }  /* if */
   }  /* if */
   /* Write the second part of the declarator. */
   form_type_second_part_simple(type, /*under_lhs_declarator=*/FALSE, &octl);
   /* Pop the name context for a class/namespace member. */
-  if (scp != NULL) pop_name_context_if_member(scp);
+  if (context_pop_needed) pop_name_context_if_member(scp);
 }  /* gen_general_declaration_using_type */
 
 
@@ -6761,9 +6767,11 @@ TRUE if the declaration following this one is such a continuation.
       gen_decl_name(&rout->source_corresp, iek_routine,
                     force_unqualified_name);
     }  /* if */
-    /* Push the name context for a class/namespace member. */
-    push_name_context_if_member(&rout->source_corresp);
-    context_pop_needed = TRUE;
+    if (!force_unqualified_name) {
+      /* Push the name context for a class/namespace member. */
+      push_name_context_if_member(&rout->source_corresp);
+      context_pop_needed = TRUE;
+    }  /* if */
     if (is_definition) {
       /* Follow the source sequence list for the function. */
       save_source_sequence_scan_state(&saved_state);
