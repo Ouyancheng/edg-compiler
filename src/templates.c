@@ -447,16 +447,10 @@ return *tag_resolution TRUE.
         /* Now cache the "}" (unless we didn't find one). */
         if (curr_token == tok_rbrace) {
           cache_curr_token(&tssp->body_token_cache);
-          /* Add an end-of-source token after the right brace. */
-          curr_token = tok_end_of_source;
-          cache_curr_token(&tssp->body_token_cache);
           (void)get_token();
-#if CHECKING
-        } else if (curr_token != tok_end_of_source) {
-          internal_error("class_template_declaration: expected end-of-source");
-#endif /* CHECKING */
         }  /* if */
       }  /* if */
+      terminate_token_cache(&tssp->body_token_cache);
     } else {
       /* This is not a class template declaration, so we have no need to
          cache the tokens. */
@@ -491,18 +485,7 @@ static void function_template_declaration(a_symbol_ptr   *sym)
   add_stop_token(tok_lbrace);
   clear_token_cache(&decl_token_cache);
   cache_token_stream(&decl_token_cache);
-  if (curr_token == tok_end_of_source) {
-    cache_curr_token(&decl_token_cache);
-#if CHECKING
-  } else if (curr_token != tok_semicolon && curr_token != tok_lbrace) {
-    internal_error("function_template_declaration: unexpected token kind");
-#endif /* CHECKING */
-  } else {
-    a_token_kind  saved_token = curr_token;
-    curr_token = tok_end_of_source;
-    cache_curr_token(&decl_token_cache);
-    curr_token = saved_token;
-  }  /* if */
+  terminate_token_cache(&decl_token_cache);
   rescan_reusable_cache(&decl_token_cache);
   (void)decl_specifiers((DSI_IS_TEMPLATE_DECLARATION |
                          DSI_TYPE_SPECIFIER_ALLOWED |
@@ -532,19 +515,10 @@ static void function_template_declaration(a_symbol_ptr   *sym)
       /* Cache the "}" and append an end-of-source token. */
       if (curr_token == tok_rbrace) {
         cache_curr_token(&tssp->body_token_cache);
-        curr_token = tok_end_of_source;
-        cache_curr_token(&tssp->body_token_cache);
         /* Advance to the next token. */
         (void)get_token();
-      } else {
-#if CHECKING
-        if (curr_token != tok_end_of_source) {
-          internal_error(
-                     "function_template_declaration: expected end of source");
-        }  /* if */
-#endif /* CHECKING */
-        cache_curr_token(&tssp->body_token_cache);
       }  /* if */
+      terminate_token_cache(&tssp->body_token_cache);
     } else {
       /* No body to cache.  Check for final semicolon. */
       (void)required_token(tok_semicolon, ec_exp_semicolon);
