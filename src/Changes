@@ -3,8 +3,9 @@ Version 3.2
 4/30/03  Spurious correspondence error with friend name injection
 
 In modes that enable friend name injection (such as Sun compatibility mode)
-the front end sometimes emitted a spurious correspondence error when a
-function was only declared in a friend declaration.  This is now fixed.
+the front end sometimes emitted a spurious correspondence error (during
+compilations involving multiple translation units) when a function was only
+declared in a friend declaration.  This is now fixed.
 
 4/30/03  Abort in C-generating back end on GNU statement expression
 

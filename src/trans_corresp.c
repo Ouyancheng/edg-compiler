@@ -3545,8 +3545,7 @@ are not checked.
               (trans_unit_corresp_of(cle->class_type) == NULL ||
                trans_unit_corresp_of(corresp_cle->class_type) == NULL) &&
               same_parents(friend_sym, corresp_friend_sym)) {
-            set_trans_unit_corresp(iek_type, cle->class_type,
-                                   corresp_cle->class_type);
+            set_type_corresp(cle->class_type, corresp_cle->class_type);
           }  /* if */
         }  /* for */
       }
