@@ -401,6 +401,7 @@ Instantiate the body of the template function associated with tip.
     goto done;
   }  /* if */
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
+  rout_ptr->is_instantiation = TRUE;
   /* Set the linkage and storage class. */
   if (rout_sym->class_of_which_a_member != NULL) {
     /* Member functions are handled in check_class_linkage. */
@@ -549,8 +550,10 @@ and the class instantiation will detect the runaway case.
 {
   a_symbol_ptr                      static_data_member_sym;
   a_template_symbol_supplement_ptr  tssp;
+  a_variable_ptr		    var_ptr;
 
   db_enter(3, "define_template_static_data_member");
+  var_ptr = tip->template_sym->variant.variable.ptr;
   tssp = tip->template_sym->variant.variable.instance_ptr->template_info;
   static_data_member_sym = tip->instance_sym;
 #if CHECKING
@@ -607,7 +610,8 @@ and the class instantiation will detect the runaway case.
        instantiation mode says to instantiate whether or not there is
        a reference, we should set the referenced flag anyway, so that
        the back-end will be sure to generate the function. */ 
-    tip->instance_sym->variant.variable.ptr->source_corresp.referenced = TRUE;
+    var_ptr->source_corresp.referenced = TRUE;
+    var_ptr->is_instantiation = TRUE;
     tip->already_instantiated = TRUE;
     /* By pass end-of-source token, which is probably the terminator token
        in the cache. */
@@ -1202,9 +1206,70 @@ make_new_type:
 }  /* copy_type_with_substitution */
 
 
+static a_boolean matches_template_type_for_class_type
+                                   (a_type_ptr         type,
+                                    a_type_ptr         templ_type,
+                                    a_template_arg_ptr *templ_arg_list)
+/*
+Called by matches_template_type to determine whether a given class type
+matches a class type from the parameter list of a template function.
+*/
+{
+  a_boolean			match = FALSE;
+  a_class_symbol_supplement_ptr templ_cssp;
+  /* Non-identical class types match if one represents a template
+     and the other is an instantiation of that template.  For
+     instance:
+        template <class T> class A {  ...  };
+        template <class TT> void f(A<TT>) {  ...  };
+        f(A<int>);
+     We reach this code when examining the argument in the call to f.
+     "type" would refer to A<int> and "templ_type" would refer to
+     A<TT>.  First we determine that A<int> and A<TT> refer to the same
+     class template, and that the latter is a nonreal instantiation.
+     Then we call matches_template_type on the template arg types. */
+  templ_cssp = symbol_supplement_for_class(templ_type);
+  if (templ_cssp->class_template != NULL &&
+      symbol_supplement_for_class(type)->class_template ==
+                                     templ_cssp->class_template &&
+      templ_cssp->is_nonreal_class) {
+    /* The two classes refer to the same template, but templ_type
+       is a nonreal instantiation -- i.e., one based on template
+       parameter types instead of real types. */
+    a_template_arg_ptr  tap, templ_tap;
+    tap = type->variant.class_struct_union.extra_info->
+                                                   template_arg_list;
+    templ_tap = templ_type->variant.class_struct_union.
+                                       extra_info->template_arg_list;
+    do {
+      if (tap->is_type) {
+        match = matches_template_type(tap->variant.type,
+                                      templ_tap->variant.type,
+                                      templ_arg_list,
+                                      /*allow_conversion=*/FALSE);
+      } else if (templ_tap->variant.constant->kind ==
+                                  (a_constant_repr_kind)ck_template_param) {
+        match = matches_template_type(
+                                  tap->variant.constant->type,
+                                  templ_tap->variant.constant->type,
+                                  templ_arg_list,
+                                  /*allow_conversion=*/FALSE);
+      } else {
+        match = eq_constants(tap->variant.constant,
+                             templ_tap->variant.constant);
+      }  /* if */
+              tap = tap->next;
+      templ_tap = templ_tap->next;
+    } while (match && tap != NULL);
+  }  /* if */
+  return match;
+}  /* matches_class_type_for_class_type */
+
+
 a_boolean matches_template_type(a_type_ptr         type,
                                 a_type_ptr         templ_type,
-                                a_template_arg_ptr *templ_arg_list)
+                                a_template_arg_ptr *templ_arg_list,
+				a_boolean          allow_conversion)
 /*
 Compare type and templ_type.  The latter is from a parameter list of a
 function template (function params, not template params).  If the types are
@@ -1220,7 +1285,6 @@ yet been created, extend the template argument list to include n entries.
   a_param_type_ptr               ptp, tptp;
   int                            i;
   a_template_arg_ptr             tap, prev_tap;
-  a_class_symbol_supplement_ptr  templ_cssp;
 
   db_enter(5, "matches_template_type");
   if (is_template_param_type(templ_type)) {
@@ -1313,7 +1377,8 @@ yet been created, extend the template argument list to include n entries.
         templ_sym = (a_symbol_ptr)templ_type->source_corresp.assoc_info;
         if (sym->header != templ_sym->header) {
           /* Members have different names -- no match. */
-        } else if (matches_template_type(tp, ttp, templ_arg_list)) {
+        } else if (matches_template_type(tp, ttp, templ_arg_list,
+                                         /*allow_conversion=*/FALSE)) {
           /* Members have the same names and the parent classes "match". */
           match = TRUE;
         }  /* if */
@@ -1323,48 +1388,20 @@ yet been created, extend the template argument list to include n entries.
         case tk_class:
         case tk_struct:
         case tk_union:
-          /* Non-identical class types match if one represents a template
-             and the other is an instantiation of that template.  For
-             instance:
-                template <class T> class A {  ...  };
-                template <class TT> void f(A<TT>) {  ...  };
-                f(A<int>);
-             We reach this code when examining the argument in the call to f.
-             "type" would refer to A<int> and "templ_type" would refer to
-             A<TT>.  First we determine that A<int> and A<TT> refer to the same
-             class template, and that the latter is a nonreal instantiation.
-             Then we call matches_template_type on the template arg types. */
-          templ_cssp = symbol_supplement_for_class(templ_type);
-          if (templ_cssp->class_template != NULL &&
-              symbol_supplement_for_class(type)->class_template ==
-                                             templ_cssp->class_template &&
-              templ_cssp->is_nonreal_class) {
-            /* The two classes refer to the same template, but templ_type
-               is a nonreal instantiation -- i.e., one based on template
-               parameter types instead of real types. */
-            a_template_arg_ptr  tap, templ_tap;
-            tap = type->variant.class_struct_union.extra_info->
-                                                           template_arg_list;
-            templ_tap = templ_type->variant.class_struct_union.
-                                               extra_info->template_arg_list;
-            do {
-              if (tap->is_type) {
-                match = matches_template_type(tap->variant.type,
-                                              templ_tap->variant.type,
-                                              templ_arg_list);
-              } else if (templ_tap->variant.constant->kind ==
-                                  (a_constant_repr_kind)ck_template_param) {
-                match = matches_template_type(
-                                          tap->variant.constant->type,
-                                          templ_tap->variant.constant->type,
-                                          templ_arg_list);
-              } else {
-                match = eq_constants(tap->variant.constant,
-                                     templ_tap->variant.constant);
-              }  /* if */
-              tap = tap->next;
-              templ_tap = templ_tap->next;
-            } while (match && tap != NULL);
+          match = matches_template_type_for_class_type(type, templ_type,
+                                                       templ_arg_list);
+          if (!match && allow_conversion) {
+            a_base_class_ptr	bcp;
+            /* See if the type matches a base class type of actual argument
+               type.  This is allows a Derived<T> to be passed to a function
+               expecting a Base<T> as an argument. */
+            bcp = type->variant.class_struct_union.extra_info->base_classes;
+            while (bcp != NULL && !match) {
+              match = matches_template_type_for_class_type(bcp->type,
+                                                           templ_type,
+                                                           templ_arg_list);
+              bcp = bcp->next;
+            }  /* while */
           }  /* if */
           break;
         case tk_typeref:
@@ -1374,7 +1411,8 @@ yet been created, extend the template argument list to include n entries.
             /* Qualifiers match.  See if the underlying types do, too. */
             tp = type->variant.typeref.type;
             ttp = templ_type->variant.typeref.type;
-            match = matches_template_type(tp, ttp, templ_arg_list);
+            match = matches_template_type(tp, ttp, templ_arg_list,
+                                          /*allow_conversion=*/FALSE);
           }  /* if */
           break;
         case tk_array:
@@ -1386,7 +1424,8 @@ yet been created, extend the template argument list to include n entries.
           } else {
             tp = type->variant.array.element_type;
             ttp = templ_type->variant.array.element_type;
-            match = matches_template_type(tp, ttp, templ_arg_list);
+            match = matches_template_type(tp, ttp, templ_arg_list,
+                                          /*allow_conversion=*/FALSE);
           }  /* if */
           break;
         case tk_pointer:
@@ -1398,7 +1437,8 @@ yet been created, extend the template argument list to include n entries.
           } else {
             tp = type->variant.pointer.type;
             ttp = templ_type->variant.pointer.type;
-            match = matches_template_type(tp, ttp, templ_arg_list);
+            match = matches_template_type(tp, ttp, templ_arg_list,
+                                          /*allow_conversion=*/FALSE);
           }  /* if */
           break;
         case tk_ptr_to_member:
@@ -1406,10 +1446,12 @@ yet been created, extend the template argument list to include n entries.
              member types and the class-of-which-a-member. */
           tp = type->variant.ptr_to_member.type;
           ttp = templ_type->variant.ptr_to_member.type;
-          if (matches_template_type(tp, ttp, templ_arg_list)) {
+          if (matches_template_type(tp, ttp, templ_arg_list,
+                                    /*allow_conversion=*/FALSE)) {
             tp = type->variant.ptr_to_member.class_of_which_a_member;
             ttp = templ_type->variant.ptr_to_member.class_of_which_a_member;
-            match = (matches_template_type(tp, ttp, templ_arg_list));
+            match = (matches_template_type(tp, ttp, templ_arg_list,
+                                           /*allow_conversion=*/FALSE));
           }  /* if */
           break;
         case tk_routine:
@@ -1418,7 +1460,8 @@ yet been created, extend the template argument list to include n entries.
              flags should be set the same. */
           tp = type->variant.routine.return_type;
           ttp = templ_type->variant.routine.return_type;
-          if (matches_template_type(tp, ttp, templ_arg_list) &&
+          if (matches_template_type(tp, ttp, templ_arg_list,
+                                    /*allow_conversion=*/FALSE) &&
               (type->variant.routine.extra_info->has_ellipsis ==
                   templ_type->variant.routine.extra_info->has_ellipsis)) {
             /* Return type and ellipsis are okay.  Check the param types. */
@@ -1433,7 +1476,8 @@ yet been created, extend the template argument list to include n entries.
               }  /* if */
               tp = ptp->type;
               ttp = tptp->type;
-              if (!matches_template_type(tp, ttp, templ_arg_list)) {
+              if (!matches_template_type(tp, ttp, templ_arg_list,
+                                         /*allow_conversion=*/FALSE)) {
                 /* The first param type for which there is a mismatch causes
                    a mismatch for the entire type.  No need to keep looping. */
                 break;
@@ -1765,7 +1809,7 @@ get_next_sym:;
      template arg list is returned; otherwise, NULL is returned. */
   if (!matches_template_type(curr_type->variant.routine.return_type,
                              templ_rout_type->variant.routine.return_type,
-                             templ_arg_list)) {
+                             templ_arg_list, /*allow_conversion=*/FALSE)) {
     goto done;
   } else {
     /* The routine type for curr_type can be accommodated to the template
@@ -1774,7 +1818,7 @@ get_next_sym:;
     other_ptp = templ_rout_type->variant.routine.extra_info->param_type_list;
     for (; other_ptp != NULL; other_ptp = other_ptp->next) {
       if (!matches_template_type(ptp->type, other_ptp->type,
-                                 templ_arg_list)) {
+                                 templ_arg_list, /*allow_conversion=*/FALSE)) {
         goto done;
       }  /* if */
       ptp = ptp->next;
