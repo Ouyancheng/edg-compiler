@@ -2131,6 +2131,7 @@ function get_initializer does all the hard work.
   a_constant_ptr         compound_constant;
   an_aggregate_init_info info;
   a_boolean              no_token_consumed, any_dynamic_init;
+  a_boolean		 err = FALSE;
 
   check_assertion(C_mode() && (curr_token == tok_lbrace));
   initialize_init_info(&info, is_static);
@@ -2138,7 +2139,11 @@ function get_initializer does all the hard work.
                                       (an_aggregate_init_context_ptr)NULL,
                                       &no_token_consumed,
                                       &any_dynamic_init);
-  if (!any_dynamic_init) {
+  if (is_error_type(*type)) {
+    /* The literal has an invalid type.  Don't build a dynamic init entry. */
+    err = TRUE;
+    *dip = NULL;
+  } else if (!any_dynamic_init) {
     /* A truly constant value (scalar or aggregate). */
     *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
     (*dip)->variant.constant = compound_constant;
@@ -2161,7 +2166,7 @@ function get_initializer does all the hard work.
       *dip = compound_constant->variant.dynamic_init;
     }  /* if */
   }  /* if */
-  if (info.any_uninitialized_member) {
+  if (!err && info.any_uninitialized_member) {
     (*dip)->is_partially_initialized_compound_literal = TRUE;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL

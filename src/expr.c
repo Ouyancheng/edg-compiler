@@ -8310,6 +8310,9 @@ to the compound literal.
     /* Variable-length arrays are not allowed. */
     pos_error(ec_vla_not_allowed, type_position);
     err = TRUE;
+  } else if (is_error_type(literal_type)) {
+    /* An error occurred earlier.  Suppress certain processing now. */
+    err = TRUE;
   } else if (is_object_type(literal_type)) {
     /* Object type, okay. */
   } else if (is_array_type(literal_type) &&

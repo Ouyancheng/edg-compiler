@@ -5723,9 +5723,16 @@ exit_loop:
 #if C99_IL_EXTENSIONS_SUPPORTED
     if (complex_attr != cxa_none &&
         basic_type != bt_float && basic_type != bt_double) {
-      /* "_Imaginary" and "_Complex" must be combined with a floating-point
-         type. */
-      str_error(ec_only_applies_to_float_types,
+      an_error_code	error_code;
+      if (basic_type == bt_none) {
+        /* No basic type was specified. */
+        error_code = ec_missing_floating_point_type;
+      } else {
+        /* An invalid type was specified as the basic type for an
+           "_Imaginary" or "_Complex". */
+        error_code = ec_only_applies_to_float_types;
+      }  /* if */
+      str_error(error_code,
                 (complex_attr == cxa_complex) ? "_Complex" : "_Imaginary");
       bad_combination_of_type_specifiers = TRUE;
       *output_flags |= DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
