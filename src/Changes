@@ -1,5 +1,11 @@
 Version 2.42
 
+7/7/99   Correct macro for Embedded C++:  __embedded_cplusplus
+
+In Embedded C++ mode, the macro __embedded_cplusplus is supposed to
+be defined.  When we implemented the Embedded C++ option, we incorrectly
+read that as __embeddedcplusplus.  Now fixed.
+
 7/7/99   Spurious error on friend declaration in presence of using-directives
 
 A friend declaration that uses an unqualified name with an explicit template
@@ -9981,7 +9987,8 @@ inheritance, virtual base classes, and "mutable".  Users can now check their
 programs for features that are outside this subset by compiling with
 --embedded_c++.  A discretionary error is issued for violations.  In
 addition, macro __embeddedcplusplus is predefined when the command-line
-option is used.
+option is used.  (Note: this turned out to be the wrong macro name:
+__embedded_cplusplus is correct.  Changed 7/7/99.)
 
 3/4/97   Extern "C" names found via using-directives
 

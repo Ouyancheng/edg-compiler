@@ -4051,7 +4051,7 @@ command line -D options.
     }  /* if */
     if (report_embedded_cplusplus_noncompliance) {
       /* Define a macro indicating this is an Embedded C++ application. */
-      (void)enter_predef_macro("1", "__embeddedcplusplus",
+      (void)enter_predef_macro("1", "__embedded_cplusplus",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
