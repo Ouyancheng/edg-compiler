@@ -8382,8 +8382,12 @@ TRUE if a symbol that can only be a vacuous destructor is returned.
   a_symbol_ptr	sym;
   a_boolean	do_class_lookup;
 
+  /* Do the lookup if a type was provided that is a class type that is
+     either complete or in the process of being defined. */
   do_class_lookup = class_type != NULL &&
-                    is_class_struct_union_type(class_type);
+                    is_class_struct_union_type(class_type) &&
+                    class_type->variant.class_struct_union.
+                                         extra_info->assoc_scope != NULL;
   normal_fund_sym = normal_id_lookup(&locator_for_curr_id, lookup_kind);
   normal_sym = locator_for_curr_id.specific_symbol;
   if (do_class_lookup) {
