@@ -4741,7 +4741,9 @@ typedef struct a_type {
   a_bit_field	is_builtin_va_list:1;
 			/* TRUE if this type is the va_list type declared by
 			   <stdarg.h> or <cstdarg>, when that's treated as
-			   built-in. */
+			   built-in.  In GNU mode (C or C++), if
+			   GCC_BUILTIN_VARARGS is TRUE, the type
+			   marked is __builtin_va_list, not va_list. */
   a_bit_field	is_builtin_va_list_from_cstdarg:1;
 			/* TRUE if this is the va_list type declared by
 			   <cstdarg>, when that's treated as built-in. */
