@@ -9571,6 +9571,10 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_template_param_type_supplement),
   sizeof(a_constructor_init),
   sizeof(an_asm_entry),
+#if GNU_EXTENSIONS_ALLOWED
+  sizeof(an_asm_operand),
+  sizeof(a_named_register_list),
+#endif /* GNU_EXTENSIONS_ALLOWED */
   sizeof(a_template_arg),
   sizeof(a_new_delete_supplement),
   sizeof(a_throw_supplement),
