@@ -1202,12 +1202,11 @@ until allocated.
 static a_variable_ptr
 		array_table_var;
 
-static a_targ_size_t array_table_entry(
-                               a_required_destructor_call_ptr rdcp,
-                               an_insert_location             *insert_location)
+static a_targ_size_t array_table_entry(a_cleanup_action_ptr cap,
+                                       an_insert_location   *insert_location)
 /*
 Add an entry to the array table (creating the table and its associated
-variable if necessary) for the object described in rdcp.  Return the
+variable if necessary) for the object described in cap.  Return the
 index number into the array table.  Also insert (at *insert_location)
 initialization code for the proper entry in the object address table.
 This routine can also be called for non-arrays in cases where an array
@@ -1227,7 +1226,7 @@ the size is not available in the region description entry).
   /* Note that the current memory region must not have been forced to the
      file scope memory region at this point. */
   /* Allocate the proper entry in the object address table. */
-  object_addr_index = object_addr_table_entry(&rdcp->init_pos_descr,
+  object_addr_index = object_addr_table_entry(&cap->init_pos_descr,
                                               insert_location);
   /* Switch to the file scope memory region so the variable and initialization
      constants will be allocated there. */
@@ -1249,16 +1248,16 @@ the size is not available in the region description entry).
   /* For the element size: note that the init_pos_descr has the type of an
      element, not of the whole array.  For non-arrays, the type is of
      course as expected. */
-  elem_type = type_from_init_pos_descr(&rdcp->init_pos_descr);
+  elem_type = type_from_init_pos_descr(&cap->init_pos_descr);
   elem_type = skip_typerefs(elem_type);
   elem_size_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(elem_size_con, (unsigned long)elem_type->size,
                                 TARG_SIZE_T_INT_KIND);
   size_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  if (rdcp->init_pos_descr.whole_array) {
+  if (cap->init_pos_descr.whole_array) {
     /* The entity really is an array.  Get the element count.  -1 indicates
        that the runtime should look up the number of elements in the array. */
-    elem_count = rdcp->init_pos_descr.array_element_count;
+    elem_count = cap->init_pos_descr.array_element_count;
   } else {
     /* Not an array (see header comment above).  Use an element count of 0. */
     elem_count = 0;
@@ -1365,15 +1364,15 @@ contains information about destructible objects).  NULL until allocated.
 static a_variable_ptr
 		region_table_var;
 
-void make_region_table_entry(a_required_destructor_call_ptr rdcp,
-                             an_insert_location             *insert_location)
+void make_region_table_entry(a_cleanup_action_ptr cap,
+                             an_insert_location   *insert_location)
 /*
 Add an entry to the region table (which describes destructible objects)
-for the object described in rdcp.  Create the region table variable if
+for the object described in cap.  Create the region table variable if
 necessary.  Also insert (at *insert_location) initialization code for
 the proper entry in the object address table and code to set
-eh_curr_region to the region number for the region created.  rdcp must
-already be linked on the list of required destructors so its "next"
+eh_curr_region to the region number for the region created.  cap must
+already be linked on the list of cleanup actions so its "next"
 pointer can be examined.
 */
 {
@@ -1384,31 +1383,31 @@ pointer can be examined.
   a_type_ptr       ptr_func_type;
   unsigned long    flags_value = 0, prev_region_number;
   a_routine_ptr    dtor_routine;
-  a_required_destructor_call_ptr
-                   next_rdcp;
+  a_cleanup_action_ptr
+                   next_cap;
 
   /* Note that the current memory region must not have been forced to the
      file scope memory region at this point. */
-  if (rdcp->init_pos_descr.whole_array) {
+  if (cap->init_pos_descr.whole_array) {
     /* For arrays, we need an entry in the array table. */
-    handle_number = array_table_entry(rdcp, insert_location);
+    handle_number = array_table_entry(cap, insert_location);
     /* Set the flag that indicates this object is an array. */
     flags_value |= RDF_ARRAY;
   } else {
     /* Non-array. */
     /* Allocate the proper entry in the object address table. */
-    handle_number = object_addr_table_entry(&rdcp->init_pos_descr,
+    handle_number = object_addr_table_entry(&cap->init_pos_descr,
                                             insert_location);
   }  /* if */
   /* Assign a region number to this entry. */
-  rdcp->region_number = next_region_number++;
+  cap->region_number = next_region_number++;
   /* Insert an assignment statement that sets the global variable
      eh_curr_region to the region number for this entry. */
   (void)insert_var_assignment_statement(
                                   make_eh_curr_region_var(),
                                   (an_expr_operator_kind)eok_iassign,
                                   node_for_integer_constant(
-                                                  (long)rdcp->region_number,
+                                                  (long)cap->region_number,
                                                   TARG_REGION_NUMBER_INT_KIND),
                                   insert_location);
   /* Switch to the file scope memory region so the variable and initialization
@@ -1435,7 +1434,7 @@ pointer can be examined.
   /* This needs to deal with delete routines too. */
 #endif
   dtor_con = alloc_constant((a_constant_repr_kind)ck_address);
-  dtor_routine = rdcp->dynamic_init.destructor;
+  dtor_routine = cap->dynamic_init.destructor;
   /* Create the generic function pointer type if it does not exist already. */
   ptr_func_type = make_vptp_type();
   if (dtor_routine == NULL) {
@@ -1452,17 +1451,17 @@ pointer can be examined.
                                                     handle_number,
                                                     TARG_VAR_HANDLE_INT_KIND);
   /* Make the previous region index number. */
-  /* Find the previous region by going backwards on the required destructor
-     call list. */
-  next_rdcp = rdcp->next;
-  while (next_rdcp != NULL &&
-         next_rdcp->region_number == NULL_EH_REGION_NUMBER) {
+  /* Find the previous region by going backwards on the cleanup action
+     list. */
+  next_cap = cap->next;
+  while (next_cap != NULL &&
+         next_cap->region_number == NULL_EH_REGION_NUMBER) {
     /* Ignore entries with no associated region number. */
-    next_rdcp = next_rdcp->next;
+    next_cap = next_cap->next;
   }  /* while */
-  if (next_rdcp != NULL) {
+  if (next_cap != NULL) {
     /* There is a previous entry. */
-    prev_region_number = next_rdcp->region_number;
+    prev_region_number = next_cap->region_number;
     if (prev_region_number >= max_region_number) {
       /* The region number is too big. */
       error(ec_integer_truncated);
@@ -1499,24 +1498,23 @@ void set_eh_curr_region(a_context_ptr      context,
                         an_insert_location *insert_location)
 /*
 Generate code at *insert_location to set the global variable eh_curr_region
-to indicate the destruction region that applies to the last required
-destructor call on the list attached to the indicated context.  If there
-are no required destructor calls in that context, set eh_curr_region to
-NULL_EH_REGION_NUMBER.
+to indicate the destruction region that applies to the last cleanup action
+on the list attached to the indicated context.  If there are no cleanup
+actions in that context, set eh_curr_region to NULL_EH_REGION_NUMBER.
 */
 {
-  a_required_destructor_call_ptr rdcp;
-  long                           region_number;
+  a_cleanup_action_ptr cap;
+  long                 region_number;
 
-  /* See if there is a required destructor entry. */
-  rdcp = context->required_destructor_calls;
-  while (rdcp != NULL && rdcp->region_number == NULL_EH_REGION_NUMBER) {
+  /* See if there is a cleanup action entry. */
+  cap = context->cleanup_actions;
+  while (cap != NULL && cap->region_number == NULL_EH_REGION_NUMBER) {
     /* Ignore entries that are not regions. */
-    rdcp = rdcp->next;
+    cap = cap->next;
   }  /* while */
   /* Determine the region number to be used. */
-  if (rdcp != NULL) {
-    region_number = (long)rdcp->region_number;
+  if (cap != NULL) {
+    region_number = (long)cap->region_number;
   } else {
     /* Use the maximum region number (all 1 bits) to indicate no region. */
     region_number = (long)max_region_number;

@@ -68,7 +68,7 @@ Count of entries allocated, for debugging purposes.
 */
 static unsigned long
 		allocated_name_string_length,
-		num_required_destructor_calls_allocated,
+		num_cleanup_actions_allocated,
 		num_return_memos_allocated;
 #endif /* DEBUG */
 
@@ -99,10 +99,10 @@ static a_variable_ptr
 			   at which the result will be stored. */
 
 
-static a_required_destructor_call_ptr
-		avail_required_destructor_calls;
-			/* List of required destructor call entries that have
-			   been freed and are available for reuse. */
+static a_cleanup_action_ptr
+		avail_cleanup_actions;
+			/* List of cleanup action entries that have been
+			   freed and are available for reuse. */
 
 static a_return_memo_ptr
 		avail_return_memos;
@@ -133,7 +133,7 @@ static void lower_routine(a_routine_ptr routine);
 static void lower_label(a_label_ptr label);
 static void lower_asm_entry(an_asm_entry_ptr asm_entry);
 static void lower_scope(a_scope_ptr scope);
-static a_boolean any_required_destructor_calls(a_context_ptr outer_context);
+static a_boolean any_cleanup_actions(a_context_ptr outer_context);
 static void gen_expr_conditional_destruction_var_initializations(void);
 static a_boolean check_for_troublesome_ptr_to_member_constant(
                                                      a_constant_ptr constant,
@@ -243,57 +243,54 @@ that an insertion will be made.
 }  /* set_after_expr_insert_location */
 
 
-a_required_destructor_call_ptr alloc_required_destructor_call(void)
+a_cleanup_action_ptr alloc_cleanup_action(void)
 /*
-Allocate a required destructor call entry, set its fields to default values,
-and return a pointer to it.
+Allocate a cleanup action entry, set its fields to default values, and
+return a pointer to it.
 */
 {
-  a_required_destructor_call_ptr rdcp;
+  a_cleanup_action_ptr cap;
 
-  if (avail_required_destructor_calls != NULL) {
+  if (avail_cleanup_actions != NULL) {
     /* Reuse a freed entry. */
-    rdcp = avail_required_destructor_calls;
-    avail_required_destructor_calls = rdcp->next;
+    cap = avail_cleanup_actions;
+    avail_cleanup_actions = cap->next;
   } else {
     /* Allocate a new entry. */
-    rdcp = (a_required_destructor_call_ptr)alloc_fe(
-                                           sizeof(a_required_destructor_call));
+    cap = (a_cleanup_action_ptr)alloc_fe(sizeof(a_cleanup_action));
 #if DEBUG
-    num_required_destructor_calls_allocated++;
+    num_cleanup_actions_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  rdcp->next = NULL;
-  rdcp->label_marker = NULL;
-  clear_dynamic_init(&rdcp->dynamic_init, (a_dynamic_init_kind)dik_none);
-  rdcp->first_time_test_var = NULL;
+  cap->next = NULL;
+  cap->label_marker = NULL;
+  clear_dynamic_init(&cap->dynamic_init, (a_dynamic_init_kind)dik_none);
+  cap->first_time_test_var = NULL;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-  rdcp->template_static_data_member_init_guard_var = NULL;
+  cap->template_static_data_member_init_guard_var = NULL;
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
-  clear_init_pos_descr(&rdcp->init_pos_descr);
-  rdcp->is_expr_temporary = FALSE;
-  rdcp->region_number = NULL_EH_REGION_NUMBER;
-  return rdcp;
-}  /* alloc_required_destructor_call */
+  clear_init_pos_descr(&cap->init_pos_descr);
+  cap->is_expr_temporary = FALSE;
+  cap->region_number = NULL_EH_REGION_NUMBER;
+  return cap;
+}  /* alloc_cleanup_action */
 
 
-static void free_required_destructor_call_list(
-                                           a_required_destructor_call_ptr rdcp)
+static void free_cleanup_action_list(a_cleanup_action_ptr cap)
 /*
-Free a list of required destructor call entries by putting them on the
-available list.
+Free a list of cleanup action entries by putting them on the available list.
 */
 {
-  a_required_destructor_call_ptr rdcp_next;
+  a_cleanup_action_ptr cap_next;
 
-  for (; rdcp != NULL; rdcp = rdcp_next) {
+  for (; cap != NULL; cap = cap_next) {
     /* Free the list of init_pos_modifier entries pointed to. */
-    free_init_pos_modifier_list(rdcp->init_pos_descr.modifiers);
-    rdcp_next = rdcp->next;
-    rdcp->next = avail_required_destructor_calls;
-    avail_required_destructor_calls = rdcp;
+    free_init_pos_modifier_list(cap->init_pos_descr.modifiers);
+    cap_next = cap->next;
+    cap->next = avail_cleanup_actions;
+    avail_cleanup_actions = cap;
   }  /* for */
-}  /* free_required_destructor_call_list */
+}  /* free_cleanup_action_list */
 
 
 void add_to_return_memo_list(a_statement_ptr return_stmt)
@@ -356,7 +353,7 @@ subscope_region is TRUE.
   context->subscope_region = subscope_region;
   context->assoc_expr = NULL;
   context->assoc_switch_clause = NULL;
-  context->required_destructor_calls = NULL;
+  context->cleanup_actions = NULL;
   context->latest_label_statement_processed = NULL;
   context->any_conditional_destruction_var_initializations_deferred = FALSE;
   /* Keep track of the innermost function context/scope. */
@@ -382,8 +379,8 @@ Pop an entry off the context stack.
     internal_error("pop_context: deferred conditional destr var inits");
   }  /* if */
 #endif /* CHECKING */
-  /* Free any required destructor call entries. */
-  free_required_destructor_call_list(curr_context->required_destructor_calls);
+  /* Free any cleanup action entries. */
+  free_cleanup_action_list(curr_context->cleanup_actions);
   /* Keep track of the innermost function context/scope. */
   if (curr_context == nearest_function_context) {
     nearest_function_context = NULL;
@@ -4116,8 +4113,7 @@ entry and the type, not of the routine body if any
 static void lower_destructor_routine(a_routine_ptr routine)
 /*
 Do IL lowering of a destructor routine.  This is lowering of the routine
-entry and the type, not of the routine body if any
-(see lower_destructor_code).
+entry and the type, not of the routine body if any (see lower_destructor_code).
 */
 {
   a_type_ptr       class_type;
@@ -4262,14 +4258,14 @@ is part of a loop and it is re-evaluated each time around the loop.
   }  /* if */
   lower_expr(expr, /*is_lvalue=*/FALSE);
   if (repeated_in_loop) {
-    if (any_required_destructor_calls(curr_context)) {
+    if (any_cleanup_actions(curr_context)) {
       /* Generate initialization assignments for any flags needed for
          conditional destruction. */
       gen_expr_conditional_destruction_var_initializations();
-      /* Generate any required destructor calls for temporaries built within
+      /* Generate any cleanup actions for temporaries built within
          the expression. */
       set_after_expr_insert_location(expr, &insert_location);
-      gen_required_destructor_calls(curr_context, &insert_location);
+      gen_cleanup_actions(curr_context, &insert_location);
     }  /* if */
     pop_context();
   }  /* if */
@@ -5903,33 +5899,33 @@ there are no statements on the list.
 }  /* lower_statement_list */
 
 
-static void remove_temp_required_destructor_calls(void)
+static void remove_temp_cleanup_actions(void)
 /*
-Remove any required destructor calls in the current context that are
-related to compiler-generated expression temporaries.  (Such temporaries
-have shorter lifetimes than normal variables.)
+Remove any cleanup actions in the current context that are related to
+compiler-generated expression temporaries.  (Such temporaries have shorter
+lifetimes than normal variables.)
 */
 {
-  a_required_destructor_call_ptr rdcp, prev_rdcp;
+  a_cleanup_action_ptr cap, prev_cap;
 
-  /* Go through the list of required destructor calls, find the ones
-     for temporaries, and unlink them. */
-  for (prev_rdcp = NULL, rdcp = curr_context->required_destructor_calls;
-       rdcp != NULL;
-       rdcp = rdcp->next) {
-    if (rdcp->is_expr_temporary) {
+  /* Go through the list of cleanup actions, find the ones for temporaries,
+     and unlink them. */
+  for (prev_cap = NULL, cap = curr_context->cleanup_actions;
+       cap != NULL;
+       cap = cap->next) {
+    if (cap->is_expr_temporary) {
       /* Remove this entry from the list. */
-      if (prev_rdcp == NULL) {
-        curr_context->required_destructor_calls = rdcp->next;
+      if (prev_cap == NULL) {
+        curr_context->cleanup_actions = cap->next;
       } else {
-        prev_rdcp->next = rdcp->next;
+        prev_cap->next = cap->next;
       }  /* if */
     } else {
       /* Keep this entry. */
-      prev_rdcp = rdcp;
+      prev_cap = cap;
     }  /* if */
   }  /* for */
-}  /* remove_temp_required_destructor_calls */
+}  /* remove_temp_cleanup_actions */
 
 
 static void lower_switch_clause_list(a_switch_clause_ptr clause_list,
@@ -5953,8 +5949,8 @@ it; otherwise, switch_context is NULL.
     lower_constant_list(clause->constant_list);
     lower_statement_list(clause->statements, &last_statement);
     /* If the last statement is not a branch, there is an implicit "break"
-       at the end of the clause statements.  Any required destructor calls
-       must be emitted on the "break". */
+       at the end of the clause statements.  Any cleanup actions must be
+       emitted on the "break". */
     if (last_statement == NULL) {
       /* No statements in the clause, so the end is reachable. */
       break_reachable = TRUE;
@@ -5975,9 +5971,8 @@ it; otherwise, switch_context is NULL.
     }  /* if */
     if (break_reachable) {
       /* There is an implicit "break" at the end of the clause. */
-      if (switch_context != NULL &&
-          any_required_destructor_calls(switch_context)) {
-        /* The switch statement has a context.  Generate any destructor calls
+      if (switch_context != NULL && any_cleanup_actions(switch_context)) {
+        /* The switch statement has a context.  Generate any cleanup actions
            required at the end of the context.  Note that the implicit "break"
            is only used at the top level within a switch; "break" statements
            from deeper (e.g., inside nested blocks) will be rendered as
@@ -5992,13 +5987,12 @@ it; otherwise, switch_context is NULL.
           /* Insert after the last statement. */
           set_insert_location(last_statement, &insert_location);
         }  /* if */
-        gen_required_destructor_calls(switch_context, &insert_location);
+        gen_cleanup_actions(switch_context, &insert_location);
       }  /* if */
     }  /* if */
-    /* Get rid of the entries for required destructor calls on
-       compiler-generated expression temporaries (the destructor calls
-       have already been generated). */
-    remove_temp_required_destructor_calls();
+    /* Get rid of the entries for cleanup actions on compiler-generated
+       expression temporaries (the cleanup code has already been generated). */
+    remove_temp_cleanup_actions();
   }  /* for */
   curr_context->assoc_switch_clause = NULL;
   curr_context->latest_label_statement_processed = NULL;
@@ -6044,69 +6038,68 @@ to the original statement in its new location.
 }  /* turn_branch_into_block */
 
 
-static void gen_one_required_destructor_call(
-                                a_required_destructor_call_ptr rdcp,
-                                an_insert_location_ptr         insert_location)
+static void gen_one_cleanup_action(a_cleanup_action_ptr   cap,
+                                   an_insert_location_ptr insert_location)
 /*
-Generate code for the required destructor call described by rdcp.  The code
-is inserted at *insert_location and *insert_location is updated.
+Generate code for the cleanup action described by cap.  The code is
+inserted at *insert_location and *insert_location is updated.
 */
 {
   an_insert_location     insert_location2;
   an_insert_location_ptr effective_insert_loc;
 
   /* Ignore label markers. */
-  if (rdcp->label_marker == NULL) {
+  if (cap->label_marker == NULL) {
     effective_insert_loc = insert_location;
     /* If the entity is a local static variable or a conditionally-created
        temporary, generate an "if" statement to test whether or not the
        variable was ever initialized.  Only do the destruction if it
        was. */
-    if (rdcp->first_time_test_var != NULL) {
-      add_last_time_test(rdcp->first_time_test_var, 
+    if (cap->first_time_test_var != NULL) {
+      add_last_time_test(cap->first_time_test_var, 
                          insert_location,
                          &insert_location2);
       effective_insert_loc = &insert_location2;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
-    } else if (rdcp->template_static_data_member_init_guard_var != NULL) {
+    } else if (cap->template_static_data_member_init_guard_var != NULL) {
       /* This is the destruction of a static data member in a template, and
          there is a guard variable to make sure that the variable is
          destroyed only once. */
       add_static_data_member_destruction_guard_test(
-                         rdcp->template_static_data_member_init_guard_var, 
+                         cap->template_static_data_member_init_guard_var, 
                          insert_location,
                          &insert_location2);
       effective_insert_loc = &insert_location2;
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
     }  /* if */
-    lower_destructor_dynamic_init(&rdcp->dynamic_init,
-                                  &rdcp->init_pos_descr,
+    lower_destructor_dynamic_init(&cap->dynamic_init,
+                                  &cap->init_pos_descr,
                                   effective_insert_loc);
   }  /* if */
-}  /* gen_one_required_destructor_call */
+}  /* gen_one_cleanup_action */
 
 
-void gen_required_destructor_calls(a_context_ptr          outer_context,
-                                   an_insert_location_ptr insert_location)
+void gen_cleanup_actions(a_context_ptr          outer_context,
+                         an_insert_location_ptr insert_location)
 /*
-Generate any destructor calls required to exit from the contexts indicated
+Generate any cleanup actions required to exit from the contexts indicated
 by curr_context through outer_context, inclusive.  Insert the code for
-the destructor calls at *insert_location.
+the cleanup at *insert_location.
 */
 {
-  a_context_ptr                  context_ptr;
-  a_required_destructor_call_ptr rdcp;
-  a_boolean                      any_calls_generated = FALSE;
+  a_context_ptr        context_ptr;
+  a_cleanup_action_ptr cap;
+  a_boolean            any_calls_generated = FALSE;
 
   /* Loop outward through the indicated contexts. */
   for (context_ptr = curr_context;; context_ptr = context_ptr->parent) {
-    /* Loop through the list of required destructor calls. */
-    for (rdcp = context_ptr->required_destructor_calls;
-         rdcp != NULL;
-         rdcp = rdcp->next) {
+    /* Loop through the list of cleanup actions. */
+    for (cap = context_ptr->cleanup_actions;
+         cap != NULL;
+         cap = cap->next) {
       /* Ignore label markers. */
-      if (rdcp->label_marker == NULL) {
-        gen_one_required_destructor_call(rdcp, insert_location);
+      if (cap->label_marker == NULL) {
+        gen_one_cleanup_action(cap, insert_location);
         any_calls_generated = TRUE;
       }  /* if */
     }  /* for */
@@ -6123,28 +6116,28 @@ the destructor calls at *insert_location.
       set_eh_curr_region(outer_context->parent, insert_location);
     }  /* if */
   }  /* if */
-}  /* gen_required_destructor_calls */
+}  /* gen_cleanup_actions */
 
 
-static a_boolean any_required_destructor_calls(a_context_ptr outer_context)
+static a_boolean any_cleanup_actions(a_context_ptr outer_context)
 /*
-Return TRUE if any destructor calls are required to exit from the contexts
+Return TRUE if any cleanup actions are required to exit from the contexts
 indicated by curr_context through outer_context, inclusive.
 */
 {
-  a_boolean                      any_required = FALSE;
-  a_context_ptr                  context_ptr;
-  a_required_destructor_call_ptr rdcp;
+  a_boolean            any_required = FALSE;
+  a_context_ptr        context_ptr;
+  a_cleanup_action_ptr cap;
 
   /* Loop outward through the indicated scopes. */
   for (context_ptr = curr_context;; context_ptr = context_ptr->parent) {
-    /* Walk the required_destructor_calls list to see if any of the entries
-       are actually required calls (as opposed to label markers). */
-    for (rdcp = context_ptr->required_destructor_calls;
-         rdcp != NULL;
-         rdcp = rdcp->next) {
-      if (rdcp->label_marker == NULL) {
-        /* There are some required destructor calls. */
+    /* Walk the cleanup_actions list to see if any of the entries
+       actually require cleanup code (label markers don't). */
+    for (cap = context_ptr->cleanup_actions;
+         cap != NULL;
+         cap = cap->next) {
+      if (cap->label_marker == NULL) {
+        /* There are some cleanup actions. */
         any_required = TRUE;
         goto done;
       }  /* if */
@@ -6154,7 +6147,7 @@ indicated by curr_context through outer_context, inclusive.
   }  /* for */
 done:
   return any_required;
-}  /* any_required_destructor_calls */
+}  /* any_cleanup_actions */
 
 
 static void gen_expr_conditional_destruction_var_initializations(void)
@@ -6165,9 +6158,9 @@ values to any flags used within the expression to track whether or not
 conditional destruction of temporaries is required.
 */
 {
-  an_expr_node_ptr               node = curr_context->assoc_expr;
-  an_insert_location             insert_location;
-  a_required_destructor_call_ptr rdcp;
+  an_expr_node_ptr     node = curr_context->assoc_expr;
+  an_insert_location   insert_location;
+  a_cleanup_action_ptr cap;
 
   /* Note that this routine only handles initializations that must be inserted
      into an expression tree.  All others are handled by
@@ -6176,11 +6169,11 @@ conditional destruction of temporaries is required.
   if (curr_context->any_conditional_destruction_var_initializations_deferred) {
     /* Some initializations are needed.  Find them. */
     set_expr_insert_location(node, &insert_location);
-    for (rdcp = curr_context->required_destructor_calls;
-         rdcp != NULL;
-         rdcp = rdcp->next) {
-      if (rdcp->label_marker == NULL) {
-        a_variable_ptr var = rdcp->first_time_test_var;
+    for (cap = curr_context->cleanup_actions;
+         cap != NULL;
+         cap = cap->next) {
+      if (cap->label_marker == NULL) {
+        a_variable_ptr var = cap->first_time_test_var;
         if (var != NULL) {
           /* Make "flag_var = 0" and insert it. */
           (void)insert_var_assignment_statement(
@@ -6218,26 +6211,25 @@ and their parents headed by block_list.
 }  /* block_is_on_parent_list */
 
 
-static void gen_goto_required_destructor_calls(a_statement_ptr statement)
+static void gen_goto_cleanup_actions(a_statement_ptr statement)
 /*
-Generate any destructor calls required preceding the indicated goto statement.
+Generate any cleanup actions required preceding the indicated goto statement.
 */
 {
-  a_statement_ptr    goto_block, label_block, orig_statement;
-  a_context_ptr      goto_context, outermost_context_being_exited;
-  an_insert_location insert_location;
-  a_boolean          any_label_block_destructor_calls_needed;
-  a_boolean          any_exited_block_destructor_calls_needed;
-  a_required_destructor_call_ptr
-                     rdcp;
-  a_label_ptr        label = statement->variant.label;
+  a_statement_ptr      goto_block, label_block, orig_statement;
+  a_context_ptr        goto_context, outermost_context_being_exited;
+  an_insert_location   insert_location;
+  a_boolean            any_label_block_cleanup_actions_needed;
+  a_boolean            any_exited_block_cleanup_actions_needed;
+  a_cleanup_action_ptr cap;
+  a_label_ptr          label = statement->variant.label;
 
   goto_context = curr_context;
   label_block = statement->variant.label->parent_block;
 #if CHECKING
   if (label_block == NULL) {
     internal_error(
-       "gen_goto_required_destructor_calls: goto label has NULL parent_block");
+                 "gen_goto_cleanup_actions: goto label has NULL parent_block");
   }  /* if */
 #endif /* CHECKING */
   outermost_context_being_exited = NULL;
@@ -6257,10 +6249,10 @@ Generate any destructor calls required preceding the indicated goto statement.
          a block statement, in which case it gets handled by the normal
          processing, or as a label in a dependent statement under this one,
          in which case it gets handled by this same code at the lower level. */
-      for (rdcp = goto_context->required_destructor_calls;
-           rdcp != NULL;
-           rdcp = rdcp->next) {
-        if (rdcp->label_marker == label) goto end_context_loop;
+      for (cap = goto_context->cleanup_actions;
+           cap != NULL;
+           cap = cap->next) {
+        if (cap->label_marker == label) goto end_context_loop;
       }  /* for */
     } else {
       /* The goto context is a normal context. */
@@ -6274,14 +6266,14 @@ Generate any destructor calls required preceding the indicated goto statement.
     outermost_context_being_exited = goto_context;
   }  /* for */
 end_context_loop:
-  /* See if any destructor calls are needed. */
-  any_label_block_destructor_calls_needed = FALSE;
-  any_exited_block_destructor_calls_needed = FALSE;
+  /* See if any cleanup code is needed. */
+  any_label_block_cleanup_actions_needed = FALSE;
+  any_exited_block_cleanup_actions_needed = FALSE;
   if (outermost_context_being_exited != NULL) {
-    /* Some contexts are being exited.  See if any destructor calls are
+    /* Some contexts are being exited.  See if any cleanup actions are
        needed on leaving those contexts. */
-    any_exited_block_destructor_calls_needed = 
-                 any_required_destructor_calls(outermost_context_being_exited);
+    any_exited_block_cleanup_actions_needed = 
+                           any_cleanup_actions(outermost_context_being_exited);
   }  /* if */
   if (label_block == goto_block) {
     /* The label is in the block that is the first one shared with the goto
@@ -6294,53 +6286,52 @@ end_context_loop:
              goto label;  // should destroy x
          }
     */
-    a_boolean any_dtor_entries = FALSE;
+    a_boolean any_cleanup_entries = FALSE;
 
-    /* Look for a label marker in the required destructor list that matches
+    /* Look for a label marker in the cleanup action list that matches
        the label we have.  If we find one, the entries preceding the
        label marker need to be generated. */
-    for (rdcp = goto_context->required_destructor_calls;
-         rdcp != NULL;
-         rdcp = rdcp->next) {
-      if (rdcp->label_marker != NULL) {
-        if (rdcp->label_marker == label) {
-          /* Found the label.  If there were any destructor entries seen before
-             this point, there are some destructor calls to be put out. */
-          any_label_block_destructor_calls_needed = any_dtor_entries;
+    for (cap = goto_context->cleanup_actions;
+         cap != NULL;
+         cap = cap->next) {
+      if (cap->label_marker != NULL) {
+        if (cap->label_marker == label) {
+          /* Found the label.  If there were any cleanup entries seen before
+             this point, there are some cleanup actions to be put out. */
+          any_label_block_cleanup_actions_needed = any_cleanup_entries;
           break;
         }  /* if */
       } else {
         /* Not a label marker. */
-        any_dtor_entries = TRUE;
+        any_cleanup_entries = TRUE;
       }  /* if */
     }  /* for */
   }  /* if */
-  if (any_exited_block_destructor_calls_needed ||
-      any_label_block_destructor_calls_needed) {
-    /* Some destructor calls are needed.  Generate them. */
+  if (any_exited_block_cleanup_actions_needed ||
+      any_label_block_cleanup_actions_needed) {
+    /* Some cleanup actions are needed.  Generate them. */
     /* Turn the goto into a block so code can be inserted in front of it. */
     turn_branch_into_block(statement, &insert_location, &orig_statement);
-    if (any_exited_block_destructor_calls_needed) {
-      gen_required_destructor_calls(outermost_context_being_exited,
-                                    &insert_location);
+    if (any_exited_block_cleanup_actions_needed) {
+      gen_cleanup_actions(outermost_context_being_exited, &insert_location);
     }  /* if */
-    if (any_label_block_destructor_calls_needed) {
-      /* Generate destructor calls corresponding to any initializations made
+    if (any_label_block_cleanup_actions_needed) {
+      /* Generate cleanup actions corresponding to any initializations made
          after the label in the same block. */
-      for (rdcp = goto_context->required_destructor_calls;
-           rdcp->label_marker != label;
-           rdcp = rdcp->next) {
-        gen_one_required_destructor_call(rdcp, &insert_location);
+      for (cap = goto_context->cleanup_actions;
+           cap->label_marker != label;
+           cap = cap->next) {
+        gen_one_cleanup_action(cap, &insert_location);
       }  /* for */
     }  /* if */
   }  /* if */
-}  /* gen_goto_required_destructor_calls */
+}  /* gen_goto_cleanup_actions */
 
 
 static void pop_block_scope_context(a_statement_ptr last_statement)
 /*
 The current context is a context for a block statement.  Generate any
-destructor calls required at the end of the block and pop the context.
+cleanup actions required at the end of the block and pop the context.
 last_statement points to the last statement within the block, or is
 NULL if there are no statements in the block.
 */
@@ -6349,8 +6340,8 @@ NULL if there are no statements in the block.
   an_insert_location insert_location;
 
   block_statement = curr_context->scope->assoc_block;
-  /* Insert any required destructor calls after the last statement
-     in the block if the end of the block is reachable. */
+  /* Insert any cleanup actions after the last statement in the block if
+     the end of the block is reachable. */
   if (block_statement->variant.block.extra_info->end_of_block_reachable) {
     if (last_statement == NULL) {
       /* The block is empty, so insert at its beginning. */
@@ -6359,7 +6350,7 @@ NULL if there are no statements in the block.
       /* Insert after the last statement. */
       set_insert_location(last_statement, &insert_location);
     }  /* if */
-    gen_required_destructor_calls(curr_context, &insert_location);
+    gen_cleanup_actions(curr_context, &insert_location);
   }  /* if */
   pop_context();
 }  /* pop_block_scope_context */
@@ -6370,17 +6361,16 @@ void lower_statement(a_statement_ptr statement)
 Do IL lowering of the indicated statement and everything under it.
 */
 {
-  a_context          context, dependent_context;
-  a_scope_ptr        scope;
-  an_insert_location insert_location;
-  a_statement_ptr    statement_list;
-  a_statement_ptr    last_statement, body_statement, return_statement;
-  a_boolean          make_block;
-  an_expr_node_ptr   return_expr;
-  a_variable_ptr     temp_var;
-  a_required_destructor_call_ptr
-                     rdcp;
-  a_dynamic_init_ptr dip;
+  a_context            context, dependent_context;
+  a_scope_ptr          scope;
+  an_insert_location   insert_location;
+  a_statement_ptr      statement_list;
+  a_statement_ptr      last_statement, body_statement, return_statement;
+  a_boolean            make_block;
+  an_expr_node_ptr     return_expr;
+  a_variable_ptr       temp_var;
+  a_cleanup_action_ptr cap;
+  a_dynamic_init_ptr   dip;
 
   if (statement != NULL) {
     /* Track the source position for internal errors. */
@@ -6403,18 +6393,18 @@ Do IL lowering of the indicated statement and everything under it.
         /* No processing required. */
         break;
       case stmk_goto:
-        /* Generate any destructor calls required on exit from any blocks
+        /* Generate any cleanup actions required on exit from any blocks
            that the goto is inside of but the label is not. */
-        gen_goto_required_destructor_calls(statement);
+        gen_goto_cleanup_actions(statement);
         break;
       case stmk_label:
-        /* Put a marker in the required destructor list indicating where
+        /* Put a marker in the cleanup action list indicating where
            the label occurs.  This is needed when generating destructor
            calls on gotos backward in a block. */
-        rdcp = alloc_required_destructor_call();
-        rdcp->label_marker = statement->variant.label;
-        rdcp->next = curr_context->required_destructor_calls;
-        curr_context->required_destructor_calls = rdcp;
+        cap = alloc_cleanup_action();
+        cap->label_marker = statement->variant.label;
+        cap->next = curr_context->cleanup_actions;
+        curr_context->cleanup_actions = cap;
         if (exceptions_enabled) {
           /* Exceptions are enabled. Reset eh_curr_region. */
           set_insert_location(statement, &insert_location);
@@ -6452,13 +6442,13 @@ Do IL lowering of the indicated statement and everything under it.
                              &insert_location, &keep_dynamic_init);
           check_assertion(!keep_dynamic_init);
         }  /* if */
-        if (any_required_destructor_calls(nearest_function_context)) {
-          /* Generate any destructor calls required on exit from the
+        if (any_cleanup_actions(nearest_function_context)) {
+          /* Generate any cleanup actions required on exit from the
              routine.  If the return has an expression, it must be evaluated
-             before the destructor calls are done, so change
+             before the cleanup is done, so change
                return expr;
              into
-               {temp = expr; destructor-calls; return temp;}
+               {temp = expr; cleanup-code; return temp;}
           */
           if (return_expr != NULL) {
             /* There is a return expression, so use a temporary.  Note that
@@ -6488,8 +6478,7 @@ Do IL lowering of the indicated statement and everything under it.
             turn_branch_into_block(statement, &insert_location,
                                    &return_statement);
           }  /* if */
-          gen_required_destructor_calls(nearest_function_context,
-                                        &insert_location);
+          gen_cleanup_actions(nearest_function_context, &insert_location);
         }  /* if */
         /* Maintain a list of all returns in the routine so that epilogue code
            can be added for destructors and for exception handling. */
@@ -6559,7 +6548,7 @@ Do IL lowering of the indicated statement and everything under it.
                last_statement->next != NULL;
                last_statement = last_statement->next) {}
         }  /* if */
-        /* Generate any required destructor calls and pop the context. */
+        /* Generate any cleanup actions and pop the context. */
         if (scope != NULL) pop_block_scope_context(last_statement);
         break;
       case stmk_switch:
@@ -6579,7 +6568,7 @@ Do IL lowering of the indicated statement and everything under it.
                                &last_statement);
           lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
                                    curr_context);
-          /* Generate any required destructor calls and pop the context. */
+          /* Generate any cleanup actions and pop the context. */
           pop_block_scope_context(last_statement);
         } else {
           /* There is no body statement, or the body statement is something
@@ -6603,10 +6592,10 @@ Do IL lowering of the indicated statement and everything under it.
     if (statement->dependent_statement) {
       /* Earlier in this routine we pushed a special context for a dependent
          statement in cfront compatibility mode. */
-      if (any_required_destructor_calls(curr_context)) {
+      if (any_cleanup_actions(curr_context)) {
         a_statement_ptr    last_statement;
         an_insert_location insert_location;
-        /* Some destructor calls must be emitted at the end of the dependent
+        /* Some cleanup actions must be emitted at the end of the dependent
            statement.  Make the statement into a block if it is not already
            a block, then find the last statement within the block so we can
            insert after it. */
@@ -6623,8 +6612,8 @@ Do IL lowering of the indicated statement and everything under it.
                last_statement = last_statement->next) {}
           set_insert_location(last_statement, &insert_location);
         }  /* if */
-        /* Generate the required destructor calls. */
-        gen_required_destructor_calls(curr_context, &insert_location);
+        /* Generate the cleanup actions. */
+        gen_cleanup_actions(curr_context, &insert_location);
       }  /* if */
       pop_context();
     }  /* if */
@@ -7131,9 +7120,9 @@ Display and return the amount of space used for various IL lowering tables.
   db_space_used("Name strings", allocated_name_string_length, char);
   db_space_used_lost("init pos modifier", avail_init_pos_modifiers,
                     num_init_pos_modifiers_allocated, an_init_pos_modifier);
-  db_space_used_lost("required dtor call", avail_required_destructor_calls,
-                     num_required_destructor_calls_allocated,
-                     a_required_destructor_call);
+  db_space_used_lost("cleanup action", avail_cleanup_actions,
+                     num_cleanup_actions_allocated,
+                     a_cleanup_action);
   db_space_used_lost("return memos", avail_return_memos,
                      num_return_memos_allocated, a_return_memo);
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
@@ -7163,16 +7152,16 @@ of the front end.
   num_init_pos_modifiers_allocated        = 0;
 #endif /* DEBUG */
   /* Static variables in lower_il.c: */
-  avail_required_destructor_calls = NULL;
+  avail_cleanup_actions = NULL;
   avail_return_memos = NULL;
   pure_virtual_called_routine = NULL;
   vptp_type = NULL;
   mptr_type = NULL;
   type_promotion_insert_location = NULL;
 #if DEBUG
-  allocated_name_string_length            = 0;
-  num_required_destructor_calls_allocated = 0;
-  num_return_memos_allocated              = 0;
+  allocated_name_string_length  = 0;
+  num_cleanup_actions_allocated = 0;
+  num_return_memos_allocated    = 0;
 #endif /* DEBUG */
   /* Do lower_name.c initialization. */
   name_lower_init();

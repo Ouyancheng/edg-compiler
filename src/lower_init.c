@@ -48,12 +48,11 @@ static an_insert_location
 			/* Insert locations in file_scope_init_routine and
 			   file_scope_term_routine.  Only defined if the
 			   corresponding routine pointers are non-NULL. */
-static a_required_destructor_call_ptr
-		destructor_calls_for_local_static_variables,
-		end_destructor_calls_for_local_static_variables;
-			/* List of required destructor calls for local static
-			   variables.  These are saved and output at the
-			   file scope. */
+static a_cleanup_action_ptr
+		cleanup_actions_for_local_static_variables,
+		end_cleanup_actions_for_local_static_variables;
+			/* List of cleanup actions for local static variables.
+			   These are saved and output at the file scope. */
 
 
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
@@ -671,7 +670,7 @@ static an_init_pos_modifier_ptr copy_init_pos_modifier_list(
 /*
 Make a copy of an initialization position modifier list and return a pointer
 to the copy.  This is used when a list made up of stack entries must be
-saved so that a destructor may be called later.
+saved so that a cleanup action may be generated later.
 */
 {
   an_init_pos_modifier_ptr copy_ipmp;
@@ -2077,10 +2076,10 @@ Determine the insert location for a file-scope termination statement.
 
 
 static void add_conditional_destruction_temp(
-                               a_required_destructor_call_ptr rdcp,
-                               an_insert_location             *insert_location)
+                                         a_cleanup_action_ptr cap,
+                                         an_insert_location   *insert_location)
 /*
-rdcp points to a required destructor call being generated.  We are currently
+cap points to a cleanup action being generated.  We are currently
 inside a conditional operand of a "?", "&&", or "||" operation.  Since
 the construction is conditional, we add a temporary variable, initialize
 it to zero at the beginning of the current block, and insert an assignment
@@ -2094,7 +2093,7 @@ later will be made conditional on the temporary.
   a_statement_ptr     stmk_init_stmt, block, label_statement;
   a_switch_clause_ptr scp;
 
-  rdcp->first_time_test_var = temp =
+  cap->first_time_test_var = temp =
                  make_lowered_temporary(integer_type((an_integer_kind)ik_int));
   /* The temporary must be initialized to zero.  If it is static, that
      is done implicitly.  Otherwise, it must be done dynamically. */
@@ -2215,7 +2214,7 @@ be kept, FALSE if it should be deleted.
   a_variable_ptr    variable;
   a_boolean         simple_constant_init = FALSE, keep_constant;
   a_constant_ptr    simple_constant;
-  a_context_ptr     destructor_context;
+  a_context_ptr     cleanup_context;
   a_source_position saved_error_position;
   a_statement_ptr   expr_stmt;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
@@ -2407,38 +2406,38 @@ do_assignment:;
 #endif /* CHECKING */
   }  /* switch */
   /* If the dynamic init entry indicates a destructor call, put it on a
-     list of destructor calls to be processed at the end of the scope.
+     list of cleanup actions to be processed at the end of the scope.
      Note that the list gets built in the right order (i.e., the reverse of
      construction order) because each entry is added to the front of the
      list. */
   if (dip->destructor != NULL) {
-    a_required_destructor_call_ptr rdcp;
-    rdcp = alloc_required_destructor_call();
+    a_cleanup_action_ptr cap;
+    cap = alloc_cleanup_action();
     /* Copy the entire dynamic init entry because it may be modified below
        to make it a valid C dynamic initialization. */
-    rdcp->dynamic_init = *dip;
+    cap->dynamic_init = *dip;
     /* Clear the destructor field in the dynamic init entry to make it legal
        C IL. */
     dip->destructor = NULL;
-    rdcp->init_pos_descr = *ipdp;
-    rdcp->is_expr_temporary = is_expr_temporary;
+    cap->init_pos_descr = *ipdp;
+    cap->is_expr_temporary = is_expr_temporary;
     /* If this is an initialization within an aggregate, we must save the
        init_pos_modifier list.  However, the list runs through the stack,
        so we must make an allocated copy. */
     if (ipdp->modifiers != NULL) {
-      rdcp->init_pos_descr.modifiers =
+      cap->init_pos_descr.modifiers =
                                   copy_init_pos_modifier_list(ipdp->modifiers);
     }  /* if */
     if (first_time_test_var != NULL) {
       /* Destruction of local static variables must happen at the end of
          the file scope if the initialization has been done (i.e., if the
          first-time-test variable has been set to non-zero. */
-      rdcp->first_time_test_var = first_time_test_var;
+      cap->first_time_test_var = first_time_test_var;
       /* Put the entry on the front of a special list. */
-      rdcp->next = destructor_calls_for_local_static_variables;
-      destructor_calls_for_local_static_variables = rdcp;
-      if (end_destructor_calls_for_local_static_variables == NULL) {
-        end_destructor_calls_for_local_static_variables = rdcp;
+      cap->next = cleanup_actions_for_local_static_variables;
+      cleanup_actions_for_local_static_variables = cap;
+      if (end_cleanup_actions_for_local_static_variables == NULL) {
+        end_cleanup_actions_for_local_static_variables = cap;
       }  /* if */
       /* Indicate to the back end that there will be a non-local reference to
          the variable (from the termination routine). */
@@ -2446,29 +2445,29 @@ do_assignment:;
     } else {
       /* Destruction of other variables must happen at the end of the current
          scope. */
-      destructor_context = curr_context;
+      cleanup_context = curr_context;
       /* For processing of file-scope dynamic inits, put the entry on the
          file-scope list. */
       if (processing_file_scope_init_routine) {
-        destructor_context = file_scope_context;
+        cleanup_context = file_scope_context;
       }  /* if */
       /* Put the new entry on the front of the existing list. */
-      rdcp->next = destructor_context->required_destructor_calls;
-      destructor_context->required_destructor_calls = rdcp;
+      cap->next = cleanup_context->cleanup_actions;
+      cleanup_context->cleanup_actions = cap;
       if (num_conditional_exprs_inside_of != 0) {
         /* Inside a conditional operand of a "?", "&&", or "||" operation.
            Since the construction is conditional, we add a temporary
            variable, initialize it to zero at the beginning of the current
            block, set the temporary to 1 here, and test the temporary
            variable later to decide whether or not to do the destruction. */
-        add_conditional_destruction_temp(rdcp, insert_location);
+        add_conditional_destruction_temp(cap, insert_location);
       }  /* if */
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
       if (template_static_data_member_init_guard_var != NULL) {
         /* This is a static data member in a template and it has guard code
            around the initialization, which means it also needs guard code
            around the destruction. */
-        rdcp->template_static_data_member_init_guard_var =
+        cap->template_static_data_member_init_guard_var =
                                     template_static_data_member_init_guard_var;
       }  /* if */
 #endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE */
@@ -2476,7 +2475,7 @@ do_assignment:;
     /* If exceptions are enabled, create a region description entry for
        this object. */
     if (exceptions_enabled) {
-      make_region_table_entry(rdcp, insert_location);
+      make_region_table_entry(cap, insert_location);
     }  /* if */
   }  /* if */
   /* In the whole-variable cases, adjust the initialization specified in
@@ -3468,8 +3467,8 @@ Generate code for a stmk_init (dynamic initialization) statement.
     if (dip->variable->storage_class == (a_storage_class)sc_static) {
       add_first_time_test(&insert_location, &first_time_test_var);
       /* Put a dependent-statement context around the lowering of
-         the initialization so that any required destructor calls for
-         code within the initialization will be emitted within the "if". */
+         the initialization so that any cleanup actions for code within
+         the initialization will be emitted within the "if". */
       push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
     }  /* if */
     lower_dynamic_init(dip, &ipd, first_time_test_var,
@@ -3482,9 +3481,9 @@ Generate code for a stmk_init (dynamic initialization) statement.
       turn_statement_into_noop(statement);
     }  /* if */
     if (first_time_test_var != NULL) {
-      /* Generate any required destructor calls for temporaries built within
-         a first-time test conditional section. */
-      gen_required_destructor_calls(curr_context, &insert_location);
+      /* Generate any cleanup actions for temporaries built within a
+         first-time test conditional section. */
+      gen_cleanup_actions(curr_context, &insert_location);
       pop_context();
     }  /* if */
   } else {
@@ -3714,9 +3713,8 @@ constructor, but may instead be after an assignment to "this".
      [endfor]
   */
   /* Push a subscope region context around the generation of the wrapper
-     code so that required destruction for any temporaries created
-     within the wrapper will be generated at the end of the wrapper
-     code. */
+     code so that cleanup code for any temporaries created within the
+     wrapper will be generated at the end of the wrapper code. */
   push_context(&context, curr_context->scope, /*subscope_region=*/TRUE);
   /* The constructor_inits list contains a list of initializations.  Each
      initialization either appeared explicitly in the source or is a default
@@ -3887,9 +3885,9 @@ constructor, but may instead be after an assignment to "this".
     lower_ctor_init(ctor_init, this_param_var, /*use_implicit_param=*/FALSE,
                     class_type, insert_location);
   }  /* for */
-  /* Generate any required destructor calls for temporaries built within
-     the wrapper code. */
-  gen_required_destructor_calls(curr_context, insert_location);
+  /* Generate any cleanup actions for temporaries built within the
+     wrapper code. */
+  gen_cleanup_actions(curr_context, insert_location);
   pop_context();
 }  /* add_constructor_wrapper_code */
 
@@ -4432,24 +4430,23 @@ Do lowering on the file-scope dynamic initializations list.
     switch_il_region(FILE_SCOPE_REGION_NUMBER);
     file_scope->dynamic_inits = NULL;
   }  /* if */
-  /* Put destructor calls for local static variables on the front of
+  /* Put cleanup actions for local static variables on the front of
      the file-scope list. */
-  if (destructor_calls_for_local_static_variables != NULL) {
-    end_destructor_calls_for_local_static_variables->next =
-                                       curr_context->required_destructor_calls;
-    curr_context->required_destructor_calls =
-                                   destructor_calls_for_local_static_variables;
+  if (cleanup_actions_for_local_static_variables != NULL) {
+    end_cleanup_actions_for_local_static_variables->next =
+                                                 curr_context->cleanup_actions;
+    curr_context->cleanup_actions = cleanup_actions_for_local_static_variables;
   }  /* if */
-  /* Generate any destructor calls associated with the file scope. */
-  if (curr_context->required_destructor_calls != NULL) {
-    /* There are some file-scope required destructor calls.  Generate a
-       routine containing them. */
+  /* Generate any cleanup actions associated with the file scope. */
+  if (curr_context->cleanup_actions != NULL) {
+    /* There are some file-scope cleanup actions.  Generate a routine
+       containing them. */
     scope = file_scope_term_insert_location(&insert_location);
     push_context(&context, scope, /*subscope_region=*/FALSE);
     /* Initialize for exception handling lowering. */
     eh_function_lower_init();
     switch_il_region(file_scope_term_routine_il_region);
-    gen_required_destructor_calls(file_scope_context, &insert_location);
+    gen_cleanup_actions(file_scope_context, &insert_location);
     pop_context();
 #if ORPHAN_PROCESSING_NEEDED
     /* Make orphan lists for any local types or static variables in the
@@ -4477,8 +4474,8 @@ of the front end.
   vec_new_routine = vec_cctor_routine = vec_delete_routine = NULL;
   file_scope_init_routine = NULL;
   file_scope_term_routine = NULL;
-  destructor_calls_for_local_static_variables = NULL;
-  end_destructor_calls_for_local_static_variables = NULL;
+  cleanup_actions_for_local_static_variables = NULL;
+  end_cleanup_actions_for_local_static_variables = NULL;
 }  /* init_lower_init */
 
 #endif /* DO_IL_LOWERING */

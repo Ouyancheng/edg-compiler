@@ -37,9 +37,8 @@ extern void lower_throw(an_expr_node_ptr expr);
 
 extern a_variable_ptr make_caught_object_address_var(void);
 
-extern void make_region_table_entry(
-                              a_required_destructor_call_ptr rdcp,
-                              an_insert_location             *insert_location);
+extern void make_region_table_entry(a_cleanup_action_ptr cap,
+                                    an_insert_location   *insert_location);
 
 extern void set_eh_curr_region(a_context_ptr      context,
                                an_insert_location *insert_location);

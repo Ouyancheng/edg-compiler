@@ -55,8 +55,7 @@ Types used to describe a position within an initialization:
 typedef struct an_init_pos_modifier *an_init_pos_modifier_ptr;
 typedef struct an_init_pos_modifier {
   /* Modifier for an_init_pos_descr.  Usually allocated on the stack, but
-     allocated on the heap when saved as part of a required destructor
-     call entry. */
+     allocated on the heap when saved as part of a cleanup action entry. */
   an_init_pos_modifier_ptr
 		next;
 			/* Pointer to the similar entry at the next
@@ -111,23 +110,23 @@ typedef struct an_init_pos_descr {
 
 
 /*
-Entry used to record a destructor call that must be emitted on exit from
-a scope.
+Entry used to record a cleanup action that must be performed on exit from
+a scope or on a "throw".
 */
-typedef struct a_required_destructor_call *a_required_destructor_call_ptr;
-typedef struct a_required_destructor_call {
-  a_required_destructor_call_ptr
-		next;	/* Next entry on a list of required calls, NULL
+typedef struct a_cleanup_action *a_cleanup_action_ptr;
+typedef struct a_cleanup_action {
+  a_cleanup_action_ptr
+		next;	/* Next entry on a list of cleanup actions, NULL
 			   if last. */
   a_label_ptr	label_marker;
 			/* If this is non-NULL, this entry does not describe
-			   a required destructor call; it is a marker that
-			   indicates where in the list a label was declared.
-			   the other fields (below) are not meaningful. */
+			   a cleanup action; it is a marker that indicates
+			   where in the list a label was declared.  The
+			   other fields (below) are not meaningful. */
   a_dynamic_init
 		dynamic_init;
 			/* The dynamic initialization entry that describes the
-			   required destructor call.  Note that this is a copy
+			   cleanup action.  Note that this is a copy
 			   of the entire entry, not a pointer to it, because
 			   the original entry may have been modified into
 			   an entry that is valid in C. */
@@ -155,7 +154,7 @@ typedef struct a_required_destructor_call {
   unsigned long	region_number;
 			/* Destructible object region number for exception
 			   handling. */
-} a_required_destructor_call;
+} a_cleanup_action;
 
 /*
 Value used to indicate "no region number" for exception handling regions.
@@ -250,9 +249,9 @@ typedef struct a_context {
 		assoc_switch_clause;
 			/* Points to the current clause of a switch statement
 			   if inside one; NULL otherwise. */
-  a_required_destructor_call_ptr
-		required_destructor_calls;
-			/* Destructor calls required on exit from the scope. */
+  a_cleanup_action_ptr
+		cleanup_actions;
+			/* Cleanup actions required on exit from the scope. */
   a_statement_ptr
 		latest_label_statement_processed;
 			/* The stmk_label statement most recently processed
@@ -438,7 +437,7 @@ extern void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
 extern a_boolean virtual_dtor_should_be_generated_for_class(
                                                         a_type_ptr class_type);
 
-extern a_required_destructor_call_ptr alloc_required_destructor_call(void);
+extern a_cleanup_action_ptr alloc_cleanup_action(void);
 
 extern void add_to_return_memo_list(a_statement_ptr return_stmt);
 
@@ -450,9 +449,8 @@ extern void turn_branch_into_block(a_statement_ptr        statement,
                                    an_insert_location_ptr insert_location,
                                    a_statement_ptr        *orig_statement);
 
-extern void gen_required_destructor_calls(
-                                   a_context_ptr          outer_context,
-                                   an_insert_location_ptr insert_location);
+extern void gen_cleanup_actions(a_context_ptr          outer_context,
+                                an_insert_location_ptr insert_location);
 
 extern void prelower_class_type(a_type_ptr class_type);
 
