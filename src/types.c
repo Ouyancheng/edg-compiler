@@ -4178,7 +4178,9 @@ check_enclosing_classes:
                                      (a_template_param_type_kind)tptk_member));
         if (tp != NULL) {
           tp = symbol_supplement_for_class(tp)->template_param_for_proxy_class;
-          status = traverse_type_tree(tp, func, flags);
+          if (tp != NULL) {
+            status = traverse_type_tree(tp, func, flags);
+          }  /* if */
         }  /* if */
         break;
 #if CHECKING
