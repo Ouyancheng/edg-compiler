@@ -733,12 +733,12 @@ used for diagnostics.
                      ctsp = class_type->variant.class_struct_union.extra_info;
     /* If there were any class-wide modifiers or memory attributes
        specified, record them in the class type supplement. */
-  #if NEAR_AND_FAR_ALLOWED
+#if NEAR_AND_FAR_ALLOWED
     if (ctsp != NULL) {
       ctsp->qualifiers = extended_decl_info->qualifiers;
     }  /* if */
-  #endif /* NEAR_AND_FAR_ALLOWED */
-  #if DECL_MODIFIERS_IN_USE
+#endif /* NEAR_AND_FAR_ALLOWED */
+#if DECL_MODIFIERS_IN_USE
     if (extended_decl_info->decl_modifiers.flags != DM_NONE) {
       /* The following processing is more complicated that it needs to be so as
          to allow for the easy addition of decl-modifiers. */
@@ -754,7 +754,7 @@ used for diagnostics.
           invalid_modifier = FALSE;
           invalid_redecl = FALSE;
           switch (bit_number) {
-  #if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
             case dmt_dllimport:
               if (ctsp->decl_modifiers & DM_DLLEXPORT) {
                 if (is_incomplete_type(class_type)) {
@@ -762,8 +762,8 @@ used for diagnostics.
                      dllimport. */
                   ctsp->decl_modifiers &= ~DM_DLLEXPORT;
                 } else {
-                  /* A definition was already seen and that froze the dllimport/
-                     dllexport setting.  Just ignore this one. */
+                  /* A definition was already seen and that froze the
+                     dllimport/dllexport setting.  Just ignore this one. */
                   extended_decl_info->decl_modifiers.flags &= ~modifier_value;
                 }  /* if */
               }  /* if */
@@ -775,20 +775,21 @@ used for diagnostics.
                      dllexport. */
                   ctsp->decl_modifiers &= ~DM_DLLIMPORT;
                 } else {
-                  /* A definition was already seen and that froze the dllimport/
-                     dllexport setting.  Just ignore this one. */
+                  /* A definition was already seen and that froze the
+                     dllimport/dllexport setting.  Just ignore this one. */
                   extended_decl_info->decl_modifiers.flags &= ~modifier_value;
                 }  /* if */
               }  /* if */
               break;
             case dmt_novtable:
               break;
-  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             default:
               invalid_modifier = TRUE;
               break;
           }  /* switch */
-          /* If this modifier is invalid, reset the bit in the new modifiers. */
+          /* If this modifier is invalid, reset the bit in the new
+             modifiers. */
           if (invalid_modifier || invalid_redecl) {
             extended_decl_info->decl_modifiers.flags &= (~modifier_value);
           }  /* if */
@@ -808,9 +809,10 @@ used for diagnostics.
       /* Update the routine entry with any valid modifiers that were found. */
       ctsp->decl_modifiers |= extended_decl_info->decl_modifiers.flags;
     }  /* if */
-  #endif /* DECL_MODIFIERS_IN_USE */
-  #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (extended_decl_info->inheritance_kind != (an_inheritance_kind)ihk_none) {
+#endif /* DECL_MODIFIERS_IN_USE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (extended_decl_info->inheritance_kind !=
+                                              (an_inheritance_kind)ihk_none) {
       /* Set the specified inheritance kind, unless a different inheritance
          kind has already been locked in -- either explicitly through a prior
          declaration or implicitly, based on the setting of global variable
