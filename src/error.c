@@ -214,7 +214,7 @@ source of substitutions in message segments.  The sequence number in
 message segment descriptor is used as an index into the appropriate array.
 */
 
-#define MAX_ERR_SEG_KIND_PER_MSG 2
+#define MAX_ERR_SEG_KIND_PER_MSG 3
 				/* The maximum number of error message
 				   arguments of any message segment kind. */
 
@@ -3430,6 +3430,24 @@ indicated position.
   error_msg_syms[2] = symbol2;
   diag_message(error_code, error_pos, es_error, dck_standalone);
 }  /* pos_sy2_error */
+
+
+void pos_sy3_error(an_error_code     error_code,
+                   a_source_position *error_pos,
+                   struct a_symbol   *symbol1,
+                   struct a_symbol   *symbol2,
+                   struct a_symbol   *symbol3)
+/*
+Report the indicated error (with the indicated symbols) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_syms[1] = symbol1;
+  error_msg_syms[2] = symbol2;
+  error_msg_syms[3] = symbol3;
+  diag_message(error_code, error_pos, es_error, dck_standalone);
+}  /* pos_sy3_error */
 
 
 void pos_syty_error(an_error_code     error_code,

@@ -361,6 +361,11 @@ extern void pos_sy2_error(an_error_code     error_code,
                           a_source_position *error_pos,
                           struct a_symbol   *symbol1,
                           struct a_symbol   *symbol2);
+extern void pos_sy3_error(an_error_code     error_code,
+                          a_source_position *error_pos,
+                          struct a_symbol   *symbol1,
+                          struct a_symbol   *symbol2,
+                          struct a_symbol   *symbol3);
 extern void pos_syty_error(an_error_code     error_code,
                            a_source_position *error_pos,
                            struct a_symbol   *symbol,
