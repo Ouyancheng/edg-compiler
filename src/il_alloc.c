@@ -772,9 +772,9 @@ a pointer to it.
   ctsp->highest_virtual_function_number   = 0;
   ctsp->virtual_function_info_offset      = 0;
   ctsp->virtual_function_info_base_class  = NULL;
-#if DECL_MODIFIERS_IN_USE
+#if MICROSOFT_EXTENSIONS_ALLOWED
   ctsp->decl_modifiers                    = DM_NONE;
-#endif /* DECL_MODIFIERS_IN_USE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->class_member_using_decls          = NULL;

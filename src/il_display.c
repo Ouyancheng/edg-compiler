@@ -1133,7 +1133,7 @@ Display the name for the indicated storage class.
   (void)printf("%s\n", s);
 }  /* disp_storage_class_name */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if DECL_MODIFIERS_IN_USE
 
 static void disp_decl_modifiers(a_decl_modifier  dm)
 /*
@@ -1141,6 +1141,7 @@ Display the indicated decl modifiers.
 */
 {
   if (dm != DM_NONE) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (dm & DM_DLLIMPORT) {
       disp_boolean("dllimport", TRUE);
     }  /* if */
@@ -1156,10 +1157,11 @@ Display the indicated decl modifiers.
     if (dm & DM_MICROSOFT_INLINE) {
       disp_boolean("microsoft_inline", TRUE);
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* disp_decl_modifiers */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* DECL_MODIFIERS_IN_USE */
 
 static void disp_initializer(an_init_kind        kind,
                              an_initializer_ptr  ptr)
@@ -1269,9 +1271,9 @@ Display the indicated variable.
   if (ptr->superseded_external) {
     disp_boolean("superseded_external", TRUE);
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if DECL_MODIFIERS_IN_USE
   disp_decl_modifiers(ptr->decl_modifiers);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* DECL_MODIFIERS_IN_USE */
 #endif /*ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
@@ -1593,9 +1595,9 @@ Display the indicated routine.
     disp_boolean("defined_in_friend_decl", TRUE);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if DECL_MODIFIERS_IN_USE
   disp_decl_modifiers(ptr->decl_modifiers);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* DECL_MODIFIERS_IN_USE */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */

@@ -2561,14 +2561,14 @@ typedef struct a_class_type_supplement {
 			   necessarily a direct base class, but there are
 			   no virtual steps in its derivation.  This field is
 			   NULL if the virtual function info is not shared. */
-#if DECL_MODIFIERS_IN_USE
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_decl_modifier
 		decl_modifiers;
 			/* Additional declaration information supplied by
 			   nonstandard language features such as the
 			   Microsoft storage-class-like __declspec
 			   modifiers. */
-#endif /* DECL_MODIFIERS_IN_USE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous
