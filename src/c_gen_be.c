@@ -5185,7 +5185,8 @@ if this routine has a body (dump nothing if it has no body).
     /* The routine has no body (i.e., no definition), and we're supposed
        to dump it only if it has a definition, so do nothing. */
 #if SGIC
-  } else if (strncmp(rout->source_corresp.name, "__builtin_", 10) == 0) {
+  } else if (has_name(rout) &&
+             strncmp(rout->source_corresp.name, "__builtin_", 10) == 0) {
     /* Routines with names beginning "__builtin_" should not be declared
        or defined. */
 #endif /* SGIC */
@@ -5195,7 +5196,7 @@ if this routine has a body (dump nothing if it has no body).
     is_definition = (has_defn && dump_defn);
 #if SGIC
     /* The SGI compiler uses a pragma to indicate "inline". */
-    if (rout->is_inline && has_defn && !is_definition) {
+    if (rout->is_inline && has_name(rout) && has_defn && !is_definition) {
       unsigned long saved_indent = indent;
       end_output_line_if_begun();
       indent = 0;
