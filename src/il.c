@@ -345,15 +345,13 @@ information, such as its address and translation unit.
   }  /* if */
   if (in_secondary_trans_unit(entry) && in_file_scope(entry)) {
     copy_addr = trans_unit_copy_address_of(entry);
-    if (copy_addr != NULL) {
-      fprintf(f_debug, "copy address = %p", copy_addr);
-      /* Check for a second level copy address. */
+    fprintf(f_debug, "copy address = %p", copy_addr);
+    /* Check for a second level copy address. */
+    if (copy_addr != NULL && in_secondary_trans_unit(copy_addr)) {
       copy_addr = trans_unit_copy_address_of(copy_addr);
-      if (copy_addr != NULL) {
-        fprintf(f_debug, ", %p", copy_addr);
-      }  /* if */
-      fprintf(f_debug, "\n");
+      fprintf(f_debug, ", %p", copy_addr);
     }  /* if */
+    fprintf(f_debug, "\n");
   }  /* if */
 }  /* db_entity_info */
 
