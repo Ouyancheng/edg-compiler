@@ -8058,11 +8058,14 @@ destructor_name:
            the loop (we've taken all we're supposed to).  The first time,
            this is an error. */
 something_unexpected:
-        if (num_specifiers == 0 &&
-            !(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
-          syntax_error(ec_exp_type_specifier);
-          err = TRUE;
-          basic_type = bt_error;
+        if (num_specifiers == 0) {
+          if (!(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
+            syntax_error(ec_exp_type_specifier);
+            err = TRUE;
+            basic_type = bt_error;
+          } else {
+            *output_flags |= DSO_NO_DECL_SPECIFIERS;
+          }  /* if */
         }  /* if */
         goto exit_loop;
     }  /* switch */
