@@ -1,5 +1,10 @@
 Version 2.19
 
+7/9/93   Internal error on cast to class type in constant expression
+
+An internal error is no longer issued on a cast to a class type that
+appears within a constant expression in C++.
+
 6/30/93  Name lookup in classes whose base classes depend on template
          parameters.
 

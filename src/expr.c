@@ -4780,7 +4780,7 @@ type is passed in as type_cast_to.  The result is returned in *result.
     scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine, &lparen_pos,
 			type_cast_to);
     error_position = start_position;
-    if (ctor_routine == NULL) {
+    if (err || ctor_routine == NULL) {
       /* Error of some sort. */
       make_error_operand(result);
     } else {
