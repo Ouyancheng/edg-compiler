@@ -1,6 +1,6 @@
 Version 2.41
 
-1/22/99  New semantics for unexpected()
+2/22/99  New semantics for unexpected()
 
 The runtime now implements the semantics of unexpected() described in
 the standard.  Specifically, if unexpected() exits by throwing an
