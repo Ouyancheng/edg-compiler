@@ -1,5 +1,11 @@
 Version 2.46
 
+6/2/01   Missing nothrow operator delete routines
+
+The nothrow versions of operator delete and operator delete[] were missing
+from the library (they were included in the <new> header, however).  They
+have now been added.
+
 2/9/01   Missing C99 complex support routine
 
 The routine __c99_cdouble_to_clong_double was added.  (Calls to it were
