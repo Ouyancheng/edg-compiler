@@ -5679,7 +5679,7 @@ caution when modifying this routine.
         }  /* if */
       }  /* if */
       if (tag_sym == NULL && tag_kind == (a_symbol_kind)sk_enum_tag) {
-        /* Since tag_sym was not found, this is either a vaucuous declaration
+        /* Since tag_sym was not found, this is either a vacuous declaration
            or a reference to an incomplete (because not yet declared) type.
            In either case this is non-standard for enums.  It is allowed as
            an extension by analogy with classes. */
