@@ -1603,7 +1603,6 @@ a template parameter (type or constant).
 
 a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                                  a_template_arg_ptr  *new_list,
-                                 a_source_position   *source_pos,
 				 a_boolean	     prototype_allowed)
 /*
 Given a symbol for a class template and a template argument list (that is,
@@ -1705,7 +1704,7 @@ included in the search.
        template class based on the template arguments.  First create a symbol
        (but do not enter it into the symbol table, since class templates
        are always looked up through the template. */
-    sym = make_template_class_symbol(class_template_sym, source_pos);
+    sym = make_template_class_symbol(class_template_sym);
     /* Add the new symbol to the head of the instantiation list. */
     sym->next = tssp->variant.class_template.instantiations;
     tssp->variant.class_template.instantiations = sym;
@@ -4355,7 +4354,7 @@ instantiation.
       if (sym->kind == (a_symbol_kind)sk_class_template) {
         /* This is a class template declaration, not a declaration for
            a normal class nested within a template. */
-        prototype_sym = make_template_class_symbol(sym, &sym->decl_position);
+        prototype_sym = make_template_class_symbol(sym);
         /* Now create a new type entry. */
         prototype_type = alloc_type(tssp->variant.class_template.type_kind);
         prototype_sym->variant.class_struct_union.type = prototype_type;
