@@ -2702,7 +2702,7 @@ used to encode constants as part of the mangled names of template classes.
     case ck_integer:
       /* Integer: the encoding is like
            L3n12  <-- encoding for "-12"
-              ^^----- literal value
+              ^^----- Literal value.
              ^------- "n" indicates negative.
             ^-------- Length of the literal.
            ^--------- "L" indicates a number.
@@ -2724,7 +2724,7 @@ used to encode constants as part of the mangled names of template classes.
     case ck_float:
       /* Float: the encoding is like
            L4n1p5 <-- encoding for "-1.5"
-              ^^^---- literal value ("p" for decimal point).
+              ^^^---- Literal value ("p" for decimal point).
              ^------- "n" indicates negative.
             ^-------- Length of the literal.
            ^--------- "L" indicates a number.
@@ -2767,8 +2767,8 @@ used to encode constants as part of the mangled names of template classes.
 #endif /* CHECKING */
         /* String: the encoding is like
              S5a056b <-- encoding for "a.b"
-               ^^^^^---- literal value (non-alphabetic characters changed to
-                         octal)
+               ^^^^^---- Literal value (non-alphabetic characters changed to
+                         octal).
               ^--------- Length of the literal.
              ^---------- "S" indicates a string.
            cfront 3.0.1 does not implement this, so we made it up. */
@@ -2827,7 +2827,7 @@ used to encode constants as part of the mangled names of template classes.
 #endif /* CHECKING */
         /* The encoding is like
              c4abcd <-- encoding for address of "abcd"
-               ^^^^---- name of entity.
+               ^^^^---- Name of entity.
               ^-------- Length of the name.
              ^--------- "c" indicates a constant address.
            This is compatible with cfront 3.0.1. */
@@ -2868,17 +2868,17 @@ used to encode constants as part of the mangled names of template classes.
          For pointers to data members, the offset value encoded as
          an integer:
            L212  <--- encoding for an offset of "12"
-             ^^------ literal value
+             ^^------ Literal value.
             ^-------- Length of the literal.
            ^--------- "L" indicates a number.
          For pointers to member functions, the __mptr triplet of
          values (delta, index, function or offset), encoded as follows:
            LM0_L2n1_1j
-                    ^^- function name, or alternatively the offset value.
+                    ^^- Function name, or alternatively the offset value.
                         (e.g., LM0_L2n1_4)
-               ^^^^---- index value, encoded as an integer
-             ^--------- delta value
-           ^^---------- "LM" indicates a pointer to member function
+               ^^^^---- Index value, encoded as an integer.
+             ^--------- Delta value.
+           ^^---------- "LM" indicates a pointer to member function.
          This is compatible with cfront 3.0.1.  Note that cfront always
          seems to put out "0" for the offset value, even when another
          value seems right. */
@@ -3027,7 +3027,7 @@ the name.
   }  /* if */
   if (template_arg_list != NULL) {
     /* A template class.  The mangled form of the name is something like
-         abc__pt__4_ii
+         abc__pt__3_ii
                     ^^--- Two template arguments of type int.
                   ^------ Total length of template argument list string,
                           including the underscore.
@@ -3061,11 +3061,11 @@ the name.
         } else {
           /* Constant argument.  Representation is something like
                XCiL15   <-- integer constant 5
-                    ^-- Literal constant representation
-                   ^--- Length of literal constant
+                    ^-- Literal constant representation.
+                   ^--- Length of literal constant.
                   ^---- L indicates literal constant; c indicates address
                         of variable, etc.
-                ^^----- Type of template argument, with "const" added
+                ^^----- Type of template argument, with "const" added.
                ^------- X indicates beginning of constant argument.
           */
           con = tap->variant.constant;
