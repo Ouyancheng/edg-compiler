@@ -220,7 +220,9 @@ to get around bugs in MSVC++, but the generated names are now better
 in certain cases in all modes in that they look more like the names
 that a human programmer would write.
 
-  (1)  "this->" on a member function call is suppressed if possible.
+  (1)  The suppression of "this->" on member function calls is
+       more sophisticated.  It is still done only in Microsoft 4.2
+       mode, however, where it is needed to avoid some MSVC++ bugs.
   (2)  The hidden name table and C++-generating back end are now
        aware of injected class names and handle them better.
        The same mechanism is used for block extern declarations.
