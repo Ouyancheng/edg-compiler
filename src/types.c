@@ -1985,7 +1985,7 @@ qualification of a member function type.
 }  /* f_implicit_this_param_type_of */
 
 
-void extract_this_class_and_qualifiers(a_type_ptr              this_type,
+void extract_this_class_and_qualifiers(a_type_ptr            this_type,
                                        a_type_ptr            *this_class,
                                        a_type_qualifier_set  *qualifiers)
 /*
