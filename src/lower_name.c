@@ -1777,15 +1777,18 @@ template classes.
 #endif /* IA64_ABI */
     add_str_to_mangled_name("__UUID", mctl);
     uuid_type = con->variant.address.variant.type;
+    uuid_str = NULL;
     if (uuid_type == NULL) {
       /* Null GUID case. */
       uuid_str = "00000000-0000-0000-0000-000000000000";
-    } else {
+    } else if (is_immediate_class_type(uuid_type)) {
       uuid_str = uuid_type->variant.class_struct_union.extra_info->uuid_string;
-      if (uuid_str == NULL) {
-        /* This can happen in error cases. */
-        uuid_str = "00000000-0000-0000-0000-000000000000";
-      }  /* if */
+    } else if (uuid_type->kind == (a_type_kind)tk_enum) {
+      uuid_str = uuid_type->variant.integer.uuid_string;
+    }  /* if */
+    if (uuid_str == NULL) {
+      /* This can happen in error cases. */
+      uuid_str = "00000000-0000-0000-0000-000000000000";
     }  /* if */
     for (; *uuid_str != '\0'; uuid_str++) {
       if (*uuid_str != '-') add_to_mangled_name(*uuid_str, mctl);
