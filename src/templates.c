@@ -3024,6 +3024,7 @@ type based on the template argument list and the template parameter list
   a_type_ptr			    rout_type = NULL;
   a_decl_flag_set		    dso_flags;
   a_boolean			    is_member_decl;
+  a_type_ptr	      		    parent_class;
 
   db_enter(4, "make_template_function");
 #if CHECKING
@@ -3061,7 +3062,6 @@ type based on the template argument list and the template parameter list
     a_decl_modifier	decl_modifiers;
     a_source_position   saved_pos_curr_token;
     a_source_position   saved_error_position;
-    a_type_ptr		parent_class;
 
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_template_instantiation_scope is NULL.  This is done
@@ -3163,8 +3163,7 @@ type based on the template argument list and the template parameter list
       locator.is_conversion_name = TRUE;
       locator.variant.conversion_result_type = NULL;
     }  /* if */
-    check_operator_function_params(rout_type, /*class_type=*/(a_type_ptr)NULL,
-                                   &locator);
+    check_operator_function_params(rout_type, parent_class, &locator);
   }
   /* Function instantiation entries are not marked for actual instantiation
      (that is, for generation of the function body) until there is an
