@@ -182,7 +182,7 @@ type that is checked for qualifiers.
 Return TRUE if tp1_qualifiers does not have some type qualifier that
 tp2_qualifiers has.
 */
-#define any_qualifier_in_set_missing(tp1_qualifiers, tp2_qualifiers)
+#define any_qualifier_in_set_missing(tp1_qualifiers, tp2_qualifiers)  \
   (((tp1_qualifiers) & (tp2_qualifiers)) != (tp2_qualifiers))
 
 /*
