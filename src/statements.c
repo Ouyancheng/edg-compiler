@@ -1125,14 +1125,14 @@ Check that a void return (one with no value) is okay as a way of exiting
 the current routine.
 */
 {
-  a_routine_ptr            rout;
-  a_type_ptr      rout_type;
+  a_routine_ptr   rout;
+  a_type_ptr      tp;
 
   /* Get a pointer to the current routine entry, and get its return
      type. */
   rout = current_routine_entry();
-  rout_type = skip_typerefs(rout->type)->variant.routine.return_type;
-  if (!is_void_type(rout_type) && !is_error_type(rout_type)) {
+  tp = skip_typerefs(rout->type)->variant.routine.return_type;
+  if (!is_void_type(tp) && !is_no_type(tp) && !is_error_type(tp)) {
     /* If a return with no expression appears in a function with a
        non-void type, issue a warning.  Do not issue the warning for
        the main program, or if the declaration of the function did not
