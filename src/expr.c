@@ -7462,6 +7462,8 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     if (is_void_type(operand.type)) {
       /* Cannot throw a void expression. */
       error_in_operand(ec_void_throw, &operand);
+    } else if (is_abstract_class_type(operand.type)) {
+      error_in_operand(ec_abstract_class_object_not_allowed, &operand);
     }  /* if */
   }  /* if */
 
@@ -7475,18 +7477,19 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     throw_node->type = void_type();
     if (expr_present) {
       /* There is a throw expression. */
-      if (is_class_struct_union_type(operand.type)) {
+      a_type_ptr operand_type = operand.type;
+      if (is_class_struct_union_type(operand_type)) {
         /* For a class type operand, generate a dynamic initialization that
            copies the value to an undesignated location. */
-        throw_type = operand.type;
-        prep_elision_initializer_operand(&operand, operand.type,
+        throw_type = operand_type;
+        prep_elision_initializer_operand(&operand, operand_type,
                                          /*fill_in_dtor=*/FALSE,
                                          ec_bad_initializer_type, &dip);
         /* Determine accessibility for the destructor.  This is done as
            a separate step because we don't want it indicated in the
            dynamic initialization.  Note that this also forces instantiation
            of the destructor if it's a template, which is desirable. */
-        (void)select_destructor(operand.type, operand.type,
+        (void)select_destructor(operand_type, operand_type,
                                 &operand.position,
                                 /*honor_virtual=*/FALSE,
                                 curr_expr_is_potentially_evaluated(),

@@ -1,5 +1,16 @@
 Version 2.28
 
+2/6/95   Error on throw of abstract class type
+
+An error is now issued for a throw of an abstract class type:
+
+  struct A {
+    virtual int f() = 0;
+  };
+  void f(A &r) {
+    throw r;  // Error
+  }
+
 2/5/94   Partial IL lowering of exception handling
 
 Exception handling constructs can now be handled three different ways
