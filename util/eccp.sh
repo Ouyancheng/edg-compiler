@@ -953,6 +953,10 @@ process_option()
       object_files=$object_files" "$arg
       any_l_or_o_files=1
       add_to_instantiation_command=0
+      if [ ! -f $arg ] ; then
+        echo "$driver_name: cannot open object file \"$arg\"."
+        error=1
+      fi
       ;;
 ###############################################################################
 # Options passed to the front end that take no arguments
