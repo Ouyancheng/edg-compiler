@@ -12132,11 +12132,11 @@ the requirement is returned.  Otherwise, NULL is returned.
        type. */
     if (interchangeable_types(source_type, dest_type) ||
         (is_pointer_type(dest_type) &&
-         (is_constant_operand(source_operand) &&
-          is_null_pointer_constant(&source_operand->variant.constant)) ||
-         (is_pointer_type(source_type) &&
-          (is_void_type(type_pointed_to(source_type)) ||
-           is_void_type(type_pointed_to(dest_type)))))) {
+         ((is_constant_operand(source_operand) &&
+           is_null_pointer_constant(&source_operand->variant.constant)) ||
+          (is_pointer_type(source_type) &&
+           (is_void_type(type_pointed_to(source_type)) ||
+            is_void_type(type_pointed_to(dest_type))))))) {
       /* source_operand can be converted to the type of this member. */
       break;
     } /* if */
