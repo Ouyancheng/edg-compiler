@@ -1,5 +1,10 @@
 Version 2.23
 
+3/15/94 C-generating back end output of integer cast to pointer type
+
+When generating ANSI C, the C-generating back end now outputs integral
+constants cast to pointer types as unsigned constants.
+
 3/14/94 Setting address_taken on using address of class rvalue
 
 address_taken is now set on "arg" in the following:
