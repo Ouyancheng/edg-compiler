@@ -1888,18 +1888,8 @@ returned.
     done = FALSE;
     for (;;) {
       if (is_absolute_file_name(file_name)) {
-        if (strlen(file_name) < BUFFER_SIZE - 1) {
-          /* Copy file_name into the buffer.  It's suffix will be replaced
-             in the inner loop. */
-          (void)strcpy(buffer, file_name);
-          temp_file_name = buffer;
-        } else {
-          /* Since we're going to try to modify the file name in place, by
-             replacing it's current suffix with another, allocate storage
-             for it. */
-          temp_file_name = alloc_il((sizeof_t)(strlen(file_name)+1));
-          (void)strcpy(temp_file_name, file_name);
-        }  /* if */
+        /* Force the name to be copied to the buffer or to new storage. */
+        temp_file_name = file_name;
         /* Set done to keep from doing the outer loop more than once. */
         done = TRUE;
       } else if (search_path == NULL) {
@@ -1912,6 +1902,20 @@ returned.
         temp_file_name = combine_dir_and_file_name(
                                         curr_directory_name_entry->dir_name,
                                         file_name, buffer, BUFFER_SIZE);
+      }  /* if */
+      if (temp_file_name == file_name) {
+        if (strlen(file_name) < BUFFER_SIZE - 1) {
+          /* Copy file_name into the buffer.  It's suffix will be replaced
+             in the inner loop. */
+          (void)strcpy(buffer, file_name);
+          temp_file_name = buffer;
+        } else {
+          /* Since we're going to try to modify the file name in place, by
+             replacing it's current suffix with another, allocate storage
+             for it. */
+          temp_file_name = alloc_il((sizeof_t)(strlen(file_name)+1));
+          (void)strcpy(temp_file_name, file_name);
+        }  /* if */
       }  /* if */
       /* Loop through the linked list of suffixes. */
       suffix_loc = NULL;
