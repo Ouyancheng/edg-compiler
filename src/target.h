@@ -420,6 +420,22 @@ to be folded into the constructor or destructor if possible.
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED ... */
 
 /*
+Control over whether or not C++ "new" and "delete" operations for an array
+whose elements are classes with a constructor or destructor can be folded
+into the runtime routine to process those.
+*/
+#ifndef NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+#define NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE \
+  TRUE  /* cfront compatibility setting. */
+#else /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#define NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE \
+  TRUE  /* Can be changed. */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+#endif /* ifndef NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+/* This must be TRUE for IL lowering.  There's a consistency check there. */
+
+/*
 Enumerated types:
 */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
