@@ -1264,8 +1264,6 @@ do_struct_union:
 #endif /* DO_IL_LOWERING */
       disp_boolean("is_const", (a_boolean)ptr->variant.typeref.is_const);
       disp_boolean("is_volatile", (a_boolean)ptr->variant.typeref.is_volatile);
-      disp_boolean("is_function_scope",
-                   (a_boolean)ptr->variant.typeref.is_function_scope_tag);
       break;
     case tk_ptr_to_member:
       (void)printf("tk_ptr_to_member\n");

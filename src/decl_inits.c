@@ -1711,12 +1711,6 @@ initialized.  These are addressed in the course of the processing.
                            locator_for_curr_id.specific_symbol);
           }  /* if */
           init_type = type_symbol_type(member_or_base_sym);
-           /* The symbol's type entry could be a "tag typeref".  If so, get
-              the type entry at file scope that it points to. */
-          if (init_type->kind == (a_type_kind)tk_typeref &&
-              init_type->variant.typeref.is_function_scope_tag) {
-            init_type = init_type->variant.typeref.type;
-          }  /* if */
           /* Locate it in the base classes list for the current class.  Note
              that only direct and virtual base classes can be specified. */
           bcp = class_type->

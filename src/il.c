@@ -834,10 +834,7 @@ class_struct_union:
       db_abbreviated_type(tp->variant.routine.return_type);
       break;
     case tk_typeref:
-      if (tp->variant.typeref.is_function_scope_tag) {
-        fputs("local tag for ", f_debug);
-      } else if (!tp->variant.typeref.is_const &&
-                 !tp->variant.typeref.is_volatile) {
+      if (!tp->variant.typeref.is_const && !tp->variant.typeref.is_volatile) {
         fputs("typeref ", f_debug);
       } else {
         if (tp->variant.typeref.is_const) fputs("const ", f_debug);
@@ -2955,7 +2952,6 @@ to default values.
 #endif /* DO_IL_LOWERING */
       pte->variant.typeref.is_const    = FALSE;
       pte->variant.typeref.is_volatile = FALSE;
-      pte->variant.typeref.is_function_scope_tag = FALSE;
       break;
     case tk_ptr_to_member:
       pte->variant.ptr_to_member.class_of_which_a_member = FALSE;
