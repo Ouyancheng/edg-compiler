@@ -3161,9 +3161,14 @@ that expression.
     /* Use the first member of an aggregate. */
     /* In C, {} is not allowed.  This would have to be changed if
        designated initializers were allowed in C++. */
-    check_assertion(con->variant.aggregate.first_constant != NULL);
-    expr_ptr = find_expression_in_initializer(
-                                        con->variant.aggregate.first_constant);
+    a_constant_ptr member_con = con->variant.aggregate.first_constant;
+    check_assertion(member_con != NULL);
+    if (member_con->kind == (a_constant_repr_kind)ck_designator) {
+      /* Advance past a designator for a union. */
+      member_con = member_con->next;
+      check_assertion(member_con != NULL);
+    }  /* if */
+    expr_ptr = find_expression_in_initializer(member_con);
   } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
     expr_ptr =
              find_expression_in_initializer(con->variant.init_repeat.constant);
