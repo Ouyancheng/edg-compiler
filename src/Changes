@@ -1,5 +1,22 @@
 Version 2.33
 
+7/14/96 Template deduction from incomplete-typed lvalues
+
+Template argument deduction has incorrectly assumed that if an argument
+has an incomplete type, nothing can be deduced.  This is not true when the
+parameter type is a reference or in some cases when array --> pointer decay
+applies.
+
+  // Case 1
+  struct A;
+  template <class T> void f(T&);
+  void ff(A &a) { f(a); }
+
+  // Case 2.  This case valid only in cfront mode.
+  struct A;
+  template <class T> void f(T *);
+  void ff(A (&a)[]) { f(a); }
+
 7/3/96  Nonstandard anonymous unions/structs: use of named struct
 
 The code for nonstandard anonymous unions/structs (enabled by

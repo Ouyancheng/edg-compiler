@@ -2375,14 +2375,6 @@ evaluated (but not checked to see if the match is good enough).
                                                      &arg_type,
                                                      templ_sym)) goto done;
       }  /* if */
-      /* An incomplete type operand cannot be made to match anything.
-         This comes up for something like
-           struct A *p;
-           template<class T> void f(T);
-           void m() { f(*p); }
-      */
-      complete_type_is_needed(arg_type);
-      if (is_incomplete_type(arg_type)) goto done;
       /* See if any implicit transformations (e.g., array --> pointer) should
          be done. */
       if (is_array_type(arg_type) &&
@@ -2417,6 +2409,14 @@ evaluated (but not checked to see if the match is good enough).
         /* Top-level type qualifiers on the parameter type are also not
            significant. */
         param_type = skip_typerefs(param_type);
+        /* An incomplete type operand cannot be made to match anything.
+           This comes up for something like
+             struct A *p;
+             template<class T> void f(T);
+             void m() { f(*p); }
+        */
+        complete_type_is_needed(arg_type);
+        if (is_incomplete_type(arg_type)) goto done;
       }  /* if */
       if (is_pointer_type(arg_type) && is_pointer_type(param_type)) {
         /* Check for cases where type qualifiers are being added down one
