@@ -1,5 +1,18 @@
 Version 2.43
 
+11/15/99 Diagnose unqualified destructor name in friend declarations
+
+Friend declarations that refer to a destructor using an unqualified name are
+now diagnosed more clearly and more consistently.  Previously, in cases of
+(useless) friendship of a class' own destructor, internal errors could result.
+
+  class A {
+    friend ~A() {}  // Used to result in an internal error; now an error.
+  };
+  class B {
+    friend ~B();  // Used to be accepted; now an error.
+  };
+
 11/10/99 Microsoft compatibility: guiding-like friend declaration is not a
          new-style explicit specialization
 
