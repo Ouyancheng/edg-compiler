@@ -1110,6 +1110,15 @@ Display a_param_type entry.
   if (ptr->type_involves_deduced_template_param) {
     disp_boolean("type_involves_deduced_template_param", TRUE);
   }  /* if */
+  if (ptr->has_default_arg) {
+    disp_boolean("has_default_arg", TRUE);
+  }  /* if */
+  if (ptr->has_unevaluated_template_default) {
+    disp_boolean("has_unevaluated_template_default", TRUE);
+  }  /* if */
+  if (ptr->default_being_instantiated) {
+    disp_boolean("default_being_instantiated", TRUE);
+  }  /* if */
   if (ptr->default_arg_expr != NULL) {
     disp_ptr("default_arg_expr", (char *)ptr->default_arg_expr, iek_expr_node);
   }  /* if */

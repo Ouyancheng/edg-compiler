@@ -1,5 +1,11 @@
 Version 3.5
 
+10/13/04 IL display of param_type default argument information
+
+The IL display program now displays the has_default_arg,
+has_unevaluated_template_default, and default_being_instantiated fields
+of the param_type entry if they are set.
+
 10/13/04 Microsoft compatibility: lookup of nontype names in base classes
 
 The Microsoft compatibility issue described in the Changes entry of
