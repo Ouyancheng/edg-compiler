@@ -441,25 +441,6 @@ done:
 }  /* is_illegal_abstract_class_type */
 
 
-a_boolean class_with_copy_constructor_or_destructor(a_type_ptr tp)
-/*
-Return TRUE if the given type is a C++ class type that has a copy constructor
-and/or a destructor.
-*/
-{
-  a_boolean                     answer = FALSE;
-  a_class_symbol_supplement_ptr cssp;
-
-  if (is_class_struct_union_type(tp)) {
-    cssp = symbol_supplement_for_class(tp);
-    if (cssp != NULL) {
-      answer = (cssp->has_copy_constructor || cssp->destructor != NULL);
-    }  /* if */
-  }  /* if */
-  return answer;
-}  /* class_with_copy_constructor_or_destructor */
-
-
 a_boolean is_aggregate_or_union_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a union or aggregate type (array, struct,
