@@ -1062,6 +1062,16 @@ error code.
     case ec_local_class_function_def_missing:
       m = "member function of local class -- definition is required";
       break;
+    case ec_inaccessible_constructor:
+      m = "constructor \"%s()\" is inaccessible";
+      break;
+    case ec_inaccessible_destructor:
+      m = "destructor \"%s()\" is inaccessible";
+      break;
+    case ec_direct_derivation_less_accessible:
+      m =
+       "direct path to base class \"%s\" gives less access than indirect path";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -375,7 +375,10 @@ typedef enum /*an_error_code*/ {
   ec_inline_not_allowed,
   ec_bad_storage_class_with_inline,
   ec_bad_member_storage_class,
-  ec_local_class_function_def_missing
+  ec_local_class_function_def_missing,
+  ec_inaccessible_constructor,
+  ec_inaccessible_destructor,
+  ec_direct_derivation_less_accessible
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
