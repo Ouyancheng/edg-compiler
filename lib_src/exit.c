@@ -13,13 +13,16 @@ Exit processing.
 
 */
 
-#include <stddef.h>
-#include "basics.h"
-#include "main.h"
+
+/*
+Do not include any files that will result in an extern "C" version
+of exit being declared.
+*/
+
 #include "edg_exit.h"
 
 
-void exit(int val)
+extern "C++" void exit(int val)
 /*
 This routine just provides a means of transfering control to our own
 version of exit which will do some processing and then call the system

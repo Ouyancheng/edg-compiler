@@ -1,5 +1,11 @@
 Version 2.27
 
+10/20/94  exit.c could define the wrong version of exit
+
+The file exit.c included some files that could result in it defining
+the C linkage version of exit instead of the C++ linkage version.
+This has been corrected.
+
 10/17/94  Added needed destructions list
 
 A new mechanism for handling destruction of static object has been added.
