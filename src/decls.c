@@ -362,60 +362,6 @@ function parameter and return types.
 }  /* promote_float_to_double */
 
 
-static a_boolean is_unknown_curr_class_member(void)
-/*
-This routine is called to handle class member declarators in which a
-qualified name appears in place of the simple member name -- when, for
-instance, the user writes
-            class A { int A::f(); };
-instead of the syntax that the ARM apparently requires, namely:
-            class A { int f(); };
-Though it is "non-standard" (at this time), the former is accepted by cfront.
-However, cfront 2.1 does not accept either of the following, though they may
-seem to be consistent variations on the same theme:
-            class A { int ::A::f(); };
-            class A { class B { int A::B::f(); }; };
-So we support only the simple extension (as in the first example) for now.
-*/
-{
-  a_boolean                is_qualified_name_and_unknown_curr_class_member;
-  a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
-  a_symbol_ptr             class_sym;
-  a_token_cache            cache;
-
-  db_enter(4, "is_unknown_curr_class_member");
-  is_qualified_name_and_unknown_curr_class_member = FALSE;
-  if (curr_token == tok_identifier && next_token() == tok_colon_colon &&
-      ssep->kind == (a_scope_kind)sck_class_struct_union) {
-    class_sym = (a_symbol_ptr)ssep->assoc_type->source_corresp.assoc_info;
-    if (locator_for_curr_id.symbol_header == class_sym->header) {
-      /* We are inside a class declaration and the name is a qualified
-         name starting with the name of the class being declared.  Advance
-         to the member name, but cache the tokens so they are not lost. */
-      clear_token_cache(&cache);
-      /* Put the class name token in the cache. */
-      cache_curr_token(&cache);
-      /* Advance to the "::" and put it in the cache, too. */
-      (void)get_token();
-      cache_curr_token(&cache);
-      /* Now get the next token. */
-      if (get_token() == tok_identifier &&
-          class_qualified_id_lookup(&locator_for_curr_id,
-                                    ssep->assoc_type,
-                                    IDL_NO_OPTIONS) == NULL) {
-         /* The name to the right of the "::" is not (yet) a member of the
-            current class, so we return TRUE. */
-        is_qualified_name_and_unknown_curr_class_member = TRUE;
-      }  /* if */
-      /* Restore the tokens. */
-      rescan_cached_tokens(&cache);
-    }  /* if */
-  }  /* if */
-  db_exit();
-  return is_qualified_name_and_unknown_curr_class_member;
-}  /* is_unknown_curr_class_member */
-
-
 static void add_to_derived_type_list(a_type_ptr new_type_ptr,
                                      a_type_ptr *derived_type,
                                      a_type_ptr *bottom_derived_type)
@@ -3541,6 +3487,14 @@ otherwise it is NULL.  The syntax is:
       /* Real (non-abstract) declarator. */
       declarator_pos = pos_curr_token;
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
+      if (C_dialect == C_dialect_cplusplus) {
+        /* If this declaration appears in the immediate context of a class
+           definition and the current token is an identifier representing
+           the name of the current class, see if this is a qualified name
+           and if so change it into a simple name (e.g., A::x becomes x,
+           its equivalent in A's scope). */
+        (void)simplify_curr_class_qualified_name();
+      }  /* if */
       if (is_qualified_name_start()) {  /* Identifier or "::". */
         /* The declarator may be a qualified name or a normal name. */
         an_id_lookup_options_set lookup_options = IDL_NO_OPTIONS;
@@ -3554,32 +3508,6 @@ otherwise it is NULL.  The syntax is:
           lookup_options |= IDL_SUPPRESS_QUALIFIED_NAME_NOT_FOUND_ERROR;
         }  /* if */
         /* See if the name is a qualified name, like "A::x" or "::j". */
-        if (member_parent_type != NULL) {
-          /* This declarator belongs to a member declaration within a class
-             definition.  Although the ARM does not permit it, cfront allows
-             one to declare a member using a qualified name -- e.g.,
-                 class A { void A::f(); };
-             We have a special check for this particular case.  We do not
-             offer more than what cfront allows (e.g., fully qualified names
-             in nested class declarations), and we issue a warning, since
-             this syntax is technically nonstandard.  */
-#if CHECKING
-          if (input_flags & DI_QUALIFIED_NAME_ALLOWED) {
-            internal_error("declarator: qualified name allowed");
-          }  /* if */
-#endif /* CHECKING */
-          if (is_unknown_curr_class_member()) {
-            /* We have the case checked for.  Skip over the superfluous class
-               name and "::" and continue processing as though they had not
-               been seen.  If we had called get_qualified_name without
-               advancing past them, an error would have been issued reporting
-               that the name is not a member of the class.  It isn't yet. */
-            (void)get_token();
-            (void)get_token();
-            /* The current token will now be the identifier for the member
-               being declared. */
-          }  /* if */
-        }  /* if */
         if (get_qualified_name(lookup_options)) {
           if (input_flags & DI_QUALIFIED_NAME_ALLOWED) {
             a_symbol_ptr sym = locator_for_curr_id.specific_symbol;
@@ -4284,8 +4212,7 @@ been determined, determine it now.
 */
 #define determine_curr_token_type_symbol()                            \
 { if (!determined_curr_token_type_symbol) {                           \
-    curr_token_type_symbol =                                          \
-         is_unknown_curr_class_member() ? NULL : curr_type_symbol();  \
+    curr_token_type_symbol = curr_type_symbol();                      \
     determined_curr_token_type_symbol = TRUE;                         \
   }  /* if */                                                         \
 }  /* determine_curr_token_type_symbol */
@@ -4978,6 +4905,14 @@ something_unexpected:
         goto exit_loop;
     }  /* switch */
     (void)get_token();
+    if (C_dialect == C_dialect_cplusplus) {
+      /* If this declaration appears in the immediate context of a class
+         definition and the current token is an identifier representing the
+         name of the current class, see if this is a qualified name and if
+         so change it into a simple name (e.g., A::x becomes x, its equivalent
+         in A's scope). */
+      (void)simplify_curr_class_qualified_name();
+    }  /* if */
 no_get_token:
     num_specifiers++;
     determined_curr_token_type_symbol = FALSE;
