@@ -2016,8 +2016,7 @@ do_label:
     case stmk_asm:
       /* Asm statement. */
       (void)printf("stmk_asm\n");
-      disp_ptr("asm_string", (char *)ptr->variant.asm_entry->asm_string,
-                iek_constant);
+      disp_ptr("asm_entry", (char *)ptr->asm_entry, iek_asm_entry);
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -2156,9 +2155,9 @@ do_assoc_type:
   disp_ptr("labels", (char *)ptr->labels, iek_label);
   disp_ptr("routines", (char *)ptr->routines, iek_routine);
 #ifdef CFE
+  disp_ptr("asm_entries", (char *)ptr->asm_entries, iek_asm_entry);
   disp_ptr("scopes", (char *)ptr->scopes, iek_scope);
   disp_ptr("dynamic_inits", (char *)ptr->dynamic_inits, iek_dynamic_init);
-  disp_ptr("asm_entries", (char *)ptr->asm_entries, iek_asm_entry);
 #endif /* ifdef CFE */
 #ifdef FFE
   disp_ptr("entries", (char *)ptr->entries, iek_entry_description);
