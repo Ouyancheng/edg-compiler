@@ -2104,7 +2104,7 @@ specified id-linkage block.
       if (is_template_instance) {
         if (!idlbp->is_definition &&
             !prior_decl->variant.routine.ptr->defined) {
-          /* A specific declaration of function template instance for which
+          /* A specific declaration of a function template instance for which
              a specific definition has not been seen.  The storage class of
              this declaration must agree with the storage class of the
              template. */
