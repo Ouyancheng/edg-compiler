@@ -1,5 +1,14 @@
 Version 2.37
 
+9/18/97   "typename" accepted in functional-notation type conversions
+
+The keyword "typename" is now accepted in functional-notation type
+conversions:
+
+  template<class T> void f(T p) {
+    int i = typename T::x(0);
+  }
+
 9/18/97   Microsoft compatibility: promotion of anonymous union member
           name to scope of containing class
 

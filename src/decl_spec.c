@@ -2357,7 +2357,7 @@ return_point:;
 }  /* enum_specifier */
 
 
-static void typename_specifier(a_type_ptr	*type_ptr)
+void typename_specifier(a_type_ptr *type_ptr)
 /*
 Scan a typename specifier.  Typename is an elaborated type specifier.
 The syntax is
@@ -2367,6 +2367,8 @@ The syntax is
 
 The identifier that follows the typename keyword must be a type name,
 otherwise a diagnostic is issued.  The type is returned in *type_ptr.
+On return, the current token is the one following the final identifier
+above.
 */
 {
   a_type_ptr	tp = NULL;

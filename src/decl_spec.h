@@ -31,6 +31,8 @@ extern void scan_microsoft_extended_decl_modifiers(
                                     a_boolean                   *err);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern void typename_specifier(a_type_ptr *type_ptr);
+
 extern a_boolean is_constructor_decl(a_type_ptr  class_type);
 
 extern a_boolean decl_specifiers(a_decl_flag_set             input_flags,
