@@ -4599,6 +4599,11 @@ parameters.
            cases, suppress the "const" from the variable type. */
         suppress_const = TRUE;
       }  /* if */
+      if (is_void_type(var_type) && is_const_qualified_type(var_type)) {
+        /* A declaration like "extern const void x;" is valid ANSI/ISO C,
+           but some compilers don't like it, so remove the "const". */
+        suppress_const = TRUE;
+      }  /* if */
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
       if (is_void_type(var_type)) {
         /* A (extern) variable can have void type in ANSI C, but not in

@@ -961,16 +961,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 handle_specifiers_type:
     /* No declarator part to process.  Handle the specifier type. */
     if ((options & FTO_SUPPRESS_SPECIFIERS) == 0) {
-      if (octl->c_generating_back_end && !octl->gen_pcc_code) {
-        /* Some compilers have trouble with "const void".  Drop the const
-           in that case. */
-        if ((qualifiers & TQ_CONST) &&
-            /* skip_typerefs needed because there might be a typedef of
-               void. */
-            skip_typerefs(type)->kind == (a_type_kind)tk_void) {
-          qualifiers &= ~TQ_CONST;
-        }  /* if */
-      }  /* if */
       if (qualifiers != TQ_NONE) {
         form_type_qualifier(qualifiers, /*need_trailing_space=*/TRUE, octl);
       }  /* if */
