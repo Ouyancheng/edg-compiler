@@ -1,21 +1,38 @@
 Version 2.08
 
+8/4/92  Special handling of void * in cfront compatibility mode
+
+In cfront compatibility mode, a qualified version of "void *", e.g.,
+"const void *", is now allowed to be converted to "void *".
+There is a case in the NIH libraries that depends on this.
+
+8/4/92  Reference parameters in cfront compatibility mode
+
+In cfront compatibility mode, when a reference parameter is initialized
+from something that requires a standard conversion that's not class-related,
+the cost of the conversion is now considered to be a user-defined
+conversion rather than the correct standard conversion.  This duplicates
+a bug in cfront 2.1 that happens to be exploited in the NIH libraries.
+
 8/4/92  Bug with class operands to "?" fixed
 
 The change in version 2.07 that enabled use of conversion functions
 on the second and third operands of a "?" operator inadvertently
-broke the case where those two operands have the same class type with
+broke the case where those two operands have the same class type but
 different qualifiers.  That's now fixed.
 
 8/3/82  Copy construction by bitwise copy
 
 The existence of a compiler generated copy constructor is no longer
-sufficient to prevent copy construction by bitwise copy.  Peviously, if a
+sufficient to prevent copy construction by bitwise copy.  Previously, if a
 class was found to have any copy constructor, the flag
 construction_by_bitwise_copy_allowed in a_class_symbol_supplement was
 cleared, thereby assuring that a constructor would always be called to do
 copy construction.  Now, that applies only when a class has a user
 declared copy constructor.
+
+Also, a copy constructor is now used to pass a parameter or return a
+value from a function only if bitwise copy construction is not allowed.
 
 7/30/92  Change overload resolution algorithm
 
