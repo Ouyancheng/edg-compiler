@@ -99,8 +99,8 @@ Interface to full_demangle_name for the simple case.
 #define demangle_name(ptr, nchars, dctl)                              \
   full_demangle_name((ptr), (nchars), (char *)NULL,                   \
                      (a_template_param_block_ptr)NULL, (dctl))
-static char *demangle_expression(char                       *ptr,
-                                 a_decode_control_block_ptr dctl);
+static char *demangle_operation(char                       *ptr,
+                                a_decode_control_block_ptr dctl);
 static char *demangle_operator(char *ptr,
                                int  *mangled_length);
 static char *demangle_type(char                       *ptr,
@@ -581,8 +581,8 @@ position following what was demangled.
     /* A template parameter. */
     p = demangle_template_parameter_name(p, /*nontype=*/TRUE, dctl);
   } else if (*p == 'O') {
-    /* An expression. */
-    p = demangle_expression(p, dctl);
+    /* An operation. */
+    p = demangle_operation(p, dctl);
   } else {
     /* The constant starts with something unexpected. */
     bad_mangled_name(dctl);
@@ -592,13 +592,13 @@ end_of_routine:
 }  /* demangle_constant */
 
 
-static char *demangle_expression(char                       *ptr,
-                                 a_decode_control_block_ptr dctl)
+static char *demangle_operation(char                       *ptr,
+                                a_decode_control_block_ptr dctl)
 /*
-Demangle a constant expression (these come up in template arguments and
-array sizes, in template function parameter lists) beginning at ptr, and
-output the demangled form.  Return a pointer to the character position
-following what was demangled.
+Demangle an operation in a constant expression (these come up in template
+arguments and array sizes, in template function parameter lists) beginning
+at ptr, and output the demangled form.  Return a pointer to the character
+position following what was demangled.
 */
 {
   char          *p = ptr, *operator_str;
@@ -653,7 +653,7 @@ following what was demangled.
     }  /* if */
   }  /* if */
   return p;
-}  /* demangle_expression */
+}  /* demangle_operation */
 
 
 static void clear_template_param_block(a_template_param_block_ptr tpbp)
@@ -1440,7 +1440,7 @@ not empty, because it contains a name or a derived type).
          parameters.  Ignore the expression. */
       p++;
       dctl->suppress_id_output++;
-      p = demangle_expression(p, dctl);
+      p = demangle_constant(p, dctl);
       dctl->suppress_id_output--;
     } else {
       /* Normal constant number of elements. */
@@ -1526,7 +1526,7 @@ use of parentheses around parts of the declarator.)
       /* Length is specified by a constant expression based on template
          parameters. */
       p++;
-      p = demangle_expression(p, dctl);
+      p = demangle_constant(p, dctl);
     } else {
       /* Normal constant number of elements. */
       if (*p == '0' && p[1] == '_') {
