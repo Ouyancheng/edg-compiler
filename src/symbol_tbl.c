@@ -1990,96 +1990,66 @@ new(), and therefore might be a projection symbol.
 }  /* extract_default_operator_new_sym */
 
 
-a_symbol_ptr global_operator_new_or_delete_symbol(
-                                        an_opname_kind     opname,
-                                        a_source_position  *pos,
-                                        a_boolean          make_default_new)
+void make_global_operator_new_or_delete_symbol(an_opname_kind  opname)
 /*
-Look up and return a symbol for global operator new or operator delete.
-If no symbol exists, create one along with a routine entry to represent
-the function.
+Create a symbol and routine entry for ::operator new or ::operator delete.
+These are entered into the symbol table as part of initialization, so
+the locator has a default value (as used with keywords).  The routine
+entry is marked as compiler generated; if a user declaration appears later,
+the compiler-generated flag should be cleared.
 */
 {
+  a_symbol_locator    locator;
+  a_source_position   pos;
   a_symbol_ptr                   sym = NULL, ext_sym;
-  a_symbol_ptr                   return_sym;
   a_type_ptr                     tp, rout_type, old_type;
   a_routine_type_supplement_ptr  extra_info;
   an_id_linkage_kind             linkage;
-  a_symbol_locator               locator;
-  a_token_kind                   token;
 
-  db_enter(4, "global_operator_new_or_delete_symbol");
+  db_enter(5, "make_global_operator_new_or_delete_symbol");
 #if CHECKING
   if (opname != (an_opname_kind)onk_new &&
       opname != (an_opname_kind)onk_delete) {
     internal_error("global_operator_new_or_delete_symbol: bad opname kind");
   }  /* if */
 #endif /* CHECKING */
-  /* Create a locator for the symbol that is to be found or created.
-     This will also create the symbol header if necessary. */
-  token = (opname == (an_opname_kind)onk_new) ? tok_new : tok_delete;
-  make_opname_locator(token, opname, &locator, pos);
-  /* Look up the symbol at file scope.  If a symbol is found in the lookup,
-     that's what we want to return.  If none is found, we will create a
-     default global operator new or delete and return that.  Even if we found
-     a symbol we may need to create a default global operator new. */
-  sym = return_sym = file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-  if (make_default_new && sym != NULL) {
-    /* We need to create the default new unless it's already there. */
-    sym = extract_default_operator_new_sym(sym);
-    /* If sym is NULL then no default new exists already. */
+  /* Create a locator for the symbol that is to be created. This will also
+     create the symbol header. */
+  pos.seq = 0;
+  pos.column = SP_COL_UNKNOWN;
+  make_opname_locator((opname == (an_opname_kind)onk_new) ? tok_new :
+                                                            tok_delete,
+                      opname, &locator, &pos);
+  /* Create a routine type. */
+  rout_type = alloc_type((a_type_kind)tk_routine);
+  extra_info = rout_type->variant.routine.extra_info;
+  /* Return type for operator delete is void; return type for operator new
+     is void*. */
+  tp = void_type();
+  if (opname == (an_opname_kind)onk_new) tp = make_pointer_type(tp);
+  rout_type->variant.routine.return_type = tp;
+  /* Both new and delete take one parameter -- the size for the former and
+     void* for the latter. */
+  if (opname == (an_opname_kind)onk_new) {
+    tp = integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND);
+  } else {
+    tp = make_pointer_type(void_type());
   }  /* if */
-  /* If none was found, create one. */
-  if (sym == NULL) {
-    /* Create a routine type for global operator new. */
-    rout_type = alloc_type((a_type_kind)tk_routine);
-    extra_info = rout_type->variant.routine.extra_info;
-    /* Return type for operator delete is void; return type for operator new
-       is void*. */
-    tp = void_type();
-    if (opname == (an_opname_kind)onk_new) tp = make_pointer_type(tp);
-    rout_type->variant.routine.return_type = tp;
-    /* Both new and delete take one parameter -- the size for the former and
-       void* for the latter. */
-    if (opname == (an_opname_kind)onk_new) {
-      tp = integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND);
-    } else {
-      tp = make_pointer_type(void_type());
-    }  /* if */
-    extra_info->param_type_list = alloc_param_type(tp);
-    extra_info->prototyped = TRUE;
-    set_routine_calling_method_flag(rout_type);
-    /* Create the symbol and routine entry.  Note that the routine entry
-       is given a storage class of sc_extern since there is no definition
-       in the current translation unit. */
-    decl_var_or_routine(&locator, (a_storage_class)sc_extern,
-                        rout_type, /*is_implicit_function=*/FALSE,
-                        /*if_function_def_with_body=*/FALSE,
-                        /*is_inline=*/FALSE, &sym,
-                        &linkage, &old_type, &ext_sym);
-    sym->variant.routine->compiler_generated = TRUE;
-    /* However the name linkage was set by decl_var_or_routine, override it
-       to assure that C++ name linkage is used. */
-    sym->variant.routine->source_corresp.name_linkage =
-                               (a_name_linkage_kind)nlk_cplusplus_external;
-    sym->explicit_linkage_specifier = FALSE;
-    /* Determine the symbol to return. */
-    if (return_sym == NULL) {
-      /* Return the one just created. */
-      return_sym = sym;
-    } else if (return_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      /* Return the overloaded function symbol that was originally found --
-         sym will now be amongst its linked list of function symbols. */
-    } else {
-      /* Do the lookup again to get the overloaded function symbol. */
-      locator.specific_symbol = NULL;
-      return_sym = file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-    }  /* if */
-  }  /* if */
+  extra_info->param_type_list = alloc_param_type(tp);
+  extra_info->prototyped = TRUE;
+  set_routine_calling_method_flag(rout_type);
+  /* Create the symbol and routine entry.  Note that the routine entry
+     is given a storage class of sc_extern since there is no definition
+     in the current translation unit. */
+  decl_var_or_routine(&locator, (a_storage_class)sc_extern,
+                      rout_type, /*is_implicit_function=*/FALSE,
+                      /*if_function_def_with_body=*/FALSE,
+                      /*is_inline=*/FALSE, &sym,
+                      &linkage, &old_type, &ext_sym);
+  sym->variant.routine->compiler_generated = TRUE;
 
   db_exit();
-  return return_sym;
-}  /* global_operator_new_or_delete_symbol */
+}  /* make_global_operator_new_or_delete_symbol */
 
 
 a_routine_ptr select_default_constructor(a_type_ptr        class_type,
