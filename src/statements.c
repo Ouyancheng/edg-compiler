@@ -4473,27 +4473,32 @@ Do processing appropriate to an empty statement (i.e., just a semicolon.)
 {
   a_statement_ptr  sp;
 
+  db_enter(3, "empty_statement");
   /* Issue diagnostics on pragmas that are trying to bind to the empty
      statement. */
   cannot_bind_to_curr_construct();
   if (C_mode() && struct_stmt_stack[depth_stmt_stack].in_else_of_if) {
     sp = struct_stmt_stack[depth_stmt_stack].statement;
-    check_assertion(sp != NULL && sp->kind == (a_statement_kind)stmk_if &&
-                    sp->variant.if_stmt.else_statement == NULL);
-    /* We are in the else-clause of a C-mode if-statement for which no block
-       statement was generated.  The empty statement cannot just be skipped
-       over (as usual), since that would be indistinguishable in the IL from
-       an omitted else clause, and
-           if (flag) if (flag2) ; else ; else <statement>;
-       is not the same as
-           if (flag) if (flag2) ; else <statement>;
-       (In C++ mode this is not an issue, since an implicit block statement
-       is generated for the else-clause even when there is no explicit
-       compound statement.)  Mark the statement. */
-    sp->has_empty_else_clause = TRUE;
+    check_assertion(sp != NULL && sp->kind == (a_statement_kind)stmk_if);
+    if (sp->variant.if_stmt.else_statement != NULL) {
+      /* May be a label statement. */
+    } else {
+      /* We are in the else-clause of a C-mode if-statement for which no
+         block statement was generated.  The empty statement cannot just be
+         skipped over (as usual), since that would be indistinguishable in
+         the IL from an omitted else clause, and
+             if (flag) if (flag2) ; else ; else <statement>;
+         is not the same as
+             if (flag) if (flag2) ; else <statement>;
+         (In C++ mode this is not an issue, since an implicit block statement
+         is generated for the else-clause even when there is no explicit
+         compound statement.)  Mark the statement. */
+      sp->has_empty_else_clause = TRUE;
+    }  /* if */
   }  /* if */
   /* Advance past the semicolon. */
   (void)get_token();
+  db_exit();
 }  /* empty_statement */
 
 
