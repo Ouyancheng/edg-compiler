@@ -6999,7 +6999,8 @@ specific information about the member declaration, respectively.
   }  /* if */
   /* Set the flag to record that at least one named field was encountered. */
   if (!decl_info->is_unnamed_field) class_state->any_named_fields = TRUE;
-  if (!C_mode() && class_type->kind == (a_type_kind)tk_union) {
+  if (!C_mode() && class_type->kind == (a_type_kind)tk_union &&
+      !decl_info->is_anonymous_union) {
     /* An object of a class with a constructor, a destructor, or a user-
        defined assignment operator cannot be a member of a union. */
     if (!is_valid_union_field(member_type, &locator->source_position)) {
@@ -7199,11 +7200,21 @@ specific information about the member declaration, respectively.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (!class_state->any_const_or_ref_fields &&
-      !decl_info->is_anonymous_union && !decl_info->is_unnamed_field &&
-      (is_reference_type(member_type) ||
-       is_const_qualified_type(member_type))) {
-    class_state->any_const_or_ref_fields = TRUE;
+  if (!class_state->any_const_or_ref_fields) {
+    /* Record whether a const or ref field has been encountered. */
+    if (decl_info->is_anonymous_union) {
+      /* Note whether there was a const member of the anonymous union -- it
+         will have been promoted into the current class. */
+      if (skip_typerefs(member_type)->
+                            variant.class_struct_union.any_const_member) {
+        class_state->any_const_or_ref_fields = TRUE;
+      }  /* if */
+    } else if (decl_info->is_unnamed_field) {
+      /* Ignore unnamed fields. */
+    } else if (is_reference_type(member_type) ||
+               is_const_qualified_type(member_type)) {
+      class_state->any_const_or_ref_fields = TRUE;
+    }  /* if */
   }  /* if */
   class_state->is_first_field = FALSE;
 #if DEBUG
