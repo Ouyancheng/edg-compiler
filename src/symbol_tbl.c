@@ -7848,6 +7848,7 @@ specific version of the template.
   ssep->saved_curr_object_lifetime = curr_object_lifetime;
   ssep->templ_member_class_sym   = NULL;
   ssep->depth_innermost_namespace_scope = depth_innermost_namespace_scope;
+  ssep->num_of_extra_times_pushed = 0;;
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
@@ -9419,6 +9420,76 @@ End a name scope by popping an entry off the scope stack.
 }  /* pop_scope */
 
 
+void push_namespace_reactivation_scope(a_namespace_ptr nsp)
+/*
+Push one or more scopes that will reactivate the indicated namespace.
+This is used, for example, when scanning functions defined in the
+namespace.  This routine is called only in C++.
+*/
+{
+  a_namespace_ptr		parent_nsp;
+  a_namespace_ptr		curr_nsp = NULL;
+  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+
+  /* If the current scope is a namespace (or namespace extension) scope,
+     see if it matches the one that we are pushing.  If so, don't actually
+     push the scope, just increment the count of the number of excess
+     pushes done on this scope. */
+  if (ssep->kind == (a_scope_kind)sck_namespace ||
+      ssep->kind == (a_scope_kind)sck_namespace_extension) {
+    curr_nsp = ssep->il_scope->variant.assoc_namespace;
+  }  /* if */
+  if (curr_nsp == nsp) {
+    /* The scope is already on the stack. */
+    ssep->num_of_extra_times_pushed++;
+  } else {
+    /* The entry isn't on the stack.  Push any parent namespaces, then push
+       the specified namespace. */
+    parent_nsp = nsp->source_corresp.parent.namespace_ptr;
+    if (parent_nsp != NULL) {
+      /* A namespace nested in another namespace.  Push the parent
+         namespace. */
+      push_namespace_reactivation_scope(parent_nsp);
+    }  /* if */
+    /* Push an entry for the scope. */
+    (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
+  }  /* if */
+}  /* push_namespace_reactivation_scope */
+
+
+void pop_namespace_reactivation_scope(void)
+/*
+Pop one or more scopes pushed by push_namespace_reactivation_scope.
+This routine is called only in C++.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_namespace_ptr		parent_nsp;
+
+  ssep = &scope_stack[depth_scope_stack];
+  check_assertion_str2(ssep->kind == (a_scope_kind)sck_namespace_extension ||
+                       ssep->kind == (a_scope_kind)sck_namespace,
+                       "pop_namespace_reactiveation_scope:",
+                       "entry not namespace extension");
+  if (ssep->num_of_extra_times_pushed > 0) {
+    /* This namespace had already been pushed when the call to
+       push_namespace_reactivation_scope was done.  So, we don't want to
+       actually pop the scope at this point.  Just decrement the count
+       of excess pushes. */
+    ssep->num_of_extra_times_pushed--;
+  } else {
+    /* Pop the reactivation scope. */
+    parent_nsp = ssep->il_scope->variant.assoc_namespace->
+                                           source_corresp.parent.namespace_ptr;
+    pop_scope();
+    if (parent_nsp != NULL) {
+      /* A nested namespace.  Pop the enclosing namespaces too. */
+      pop_namespace_reactivation_scope();
+    }  /* if */
+  }  /* if */
+}  /* pop_namespace_reactivation_scope */
+
+
 void push_class_reactivation_scope(a_type_ptr class_type)
 /*
 Push one or more scopes that will reactivate the indicated class type.
@@ -9440,6 +9511,9 @@ is called only in C++.
   if (class_symbol->is_class_member) {
     /* Nested class.  Push the containing class(es) first. */
     push_class_reactivation_scope(class_symbol->parent.class_type);
+  } else if (class_symbol->parent.namespace_ptr != NULL) {
+    /* The class is nested in a namespace -- push enclosing namespace(s). */
+    push_namespace_reactivation_scope(class_symbol->parent.namespace_ptr);
   }  /* if */
   /* Find the IL scope to get the scope number. */
   il_scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
@@ -9483,6 +9557,9 @@ is called only in C++.
   if (class_symbol->is_class_member) {
     /* Nested class.  Pop the containing class(es) too. */
     pop_class_reactivation_scope();
+  } else if (class_symbol->parent.namespace_ptr != NULL) {
+    /* The class is nested in a namespace -- pop enclosing namespace(s). */
+    pop_namespace_reactivation_scope();
   }  /* if */
 }  /* pop_class_reactivation_scope */
 
