@@ -5513,11 +5513,6 @@ continue_with_declaration:
              "typedef enum { red, green, blue };" -- see first constraint,
              Section 3.5 of the ANSI C standard.  However, a warning should
              be issued, since the "typedef" is superfluous. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-          if (defines_something) {
-            set_autonomous_tag_decl_flag(type_ptr, /*is_definition=*/TRUE);
-          }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         } else {
           /* A case like "typedef int;" or "typedef struct { int i; };" --
              gets a warning by default but may get an error in strict ANSI
@@ -5526,6 +5521,11 @@ continue_with_declaration:
         }  /* if */
         set_err_pos_to_curr_token();
         diagnostic(severity, ec_missing_typedef_name);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        if (defines_something) {
+          set_autonomous_tag_decl_flag(type_ptr, /*is_definition=*/TRUE);
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ASM_FUNCTION_ALLOWED
       } else if (storage_class == (a_storage_class)sc_asm) {
         pos_error(ec_bad_asm_function_def, &pos_curr_token);
