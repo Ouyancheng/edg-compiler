@@ -1107,7 +1107,36 @@ be NULL if the caller does not need to know whether a conversion was performed.
       /* The qualifier on templ_type did not also appear on type, so there is
          no match. */
     } else {
-      if (templ_type->variant.template_param.kind ==
+      /* If the template parameter has an associated tag kind, make sure
+         that the type of the actual argument is consistent with the the
+         tag kind. */
+      a_boolean				tag_kind_ok = TRUE;
+      a_template_param_type_descr_ptr	tptdp;
+      tptdp = templ_type->variant.template_param.descr;
+      if (tptdp != NULL && tptdp->tag_kind != (a_type_kind)tk_unknown) {
+        a_type_kind	actual_tag_kind = tk_unknown;
+        /* Determine the tag kind (if any) of the actual type. */
+        switch (type->kind) {
+          case tk_struct:
+          case tk_class:
+            /* Classes and structs are both represented as tk_struct. */
+            actual_tag_kind = tk_struct;
+            break;
+          case tk_union:
+            actual_tag_kind = tk_union;
+            break;
+          case tk_enum:
+            /* tk_enum is actually tk_integer, make sure that this is really
+               an enum type. */
+	    if (type->variant.integer.enum_type) actual_tag_kind = tk_enum;
+            break;
+        }  /* switch */
+        /* If the tag kinds are OK we can continue with the other tests. */
+        tag_kind_ok = actual_tag_kind == tptdp->tag_kind;
+      }  /* if */
+      if (!tag_kind_ok) {
+        /* No match. */
+      } else if (templ_type->variant.template_param.kind ==
                              (a_template_param_type_kind)tptk_param) {
         /* This is a template parameter from the original source program
            and not a synthesized template parameter. */
@@ -1119,7 +1148,8 @@ be NULL if the caller does not need to know whether a conversion was performed.
            with all missing template args that should precede it in the linked
            list. */
         prev_tap = NULL;
-        for (i = templ_type->variant.template_param.list_position; i > 0; --i) {
+        for (i = templ_type->variant.template_param.list_position;
+                                                               i > 0; --i) {
           if (prev_tap == NULL) {
             /* This must be the first time through the loop. */
             tap = *templ_arg_list;
