@@ -1,6 +1,6 @@
 Version 3.5
 
-5/14/04  Aborts on invalid uses of Embedded C register names
+5/14/04  Aborts on invalid uses of Embedded C registers and address spaces
 
 Embedded C (see Changes entry of 4/30/04) named-register storage specifiers
 must start with the keyword "register".  The front end aborted (with an
@@ -10,7 +10,12 @@ register names not preceded by the keyword "register".  For example:
   _EDG_REG_1 x;
   unsigned u = sizeof(_EDG_REG_1);
 
-These cases are now fixed: A normal error is issued.
+Similarly, some invalid uses of named address space qualifiers could result
+in internal errors.  For example:
+
+  int i = sizeof(int)(_EDG_NAS_A);
+
+These cases are now all fixed: Normal errors are issued.
 
 5/14/04  C++-generating back end: Microsoft compilers and global qualifiers
 
