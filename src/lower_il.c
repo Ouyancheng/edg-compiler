@@ -2918,6 +2918,13 @@ or not to put out the definition; otherwise, it's set to NULL.
 
   *force_static = FALSE;
   *first_virtual = NULL;
+  ctsp = class_type->variant.class_struct_union.extra_info;
+#if CHECKING
+  if (ctsp == NULL) {
+    internal_error(
+                "virtual_function_table_should_be_defined_here: ctsp == NULL");
+  }  /* if */
+#endif /* CHECKING */
   /* The virtual function tables for a class are defined in the compilation
      that contains the definition of the lexically first non-inline, virtual,
      non-pure member function of the class.  See ARM 10.8.1c and "New Virtual
@@ -2925,17 +2932,11 @@ or not to put out the definition; otherwise, it's set to NULL.
   if (class_type->source_corresp.name_linkage !=
                                  (a_name_linkage_kind)nlk_cplusplus_external) {
     /* Not C++ external linkage, therefore any definition of the virtual
-       function table would have to be here.  No definition is needed if
-       the class is not referenced. */
+       function table would have to be here, and static.  If the class is
+       not referenced at all, then no definition is needed. */
     defined_here = class_type->source_corresp.referenced;
+    *force_static = TRUE;
   } else {
-    ctsp = class_type->variant.class_struct_union.extra_info;
-#if CHECKING
-    if (ctsp == NULL) {
-      internal_error(
-                "virtual_function_table_should_be_defined_here: ctsp == NULL");
-    }  /* if */
-#endif /* CHECKING */
     scope = ctsp->assoc_scope;
     if (scope == NULL) {
       /* The class is declared but not defined. */
@@ -2974,6 +2975,18 @@ or not to put out the definition; otherwise, it's set to NULL.
     }  /* if */
   }  /* if */
 have_defined_here:;
+  if (*force_static && defined_here) {
+    /* If the definition is forced to be static, then it cannot be referenced
+       from anywhere else.  If there aren't any (real) references in this
+       compilation unit, then the definition isn't needed here either. */
+    /* The virtual function table variable is marked as referenced for
+       references to the virtual function table (which only occur in
+       constructor and destructor wrapper code), so if the referenced flag
+       is FALSE the virtual function table is not referenced at all. */
+    if (!ctsp->virtual_function_table_var->source_corresp.referenced) {
+      defined_here = FALSE;
+    }  /* if */
+  }  /* if */
   return defined_here;
 }  /* virtual_function_table_should_be_defined_here */
 
@@ -3319,11 +3332,9 @@ virtual function table.
                                                                               ;
   set_type_size(vtbl_var->type);
   /* Set the linkage on the virtual function table variable. */
-  if (class_type->source_corresp.name_linkage !=
-                                 (a_name_linkage_kind)nlk_cplusplus_external ||
-      force_static) {
-    /* For an internally-linked class or one with no linkage, or when
-       forced to by the flag force_static, change the storage class to
+  if (force_static) {
+    /* When told to by the flag force_static (e.g., for an internally-linked
+       class or one with no linkage), change the storage class to
        static and the linkage to internal. */
     vtbl_var->storage_class = (a_storage_class)sc_static;
     vtbl_var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
