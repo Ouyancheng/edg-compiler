@@ -2831,6 +2831,7 @@ to default values.
       pte->variant.class_struct_union.any_virtual_base_classes = FALSE;
       pte->variant.class_struct_union.abstract = FALSE;
       pte->variant.class_struct_union.any_virtual_functions = FALSE;
+      pte->variant.class_struct_union.any_pure_virtual_functions = FALSE;
       /* The class type supplement is only allocated in C++ mode. */
       pte->variant.class_struct_union.extra_info = 
                                            (C_dialect == C_dialect_cplusplus) ?
