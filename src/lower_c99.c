@@ -2604,50 +2604,6 @@ expression).
   }  /* if */
 }  /* lower_c99_expr_list */
 
-#if LOWER_FIXED_POINT
-
-static a_boolean optimize_cast_over_fixed_point_operation(
-                                                         an_expr_node_ptr expr)
-/*
-expr is an eok_cast operation.  See whether this is a case of a cast
-over a fixed-point operator that can be optimized by folding the cast
-into the fixed-point runtime routine call.  If so, do the optimization
-and return TRUE.  The subtree of expr has not been lowered yet.
-*/
-{
-  a_boolean optimized = FALSE;
-
-  check_assertion(is_operation_node(expr) &&
-                  expr->variant.operation.kind ==
-                                              (an_expr_operator_kind)eok_cast);
-  if (is_fixed_point_type(expr->type)) {
-    an_expr_node_ptr operand = expr->variant.operation.operands;
-    if (is_operation_node(operand)) {
-      an_expr_operator_kind op = operand->variant.operation.kind;
-      if (op == (an_expr_operator_kind)eok_fxadd ||
-          op == (an_expr_operator_kind)eok_fxsubtract ||
-          op == (an_expr_operator_kind)eok_fxmultiply ||
-          op == (an_expr_operator_kind)eok_fxdivide) {
-        /* These four operators use runtime routines that have a specification
-           for the result type in addition to the operand types, so we can
-           indicate a cast to a fixed-point type via the result type. */
-        /* Lower the operands of the fixed-pont operation, since
-           lower_c99_fixed_point_operation expects that. */
-        lower_c99_expr_list(operand->variant.operation.operands,
-                            (unsigned int)0);
-        /* Put the cast result type into the fixed-point operation so that
-           it will be used as the result type for the operation. */
-        operand->type = expr->type;
-        lower_c99_fixed_point_operation(operand);
-        overwrite_node(expr, operand);
-        optimized = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return optimized;
-}  /* optimize_cast_over_fixed_point_operation */
-
-#endif /* LOWER_FIXED_POINT */
 
 #if !MINIMAL_INLINING
 /*ARGSUSED*/ /* <-- statement is not used in this case. */
@@ -2666,16 +2622,6 @@ second parameter.
 
   switch (expr->kind) {
     case enk_operation:
-#if LOWER_FIXED_POINT
-      if (fixed_point_enabled &&
-          expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
-          optimize_cast_over_fixed_point_operation(expr)) {
-        /* This is a cast over a fixed-point operator, which can be optimized
-           to fold the cast into the runtime routine call.  The subroutine
-           returns TRUE if the optimization has been done. */
-        break;
-      }  /* if */
-#endif /* LOWER_FIXED_POINT */
       /* First lower all the operands (if any). */
       /* Determine which operands if any are lvalues, and whether or not
          the operand has boolean-controlling-expression operands. */
