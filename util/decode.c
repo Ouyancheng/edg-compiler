@@ -3875,8 +3875,11 @@ substitution, the name of the last component in the substitution is used.
       if (*ptr == 'E') {
         bad_mangled_name(dctl);
       }  /* if */
+    } else if (*ptr == 'T') {
+      /* A <template-param>. */
+      ptr = demangle_template_param(ptr, dctl);
     } else {
-      /* Not a substitution, so an <unqualified-name>. */
+      /* Not a substitution or template parameter, so an <unqualified-name>. */
       if (*ptr != 'C' && *ptr != 'D') {
         /* Normal case, not a constructor or destructor name. */
         prev_component_name = ptr;
@@ -3958,9 +3961,11 @@ The syntax is:
                   ::= N [<CV-qualifiers>] <template-prefix> <template-args> E
     <prefix> ::= <prefix> <unqualified-name>
              ::= <template-prefix> <template-args>
+             ::= <template-param>
              ::= # empty
              ::= <substitution>
     <template-prefix> ::= <prefix> <template unqualified-name>
+                      ::= <template-param>
                       ::= <substitution>
 
 For function names, additional information is returned in *func_block.
