@@ -1,5 +1,16 @@
 Version 2.41
 
+2/16/99   __uuidof(T) as a template argument, where T is a template parameter
+          type
+
+The Microsoft __uuidof operator applied to a template parameter type
+can now be used as a nontype template argument.  Formerly, an error
+was issued during the prototype instantiation because the template
+parameter type was not considered to be external.
+
+This change required a name mangling extension: "uu" now indicates the
+__uuidof operator in the mangling for an expression.
+
 2/11/99   Template based array type has incorrect size
 
 Under certain circumstances, an array type created by the function

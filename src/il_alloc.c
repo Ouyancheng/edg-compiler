@@ -387,6 +387,7 @@ ck_template_param constant.
       break;
     case tpck_sizeof:
     case tpck_alignof:
+    case tpck_uuidof:
       cp->variant.template_param.variant.type = NULL;
       break;
     default:

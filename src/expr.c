@@ -4259,18 +4259,23 @@ The value of the operation is an lvalue of type "const struct _GUID".
   if (err) {
     make_error_operand(result);
   } else {
-    /* Create an expression node that is the value of a ck_address/abk_uuidof
-       constant.  The value of such a constant is the address of the lvalue
-       that is the result of the __uuidof operation. */
     a_constant uuidof_con;
     a_type_ptr const_guid_type = make_qualified_type(
                                                type_of_guid,
                                                (a_type_qualifier_set)TQ_CONST);
-
-    clear_constant(&uuidof_con, (a_constant_repr_kind)ck_address);
-    uuidof_con.variant.address.kind = (an_address_base_kind)abk_uuidof;
-    uuidof_con.variant.address.variant.type = uuidof_type;
-    uuidof_con.type = make_pointer_type(const_guid_type);
+    if (uuidof_type != NULL && is_template_param_type(uuidof_type)) {
+      /* For __uuidof a template type, use a ck_template_param. */
+      clear_constant(&uuidof_con, (a_constant_repr_kind)ck_template_param);
+      set_template_param_constant_kind(&uuidof_con,
+                                  (a_template_param_constant_kind)tpck_uuidof);
+      uuidof_con.variant.template_param.variant.type = uuidof_type;
+      uuidof_con.type = make_pointer_type(const_guid_type);
+    } else {
+      /* Create an expression node that is the value of a ck_address/abk_uuidof
+         constant.  The value of such a constant is the address of the lvalue
+         that is the result of the __uuidof operation. */
+      make_uuidof_constant(uuidof_type, &uuidof_con);
+    }  /* if */
     make_constant_operand(&uuidof_con, result);
     result->state = (an_operand_state)os_lvalue;
     result->type = const_guid_type;

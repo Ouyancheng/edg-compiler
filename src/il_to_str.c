@@ -2701,6 +2701,11 @@ confusion.  Do the output in the way described by octl.
           form_type(constant->variant.template_param.variant.type, octl);
           octl->output_str(")");
           break;
+        case tpck_uuidof:
+          octl->output_str("__uuidof(");
+          form_type(constant->variant.template_param.variant.type, octl);
+          octl->output_str(")");
+          break;
         default:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");
       }  /* switch */

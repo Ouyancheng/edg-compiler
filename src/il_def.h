@@ -1540,9 +1540,12 @@ enum a_template_param_constant_kind_tag {
   tpck_sizeof,		/* The template param constant represents the sizeof
 			   operator applied to a type that contains a template
 			   parameter type. */
-  tpck_alignof		/* The template param constant represents the
+  tpck_alignof,		/* The template param constant represents the
 			   __ALIGNOF__ operator applied to a type that
 			   contains a template parameter type. */
+  tpck_uuidof		/* The template param constant represents the
+			   Microsoft __uuidof operator applied to a type
+			   that contains a template parameter type. */
 };
 typedef a_byte a_template_param_constant_kind;
 
@@ -1821,9 +1824,10 @@ typedef struct a_constant {
 		constant;
 			/* The constant that is cast to the type indicated in
 			   the tpck_cast constant. */
-        /* When template param constant kind == tpck_sizeof or tpck_alignof: */
+        /* When template param constant kind == tpck_sizeof, tpck_alignof,
+           or tpck_uuidof: */
         a_type_ptr
-		type;	/* The type whose sizeof or __ALIGNOF__ is
+		type;	/* The type whose sizeof, __ALIGNOF__, or __uuidof is
 			   represented. */
       } variant;
     } template_param;

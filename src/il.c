@@ -3373,6 +3373,7 @@ nonidentical.
               break;
             case tpck_sizeof:
             case tpck_alignof:
+            case tpck_uuidof:
               eq = identical_types(cp1->variant.template_param.variant.type,
                                    cp2->variant.template_param.variant.type);
               break;
@@ -3923,6 +3924,24 @@ for making NULL pointer constants.
                        /*is_reinterpret_cast=*/FALSE,
                        &did_not_fold, &error_position);
 }  /* make_zero_of_proper_type */
+
+
+void make_uuidof_constant(a_type_ptr     uuidof_type,
+                          a_constant_ptr uuidof_con)
+/*
+Make a constant for __uuidof(uuidof_type) in *uuidof_con.  This is a
+Microsoft extension.
+*/
+{
+  a_type_ptr const_guid_type = make_qualified_type(
+                                               type_of_guid,
+                                               (a_type_qualifier_set)TQ_CONST);
+
+  clear_constant(uuidof_con, (a_constant_repr_kind)ck_address);
+  uuidof_con->variant.address.kind = (an_address_base_kind)abk_uuidof;
+  uuidof_con->variant.address.variant.type = uuidof_type;
+  uuidof_con->type = make_pointer_type(const_guid_type);
+}  /* make_uuidof_constant */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -7055,7 +7074,7 @@ in doing substitution on a type), set *copy_error to TRUE.
                                /*is_implicit_cast=*/FALSE,
                                /*constant_context=*/TRUE,
                                /*evaluated_context=*/TRUE,
-                               /*fold_constant_addr_exprs=*/FALSE,
+                               /*fold_constant_addr_exprs=*/TRUE,
                                /*is_reinterpret_cast=*/FALSE,
                                &did_not_fold,
                                source_pos);
@@ -7065,9 +7084,10 @@ in doing substitution on a type), set *copy_error to TRUE.
         break;
       case tpck_sizeof:
       case tpck_alignof:
-        /* The template param represents sizeof(T) or __ALIGNOF__(T) where
-           T is a type containing a template parameter.  Determine the
-           type of T after substitution. */
+      case tpck_uuidof:
+        /* The template param represents sizeof(T), __ALIGNOF__(T), or
+           __uuidof(T), where T is a type containing a template parameter.
+           Determine the type of T after substitution. */
         new_type = copy_type_with_substitution(con->variant.template_param.
                                                                   variant.type,
                                                template_arg_list,
@@ -7080,21 +7100,28 @@ in doing substitution on a type), set *copy_error to TRUE.
         } else {
           if (is_or_contains_template_param(new_type)) {
             /* Still a template parameter type, so still need a
-               tpck_sizeof/alignof constant. */
+               tpck_sizeof/alignof/uuidof constant. */
             *constant = *con;
             constant->variant.template_param.variant.type = new_type;
             con_copy = NULL;
           } else {
             /* No longer a template parameter type, so the sizeof/alignof
-               is known. */
-            a_boolean is_sizeof = (con->variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tpck_sizeof);
+               or uuidof is known. */
             new_type = skip_typerefs(new_type);
-            set_unsigned_integer_constant(constant,
-                                          is_sizeof ?
+            if (con->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_uuidof) {
+              /* __uuidof. */
+              make_uuidof_constant(new_type, constant);
+            } else {
+              /* sizeof/alignof. */
+              a_boolean is_sizeof = (con->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_sizeof);
+              set_unsigned_integer_constant(constant,
+                                            is_sizeof ?
                                             (unsigned long)new_type->size :
                                             (unsigned long)new_type->alignment,
-                                          targ_size_t_int_kind);
+                                            targ_size_t_int_kind);
+            }  /* if */
             con_copy = NULL;
           }  /* if */
         }  /* if */

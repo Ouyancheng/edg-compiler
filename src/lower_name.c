@@ -422,12 +422,12 @@ to the type "type".
 }  /* mangled_encoding_for_constant_cast */
 
 
-static void mangled_encoding_for_sizeof(a_type_ptr               type,
-                                        a_boolean                is_alignof,
-                                        a_mangling_control_block *mctl)
+static void mangled_encoding_for_sizeof(a_type_ptr                     type,
+                                        a_template_param_constant_kind kind,
+                                        a_mangling_control_block       *mctl)
 /*
-Add to the mangled name the encoding of sizeof(type) (or __ALIGNOF__(type),
-if is_alignof is TRUE).
+Add to the mangled name the encoding of sizeof(type), __ALIGNOF__(type),
+or __uuidof(type); kind indicates which.
 */
 {
   /* Output has the form
@@ -435,15 +435,28 @@ if is_alignof is TRUE).
               ^---- "O" to end the operation encoding.
              ^----- Count of operands, always 0 for sizeof.
           ^^^------ Encoding for type.
-        ^^--------- Operation.
+        ^^--------- Operation ("sz" for sizeof, "af" for __ALIGNOF__, or
+                    "uu" for uuidof)
        ^----------- "O" for operation.
      mangled_encoding_for_expression generates a compatible structure, so
      if you change this be sure to change that as well.
   */
   /* Put out the initial "O". */
   add_to_mangled_name('O', mctl);
-  /* Put out the operator name "sz" or "af". */
-  add_str_to_mangled_name(is_alignof ? "af" : "sz", mctl);
+  /* Put out the operator name. */
+  switch (kind) {
+    case tpck_sizeof:
+      add_str_to_mangled_name("sz", mctl);
+      break;
+    case tpck_alignof:
+      add_str_to_mangled_name("af", mctl);
+      break;
+    case tpck_uuidof:
+      add_str_to_mangled_name("uu", mctl);
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
   /* The operator name is followed by the encoding for the type. */
   mangled_encoding_for_type(type, mctl);
   /* Put out the count of operands. */
@@ -613,6 +626,10 @@ template classes.
       uuid_str = "00000000-0000-0000-000000000000";
     } else {
       uuid_str = uuid_type->variant.class_struct_union.extra_info->uuid_string;
+      if (uuid_str == NULL) {
+        /* This can happen in error cases. */
+        uuid_str = "00000000-0000-0000-000000000000";
+      }  /* if */
     }  /* if */
     for (; *uuid_str != '\0'; uuid_str++) {
       if (*uuid_str != '-') add_to_mangled_name(*uuid_str, mctl);
@@ -825,10 +842,9 @@ specification in the mangling for lengths of literals.
           break;
         case tpck_sizeof:
         case tpck_alignof:
+        case tpck_uuidof:
           mangled_encoding_for_sizeof(con->variant.template_param.variant.type,
-                                      /*is_alignof=*/
-                                            con->variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tpck_alignof,
+                                      con->variant.template_param.kind,
                                       mctl);
           break;
         default:
