@@ -5734,7 +5734,7 @@ not an lvalue, it is left alone.
         /* An lvalue cannot be converted to an rvalue in a constant
            expression.  The constant_case flag indicates cases where a
            constant-valued variable has been replaced by its value,
-           which are allowed in C++. */
+           which is allowed in C++. */
         operand->position = orig_operand.position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         operand->end_position = orig_operand.end_position;
