@@ -1604,11 +1604,12 @@ typedef struct a_constant {
                            in an initialization list).  NULL if the constant
                            is not on a list, or is the last on a list. */
   a_type_ptr    type;
-			/* The type of the constant.  Will be compatible with the
-            representation below.  A ck_init_repeat or ck_designator
-			   entry has a NULL type pointer. */
+                        /* The type of the constant.  Will be compatible
+                           with the representation below.  A ck_init_repeat or
+                           ck_designator entry has a NULL type pointer. */
 #ifdef FIL
-			/* A ck_init_position entry also has a NULL type pointer. */
+                        /* A ck_init_position entry also has a NULL type
+                           pointer. */
 #endif /* ifdef FIL */
   a_bit_field	implicit_cast:1;
                         /* If this is TRUE, then the value indicated by
@@ -2475,6 +2476,7 @@ enum a_decl_modifier_tag {
   dmt_last
 };
 
+#if DECL_MODIFIERS_IN_USE
 EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 #if VAR_INITIALIZERS
 = {
@@ -2494,6 +2496,7 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 } /* decl_modifier_names */
 #endif /* VAR_INITIALIZERS */
 ;
+#endif /* DECL_MODIFIERS_IN_USE */
 
 /*
 A bit set whose values are used to supply additional declarative information
@@ -7443,7 +7446,11 @@ typedef struct a_scope {
 			   of statements.  NULL if none (including implicitly
 			   generated sck_block scopes containing for-init
 			   declarations).  Used only when kind == sck_function
-			   or sck_block. */
+			   or sck_block.  The statement pointed to is
+			   usually an stmk_block statement; however, in C++
+			   mode when kind == sck_function, it can also be an
+			   stmk_try_block statement, to indicate a
+			   function-try-block. */
 #if ASM_FUNCTION_ALLOWED
 			/* Also used to point to the stmk_asm_func_body
 			   statement that represents the uninterpreted body
