@@ -1,5 +1,10 @@
 Version 2.07
 
+6/29/92  Check for conversions on first operand of "?" operator.
+
+User-defined conversions are now checked for on the first operand
+of the "?" operator.
+
 6/26/92  Compiler-generated functions created on explicit references
 
 Compiler-generated functions (operator= and destructor) are now

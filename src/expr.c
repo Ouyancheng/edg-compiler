@@ -5174,6 +5174,49 @@ in the result type.
 }  /* keep_enum_in_result_type */
 
 
+static void process_boolean_controlling_expression(
+                                            an_operand         *result,
+                                            an_expression_kind expression_kind)
+/*
+*result is the controlling expression of an if/while/do-while/for statement,
+or of a "?" operator.  Check that it has the right type.  Convert it from a
+class type if necessary.  expression_kind indicates the kind of the current
+expression.
+*/
+{
+  a_boolean processed = FALSE;
+
+  /* Convert from a class type to a scalar if necessary. */
+  if (C_dialect == C_dialect_cplusplus &&
+      is_class_struct_union_type(result->type)) {
+    try_to_convert_class_operand_to_builtin_type(result,
+                                                 /*integral_allowed=*/TRUE,
+                                                 /*floating_allowed=*/TRUE,
+                                                 /*pointer_allowed=*/TRUE,
+                                                /*result_may_be_lvalue=*/FALSE,
+                                                 expression_kind,
+                                                 &processed);
+  }  /* if */
+  if (!processed) {
+    /* Do lvalue --> rvalue and other transformations for the non-overloaded
+       case. */
+    do_operand_transformations(result, TOPT_NO_OPTIONS, expression_kind);
+  }  /* if */
+  /* Check that the operand is scalar.  Note that this is done even for the
+     cases where a class type has been converted to a scalar, because the
+     subroutine does some additional checking and some normalization of
+     the expression. */
+  if (check_boolean_controlling_expr(result)) {
+    /* Issue a remark if the expression is constant.  The check is here
+       instead of check_boolean_controlling_expr because we don't want
+       to issue diagnostics for things like "i = 1&&2;". */
+    if (is_constant_operand(result)) {
+      remark(ec_boolean_controlling_expr_is_constant);
+    }  /* if */
+  }  /* if */
+}  /* process_boolean_controlling_expression */
+
+
 static void scan_conditional_operator(an_operand         *operand_1,
                                       an_operand         *result,
                                       an_expression_kind expression_kind)
@@ -5196,9 +5239,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   db_enter(4, "scan_conditional_operator");
 
-  /* The first operand must be scalar. */
-  do_operand_transformations(operand_1, TOPT_NO_OPTIONS, expression_kind);
-  (void)check_boolean_controlling_expr(operand_1);
+  /* Check the first operand's type. */
+  process_boolean_controlling_expression(operand_1, expression_kind);
 
   expr2_kind = expr3_kind = expression_kind;
   if (expression_kind != (an_expression_kind)ek_not_evaluated) {
@@ -7125,13 +7167,13 @@ of a statement).
 an_expr_node_ptr scan_boolean_controlling_expression(void)
 /*
 Scan an expression that is used in controlling contexts that need a boolean
-result, such as if, while, do while, for, and conditional statements.  The
-type of the expression must be scalar.
+result, such as if, while, do while, or for statements.  The type of the
+expression must be scalar, or must be of a class type that can be converted
+to such a type.
 */
 {
   an_operand       result;
   an_expr_node_ptr expr;
-  a_boolean        processed = FALSE;
 
   db_enter(3, "scan_boolean_controlling_expression");
 
@@ -7139,30 +7181,9 @@ type of the expression must be scalar.
   scan_expr(&result, PREC_LOWEST, (an_expression_kind)ek_normal,
 	    EOPT_NO_OPTIONS);
 
-  /* Make sure it's a scalar.  Convert from a class type to a scalar if
-     necessary. */
-  if (C_dialect == C_dialect_cplusplus &&
-      is_class_struct_union_type(result.type)) {
-    try_to_convert_class_operand_to_builtin_type(&result,
-                                                 /*integral_allowed=*/TRUE,
-                                                 /*floating_allowed=*/TRUE,
-                                                 /*pointer_allowed=*/TRUE,
-                                                /*result_may_be_lvalue=*/FALSE,
-                                                 (an_expression_kind)ek_normal,
-                                                 &processed);
-  }  /* if */
-  if (!processed) {
-    do_operand_transformations(&result, TOPT_NO_OPTIONS,
-                               (an_expression_kind)ek_normal);
-    if (check_boolean_controlling_expr(&result)) {
-      /* Issue a remark if the expression is constant.  The check is here
-         instead of check_boolean_controlling_expr because we don't want
-         to issue diagnostics for things like "i = 1&&2;". */
-      if (is_constant_operand(&result)) {
-        remark(ec_boolean_controlling_expr_is_constant);
-      }  /* if */
-    }  /* if */
-  }  /* if */
+  /* Check its type and normalize it. */
+  process_boolean_controlling_expression(&result,
+                                         (an_expression_kind)ek_normal);
   expr = make_node_from_operand(&result);
   /* If generating cross-reference information, flush out the references
      for the current expression now.  If we are not generating such
