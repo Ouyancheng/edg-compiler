@@ -1380,6 +1380,7 @@ static a_flag_name
   { "allow_anon_types_in_anon_unions", &allow_anon_types_in_anon_unions },
 #if IA64_ABI
   { "emulate_gnu_abi_bugs", &emulate_gnu_abi_bugs },
+  { "warn_about_tail_padding_use", &warn_about_tail_padding_use },
 #endif /* IA64_ABI */
   { NULL, NULL }  /* must be last */
 };

@@ -1730,7 +1730,77 @@ This function returns TRUE in that case.
   return result;
 }  /* gnu_leading_empty_base_conflict */
 
-#endif /* !IA64_ABI */
+
+static a_field_ptr trailing_nonclass_field(a_type_ptr     class_type,
+                                           a_targ_size_t  *offset)
+/*
+Return the last field of the given class type.  If the last field has a class
+type, return its last field, etc.  *offset is incremented by the offset of
+the field (if any).
+*/
+{
+  a_field_ptr  result = class_type->variant.class_struct_union.field_list;
+
+  if (result != NULL) {
+    a_targ_size_t  field_offset;
+    while (result->next != NULL) result = result->next;
+    field_offset = *offset + result->offset;
+    if (is_class_struct_union_type(result->type)) {
+      result = trailing_nonclass_field(skip_typerefs(result->type),
+                                       &field_offset);
+    }  /* if */
+    if (result != NULL) {
+      *offset = field_offset;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* trailing_nonclass_field */
+
+
+static a_boolean gnu_may_use_bit_padding(a_layout_block_ptr  lob,
+                                         a_field_ptr         fp)
+/*
+fp is the first field of the class whose layout state is described by lob.
+fp is also a bit field.  Return whether a GNU compiler might allocate this
+bit field in a trailing bit field container of one of its bases.
+*/
+{
+  a_boolean   result = FALSE;
+  a_type_ptr  class_type = lob->class_type;
+
+  if (!C_mode() &&
+      !(class_type->source_corresp.assoc_info != NULL &&
+        symbol_supplement_for_class(class_type)->is_POD)) {
+    /* This is not a POD: The reuse of bit field containers does not apply
+       to PODs. */
+    a_base_class_ptr  bcp = base_classes_of(class_type);
+    a_field_ptr       trailing_field = NULL;
+    for (; bcp != NULL; bcp = bcp->next) {
+      a_type_ptr  bctp = skip_typerefs(bcp->type);
+      if (bcp->offset+bctp->variant.class_struct_union.extra_info
+                          ->size_without_virtual_base_classes ==
+                                                  lob->curr_base_extent + 1) {
+        /* A trailing base class: See if it has a trailing bit field. */
+        a_targ_size_t  offset = bcp->offset;
+        a_field_ptr    candidate = trailing_nonclass_field(bctp, &offset);
+        if (trailing_field == NULL ||
+            candidate->offset > trailing_field->offset) {
+          trailing_field = candidate;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (trailing_field != NULL && trailing_field->is_bit_field &&
+        (lob->curr_base_extent - trailing_field->is_bit_field) * targ_char_bit
+                       > trailing_field->offset_bit_remainder + fp->bit_size) {
+      /* There is room to stuff fp in the bit padding of a preceding bit
+         field. */
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* gnu_may_use_bit_padding */
+
+#endif /* IA64_ABI */
 
 static a_boolean set_field_size_and_offset(a_field_ptr         field,
                                            a_layout_block_ptr  lob)
@@ -1749,7 +1819,7 @@ there's no overflow TRUE is returned.
 {
   a_type_ptr                  field_type;
   a_targ_alignment            field_alignment;
-  a_boolean	              overflow = FALSE;
+  a_boolean                   overflow = FALSE;
   a_targ_size_t               save_byte_offset;
   an_unnormalized_bit_offset  save_bit_offset;
   a_type_ptr                  class_type;
@@ -1812,8 +1882,8 @@ there's no overflow TRUE is returned.
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
-	/* Adjust the field's alignment for packing, if required. */
-	adjust_alignment_for_packing(&field_alignment, class_type);
+        /* Adjust the field's alignment for packing, if required. */
+        adjust_alignment_for_packing(&field_alignment, class_type);
       }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       overflow = !do_alignment(&lob->byte_offset, &lob->bit_offset,
@@ -1912,6 +1982,22 @@ there's no overflow TRUE is returned.
   }  /* if */
 #if IA64_ABI
   field->offset_is_set = TRUE;
+  if (warn_about_tail_padding_use &&
+      class_type->variant.class_struct_union.field_list == field) {
+    /* First field.  See if it reuses tail padding. */
+    if (field->offset < lob->curr_base_extent) {
+      pos_warning(ec_field_uses_tail_padding,
+                  &field->source_corresp.decl_position);
+    }  /* if */
+    /* If this is a bit field, GNU compilers may allocate it in the container
+       of an inherited bit field.  Warn about the layout difference if this is
+       such a situation. */
+    if (emulate_gnu_abi_bugs && field->is_bit_field &&
+        gnu_may_use_bit_padding(lob, field)) {
+      pos_warning(ec_gnu_may_use_bit_padding,
+                  &field->source_corresp.decl_position);
+    }  /* if */
+  }  /* if */
 #endif /* IA64_ABI */
   db_exit();
   return !overflow;
@@ -2267,7 +2353,11 @@ If the given base class extends beyond any previous base class, record the
 new extent.  This is used to accelerate the layout process.
 */
 {
-  a_targ_size_t  extent = bcp->offset + bcp->type->size - 1;
+  a_type_ptr     bctp = skip_typerefs(bcp->type);
+  a_targ_size_t  extent = bcp->offset
+                        + bctp->variant.class_struct_union.extra_info
+                              ->size_without_virtual_base_classes
+                        - 1;
   if (extent > lob->curr_base_extent) {
     lob->curr_base_extent = extent;
   }  /* if */
