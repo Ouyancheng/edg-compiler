@@ -1,3 +1,29 @@
+Version 2.23
+
+2/28/94  Fixed spurious error on virtual function overriding
+
+In the following case, in which dominance needs to be taken into account
+in computing virtual function overriding, we used to issue a spurious
+error:
+
+  //     A virtual A::f()
+  //    / \
+  //  AA   B B::f()
+  //    \ / \
+  //     BB  C C::f()
+  //      \ /
+  //       D
+  struct A  { virtual void f(); };
+  struct AA : public virtual A  { };
+  struct B : public virtual A  { void f(); };
+  struct BB : public virtual B, public virtual AA { };
+  struct C : public virtual B  { void f(); };
+  struct D : public virtual BB, public virtual C { };
+
+We used to complain that A::f() was overridden in D by both C::f() and
+B::f().  But B::f() is "dominated" by C::f().  Now we get it right.
+
+-------------------------------------------------------------------------------
 Version 2.22, February 26, 1994
 
 2/24/94  IL version number changed to 2.14
