@@ -6591,9 +6591,11 @@ is a "get" if put_operand is NULL.
                                             ec_no_matching_function,
                                             ec_ambiguous_overloaded_function,
                                             &locator.source_position,
+                                            (a_token_sequence_number)0,
                                             &locator.source_position,
                                             &locator.source_position,
                                             (a_source_position *)NULL,
+                                            (a_boolean *)NULL,
                                             &function_operand,
                                             &argument_list) == NULL) {
           /* Some error. */

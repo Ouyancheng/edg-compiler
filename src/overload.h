@@ -438,7 +438,9 @@ extern a_symbol_ptr select_overloaded_function(
                          an_error_code            err_none_applies,
                          an_error_code            err_ambiguous,
                          a_source_position        *call_position,
+                         a_token_sequence_number  paren_tok_seq_number,
                          a_boolean                *single_function,
+                         a_boolean                *unknown_dependent_function,
                          a_symbol_ptr             *surrogate_function_conv_sym,
                          an_arg_match_summary_ptr *arg_match_list);
 
@@ -512,32 +514,35 @@ extern void change_refs_on_selector_if_const_function(
                                           an_operand *bound_function_selector);
 
 extern void adjust_overloaded_function_call_arguments(
-                             a_symbol_ptr             function_symbol,
-                             a_type_ptr               routine_type,
-                             a_boolean                have_selector,
-                             an_operand               *bound_function_selector,
-                             an_arg_operand_ptr       arg_operand_list,
-                             an_arg_match_summary_ptr arg_match_list,
-                             an_expr_node_ptr         *arg_expr_list);
+                           a_symbol_ptr             function_symbol,
+                           a_boolean                unknown_dependent_function,
+                           a_type_ptr               routine_type,
+                           a_boolean                have_selector,
+                           an_operand               *bound_function_selector,
+                           an_arg_operand_ptr       arg_operand_list,
+                           an_arg_match_summary_ptr arg_match_list,
+                           an_expr_node_ptr         *arg_expr_list);
 
 extern a_type_ptr select_and_prepare_to_call_overloaded_function(
-                                 a_symbol_ptr       overloaded_function_symbol,
-                                 a_boolean          is_template_id,
-                                 a_template_arg_ptr template_arg_list,
-                                 a_boolean          have_selector,
-                                 an_operand         *bound_function_selector,
-                                 an_arg_operand_ptr arg_operand_list,
-                                 a_boolean          do_arg_dep_lookup,
-                                 a_boolean          try_surrogate_functions,
-                                 a_boolean          is_qualified_name,
-                                 an_error_code      err_none_applies,
-                                 an_error_code      err_ambiguous,
-                                 a_source_position  *call_position,
-                                 a_source_position  *function_position,
-                                 a_source_position  *id_position,
-                                 a_source_position  *closing_paren_position,
-                                 an_operand         *function_operand,
-                                 an_expr_node_ptr   *arg_expr_list);
+                           a_symbol_ptr            overloaded_function_symbol,
+                           a_boolean               is_template_id,
+                           a_template_arg_ptr      template_arg_list,
+                           a_boolean               have_selector,
+                           an_operand              *bound_function_selector,
+                           an_arg_operand_ptr      arg_operand_list,
+                           a_boolean               do_arg_dep_lookup,
+                           a_boolean               try_surrogate_functions,
+                           a_boolean               is_qualified_name,
+                           an_error_code           err_none_applies,
+                           an_error_code           err_ambiguous,
+                           a_source_position       *call_position,
+                           a_token_sequence_number paren_tok_seq_number,
+                           a_source_position       *function_position,
+                           a_source_position       *id_position,
+                           a_source_position       *closing_paren_position,
+                           a_boolean               *unknown_dependent_function,
+                           an_operand              *function_operand,
+                           an_expr_node_ptr        *arg_expr_list);
 
 a_boolean conversion_from_class_possible(
                             an_operand               *source_operand,
@@ -556,16 +561,17 @@ extern void try_to_convert_class_operand_to_builtin_type(
                                  a_boolean               *processed);
 
 extern void check_for_operator_overloading(
-                                     an_opname_kind    kind,
-                                     a_boolean         unary_operator,
-                                     a_boolean         must_be_member_function,
-                                     a_boolean         try_conversions,
-                                     a_boolean         has_predef_meaning,
-                                     an_operand        *operand_1,
-                                     an_operand        *operand_2,
-                                     a_source_position *operator_position,
-                                     an_operand        *result,
-                                     a_boolean         *processed);
+                               an_opname_kind          kind,
+                               a_boolean               unary_operator,
+                               a_boolean               must_be_member_function,
+                               a_boolean               try_conversions,
+                               a_boolean               has_predef_meaning,
+                               an_operand              *operand_1,
+                               an_operand              *operand_2,
+                               a_source_position       *operator_position,
+                               a_token_sequence_number operator_tok_seq_number,
+                               an_operand              *result,
+                               a_boolean               *processed);
 
 extern a_boolean conversion_to_class_possible(
                             an_operand               *source_operand,

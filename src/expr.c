@@ -559,6 +559,8 @@ Syntax:
   an_operand         operand_2, operand_temp;
   a_type_ptr         result_type;
   a_source_position  operator_position;
+  a_token_sequence_number
+                     operator_tok_seq_number;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position  end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -567,6 +569,7 @@ Syntax:
   db_enter(4, "scan_subscript_operator");
 
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Subscripting not allowed in preprocessing expression. */
@@ -641,6 +644,7 @@ Syntax:
                                      /*has_predef_meaning=*/FALSE,
                                      operand_1, &operand_2,
                                      &operator_position,
+                                     operator_tok_seq_number,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -915,6 +919,7 @@ variable.
 static void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
                                 an_expr_node_ptr   *arg_expr_list,
                                 a_routine_ptr      *conversion_routine,
+                                a_boolean          *unknown_dependent_function,
                                 a_source_position  *source_pos,
                                 a_type_ptr         object_class_type)
 /*
@@ -924,10 +929,13 @@ constructor symbol (possibly overloaded) is constructor_sym.
 Scan the arguments and the closing parenthesis, and return the
 argument list in *arg_expr_list and a pointer to the proper constructor
 routine in *conversion_routine.  If the proper constructor cannot be
-determined, return NULL.  *source_pos indicates the source position
-of the call.  This routine may be called only in C++ mode.
-It's used for parenthesis-enclosed initializers for classes that have
-constructors, as in
+determined, return NULL.  *unknown_dependent_function is returned TRUE
+if the proper constructor could not be determined because one or more
+of the arguments has a template-dependent type (in a prototype
+instantiation).  *source_pos indicates the source position of the call.
+This routine may be called only in C++ mode.  It's used for
+parenthesis-enclosed initializers for classes that have constructors,
+as in
 
   class A {...};
   A x(1, 2, 3);
@@ -950,6 +958,7 @@ is after the closing parenthesis of the argument list.
 
   db_enter(4, "scan_ctor_arguments");
   *conversion_routine = NULL;
+  *unknown_dependent_function = FALSE;
   start_position = pos_curr_token;
   if (constructor_sym->kind == (a_symbol_kind)sk_member_function) {
     /* Constructor is not overloaded.  In this case, the argument types
@@ -988,7 +997,9 @@ is after the closing parenthesis of the argument list.
                                                  ec_no_matching_constructor,
                                                  ec_ambiguous_constructor,
                                                  &start_position,
+                                                 (a_token_sequence_number)0,
                                                  (a_boolean *)NULL,
+                                                 unknown_dependent_function,
                                                  (a_symbol_ptr *)NULL,
                                                  &arg_match_list);
     /* Build an expression-form argument list.  Convert the arguments on
@@ -998,6 +1009,7 @@ is after the closing parenthesis of the argument list.
     /* Again, note that a special case allows passing have_selector == TRUE and
        NULL for the selector operand when dealing with constructors. */
     adjust_overloaded_function_call_arguments(constructor_sym,
+                                              *unknown_dependent_function,
                                               (a_type_ptr)NULL,
                                               /*have_selector=*/TRUE,
                                               (an_operand *)NULL,
@@ -1088,6 +1100,9 @@ Syntax:
   an_expr_operator_kind
                     op;
   a_boolean         try_surrogate_functions = FALSE;
+  a_token_sequence_number
+                    opening_paren_tok_seq_number;
+  a_boolean         unknown_dependent_function = FALSE;
 
   db_enter(4, "scan_function_call");
 
@@ -1095,6 +1110,7 @@ Syntax:
   /* Save the position of the "(". */
   operator_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  opening_paren_tok_seq_number = curr_token_sequence_number;
   function_position = call_position = operand->position;
   start_position = (operand->bound_function &&
                     bound_function_selector->position.seq != 0) ?
@@ -1313,15 +1329,26 @@ Syntax:
                                                causes aliasing problems in the
                                                subroutines. */
                                             &call_position,
+                                            opening_paren_tok_seq_number,
                                             &function_position,
                                             &id_position,
                                             &closing_paren_position,
+                                            &unknown_dependent_function,
                                             operand,
                                             &argument_list);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     operand->end_position = end_function_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (routine_type == NULL) {
+    if (unknown_dependent_function) {
+      /* The routine to be called cannot be determined because one or more
+         of the arguments has a template-dependent type.  Use a generic
+         function of the right name. */
+      a_symbol_ptr unk_sym =
+                      find_unknown_function_symbol(overloaded_function_symbol);
+      /* The symbol is a constant whose value is the "address" of the
+         unknown function. */
+      make_sym_constant_operand(unk_sym, operand);
+    } else if (routine_type == NULL) {
       /* None of the overloaded functions matches the argument list. */
       make_error_operand(operand);
     }  /* if */
@@ -1735,6 +1762,7 @@ catch loops.
                                    /*has_predef_meaning=*/TRUE,
                                    operand, (an_operand *)NULL,
                                    &operand->position,
+                                   (a_token_sequence_number)0,
                                    &result, &processed);
     if (processed) {
       /* An operator-> function was found and applied. */
@@ -2415,6 +2443,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
   a_type_ptr        operand_2_class, result_type;
   an_operand        operand_2;
   a_source_position operator_position;
+  a_token_sequence_number
+                    operator_tok_seq_number;
   a_base_class_ptr  bcp;
   an_expr_node_ptr  select_node, object_node, pm_node;
   a_boolean         rvalue_selection;
@@ -2427,6 +2457,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
   is_arrow_operator = (curr_token == tok_arrow_star);
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Field selection not allowed in preprocessor expression. */
@@ -2475,6 +2506,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
                                      /*has_predef_meaning=*/FALSE,
                                      operand_1, &operand_2,
                                      &operator_position,
+                                     operator_tok_seq_number,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -2680,6 +2712,7 @@ the result is placed in *result, and *processed is set to TRUE.
                                    /*has_predef_meaning=*/FALSE,
                                    operand, (an_operand *)NULL,
                                    operator_position,
+                                   (a_token_sequence_number)0,
                                    result, processed);
   }  /* if */
 }  /* prepare_property_ref_incr_decr */
@@ -2742,6 +2775,8 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
   an_operand            zero_operand;
   an_opname_kind        opname_kind;
   a_source_position     operator_position;
+  a_token_sequence_number
+                        operator_tok_seq_number;
   a_boolean             property_ref_case = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_operand            operand_clone;
@@ -2754,6 +2789,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
   db_enter(4, "scan_postfix_incr_decr");
 
   operator_position = pos_curr_token;
+  operator_tok_seq_number = curr_token_sequence_number;
   is_increment = (curr_token == tok_plus_plus);
   if (curr_expr_kind_is_const()) {
     /* Postfix ++/-- not allowed in constant expressions. */
@@ -2799,6 +2835,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                      /*has_predef_meaning=*/allow_anachronisms,
                                      operand, &zero_operand,
                                      &operator_position,
+                                     operator_tok_seq_number,
                                      result, &processed);
       if (!processed && allow_anachronisms) {
         /* Try the anachronism that allows a one-argument function to
@@ -2810,6 +2847,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                        /*has_predef_meaning=*/TRUE,
                                        operand, (an_operand *)NULL,
                                        &operator_position,
+                                       operator_tok_seq_number,
                                        result, &processed);
         if (processed) {
           if (!is_error_operand(result)) {
@@ -2830,6 +2868,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                          /*has_predef_meaning=*/FALSE,
                                          operand, &zero_operand,
                                          &operator_position,
+                                         operator_tok_seq_number,
                                          result, &processed);
         }  /* if */
       }  /* if */
@@ -2993,6 +3032,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
   a_token_kind          save_token;
   an_operand            operand;
   a_source_position     start_position;
+  a_token_sequence_number
+                        operator_tok_seq_number;
   an_expr_operator_kind op;
   a_boolean             is_increment;
   a_type_ptr            orig_result_type, result_type;
@@ -3006,6 +3047,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
   db_enter(4, "scan_prefix_incr_decr");
 
   save_token = curr_token;
+  operator_tok_seq_number = curr_token_sequence_number;
   is_increment = (curr_token == tok_plus_plus);
   copy_source_position(pos_curr_token, start_position);
 
@@ -3057,6 +3099,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                                      /*has_predef_meaning=*/FALSE,
                                      &operand, (an_operand *)NULL,
                                      &start_position,
+                                     operator_tok_seq_number,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -3194,6 +3237,8 @@ operation is a pointer-to-member (see ARM 5.3).
 {
   an_operand        operand;
   a_source_position start_position;
+  a_token_sequence_number
+                    operator_tok_seq_number;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -3204,6 +3249,7 @@ operation is a pointer-to-member (see ARM 5.3).
 
   /* Save the source position of the operator. */
   copy_source_position(pos_curr_token, start_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Address constants not allowed in preprocessing expressions. */
@@ -3277,6 +3323,7 @@ operation is a pointer-to-member (see ARM 5.3).
                                        /*has_predef_meaning=*/TRUE,
                                        &operand, (an_operand *)NULL,
                                        &start_position,
+                                       operator_tok_seq_number,
                                        result, &processed);
       }  /* if */
       if (!processed) {
@@ -3360,12 +3407,15 @@ See section 3.3.3.2 of the standard.
 {
   an_operand        operand;
   a_source_position start_position;
+  a_token_sequence_number
+                    operator_tok_seq_number;
   a_boolean         err = FALSE, processed = FALSE;
 
   db_enter(4, "scan_indirection_operator");
 
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Address indirection not allowed in preprocessing expressions. */
@@ -3409,6 +3459,7 @@ See section 3.3.3.2 of the standard.
                                      /*has_predef_meaning=*/FALSE,
                                      &operand, (an_operand *)NULL,
                                      &start_position,
+                                     operator_tok_seq_number,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -3492,6 +3543,8 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   an_operand            operand;
   an_expr_operator_kind op;
   a_source_position     start_position;
+  a_token_sequence_number
+                        operator_tok_seq_number;
   a_type_ptr            result_type;
   a_boolean             do_promotion, processed = FALSE;
 
@@ -3500,6 +3553,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   save_token = curr_token;
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   /* Scan the operand. */
   (void)get_token();
@@ -3562,6 +3616,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
                                    /*has_predef_meaning=*/FALSE,
                                    &operand, (an_operand *)NULL,
                                    &start_position,
+                                   operator_tok_seq_number,
                                    result, &processed);
   }  /* if */
   if (!processed) {
@@ -5100,6 +5155,8 @@ specification allow a variable-sized array as the top type.
   an_opname_kind    opname_kind;
   a_dynamic_init_ptr
                     dip;
+  a_boolean         unknown_dependent_new = FALSE;
+  a_boolean         unknown_dependent_ctor = FALSE;
 
   db_enter(4, "scan_new_operator");
 
@@ -5364,7 +5421,9 @@ specification allow a variable-sized array as the top type.
                                               ec_no_matching_new_function,
                                               ec_ambiguous_overloaded_function,
                                               &new_position,
+                                              (a_token_sequence_number)0,
                                               (a_boolean *)NULL,
+                                              &unknown_dependent_new,
                                               (a_symbol_ptr *)NULL,
                                               &arg_match_list);
     if (proj_function_symbol != NULL) {
@@ -5433,9 +5492,13 @@ specification allow a variable-sized array as the top type.
                                  /*address_taken=*/FALSE,
                                  (an_operand *)NULL,
                                  &access_error_reported);
-    /* Adjust the argument types, issue any warnings, and free
-       arg_operand_list and arg_match_list. */
+  }  /* if */
+  if (!err && (proj_function_symbol != NULL || unknown_dependent_new)) {
+    /* Adjust the argument types, issue any warnings, create an
+       argument expression list, and free arg_operand_list and
+       arg_match_list. */
     adjust_overloaded_function_call_arguments(proj_function_symbol,
+                                              unknown_dependent_new,
                                               (a_type_ptr)NULL,
                                               /*have_selector=*/FALSE,
                                               (an_operand *)NULL,
@@ -5471,6 +5534,7 @@ specification allow a variable-sized array as the top type.
   needs_initialization = FALSE;
   zero_initialization = FALSE;
   dependent_initialization = FALSE;
+  unknown_dependent_ctor = FALSE;
   ctor_routine = NULL;
   init_val_node = NULL;
   if (curr_token != tok_lparen) {
@@ -5552,13 +5616,15 @@ specification allow a variable-sized array as the top type.
       make_dyn_init_for_deletion_for_throw();
       /* Scan the constructor arguments. */
       scan_ctor_arguments(ctor_sym, &init_arg_expr_list, &ctor_routine,
+                          &unknown_dependent_ctor,
                           &lparen_pos, base_new_type);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* In the array case (an error), throw away the argument list. */
       if (array_new) init_arg_expr_list = NULL;
-      needs_initialization = (ctor_routine != NULL);
+      needs_initialization = (ctor_routine != NULL ||
+                              unknown_dependent_ctor);
     } else if (is_template_param_type(new_type)) {
       /* A "new" of a template-dependent type, in a prototype instantiation. */
       scan_dependent_parenthesized_initializer(&dip);
@@ -5600,7 +5666,7 @@ specification allow a variable-sized array as the top type.
   expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
   /* Now build the IL for the operation. */
-  if (err || function_symbol == NULL) {
+  if (err || (function_symbol == NULL && !unknown_dependent_new)) {
     /* Some error. */
     make_error_operand(result);
   } else {
@@ -5623,7 +5689,7 @@ specification allow a variable-sized array as the top type.
     if (needs_initialization) {
       /* The allocated space must be initialized.  A dynamic init entry is
          used. */
-      if (ctor_routine != NULL) {
+      if (ctor_routine != NULL || unknown_dependent_ctor) {
         /* Constructor call. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
         dip->variant.constructor.ptr = ctor_routine;
@@ -7653,13 +7719,15 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
   if (ctor_case) {
     /* Converting to a class type.  The contents of the parentheses are
        arguments for a constructor call. */
-    scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine, &lparen_pos,
-			type_cast_to);
+    a_boolean unknown_dependent_function;
+    scan_ctor_arguments(ctor_sym, &arg_expr_list, &ctor_routine,
+                        &unknown_dependent_function, &lparen_pos,
+                        type_cast_to);
     error_position = *start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (err || ctor_routine == NULL) {
+    if (err || (ctor_routine == NULL && !unknown_dependent_function)) {
       /* Error of some sort. */
       make_error_operand(result);
     } else {
@@ -7838,6 +7906,8 @@ be of integral type.  See section 3.3.5 of the standard.
   a_token_kind          save_token;
   an_operand            operand_2;
   a_source_position     operator_position;
+  a_token_sequence_number
+                        operator_tok_seq_number;
   an_expr_operator_kind op;
   a_type_ptr            result_type;
   a_boolean             processed = FALSE;
@@ -7848,6 +7918,7 @@ be of integral type.  See section 3.3.5 of the standard.
   save_token = curr_token;
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   /* Scan the second operand. */
   (void)get_token();
@@ -7887,6 +7958,7 @@ be of integral type.  See section 3.3.5 of the standard.
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
                                    &operator_position,
+                                   operator_tok_seq_number,
                                    result, &processed);
   }  /* if */
   if (!processed) {
@@ -7943,6 +8015,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   an_operand            operand_2;
   an_operand            operand_temp;
   a_source_position     operator_position;
+  a_token_sequence_number
+                        operator_tok_seq_number;
   a_boolean             operand_1_is_pointer;
   a_boolean             both_operands_are_arithmetic = FALSE;
   a_boolean		pointer_difference           = FALSE;
@@ -7956,6 +8030,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   save_token = curr_token;
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   /* Scan the second operand. */
   (void)get_token();
@@ -7993,6 +8068,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
                                    &operator_position,
+                                   operator_tok_seq_number,
                                    result, &processed);
   }  /* if */
   if (!processed) {
@@ -8164,6 +8240,8 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   an_operand            operand_2;
   a_token_kind          save_token;
   a_source_position     operator_position;
+  a_token_sequence_number
+                        operator_tok_seq_number;
   a_type_ptr            result_type;
   an_error_code         err_code;
   a_boolean             processed = FALSE;
@@ -8173,6 +8251,7 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   save_token = curr_token;
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   /* Scan the second operand. */
   (void)get_token();
@@ -8209,6 +8288,7 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
                                    &operator_position,
+                                   operator_tok_seq_number,
                                    result, &processed);
   }  /* if */
   if (!processed) {
@@ -8345,6 +8425,8 @@ standard.
   a_token_kind          save_token;
   an_operand            operand_2;
   a_source_position     operator_position;
+  a_token_sequence_number
+                        operator_tok_seq_number;
   a_type_ptr            operation_type;
   a_type_ptr            result_type;
   an_expr_operator_kind op;
@@ -8357,6 +8439,7 @@ standard.
   save_token = curr_token;
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   /* Scan the second operand. */
   (void)get_token();
@@ -8398,6 +8481,7 @@ standard.
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
                                    &operator_position,
+                                   operator_tok_seq_number,
                                    result, &processed);
   }  /* if */
   if (!processed) {
@@ -8506,6 +8590,8 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   a_token_kind          save_token;
   an_operand            operand_2;
   a_source_position     operator_position;
+  a_token_sequence_number
+                        operator_tok_seq_number;
   a_type_ptr            operation_type;
   a_type_ptr            result_type;
   an_expr_operator_kind op;
@@ -8518,6 +8604,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   save_token = curr_token;
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   /* Scan the second operand. */
   (void)get_token();
@@ -8555,6 +8642,7 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
                                    &operator_position,
+                                   operator_tok_seq_number,
                                    result, &processed);
   }  /* if */
   if (!processed) {
@@ -8657,6 +8745,8 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   a_token_kind          save_token;
   an_operand            operand_2;
   a_source_position     operator_position;
+  a_token_sequence_number
+                        operator_tok_seq_number;
   a_type_ptr            result_type;
   an_expr_operator_kind op;
   a_boolean             processed = FALSE;
@@ -8675,6 +8765,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   }  /* switch */
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   /* Scan the second operand. */
   (void)get_token();
@@ -8711,6 +8802,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
                                    &operator_position,
+                                   operator_tok_seq_number,
                                    result, &processed);
   }  /* if */
   if (!processed) {
@@ -8765,6 +8857,8 @@ standard.
   an_expr_operator_kind op;
   an_operand            operand_2;
   a_source_position     operator_position;
+  a_token_sequence_number
+                        operator_tok_seq_number;
   a_boolean             operand_1_is_false = FALSE;
   a_host_large_integer  local_result;
   a_boolean             known_result       = FALSE;
@@ -8794,6 +8888,7 @@ standard.
   }  /* if */
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
   /* There is a potential sequence point after the first operand. */
   potential_sequence_point_after_operand(operand_1);
 
@@ -8888,6 +8983,7 @@ standard.
                                    /*has_predef_meaning=*/FALSE,
                                    operand_1, &operand_2,
                                    &operator_position,
+                                   operator_tok_seq_number,
                                    result, &processed);
   }  /* if */
   if (!processed) {
@@ -9140,6 +9236,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   an_operand            operand_2;
   an_operand            operand_3;
   a_source_position     operator_position;
+  a_token_sequence_number
+                        operator_tok_seq_number;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position     question_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -9204,6 +9302,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
 
   /* Save the position of the (expected) colon. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   if (!required_token(tok_colon, ec_exp_colon)) {
     /* The colon is missing. */
@@ -9321,6 +9420,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                        /*has_predef_meaning=*/TRUE,
                                        &operand_2, &operand_3,
                                        &operator_position,
+                                       operator_tok_seq_number,
                                        result, &processed);
         /* processed TRUE means an error has been detected. */
         if (processed) {
@@ -9747,6 +9847,8 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
 {
   an_operand        operand_2;
   a_source_position operator_position;
+  a_token_sequence_number
+                    operator_tok_seq_number;
   a_boolean         err = FALSE, processed = FALSE;
   a_boolean         has_predef_meaning;
   a_type_ptr        orig_result_type, result_type;
@@ -9755,6 +9857,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
 
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   if (curr_expr_kind_is_const()) {
     /* Assignment operation not allowed in constant expressions. */
@@ -9815,6 +9918,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
                                      has_predef_meaning,
                                      operand_1, &operand_2,
                                      &operator_position,
+                                     operator_tok_seq_number,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -9877,6 +9981,8 @@ See section 3.3.16 of the standard.
   a_token_kind          save_token, operator_token;
   an_operand            operand_2;
   a_source_position     operator_position;
+  a_token_sequence_number
+                        operator_tok_seq_number;
   a_boolean             err               = FALSE, processed = FALSE;
   a_type_ptr            orig_result_type, result_type;
   a_type_ptr            operation_type;
@@ -9894,6 +10000,7 @@ See section 3.3.16 of the standard.
   save_token = curr_token;
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
   operator_token = save_token;
 
   if (curr_expr_kind_is_const()) {
@@ -10020,6 +10127,7 @@ See section 3.3.16 of the standard.
                                      /*has_predef_meaning=*/FALSE,
                                      operand_1, &operand_2,
                                      &operator_position,
+                                     operator_tok_seq_number,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -10440,6 +10548,8 @@ EOPT_DISALLOW_COMMA_OPERATOR).
 {
   an_operand        operand_2;
   a_source_position operator_position;
+  a_token_sequence_number
+                    operator_tok_seq_number;
   a_type_ptr        result_type, operation_type;
   a_boolean         err = FALSE, processed = FALSE;
   a_boolean         result_is_an_lvalue = FALSE;
@@ -10449,6 +10559,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
 
   /* Save the position of the operator in case of error. */
   copy_source_position(pos_curr_token, operator_position);
+  operator_tok_seq_number = curr_token_sequence_number;
 
   /* There is a potential sequence point after the first operand. */
   potential_sequence_point_after_operand(operand_1);
@@ -10480,6 +10591,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
                                      /*has_predef_meaning=*/TRUE,
                                      operand_1, &operand_2,
                                      &operator_position,
+                                     operator_tok_seq_number,
                                      result, &processed);
     }  /* if */
     if (!processed) {
@@ -13105,6 +13217,7 @@ overall errors.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position             end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_boolean                     unknown_dependent_function;
 
   db_enter(4, "scan_class_parenthesized_initializer");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
@@ -13117,11 +13230,12 @@ overall errors.
   check_assertion(cssp->constructor != NULL);
   /* Scan the constructor argument list. */
   scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine,
-                      source_pos, object_class_type);
+                      &unknown_dependent_function, source_pos,
+                      object_class_type);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  if (conversion_routine == NULL) {
+  if (conversion_routine == NULL && !unknown_dependent_function) {
     /* An error. */
     *dip = NULL;
     discard_curr_expr_object_lifetime();

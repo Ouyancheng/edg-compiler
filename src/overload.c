@@ -2054,6 +2054,7 @@ static void determine_function_viability(
                  a_boolean                ctor_conversion_case,
                  a_boolean                effects_copy_initialization,
                  a_boolean                from_arg_dep_lookup,
+                 a_boolean                dependent_call,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector)
 /*
@@ -2086,7 +2087,8 @@ effects_copy_initialization is TRUE if this call is the user-defined
 conversion in a copy-initialization; user-defined conversions are not
 tried on argument matches, and constructors that are marked "explicit"
 are ignored.  from_arg_dep_lookup is TRUE if the function was found by
-argument-dependent lookup.
+argument-dependent lookup.  dependent_call is TRUE if the call is a
+template-dependent call.
 */
 {
   a_symbol_ptr             function_symbol;
@@ -2132,6 +2134,13 @@ argument-dependent lookup.
         function_symbol->decl_seq > get_effective_decl_seq()) {
       /* This symbol is not visible in this template instantiation (it
          was declared after the template definition). */
+      goto reject_function;
+    }  /* if */
+    if (dependent_call && !function_template_case &&
+        function_symbol->variant.routine.ptr->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_internal) {
+      /* Functions with internal linkage are invisible in the template-
+         dependent name lookup. */
       goto reject_function;
     }  /* if */
     if (!function_template_case) {
@@ -2428,6 +2437,7 @@ static void try_overloaded_function_match(
                  a_boolean                ctor_conversion_case,
                  a_boolean                effects_copy_initialization,
                  a_boolean                from_arg_dep_lookup,
+                 a_boolean                dependent_call,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector)
 /*
@@ -2453,7 +2463,8 @@ is set in any candidate function entries created.  effects_copy_initialization
 is TRUE if this call is the user-defined conversion in a copy-initialization;
 user-defined conversions are not tried on argument matches, and constructors
 that are marked "explicit" are ignored.  from_arg_dep_lookup is TRUE if
-the function was found by argument-dependent lookup.
+the function was found by argument-dependent lookup.  dependent_call is
+TRUE if the call is a template-dependent call.
 */
 {
   a_boolean     overloaded_function_case;
@@ -2543,6 +2554,7 @@ the function was found by argument-dependent lookup.
                                  ctor_conversion_case,
                                  effects_copy_initialization,
                                  from_arg_dep_lookup,
+                                 dependent_call,
                                  candidate_functions,
                                  matched_except_for_missing_selector);
   }  /* for */
@@ -2579,6 +2591,7 @@ are viable functions, FALSE if not.  Issues no errors.
                                 ctor_conversion_case,
                                 effects_copy_initialization,
                                 /*from_arg_dep_lookup=*/FALSE,
+                                /*dependent_call=*/FALSE,
                                 &candidate_functions,
                                 &matched_except_for_missing_selector);
   possible = (candidate_functions != NULL);
@@ -2666,6 +2679,7 @@ arguments of the call (given by arg_operand_list).
                                        /*ctor_conversion_case=*/FALSE,
                                        /*effects_copy_initialization=*/FALSE,
                                        /*from_arg_dep_lookup=*/FALSE,
+                                       /*dependent_call=*/FALSE,
                                        candidate_functions,
                                        &matched_except_for_missing_selector);
         }  /* if */
@@ -3781,7 +3795,9 @@ a_symbol_ptr select_overloaded_function(
                          an_error_code            err_none_applies,
                          an_error_code            err_ambiguous,
                          a_source_position        *call_position,
+                         a_token_sequence_number  paren_tok_seq_number,
                          a_boolean                *single_function,
+                         a_boolean                *unknown_dependent_function,
                          a_symbol_ptr             *surrogate_function_conv_sym,
                          an_arg_match_summary_ptr *arg_match_list)
 /*
@@ -3800,22 +3816,29 @@ that discrimination.  do_arg_dep_lookup is TRUE if argument-dependent
 lookup should be done; if it is TRUE, overloaded_function_symbol may
 be an sk_undefined symbol, indicating that nothing was found on a
 normal id lookup of the function name.  call_position is the source
-position of the call.  If an error of some sort is detected, issue an
-error at that position and return NULL.  err_none_applies is the error
-code to use when no function applies, and err_ambiguous is the error
-code to use when more than one function applies.  If there is no
-error, an argument match list is returned in *arg_match_list (the
-caller must free this) and the symbol selected is returned.  If
-single_function is non-NULL and the set of functions to be considered
-(the symbol passed in, if not undefined, plus any symbols added by
-argument-dependent lookup) contains exactly one function, set *single_function
-to TRUE and return the function, without checking whether the function
-matches the argument list provided (this allows the caller to revert
-to the simpler processing used for non-overloaded functions, which can
-produce clearer error messages).  If surrogate_function_conv_sym is
-non-NULL, look for surrogate functions also.  overloaded_function_symbol
-may be NULL in that case.  If a surrogate function is the best match,
-return in *surrogate_function_conv_sym a pointer to the symbol for the
+position of the call.  paren_tok_seq_number is the token sequence
+number of the opening parenthesis of the argument list, but it's
+required only when do_arg_dep_lookup is TRUE; it can be zero
+otherwise.  If an error of some sort is detected, issue an error at
+that position and return NULL.  err_none_applies is the error code to
+use when no function applies, and err_ambiguous is the error code to
+use when more than one function applies.  If there is no error, an
+argument match list is returned in *arg_match_list (the caller must
+free this) and the symbol selected is returned.  If single_function is
+non-NULL and the set of functions to be considered (the symbol passed
+in, if not undefined, plus any symbols added by argument-dependent
+lookup) contains exactly one function, set *single_function to TRUE
+and return the function, without checking whether the function matches
+the argument list provided (this allows the caller to revert to the
+simpler processing used for non-overloaded functions, which can
+produce clearer error messages).  If the call is dependent, and
+the function to be called cannot be determined, return
+*unknown_dependent_function set to TRUE (unknown_dependent_function
+can be NULL if the call cannot be dependent).  If
+surrogate_function_conv_sym is non-NULL, look for surrogate functions
+also.  overloaded_function_symbol may be NULL in that case.  If a
+surrogate function is the best match, return in
+*surrogate_function_conv_sym a pointer to the symbol for the
 conversion function that yields the pointer to the surrogate function,
 and return NULL.  This routine is called only in C++ mode.
 */
@@ -3826,6 +3849,8 @@ and return NULL.  This routine is called only in C++ mode.
   a_boolean                undecidable_because_of_error, ambiguous;
   a_boolean                sym_is_undefined = FALSE;
   a_boolean                some_function_tried = FALSE;
+  a_boolean                dependent_call = FALSE;
+  an_arg_operand_ptr       arg_operand;
 
   db_enter(4, "select_overloaded_function");
   /* candidate_functions will contain the list of viable functions. */
@@ -3847,6 +3872,63 @@ and return NULL.  This routine is called only in C++ mode.
       } else if (!strict_ansi_mode &&
                  is_local_symbol(overloaded_function_symbol)) {
         do_arg_dep_lookup = FALSE;
+      }  /* if */
+    }  /* if */
+    if (do_dependent_name_processing) {
+      /* See whether the call is dependent (i.e., has arguments of
+         dependent types). */
+      if (is_template_dependent_context()) {
+        /* In a prototype instantiation.  See whether any argument types
+           are dependent. */
+        a_boolean any_dependent_arg = FALSE;
+        for (arg_operand = arg_operand_list;
+             arg_operand != NULL;
+             arg_operand = arg_operand->next) {
+          if (is_or_contains_template_param(arg_operand->operand.type)) {
+            any_dependent_arg = TRUE;
+            break;
+          }  /* if */
+        }  /* for */
+        if (!any_dependent_arg &&
+            overloaded_function_symbol->is_class_member &&
+            (have_selector ?
+                 is_or_contains_template_param(bound_function_selector->type) :
+                 TRUE)) {
+          /* The selector object is dependent.  An implicit selector is
+             always dependent in a prototype instantiation. */
+          any_dependent_arg = TRUE;
+        }  /* if */
+        if (any_dependent_arg) {
+          /* We can't do overload resolution because some of the arguments
+             have template-dependent types.  Return a flag indicating that. */
+          check_assertion(unknown_dependent_function != NULL);
+          *unknown_dependent_function = TRUE;
+          function_symbol = NULL;
+          *arg_match_list = NULL;
+          goto have_function;
+        }  /* if */
+        /* Note that dependent_call is always FALSE here. */
+      } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+        /* In a real (not prototype) instantiation.  Look up this call to
+           see whether it was a dependent call in the prototype
+           instantiation.  If it was a nondependent call, it was recorded,
+           along with the symbol chosen by overload resolution. */
+        if (!do_arg_dep_lookup) {
+           /* Calls where argument-dependent lookup is turned off are
+              not recorded, but they're always considered non-dependent. */
+          dependent_call = FALSE;
+        } else {
+          function_symbol =
+                         get_symbol_if_nondependent_call(paren_tok_seq_number);
+          dependent_call = (function_symbol == NULL);
+          if (!dependent_call) {
+            /* We know the function selected for this nondependent call during
+               the prototype instantiation.  Use that without going through
+               overload resolution. */
+            overloaded_function_symbol = function_symbol;
+            do_arg_dep_lookup = FALSE;
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!do_arg_dep_lookup) {
@@ -3874,6 +3956,7 @@ and return NULL.  This routine is called only in C++ mode.
                                     /*ctor_conversion_case=*/FALSE,
                                     /*effects_copy_initialization=*/FALSE,
                                     /*from_arg_dep_lookup=*/FALSE,
+                                    dependent_call,
                                     &candidate_functions,
                                     &matched_except_for_missing_selector);
       some_function_tried = TRUE;
@@ -3883,7 +3966,6 @@ and return NULL.  This routine is called only in C++ mode.
          types. */
       a_type_list_entry_ptr   type_list = NULL;
       a_symbol_locator        locator;
-      an_arg_operand_ptr      arg_operand;
       a_symbol_list_entry_ptr symbol_list, slep;
       a_symbol_ptr            normal_lookup_function_symbol;
 
@@ -3937,6 +4019,7 @@ and return NULL.  This routine is called only in C++ mode.
                                       /*from_arg_dep_lookup=*/
                                                (function_symbol !=
                                                 normal_lookup_function_symbol),
+                                      dependent_call,
                                       &candidate_functions,
                                       &matched_except_for_missing_selector);
         some_function_tried = TRUE;
@@ -4034,6 +4117,15 @@ and return NULL.  This routine is called only in C++ mode.
     /* Prevent freeing of the arg_match_list when the candidate_functions
        list is freed. */
     candidate_functions->arg_matches = NULL;
+    if (do_dependent_name_processing && is_template_dependent_context() &&
+        do_arg_dep_lookup) {
+      /* Record the outcome of overload resolution for a nondependent call
+         in a prototype instantiation.  Dependent calls in such a context
+         don't get here.  Calls where argument-dependent lookup is turned
+         off are not recorded; they're considered non-dependent. */
+      check_assertion(!dependent_call && paren_tok_seq_number != 0);
+      record_nondependent_call(function_symbol, paren_tok_seq_number);
+    }  /* if */
     if (candidate_functions->surrogate_function_conv_sym != NULL) {
       /* The best function is a surrogate function. */
       *surrogate_function_conv_sym =
@@ -5466,19 +5558,23 @@ of references to the object to be const-address-taken.
 
 
 void adjust_overloaded_function_call_arguments(
-                             a_symbol_ptr             function_symbol,
-                             a_type_ptr               routine_type,
-                             a_boolean                have_selector,
-                             an_operand               *bound_function_selector,
-                             an_arg_operand_ptr       arg_operand_list,
-                             an_arg_match_summary_ptr arg_match_list,
-                             an_expr_node_ptr         *arg_expr_list)
+                           a_symbol_ptr             function_symbol,
+                           a_boolean                unknown_dependent_function,
+                           a_type_ptr               routine_type,
+                           a_boolean                have_selector,
+                           an_operand               *bound_function_selector,
+                           an_arg_operand_ptr       arg_operand_list,
+                           an_arg_match_summary_ptr arg_match_list,
+                           an_expr_node_ptr         *arg_expr_list)
 /*
 Overload resolution has been done, and it has been decided that the
 function identified by function_symbol is the specific function to be
 called for the argument list given by arg_operand_list.
 function_symbol is NULL for an error, or for a surrogate function call
 (in that case, routine_type gives the surrogate function type).  If
+unknown_dependent_function is TRUE, the function is unknown because
+one or more of the arguments has a template-dependent type
+(function_symbol and routine_type will be NULL in that case).  If
 have_selector is TRUE, there is also a selector object, given by
 bound_function_selector (or, as a special case,
 bound_function_selector can be NULL for a constructor case; we have a
@@ -5488,10 +5584,8 @@ those arguments during the overload resolution process, and return a
 list of argument expressions in *arg_expr_list.  arg_match_list gives
 the argument match summaries for the selector object and the
 arguments.  arg_operand_list and arg_match_list are freed.
-function_symbol can be NULL to indicate that the overload resolution
-failed; in that case, this routine does nothing except for freeing the
-lists.  This routine is used for cases that look like calls (i.e.,
-they have argument lists in parentheses) or casts; it is not used for
+This routine is used for cases that look like calls (i.e., they have
+argument lists in parentheses) or casts; it is not used for
 overloaded operator cases.
 */
 {
@@ -5559,6 +5653,24 @@ overloaded operator cases.
          arguments will be processed under an ellipsis). */
       if (param != NULL) param = param->next;
     }  /* for */
+  } else if (unknown_dependent_function) {
+    /* The called function is unknown because some of the arguments
+       are template dependent.  Make an argument list. */
+    prev_arg = NULL;
+    for (arg_operand = arg_operand_list;
+         arg_operand != NULL;
+         arg_operand = arg_operand->next) {
+      prep_generic_operand(&arg_operand->operand);
+      arg = make_node_from_operand(&arg_operand->operand);
+      /* Add this argument to the end of the expression-form argument list
+         being built up. */
+      if (prev_arg == NULL) {
+        *arg_expr_list = arg;
+      } else {
+        prev_arg->next = arg;
+      }  /* if */
+      prev_arg = arg;
+    }  /* for */
   } else {
     /* There was an error.  Change the references on the operand lists to
        errors. */
@@ -5572,23 +5684,25 @@ overloaded operator cases.
 
 
 a_type_ptr select_and_prepare_to_call_overloaded_function(
-                           a_symbol_ptr             overloaded_function_symbol,
-                           a_boolean                is_template_id,
-                           a_template_arg_ptr       template_arg_list,
-                           a_boolean                have_selector,
-                           an_operand               *bound_function_selector,
-                           an_arg_operand_ptr       arg_operand_list,
-                           a_boolean                do_arg_dep_lookup,
-                           a_boolean                try_surrogate_functions,
-                           a_boolean                is_qualified_name,
-                           an_error_code            err_none_applies,
-                           an_error_code            err_ambiguous,
-                           a_source_position        *call_position,
-                           a_source_position        *function_position,
-                           a_source_position        *id_position,
-                           a_source_position        *closing_paren_position,
-                           an_operand               *function_operand,
-                           an_expr_node_ptr         *arg_expr_list)
+                           a_symbol_ptr            overloaded_function_symbol,
+                           a_boolean               is_template_id,
+                           a_template_arg_ptr      template_arg_list,
+                           a_boolean               have_selector,
+                           an_operand              *bound_function_selector,
+                           an_arg_operand_ptr      arg_operand_list,
+                           a_boolean               do_arg_dep_lookup,
+                           a_boolean               try_surrogate_functions,
+                           a_boolean               is_qualified_name,
+                           an_error_code           err_none_applies,
+                           an_error_code           err_ambiguous,
+                           a_source_position       *call_position,
+                           a_token_sequence_number paren_tok_seq_number,
+                           a_source_position       *function_position,
+                           a_source_position       *id_position,
+                           a_source_position       *closing_paren_position,
+                           a_boolean               *unknown_dependent_function,
+                           an_operand              *function_operand,
+                           an_expr_node_ptr        *arg_expr_list)
 /*
 Determine which of the functions under overloaded_function_symbol
 should be called given an argument list arg_operand_list.  The symbol
@@ -5613,20 +5727,25 @@ to pointers to function type.  overloaded_function_symbol can be NULL
 in that case.  is_qualified_name is TRUE if a qualified name was used
 to name the function (that suppresses the virtual-ness of the
 function).  arg_operand_list is freed by this routine.  call_position
-is the source position of the call.  If an error of some sort is
-detected, issue an error at that position and return NULL.
-err_none_applies is the error code to use when no function applies,
-and err_ambiguous is the error code to use when more than one function
-applies.  If there is no error, an operand for the function is built
-in *function_operand, an expression-form argument list is built and
-returned in *arg_expr_list (with the arguments cast to the proper
-types), and the type of the routine selected is returned.
-function_position is the position of the function name or equivalent
-in the call, usually the same as call_position.  id_position is the
-source position of the function name identifier in the call.
-closing_paren_position is the position of the closing parenthesis in
-the call; it is used only when do_arg_dep_lookup is TRUE.  This
-routine is called only in C++ mode.
+is the source position of the call.  paren_tok_seq_number is the token
+sequence number of the opening parenthesis of the argument list, but
+it's required only when do_arg_dep_lookup is TRUE; it can be zero
+otherwise.  If an error of some sort is detected, issue an error at
+that position and return NULL.  err_none_applies is the error code to
+use when no function applies, and err_ambiguous is the error code to
+use when more than one function applies.  If there is no error, an
+operand for the function is built in *function_operand, an
+expression-form argument list is built and returned in *arg_expr_list
+(with the arguments cast to the proper types), and the type of the
+routine selected is returned.  function_position is the position of
+the function name or equivalent in the call, usually the same as
+call_position.  id_position is the source position of the function
+name identifier in the call.  closing_paren_position is the position
+of the closing parenthesis in the call; it is used only when
+do_arg_dep_lookup is TRUE.  If the call is dependent, and the function
+to be called cannot be determined, return *unknown_dependent_function
+set to TRUE (unknown_dependent_function can be NULL if the call cannot
+be dependent).  This routine is called only in C++ mode.
 */
 {
   an_arg_match_summary_ptr arg_match_list;
@@ -5648,7 +5767,9 @@ routine is called only in C++ mode.
                                                err_none_applies,
                                                err_ambiguous,
                                                call_position,
+                                               paren_tok_seq_number,
                                                &single_function,
+                                               unknown_dependent_function,
                                                try_surrogate_functions ?
                                                  &surrogate_function_conv_sym :
                                                  (a_symbol_ptr *)NULL,
@@ -5703,7 +5824,9 @@ routine is called only in C++ mode.
        the argument list to the right types.  Free arg_operand_list
        and arg_match_list (the call is done even when function_symbol
        is NULL so that the freeing will be done). */
-    adjust_overloaded_function_call_arguments(function_symbol, routine_type,
+    adjust_overloaded_function_call_arguments(function_symbol,
+                                              *unknown_dependent_function,
+                                              routine_type,
                                               have_selector,
                                               bound_function_selector,
                                               arg_operand_list,
@@ -7360,16 +7483,18 @@ Adjust the operand type to match the type requirement.
 }  /* adjust_operand_for_builtin_operator */
 
 
-void check_for_operator_overloading(an_opname_kind     kind,
-                                    a_boolean          unary_operator,
-                                    a_boolean          must_be_member_function,
-                                    a_boolean          try_conversions,
-                                    a_boolean          has_predef_meaning,
-                                    an_operand         *operand_1,
-                                    an_operand         *operand_2,
-                                    a_source_position  *operator_position,
-                                    an_operand         *result,
-                                    a_boolean          *processed)
+void check_for_operator_overloading(
+                               an_opname_kind          kind,
+                               a_boolean               unary_operator,
+                               a_boolean               must_be_member_function,
+                               a_boolean               try_conversions,
+                               a_boolean               has_predef_meaning,
+                               an_operand              *operand_1,
+                               an_operand              *operand_2,
+                               a_source_position       *operator_position,
+                               a_token_sequence_number operator_tok_seq_number,
+                               an_operand              *result,
+                               a_boolean               *processed)
 /*
 operand_1 and operand_2 are the operands of an operator indicated by kind.
 If unary_operator is TRUE, the operation has only one operand, which is
@@ -7392,7 +7517,9 @@ appropriate.  In cases where none of the operands has a class or enum type,
 the operands are returned unchanged.  Note that this routine is called for
 operator "?", with unary_operator FALSE; the two operands are the second
 and third operands of the "?" ("?" cannot be overloaded, but conversion
-functions could still apply).
+functions could still apply).  operator_position gives the operator source
+position.  operator_tok_seq_number gives the token sequence number of
+the operator.
 */
 {
   an_arg_operand_ptr       arg_operand_list, arg_operand_list2, arg_operand;
@@ -7413,6 +7540,7 @@ functions could still apply).
   a_boolean                ambiguous;
   a_boolean                undecidable_because_of_error;
   a_boolean                arg_operand_list_not_used;
+  a_boolean                dependent_call = FALSE;
 
   db_enter(4, "check_for_operator_overloading");
   *processed = FALSE;
@@ -7459,6 +7587,57 @@ functions could still apply).
         }  /* if */
         /* candidate_functions will contain the list of viable functions. */
         candidate_functions = NULL;
+        if (do_dependent_name_processing) {
+          /* See whether the call is dependent (i.e., has arguments of
+             dependent types). */
+          if (is_template_dependent_context()) {
+            /* In a prototype instantiation.  If the operands are dependent,
+               the caller should have spotted that and generated a generic
+               expression operator. */
+            check_assertion_str(
+                            !is_or_contains_template_param(operand_1->type) &&
+                            (unary_operator ||
+                             !is_or_contains_template_param(operand_2->type)),
+                            "check_for_operator_overloading: dep operand");
+          } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+            /* In a real (not prototype) instantiation.  Look up this call to
+               see whether it was a dependent call in the prototype
+               instantiation.  If it was a nondependent call, it was recorded,
+               along with the symbol chosen by overload resolution. */
+            function_symbol =
+                      get_symbol_if_nondependent_call(operator_tok_seq_number);
+            dependent_call = (function_symbol == NULL);
+            if (!dependent_call) {
+              /* We know the function selected for this nondependent call
+                 during the prototype instantiation.  Use that without going
+                 through overload resolution. */
+              a_boolean is_member = routine_type_is_nonstatic_member_function(
+                                         routine_symbol_type(function_symbol));
+              if (is_member) {
+                member_functions_symbol = function_symbol;
+              } else {
+                nonmember_functions_symbol = function_symbol;
+              }  /* if */
+              try_overloaded_function_match(
+                                         function_symbol,
+                                         /*is_template_id=*/FALSE,
+                                         (a_template_arg_ptr)NULL,
+                                         is_member ? arg_operand_list2 :
+                                                     arg_operand_list,
+                                         /*have_selector=*/is_member,
+                                         is_member ? operand_1 :
+                                                     (an_operand *)NULL,
+                                         /*selector_is_object_pointer=*/FALSE,
+                                         /*ctor_conversion_case=*/FALSE,
+                                         /*effects_copy_initialization=*/FALSE,
+                                         /*from_arg_dep_lookup=*/FALSE,
+                                         /*dependent_call=*/FALSE,
+                                         &candidate_functions,
+                                         &matched_except_for_missing_selector);
+              goto select_best_function;
+            }  /* if */
+          }  /* if */
+        }  /* if */
         /* Find any member function for the operator. */
         if (operand_1_is_class) {
           /* Instantiate the type if it is a template class.  This ensures that
@@ -7488,6 +7667,7 @@ functions could still apply).
                                          /*ctor_conversion_case=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
                                          /*from_arg_dep_lookup=*/FALSE,
+                                         dependent_call,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
           }  /* if */
@@ -7546,6 +7726,7 @@ functions could still apply).
                                          /*from_arg_dep_lookup=*/
                                                  (nonmember_functions_symbol !=
                                                   normal_sym),
+                                         dependent_call,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
           }  /* for */
@@ -7563,6 +7744,7 @@ functions could still apply).
                                                arg_operand_list,
                                                &candidate_functions);
         }  /* if */
+select_best_function:
         /* The candidate_functions list now contains all the viable
            functions.  Find the best. */
         select_best_candidate_functions(&candidate_functions,
@@ -7658,6 +7840,16 @@ functions could still apply).
             *processed = TRUE;
             function_symbol = fundamental_symbol_of(proj_function_symbol);
             routine_type = routine_symbol_type(function_symbol);
+            if (do_dependent_name_processing &&
+                is_template_dependent_context()) {
+              /* Record the outcome of overload resolution for a nondependent
+                 call in a prototype instantiation.  Dependent calls in such
+                 a context don't get here. */
+              check_assertion(!dependent_call &&
+                              operator_tok_seq_number != 0);
+              record_nondependent_call(function_symbol,
+                                       operator_tok_seq_number);
+            }  /* if */
             /* Check for the builtin operator=. */
             if (kind == (an_opname_kind)onk_assign &&
                 function_symbol->kind == (a_symbol_kind)sk_member_function &&
@@ -7850,6 +8042,8 @@ because of an error.  This routine is used only in C++ mode.
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   cssp = class_symbol->variant.class_struct_union.extra_info;
   source_type = source_operand->type;
+  check_assertion_str(!is_or_contains_template_param(source_type),
+                   "conversion_to_class_possible: conv from templ param type");
   source_qualifiers = get_type_qualifiers(source_type);
   source_type = skip_typerefs(source_type);
   /* candidate_functions will contain the list of viable functions. */
@@ -7903,6 +8097,7 @@ because of an error.  This routine is used only in C++ mode.
                                     /*effects_copy_initialization=*/
                                                         is_copy_initialization,
                                     /*from_arg_dep_lookup=*/FALSE,
+                                    /*dependent_call=*/FALSE,
                                     &candidate_functions,
                                     &matched_except_for_missing_selector);
     }  /* if */
@@ -8057,6 +8252,9 @@ C++ mode.
   /* This routine is similar to select_overloaded_function. */
   clear_conv_descr(conversion);
   candidate_functions = NULL;
+  check_assertion_str(dest_type == NULL ||
+                      !is_or_contains_template_param(dest_type),
+                   "conversion_from_class_possible: conv to templ param type");
   /* Find any viable conversion functions. */
   try_conversion_function_match(source_operand, dest_type,
                                 builtin_types_allowed, need_lvalue_result,
