@@ -7583,9 +7583,25 @@ because they were used in declaring an external function or variable.
   }  /* if */
   /* Go through the classes again, now that linkage decisions have been
      made, and generate bodies for virtual destructors, as required. */
-  for (tp = scope->types; tp != NULL; tp = tp->next) {
+  check_virtual_destructors(scope->types);
+  db_exit();
+}  /* check_class_linkage */
+
+
+void check_virtual_destructors(a_type_ptr  types_list)
+/*
+Go through the classes on types_list and generate bodies for virtual
+destructors, as required.
+*/
+{
+  a_type_ptr                     tp;
+  a_routine_ptr                  rp;
+  a_class_symbol_supplement_ptr  cssp;
+
+  db_enter(3, "check_virtual_destructors");
+  for (tp = types_list; tp != NULL; tp = tp->next) {
     if (is_immediate_class_type(tp) && tp->source_corresp.assoc_info != NULL) {
-      a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(tp);
+      cssp = symbol_supplement_for_class(tp);
       if (cssp->destructor != NULL) {
         rp = cssp->destructor->variant.routine.ptr;
         if (rp->is_virtual && rp->compiler_generated &&
@@ -7595,16 +7611,18 @@ because they were used in declaring an external function or variable.
           if (virtual_dtor_should_be_generated_for_class(tp)) {
             /* But the body for it should be generated, e.g., because the
                virtual function table in which its address will appear is
-               being generated.  (Since no errors are issued on the definitions
-               of destructors, the error position used has no effect.) */
+               being generated. */
             define_special_member_function(rp);
           }  /* if */
         }  /* if */
       }  /* if */
+      /* Do the same check for nested classes, if any. */
+      check_virtual_destructors(
+                tp->variant.class_struct_union.extra_info->assoc_scope->types);
     }  /* if */
   }  /* for */
   db_exit();
-}  /* check_class_linkage */
+}  /* check_virtual_destructors */
 
 
 void class_decl_init(void)
