@@ -32,11 +32,20 @@ function table pointers.  The pointer to this array is passed down
 by storing it in a "transfer pointer", which is a virtual function
 pointer or a virtual base class pointer in the subobject.  The
 binary incompatibility, therefore, is that if a constructor or
-destructor is recompiled and now expects this information, it must not
+destructor is recompiled and now expects this information, it cannot
 be called by a non-recompiled constructor or destructor to construct
 or destroy a subobject.  New code can call old code, but not the other
 way around.  Fortunately, this means that libraries generally need
 not be recompiled.
+
+This problem has been known to us for a while, but it was thought
+to come up only very rarely.  Moreover, the front end's deficiencies in
+this area came from duplicating cfront's ABI and therefore cfront's
+limitations.  Recently, however, we were shown that the problem comes up
+more frequently when cfront object code compatibility is turned
+off (specifically, in non-cfront mode the layout of classes with
+virtual base classes is done in a more efficient and sensible way,
+and that difference provokes this problem more often).
 
 4/23/98   Fixed apparent inconsistency in variable-used-before-set warning
 
