@@ -9451,7 +9451,7 @@ scope) along with the class members.
            last_entry->next != NULL;
            last_entry = last_entry->next) {}
       last_entry->next = promoted_local_static_variable_inits;
-      promoted_local_static_variable_inits = last_entry;
+      promoted_local_static_variable_inits = scope->local_static_variable_inits;
       scope->local_static_variable_inits = NULL;
     }  /* if */
   }  /* if */
