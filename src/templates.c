@@ -78,11 +78,6 @@ static a_boolean
 			   by this file.  This is used to determine whether
 			   to create an instantiation information file. */
 
-static a_boolean
-		any_auto_instantiations_required;
-			/* TRUE if any entries were read from the
-		           instantiation information file. */
-
 static char	*instantiation_info_file_name;
                         /* The name of a file containing a list of names
 			   of template functions and static data members to
@@ -4687,28 +4682,28 @@ symbol_found:
 }  /* find_instance */
 
 
-static void check_if_present_in_info_file(a_template_instance_ptr tip)
+static a_boolean check_if_present_in_info_file(a_template_instance_ptr tip)
 /*
 See if the specified instantiation is one that is included in the
-instantiation information file.  If so, set the in_info_file flag
-in the template instance.
+instantiation information file.  Return TRUE if it is present.
 */
 {
-  if (any_auto_instantiations_required) {
-    char	*name;
-    if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-      a_variable_ptr	variable;
-      variable = tip->instance_sym->variant.static_data_member.variable;
-      name = get_mangled_static_data_member_name(variable);
-    } else {
-      a_routine_ptr	routine;
-      routine = tip->instance_sym->variant.routine.ptr;
-      name = get_mangled_function_name(routine);
-    }  /* if */
-    if (find_instance(name, /*add=*/FALSE) != NULL) {
-      tip->in_info_file = TRUE;
-    }  /* if  */
+  char		*name;
+  a_boolean	found = FALSE;
+
+  if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+    a_variable_ptr	variable;
+    variable = tip->instance_sym->variant.static_data_member.variable;
+    name = get_mangled_static_data_member_name(variable);
+  } else {
+    a_routine_ptr	routine;
+    routine = tip->instance_sym->variant.routine.ptr;
+    name = get_mangled_function_name(routine);
   }  /* if */
+  if (find_instance(name, /*add=*/FALSE) != NULL) {
+    found = TRUE;
+  }  /* if  */
+  return found;
 }  /* check_if_present_in_info_file */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
@@ -5020,6 +5015,7 @@ entities from the info file list that can be instantiated.
 {
   a_template_instance_ptr	tip;
   a_template_instantiation_mode	saved_instantiation_mode;
+  a_boolean			instantiations_needed;
 
   db_enter(3, "automatic_instantiation");
   /* Set the instantiation mode to tim_none.  This is done to ensure that
@@ -5029,32 +5025,38 @@ entities from the info file list that can be instantiated.
      instantiations that are performed. */
   saved_instantiation_mode = instantiation_mode;
   instantiation_mode = tim_none;
-  tip = instantiations_required;
-  for (; tip != NULL; tip = tip->next_in_instantiation_list) {
-    /* Set the flag that indicates that this compilation includes
-       external template entities. */
-    any_instantiations_required = TRUE;
-    /* Skip entries that do were not included in the instantiation
-       information file. */
-    if (!tip->in_info_file) continue;
-    /* Skip non-external function. */
-    if (is_static_or_inline_template_function(tip)) continue;
-    /* Skip entries that have already been instantiated. */
-    if (tip->already_instantiated) continue;
+  /* Read the list of things to be instantiated from the instantiation
+     information file. */
+  instantiations_needed = read_instantiation_info_file();
+  any_instantiations_required = instantiations_required != NULL;
+  if (instantiations_needed) {
+    for (tip = instantiations_required;
+         tip != NULL; tip = tip->next_in_instantiation_list) {
+      /* Set the flag that indicates that this compilation includes
+         external template entities. */
+      any_instantiations_required = TRUE;
+      /* Skip entries that do were not included in the instantiation
+         information file. */
+      if (!check_if_present_in_info_file(tip)) continue;
+      /* Skip non-external function. */
+      if (is_static_or_inline_template_function(tip)) continue;
+      /* Skip entries that have already been instantiated. */
+      if (tip->already_instantiated) continue;
 #if DEBUG
-    if (debug_level >= 4) {
-      fprintf(f_debug, "Automatic instantiation processing for:\n");
-      db_symbol(tip->instance_sym, "", 0);
-    }  /* if */
-#endif /* DEBUG */
-    if (can_be_instantiated(tip)) {
-      if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-        define_template_static_data_member(tip);
-      } else {
-        instantiate_template_function(tip);
+      if (debug_level >= 4) {
+        fprintf(f_debug, "Automatic instantiation processing for:\n");
+        db_symbol(tip->instance_sym, "", 0);
       }  /* if */
-    }  /* if */
-  }  /* for */
+#endif /* DEBUG */
+      if (can_be_instantiated(tip)) {
+        if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+          define_template_static_data_member(tip);
+        } else {
+          instantiate_template_function(tip);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
   /* Restore the original instantiation mode.  This is needed because it
      is used later on in the front end wrapup process when assigning
      linkage class members. */
@@ -5693,10 +5695,6 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(instantiations_required),
       pch_saved_var_array_elem(instantiations_required_tail),
       pch_saved_var_array_elem(can_instantiate_list),
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-      pch_saved_var_array_elem(any_instantiations_required),
-      pch_array_saved_var_array_elem(instance_lookup_table),
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -5720,7 +5718,6 @@ Initializations for template.
   instantiation_info_file_name = NULL;
   f_instantiation_info = NULL;
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
-  any_auto_instantiations_required = read_instantiation_info_file();
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if RECORD_TEMPLATES_IN_IL
   /* Initialize the output control block for the il-to-str routines. */
