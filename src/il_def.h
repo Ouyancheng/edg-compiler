@@ -350,7 +350,7 @@ typedef struct a_dynamic_init {
 			   be called.  For default constructors this pointer is
 			   NULL.  It will also be NULL for copy constructors
 			   that are called to initialize subobjects by copying
-			   a corresponding suboject.  (In the latter case the
+			   a corresponding subobject.  (In the latter case the
 			   argument is implicit; the address of the subobject
 			   to be copied may be computed just as the address
 			   corresponding to the implicit "this" parameter is

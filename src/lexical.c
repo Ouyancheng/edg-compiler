@@ -1111,7 +1111,7 @@ is TRUE.
             /* Count newlines.  This is done inside the loop because there are
                cases where no newline is output (two lines are joined in the
                output), and cases where one line has two newlines, and we
-               don't wan't to miscount. */
+               don't want to miscount. */
             prev_pp_output_line_was_complete = (ch == '\n');
             if (prev_pp_output_line_was_complete) next_seq_in_pp_output++;
           }  /* if */

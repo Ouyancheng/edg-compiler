@@ -158,7 +158,7 @@ from db_symbol.
 static char *str_qualified_name(char         *buffer,
                                 a_symbol_ptr sym)
 /*
-Construct a string in buffer that represents a qualfied name -- called
+Construct a string in buffer that represents a qualified name -- called
 from db_symbol.
 */
 {
