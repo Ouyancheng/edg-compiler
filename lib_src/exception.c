@@ -16,6 +16,9 @@ Functions that implement the "exception" and "bad_exception" classes (18.6).
 #include "basics.h"
 #include "runtime.h"
 
+/* The definition of the exception classes can be disabled. */
+#if USE_EDG_EXCEPTION_CLASSES
+
 #if EXCEPTION_HANDLING
 
 #include <exception>
@@ -127,8 +130,9 @@ the std namespace.
 }  /* namespace std */
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
-
 #endif /* EXCEPTION_HANDLING */
+
+#endif /* USE_EDG_EXCEPTION_CLASSES */
 
 /******************************************************************************
 *                                                             \  ___  /       *

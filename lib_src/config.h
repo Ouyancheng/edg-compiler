@@ -77,6 +77,15 @@ exception handling be included.
 #define EXCEPTION_HANDLING TRUE
 #endif /* ifndef EXCEPTION_HANDLING */
 
+/*
+Should the EDG-supplied exception classes be used.  This flag may be
+set to FALSE if a third party standard library is being used that includes
+classes such as bad_alloc, etc.
+*/
+#ifndef USE_EDG_EXCEPTION_CLASSES
+#define USE_EDG_EXCEPTION_CLASSES TRUE
+#endif /* ifndef USE_EDG_EXCEPTION_CLASSES */
+
 
 /*
 Should the components of the runtime system that implement run-time

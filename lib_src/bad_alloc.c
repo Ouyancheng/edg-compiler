@@ -16,6 +16,9 @@ Member functions of the bad_cast class.
 #include "basics.h"
 #include "runtime.h"
 
+/* The definition of the exception classes can be disabled. */
+#if USE_EDG_EXCEPTION_CLASSES
+
 /*
 If the runtime should be defined in the std namespace, open
 the std namespace.
@@ -86,6 +89,7 @@ the std namespace.
 }  /* namespace std */
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
+#endif /* USE_EDG_EXCEPTION_CLASSES */
 
 
 /******************************************************************************

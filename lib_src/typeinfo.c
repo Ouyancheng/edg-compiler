@@ -103,6 +103,9 @@ Destructor for type_info.  This should never actually be called.
 }  /* type_info::~type_info */
 
 
+/* The definition of the exception classes can be disabled. */
+#if USE_EDG_EXCEPTION_CLASSES
+
 #if EXCEPTION_HANDLING
 
 /*
@@ -201,6 +204,7 @@ no additional information is available.
 
 #endif /* EXCEPTION_HANDLING */
 
+#endif /* USE_EDG_EXCEPTION_CLASSES */
 
 /*
 If the runtime should be defined in the std namespace, close
@@ -211,7 +215,6 @@ the std namespace.
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
-
 
 /******************************************************************************
 *                                                             \  ___  /       *
