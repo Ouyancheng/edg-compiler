@@ -1,5 +1,16 @@
 Version 2.32
 
+3/1/96    Internal error reporting error in invalid class template
+          default argument
+
+If an error was diagnosed during the processing of an invalid
+default template argument for the first template parameter, an
+internal error could occur.  This has been fixed.
+
+  template <int i = i> class A {};
+  A<> a;
+
+
 2/27/96   "explicit" keyword (nonconverting constructors)
 
 The "explicit" keyword is now supported.  A constructor declared "explicit"
