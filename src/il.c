@@ -11234,7 +11234,7 @@ cleared.
 }  /* eliminate_references_from_befriended_entities */
 
 
-static void unlink_from_child_lifetime_list(an_object_lifetime_ptr  olp)
+void unlink_from_child_lifetime_list(an_object_lifetime_ptr  olp)
 /*
 Unlink the object lifetime entry pointed to by olp from the child-lifetime
 list of its parent.
@@ -11243,6 +11243,7 @@ list of its parent.
   an_object_lifetime_ptr  parent, child, prev_child;
 
   parent = olp->parent_lifetime;
+  /* This doesn't support removing function object lifetimes. */
   check_assertion(parent != NULL);
   prev_child = NULL;
   child = parent->child_lifetime;

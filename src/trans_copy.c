@@ -377,18 +377,40 @@ primary translation unit IL.
 }  /* copy_from_secondary_to_primary_IL */
 
 
+static void remove_dynamic_initialization(a_dynamic_init_ptr dip)
+/*
+Remove the indicated dynamic initialization from any destruction lists.
+Also remove any nested object lifetimes.
+*/
+{
+  if (dip->init_expr_lifetime) {
+    /* There is a nested object lifetime.  Eliminate it and everything in
+       it. */
+    unlink_from_child_lifetime_list(dip->init_expr_lifetime);
+    dip->init_expr_lifetime = NULL;
+  }  /* if */
+  remove_from_destruction_list(dip);
+}  /* remove_dynamic_initialization */
+
+
 static void clear_variable_initialization(a_variable_ptr variable)
 /*
 Eliminate the initialization of the indicated variable to turn it
 into a declaration instead of a definition.
 */
 {
+  if (variable->init_kind == (an_init_kind)initk_dynamic) {
+    /* Eliminate any destructions and object lifetimes associated with
+       this initialization. */
+    /* Note that the dynamic initialization for this variable
+       will be removed from the scope dynamic_inits list later. */
+    a_dynamic_init_ptr dip = variable->initializer.dynamic;
+    remove_dynamic_initialization(dip);
+  }  /* if */
   variable->init_kind = (an_init_kind)initk_none;
   if (variable->storage_class == (a_storage_class)sc_unspecified) {
     variable->storage_class = (a_storage_class)sc_extern;
   }  /* if */
-  /* Note that the dynamic initialization for this variable, if any,
-     will be removed from the scope dynamic_inits list later. */
 }  /* clear_variable_initialization */
 
 
