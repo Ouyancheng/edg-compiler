@@ -628,7 +628,7 @@ do
         -m | --c | -K | --old_c | --svr4 | --no_svr4)
           c_mode=1
           ;;
-        -p | --c++ | --cfront_2.1 | --cfront_3.0)
+        -b | --c++ | --cfront_2.1 | --cfront_3.0)
           c_mode=0
           ;;
 	--no_preproc_only)

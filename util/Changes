@@ -1,5 +1,11 @@
 Version 2.33
 
+9/24/96  -b option failed to restore C++ mode in eccp
+
+The -b option (cfront compatibility) should cause eccp to operate
+in C++ mode.  A bug prevented this from occurring.  This has been
+fixed.
+
 9/24/96  mk_errinfo can now generate MML documentation files
 
 The -mml option has been added to mk_errinfo.  This option causes it
