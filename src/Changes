@@ -1,5 +1,11 @@
 Version 2.29
 
+5/6/95   New files il_alloc.c and il_alloc.h
+
+Routines relating to the allocation and initialization of IL entities
+have been moved out of il.c and into a new file il_alloc.c.  il_alloc.h
+contains the associated declarations.
+
 5/4/95   operator new[] and operator delete[]
 
 Declarations of operator new[] and operator delete[] are now accepted,
