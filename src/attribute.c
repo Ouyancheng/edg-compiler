@@ -103,8 +103,8 @@ Traverse the list of alias fixups and set the alias fields as needed.
   while (entries != NULL) {
     entry = entries;
     entries = entries->next;
-    (void)find_symbol(entry->aliased_name, strlen(entry->aliased_name),
-                      &locator);
+    (void)find_symbol(entry->aliased_name,
+                      (sizeof_t)strlen(entry->aliased_name), &locator);
     aliased_sym = locator.symbol_header->inactive_symbols;
     for (; aliased_sym != NULL; aliased_sym = aliased_sym->next) {
       if (aliased_sym->decl_scope == FILE_SCOPE_NUMBER) {
