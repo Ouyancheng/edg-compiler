@@ -3691,7 +3691,7 @@ it's to be moved to another position in the list.
     }  /* if */
   }  /* if */
   return may_be_added;
-}  /* may_be_add_to_types_list */
+}  /* may_be_added_to_types_list */
 
 
 static a_scope_ptr get_scope_for_list(
@@ -3710,16 +3710,34 @@ with the namespace of which the entry is a member.
   a_scope_stack_entry_ptr  ssep;
   a_scope_ptr              sp;
   a_namespace_ptr          nsp = NULL;
+  a_type_ptr               class_type = NULL;
 
   if (scope_level == NO_SCOPE_DEPTH) {
-    /* No scope depth is specified, so either use the namespace or the file
-       scope. */
-    if (!scp->is_class_member) {
+    /* No scope depth is specified, so either use the namespace, class, or
+       file scope. */
+    if (scp->is_class_member) {
+      /* Compute the scope and pointers-block for the scope associated with
+         the parent class. */
+      class_type = scp->parent.class_type;
+    } else {
+      /* Compute the scope and pointers-block for the namespace scope if this
+         is a namespace member or the file scope otherwise. */
       nsp = scp->parent.namespace_ptr;
+      if (nsp == NULL) scope_level = DEPTH_OF_FILE_SCOPE;
     }  /* if */
-    if (nsp == NULL) scope_level = DEPTH_OF_FILE_SCOPE;
   }  /* if */
-  if (nsp != NULL) {
+  if (class_type != NULL) {
+    sp = scp->parent.class_type->
+                 variant.class_struct_union.extra_info->assoc_scope;
+    scope_level = sp->depth_in_scope_stack;
+    if (scope_level == NO_SCOPE_DEPTH) {
+      /* The class has already been popped off the scope stack. */
+      *pointers_block = NULL;
+    } else {
+      ssep = &scope_stack[scope_level];
+      *pointers_block = assoc_pointers_block_of(ssep);
+    }  /* if */
+  } else if (nsp != NULL) {
     /* Use the IL scope from the namespace. */
     sp = nsp->variant.assoc_scope;
     *pointers_block = &namespace_supplement_for_namespace(nsp)->pointers_block;
@@ -3737,7 +3755,8 @@ void add_to_types_list(a_type_ptr     type_ptr,
                        a_scope_depth  scope_level)
 /*
 Add the given type to the types list for the scope corresponding to
-scope_level.
+scope_level.  When scope_level is NO_SCOPE_DEPTH, the scope is computed
+rather than determined directly.
 */
 {
   a_scope_ptr                 sp;
@@ -3789,11 +3808,53 @@ scope_level.
 }  /* add_to_types_list */
 
 
+void remove_from_types_list(a_type_ptr     type_ptr,
+                            a_scope_depth  scope_level)
+/*
+Remove the indicated type from the types list of an IL scope.  Use scope_level
+to find the appropriate IL scope; when scope_level is NO_SCOPE_DEPTH, the
+scope is computed rather than determined directly.
+*/
+{
+  a_scope_ptr                 sp;
+  a_scope_pointers_block_ptr  pointers_block;
+  a_type_ptr                  tp, prev_tp;
+
+  /* Get a pointer to the scope entry. */
+  sp = get_scope_for_list(scope_level, &type_ptr->source_corresp,
+                          &pointers_block);
+  check_assertion_str(sp != NULL, "remove_from_types_list: NULL scope");
+  /* Scan the list until a match is found. */
+  prev_tp = NULL;
+  tp = sp->types;
+  while (tp != type_ptr) {
+    prev_tp = tp;
+    tp = tp->next;
+    check_assertion_str2(tp != NULL, "remove_from_types_list:",
+                         "cannot find type on types list");
+  }  /* while */
+  /* Link around the entry. */
+  if (prev_tp == NULL) {
+    sp->types = type_ptr->next;
+  } else {
+    prev_tp->next = type_ptr->next;
+  }  /* if */
+  if (pointers_block != NULL) {
+    /* Fix up the pointer to the end of the list, if required. */
+    if (pointers_block->last_type == type_ptr) {
+      pointers_block->last_type = prev_tp;
+    }  /* if */
+  }  /* if */
+}  /* remove_from_types_list */
+
+
 void move_to_end_of_types_list(a_type_ptr     type_ptr,
                                a_scope_depth  scope_level)
 /*
 Move the indicated type, which is already on the types list of an IL scope,
 to the end of that list.  Use scope_level to find the appropriate IL scope.
+When scope_level is NO_SCOPE_DEPTH, the scope is computed rather than
+determined directly.
 */
 {
   a_scope_ptr                 sp;
