@@ -983,13 +983,21 @@ operator kinds.  Issue a diagnostic if an error is found.
         }  /* if */
         ptp = ptp->next;
         if (ptp != NULL) {
-          tp = ptp->type;
-          if (!is_integral_type(tp) ||
-              skip_typerefs(tp)->variant.integer.int_kind !=
-                                (an_integer_kind)TARG_SIZE_T_INT_KIND) {
-            pos_error(ec_bad_second_arg_type_for_operator_delete, pos);
+          /* There is a second argument.  This is permitted for class operator
+             delete() but not for global operator delete() (ARM 12.5). */
+          if (rout->source_corresp.class_of_which_a_member == NULL) {
+            error_code = ec_too_many_args_for_operator;
+          } else {
+            /* The second argument must be of type size_t (ARM 12.5). */
+            tp = ptp->type;
+            if (!is_integral_type(tp) ||
+                skip_typerefs(tp)->variant.integer.int_kind !=
+                                  (an_integer_kind)TARG_SIZE_T_INT_KIND) {
+              pos_error(ec_bad_second_arg_type_for_operator_delete, pos);
+            }  /* if */
+            /* More than two arguments are not allowed. */
+            if (ptp->next != NULL) error_code = ec_too_many_args_for_operator;
           }  /* if */
-          if (ptp->next != NULL) error_code = ec_too_many_args_for_operator;
         }  /* if */
       }  /* if */
     } else {
