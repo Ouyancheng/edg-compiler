@@ -2175,6 +2175,20 @@ enable_microsoft_mode:
     }  /* if */
   }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#if ONE_INSTANTIATION_PER_OBJECT
+  if (one_instantiation_per_object) {
+    /* If "one instantiation per object" mode is being used, supply defaults
+       for the instantiation directory and instantiation file list, if values
+       were not supplied by command line options.  These options should always
+       be supplied by the driver.  These default values are primarily to
+       for testing purposes to simplify the process of invoking the front
+       end directly. */
+    if (instantiation_dir_name == NULL) instantiation_dir_name = ".";
+    if (instantiation_file_list_name == NULL) {
+      instantiation_file_list_name = "instantiations.list";
+    }  /* if */
+  }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Determine whether enum types are considered to be integral. This global
      variable used by is_integral_type, which returns TRUE for enum types
      in C mode and cfront mode, but otherwise returns FALSE in C++. */
@@ -2256,6 +2270,15 @@ enable_microsoft_mode:
     }  /* if */
     if (precompiled_header_processing_required) {
       command_line_error(ec_cl_pch_incompatible_with_multiple_inputs);
+    }  /* if */
+#if ONE_INSTANTIATION_PER_OBJECT
+    if (one_instantiation_per_object) {
+      command_line_error(
+         ec_cl_one_instantiation_per_object_incompatible_with_multiple_inputs);
+    }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+    if (ii_file_name != NULL) {
+      command_line_error(ec_cl_ii_file_name_incompatible_with_multiple_inputs);
     }  /* if */
   }  /* if */
 #else /* !COMPILE_MULTIPLE_SOURCE_FILES */
