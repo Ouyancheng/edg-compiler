@@ -5636,7 +5636,11 @@ As an anachronism, allow an expression inside the [ ].
           a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
           a_boolean      ambiguous;
 
-          sym = find_default_operator_delete_sym(sym, &ambiguous);
+          /* In Microsoft mode, because the non-array delete routine can be
+             used for an array delete, the symbol can be NULL. */
+          if (sym != NULL) {
+            sym = find_default_operator_delete_sym(sym, &ambiguous);
+          }  /* if */
           if (sym != NULL && delete_routine == sym->variant.routine.ptr) {
             delete_routine = NULL;
             /* Mark the destructor as referenced if it is virtual, because
