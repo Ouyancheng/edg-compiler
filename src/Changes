@@ -1,5 +1,15 @@
 Version 2.29
 
+5/17/95  New global variable stack_referenced_include_directories
+
+Configuration flag STACK_REFERENCED_INCLUDE_DIRECTORIES is no longer used
+for conditional compilation; instead it is the default value for new global
+variable stack_referenced_include_directories.  This enables running in
+different include-file lookup modes based on command line options.  The
+variable is always TRUE when microsoft_mode is TRUE (either by default or
+because of compiling with --microsoft_mode); otherwise it takes on the
+default value.
+
 5/16/95  Inconsistent linkage specifications for variables
 
 The severity of the diagnostic issued for inconsistent linkage
