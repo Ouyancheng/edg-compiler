@@ -8344,7 +8344,6 @@ Clear the fields of a function information block to default values.
   func_info->declarator_ssep                = NULL;
   func_info->prototype_scope_ss_entry_start = NULL;
   func_info->prototype_scope_ss_entry_end   = NULL;
-  func_info->class_in_which_defined_inline  = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* clear_func_info */
 

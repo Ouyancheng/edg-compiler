@@ -755,10 +755,6 @@ typedef struct a_func_info_block {
 			   is the last entry generated for declarations in the
                            function prototype scope; NULL if there no entries
                            and prototype_scope_ss_entry_end is also NULL. */
-  a_type_ptr	class_in_which_defined_inline;
-			/* Pointer to a class type in which this function
-			   is inline-defined.  NULL if not defined inline
-			   within a class definition. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_func_info_block;
 
