@@ -87,9 +87,8 @@ This is now fixed.
 
 6/13/00  Microsoft compatibility: const/volatile anonymous unions
 
-When ALLOW_NONSTANDARD_ANONYMOUS_UNIONS is TRUE, the front end accepts
-anonymous unions qualified with "const" and/or "volatile".  The qualifier
-does not affect the semantics of the fields of the anonymous union.
+In Microsoft mode, the front end now accepts anonymous unions qualified with
+"const" and/or "volatile".
 
   struct S {
     const union {
