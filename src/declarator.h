@@ -186,7 +186,12 @@ abstract or real declarator.
 #define DI_IS_MICROSOFT_PROPERTY ((a_decl_flag_set)0x40000)
 			/* If this bit is set the declaration is that of a
 			   property field (Microsoft mode only). */
-#define DI_LAST DI_IS_MICROSOFT_PROPERTY
+#define DI_VARIABLY_MODIFIED_DECL_ALLOWED ((a_decl_flag_set)0x80000)
+			/* If this bit is set and DI_VLA_ALLOWED is not, then
+			   nonconstant bounds are only allowed if the final
+			   type is not that of a VLA.  E.g., "(a[3])[n]" would
+			   not be allowed, but "(*a)[n]" would be okay. */
+#define DI_LAST DI_VARIABLY_MODIFIED_DECL_ALLOWED
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DI_LAST)*/
 /* Constants defining bits in the output bit vector used in calls to
@@ -228,6 +233,11 @@ abstract or real declarator.
 #define DO_POSTFIX_ATTRIBUTES ((a_decl_flag_set)0x40)
 			/* This bit is set if the declarator included
 			   trailing GNU-style attributes. */
+#define DO_HAS_PTR_OR_REF_COMPONENT ((a_decl_flag_set)0x80)
+			/* This bit is set if the declarator has a pointer or
+			   reference component (including pointer-to-members).
+			   E.g., it is set for "(*x[3])[4]" but not for
+			   "y[3][4]"). */
 #define DO_LAST DO_POSTFIX_ATTRIBUTES
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DO_LAST)*/

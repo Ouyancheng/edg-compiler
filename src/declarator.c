@@ -4051,6 +4051,10 @@ The syntax is:
                                      &left_call_conv, &unbound_call_conv,
                                      &left_qualifiers, &unbound_qualifiers,
                                      decl_pos_block, attributes);
+  if (complete_type != NULL && complete_type != specifiers_type) {
+    /* We scanned a pointer or reference component. */
+    *output_flags |= DO_HAS_PTR_OR_REF_COMPONENT;
+  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (attributes != NULL) {
     /* Advance to the end of the attribute list. */
@@ -4144,6 +4148,17 @@ The syntax is:
                  &inner_left_qualifiers, &unbound_qualifiers,
                  declarator_ssep, func_info, decl_pos_block,
                  (an_attribute_ptr *)last_attribute_ptr);
+    if (local_do_flags & DO_HAS_PTR_OR_REF_COMPONENT) {
+      /* A nested declarator that contained a pointer, pointer-to-member, or
+         reference component.  If we were to scan an array bound next, the
+         end result would not be a VLA type (instead it would e.g. be a
+         "pointer to a VLA type" or perhaps something more complicated). */
+      if (input_flags & DI_VARIABLY_MODIFIED_DECL_ALLOWED) {
+        vla_allowed = TRUE;
+      }  /* if */
+      /* Propagate the flag up. */
+      *output_flags |= DO_HAS_PTR_OR_REF_COMPONENT;
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode &&
         last_attribute_ptr != NULL && *last_attribute_ptr != NULL) {
