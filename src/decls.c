@@ -2966,7 +2966,13 @@ cross-reference output describing this declaration.
                                                 &linkage, &homonym_symbol);
     /* orig_nsp is set for redeclarations of a namespace member in a
        containing scope. */
-    if (linked_symbol != NULL) orig_nsp = linked_symbol->parent.namespace_ptr;
+    if (linked_symbol != NULL) {
+      orig_nsp = linked_symbol->parent.namespace_ptr;
+      /* This is a definition of a namespace member appearing in a scope
+         other than that of the namespace to which it belongs, so reactivate 
+         the original namespace scope. */
+      push_namespace_reactivation_scope(orig_nsp);
+    }  /* if */
   } else {
     /* Determine the linkage of this symbol. */
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
@@ -3169,13 +3175,8 @@ cross-reference output describing this declaration.
            or (in C mode only) a prior tentative definition that we can be
            defining a variable that has already been declared. */
         check_assertion(in_file_scope(variable_ptr));
-        /* If this is a definition of a namespace member appearing in a scope
-           other than that of the namespace to which it belongs, reactivate 
-           the original namespace scope. */
-        if (orig_nsp != NULL) push_namespace_reactivation_scope(orig_nsp);
         remove_from_variables_list(variable_ptr);
         add_to_variables_list(variable_ptr, depth_innermost_namespace_scope);
-        if (orig_nsp != NULL) pop_namespace_reactivation_scope();
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3256,6 +3257,8 @@ cross-reference output describing this declaration.
     sym->variant.variable.used = TRUE;
     sym->variant.variable.value_has_been_set = TRUE;
   }  /* if */
+  /* Restore the scope stack. */
+  if (orig_nsp != NULL) pop_namespace_reactivation_scope();
   /* Return symbol and linkage pointers. */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;
@@ -3327,6 +3330,7 @@ on for use in generating cross-reference output describing this declaration.
   a_boolean                is_function_def = FALSE;
   a_boolean                changed_to_inline = FALSE;
   a_boolean                is_friend_decl = (srk_flags & SRK_FRIEND) != 0;
+  a_namespace_ptr          orig_nsp = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr               declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3387,6 +3391,15 @@ on for use in generating cross-reference output describing this declaration.
                                                 is_function_def,
                                                 is_friend_decl, &linkage,
                                                 &homonym_symbol);
+    /* orig_nsp is set for redeclarations of a namespace member in a
+       containing scope. */
+    if (linked_symbol != NULL) {
+      orig_nsp = linked_symbol->parent.namespace_ptr;
+      /* This is a definition of a namespace member appearing in a scope
+         other than that of the namespace to which it belongs, so reactivate 
+         the original namespace scope. */
+      push_namespace_reactivation_scope(orig_nsp);
+    }  /* if */
   } else {
     /* Determine the linkage of this symbol. */
     linkage = id_linkage(locator, &storage_class, effective_decl_level,
@@ -3904,6 +3917,8 @@ skip_overloading:;
   /* Do processing required for the rest of the pragmas, if any, that are
      bound to the current declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
+  /* Restore the scope stack. */
+  if (orig_nsp != NULL) pop_namespace_reactivation_scope();
   /* Return symbol and linkage pointers. */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;
