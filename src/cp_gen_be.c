@@ -2554,7 +2554,8 @@ These follow the tag kind, e.g., "struct __single_inheritance xxx".
     }  /* if */
     gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
     gen_microsoft_uuid_declspec(ctsp->uuid_string);
-    form_type_qualifier(ctsp->qualifiers, /*need_trailing_space=*/TRUE, &octl);
+    form_type_qualifier(ctsp->qualifiers, UPC_BLOCK_SIZE_NONE,
+                        /*need_trailing_space=*/TRUE, &octl);
   }  /* if */
 }  /* gen_microsoft_class_decl_modifiers */
 
@@ -3311,8 +3312,8 @@ default arguments should be suppressed (needed for template specializations).
   /* Output a cv-qualifier for a member function, if there is one. */
   if (rtsp->qualifiers != TQ_NONE) {
     write_space();
-    form_type_qualifier(rtsp->qualifiers, /*need_trailing_space=*/FALSE,
-                        &octl);
+    form_type_qualifier(rtsp->qualifiers, UPC_BLOCK_SIZE_NONE,
+                        /*need_trailing_space=*/FALSE, &octl);
   }  /* if */
   /* Output a throw specification, if there is one. */
   if (rtsp->exception_specification != NULL) {
