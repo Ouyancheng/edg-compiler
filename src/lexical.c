@@ -10056,6 +10056,7 @@ if the token after the identifier is a "<".  might_be_vacuous_dtor is
 TRUE if the name being looked up is followed by "::~", and a vacuous
 destructor is valid in the current context.  *is_vacuous_dtor is set to
 TRUE if a symbol that can only be a vacuous destructor is returned.
+class_type is the type of the left operand of the field selection.
 */
 {
   a_symbol_ptr	normal_sym;
@@ -10083,7 +10084,7 @@ TRUE if a symbol that can only be a vacuous destructor is returned.
     clear_specific_symbol(locator_for_curr_id);
     /* These lookups are speculative -- don't create projection symbols for
        them. */
-    lookup_kind |= IDL_DO_NOT_CREATE_PROJ_SYM;
+    lookup_kind |= IDL_DO_NOT_CREATE_PROJ_SYM | IDL_IS_FIELD_SELECTION_OPERAND;
     /* Only get class_sym from the locator if a fundamental symbol was
        returned by the lookup.  The specific symbol in the locator could
        be non-NULL in error cases. */

@@ -160,6 +160,9 @@ represented as a bit set:
 				   an unknown base class.  See the comment
 				   on the tpck_member variant of a_constant
 				   for more information. */
+#define IDL_IS_FIELD_SELECTION_OPERAND 0x1000000
+				/* Specifies that the name being scanned is the
+				   operand following a "." or "->" operator. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

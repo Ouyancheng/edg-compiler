@@ -2341,9 +2341,11 @@ qualified_name_check:
           /* Normal case: not qualified member name. */
           /* Look up this identifier in the scope of the class, struct, or
              union. */
-          member_sym = class_qualified_id_lookup(&locator_for_curr_id,
-                                                 class_struct_union_type,
-                                                 IDL_IS_EXPR_CONTEXT);
+          member_sym = class_qualified_id_lookup(
+                                       &locator_for_curr_id,
+                                       class_struct_union_type,
+                                       (IDL_IS_EXPR_CONTEXT |
+                                        IDL_IS_FIELD_SELECTION_OPERAND));
           if (member_sym == NULL && locator_for_curr_id.is_destructor_name) {
             /* This is a case like p->~A where the class has no destructor.
                This is a vacuous destructor case if the types match.

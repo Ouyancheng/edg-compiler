@@ -3070,6 +3070,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
   a_boolean    must_be_tag = (options & IDL_MUST_BE_TAG);
   a_boolean    must_be_class = (options & IDL_MUST_BE_CLASS);
+  a_boolean    is_field_selection_operand =
+                                    (options & IDL_IS_FIELD_SELECTION_OPERAND);
   a_class_symbol_supplement_ptr
                cssp;
   a_symbol_ptr insert_sym;
@@ -3090,6 +3092,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((sym)->is_class_member &&					      \
    (!is_injected_class_symbol(sym) ||				      \
+    is_field_selection_operand ||				      \
     must_be_class_or_namespace ||				      \
     must_be_tag ||						      \
     class_type != (fund_sym)->variant.type.ptr) &&		      \
