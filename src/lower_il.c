@@ -6270,10 +6270,6 @@ needs to be lowered if lower_source is TRUE.
     /* No final cast is needed, so overwrite the original node with the
        contents of the result_node.  The storage used for result_node is
        just lost. */
-#if 0
-    /* There's some reason for concern about that, since this is the most
-       common case. */
-#endif /* 0 */
     overwrite_node(node, result_node);
   } else {
     /* A final cast is needed, so change the original node into the proper
