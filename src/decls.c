@@ -353,11 +353,6 @@ for a pointer to class A.
                  curr_token == tok_long || curr_token == tok_float ||
                  curr_token == tok_double || curr_token == tok_signed ||
                  curr_token == tok_unsigned))) {
-#if CHECKING
-      if (curr_token == tok_identifier && !curr_id_is_type_name()) {
-        internal_error("is_declaration_not_expression: id is not type name");
-      }  /* if */
-#endif /* CHECKING */
       /* Disambiguation is required. */
       /* Save the current stop token state, and reinitialize it. */
       copy_stop_tokens(stop_token_array, save_stop_token_array);
