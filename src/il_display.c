@@ -17,6 +17,16 @@ program as the front end is produced.
 
 */
 
+#if HDRSTOP_RECOGNIZED
+/* Placing the header stop here has the effect of suppressing the generation
+   of a precompiled header file.  This is done because il_display.c cannot
+   share its precompiled header with any other file.  (The only utility from
+   generating a precompiled header file would be for recompilation; for
+   that, the header stop should be moved to after the last #include, outside
+   all #ifs.) */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
 /* For the main-program version, get global variables defined. */
 #ifdef STANDALONE_IL_DISPLAY
 #define EXTERN /*empty*/

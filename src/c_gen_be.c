@@ -19,6 +19,16 @@ If C_GEN_BE_GENERATES_ANSI_C is TRUE (see targ_def.h), ANSI C is generated
 instead of K&R C.
 */
 
+#if HDRSTOP_RECOGNIZED
+/* Placing the header stop here has the effect of suppressing the generation
+   of a precompiled header file.  This is done because c_gen_be.c cannot
+   share its precompiled header with any other file.  (The only utility from
+   generating a precompiled header file would be for recompilation; for
+   that, the header stop should be moved to after the last #include, outside
+   all #ifs.) */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
 #ifdef STANDALONE_C_GEN_BE
 /* For the main-program version, get global variables defined. */
 #define EXTERN /*empty*/
@@ -32,20 +42,14 @@ instead of K&R C.
 #endif /* ifdef STANDALONE_C_GEN_BE */
 
 #include "basic_hdrs.h"
-#if BACK_END_IS_C_GEN_BE
-/* Header files common to all files. */
-#include "fe_common.h"
-#endif /* BACK_END_IS_C_GEN_BE */
-
-#if HDRSTOP_RECOGNIZED
-/* Mark the end of the sequence of headers subject to precompiled header
-   processing. */
-#pragma hdrstop
-#endif /* HDRSTOP_RECOGNIZED */
 
 /* See if this code is needed at all. */
 #if BACK_END_IS_C_GEN_BE
 
+/* Header files common to all files. */
+#include "fe_common.h"
+
+/* Additional header files. */
 #include "c_gen_be.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE

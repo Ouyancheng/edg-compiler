@@ -13,6 +13,16 @@ fe_init.c -- Initialization for the front end.
 
 */
 
+#if HDRSTOP_RECOGNIZED
+/* Placing the header stop here has the effect of suppressing the generation
+   of a precompiled header file.  This is done because fe_init.c cannot
+   share its precompiled header with any other file.  (The only utility from
+   generating a precompiled header file would be for recompilation; for
+   that, the header stop should be moved to after the #include of
+   fe_common.h.) */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
 /*
 Force definition in this compilation of external variables declared
 in .h files.

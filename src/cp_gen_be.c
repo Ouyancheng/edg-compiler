@@ -20,6 +20,16 @@ defined as 1 to get a main program back end.  Otherwise, a version to be
 called in the same program as the front end is produced (if needed).
 */
 
+#if HDRSTOP_RECOGNIZED
+/* Placing the header stop here has the effect of suppressing the generation
+   of a precompiled header file.  This is done because cp_gen_be.c cannot
+   share its precompiled header with any other file.  (The only utility from
+   generating a precompiled header file would be for recompilation; for
+   that, the header stop should be moved to after the last #include, outside
+   all #ifs.) */
+#pragma hdrstop
+#endif /* HDRSTOP_RECOGNIZED */
+
 #ifdef STANDALONE_CP_GEN_BE
 /* For the main-program version, get global variables defined. */
 #define EXTERN /*empty*/
@@ -34,16 +44,6 @@ called in the same program as the front end is produced (if needed).
 #endif /* ifdef STANDALONE_CP_GEN_BE */
 
 #include "basic_hdrs.h"
-#if BACK_END_IS_CP_GEN_BE
-/* Header files common to all files. */
-#include "fe_common.h"
-#endif /* BACK_END_IS_CP_GEN_BE */
-
-#if HDRSTOP_RECOGNIZED
-/* Mark the end of the sequence of headers subject to precompiled header
-   processing. */
-#pragma hdrstop
-#endif /* HDRSTOP_RECOGNIZED */
 
 /* See if this code is needed at all. */
 #if BACK_END_IS_CP_GEN_BE
@@ -68,6 +68,10 @@ a "for"] would have to be rewritten.)
  #error -- The C++/C-generating back end requires RECORD_TEMPLATES_IN_IL.
 #endif /* !RECORD_TEMPLATES_IN_IL */
 
+/* Header files common to all files. */
+#include "fe_common.h"
+
+/* Additional header files. */
 #include "cp_gen_be.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
