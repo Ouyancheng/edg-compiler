@@ -1246,7 +1246,7 @@ fi
 # in C mode, enable the one instantiation per object option.
 #
 EDG_ONE_INSTANTIATION_PER_OBJECT=${EDG_ONE_INSTANTIATION_PER_OBJECT-0}
-if [ $EDG_ONE_INSTANTIATION_PER_OBJECT -a $c_mode -eq 0 ] ; then
+if [ $EDG_ONE_INSTANTIATION_PER_OBJECT -ne 0 -a $c_mode -eq 0 ] ; then
   one_instantiation_per_object=1
   feoptions=$feoptions" --one_instantiation_per_object"
 fi
