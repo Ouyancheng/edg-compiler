@@ -3746,6 +3746,9 @@ The syntax is:
   a_type_qualifier_set  unbound_qualifiers;
   a_boolean             disallow_default_args, disallow_exception_spec;
   a_func_info_block     *local_func_info;
+#if GNU_EXTENSIONS_ALLOWED
+  an_attribute_ptr      *last_attribute_ptr = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "r_declarator");
   set_err_pos_to_curr_token();
@@ -3779,8 +3782,10 @@ The syntax is:
                                      &left_qualifiers, &unbound_qualifiers,
                                      decl_pos_block, attributes);
 #if GNU_EXTENSIONS_ALLOWED
-  /* Advance to the end of the attribute list. */
-  attributes = last_attribute_link(attributes);
+  if (attributes != NULL) {
+    /* Advance to the end of the attribute list. */
+    last_attribute_ptr = last_attribute_link(attributes);
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode && complete_type != NULL &&
@@ -3814,9 +3819,13 @@ The syntax is:
     /* Attributes may appear as the first construct of a parenthesized
        declarator. */
     if (attributes != NULL && gnu_mode && curr_token == tok_attribute) {
-      *attributes = scan_attributes();
+      check_assertion(last_attribute_ptr != NULL);
+      *last_attribute_ptr = scan_attributes();
+      if (*attributes == NULL) {
+        *attributes = *last_attribute_ptr;
+      }  /* if */
       /* Advance to the end of the list. */
-      attributes = last_attribute_link(attributes);
+      last_attribute_ptr = last_attribute_link(last_attribute_ptr);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (abstract_declarator_allowed) {
@@ -3863,9 +3872,16 @@ The syntax is:
                  &inner_left_call_conv, &unbound_call_conv,
                  &inner_left_qualifiers, &unbound_qualifiers,
                  declarator_ssep, func_info, decl_pos_block,
-                 (an_attribute_ptr *)attributes);
+                 (an_attribute_ptr *)last_attribute_ptr);
 #if GNU_EXTENSIONS_ALLOWED
-    attributes = last_attribute_link(attributes);
+    if (gnu_mode &&
+        last_attribute_ptr != NULL && *last_attribute_ptr != NULL) {
+      check_assertion(attributes != NULL);
+      if (*attributes == NULL) {
+        *attributes = *last_attribute_ptr;
+      }  /* if */
+      last_attribute_ptr = last_attribute_link(last_attribute_ptr);
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (local_do_flags & DO_REAL_DECLARATOR_SCANNED) {
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
@@ -4129,9 +4145,13 @@ function_lparen:
 #if GNU_EXTENSIONS_ALLOWED
       /* Scan a postfix attribute specification. */
       if (attributes != NULL && gnu_mode && curr_token == tok_attribute) {
-        *attributes = scan_attributes();
+        check_assertion(last_attribute_ptr != NULL);
+        *last_attribute_ptr = scan_attributes();
+        if (*attributes == NULL) {
+          *attributes = *last_attribute_ptr;
+        }  /* if */
         /* Advance to the end of the list. */
-        attributes = last_attribute_link(attributes);
+        last_attribute_ptr = last_attribute_link(last_attribute_ptr);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
