@@ -2362,7 +2362,13 @@ relational operator "op", and return a 0 or 1 integer in "result".
                    &unordered);
   /* Now determine the result value for this particular operator. */
   if (unordered) {
-    result_value = 0;
+   if (op == (an_expr_operator_kind)eok_fne) {
+     /* If two values are unordered, they are unequal.  This is needed for
+        NaN != NaN. */
+     result_value = 1;
+   } else {
+     result_value = 0;
+   }  /* if */
   } else {
     switch (op) {
       case eok_feq:  result_value = (cmp == 0); break;
