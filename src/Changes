@@ -1,5 +1,13 @@
 Version 2.32
 
+5/8/96  Cv-qualifier now allowed on new-type-id in strict mode
+
+The restriction that prohibited a cv-qualifier on a new-type-id has been
+removed from the Working Paper, and so we no longer issue a strict-mode
+diagnostic on the following:
+
+  const int *p = new const int(0);  // No longer disallowed in -A mode
+
 5/8/96  Error recovery abort on field selection fixed
 
 An abort after issuing an error on the following has been fixed:

@@ -5278,16 +5278,6 @@ within this routine if is_parenthesized comes in FALSE.
   if (dso_flags & DSO_DEFINES_SOMETHING) {
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
-  } else if (!is_parenthesized &&
-             (qualifiers & (TQ_CONST | TQ_VOLATILE)) != TQ_NONE) {
-    /* WP 5.3.4 states that the unparenthesized syntax (new-type-id) may
-       not include "const" or "volatile".  (This doesn't seem right, since
-       a qualified type can still be created with a typedef.  But in strict
-       mode we issue the diagnostic anyway.) */
-    if (strict_ansi_mode) {
-      pos_diagnostic(strict_ansi_error_severity, ec_const_volatile_not_allowed,
-                     &start_pos);
-    }  /* if */
   } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
     warning(ec_missing_type_specifier);
