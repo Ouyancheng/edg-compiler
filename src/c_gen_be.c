@@ -1718,6 +1718,8 @@ cases the definition of the type is generated (rather than just a reference).
        are supposed to get put out outside the function declaration. */
     check_assertion_str(!processing_declaration_of_defined_function,
                         "dump_tag_use: prototype scope type not caught");
+    /* Note that when types are put out here any pragmas associated with
+       them are not put out. */
     if (type->kind == (a_type_kind)tk_enum) {
       dump_enum_definition(type);
     } else {
@@ -2187,7 +2189,7 @@ Dump a single #pragma from the IL entry.
   /* Ignore this entry if told to do so. */
   if (!pp->ignore_in_back_end) {
     end_output_line_if_begun();
-    set_output_position(&pp->decl_position);
+    set_output_position(&pp->position);
     indent = 0;
     disable_line_wrapping();
     write_str("#pragma ");
@@ -2698,14 +2700,24 @@ Dump all types declared within one scope.
       a_boolean     any_found = FALSE;
       a_routine_ptr rout;
       for (rout = scope->routines; rout != NULL; rout = rout->next) {
-        a_routine_type_supplement_ptr rtsp =
-                         skip_typerefs(rout->type)->variant.routine.extra_info;
-        a_scope_ptr                   proto_scope = rtsp->prototype_scope;
-        if (proto_scope != NULL) {
-          /* This function has a prototype scope.  Output any types
-             declared therein. */
-          dump_prototype_scope_types(proto_scope, rout, pass, &any_found);
-        }  /* if */
+        a_type_ptr type = rout->type;
+        /* Do a loop so that we deal with prototype scopes at all levels in the
+           type, not just on top.  For example:
+             int (*f ())(enum E { e } arg) { }
+        */
+        do {
+          if (type->kind == (a_type_kind)tk_routine) {
+            a_routine_type_supplement_ptr rtsp =
+                                              type->variant.routine.extra_info;
+            a_scope_ptr                   proto_scope = rtsp->prototype_scope;
+            if (proto_scope != NULL) {
+              /* This type has a prototype scope.  Output any types
+                 declared therein. */
+              dump_prototype_scope_types(proto_scope, rout, pass, &any_found);
+            }  /* if */
+          }  /* if */
+          /* Move down to the underlying type.  Stop on a non-derived type. */
+        } while ((type = underlying_type_of_derived_type(type)) != NULL);
       }  /* for */
       /* If no types were found in prototype scopes on the first pass,
          there's no need for the second pass. */
