@@ -202,7 +202,7 @@ what Bjarne intended (I asked him).
   main ()
   {
     A a;
-    f(&a, (short)1);  // No longer ambiguous; f(const A*, int) chosen
+    f(&a, (short)1);  // No longer ambiguous; f(const A*, short) chosen
   }
 
 6/30/94  Last bit in bit vectors for decl_specifiers and declarator
