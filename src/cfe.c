@@ -54,6 +54,14 @@ program using the name edg_main.  If EDG_MAIN is not set, the default
 #endif /* ifndef(EDG_MAIN) */
 
 int EDG_MAIN(int argc, char *argv[])
+/*
+The main routine for the front end.
+
+When MAKE_FRONT_END_CALLABLE is FALSE, the front end exits at the end
+of the compilation with an exit status that indicates the status of
+the compilation.  When MAKE_FRONT_END_CALLABLE is TRUE, the exit
+status is returned to the caller.
+*/
 {
   an_error_severity most_severe_diagnostic = es_none, diagnostic_level;
   a_timer	    start_time;
@@ -72,11 +80,12 @@ int EDG_MAIN(int argc, char *argv[])
      done before anything else that could potentially produce debug output. */
   f_debug = stderr;
 #endif /* DEBUG */
-  /* Get the execution starting time.  Do this unconditionally because the
-     timing command line option will not have been processed yet. */
-  get_timer(&start_time);
   /* Do early (before command-line processing) initialization. */
   fe_early_init();
+  /* Get the execution starting time.  Do this unconditionally because the
+     timing command line option will not have been processed yet.  This must
+     be done after the early initialization done above. */
+  get_timer(&start_time);
   /* Process the command line. */
   proc_command_line(argc, argv);
   /* Initialize values that apply to the entire compilation if multiple
@@ -165,10 +174,14 @@ int EDG_MAIN(int argc, char *argv[])
     display_time_used("Total compilation time", &start_time, &end_time);
   }  /* if */
 
+#if !MAKE_FRONT_END_CALLABLE
   /* Exit with the return code appropriate to the highest severity error
      detected. */
   exit_compilation(most_severe_diagnostic);
   /*NOTREACHED*/
+#else /* MAKE_FRONT_END_CALLABLE */
+  return most_severe_diagnostic;
+#endif /* MAKE_FRONT_END_CALLABLE */
 }  /* main */
 
 

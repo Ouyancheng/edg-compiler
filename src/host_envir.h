@@ -192,6 +192,32 @@ to use this flag to test that a pointer lies in a certain range.
 #endif /* ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED */
 
 /*
+TRUE if the front end is to be called as a subroutine of another
+program, or as a library.  When this is TRUE, the front end has
+no main program of its own and exits via a return to the caller.
+This defaults to TRUE if an alternate name of the main routine has
+been specified (via the EDG_MAIN macro).
+*/
+#ifndef MAKE_FRONT_END_CALLABLE
+#ifdef EDG_MAIN
+#define MAKE_FRONT_END_CALLABLE TRUE
+#else /* ifndef EDG_MAIN */
+#define MAKE_FRONT_END_CALLABLE FALSE
+#endif /* ifdef EDG_MAIN */
+#endif /* MAKE_FRONT_END_CALLABLE */
+
+
+/*
+If the front end is to be called as a function, the EDG_MAIN macro provides
+a name for the function.
+*/
+#if MAKE_FRONT_END_CALLABLE
+#ifndef EDG_MAIN
+#define EDG_MAIN edg_main
+#endif /* ifndef EDG_MAIN */
+#endif /* MAKE_FRONT_END_CALLABLE */
+
+/*
 Flag that is TRUE if multiple input files can be compiled in a single
 invocation of the front end.  This is useful on systems where the cost
 of forking a process is high (e.g., VMS).  Each compilation is processed
