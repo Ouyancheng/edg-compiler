@@ -96,6 +96,9 @@ typedef enum /*a_token_kind*/ {
   /* Extensions (__ALIGNOF__ is similar to sizeof; __INTADDR__ is used
      to scan an integer address expression for offsetof): */
   tok_alignof,                      tok_intaddr,
+#if RESTRICT_ALLOWED
+  tok_restrict,
+#endif /* RESTRICT_ALLOWED */
   /* C++ tokens not in C (ARM, 2.4): */
   tok_colon_colon       /* :: */,   tok_period_star        /* .* */,
   tok_arrow_star        /* ->* */,
@@ -137,6 +140,9 @@ EXTERN char	*token_names[(int)tok_last+1]
    "return", "short", "signed", "sizeof", "static", "struct",
    "switch", "typedef", "union", "unsigned", "void", "volatile",
    "while", "__ALIGNOF__", "__INTADDR__",
+#if RESTRICT_ALLOWED
+   "restrict",
+#endif /* RESTRICT_ALLOWED */
    "::", ".*", "->*", "asm", "catch", "class", "delete", "friend",
    "inline", "new", "operator", "private", "protected", "public",
    "template", "this", "throw", "try", "virtual",
@@ -393,6 +399,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_while */
    (an_opname_kind)onk_none,          /* tok_alignof */
    (an_opname_kind)onk_none,          /* tok_intaddr */
+#if RESTRICT_ALLOWED
+   (an_opname_kind)onk_none,          /* tok_restrict */
+#endif /* RESTRICT_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_colon_colon */
    (an_opname_kind)onk_none,          /* tok_period_star */
    (an_opname_kind)onk_arrow_star,
@@ -1243,6 +1252,13 @@ extern a_symbol_ptr coalesce_and_lookup_generalized_identifier
 #define QUALIFIED_NAME_START_CASE tok_identifier:	\
                              case tok_colon_colon
 
+#if RESTRICT_ALLOWED
+#define is_type_qualifier_token(tok)                                   \
+  ((tok) == tok_const || (tok) == tok_volatile || (tok) == tok_restrict)
+#else /* !RESTRICT_ALLOWED */
+#define is_type_qualifier_token(tok)                                   \
+  ((tok) == tok_const || (tok) == tok_volatile)
+#endif /* RESTRICT_ALLOWED */
 
 /* Push a file onto the input stack. */
 extern void open_file_and_push_input_stack
