@@ -5847,14 +5847,6 @@ instantiation.
       } else if (!sym->defined) {
         /* Not previously defined. */
         *resolution = is_definition;
-        if (!is_definition && sym->is_class_member &&
-            !decl_state->is_template_friend &&
-            (!decl_state->is_member_decl || locator.is_qualified_name)) {
-          /* Redeclaration of a class member is not allowed.  A redeclaration
-             is permitted in the class in which the member is defined. */
-          pos_sy_error(ec_bad_scope_for_redeclaration,
-	                 &locator.source_position, sym);
-        }  /* if */
       } else if (is_definition) {
         /* Attempting to redefine a class template. */
         pos_sy_error(ec_already_defined, &locator.source_position, sym);
