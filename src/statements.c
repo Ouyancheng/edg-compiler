@@ -5026,8 +5026,7 @@ rescan_statement:
       syntax_error(ec_exp_statement);
       remove_stop_token(tok_semicolon);
       remove_stop_token(tok_rbrace);
-      /* Discard any pragmas that are bound to the current statement. */
-      discard_curr_construct_pragmas();
+      empty_statement();
       break;
     default:
 expr_statement:
