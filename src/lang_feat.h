@@ -298,6 +298,19 @@ Default implicit size (near/far) for pointers in 16-bit Microsoft mode.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Flag that indicates the version of the Microsoft compiler that should
+be emulated in Microsoft mode.  This enables or disables particular
+Microsoft mode features when the acceptance of that feature varies
+between versions of the Microsoft compiler. The value is specified
+using the value of the predefined macro _MSC_VER supplied by the
+version of the Microsoft compiler that is being emulated (for example,
+1100 corresponds to Visual C++ version 5.0).
+*/
+#ifndef DEFAULT_MICROSOFT_VERSION
+#define DEFAULT_MICROSOFT_VERSION 1100
+#endif /* ifndef DEFAULT_MICROSOFT_VERSION */
+
+/*
 Flag that is TRUE if a set of extensions is supported that permits features
 similar to C++ anonymous unions (1) in C mode and (2) with structs (in both
 C and C++) and classes (in C++) as well.  This functionality emulates an

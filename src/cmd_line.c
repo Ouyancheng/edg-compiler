@@ -417,6 +417,9 @@ Initialize the option information table.
   add_option_description(optk_far_code_pointers, "near_code_pointers",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_version, "microsoft_version",
+                         '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if WCHAR_T_ENABLING_POSSIBLE
   add_option_description(optk_wchar_t_is_keyword, "wchar_t_keyword",
@@ -1534,6 +1537,13 @@ common_cfront_mode_settings:
         long_lifetime_temps = opt_value;
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      case optk_microsoft_version:
+        /* The version of the Microsoft compiler being emulated. */
+        microsoft_version = scan_opt_arg_number(opt_arg);
+        if (microsoft_version < 700 || microsoft_version > 2000) {
+          str_command_line_error(ec_cl_invalid_microsoft_version, opt_arg);
+        }  /* if */
+        /* Note -- falls into setting microsoft mode. */
       case optk_microsoft_mode:
         /* Enable or disable Microsoft extensions, in 32-bit mode. */
         microsoft_mode = opt_value;
@@ -1857,7 +1867,8 @@ common_cfront_mode_settings:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* Strict ANSI mode is incompatible with Microsoft mode. */
     if (microsoft_mode) {
-      if (option_kind_used[(int)optk_microsoft_mode]) {
+      if (option_kind_used[(int)optk_microsoft_mode] ||
+          option_kind_used[(int)optk_microsoft_version]) {
         /* Microsoft mode was enabled by a command line option. */
         command_line_error(ec_cl_strict_ansi_incompatible_with_microsoft);
       } else {

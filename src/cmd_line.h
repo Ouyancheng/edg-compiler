@@ -109,6 +109,7 @@ typedef enum /*an_option_kind*/ {
   optk_microsoft_16_mode,
   optk_far_data_pointers,
   optk_far_code_pointers,
+  optk_microsoft_version,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_wchar_t_is_keyword,
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -628,12 +629,26 @@ EXTERN a_boolean
                                                        ;
 			/* TRUE if Microsoft extensions are to be accepted. */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-/* When Microsoft mode is unavailable, replace the variable with a macro.
+/* When Microsoft mode is unavailable, replace the variable with a macros.
    This will allow optimizers to remove some useless code when the front-end
    itself is compiled. */
 #define microsoft_mode (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+EXTERN a_boolean
+		microsoft_version
+#if VAR_INITIALIZERS
+                               = DEFAULT_MICROSOFT_VERSION
+#endif /* VAR_INITIALIZERS */
+                                                           ;
+			/* The version of the Microsoft compiler with which
+			   compatibility is desired.  This enables or disables
+			   particular Microsoft mode features when the
+			   acceptance of that feature varies between versions
+			   of the Microsoft compiler.  The value is specified
+			   using the value of the predefined macro _MSC_VER
+			   supplied by the version of the Microsoft compiler
+			   that is being emulated. */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention

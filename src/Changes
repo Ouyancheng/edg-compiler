@@ -1,5 +1,26 @@
 Version 2.36
 
+4/4/97    Microsoft compatibility: old-style class specialization declarations
+          are ignored
+
+Version 11.00 of the Microsoft compiler (in Visual C++ 5.0) ignores
+old-style specialization declarations (but not definitions).  The front
+end now duplicates this behavior when --microsoft_version=1100 is specified.
+
+  template <class T> struct A {};
+  struct A<int>;  // no longer a specialization declaration
+
+4/4/97    Microsoft compatibility: --microsoft_version option
+
+In order to permit the front end to correctly emulate Microsoft
+features that vary between versions of the Microsoft compiler, a
+command line option has been added to specify the version of the
+Microsoft compiler that should be emulated.  The value is specified
+using the value of the predefined macro _MSC_VER supplied by the
+version of the Microsoft compiler that is being emulated (for example,
+1100 corresponds to Visual C++ version 5.0).  The default value is
+specified by the DEFAULT_MICROSOFT_VERSION configuration parameter.
+
 4/3/97    Linkage specification processing could refer to freed memory
 
 The processing for linkage specifications saved a pointer into the
