@@ -3723,7 +3723,7 @@ class need not be an immediate base class.
   /* Add a base class cast for each step in the derivation. */
   for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
     node = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
-                              dsp->base_class->type, node);
+                              make_pointer_type(dsp->base_class->type), node);
   }  /* for */
   return node;
 }  /* base_class_selection_expr */
