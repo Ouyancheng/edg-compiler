@@ -1481,9 +1481,11 @@ One time initialization that must take place early on in the front end.
 This is done before command line processing.
 */
 {
+#if !STANDALONE_UTILITY_PROGRAM
   num_of_mem_alloc_history_entries = 0;
   size_of_mem_alloc_history = 0;
   mem_alloc_history_entries_used = 0;
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* mem_manage_early_init */
 
 
