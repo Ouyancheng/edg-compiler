@@ -232,9 +232,9 @@ typedef size_t	sizeof_t;
 typedef unsigned long sizeof_t;
 /* size_t_arg checks for truncation. */
 #define size_t_arg(arg) \
-  ((sizeof_t)((sizeof_t)(arg) > UINT_MAX ? size_t_arg_error() : (arg)))
+  ((sizeof_t)(arg) > UINT_MAX ? size_t_arg_error() : (sizeof_t)(arg)))
 #define NEED_SIZE_T_ARG_ERROR 1
-extern int size_t_arg_error(void);
+extern sizeof_t size_t_arg_error(void);
 #endif /* !__MSC__ */
 /* Use a_ptrdiff for ptrdiff_t because ptrdiff_t appears in <sys/types.h> on
    some UNIX systems. */
