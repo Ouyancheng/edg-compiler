@@ -1,5 +1,18 @@
 Version 2.42
 
+6/7/99   Catastrophic error when accessing misdeclared functions (C mode)
+
+In C mode, accessing a function that had previously been declared with
+conflicting types in block-scope could lead to a catastrophic error:
+
+  void f1() { extern short g(); }
+  void f2() { extern int g(); /* Violates previous declaration. */ }
+  void f3() {
+    g(); /* Used to result in a catastrophic error. */
+  }
+
+This is now fixed.
+
 6/7/99   Symbols for predeclared new[] and delete[]
 
 Symbols are no longer created for predeclared new[] and delete[] if global
