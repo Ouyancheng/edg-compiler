@@ -3564,7 +3564,7 @@ specification allow a variable-sized array as the top type.
 */
 {
   a_boolean         err = FALSE;
-  a_source_position start_position, new_position, type_position;
+  a_source_position start_position, type_position;
   a_source_position placement_position;
   a_type_ptr        new_type, base_new_type, ptr_new_type;
   a_type_ptr        unqual_new_type;
@@ -3605,7 +3605,6 @@ specification allow a variable-sized array as the top type.
     internal_error("scan_new_operator: expected new");
   }  /* if */
 #endif /* CHECKING */
-  copy_source_position(pos_curr_token, new_position);
 
   (void)get_token();
   /* Check for the presence of the "placement" term, which provides extra
