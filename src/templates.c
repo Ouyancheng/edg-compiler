@@ -14414,7 +14414,8 @@ specified by "tip" depend on a template parameter.
 #endif /* EXPENSIVE_CHECKING */
 
 
-a_boolean add_to_instantiations_required_list(a_template_instance_ptr  tip)
+static a_boolean add_to_instantiations_required_list(
+						a_template_instance_ptr  tip)
 /*
 Add a template instance entry to the end of the instantiations_required
 list if it is not already on the list.  Return TRUE if the entry was
