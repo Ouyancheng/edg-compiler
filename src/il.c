@@ -4022,21 +4022,18 @@ for the file scope if at_file_scope is TRUE.
 an_asm_entry_ptr alloc_asm_entry(void)
 /*
 Allocate an asm entry, clear it to default values, and return a pointer
-to it.  The entry is allocated in the file scope memory region.
+to it.
 */
 {
   an_asm_entry_ptr ap;
 
   db_enter(5, "alloc_asm_entry");
 
-  ap = (an_asm_entry_ptr)alloc_il(sizeof(an_asm_entry));
+  ap = (an_asm_entry_ptr)alloc_cil(sizeof(an_asm_entry));
 #if DEBUG
   num_asm_entries_allocated++;
 #endif /* DEBUG */
   set_default_source_corresp(&(ap->source_corresp));
-  /* Asm entries are always in the file scope, so use the il_walk_flag
-     value for the file scope memory region. */
-  ap->source_corresp.il_walk_flag = curr_fs_initial_il_walk_flag_setting;
   ap->next = NULL;
   ap->asm_string = NULL;
 
