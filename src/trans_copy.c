@@ -1972,6 +1972,46 @@ two-pass sweep.
   }  /* if */
 }  /* finish_moved_function_processing */
 
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+
+static void finish_scope_orphaned_list_processing(
+                                    a_scope_orphaned_list_header_ptr solh_list)
+/*
+Final processing on scope orphaned list headers.  For functions that
+were actually copied over, a new version of the orphaned list header
+entries was generated on the other side (after lowering).  For functions
+whose bodies were deleted, however, there may be dangling types etc.
+in the scope orphaned list headers in the secondary translation unit.
+The entries have been copied over, but they're not linked into the IL
+tree.  Link them in now if appropriate.  solh_list points to the list
+of scope orphaned list headers from the secondary translation unit.
+The current translation unit is the primary translation unit.
+*/
+{
+  a_scope_orphaned_list_header_ptr solhp;
+
+  check_assertion(solh_list == NULL || in_secondary_trans_unit(solh_list));
+  check_assertion(is_primary_translation_unit);
+  for (solhp = solh_list; solhp != NULL; solhp = solhp->next) {
+    if (solhp->assoc_routine->assoc_scope == NULL_region_number) {
+      /* The routine associated with this entry was deleted, so link the
+         copy of this entry into the scope orphaned headers list in the
+         primary IL. */
+      a_scope_orphaned_list_header_ptr corresp_solhp =
+                               (a_scope_orphaned_list_header_ptr)
+                                  checked_trans_unit_corresp_pointer_of(solhp);
+      if (il_header.scope_orphaned_list_headers == NULL) {
+        il_header.scope_orphaned_list_headers = corresp_solhp;
+      } else {
+        curr_translation_unit->last_scope_orphaned_list_header->next =
+                                                                 corresp_solhp;
+      }  /* if */
+      curr_translation_unit->last_scope_orphaned_list_header = corresp_solhp;
+    }  /* if */
+  }  /* for */
+}  /* finish_scope_orphaned_list_processing */
+
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
 void copy_secondary_trans_unit_IL_to_primary(void)
 /*
@@ -1984,6 +2024,10 @@ secondary translation unit IL and therefore will not be copied.
   a_scope_ptr            top_scope = il_header.primary_scope;
   a_boolean              any_removed_function_bodies = FALSE;
   a_translation_unit_ptr saved_translation_unit = curr_translation_unit;
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  a_scope_orphaned_list_header_ptr
+                         saved_solh_list=il_header.scope_orphaned_list_headers;
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
   db_enter(1, "copy_secondary_trans_unit_IL_to_primary");
 #if DEBUG
@@ -2009,6 +2053,9 @@ secondary translation unit IL and therefore will not be copied.
   /* Do inline functions first, to allow more chances for inlining. */
   finish_moved_function_processing(top_scope, /*do_inlines=*/TRUE);
   finish_moved_function_processing(top_scope, /*do_inlines=*/FALSE);
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  finish_scope_orphaned_list_processing(saved_solh_list);
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   switch_translation_unit(saved_translation_unit);
   merge_il_headers();
 #if DEBUG
