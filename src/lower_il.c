@@ -7841,7 +7841,11 @@ insert it at *insert_location.
   /* For the partially-lowered EH schemes, generate the cleanup state
      operation since it might be used to build a table instead of being
      considered executable.  */
-  set_curr_cleanup_state(saved_curr_cleanup_state, insert_location);
+  if (exceptions_enabled) {
+    set_curr_cleanup_state(saved_curr_cleanup_state, insert_location);
+  } else {
+    curr_cleanup_state = saved_curr_cleanup_state;
+  }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 }  /* reset_cleanup_state_at_unreachable_end_of_block */
 
