@@ -73,7 +73,7 @@ TMPDIR=${TMPDIR-/tmp}
 # Suffix to be applied to the standard C++ library (libC.a) to select a
 # special version.
 #
-EDG_LIB_SUFFIX=${EDG_LIB_SUFFIX-" "}
+EDG_LIB_SUFFIX=${EDG_LIB_SUFFIX-""}
 #
 # Library names to be used on the link command
 #
