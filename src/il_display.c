@@ -43,6 +43,7 @@ NEED_IL_DISPLAY and a call of il_display should be added in the front end.
 #include "float_pt.h"
 #include "const_ints.h"
 #include "lang_feat.h"
+#include "types.h"
 
 #if STANDALONE_IL_DISPLAY
 
@@ -73,47 +74,6 @@ static void disp_ptr(char             *ptr_name,
                      an_il_entry_kind entry_kind);
 
 
-/* Many support functions and macros that are generally available in the
-   front end are duplicated here so that c_gen_be.c can be compiled
-   independently of a front end. */
-#ifdef CFE
-
-/* Macro to strip tk_typeref entries from a type. */
-#define skip_typerefs(tp)                                             \
-  ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : local_skip_typerefs(tp))
-
-static a_type_ptr local_skip_typerefs(a_type_ptr type_ptr)
-/*
-Strip any typeref entries off the given type to get to the real type, and
-return a pointer to that.  Note that the typeref may have some type
-qualifiers (const, volatile), and they will be dropped here.  Therefore,
-this routine should not be used when checking type qualifiers.  Note
-that ordinarily this routine should not be called directly; use the macro
-"skip_typerefs".
-*/
-{
-  while (type_ptr->kind == (a_type_kind)tk_typeref) {
-    type_ptr = type_ptr->variant.typeref.type;
-#if CHECKING
-    if (type_ptr == NULL) {
-      internal_error("local_skip_typerefs: NULL referenced type");
-    }  /* if */
-#endif /* CHECKING */
-  }  /* while */
-  return(type_ptr);
-}  /* local_skip_typerefs */
-
-#else /* !defined(CFE) */
-
-/* Typerefs are not used, so skip_typerefs does nothing. */
-#define skip_typerefs(tp) (tp)
-
-#endif /* ifdef CFE */
-
-#define is_pointer_type(tp) \
-	(skip_typerefs(tp)->kind == (a_type_kind)tk_pointer)
-
-
 static void disp_string(char    *string_ptr,
                         sizeof_t string_length)
 /*
@@ -127,18 +87,18 @@ Print the string at string_ptr, whose length is string_length.
     (void)printf("NULL");
   } else {
     /* Strings can have unprintable characters, so print them carefully. */
-    putchar('"');
+    (void)printf("\"");
     for (i = 0; i < string_length; i++) {
       ch = string_ptr[i];
       if (isprint((unsigned char)ch)) {
-        if (ch == '"' || ch == '\\') putchar('\\');
+        if (ch == '"' || ch == '\\') (void)printf("\\");
         putchar(ch);
       } else {
         (void)printf("\\%03o",
                      (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
       }  /* if */
     }  /* for */
-    putchar('"');
+    (void)printf("\"");
   }  /* if */
 }  /* disp_string */
 
@@ -205,18 +165,23 @@ Print the name of a float type.
 
 static void disp_type_qualifier(a_type_ptr type)
 /*
-Print a type qualifier.
+Print the type qualifier for the top type of the given type (i.e., just
+the first level).  The type must be a tk_typeref containing a type
+qualifier.
 */
 {
-  a_boolean is_const = FALSE, is_volatile = FALSE;
+  a_boolean previous_qualifier = FALSE;
 
-  for (; type->kind == (a_type_kind)tk_typeref;
-       type = type->variant.typeref.type) {
-    if (type->variant.typeref.is_const) is_const = TRUE;
-    if (type->variant.typeref.is_volatile) is_volatile = TRUE;
-  }  /* for */
-  if (is_const) (void)printf("const ");
-  if (is_volatile) (void)printf("volatile ");
+  check_assertion_str(type->kind == (a_type_kind)tk_typeref,
+                      "disp_type_qualifier: bad type kind");
+  if (type->variant.typeref.is_const) {
+    (void)printf("const");
+    previous_qualifier = TRUE;
+  }  /* if */
+  if (type->variant.typeref.is_volatile) {
+    if (previous_qualifier) (void)printf(" ");
+    (void)printf("volatile");
+  }  /* if */
 }  /* disp_type_qualifier */
 
 #endif /* ifdef CFE */
@@ -300,19 +265,20 @@ do_tag_name:
       }  /* if */
       break;
     case tk_typeref:
-      /* Look at each level of typeref.  If one with a name is found, print
-         the name.  Otherwise, when we reach a non-typeref, print that.
-         Note that type qualifiers are unimportant as far as the code here. */
-      do {
-        if (type->source_corresp.name != NULL) {
-          /* Named typeref (i.e., a typedef).  Print the name. */
-          (void)printf("%s", type->source_corresp.name);
-          goto typeref_done;
-        }  /* if */
-        type = type->variant.typeref.type;
-      } while (type->kind == (a_type_kind)tk_typeref);
-      disp_type_specifier(type);
-typeref_done:
+      if (is_immediate_type_qualifier(type)) {
+        /* The top type is a type qualifier.  Output it and move on to the
+           underlying type. */
+        disp_type_qualifier(type);
+        (void)printf(" ");
+        disp_type_specifier(type->variant.typeref.type);
+      } else if (type->source_corresp.name == NULL) {
+        /* This is an internally generated typeref, so just output the
+           underlying type. */
+        disp_type_specifier(type->variant.typeref.type);
+      } else {
+        /* A typedef; output its name. */
+        (void)printf("%s", type->source_corresp.name);
+      }  /* if */
       break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -367,86 +333,145 @@ typeref_done:
   }  /* switch */
 }  /* disp_type_specifier */
 
+#ifdef CFE
 
-static void disp_type_first_part(a_type_ptr type,
-                                 a_boolean  need_parens)
+static void disp_pointer_type_qualifiers(a_type_ptr qual_type,
+                                         a_type_ptr type)
 /*
-Print the first of possibly two parts of a type reference.
+Generate type qualifiers, if any, to follow a pointer "*", reference "&",
+or pointer-to-member "name::*".  qual_type is the full pointer type,
+and type is the unqualified version of that type (e.g., the tk_pointer
+entry).
 */
 {
-  a_type_ptr local_type;
+  for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
+    /* Put out a type qualifier. */
+    disp_type_qualifier(qual_type);
+    (void)printf(" ");
+  }  /* for */
+}  /* disp_pointer_type_qualifiers */
 
-  /* For the pointer case, ignore any typerefs that provide qualifiers
-     on the indirection. */
-  if (is_pointer_type(type)) {
-    local_type = skip_typerefs(type)->variant.pointer.type;
-    /* Recursive call to print out any lower indirections. */
-    disp_type_first_part(local_type, /*need_parens=*/TRUE);
-    /* Print out the star for this indirection. */
+#endif /* ifdef CFE */
+
+static void disp_type_first_part(a_type_ptr type,
+                                 a_boolean  under_lhs_declarator,
+                                 a_boolean  need_trailing_space)
+/*
+For the indicated type, output the specifiers and the part of the declarator
+that precedes the name.  If under_lhs_declarator is TRUE, this type is
+directly under a type that uses a left-side declarator, e.g., a pointer type.
+(That's used to control use of parentheses around parts of the declarator.)
+If need_trailing_space is TRUE, put a space at the end of the specifiers
+part (needed if the declarator part is not empty, because it contains a
+name or a derived type).
+*/
+{
+  a_type_kind kind;
+  a_type_ptr  qual_type;
+
+  qual_type = type;
 #ifdef CFE
-    if (skip_typerefs(type)->variant.pointer.is_reference) {
-      /* This is a C++ reference type */
-      putchar('&');
+  /* Remove type qualifiers but not typedefs. */
+  while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
+#endif /* ifdef CFE */
+  kind = type->kind;
+  if (kind == (a_type_kind)tk_pointer) {
+    /* Pointer or reference type. */
+    disp_type_first_part(type->variant.pointer.type,
+                         /*under_lhs_declarator=*/TRUE,
+                         /*need_trailing_space=*/TRUE);
+    /* Output "*" or "&" for pointer or reference. */
+#ifdef CFE
+    if (type->variant.pointer.is_reference) {
+      (void)printf("&");
     } else {
 #endif /* ifdef CFE */
-      putchar('*');
+      (void)printf("*");
 #ifdef CFE
     }  /* if */
-    disp_type_qualifier(type);
+    /* Output the type qualifiers on the pointer, if any. */
+    disp_pointer_type_qualifiers(qual_type, type);
 #endif /* ifdef CFE */
-    if (need_parens) putchar('(');
 #ifdef CFE
-  } else if (type->kind == (a_type_kind)tk_array) {
-    disp_type_first_part(type->variant.array.element_type,
-                         /*need_parens=*/TRUE);
-    if (need_parens) putchar('(');
   } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
-    /* C++ pointer to member type */
-
+    /* Pointer-to-member type. */
     a_type_ptr tptr = type->variant.ptr_to_member.class_of_which_a_member;
-
     disp_type_first_part(type->variant.ptr_to_member.type,
-                         /*needs_parens=*/TRUE);
-    if (tptr != NULL && tptr->source_corresp.name != NULL) {
+                         /*under_lhs_declarator=*/TRUE,
+                         /*need_trailing_space=*/TRUE);
+    if (tptr->source_corresp.name != NULL) {
       (void)printf("%s", tptr->source_corresp.name);
     }  /* if */
     (void)printf("::*");
-    if (need_parens) putchar('(');
+    /* Output the type qualifiers on the pointer, if any. */
+    disp_pointer_type_qualifiers(qual_type, type);
 #endif /* ifdef CFE */
   } else if (type->kind == (a_type_kind)tk_routine) {
     disp_type_first_part(type->variant.routine.return_type,
-                         /*need_parens=*/TRUE);
-    if (need_parens) putchar('(');
-  } else {
+                         /*under_lhs_declarator=*/FALSE,
+                         /*need_trailing_space=*/TRUE);
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) (void)printf("(");
 #ifdef CFE
-    disp_type_qualifier(type);
+  } else if (kind == (a_type_kind)tk_array) {
+    disp_type_first_part(type->variant.array.element_type,
+                         /*under_lhs_declarator=*/FALSE,
+                         /*need_trailing_space=*/TRUE);
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) (void)printf("(");
 #endif /* ifdef CFE */
-    disp_type_specifier(type);
-    if (need_parens) putchar(' ');
+  } else {
+    /* No declarator part to process.  Handle the specifier type. */
+    disp_type_specifier(qual_type);
+    if (need_trailing_space) (void)printf(" ");
   }  /* if */
 }  /* disp_type_first_part */
 
 
 static void disp_type_second_part(a_type_ptr type,
-                                  a_boolean  need_parens)
+                                  a_boolean  under_lhs_declarator)
 /*
-Print out the second part of a type reference.  If it's a pointer, just
-continue to look for the base type.  If it's an array, print out the
-dimension information.
+Output the second part of a type reference, the part of the declarator
+that follows the name.  If under_lhs_declarator is TRUE, this type is
+directly under a type that uses a left-side declarator, e.g., a pointer type.
+(That's used to control use of parentheses around parts of the declarator.)
 */
 {
-  a_type_ptr local_type;
+  a_type_kind kind;
 
-  /* For the pointer case, ignore any typerefs that provide qualifiers
-     on the indirection. */
-  if (is_pointer_type(type)) {
-    local_type = skip_typerefs(type);
-    if (need_parens) putchar(')');
-    disp_type_second_part(local_type->variant.pointer.type,
-                          /*need_parens=*/TRUE);
+#ifdef CFE
+  /* Remove type qualifiers but not typedefs. */
+  while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
+#endif /* ifdef CFE */
+  kind = type->kind;
+  if (kind == (a_type_kind)tk_pointer) {
+    /* Pointer or reference type. */
+    disp_type_second_part(type->variant.pointer.type,
+                          /*under_lhs_declarator=*/TRUE);
+#ifdef CFE
+  } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
+    /* Pointer-to-member type. */
+    disp_type_second_part(type->variant.ptr_to_member.type,
+                          /*under_lhs_declarator=*/TRUE);
+#endif /* ifdef CFE */
+  } else if (type->kind == (a_type_kind)tk_routine) {
+    /* Function type. */
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) (void)printf(")");
+    /* No detailed information on parameter types is provided, since this
+       is just a summary. */
+    (void)printf("()");
+    disp_type_second_part(type->variant.routine.return_type,
+                          /*under_lhs_declarator=*/FALSE);
 #ifdef CFE
   } else if (type->kind == (a_type_kind)tk_array) {
-    if (need_parens) putchar(')');
+    /* Array type. */
+    /* This is a right-side declarator, so if it's under a left-side declarator
+       parentheses are needed. */
+    if (under_lhs_declarator) (void)printf(")");
     if (type->variant.array.variant.number_of_elements == 0) {
       (void)printf("[]");
     } else {
@@ -454,18 +479,8 @@ dimension information.
                                                    variant.number_of_elements);
     }  /* if */
     disp_type_second_part(type->variant.array.element_type,
-                          /*need_parens=*/TRUE);
-  } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
-    /* C++ pointer to member type */
-    if (need_parens) putchar(')');
-    disp_type_second_part(type->variant.ptr_to_member.type,
-                          /*needs_parens=*/TRUE);
+                          /*under_lhs_declarator=*/FALSE);
 #endif /* ifdef CFE */
-  } else if (type->kind == (a_type_kind)tk_routine) {
-    if (need_parens) putchar(')');
-    (void)printf("()");
-    disp_type_second_part(type->variant.routine.return_type,
-                          /*need_parens=*/TRUE);
   }  /* if */
 }  /* disp_type_second_part */
 
@@ -475,8 +490,9 @@ static void summarize_type(a_type *tp)
 Print a short version of the type at *tp.
 */
 {
-  disp_type_first_part(tp, /*need_parens=*/FALSE);
-  disp_type_second_part(tp, /*need_parens=*/FALSE);
+  disp_type_first_part(tp, /*under_lhs_declarator=*/FALSE,
+                       /*need_trailing_space=*/FALSE);
+  disp_type_second_part(tp, /*under_lhs_declarator=*/FALSE);
 }  /* summarize_type */
 
 
