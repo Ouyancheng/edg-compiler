@@ -2454,7 +2454,7 @@ do_assoc_type:
            iek_namelist_group);
 #endif /* ifdef FFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  disp_ptr("source_sequence_list", (char *)ptr->source_sequence_entry,
+  disp_ptr("source_sequence_list", (char *)ptr->source_sequence_list,
            iek_source_sequence_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_scope */
