@@ -4318,7 +4318,7 @@ declaration following this one is such a continuation.
                                          (a_name_reference_ptr)NULL);
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit any attributes associated with the typedef. */
-      write_type_attributes(type);
+      write_type_attributes(type->variant.typeref.type);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */

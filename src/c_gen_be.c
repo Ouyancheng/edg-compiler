@@ -2309,7 +2309,7 @@ Print a typedef declaration.
                                   &type->source_corresp);
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit any attributes associated with the typedef. */
-      write_type_attributes(type);
+      write_type_attributes(type->variant.typeref.type);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
     }  /* if */

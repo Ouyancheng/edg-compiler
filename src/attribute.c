@@ -1419,14 +1419,14 @@ messages about any invalid attributes.
 
 
 static void apply_one_attribute_to_type(an_attribute_ptr  ap,
-                                        a_type_ptr        tp,
+                                        a_type_ptr        type,
                                         a_boolean         is_typedef)
 /*
 Apply the attribute ap to the type tp.  If this attribute is applied through
 a typedef, is_typedef is TRUE.
 */
 {
-  a_type_ptr  mode_type;
+  a_type_ptr  mode_type, tp = skip_typerefs(type);
 
   switch (ap->kind) {
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -1434,8 +1434,13 @@ a typedef, is_typedef is TRUE.
       /* Set the alignment here.  When the actual class layout, or
          choice of integral type, is performed the value indicated
          here will be honored. */
-      tp->alignment = ap->variant.alignment;
-      tp->alignment_set_explicitly = TRUE;
+      if (is_typedef && (is_class_struct_union_type(tp) ||
+                         is_enum_type(tp))) {
+        pos_warning(ec_attribute_ignored_on_typedef, &ap->position);
+      } else {
+        tp->alignment = ap->variant.alignment;
+        tp->alignment_set_explicitly = TRUE;
+      }  /* if */
       break;
     case ak_packed:
       if (is_typedef) {
@@ -1475,14 +1480,15 @@ a typedef, is_typedef is TRUE.
       }  /* if */
       break;
     case ak_unused:
-      tp->variables_are_implicitly_referenced = TRUE;
+      /* If this is a typedef, the attribute is attached to it rather than
+         to the underlying type. */
+      type->variables_are_implicitly_referenced = TRUE;
       break;
     case ak_noreturn:
     case ak_const:
       /* GCC allows "noreturn" and "const" to apply to
          pointer-to-function types.  GCC does not accept "pure" in
          this context, even though it is conceptually similar. */
-      /* Recall that tp is not a typeref here. */
       if (!is_pointer_type(tp) || !is_function_type(type_pointed_to(tp))) {
         pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
       } else {
@@ -1503,22 +1509,20 @@ a typedef, is_typedef is TRUE.
       {
         /* If tp is a typedef, the transparent_union attribute applies to
            the underlying type. */
-        a_type_ptr  underlying_type = skip_typerefs(tp);
-        if (underlying_type->kind != (a_type_kind)tk_union) {
-          pos_ty_error(ec_transparent_type_is_not_union,
-                       &ap->position, tp);
-        } else if (is_typedef && is_incomplete_type(underlying_type)) {
+        if (tp->kind != (a_type_kind)tk_union) {
+          pos_ty_error(ec_transparent_type_is_not_union, &ap->position, type);
+        } else if (is_typedef && is_incomplete_type(tp)) {
           pos_warning(ec_transparent_attribute_ignored, &ap->position);
         } else if (!is_typedef) {
           /* We cannot do any checking in the non-typedef case because
              the type has not yet been laid out.  When do_class_layout
              processes the type, it will call check_transparent_union 
              to make sure that the attribute is legal. */
-          underlying_type->variant.class_struct_union.is_transparent = TRUE;
-        } else if (check_transparent_union(underlying_type, &ap->position)) {
+          tp->variant.class_struct_union.is_transparent = TRUE;
+        } else if (check_transparent_union(tp, &ap->position)) {
           /* In the typedef case, the type has already been laid out
              so we can do the check now. */
-          underlying_type->variant.class_struct_union.is_transparent = TRUE;
+          tp->variant.class_struct_union.is_transparent = TRUE;
         }  /* if */
       }
       break;
@@ -1631,8 +1635,7 @@ For certain underlying types (e.g., routine types) it is safe to make
 a copy of that type and the attributes can be applied to that copy.
 For unnamed class and enum types that acquire a name through the typedef,
 linkage_name is TRUE and the attributes can be applied directly to the
-underlying type.  For typedefs of named classes and enums, some attributes
-are silently dropped and the others apply to the typedef itself.
+underlying type.
 */
 {
   a_type_ptr        dst, underlying_type = skip_typerefs(tp);
