@@ -19,6 +19,7 @@ statements.c -- Scanning of statements.
 #include "statements.h"
 #include "debug.h"
 #include "decls.h"
+#include "disambig.h"
 #include "lexical.h"
 #include "error.h"
 #include "expr.h"

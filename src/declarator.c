@@ -19,6 +19,7 @@ declarator.c -- Scanning of declarators.
 #include "const_ints.h"
 #include "decls.h"
 #include "decl_spec.h"
+#include "disambig.h"
 #include "error.h"
 #include "il.h"
 #include "templates.h"
