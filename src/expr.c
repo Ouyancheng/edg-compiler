@@ -6313,10 +6313,12 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                             make_node_from_operand(&operand_2);
     result->variant.expression->variant.operation.operands->next->next =
                                             make_node_from_operand(&operand_3);
-    /* The result is an lvalue if the second and third operands are. */
+    /* The result is an lvalue in C++ if the second and third operands are. */
     if (result_is_an_lvalue) {
       result->state = (an_operand_state)os_lvalue;
       result->type = type_pointed_to(result_type);
+      result->variant.expression->variant.operation.
+                                 returns_lvalue_instead_of_usual_rvalue = TRUE;
     }  /* if */
   }  /* if */
 
@@ -6765,6 +6767,8 @@ EOPT_DISALLOW_COMMA_OPERATOR).
         result->state = operand_2.state;
         result->type = operand_2.type;
         result->came_from_reference = operand_2.came_from_reference;
+        result->variant.expression->variant.operation.
+                                 returns_lvalue_instead_of_usual_rvalue = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
