@@ -712,8 +712,12 @@ unit, in case multiple source files are allowed.
 #if CHECKING
   check_target_configuration();
 #endif /* CHECKING */
+  class_decl_one_time_init();
+  def_arg_one_time_init();
   il_one_time_init();
+  statements_one_time_init();
   symbol_tbl_one_time_init();
+  templates_one_time_init();
 }  /* fe_one_time_init */
 
 
