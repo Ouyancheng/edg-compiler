@@ -1545,6 +1545,7 @@ common_cfront_mode_settings:
         /* Enable/disable warnings when new for-init scoping gives different
            visibility than old rules. */
         warning_on_for_init_difference = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -1622,6 +1623,9 @@ common_cfront_mode_settings:
     if (option_kind_used[(int)optk_old_for_init]) {
       command_line_error(ec_cl_old_for_init_option_only_in_cplusplus);
     }  /* if */
+    if (option_kind_used[(int)optk_for_init_diff_warning]) {
+      command_line_error(ec_cl_for_init_diff_warning_option_only_in_cplusplus);
+    }  /* if */
     /* Turn on features implied by SVR4 C mode. */
     if (SVR4_C_mode) {
       address_of_ellipsis_allowed = TRUE;
@@ -1642,6 +1646,7 @@ common_cfront_mode_settings:
     }  /* if */
     special_subscript_cost = FALSE;  /* Not really needed. */
     use_nonstandard_for_init_scope = TRUE;  /* Not really needed. */
+    warning_on_for_init_difference = FALSE;
   } else {
     /* The dialect is C++. */
     /* Reset the SVR4 C compatibility flag just in case it is set by
@@ -1800,6 +1805,9 @@ common_cfront_mode_settings:
        enabled. */
     allow_nonconst_ref_anachronism = TRUE;
   }  /* if */
+  /* warning_on_for_init_difference may be TRUE only if the new for-init
+     scoping rules are in effect. */
+  if (use_nonstandard_for_init_scope) warning_on_for_init_difference = FALSE;
   /* Choose the style of preprocessing.  PCC preprocessing is always done
      in PCC mode, and may also be done in other modes if specified
      by a command line option. */
