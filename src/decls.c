@@ -5656,16 +5656,25 @@ caution when modifying this routine.
             /* Pop out to the containing scope -- file scope, function scope,
                or block scope.  *effective_decl_level will already have been
                initialized to decl_scope_level. */
-            while (scope_stack[*effective_decl_level].kind ==
-                                   (a_scope_kind)sck_class_struct_union ||
-                   scope_stack[*effective_decl_level].kind ==
-                                   (a_scope_kind)sck_func_prototype ||
-                   scope_stack[*effective_decl_level].kind ==
-                                   (a_scope_kind)sck_template_instantiation ||
-                   scope_stack[*effective_decl_level].kind ==
-                                   (a_scope_kind)sck_template_declaration) {
+            a_scope_kind	kind;
+            while (kind = scope_stack[*effective_decl_level].kind,
+                   kind == (a_scope_kind)sck_class_struct_union ||
+                   kind == (a_scope_kind)sck_func_prototype ||
+                   kind == (a_scope_kind)sck_template_declaration) {
               (*effective_decl_level)--;
             }  /* while */
+            if (kind == (a_scope_kind)sck_template_instantiation) {
+              /* We hit a template instantiation scope.  If the
+                 instantiation scope is for a real instantiation then
+                 set effective_decl_level to file scope.  If it is a
+                 prototype or nonreal instantiation then leave
+                 effective_decl_level pointing at the instantiation scope. */
+              a_symbol_ptr instance_sym;
+              instance_sym = scope_stack[*effective_decl_level].instance_sym;
+              if (instance_sym == NULL || is_real_class_symbol(instance_sym)) {
+                *effective_decl_level = DEPTH_OF_FILE_SCOPE;
+              }  /* if */
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
