@@ -585,7 +585,9 @@ typedef enum /*an_error_code*/ {
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   ec_cannot_create_instantiation_information_file,
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  ec_non_arith_operation_in_templ_arg
+  ec_non_arith_operation_in_templ_arg,
+  ec_function_returning_local_type,
+  ec_local_type_not_allowed
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
