@@ -250,7 +250,7 @@ Dump a member function (a routine entry), for debug purposes.
   db_access_control(rp->source_corresp.access);
   fputs(" member function \"", f_debug);
   db_name(&rp->source_corresp);
-  fputs("\", type = ", f_debug);
+  fputs("\",\n     type = ", f_debug);
   db_abbreviated_type(rp->type);
   fputc('\n', f_debug);
 }  /* db_static_data_member */
@@ -392,14 +392,8 @@ class_struct_union:
         fputs(" old-style", f_debug);
       }  /* if */
       fputs("(", f_debug);
-      if (tp->variant.routine.extra_info->implicit_this_param_type != NULL) {
-	fputs("(\"this\":) ", f_debug);
-        db_type(tp->variant.routine.extra_info->implicit_this_param_type);
-	comma_required = TRUE;
-      } else {
-	comma_required = FALSE;
-      }  /* if */
       ptp = tp->variant.routine.extra_info->param_type_list;
+      comma_required = FALSE;
       while (ptp != NULL) {
 	if (comma_required) fputs(", ", f_debug);
         db_type(ptp->type);
@@ -410,7 +404,14 @@ class_struct_union:
 	if (comma_required) fputs(", ", f_debug);
         fputs("...", f_debug);
       }  /* if */
-      fputs(") returning ", f_debug);
+      fputc(')', f_debug);
+      if (tp->variant.routine.extra_info->implicit_this_param_type != NULL) {
+	fputs(", this = ", f_debug);
+        db_abbreviated_type(tp->variant.routine.extra_info->
+						implicit_this_param_type);
+        fputc(',', f_debug);
+      }  /* if */
+      fputs(" returning ", f_debug);
       db_type(tp->variant.routine.return_type);
       break;
     case tk_typeref:
