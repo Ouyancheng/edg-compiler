@@ -398,7 +398,7 @@ Print a candidate function entry for debugging purposes.
     /* Built-in operator case. */
     fprintf(f_debug, "Built-in %s", cfp->operand_type_pattern);
     if (cfp->pointer_type != NULL) {
-      fprintf(f_debug, "pointer_type = ");
+      fprintf(f_debug, ", pointer_type = ");
       db_type(cfp->pointer_type);
     }  /* if */
     fprintf(f_debug, "\n");
@@ -4099,6 +4099,7 @@ that must have the same type.
       /* Do array --> pointer and function --> pointer transformations. */
       operand_type = do_implicit_type_transformations(operand_type,
                                                       &arg_operand->operand);
+      operand_type = skip_typerefs(operand_type);
       if (is_pointer_type(operand_type)) {
         pointer_type = operand_type;
         /* If the type has been previously handled, ignore it. */

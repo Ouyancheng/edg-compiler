@@ -1,5 +1,26 @@
 Version 2.24
 
+6/6/94  Overload resolution, built-in operators, and typedefs
+
+A bug in overload resolution has been fixed.  Typedefs of a pointer type
+could cause a false ambiguity:
+
+  extern "C" void printf( const char*, ... );
+  typedef int* Widget;
+  struct Foo {
+     Widget _data;
+     operator Widget() { return _data; }
+  };
+  int main()
+  {
+     Widget p = 0;
+     Foo*   f = new Foo;
+     if ( p == *f ) { // Error here, now fixed.
+        printf( "FAIL.\n" );
+     }
+  }
+
+
 6/2/94  Cfront compatibility disambiguation regression
 
 In cfront mode, version 2.23 interpreted certain constructs as
