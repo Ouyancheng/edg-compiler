@@ -117,7 +117,7 @@ typedef void (*a_copy_constructor_ptr)(void*, void*);
 			/* Type of a copy constructor called from
 			   vec_cctor. */
 
-EXTERN_C void __default_new_handler(void);
+extern void __default_new_handler(void);
 			/* The default new handler routine. */
 
 EXTERN_C STD_NAMESPACE::new_handler

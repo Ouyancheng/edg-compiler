@@ -19,7 +19,7 @@ C++ default new handler.
 #include "runtime.h"
 #include "new.h"
 
-EXTERN_C void __default_new_handler(void)
+extern void __default_new_handler(void)
 /*
 The default new handler routine that is called when operator new cannot
 allocate memory.  When exceptions are enabled, this routine simply throws

@@ -41,8 +41,12 @@ calls of operator new.
 
   if (size == 0) size = 1;
   while ((ptr = (void *)malloc(size)) == NULL) {
-    /* The allocation failed -- call the current new handler routine. */
-    (*_new_handler) ();
+    /* The allocation failed -- call the current new handler routine.  Use
+       the routine pointed to by _new_handler.  If this value is NULL, use
+       the default new handler. */
+    STD_NAMESPACE::new_handler	new_handler;
+    new_handler = _new_handler != NULL ? _new_handler : __default_new_handler;
+    (*new_handler) ();
 #if !EXCEPTION_HANDLING
     /* A new handler is supposed to make more memory available, or to exit
        via an exception or by calling abort() or exit().  In order to support
@@ -50,7 +54,7 @@ calls of operator new.
        returning a NULL value is supported by the default new handler.
        If the default new handler is being used, and exceptions are not
        enabled, return a NULL pointer. */
-    if (_new_handler == (STD_NAMESPACE::new_handler)__default_new_handler) {
+    if (new_handler == (STD_NAMESPACE::new_handler)__default_new_handler) {
       return (void *)NULL;
     }  /* if */
 #endif /* EXCEPTION_HANDLING */
