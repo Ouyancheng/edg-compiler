@@ -817,6 +817,13 @@ Transform the given cast expression into a function call (compatible with C89).
       /* Lower the complex zero constant. */
       lower_c99_expr(expr->variant.operation.operands->next);
       lower_c99_xne(expr);
+    } else if (is_operation_node(expr) &&
+               expr->variant.operation.kind == (an_expr_operator_kind)eok_fne&&
+               is_imaginary_type(
+                               expr->variant.operation.operands->next->type)) {
+      /* Do further lowering for imaginary != 0. */
+      /* Lower the imaginary zero constant. */
+      lower_c99_expr(expr->variant.operation.operands->next);
     }  /* if */
 #endif /* LOWER_COMPLEX */
 #if LOWER_COMPLEX

@@ -1,5 +1,11 @@
 Version 2.46
 
+2/9/01   C99 lowering of cast of imaginary to bool
+
+The code produced by C99 lowering of a cast from imaginary to bool
+compares the operand to a zero constant.  The constant had imaginary
+type, however, and should have real type.  Now fixed.
+
 2/9/01   C99 mode: sign inversion in imaginary divide operation
 
 In C99 mode, the division of a real floating point value by an imaginary
