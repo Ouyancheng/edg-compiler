@@ -2185,6 +2185,7 @@ bound with the function in *bound_function_selector.
        if there was an error in the first operand, make an error operand out
        of the result. */
     make_error_operand(result);
+    change_refs_to_error(operand_1->ref_entries_list);
   } else if (is_vacuous_destructor_reference) {
     an_expr_node_ptr node;
     /* A reference to a destructor for a class or simple type that does not
