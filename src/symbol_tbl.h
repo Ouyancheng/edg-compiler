@@ -2471,7 +2471,7 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
    is_class_symbol(sym) ||                                            \
    (sym)->kind == (a_symbol_kind)sk_namespace ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type &&                          \
-    (sym)->variant.type->kind == (a_type_kind)tk_template_param))
+    is_template_param_type((sym)->variant.type)))
 
 /* Return TRUE if the symbol is a template class symbol. */
 #define is_template_class_symbol(sym)				      \

@@ -1,5 +1,23 @@
 Version 2.31
 
+12/19/95  Typedef to template parameter used in qualified name
+
+A bug has been fixed that caused a spurious error when a typedef
+that refers to a template parameter was used in as part of a qualified
+name.
+
+  struct A { 
+    typedef int size_type; 
+  };
+  template <class T> struct B {
+    typedef T T_type;
+    typedef T_type::size_type size_type;  // Spurious error here
+  };
+  int main()
+  {
+   B<A> b;
+  }
+
 12/18/95  Calculating "reachability" at exit of switch statement
 
 In the following rather obscure case, "reachability" was computed
