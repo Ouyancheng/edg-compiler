@@ -681,7 +681,7 @@ EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
 
 static a_boolean is_overloadable_type_operand(an_operand *operand)
 /*
-Return TRUE if the given operand a type for which operator overloading
+Return TRUE if the given operand has a type for which operator overloading
 should be considered.  Also return TRUE for template-dependent operands
 in a prototype instantiation, because they might be overloadable (and
 we want to go to check_for_operator_overloading to handle that).
@@ -692,7 +692,8 @@ we want to go to check_for_operator_overloading to handle that).
                               (operator_overloading_on_enums_enabled &&
                                is_enum_type(operand->type)) ||
                               (is_template_dependent_context() &&
-                               is_template_dependent_type(operand->type));
+                               is_template_param_or_nonreal_class_type(
+                                                               operand->type));
   return is_overloadable;
 }  /* is_overloadable_type_operand */
 

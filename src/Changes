@@ -1,5 +1,23 @@
 Version 3.0
 
+4/10/02  (*this) incorrectly viewed as dependent in prototype instantiation
+
+In prototype instantiations of functions (done in strict mode, not
+usually by default), the front end incorrectly concluded that
+the expression (*this) might involve an overloaded operator* in
+a real instantiation.  This is incorrect, because an overloaded
+operator requires an operand of class or enum type, and this
+expression's only operand has pointer type.  A consequence of this
+mistake was that a call like
+
+  f((*this).x);
+
+was treated as dependent, unlike the supposedly equivalent
+
+  f(this->x);
+
+This is now fixed.
+
 4/8/02   __INFINITY__ and __NAN__ available in all modes
 
 The EDG extensions __INFINITY__ and __NAN__, which represent the
