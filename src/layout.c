@@ -547,7 +547,16 @@ aligned according to container_alignment.
 #if TARG_BIT_FIELD_CONTAINER_SIZE == TARG_SIZEOF_LONG
     container_alignment = TARG_ALIGNOF_LONG;
 #else
-error -- TARG_BIT_FIELD_CONTAINER_SIZE in target.h is set wrong.
+#if LONG_LONG_ALLOWED
+#if TARG_BIT_FIELD_CONTAINER_SIZE == TARG_SIZEOF_LONG_LONG
+#define QQ_USE_LONG_LONG
+#endif
+#endif
+#ifdef QQ_USE_LONG_LONG
+    container_alignment = TARG_ALIGNOF_LONG_LONG;
+#else
+??=error -- TARG_BIT_FIELD_CONTAINER_SIZE in target.h is set wrong.
+#endif
 #endif
 #endif
 #endif
@@ -601,6 +610,12 @@ error -- TARG_BIT_FIELD_CONTAINER_SIZE in target.h is set wrong.
         /* Long. */
         container_size      = TARG_SIZEOF_LONG;
         container_alignment = TARG_ALIGNOF_LONG;
+#if LONG_LONG_ALLOWED
+      } else if (container_size <= TARG_SIZEOF_LONG_LONG) {
+        /* Long long. */
+        container_size      = TARG_SIZEOF_LONG_LONG;
+        container_alignment = TARG_ALIGNOF_LONG_LONG;
+#endif /* LONG_LONG_ALLOWED */
 #if CHECKING
       } else {
         internal_error("align_offsets_for_bit_field: size is too big");

@@ -969,6 +969,13 @@ set, leave it alone.  Also compute and set the alignment requirement.
             size = TARG_SIZEOF_LONG;
             alignment = TARG_ALIGNOF_LONG;
             break;
+#if LONG_LONG_ALLOWED
+          case ik_long_long:
+          case ik_unsigned_long_long:
+            size = TARG_SIZEOF_LONG_LONG;
+            alignment = TARG_ALIGNOF_LONG_LONG;
+            break;
+#endif /* LONG_LONG_ALLOWED */
 #if CHECKING
           default:
             internal_error("set_type_size: bad integer kind");
@@ -1090,6 +1097,10 @@ do_signed_char:;
       case ik_unsigned_int:
       case ik_long:
       case ik_unsigned_long:
+#if LONG_LONG_ALLOWED
+      case ik_long_long:
+      case ik_unsigned_long_long:
+#endif /* LONG_LONG_ALLOWED */
         /* These are deliberately left as they are; they are not supposed
            to be promoted. */
         break;
@@ -1724,6 +1735,10 @@ that is not required to be checked by the ANSI C standard.
         ikind1 = (an_integer_kind)ik_int;
       } else if (ikind1 == (an_integer_kind)ik_unsigned_long) {
         ikind1 = (an_integer_kind)ik_long;
+#if LONG_LONG_ALLOWED
+      } else if (ikind1 == (an_integer_kind)ik_unsigned_long_long) {
+        ikind1 = (an_integer_kind)ik_long_long;
+#endif /* LONG_LONG_ALLOWED */
       }  /* if */
       ikind2 = type_2->variant.integer.int_kind;
       if (ikind2 == (an_integer_kind)ik_signed_char ||
@@ -1735,6 +1750,10 @@ that is not required to be checked by the ANSI C standard.
         ikind2 = (an_integer_kind)ik_int;
       } else if (ikind2 == (an_integer_kind)ik_unsigned_long) {
         ikind2 = (an_integer_kind)ik_long;
+#if LONG_LONG_ALLOWED
+      } else if (ikind2 == (an_integer_kind)ik_unsigned_long_long) {
+        ikind2 = (an_integer_kind)ik_long_long;
+#endif /* LONG_LONG_ALLOWED */
       }  /* if */
       /* If the underlying kinds are the same, the types are
          interchangeable. */
