@@ -1374,6 +1374,26 @@ current expression kind.  This routine is called only in C++ mode.
 }  /* make_this_pointer_operand */
 
 
+static a_routine_ptr routine_from_function_operand(an_operand *operand)
+/*
+operand is the operand identifying the function to call in a normal call.
+If it is possible to determine the specific function being called, return
+a pointer to its routine entry.  Otherwise, return NULL.
+*/
+{
+  a_routine_ptr    routine = NULL;
+  an_expr_node_ptr node;
+
+  if (is_expression_operand(operand)) {
+    node = operand->variant.expression;
+    if (is_routine_address_node(node)) {
+      routine = node->variant.routine;
+    }  /* if */
+  }  /* if */
+  return routine;
+}  /* routine_from_function_operand */
+
+
 static void scan_function_call(an_operand         *operand,
                                an_operand         *bound_function_selector,
 			       an_operand         *result,
@@ -1400,6 +1420,7 @@ Syntax:
                     this_match_summary;
   an_arg_operand_ptr
                     arg_operand_list;
+  a_routine_ptr     routine = NULL;
 
   db_enter(4, "scan_function_call");
 
@@ -1448,6 +1469,7 @@ Syntax:
                                        operand->xref_entries_list,
                                        operand);
       conv_function_designator_to_ptr_to_function(operand, expression_kind);
+      routine = func_sym->variant.routine;
       routine_type = routine_symbol_type(func_sym);
     } else if (is_indefinite_function_operand(operand)) {
       /* Overloaded function.  That means the routine type is not known yet. */
@@ -1471,6 +1493,9 @@ Syntax:
         routine_type = pm_member_type(operand->type);
       } else if (check_function_pointer_operand(operand)) {
         routine_type = type_pointed_to(operand->type);
+        /* If we can tell which routine is being called, set routine to
+           the routine entry.  Otherwise, leave it NULL. */
+        routine = routine_from_function_operand(operand);
       }  /* if */
     }  /* if */
     if (expression_kind != (an_expression_kind)ek_not_evaluated) {
@@ -1523,6 +1548,7 @@ Syntax:
       selector_match_with_this_param(bound_function_selector,
                                      /*selector_is_object_pointer=*/TRUE,
                                      /*operator_function_case=*/FALSE,
+                                     routine,
                                      routine_type, &this_match_summary);
       if (this_match_summary.match_level != aml_none) {
         /* The types are compatible.  No cast is required; if there's a

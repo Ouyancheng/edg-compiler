@@ -4735,6 +4735,7 @@ void selector_match_with_this_param(
                                an_operand           *bound_function_selector,
                                a_boolean            selector_is_object_pointer,
                                a_boolean            operator_function_case,
+                               a_routine_ptr        rout,
                                a_type_ptr           routine_type,
                                an_arg_match_summary *this_match_summary)
 /*
@@ -4743,7 +4744,10 @@ matches the "this" parameter of the routine type indicated by *routine_type.
 If selector_is_object_pointer is TRUE, *bound_function_selector has
 already been converted to object pointer form.  Otherwise, it's just
 an object (lvalue or rvalue).  Return the match summary in *this_match_summary.
-A special case: constructors and destructors can be called for const- and
+If the specific routine being called is known, rout points to the
+routine entry; otherwise, rout is NULL.  rout must be non-NULL when
+calling a constructor or destructor, so that those can be treated as a
+special case: constructors and destructors can be called for const- and
 volatile-qualified objects even though they themselves are not (and
 cannot be) const- or volatile-qualified.  If operator_function_case
 is TRUE, the underlying type of the selector is assumed to be the proper
@@ -4755,7 +4759,9 @@ class or a derived class thereof (except for error cases).
   a_type_ptr ptr_selector_type, const_this_param_type;
 
   db_enter(4, "selector_match_with_this_param");
-  if (routine_type->variant.routine.extra_info->constructor_or_destructor) {
+  if (rout != NULL &&
+      (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+       rout->special_kind == (a_special_function_kind)sfk_destructor)) {
     /* The routine is a constructor or destructor, so the check is
        suppressed. */
     clear_arg_match_summary(this_match_summary);
@@ -4989,6 +4995,7 @@ message.
           selector_match_with_this_param(bound_function_selector,
                                          selector_is_object_pointer,
                                          overloaded_operator_case,
+                                         function_symbol->variant.routine,
                                          routine_type, this_match);
           /* Set the "next" pointer again, because it is cleared by
              selector_match_with_this_param. */
@@ -6048,6 +6055,7 @@ This routine is only used in C++ mode.
       selector_match_with_this_param(source_operand,
                                      /*selector_is_object_pointer=*/FALSE,
                                      /*operator_function_case=*/TRUE,
+                                     base_conversion_symbol->variant.routine,
                                      conv_routine_type,
                                      &this_match);
       /* Ignore this function if it cannot be called for this argument. */
