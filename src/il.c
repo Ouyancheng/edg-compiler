@@ -1259,6 +1259,14 @@ Dump the contents of the indicated expression node for debug purposes.
       }  /* switch */
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+      /* Node generated as part of the body of an entry function used
+         as a wrapper for a call of an overriding virtual function
+         with a covariant return type. */
+      fputs("result of overriding function\n", f_debug);
+      break;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     case enk_error:
       fputs("error node\n", f_debug);
       break;
@@ -1602,6 +1610,11 @@ dumping other structures to which the node belongs.
         fprintf(f_debug, " (lowered eh construct)");
         break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+      case enk_result_of_overriding_function:
+        fprintf(f_debug, " (result of overriding function)");
+        break;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
       case enk_condition:
         fprintf(f_debug, " (condition)");
         break;
@@ -6446,6 +6459,11 @@ a set of options for the copy.
       /* Nothing to copy. */
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+      /* Nothing to copy. */
+      break;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     default:
       unexpected_condition_str("copy_expr_tree: bad expr kind");
   }  /* if */

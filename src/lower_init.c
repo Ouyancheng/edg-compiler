@@ -6380,6 +6380,81 @@ Do lowering on the file-scope dynamic initializations list.
   }  /* if */
 }  /* lower_file_scope_dynamic_inits */
 
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+
+void add_body_for_covariant_return_type_entry_routine(a_routine_ptr routine)
+/*
+Add a definition to the indicated function, which is an entry/wrapper
+used to call an overriding virtual function that has a covariant
+return type.  The body is a return of an enk_result_of_overriding_function
+cast to the proper base class.
+*/
+{
+  a_scope_ptr            scope;
+  a_memory_region_number region_number;
+  a_generated_routine_context
+                         grcontext;
+  a_statement_ptr        return_stmt;
+  an_expr_node_ptr       expr;
+  a_param_type_ptr       ptp;
+  a_variable_ptr         param_var, last_param_var;
+  a_type_ptr             routine_type = skip_typerefs(routine->type);
+  a_routine_ptr          overriding_function, overridden_function;
+  a_base_class_ptr       bcp;
+  a_type_ptr             overriding_return_type, overridden_return_type;
+  a_boolean              baseward_cast;
+
+  /* The routine type must be already lowered so that, among other things,
+     the implicit "this" parameter is already in the parameter type list. */
+  check_assertion(visited_yet(routine_type));
+  /* Make the basic definition (memory_region, scope, top-level block). */
+  scope = make_routine_definition(routine, /*make_return=*/TRUE,
+                                  &region_number);
+  push_generated_routine_context(scope, region_number, &grcontext);
+  /* Add parameter variables. */
+  last_param_var = NULL;
+  for (ptp = skip_typerefs(routine->type)->
+                                   variant.routine.extra_info->param_type_list;
+       ptp != NULL;
+       ptp = ptp->next) {
+    param_var = make_lowered_param_variable(ptp->type);
+    if (last_param_var == NULL) {
+      scope->variant.routine.parameters = param_var;
+      param_var->is_this_parameter = TRUE;
+    } else {
+      last_param_var->next = param_var;
+    }  /* if */
+    last_param_var = param_var;
+    param_var->next = NULL;
+  }  /* for */
+  /* Make an expression that is an enk_result_of_overriding_function cast
+     to the right base class pointer. */
+  overriding_function = routine->overriding_function_for_covariant_return_type;
+  overridden_function = routine->overridden_function_for_covariant_return_type;
+  overriding_return_type = return_type_of(overriding_function->type);
+  overridden_return_type = return_type_of(overridden_function->type);
+  expr = alloc_expr_node((an_expr_node_kind)enk_result_of_overriding_function);
+  expr->type = overriding_return_type;
+  (void)f_related_class_pointers(overriding_return_type,
+                                 overridden_return_type,
+                                 &baseward_cast,
+                                 &bcp);
+  add_base_class_casts(bcp, overridden_return_type,
+                       /*check_cast_access=*/FALSE,
+                       /*is_implicit_cast=*/TRUE,
+                       /*implicit_in_naming=*/FALSE,
+                       &expr,
+                       &overriding_function->source_corresp.decl_position);
+  lower_expr(expr, /*is_lvalue=*/FALSE);
+  /* Put the expression into the return statement in the body. */
+  return_stmt = scope->assoc_block->variant.block.statements;
+  check_assertion(return_stmt != NULL &&
+                  return_stmt->kind == (a_statement_kind)stmk_return);
+  return_stmt->expr = expr;
+  pop_generated_routine_context(scope, region_number, &grcontext);
+}  /* add_body_for_covariant_return_type_entry_routine */
+
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
 void init_lower_one_time_init(void)
 /*

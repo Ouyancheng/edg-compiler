@@ -1366,6 +1366,10 @@ to it.  The entry is allocated in the file scope memory region.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_type               = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  rp->overriding_function_for_covariant_return_type = NULL;
+  rp->overridden_function_for_covariant_return_type = NULL;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #ifdef FIL
   rp->is_fortran_entry            = FALSE;
   rp->local_routine_scope         = NULL;
@@ -1560,6 +1564,14 @@ fields to default values.
       /* See set_lowered_eh_construct_node_kind. */
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+      /* Node generated as part of the body of an entry function used
+         as a wrapper for a call of an overriding virtual function
+         with a covariant return type. */
+      /* No variant fields. */
+      break;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
   }  /* switch */

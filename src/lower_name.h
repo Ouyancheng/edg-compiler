@@ -50,6 +50,13 @@ extern void mangle_promoted_entity_name(a_source_correspondence *scp,
                                         a_scope_ptr             scope);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
 
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+extern void mangle_covariant_return_type_entry_name(
+                                             a_routine_ptr entry_routine,
+                                             a_routine_ptr prim_routine,
+                                             a_type_ptr    vtbl_class);
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+
 extern void do_all_name_mangling(void);
 
 extern void name_lower_one_time_init(void);

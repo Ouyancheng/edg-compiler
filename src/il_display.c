@@ -1604,6 +1604,16 @@ Display the indicated routine.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  if (ptr->overriding_function_for_covariant_return_type != NULL) {
+    disp_ptr("overriding_function_for_covariant_return_type",
+             (char *)ptr->overriding_function_for_covariant_return_type,
+             iek_routine);
+    disp_ptr("overridden_function_for_covariant_return_type",
+             (char *)ptr->overridden_function_for_covariant_return_type,
+             iek_routine);
+  }  /* if */
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #ifdef FFE
   disp_boolean("is_fortran_entry", (a_boolean)ptr->is_fortran_entry);
   disp_ptr("local_routine_scope", (char *)ptr->local_routine_scope, iek_scope);
@@ -2116,6 +2126,14 @@ do_variable:
       }  /* switch */
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+      /* Node generated as part of the body of an entry function used
+         as a wrapper for a call of an overriding virtual function
+         with a covariant return type. */
+      (void)printf("enk_result_of_overriding_function\n");
+      break;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #endif /* ifdef CFE */
 #ifdef FFE
     case enk_stmt_label_value:

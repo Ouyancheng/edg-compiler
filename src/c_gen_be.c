@@ -267,6 +267,19 @@ static a_constant_ptr
 			   to variables must be broken at the end of the
 			   current scope. */
 
+static an_expr_node_ptr
+		covariant_return_expr;
+			/* If non-NULL, we are expanding the body of an
+			   overriding virtual function with a covariant return
+			   type.  This expression gives the cast to be added
+			   at each return statement. */
+static a_scope_ptr
+		covariant_return_wrapper_scope;
+			/* Non-NULL iff covariant_return_expr is non-NULL.
+			   Points to the top-level scope of the entry/wrapper
+			   function, which may contain temporaries needed
+			   by the covariant_return_expr cast. */
+
 static an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
 			   routines. */
@@ -3523,6 +3536,15 @@ done_with_operation:
       }  /* if */
       break;
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+      /* Node generated as part of the body of an entry function used
+         as a wrapper for a call of an overriding virtual function
+         with a covariant return type.  Here, stands for the contents
+         of a temporary with name generated from covariant_return_expr. */
+      dump_temp_name((char *)covariant_return_expr);
+      break;
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("dump_expr: enk_field");
@@ -4802,6 +4824,16 @@ Dump out the declarations (if any) for a block.
      does not have a scope pointer even though there is an associated
      scope). */
   if (curr_function_scope->assoc_block == statement) {
+    if (covariant_return_wrapper_scope != NULL) {
+      /* At the start of the top block of a function being generated
+         as a wrapper for an overriding virtual function with a covariant
+         return type, generate the declarations from the wrapper, which could
+         include temporaries used in the wrapper cast to a base class. */
+      dump_scope_variables(covariant_return_wrapper_scope,
+                           /*interleave_asm_decls=*/FALSE,
+                           /*dump_vars_without_initializers=*/TRUE,
+                           /*dump_initializers=*/TRUE);
+    }  /* if */
     scope = curr_function_scope;
     rout = curr_function_scope->variant.routine.ptr;
   } else {
@@ -5241,10 +5273,24 @@ Generate C for a statement.
     case stmk_return:
       check_assertion_str(statement->variant.return_dynamic_init == NULL,
                           "dump_statement: return with dyn init");
+      if (covariant_return_expr != NULL) {
+        /* The cast in covariant_return_expr should be added to the
+           top of the return expression.  Assign the return expression to
+           a temporary, then put the cast of the temporary in the return
+           statement. */
+        dump_temp_name((char *)covariant_return_expr);
+        write_tok_str(" = ");
+        dump_expr_with_parens(statement->expr);
+        write_tok_str("; ");
+      }  /* if */
       write_tok_str("return");
       if (statement->expr != NULL) {
         write_space();
-        dump_expression(statement->expr);
+        if (covariant_return_expr != NULL) {
+          dump_expression(covariant_return_expr);
+        } else {
+          dump_expression(statement->expr);
+        }  /* if */
       }  /* if */
       write_tok_ch(';');
       break;
@@ -5473,7 +5519,6 @@ its subtree.
       case stmk_expr:
       case stmk_goto:
       case stmk_label:
-      case stmk_return:
       case stmk_asm:
 #if ASM_FUNCTION_ALLOWED
       case stmk_asm_func_body:
@@ -5482,6 +5527,25 @@ its subtree.
       case stmk_decl:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         /* No subtree of statements. */
+        break;
+      case stmk_return:
+        if (covariant_return_expr != NULL) {
+          /* Declare a temporary to be used for the transformation on the
+             return statement that adds a cast for a covariant return. */
+          a_routine_ptr curr_routine =
+                                      curr_function_scope->variant.routine.ptr;
+          a_type_ptr    curr_routine_type = skip_typerefs(curr_routine->type);
+          a_type_ptr    return_type =
+                                curr_routine_type->variant.routine.return_type;
+
+          dump_general_declaration_using_type(return_type,
+                                              (a_source_correspondence *)NULL,
+                                              (a_variable_ptr)NULL,
+                                              (char *)covariant_return_expr,
+                                              TQ_NONE,
+                                              /*suppress_const=*/FALSE);
+          write_tok_ch(';');
+        }  /* if */
         break;
       case stmk_init:
         dump_dynamic_init_prescan_temps(statement->variant.dynamic_init);
@@ -5642,6 +5706,31 @@ for the definition of the indicated routine.  scope is the associated scope.
 }  /* dump_func_definition_type */
 
 
+static a_scope_ptr get_scope_for_routine_definition(
+                                         a_routine_ptr          rout,
+                                         a_memory_region_number *region_number)
+/*
+Return a pointer to the top-level scope for the definition of the indicated
+routine.  If an IL file is being used, read in the memory region.
+Set *region_number to the function memory region number.
+*/
+{
+  a_scope_ptr scope;
+
+  *region_number = rout->assoc_scope;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  /* Read the information for the function from the IL file.  This must be
+     read before the interface is generated in order to get the parameter
+     names. */
+  read_memory_region(*region_number);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  scope = il_header.region_scope_entry[*region_number];
+  check_assertion_str(scope != NULL,
+                      "get_scope_for_routine_definition: scope is NULL");
+  return scope;
+}  /* get_scope_for_routine_definition */
+
+
 static void dump_routine_definition(a_routine_ptr rout)
 /*
 Generate the definition of the indicated routine.  The information preceding
@@ -5651,20 +5740,36 @@ by dump_routine_decl.
 {
   a_memory_region_number scope_region_number;
   a_scope_ptr            scope, saved_curr_scope = curr_scope;
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  a_memory_region_number orig_scope_region_number = NO_SCOPE_NUMBER;
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
-  scope_region_number = rout->assoc_scope;
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-  /* Read the information for the function from the IL file.  This must be
-     read before the interface is generated in order to get the parameter
-     names. */
-  read_memory_region(scope_region_number);
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  scope = il_header.region_scope_entry[scope_region_number];
-  check_assertion_str(scope != NULL, "dump_routine_definition: scope is NULL");
+  /* Get the top-level scope for the routine definition.  Read it in if
+     necessary. */
+  scope = get_scope_for_routine_definition(rout, &scope_region_number);
   curr_function_scope = curr_scope = scope;
   octl.suppress_local_typedefs = FALSE;
   /* Generate the routine name and the parameter declarations. */
   dump_func_definition_type(rout, scope);
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  if (rout->overriding_function_for_covariant_return_type != NULL) {
+    /* This routine is a wrapper for an overriding virtual function with
+       a covariant return type.  Its body is just a return statement giving
+       the cast that needs to be put over the return from the overriding
+       function to give it the right type.  Save the cast expression and
+       then go expand the primary routine, doing the rewrite when return
+       statements are encountered. */
+    a_statement_ptr return_stmt = scope->assoc_block->variant.block.statements;
+    check_assertion(return_stmt != NULL &&
+                    return_stmt->kind == (a_statement_kind)stmk_return);
+    covariant_return_expr = return_stmt->expr;
+    covariant_return_wrapper_scope = scope;
+    orig_scope_region_number = scope_region_number;
+    rout = rout->overriding_function_for_covariant_return_type;
+    scope = get_scope_for_routine_definition(rout, &scope_region_number);
+    curr_function_scope = curr_scope = scope;
+  }  /* if */
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   /* Generate the body statement. */
   dump_statement(scope->assoc_block);
   curr_function_scope = NULL;
@@ -5674,6 +5779,16 @@ by dump_routine_decl.
   /* Now that we're done with the function, free its IL information. */
   free_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  if (orig_scope_region_number != NO_SCOPE_NUMBER) {
+    /* Finished a covariant return wrapper routine. */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    free_memory_region(orig_scope_region_number);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+    covariant_return_expr = NULL;
+    covariant_return_wrapper_scope = NULL;
+  }  /* if */
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 }  /* dump_routine_definition */
 
 
@@ -6111,6 +6226,8 @@ Initialize for the C-generating back end.
   curr_function_scope = NULL;
   curr_scope = NULL;
   wide_string_constants_to_unbind_at_end_of_scope = NULL;
+  covariant_return_expr = NULL;
+  covariant_return_wrapper_scope = NULL;
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);

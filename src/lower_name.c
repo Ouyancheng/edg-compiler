@@ -3357,7 +3357,64 @@ and that is after normal name mangling has been done.
 }  /* mangle_promoted_entity_name */
 
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 
+void mangle_covariant_return_type_entry_name(a_routine_ptr entry_routine,
+                                             a_routine_ptr prim_routine,
+                                             a_type_ptr    overridden_class)
+/*
+entry_routine points to a routine that represents an entry point of
+prim_routine (which is a virtual function with a covariant return type).
+The entry routine is like the primary routine, but does a derived-to-base
+cast on the returned pointer.  The entry routine is used when this routine
+is called in a way that requires the return type of the overridden
+function in overridden_class.  Put the appropriate mangled name into
+entry_routine (it has no name on entry).
+*/
+{
+  sizeof_t mangled_name_length, alloc_length;
+  sizeof_t prefix_length, class_name_length, routine_name_length;
+  char     *store_at, *mangled_name;
+
+  /* The mangled name has the form
+       __VFE__<overridden_class>__<prim_routine>
+     where <overridden_class> and <prim_routine> are the mangled names for
+     those entities. */
+#define COVARIANT_ENTRY_PREFIX "__VFE__"
+  /* Determine the length of the mangled name. */
+  prefix_length = sizeof(COVARIANT_ENTRY_PREFIX) - 1;
+  class_name_length = mangled_type_name(overridden_class, (char *)NULL);
+  check_assertion(!prim_routine->source_corresp.name_has_been_mangled);
+  routine_name_length = mangled_function_name(prim_routine,
+                                             /*suppress_param_encoding=*/FALSE,
+                                              (char *)NULL);
+  mangled_name_length = prefix_length + class_name_length + 2 +
+                        routine_name_length;
+  /* Allocate space for the mangled name and build it. */
+  alloc_length = mangled_name_length + 1;
+  mangled_name = alloc_lowered_name_string(alloc_length);
+  store_at = mangled_name;
+  (void)strcpy(store_at, COVARIANT_ENTRY_PREFIX);
+  store_at += prefix_length;
+  /* Add the class name. */
+  (void)mangled_type_name(overridden_class, store_at);
+  store_at += class_name_length;
+  /* Add two underscores after the class name. */
+  *store_at++ = '_';
+  *store_at++ = '_';
+  /* Add the routine name. */
+  (void)mangled_function_name(prim_routine,
+                              /*suppress_param_encoding=*/FALSE,
+                              store_at);
+  store_at += routine_name_length;
+  /* Store the final null. */
+  *store_at = '\0';
+  entry_routine->source_corresp.name = mangled_name;
+  entry_routine->source_corresp.name_has_been_mangled = TRUE;
+#undef COVARIANT_ENTRY_PREFIX
+}  /* mangle_covariant_return_type_entry_name */
+
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
 void name_lower_one_time_init(void)
 /*

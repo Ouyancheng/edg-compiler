@@ -209,10 +209,17 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
       has_side_effects = TRUE;
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-#if CHECKING
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+      /* Node generated as part of the body of an entry function used
+         as a wrapper for a call of an overriding virtual function
+         with a covariant return type. */
+      /* Probably not expected, but give the safe answer just in case. */
+      has_side_effects = TRUE;
+      break;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     default:
-      internal_error("node_has_side_effects: bad node kind");
-#endif /* CHECKING */
+      unexpected_condition_str("node_has_side_effects: bad node kind");
   }  /* switch */
 
   if (suppress_warning != NULL) *suppress_warning = suppress;

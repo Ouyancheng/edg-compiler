@@ -4297,6 +4297,22 @@ typedef struct a_routine {
 			   of the routine at the point of its definition; NULL
 			   if there is no defining declaration. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  a_routine_ptr	overriding_function_for_covariant_return_type,
+		overridden_function_for_covariant_return_type;
+			/* If non-NULL, this routine is an entry that
+			   implements a version of the overriding virtual
+			   function that works in place of the overridden
+			   function, where the return types are covariant.
+			   The entry point calls the overriding routine,
+			   then does a derived-to-base adjustment on the
+			   returned pointer value to get a result with the
+			   right type for the overridden function.
+			   The body of this routine will be simply a return
+			   statement with an expression that is the proper
+			   cast on top of an enk_result_of_overriding_function
+			   node. */
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #ifdef FIL
   a_byte_boolean
                 is_fortran_entry;
@@ -4484,6 +4500,16 @@ enum an_expr_node_kind_tag {
 			/* Used to represent a partially-lowered exception
 			   handling construct. */
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  enk_result_of_overriding_function,
+			/* Used in the body of a routine that is an entry
+			   to be called in a covariant return type situation,
+			   to represent the result of the call of the
+			   overriding virtual function.  That result is cast
+			   to the proper return type for the overridden
+			   function, to give the value to be returned by
+			   the entry. */
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #endif /* ifdef CIL */
 #ifdef FIL
   enk_stmt_label_value, /* A statement label value for an ASSIGN or
@@ -5191,6 +5217,9 @@ typedef struct an_expr_node {
       } variant;
     } lowered_eh;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    /* When enk_result_of_overriding_function, no variant fields. */
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == enk_stmt_label_value: */

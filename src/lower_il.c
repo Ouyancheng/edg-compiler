@@ -3436,6 +3436,92 @@ primary_function is NULL.
   return primary_function;
 }  /* find_virtual_function */
 
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+
+static a_routine_ptr make_covariant_return_type_entry_routine(
+                                             a_routine_ptr overriding_function,
+                                             a_routine_ptr overridden_function)
+/*
+Create or find a routine for an entry wrapper that handles covariant return
+types.  The routine is a version of overriding_function that can be used
+in place of overridden_function (i.e., it has the return type of the
+overridden function).
+*/
+{
+  a_routine_ptr    rout, entry_routine;
+  a_type_ptr       entry_rout_type, overriding_rout_type, overridden_rout_type;
+  a_param_type_ptr ptp, prev_ptp, src_ptp;
+
+  /* The entry routines are added after the overriding routine, so look there
+     to see if one has already been created. */
+  for (rout = overridden_function->next;
+       rout != NULL &&
+         rout->overriding_function_for_covariant_return_type ==
+                                                           overriding_function;
+       rout = rout->next) {
+    if (rout->overridden_function_for_covariant_return_type ==
+                                                         overridden_function) {
+      /* Found an existing routine. */
+      entry_routine = rout;
+      goto end_of_routine;
+    }  /* if */
+  }  /* for */
+  /* Add a new routine, with the parameters of the overriding function
+     (including the right "this" parameter type), and the return type of the
+     overridden function. */
+  overriding_rout_type = overriding_function->type;
+  overriding_rout_type = skip_typerefs(overriding_rout_type);
+  check_assertion(!visited_yet(overriding_rout_type));
+  overridden_rout_type = overridden_function->type;
+  overridden_rout_type = skip_typerefs(overridden_rout_type);
+  entry_routine = alloc_routine();
+  mark_as_not_visited(entry_routine);
+  entry_routine->compiler_generated = TRUE;
+  entry_routine->overriding_function_for_covariant_return_type =
+                                                           overriding_function;
+  entry_routine->overridden_function_for_covariant_return_type =
+                                                           overridden_function;
+  entry_routine->type = entry_rout_type = alloc_type((a_type_kind)tk_routine);
+  /* Force later lowering of the routine type (one reason: to get the
+     implicit "this" parameter processed). */
+  mark_as_not_visited(entry_rout_type);
+  entry_rout_type->variant.routine.return_type =
+                             overridden_rout_type->variant.routine.return_type;
+  *entry_rout_type->variant.routine.extra_info =
+                             *overriding_rout_type->variant.routine.extra_info;
+  entry_rout_type->variant.routine.extra_info->assoc_routine = NULL;
+  /* Copy the parameter list. */
+  entry_rout_type->variant.routine.extra_info->param_type_list = NULL;
+  src_ptp = overriding_rout_type->variant.routine.extra_info->param_type_list;
+  prev_ptp = NULL;
+  for (; src_ptp != NULL; src_ptp = src_ptp->next) {
+    ptp = alloc_param_type(src_ptp->type);
+    /* Force later lowering of the parameter (one reason: to add the
+       indirection on parameters passed via copy constructor). */
+    mark_as_not_visited(ptp); 
+    *ptp = *src_ptp;
+    if (prev_ptp == NULL) {
+      entry_rout_type->variant.routine.extra_info->param_type_list = ptp;
+    } else {
+      prev_ptp->next = ptp;
+    }  /* if */
+    prev_ptp = ptp;
+    ptp->next = NULL;
+  }  /* for */
+  /* Give the routine a mangled name. */
+  mangle_covariant_return_type_entry_name(entry_routine,
+                                          overriding_function,
+                                          overridden_function->
+                                             source_corresp.parent.class_type);
+  /* Insert the routine right after the overridden routine. */
+  entry_routine->next = overridden_function->next;
+  overridden_function->next = entry_routine;
+end_of_routine:
+  return entry_routine;
+}  /* make_covariant_return_type_entry_routine */
+
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+
 
 static void fill_virtual_function_table(
                                   a_constant_ptr            aggr_con,
@@ -3543,6 +3629,20 @@ whether or not to put out the virtual function table.
         delta -= bcp->offset;
       }  /* if */
       func_to_call = override_list->overriding_function;
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+      if (override_list->return_adjustment_base_class != NULL) {
+        /* This is an overriding function with a covariant return type.
+           If the return value requires an offset adjustment, call an
+           entry routine that is a wrapper for the overriding function
+           that adds the necessary cast. */
+        a_base_class_ptr bcp = override_list->return_adjustment_base_class;
+        if (bcp->offset != NULL || bcp->is_virtual) {
+          func_to_call = make_covariant_return_type_entry_routine(
+                                             func_to_call,
+                                             override_list->primary_function);
+        }  /* if */
+      }  /* if */
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
       override_list = override_list->next;
     } else {
       /* The primary function is not overridden.  Therefore the function
@@ -4768,7 +4868,8 @@ Do IL lowering of the indicated list of routines and everything under it.
 
 static void lower_routine(a_routine_ptr routine)
 /*
-Do IL lowering of the indicated routine and everything under it.
+Do IL lowering of the indicated routine and everything under it.  This does
+not include the function scope memory region, if any.
 */
 {
   if (!visited_yet(routine)) {
@@ -4804,6 +4905,15 @@ Do IL lowering of the indicated routine and everything under it.
       }  /* if */
     }  /* if */
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    if (routine->overriding_function_for_covariant_return_type != NULL &&
+        routine->overriding_function_for_covariant_return_type->assoc_scope !=
+                                                                        NULL) {
+      /* Add a definition for an entry/wrapper to handle covariant
+         return types, if the primary routine is defined. */
+      add_body_for_covariant_return_type_entry_routine(routine);
+    }  /* if */
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   }  /* if */
 }  /* lower_routine */
 
@@ -6910,11 +7020,19 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       unexpected_condition_str("lower_expr: enk_object_lifetime not at top");
     case enk_condition:
       unexpected_condition_str("lower_expr: enk_condition not at top");
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+#if !DO_FULL_PORTABLE_EH_LOWERING
     /* Nodes generated by IL lowering for partial lowering of exception
        handling features.  Not expected here. */
     case enk_lowered_eh_construct:
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+      unexpected_condition_str("lower_expr: enk_lowered_eh_construct");
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    /* Node generated as part of the body of an entry function used
+       as a wrapper for a call of an overriding virtual function
+       with a covariant return type. */
+    case enk_result_of_overriding_function:
+      break;
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     default:
       unexpected_condition_str("lower_expr: bad kind");
   }  /* switch */
@@ -10092,7 +10210,7 @@ scope.
            added after the "this" parameter.  Each one points to the space
            allocated for the associated virtual base class once the base class
            has been constructed, or is NULL if the base class should be
-           constructed on this call.  lower_constructor_routine does the
+           constructed on this call.  lower_constructor_routine_type does the
            similar processing for the param type list.  See ARM p. 296. */
         /* Use the type of the virtual base class when used as a subobject. */
         subobject_type = bcp->type->variant.class_struct_union.extra_info->
@@ -10120,7 +10238,7 @@ scope.
   /* Add a parameter of type int after the "this" parameter.  The new
      parameter has the 0x2 bit on if a complete object is being destroyed,
      and the 0x1 bit on if the storage should be freed. */
-  /* lower_destructor_routine adds the parameter to the routine type
+  /* lower_destructor_routine_type adds the parameter to the routine type
      param_type_list. */
   complete_obj_param_var =
             make_lowered_param_variable(integer_type((an_integer_kind)ik_int));
@@ -10128,6 +10246,42 @@ scope.
   this_param_var->next = complete_obj_param_var;
 }  /* add_destructor_params */
 
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+
+static void add_covariant_return_type_entry_routines(a_routine_ptr routine)
+/*
+routine is an overriding virtual function with a covariant return type.
+Generate declarations for the entry/wrapper functions used to call this routine
+when a base class return type is needed.  Definitions will be put out later.
+*/
+{
+  a_type_ptr       rout_class = routine->source_corresp.parent.class_type;
+  a_base_class_ptr bcp;
+
+  /* Look at each base class (both direct and indirect). */
+  for (bcp = rout_class->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL;
+       bcp = bcp->next) {
+    /* Look at each virtual function override in the base class. */
+    an_overriding_virtual_function_ptr ovf = bcp->overriding_virtual_functions;
+    for (; ovf != NULL; ovf = ovf->next) {
+      if (ovf->overriding_function == routine) {
+        /* This is an override for the function we care about. */
+        a_base_class_ptr adjustment_bcp = ovf->return_adjustment_base_class;
+        check_assertion(adjustment_bcp != NULL);
+        if (adjustment_bcp->offset != NULL || adjustment_bcp->is_virtual) {
+          /* The adjustment offset is non-NULL, or the base class is
+             virtual, so an entry/wrapper routine is needed. */
+          (void)make_covariant_return_type_entry_routine(
+                                                        routine,
+                                                        ovf->primary_function);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* for */
+}  /* add_covariant_return_type_entry_routines */
+
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
 static void lower_scope(a_scope_ptr scope)
 /*
@@ -10141,6 +10295,7 @@ Do IL lowering of the indicated scope and everything under it.
   a_routine_type_supplement_ptr
                    rtsp;
   a_scope_kind     scope_kind = scope->kind;
+  a_scope_ptr      saved_innermost_function_scope = innermost_function_scope;
 
   db_enter(2, "lower_scope");
   /* Add a context entry for the scope, but not for the file scope (the caller
@@ -10150,6 +10305,7 @@ Do IL lowering of the indicated scope and everything under it.
   }  /* if */
   if (scope_kind == (a_scope_kind)sck_function) {
     /* The scope is for a function. */
+    innermost_function_scope = scope;
     routine = scope->variant.routine.ptr;
 #if DEBUG
     if (debug_level >= 1) {
@@ -10333,8 +10489,19 @@ Do IL lowering of the indicated scope and everything under it.
       set_up_routine_for_inlining(scope);
     }  /* if */
 #endif /* MINIMAL_INLINING */
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    if (scope->kind == (a_scope_kind)sck_function &&
+        scope->variant.routine.ptr->covariant_return_virtual_override) {
+      /* This routine is an overriding virtual function with a covariant
+         return type.  Generate declarations for the entry/wrapper functions
+         used to call this routine when a base class return type is
+         needed. */
+      add_covariant_return_type_entry_routines(scope->variant.routine.ptr);
+    }  /* if */
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
   }  /* if */
   if (scope_kind != (a_scope_kind)sck_file) pop_context();
+  innermost_function_scope = saved_innermost_function_scope;
   db_exit();
 }  /* lower_scope */
 
@@ -10602,8 +10769,7 @@ C++ to C, so that a C back end can handle it without change.
     } else {
       /* A function scope. */
       lowering_file_scope = FALSE;
-      innermost_function_scope = scope =
-                                   il_header.region_scope_entry[region_number];
+      scope = il_header.region_scope_entry[region_number];
     }  /* if */
     /* Put the file-scope context on the context stack.  This is also done
        for function scope memory regions so there will be a file-scope
@@ -10661,10 +10827,10 @@ C++ to C, so that a C back end can handle it without change.
     /* Pop the file-scope context. */
     pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
+    curr_object_lifetime = saved_curr_object_lifetime;
+    innermost_function_scope = saved_innermost_function_scope;
     il_lowering_underway = FALSE;
   }  /* if */
-  curr_object_lifetime = saved_curr_object_lifetime;
-  innermost_function_scope = saved_innermost_function_scope;
   db_exit();
 }  /* lower_il_memory_region */
 

@@ -914,6 +914,14 @@ if there are any temp inits (unordered or not) in the expression.
       /* No temp inits. */
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+    case enk_result_of_overriding_function:
+      /* Node generated as part of the body of an entry function used
+         as a wrapper for a call of an overriding virtual function
+         with a covariant return type. */
+      /* No temp inits. */
+      break;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
     case enk_object_lifetime:  /* Not expected at this level. */
     case enk_condition:        /* Not expected at this level. */
     default:
@@ -1530,13 +1538,13 @@ Return the operand in *result.
 }  /* make_template_param_expr_constant_operand */
 
 
-static void add_base_class_casts(a_base_class_ptr  bcp,
-                                 a_type_ptr        qualifiers_model,
-                                 a_boolean         check_cast_access,
-                                 a_boolean         is_implicit_cast,
-                                 a_boolean         implicit_in_naming,
-                                 an_expr_node_ptr  *p_node,
-                                 a_source_position *err_pos)
+void add_base_class_casts(a_base_class_ptr  bcp,
+                          a_type_ptr        qualifiers_model,
+                          a_boolean         check_cast_access,
+                          a_boolean         is_implicit_cast,
+                          a_boolean         implicit_in_naming,
+                          an_expr_node_ptr  *p_node,
+                          a_source_position *err_pos)
 /*
 Add casts to *p_node to change its type from a pointer to a class type to
 a pointer to a base class of that class; bcp indicates the base class

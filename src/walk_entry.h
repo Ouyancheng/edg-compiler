@@ -837,6 +837,12 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+        remap_ptr(ptr->overriding_function_for_covariant_return_type,
+                  a_routine_ptr, iek_routine);
+        remap_ptr(ptr->overridden_function_for_covariant_return_type,
+                  a_routine_ptr, iek_routine);
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #ifdef FFE
         walk_ptr(ptr->local_routine_scope, a_scope_ptr, iek_scope);
 #endif /* ifdef FFE */
@@ -1060,6 +1066,13 @@ do_set_proper_definition_needed_flag:
             }  /* switch */
             break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+          case enk_result_of_overriding_function:
+            /* Node generated as part of the body of an entry function used
+               as a wrapper for a call of an overriding virtual function
+               with a covariant return type. */
+            break;
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #endif /* ifdef CFE */
 #ifdef FFE
           case enk_stmt_label_value:

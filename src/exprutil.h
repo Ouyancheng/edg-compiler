@@ -836,6 +836,14 @@ extern a_boolean still_an_lvalue(a_type_ptr type_before_cast,
 extern an_expr_operator_kind which_binary_operator(a_token_kind token,
 						   a_type_ptr   type);
 
+extern void add_base_class_casts(a_base_class_ptr  bcp,
+                                 a_type_ptr        qualifiers_model,
+                                 a_boolean         check_cast_access,
+                                 a_boolean         is_implicit_cast,
+                                 a_boolean         implicit_in_naming,
+                                 an_expr_node_ptr  *p_node,
+                                 a_source_position *err_pos);
+
 extern void cast_node(an_expr_node_ptr  *node,
 		      a_type_ptr        type,
                       a_boolean         check_cast_access,
