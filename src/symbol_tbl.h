@@ -932,6 +932,11 @@ typedef struct an_enum_symbol_supplement {
 			   dependent on it and require fixup when it is
 			   completed.  Once the enum is defined, the pointer
 			   is cleared. */
+  a_routine_ptr
+		enclosing_routine;
+			/* The routine (if any) in which this enum type is
+			   is defined.  NULL, if the type was not defined
+			   in a routine. */
 #if IA64_ABI && NEED_NAME_MANGLING
   a_discriminator
 		discriminator;
@@ -939,11 +944,6 @@ typedef struct an_enum_symbol_supplement {
 			   entities with the same name in the same function
 			   in the name mangling for the IA-64 ABI.  Zero if
 			   not needed. */
-  a_routine_ptr
-		enclosing_routine;
-			/* The routine (if any) in which this enum type is
-			   is defined.  NULL, if the type was not defined
-			   in a routine. */
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
 } an_enum_symbol_supplement;
 

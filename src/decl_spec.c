@@ -2969,6 +2969,13 @@ to indicate whether an enumeration is actually defined.
         set_name_linkage_for_type(enum_type);
       }  /* if */
     }  /* if */
+    if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
+      /* Record which function this enumeration type is defined in. */
+      a_scope_stack_entry_ptr  ssep =
+                                 &scope_stack[depth_innermost_function_scope];
+      tag_sym->variant.enumeration.extra_info->enclosing_routine
+                                                        = ssep->assoc_routine;
+    }  /* if */
     /* When an enumeration is defined within a class definition, its access
        should be set based on the access recorded in the current scope stack
        entry. */

@@ -1030,22 +1030,25 @@ type is a local type.  Output the prefix indicating the routine containing
 the type, for the IA-64 ABI.
 */
 {
+  a_routine_ptr  enclosing_routine;
+
   check_assertion(type->source_corresp.is_local_to_function);
   /* For members of local classes, go up through all the containing
      classes to get to the class declared directly in the function. */
   while (type->source_corresp.is_class_member) {
     type = type->source_corresp.parent.class_type;
   }  /* while */
+  /* Get the surrounding function. */
   if (is_enum_type(type)) {
-    /* We do not have any way of getting the containing function for
-       an enum at this point.  */
+    a_symbol_ptr  enum_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+    check_assertion(enum_sym != NULL);
+    enclosing_routine = enum_sym->variant.enumeration.extra_info
+                                ->enclosing_routine;
   } else {
-    /* Get the surrounding function for a class. */
-    a_class_symbol_supplement_ptr ssp;
     check_assertion(is_immediate_class_type(type));
-    ssp = symbol_supplement_for_class(type);
-    add_prefix_for_local_entity(ssp->enclosing_routine, mctl);
+    enclosing_routine = symbol_supplement_for_class(type)->enclosing_routine;
   }  /* if */
+  add_prefix_for_local_entity(enclosing_routine, mctl);
 }  /* add_prefix_for_local_type */
 
 #endif /* IA64_ABI */

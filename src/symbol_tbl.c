@@ -2486,9 +2486,9 @@ state.
 #endif /* DEBUG */
         sym_ptr->variant.enumeration.extra_info = essp;
         essp->dependent_type_fixup_list = NULL;
+        essp->enclosing_routine = NULL;
 #if IA64_ABI && NEED_NAME_MANGLING
         essp->discriminator = 0;
-        essp->enclosing_routine = NULL;
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
       }
       break;
