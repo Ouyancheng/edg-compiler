@@ -8396,7 +8396,15 @@ Generate any cleanup actions required preceding the indicated goto statement.
                        "curr_object_lifetime is NULL, common_lifetime is not");
     }  /* if */
 #endif /* CHECKING */
-    if (outer_lifetime != common_lifetime) {
+    if (outer_lifetime == common_lifetime) {
+      /* No lifetimes are being exited. */
+      if (long_lifetime_temps) {
+        /* Destroy any long lifetime temporaries.  If the statement is turned
+           into a block, statement will be updated to point to the original
+           statement. */
+        destroy_long_lifetime_temporaries_before_statement(&statement);
+      }  /* if */
+    } else {
       /* Some lifetimes are being exited. */
       /* Find the last lifetime in the cleanup chain rising from the goto that
          should be terminated, i.e., the one right before common_lifetime. */

@@ -1,5 +1,24 @@
 Version 2.36
 
+5/25/97   Long lifetime temporaries mode: destruction of temporaries on
+          fall-through to next switch clause
+
+In long lifetime temporaries mode (including cfront mode), temporaries
+are supposed to be destroyed on a goto or label.  This was not being
+done when one switch clause flowed into another.  Now fixed.
+
+  struct A { A(); ~A(); A(const A&); };
+  void f(A);
+  int main () {
+    switch (1) {
+      case 1:
+        f(A());
+        // Temporary not destroyed here when long lifetime temps enabled
+      default:
+        break;
+    }
+  }
+
 5/23/97   End of token set incorrectly when fetching pp-tokens from cache
 
 When a pp-token was added to a token cache, the end-of-token pointer
@@ -752,7 +771,10 @@ of the operator.  This has been fixed.
 In some cases, the exception handling cleanup state determined at a case
 label that has a fall-through from a previous case label was wrong, with
 the consequence that exception handling cleanup would not be done correctly
-if an exception were thrown at that point.  Now fixed.
+if an exception were thrown at that point.  Now fixed.  (5/25/97: the
+particular change for this issue was backed out, because it caused a
+problem in long lifetime temporaries mode.  The bug remains fixed, due
+to other changes made since the original fix.)
 
   struct A { A(); ~A(); };
   void f(int i) {
