@@ -6055,6 +6055,29 @@ function_lparen:
 }  /* declarator */
 
 
+static a_boolean tag_currently_being_defined(a_type_ptr tag_type)
+/*
+Returns TRUE if the type pointed to by tag_type is in the process
+of being defined.  This is determined by examining any
+class/struct/union scopes on the scope stack.  This is only used in
+C mode.
+*/
+{
+  a_scope_depth	depth;
+  a_boolean	result = FALSE;
+
+  for (depth = depth_scope_stack ;depth != DEPTH_OF_FILE_SCOPE; depth--) {
+    if (scope_stack[depth].kind == (a_scope_kind)sck_class_struct_union) {
+      if (scope_stack[depth].assoc_type == tag_type) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* tag_currently_being_defined */
+
+
 a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                            a_symbol_locator  *locator,
                            a_boolean         check_for_vacuous_decl,
@@ -6195,9 +6218,13 @@ caution when modifying this routine.
          a colon has a different meaning in an expression context than
          in a declaration context (namely, it may belong to a ?: operator). */
       if (tag_sym != NULL) {
+        a_type_ptr	tag_type = type_symbol_type(tag_sym);
         /* The tag has already appeared in the current scope. */
-        if (is_incomplete_type(type_symbol_type(tag_sym))) {
-          /* Resolution of a previous incomplete declaration. */
+        if (is_incomplete_type(tag_type) &&
+            (!C_mode() || !tag_currently_being_defined(tag_type))) {
+          /* Resolution of a previous incomplete declaration.  In C mode, make
+             sure that an incomplete type is not in the process of being
+             defined. */
           *tag_resolution = TRUE;
         } else {
           /* Redeclaration of a tag that has already been defined.  Set

@@ -1,5 +1,14 @@
 Version 2.23
 
+3/4/94  Missing diagnostic on structure redefinition in C mode
+
+The front end failed to issue a diagnostic on this incorrect usage.
+The resulting IL caused an internal error in the IL read/write routines.
+
+  struct A {
+    struct A { int a1; } a2;
+  } a3;
+
 3/3/94  Class layout -- improved cfront compatibility
 
 A bug was fixed that resulted in an internal error while building the
