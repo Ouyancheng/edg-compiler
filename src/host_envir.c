@@ -2282,6 +2282,7 @@ Set module_id to the string.
          of the string.  Non-identifier characters are replaced with
          underscores. */
       char	crc_buf[9];
+      char      len_buf[50];
       int	len1;
       int	len2;
       len1 = strlen(str1);
@@ -2304,9 +2305,12 @@ Set module_id to the string.
         if (end_of_dir != NULL) file_name = end_of_dir+1;
       }
       file_name_len = strlen(file_name);
-      module_id = alloc_general(file_name_len + 1 +
+      /* The file name is preceded by its length enclosed in underscores. */
+      (void)sprintf(len_buf, "_%lu_", (unsigned long)file_name_len);
+      module_id = alloc_general(strlen(len_buf) + file_name_len + 1 +
                                 len1 + len2 + (int)(len2 != 0) + 1);
-      (void)strcpy(module_id, file_name);
+      (void)strcpy(module_id, len_buf);
+      (void)strcat(module_id, file_name);
       (void)strcat(module_id, "_");
       (void)strcat(module_id, str1);
       if (str2 != NULL) {
