@@ -3602,7 +3602,7 @@ syntax is:
     /* Definition of a class, struct, union, or enum type is not allowed. */
     pos_error(ec_type_definition_not_allowed, &start_pos);
   } else if (!is_parenthesized &&
-             (qualifiers & ~(TQ_CONST | TQ_VOLATILE) != qualifiers)) {
+             ((qualifiers & ~(TQ_CONST | TQ_VOLATILE)) != qualifiers)) {
     /* WP 5.3.4 states that the unparenthesized syntax (new-type-id) may
        not include "const" or "volatile".  (This doesn't seem right, since
        a qualified type can still be created with a typedef.  But in strict
