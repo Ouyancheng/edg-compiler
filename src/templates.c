@@ -10863,9 +10863,12 @@ returned to the caller.
     if (err) {
       discard_token_cache(p_token_cache);
       p_token_cache = NULL;
-      sym = NULL;
-      tssp = NULL;
     } /* if */
+  } /* if */
+  if (err) {
+    /* If an error occurred earlier, return a NULL symbol. */
+    sym = NULL;
+    tssp = NULL;
   } /* if */
   if (tssp != NULL) {
     /* Save the information needed to create an instantiation based
