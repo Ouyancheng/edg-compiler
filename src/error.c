@@ -1103,8 +1103,8 @@ error code.
     case ec_nonmember_operator_not_allowed:
       m = "\"operator%s\" must be a member function";
       break;
-    case ec_nonstatic_member_operator_not_allowed:
-      m = "\"operator%s\" may not be a nonstatic member function";
+    case ec_static_member_operator_not_allowed:
+      m = "operator may not be a static member function";
       break;
     case ec_too_many_args_for_conversion:
       m = "no arguments allowed on user-defined conversion";
