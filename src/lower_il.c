@@ -4078,6 +4078,45 @@ virtual function table pointer with the next class up.
 }  /* find_base_sharing_virtual_function_table */
 
 
+static a_boolean is_primary_base_class(a_base_class_ptr bcp)
+/*
+Return TRUE if the indicated base class is a primary base class for some
+other class or for the class itself.
+*/
+{
+  a_boolean is_primary = FALSE;
+
+  if (bcp->shares_virtual_function_info) {
+    /* If this base class shares virtual function info, it is a primary
+       base. */
+    is_primary = TRUE;
+  } else if (bcp->type->variant.class_struct_union.
+                             any_virtual_functions_including_in_base_classes) {
+    /* A class that declares no virtual functions but inherits some is not
+       considered to have a virtual function table pointer in the terms
+       of the Cfront-like ABI, so shares_virtual_function_info is not set
+       in its base class, but it can still be a primary base class in
+       the IA-64 ABI.  For that case we have to look for a more-derived
+       class that has this class as its primary base class. */
+    if (bcp->derived_class->variant.class_struct_union.extra_info->
+                                                   primary_base_class == bcp) {
+      is_primary = TRUE;
+    } else {
+      a_base_class_ptr derived;
+      for (derived = base_classes_of(bcp->derived_class);
+           derived != NULL;
+           derived = derived->next) {
+        if (derived->primary_base_class == bcp) {
+          is_primary = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return is_primary;
+}  /* is_primary_base_class */
+
+
 void put_variable_into_comdat_group(a_variable_ptr  variable)
 /*
 Put the variable into a COMDAT group with the same name as the
@@ -4172,9 +4211,9 @@ entry, unless it is already non-zero.
   }  /* if */
   if (ctor_bcp == NULL && eff_bcp != NULL) {
     /* For a base class that has no virtual function table by the
-       IA-64 definition, and for which we want to use the virtual function
-       table for the base class itself, go down into the primary base
-       class. */
+       Cfront-ABI definition, and for which we want to use the virtual
+       function table for the base class itself, go down into the primary
+       base class. */
     while (!base_class_has_vtbl(eff_bcp)) {
       eff_bcp = eff_bcp->primary_base_class;
       check_assertion(eff_bcp != NULL);
@@ -4432,9 +4471,9 @@ index number of the first entry, or 0 if no entries were created.
                                                    any_virtual_base_classes ||
              any_virtual_steps_in_derivation(sub_bcp)) &&
             /* " ... and (b) is not a non-virtual primary base, ..." */
-            (sub_bcp->is_virtual || !sub_bcp->shares_virtual_function_info)
+            !(!sub_bcp->is_virtual && is_primary_base_class(sub_bcp))
 #endif /* IA64_ABI */
-                                                                           ) {
+                                                                     ) {
           /* Needs a special virtual function table. */
           make_construction_vtbl(class_type, bcp, sub_bcp,
                                  construction_vtbls, 
