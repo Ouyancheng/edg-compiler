@@ -119,6 +119,39 @@ static unsigned long
 		num_get_based_type_calls;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
+
+/*
+Data structure used to save information about the last source sequence
+to file/line number conversion that was done so that subsequent
+conversions can be done more quickly.
+*/
+typedef struct a_source_sequence_cache_entry {
+  a_seq_number
+		first_seq_number;
+			/* First sequence number for which the cached
+			   information is valid. */
+  a_seq_number
+		last_seq_number;
+			/* Last sequence number for which the cached
+			   information is valid. */
+  long
+		line_offset;
+			/* Value to be subtracted from a sequence number to
+			   convert it to a line number of the source file
+			   associated with this cached information. */
+  a_boolean	physical_line;
+			/* TRUE if the cached information reflects a physical
+			   line lookup. */
+  unsigned long
+		nesting_depth;
+			/* Cached nesting depth. */
+  a_source_file_ptr
+		source_file;
+			/* Cached source file pointer. */
+} a_source_sequence_cache_entry;
+
+a_source_sequence_cache_entry seq_cache;
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 /*
@@ -151,33 +184,6 @@ static a_template_arg_ptr
 		avail_template_args;
 			/* List of freed template arg entries that are
 			   available for reuse. */
-
-/*
-Data structure used to save information about the last source sequence
-to file/line number conversion that was done so that subsequent
-conversions can be done more quickly.
-*/
-typedef struct a_source_sequence_cache_entry {
-  a_seq_number
-		first_seq_number;
-			/* First sequence number for which the cached
-			   information is valid. */
-  a_seq_number
-		last_seq_number;
-			/* Last sequence number for which the cached
-			   information is valid. */
-  long
-		line_offset;
-			/* Value to be subtracted from a sequence number to
-			   convert it to a line number of the source file
-			   associated with this cached information. */
-  unsigned long
-		nesting_depth;
-  a_source_file_ptr
-		source_file;
-} a_source_sequence_cache_entry;
-
-a_source_sequence_cache_entry seq_cache;
 
 
 /* Static variable and macro for quickly initializing the source_corresp
@@ -1638,6 +1644,23 @@ Allocate a scope entry in the new region and return a pointer to it.
   il_header.region_scope_entry[curr_il_region_number] = sp;
   return sp;
 }  /* new_il_region */
+
+
+static void reset_seq_cache(void)
+/*
+Clear the cached information used to convert sequence number to source
+file and line number.
+*/
+{
+  /* Reset the entry that stores the status of the last sequence number to
+     source file/line conversion. */
+  seq_cache.first_seq_number = 0;
+  seq_cache.last_seq_number = 0;
+  seq_cache.line_offset = 0;
+  seq_cache.physical_line = FALSE;
+  seq_cache.nesting_depth = 0;
+  seq_cache.source_file = NULL;
+}  /* reset_seq_cache */
   
 
 void record_start_of_source_file(a_source_file_ptr parent_file,
@@ -1711,6 +1734,8 @@ files.
     }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   }  /* if */
+  /* Clear the cached sequence number conversion information. */
+  reset_seq_cache();
   db_exit();
 } /* record_start_of_source_file */
 
@@ -1729,6 +1754,8 @@ by recording that the last sequence number contained therein is seq_number.
   }  /* if */
 #endif /* DEBUG */
   curr_file->last_seq_number = seq_number;
+  /* Clear the cached sequence number conversion information. */
+  reset_seq_cache();
   db_exit();
 }  /* record_end_of_source_file */
 
@@ -1754,6 +1781,8 @@ physical line position for the sequence number.
 {
   a_source_file_ptr curr_file, child_file, grandchild_file, phys_curr_file;
   unsigned long     lines_in_children;
+  a_seq_number	    first_seq_for_cache;
+  long		    line_offset;
 
   *at_end_of_source = FALSE;
   *line_number = 0;
@@ -1772,8 +1801,10 @@ physical line position for the sequence number.
 #endif /* DEBUG */
     internal_error("source_file_for_seq: bad seq number");
 #endif /* CHECKING */
-  } else if (seq_number >= seq_cache.first_seq_number &&
-        seq_number <= seq_cache.last_seq_number) {
+  } else if (physical_line == seq_cache.physical_line &&
+             seq_number >= seq_cache.first_seq_number &&
+             seq_number <= seq_cache.last_seq_number &&
+             (seq_number-1 < curr_file->last_seq_number)) {
     /* See whether this sequence number falls into the range of lines
        associated with the information saved by the last lookup.  If so,
        use the information saved last time to speed up the conversion.
@@ -1810,7 +1841,7 @@ examine_children:
     /* Record the first sequence number of the current file as the first
        sequence number for which the cached information applies.  This will
        be updated below if necessary to reflect child files. */
-    seq_cache.first_seq_number = curr_file->first_seq_number;
+    first_seq_for_cache = curr_file->first_seq_number;
     /* Check the sequence number against each child.  The children are
        in order by sequence number. */
     while (child_file != NULL) {
@@ -1845,7 +1876,7 @@ examine_children:
       }  /* if */
       /* Record the sequence number following this child as the first
          sequence number for which the cached information applies. */
-      seq_cache.first_seq_number = child_file->last_seq_number + 1;
+      first_seq_for_cache = child_file->last_seq_number + 1;
       child_file = child_file->next;
     }  /* while */
     if (physical_line) {
@@ -1855,8 +1886,11 @@ examine_children:
     }  /* if */
     /* Save information about the file in which this sequence number was found
        so that subsequent lines may be found more quickly. */
-    seq_cache.line_offset = -curr_file->first_seq_number + 
+    line_offset = -curr_file->first_seq_number + 
                             curr_file->first_line_number - lines_in_children;
+    /* Save information about this conversion so that subsequent conversions
+       can be done more quickly. */
+    seq_cache.first_seq_number = first_seq_for_cache;
     if (child_file != NULL) {
       /* This cache entry is valid up to the first line of the next
          child file. */
@@ -1865,8 +1899,10 @@ examine_children:
       /* This cached entry is valid through the end of the current file. */
       seq_cache.last_seq_number = curr_file->last_seq_number;
     }  /* if */
+    seq_cache.line_offset = line_offset;
     seq_cache.source_file = curr_file;
     seq_cache.nesting_depth = *nesting_depth;
+    seq_cache.physical_line = physical_line;
 #if DEBUG
     if (debug_level >= 5) {
       fprintf(f_debug, "Cached source sequence conversion information:\n");
@@ -1874,17 +1910,18 @@ examine_children:
       fprintf(f_debug, "  first_seq_number: %d\n", seq_cache.first_seq_number);
       fprintf(f_debug, "  last_seq_number: %d\n", seq_cache.last_seq_number);
       fprintf(f_debug, "  line_offset: %d\n", seq_cache.line_offset);
+      fprintf(f_debug, "  physical_line: %d\n", seq_cache.physical_line);
       fprintf(f_debug, "  seq number requested=%d\n", seq_number);
     }  /* if */
-#endif
+#endif /* DEBUG */
     /* Compute the line number to be returned to the caller. */
-    *line_number = seq_number + seq_cache.line_offset;
+    *line_number = seq_number + line_offset;
   }  /* if */
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "File=%s, Line=%d\n", curr_file->file_name, *line_number);
   }  /* if */
-#endif
+#endif /* DEBUG */
   return curr_file;
 }  /* source_file_for_seq */
 
@@ -7236,13 +7273,7 @@ Reset any variables that contain state information that becomes invalid
 when the IL has been read back into memory.
 */
 {
-  /* Reset the entry that stores the status of the last sequence number to
-     source file/line conversion. */
-  seq_cache.first_seq_number = 0;
-  seq_cache.last_seq_number = 0;
-  seq_cache.line_offset = 0;
-  seq_cache.nesting_depth = 0;
-  seq_cache.source_file = NULL;
+  reset_seq_cache();
 }  /* il_reset */
 
 
