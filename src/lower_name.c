@@ -2535,7 +2535,7 @@ and "routine" is the routine to which the entity is local.
     mangled_function_name_externalized_if_necessary(
                                              routine,
                                              /*suppress_param_encoding=*/FALSE,
-                                             /*base_offset=*/NULL,
+                                             /*base_offset=*/(sizeof_t *)NULL,
                                              mctl);
   }  /* if */
 }  /* add_local_name_suffix */
