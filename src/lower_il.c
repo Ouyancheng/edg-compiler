@@ -7023,6 +7023,24 @@ promotion_scope, at the position indicated by *insert_position, and
       promote_routines(scope);
       /* Types are promoted to promotion_scope. */
       promote_types(scope, promotion_scope, insert_pointer);
+      if (scope->pragma_list != NULL) {
+        /* There are pragmas in the class, so promote them to the file
+           scope too. */
+        a_pragma_ptr class_pragma_list = scope->pragma_list;
+        a_pragma_ptr pp, last_fs_pragma;
+        /* Find the end of the class pragma list. */
+        for (pp = class_pragma_list; pp->next != NULL; pp = pp->next) {}
+        /* Put the class pragma list on the end of the file-scope pragma
+           list. */
+        last_fs_pragma = scope_stack[DEPTH_OF_FILE_SCOPE].last_pragma;
+        if (last_fs_pragma == NULL) {
+          il_header.primary_scope->pragma_list = class_pragma_list;
+        } else {
+          last_fs_pragma->next = class_pragma_list;
+        }  /* if */
+        scope_stack[DEPTH_OF_FILE_SCOPE].last_pragma = pp;
+        scope->pragma_list = NULL;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* promote_class_members */
@@ -7249,6 +7267,8 @@ lowering of the file scope memory region.
   a_scope_ptr    block_scope;
   a_scope_depth  depth;
 
+  /* Note that any pragmas associated with promoted entities are already on
+     the file scope list, so they do not need to be moved. */
   /* See if there is anything to promote. */
   type = scope->types;
   variable = scope->variables;
