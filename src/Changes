@@ -1,5 +1,84 @@
 Version 2.37
 
+10/16/97  Explicit specification of function template arguments
+
+Explicit specification of function template arguments is now fully
+implemented.  In version 2.36 explicit function template arguments
+were only accepted in declaration contexts.
+
+Now that template arguments can be explicitly specified, it is no longer
+a requirement that a parameter be used in the signature of a function
+template in a context in which its value can be deduced.  For example,
+the following code is now accepted:
+
+  template <class T> void f();  // T not used in function signature
+  int main() {
+    f<int>();
+  }
+
+If a user makes a mistake in the declaration of a function template
+he or she may unwittingly declare a template that requires one or more
+of its arguments to be explicitly specified.  For example:
+
+  template <class T, class T2> void f(T, T);  // should have been (T, T2)
+
+This template will fail to match any call that doesn't supply an explicit
+value for T2.  Because this kind of error is easy to make, a remark is issued
+on such declarations.  A warning is issued if a template conversion
+operator or template constructor declares a template parameter that is
+not used in its function signature.  A warning is issued instead of
+a remark because there is no way that such a function can be called.
+
+10/16/97  Template argument deduction processing updated
+
+Template argument deduction has been updated to conform to the draft
+standard.  Specifically, "nondeduced" contexts and certain cases
+involving differences in cv-qualifiers are now handled properly.
+Nondeduced contexts include the qualifier portion of a type specified
+as a qualified name.  For example, the A<T> in A<T>::B.  An argument
+cannot be deduced from a nondeduced context, but instead uses a value
+that is either explicitly specified or deduced elsewhere.  The
+following example illustrates the kind of usage that is now accepted
+and the kind of usage that was formerly accepted but is now rejected.
+
+  template <class T> struct A {
+    struct B {};
+  };
+  template <> struct A<char> {
+    typedef int B;
+  };
+  template <class T> void f(A<T>, A<T>::B);
+  template <class T> void g(A<T>::B);
+
+  int main() {
+    A<int> ai;
+    A<int>::B aib;
+
+    f(ai, aib);  // valid in standard and nonstandard modes
+
+    g(aib);  // no longer permitted in standard mode
+
+    A<char> ac;
+    f(ac, 1);  // now accepted in standard mode
+  }
+
+The new deduction rules for qualifiers are enabled and disabled by the
+command-line options --[no_]nonstd_qualifier_deduction.  The default
+is specified by DEFAULT_NONSTANDARD_QUALIFIER_DEDUCTION.
+
+Function templates with cv-qualified types are now handled properly
+by the deduction process.  In the following examples, both calls
+were formerly diagnosed as ambiguous.  Both are now accepted.
+
+  template <class T> void f(T&);
+  template <class T> void f(const T&);
+  struct A {};
+  int main() {
+    A a;
+    f(a);  // Nonconst preferred
+    f(1);  // const used, cannot bind lvalue to nonconst reference
+  }
+
 10/16/97  Internal error in eliminating unneeded nested template class
           specialization
 
