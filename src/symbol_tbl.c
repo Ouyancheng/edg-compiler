@@ -7790,15 +7790,13 @@ next_scope:
 	   instantiation is encountered. */
         if (kind == (a_scope_kind)sck_template_instantiation &&
 	    !ssep->nested_instantiation) {
-          a_scope_number  file_scope_number;
           ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
-          file_scope_number = ssep->number;
           /* Scan the active list until we find a file scope symbol.  We don't
              need to worry about prev_active_sym because it is not used
              for the file scope and there can be no scopes beyond the file
              scope. */
           while (active_sym != NULL &&
-                 active_sym->decl_scope != file_scope_number) {
+                 active_sym->decl_scope != FILE_SCOPE_NUMBER) {
             active_sym = active_sym->next;
           }  /* while */
         } else {
@@ -8657,16 +8655,27 @@ type, that type is ignored by this routine.
           /* See if the namespace of this function is on the namespace list of
              either of the operands.  Note that a NULL namespace pointer
              still needs to be searched for.  There can be a list entry that
-             points to a NULL namespace. */
+             points to a NULL namespace (i.e., the file scope).  Symbols
+             with a NULL namespace pointer must have their decl_scope compared
+             with the file scope's scope number to see if they are really
+             associated with the file scope. */
           /* Look on the list associated with the first type. */
           for (nlep = nlep_1; nlep != NULL; nlep = nlep->next) {
-            if (nlep->ptr == nsp) break;
+            if (nsp == NULL) {
+              if (sym->decl_scope == FILE_SCOPE_NUMBER) break;
+            } else {
+              if (nlep->ptr == nsp) break;
+            }  /* if */
           }  /* for */
           if (nlep == NULL) {
             /* The namespace was not found on the first list, look on the
                list associated with the second type. */
             for (nlep = nlep_2; nlep != NULL; nlep = nlep->next) {
-              if (nlep->ptr == nsp) break;
+              if (nsp == NULL) {
+                if (sym->decl_scope == FILE_SCOPE_NUMBER) break;
+              } else {
+                if (nlep->ptr == nsp) break;
+              }  /* if */
             }  /* for */
           }  /* if */
           if (nlep != NULL) {
@@ -8701,12 +8710,54 @@ type, that type is ignored by this routine.
           if (slep->symbol == sym) break;
         }  /* for */
         if (slep == NULL) {
-          /* The symbol is not on the list -- add it. */
-          slep = alloc_symbol_list_entry();
-          slep->symbol = sym;
-          /* Add the new entry to the front of the list. */
-          slep->next = symbol_list;
-          symbol_list = slep;
+          /* The symbol is not on the list.  See if the routine(s) pointed
+             to by the symbol are already present under one of the symbols
+             on the current list.  If the new symbol is an overload set,
+             process each element separately and add each one to the
+             symbol list individually. */
+          a_boolean	is_list = FALSE;
+          a_symbol_ptr	rout_sym = sym;
+          /* If the new symbol is an overload set, process each element of
+             the overload list. */
+          if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+            rout_sym = sym->variant.overloaded_function.symbols;
+            is_list = TRUE;
+          }  /* if */
+          for (; rout_sym != NULL;
+               rout_sym = is_list ? rout_sym->next : NULL) {
+            /* Go through the symbol list for each routine associated with
+               the new symbol. */
+            for (slep = symbol_list; slep != NULL; slep = slep->next) {
+              a_symbol_ptr	list_sym = slep->symbol;
+	      a_boolean		list_is_list = FALSE;
+              /* If the list entry is an overload set, look through the
+                 list of overloaded functions for a match. */
+              if (list_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+                list_is_list = TRUE;
+                list_sym = list_sym->variant.overloaded_function.symbols;
+              }  /* if */
+              for (; list_sym != NULL;
+                   list_sym = list_is_list ? list_sym->next : NULL) {
+                if (list_sym->variant.routine.ptr ==
+                                              rout_sym->variant.routine.ptr) {
+                  /* We've found a match -- exit the loop. */
+                  break;
+                }  /* if */
+              }  /* for */
+              /* If the routine was found in the symbol list of this list
+                 entry, stop the search. */
+              if (list_sym != NULL) break;
+            }  /* for */
+            /* If the routine was not found under any of the symbols on the
+               list, create a new entry for it now. */
+            if (slep == NULL) {
+              slep = alloc_symbol_list_entry();
+              slep->symbol = rout_sym;
+              /* Add the new entry to the front of the list. */
+              slep->next = symbol_list;
+              symbol_list = slep;
+            }  /* if */
+          }  /* for */
         }  /* if */
       }  /* if */
     }
