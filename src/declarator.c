@@ -2829,9 +2829,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
   /* Return unbound qualifiers to the caller. */
   if (pending_qualifiers != TQ_NONE) {
 #if NEAR_AND_FAR_ALLOWED
-    if (((microsoft_mode && microsoft_version >= 1000)
-         or_near_and_far_enabled()) &&
-        (pending_qualifiers & ~(TQ_NEAR | TQ_FAR)) != TQ_NONE) {
+    if (((pending_qualifiers & ~(TQ_NEAR | TQ_FAR)) != TQ_NONE) &&
+        (!microsoft_mode || microsoft_version >= 1000)) {
       /* Case like
            int i, const j;
          The type qualifiers were applied in MSVC++ 2.0, but they are
@@ -3429,8 +3428,8 @@ The syntax is:
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if NEAR_AND_FAR_ALLOWED
-    if (near_and_far_enabled()) {
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+    if (microsoft_mode or_near_and_far_enabled()) {
       if (unbound_qualifiers != TQ_NONE) {
         /* Constructs such as
              int far (*p);
@@ -3439,7 +3438,7 @@ The syntax is:
                   &declarator_pos);
       }  /* if */
     }  /* if */
-#endif  /* NEAR_AND_FAR_ALLOWED */
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     add_stop_token(tok_rparen);
     /* Get the nested declarator, removing the flag allowing parenthesized
        initializers from the input_flags bit vector.  (The other flags are
@@ -3941,23 +3940,25 @@ function_lparen:
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if NEAR_AND_FAR_ALLOWED
-  if (near_and_far_enabled()) {
+#if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
+  if (microsoft_mode or_near_and_far_enabled()) {
     if (unbound_qualifiers != TQ_NONE) {
       /* If there are unbound type qualifiers, apply them to the complete
          type (if it exists).  If it does not exist, return the unbound
          type qualifiers to the caller. */
       if (complete_type != NULL) {
+#if NEAR_AND_FAR_ALLOWED
         check_for_addition_of_incompatible_qualifiers(complete_type,
                                                       &unbound_qualifiers,
                                                       &declarator_pos);
+#endif  /* NEAR_AND_FAR_ALLOWED */
         complete_type = make_qualified_type(complete_type, unbound_qualifiers);
       } else {
         *p_unbound_qualifiers = unbound_qualifiers;
       }  /* if */
     }  /* if */
   }  /* if */
-#endif  /* NEAR_AND_FAR_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator. */
     if (!is_function_type(complete_type)) {
