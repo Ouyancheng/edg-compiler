@@ -6381,18 +6381,16 @@ This routine is only used in C++ mode.
 
   db_enter(4, "try_conversion_function_match");
   /* This routine is similar to try_overloaded_function_match. */
-  if (dest_type == NULL) {
-    if (builtin_types_allowed == BTK_BOOL) {
-      /* There's only one type in the BTK_BOOL category, so make this a
-         conversion to a specific type so that templates can be used. */
-      dest_type = bool_type();
-      builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
-    } else if (builtin_types_allowed == BTK_PTRDIFF_T) {
-      /* There's only one type in the BTK_PTRDIFF_T category, so make this a
-         conversion to a specific type so that templates can be used. */
-      dest_type = integer_type(targ_ptrdiff_t_int_kind);
-      builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
-    }  /* if */
+  if (builtin_types_allowed == BTK_BOOL) {
+    /* There's only one type in the BTK_BOOL category, so make this a
+       conversion to a specific type so that templates can be used. */
+    dest_type = bool_type();
+    builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
+  } else if (builtin_types_allowed == BTK_PTRDIFF_T) {
+    /* There's only one type in the BTK_PTRDIFF_T category, so make this a
+       conversion to a specific type so that templates can be used. */
+    dest_type = integer_type(targ_ptrdiff_t_int_kind);
+    builtin_types_allowed = (a_builtin_type_kind_set)BTK_NONE;
   }  /* if */
   source_type = source_operand->type;
   check_assertion_str(is_class_struct_union_type(source_type),
