@@ -2441,19 +2441,29 @@ two-pass sweep.
   }  /* for */
   finish_type_list_moved_function_processing(scope->types, do_inlines);
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
-    /* Process functions on the right pass (inline/noninline). */
-    if ((do_inlines != 0) == (routine->is_inline != 0)) {
-      if (routine->assoc_scope != NULL_region_number) {
-        a_scope_ptr rout_scope =
+    a_boolean eff_inline = (routine->is_inline != 0);
+    if (routine->assoc_scope != NULL_region_number) {
+      a_scope_ptr rout_scope =
                             il_header.region_scope_entry[routine->assoc_scope];
-        check_assertion_str(rout_scope != NULL,
+      if (rout_scope == NULL) {
+        /* The body might be missing if it was deleted on the first pass
+           because the routine is inline and it has no local types. */
+        check_assertion_str(!do_inlines && routine->is_inline,
                             "finish_moved_function_processing: body missing");
+      } else {
         /* Handle local classes (and their member functions).  Note that,
            because the routine scope has already been moved, the types
            list here is in the primary IL. */
         finish_type_list_moved_function_processing(rout_scope->types,
                                                    do_inlines);
+        /* Force a routine with local types to be done on the second pass
+           so that we do not lose its body -- and its local types list --
+           on the first pass. */
+        if (rout_scope->types != NULL) eff_inline = FALSE;
       }  /* if */
+    }  /* if */
+    /* Process functions on the right pass (inline/noninline). */
+    if ((do_inlines != 0) == eff_inline) {
       wrap_up_moved_function(routine);
     }  /* if */
   }  /* for */
