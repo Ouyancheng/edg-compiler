@@ -5366,11 +5366,9 @@ for the definition of the indicated routine.  scope is the associated scope.
                         /*need_paren=*/TRUE, /*suppress_const=*/FALSE);
 #if C_GEN_BE_GENERATES_ANSI_C
   /* For an old-style function, declare the parameters. */
-  /* A routine is put out as unprototyped if its interface is unprototyped
-     or if the definition is old-style (i.e., there was a prototyped
-     declaration and then an old-style definition). */
-  if (!rout->type->variant.routine.extra_info->prototyped ||
-      rout->type->variant.routine.extra_info->old_style_params_scanned)
+  /* Note that this does not use the "prototyped" flag, which is inaccurate
+     when there is a prototyped declaration and an old-style definition. */
+  if (type->variant.routine.extra_info->old_style_params_scanned)
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
   {
     dump_old_style_parameter_decls(scope);
