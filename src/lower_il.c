@@ -8176,19 +8176,21 @@ had at the start of the block.
       gen_cleanup_actions(lifetime, &insert_location);
     }  /* if */
   }  /* if */
-  if (saved_curr_cleanup_state != curr_cleanup_state) {
+  if (saved_curr_cleanup_state != curr_cleanup_state &&
+      !block->end_of_block_reachable &&
+      scope != innermost_function_scope) {
     /* Adjust the cleanup state at the end of a block that ends with a
-       transfer of control.  The pop_context call below restores
-       curr_cleanup_state too, but only for blocks with an associated
-       object lifetime. */
+       transfer of control.  There's no point in doing this for the top
+       block of a function.  The end_of_block_reachable test is usually
+       useless, but is needed (at least) for for-init declarations that
+       declare more than one variable (they use a block to group the
+       multiple initializations, and that block has neither a lifetime nor
+       a scope associated with it; the cleanup state on exit needs
+       to be the state after the initializations). */
     curr_cleanup_state = saved_curr_cleanup_state;
     /* If necessary, emit code to indicate the cleanup state at the end
-       of a block whose end is unreachable.  There's no point in doing
-       this for the top block of a function. */
-    if (scope != innermost_function_scope &&
-        !block->end_of_block_reachable) {
-      reset_cleanup_state_at_unreachable_end_of_block(&insert_location);
-    }  /* if */
+       of the block. */
+    reset_cleanup_state_at_unreachable_end_of_block(&insert_location);
   }  /* if */
   if (context_pushed) {
     /* Pop the context pushed by push_block_statement_context. */
