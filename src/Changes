@@ -1,5 +1,7 @@
 Version 2.45
 
+12/21/00 IL version number changed to 2.37
+
 12/21/00 Function template entries when using PROTOTYPE_INSTANTIATIONS_IN_IL
 
 When using PROTOTYPE_INSTANTIATIONS_IN_IL, the template entries for
