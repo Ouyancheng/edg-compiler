@@ -9110,6 +9110,9 @@ entry into one representing a nondefining declaration.
     fputc('\n', f_debug);
   }  /* if */
 #endif /* if DEBUG */
+  check_assertion_str(!class_type->variant.class_struct_union.
+                                                             definition_needed,
+                   "turn_class_definition_into_declaration: class def needed");
   if (!C_mode()) {
     /* In C++ mode fix up the class-type-supplement and data structures
        pointed to from it. */
