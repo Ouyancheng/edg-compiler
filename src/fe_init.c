@@ -572,108 +572,6 @@ static void target_init(void)
 Initialize target machine characteristics.
 */
 {
-#if CHECKING
-  { a_targ_size_t    size, size_max_value, sizeof_largest_targ_integer;
-    a_targ_alignment alignment;
-    a_targ_ptrdiff_t diff_max_value;
-    a_boolean        err;
-
-    /* The target char may be no bigger than the host long. */
-    get_integer_size_and_alignment((an_integer_kind)ik_char,
-                                   &size, &alignment);
-    if (size > sizeof(long)) {
-      internal_error("target_init: target char is too large");
-    }  /* if */
-    /* The target wchar_t may be no bigger than the host long. */
-    get_integer_size_and_alignment((an_integer_kind)targ_wchar_t_int_kind,
-                                   &size, &alignment);
-    if (size > sizeof(long)) {
-      internal_error("target_init: target wchar_t is too large");
-    }  /* if */
-    /* targ_size_t_max must fit in the target integer type targ_size_t_int_kind
-       (but it need not fit exactly). */
-    get_integer_size_and_alignment((an_integer_kind)targ_size_t_int_kind,
-                                   &size, &alignment);
-    size *= targ_char_bit;
-    if (size > sizeof(a_targ_size_t)*CHAR_BIT) {
-      size = sizeof(a_targ_size_t)*CHAR_BIT;
-    }  /* if */
-    /* Make a mask of "size" 1 bits for the maximum value. */
-    size_max_value = ((((a_targ_size_t)1 << (size-1))-1) << 1);
-    /* Final "or" done separately to avoid a bug in Borland C++ 3.0 with -O. */
-    size_max_value |= 1;
-    if (size_max_value < targ_size_t_max) {
-      internal_error("target_init: targ_size_t_max is set wrong");
-    }  /* if */
-    /* targ_ptrdiff_t_max and targ_ptrdiff_t_min must fit in the target
-       integer type targ_ptrdiff_t_int_kind (but they need not fit exactly). */
-    get_integer_size_and_alignment((an_integer_kind)targ_ptrdiff_t_int_kind,
-                                   &size, &alignment);
-    size *= targ_char_bit;
-    if (size > sizeof(a_targ_ptrdiff_t)*CHAR_BIT) {
-      size = sizeof(a_targ_ptrdiff_t)*CHAR_BIT;
-    }  /* if */
-    /* Make a mask of "size-1" 1 bits for the maximum value. */
-    diff_max_value = ((((a_targ_ptrdiff_t)1 << (size-2))-1) << 1);
-    /* Final "or" done separately to avoid a bug in Borland C++ 3.0 with -O. */
-    diff_max_value |= 1;
-    if (diff_max_value < targ_ptrdiff_t_max) {
-      internal_error(
-                   "target_init: targ_ptrdiff_t_max in target.h is set wrong");
-    }  /* if */
-    /* Use a variable here so that compilers will not complain about a
-       constant conditional test (and it can't be made into a #if because
-       some compilers complain about the casts in the macros). */
-    /* This test depends on a two's complement representation. */
-    err = -targ_ptrdiff_t_max-1 != targ_ptrdiff_t_min;
-    if (err) {
-      internal_error("target_init: targ_ptrdiff_t_min is set wrong");
-    }  /* if */
-#if LONG_LONG_ALLOWED
-    sizeof_largest_targ_integer = targ_sizeof_long_long;
-#else /* !LONG_LONG_ALLOWED */
-    sizeof_largest_targ_integer = targ_sizeof_long;
-#endif /* LONG_LONG_ALLOWED */
-#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-    /* When using host integers to represent target integers, make sure the
-       host integer selected is large enough. */
-    err = (sizeof_largest_targ_integer*targ_char_bit >
-            sizeof(an_integer_value)*CHAR_BIT);
-    if (err) {
-      internal_error("target_init: an_integer_value in target.h is too small");
-    }  /* if */
-#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-    /* When using the simulated large integer approach to represent target
-       integers, the sizes must be right. */
-    err = (BITS_IN_HOST_LARGE_INTEGER !=
-            sizeof(a_host_large_integer)*CHAR_BIT);
-    if (err) {
-      internal_error(
-           "target_init: BITS_IN_HOST_LARGE_INTEGER in target.h is set wrong");
-    }  /* if */
-    err = (SIZEOF_INT_VALUE_PART > sizeof(an_int_value_part));
-    if (err) {
-      internal_error(
-                "target_init: SIZEOF_INT_VALUE_PART in target.h is set wrong");
-    }  /* if */
-    err = (BITS_IN_INT_VALUE_PART != SIZEOF_INT_VALUE_PART*CHAR_BIT ||
-            2*BITS_IN_INT_VALUE_PART > BITS_IN_HOST_LARGE_INTEGER);
-    if (err) {
-      internal_error(
-               "target_init: BITS_IN_INT_VALUE_PART in target.h is set wrong");
-    }  /* if */
-    err = (BITS_IN_INT_VALUE_PART*INT_VALUE_PARTS_PER_INTEGER_VALUE !=
-            sizeof_largest_targ_integer*targ_char_bit);
-    if (err) {
-      internal_error(
-    "target_init: INT_VALUE_PARTS_PER_INTEGER_VALUE in target.h is set wrong");
-    }  /* if */
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  }
-  if (targ_host_string_char_bit > CHAR_BIT) {
-    internal_error("target_init: targ_host_string_char_bit is set wrong");
-  }  /* if */
-#endif /* CHECKING */
   /* The signedness of characters can be set on the command line. */
   if (targ_has_signed_chars) {
     /* Target has signed characters. */
@@ -800,6 +698,9 @@ Do initialization that does not have to be redone with each translation
 unit, in case multiple source files are allowed.
 */
 {
+#if CHECKING
+  check_target_configuration();
+#endif /* CHECKING */
 }  /* fe_one_time_init */
 
 
