@@ -103,6 +103,10 @@ if [ "$EDG_GEN_C_IN_CURR_DIR" != "" ] ; then
   gen_c_in_curr_dir=1
 fi
 #
+# Default options to be passed to edgcpfe
+#
+EDG_CPFE_DEFAULT_OPTIONS=${EDG_CPFE_DEFAULT_OPTIONS-""}
+#
 error=0
 #
 # When set to 1, run front end and cc producing a .o file.
@@ -575,7 +579,7 @@ do
     gen_c_obj_name=$basefile.$$.int.o
     feoptions=$feoptions" "--gen_c_file_name=$gen_c_file_name
   fi
-  command=${CPFE}" "$feoptions" "$cfile
+  command=${CPFE}" "$EDG_CPFE_DEFAULT_OPTIONS" "$feoptions" "$cfile
   if [ $driver_debug -ne 0 ] ; then
     echo $command
   fi
