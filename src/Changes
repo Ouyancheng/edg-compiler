@@ -85,6 +85,9 @@ variables with const class type, where the class type has a mutable
 member.  This prevents the underlying C compiler from putting the
 variable into read-only storage.
 
+IL CHANGE: the a_type entry variant for classes now contains a field
+any_mutable_member, similar to the existing any_const_member.
+
 11/27/97  Inlining of function containing char array initialized to string
 
 When MINIMAL_INLINING is enabled, an attempt to inline a function that
