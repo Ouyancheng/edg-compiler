@@ -1724,6 +1724,24 @@ ct_symbol is the symbol of the class template.
 }  /* make_template_class_symbol */
 
 
+a_symbol_ptr make_template_function_symbol(a_symbol_ptr       templ_sym,
+                                           a_source_position  *pos)
+/*
+Create a symbol for a template function.  Do not enter it into the symbol
+table, since it is accessed from the associated function instantiation entry.
+*/
+{
+  a_symbol_ptr  sym;
+
+  sym = alloc_symbol((a_symbol_kind)sk_routine, templ_sym->header, pos);
+  mark_declared(sym, pos, /*save_as_decl_position=*/TRUE);
+  /* Template functions will be in the same scope as the template (which
+     should always be the file scope. */
+  sym->decl_scope = templ_sym->decl_scope;;
+
+  return sym;
+}  /* make_template_function_symbol */
+
 a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
                                        a_source_position  *pos)
 /*

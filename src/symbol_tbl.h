@@ -1193,6 +1193,9 @@ extern a_symbol_ptr make_parameter_symbol(a_symbol_locator  *locator);
 extern a_symbol_ptr make_template_class_symbol(a_symbol_ptr       ct_symbol,
                                                a_source_position *pos);
 
+extern a_symbol_ptr make_template_function_symbol(a_symbol_ptr       templ_sym,
+                                                  a_source_position  *pos);
+
 extern a_symbol_ptr make_unnamed_class_symbol(a_symbol_kind      sym_kind,
                                               a_source_position  *pos);
 
@@ -1404,6 +1407,8 @@ extern a_symbol_ptr get_template_class(a_symbol_ptr  template_symbol);
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
 extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
 extern a_template_param_ptr alloc_template_param(void);
+extern a_function_instantiation_entry_ptr
+                                     alloc_function_instantiation_entry(void);
 
 
 /* Examine the list of symbols with a given name, looking for an
