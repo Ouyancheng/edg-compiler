@@ -6263,7 +6263,7 @@ typedef struct a_variable {
 			/* The COMDAT group into which this variable
 			   should be placed, or NULL if this entity
 			   should not be placed into a COMDAT group.
-			   TRUE only for variable definitions, never for
+			   Non-NULL only for variable definitions, never for
 			   (e.g.) external references. */
 #endif /* DO_IL_LOWERING && IA64_ABI */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
