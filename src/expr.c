@@ -4264,7 +4264,7 @@ the entire array.
   a_dynamic_init_ptr  array_dip;
 
   /* The IL structure is
-       dynamic init (dik_nonconstant_aggregate) ->
+       new dynamic init (dik_nonconstant_aggregate) ->
          constant (ck_aggregate) ->
            constant (ck_init_repeat) ->
              constant (ck_dynamic_init) ->
