@@ -5915,7 +5915,7 @@ next_declaration:
          rescanning inline function definitions. */
       project_base_class_conversion_functions(class_type);
       /* Since project_base_class_conversion_functions can have added new
-         symbols, update the symbols list attached to the class.
+         symbols, update the symbols list attached to the class. */
       cssp->symbols = scope_stack[depth_scope_stack].symbols;
       /* Report errors in virtual function declarations that result from
          the failure to redeclare a virtual function originally declared in
