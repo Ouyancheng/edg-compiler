@@ -4848,13 +4848,6 @@ not to put out the definition; otherwise, it's set to NULL.
     }  /* if */
 #endif /* !IA64_ABI */
     check_assertion(vtbl_var != NULL);
-#if IA64_ABI
-    if (ctsp->virtual_table_table_var != NULL &&
-        ctsp->virtual_table_table_var->source_corresp.referenced) {
-      /* The VTT is referenced, so we need the virtual table. */
-    } else 
-#endif /* IA64_ABI */
-    /* Do not insert code here. */
     if (class_type->typeinfo_var != NULL &&
         class_type->typeinfo_var->source_corresp.referenced) {
       /* The typeinfo variable is referenced, so we need the virtual

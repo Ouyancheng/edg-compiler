@@ -63,6 +63,7 @@ static a_variable_ptr make_construction_vtbls_array(
                                            a_type_ptr              class_type,
                                            a_construction_vtbl_ptr elements);
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+static void set_lowering_variable_address_taken(a_variable_ptr variable);
 
 
 static a_type_ptr make_function_type(a_type_ptr return_type,
@@ -198,6 +199,8 @@ element.
   set_variable_address_constant(var, &addr_constant,
                                 /*set_address_taken_flag=*/FALSE);
   implicit_cast(&addr_constant, ptr_element_type);
+  set_lowering_variable_address_taken(var);
+  var->source_corresp.referenced = TRUE;
 #if IA64_ABI
   /* Add the offset from the start of the variable to the actual address
      point. */
@@ -8123,7 +8126,14 @@ destructor is being generated.
                             make_construction_vtbls_array(class_type, 
                                                           construction_vtbls);
   an_expr_node_ptr array_addr = array_var_lvalue_expr(array_var);
+  a_variable_ptr   vtbl_var = class_type->variant.class_struct_union.
+                                        extra_info->virtual_function_table_var;
 
+  /* Set the referenced flag in the virtual function table to say that
+     the virtual function table and VTT must be put out even if they
+     are static. */
+  check_assertion(vtbl_var != NULL);
+  vtbl_var->source_corresp.referenced = TRUE;
   (void)insert_var_assignment_statement(construction_vtbls_var,
                                         (an_expr_operator_kind)eok_passign,
                                         array_addr,
@@ -8484,8 +8494,6 @@ Insert the code at the location given by insert_location.
     if (primary_vtbl_var != NULL) {
       vtbl_addr_node = make_vtbl_address_node(primary_vtbl_var, class_type,
                                               (a_base_class_ptr)NULL);
-      set_lowering_variable_address_taken(primary_vtbl_var);
-      primary_vtbl_var->source_corresp.referenced = TRUE;
     } else {
       vtbl_addr_node = NULL;
     } /* if */
@@ -8918,8 +8926,6 @@ constructor, but may instead be after an assignment to "this".
 #endif /* IA64_ABI */
       {
         vtbl_addr_node = make_vtbl_address_node(vtbl_var, class_type, bcp);
-        set_lowering_variable_address_taken(vtbl_var);
-        vtbl_var->source_corresp.referenced = TRUE;
       }  /* if */
       if (vtbl_addr_node != NULL) {
 #if !IA64_ABI
@@ -10036,8 +10042,6 @@ destructor scope, and also lower the user code.
 #endif /* IA64_ABI */
       {
         vtbl_addr_node = make_vtbl_address_node(vtbl_var, class_type, bcp);
-        set_lowering_variable_address_taken(vtbl_var);
-        vtbl_var->source_corresp.referenced = TRUE;
       }
       if (vtbl_addr_node != NULL) {
         /* Build a node to address the virtual table pointer in the base
