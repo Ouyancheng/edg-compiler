@@ -892,6 +892,8 @@ extern a_boolean op_is_false_constant(an_operand *operand);
 
 extern void add_reference_indirection(an_operand *result);
 
+extern a_boolean variable_has_constant_address(a_variable_ptr variable);
+
 extern void make_lvalue_variable_operand(a_variable_ptr  variable,
                                          an_operand      *result,
                                          a_ref_entry_ptr rep,

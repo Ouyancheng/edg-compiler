@@ -1,5 +1,16 @@
 Version 3.3
 
+6/11/03  Microsoft compatibility: dllimport variable address not constant
+
+A variable declared with the dllimport attribute in Microsoft mode
+is now considered not to have a constant address (such variables
+are implemented by indirection through pointer variables).
+That means cases like the following now get an error in Microsoft
+C mode (as they do with the Microsoft compiler):
+
+  __declspec(dllimport) int GLOB;
+  int *P = &GLOB;
+
 6/11/03  GNU mode: Keep routine with "used" attribute
 
 A routine marked with the GNU attribute "used" is now always kept in the IL,

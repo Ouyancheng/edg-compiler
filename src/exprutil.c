@@ -6148,6 +6148,26 @@ do-nothing ck_template_param cast on top of it.
 }  /* force_constant_to_be_dependent */
 
 
+a_boolean variable_has_constant_address(a_variable_ptr variable)
+/*
+Return TRUE if the indicated variable has a constant address.  A static
+variable, for example, has a constant address, whereas a local auto
+variable does not.
+*/
+{
+  a_boolean const_addr = has_static_storage_duration(variable->storage_class);
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (variable->decl_modifiers & DM_DLLIMPORT) {
+    /* A dllimport variable is accessed indirect through a variable
+       and therefore does not have a constant address. */
+    const_addr = FALSE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return const_addr;
+}  /* variable_has_constant_address */
+
+
 #if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
 /*ARGSUSED*/  /* <-- record_expr is not used in that case. */
 #endif /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -6180,8 +6200,7 @@ FALSE means the reference is compiler-generated).
     make_expression_operand(var_rvalue_expr(variable), variable_type,
                             result);
   } else {
-    if (variable->storage_class == (a_storage_class)sc_register ||
-        variable->storage_class == (a_storage_class)sc_auto) {
+    if (!variable_has_constant_address(variable)) {
       /* Register variables do not have addresses, and auto variables
          do not have constant addresses, so use a variable-address
          expression instead of a constant.  Note that one can use

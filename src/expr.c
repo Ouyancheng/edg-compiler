@@ -13289,7 +13289,7 @@ variable:
                __INTADDR__. */
             if ((curr_expr_kind_is(ek_init_constant) ||
                  curr_expr_kind_is(ek_template_arg)) &&
-                has_static_storage_duration(var_ptr->storage_class) &&
+                variable_has_constant_address(var_ptr) &&
 #if UPC_EXTENSIONS_ALLOWED
                 /* Disallow static initializations using addresses of shared
                    data. */
