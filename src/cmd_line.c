@@ -2049,12 +2049,9 @@ setting is used, and to set various unmentioned settings as needed.
   }  /* if */
   named_registers_enabled = FALSE;
 #endif /* NAMED_REGISTERS_ALLOWED */
-#if FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
-    NAMED_REGISTERS_ALLOWED
   if (option_kind_used[(int)optk_embedded_c]) {
     command_line_error(ec_cl_embedded_c_option_only_in_C);
   }  /* if */
-#endif /* FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && NAMED_... */
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
   /* Universal character names are allowed. */
@@ -2651,21 +2648,28 @@ An ANSI C dialect has been selected.  If any options were selected to enable
 Embedded C (TR 18037) extensions, check them for consistency.
 */
 {
-#if FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && \
-    NAMED_REGISTERS_ALLOWED
   if (option_kind_used[(int)optk_embedded_c]) {
+#if EMBEDDED_C_ALLOWED
     /* The options "--embedded_c" and "--no_embedded_c" should not be combined
        with the options to select individual Embedded C extensions. */
-    if (option_kind_used[(int)optk_fixed_point] ||
-        option_kind_used[(int)optk_named_address_spaces] ||
-        option_kind_used[(int)optk_named_registers]) {
+    a_boolean	individual_used = FALSE;
+#if FIXED_POINT_ALLOWED
+    if (option_kind_used[(int)optk_fixed_point]) individual_used = TRUE;
+#endif /* FIXED_POINT_ALLOWED */
+#if NAMED_ADDRESS_SPACES_ALLOWED
+    if (option_kind_used[(int)optk_named_address_spaces]) {
+      individual_used = TRUE;
+    }  /* if */
+#endif /* NAMED_ADDRESS_SPACES_ALLOWED */
+#if NAMED_REGISTERS_ALLOWED
+    if (option_kind_used[(int)optk_named_registers]) individual_used = TRUE;
+#endif /* NAMED_REGISTERS_ALLOWED */
+    if (individual_used) {
       command_line_error(
            ec_embedded_c_option_incompatible_with_individual_feature_options);
     }  /* if */
-  } else
-#endif /* FIXED_POINT_ALLOWED && NAMED_ADDRESS_SPACES_ALLOWED && NAMED_... */
-  /* Do not insert code here. */
-  if (strict_ansi_mode) {
+#endif /* EMBEDDED_C_ALLOWED */
+  } else if (strict_ansi_mode) {
     /* Disable any Embedded C features not explicitly requested on the
        command line. */
 #if FIXED_POINT_ALLOWED
