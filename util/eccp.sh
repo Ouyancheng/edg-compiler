@@ -1551,9 +1551,10 @@ do
 #
 #     Remove the .int.c files in the instantiation directory.
 #
-  if [ $instantiation_list_exists -ne 0 ] ; then
+  if [ $instantiation_list_exists -ne 0 -a $keep_int_file -eq 0 ] ; then
     for inst_base in `cat $instantiation_list`
     do
+      inst_file=$inst_base$gen_c_suffix
       rm -f $instantiation_gen_c_dir/$inst_file
     done
     # Remove the instantiation list temporary file
