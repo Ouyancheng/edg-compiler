@@ -2857,16 +2857,11 @@ at the next level down.
   if (--depth_input_stack < 0) {
     curr_ise = NULL;
     curr_input_stream = NULL;
-    if (!is_end_of_primary_source_file &&
-        stack_referenced_include_directories) {
-      /* When the include list contains a stack of directory names of
-         active include files, we need to remove the entries added for
-         implicitly included files.  Don't do this for the primary source
-         file.  We want that entry to stay on the list for use by
-         subsequent implicit includes. */
-      check_assertion(incl_search_path != NULL &&
-                      incl_search_path->next != NULL);
-      pop_primary_include_search_dir(incl_search_path->next->dir_name);
+    if (!is_end_of_primary_source_file) {
+      /* When a top-level implicitly included source file is popped,
+         reset the primary include search directory to the directory of
+         the primary source file. */
+      pop_primary_include_search_dir(dir_name_of_primary_source_file);
     }  /* if */
   } else {
     an_input_stack_entry_ptr  prev_ise = curr_ise;

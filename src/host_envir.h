@@ -991,6 +991,11 @@ if the primary source file is stdin.  The string is allocated in general
 storage, not IL storage.
 */
 EXTERN char	*primary_source_file_name;
+
+EXTERN char	*dir_name_of_primary_source_file /* NULL */;
+			/* The directory name of the primary source file.
+                           This is set by the command line processing routines
+                           when the primary source file is set. */
 #if COMPILE_MULTIPLE_SOURCE_FILES
 EXTERN a_boolean
 		more_than_one_source_file /* = FALSE */;

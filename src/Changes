@@ -1,5 +1,13 @@
 Version 2.32
 
+3/25/96   Include search path bug when using implicit inclusion
+
+The include search path entry that represents the directory of the
+primary source file was not being updated properly when using
+implicit inclusion.  This could result in the failure to find a
+file to be implicitly included when that file is located in the
+same directory as the primary source file.
+
 3/23/96   IL CHANGE: new field for stmk_for statement
 
 The supplement for an stmk_for statement now contains a scope pointer.

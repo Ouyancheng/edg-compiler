@@ -1837,6 +1837,7 @@ common_cfront_mode_settings:
     char	*dir_name;
 #endif /* USING_PURIFY */
     dir_name = gs_directory_of(primary_source_file_name);
+    dir_name_of_primary_source_file = dir_name;
     add_to_front_of_include_search_path(dir_name);
   }  /* if */
 #if COMPILE_MULTIPLE_SOURCE_FILES
@@ -1931,8 +1932,9 @@ proc_command_line handles the first file directly.
       /* Update the first entry of the include file search list, the one
          that contains the directory of the primary source file. */
       /* If you change this, see the similar code in proc_command_line. */
-      change_primary_include_search_dir(
-                                    gs_directory_of(primary_source_file_name));
+      dir_name_of_primary_source_file = 
+                                    gs_directory_of(primary_source_file_name);
+      change_primary_include_search_dir(dir_name_of_primary_source_file);
     }  /* if */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     il_file_name = NULL;
