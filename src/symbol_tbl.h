@@ -2165,22 +2165,23 @@ extern void pop_scope(void);
 extern void push_class_reactivation_scope(a_type_ptr class_type);
 extern void pop_class_reactivation_scope(void);
 /* Record use information (for cross-reference, etc.). */
-extern void f_mark_defined(a_symbol_ptr                 sym_ptr,
-                           a_source_position            *source_position,
-                           a_source_sequence_entry_ptr  ssep);
-extern void f_mark_declared(a_symbol_ptr                 sym_ptr,
+extern void record_symbol_declaration(
+                            a_symbol_reference_kind      srk_flags,
+                            a_symbol_ptr                 sym_ptr,
                             a_source_position            *source_position,
                             a_source_sequence_entry_ptr  ssep);
+
 extern void reference_to_symbol(a_symbol_reference_kind  kind,
                                 a_symbol_ptr             sym_ptr,
                                 a_source_position        *source_position,
                                 a_boolean                update_il_entry);
 
 #define mark_defined(sym, pos)                                          \
-  f_mark_defined((sym), (pos), (a_source_sequence_entry_ptr)NULL)
-
+  record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, (sym),    \
+                            (pos), (a_source_sequence_entry_ptr)NULL)
 #define mark_declared(sym, pos)                                         \
-  f_mark_declared((sym), (pos), (a_source_sequence_entry_ptr)NULL)
+  record_symbol_declaration(SRK_DECLARATION, (sym), (pos),              \
+                            (a_source_sequence_entry_ptr)NULL)
 
 #define mark_referenced(sym, err_pos)                                   \
   reference_to_symbol(SRK_REFERENCE, (sym), (err_pos),                  \

@@ -7911,36 +7911,42 @@ secondary status.
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
 /* ARGSUSED */ /* <-- ssep is only used with source sequence lists. */
 #endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-void f_mark_defined(a_symbol_ptr                 sym_ptr,
-                    a_source_position            *source_position,
-                    a_source_sequence_entry_ptr  ssep)
+void record_symbol_declaration(a_symbol_reference_kind      srk_flags,
+                               a_symbol_ptr                 sym_ptr,
+                               a_source_position            *source_position,
+                               a_source_sequence_entry_ptr  ssep)
 /*
-Indicate that the given symbol is defined.  The source position will be
-recorded in the symbol as its "decl_position" (overwriting what's there
-already, if necessary); the same will be done for the decl_position field of
-the IL entry.  A cross-reference entry for a definition will be put out.
-If source sequence entries are being generated, ssep may point to an "empty"
-entry already created for this entity; otherwise, it is NULL.
+Record information about how the given symbol is declared.  The srk_flags
+parameter describes the specificity of the declaration (e.g., that it is a
+definition, a friend declaration, etc.).  The source position will be recorded
+in the symbol as its "decl_position" (overwriting what's there already, if
+this is a definition); the same will be done for the decl_position field of
+the IL entry.  A cross-reference entry will be put out.  If source-sequence
+entries are being generated, ssep may point to an "empty" entry already
+created for this entity; otherwise, it is NULL.
 */
 {
-  a_source_correspondence *scptr;
- 
-  if (sym_ptr->defined) {
-    /* This is a redefinition -- allowed for C variables at file scope and
-       macros.  Don't update the source position or the decl-sequence number
-       in such cases. */
-  } else {
-    /* Put the source position in the symbol (since this is the definition)
-       and mark the symbol "defined".  Also, set the decl-sequence number
-       associated with this declaration (again, unconditionally, since this is
-       the definition). */
-    sym_ptr->decl_position = *source_position;
-    if (sym_ptr->kind == (a_symbol_kind)sk_variable &&
-        sym_ptr->variant.variable.ptr->is_parameter &&
-        sym_ptr->decl_seq > 0) {
-      /* Leave it set as when the parameter symbol was created. */
+  a_boolean                is_definition = srk_flags & SRK_DEFINITION;
+  a_source_correspondence  *scptr;
+
+  if (is_definition) {
+    if (sym_ptr->defined) {
+      /* This is a redefinition -- allowed for C variables at file scope and
+         macros.  Don't update the source position or the decl-sequence number
+         in such cases. */
     } else {
-      set_decl_sequence_number(sym_ptr);
+      /* Put the source position in the symbol (since this is the definition)
+         and mark the symbol "defined".  Also, set the decl-sequence number
+         associated with this declaration (again, unconditionally, since this
+         is the definition). */
+      sym_ptr->decl_position = *source_position;
+      if (sym_ptr->kind == (a_symbol_kind)sk_variable &&
+          sym_ptr->variant.variable.ptr->is_parameter &&
+          sym_ptr->decl_seq > 0) {
+        /* Leave it set as when the parameter symbol was created. */
+      } else {
+        set_decl_sequence_number(sym_ptr);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Update the cross reference file if it exists and if this is not a
@@ -7949,8 +7955,7 @@ entry already created for this entity; otherwise, it is NULL.
     if (f_xref_info != NULL) {
       /* If writing cross-reference information, write an entry for this
          declaration. */
-      write_xref_entry(SRK_DECLARATION | SRK_DEFINITION,
-                       sym_ptr, source_position);
+      write_xref_entry(srk_flags, sym_ptr, source_position);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (sym_ptr->kind == (a_symbol_kind)sk_label) {
@@ -7960,66 +7965,42 @@ entry already created for this entity; otherwise, it is NULL.
          redundant. */
     } else {
       /* Issue a source sequence entry. */
-      a_boolean  is_primary_decl;
+      a_boolean  is_primary_decl = FALSE;
 
-      /* A definition is ordinarily the primary declaration, but if it was
-         previously defined and this is just a redefinition, this should be
-         recorded as a secondary declaration. */
-      if (!sym_ptr->defined) {
-        is_primary_decl = TRUE;
-      } else if (C_mode() && sym_ptr->kind == (a_symbol_kind)sk_variable) {
-        /* This must be an initializing definition following a tentative
-           definition. */
-        is_primary_decl = TRUE;
-      } else {
-        is_primary_decl = FALSE;
+      if (is_definition) {
+        /* A definition is ordinarily the primary declaration, but if it was
+           previously defined and this is just a redefinition, this should be
+           recorded as a secondary declaration. */
+        if (!sym_ptr->defined) {
+          is_primary_decl = TRUE;
+        } else if (C_mode() && sym_ptr->kind == (a_symbol_kind)sk_variable) {
+          /* This must be an initializing definition following a tentative
+             definition. */
+          is_primary_decl = TRUE;
+        }  /* if */
       }  /* if */
       sym_update_source_sequence_list(sym_ptr, source_position,
                                       is_primary_decl, ssep);
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-  if (!sym_ptr->defined) {
-    /* The source position in the IL entry is updated only after the source
-       sequence list is updated to assure that a secondary declaration entry
-       gets the right source position in the case of a redeclaration.
-       Similarly, the defined flag in the symbol is also updated late. */
-    scptr = source_corresp_entry_for_symbol(sym_ptr);
-    if (scptr != NULL) scptr->decl_position = *source_position;
-    /* Similarly, the defined flag is also set late. */
-    sym_ptr->defined = TRUE;
-  }  /* if */
-}  /* f_mark_defined */
-
-
-#if !GENERATE_SOURCE_SEQUENCE_LISTS
-/* ARGSUSED */ /* <-- ssep is only used with source sequence lists. */
-#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-void f_mark_declared(a_symbol_ptr                 sym_ptr,
-                     a_source_position            *source_position,
-                     a_source_sequence_entry_ptr  ssep)
-/*
-Indicate that the given symbol is declared at the given position.  If source
-sequence entries are being generated, ssep may point to an "empty" entry
-already created for this entity; otherwise, it is NULL.
-*/
-{
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
-    if (f_xref_info != NULL) {
-      /* If writing cross-reference information, write an entry for this
-         declaration. */
-      write_xref_entry(SRK_DECLARATION, sym_ptr, source_position);
+  if (is_definition) {
+    if (!sym_ptr->defined) {
+      /* The source position in the IL entry is updated only after the source
+         sequence list is updated to assure that a secondary declaration entry
+         gets the right source position in the case of a redeclaration.
+         Similarly, the defined flag in the symbol is also updated late. */
+      scptr = source_corresp_entry_for_symbol(sym_ptr);
+      if (scptr != NULL) scptr->decl_position = *source_position;
+      /* Similarly, the defined flag is also set late. */
+      sym_ptr->defined = TRUE;
     }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Record the declaration in the source sequence list. */
-    sym_update_source_sequence_list(sym_ptr, source_position,
-                                    /*is_primary_decl=*/FALSE, ssep);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  } else {
+    if (sym_ptr->decl_seq == 0) {
+      set_decl_sequence_number(sym_ptr);
+    }  /* if */
   }  /* if */
-  if (sym_ptr->decl_seq == 0) {
-    set_decl_sequence_number(sym_ptr);
-  }  /* if */
-}  /* f_mark_declared */
+}  /* record_symbol_declaration */
 
 
 void reference_to_symbol(a_symbol_reference_kind kind,

@@ -4520,9 +4520,11 @@ skip_overloading:;
   if (is_variable_def || is_function_def || is_tentative_def) {
     /* Also set the the defined flag in the symbol and update the source
        position in the IL entity. */
-    f_mark_defined(sym, &locator->source_position, declarator_ssep);
+    record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
+                              &locator->source_position, declarator_ssep);
   } else {
-    f_mark_declared(sym, &locator->source_position, declarator_ssep);
+    record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
+                              declarator_ssep);
   }  /* if */
   if (!is_function && is_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
@@ -4835,7 +4837,8 @@ the symbol and its linkage (which is always "none").
         sym->variant.static_data_member.instance_ptr->specific_def = TRUE;
         sym->variant.static_data_member.variable->specific_def = TRUE;
       }  /* if */
-      f_mark_defined(sym, &locator->source_position, ssep);
+      record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
+                                &locator->source_position, ssep);
     }  /* if */
   } else {
     /* Not a static data member (but a member of some sort, since it is a
@@ -4868,7 +4871,8 @@ the symbol and its linkage (which is always "none").
     /* Record the symbol declaration, using the original symbol, even
        though there was an error.  This will make it show up on a cross
        reference listing. */
-    f_mark_declared(sym, &locator->source_position, ssep);
+    record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
+                              ssep);
     /* "Enter" the symbol using an error locator -- this means a symbol
        entry will be created but it will not be added to any lists.  Then
        we'll restore the header to the new symbol, so that the correct name
@@ -5048,7 +5052,9 @@ on a prior declaration.
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  f_mark_defined(sym, &locator->source_position, func_info->declarator_ssep);
+  record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
+                            &locator->source_position,
+                            func_info->declarator_ssep);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
   mark_defined(sym, &locator->source_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -5120,7 +5126,9 @@ a pointer to it in *symbol_ptr.
             pos_diagnostic(strict_ansi_error_severity,
                            ec_duplicate_typedef, &locator->source_position);
           }  /* if */
-          f_mark_declared(sym, &locator->source_position, declarator_ssep);
+          record_symbol_declaration(SRK_DECLARATION, sym,
+                                    &locator->source_position,
+                                    declarator_ssep);
           goto return_point;
         } else {
           /* C++ only.  Must be a tag symbol. */
@@ -5174,7 +5182,8 @@ a pointer to it in *symbol_ptr.
   sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
-  f_mark_defined(sym, &locator->source_position, declarator_ssep);
+  record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
+                            &locator->source_position, declarator_ssep);
   add_to_types_list(tp, decl_scope_level);
 
 return_point:
@@ -5254,7 +5263,9 @@ a new symbol is created and entered in the symbol table.
     sym->variant.variable.ptr = vp;
     set_source_corresp(&(vp->source_corresp), sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    f_mark_defined(sym, &sym->decl_position, param_id->source_sequence_entry);
+    record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
+                              &sym->decl_position,
+                              param_id->source_sequence_entry);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
     mark_defined(sym, &sym->decl_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

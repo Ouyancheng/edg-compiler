@@ -2917,17 +2917,16 @@ of the function, and again overloading is a possibility.
                        &locator->source_position, sym);
           set_to_error_locator(*locator);
         } else {
+          a_symbol_reference_kind      srk_flags = SRK_DECLARATION;
           a_source_sequence_entry_ptr  declarator_ssep =
 #if GENERATE_SOURCE_SEQUENCE_LISTS
                                                    func_info->declarator_ssep;
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
                                                    NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          if (func_info->is_definition) {
-            f_mark_defined(sym, &locator->source_position, declarator_ssep);
-          } else {
-            f_mark_declared(sym, &locator->source_position, declarator_ssep);
-          }  /* if */
+          if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
+          record_symbol_declaration(srk_flags, sym, &locator->source_position,
+                                    declarator_ssep);
           /* Do throw specification compatibility checking. */
           check_throw_specification(func_info, sym->variant.routine.ptr);
         }  /* if */
@@ -3351,11 +3350,11 @@ special function kind (e.g., constructor, destructor), if any.
     if (compiler_generated) {
       rtn->compiler_generated = TRUE;
     } else {
-      if (func_info->is_definition) {
-        f_mark_defined(sym, &locator->source_position, declarator_ssep);
-      } else {
-        f_mark_declared(sym, &locator->source_position, declarator_ssep);
-      }  /* if */
+      a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
+
+      if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
+      record_symbol_declaration(srk_flags, sym, &locator->source_position,
+                                declarator_ssep);
     }  /* if */
     add_throw_specification(func_info, rtn);
     if (cssp->is_nonreal_class) {
@@ -3663,7 +3662,8 @@ table.
   set_source_corresp(&var->source_corresp, sym);
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
-  f_mark_declared(sym, &locator->source_position, ssep);
+  record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
+                            ssep);
   if (is_anonymous_union) {
     /* A static data members is not allowed to be an anonymous union.  An error
        will have been issued already, but promote the fields anyway. */
@@ -4036,8 +4036,8 @@ class, struct, or union.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Ordinarily we create source sequence entries only for named
        entities (see sym_update_source_sequence_list, called for fields
-       from mark_defined).  An exception is made for unnamed fields; call
-       the subroutine directly. */
+       from record_symbol_declaration).  An exception is made for unnamed
+       fields; call the subroutine directly. */
     update_source_sequence_list((char *)field, (an_il_entry_kind)iek_field,
                                 &locator->source_position, ssep);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4049,7 +4049,8 @@ class, struct, or union.
     member_sym->class_of_which_a_member = class_type;
     member_sym->variant.field.ptr = field;
     set_source_corresp(&(field->source_corresp), member_sym);
-    f_mark_defined(member_sym, &locator->source_position, ssep);
+    record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
+                              &locator->source_position, ssep);
   }  /* if */
   field->source_corresp.class_of_which_a_member = class_type;
   field->source_corresp.access = access;
