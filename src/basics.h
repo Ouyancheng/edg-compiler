@@ -502,10 +502,15 @@ the macro, so one should not follow a reference to the macro.
 Indication that a function does not return.  Used as the return type
 of the function.  Usually expands to "void", but can be changed to
 something else if the host C compiler has some way of indicating a
-function that does not return.  Some versions of gcc, for example,
-recognized a return type of "volatile void" as meaning that a function
+function that does not return.
+
+Most versions of gcc accept the "noreturn" attribute.  Some older versions
+of gcc, recognized a return type of "volatile void" as meaning that a function
 does not return.
 */
+#ifdef __GNUC__
+#define DOES_NOT_RETURN void __attribute__ ((noreturn))
+#endif /* ifndef __GNUC__ */
 #ifndef DOES_NOT_RETURN
 #define DOES_NOT_RETURN void
 #endif /* ifndef DOES_NOT_RETURN */
