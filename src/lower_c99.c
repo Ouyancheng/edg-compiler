@@ -217,8 +217,8 @@ Transform the given complex expression ("z1-z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr  return_type = skip_typerefs(expr->type);
-  char        *rout_name;
+  a_type_ptr        return_type = skip_typerefs(expr->type);
+  char              *rout_name;
   an_expr_node_ptr  xsubtract_call;
 
   check_assertion(is_complex_type(return_type));
@@ -248,8 +248,8 @@ Transform the given complex expression ("z1*z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr  return_type = skip_typerefs(expr->type);
-  char        *rout_name;
+  a_type_ptr        return_type = skip_typerefs(expr->type);
+  char              *rout_name;
   an_expr_node_ptr  xmultiply_call;
 
   check_assertion(is_complex_type(return_type));
@@ -279,8 +279,8 @@ Transform the given complex expression ("z1/z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr  return_type = skip_typerefs(expr->type);
-  char        *rout_name;
+  a_type_ptr        return_type = skip_typerefs(expr->type);
+  char              *rout_name;
   an_expr_node_ptr  xdivide_call;
 
   check_assertion(is_complex_type(return_type));
@@ -310,11 +310,12 @@ Transform the given complex expression ("z1==z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr  return_type = skip_typerefs(expr->type);
-  a_type_ptr  op_type = expr->variant.operation.operands->type;
-  char        *rout_name;
+  a_type_ptr        return_type = skip_typerefs(expr->type);
+  a_type_ptr        op_type = expr->variant.operation.operands->type;
+  char              *rout_name;
   an_expr_node_ptr  xeq_call;
 
+  op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
   switch (op_type->variant.float_kind) {
     case fk_float:
@@ -341,9 +342,9 @@ Transform the given complex expression ("z1!=z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr  return_type = skip_typerefs(expr->type);
-  a_type_ptr  op_type = expr->variant.operation.operands->type;
-  char        *rout_name;
+  a_type_ptr        return_type = skip_typerefs(expr->type);
+  a_type_ptr        op_type = expr->variant.operation.operands->type;
+  char              *rout_name;
   an_expr_node_ptr  xne_call;
 
   check_assertion(is_complex_type(op_type));
@@ -372,12 +373,13 @@ Transform the given complex expression ("z1 += z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr  return_type = skip_typerefs(expr->type);
-  char        *rout_name;
+  a_type_ptr        op_type = expr->variant.operation.operands->next->type;
+  char              *rout_name;
   an_expr_node_ptr  xadd_assign_call;
 
-  check_assertion(is_complex_type(return_type));
-  switch (return_type->variant.float_kind) {
+  op_type = skip_typerefs(op_type);
+  check_assertion(is_complex_type(op_type));
+  switch (op_type->variant.float_kind) {
     case fk_float:
       rout_name = "__c99_complex_float_add_assign";
       break;
@@ -391,8 +393,9 @@ Transform the given complex expression ("z1 += z2") into a function call
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xadd_assign_call = make_runtime_rout_call(rout_name, &xadd_assign_routine,
-                                            return_type,
+                                            op_type,
                                             expr->variant.operation.operands);
+  xadd_assign_call = add_cast_if_necessary(xadd_assign_call, expr->type);
   overwrite_node(expr, xadd_assign_call);
 }  /* lower_c99_xadd_assign */
 
@@ -403,12 +406,13 @@ Transform the given complex expression ("z1 -= z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr        return_type = skip_typerefs(expr->type);
+  a_type_ptr        op_type = expr->variant.operation.operands->next->type;
   char              *rout_name;
   an_expr_node_ptr  xsubtract_assign_call;
 
-  check_assertion(is_complex_type(return_type));
-  switch (return_type->variant.float_kind) {
+  op_type = skip_typerefs(op_type);
+  check_assertion(is_complex_type(op_type));
+  switch (op_type->variant.float_kind) {
     case fk_float:
       rout_name = "__c99_complex_float_subtract_assign";
       break;
@@ -422,8 +426,11 @@ Transform the given complex expression ("z1 -= z2") into a function call
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xsubtract_assign_call = make_runtime_rout_call(
-                            rout_name, &xsubtract_assign_routine, return_type,
+                            rout_name, &xsubtract_assign_routine,
+                            op_type,
                             expr->variant.operation.operands);
+  xsubtract_assign_call = add_cast_if_necessary(xsubtract_assign_call,
+                                                expr->type);
   overwrite_node(expr, xsubtract_assign_call);
 }  /* lower_c99_xsubtract_assign */
 
@@ -434,12 +441,13 @@ Transform the given complex expression ("z1 *= z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr        return_type = skip_typerefs(expr->type);
+  a_type_ptr        op_type = expr->variant.operation.operands->next->type;
   char              *rout_name;
   an_expr_node_ptr  xmultiply_assign_call;
 
-  check_assertion(is_complex_type(return_type));
-  switch (return_type->variant.float_kind) {
+  op_type = skip_typerefs(op_type);
+  check_assertion(is_complex_type(op_type));
+  switch (op_type->variant.float_kind) {
     case fk_float:
       rout_name = "__c99_complex_float_multiply_assign";
       break;
@@ -453,8 +461,11 @@ Transform the given complex expression ("z1 *= z2") into a function call
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xmultiply_assign_call = make_runtime_rout_call(
-                            rout_name, &xmultiply_assign_routine, return_type,
+                            rout_name, &xmultiply_assign_routine,
+                            op_type,
                             expr->variant.operation.operands);
+  xmultiply_assign_call = add_cast_if_necessary(xmultiply_assign_call,
+                                                expr->type);
   overwrite_node(expr, xmultiply_assign_call);
 }  /* lower_c99_xmultiply_assign */
 
@@ -465,12 +476,13 @@ Transform the given complex expression ("z1 /= z2") into a function call
 (compatible with C89).
 */
 {
-  a_type_ptr        return_type = skip_typerefs(expr->type);
+  a_type_ptr        op_type = expr->variant.operation.operands->next->type;
   char              *rout_name;
   an_expr_node_ptr  xdivide_assign_call;
 
-  check_assertion(is_complex_type(return_type));
-  switch (return_type->variant.float_kind) {
+  op_type = skip_typerefs(op_type);
+  check_assertion(is_complex_type(op_type));
+  switch (op_type->variant.float_kind) {
     case fk_float:
       rout_name = "__c99_complex_float_divide_assign";
       break;
@@ -484,8 +496,10 @@ Transform the given complex expression ("z1 /= z2") into a function call
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   xdivide_assign_call = make_runtime_rout_call(
-                              rout_name, &xdivide_assign_routine, return_type,
+                              rout_name, &xdivide_assign_routine,
+                              op_type,
                               expr->variant.operation.operands);
+  xdivide_assign_call = add_cast_if_necessary(xdivide_assign_call, expr->type);
   overwrite_node(expr, xdivide_assign_call);
 }  /* lower_c99_xdivide_assign */
 
@@ -852,8 +866,7 @@ Transform the given expression to remove certain C99-specific constructs.
     /* Replace this node by a reference to a new static variable initialized
        with an aggregate representing the constant complex value. */
     a_variable_ptr  tmp = make_temporary_in_scope(
-                                   lowered_complex_type(
-                                              expr->type->variant.float_kind),
+                                   expr->type,
                                    scope_stack[DEPTH_OF_FILE_SCOPE].il_scope,
                                    /*force_static=*/FALSE);
     tmp->init_kind = (an_init_kind)initk_static;
