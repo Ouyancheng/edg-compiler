@@ -3201,17 +3201,23 @@ create_final_list:
     /* A single candidate function template was unambiguously selected.
        Create the template function instance. */
     a_symbol_ptr sym = candidates->function_symbol;
-    reduce_projection_symbol_to_fundamental_symbol(sym);
-    candidates->function_symbol =
+    if (is_ambiguous_by_inheritance(sym)) {
+      /* The template symbol is a conversion function that is ambiguous by
+         inheritance.  Return it (and not the instance) to the caller
+         so the ambiguity error can be put out. */
+    } else {
+      reduce_projection_symbol_to_fundamental_symbol(sym);
+      candidates->function_symbol =
                          find_template_function(sym,
                                                 &candidates->template_arg_list,
                                                 source_pos);
-    candidates->is_function_template = FALSE;
-    if (candidates->is_user_conversion) {
-      candidates->conversion.routine =
+      candidates->is_function_template = FALSE;
+      if (candidates->is_user_conversion) {
+        candidates->conversion.routine =
                               candidates->function_symbol->variant.routine.ptr;
-      candidates->conversion.routine_symbol = candidates->function_symbol;
-    } /* if */
+        candidates->conversion.routine_symbol = candidates->function_symbol;
+      } /* if */
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
