@@ -10747,9 +10747,10 @@ of which it is a member.
     /* A declaration using a qualified name.  This is only allowed if it
        is a friend declaration, or for the instantiation of an
        out-of-class declaration of a partial specialization.  It is also
-       allowed in Microsoft and g++ mode, as those compilers accept such
-       redeclarations. */
-    if (!decl_state->is_template_friend && !microsoft_mode && !gpp_mode) {
+       allowed in Microsoft mode and in some g++ modes, as those compilers
+       accept such redeclarations. */
+    if (!decl_state->is_template_friend && !microsoft_mode &&
+        !(gpp_mode && gnu_version < 30400)) {
       pos_sy_error(ec_bad_scope_for_redeclaration,
                    &locator->source_position, sym);
       result = TRUE;
@@ -20496,11 +20497,11 @@ instantiation.
   /* If this is a pragma it will end with a tok_end_of_source, if not
      it will end with a semicolon. */
   end_of_statement_token = is_pragma ? tok_end_of_source : tok_semicolon;
-  if ((microsoft_mode || gpp_mode) &&
+  if ((microsoft_mode || (gpp_mode && gnu_version < 30400)) &&
       is_generalized_identifier_start(GID_NO_OPTIONS) &&
       next_token() == end_of_statement_token) {
-    /* The Microsoft and g++ compilers accept a class instantiation without the
-       elaborated type specifier. */
+    /* The Microsoft and g++ (early versions) compilers accept a class
+       instantiation without the elaborated type specifier. */
     a_boolean	err = FALSE;
     sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
 						     ilm_normal, &err);
