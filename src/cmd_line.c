@@ -1466,35 +1466,41 @@ Set the various flags appropriate to C99 mode.
 */
 {
 #if VLA_ALLOWED
-  if (!vla_enabled && !(option_kind_used[(int)optk_vla])) {
+  if (!(option_kind_used[(int)optk_vla])) {
     /* Support for VLAs is turned on by default in C99 mode. */
     vla_enabled = TRUE;
   }  /* if */
 #endif /* VLA_ALLOWED */
-  if (!restrict_enabled && !(option_kind_used[(int)optk_restrict])) {
+  if (!(option_kind_used[(int)optk_restrict])) {
     /* Support for restricted pointers is turned on by default in C99 mode. */
     restrict_enabled = TRUE;
   }  /* if */
 #if DESIGNATED_INITIALIZER_ENABLING_POSSIBLE
-  if (!extended_designators_allowed &&
-      !(option_kind_used[(int)optk_extended_designators])) {
+  if (!(option_kind_used[(int)optk_extended_designators])) {
     /* Support for extended designators is turned on by default in
        C99 mode. */
     extended_designators_allowed = TRUE;
-    if (!designators_allowed &&
-        !(option_kind_used[(int)optk_designators])) {
-      /* Support for designators is turned on by default in C99 mode. */
-      designators_allowed = TRUE;
-    }  /* if */
+  }  /* if */
+  if (!(option_kind_used[(int)optk_designators])) {
+    /* Support for designators is turned on by default in C99 mode. */
+    designators_allowed = TRUE;
   }  /* if */
 #endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
 #if COMPOUND_LITERAL_ENABLING_POSSIBLE
-  if (!compound_literals_allowed &&
-      !(option_kind_used[(int)optk_compound_literals])) {
+  if (!(option_kind_used[(int)optk_compound_literals])) {
     /* Support for compound literals is turned on by default in C99 mode. */
     compound_literals_allowed = TRUE;
   }  /* if */
 #endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
+  if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
+    /* Support for extended variadic macros is turned on by default in
+       C99 mode. */
+    extended_variadic_macros_allowed = TRUE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_variadic_macros])) {
+    /* Support for variadic macros is turned on by default in C99 mode. */
+    variadic_macros_allowed = TRUE;
+  }  /* if */
   /* Support for alternative tokens is turned on by default in C99 mode. */
   alternative_tokens_allowed = TRUE;
   /* In C99 mode, strict or otherwise, // comments are allowed. */
@@ -1903,15 +1909,32 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
        mode. */
     restrict_enabled = FALSE;
   }  /* if */
+  if (!(option_kind_used[(int)optk_extended_designators])) {
+    /* Support for extended designators is turned off by default in
+       strict mode. */
+    extended_designators_allowed = FALSE;
+  }  /* if */
+  if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
+    /* Support for extended variadic macros is turned off by default
+       in strict mode. */
+    extended_variadic_macros_allowed = FALSE;
+  }  /* if */
   if (!c99_mode) {
     /* In strict mode the final field of a struct may not be an incomplete
        array, except in strict C99 mode. */
     flexible_array_members_allowed = FALSE;
+    if (!(option_kind_used[(int)optk_variadic_macros])) {
+      /* Support for variadic macros is turned off by default except in
+         strict C99 mode. */
+      variadic_macros_allowed = FALSE;
+    }  /* if */
   }  /* if */
   if (C_mode()) {
     /* Set optional features to standard settings for strict C mode. */
     /* Enable recognition of digraphs. */
     alternative_tokens_allowed = TRUE;
+    /* Features enabled in C99 but not in older C are handled in
+       set_c99_mode_flags. */
     if (!c99_mode) {
 #if VLA_ALLOWED
       if (!(option_kind_used[(int)optk_vla])) {
@@ -1919,15 +1942,10 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
         vla_enabled = FALSE;
       }  /* if */
 #endif /* VLA_ALLOWED */
-      if (!(option_kind_used[(int)optk_extended_designators])) {
-        /* Support for extended designators is turned off by default in
-           strict C mode. */
-        extended_designators_allowed = FALSE;
-        if (!(option_kind_used[(int)optk_designators])) {
-          /* Support for designators is turned off by default in strict C
-             mode. */
-          designators_allowed = FALSE;
-        }  /* if */
+      if (!(option_kind_used[(int)optk_designators])) {
+        /* Support for designators is turned off by default in strict C
+           mode. */
+        designators_allowed = FALSE;
       }  /* if */
       if (!(option_kind_used[(int)optk_compound_literals])) {
         /* Support for compound literals is turned off by default in strict
@@ -2085,16 +2103,6 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     }  /* if */
     if (!option_kind_used[(int)optk_exception_handling]) {
       exceptions_enabled = TRUE;
-    }  /* if */
-  }  /* if */
-  if (!(option_kind_used[(int)optk_extended_variadic_macros])) {
-    /* Support for extended variadic macros is turned off by default in
-       strict mode. */
-    extended_variadic_macros_allowed = FALSE;
-    if (!(option_kind_used[(int)optk_variadic_macros])) {
-      /* Support for variadic macros is turned off by default in strict
-         mode. */
-      variadic_macros_allowed = FALSE;
     }  /* if */
   }  /* if */
   /* Make sure that strict ANSI messages come out even if the
@@ -3009,9 +3017,7 @@ enable_microsoft_mode:
         designators_allowed = opt_value;
         break;
       case optk_extended_designators:
-        /* Ordinary and extended designators should or should not be
-           accepted. */
-        designators_allowed = opt_value;
+        /* Extended designators should or should not be accepted. */
         extended_designators_allowed = opt_value;
         break;
       case optk_variadic_macros:
@@ -3019,9 +3025,7 @@ enable_microsoft_mode:
         variadic_macros_allowed = opt_value;
         break;
       case optk_extended_variadic_macros:
-        /* Ordinary and extended variadic macros should or should not be
-           accepted. */
-        variadic_macros_allowed = opt_value;
+        /* Extended variadic macros should or should not be accepted. */
         extended_variadic_macros_allowed = opt_value;
         break;
       case optk_include_file_suffixes:
@@ -3118,6 +3122,16 @@ enable_microsoft_mode:
     import_dir_name = ".";
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  if (extended_designators_allowed) {
+    /* If extended designators are allowed, the normal designators must
+       be allowed also. */
+    designators_allowed = TRUE;
+  }  /* if */
+  if (extended_variadic_macros_allowed) {
+    /* If extended variadic macros are allowed, the normal variadic macros
+       must be allowed also. */
+    variadic_macros_allowed = TRUE;
+  }  /* if */
   if (do_dependent_name_processing) {
     /* Do nonclass prototype instantiations when dependent name processing
        is being done. */
@@ -3163,7 +3177,7 @@ enable_microsoft_mode:
   }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   /* Determine whether enum types are considered to be integral. This global
-     variable used by is_integral_type, which returns TRUE for enum types
+     variable is used by is_integral_type, which returns TRUE for enum types
      in C mode and cfront mode, but otherwise returns FALSE in C++. */
   enum_type_is_integral = C_mode() || any_cfront_mode();
   /* Determine the appropriate error level for anachronism messages based
