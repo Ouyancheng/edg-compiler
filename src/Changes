@@ -1,5 +1,21 @@
 Version 2.44
 
+12/16/99 Internal error while reading IL for local class member function
+
+With certain configurations of the front end (e.g., the default C++-generating
+back end configuration) an internal error would occur while reading the IL for
+a local class member function that was the only entity to refer to a type in
+namespace scope.
+
+  typedef enum E {} T;
+  void f() {
+    class C {
+      void* mf(T) { return 0; }  // Could cause an internal error
+    };
+  }
+
+This is now fixed.
+
 12/15/99 New empty statement kind
 
 A new configuration flag REPRESENT_EMPTY_STATEMENTS_IN_IL enables a new
