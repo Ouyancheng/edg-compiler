@@ -639,7 +639,7 @@ get_another:
            at least one.  If not, treat as just "x". */
         if (!isxdigit((unsigned char)*lptr)) {
           conv_line_loc_to_source_pos(*temp_ptr+2, &error_position);
-          if (C_dialect == C_dialect_pcc) {
+          if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
             warning(ec_bad_hex_digit);
           } else {
             error(ec_bad_hex_digit);
