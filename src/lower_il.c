@@ -9495,6 +9495,7 @@ is_lvalue is TRUE.
   a_boolean             temp_init_used;
   a_type_ptr            result_type = rvalue_type(type_pointed_to(op1->type));
   a_type_ptr            operation_type;
+  a_boolean             swap_operands = FALSE;
   a_boolean             result_is_lvalue = expr->variant.operation.
                                         returns_lvalue_instead_of_usual_rvalue;
 
@@ -9536,8 +9537,13 @@ is_lvalue is TRUE.
     op1 = op_node;
   }  /* if */
   op1_for_operation = add_indirection_to_node(op1_for_operation);
+  if (is_bool_type(op1_for_operation->type) &&
+      is_pointer_type(op2->type)) {
+    /* For the C++ bool += pointer case, do not change the operand types,
+       but do swap the operands so the pointer is first on the "+". */
+    swap_operands = TRUE;
 #if LOWER_FIXED_POINT
-  if (is_fixed_point_type(operation_type)) {
+  } else if (is_fixed_point_type(operation_type)) {
     a_type_ptr op1_type = skip_typerefs(op1_for_operation->type);
     a_type_ptr op2_type = skip_typerefs(op2->type);
     if (is_fixed_point_type(op1_type) && is_fixed_point_type(op2_type) &&
@@ -9553,10 +9559,8 @@ is_lvalue is TRUE.
       op1_for_operation = add_lowered_cast_if_necessary(op1_for_operation,
                                                         new_fx_type);
     }  /* if */
-  } else
 #endif /* LOWER_FIXED_POINT */
-  /* Do not insert code here. */
-  {
+  } else {
     /* Cast the first operand (as an rvalue) to the operation type. */
     op1_for_operation = add_lowered_cast_if_necessary(op1_for_operation,
                                                       operation_type);
@@ -9564,8 +9568,13 @@ is_lvalue is TRUE.
   /* Determine the corresponding non-assignment operator. */
   op = corresponding_operator_for_compound_assignment(op);
   /* Make the (x @ y) operation. */
-  op1_for_operation->next = op2;
-  op_node = make_operator_node(op, operation_type, op1_for_operation);
+  if (swap_operands) {
+    op2->next = op1_for_operation;
+    op_node = make_operator_node(op, operation_type, op2);
+  } else {
+    op1_for_operation->next = op2;
+    op_node = make_operator_node(op, operation_type, op1_for_operation);
+  }  /* if */
 #if DO_C99_IL_LOWERING
   if (C_mode()) {
     lower_c99_operator(op_node);
