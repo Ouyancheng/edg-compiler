@@ -119,6 +119,31 @@ abstract or real declarator.
     is_ptr_to_member_declarator_start()))
 
 
+a_boolean is_declarator_id(void)
+/*
+Return TRUE if the current token is an identifier that serve as a
+declarator.
+*/
+{
+  a_symbol_ptr  sym;
+  a_boolean     result = TRUE;
+
+  check_assertion(curr_token == tok_identifier);
+  if (locator_for_curr_id.has_been_coalesced) {
+    sym = locator_for_curr_id.specific_symbol;
+    if (sym != NULL && is_template_class_symbol(sym)) {
+      result = FALSE;
+    }  /* if */
+  } else if (next_token() == tok_lt) {
+    sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_declarator_id */
+
+
 static a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                                      a_boolean in_prescan)
 /*
@@ -2517,14 +2542,18 @@ scope is that of a class definition.
            However, also check for an ellipsis ("...") following the comma,
            which ends the prototype list in a different way. */
         /* Note that a comma preceding the ellipsis is optional in C++. */
-        if (dangling_type_specifier || 
-            (C_dialect != C_dialect_cplusplus &&
-             curr_token == tok_ellipsis)) {
+        if (dangling_type_specifier ||
+            C_mode() ? curr_token == tok_ellipsis :
+                       (is_error_locator(param_locator) &&
+                        curr_token == tok_identifier && !is_declarator_id())) {
           /* A dangling type specifier is detected by decl_specifiers
              when a comma is omitted between the end of a type specifier
              and the start of the next.  This is pretty unlikely, but the
              mechanism was added for class declarations, where it is more
              useful. */
+          /* Another unlikely case is the identifier-but-not-declarator-id
+             case -- which occurs when a template-id appears where a
+             declarator was expected. */
           pos_error(ec_exp_comma, &pos_curr_token);
           done = FALSE;
         } else {
@@ -10418,10 +10447,14 @@ continue_with_declaration:
       }  /* if */
     }  /* if */
     discard_curr_construct_pragmas();
-  } else if (dangling_type_specifier) {
+  } else if (dangling_type_specifier ||
+             (!C_mode() && curr_token == tok_identifier &&
+              !is_declarator_id())) {
     /* A class, struct, union, or enum definition was followed by a type
        specifier keyword.  Issue a missing-semicolon error, since the type
        specifier can be taken as introducing a new declaration. */
+    /* A similar case is the identifier-but-not-declarator-id case -- which
+       occurs when a template-id appears where a declarator was expected. */
     set_err_pos_to_curr_token();
     if (is_old_style_param_decl && declares_something) {
       /* An old style param declaration that introduces a named struct or
