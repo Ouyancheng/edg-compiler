@@ -430,12 +430,12 @@ initialization; otherwise, these pointers are NULL.
         /* The prescanned constant was already allocated. */
         *init_con = cp;
       }  /* if */
-      if (!is_incomplete_type(array_type) &&
+      if (init_info != NULL && !is_incomplete_type(array_type) &&
           !has_unknown_specified_bound(array_type)) {
-        /* Record if any elements of the array remain uninitialized. */
+        /* Aggregate initialization of an array: Record if any elements remain
+           uninitialized. */
         if (array_type->variant.array.variant.number_of_elements
                                                  > cp->variant.string.length) {
-          check_assertion(init_info != NULL);
           init_info->any_uninitialized_member = TRUE;
         }  /* if */
       }  /* if */
@@ -913,8 +913,7 @@ static a_constant_ptr scan_initializer_of_simple_object(
                                   a_type_ptr          type,
                                   a_dynamic_init_ptr  *dip_ptr)
 /*
-Scan a initializer for a non-aggregate object (i.e., not an array and not
-a class/struct/union object).  If nonconst_allowed is TRUE (always the case
+Scan a nonaggregate initializer.  If nonconst_allowed is TRUE (always the case
 in C++, sometimes otherwise) a nonconstant expression is allowed; if not,
 a constant is required.  If static_lifetime is TRUE, the underlying entity
 has static storage duration.  force_object_lifetime is TRUE only in C++ mode
@@ -942,7 +941,6 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
   a_boolean        is_constant;
   a_constant       constant, *cp = NULL;
 
-  check_assertion(!is_aggregate_or_union_type(type));
   if (process_string_constant_initializer(
                                   &type, &cp, (an_aggregate_init_info_ptr)NULL,
                                   (an_aggregate_init_context_ptr)NULL)) {
