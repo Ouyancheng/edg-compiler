@@ -641,6 +641,7 @@ there is additional processing to be done.
   a_pragma_ptr             pp;
   a_memory_region_number   region_to_switch_back_to;
   a_scope_depth            scope_depth = depth_scope_stack;
+  a_scope_depth            scope_depth_to_switch_to;
   a_source_correspondence  *scp = NULL;
 
   db_enter(5, "add_pragma_to_il");
@@ -721,7 +722,13 @@ there is additional processing to be done.
       /* Set the has_associated_pragma field. */
       scp->has_associated_pragma = TRUE;
     }  /* if */
-    switch_to_scope_region(scope_depth, &region_to_switch_back_to);
+    /* If we know the scope depth use, that depth.  For class and namespace
+       members (in which case scope_depth is NO_SCOPE_DEPTH) use the
+       file scope for purposes of switching to the proper memory region. */
+    scope_depth_to_switch_to = scope_depth != NO_SCOPE_DEPTH ?
+                                             scope_depth : DEPTH_OF_FILE_SCOPE;
+    switch_to_scope_region(scope_depth_to_switch_to,
+                           &region_to_switch_back_to);
     pp = alloc_pragma(ppp->descr_ptr->kind);
     pp->position = ppp->pragma_position;
     pp->pragma_text = ppp->pragma_text;
