@@ -9914,6 +9914,7 @@ are handled in symbol_tbl_init.)
   cleared_symbol.hidden_by_old_for_init            = FALSE;
   cleared_symbol.overload_set_member               = FALSE;
   cleared_symbol.is_invisible                      = FALSE;
+  cleared_symbol.is_unknown_function               = FALSE;
 #if CHECKING 
   cleared_symbol.avoid_codecenter_warnings         = FALSE;
 #endif /* CHECKING */

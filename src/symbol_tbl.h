@@ -2020,6 +2020,9 @@ typedef struct a_symbol {
 			   a friend declaration; the entity becomes visible
 			   only when it is subsequently declared in the
 			   scope to which it belongs. */
+  a_bit_field	is_unknown_function:1;
+			/* TRUE if this symbol was created to represent an
+			   unknown function. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == sk_undefined, no variant fields. */

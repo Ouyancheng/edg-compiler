@@ -503,7 +503,7 @@ as the class type, and use as a base class.
 }  /* proxy_class_for_template_param */
 
 
-a_symbol_ptr create_unknown_function_symbol(a_symbol_ptr	orig_sym)
+static a_symbol_ptr create_unknown_function_symbol(a_symbol_ptr	orig_sym)
 /*
 Create a ck_constant entry of kind tpck_unknown_function, and an sk_constant
 symbol that points to the constant.  These constants are used during
@@ -559,8 +559,52 @@ The symbol is created using the symbol header information from orig_sym.
   } else if (parent_namespace != NULL) {
     set_namespace_membership(sym, scp, parent_namespace);
   }  /* if */
+  sym->is_unknown_function = TRUE;
   return sym;
 }  /* create_unknown_function_symbol */
+
+
+a_symbol_ptr find_unknown_function_symbol(a_symbol_ptr	orig_sym)
+/*
+Find an sk_constant symbol that points to a constant of kind
+tpck_unknown_function.  The symbol name must match that of orig_sym
+and must have the same parent scope.
+
+If a matching symbol cannot be found, one is created.  The list of
+previously created symbols is included in the "other symbols" list
+of the symbol header.
+*/
+{
+  a_symbol_ptr	sym;
+
+  /* Look for a previously created unknown function symbol. */
+  for (sym = orig_sym->header->other_symbols; sym != NULL; sym = sym->next) {
+    if (sym->is_unknown_function) {
+      if (sym->is_class_member == orig_sym->is_class_member) {
+        if (sym->is_class_member &&
+            sym->parent.class_type == orig_sym->parent.class_type) {
+          /* The symbols have the same parent class. */
+          break;
+        } else if (sym->parent.namespace_ptr ==
+                                              orig_sym->parent.namespace_ptr) {
+          /* The symbols have the same parent namespace (including the case
+             where both have no namespace). */
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } /* for */
+  if (sym == NULL) {
+    a_symbol_header_ptr	hdr;
+    /* No symbol was found -- create one now. */
+    sym = create_unknown_function_symbol(orig_sym);
+    /* Link this symbol onto the other symbols list. */
+    hdr = sym->header;
+    sym->next = hdr->other_symbols;
+    hdr->other_symbols = sym;
+  }  /* if */
+  return sym;
+}  /* find_unknown_function_symbol */
 
 
 /*
