@@ -630,8 +630,6 @@ EXTERN an_integer_kind
 #undef TARG_MINIMUM_STRUCT_ALIGNMENT
 #undef TARG_MINIMUM_PACK_ALIGNMENT
 #undef MAKE_ALL_FUNCTIONS_UNPROTOTYPED
-#undef TARG_SIZEOF_TYPE_INFO
-#undef TARG_ALIGNOF_TYPE_INFO
 #undef TARG_JMP_BUF_NUM_ELEMENTS
 #undef TARG_JMP_BUF_ELEMENTS_ARE_FLOAT
 #undef TARG_JMP_BUF_ELEMENT_INT_KIND
@@ -703,8 +701,6 @@ EXTERN an_integer_kind
 #define TARG_MINIMUM_STRUCT_ALIGNMENT targ_minimum_struct_alignment
 #define TARG_MINIMUM_PACK_ALIGNMENT targ_minimum_pack_alignment
 #define MAKE_ALL_FUNCTIONS_UNPROTOTYPED make_all_functions_unprototyped
-#define TARG_SIZEOF_TYPE_INFO targ_sizeof_type_info
-#define TARG_ALIGNOF_TYPE_INFO targ_alignof_type_info
 #define TARG_JMP_BUF_NUM_ELEMENTS targ_jmp_buf_num_elements
 #define TARG_JMP_BUF_ELEMENTS_ARE_FLOAT targ_jmp_buf_elements_are_float
 #define TARG_JMP_BUF_ELEMENT_INT_KIND targ_jmp_buf_element_int_kind
