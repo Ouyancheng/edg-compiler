@@ -1,5 +1,21 @@
 Version 3.1
 
+9/16/02  GNU compatibility: Flexible array member constraints
+
+In GNU C and C++ mode, the front end requires that a flexible array member
+be the last field of a class type (see Changes entry of 6/14/02).  However,
+A field of such a class type can now be followed by other fields.
+For example:
+
+  struct F {
+    int n;
+    int a[];  // Flexible array member
+  };
+  struct X {
+    struct F f;  // Now accepted in GNU modes (previously an error).
+    int x;
+  };
+
 9/16/02  Some constants not folded in array bound expressions, with VLAs
 
 When variable-length arrays (VLAs) are enabled (e.g., in C99 mode and

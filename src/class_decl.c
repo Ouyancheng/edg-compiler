@@ -8749,7 +8749,7 @@ respectively.
               &prev_field->source_corresp.decl_position);
     prev_field->type = error_type();
     class_state->last_field_is_incomplete_array = FALSE;
-  } else if (microsoft_mode || gnu_mode || (c99_mode && !strict_ansi_mode)) {
+  } else if (microsoft_mode || (c99_mode && !strict_ansi_mode)) {
     /* In Microsoft and GNU modes a class or struct may include a member
        whose type contains a final field that is an unknown-size array, but
        only if the member with such a type is the last field.  If the previous
