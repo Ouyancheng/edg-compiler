@@ -27,8 +27,8 @@ Previously, the front end silently accepted alignment-of operators (e.g.,
 __alignof__) with an argument of incomplete type and the result of the
 operator was 1.  Now, the following changes were made:
   - In strict ANSI modes, an error is issued.
-  - In GNU modes, and error is issued if the argument is not an expression
-    and not a void type.
+  - In GNU modes, an error is issued, but not for a void type and
+    not for an expression-form argument.
   - In Microsoft C and C++ mode, the result of the operator is zero for
     incomplete class types (and arrays thereof).
   - In Microsoft C mode, the result of the operator is zero for void types.
