@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 2000 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
@@ -102,7 +102,7 @@ EXTERN_C _Complex_long_double __c99_complex_long_double_add(
                                                       _Complex_long_double z1,
                                                       _Complex_long_double z2)
 /*
-Compute z1+z2 in lowered representation (double precision).
+Compute z1+z2 in lowered representation (extended precision).
 */
 {
   _Complex_long_double r;
@@ -142,7 +142,7 @@ EXTERN_C _Complex_long_double __c99_complex_long_double_subtract(
                                                       _Complex_long_double z1,
                                                       _Complex_long_double z2)
 /*
-Compute z1-z2 in lowered representation (double precision).
+Compute z1-z2 in lowered representation (extended precision).
 */
 {
   _Complex_long_double r;
@@ -182,7 +182,7 @@ EXTERN_C _Complex_long_double __c99_complex_long_double_multiply(
                                                       _Complex_long_double z1,
                                                       _Complex_long_double z2)
 /*
-Compute z1*z2 in lowered representation (double precision).
+Compute z1*z2 in lowered representation (extended precision).
 */
 {
   _Complex_long_double r;
@@ -258,7 +258,7 @@ Compute z1==z2 in lowered representation (double precision).
 EXTERN_C int __c99_complex_long_double_eq(_Complex_long_double z1,
                                           _Complex_long_double z2)
 /*
-Compute z1==z2 in lowered representation (long double precision).
+Compute z1==z2 in lowered representation (extended precision).
 */
 {
   return z1._Vals[0] == z2._Vals[0] && z1._Vals[1] == z2._Vals[1];
@@ -288,7 +288,7 @@ Compute z1!=z2 in lowered representation (double precision).
 EXTERN_C int __c99_complex_long_double_ne(_Complex_long_double z1,
                                           _Complex_long_double z2)
 /*
-Compute z1!=z2 in lowered representation (long double precision).
+Compute z1!=z2 in lowered representation (extended precision).
 */
 {
   return z1._Vals[0] != z2._Vals[0] || z1._Vals[1] == z2._Vals[1];
@@ -622,7 +622,7 @@ Imaginary part of a complex value.
 
 EXTERN_C float __c99_cfloat_to_float(_Complex_float z)
 /*
-Imaginary part of a complex value.
+Real part of a complex value.
 */
 {
   return z._Vals[0];
@@ -631,7 +631,7 @@ Imaginary part of a complex value.
 
 EXTERN_C double __c99_cdouble_to_double(_Complex_double z)
 /*
-Imaginary part of a complex value.
+Real part of a complex value.
 */
 {
   return z._Vals[0];
@@ -640,7 +640,7 @@ Imaginary part of a complex value.
 
 EXTERN_C long double __c99_clong_double_to_long_double(_Complex_long_double z)
 /*
-Imaginary part of a complex value.
+Real part of a complex value.
 */
 {
   return z._Vals[0];
@@ -653,7 +653,7 @@ Imaginary part of a complex value.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2000-2001 Edison Design Group Inc.                   [_]          *
+* Copyright 2000 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
