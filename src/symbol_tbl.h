@@ -1015,6 +1015,10 @@ extern void remove_symbol(a_symbol_ptr sym_ptr);
 
 extern void remove_from_inactive_symbols_list(a_symbol_ptr sym_ptr);
 
+extern a_boolean symbols_may_coexist_in_curr_scope(a_symbol_ptr  old_sym,
+                                                   a_symbol_ptr  new_sym,
+                                                   a_symbol_ptr  *insert_sym);
+
 extern a_symbol_ptr find_external_symbol(a_symbol_locator     *location,
                                          a_name_linkage_kind  linkage,
                                          a_type_ptr           type,
