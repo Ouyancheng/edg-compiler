@@ -1,3 +1,22 @@
+1/23/96   Bug in creating overload set for assignment operator
+
+A bug has been fixed in how assignment operators are managed; an entry for
+the implicitly declared copy assignment operator was not being created and
+added to the overload set under certain circumstances.  We now handle this
+case correctly:
+
+  struct B {
+    B(const float&);
+  };
+  struct D {
+    D(const double& = 0.0);
+    D& operator=(const B&);
+  } d;
+  void f() {
+    d = (double)0;    // Ambiguity error now issued --
+  };                  //   D::operator=(const B&) or D::operator=(const D&)?
+
+-------------------------------------------------------------------------------
 Version 2.31, January 19, 1996
 
 1/18/96   IL version number changed to 2.23
