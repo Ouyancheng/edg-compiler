@@ -381,7 +381,8 @@ do
          --anachronisms | \
          --no_anachronisms | \
     -# | --timing | \
-         --display_error_number)
+         --display_error_number | \
+         --force_vtbl)
       feoptions=$feoptions" $1"
 #     Check for C or C++ mode
       case $curr_param in
