@@ -1552,7 +1552,12 @@ Otherwise, we leave these undefined.
 /*
 Flag that is TRUE if it is okay to use a host floating-point value that
 is not large enough to represent all of the bits of the largest fixed-point
-type.
+type.  Note that if you set this flag (to suppress the #error directive
+below) you will get imprecise conversion of some fixed-point constants and
+imprecise results of some fixed-point folding operations.  This flag must
+be set when building the front end with a compiler on which double and long
+double have the same size, and that size is a normal 8 byte double (for
+example, the Microsoft compiler).
 */
 #ifndef ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE
 #define ALLOW_HOST_FP_TOO_SMALL_FOR_LARGEST_FIXED_POINT_TYPE FALSE
