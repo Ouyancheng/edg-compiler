@@ -640,7 +640,8 @@ Initialize everything that has to do with the front end.
 #endif /* ifdef FIL */
   /* il_header.region_scope_entry is not changed; it already has a
      meaningful value. */
-  il_header.source_language = sl_C;
+  il_header.source_language =
+                      (C_dialect == C_dialect_cplusplus) ? sl_Cplusplus : sl_C;
   if (do_preprocessing_only) {
     /* Open the preprocessing output file. */
     open_pp_output_file();
