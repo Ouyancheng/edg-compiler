@@ -1135,27 +1135,34 @@ Make a call statement that invokes a constructor as required in the dynamic
 initialization entry pointed to by dip.  entity_node is an expression
 that gives the address of the entity to be initialized.  If source_node
 is non-NULL, it points to an expression that is the source for a copy
-constructor call.  implied_arg_list is a list of implied extra virtual
-base class pointer arguments for the constructor, or NULL if this routine
-should generate them if required.  Insert the statement at *insert_location
-and update *insert_location.  The additional-arguments list given by
-dip->variant.constructor.args has already been lowered.
+constructor call (of the same type as the entity node, modulo
+type-as-subobject differences).  implied_arg_list is a list of implied
+extra virtual base class pointer arguments for the constructor, or NULL
+if this routine should generate them if required.  Insert the statement
+at *insert_location and update *insert_location.  The additional-arguments
+list given by dip->variant.constructor.args has already been lowered.
 */
 {
-  a_routine_ptr    constr_routine = dip->variant.constructor.ptr;
+  a_routine_ptr    ctor_routine = dip->variant.constructor.ptr;
   an_expr_node_ptr last_node;
   a_statement_ptr  call_stmt;
+  a_type_ptr       class_type, ptr_class_type;
 
 #if CHECKING
   if (dip->kind != (a_dynamic_init_kind)dik_constructor) {
     internal_error("add_constructor_call: bad kind");
   }  /* if */
 #endif /* CHECKING */
+  /* Cast the entity node pointer to the right type.  It might be a pointer
+     to the class type-as-subobject. */
+  class_type = ctor_routine->source_corresp.class_of_which_a_member;
+  ptr_class_type = make_pointer_type(class_type);
+  entity_node = add_cast_if_necessary(entity_node, ptr_class_type);
   /* If no implied_arg_list is supplied and the constructor needs one
      (because it initializes a class that has virtual base classes), make
      the implied_arg_list (all entries are NULL pointer values). */
   if (implied_arg_list == NULL) {
-    make_ctor_implied_arg_list(constr_routine, &implied_arg_list,
+    make_ctor_implied_arg_list(ctor_routine, &implied_arg_list,
                                &end_implied_arg_list);
   }  /* if */
   /* Link the entity node, the implied arguments if any, the source node if
@@ -1166,18 +1173,24 @@ dip->variant.constructor.args has already been lowered.
     last_node = end_implied_arg_list;
   }  /* if */
   if (source_node != NULL) {
+    /* Cast the source node to the right type.  This is necessary if its
+       type is presently a pointer to the class type-as-subobject.
+       Note that when source_node is non-NULL, it is an object of the same
+       type as the destination class. */
+    source_node = add_cast_if_necessary(source_node, ptr_class_type);
     last_node->next = source_node;
     last_node = source_node;
   }  /* if */
   last_node->next = dip->variant.constructor.args;
   /* Make an expression statement containing the call expression. */
-  call_stmt = make_call_statement(constr_routine, entity_node);
+  call_stmt = make_call_statement(ctor_routine, entity_node);
   /* If the initialization is for a whole variable, the position is available
      from the variable. */
   transfer_pos_from_var_to_statement(dip->variable, call_stmt);
   /* Insert the statement at the right place. */
   insert_statement(call_stmt, insert_location);
 }  /* add_constructor_call */
+
 
 /*
 Pointers to routine entries for runtime routines for call of a constructor,
@@ -1641,22 +1654,28 @@ is TRUE if the entity is a complete object.  Insert the statement at
 not a virtual call even if the destructor is virtual.
 */
 {
-  a_routine_ptr    destr_routine = dip->destructor;
+  a_routine_ptr    dtor_routine = dip->destructor;
   a_statement_ptr  call_stmt;
   an_expr_node_ptr implied_arg_node;
+  a_type_ptr       class_type;
 
 #if CHECKING
-  if (destr_routine == NULL) {
+  if (dtor_routine == NULL) {
     internal_error("add_destructor_call: destructor == NULL");
   }  /* if */
 #endif /* CHECKING */
+  /* Cast the entity node pointer to the right type.  It might be a pointer
+     to the class type-as-subobject. */
+  class_type = dtor_routine->source_corresp.class_of_which_a_member;
+  entity_node = add_cast_if_necessary(entity_node,
+                                      make_pointer_type(class_type));
   /* If the destructor is for a class that has virtual base classes, add
      the implicit complete-object argument. */
-  make_dtor_implied_arg_list(destr_routine, have_complete_object,
+  make_dtor_implied_arg_list(dtor_routine, have_complete_object,
                              &implied_arg_node);
   entity_node->next = implied_arg_node;
   /* Make an expression statement containing the call expression. */
-  call_stmt = make_call_statement(destr_routine, entity_node);
+  call_stmt = make_call_statement(dtor_routine, entity_node);
   /* If the destruction is for a whole variable, the position is available
      from the variable. */
   transfer_pos_from_var_to_statement(dip->variable, call_stmt);
