@@ -5867,6 +5867,8 @@ the value of the expression is discarded.
       set_expr_result_not_used(operand_1->next);
       set_expr_result_not_used(operand_1->next->next);
     }  /* if */
+  } else if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
+    set_expr_result_not_used(node->variant.object_lifetime.expr);
   }  /* if */
 }  /* set_expr_result_not_used */
   
