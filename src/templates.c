@@ -845,12 +845,7 @@ make_new_type:
             } else {
 #if CHECKING
               if (tap->variant.constant->kind ==
-#if 0
-                                    (a_constant_repr_kind)ck_template_param
-#else
-                                    (a_constant_repr_kind)ck_error
-#endif /* if 0 */
-                                                                  ) {
+                                    (a_constant_repr_kind)ck_template_param) {
                 internal_error("copy_type_with_subst: bad const in templ arg");
               }  /* if */
 #endif /* CHECKING */
@@ -1021,13 +1016,11 @@ yet been created, extend the template argument list to include n entries.
                                               templ_tap->variant.type,
                                               templ_arg_list);
               } else if (templ_tap->variant.constant->kind ==
-#if 0
-                                  (a_constant_repr_kind)ck_template_param
-#else
-                                  (a_constant_repr_kind)ck_error
-#endif /* if 0 */
-                                                                ) {
-                match = TRUE;
+                                  (a_constant_repr_kind)ck_template_param) {
+                match = matches_template_type(
+                                          tap->variant.constant->type,
+                                          templ_tap->variant.constant->type,
+                                          templ_arg_list);
               } else {
                 match = eq_constants(tap->variant.constant,
                                      templ_tap->variant.constant);
@@ -2046,20 +2039,18 @@ to represent the template parameters.
          a constant array.  Likewise, should reference types be permitted?
          Should a constant with an error type be created for such cases? */
 #endif /* if 0 */
-      /* Enter a symbol and bind an error constant to it temporarily.  At the
+      /* Enter a symbol and bind a template param constant to it. At each
          point of instantiation an actual constant will be substituted. */
       sym = enter_symbol((a_symbol_kind)sk_constant, &param_locator,
                          decl_scope_level, /*suppress_redecl_error=*/FALSE);
-      sym->variant.constant = fs_constant((a_constant_repr_kind)ck_error);
-      sym->variant.constant->type = template_param_type = param_type_ptr;
+      sym->variant.constant =
+                         fs_constant((a_constant_repr_kind)ck_template_param);
+      sym->variant.constant->type = param_type_ptr;
+      sym->variant.constant->variant.list_position = template_param_list_pos;
       set_source_corresp(&sym->variant.constant->source_corresp, sym);
     }  /* if */
-    /* Allocate a template parameter and add it to the end of the list. */
-    template_param = alloc_template_param();
-    template_param->param_symbol = sym;
-    /* The param_type field will be NULL for constant parameters and point to
-       a tk_template_param type for type parameters. */
-    template_param->param_type = template_param_type;
+    /* Allocate a template parameter and set its fields based on sym. */
+    template_param = alloc_template_param(sym);
     /* Add the template param to the end of the list. */
     if (template_param_list == NULL) {
       template_param_list = template_param;
