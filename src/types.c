@@ -1400,7 +1400,7 @@ is allocated, it is allocated in the file scope.
                      base_type_2->variant.pointer_type_pointed_to) {
             comp_type = base_type_2;
           } else {
-	    if (base_type_1->kind == tk_pointer) {
+	    if (base_type_1->kind == (a_type_kind)tk_pointer) {
               comp_type = make_pointer_type(comp_elem);
 	    } else {
               comp_type = make_reference_type(comp_elem);
