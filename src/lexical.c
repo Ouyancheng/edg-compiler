@@ -10532,7 +10532,8 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
                  kind of symbol we are looking for. */
               if (ilm == ilm_tag) {
                 error_code = ec_name_not_tag_in_file_scope;
-              } else if (ilm == ilm_class) {
+              } else if (ilm == ilm_class ||
+                         ilm == ilm_qualified_ctor_initializer_name) {
                 error_code = ec_name_not_class_in_file_scope;
               } else {
                 error_code = ec_name_not_found_in_file_scope;
@@ -10607,7 +10608,8 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
                   a_symbol_ptr  err_sym;
                   if (ilm == ilm_tag) {
                     error_code = ec_not_a_tag_member;
-                  } else if (ilm == ilm_class) {
+                  } else if (ilm == ilm_class ||
+                             ilm == ilm_qualified_ctor_initializer_name) {
                     error_code = ec_not_a_member_class;
                   } else {
                     error_code = C_mode() ? ec_not_a_field : ec_not_a_member;
