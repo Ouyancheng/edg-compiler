@@ -1242,6 +1242,18 @@ indicates the kind of initialization, and *initializer provides the details.
 }  /* lower_c99_initializer */
 
 
+static void lower_c99_source_correspondence(
+                                       a_source_correspondence *source_corresp)
+/*
+Do C99 lowering on the indicated source correspondence entry.
+*/
+{
+#if REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
+  rewrite_ucns_in_name(source_corresp);
+#endif /* REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
+}  /* lower_c99_source_correspondence */
+
+
 static void lower_c99_variable(a_variable_ptr var)
 /*
 Do C99 lowering on the indicated variable and its subtree.
@@ -1253,10 +1265,45 @@ Do C99 lowering on the indicated variable and its subtree.
      an error in lowering. */
   saved_error_position = error_position;
   error_position = var->source_corresp.decl_position;
+  lower_c99_source_correspondence(&var->source_corresp);
   lower_c99_initializer(var->init_kind, &var->initializer);
   error_position = saved_error_position;
 }  /* lower_c99_variable */
-  
+
+
+static void lower_c99_type(a_type_ptr type)
+/*
+Do C99 lowering on the indicated type.  Note that, at present, this
+need be called only for named types and tags, i.e., the things that are
+on the scope types list.
+*/
+{
+#if REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
+  /* As of now, the only reason types are lowered is to handle UCNs
+     in names, so if there are no UCNs avoid some processing. */
+  if (il_header.UCN_identifiers_used) {
+    lower_c99_source_correspondence(&type->source_corresp);
+    if (type->kind == (a_type_kind)tk_struct ||
+        type->kind == (a_type_kind)tk_union) {
+      /* Visit fields of structs and unions to rewrite UCNs in their names. */
+      a_field_ptr field = type->variant.class_struct_union.field_list;
+      for (; field != NULL; field = field->next) {
+        lower_c99_source_correspondence(&field->source_corresp);
+      }  /* for */
+    }  /* if */
+  }  /* if */
+#endif /* REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING */
+}  /* lower_c99_type */
+
+
+static void lower_c99_routine(a_type_ptr type)
+/*
+Do C99 lowering on the indicated routine (the header, not the body).
+*/
+{
+  lower_c99_source_correspondence(&type->source_corresp);
+}  /* lower_c99_routine */
+
 
 static void lower_c99_scope(a_scope_ptr scope)
 /*
@@ -1264,6 +1311,8 @@ Do C99 lowering for all entities in and under the given scope.
 */
 {
   a_variable_ptr                   variable;
+  a_type_ptr                       type;
+  a_routine_ptr                    routine;
   a_scope_ptr                      block_scope;
   a_vla_dimension_ptr              vla_dim;
   a_local_static_variable_init_ptr lsvip;
@@ -1297,6 +1346,18 @@ Do C99 lowering for all entities in and under the given scope.
        variable != NULL;
        variable = variable->next) {
     lower_c99_variable(variable);
+  }  /* for */
+  /* Visit all types. */
+  for (type = scope->types;
+       type != NULL;
+       type = type->next) {
+    lower_c99_type(type);
+  }  /* for */
+  /* Visit all routines (the headers, not the bodies). */
+  for (routine = scope->routines;
+       routine != NULL;
+       routine = routine->next) {
+    lower_c99_routine(routine);
   }  /* for */
   /* Visit all block scopes (only present in function and block scopes). */
   for (block_scope = scope->scopes;
