@@ -4172,7 +4172,7 @@ the function instantiation entry and set all the pointers.
          onto the front of the instantiation list for the template. */
       tip = alloc_template_instance();
       tip->template_sym = templ_sym;
-      /* Mark this function as a "specialization". */
+      /* Mark this function as a "guiding declaration". */
       tip->is_guiding_decl = TRUE;
       tssp = templ_sym->variant.template_info;
       tip->next = tssp->variant.function.instantiations;
