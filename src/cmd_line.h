@@ -669,8 +669,7 @@ EXTERN a_boolean
 #define microsoft_bugs (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-EXTERN a_boolean
-		microsoft_version
+EXTERN long	microsoft_version
 #if VAR_INITIALIZERS
                                = DEFAULT_MICROSOFT_VERSION
 #endif /* VAR_INITIALIZERS */
