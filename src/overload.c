@@ -43,6 +43,13 @@ static a_boolean operand_is_temp_init(an_operand *operand);
 static a_boolean type_matches_type_code(a_type_ptr type,
                                         char       type_code);
 
+#if DEBUG
+static unsigned long
+		overload_level;
+			/* Number of levels of overload resolution
+			   underway. */ 
+#endif /* DEBUG */
+
 
 /*
 Return TRUE if the indicated symbol is invisible because it was
@@ -1392,6 +1399,18 @@ must free that list.
   return okay;
 }  /* conversion_for_direct_reference_binding_possible */
 
+#if DEBUG
+
+static void db_display_overload_level(void)
+/*
+Display the current overload resolution nesting level at the start
+of a line of debug output.
+*/
+{
+  fprintf(f_debug, "[%lu] ", overload_level);
+}  /* db_display_overload_level */
+
+#endif /* DEBUG */
 
 static void determine_arg_match_level(
                                an_operand           *arg_operand,
@@ -1431,6 +1450,14 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   a_type_ptr        unqual_arg_type, unqual_param_type;
 
   db_enter(4, "determine_arg_match_level");
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
+    fprintf(f_debug, "Entering determine_arg_match_level, param_type = ");
+    db_abbreviated_type(param_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   clear_arg_match_summary(arg_summary);
   arg_summary->param_type = param_type;
   if (arg_type == NULL) {
@@ -1894,6 +1921,7 @@ have_level:;
   }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
     if (arg_summary->match_level == aml_none) {
       fprintf(f_debug, "determine_arg_match_level: no match\n");
     } else {
@@ -2603,6 +2631,7 @@ operator+(a, b).
         param->default_arg_expr == NULL) goto reject_function;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
+      db_display_overload_level();
       fprintf(f_debug, "determine_function_viability: default arg match\n");
     }  /* if */
 #endif /* DEBUG */
@@ -2632,6 +2661,7 @@ operator+(a, b).
 #if DEBUG
     narg++;
     if (debug_level >= 4 || db_flag_is_set("overload")) {
+      db_display_overload_level();
       fprintf(f_debug, "determine_function_viability: arg %lu\n", narg);
     }  /* if */
 #endif /* DEBUG */
@@ -2656,6 +2686,7 @@ operator+(a, b).
       arg_match->match_level = aml_ellipsis;
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
+        db_display_overload_level();
         fprintf(f_debug, "determine_function_viability: ellipsis match\n");
       }  /* if */
 #endif /* DEBUG */
@@ -2974,8 +3005,9 @@ operator+(a, b).
                                                    NULL) {
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
+      db_display_overload_level();
       db_symbol(proj_function_symbol,
-                "try_overloaded_function_match: considering ", 2);
+                "try_overloaded_function_match: considering ", 4);
     }  /* if */
 #endif /* DEBUG */
     /* Determine whether the function is viable by looking at the arguments.
@@ -3081,8 +3113,9 @@ arguments of the call (given by arg_operand_list).
 
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
+      db_display_overload_level();
       db_symbol(surrogate_function_conv_sym,
-                "try_surrogate_function_match: considering ", 2); 
+                "try_surrogate_function_match: considering ", 4);
     }  /* if */
 #endif /* DEBUG */
     base_surrogate_function_conv_sym =
@@ -4193,6 +4226,7 @@ is set to TRUE.
   db_enter(4, "select_best_candidate_functions");
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
     fprintf(f_debug, "Entry to select_best_candidate_functions: ");
     db_candidate_function_list(candidates);
   }  /* if */
@@ -4492,6 +4526,7 @@ create_final_list:
   }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
     fprintf(f_debug, "Return from select_best_candidate_functions: ");
     db_candidate_function_list(candidates);
   }  /* if */
@@ -4673,6 +4708,14 @@ and return NULL.  This routine is called only in C++ mode.
   an_arg_operand_ptr       arg_operand;
 
   db_enter(4, "select_overloaded_function");
+#if DEBUG
+  overload_level++;
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
+    db_symbol(overloaded_function_symbol,
+              "Entering select_overloaded_function with ", 4);
+  }  /* if */
+#endif /* DEBUG */
   if (!have_selector) bound_function_selector = NULL;
   /* candidate_functions will contain the list of viable functions. */
   candidate_functions = NULL;
@@ -5006,15 +5049,17 @@ in_instantiation:
                               candidate_functions->surrogate_function_conv_sym;
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
+        db_display_overload_level();
         db_symbol(*surrogate_function_conv_sym,
-                  "select_overloaded_function: selected surrogate ", 2); 
+                  "select_overloaded_function: selected surrogate ", 4);
       }  /* if */
 #endif /* DEBUG */
     } else {
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
+        db_display_overload_level();
         db_symbol(function_symbol,
-                  "select_overloaded_function: selected ", 2); 
+                  "select_overloaded_function: selected ", 4);
       }  /* if */
 #endif /* DEBUG */
     }  /* if */
@@ -5034,6 +5079,14 @@ have_function:
     check_assertion(paren_tok_seq_number != 0);
     record_nondependent_call(function_symbol, paren_tok_seq_number);
   }  /* if */
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
+    db_symbol(function_symbol,
+              "Leaving select_overloaded_function, function_symbol = ", 4);
+  }  /* if */
+  overload_level--;
+#endif /* DEBUG */
   db_exit();
   return function_symbol;
 }  /* select_overloaded_function */
@@ -7205,8 +7258,9 @@ This routine is only used in C++ mode.
     conversion_symbol = slep->symbol;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
+      db_display_overload_level();
       db_symbol(conversion_symbol,
-                "try_conversion_function_match: considering ", 2); 
+                "try_conversion_function_match: considering ", 4);
     }  /* if */
 #endif /* DEBUG */
     /* Set template_arg_list early so that, on goto to reject_function, we
@@ -8023,6 +8077,7 @@ the target type to be used).
      looks at one type pattern per call). */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
     fprintf(f_debug, "try_builtin_operands_match: considering %s\n",
                      operand_type_pattern);
   }  /* if */
@@ -8048,6 +8103,7 @@ the target type to be used).
 #if DEBUG
     narg++;
     if (debug_level >= 4 || db_flag_is_set("overload")) {
+      db_display_overload_level();
       fprintf(f_debug, "try_builtin_operands_match: operand %lu\n", narg);
     }  /* if */
 #endif /* DEBUG */
@@ -9112,6 +9168,13 @@ such cases (where operator overloading might apply, but we can't tell).
   a_boolean                defer_overload_resolution = FALSE;
 
   db_enter(4, "check_for_operator_overloading");
+#if DEBUG
+  overload_level++;
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
+    fprintf(f_debug, "Entering check_for_operator_overloading\n");
+  }  /* if */
+#endif /* DEBUG */
   *processed = FALSE;
   /* Check for template-dependent operands in a prototype instantiation. */
   if (is_template_dependent_context() &&
@@ -9436,6 +9499,7 @@ select_best_function:
             /* A built-in operator was selected. */
 #if DEBUG
             if (debug_level >= 4 || db_flag_is_set("overload")) {
+              db_display_overload_level();
               fprintf(f_debug, "check_for_operator_overloading: selected\n");
               db_candidate_function(candidate_functions);
             }  /* if */
@@ -9468,8 +9532,9 @@ select_best_function:
             /* An operator function was selected. */
 #if DEBUG
             if (debug_level >= 4 || db_flag_is_set("overload")) {
+              db_display_overload_level();
               db_symbol(proj_function_symbol,
-                        "check_for_operator_overloading: selected ", 2);
+                        "check_for_operator_overloading: selected ", 4);
             }  /* if */
 #endif /* DEBUG */
             *processed = TRUE;
@@ -9496,6 +9561,7 @@ select_best_function:
                  operator, so generate an assignment instead of a call. */
 #if DEBUG
               if (debug_level >= 4 || db_flag_is_set("overload")) {
+                db_display_overload_level();
                 fprintf(f_debug,
                  "check_for_operator_overloading: bitwise operator=\n");
               }  /* if */
@@ -9618,6 +9684,13 @@ select_best_function:
   }  /* if */
   /* If an operand was created, put the right position in it. */
   if (*processed) result->position = *operator_position;
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
+    fprintf(f_debug, "Leaving check_for_operator_overloading\n");
+  }  /* if */
+  overload_level--;
+#endif /* DEBUG */
   db_exit();
 }  /* check_for_operator_overloading */
 
@@ -9687,10 +9760,19 @@ mode.
   a_base_class_ptr              bcp;
   a_type_qualifier_set          source_qualifiers;
 
-  db_enter(4, "conversion_to_class_possible");
   /* Note that this routine is like a simplified version of
      select_overloaded_function that works for user-defined conversion
      functions (no arguments, just a "this" parameter). */
+  db_enter(4, "conversion_to_class_possible");
+#if DEBUG
+  overload_level++;
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
+    fprintf(f_debug, "Entering conversion_to_class_possible, dest_type = ");
+    db_abbreviated_type(dest_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   *ambiguous = FALSE;
   okay = FALSE;
   clear_conv_descr(conversion);
@@ -9923,9 +10005,11 @@ mode.
   }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
-    fprintf(f_debug, "conversion_to_class_possible: %s\n",
+    db_display_overload_level();
+    fprintf(f_debug, "Leaving conversion_to_class_possible: %s\n",
                      okay ? "okay" : "not okay");
   }  /* if */
+  overload_level--;
 #endif /* DEBUG */
   db_exit();
   return okay;
@@ -9976,8 +10060,17 @@ C++ mode.
   a_candidate_function_ptr candidate_functions;
   a_boolean                undecidable_because_of_error;
 
-  db_enter(4, "conversion_from_class_possible");
   /* This routine is similar to select_overloaded_function. */
+  db_enter(4, "conversion_from_class_possible");
+#if DEBUG
+  overload_level++;
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
+    fprintf(f_debug,"Entering conversion_from_class_possible, dest_type = ");
+    db_abbreviated_type(dest_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   clear_conv_descr(conversion);
   if (is_template_dependent_context() &&
       (f_skip_typerefs(source_operand->type)->
@@ -10033,9 +10126,11 @@ C++ mode.
   }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
-    fprintf(f_debug, "conversion_from_class_possible: %s\n",
+    db_display_overload_level();
+    fprintf(f_debug, "Leaving conversion_from_class_possible: %s\n",
                      okay ? "okay" : "not okay");
   }  /* if */
+  overload_level--;
 #endif /* DEBUG */
   db_exit();
   return okay;
@@ -13109,6 +13204,17 @@ used only in C++ mode.
   a_boolean                      undecidable_because_of_error;
 
   /* This routine is similar to select_overloaded_function. */
+  db_enter(4, "select_overloaded_copy_constructor");
+#if DEBUG
+  overload_level++;
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
+    fprintf(f_debug,
+            "Entering select_overloaded_copy_constructor, class_type = ");
+    db_abbreviated_type(class_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   if (uncallable != NULL) *uncallable = FALSE;
   *class_bitwise_copy = FALSE;
   *ambiguous = FALSE;
@@ -13150,7 +13256,8 @@ used only in C++ mode.
     for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
-        db_symbol(sym, "select_overloaded_copy_constructor: considering ", 2); 
+        db_display_overload_level();
+        db_symbol(sym, "select_overloaded_copy_constructor: considering ", 4);
       }  /* if */
 #endif /* DEBUG */
       arg_match = NULL;
@@ -13272,6 +13379,15 @@ next_function:;
       *uncallable = TRUE;
     }  /* if */
   }  /* if */
+#if DEBUG
+  if (debug_level >= 4 || db_flag_is_set("overload")) {
+    db_display_overload_level();
+    db_symbol(cctor_sym,
+              "Leaving select_overloaded_copy_constructor, cctor_sym = ", 4);
+  }  /* if */
+  overload_level--;
+#endif /* DEBUG */
+  db_exit();
   return cctor_sym;
 }  /* select_overloaded_copy_constructor */
 
@@ -13287,6 +13403,7 @@ These are initializations that must be redone for each compilation.
   avail_arg_match_summaries = NULL;
 #if DEBUG
   num_candidate_functions_allocated = 0;
+  overload_level = 0;
 #endif /* DEBUG */
 }  /* overload_init */
 
