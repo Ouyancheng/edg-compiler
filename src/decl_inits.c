@@ -887,6 +887,9 @@ this function points to a tree that includes a dynamic-init entry.
     if (check_for_string_constant_initializer(type, &init_con)) {
       /* The object being initialized has type array of char or wchar_t, and
          is being initialized with a string. */
+      /* Allow an extra comma after the string-constant initializer and before
+         the expected right brace. */
+      if (brace_flag && curr_token == tok_comma) (void)get_token();
     } else {
       /* Normal case, not array of char.  Could be an array, a struct,
          or a union, or an error type.  Note that local_type has already
