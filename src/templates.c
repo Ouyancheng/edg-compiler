@@ -15598,7 +15598,8 @@ that follows.
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
             if (rp->source_corresp.source_sequence_entry != NULL &&
 #if !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-                microsoft_nonstd_specialization &&
+                scope_stack[depth_scope_stack].kind ==
+                                        (a_scope_kind)sck_class_struct_union &&
 #endif /* !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
                 (an_il_entry_kind)rp->source_corresp.source_sequence_entry->
                                                                  entity.kind ==
