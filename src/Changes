@@ -1,5 +1,16 @@
 Version 2.39
 
+8/5/98    Order of type check for nonstatic data member
+
+An internal error in set_type_size resulted from performing the type
+checking for a nonstatic data member in the wrong order -- the check for
+incomplete type is now done before the check for abstract class type.
+
+  class X {
+    virtual void f() = 0;
+    X x;                  // Priority now given to incomplete type error
+  };
+
 8/4/98    Folding of casts on constant addresses
 
 Fewer casts on address constants are now folded in contexts where a
