@@ -1488,7 +1488,7 @@ check_cast_access is TRUE.  This routine is only used in C++ mode.
 }  /* base_class_cast_operand */
 
 
-static a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
+a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
 /*
 Determine the type that would result from applying the integral promotions
 (3.2.1.1) to the type of node.  Return the promoted type, which may be

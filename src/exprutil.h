@@ -669,6 +669,8 @@ extern void cast_node(an_expr_node_ptr  *node,
 		      a_boolean         is_implicit_cast,
                       a_source_position *err_pos);
 
+extern a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node);
+
 extern void integral_promote_node(an_expr_node_ptr *node);
 
 extern void make_constructor_dynamic_init(a_routine_ptr    ctor_routine,
