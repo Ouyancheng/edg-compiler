@@ -1068,8 +1068,7 @@ build an argument operand list and return a pointer to it in
 	    /* Compare the type of the promoted actual with the promoted formal
 	       without qualifiers. */
 	    if (!is_error_type(curr_param_type->type)) {
-              formal_type = default_argument_promotion(
-                                         skip_typerefs(curr_param_type->type));
+              formal_type = default_argument_promotion(curr_param_type->type);
               if (!types_are_compatible(formal_type, argument_operand.type)) {
                 if (interchangeable_types(formal_type,
                                           argument_operand.type)) {
