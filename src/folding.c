@@ -1335,8 +1335,8 @@ proper result (often, an error constant).
 }  /* issue_folding_diagnostic */
 
 
-a_boolean related_ptr_to_members(a_type_ptr  type_1,
-                                 a_type_ptr  type_2)
+static a_boolean related_ptr_to_members(a_type_ptr  type_1,
+                                        a_type_ptr  type_2)
 /*
 Return TRUE if the class types into which the given pointer-to-member types
 point are related by inheritance.
