@@ -1881,6 +1881,8 @@ dump enums, and structs/unions as declarations.  When pass == 2 (second
 pass), dump typedefs, and structs/unions as definitions (if they are defined).
 */
 {
+  a_boolean output_defn;
+
   switch (type->kind) {
     case tk_enum:
       /* Enumeration. */
@@ -1897,9 +1899,15 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
       /* Struct or union. */
       /* Output a declaration on the first pass, and a definition on the
          second pass (if the struct/union is defined). */
+      output_defn = (type->size != 0);
+#if MAINTAIN_NEEDED_FLAGS
+      if (!type->variant.class_struct_union.definition_needed) {
+        output_defn = FALSE;
+      }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
       if (pass == 1) {
         if (start_unreferenced_bracket(&type->source_corresp)) {
-          if (type->size == 0) {
+          if (!output_defn) {
             /* Dump any pragmas associated with the type if no definition
                will be output on the second pass. */
             dump_decl_associated_pragmas(&type->source_corresp);
@@ -1909,7 +1917,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
           write_tok_ch(';');
           end_unreferenced_bracket(&type->source_corresp);
         }  /* if */
-      } else if (type->size != 0) {
+      } else if (output_defn) {
         dump_struct_union_definition(type);
       }  /* if */
       break;
