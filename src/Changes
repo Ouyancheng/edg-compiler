@@ -14,8 +14,7 @@ in version 2.43 and is now fixed.
       A(const A&s);
     };
   }
-
-template <class T> N::A<T>::A(const A<T>&s){}
+  template <class T> N::A<T>::A(const A<T>&s){}
 
 
 1/11/01  Error issued on types declared as members of anonymous unions
