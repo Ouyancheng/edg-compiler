@@ -2034,6 +2034,9 @@ error code.
     case ec_set_but_not_used:
       m = "%n was set and never used";
       break;
+    case ec_bad_scope_for_definition:
+      m = "%n cannot be defined in the current scope";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

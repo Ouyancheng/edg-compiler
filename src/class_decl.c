@@ -6837,6 +6837,7 @@ to indicate whether the class/struct/union is actually defined.
   a_boolean               is_class_definition;
   a_source_position       decl_start_pos;
   a_scope_stack_entry_ptr ssep;
+  a_source_position       tag_position;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -6892,6 +6893,7 @@ to indicate whether the class/struct/union is actually defined.
        tag, even if it just repeats a previous name.  At least, there's
        a Plum Hall test that implies that. */
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
+    tag_position = pos_curr_token;
     *declares_something = TRUE;
     tag_sym = scan_tag_name(tag_kind, &locator, vacuous_decl_allowed,
                             is_ref_within_new_expr, &effective_decl_level,
@@ -6969,7 +6971,7 @@ skip_tag_scan:
       if (cssp->class_template != NULL) {
         if (is_class_definition && tag_sym->defined) {
           /* This template class has already been instantiated. */
-          pos_sy_error(ec_already_defined, &locator.source_position, tag_sym);
+          pos_sy_error(ec_already_defined, &tag_position, tag_sym);
           error_tag_sym = tag_sym;
           tag_sym = NULL;
           set_to_named_error_locator(locator);
@@ -6980,8 +6982,7 @@ skip_tag_scan:
           if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
             /* Specific definitions of template classes may only occur at
                file scope. */
-            pos_error(ec_specific_def_must_be_global,
-                      &locator.source_position);
+            pos_error(ec_specific_def_must_be_global, &tag_position);
             error_tag_sym = tag_sym;
             tag_sym = NULL;
             set_to_named_error_locator(locator);
@@ -6996,7 +6997,7 @@ skip_tag_scan:
              tag_sym->class_of_which_a_member != ssep->assoc_type)) {
           /* A definition of a nested class that appears in the scope other
              than that of its parent class. */
-          pos_error(ec_qualified_name_not_allowed, &locator.source_position);
+          pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
           tag_sym = NULL;
           set_to_error_locator(locator);
 #if 0

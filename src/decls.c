@@ -6122,11 +6122,13 @@ to indicate whether an enumeration is actually defined.
      of a new tag or a reference to an existing tag. */
   tag_id_present = is_qualified_name_start();
   if (tag_id_present) {
-    a_boolean  tag_resolution;
+    a_boolean          tag_resolution;
+    a_source_position  tag_position;
     /* It seems that appearance of a tag name is a declaration of the
        tag, even if it just repeats a previous name.  At least, there's
        a Plum Hall test that implies that. */
     *declares_something = TRUE;
+    tag_position = pos_curr_token;
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
                             vacuous_decl_allowed,
                             /*is_ref_within_new_expr=*/FALSE,
@@ -6155,7 +6157,7 @@ to indicate whether an enumeration is actually defined.
           tag_sym->class_of_which_a_member != class_of_which_a_member) {
         /* This is an attempt to define a member enum outside the class of
            which it is a member. */
-        pos_error(ec_qualified_name_not_allowed, &locator.source_position);
+        pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
         tag_sym = NULL;
         set_to_error_locator(locator);
 #if 0
