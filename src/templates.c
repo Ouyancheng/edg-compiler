@@ -15326,7 +15326,12 @@ that follows.
         pos_error(ec_inherited_member_not_allowed, &locator.source_position);
         reduce_projection_symbol_to_fundamental_symbol(sym);
       }  /* if */
-      if (is_function_type(type) && is_function_or_template_symbol(sym)) {
+      if (is_prototype_instantiation_context()) {
+        /* A Microsoft specialization in a prototype instantiation.  Don't
+           attempt to match this to a declaration. */
+        sym = NULL;  
+      } else if (is_function_type(type) &&
+                 is_function_or_template_symbol(sym)) {
         sym = find_matching_template_instance(
                         sym, type, locator.template_arg_list,
                         (a_boolean)locator.is_template_id,

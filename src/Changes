@@ -1,5 +1,16 @@
 Version 3.3
 
+7/16/03  Microsoft mode: internal error on in-class specialization
+
+When EXPENSIVE_CHECKING is enabled, an internal error would occur
+in Microsoft mode when a Microsoft in-class specialization with
+a dependent type was declared.  This has been fixed.
+
+  template <class T> struct A {
+    template <class X> void f(X);
+    template <> void f(A<T>){}
+  };
+
 7/16/03  IA-64 ABI name mangling: predefined substitutions in virtual
          function table names
 
