@@ -4375,6 +4375,9 @@ check_routine:
       break;
     case sk_class_or_struct_tag:
     case sk_union_tag:
+      /* Check for referenced but undefined non-extern functions. */
+      check_referenced_member_functions(sym);
+      /* Fall through for further processing. */
     case sk_enum_tag:
       /* Struct, union, or enum tag. */
       type_ptr = type_symbol_type(sym);
@@ -4389,7 +4392,6 @@ check_routine:
         add_to_types_list(type_ptr, DEPTH_OF_FILE_SCOPE,
                           /*in_old_style_param_decl_list=*/FALSE);
       }  /* if */
-      check_referenced_member_functions(sym);
 #if CHECKING
       scp = &type_ptr->source_corresp;
 #endif /* CHECKING */
