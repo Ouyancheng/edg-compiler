@@ -427,7 +427,8 @@ has been fixed.
 A spurious correspondence error was issued if a class like the one below
 was included in more that one translation unit.  The problem occurred
 when the initializer of a const static data member involved a dependent
-function call.  Now fixed.
+function call, and only in compilations involving multiple translation 
+units (e.g., with exported templates).  Now fixed.
 
   template <class T, class T2> struct A {
     static int test(...);
