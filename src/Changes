@@ -1,5 +1,12 @@
 Version 2.34
 
+12/12/96 Initialization of local static variables
+
+In accord with a recent change to the Working Paper, initialization of
+local static variables by a non-integral constant is again represented in
+the IL as a static initialization.  This restores pre-2.33 behavior (see
+9/30/96 entry).
+
 12/12/96 Reference to function initialized by overloaded function
 
 As in the similar pointer case, a reference to function can be initialized
