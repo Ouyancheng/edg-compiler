@@ -1,5 +1,16 @@
 Version 2.33
 
+7/26/96 Internal error on invalid template specialization
+
+The declaration of an invalid template specialization in a scope in
+which such a declaration is not permitted could result in an
+assertion failure in class_template_declaration.  This has been fixed.
+
+  template <class T> struct A {};
+  namespace N {
+    template <class T> struct A<int>;
+  }
+
 7/26/96 Error recovery on linkage specification
 
 A null-pointer failure no longer results when a translation unit is
