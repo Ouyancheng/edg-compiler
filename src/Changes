@@ -1,5 +1,11 @@
 Version 3.4
 
+8/5/03   Microsoft calling convention keywords in diagnostics
+
+Setting SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE to TRUE no longer
+prevents calling convention keywords (such as "__stdcall") from appearing in
+diagnostics: It only inhibits such keywords in compilable generated code.
+
 8/5/03   Microsoft compatibility: function call returning class isn't
          exactly an lvalue
 

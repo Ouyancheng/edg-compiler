@@ -869,14 +869,19 @@ an attribute (in that case SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
 should be TRUE).
 */
 {
-#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+#if SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
+  if (octl->gen_compilable_code) {
+    /* The Microsoft keywords should only be suppressed in compilable code.
+       Not, for example, in diagnostics. */
+  } else
+#endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
+  /* Do not insert code here. */
   /* Put out nothing for the default calling convention. */
   if (calling_convention != (a_calling_convention)cc_default) {
     octl->output_str(calling_convention_names[(int)calling_convention]);
     /* Put out a trailing space. */
     octl->output_str(" ");
   }  /* if */
-#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 }  /* form_calling_convention */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
