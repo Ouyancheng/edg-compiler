@@ -1,5 +1,10 @@
 Version 2.27
 
+12/14/94 Setting address_taken on function when pointer-to-member is taken
+
+The address_taken flag in a routine is now set if a pointer-to-member
+to that function is used.
+
 12/14/94 Union member of class type with user-defined assignment operator
 
 In cfront mode a warning is now issued (instead of an error) if a union
