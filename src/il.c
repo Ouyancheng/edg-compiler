@@ -5082,6 +5082,11 @@ Only used in C++.
        of the temporary. */
     temp_init_node->type = temp_type;
   }  /* if */
+  /* Make sure the IL scope that the temporary is part of exists.  Even though
+     the temporary does not exist as a variable, it's still (from a language
+     point of view) part of this scope.  That's important, because it has to
+     be destroyed at the right point. */
+  (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
   return temp_init_node;
 }  /* create_expr_temporary */
 
