@@ -241,7 +241,7 @@ to abort.  For example:
     template<class U> struct N {};
   };
   template<> template<> template<class V>
-    S<int>::N {};  // Extraneous 'template<>' was not diagnosed
+    struct S<int>::N {};  // Extraneous 'template<>' was not diagnosed
 
 This is now fixed (an error is issued).
 
