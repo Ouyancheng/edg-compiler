@@ -539,9 +539,11 @@ curr_max_member_alignment.
   /* Save the stop token state, push a pragma scope, etc. */
   begin_rescan_of_pragma_tokens(ppp);
   add_stop_token(tok_rparen);
+  add_stop_token(tok_identifier);
+  add_stop_token(tok_int_constant);
   /* Check for a left parenthesis. */
-  if (microsoft_mode && curr_token != tok_lparen) {
-    /* Microsoft mode issues a warning. */
+  if ((microsoft_mode || gnu_mode) && curr_token != tok_lparen) {
+    /* Microsoft and GNU issue a warning. */
     warning(ec_exp_lparen);
   } else {
     (void)required_token(tok_lparen, ec_exp_lparen);
@@ -700,9 +702,11 @@ curr_max_member_alignment.
     syntax_error(ec_exp_int_constant);
   }  /* if */
   remove_stop_token(tok_rparen);
+  remove_stop_token(tok_identifier);
+  remove_stop_token(tok_int_constant);
   /* Check for the closing parenthesis. */
-  if (microsoft_mode && curr_token != tok_rparen) {
-    /* Microsoft mode issues a warning. */
+  if ((microsoft_mode || gnu_mode) && curr_token != tok_rparen) {
+    /* Microsoft and GNU issue a warning. */
     warning(ec_exp_rparen);
   } else {
     (void)required_token(tok_rparen, ec_exp_rparen);
