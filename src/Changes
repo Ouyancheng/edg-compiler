@@ -31,7 +31,8 @@ only and a remark otherwise.  Here's an example:
 An error is issued if a template parameter name is redeclared in
 a class template or function template.  This is only considered
 to be an error if the redeclaration occurs in the outermost scope
-of the template.
+of the template.  If a parameter name is redeclared in an inner
+scope of a template a warning is issued.
 
 Note that a redeclaration in a member function inside the template
 definition gives an error so that functions are treated consistently
@@ -43,7 +44,7 @@ definition.
     void f() { int T;}  // error
     void g();
     struct B {
-      int T;            // OK
+      int T;            // OK (warning)
     };
   };
 
@@ -53,7 +54,7 @@ definition.
   {
     int  T;            // error
     {
-      int T;           // OK
+      int T;           // OK (warning)
     }
   }
 
