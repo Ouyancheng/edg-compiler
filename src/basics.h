@@ -235,6 +235,7 @@ EXTERN_C char *sprintf(char *, const char *, ...);
 /* String and block routines: */
 #if __ANSIC__
 #include <stdlib.h>
+#include <string.h>
 #define memzero(dest, nbytes) memset(dest, 0, nbytes)
 #else /* !__ANSIC__ */
 #if __SYSV__
