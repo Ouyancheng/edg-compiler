@@ -1092,6 +1092,7 @@ ec_stdc_pragma_not_allowed_here;;"a STDC pragma may only appear in the global sc
 ec_bad_va_copy;;"incorrect use of va_copy"
 ec_only_applies_to_float_types;;"%sq can only be used with floating-point types"
 ec_invalid_complex_operator;;"operator cannot be applied to complex operand"
+ec_exp_array_element_initializer;;"expected an initializer for an array element"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

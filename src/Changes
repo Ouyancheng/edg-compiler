@@ -1,5 +1,16 @@
 Version 2.45
 
+11/3/00  Abort on field designator in array initializer
+
+The front end used to abort when an initializer for an array with unspecified
+length contained a field designator and the element type was a struct with
+no fields.  (Designators are only recognized in C mode.)
+
+  struct S { union { int i; float f; }; };
+  struct S a[] = { .z = 0 };  /* Triggered an internal error. */
+
+This is now fixed.
+
 11/2/00  End position on function reference on implicit function
          declaration in C mode
 

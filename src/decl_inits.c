@@ -1818,7 +1818,10 @@ this function points to a tree that includes a dynamic-init entry.
         /* If a designation was active, it is now consumed: */
         init_info->designation_state = ds_no_designation;
         remove_stop_token(tok_comma);
-        check_assertion(!(local_nothing_taken && is_incomplete_array));
+        if (local_nothing_taken && is_incomplete_array) {
+          syntax_error(ec_exp_array_element_initializer);
+          break;
+        }  /* if */
         /* Advance to the next member of the aggregate.  Set
            any_more_members FALSE if there are no more members. */
         if (kind == (a_type_kind)tk_error) {
