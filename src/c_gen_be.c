@@ -371,10 +371,10 @@ static void dump_general_declaration_using_type(a_type_ptr              type,
                                                 char                    *temp);
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens);
-
 /* Interfaces to dump_expr for the usual cases. */
 #define dump_expr_with_parens(expr) dump_expr(expr, /*need_parens=*/TRUE)
 #define dump_expression(expr)       dump_expr(expr, /*need_parens=*/FALSE)
+static void dump_boolean_controlling_expression(an_expr_node_ptr node);
 
 
 static void clear_output_file_position(an_output_file_position *ofp)
@@ -1012,7 +1012,7 @@ Write a temporary name generated from the given IL pointer.
 static void dump_name(a_source_correspondence *scp)
 /*
 Print the name of an entity.  scp is the source correspondence.  If the
-name is NULL in the source correspondence, generate a name.
+entity is unnamed, generate a name.
 */
 {
   char *name = scp->name;
@@ -1313,7 +1313,7 @@ Output the indicated constant.
           }  /* if */
         }  /* for */
         m_write_ch('"');
-      }
+      }  /* if */
       break;
     case ck_float:
       /* Put parentheses around the constant in case it's negative. */
@@ -1321,12 +1321,12 @@ Output the indicated constant.
       fkind = con_type->variant.float_kind;
 #if C_GEN_BE_GENERATES_ANSI_C
       /* Output the floating-point constant. */
-      m_write_str(fp_to_string(fkind, &constant->variant.float_value));
+      write_str(fp_to_string(fkind, &constant->variant.float_value));
       /* Add a suffix if necessary. */
       if (fkind == (a_float_kind)fk_float) {
-        m_write_ch('F');
+        write_ch('F');
       } else if (fkind == (a_float_kind)fk_long_double) {
-        m_write_ch('L');
+        write_ch('L');
       }  /* if */
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
       /* Generating K&R C.  Suffixes are not allowed. */
@@ -2850,39 +2850,6 @@ closing parentheses needed if any code was generated there.
 }  /* end_adjust_bit_field_value */
 
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-
-
-static void dump_boolean_controlling_expression(an_expr_node_ptr node)
-/*
-Generate code for the indicated expression, which is the controlling expression
-of a statement or short-circuit operator.  The expression is surrounded
-by parentheses.
-*/
-{
-  an_expr_node_ptr con_node;
-  a_constant_ptr   con;
-
-  /* If there is a "!= 0" at the top of the expression, remove it.
-     This is not just an optimization -- the Sun 4.1 compiler has
-     a bug in handling a "!= 0" on top of a comma operator, as in
-       if ((i++, ++i != 6) != 0) {}
-  */
-  if (node->kind == (an_expr_node_kind)enk_operation &&
-      node->variant.operation.kind == (an_expr_operator_kind)eok_ine) {
-    con_node = node->variant.operation.operands->next;
-    if (con_node->kind == (an_expr_node_kind)enk_constant) {
-      con = con_node->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_integer &&
-          !con->implicit_cast && eqlit_integer_constant(con, 0L)) {
-        node = node->variant.operation.operands;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  m_write_tok_ch('(');
-  dump_expression(node);
-  m_write_tok_ch(')');
-}  /* dump_boolean_controlling_expression */
-
 #if CHECKING
 
 static void check_result_not_used_flag(an_expr_node_ptr node)
@@ -3440,6 +3407,38 @@ done_with_operation:
       unexpected_condition_str("dump_expr: bad expr node kind");
   }  /* switch */
 }  /* dump_expr */
+
+
+static void dump_boolean_controlling_expression(an_expr_node_ptr node)
+/*
+Generate code for the indicated expression, which is the controlling expression
+of a statement or short-circuit operator.  The expression is surrounded
+by parentheses.
+*/
+{
+  an_expr_node_ptr con_node;
+  a_constant_ptr   con;
+
+  /* If there is a "!= 0" at the top of the expression, remove it.
+     This is not just an optimization -- the Sun 4.1 compiler has
+     a bug in handling a "!= 0" on top of a comma operator, as in
+       if ((i++, ++i != 6) != 0) {}
+  */
+  if (node->kind == (an_expr_node_kind)enk_operation &&
+      node->variant.operation.kind == (an_expr_operator_kind)eok_ine) {
+    con_node = node->variant.operation.operands->next;
+    if (con_node->kind == (an_expr_node_kind)enk_constant) {
+      con = con_node->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_integer &&
+          !con->implicit_cast && eqlit_integer_constant(con, 0L)) {
+        node = node->variant.operation.operands;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  m_write_tok_ch('(');
+  dump_expression(node);
+  m_write_tok_ch(')');
+}  /* dump_boolean_controlling_expression */
 
 
 /*
