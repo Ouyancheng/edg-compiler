@@ -13513,6 +13513,27 @@ Return TRUE if we are currently inside an expression context.
 }  /* in_expression_context */
 
 
+a_boolean arg_operand_contains_template_param(an_arg_operand_ptr arg_operand)
+/*
+Return TRUE if the given arg_operand has a template-dependent value.  This
+is used for testing nontype template arguments in determining whether
+a template argument list is dependent.  Nontype template arguments that are
+not yet associated with a template parameter, as in explicit template
+argument lists on functions (e.g., f<int,1>(x)), are represented as
+a_template_arg IL entries with constant_is_an_arg_operand set, which point
+to an arg_operand entry.
+*/
+{
+  a_boolean  contains_template_param = FALSE;
+  an_operand *operand = &arg_operand->operand;
+
+  if (is_template_param_constant_operand(operand)) {
+    contains_template_param = TRUE;
+  }  /* if */
+  return contains_template_param;
+}  /* arg_operand_contains_template_param */
+
+
 a_symbol_ptr find_copy_constructor(a_type_ptr            class_type,
                                    a_type_qualifier_set  required_qualifiers,
                                    a_source_position     *pos,

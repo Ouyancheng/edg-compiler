@@ -161,6 +161,9 @@ extern a_variable_ptr based_variable(void);
 
 extern a_boolean in_expression_context(void);
 
+extern a_boolean arg_operand_contains_template_param(
+                                               an_arg_operand_ptr arg_operand);
+
 extern a_symbol_ptr find_copy_constructor(
                                    a_type_ptr            class_type,
                                    a_type_qualifier_set  required_qualifiers,
