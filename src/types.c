@@ -1073,7 +1073,7 @@ array_type.
       temp = array_type->variant.array.variant.number_of_elements;
     } else {
       /* We don't know the element count because it is not a constant value.
-         Since a size of zero mean "incomplete type", set the size as though
+         Since a size of zero means "incomplete type", set the size as though
          the element count were 1. */
       temp = 1;
     }  /* if */
