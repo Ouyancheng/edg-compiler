@@ -487,6 +487,35 @@ done:
 }  /* make_integer_value_from_mantissa */
 
 
+static void clear_unused_mantissa_bits(a_mantissa_ptr	mp,
+				       int		bits_used)
+/*
+Zero any bits in the mantissa that are beyond the first N bits specified by
+bits_used.
+*/
+{
+  int	part;
+
+  for (part = 0; part < MANTISSA_PARTS; part++) {
+    if (bits_used >= 32) {
+      /* The whole part is used.  Skip to the next part. */
+      bits_used -= 32;
+      continue;
+    } else if (bits_used == 0) {
+      /* None of this part is used.  Clear it. */
+      mp->parts[part] = 0;
+    } else {
+      /* A portion of the part is used.  Clear the unused part. */
+      int		bits_to_clear = 32 - bits_used;
+      an_fp_value_part	mask;
+      mask = 0xffffffff << bits_to_clear;
+      mp->parts[part] &= mask;
+      bits_used = 0;
+    }  /* if */
+  }  /* for */
+}  /* clear_unused_mantissa_bits */
+
+
 static void conv_mantissa_to_fixed_point(
 				a_mantissa_ptr			mp,
 				long				exponent,
@@ -533,6 +562,9 @@ the value is already known to be too large.  Set *err on overflow.  Set
     round_hex_fp_value(mp, &exponent, value_bits + sign_bits,
                        /*is_fixed_point=*/TRUE, !fxp_descr->is_unsigned,
                        inexact);
+    /* Zero any bits in the mantissa that are not actually used in the
+       value. */
+    clear_unused_mantissa_bits(mp, value_bits + sign_bits);
     /* Recompute the shift count and mantissa bits after rounding. */
     shift_count = nonfract_bits - exponent;
     mantissa_bits = number_of_bits_in_mantissa(mp, /*normalize=*/TRUE);
