@@ -6950,7 +6950,7 @@ type based on the template argument list and the template parameter list
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (parent_class != NULL &&
-      symbol_supplement_for_class(parent_class)->is_prototype_instantiation) {
+      parent_class->variant.class_struct_union.is_prototype_instantiation) {
     /* In Microsoft mode a member template may be specialized within the
        definition of the parent class.  Don't generate the source sequence
        entry when the parent class is a prototype instantiation. */
