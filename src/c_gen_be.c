@@ -1923,9 +1923,6 @@ Dump the definition ({...}) if body is TRUE.
       indent += 2;
       while (field != NULL) {
         startline(field->source_corresp.decl_position.seq);
-#if 0
-        /* Test for unnamed zero-length bit fields. */
-#endif /* 0 */
         if (!field->is_bit_field) {
           /* Not bit field. */
           simple_type_reference(field_name(field), field->type);
@@ -1934,7 +1931,8 @@ Dump the definition ({...}) if body is TRUE.
           (void)fprintf(f_C_output, "%s %s: %d",
                                     field->bit_field_is_signed ?
                                        "int" : "unsigned int",
-                                    field_name(field),
+                                    (field->source_corresp.name != NULL) ?
+                                                        field_name(field) : "",
                                     field->bit_size);
         }  /* if */
         (void)fputc(';', f_C_output);
