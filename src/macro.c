@@ -3977,6 +3977,10 @@ command line -D options.
     /* Check the identifier to make sure it is valid. */
     if (!is_valid_identifier(id_start, id_len, &assoc_symbol, &locator)) {
       err = TRUE;
+    } else if (strchr(du_str, ATTENTION_MARKER) != NULL) {
+      /* Definition contains a newline character, which cannot be allowed
+         (it would be confused with a lexical escape character). */
+      err = TRUE;
     } else {
       /* Make the definition text for the macro. */
       sizeof_t	repl_text_len;
