@@ -263,9 +263,11 @@ this case and add it to the list for the current scope.
 
 static void check_for_defeatable_name_hiding(a_symbol_ptr  sym_ptr)
 /*
-The generation of "hidden name" information is primarily for the C++
-generating back end, so that it will know to use elaborated type specifiers
-and/or :: qualification to defeat name hiding.
+Determine whether "defeatable hidden-name information" should be put out for
+sym_ptr and/or other entities of the same name.  The generation of such
+information is primarily for the C++ generating back end, so that it will
+know to use elaborated type specifiers and/or :: qualification to defeat name
+hiding.
 */
 {
   a_symbol_locator  locator;
