@@ -694,13 +694,25 @@ a pointer to the character position following what was demangled.
        or operator function name, e.g., __pl__1AFf. */
     special_name = TRUE;
     origname = p+2;
-    /* Start the search for "__" below after the initial "__". */
-    p += 3;
+    if (start_of_id_is("op", origname)) {
+      /* Conversion function.  Name looks like __opi__... where the part
+         after "op" encodes the type (e.g., "opi" is "operator int"). */
+      /* Skip to after the type.  This has to be done this way because
+         "__" might appear somewhere in the type. */
+      suppress_id_output++;
+      p = demangle_type(origname+2);
+      suppress_id_output--;
+    } else {
+      /* Other special name. */
+      /* Start the search for "__" below after the initial "__". */
+      p += 3;
+    }  /* if */
   } else {
     /* Normal case (not an operator function). */
     origname = p;
   }  /* if */
-  /* Find the first "__" in the identifier. */
+  /* Find the first "__" in the identifier (the second in the case of
+     special names). */
   uscore = p;
   for (;;) {
     uscore = strchr(uscore, '_');
