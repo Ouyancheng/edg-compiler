@@ -7258,7 +7258,7 @@ of local variables (and types, etc.) of functions and in blocks.
          brace.  The latter has already been checked for, but the former
          has not. */
       if (final_token == tok_semicolon) {
-        required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+        (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
       }  /* if */
       /* Swallow the current token if it is the same as final_token, then
          return. */

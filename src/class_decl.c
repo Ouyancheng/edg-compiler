@@ -9410,7 +9410,7 @@ nested classes when their definition appears outside of the class template.
                brace.  The latter has already been checked for, but the former
                has not. */
             if (final_token == tok_semicolon) {
-              required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+              (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
             }  /* if */
             /* Advance past the terminating token. */
             if (curr_token == final_token) (void)get_token();
