@@ -1,5 +1,15 @@
 Version 2.34
 
+12/11/96 Checking exception specifications on reference binding
+
+Exceptions specifications are now checked when binding a reference to
+a function:
+
+  void f();
+  void ff() throw(int);
+  void (&pf3)() throw(int) = f;         // Error
+  void (&pf6)() throw() = ff;           // Error
+
 12/11/96 Internal error caused by badly formed aggregate initializer
 
 A bug has been fixed in building the initializer for an aggregate, the type

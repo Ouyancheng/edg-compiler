@@ -8088,6 +8088,15 @@ to be acceptable, and *conversion describes it.
              is_a_function_designator(source_operand)) {
     /* The initial value is a function designator of the right type;
        the initialization can be done directly. */
+    if (exceptions_enabled) {
+      /* Check compatibility of exception specifications. */
+      if (exception_spec_is_less_restrictive(source_operand->type,
+                                             base_dest_type)) {
+        pos_diagnostic(es_discretionary_error,
+                       ec_incompatible_exception_specs,
+                       &source_operand->position);
+      }  /* if */
+    }  /* if */
     conv_function_designator_to_ptr_to_function(source_operand);
   } else if ((direct_binding_possible || dropping_qualifiers) &&
              is_class_struct_union_type(base_dest_type)) {
