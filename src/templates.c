@@ -4758,8 +4758,14 @@ operations that must be done to determine the type of entity being processed.
   a_token_set_array  stop_tokens;
 
   db_enter(3, "cache_template_declaration");
-  /* Cache the tokens of the template parameter list(s). */
-  cache_template_param_list(param_list_token_cache);
+  if (param_list_token_cache != NULL) {
+    /* Cache the tokens of the template parameter list(s).  This step is
+       skipped if the parameter list cache pointer is NULL.  This is the
+       case if the declaration is being rescanned because of some kind
+       of a syntax error that caused the original declaration that was
+       scanned to be incorrect. */
+    cache_template_param_list(param_list_token_cache);
+  }  /* if */
   clear_token_cache(decl_token_cache, /*reusable=*/TRUE);
   /* Cache the current token and advance past it. */
   cache_curr_token(decl_token_cache);
@@ -4788,11 +4794,13 @@ operations that must be done to determine the type of entity being processed.
      allows the reusable token cache to be discarded if it turns out that
      this is not a function declaration. */
   rescan_copy_of_cache(decl_token_cache);
-  /* Also rescan the tokens from the template parameter list(s).  This
-     is done after the rescan of the template declaration because the
-     rescanning is a stack-based processed (i.e., the last tokens added
-     the the rescan list are fetched first. */
-  rescan_copy_of_cache(param_list_token_cache);
+  if (param_list_token_cache != NULL) {
+    /* Also rescan the tokens from the template parameter list(s).  This
+       is done after the rescan of the template declaration because the
+       rescanning is a stack-based processed (i.e., the last tokens added
+       the the rescan list are fetched first. */
+    rescan_copy_of_cache(param_list_token_cache);
+  }  /* if */
   db_exit();
 }  /* cache_template_declaration */
 
@@ -6156,6 +6164,15 @@ as the current token; otherwise, it is consumed.
       template_decl_info->parameters = template_param_list;
     }  /* if */
   }  /* for */
+  if (curr_token_sequence_number !=
+                         decl_token_cache.first_token->token_sequence_number) {
+    /* We aren't where we expected to be after scanning the template parameter
+       lists.  This should be the result of an error.  Recache the template
+       declaration at this point. */
+    check_assertion(total_errors != 0);
+    discard_token_cache(&decl_token_cache);
+    cache_template_declaration(&decl_token_cache, (a_token_cache_ptr)NULL);
+  }  /* if */
   /* See if it is a class template declaration.  If it is, scan the tokens
      of the definition (if any) and cache them away of later reference. */
   if (is_class_template_decl(&decl_token_cache)) {
