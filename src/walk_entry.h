@@ -1022,12 +1022,12 @@ do_definition_needed_if_class:
                 case eok_base_class_cast:
 cast_source_type_must_be_pointer_to_complete_class:
                   /* First operand is a pointer to class. */
-                  optype = type_pointed_to(op1_type);
+                  optype = f_skip_typerefs(type_pointed_to(op1_type));
                   goto do_set_proper_definition_needed_flag;
                 case eok_derived_class_cast:
                   /* Destination class (pointed to by result type) must be
                      complete. */
-                  optype = type_pointed_to(ptr->type);
+                  optype = f_skip_typerefs(type_pointed_to(ptr->type));
                   goto do_set_proper_definition_needed_flag;
                 case eok_pm_base_class_cast:
                   /* First operand is a pointer to member. */
