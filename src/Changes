@@ -1,5 +1,21 @@
 Version 2.42
 
+3/15/99  Spurious error on reference to base class of nested class
+
+The introduction of class-name injection in version 2.41 also introduced
+a spurious accessibility error when the base class of a nested class was
+itself a private nested class.  Now fixed.
+
+  class C {
+    class X { };
+    class A : X {
+      X *p;            // Spurious error elminated
+    };
+    class B {
+      X *p;            // Still an error (in strict mode)
+    };
+  };
+
 3/13/99  Constraint on local class friend function declaration
 
 The front end now enforces the requirement (11.4 [class.friend] paragraph

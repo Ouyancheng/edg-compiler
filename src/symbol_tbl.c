@@ -5905,6 +5905,10 @@ It cannot be used for checking access (see have_access_to_symbol).
        by the template symbol supplement. */
     access = sym_ptr->variant.template_info->
                               variant.function.routine->source_corresp.access;
+  } else if (sym_ptr->kind == (a_symbol_kind)sk_type &&
+             sym_ptr->variant.type.is_injected_class_name) {
+    /* Symbols for injected class names are always public. */
+    access = (an_access_specifier)as_public;
   } else if (sym_ptr->kind == (a_symbol_kind)sk_undefined) {
     /* Error case; assume public. */
     access = (an_access_specifier)as_public;
@@ -6848,7 +6852,7 @@ accepted even though the injected class symbol is ambiguous.
       ssep->last_deferred_access_check = aedp;
     }  /* if */
   }  /* if */
-}  /* f_check_ambiguity_verify_access */
+}  /* f_check_ambiguity_and_verify_access */
 
 
 void perform_deferred_access_checks(void)
