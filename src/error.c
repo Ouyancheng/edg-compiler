@@ -1089,7 +1089,7 @@ symbol_name:
         } else if (sym_to_display == corresp_template_sym &&
                    fund_sym->overload_set_member) {
           /* If a function is member of an instance of a template class, it
-             may be that the the template symbol is not part of an overload
+             may be that the template symbol is not part of an overload
              set and the member of the instantiated class is (e.g.,
              constructors and assignment operators, since the implicitly
              declared forms may bring an overload set into existence).  Treat
