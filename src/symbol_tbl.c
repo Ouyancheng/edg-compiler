@@ -4266,7 +4266,6 @@ to the symbol entry before the symbol is added to the symbol table.
   /* Bind the type in the symbol.  This has to be done before adding the
      symbol to the symbol table. */
   sym->variant.type.ptr = type_ptr;
-  set_source_corresp(&(type_ptr->source_corresp), sym);
   /* Add the symbol to the proper scope's symbol list. */
   add_symbol_to_scope_list(sym, scope_depth, &suppress_error);
   /* Add the symbol to the symbol table.  This must be done after the symbol

@@ -5911,6 +5911,7 @@ return a pointer to it in *symbol_ptr.
   /* Create a new symbol for this type and bind it to the new type. */
   sym = enter_typedef_symbol(tp, locator, decl_scope_level,
                              suppress_redecl_error);
+  set_source_corresp(&(tp->source_corresp), sym);
   nsp = NULL;
   if (!C_mode()) {
     if (class_type != NULL) {
