@@ -104,9 +104,8 @@ extern void lower_throw(an_expr_node_ptr expr);
 extern void record_exception_started(an_insert_location *insert_location);
 #endif /* ABI_COMPATIBILITY_VERSION >= 233 */
 
-extern void set_curr_cleanup_state(a_dynamic_init_ptr cleanup_state,
-                                   an_insert_location *insert_location);
-
+extern void insert_code_to_indicate_cleanup_state(
+                                          an_insert_location *insert_location);
 
 /*
 Data structure used to save state information for lowering of exception

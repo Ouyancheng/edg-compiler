@@ -2339,13 +2339,12 @@ and not for constructor_init entries in destructors.
   an_insert_location_ptr          effective_insert_loc;
 
   check_assertion(dedp != NULL);
+  /* Set the cleanup state to what it should be after the destruction,
+     because as soon as we start the destruction it's the destructor's
+     job to deal with partial destruction. */
+  curr_cleanup_state = dedp->cleanup_state_to_set_when_starting_destruction;
   if (exceptions_enabled) {
-    /* Set the cleanup state to what it should be after the destruction,
-       because as soon as we start the destruction it's the destructor's
-       job to deal with partial destruction. */
-    set_curr_cleanup_state(
-                          dedp->cleanup_state_to_set_when_starting_destruction,
-                          insert_location);
+    insert_code_to_indicate_cleanup_state(insert_location);
   }  /* if */
   effective_insert_loc = insert_location;
   /* If the entity is conditionally-created temporary, generate an
@@ -2895,21 +2894,23 @@ Any code needed is inserted at *insert_location.
   /* Put a copy of the initialization position description into the
      destruction entity description for use at destruction time. */
   copy_init_pos_descr(ipdp, &dedp->init_pos_descr);
-  if (exceptions_enabled) {
-    dedp->cleanup_state_to_set_when_starting_destruction = curr_cleanup_state;
+  dedp->cleanup_state_to_set_when_starting_destruction = curr_cleanup_state;
 #if GENERATE_EH_TABLES
+  if (exceptions_enabled) {
     /* Make a region table entry for the entity (and for its conditional
        flag, if it has one). */
     make_dyn_init_region_table_entry(dip,
                                      context->latest_initialization,
                                      insert_location);
+  }  /* if */
 #endif /* GENERATE_EH_TABLES */
-    /* Insert code to set the current cleanup state. */
-    set_curr_cleanup_state(dip, insert_location);
+  /* Set the current cleanup state. */
+  curr_cleanup_state = dip;
+  if (exceptions_enabled) {
+    insert_code_to_indicate_cleanup_state(insert_location);
   }  /* if */
   /* Record this dynamic initialization as the last encountered in the
-     context (and therefore the place to start to generate cleanup code if
-     we exit the lifetime after this point). */
+     context. */
   context->latest_initialization = dip;
 }  /* add_dyn_init_cleanup */
 
@@ -3317,9 +3318,9 @@ enabled.
   a_dynamic_init_ptr dip = local_static_lifetime->destructions;
 
   check_assertion(dip != NULL && dip->next == NULL);
-  set_curr_cleanup_state(dip->destructible_entity_descr->
-                                cleanup_state_to_set_when_starting_destruction,
-                         insert_location);
+  curr_cleanup_state = dip->destructible_entity_descr->
+                                cleanup_state_to_set_when_starting_destruction;
+  insert_code_to_indicate_cleanup_state(insert_location);
 }  /* remove_local_static_guard_var_cleanup */
 
 
@@ -4034,10 +4035,11 @@ and *insert_location is updated.
     copy_init_pos_descr(ipdp, &dedp->init_pos_descr);
     /* Set the cleanup state to what it should be after the destruction,
        because as soon as we start the destruction it's the destructor's
-       job to deal with partial destruction. */
-    set_curr_cleanup_state(
-                          dedp->cleanup_state_to_set_when_starting_destruction,
-                          insert_location);
+       job to deal with partial destruction.  Note that this is not done
+       when exceptions are not enabled, because dedp is NULL in that case,
+       and curr_cleanup_state need not be maintained. */
+    curr_cleanup_state = dedp->cleanup_state_to_set_when_starting_destruction;
+    insert_code_to_indicate_cleanup_state(insert_location);
   }  /* if */
   add_destructor_call(dip->destructor, ipdp, have_complete_object,
                       insert_location);
@@ -6155,9 +6157,10 @@ destructor scope, and also lower the user code.
                                           &prologue_insert_location);
 #endif /* GENERATE_EH_TABLES */
       /* Set the cleanup state at the end of the prologue (i.e., just before
-         going into user code) to the first cleanup for the wrapper. */
-      set_curr_cleanup_state(first_prologue_destruction,
-                             &prologue_insert_location);
+         going into user code) to the first cleanup for the wrapper.
+         Note that this is not set when exceptions are not enabled. */
+      curr_cleanup_state = first_prologue_destruction;
+      insert_code_to_indicate_cleanup_state(&prologue_insert_location);
     } /* if */
   }  /* if */
   /* Now lower the user code. */

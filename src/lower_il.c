@@ -512,6 +512,7 @@ scope, or the lifetime from the parent context, will be used.
   if (new_lifetime) curr_object_lifetime = lifetime;
   /* Save curr_cleanup_state for later restoration. */
   context->saved_curr_cleanup_state = curr_cleanup_state;
+  /* curr_cleanup_state is not cleared on purpose.  It spans lifetimes. */
   /* The latest_initialization list starts at NULL for a new object lifetime,
      or is inherited from the parent if there is no new object lifetime. */
   context->latest_initialization = NULL;
@@ -6958,14 +6959,15 @@ to the statement; otherwise, it is NULL.
       set_after_expr_insert_location(expr_to_lower, &insert_location);
       gen_cleanup_actions(lifetime, &insert_location);
     }  /* if */
-    if (exceptions_enabled &&
-        curr_cleanup_state != curr_context->saved_curr_cleanup_state) {
+    if (curr_cleanup_state != curr_context->saved_curr_cleanup_state) {
       /* In some cases (e.g., the dynamic init for freeing of storage
          allocated by a new if an exception occurs), the cleanup state
          has not been restored completely to what it was, so do that now. */
-      set_after_expr_insert_location(expr_to_lower, &insert_location);
-      set_curr_cleanup_state(curr_context->saved_curr_cleanup_state,
-                             &insert_location);
+      curr_cleanup_state = curr_context->saved_curr_cleanup_state;
+      if (exceptions_enabled) {
+        set_after_expr_insert_location(expr_to_lower, &insert_location);
+        insert_code_to_indicate_cleanup_state(&insert_location);
+      }  /* if */
     }  /* if */
     /* The insertions may have changed the type of the node, so copy the
        type up to the enk_object_lifetime node. */
@@ -7512,7 +7514,8 @@ are enabled.
     dip = need_regions_for_temps ? first_temp : first_nontemp;
     curr_context->latest_initialization = dip;
     curr_cleanup_state = dip;
-    /* set_curr_cleanup_state is not called on purpose. */
+    /* set_curr_cleanup_state is not called on purpose, because no code
+       need be generated to record the cleanup state. */
   }  /* if */
 }  /* adjust_region_table_to_remove_long_lifetime_temps */
 
@@ -7551,7 +7554,7 @@ Called only in long lifetime temporaries mode.
   if (need_to_destroy_temps) {
     /* Go through the list of destructions, find the ones for temporaries,
        and generate destruction code. */
-    for (dip = curr_context->latest_initialization;
+    for (dip = curr_cleanup_state;
          dip != NULL;
          dip = dip->next_in_destruction_list) {
       if (dip->has_temporary_lifetime &&
@@ -7575,7 +7578,7 @@ Called only in long lifetime temporaries mode.
        is a label (because in that case it will be set in a moment
        anyway). */
     if ((*statement)->kind != (a_statement_kind)stmk_label) {
-      set_curr_cleanup_state(curr_cleanup_state, &insert_location);
+      insert_code_to_indicate_cleanup_state(&insert_location);
     }  /* if */
   }  /* if */
 }  /* destroy_long_lifetime_temporaries_before_statement */
@@ -7704,6 +7707,9 @@ it; otherwise, switch_lifetime is NULL.
     /* Get the statement list before any insertions done for the start
        of an object lifetime. */
     clause_statements = clause->statements;
+    /* If the previous clause, or the body statement, ended with a return
+       or goto, the current cleanup state may be wrong, so restore it. */
+    curr_cleanup_state = curr_context->latest_initialization;
     /* See if this clause is associated with the next object lifetime
        in sequence. */
     if (lifetime != NULL &&
@@ -7854,11 +7860,18 @@ code.
 */
 {
   a_boolean              any_cleanup_needed = FALSE, skip_temporaries = FALSE;
-  a_dynamic_init_ptr     dip = curr_context->latest_initialization;
+  a_dynamic_init_ptr     dip = curr_cleanup_state;
   an_object_lifetime_ptr lifetime = curr_object_lifetime;
 
   /* Do nothing at all if there are no lifetimes involved. */
   if (outer_lifetime != NULL) {
+    /* If the current cleanup state is not in the current lifetime, the
+       cleanup list for the current lifetime should be considered empty.
+       This happens when cleanup code has been emitted for a lifetime inside
+       the current one, and the current lifetime has no associated
+       destructions (there may be cleanup associated with the lifetime
+       itself). */
+    if (dip != NULL && dip->lifetime != lifetime) dip = NULL;
     /* Loop outward through the indicated scopes.  At each level, there may
        be destructions from the current position back to the beginning
        of the lifetime, and there may be cleanup actions associated with the
@@ -7892,6 +7905,7 @@ code.
           gen_one_destruction(dip, insert_location);
         }  /* if */
       }  /* for */
+      /* Finished the list of destructions in this context. */
       { a_scope_ptr            scope;
         /* In some cases, the context itself requires cleanup. */
         if (lifetime->kind == (an_object_lifetime_kind)olk_try_block) {
@@ -8046,6 +8060,7 @@ is begun.  The value of curr_cleanup_state is saved in
 
   *context_pushed = FALSE;
   *new_lifetime = FALSE;
+  *saved_curr_cleanup_state = curr_cleanup_state;
   if (scope != NULL || lifetime != NULL) {
     push_context(context, scope, lifetime);
     *context_pushed = TRUE;
@@ -8060,7 +8075,6 @@ is begun.  The value of curr_cleanup_state is saved in
     lifetime = scope->lifetime;
     *new_lifetime = (lifetime != NULL);
   }  /* if */
-  *saved_curr_cleanup_state = curr_cleanup_state;
   if (*new_lifetime) {
     /* A new lifetime was pushed. */
     /* Do initial processing for the lifetime (e.g., generate conditional
@@ -8076,8 +8090,7 @@ is begun.  The value of curr_cleanup_state is saved in
 /*ARGSUSED*/  /* <-- insert_location is not used in that case. */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 static void reset_cleanup_state_at_unreachable_end_of_block(
-                                   a_dynamic_init_ptr saved_curr_cleanup_state,
-                                   an_insert_location *insert_location)
+                                           an_insert_location *insert_location)
 /*
 We are currently at the end of a block whose end is unreachable.
 Usually, the cleanup state at the end of a block matches the cleanup
@@ -8091,22 +8104,17 @@ However, transfer statements (return, goto, throw) can cause the
 cleanup state to be changed to match the destination of the transfer,
 and because the code after them is unreachable, no destructions are
 emitted and the cleanup state remains in this altered state.
-If the curr_cleanup_state does not match saved_curr_cleanup_state,
-restore the saved value now.  If some code must be inserted to do that,
-insert it at *insert_location.
+The caller has determined that the current cleanup state was different
+than at the beginning of the block.  If appropriate, insert code at
+*insert_location to indicate the cleanup state.
 */
 {
-#if DO_FULL_PORTABLE_EH_LOWERING
-  /* For the fully-lowered EH scheme, just update the state variable. */
-  curr_cleanup_state = saved_curr_cleanup_state;
-#else /* !DO_FULL_PORTABLE_EH_LOWERING */
+#if !DO_FULL_PORTABLE_EH_LOWERING
   /* For the partially-lowered EH schemes, generate the cleanup state
      operation since it might be used to build a table instead of being
      considered executable.  */
   if (exceptions_enabled) {
-    set_curr_cleanup_state(saved_curr_cleanup_state, insert_location);
-  } else {
-    curr_cleanup_state = saved_curr_cleanup_state;
+    insert_code_to_indicate_cleanup_state(&insert_location);
   }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 }  /* reset_cleanup_state_at_unreachable_end_of_block */
@@ -8168,16 +8176,19 @@ had at the start of the block.
       gen_cleanup_actions(lifetime, &insert_location);
     }  /* if */
   }  /* if */
-  if (saved_curr_cleanup_state != curr_cleanup_state &&
-      !block->end_of_block_reachable &&
-      scope != innermost_function_scope) {
+  if (saved_curr_cleanup_state != curr_cleanup_state) {
     /* Adjust the cleanup state at the end of a block that ends with a
-       transfer of control.  There's no point in doing this for the top
-       block of a function.  The end_of_block_reachable test is usually
-       useless, but is needed (at least) for for-init declarations that
-       declare more than one variable. */
-    reset_cleanup_state_at_unreachable_end_of_block(saved_curr_cleanup_state,
-                                                    &insert_location);
+       transfer of control.  The pop_context call below restores
+       curr_cleanup_state too, but only for blocks with an associated
+       object lifetime. */
+    curr_cleanup_state = saved_curr_cleanup_state;
+    /* If necessary, emit code to indicate the cleanup state at the end
+       of a block whose end is unreachable.  There's no point in doing
+       this for the top block of a function. */
+    if (scope != innermost_function_scope &&
+        !block->end_of_block_reachable) {
+      reset_cleanup_state_at_unreachable_end_of_block(&insert_location);
+    }  /* if */
   }  /* if */
   if (context_pushed) {
     /* Pop the context pushed by push_block_statement_context. */
@@ -8549,9 +8560,10 @@ handled).
         /* If the condition variable requires destruction, put destruction
            code in preceding the goto. */
         gen_goto_cleanup_actions(goto_stmt);
-        reset_cleanup_state_at_unreachable_end_of_block(
-                                                      saved_curr_cleanup_state,
-                                                      &insert_location);
+        if (curr_cleanup_state != saved_curr_cleanup_state) {
+          curr_cleanup_state = saved_curr_cleanup_state;
+          reset_cleanup_state_at_unreachable_end_of_block(&insert_location);
+        }  /* if */
       }
       /* Lower the dependent statement of the loop. */
       lower_statement(dep_statement);
@@ -8684,12 +8696,13 @@ Do IL lowering of the indicated statement and everything under it.
         gen_goto_cleanup_actions(statement);
         break;
       case stmk_label:
+        curr_cleanup_state = curr_context->latest_initialization;
         if (exceptions_enabled &&
             innermost_function_scope->lifetime != NULL) {
           /* Exceptions are enabled and the current function has
-             destructible objects.  Set the cleanup state. */
+             destructible objects.  Insert code to set the cleanup state. */
           set_insert_location(statement, &insert_location);
-          set_curr_cleanup_state(curr_cleanup_state, &insert_location);
+          insert_code_to_indicate_cleanup_state(&insert_location);
         }  /* if */
         break;
       case stmk_return:

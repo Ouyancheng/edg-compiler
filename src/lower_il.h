@@ -183,8 +183,7 @@ typedef struct a_destructible_entity_descr {
 			   enabled, this is the cleanup state to establish
 			   as current when beginning the destruction.  It's
 			   the next destruction to process after this
-			   entity is destroyed.  Maintained/used only when
-			   exceptions are enabled. */
+			   entity is destroyed. */
 #if DO_UNORDERED_EH_PROCESSING
 			/* In the presence of unordered initializations in the
 			   IL, this indicates the first entry in a set of
@@ -260,7 +259,9 @@ entry for the first destruction to be done if one wishes to exit from the
 current location in the program.  Further cleanups are attached to the
 first entry.  Differs from the latest_initialization field in a_context
 in that this variable gets updated as destructions are generated when
-cleaning up on exit from a lifetime.
+cleaning up on exit from a lifetime.  Also differs from latest_initialization
+in that the current value of curr_cleanup_state may point to a destruction
+in a surrounding lifetime.
 */
 EXTERN a_dynamic_init_ptr
 		curr_cleanup_state;
