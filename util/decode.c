@@ -20,90 +20,99 @@ C-generating back end, that this program does not try to decode.
 #include "decode.h"
 
 
-static unsigned long
+/*
+Block used to hold state variables.  A block is used so that these routines
+will be reentrant.
+*/
+typedef struct a_decode_control_block *a_decode_control_block_ptr;
+typedef struct a_decode_control_block {
+  unsigned long
 		input_id_len;
 			/* Length of the input identifier, not counting the
 			   final null. */
-static char	*output_id;
+  char		*output_id;
 			/* Pointer to buffer for demangled version of
 			   the current identifier. */
-static sizeof_t	output_id_len;
+  sizeof_t	output_id_len;
 			/* Length of output_id, not counting the final
 			   null. */
-static sizeof_t	output_id_size;
+  sizeof_t	output_id_size;
 			/* Allocated size of output_id. */
-static a_boolean
-		err_in_id;
+  a_boolean	err_in_id;
 			/* TRUE if any error was encountered in the current
 			   identifier. */
-static a_boolean
-		output_overflow_err;
+  a_boolean	output_overflow_err;
 			/* TRUE if the demangled output overflowed the
 			   output buffer. */
-static unsigned long
-		suppress_id_output;
+  unsigned long	suppress_id_output;
 			/* If > 0, demangled id output is suppressed.  This
 			   might be because of an error or just as a way
 			   of avoiding output during some processing. */
+} a_decode_control_block ;
 
 
 /*
 Declarations needed because of forward references:
 */
-static char *demangle_name(char          *ptr,
-                           unsigned long nchars,
-                           char          *mclass);
-static char *demangle_type(char *ptr);
-static char *demangle_type_name(char      *ptr,
-                                a_boolean base_name_only);
+static char *demangle_name(char                       *ptr,
+                           unsigned long              nchars,
+                           char                       *mclass,
+                           a_decode_control_block_ptr dctl);
+static char *demangle_type(char                       *ptr,
+                           a_decode_control_block_ptr dctl);
+static char *demangle_type_name(char                       *ptr,
+                                a_boolean                  base_name_only,
+                                a_decode_control_block_ptr dctl);
 
 
-static void write_id_ch(char ch)
+static void write_id_ch(char                       ch,
+                        a_decode_control_block_ptr dctl)
 /*
 Add the indicated character to the demangled version of the current identifier.
 */
 {
-  if (!suppress_id_output) {
-    if (!output_overflow_err) {
+  if (!dctl->suppress_id_output) {
+    if (!dctl->output_overflow_err) {
       /* Test for buffer overflow, leaving room for a terminating null. */
-      if (output_id_len >= output_id_size-1) {
+      if (dctl->output_id_len >= dctl->output_id_size-1) {
         /* There's no room for the character in the buffer. */
-        output_overflow_err = TRUE;
+        dctl->output_overflow_err = TRUE;
         /* Make sure the (truncated) output is null-terminated. */
-        output_id[output_id_size-1] = '\0';
+        dctl->output_id[dctl->output_id_size-1] = '\0';
       } else {
         /* No overflow; put the character in the buffer. */
-        output_id[output_id_len] = ch;
+        dctl->output_id[dctl->output_id_len] = ch;
       }  /* if */
     }  /* if */
     /* Keep track of the number of characters (even if output has overflowed
        the buffer). */
-    output_id_len++;
+    dctl->output_id_len++;
   }  /* if */
 }  /* write_id_ch */
 
 
-static void write_id_str(char *str)
+static void write_id_str(char                      *str,
+                        a_decode_control_block_ptr dctl)
 /*
 Add the indicated string to the demangled version of the current identifier.
 */
 {
   char *p = str;
 
-  if (!suppress_id_output) {
-    for (; *p != '\0'; p++) write_id_ch(*p);
+  if (!dctl->suppress_id_output) {
+    for (; *p != '\0'; p++) write_id_ch(*p, dctl);
   }  /* if */
 }  /* write_id_str */
 
 
-static void bad_mangled_name(void)
+static void bad_mangled_name(a_decode_control_block_ptr dctl)
 /*
 A bad name mangling has been encountered.  Record an error.
 */
 {
-  if (!err_in_id) {
-    err_in_id = TRUE;
-    suppress_id_output++;
+  if (!dctl->err_in_id) {
+    dctl->err_in_id = TRUE;
+    dctl->suppress_id_output++;
   }  /* if */
 }  /* bad_mangled_name */
 
@@ -127,7 +136,8 @@ Return TRUE if the identifier (at id) begins with the string str.
 }  /* start_of_id_is */
 
 
-static char *advance_past_underscore(char *p)
+static char *advance_past_underscore(char                       *p,
+                                     a_decode_control_block_ptr dctl)
 /*
 An underscore is expected at *p.  If it's there, advance past it.  If
 not, call bad_mangled_name.  In either case, return the updated value of p.
@@ -136,14 +146,15 @@ not, call bad_mangled_name.  In either case, return the updated value of p.
   if (*p == '_') {
     p++;
   } else {
-    bad_mangled_name();
+    bad_mangled_name(dctl);
   }  /* if */
   return p;
 }  /* advance_past_underscore */
 
 
-static char *get_number(char          *p,
-                        unsigned long *num)
+static char *get_number(char                       *p,
+                        unsigned long              *num,
+                        a_decode_control_block_ptr dctl)
 /*
 Accumulate a number starting at position p and return its value in *num.
 Return a pointer to the character position following the number.
@@ -152,15 +163,15 @@ Return a pointer to the character position following the number.
   unsigned long n = 0;
 
   if (!isdigit((unsigned char)*p)) {
-    bad_mangled_name();
+    bad_mangled_name(dctl);
     goto end_of_routine;
   }  /* if */
   do {
     n = n*10 + (*p - '0');
-    if (n > input_id_len) {
+    if (n > dctl->input_id_len) {
       /* Bad number. */
-      bad_mangled_name();
-      n = input_id_len;
+      bad_mangled_name(dctl);
+      n = dctl->input_id_len;
       goto end_of_routine;
     }  /* if */
     p++;
@@ -171,8 +182,9 @@ end_of_routine:
 }  /* get_number */
 
 
-static char *get_single_digit_number(char          *p,
-                                     unsigned long *num)
+static char *get_single_digit_number(char                       *p,
+                                     unsigned long              *num,
+                                     a_decode_control_block_ptr dctl)
 /*
 Accumulate a number starting at position p and return its value in *num.
 The number is a single digit.  Return a pointer to the character position
@@ -181,7 +193,7 @@ following the number.
 {
   *num = 0;
   if (!isdigit((unsigned char)*p)) {
-    bad_mangled_name();
+    bad_mangled_name(dctl);
     goto end_of_routine;
   }  /* if */
   *num = (*p - '0');
@@ -191,8 +203,10 @@ end_of_routine:
 }  /* get_single_digit_number */
 
 
-static char *get_number_with_optional_underscore(char          *p,
-                                                 unsigned long *num)
+static char *get_number_with_optional_underscore(
+                                               char                       *p,
+                                               unsigned long              *num,
+                                               a_decode_control_block_ptr dctl)
 /*
 Accumulate a number starting at position p and return its value in *num.
 If the number has more than one digit, it is followed by an underscore.
@@ -203,11 +217,11 @@ Return a pointer to the character position following the number.
   if (isdigit((unsigned char)p[0]) && isdigit((unsigned char)p[1]) &&
       p[2] == '_') {
     /* Multi-digit number followed by underscore. */
-    p = get_number(p, num);
-    p = advance_past_underscore(p);
+    p = get_number(p, num, dctl);
+    p = advance_past_underscore(p, dctl);
   } else {
     /* Single-digit number not followed by underscore. */
-    p = get_single_digit_number(p, num);
+    p = get_single_digit_number(p, num, dctl);
   }  /* if */
   return p;
 }  /* get_number_with_optional_underscore */
@@ -229,7 +243,9 @@ qualification.
 }  /* is_immediate_type_qualifier */
 
 
-static char *demangle_nontype_template_argument(char *ptr)
+static char *demangle_nontype_template_argument(
+                                               char                       *ptr,
+                                               a_decode_control_block_ptr dctl)
 /*
 Demangle the nontype template class argument beginning at ptr and output the
 demangled form.  Return a pointer to the character position following what was
@@ -254,9 +270,9 @@ demangled.
   /* The type follows the "X". */
   type = p;
   /* Advance past the type. */
-  suppress_id_output++;
-  p = demangle_type(p);
-  suppress_id_output--;
+  dctl->suppress_id_output++;
+  p = demangle_type(p, dctl);
+  dctl->suppress_id_output--;
   /* The next thing has one of the following forms:
        3abc        Address of "abc".
        L211        Literal constant; length ("2") followed by the characters of
@@ -267,10 +283,10 @@ demangled.
   */
   if (isdigit((unsigned char)*p)) {
     /* A name preceded by its length, e.g., "3abc".  Put out "&name". */
-    p = get_number(p, &nchars);
-    write_id_ch('&');
+    p = get_number(p, &nchars, dctl);
+    write_id_ch('&', dctl);
     /* Process the name. */
-    p = demangle_name(p, nchars, (char *)NULL);
+    p = demangle_name(p, nchars, (char *)NULL, dctl);
   } else if (*p == 'L') {
     if (p[1] != 'M') {
       /* Normal literal constant.  Form is something like
@@ -288,14 +304,14 @@ demangled.
       a_boolean is_bool = (type+2 == p && *(type+1) == 'b'), is_nonzero;
       /* If the type is bool, don't put out the cast. */
       if (!is_bool) {
-        write_id_ch('(');
+        write_id_ch('(', dctl);
         /* Start at type+1 to avoid the "C" for const. */
-        (void)demangle_type(type+1);
-        write_id_ch(')');
+        (void)demangle_type(type+1, dctl);
+        write_id_ch(')', dctl);
       }  /* if */
       p++;  /* Advance past the "L". */
       /* Get the length of the constant. */
-      p = get_number_with_optional_underscore(p, &nchars);
+      p = get_number_with_optional_underscore(p, &nchars, dctl);
       /* Process the characters of the literal constant. */
       is_nonzero = FALSE;
       for (; nchars > 0; nchars--, p++) {
@@ -305,7 +321,7 @@ demangled.
           case '\0':
           case '_':
             /* Ran off end of string. */
-            bad_mangled_name();
+            bad_mangled_name(dctl);
             goto end_of_routine;
           case 'p':
             ch = '+';
@@ -323,12 +339,12 @@ demangled.
           if (ch != '0') is_nonzero = TRUE;
         } else {
           /* Normal (non-bool) case.  Output the character of the constant. */
-          write_id_ch(ch);
+          write_id_ch(ch, dctl);
         }  /* if */
       }  /* for */
       if (is_bool) {
         /* For bool, output true or false. */
-        write_id_str(is_nonzero ? "true" : "false");
+        write_id_str(is_nonzero ? "true" : "false", dctl);
       }  /* if */
     } else {
       /* Pointer-to-member-function.  The form of the constant is
@@ -345,10 +361,10 @@ demangled.
       p += 2;
       /* Advance over the first component, ignoring it. */
       while (isdigit((unsigned char)*p)) p++;
-      p = advance_past_underscore(p);
+      p = advance_past_underscore(p, dctl);
       /* The index component should be next. */
       if (*p != 'L') {
-        bad_mangled_name();
+        bad_mangled_name(dctl);
         goto end_of_routine;
       }  /* if */
       p++;
@@ -357,12 +373,12 @@ demangled.
          this is an ambiguous situation: an underscore follows the index
          value, and there's no way to tell if it's the multi-digit
          indicator for the length or the separator between fields. */
-      p = get_single_digit_number(p, &nchars);
+      p = get_single_digit_number(p, &nchars, dctl);
       /* Remember the start of the index. */
       index = p;
       /* Skip the rest of the index. */
       while (isdigit((unsigned char)*p) || (*p == 'n')) p++;
-      p = advance_past_underscore(p);
+      p = advance_past_underscore(p, dctl);
       /* If the index number starts with 'n', this is a non-virtual
          function. */
       if (*index == 'n') {
@@ -370,54 +386,55 @@ demangled.
         /* The third component is a name preceded by its length, e.g.,
            "1f".  Put out "&A::f", where "A" is the class type retrieved
            from the type. */
-        write_id_ch('&');
+        write_id_ch('&', dctl);
         /* Start at type+2 to skip the "C" for const and the "M" for
            pointer-to-member. */
-        (void)demangle_type(type+2);
-        write_id_str("::");
+        (void)demangle_type(type+2, dctl);
+        write_id_str("::", dctl);
         /* Scan the length of the name. */
-        p = get_number(p, &nchars);
+        p = get_number(p, &nchars, dctl);
         /* Demangle the name. */
-        p = demangle_name(p, nchars, (char *)NULL);
+        p = demangle_name(p, nchars, (char *)NULL, dctl);
       } else {
         /* Not a non-virtual function.  The encoding for the third component
            should be simply "0". */
         if (*p != '0') {
-          bad_mangled_name();
+          bad_mangled_name(dctl);
           goto end_of_routine;
         }  /* if */
         p++;
         if (nchars == 1 && *index == '0') {
           /* Null pointer constant.  Output "(type)0", that is, a zero cast
              to the pointer-to-member type. */
-          write_id_ch('(');
-          (void)demangle_type(type);
-          write_id_str(")0");
+          write_id_ch('(', dctl);
+          (void)demangle_type(type, dctl);
+          write_id_str(")0", dctl);
         } else {
           /* Virtual function.  This case can't really be demangled properly,
              because the mangled name doesn't have enough information.
              Output "&A::virtual-function-n". */
-          write_id_ch('&');
+          write_id_ch('&', dctl);
           /* Start at type+2 to skip the "C" for const and the "M" for
              pointer-to-member. */
-          (void)demangle_type(type+2);
-          write_id_str("::");
-          write_id_str("virtual-function-");
+          (void)demangle_type(type+2, dctl);
+          write_id_str("::", dctl);
+          write_id_str("virtual-function-", dctl);
           /* Write the index number. */
-          for (; nchars > 0; nchars--, index++) write_id_ch(*index);
+          for (; nchars > 0; nchars--, index++) write_id_ch(*index, dctl);
         }  /* if */
       }  /* if */
     }  /* if */
   } else {
     /* The constant starts with something unexpected. */
-    bad_mangled_name();
+    bad_mangled_name(dctl);
   }  /* if */
 end_of_routine:
   return p;
 }  /* demangle_nontype_template_argument */
 
 
-static char *demangle_template_arguments(char *ptr)
+static char *demangle_template_arguments(char                       *ptr,
+                                         a_decode_control_block_ptr dctl)
 /*
 Demangle the template class arguments beginning at ptr and output the
 demangled form.  Return a pointer to the character position following what was
@@ -433,31 +450,31 @@ demangled.
                 ^------- Size of argument types, including the underscore.
                 ^------- ptr points here.
   */
-  write_id_ch('<');
+  write_id_ch('<', dctl);
   /* Scan the size. */
-  p = get_number(p, &nchars);
+  p = get_number(p, &nchars, dctl);
   arg_base = p;
-  p = advance_past_underscore(p);
+  p = advance_past_underscore(p, dctl);
   /* Loop to process the arguments. */
   for (;;) {
-    if (err_in_id) break;  /* Avoid infinite loops on errors. */
+    if (dctl->err_in_id) break;  /* Avoid infinite loops on errors. */
     if (*p == '\0' || *p == '_') {
       /* We ran off the end of the string. */
-      bad_mangled_name();
+      bad_mangled_name(dctl);
       break;
     }  /* if */
     if (*p == 'X') {
       /* Nontype argument. */
-      p = demangle_nontype_template_argument(p);
+      p = demangle_nontype_template_argument(p, dctl);
     } else {
       /* Type argument. */
-      p = demangle_type(p);
+      p = demangle_type(p, dctl);
     }  /* if */
     /* Stop after the last argument. */
     if ((p - arg_base) >= nchars) break;
-    write_id_str(", ");
+    write_id_str(", ", dctl);
   }  /* for */
-  write_id_ch('>');
+  write_id_ch('>', dctl);
   return p;
 }  /* demangle_template_arguments */
 
@@ -590,9 +607,10 @@ the demangled form, and *mangled_length to the length of the mangled form.
 }  /* demangle_operator_function_name */
 
 
-static char *demangle_name(char          *ptr,
-                           unsigned long nchars,
-                           char          *mclass)
+static char *demangle_name(char                       *ptr,
+                           unsigned long              nchars,
+                           char                       *mclass,
+                           a_decode_control_block_ptr dctl)
 /*
 Demangle the name at ptr and output the demangled form.  Return a pointer
 to the character position following what was demangled.  A "name" is
@@ -625,7 +643,7 @@ original forms).
       } else {
         /* Output the class name for the constructor name. */
         is_special_name = TRUE;
-        (void)demangle_type_name(mclass, /*base_name_only=*/TRUE);
+        (void)demangle_type_name(mclass, /*base_name_only=*/TRUE, dctl);
       }  /* if */
     } else if (start_of_id_is("dt", p)) {
       /* Destructor. */
@@ -636,21 +654,21 @@ original forms).
       } else {
         /* Output ~class-name for the destructor name. */
         is_special_name = TRUE;
-        write_id_ch('~');
-        (void)demangle_type_name(mclass, /*base_name_only=*/TRUE);
+        write_id_ch('~', dctl);
+        (void)demangle_type_name(mclass, /*base_name_only=*/TRUE, dctl);
       }  /* if */
     } else if (start_of_id_is("op", p)) {
       /* Conversion function.  Name looks like __opi__... where the part
          after "op" encodes the type (e.g., "opi" is "operator int"). */
       is_special_name = TRUE;
-      write_id_str("operator ");
-      end_ptr = demangle_type(p+2);
+      write_id_str("operator ", dctl);
+      end_ptr = demangle_type(p+2, dctl);
     } else if (is_operator_function_name(p, &demangled_name,
                                          &mangled_length)) {
       /* Operator function. */
       is_special_name = TRUE;
-      write_id_str("operator ");
-      write_id_str(demangled_name);
+      write_id_str("operator ", dctl);
+      write_id_str(demangled_name, dctl);
       end_ptr = p + mangled_length;
     } else {
       /* Something unrecognized. */
@@ -705,19 +723,19 @@ original forms).
        "__pt__".  The variable "pt" gives the position of the "__pt__".
        Information on the template arguments follows that. */
     /* Write the template name. */
-    for (p = ptr; p < pt; p++) write_id_ch(*p);
+    for (p = ptr; p < pt; p++) write_id_ch(*p, dctl);
     /* Write the arguments. */
-    end_ptr = demangle_template_arguments(pt+6);
+    end_ptr = demangle_template_arguments(pt+6, dctl);
   } else {
     /* Simple non-template name. */
     /* Process the characters of the type name. */
     for (p = ptr; p < end_ptr; p++) {
       if (*p == '\0') {
         /* Ran off the end of the identifier. */
-        bad_mangled_name();
+        bad_mangled_name(dctl);
         break;
       }  /* if */
-      write_id_ch(*p);
+      write_id_ch(*p, dctl);
     }  /* for */
     end_ptr = p;
   }  /* if */
@@ -727,14 +745,15 @@ original forms).
           (*end_ptr == '\0' || (end_ptr[0] == '_' && end_ptr[1] == '_'))) {
     /* Okay. */
   } else {
-    bad_mangled_name();
+    bad_mangled_name(dctl);
   }  /* if */
   return end_ptr;
 }  /* demangle_name */
 
 
-static char *demangle_type_name(char      *ptr,
-                                a_boolean base_name_only)
+static char *demangle_type_name(char                       *ptr,
+                                a_boolean                  base_name_only,
+                                a_decode_control_block_ptr dctl)
 /*
 Demangle the type name at ptr and output the demangled form.  Return a pointer
 to the character position following what was demangled.  The name can be
@@ -753,31 +772,32 @@ e.g., put out "A::x" as simply "x".
           ^----------------Number of levels of qualification.
        Note that the levels in the qualifier can be class names or namespace
        names. */
-    p = get_number(p+1, &nquals);
-    p = advance_past_underscore(p);
+    p = get_number(p+1, &nquals, dctl);
+    p = advance_past_underscore(p, dctl);
     /* Handle each level of qualification. */
     for (; nquals > 0; nquals--) {
-      if (err_in_id) break;  /* Avoid infinite loops on errors. */
+      if (dctl->err_in_id) break;  /* Avoid infinite loops on errors. */
       /* Do not put out the nested type qualifiers if base_name_only is
          TRUE. */
-      if (base_name_only && nquals != 1) suppress_id_output++;
-      p = demangle_type_name(p, /*base_name_only=*/FALSE);
-      if (nquals != 1) write_id_str("::");
-      if (base_name_only && nquals != 1) suppress_id_output--;
+      if (base_name_only && nquals != 1) dctl->suppress_id_output++;
+      p = demangle_type_name(p, /*base_name_only=*/FALSE, dctl);
+      if (nquals != 1) write_id_str("::", dctl);
+      if (base_name_only && nquals != 1) dctl->suppress_id_output--;
     }  /* for */
   } else {
     /* A mangled type name consists of digits indicating the length of the
        name followed by the name itself, e.g., "3abc". */
     /* Accumulate the count. */
-    p = get_number(p, &nchars);
+    p = get_number(p, &nchars, dctl);
     /* Write the type name. */
-    p = demangle_name(p, nchars, (char *)NULL);
+    p = demangle_name(p, nchars, (char *)NULL, dctl);
   }  /* if */
   return p;
 }  /* demangle_type_name */
 
 
-static char *demangle_type_qualifiers(char *ptr)
+static char *demangle_type_qualifiers(char                       *ptr,
+                                      a_decode_control_block_ptr dctl)
 /*
 Demangle any type qualifiers (const/volatile) at the indicated location.
 Return a pointer to the character position following what was demangled.
@@ -787,9 +807,9 @@ Return a pointer to the character position following what was demangled.
 
   for (;; p++) {
     if (*p == 'C') {
-      write_id_str("const ");
+      write_id_str("const ", dctl);
     } else if (*p == 'V') {
-      write_id_str("volatile ");
+      write_id_str("volatile ", dctl);
     } else {
       break;
     }  /* if */
@@ -798,7 +818,8 @@ Return a pointer to the character position following what was demangled.
 }  /* demangle_type_qualifiers */
 
 
-static char *demangle_type_specifier(char *ptr)
+static char *demangle_type_specifier(char                       *ptr,
+                                     a_decode_control_block_ptr dctl)
 /*
 Demangle the type at ptr and output the specifier part.  Return a pointer
 to the character position following what was demangled.
@@ -807,18 +828,18 @@ to the character position following what was demangled.
   char *p = ptr, *s;
 
   /* Process type qualifiers. */
-  p = demangle_type_qualifiers(p);
+  p = demangle_type_qualifiers(p, dctl);
   if (isdigit((unsigned char)*p) || *p == 'Q') {
     /* Named type, like class or enum, e.g., "3abc". */
-    p = demangle_type_name(p, /*base_name_only=*/FALSE);
+    p = demangle_type_name(p, /*base_name_only=*/FALSE, dctl);
   } else {
     /* Builtin type. */
     /* Handle signed and unsigned. */
     if (*p == 'S') {
-      write_id_str("signed ");
+      write_id_str("signed ", dctl);
       p++;
     } else if (*p == 'U') {
-      write_id_str("unsigned ");
+      write_id_str("unsigned ", dctl);
       p++;
     }  /* if */
     switch (*p++) {
@@ -856,16 +877,17 @@ to the character position following what was demangled.
         s = "long double";
         break;
       default:
-        bad_mangled_name();
+        bad_mangled_name(dctl);
         s = "";
     }  /* switch */
-    write_id_str(s);
+    write_id_str(s, dctl);
   }  /* if */
   return p;
 }  /* demangle_type_specifier */
 
 
-static char *demangle_function_parameters(char *ptr)
+static char *demangle_function_parameters(char                       *ptr,
+                                          a_decode_control_block_ptr dctl)
 /*
 Demangle the parameter list beginning at ptr and output the demangled form.
 Return a pointer to the character position following what was demangled.
@@ -876,7 +898,7 @@ Return a pointer to the character position following what was demangled.
   unsigned  long curr_param_num, param_num, nreps;
   a_boolean any_params = FALSE;
 
-  write_id_ch('(');
+  write_id_ch('(', dctl);
   if (*p == 'v') {
     /* Void parameter list. */
     p++;
@@ -885,7 +907,7 @@ Return a pointer to the character position following what was demangled.
     /* Loop for each parameter. */
     curr_param_num = 1;
     for (;;) {
-      if (err_in_id) break;  /* Avoid infinite loops on errors. */
+      if (dctl->err_in_id) break;  /* Avoid infinite loops on errors. */
       if (*p == 'T' || *p == 'N') {
         /* Tn means repeat the type of parameter "n". */
         /* Nmn means "m" repetitions of the type of parameter "n".  "m"
@@ -896,52 +918,54 @@ Return a pointer to the character position following what was demangled.
            a class name. */
         if (*p++ == 'N') {
           /* Get the number of repetitions. */
-          p = get_single_digit_number(p, &nreps);
+          p = get_single_digit_number(p, &nreps, dctl);
         } else {
           nreps = 1;
         }  /* if */
         /* Get the parameter number. */
-        p = get_single_digit_number(p, &param_num);
+        p = get_single_digit_number(p, &param_num, dctl);
         if (param_num < 1 || param_num >= curr_param_num ||
             param_pos[param_num] == NULL) {
           /* Parameter number out of range. */
-          bad_mangled_name();
+          bad_mangled_name(dctl);
           goto end_of_routine;
         }  /* if */
         /* Produce "nreps" copies of parameter "param_num". */
         for (; nreps > 0; nreps--) {
-          if (err_in_id) break;  /* Avoid infinite loops on errors. */
+          if (dctl->err_in_id) break;  /* Avoid infinite loops on errors. */
           if (curr_param_num < 10) param_pos[curr_param_num] = NULL;
-          (void)demangle_type(param_pos[param_num]);
-          if (nreps != 1) write_id_str(", ");
+          (void)demangle_type(param_pos[param_num], dctl);
+          if (nreps != 1) write_id_str(", ", dctl);
           curr_param_num++;
         }  /* if */
       } else {
         /* A normal parameter. */
         if (curr_param_num < 10) param_pos[curr_param_num] = p;
-        p = demangle_type(p);
+        p = demangle_type(p, dctl);
         curr_param_num++;
       }  /* if */
       /* Stop after the last parameter. */
       if (*p == '\0' || *p == 'e' || *p == '_') break;
-      write_id_str(", ");
+      write_id_str(", ", dctl);
     }  /* for */
   }  /* if */
   if (*p == 'e') {
     /* Ellipsis. */
-    if (any_params) write_id_str(", ");
-    write_id_str("...");
+    if (any_params) write_id_str(", ", dctl);
+    write_id_str("...", dctl);
     p++;
   }  /* if */
-  write_id_ch(')');
+  write_id_ch(')', dctl);
 end_of_routine:
   return p;
 }  /* demangle_function_parameters */
 
 
-static char *demangle_type_first_part(char       *ptr,
-                                      a_boolean  under_lhs_declarator,
-                                      a_boolean  need_trailing_space)
+static char *demangle_type_first_part(
+                               char                       *ptr,
+                               a_boolean                  under_lhs_declarator,
+                               a_boolean                  need_trailing_space,
+                               a_decode_control_block_ptr dctl)
 /*
 Demangle the type at ptr and output the specifier part and the part of the
 declarator that precedes the name.  Return a pointer to the character
@@ -962,67 +986,69 @@ not empty, because it contains a name or a derived type).
   if (kind == 'P' || kind == 'R') {
     /* Pointer or reference type, e.g., "Pc" is pointer to char. */
     p = demangle_type_first_part(p+1, /*under_lhs_declarator=*/TRUE,
-                                 /*need_trailing_space=*/TRUE);
+                                 /*need_trailing_space=*/TRUE, dctl);
     /* Output "*" or "&" for pointer or reference. */
     if (kind == 'R') {
-      write_id_ch('&');
+      write_id_ch('&', dctl);
     } else {
-      write_id_ch('*');
+      write_id_ch('*', dctl);
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
-    (void)demangle_type_qualifiers(qualp);
+    (void)demangle_type_qualifiers(qualp, dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, e.g., "M1Ai" is pointer to member of A of
        type int. */
     char *classp = p+1;
     /* Skip over the class name. */
-    suppress_id_output++;
-    p = demangle_type_name(classp, /*base_name_only=*/FALSE);
-    suppress_id_output--;
+    dctl->suppress_id_output++;
+    p = demangle_type_name(classp, /*base_name_only=*/FALSE, dctl);
+    dctl->suppress_id_output--;
     p = demangle_type_first_part(p, /*under_lhs_declarator=*/TRUE,
-                                 /*need_trailing_space=*/TRUE);
+                                 /*need_trailing_space=*/TRUE, dctl);
     /* Output Classname::*. */
-    (void)demangle_type_name(classp, /*base_name_only=*/FALSE);
-    write_id_str("::*");
+    (void)demangle_type_name(classp, /*base_name_only=*/FALSE, dctl);
+    write_id_str("::*", dctl);
     /* Output the type qualifiers on the pointer, if any. */
-    (void)demangle_type_qualifiers(qualp);
+    (void)demangle_type_qualifiers(qualp, dctl);
   } else if (kind == 'F') {
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types. */
     /* Skip over the parameter types without outputting anything. */
-    suppress_id_output++;
-    p = demangle_function_parameters(p+1);
-    suppress_id_output--;
+    dctl->suppress_id_output++;
+    p = demangle_function_parameters(p+1, dctl);
+    dctl->suppress_id_output--;
     if (*p == '_') {
       /* The return type is present. */
       p = demangle_type_first_part(p+1, /*under_lhs_declarator=*/FALSE,
-                                   /*need_trailing_space=*/TRUE);
+                                   /*need_trailing_space=*/TRUE, dctl);
     }  /* if */
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
-    if (under_lhs_declarator) write_id_ch('(');
+    if (under_lhs_declarator) write_id_ch('(', dctl);
   } else if (kind == 'A') {
     /* Array type, e.g., "A10_i" is array[10] of int. */
     p++;
     /* Skip the array size. */
     while (isdigit((unsigned char)*p)) p++;
-    p = advance_past_underscore(p);
+    p = advance_past_underscore(p, dctl);
     p = demangle_type_first_part(p, /*under_lhs_declarator=*/FALSE,
-                                 /*need_trailing_space=*/TRUE);
+                                 /*need_trailing_space=*/TRUE, dctl);
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
-    if (under_lhs_declarator) write_id_ch('(');
+    if (under_lhs_declarator) write_id_ch('(', dctl);
   } else {
     /* No declarator part to process.  Handle the specifier type. */
-    p = demangle_type_specifier(qualp);
-    if (need_trailing_space) write_id_ch(' ');
+    p = demangle_type_specifier(qualp, dctl);
+    if (need_trailing_space) write_id_ch(' ', dctl);
   }  /* if */
   return p;
 }  /* demangle_type_first_part */
 
 
-static char *demangle_type_second_part(char       *ptr,
-                                       a_boolean  under_lhs_declarator)
+static char *demangle_type_second_part(
+                               char                       *ptr,
+                               a_boolean                  under_lhs_declarator,
+                               a_decode_control_block_ptr dctl)
 /*
 Demangle the type at ptr and output the part of the declarator that follows the
 name.  Return a pointer to the character position following what was demangled.
@@ -1039,23 +1065,23 @@ use of parentheses around parts of the declarator.)
   kind = *p;
   if (kind == 'P' || kind == 'R') {
     /* Pointer or reference type, e.g., "Pc" is pointer to char. */
-    p = demangle_type_second_part(p+1, /*under_lhs_declarator=*/TRUE);
+    p = demangle_type_second_part(p+1, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, e.g., "M1Ai" is pointer to member of A of
        type int. */
     /* Advance over the class name. */
-    suppress_id_output++;
-    p = demangle_type_name(p+1, /*base_name_only=*/FALSE);
-    suppress_id_output--;
-    p = demangle_type_second_part(p, /*under_lhs_declarator=*/TRUE);
+    dctl->suppress_id_output++;
+    p = demangle_type_name(p+1, /*base_name_only=*/FALSE, dctl);
+    dctl->suppress_id_output--;
+    p = demangle_type_second_part(p, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'F') {
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types. */
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
-    if (under_lhs_declarator) write_id_ch(')');
+    if (under_lhs_declarator) write_id_ch(')', dctl);
     /* Put out the parameter types. */
-    p = demangle_function_parameters(p+1);
+    p = demangle_function_parameters(p+1, dctl);
     /* Put out any cv-qualifiers (member functions). */
     /* Note that such things could come up on nonmember functions in the
        presence of typedefs.  In such a case what we generate here will not
@@ -1063,42 +1089,43 @@ use of parentheses around parts of the declarator.)
        type, and there's no way of getting the typedef name in there,
        so let it be. */
     if (*qualp != 'F') {
-      write_id_ch(' ');
-      (void)demangle_type_qualifiers(qualp);
+      write_id_ch(' ', dctl);
+      (void)demangle_type_qualifiers(qualp, dctl);
     }  /* if */
     if (*p == '_') {
       /* Process the return type. */
-      p = demangle_type_second_part(p+1, /*under_lhs_declarator=*/FALSE);
+      p = demangle_type_second_part(p+1, /*under_lhs_declarator=*/FALSE, dctl);
     }  /* if */
   } else if (kind == 'A') {
     /* Array type, e.g., "A10_i" is array[10] of int. */
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
-    if (under_lhs_declarator) write_id_ch(')');
-    write_id_ch('[');
+    if (under_lhs_declarator) write_id_ch(')', dctl);
+    write_id_ch('[', dctl);
     p++;
     if (*p == '0' && p[1] == '_') {
       /* Size is zero, so do not put out a size (the result is "[]"). */
       p++;
     } else {
       /* Put out the array size. */
-      while (isdigit((unsigned char)*p)) write_id_ch(*p++);
+      while (isdigit((unsigned char)*p)) write_id_ch(*p++, dctl);
     }  /* if */
-    p = advance_past_underscore(p);
-    write_id_ch(']');
+    p = advance_past_underscore(p, dctl);
+    write_id_ch(']', dctl);
     /* Process the element type. */
-    p = demangle_type_second_part(p, /*under_lhs_declarator=*/FALSE);
+    p = demangle_type_second_part(p, /*under_lhs_declarator=*/FALSE, dctl);
   } else {
     /* No declarator part to process.  Skip the specifier type. */
-    suppress_id_output++;
-    p = demangle_type_specifier(qualp);
-    suppress_id_output--;
+    dctl->suppress_id_output++;
+    p = demangle_type_specifier(qualp, dctl);
+    dctl->suppress_id_output--;
   }  /* if */
   return p;
 }  /* demangle_type_second_part */
 
 
-static char *demangle_type(char *ptr)
+static char *demangle_type(char                       *ptr,
+                           a_decode_control_block_ptr dctl)
 /*
 Demangle the type at ptr and output the demangled form.  Return a pointer to
 the character position following what was demangled.
@@ -1108,14 +1135,15 @@ the character position following what was demangled.
 
   /* Generate the specifier part of the type. */
   (void)demangle_type_first_part(ptr, /*under_lhs_declarator=*/FALSE,
-                                 /*need_trailing_space=*/FALSE);
+                                 /*need_trailing_space=*/FALSE, dctl);
   /* Generate the declarator part of the type. */
-  p = demangle_type_second_part(ptr, /*under_lhs_declarator=*/FALSE);
+  p = demangle_type_second_part(ptr, /*under_lhs_declarator=*/FALSE, dctl);
   return p;
 }  /* demangle_type */
 
 
-static char *demangle_identifier(char *ptr)
+static char *demangle_identifier(char                       *ptr,
+                                 a_decode_control_block_ptr dctl)
 /*
 Demangle the identifier at ptr and output the demangled form.  Return
 a pointer to the character position following what was demangled.
@@ -1128,20 +1156,20 @@ a pointer to the character position following what was demangled.
   /* Scan through the name (the first part of the mangled name) without
      generating output, to see what's beyond it.  Special processing is
      necessary for names of constructors, conversion routines, etc. */
-  suppress_id_output++;
-  p = demangle_name(origname, (unsigned long)0, (char *)NULL);
-  suppress_id_output--;
+  dctl->suppress_id_output++;
+  p = demangle_name(origname, (unsigned long)0, (char *)NULL, dctl);
+  dctl->suppress_id_output--;
   if (*p == '\0') {
     /* There is no mangled part of the name.  This happens for strange
        cases like
          extern "C" int operator +(A, A);
        which gets mangled as "__pl".  Just write out the name and stop. */
-    end_ptr = demangle_name(origname, (unsigned long)0, (char *)NULL);
+    end_ptr = demangle_name(origname, (unsigned long)0, (char *)NULL, dctl);
   } else {
     /* There's more.  There should be a "__" between the name and the
        additional mangled information. */
     if (p[0] != '_' || p[1] != '_') {
-      bad_mangled_name();
+      bad_mangled_name(dctl);
       end_ptr = p;
       goto end_of_routine;
     }  /* if */
@@ -1162,27 +1190,28 @@ a pointer to the character position following what was demangled.
     end_ptr = mname;
     if (mname[0] != 'F') {
       /* A class (or namespace) name must be next. */
-      end_ptr = demangle_type_name(end_ptr, /*base_name_only=*/FALSE);
-      write_id_str("::");
+      end_ptr = demangle_type_name(end_ptr, /*base_name_only=*/FALSE, dctl);
+      write_id_str("::", dctl);
       /* If the name ends here, this is a simple member (e.g., a static
          data member). */
       if (*end_ptr == '\0') simple_member = TRUE;
     }  /* if */
     if (simple_member) {
       /* Simple member.  Just write the name. */
-      (void)demangle_name(origname, (unsigned long)0, (char *)NULL);
+      (void)demangle_name(origname, (unsigned long)0, (char *)NULL, dctl);
     } else {
       /* This must be a function. */
       /* "S" here means a static member function (ignore). */
       if (*end_ptr == 'S') end_ptr++;
       /* Write the specifier part of the type. */
       demangle_type_first_part(end_ptr, /*under_lhs_declarator=*/FALSE,
-                               /*need_trailing_space=*/TRUE);
+                               /*need_trailing_space=*/TRUE, dctl);
       /* Write the name of the function. */
-      (void)demangle_name(origname, (unsigned long)0, mname);
+      (void)demangle_name(origname, (unsigned long)0, mname, dctl);
       /* Write the declarator part of the type. */
       end_ptr = demangle_type_second_part(end_ptr,
-                                          /*under_lhs_declarator=*/FALSE);
+                                          /*under_lhs_declarator=*/FALSE,
+                                          dctl);
     }  /* if */
   }  /* if */
 end_of_routine:
@@ -1190,7 +1219,8 @@ end_of_routine:
 }  /* demangle_identifier */
 
 
-static char *demangle_local_name(char *ptr)
+static char *demangle_local_name(char                       *ptr,
+                                 a_decode_control_block_ptr dctl)
 /*
 Demangle the local name at ptr and output the demangled form.  Return
 a pointer to the character position following what was demangled.
@@ -1206,23 +1236,23 @@ of these demangling routines, but it's an easy and common case, so...
      for the two initial underscores and the digit following that. */
   do { p++; } while (isdigit((unsigned char)*p));
   if (*p != '_') {
-    bad_mangled_name();
+    bad_mangled_name(dctl);
     goto end_of_routine;
   }  /* if */
   p++;
   if (!isdigit((unsigned char)*p)) {
-    bad_mangled_name();
+    bad_mangled_name(dctl);
     goto end_of_routine;
   }  /* if */
   do { p++; } while (isdigit((unsigned char)*p));
   if (*p != '_') {
-    bad_mangled_name();
+    bad_mangled_name(dctl);
     goto end_of_routine;
   }  /* if */
   p++;
   /* Copy the rest of the string to output. */
   while (*p != '\0') {
-    write_id_ch(*p);
+    write_id_ch(*p, dctl);
     p++;
   }  /* while */
 end_of_routine:
@@ -1246,68 +1276,70 @@ In addition, if the error is that the output buffer is too small,
 is set to the size of buffer required to do the demangling.
 */
 {
-  char *end_ptr;
+  char                       *end_ptr;
+  a_decode_control_block     control_block;
+  a_decode_control_block_ptr dctl = &control_block;
 
   /* Set global variables. */
-  input_id_len = strlen(id);
-  output_id = output_buffer;
-  output_id_len = 0;
-  output_id_size = output_buffer_size;
-  err_in_id = FALSE;
-  output_overflow_err = FALSE;
-  suppress_id_output = 0;
+  dctl->input_id_len = strlen(id);
+  dctl->output_id = output_buffer;
+  dctl->output_id_len = 0;
+  dctl->output_id_size = output_buffer_size;
+  dctl->err_in_id = FALSE;
+  dctl->output_overflow_err = FALSE;
+  dctl->suppress_id_output = 0;
   /* Check for special cases. */
   if (start_of_id_is("__vtbl__", id)) {
-    write_id_str("virtual function table for ");
+    write_id_str("virtual function table for ", dctl);
     /* Note that if the first name is a base class name and it's not simple,
        this will produce output containing partially-mangled information.
        It's hard to do better given the cfront encoding form. */
-    end_ptr = demangle_type(id+8);
+    end_ptr = demangle_type(id+8, dctl);
     if (start_of_id_is("__A", end_ptr)) {
       /* "__A" indicates an ambiguous base class. */
-      write_id_str(" (ambiguous)");
+      write_id_str(" (ambiguous)", dctl);
       end_ptr += 3;
     }  /* if */
     if (start_of_id_is("__", end_ptr)) {
       /* Virtual function table for base class in derived class. */
       end_ptr += 2;
-      write_id_str(" in ");
-      end_ptr = demangle_type(end_ptr);
+      write_id_str(" in ", dctl);
+      end_ptr = demangle_type(end_ptr, dctl);
     }  /* if */
   } else if (start_of_id_is("__CBI__", id)) {
-    write_id_str("can-be-instantiated flag for ");
-    end_ptr = demangle_identifier(id+7);
+    write_id_str("can-be-instantiated flag for ", dctl);
+    end_ptr = demangle_identifier(id+7, dctl);
   } else if (start_of_id_is("__DNI__", id)) {
-    write_id_str("do-not-instantiate flag for ");
-    end_ptr = demangle_identifier(id+7);
+    write_id_str("do-not-instantiate flag for ", dctl);
+    end_ptr = demangle_identifier(id+7, dctl);
   } else if (start_of_id_is("__TIR__", id)) {
-    write_id_str("template-instantiation-request flag for ");
-    end_ptr = demangle_identifier(id+7);
+    write_id_str("template-instantiation-request flag for ", dctl);
+    end_ptr = demangle_identifier(id+7, dctl);
   } else if (start_of_id_is("__TID_", id)) {
-    write_id_str("type identifier for ");
-    end_ptr = demangle_type(id+6);
+    write_id_str("type identifier for ", dctl);
+    end_ptr = demangle_type(id+6, dctl);
   } else if (start_of_id_is("__T_", id)) {
-    write_id_str("typeinfo for ");
-    end_ptr = demangle_type(id+4);
+    write_id_str("typeinfo for ", dctl);
+    end_ptr = demangle_type(id+4, dctl);
   } else if (start_of_id_is("__Q", id)) {
     /* Nested class name. */
-    end_ptr = demangle_type_name(id+2, /*base_name_only=*/FALSE);
+    end_ptr = demangle_type_name(id+2, /*base_name_only=*/FALSE, dctl);
   } else if (start_of_id_is("__", id) && isdigit((unsigned char)id[2])) {
     /* Local variable mangled by the C-generating back end: __nn_mm_name,
        where "nn" and "mm" are decimal integers. */
-    end_ptr = demangle_local_name(id);
+    end_ptr = demangle_local_name(id, dctl);
   } else {
     /* Normal case: function name, static data member name, or
        name of type or variable promoted out of function. */
-    end_ptr = demangle_identifier(id);
+    end_ptr = demangle_identifier(id, dctl);
   }  /* if */
   /* Make sure the whole identifier was taken. */
-  if (!err_in_id && *end_ptr != '\0') bad_mangled_name();
+  if (!dctl->err_in_id && *end_ptr != '\0') bad_mangled_name(dctl);
   /* Add a terminating null. */
-  if (!output_overflow_err) output_id[output_id_len] = 0;
-  *err = err_in_id;
-  *buffer_overflow_err = output_overflow_err;
-  *required_buffer_size = output_id_len + 1;  /* +1 for terminating null. */
+  if (!dctl->output_overflow_err) dctl->output_id[dctl->output_id_len] = 0;
+  *err = dctl->err_in_id;
+  *buffer_overflow_err = dctl->output_overflow_err;
+  *required_buffer_size = dctl->output_id_len + 1; /* +1 for final null. */
 }  /* decode_identifier */
 
 
