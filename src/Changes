@@ -1,5 +1,17 @@
 Version 2.44
 
+7/8/00   C++-generating back end: sizeofs preserved
+
+When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE (default for
+c++-generating back end versions), constants for sizeof operations
+now have an enk_runtime_sizeof expression attached so that the
+original sizeof can be re-created in the generated code.
+
+IL CHANGE: the fields associated with the enk_runtime_sizeof
+expression variant have been changed to allow either an expression
+or a type, but not both, and to indicate whether the expression
+is an lvalue.
+
 7/8/00   Compilation problem with uncompiled code in enter_predefined_type
 
 The sample code in enter_predefined_type (enclosed in #if 0/#endif,

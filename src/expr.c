@@ -236,10 +236,10 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
       }  /* if */
       break;
     case enk_runtime_sizeof:
-      if (node->variant.runtime_sizeof.expr != NULL) {
+      if (!node->variant.runtime_sizeof.is_type) {
         has_side_effects = node_has_side_effects(
-                                            node->variant.runtime_sizeof.expr,
-                                            &suppress);
+                                     node->variant.runtime_sizeof.variant.expr,
+                                     &suppress);
       }  /* if */
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -3738,6 +3738,37 @@ arithmetic type.  The operand of "~" must have integral type.  See section
 }  /* scan_arith_prefix_operator */
 
 
+static an_expr_node_ptr make_runtime_sizeof_expr(a_boolean  is_type,
+                                                 a_type_ptr type,
+                                                 an_operand *operand)
+/*
+Create an enk_runtime_sizeof expression for a sizeof and return a pointer
+to it.  If is_type is TRUE, this is a "sizeof(type)", and "type" indicates
+the type.  If is_type is FALSE, this is a "sizeof expression", and
+"operand" indicates the expression.
+*/
+{
+  an_expr_node_ptr node =
+                        alloc_expr_node((an_expr_node_kind)enk_runtime_sizeof);
+
+  node->type = integer_type(targ_size_t_int_kind);
+  node->variant.runtime_sizeof.is_type = is_type;
+  if (is_type) {
+    /* sizeof(type). */
+    node->variant.runtime_sizeof.variant.type = type;
+  } else {
+    /* sizeof expression. */
+    if (is_template_dependent_context()) {
+      /* An expression in a prototype instantiation. */
+      prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+    }  /* if */
+    node->variant.runtime_sizeof.is_lvalue = is_an_lvalue(operand);
+    node->variant.runtime_sizeof.variant.expr= make_node_from_operand(operand);
+  }  /* if */
+  return node;
+}  /* make_runtime_sizeof_expr */
+
+
 static void scan_sizeof_operator(an_operand *result)
 /*
 Scan the sizeof operator.  The operand of the sizeof operator cannot be an
@@ -3905,13 +3936,7 @@ Syntax:
       /* Make an expression node to represent a sizeof that cannot be
          evaluated until runtime. */
       an_expr_node_ptr node =
-                        alloc_expr_node((an_expr_node_kind)enk_runtime_sizeof);
-      node->type = integer_type(targ_size_t_int_kind);
-      node->variant.runtime_sizeof.type = sizeof_type;
-      if (!is_type) {
-        check_assertion(is_an_lvalue(&operand));
-        node->variant.runtime_sizeof.expr = make_node_from_operand(&operand);
-      }  /* if */
+                      make_runtime_sizeof_expr(is_type, sizeof_type, &operand);
       make_expression_operand(node, node->type, result);
     }  /* if */
 #ifdef SIZEOF_TYPE_IS_UNKNOWN
@@ -3930,9 +3955,7 @@ Syntax:
     } else {
       /* Make an expression node to represent the sizeof. */
       an_expr_node_ptr node =
-                        alloc_expr_node((an_expr_node_kind)enk_runtime_sizeof);
-      node->type = integer_type(targ_size_t_int_kind);
-      node->variant.runtime_sizeof.type = sizeof_type;
+                      make_runtime_sizeof_expr(is_type, sizeof_type, &operand);
       make_expression_operand(node, node->type, result);
     }  /* if */
 #endif /* defined(SIZEOF_TYPE_IS_UNKNOWN) */
@@ -3959,24 +3982,7 @@ Syntax:
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       /* Make a sizeof expression that sits behind the constant and
          gives the original expression. */
-      { an_expr_node_ptr node =
-                        alloc_expr_node((an_expr_node_kind)enk_runtime_sizeof);
-        node->type = integer_type(targ_size_t_int_kind);
-        node->variant.runtime_sizeof.type = sizeof_type;
-        if (!is_type) {
-          /* The original form is sizeof(expression), so record that
-             expression.  The IL operator assumes the operand is an
-             lvalue, so don't do this for non-lvalues except when
-             dealing with an expression in a prototype instantiation. */
-          if (is_template_dependent_context()) {
-            prep_generic_operand(&operand, /*lvalue_expected=*/TRUE);
-            node->variant.runtime_sizeof.expr=make_node_from_operand(&operand);
-          } else if (is_an_lvalue(&operand)) {
-            node->variant.runtime_sizeof.expr=make_node_from_operand(&operand);
-          }  /* if */
-        }  /* if */
-        constant.expr = node;
-      }
+      constant.expr = make_runtime_sizeof_expr(is_type, sizeof_type, &operand);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
     make_constant_operand(&constant, result);

@@ -1325,13 +1325,15 @@ Dump the contents of the indicated expression node for debug purposes.
       }  /* if */
       break;
     case enk_runtime_sizeof:
-      fputs("runtime sizeof: type = ", f_debug);
-      db_abbreviated_type(node->variant.runtime_sizeof.type);
-      if (node->variant.runtime_sizeof.expr == NULL) {
+      fputs("runtime sizeof: ", f_debug);
+      if (node->variant.runtime_sizeof.is_type) {
+        fputs("type = ", f_debug);
+        db_abbreviated_type(node->variant.runtime_sizeof.variant.type);
         fputc('\n', f_debug);
       } else {
-        fputs(", expr =\n", f_debug);
-        db_expr_node(node->variant.runtime_sizeof.expr, level + 2);
+        fprintf(f_debug, "expr%s =\n",
+                node->variant.runtime_sizeof.is_lvalue ? " (lvalue)" : "");
+        db_expr_node(node->variant.runtime_sizeof.variant.expr, level + 2);
       }  /* if */
       break;
     case enk_address_of_ellipsis:
@@ -8268,10 +8270,10 @@ a set of options for the copy.
       }  /* if */
       break;
     case enk_runtime_sizeof:
-      /* If the expr field is non-NULL, copy it. */
-      if (expr->variant.runtime_sizeof.expr != NULL) {
-        expr_copy->variant.runtime_sizeof.expr =
-                    copy_expr_tree(expr->variant.runtime_sizeof.expr, options);
+      /* If there is an expression, copy it. */
+      if (!expr->variant.runtime_sizeof.is_type) {
+        expr_copy->variant.runtime_sizeof.variant.expr =
+            copy_expr_tree(expr->variant.runtime_sizeof.variant.expr, options);
       }  /* if */
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING

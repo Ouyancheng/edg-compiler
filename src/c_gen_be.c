@@ -3750,12 +3750,25 @@ done_with_operation:
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
     case enk_runtime_sizeof:
       write_tok_str("sizeof(");
-      if (expr->variant.runtime_sizeof.expr == NULL) {
-        /* sizeof(type) for variable-length array type. */
-        dump_type(expr->variant.runtime_sizeof.type, /*add_pointer_to=*/FALSE);
+      if (expr->variant.runtime_sizeof.is_type) {
+        /* sizeof(type). */
+        dump_type(expr->variant.runtime_sizeof.variant.type,
+                  /*add_pointer_to=*/FALSE);
       } else {
-        /* sizeof(expr) for expr with variable-length array type. */
-        dump_lvalue(expr->variant.runtime_sizeof.expr);
+        /* sizeof(expr). */
+        if (expr->variant.runtime_sizeof.is_lvalue) {
+          dump_lvalue(expr->variant.runtime_sizeof.variant.expr);
+        } else {
+          an_expr_node_ptr sizeof_expr =
+                                     expr->variant.runtime_sizeof.variant.expr;
+          if (is_routine_address_node(sizeof_expr)) {
+            /* For the address of a function, we need an extra "&".  The
+               normal output suppresses it as unnecessary, but in a sizeof
+               there is no function-to-pointer decay. */
+            write_tok_ch('&');
+          }  /* if */
+          dump_expression(sizeof_expr);
+        }  /* if */
       }  /* if */
       write_tok_ch(')');
       break;

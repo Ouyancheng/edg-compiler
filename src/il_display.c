@@ -2559,9 +2559,17 @@ do_variable:
       break;
     case enk_runtime_sizeof:
       (void)printf("enk_runtime_sizeof\n");
-      disp_ptr("type", (char *)ptr->variant.runtime_sizeof.type, iek_type);
-      disp_ptr("expr", (char *)ptr->variant.runtime_sizeof.expr,
-               iek_expr_node);
+      disp_boolean("is_type",
+                   (a_boolean)ptr->variant.runtime_sizeof.is_type);
+      disp_boolean("is_lvalue",
+                   (a_boolean)ptr->variant.runtime_sizeof.is_lvalue);
+      if (ptr->variant.runtime_sizeof.is_type) {
+        disp_ptr("type", (char *)ptr->variant.runtime_sizeof.variant.type,
+                 iek_type);
+      } else {
+        disp_ptr("expr", (char *)ptr->variant.runtime_sizeof.variant.expr,
+                 iek_expr_node);
+      }  /* if */
       break;
     case enk_address_of_ellipsis:
       (void)printf("enk_address_of_ellipsis\n");

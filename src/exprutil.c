@@ -1090,11 +1090,11 @@ destruction processed, and is updated on output.
       }  /* if */
       break;
     case enk_runtime_sizeof:
-      if (expr->variant.runtime_sizeof.expr != NULL) {
+      if (!expr->variant.runtime_sizeof.is_type) {
         any_temp_inits = examine_expr_for_unordered_temp_inits(
-                                             expr->variant.runtime_sizeof.expr,
-                                             mark_all_unordered,
-                                             last_processed);
+                                     expr->variant.runtime_sizeof.variant.expr,
+                                     mark_all_unordered,
+                                     last_processed);
       }  /* if */
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING

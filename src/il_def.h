@@ -5474,8 +5474,11 @@ enum an_expr_node_kind_tag {
 			   expression tree.  C++ only. */
   enk_typeid,		/* C++ typeid expression. */
   enk_runtime_sizeof,	/* A sizeof expression that cannot be evaluated
-                           until runtime.  Used in C to determine the size
-                           of a type involving a variable length array. */
+			   until runtime.  Used in C to determine the size
+			   of a type involving a variable length array.
+			   Also used (in both C and C++) in certain
+			   source-analysis configurations to represent a
+			   sizeof in expression form. */
   enk_address_of_ellipsis,
 			/* Used to represent nonstandard construct "&..."
 			   (when ALLOW_ADDRESS_OF_ELLIPSIS is TRUE, to support
@@ -6291,15 +6294,27 @@ typedef struct an_expr_node {
 			   its value is the address); otherwise NULL. */
     } typeid_info;
     /* When kind == enk_runtime_sizeof: */
+    /* Used for a sizeof whose size is not known at compile time (e.g.,
+       for a variable-length array), and in some source-analysis
+       configurations as an expression representation for sizeofs
+       so we can re-create the original code. */
     struct {
-      a_type_ptr
-		type;	/* The type whose size is to be determined at
-			   runtime. */
-      an_expr_node_ptr
-		expr;	/* The expression whose size is to be determined at
-			   runtime, or NULL if the sizeof operand is a
-			   type.  This expression is an lvalue for an
-			   array. */
+      a_byte_boolean
+		is_type;
+			/* TRUE if the sizeof is sizeof(type); FALSE for
+			   sizeof expression. */
+      a_byte_boolean
+		is_lvalue;
+			/* When is_type is FALSE, TRUE if the expression is
+			   an lvalue, FALSE for an rvalue. */
+      union {
+        /* When is_type == TRUE: */
+        a_type_ptr
+		type;	/* The type whose size is needed. */
+        /* When is_type == FALSE: */
+        an_expr_node_ptr
+		expr;	/* The expression whose size is needed. */
+      } variant;
     } runtime_sizeof;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     /* When kind == enk_lowered_eh_construct: */
