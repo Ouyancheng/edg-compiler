@@ -202,26 +202,26 @@ typedef struct an_expr_or_stmt_traversal_block
 		*an_expr_or_stmt_traversal_block_ptr;
 /* Type of function called to process an expression node. */
 typedef void a_traversal_expr_process_function(
-                                          an_expr_node_ptr,
-                                          an_expr_or_stmt_traversal_block_ptr);
+                                   an_expr_node_ptr                    expr,
+                                   an_expr_or_stmt_traversal_block_ptr tblock);
 typedef a_traversal_expr_process_function
 		*a_traversal_expr_process_function_ptr;
 /* Type of function called to process a constant. */
 typedef void a_traversal_constant_process_function(
-                                          a_constant_ptr,
-                                          an_expr_or_stmt_traversal_block_ptr);
+                                  a_constant_ptr                      constant,
+                                  an_expr_or_stmt_traversal_block_ptr tblock);
 typedef a_traversal_constant_process_function
 		*a_traversal_constant_process_function_ptr;
 /* Type of function called to process a dynamic initialization. */
 typedef void a_traversal_dynamic_init_process_function(
-                                          a_dynamic_init_ptr,
-                                          an_expr_or_stmt_traversal_block_ptr);
+                                   a_dynamic_init_ptr                  dip,
+                                   an_expr_or_stmt_traversal_block_ptr tblock);
 typedef a_traversal_dynamic_init_process_function
 		*a_traversal_dynamic_init_process_function_ptr;
 /* Type of function called to process a statement. */
 typedef void a_traversal_statement_process_function(
-                                          a_statement_ptr,
-                                          an_expr_or_stmt_traversal_block_ptr);
+                                 a_statement_ptr                     statement,
+                                 an_expr_or_stmt_traversal_block_ptr tblock);
 typedef a_traversal_statement_process_function
 		*a_traversal_statement_process_function_ptr;
 typedef struct an_expr_or_stmt_traversal_block {
