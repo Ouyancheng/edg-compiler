@@ -1,5 +1,20 @@
 Version 2.43
 
+10/5/99  Configuration option to record constant expressions
+
+When the new configuration option RECORD_CONSTANT_EXPRESSIONS_IN_IL is set to
+TRUE, the front end will record (for nonliterals) an IL representation of the
+expression that was used to form constants.  The representation is pointed to
+by the new field "expr" of struct a_constant.  For example:
+
+  int a = 3;  // No expression recorded for constant "3".
+  int b = 1+2; // The constant resulting from "1+2" points to a constant
+               // encoding the value "3", but also to a representation of
+               // "1+2".
+
+The C++ generating back end has been modified to use the recorded expressions
+when available.
+
 10/4/99  C++ generating back end: abort on specialization in Microsoft mode
 
 In Microsoft mode, source sequence entries were not being created for

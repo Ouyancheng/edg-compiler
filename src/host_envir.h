@@ -628,6 +628,15 @@ in the current translation unit.
 #endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
 
 /*
+Flag that is TRUE if the front end should record the original structure of
+constant-expressions in addition to their resulting value.  (See expr field
+of struct a_constant.)
+*/
+#ifndef RECORD_CONSTANT_EXPRESSIONS_IN_IL
+#define RECORD_CONSTANT_EXPRESSIONS_IN_IL FALSE
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+
+/*
 Flag that is TRUE to cause additional IL entries to contain source position
 information.  Note that this can take a lot of extra space, so you should
 enable this only if you really need it.

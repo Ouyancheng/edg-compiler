@@ -2415,6 +2415,15 @@ user-defined conversions.
             }  /* if */
           } else {
             /* The operation was successfully folded to a constant. */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+            if (!curr_expr_kind_is(ek_pp)) {
+              /* Record the constant's expression. */
+              local_constant.expr = make_node_from_operand(operand);
+              add_cast_to_node(&local_constant.expr, new_type,
+                               check_cast_access, is_implicit_cast,
+                               is_reinterpret_cast, &operand->position);
+            }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
             make_constant_operand(&local_constant, operand);
           }  /* if */
           break;
@@ -4162,6 +4171,11 @@ if possible.  operator_position indicates the operator position.
   if (is_error_operand(operand_1) || is_error_operand(operand_2)) {
     make_error_operand(result);
   } else {
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    an_operand  result_expr;
+    build_binary_result_operand(operand_1, operand_2, op,
+                                result_type, &result_expr);
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     /* Some addressing operations should not be folded in some nonconstant
        contexts, because the expression form provides more explicit
        addressing information (which is useful for aliasing analysis). */
@@ -4212,10 +4226,14 @@ if possible.  operator_position indicates the operator position.
         pos_error(ec_expr_not_constant, operator_position);
         make_error_operand(result);
       } else {
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+        copy_operand(&result_expr, result);
+#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
         /* The constant operation was not folded; create an expression
            operand. */
         build_binary_result_operand(operand_1, operand_2, op,
                                     result_type, result);
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
         /* Check for invalid constant subscripts when the first operand
            is not a constant (as happens when the array is an auto array). */
         if (is_expression_operand(result)) {
@@ -4232,6 +4250,11 @@ if possible.  operator_position indicates the operator position.
                                        make_node_from_operand(result), result);
         }  /* if */
       }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    } else if (!curr_expr_kind_is(ek_pp)) {
+      /* Folding succeeded: record the expression in the constant. */
+      result->variant.constant.expr = result_expr.variant.expression;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
   }  /* if */
   result->state = (an_operand_state)os_rvalue;
@@ -4263,6 +4286,10 @@ position.
       /* The result of a unary plus is the promoted operand. */
       copy_operand(operand, result);
     } else {
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      an_operand  result_expr;
+      build_unary_result_operand(operand, op, result_type, &result_expr);
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       /* Other operators (not unary "+"). */
       did_not_fold = TRUE;
       template_constant = FALSE;
@@ -4284,9 +4311,13 @@ position.
           pos_error(ec_expr_not_constant, start_position);
           make_error_operand(result);
         } else {
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+          copy_operand(&result_expr, result);
+#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
           /* The operation could not be folded to a constant, so build
              an expression node. */
           build_unary_result_operand(operand, op, result_type, result);
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
           if (template_constant) {
             /* For an expression based on a template parameter, scanned
                during the prototype instantiation, make a ck_template_param
@@ -4297,6 +4328,12 @@ position.
         }  /* if */
       } else {
         /* The operation was folded to a constant. */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+        if (!curr_expr_kind_is(ek_pp)) {
+          /* Record the expression in the constant. */
+          result_constant.expr = result_expr.variant.expression;
+        }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
         make_constant_operand(&result_constant, result);
       }  /* if */
     }  /* if */
@@ -5783,7 +5820,17 @@ not an lvalue, it is left alone.
           a_constant_ptr con_var_value = var_constant_value(variable);
           if (con_var_value != NULL) {
             /* Replace a constant-valued variable by its value. */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+            /* Save the expression that lead to the constant, and restore it
+               when the constant is constructed: */
+            an_expr_node_ptr  constant_expr = var_rvalue_expr(variable);
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
             make_constant_operand(con_var_value, operand);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+            if (!curr_expr_kind_is(ek_pp)) {
+              operand->variant.constant.expr = constant_expr;
+            }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
             constant_case = TRUE;
           } else {
             /* Not constant-valued; the rvalue is the value of the variable. */

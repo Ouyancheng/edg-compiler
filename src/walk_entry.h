@@ -492,6 +492,9 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_constant_ptr, iek_constant);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+        walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         if (ptr->type != NULL) {
           definition_needed_if_class(ptr->type);

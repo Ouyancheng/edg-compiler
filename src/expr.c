@@ -9223,6 +9223,15 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         /* The result is not a null pointer constant. */
         result->variant.constant.null_pointer_constant_ruled_out = TRUE;
       }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      if (!curr_expr_kind_is(ek_pp)) {
+        /* Create an expression to be recorded in the constant. */
+        an_operand  result_expr;
+        do_question_operation(operand_1, &operand_2, &operand_3,
+                              result_type, &result_expr);
+        result->variant.constant.expr = result_expr.variant.expression;
+      }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
   } else {
     /* Build the expression. */

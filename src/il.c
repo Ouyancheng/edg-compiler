@@ -3351,12 +3351,19 @@ nonidentical.
     eq = TRUE;
     goto end_of_routine;
   } else if (cp1->kind != cp2->kind) {
-    eq = FALSE;
+    /* eq = FALSE; */
     goto end_of_routine;
   }  /* if */
   if (!strictly_identical) {
     cp1_type = skip_typerefs(cp1_type);
     cp2_type = skip_typerefs(cp2_type);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  } else if (cp1->expr != cp2->expr) {
+    /* Do not attempt to share constants if they are the result of different
+       expressions. */
+    /* eq = FALSE; */
+    goto end_of_routine;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   }  /* if */
   /* If strict identity is required, the types must be pointer-identical.
      Otherwise, it is sufficient that they be identical. */
@@ -3729,10 +3736,15 @@ put it on a list of constants).
            "alloc_shareable_constant: implicitly-cast const has assoc_info");
     }  /* if */
 #endif /* CHECKING */
-  } else if (cp->kind == (a_constant_repr_kind)ck_template_param) {
-    /* Template param constants should not be made part of the IL tree
-       proper.  Those with assoc_info non-NULL were handled above.
-       For others, make a new copy every time. */
+  } else if (cp->kind == (a_constant_repr_kind)ck_template_param
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+             || cp->expr != NULL
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+                                ) {
+    /* Template param constants should not be made part of the IL tree proper.
+       Those with assoc_info non-NULL were handled above.  For others, make a
+       new copy every time.  Similarly, constants that track the expression
+       that generated them should not be shared. */
     scp = alloc_unshared_constant(cp);
   } else {
     /* The constant has no source correspondence. */

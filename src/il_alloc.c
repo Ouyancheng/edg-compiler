@@ -478,6 +478,9 @@ associated variant fields to default values.
   set_default_source_corresp(cp->source_corresp);
   cp->next           = NULL;
   cp->type           = NULL;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  cp->expr           = NULL;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   cp->implicit_cast  = FALSE;
   cp->non_arithmetic = FALSE;
   cp->is_simple_zero = FALSE;

@@ -1826,9 +1826,20 @@ static void gen_constant(a_constant_ptr constant,
 /*
 Output the indicated constant.  If need_parens is TRUE, parentheses are
 placed around the constant if there's any possibility of precedence confusion.
+If an expression node corresponding to the operation that resulted in the
+constant is available, output the expression instead of just the result of the
+operation.
 */
 {
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  if (constant->expr != NULL) {
+    gen_expr(constant->expr, need_parens);
+  } else {
+    form_constant(constant, need_parens, &octl);
+  }  /*if */
+#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   form_constant(constant, need_parens, &octl);
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 }  /* gen_constant */
 
 
