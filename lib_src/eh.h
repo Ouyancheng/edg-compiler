@@ -207,8 +207,8 @@ typedef a_byte an_ETS_flag_set;
 
 /* Macros used for checking ETS flags. */
 #define is_pointer(flag)             ((flag & ETS_IS_POINTER) != 0)
-#define is_pointer_to_const(flag)    ((flag & ETS_IS_POINTER_TO_CONST) != 0)
-#define is_pointer_to_volatile(flag) ((flag & ETS_IS_POINTER_TO_VOLATILE) != 0)
+#define is_pointer_to_const(flag)    ((flag & ETS_POINTER_TO_CONST) != 0)
+#define is_pointer_to_volatile(flag) ((flag & ETS_POINTER_TO_VOLATILE) != 0)
 #define is_reference(flag)           ((flag & ETS_IS_REFERENCE) != 0)
 #define is_ellipsis(flag)            ((flag & ETS_IS_ELLIPSIS != 0)
 
