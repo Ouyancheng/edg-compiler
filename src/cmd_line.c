@@ -1067,7 +1067,7 @@ common_cfront_mode_settings:
 #if !RUNTIME_USES_NAMESPACES
         namespaces_enabled = FALSE;
 #endif /* !RUNTIME_USES_NAMESPACES */
-#if !RUNTIME_USE_TYPENAME
+#if !RUNTIME_USES_TYPENAME
         typename_enabled = FALSE;
         implicit_typename_enabled = TRUE;
 #endif /* !RUNTIME_USES_TYPENAME */
