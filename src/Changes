@@ -1,5 +1,13 @@
 Version 2.32
 
+4/29/96 Anonymous unions and source-sequence lists
+
+When an anonymous union appears in a non-class scope, its representation in
+the source-sequence list now includes an entry for the compiler-generated
+variable that is the anonymous-union parent object.  The entry for the
+variable immediately follows the end-of-construct entry for the anonymous
+union; the anonymous union type entry is still marked as autonomous.
+
 4/29/96 Error recovery bug: internal error during template instantiation
 
 If a nested class member of an anonymous union in a class template had
