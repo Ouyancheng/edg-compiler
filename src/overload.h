@@ -266,6 +266,9 @@ EXTERN unsigned long
 
 extern void free_arg_match_summary_list(an_arg_match_summary_ptr amsp);
 
+extern a_type_ptr operand_complete_object_type(an_operand *operand,
+                                               a_boolean  call_case);
+
 extern void issue_warning_from_arg_match_summary(
                                             an_arg_match_summary_ptr amsp,
                                             a_source_position        *err_pos);
