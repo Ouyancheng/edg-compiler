@@ -109,7 +109,7 @@ the available list.
 
 static void db_variable_remapping(a_variable_remapping_for_inlining_ptr vrip)
 /*
-Display the indicated variable remapping for debugging urposes.
+Display the indicated variable remapping for debugging purposes.
 */
 {
   db_variable(vrip->orig_variable);
@@ -1014,10 +1014,12 @@ If not, *failed is set.
           expand_statement_inline(statement->variant.for_loop.statement,
                                   &sub_insert_location, inlinable, failed);
           stmt = sub_insert_location.variant.stmt;
-          /* Copyt the increment expression. */
-          increment_expr =
-             copy_expr_tree(statement->variant.for_loop.extra_info->increment);
-          set_expr_result_not_used(increment_expr);
+          /* Copy the increment expression. */
+          increment_expr = statement->variant.for_loop.extra_info->increment;
+          if (increment_expr != NULL) {
+            increment_expr = copy_expr_tree(increment_expr);
+            set_expr_result_not_used(increment_expr);
+          }  /* if */
           /* Copy the "for" statement.  This does not use
              copy_inlined_statement because it needs to copy the for loop
              supplement. */
