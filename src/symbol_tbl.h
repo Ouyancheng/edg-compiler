@@ -2377,6 +2377,11 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
    (sym)->kind == (a_symbol_kind)sk_member_function ||                \
    (sym)->kind == (a_symbol_kind)sk_overloaded_function)
 
+/* Return TRUE if a symbol is a function or function template symbol. */
+#define is_function_or_template_symbol(sym)				\
+  (is_function_symbol((sym)) ||						\
+   (sym)->kind == (a_symbol_kind)sk_function_template)
+
 /* Return TRUE if a symbol is a member function symbol. */
 #define is_member_function_symbol(sym)                                \
   ((sym)->kind == (a_symbol_kind)sk_member_function ||                \

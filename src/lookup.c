@@ -184,7 +184,7 @@ the options being used for the lookup.
   }  /* if */
   if (sym != NULL) {
    if (sym->kind == (a_symbol_kind)sk_namespace_projection &&
-        !is_function_symbol(fundamental_symbol_of(sym))) {
+        !is_function_or_template_symbol(fundamental_symbol_of(sym))) {
       /* A previous lookup created a synthesized namespace
          projection symbol.  If the fundamental symbol is not a
 	 function symbol, clear the fundamental symbol pointed
@@ -723,7 +723,7 @@ symbol(s) in curr_sym.
   } else {
     /* See if the current symbol is a routine symbol that is the same as
        new symbol. */
-    check_assertion(is_function_symbol(curr_sym));
+    check_assertion(is_function_or_template_symbol(curr_sym));
     result = curr_sym == new_sym;
   }  /* if */
   return result;
@@ -755,8 +755,8 @@ scope lookup.  options specifies the options being used for the lookup.
      it is an overload set, make a new overload set containing
      namespace projections that point to its members. */
   if (new_sym->kind != (a_symbol_kind)sk_overloaded_function) {
-    /* The new symbol is a simple function.  Make a namespace
-       projection that points to it. */
+    /* The new symbol is a simple function or is a function template.
+       Make a namespace projection that points to it. */
     if (curr_sym == NULL) {
       curr_sym = enter_synthesized_projection_symbol(new_sym, locator,
                                                      qualified_lookup,
@@ -835,7 +835,7 @@ scope lookup.  options specifies the options being used for the lookup.
   /* Make sure the lookup set points to the fundamental symbol. */
   new_sym = fundamental_symbol_of(new_sym);
   if (curr_sym == NULL) {
-    if (is_function_symbol(new_sym)) {
+    if (is_function_or_template_symbol(new_sym)) {
       curr_sym = merge_function_into_lookup_set((a_symbol_ptr)NULL,
                                                 new_sym, locator,
                                                 qualified_lookup,
@@ -861,7 +861,8 @@ scope lookup.  options specifies the options being used for the lookup.
     /* The symbol is already present -- nothing more to do. */
   } else {
     fund_curr_sym = fundamental_symbol_of(curr_sym);
-    if (!is_function_symbol(new_sym) || !is_function_symbol(fund_curr_sym)) {
+    if (!is_function_or_template_symbol(new_sym) ||
+        !is_function_or_template_symbol(fund_curr_sym)) {
       /* There is more than one symbol, and they are not all functions.
          This is an error unless the two symbols are from the same scope
          and one is a tag and the other a nontag.  Set the error flag.
@@ -1668,7 +1669,7 @@ that do normal id lookup processing.
       ref_sym = common_sym;
     }  /* if */
   }  /* if */
-  if (ref_sym != NULL && !is_function_symbol(ref_sym)) {
+  if (ref_sym != NULL && !is_function_or_template_symbol(ref_sym)) {
     /* Only functions from the referencing context are used.  All other
        names can only come from the definition context.  The WP
        requires only "dependent" functions from the referencing context
