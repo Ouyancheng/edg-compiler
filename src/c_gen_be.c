@@ -101,21 +101,6 @@ instead of K&R C.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
 /*
-See if the target is the Sun cc compiler, which has some bugs we know
-about and can work around.  Note this is for the SunOS 4.x compiler.
-*/
-#ifndef SUNCC
-#ifdef sun
-#if !C_GEN_BE_GENERATES_ANSI_C && !GCC_IS_GENERATED_CODE_TARGET
-#define SUNCC TRUE
-#endif /* !C_GEN_BE_GENERATES_ANSI_C && !GCC_IS_GENERATED_CODE_TARGET */
-#endif /* ifdef sun */
-#ifndef SUNCC
-#define SUNCC FALSE
-#endif /* ifndef SUNCC */
-#endif /* ifndef SUNCC */
-
-/*
 See if the target is the SunPro C compiler.
 */
 #ifndef SUNPRO_C_IS_C_GEN_BE_TARGET
