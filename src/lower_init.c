@@ -4200,6 +4200,7 @@ scope is the scope in which the variable's definition appears.
   add_first_time_test(variable, &insert_location, &block_stmt, &test_var);
   (void)insert_assignment_statement(var_lvalue_expr(variable), op, source_node,
                                     &insert_location);
+  variable->initialization_rewritten_as_assignment = TRUE;
 }  /* lower_constant_init_of_static_in_extern_inline */
 
 #endif /* LOWER_EXTERN_INLINE */
