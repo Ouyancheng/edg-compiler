@@ -581,6 +581,61 @@ not even a typeref on top of an integral type.
           (tp)->variant.integer.enum_info.affiliated_type)
 
 
+/* Bit vector used to pass flags into traverse_type_tree.  Each bit
+   represents a flag. */
+typedef int a_type_tree_traversal_flag_set;
+/* Constants defining bits in the input bit vector used in calls to
+   traverse_type_tree. */
+#define TTT_NO_INPUT_FLAGS 0x0
+#define TTT_RETURN_TYPE 0x1
+			/* When the type being traversed is a function type,
+			   apply the predicate check to the return type. */
+#define TTT_PARAM_TYPES 0x2
+			/* When the type being traversed is a function type,
+			   apply the predicate check to the parameter types. */
+#define TTT_THIS_PARAM_TYPE 0x4
+			/* When the type being traversed is a function type,
+			   apply the predicate check to the implicit this
+			   param type. */
+#define TTT_MEMBER_TYPES 0x8
+			/* When the type being traversed is a class type,
+			   apply the predicate check to nested classes,
+			   enums, and typedef names. */
+#define TTT_TYPES_OF_MEMBER_FUNCTIONS 0x10
+			/* When the type being traversed is a class type,
+			   apply the predicate check to types of member
+			   functions. */
+#define TTT_TYPES_OF_DATA_MEMBERS 0x20
+			/* When the type being traversed is a class type,
+			   apply the predicate check to the types of data
+			   members. */
+#define TTT_BASE_CLASSES 0x40
+			/* When the type being traversed is a class type,
+			   apply the predicate check to its base classes. */
+#define TTT_TEMPLATE_ARGS 0x80
+			/* When the type being traversed is a class type,
+			   apply the predicate check to its template args
+                           (if it is a template class). */
+#define TTT_SKIP_TYPEREFS 0x100
+			/* Skip over typerefs before applying the predicate
+			   check to a given type. */
+#define TTT_SKIP_TYPEDEFS 0x200
+			/* Skip over typedefs before applying the predicate
+			   check to a given type. */
+#define TTT_EXCEPTION_SPECS 0x400
+			/* When the type being traversed is a function type,
+			   apply the predicate check to the exception
+			   specification list. */
+
+/* Type of service function called by traverse_type_tree to return TRUE or
+   FALSE status regarding a given type in a type tree. */
+typedef a_boolean a_type_predicate_function(a_type_ptr tp, a_boolean *flag);
+typedef a_type_predicate_function *a_type_predicate_function_ptr;
+
+a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
+                             a_type_predicate_function_ptr  func,
+                             a_type_tree_traversal_flag_set flags);
+
 #endif /* ifndef TYPES_H */
 
 /******************************************************************************
