@@ -784,6 +784,140 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
 }  /* report_switch_past_init */
 
 
+static void promote_label_and_goto_lifetimes(
+                                        a_control_flow_descr_ptr  block_cfdp,
+                                        an_object_lifetime_ptr    promote_from,
+                                        an_object_lifetime_ptr    promote_to)
+/*
+Loop through the entries in the list headed by block_cfdp, and for each
+goto and label statement with a lifetime matching promote_from, change it
+to point to the lifetime promote_to.
+*/
+{
+  a_control_flow_descr_ptr  cfdp;
+  a_statement_ptr           sp;
+
+  for (cfdp = block_cfdp->next; cfdp != NULL; cfdp = cfdp->next) {
+    switch (cfdp->kind) {
+      case cfdk_goto:
+        /* Pull out the goto statement pointer. */
+        sp = cfdp->variant.goto_statement.ptr;
+        break;
+      case cfdk_label:
+        /* Pull out the label statement pointer. */
+        sp = cfdp->variant.goto_statement.ptr;
+        break;
+      case cfdk_block:
+        if (cfdp->variant.block.object_lifetime == NULL &&
+            (cfdp->variant.block.goto_count > 0 ||
+             cfdp->variant.block.any_labels)) {
+          /* Find the gotos and labels in the nested block and promote
+             their object lifetime pointers, too. */
+        } else {
+          /* Skip over the nested block.  Either it has no gotos or
+             labels or the lifetime associated with it is not useless. */
+          cfdp = cfdp->variant.block.end_of_block;
+        }  /* if */
+      default:
+        continue;
+    }  /* switch */
+    /* If the object lifetime pointer in the goto or label statement matches
+       promote_from, change it to refer to promote_to. */
+    if (sp->variant.label.lifetime == promote_from) {
+      sp->variant.label.lifetime = promote_to;
+    }  /* if */
+  }  /* for */
+}  /* promote_label_and_goto_lifetimes */
+
+
+static void fixup_curr_block_labels_and_gotos(
+                                         a_control_flow_descr_ptr  block_cfdp)
+/*
+block_dfdp points to a control flow description that represents a block that
+is about to be terminated.  That means the lifetime associated with it (along
+with indirectly associated block-after-label lifetimes) will be popped from
+the object lifetime stack.  If any goto or label statement points to an object
+lifetime entry that is useless (that will not be retained in the IL), then
+the pointer must be "promoted" to refer to a liftime that is still on the
+stack.  (Successive poppings of the structured statement stack may result in
+successive promotions of the lifetime associated with an inner-block label or
+goto.)  Here's an example:
+  void f()
+  {                     // function scope
+    {                   // block scope #1
+      {                 // block scope #2
+        goto L;
+      }
+  L:;
+    }
+  }
+When block scope #2 terminates, if there were no destructible objects declared
+in it, the lifetime for the goto statement is promoted to that of block scope
+#1.  Then, when block scope #1 terminates, the lifetimes of both the goto and
+the label are promoted to the lifetime of the function scope.
+*/
+{
+  an_object_lifetime_ptr  block_olp, olp, promote_from = NULL, promote_to;
+  a_boolean               keep_block_object_lifetime;
+
+  db_enter(4, "fixup_curr_block_labels_and_gotos");
+  if (block_cfdp->variant.block.goto_count == 0 &&
+      !block_cfdp->variant.block.any_labels) {
+    /* No gotos or labels to worry about. */
+  } else {
+    block_olp = block_cfdp->variant.block.object_lifetime;
+    check_assertion(block_olp != NULL &&
+                    block_olp->kind == (an_object_lifetime_kind)olk_block);
+
+    if (block_cfdp->parent == NULL) {
+      /* block_cfdp must represent the function scope.  Don't try to promote
+         its lifetime. */
+      keep_block_object_lifetime = TRUE;
+    } else {
+      /* Try to promote the lifetime for an inner block only if it has
+         no destructions associated with it. */
+      keep_block_object_lifetime = (block_olp->destructions != NULL);
+    }  /* if */
+    /* Loop through any olk_block_after_label lifetimes that may belong to the
+       block that is being terminated. */
+    promote_from = curr_object_lifetime;
+    while (promote_from != block_olp) {
+      check_assertion(promote_from->kind ==
+                            (an_object_lifetime_kind)olk_block_after_label);
+      if (promote_from->destructions != NULL) {
+        /* This subblock has destructions, so its lifetime will be retained
+           in the IL.  This means its olk_block will be retained, too. */
+        keep_block_object_lifetime = TRUE;
+        /* Continue on. */
+      } else {
+        /* Find the innermost olk_block_after_label lifetime in the chain
+           that will be kept in the IL.  Stop at the lifetime for the block
+           itself. */
+        promote_to =
+              innermost_block_object_lifetime(promote_from->parent_lifetime);
+        while (promote_to != block_olp && promote_to->destructions == NULL) {
+          promote_to =
+               innermost_block_object_lifetime(promote_to->parent_lifetime);
+        }  /* while */
+        /* Now do the promotions. */
+        promote_label_and_goto_lifetimes(block_cfdp, promote_from, promote_to);
+      }  /* if */
+      /* Advance promote_from to the next in the parent chain. */
+      promote_from =
+               innermost_block_object_lifetime(promote_from->parent_lifetime);
+    }  /* while */
+    /* At this point all the promotions have been done for the subblocks
+       created by label declarations.  Now do the top-level lifetime of the
+       block -- it required. */
+    if (!keep_block_object_lifetime) {
+      promote_to = innermost_block_object_lifetime(block_olp->parent_lifetime);
+      promote_label_and_goto_lifetimes(block_cfdp, block_olp, promote_to);
+    }  /* if */
+  }  /* if */
+  db_exit();
+}  /* fixup_curr_block_labels_and_gotos */
+
+
 static void add_to_control_flow_descr_list(a_control_flow_descr_ptr  new_cfdp)
 /*
 Add new_cfdp to the end of control_flow_descr_list.  This typically involves
@@ -799,7 +933,6 @@ initializing declarations.
 */
 {
   a_control_flow_descr_ptr  cfdp, prev_cfdp, prev_parent, parent;
-  an_object_lifetime_ptr    olp;
 
   db_enter(4, "add_to_control_flow_descr_list");
 #if DEBUG
@@ -842,39 +975,7 @@ initializing declarations.
         free_control_flow_descr(new_cfdp);
         goto done;
       }  /* if */
-      if (!C_mode() && prev_parent->variant.block.goto_count > 0 &&
-          (olp = prev_parent->variant.block.object_lifetime) != NULL) {
-        /* The scope entry for a structured statement is about to be popped. */
-        if (prev_parent->parent == NULL) {
-          /* This must be the function scope itself.  Unresolved gotos are
-             errors, so we needn't worry about them at this point. */
-        } else if (!is_useless_object_lifetime(olp)) {
-          /* olp is going to be popped from the object lifetime stack, but
-             it is not going to be removed from the IL, so the pointers in
-             the goto entries don't have to be changed. */
-        } else {
-          /* Go through the entries for unresolved gotos and "promote" their
-             object_lifetime pointers to the parent of the object lifetime
-             that is about to be popped from the object lifetime stack. */
-          olp = innermost_block_object_lifetime(olp->parent_lifetime);
-          for (cfdp = prev_parent->next; cfdp != NULL; cfdp = cfdp->next) {
-            if (cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
-              cfdp->variant.goto_statement.ptr->variant.label.lifetime = olp;
-            } else if (cfdp->kind == (a_control_flow_descr_kind)cfdk_block) {
-              if (cfdp->variant.block.object_lifetime == NULL &&
-                  cfdp->variant.block.goto_count > 0) {
-                /* Find the gotos in the nested block and promote their object
-                   lifetime pointers, too. */
-              } else {
-                /* Skip over the nested block.  Either it has no gotos or
-                   labels or the lifetime associated with it is not useless. */
-                cfdp = cfdp->variant.block.end_of_block;
-              }  /* if */
-            }  /* if */
-          }  /* for */
-          prev_parent->variant.block.object_lifetime = NULL;
-        }  /* if */
-      }  /* if */
+      fixup_curr_block_labels_and_gotos(prev_parent);
       /* No initialization remains "exposed" after the block is closed. */
       prev_parent->variant.block.exposed_init_in_switch = FALSE;
       /* Set the association between the end-of-block and the block -- they
@@ -1868,6 +1969,7 @@ resumed).
     push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
                          (an_object_lifetime_kind)olk_block_after_label);
     sssep->curr_block_object_lifetime = curr_object_lifetime;
+    sssep->label_invalidates_curr_block_object_lifetime = FALSE;
   }  /* if */
 }  /* reset_curr_block_object_lifetime */
 
@@ -2713,9 +2815,9 @@ pointer is NULL).
 */
 {
   while (olp != function_scope_object_lifetime) {
-    if ((olp->kind == (an_object_lifetime_kind)olk_block ||
-         olp->kind == (an_object_lifetime_kind)olk_block_after_label) &&
-        !is_useless_object_lifetime(olp)) {
+    if (olp->kind == (an_object_lifetime_kind)olk_block ||
+        (olp->kind == (an_object_lifetime_kind)olk_block_after_label) &&
+         !is_useless_object_lifetime(olp)) {
       break;
     }  /* if */
     olp = olp->parent_lifetime;
@@ -2941,11 +3043,13 @@ update_goto_stmt:
     /* Enter the match in the goto statement. */
     goto_stmt->variant.label.lifetime = goto_olp;
   }  /* if */
+#if 0
   if (is_forwards) {
     /* The goto entry for a forwards declaration is no longer needed, so it
        can be removed from the control_flow_descr_list. */
     remove_control_flow_descr(goto_cfdp);
   }  /* if */
+#endif /* if 0 */
   db_exit();
 }  /* check_goto_and_label */
 
@@ -3002,7 +3106,9 @@ condition is not recognized till the label statement is reached.
          list (and then only till the label is seen). */
       label_cfdp = label_sym->variant.label.assoc_control_flow_descr;
       check_goto_and_label(label_cfdp, goto_cfdp, /*is_forwards=*/FALSE);
+#if 0
       remove_control_flow_descr(goto_cfdp);
+#endif /* if 0 */
     } else {
       /* This is a forward goto -- i.e., it references a label that has not
          yet been defined.  Record information about it so that, when the
@@ -3859,7 +3965,7 @@ rescan_statement:
                turn out to be keepable after all; if not, the label
                statement's lifetime pointer will be cleared.) */
             label->variant.exec_stmt->variant.label.lifetime =
-                            innermost_keepable_lifetime(curr_object_lifetime);
+                           innermost_keepable_lifetime(curr_object_lifetime);
           }  /* if */
           /* If there have been forward gotos referencing this label, check
              whether any have jumped over initializing declarations. */
