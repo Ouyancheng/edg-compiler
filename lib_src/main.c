@@ -35,7 +35,7 @@ struct __linkl {
 The AT&T patch utility will link all the struct __linkl *__link defined
 in seperate compilations onto a linked list pointed to by __head.
 */
-struct __linkl	*__head;	/* Pointer to the head of the linked list
+struct __linkl	*__head = NULL;	/* Pointer to the head of the linked list
 				   of initialization and termination
 				   structures. */
 
@@ -74,7 +74,7 @@ void _main ()
 /*
 Walk through the linked list of constructor/destructor function pointers and 
 call each initialization (constructor) function.  The list is pointed to
-by the global variable __head.  As each __link structure is visited, reverse
+by the global variable __head.  As each __linkl structure is visited, reverse
 the order of the linked list.
 */
 {
