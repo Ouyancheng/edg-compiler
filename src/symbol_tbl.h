@@ -822,7 +822,7 @@ typedef struct a_class_symbol_supplement {
 			   can be reused. */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
   a_type_ptr	prev_entry_on_types_list;
-			/* When non-NULL, this points to an entry believed to
+			/* When non-NULL, this points to an entry believed
 			   to have the associated class type as its "next"
 			   pointer.  This is used to optimize the performance
 			   of move_to_end_of_types_list. */

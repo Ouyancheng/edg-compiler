@@ -5701,7 +5701,6 @@ removed from the list.
       /* It's already the last entry on the list. */
     } else {
       a_class_symbol_supplement_ptr  cssp = NULL;
-      /* Scan the list until a match is found. */
       if (is_immediate_class_type(type_ptr) &&
           type_ptr->source_corresp.assoc_info != NULL) {
         cssp = symbol_supplement_for_class(type_ptr);
@@ -5711,6 +5710,7 @@ removed from the list.
         /* Class types usually have a valid "previous entry" pointer. */
         prev_tp = cssp->prev_entry_on_types_list;
       } else {
+        /* Scan the list until a match is found. */
         prev_tp = NULL;
         tp = sp->types;
         while (tp != type_ptr) {
