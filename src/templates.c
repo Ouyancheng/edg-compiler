@@ -85,9 +85,28 @@ able to if the template itself has not yet been defined.
         /* The template itself has not yet been defined.  The caller will
            issue an incomplete-type error. */
       } else if (instantiation_in_progress(tp)) {
-        /* The template is currently being instantiated. */
+        /* This particular template class (not just some other one based on
+           the same template) is currently being instantiated. */
+      } else if (tssp->pending_instantiations >= MAX_PENDING_INSTANTIATIONS) {
+        /* This class instantiation occurs within the context of other
+           instantiations of the same class template.  When the number of
+           such instantantiations-in-progress exceeds a configuration
+           constant value, we assume this to be runaway recursion -- for
+           for instance (to give a rather unlikely example):
+              template <class T, int I> class X {
+                X<T,I+1> x;
+              };
+         */                
+        type_error(ec_runaway_recursive_instantiation, tp);
+        /* Give tp a size of 1 so it won't be treated as incomplete in
+           subsequent processing. */
+        tp->size = 1;
       } else {
         /* We proceed with the instantiation. */
+        /* Increment the count of instantiations-in-progress for the current
+           class template.  It will be decremented when the instantiation is
+           complete. */
+        ++(tssp->pending_instantiations);
 #if DEBUG
         if (debug_level >= 3) {
           fprintf(f_debug, "instantiating: ");
@@ -115,6 +134,9 @@ able to if the template itself has not yet been defined.
         while (curr_token != tok_end_of_source) (void)get_token();
         /* Advance past the end-of-source token. */
         (void)get_token();
+        /* Decrement the count of instantiations-in-progress for the current
+           class template. */
+        --(tssp->pending_instantiations);
       }  /* if */
     }  /* if */
   }  /* if */
