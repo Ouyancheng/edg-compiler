@@ -1,5 +1,11 @@
 Version 3.5
 
+6/17/04  __FUNCTION__ string form in Microsoft mode
+
+The expansion of the identifier __FUNCTION__ in Microsoft C++
+mode now has the full name of the function, including a qualifier for
+the class of a member function, e.g., "X::f" rather than simply "f".
+
 6/17/04  Type information from static data member specialization lost
 
 It is possible for a static data member specialization to have more detailed

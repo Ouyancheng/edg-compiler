@@ -14250,12 +14250,23 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
     switch (curr_token) {
       case tok_func_name:
       case tok_function_name:
-simple_name:
-        /* The simple name of the function. */
-        if (has_name(rp)) {
-          name_str = rp->source_corresp.name;
+        if (microsoft_mode && !C_mode()) {
+          /* A full qualified name for the function. */
+          an_il_to_str_output_control_block octl;
+          clear_il_to_str_output_control_block(&octl);
+          octl.output_str = put_str_to_temp_text_buffer;
+          octl.suppress_typedefs = TRUE;
+          pos_in_temp_text_buffer = 0;
+          form_name(&rp->source_corresp, (an_il_entry_kind)iek_routine, &octl);
+          name_str = temp_text_buffer; 
         } else {
-          name_str = "";
+simple_name:
+          /* The simple name of the function. */
+          if (has_name(rp)) {
+            name_str = rp->source_corresp.name;
+          } else {
+            name_str = "";
+          }  /* if */
         }  /* if */
         break;
       case tok_pretty_function_name:
