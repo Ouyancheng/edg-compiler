@@ -402,7 +402,7 @@ Write the initial information to the IL file, if there is one.
   /* We need a constant that is at least as big as the largest size of
      a (non-string) IL entry.  We take a guess by adding the sizes of
      two of the largest entries, and check here that we're okay. */
-#define MAX_SIZEOF_IL_ENTRY (sizeof(a_type)+sizeof(a_constant))
+#define MAX_SIZEOF_IL_ENTRY (sizeof(a_scope)+sizeof(a_routine))
 #if CHECKING
   { int int_entry_kind;
     for (int_entry_kind = (int)iek_none+1;
