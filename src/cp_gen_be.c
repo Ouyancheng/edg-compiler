@@ -971,10 +971,8 @@ declarations.
       advance_past_preprocessing_directives();
       found_decl = is_routine = FALSE;
       if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
-        if (is_autonomous_decl(type, sec_decl)) break;
-        /* A non-autonomous type declaration (e.g., a type declared in
-           a cast in an expression). */
-        found_decl = TRUE;
+        /* An autonomous type declaration stops the scan. */
+        if (!is_autonomous_decl(type, sec_decl)) found_decl = TRUE;
       } else if (curr_src_seq_entry_is_routine_decl(&rout, &sec_decl) &&
                  sec_decl != NULL && sec_decl->implicit_decl) {
         /* An implicit declaration of a function. */
@@ -1898,26 +1896,38 @@ will be put out when they are encountered when generating the parameter types.
 {
   a_type_ptr                   type;
   a_src_seq_secondary_decl_ptr sec_decl;
-  a_boolean                    is_definition;
+  a_boolean                    is_definition, found_decl;
 
-  while((void)process_preprocessing_directives(),
-        curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
-    /* In C mode, we know all the types will be in the prototype scope,
-       so it's easy to find the end of the list.  In C++, there can be
-       declarations that appear in the function declarator but get entered
-       in the file scope.  To skip those, we just skip non-autonomous tag
-       declarations.  Of course, some of the types we skip might be from
-       whatever follows the function declaration, but they would just get
-       skipped in this same way, so it's harmless to skip them now. */
-    if (il_header.source_language == sl_Cplusplus) {
-      if (is_autonomous_decl(type, sec_decl)) break;
-    } else {
-      if (!type->declared_in_function_prototype) break;
+  for (;;) {
+    a_source_sequence_scan_state saved_state;
+    save_source_sequence_scan_state(&saved_state);
+    /* Skip past macros, etc.  We come back and process these entries if
+       there's actually a declaration following them. */
+    advance_past_preprocessing_directives();
+    found_decl = FALSE;
+    if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
+      /* In C mode, we know all the types will be in the prototype scope,
+         so it's easy to find the end of the list.  In C++, there can be
+         declarations that appear in the function declarator but get entered
+         in the file scope.  To skip those, we just skip non-autonomous tag
+         declarations.  Of course, some of the types we skip might be from
+         whatever follows the function declaration, but they would just get
+         skipped in this same way, so it's harmless to skip them now. */
+      if (il_header.source_language == sl_Cplusplus) {
+        if (!is_autonomous_decl(type, sec_decl)) found_decl = TRUE;
+      } else {
+        if (type->declared_in_function_prototype) found_decl = TRUE;
+      }  /* if */
     }  /* if */
+    /* Go back to before any preprocessing entries skipped. */
+    restore_source_sequence_scan_state(&saved_state);
+    /* Stop looping if a type declaration was not found. */
+    if (!found_decl) break;
+    (void)process_preprocessing_directives();
     /* A type in the function declarator.  Skip over it and mark it for later
        processing. */
     skip_type_and_delay_definition(type, is_definition);
-  }  /* while */
+  }  /* for */
 }  /* bypass_prototype_scope_type_src_seq_entries */
 
 
@@ -1931,16 +1941,21 @@ will be put out when they are encountered when generating the parameter types.
 {
   a_type_ptr                   type;
   a_src_seq_secondary_decl_ptr sec_decl;
-  a_boolean                    is_definition;
+  a_boolean                    is_definition, found_decl, is_type;
 
   for (;;) {
-    (void)process_preprocessing_directives();
+    a_source_sequence_scan_state saved_state;
+    save_source_sequence_scan_state(&saved_state);
+    /* Skip past macros, etc.  We come back and process these entries if
+       there's actually a declaration following them. */
+    advance_past_preprocessing_directives();
+    found_decl = is_type = FALSE;
     if (ss_entry_kind(curr_source_sequence_entry) == iek_variable) {
-      /* Bypass a parameter declaration. */
-      adv_curr_source_sequence_entry();
+      /* A parameter declaration. */
+      found_decl = TRUE;
     } else if (ss_entry_kind(curr_source_sequence_entry) == iek_statement) {
       /* Stop on the opening brace of the function. */
-      break;
+      /* found_decl = FALSE; */
     } else {
       /* Anything else should be a type declared or defined in the parameter
          list (and in the prototype scope, in C). */
@@ -1948,12 +1963,23 @@ will be put out when they are encountered when generating the parameter types.
         check_assertion_str(il_header.source_language == sl_Cplusplus ||
                             type->declared_in_function_prototype,
                       "bypass_prototyped_param_...: not prototype scope type");
-        /* Skip past the source sequence entries for the type and mark the
-           definition as delayed. */
-        skip_type_and_delay_definition(type, is_definition);
+         found_decl = is_type = TRUE;
       } else {
         unexpected_condition_str("bypass_prototyped_param_...: not a type");
       }  /* if */
+    }  /* if */
+    /* Go back to before any preprocessing entries skipped. */
+    restore_source_sequence_scan_state(&saved_state);
+    /* Stop looping if an embedded declaration was not found. */
+    if (!found_decl) break;
+    (void)process_preprocessing_directives();
+    if (!is_type) {
+      /* Bypass a parameter declaration. */
+      adv_curr_source_sequence_entry();
+    } else {
+      /* Skip past the source sequence entries for a type and mark the
+         definition as delayed. */
+      skip_type_and_delay_definition(type, is_definition);
     }  /* if */
   }  /* for */
 }  /* bypass_prototyped_param_src_seq_entries */

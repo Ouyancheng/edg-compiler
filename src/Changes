@@ -1,5 +1,15 @@
 Version 2.35
 
+1/5/97   C++-generating back end: pragmas following prototyped parameter lists
+
+A change made in 2.34 (see Changes entry of 11/25/96) to deal with
+macros within prototyped parameter lists broke cases like the following:
+
+  void f(int);
+  #pragma unknown
+
+In the output, the pragma came out within the parameter list.  Now fixed.
+
 1/3/97   ABI_CHANGES_FOR_PLACEMENT_DELETE passed to runtime
 
 The value of the ABI_CHANGES_FOR_PLACEMENT_DELETE flag is passed to the
