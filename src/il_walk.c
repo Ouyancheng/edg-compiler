@@ -421,10 +421,16 @@ definition of the routine is needed, and not just the declaration.
     /* If the definition is present, walk it.  set_routine_defined takes
        care of calling this again later when defined gets set. */
     if (rout->defined) {
+      a_memory_region_number saved_curr_il_region_number=curr_il_region_number;
       a_scope_ptr scope;
       check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
                           "set_routine_definition_needed: memory region gone");
       scope = il_header.region_scope_entry[rout->assoc_scope];
+      /* Set curr_il_region_number for the duration of the sweeps here.
+         This is necessary in case some a_per_instantiation_needed_flags_entry
+         entries need to be allocated; we need to know what memory region
+         to put them in. */
+      curr_il_region_number = rout->assoc_scope;
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
       if (one_instantiation_per_object) {
         /* If we're maintaining a separate set of "needed" flags for each
@@ -457,6 +463,7 @@ definition of the routine is needed, and not just the declaration.
         /* We may be able to dispose of the memory region now. */
         check_for_done_with_memory_region(rout->assoc_scope);
       }  /* if */
+      curr_il_region_number = saved_curr_il_region_number;
     }  /* if */
   }  /* if */
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
