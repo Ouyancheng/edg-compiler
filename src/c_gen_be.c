@@ -2196,7 +2196,7 @@ or "DEFAULT").
   end_output_line_if_begun();
   indent = 0;
   disable_line_wrapping();
-  write_str("#pragma ");
+  write_str("#pragma STDC ");
   switch (kind) {
     case stdc_pk_fp_contract:
       write_str("FP_CONTRACT ");
@@ -2275,7 +2275,11 @@ Dump a single #pragma from the IL entry.
     disable_line_wrapping();
     octl.suppress_line_breaking = TRUE;
     if (pp->kind == (a_pragma_kind)pk_stdc) {
-      /* STDC pragmas are emitted based on IL information. */
+      if (innermost_function_scope == NULL) {
+        /* File-scope STDC pragmas are emitted based on IL information. */
+      } else {
+        dump_stdc_pragma(pp->variant.stdc.kind, pp->variant.stdc.value);
+      }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
     /* Check for #pragma upc. */
     } else if (pp->kind == (a_pragma_kind)pk_upc) {

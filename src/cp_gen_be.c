@@ -8036,6 +8036,7 @@ Generate one of the predefined C99 pragmas.
 */
 {
   gen_pragma_start(pp);
+  write_str("STDC ");
   switch (pp->variant.stdc.kind) {
     case stdc_pk_fp_contract: write_str("FP_CONTRACT "); break;
     case stdc_pk_fenv_access: write_str("FENV_ACCESS "); break;

@@ -1,5 +1,21 @@
 Version 3.4
 
+2/10/04 C- and C++-generating back ends: C99 STDC pragmas
+
+The C- and C++-generating back ends left out the "STDC" token when emitting
+C99 STDC pragmas.  Furthermore, the C-generating back end failed to emit
+STDC pragmas appearing in function definitions.  For example:
+
+  #pragma STDC FP_CONTRACT ON       // Incorrectly rendered as:
+                                    // #pragma FP_CONTRACT ON
+  int main() {
+  #pragma STDC CX_LIMITED_RANGE ON  // Not rendered by the C-generating
+                                    // back end.
+    return 0;
+  }
+
+These problems are now fixed.
+
 2/9/04  Sun Compatibility: diagnostic on undefined inline function
 
 The Sun compiler sometimes accepts inline functions that are referenced
