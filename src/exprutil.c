@@ -6002,6 +6002,20 @@ FALSE means the reference is compiler-generated).
       clear_operand((an_operand_kind)ok_constant, result);
       set_variable_address_constant(variable, &result->variant.constant,
                                     /*set_address_taken_flag=*/FALSE);
+      if (is_template_dependent_context() &&
+          variable->source_corresp.is_class_member &&
+          variable->source_corresp.parent.
+                     class_type->variant.class_struct_union.is_nonreal_class) {
+        /* In a prototype instantiation, a static data member of the current
+           class is template-dependent.  Make a template param constant by
+           adding a do-nothing cast. */
+        a_constant constant_copy;
+        copy_constant(&result->variant.constant, &constant_copy);
+        make_template_param_cast_constant(&constant_copy,
+                                          &result->variant.constant,
+                                          result->variant.constant.type,
+                                          /*is_explicit=*/FALSE);
+      }  /* if */
       result->type = variable_type;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (record_expr) {
