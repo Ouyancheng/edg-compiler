@@ -1711,7 +1711,7 @@ called by id_linkage.
         /* *overload_symbol is set for cases in which the current symbol
            may be added to an overload list.  Note that overloading across
            scopes is not allowed.  Also, *overload_symbol may end up being
-           cleared latter. */
+           cleared later. */
         idlbp->homonym_symbol = other_decl;
       }  /* if */
       if (other_decl->kind == (a_symbol_kind)sk_overloaded_function) {
