@@ -455,7 +455,11 @@ Flag that is TRUE if x86-specific attributes should be recognized (and
 recorded in the IL).  This includes the stdcall and cdecl attributes.
 */
 #ifndef GNU_X86_ATTRIBUTES_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED && defined(__i386)
 #define GNU_X86_ATTRIBUTES_ALLOWED TRUE
+#else /* !(GNU_EXTENSIONS_ALLOWED && defined(__i386)) */
+#define GNU_X86_ATTRIBUTES_ALLOWED FALSE
+#endif /* GNU_EXTENSIONS_ALLOWED && defined(__i386) */
 #endif /* ifndef GNU_X86_ATTRIBUTES_ALLOWED */
 
 /*
