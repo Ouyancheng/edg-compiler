@@ -1,6 +1,13 @@
 Version 2.26
 
-10/5/94  Empty enumerations output by C++-generating back end
+10/5/94  C++-generating back end: access specifiers in anonymous unions
+
+The output of anonymous unions in the C++-generating back end now
+understands that anonymous union members inherit the current access
+from the surrounding class, and no access specifiers are generated
+within the anonymous union.
+
+10/5/94  C++-generating back end: empty enumerations
 
 Empty enumerations are now output correctly by the C++-generating back
 end (where "correctly" means "without a core dump").
