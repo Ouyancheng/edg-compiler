@@ -304,7 +304,7 @@ following information:
 #endif /* DEBUG */
   /* Get the pointer to the type_info associated with the source object. 
      This is stored in the function pointer field of the vtbl entry. */
-  object_tiip = (a_type_info_impl_ptr)vtbl_ptr->function;
+  object_tiip = vtbl_ptr->function.type_info_impl;
   if (tiip == NULL) {
     /* When tiip is NULL, the pointer is being cast to void*.  This
        means that class_ptr is to be converted to a pointer to the
@@ -421,7 +421,7 @@ exception.
   if (vtbl_ptr == NULL) __throw_bad_typeid();
   /* Get the pointer to the type_info_impl associated with the source object. 
      This is stored in the function pointer field of the vtbl entry. */
-  tiip = (a_type_info_impl_ptr)vtbl_ptr->function;
+  tiip = (a_type_info_impl_ptr)vtbl_ptr->function.type_info_impl;
   /* Return the address of the user type_info. */
   return (void*)&tiip->user_type_info;
 }  /* __get_typeid */

@@ -29,9 +29,16 @@ struct a_vtbl_entry {
 			   vtbl entries.  Cfront uses the same structure for
 		  	   both member pointers and vtbl entries, so this is
 			   present for cfront compatibility. */
-  a_void_function_ptr
-		function;
+  union {
+    a_void_function_ptr
+		ptr;
 			/* Pointer to the function to be called. */
+    a_type_info_impl_ptr
+		type_info_impl;
+			/* Pointer to the type information implementation
+			   entry.  This is present in slot zero of the
+			   virtual function table. */
+  } function;
 };
 typedef a_vtbl_entry *a_vtbl_entry_ptr;
 

@@ -1,5 +1,12 @@
 Version 2.44
 
+6/11/00  Eliminated casts of pointer-to-function to pointer-to-object
+
+As required by the standard, the front end now issues a diagnostic when
+a pointer-to-function is cast to a pointer-to-object.  The runtime contained
+several such constructs which would no longer compile in strict mode.  These
+casts have been removed.
+
 3/9/00   Bug in internal try block handling with exception specifications
 
 A bug in the EH code that handles internal try blocks resulted in an
