@@ -3371,6 +3371,9 @@ user later during real instantiations.
 }  /* default_arg_prototype_instantiation */
 
 
+#if !GNU_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- attributes is not used in that case. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void static_data_member_prototype_instantiation(
                                               a_symbol_ptr      template_sym,
                                               an_attribute_ptr  attributes)
