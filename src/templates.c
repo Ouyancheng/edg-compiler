@@ -6386,6 +6386,16 @@ associated parameter.
                                                      templ_param_list,
                                                      source_pos, options,
                                                      copy_error);
+        /* Make sure the new type is a valid type for a a nontype template
+           parameter. */
+        if (const_type != new_const_type &&
+            (is_void_type(new_const_type) ||
+             is_class_struct_union_type(new_const_type) ||
+             (new_const_type->kind == (a_type_kind)tk_float &&
+              !floating_point_template_parameters_allowed))) {
+          new_const_type = error_type();
+          *copy_error = TRUE;
+        }  /* if */
       }  /* if */
       new_tap->variant.constant =
          copy_template_param_con_with_substitution(tap->variant.constant,

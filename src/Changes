@@ -1,5 +1,19 @@
 Version 3.4
 
+2/23/04  Deduction should fail if a nontype parameter is given an invalid type
+
+Core issue 368 specifies that an attempt to give a nontype template parameter
+an invalid type should cause deduction to fail.  We now implement this
+rule.  Note that the example will still call #1 in versions configured to
+allow floating-point template arguments.
+
+  template <class T, T d> class X {};
+  template <class T> X<T,0> Foo (T *);     // #1
+  template <class T> int Foo (T const *);  // #2
+  void f(float *p1) {
+    int i = Foo (p1); // calls #2, deduction should fail on #1
+  }
+
 2/23/04  Abort during partial specialization processing
 
 An abort could occur during partial specialization processing when
