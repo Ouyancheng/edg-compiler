@@ -1736,7 +1736,7 @@ error code.
       m = "excessive recursion at instantiation of %t";
       break;
     case ec_bad_template_declaration:
-      m = "invalid template declaration";
+      m = "\"%s\" is not a function or static data member";
       break;
     case ec_bad_nontype_template_arg:
       m = "argument is incompatible with corresponding template parameter";
@@ -1755,6 +1755,9 @@ error code.
       break;
     case ec_template_not_allowed:
       m = "\"template\" not allowed";
+      break;
+    case ec_not_a_class_template:
+      m = "%t is not a class template";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
