@@ -167,6 +167,14 @@ the current statement sequence.
       case stmk_end_test_while:
         head_ptr = &ssp->variant.loop_statement;
         break;
+      case stmk_for:
+        if (sssep->for_init) {
+          head_ptr = &ssp->variant.for_loop.extra_info->for_init;
+          check_assertion(*head_ptr == NULL);
+        } else {
+          head_ptr = &ssp->variant.for_loop.statement;
+        }  /* if */
+        break;
       case stmk_switch:
         if (sssep->curr_switch_clause == NULL) {
           /* There is no current switch clause, so add statements to the
@@ -492,6 +500,7 @@ the associated il statement.
                               = FALSE;
   sssep->any_exec_statement_seen
                               = FALSE;
+  sssep->for_init             = FALSE;
   if (kind != ssk_compound || sp->dependent_statement) {
     /* For statements other than blocks, copy down the any_exec_statement_seen
        flag.  It's really being maintained for the block containing this
@@ -1081,6 +1090,12 @@ static void for_init_statement(void)
 Scan the initializing expression or, in C++, declaration of a for statement.
 */
 {
+  a_struct_stmt_stack_entry_ptr sssep;
+
+  sssep = &struct_stmt_stack[depth_stmt_stack];
+  /* Let add_statement know this is a for_init so that the statement is
+     attached in the right place. */
+  sssep->for_init = TRUE;
   if (C_dialect == C_dialect_cplusplus &&
       is_decl_not_expr(/*abstract_declarator_allowed=*/FALSE,
                        /*real_declarator_allowed=*/TRUE)) {
@@ -1091,6 +1106,7 @@ Scan the initializing expression or, in C++, declaration of a for statement.
     if (curr_token != tok_semicolon) expression_statement();
     (void)required_token(tok_semicolon, ec_exp_semicolon);
   }  /* if */
+  sssep->for_init = FALSE;
 }  /* for_init_statement */
 
 
@@ -1110,92 +1126,44 @@ either an expression statement or a declaration statement.
 */
 {
   a_statement_ptr   sp;
-  a_statement_ptr   temp_stmt;
-  a_constant        constant;
-  an_expr_node_ptr  incr_expr;
-  a_source_position start_position, temp_position;
 
   db_enter(3, "for_statement");
 
   check_loop_unreachable_code();
-  /* Overall, the "for" statement
-
-       for (for-init-stmt; expr2; expr3) statement
-
-     is translated as
-
-       for-init-stmt;
-       while (expr2) {
-         statement
-         expr3;
-       }
-
-     In C for-init-stmt is an expression statement; in C++ it may also be
-     a declaration.  If expr2 is omitted, "1" is used instead. */
-
-  /* Save the source sequence number of the "for" for use later. */
-  start_position = pos_curr_token;
+  /* Allocate the for statement. */
+  sp = add_statement((a_statement_kind)stmk_for);
+  /* Push an entry on the structured statement stack. */
+  push_stmt_stack(ssk_for, sp);
   /* Ignore the initial "for". */
 #if CHECKING
   if (curr_token != tok_for) internal_error("for_statement: expected for");
 #endif /* CHECKING */
   (void)get_token();
-
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   add_stop_token(tok_semicolon);
-
-  /* Scan the initializing expression or declaration if it is present. */
+  /* Scan the initializing expression or declaration if it is present.  It
+     will be added to the correct place in the stmk_for entry. */
   for_init_statement();
-
-  /* Allocate the for statement.  This is done late so that the initializing
-     expression can be evaluated outside the loop. */
-  sp = add_statement((a_statement_kind)stmk_while);
-  set_stmt_source_position(sp->position, start_position);
-  /* Push an entry on the structured statement stack. */
-  push_stmt_stack(ssk_for, sp);
-
   /* Scan the controlling expression if it is present, and check to see
      that it is scalar. */
   if (curr_token != tok_semicolon) {
     sp->expr = scan_boolean_controlling_expression();
-  } else {
-    /* Use a constant "1" for an omitted expression. */
-    set_integer_constant(&constant, 1L, (an_integer_kind)ik_int);
-    sp->expr = alloc_node_for_constant(&constant);
   }  /* if */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
-
-  /* Scan the incrementing expression if it is present.  Save the expression
-     for later use as a statement within the loop. */
+  /* Scan the incrementing expression if it is present. */
   if (curr_token != tok_rparen) {
-    temp_position = pos_curr_token;
-    incr_expr = scan_void_expression();
-  } else {
-    /* Incrementing expression is omitted. */
-    incr_expr = NULL;
+    sp->variant.for_loop.extra_info->increment = scan_void_expression();
   }  /* if */
-
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
-
   /* Scan the dependent statement. */
   dependent_statement();
-
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
-
-  /* If there was an incrementing expression, add it to the end of the
-     loop. */
-  if (incr_expr != NULL) {
-    temp_stmt = add_statement((a_statement_kind)stmk_expr);
-    set_stmt_source_position(temp_stmt->position, temp_position);
-    temp_stmt->expr = incr_expr;
-  }  /* if */
-
   /* Pop the structured statement stack. */
   pop_stmt_stack();
 
