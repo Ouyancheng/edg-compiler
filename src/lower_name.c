@@ -2678,8 +2678,11 @@ other name mangling that might use the name is done.
     /* Allocate space for the mangled name and copy it. */
     mangled_name = alloc_lowered_name_string(mctl.length);
     (void)strcpy(mangled_name, temp_text_buffer);
-    check_assertion(!type->source_corresp.name_has_been_mangled);
-    type->source_corresp.unmangled_name = type->source_corresp.name;
+    /* Do not save the unmangled name when the class was originally
+       unnamed and has been given a name. */
+    if (!type->source_corresp.name_has_been_mangled) {
+      type->source_corresp.unmangled_name = type->source_corresp.name;
+    }  /* if */
     type->source_corresp.name = mangled_name;
     type->source_corresp.name_has_been_mangled = TRUE;
     type->source_corresp.nested_type_mangling_has_been_done = TRUE;
