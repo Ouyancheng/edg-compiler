@@ -1549,13 +1549,11 @@ subaggregate. The function returns a pointer to IL a_constant entity.
     a_type_ptr  required_type = context->type;
     if (!C_mode()) {
       nonconst_allowed = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode) {
       /* A Microsoft extension permits a nonconstant initializer in the
          aggregate initialization of an automatic variable. */
       nonconst_allowed = !(init_info->static_lifetime ||
                            init_info->compound_literal);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       nonconst_allowed = FALSE;
     }  /* if */
@@ -1585,6 +1583,10 @@ subaggregate. The function returns a pointer to IL a_constant entity.
       constant = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       constant->variant.dynamic_init = dip;
       constant->type = context->type;
+      /* Add a cast to the expression under the dynamic initialization. */
+      check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
+      dip->variant.expression = add_cast(dip->variant.expression,
+                                         context->type);
     } else if (context->type != required_type) {
       /* The initialization of an enum bit field in Microsoft mode.  We
          scanned as if an integer bit field was being initialized, but the
