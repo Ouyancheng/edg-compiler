@@ -1739,24 +1739,6 @@ one step instead of class-by-class, return TRUE.
 }  /* pm_cast_is_unambiguous */
 
 
-static a_boolean is_unnamable_variably_modified_type(a_type_ptr tp)
-/*
-Return TRUE if the indicated type is a variably-modified type that
-cannot be named in a cast.  It can be named if the variably-modified
-part appears under a typedef.
-*/
-{
-  a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE |
-                                              TTT_STOP_AT_TYPEDEFS);
-  a_boolean                       result = FALSE;
-
-  if (vla_enabled) {
-    result = traverse_type_tree(tp, ttt_is_variably_modified_type, tt_flags);
-  }  /* if */
-  return result;
-}  /* is_unnamable_variably_modified_type */
-
-
 static void gen_initializer_constant(a_constant_ptr constant,
                                      a_type_ptr     type)
 /*
@@ -1847,18 +1829,6 @@ initialized is not a reference.
        be named here. */
     form_integer_constant(constant, /*suppress_cast=*/TRUE,
                           /*need_parens=*/TRUE, &octl);
-  } else if (il_header.source_language == sl_C &&
-             constant->implicit_cast &&
-             is_pointer_type(constant->type) &&
-             is_unnamable_variably_modified_type(constant->type)) {
-    /* The constant is cast to a variably-modified type that cannot be
-       named.  Turn the array bounds into "[]". */
-    a_boolean saved_gen_vla_array_as_unknown_bound_array =
-                                     octl.gen_vla_array_as_unknown_bound_array;
-    octl.gen_vla_array_as_unknown_bound_array = TRUE;
-    gen_constant(constant, /*need_parens=*/TRUE);
-    octl.gen_vla_array_as_unknown_bound_array =
-                                    saved_gen_vla_array_as_unknown_bound_array;
   } else {
     /* Normal constant. */
     gen_constant(constant, /*need_parens=*/TRUE);
@@ -3757,20 +3727,6 @@ need_parens is TRUE.
        be named here. */
     form_integer_constant(expr->variant.constant, /*suppress_cast=*/TRUE,
                           need_parens, &octl);
-  } else if (il_header.source_language == sl_C &&
-             is_constant_node(expr) &&
-             expr->variant.constant->implicit_cast &&
-             is_pointer_type(expr->variant.constant->type) &&
-             is_unnamable_variably_modified_type(
-                                               expr->variant.constant->type)) {
-    /* A constant cast to a variably-modified type that cannot be
-       named.  Turn the array bounds into "[]". */
-    a_boolean saved_gen_vla_array_as_unknown_bound_array =
-                                     octl.gen_vla_array_as_unknown_bound_array;
-    octl.gen_vla_array_as_unknown_bound_array = TRUE;
-    gen_constant(expr->variant.constant, /*need_parens=*/TRUE);
-    octl.gen_vla_array_as_unknown_bound_array =
-                                    saved_gen_vla_array_as_unknown_bound_array;
   } else {
     gen_expr(expr, need_parens);
   }  /* if */
@@ -4185,7 +4141,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
              an argument of a type that can be implicitly converted to
              a parameter type that uses a prototype scope type.  There's
              no way to write the cast explicitly, because the type can't
-             be named at the call site. */
+             be named at the call site.  Likewise for an implicit cast
+             to a variably-modified type. */
           if (expr->variant.operation.compiler_generated) {
             if (is_array_decay_cast(expr)) {
               /* A cast that does array-to-pointer decay.  The cast can be
