@@ -12636,7 +12636,18 @@ is a recursive call for a class nested within the template class.
     /* Instantiate the class, if not already done. */
     complete_class_type_is_needed(class_type);
     if (is_incomplete_type(class_type)) {
-      if (top_level) pos_error(ec_incomplete_type_not_allowed, pos);
+      if (top_level) {
+        an_error_severity	severity = es_error;
+        if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate &&
+            !is_pragma) {
+          /* A Microsoft "extern template" directive.  Just issue a warning
+             if the class type is incomplete.  The directive should take
+             effect when the class is completed, but we don't implement
+             this at this point. */
+          severity = es_warning;
+        }  /* if */
+        pos_diagnostic(severity, ec_incomplete_type_not_allowed, pos);
+      }  /* if */
     } else {
       mem_sym = sym->variant.class_struct_union.extra_info->symbols;
       /* Loop through all the member symbols looking for member functions. */
@@ -12665,7 +12676,7 @@ is a recursive call for a class nested within the template class.
               update_instantiation_flags(list_sym, pragma_kind, pos,
                                          /*is_class_instantiation=*/TRUE,
                                          is_pragma);
-           	}  /* if */
+            }  /* if */
           }  /* for */
         } else if (mem_sym->kind == (a_symbol_kind)sk_static_data_member) {
           if (sym_can_be_instantiated(mem_sym, /*issue_errors=*/FALSE,

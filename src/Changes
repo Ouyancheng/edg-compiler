@@ -1,5 +1,17 @@
 Version 2.38
 
+1/9/98    Microsoft compatibility: extern template directive that references
+          a class template that is declared but not defined
+
+As an extension, the Microsoft compiler accepts "extern template" as
+a directive to suppress the instantiation of the specified entity.  The
+Microsoft compiler permits an incomplete type to be specified (with a
+warning).  We now issue a warning instead of an error for this case, but
+still ignore the directive when the class type is incomplete.
+
+  template<class T> class A;
+  extern template class A<char>;
+
 1/9/97    Internal error in hidden-name-table support
 
 When RECORD_HIDDEN_NAMES_IN_IL is configured to TRUE (e.g., for the
