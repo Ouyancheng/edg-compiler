@@ -13,6 +13,15 @@ to be enabled with --diag_warning or the like to be seen.
   ec_pointer_conversion_to_same_size_int: "conversion from pointer to
     same-sized integral type (potential portability problem)"
 
+10/28/04 Workaround for incorrect setting of LDBL_MANT_DIG
+
+The GNU header files for Intel Solaris (through gcc version 3.2) provide
+incorrect values for the long double macros in float.h (e.g., LDBL_MANT_DIG).
+When the front end is built with a version of gcc that suffers from this
+problem, some of the long double operations in float_pt.c do not work properly.
+Our basics.h header will now detect the use the flawed gcc headers and
+automatically redefine the LDBL... macros to the correct values.
+
 10/28/04 Detecting invalid setting of long double configuration
 
 The assertion checks in float_pt.c have been made more robust to detect
