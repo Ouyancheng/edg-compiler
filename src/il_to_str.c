@@ -954,6 +954,7 @@ in the current context.
 
   if (template_param_map == NULL ||
       coord->depth > template_param_map_max_level ||
+      coord->depth == 0 || /* Template template parameter. */
       coord->position > template_param_map[coord->depth - 1].max_position) {
     result = NULL;
   } else {
