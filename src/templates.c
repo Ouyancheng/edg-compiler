@@ -11356,11 +11356,11 @@ set, and its source sequence entry, if any, has been put out.)
             if (decl_state->defines_something) {
               tssp->il_template_entry->definition_template = il_template_entry;
             }  /* if */
-            /* For function templates, take the linkage from the prototype
-               routine.  This will be nlk_internal if the template is
-               static. */
-            il_template_entry->source_corresp.name_linkage =
-                                            rout->source_corresp.name_linkage;
+            /* Function templates have C++ linkage unless they are static. */
+            if (rout->storage_class == (a_storage_class)sc_static) {
+              il_template_entry->source_corresp.name_linkage =
+                                            (a_name_linkage_kind)nlk_internal;
+            }  /* if */
           }
           break;
         case sk_member_function:
