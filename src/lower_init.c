@@ -3019,8 +3019,8 @@ do_assignment:;
     /* The action applies on block exit except when we are processing the
        wrapper of a constructor (ctor_init != NULL).  In that case the
        destructor part of the initialization is only there for exception
-       cleanup.  For the file-scope initialization routine "on block exit"
-       gets interpreted as "in the the file-scope termination routine." */
+       cleanup.  For static variable initializations "on block exit"
+       gets interpreted as "at program termination." */
     if (ctor_init != NULL) {
       applies_on_block_exit = FALSE;
     } else if (nearest_function_scope != NULL &&
