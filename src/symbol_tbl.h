@@ -899,6 +899,13 @@ typedef struct a_class_symbol_supplement {
 			/* For an real instantiation, this is TRUE if the
 			   full instantiation is in the process of being
 			   generated. */
+#if IA64_ABI
+  a_bit_field	has_empty_class_subobject;
+			/*  TRUE if a (field or base) subobject has an empty
+			    class type.  The subobject could be an indirect
+                            base or field.  This is also TRUE for a class that
+                            is itself empty.  Computed during layout. */
+#endif /* IA64_ABI */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	definition_is_first_decl:1;
 			/* TRUE when the first declaration of this class in

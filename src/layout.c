@@ -1102,7 +1102,13 @@ considered; otherwise, they are ignored.
   a_targ_size_t atype_offset;
 
   check_assertion(is_empty_class_type(etype));
-#if !IA64_ABI
+#if IA64_ABI
+  /* If atype contains no empty class subobject, the result will remain
+     FALSE. */
+  if (!symbol_supplement_for_class(atype)->has_empty_class_subobject) {
+    goto done;
+  }  /* if */
+#else /* !IA64_ABI */
   /* The offset is always zero in the Cfront-like ABI. */
   check_assertion(offset == 0);
 #endif /* !IA64_ABI */
@@ -1207,6 +1213,7 @@ considered; otherwise, they are ignored.
       }  /* if */
     }  /* for */
   }  /* if */
+done:
   return result;
 }  /* empty_base_conflict */
 
@@ -3211,9 +3218,12 @@ has an empty class concept: struct or unions with no fields or with no fields
 of nonzero size (such classes actually have size zero).
 */
 {
-  a_boolean   result = TRUE;
+  a_boolean        result = TRUE;
+  a_base_class_ptr bcp;
 #if IA64_ABI || GNU_EXTENSIONS_ALLOWED
-  a_field_ptr field;
+  a_field_ptr     field;
+  a_class_symbol_supplement_ptr
+                  cssp = symbol_supplement_for_class(type);
 #endif /* IA64_ABI || GNU_EXTENSIONS_ALLOWED */
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -3259,8 +3269,6 @@ of nonzero size (such classes actually have size zero).
     } else {
       /* Also check that every base class is similarly empty
          (except in C mode, where there is no class type supplement): */
-      a_base_class_ptr bcp;
-  
       result = TRUE;
       if (!C_mode()) {
         for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
@@ -3273,6 +3281,41 @@ of nonzero size (such classes actually have size zero).
     }  /* if */
   }  /* if */
   type->variant.class_struct_union.is_empty_class = result;
+#if IA64_ABI
+  /* Compute the "has_empty_class_subobject" flag. */
+  check_assertion(cssp != NULL);
+  if (result) {
+    /* Record that this type has a (nonproper) empty subobject. */
+    cssp->has_empty_class_subobject = TRUE;
+  } else {
+    /* Examine base classes and fields. */
+    for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct &&
+          symbol_supplement_for_class(bcp->type)->has_empty_class_subobject) {
+        cssp->has_empty_class_subobject = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+    if (!cssp->has_empty_class_subobject) {
+      /* No empty class subobject was found among the base classes.
+         Look among the fields. */
+      field = type->variant.class_struct_union.field_list;
+      for (; field != NULL; field = field->next) {
+        a_type_ptr  field_type = skip_typerefs(field->type);
+        if (is_array_type(field_type)) {
+          field_type 
+                 = f_skip_typerefs(underlying_array_element_type(field_type));
+        }  /* if */
+        if (is_class_struct_union_type(field_type) &&
+            symbol_supplement_for_class(field_type)
+                                                ->has_empty_class_subobject) {
+          cssp->has_empty_class_subobject = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+#endif /* IA64_ABI */
 }  /* compute_empty_class_bit */
 
 #if IA64_ABI
