@@ -180,7 +180,7 @@ an lvalue.
 #endif /* ifdef CFE */
 #define is_array_type(tp) \
 	(is_carray_type(tp) || is_farray_type(tp))
-#define pointer_referenced_type(tp) \
+#define type_pointed_to(tp) \
 	(skip_typerefs(tp)->variant.pointer_type_pointed_to)
 
 /*
@@ -217,7 +217,7 @@ sequence number if it is 0.
   a_line_number line_number;
   a_boolean     end_of_file;
 
-  if (putc('\n', f_C_output) == EOF) {
+  if (fputc('\n', f_C_output) == EOF) {
     /* Error in writing the output file.  This check supplements the check
        done when the file is closed.  The check here helps catch a disk full
        error quickly. */
@@ -241,9 +241,9 @@ sequence number if it is 0.
       if (seq_number != line_number) {
         (void)fprintf(f_C_output, ", line %lu", (unsigned long)line_number);
       }  /* if */
-      putc(' ', f_C_output);
+      fputc(' ', f_C_output);
       end_comment();
-      putc('\n', f_C_output);
+      fputc('\n', f_C_output);
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -814,13 +814,13 @@ Generate a cast to pointer-to the indicated type.
 {
   /* Can't use dump_cast because we don't have the pointer type and
      we can't call make_pointer_type in the "back end". */
-  putc('(', f_C_output);
+  fputc('(', f_C_output);
   dump_type_reference("", type,
                       /*add_pointer_to=*/TRUE,
                       /*need_paren=*/FALSE,
                       /*for_func_with_body=*/FALSE,
                       /*for_intrinsic=*/FALSE);
-  putc(')', f_C_output);
+  fputc(')', f_C_output);
 }  /* dump_cast_to_pointer_to */
 
 #ifdef FFE
@@ -1015,13 +1015,13 @@ Print a type qualifier.
     start_comment();
     fputs("const", f_C_output);
     end_comment();
-    if (is_volatile || need_trailing_space) putc(' ', f_C_output);
+    if (is_volatile || need_trailing_space) fputc(' ', f_C_output);
   }  /* if */
   if (is_volatile) {
     start_comment();
     fputs("volatile", f_C_output);
     end_comment();
-    if (need_trailing_space) putc(' ', f_C_output);
+    if (need_trailing_space) fputc(' ', f_C_output);
   }  /* if */
 }  /* dump_type_qualifier */
 
@@ -1140,11 +1140,11 @@ Print the first of possibly two parts of a type reference.
                          /*need_paren=*/TRUE, /*need_trailing_space=*/TRUE,
                          for_intrinsic);
     /* Print out the star for this indirection. */
-    putc('*', f_C_output);
+    fputc('*', f_C_output);
 #ifdef CFE
     dump_type_qualifier(type, need_trailing_space);
 #endif /* ifdef CFE */
-    if (need_paren) putc('(', f_C_output);
+    if (need_paren) fputc('(', f_C_output);
   } else if (type->kind == (a_type_kind)tk_routine) {
     local_type = type->variant.routine.return_type;
 #ifdef FFE
@@ -1176,36 +1176,36 @@ Print the first of possibly two parts of a type reference.
                          /*need_paren=*/TRUE, /*need_trailing_space=*/TRUE,
                          for_intrinsic);
 #endif /* ifdef FFE */
-    if (need_paren) putc('(', f_C_output);
+    if (need_paren) fputc('(', f_C_output);
 #ifdef CFE
   } else if (type->kind == (a_type_kind)tk_array) {
     dump_type_first_part(type->variant.array.element_type,
 			 /*need_paren=*/TRUE, /*need_trailing_space=*/TRUE,
                          for_intrinsic);
-    if (need_paren) putc('(', f_C_output);
+    if (need_paren) fputc('(', f_C_output);
 #endif /* ifdef CFE */
 #ifdef FFE
   } else if (type->kind == (a_type_kind)tk_fcharacter) {
     fputs("char ", f_C_output);
-    if (need_paren) putc('(', f_C_output);
+    if (need_paren) fputc('(', f_C_output);
   } else if (type->kind == (a_type_kind)tk_hollerith) {
     start_comment();
     fputs("hollerith", f_C_output);
     end_comment();
     fputs("char ", f_C_output);
-    if (need_paren) putc('(', f_C_output);
+    if (need_paren) fputc('(', f_C_output);
   } else if (type->kind == (a_type_kind)tk_farray) {
     dump_type_first_part(type->variant.farray.element_type,
 			 /*need_paren=*/TRUE, /*need_trailing_space=*/TRUE,
                          for_intrinsic);
-    if (need_paren) putc('(', f_C_output);
+    if (need_paren) fputc('(', f_C_output);
 #endif /* ifdef FFE */
   } else {
 #ifdef CFE
     dump_type_qualifier(type, /*need_trailing_space=*/TRUE);
 #endif /* ifdef CFE */
     dump_type_specifier(type);
-    if (need_trailing_space) putc(' ', f_C_output);
+    if (need_trailing_space) fputc(' ', f_C_output);
   }  /* if */
 }  /* dump_type_first_part */
 
@@ -1277,7 +1277,7 @@ variable.
                       /*need_paren=*/FALSE,
                       /*for_func_with_body=*/FALSE,
                       /*for_intrinsic=*/FALSE);
-  putc(';', f_C_output);
+  fputc(';', f_C_output);
 #ifdef FFE
   /* For a character parameter, put out a second parameter for the length. */
   if (is_char_or_char_array(formal_param->type)) {
@@ -1421,7 +1421,7 @@ is TRUE, this is for the heading of a function being declared with a body.
   char                      arg_name[15];
 #endif /* ifdef CFE */
 
-  putc('(', f_C_output);
+  fputc('(', f_C_output);
   routine_type = skip_typerefs(routine_type);
   extra_info = routine_type->variant.routine.extra_info;
   if (for_func_with_body) {
@@ -1479,7 +1479,7 @@ is TRUE, this is for the heading of a function being declared with a body.
     fputs(", ...", f_C_output);
     end_comment();
   }  /* if */
-  putc(')', f_C_output);
+  fputc(')', f_C_output);
 }  /* dump_param_names */
 
 #ifdef FFE
@@ -1531,11 +1531,11 @@ function definition with a body (this controls dumping of parameters).
      on the indirection. */
   if (is_pointer_type(type)) {
     local_type = skip_typerefs(type);
-    if (need_paren) putc(')', f_C_output);
+    if (need_paren) fputc(')', f_C_output);
     dump_type_second_part(local_type->variant.pointer_type_pointed_to,
 			  /*need_paren=*/TRUE, /*for_func_with_body=*/FALSE);
   } else if (type->kind == (a_type_kind)tk_routine) {
-    if (need_paren) putc(')', f_C_output);
+    if (need_paren) fputc(')', f_C_output);
     dump_param_names(type, for_func_with_body);
 #ifdef FFE
     /* Make a character function return void instead. */
@@ -1547,7 +1547,7 @@ function definition with a body (this controls dumping of parameters).
     }  /* if */
 #ifdef CFE
   } else if (type->kind == (a_type_kind)tk_array) {
-    if (need_paren) putc(')', f_C_output);
+    if (need_paren) fputc(')', f_C_output);
     if (type->variant.array.number_of_elements == 0) {
       fputs("[]", f_C_output);
     } else {
@@ -1559,7 +1559,7 @@ function definition with a body (this controls dumping of parameters).
 #endif /* ifdef CFE */
 #ifdef FFE
   } else if (type->kind == (a_type_kind)tk_fcharacter) {
-    if (need_paren) putc(')', f_C_output);
+    if (need_paren) fputc(')', f_C_output);
     if (type->variant.fcharacter.star_star) {
       fputs("[]", f_C_output);
     } else {
@@ -1567,12 +1567,12 @@ function definition with a body (this controls dumping of parameters).
                                (unsigned long)type->variant.fcharacter.length);
     }  /* if */
   } else if (type->kind == (a_type_kind)tk_hollerith) {
-    if (need_paren) putc(')', f_C_output);
+    if (need_paren) fputc(')', f_C_output);
     (void)fprintf(f_C_output, "[%lu]",
                                (unsigned long)type->variant.hollerith_length);
   } else if (type->kind == (a_type_kind)tk_farray) {
     a_targ_size_t size;
-    if (need_paren) putc(')', f_C_output);
+    if (need_paren) fputc(')', f_C_output);
     /* Compute the array size. */
     size = array_size(type);
     if (size == 0) {
@@ -1701,7 +1701,7 @@ Dump an enum.  Print the associated source name if there is one.
   (void)fprintf(f_C_output, "enum %s ", get_name(&type->source_corresp));
   constant = type->variant.integer.enum_constant_list;
   if (constant != NULL) {
-    putc('{', f_C_output);
+    fputc('{', f_C_output);
     enum_value = 0;
     indent += 2;
     while (constant != NULL) {
@@ -1713,12 +1713,12 @@ Dump an enum.  Print the associated source name if there is one.
       }  /* if */
       enum_value++;
       constant = constant->next;
-      if (constant != NULL) putc(',', f_C_output);
+      if (constant != NULL) fputc(',', f_C_output);
     }  /* while */
     indent -= 2;
-    putc('}', f_C_output);
+    fputc('}', f_C_output);
   }  /* if */
-  putc(';', f_C_output);
+  fputc(';', f_C_output);
   end_unreferenced_bracket(&type->source_corresp);
 }  /* dump_enum */
 
@@ -1833,9 +1833,9 @@ Dump the definition ({...}) if body is TRUE.
     }  /* while */
     indent -= 2;
     startline((a_seq_number)0);
-    putc('}', f_C_output);
+    fputc('}', f_C_output);
   }  /* if */
-  putc(';', f_C_output);
+  fputc(';', f_C_output);
   end_unreferenced_bracket(&type->source_corresp);
 }  /* dump_struct */
 
@@ -1868,14 +1868,14 @@ Dump the definition ({...}) if body is TRUE.
       startline(field->source_corresp.decl_position.seq);
       /* Use original name, not name from get_name, for field. */
       simple_type_reference(field->source_corresp.name, field->type);
-      putc(';', f_C_output);
+      fputc(';', f_C_output);
       field = field->next;
     }  /* while */
     indent -= 2;
     startline((a_seq_number)0);
-    putc('}', f_C_output);
+    fputc('}', f_C_output);
   }  /* if */
-  putc(';', f_C_output);
+  fputc(';', f_C_output);
   end_unreferenced_bracket(&type->source_corresp);
 }  /* dump_union */
 
@@ -1892,7 +1892,7 @@ Print a typedef declaration.
   fputs("typedef ", f_C_output);
   simple_type_reference(get_name(&type->source_corresp),
                         type->variant.typeref.type);
-  putc(';', f_C_output);
+  fputc(';', f_C_output);
   end_unreferenced_bracket(&type->source_corresp);
 }  /* dump_typedef */
 
@@ -2087,7 +2087,7 @@ static void dump_cast(a_type_ptr type)
 Generate a cast to the indicated type.
 */
 {
-  putc('(', f_C_output);
+  fputc('(', f_C_output);
   /* Dump cast to void specially; otherwise, it would come out as
      cast to char. */
   if (is_void_type(type)) {
@@ -2095,7 +2095,7 @@ Generate a cast to the indicated type.
   } else {
     simple_type_reference((char *)NULL, type);
   }  /* if */
-  putc(')', f_C_output);
+  fputc(')', f_C_output);
 }  /* dump_cast */
 
 
@@ -2117,14 +2117,14 @@ the ampersand since C will assume one.
        the wrong type (pointer to element rather than pointer to array). */
     dump_cast_to_pointer_to(type);
     start_comment();
-    putc('&', f_C_output);
+    fputc('&', f_C_output);
     end_comment();
   } else if (is_function_type(type)) {
     start_comment();
-    putc('&', f_C_output);
+    fputc('&', f_C_output);
     end_comment();
   } else {
-    putc('&', f_C_output);
+    fputc('&', f_C_output);
   }  /* if */
 }  /* dump_ampersand */
 
@@ -2346,13 +2346,13 @@ of an assignment).  It's also used for a normal "*" for indirection.
                                                                            )) {
     /* The expression is a pointer addition.  It can be rewritten as
        a subscripting operation (i.e., *(a+b) becomes a[b]). */
-    putc('(', f_C_output);
+    fputc('(', f_C_output);
     dump_expression(node->variant.operation.operands, /*need_parens=*/TRUE);
-    putc('[', f_C_output);
+    fputc('[', f_C_output);
     dump_expression(node->variant.operation.operands->next,
                     /*need_parens=*/TRUE);
-    putc(']', f_C_output);
-    putc(')', f_C_output);
+    fputc(']', f_C_output);
+    fputc(')', f_C_output);
 #ifdef CFE
   } else if (node->kind == (an_expr_node_kind)enk_operation &&
              (node->variant.operation.kind ==
@@ -2361,12 +2361,12 @@ of an assignment).  It's also used for a normal "*" for indirection.
                                        (an_expr_operator_kind)eok_bit_field)) {
     /* The expression is a field selection, which has an implicit "&"
        in front of it (in C terms).  Adding the indirection removes the "&". */
-    putc('(', f_C_output);
+    fputc('(', f_C_output);
     dump_lvalue(node->variant.operation.operands);
     fputs(".", f_C_output);
     dump_expression(node->variant.operation.operands->next,
                     /*need_parens=*/TRUE);
-    putc(')', f_C_output);
+    fputc(')', f_C_output);
 #endif /* ifdef CFE */
 #ifdef FFE
   } else if (node->kind == (an_expr_node_kind)enk_operation &&
@@ -2378,10 +2378,10 @@ of an assignment).  It's also used for a normal "*" for indirection.
 #endif /* ifdef FFE */
   } else {
     /* Not a special case: write "*expression". */
-    putc('(', f_C_output);
-    putc('*', f_C_output);
+    fputc('(', f_C_output);
+    fputc('*', f_C_output);
     dump_expression(node, /*need_parens=*/TRUE);
-    putc(')', f_C_output);
+    fputc(')', f_C_output);
   }  /* if */
 }  /* dump_adding_indirection */
 
@@ -2404,10 +2404,10 @@ an expression.  In effect, add an indirection to the expression.
   if (node->kind == (an_expr_node_kind)enk_operation &&
       node->variant.operation.kind == (an_expr_operator_kind)eok_lvalue_cast) {
     operand_1 = node->variant.operation.operands;
-    putc('(', f_C_output);
-    dump_cast(pointer_referenced_type(node->type));
+    fputc('(', f_C_output);
+    dump_cast(type_pointed_to(node->type));
     dump_lvalue(operand_1);
-    putc(')', f_C_output);
+    fputc(')', f_C_output);
   } else {
     /* Normal case. */
     dump_adding_indirection(node);
@@ -2549,7 +2549,8 @@ because the left operand is an lvalue.
      unsigned int or unsigned long is not done correctly.  Therefore,
      instead of "ui -= f" generate "*((int *)&ui) -= f" (or the similar
      version for unsigned long), thus doing the operation in integers. */
-  operand_1_type = skip_typerefs(pointer_referenced_type(operand_1->type));
+  operand_1_type = type_pointed_to(operand_1->type);
+  operand_1_type = skip_typerefs(operand_1_type);
   if (!simple_assignment &&
       operand_1_type->kind == (a_type_kind)tk_integer &&
       (operand_1_type->variant.integer.int_kind ==
@@ -2567,7 +2568,7 @@ because the left operand is an lvalue.
       fputs("*((long *)", f_C_output);
     }  /* if */
     dump_expression(operand_1, /*need_parens=*/TRUE);
-    putc(')', f_C_output);
+    fputc(')', f_C_output);
   } else
 #endif /* ifdef CFE */
   {
@@ -2881,9 +2882,9 @@ Dump a boolean controlling expression.
       }  /* if */
     }  /* if */
   }  /* if */
-  putc('(', f_C_output);
+  fputc('(', f_C_output);
   dump_expression(node, /*need_parens=*/FALSE);
-  putc(')', f_C_output);
+  fputc(')', f_C_output);
 }  /* dump_boolean_controlling_expression */
 
 
@@ -2918,7 +2919,7 @@ expression, then the "right" side with the operator in between.
   operand_1 = expr->variant.operation.operands;
   operand_2 = operand_1->next;
   expr_type = skip_typerefs(expr->type);
-  if (need_parens) putc('(', f_C_output);
+  if (need_parens) fputc('(', f_C_output);
 
   switch (expr->variant.operation.kind) {
     /* One-operand operators. */
@@ -2927,11 +2928,11 @@ expression, then the "right" side with the operator in between.
       break;
     case eok_inegate:
     case eok_fnegate:
-      putc('-', f_C_output);
+      fputc('-', f_C_output);
       dump_expression(operand_1, /*need_parens=*/TRUE);
       break;
     case eok_not:
-      putc('!', f_C_output);
+      fputc('!', f_C_output);
       dump_boolean_controlling_expression(operand_1);
       break;
     case eok_cast:
@@ -2998,14 +2999,14 @@ expression, then the "right" side with the operator in between.
              two conversions into one. */
           fputs("(0,(long)", f_C_output);
           dump_expression(operand_1, /*need_parens=*/TRUE);
-          putc(')', f_C_output);
+          fputc(')', f_C_output);
         } else if (operand_1->kind == (an_expr_node_kind)enk_variable_address&&
                    is_array_type(operand_1->variant.variable->type)) {
           /* A cast of the address of an array.  Optimize this case: the normal
              expansion of the address of an array includes a cast (to "pointer
              to array").  Skip that cast. */
           start_comment();
-          putc('&', f_C_output);
+          fputc('&', f_C_output);
           end_comment();
           dump_var_name(operand_1->variant.variable);
 #ifdef FFE
@@ -3026,7 +3027,7 @@ expression, then the "right" side with the operator in between.
       break;
 #ifdef CFE
     case eok_complement:
-      putc('~', f_C_output);
+      fputc('~', f_C_output);
       dump_expression(operand_1, /*need_parens=*/TRUE);
       break;
 #if CHECKING
@@ -3039,7 +3040,7 @@ expression, then the "right" side with the operator in between.
       if (expr_type->variant.float_kind == (a_float_kind)fk_float) {
         fputs("__fincr(", f_C_output);
         dump_expression(operand_1, /*need_parens=*/FALSE);
-        putc(')', f_C_output);
+        fputc(')', f_C_output);
         break;
       }  /* if */
       /* For non-float (e.g., double), fall into the normal case. */
@@ -3062,7 +3063,7 @@ expression, then the "right" side with the operator in between.
       if (expr_type->variant.float_kind == (a_float_kind)fk_float) {
         fputs("__fdecr(", f_C_output);
         dump_expression(operand_1, /*need_parens=*/FALSE);
-        putc(')', f_C_output);
+        fputc(')', f_C_output);
         break;
       }  /* if */
       /* For non-float (e.g., double), fall into the normal case. */
@@ -3358,28 +3359,28 @@ char_compare:
         dump_lvalue(operand_1);
         fputs(" %= (0,", f_C_output);
         dump_expression(operand_2, /*need_parens=*/FALSE);
-        putc(')', f_C_output);
+        fputc(')', f_C_output);
       } else {
         dump_assign(operand_1, expr->variant.operation.kind, operand_2);
       }  /* if */
       break;
     case eok_subscript:
       dump_expression(operand_1, /*need_parens=*/TRUE);
-      putc('[', f_C_output);
+      fputc('[', f_C_output);
       dump_expression(operand_2, /*need_parens=*/TRUE);
-      putc(']', f_C_output);
+      fputc(']', f_C_output);
       break;
     case eok_field:
-      dump_ampersand(pointer_referenced_type(expr_type));
-      putc('(', f_C_output);
+      dump_ampersand(type_pointed_to(expr_type));
+      fputc('(', f_C_output);
       dump_lvalue(operand_1);
       fputs(".", f_C_output);
       dump_expression(operand_2, /*need_parens=*/TRUE);
-      putc(')', f_C_output);
+      fputc(')', f_C_output);
       break;
     case eok_value_field:
       dump_expression(operand_1, /*need_parens=*/TRUE);
-      putc('.', f_C_output);
+      fputc('.', f_C_output);
       dump_expression(operand_2, /*need_parens=*/TRUE);
       break;
 #if CHECKING
@@ -3393,7 +3394,7 @@ char_compare:
       /* Cast the extracted value to the right type -- this handles integral
          promotions folded into the extraction node. */
       dump_cast(expr->type);
-      putc('(', f_C_output);
+      fputc('(', f_C_output);
       is_signed = is_signed_bit_field(field);
       if (is_signed) {
         /* Signed bit field.  Do sign extension on the unsigned bit field
@@ -3412,7 +3413,7 @@ char_compare:
       if (is_signed) {
         (void)fprintf(f_C_output, ",%d))", field->bit_size);
       }  /* if */
-      putc(')', f_C_output);
+      fputc(')', f_C_output);
       break;
     case eok_shiftl:
       dump_expression(operand_1, /*need_parens=*/TRUE);
@@ -3473,19 +3474,19 @@ char_compare:
     case eok_question:
       /* Three operand operator. */
       dump_boolean_controlling_expression(operand_1);
-      putc('?', f_C_output);
+      fputc('?', f_C_output);
       /* pcc does not allow operands of "?" to be void expressions.  If they
          are, enclose them in (expr,0). */
       if (is_void_type(operand_2->type)) {
-        putc('(', f_C_output);
+        fputc('(', f_C_output);
         dump_expression(operand_2, /*need_parens=*/TRUE);
         fputs(",0)", f_C_output);
       } else {
         dump_expression(operand_2, /*need_parens=*/TRUE);
       }  /* if */
-      putc(':', f_C_output);
+      fputc(':', f_C_output);
       if (is_void_type(operand_2->next->type)) {
-        putc('(', f_C_output);
+        fputc('(', f_C_output);
         dump_expression(operand_2->next, /*need_parens=*/TRUE);
         fputs(",0)", f_C_output);
       } else {
@@ -3514,7 +3515,7 @@ char_compare:
 #endif /* ifdef FFE */
       {
         return_type = skip_typerefs(
-                 skip_typerefs(pointer_referenced_type(operand_1->type))->
+                 skip_typerefs(type_pointed_to(operand_1->type))->
                       variant.routine.return_type);
 #ifdef FFE
         /* See if this call has any alternate return arguments. */
@@ -3568,7 +3569,7 @@ char_compare:
 #endif /* ifdef FFE */
         /* Put out the function to call. */
         dump_lvalue(operand_1);
-        putc('(', f_C_output);
+        fputc('(', f_C_output);
 #ifdef FFE
         if (is_char_or_char_array(return_type)) {
           /* Call of a character function.  Add an extra parameter to pass the
@@ -3618,10 +3619,10 @@ char_compare:
 #endif /* ifdef FFE */
           call_argument = call_argument->next;
           if (call_argument != NULL) {
-            putc(',', f_C_output);
+            fputc(',', f_C_output);
           }  /* if */
         }  /* while */
-        putc(')', f_C_output);
+        fputc(')', f_C_output);
 #ifdef FFE
         if (is_char_or_char_array(return_type)) {
           /* Call of a character function.  The result is stored in a
@@ -3671,7 +3672,7 @@ char_compare:
       break;
 #ifdef FFE
     case eok_fsubscript:
-      dump_ampersand(pointer_referenced_type(expr_type));
+      dump_ampersand(type_pointed_to(expr_type));
       dump_fsubscript(expr);
       break;
     case eok_value_fsubscript:
@@ -3683,7 +3684,7 @@ char_compare:
       internal_error("dump_operation: bad expression operator");
 #endif /* CHECKING */
   }  /* switch */
-  if (need_parens) putc(')', f_C_output);
+  if (need_parens) fputc(')', f_C_output);
 }  /* dump_operation */
 
 
@@ -3694,8 +3695,8 @@ Handle unprintable characters and necessary escapes.
 */
 {
   if (isprint(ch)) {
-    if (ch == '"' || ch == '\'' || ch == '\\') putc('\\', f_C_output);
-    putc(ch, f_C_output);
+    if (ch == '"' || ch == '\'' || ch == '\\') fputc('\\', f_C_output);
+    fputc(ch, f_C_output);
   } else {
     (void)fprintf(f_C_output, "\\%03o", (unsigned int)ch);
   }  /* if */
@@ -3753,7 +3754,7 @@ Print out the constant value contained in one constant record.
   if (constant->implicit_cast) {
     /* If the constant is implicitly cast to another type, put out the
        requisite cast. */
-    putc('(', f_C_output);
+    fputc('(', f_C_output);
     dump_cast(con_type);
   }  /* if */
   con_type = skip_typerefs(con_type);
@@ -3780,26 +3781,26 @@ Print out the constant value contained in one constant record.
         /* Put parentheses around the constant if it's negative. */
         if (constant->variant.integer_value < 0) {
           need_close_paren = TRUE;
-	  putc('(', f_C_output);
+	  fputc('(', f_C_output);
 	}  /* if */
         (void)fprintf(f_C_output, "%ld", constant->variant.integer_value);
       }  /* if */
       /* Put out a suffix if needed. */
       if (ikind == (an_integer_kind)ik_long           ||
           ikind == (an_integer_kind)ik_unsigned_long) {
-        putc('L', f_C_output);
+        fputc('L', f_C_output);
       }  /* if */
-      if (need_close_paren) putc(')', f_C_output);
+      if (need_close_paren) fputc(')', f_C_output);
       break;
     case ck_string:
-      putc('"', f_C_output);
+      fputc('"', f_C_output);
       for (a = 0; a < constant->variant.string.length; a++) {
         ch = constant->variant.string.value[a];
         if ((a != (constant->variant.string.length - 1)) || (ch != '\0')) {
           dump_char(ch);
         }  /* if */
       }  /* for */
-      putc('"', f_C_output);
+      fputc('"', f_C_output);
       break;
     case ck_float:
 #ifdef FFE
@@ -3813,11 +3814,11 @@ Print out the constant value contained in one constant record.
       {
         fkind = con_type->variant.float_kind;
         /* Put parentheses around the constant in case it's negative. */
-        putc('(', f_C_output);
+        fputc('(', f_C_output);
         /* Cast to float if type is float (by default it would be double). */
         if (fkind == (a_float_kind)fk_float) fputs("(float)", f_C_output);
         fputs(fp_to_string(fkind, &constant->variant.float_value), f_C_output);
-        putc(')', f_C_output);
+        fputc(')', f_C_output);
       }  /* if */
       break;
 #ifdef FFE
@@ -3851,7 +3852,7 @@ Print out the constant value contained in one constant record.
         dump_cast(con_type);
         fputs("((char *)", f_C_output);
       } else {
-        putc('(', f_C_output);
+        fputc('(', f_C_output);
       }  /* if */
       switch (constant->variant.address.kind) {
         case abk_routine:
@@ -3874,7 +3875,7 @@ Print out the constant value contained in one constant record.
       if (offset != 0) {
         (void)fprintf(f_C_output, " + %ld)", constant->variant.address.offset);
       } else {
-        putc(')', f_C_output);
+        fputc(')', f_C_output);
       }  /* if */
       break;
 #endif /* ifdef CFE */
@@ -3884,7 +3885,7 @@ Print out the constant value contained in one constant record.
 #endif /* CHECKING */
   }  /* switch */
   if (constant->implicit_cast) {
-    putc(')', f_C_output);
+    fputc(')', f_C_output);
   }  /* if */
 }  /* dump_constant_value */
 
@@ -3904,12 +3905,12 @@ i.e., instead of "abc" (no final null) dump 'a','b','c'.
   len = constant->variant.string.length;
   count_until_newline = CHAR_CONS_PER_LINE;
   for (a = 0; a < len; a++) {
-    putc('\'', f_C_output);
+    fputc('\'', f_C_output);
     ch = constant->variant.string.value[a];
     dump_char(ch);
-    putc('\'', f_C_output);
+    fputc('\'', f_C_output);
     if (a != len-1) {
-      putc(',', f_C_output);
+      fputc(',', f_C_output);
       if (--count_until_newline <= 0) {
         startline((a_seq_number)0);
         count_until_newline = CHAR_CONS_PER_LINE;
@@ -3999,19 +4000,19 @@ Dump out an expression tree.
 #endif /* ifdef FFE */
       break;
     case enk_variable_address:
-      if (need_parens) putc('(', f_C_output);
+      if (need_parens) fputc('(', f_C_output);
       dump_ampersand(expr->variant.variable->type);
       dump_var_ref(expr->variant.variable);
-      if (need_parens) putc(')', f_C_output);
+      if (need_parens) fputc(')', f_C_output);
       break;
     case enk_variable:
       dump_var_ref(expr->variant.variable);
       break;
     case enk_routine_address:
-      if (need_parens) putc('(', f_C_output);
+      if (need_parens) fputc('(', f_C_output);
       dump_ampersand(expr->variant.routine->type);
       dump_rout_name(expr->variant.routine);
-      if (need_parens) putc(')', f_C_output);
+      if (need_parens) fputc(')', f_C_output);
       break;
 #ifdef CFE
     case enk_field:
@@ -4076,8 +4077,6 @@ assignment statements:
 */
 static FILE	*f_file_scope_inits;
 			/* Static initializations at the file scope. */
-static FILE	*f_rout_static_inits;
-			/* Static initializations at the routine level. */
 static FILE	*f_rout_dynamic_inits;
 			/* Dynamic initializations at the routine level. */
 
@@ -4090,20 +4089,22 @@ Copy the contents of the file *f_ptr into the current C output, and delete
 the file.
 */
 {
-  register int c;
-  FILE     *f = *f_ptr;
+  register  int c;
+  FILE      *f = *f_ptr;
+  a_boolean start_of_line;
 
   /* Seek to the beginning of the file. */
   if (fseek(f, 0L, SEEK_SET) != 0) {
     str_catastrophe(ec_file_write_error, "temporary");
   }  /* if */
+  fputc('\n', f_C_output);
   /* Copy the file. */
+  start_of_line = TRUE;
   while ((c = getc(f)) != EOF) {
-    if (c == '\n') {
-      startline((a_seq_number)0);
-    } else {
-      putc(c, f_C_output);
-    }  /* if */
+    /* Indent all lines except preprocessing directives. */
+    if (start_of_line && c != '#') space_over();
+    putc(c, f_C_output);  /* Use putc not fputc for speed. */
+    start_of_line = (c == '\n');
   }  /* while */
   /* Close and delete the temporary file. */
   close_temp_file(f);
@@ -4148,28 +4149,61 @@ the "routine" is a block.
       }  /* for */
     }  /* if */
   }  /* if */
-  if (f_rout_static_inits != NULL) {
-    /* There are static initializations for the current routine. */
-    if (!is_main) {
-      /* For routines that can be called more than once, use a first-time
-         flag. */
-      startline((a_seq_number)0);
-      fputs("{static int __first_time=1; if (__first_time) {__first_time=0;",
-            f_C_output);
-    }  /* if */
-    copy_and_delete_file(&f_rout_static_inits);
-    if (!is_main) {
-      startline((a_seq_number)0);
-      fputs("}}", f_C_output);
-    }  /* if */
-  }  /* if */
   if (f_rout_dynamic_inits != NULL) {
-    /* There are dynamic initializations for the current routine. */
+    /* There are dynamic initializations for the current routine or block. */
     copy_and_delete_file(&f_rout_dynamic_inits);
   }  /* if */
 }  /* dump_rout_initializations */
 
 #endif /* ifdef CFE */
+
+/*
+Static variables that control dump_initializer output.
+*/
+static a_boolean
+		initializer_constants_started;
+			/* At least one constant has been put out in this
+			   initialization. */
+static unsigned long
+		num_initializer_open_braces_deferred;
+			/* Count of the number of open braces deferred at the
+			   beginning of putting out a constant initializer.
+			   The braces are deferred until we see the first
+			   real constant.  If that weren't done, we could
+			   go down several levels into a type and then
+			   discover that the first thing to be initialized
+			   is a union, i.e., that we can't initialize
+			   any of the entity.  We would then have put out
+			   something syntactically invalid like "= {}". */
+static a_boolean
+		initializer_assignments_started;
+			/* At least one initializer assignment has been
+			   put out in this initialization. */
+static a_boolean
+		first_time_test_closing_needed;
+			/* A first-time test was generated around the
+			   assignments in this initialization.  Therefore,
+			   the test must be closed at the end of the
+			   assignments. */
+static a_boolean
+		output_initializer_code_directly;
+			/* If TRUE, initializer executable code can be
+			   output directly to f_C_output instead of to
+			   a temporary file. */
+
+
+static void clear_initialization_flags(void)
+/*
+Clear the flags that control dump_initializer output.
+*/
+{
+  initializer_constants_started = FALSE;
+  num_initializer_open_braces_deferred = 0;
+  initializer_assignments_started = FALSE;
+  first_time_test_closing_needed = FALSE;
+}  /* clear_initialization_flags */
+
+
 #ifdef CFE
 
 static void dump_var_for_init(a_variable_ptr        variable,
@@ -4184,7 +4218,7 @@ the list pointed to by "ipdp".
     if (is_carray_type(ipdp->type)) {
       (void)fprintf(f_C_output, "[%lu]", (unsigned long)ipdp->curr_elem);
     } else {
-      putc('.', f_C_output);
+      fputc('.', f_C_output);
       /* Dump field name in original form; do not use get_name. */
       fputs(ipdp->curr_field->source_corresp.name, f_C_output);
     }  /* if */
@@ -4215,36 +4249,30 @@ Set f_C_output to the temporary file to which an initialization assignment
 for the indicated variable should be written.
 */
 {
-  FILE *file_to_use;
-
-  /*  File scope initializations are placed
-      in f_file_scope_inits; initializations of static entities in the
-      current routine are placed in f_rout_static_inits; and initializations
-      of automatic entities in the current routine are placed in
-      f_rout_dynamic_inits. */
-  if (variable->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none) {
-    /* File scope variable -- put in f_file_scope_inits. */
-    if (f_file_scope_inits == NULL) {
-      f_file_scope_inits = open_temp_file(/*binary_file=*/FALSE);
-    }  /* if */
-    file_to_use = f_file_scope_inits;
-  } else if (static_storage_class(variable->storage_class)) {
-    /* Static routine variable -- put in f_rout_static_inits. */
-    if (f_rout_static_inits == NULL) {
-      f_rout_static_inits = open_temp_file(/*binary_file=*/FALSE);
-    }  /* if */
-    file_to_use = f_rout_static_inits;
-  } else {
-    /* Dynamic routine variable -- put in f_rout_dynamic_inits. */
-    if (f_rout_dynamic_inits == NULL) {
-      f_rout_dynamic_inits = open_temp_file(/*binary_file=*/FALSE);
-    }  /* if */
-    file_to_use = f_rout_dynamic_inits;
-  }  /* if */
   *prev_f_C_output = f_C_output;
-  f_C_output = file_to_use;
   *prev_indent = indent;
-  indent = 0;
+  if (output_initializer_code_directly) {
+    /* Initializer code code can go directly to f_C_output.  This happens,
+       for example, in stmk_init statements -- they're processed in the
+       executable code section. */
+  } else {
+    /* A temporary file must be used. */
+    if (variable->source_corresp.name_linkage !=
+                                               (a_name_linkage_kind)nlk_none) {
+      /* File scope variable -- put in f_file_scope_inits. */
+      if (f_file_scope_inits == NULL) {
+        f_file_scope_inits = open_temp_file(/*binary_file=*/FALSE);
+      }  /* if */
+      f_C_output = f_file_scope_inits;
+    } else {
+      /* Local variable -- put in f_rout_dynamic_inits. */
+      if (f_rout_dynamic_inits == NULL) {
+        f_rout_dynamic_inits = open_temp_file(/*binary_file=*/FALSE);
+      }  /* if */
+      f_C_output = f_rout_dynamic_inits;
+    }  /* if */
+    indent = 0;
+  }  /* if */
 }  /* set_init_file */
 
 #endif /* ifdef CFE */
@@ -4275,52 +4303,45 @@ described by the list pointed to by "ipdp" to the constant pointed to by
   FILE *save_f_C_output;
   int  save_indent;
 
-  /* Skip this code if the variable is unreferenced.  This is necessary
-     so that we don't generate references to undeclared variables.
-     The standard unreferenced bracket cannot be used because lines
-     written to the initialization code files are indented on output,
-     so the #if 0 would not be in column 1. */
-  if (variable->source_corresp.referenced) {
-    /* Find the start of the ipdp list by following the prev links. */
-    if (ipdp != NULL) while (ipdp->prev != NULL) ipdp = ipdp->prev;
-    /* The assignment is written to a temporary file, to be dumped out
-        at the appropriate time later.  Select the appropriate file,
-        and open it if necessary. */
-    set_init_file(variable, &save_f_C_output, &save_indent);
-    /* Generate an assignment.  For string initialization, generate a call
-       to memcpy or bcopy instead. */
-    startline(variable->source_corresp.decl_position.seq);
-    if (constant->kind == (a_constant_repr_kind)ck_string) {
-      /* String -- Generate a move.  Note that the destination of the move is
-         always an array of char, so no "&" is needed in front of the variable
-         name (it is implicit). */
+  /* Find the start of the ipdp list by following the prev links. */
+  if (ipdp != NULL) while (ipdp->prev != NULL) ipdp = ipdp->prev;
+  /* The assignment is written to a temporary file, to be dumped out
+      at the appropriate time later.  Select the appropriate file,
+      and open it if necessary. */
+  set_init_file(variable, &save_f_C_output, &save_indent);
+  /* Generate an assignment.  For string initialization, generate a call
+     to memcpy or bcopy instead. */
+  startline(variable->source_corresp.decl_position.seq);
+  if (constant->kind == (a_constant_repr_kind)ck_string) {
+    /* String -- Generate a move.  Note that the destination of the move is
+       always an array of char, so no "&" is needed in front of the variable
+       name (it is implicit). */
 #if __BSD__
-      /* BSD UNIX -- use bcopy. */
-      fputs("bcopy(", f_C_output);
-      dump_constant_value(constant);
-      putc(',', f_C_output);
-      dump_var_for_init(variable, ipdp);
+    /* BSD UNIX -- use bcopy. */
+    fputs("bcopy(", f_C_output);
+    dump_constant_value(constant);
+    fputc(',', f_C_output);
+    dump_var_for_init(variable, ipdp);
 #else
-      /* System V or ANSI -- use memcpy. */
-      fputs("memcpy(", f_C_output);
-      dump_var_for_init(variable, ipdp);
-      putc(',', f_C_output);
-      dump_constant_value(constant);
+    /* System V or ANSI -- use memcpy. */
+    fputs("memcpy(", f_C_output);
+    dump_var_for_init(variable, ipdp);
+    fputc(',', f_C_output);
+    dump_constant_value(constant);
 #endif /* __BSD__ */
-      /* Add the string length as the length of the move.  strcpy cannot be
-         used because the string might contain extra nulls, or none. */
-      (void)fprintf(f_C_output, ",%lu)",
-                              (unsigned long)constant->variant.string.length);
-    } else {
-      /* Normal case (not string); generate an assignment statement. */
-      dump_var_for_init(variable, ipdp);
-      fputs(" = ", f_C_output);
-      dump_constant_value(constant);
-    }  /* if */
-    /* Add final semicolon and end of line to the assigning statement. */
-    fputs(";", f_C_output);
-    unset_init_file(save_f_C_output, save_indent);
+    /* Add the string length as the length of the move.  strcpy cannot be
+       used because the string might contain extra nulls, or none. */
+    (void)fprintf(f_C_output, ",%lu)",
+                               (unsigned long)constant->variant.string.length);
+  } else {
+    /* Normal case (not string); generate an assignment statement. */
+    dump_var_for_init(variable, ipdp);
+    fputs(" = ", f_C_output);
+    dump_constant_value(constant);
   }  /* if */
+  /* Add final semicolon and end of line to the assigning statement. */
+  fputs(";", f_C_output);
+  unset_init_file(save_f_C_output, save_indent);
 }  /* dump_init_assignment */
 
 #endif /* ifdef CFE */
@@ -4333,7 +4354,7 @@ Generate code to set the indicated variable entirely to zeros.
 {
   FILE *save_f_C_output;
   int  save_indent;
-  
+
   /* The assignment is written to a temporary file, to be dumped out
       at the appropriate time later.  Select the appropriate file,
       and open it if necessary. */
@@ -4359,6 +4380,131 @@ Generate code to set the indicated variable entirely to zeros.
 
 #endif /* ifdef CFE */
 
+static void start_initializer_constants(void)
+/*
+An initializer constant is about to be put out.  Put out the "=" at the
+start of an initializer if this is the first constant.  Also put out any
+open braces that were deferred until this point.
+*/
+{
+  if (!initializer_constants_started) {
+    initializer_constants_started = TRUE;
+    fputs(" = ", f_C_output);
+    for (; num_initializer_open_braces_deferred > 0;
+         num_initializer_open_braces_deferred--) {
+      fprintf(f_C_output, "{");
+    }  /* if */
+  }  /* if */
+}  /* start_initializer_constants */
+
+#ifdef CFE
+
+static void start_initializer_assignments(a_variable_ptr variable)
+  
+/*
+An initializer assignment for variable "variable" is about to be put out.
+If this assignment is the first one, put out anything that must precede it.
+*/
+{
+  FILE *save_f_C_output;
+  int  save_indent;
+
+  if (!initializer_assignments_started) {
+    initializer_assignments_started = TRUE;
+    /* If the variable is unreferenced, put out an unreferenced bracket. */
+    set_init_file(variable, &save_f_C_output, &save_indent);
+    start_unreferenced_bracket(&variable->source_corresp);
+    unset_init_file(save_f_C_output, save_indent);
+    /* If the variable is a local static variable, put in a first-time test. */
+    if (variable->storage_class == (a_storage_class)sc_static &&
+        variable->source_corresp.name_linkage ==
+                                               (a_name_linkage_kind)nlk_none) {
+      /* The assignment is written to a temporary file, to be dumped out
+          at the appropriate time later.  Select the appropriate file,
+          and open it if necessary. */
+      set_init_file(variable, &save_f_C_output, &save_indent);
+      startline((a_seq_number)0);
+      fprintf(f_C_output,
+             "{static int __first_time=1; if (__first_time) {__first_time=0;");
+      unset_init_file(save_f_C_output, save_indent);
+      first_time_test_closing_needed = TRUE;
+    }  /* if */
+    if (!initializer_constants_started) {
+      /* There was no constant initialization at all, so we are generating
+         assignments for the entire initialization of the variable.  If the
+         variable is not static, start by zeroing it in case it is
+         incompletely initialized.  See 3.5.7. */
+      if (!static_storage_class(variable->storage_class)) {
+        zero_variable(variable);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* start_initializer_assignments */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
+static void end_initializer_assignments(a_variable_ptr variable)
+/*
+If any initializer assignments were generated, do anything needed to wrap up
+at the end of the assignments.
+*/
+{
+  FILE *save_f_C_output;
+  int  save_indent;
+  
+  if (initializer_assignments_started) {
+    initializer_assignments_started = FALSE;
+    /* Close off the first-time test generated for local static variables
+       in start_initializer_assignments. */
+    if (first_time_test_closing_needed) {
+      set_init_file(variable, &save_f_C_output, &save_indent);
+      startline((a_seq_number)0);
+      fprintf(f_C_output, "}}");
+      unset_init_file(save_f_C_output, save_indent);
+    }  /* if */
+    set_init_file(variable, &save_f_C_output, &save_indent);
+    end_unreferenced_bracket(&variable->source_corresp);
+    unset_init_file(save_f_C_output, save_indent);
+  }  /* if */
+}  /* end_initializer_assignments */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
+static void initializer_open_brace(void)
+/*
+Output an open brace for an initializer.  If no initializer constants have
+been output yet, defer the output of the opening brace in case no constants
+prove to be needed.
+*/
+{
+  if (initializer_constants_started) {
+    fputc('{', f_C_output);
+  } else {
+    num_initializer_open_braces_deferred++;
+  }  /* if */
+}  /* initializer_open_brace */
+    
+#endif /* ifdef CFE */
+#ifdef CFE
+
+static void initializer_close_brace(void)
+/*
+Output a closing brace for an initializer.  If the corresponding opening
+brace was deferred in initializer_open_brace and then never put out,
+do not put out the closing brace either.
+*/
+{
+  if (num_initializer_open_braces_deferred > 0) {
+    num_initializer_open_braces_deferred--;
+  } else {
+    fputc('}', f_C_output);
+  }  /* if */
+}  /* initializer_close_brace */
+    
+#endif /* ifdef CFE */
+
 #define INITS_PER_LINE 10
 
 static void initializer_comma(int *count_until_newline)
@@ -4367,34 +4513,41 @@ Put out a comma in an initializer.  Decrement *count_until_newline.  If
 it is decremented to zero, start a new line and reset *count_until_newline.
 */
 {
-  putc(',', f_C_output);
+  fputc(',', f_C_output);
   if (--*count_until_newline <= 0) {
     startline((a_seq_number)0);
     *count_until_newline = INITS_PER_LINE;
   }  /* if */
 }  /* initializer_comma */
 
+/* Declaration needed because of mutual recursion. */
+static void dump_dynamic_init(a_dynamic_init_ptr    dip,
+                              an_expr_node_ptr      var_expr,
+                              an_init_pos_descr_ptr ipdp,
+                              a_variable_ptr        variable);
 
-static void dump_initializer(a_variable_ptr        variable,
-                             a_type_ptr            type,
-                             a_constant_ptr        constant,
-                             a_boolean             *gen_assignments,
-                             a_boolean             separate_chars,
-                             an_init_pos_descr_ptr outer_level_pos)
+
+static void dump_initializer_part(a_variable_ptr        variable,
+                                  a_type_ptr            type,
+                                  a_constant_ptr        constant,
+                                  a_boolean             *gen_assignments,
+                                  a_boolean             separate_chars,
+                                  an_init_pos_descr_ptr outer_level_pos)
 /*
-Dump out an initializer.  The variable being initialized is "variable";
-the piece of it being initialized has type "type", and gets the value
-indicated by "constant", and outer_level_pos points
+Dump out an initializer for part of a variable.  The variable being
+initialized is "variable"; the piece of it being initialized has type "type",
+and gets the value indicated by "constant"; and outer_level_pos points
 to a list of of entries that describe the location of this initialization
 within the overall variable (it is the history of the recursive calls
 of this routine that got us to this point).
 */
 #ifdef CFE
 /*
-If "*gen_assignments" is TRUE, assignment statements
-must be generated rather than constants for a initializer list (this
-flag will be set to TRUE upon encountering something that cannot be
-rendered as constants in an initializer).
+If "*gen_assignments" is TRUE, assignment statements must be generated
+rather than constants for a initializer list (this flag will be set to
+TRUE upon encountering something that cannot be rendered as constants
+in an initializer).  The statements are written to f_C_output or a
+temporary file (see start_initializer_assignments).
 */
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -4421,39 +4574,40 @@ characters should be put out separately (to initialize a substring, probably).
 
   type = skip_typerefs(type);
 #ifdef CFE
-  /* Initialization of a union must always be done via assignment statements,
-     because K&R/pcc do not allow it. */
-  if (!*gen_assignments && type->kind == (a_type_kind)tk_union) {
-    *gen_assignments = TRUE;
-  }  /* if */
-#endif /* ifdef CFE */
-  /* If this is the top-most call of this routine, and we are generating
-     initializer constants, start with an "=". */
-  if (outer_level_pos == NULL) {
-#ifdef CFE
-    if (*gen_assignments) {
-      /* Generating assignments for the entire initialization of the variable.
-         If the variable is not static, start by zeroing it in case it is 
-         incompletely initialized.  See 3.5.7. */
-      if (!static_storage_class(variable->storage_class)) {
-        zero_variable(variable);
-      }  /* if */
-    } else
-#endif /* ifdef CFE */
-    {
-      fputs(" = ", f_C_output);
+  if (!*gen_assignments) {
+    /* Initialization of a union must always be done via assignment statements,
+       because K&R/pcc do not allow it. */
+    if (type->kind == (a_type_kind)tk_union) {
+      *gen_assignments = TRUE;
+    } else if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
+      /* ck_dynamic_init constants indicate the point in a ck_aggregate where
+         a dynamic initialization is required. */
+     *gen_assignments = TRUE;
     }  /* if */
   }  /* if */
+#endif /* ifdef CFE */
   if (constant->kind != (a_constant_repr_kind)ck_aggregate) {
     /* Non-aggregate constant (includes string literals). */
 #ifdef CFE
     if (*gen_assignments) {
       /* Generate an assignment statement. */
-      dump_init_assignment(variable, outer_level_pos, constant);
+      /* Do any first-time processing necessary. */
+      start_initializer_assignments(variable);
+      if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
+        /* A ck_dynamic_init entry, meaning the initial value is not
+           constant. */
+        dump_dynamic_init(constant->variant.dynamic_init,
+                          (an_expr_node_ptr)NULL, outer_level_pos, variable);
+      } else {
+        /* A normal assignment of a constant can be generated. */
+        dump_init_assignment(variable, outer_level_pos, constant);
+      }  /* if */
     } else
 #endif /* ifdef CFE */
     {
       /* Generate a constant in an initializer list. */
+      /* Do any first-time processing necessary. */
+      start_initializer_constants();
 #ifdef FFE
       if (separate_chars) {
         /* For initialization of Fortran substrings, dump the individual
@@ -4467,9 +4621,9 @@ characters should be put out separately (to initialize a substring, probably).
         /* Dump the two constants in a complex constant.  This must be
            special-cased because the normal form is a function call, which
            is only suitable in executable code. */
-        putc('{', f_C_output);
+        fputc('{', f_C_output);
         dump_complex_value(constant);
-        putc('}', f_C_output);
+        fputc('}', f_C_output);
       } else
 #endif /* ifdef FFE */
       if (constant->kind == (a_constant_repr_kind)ck_string &&
@@ -4478,9 +4632,9 @@ characters should be put out separately (to initialize a substring, probably).
         /* If the initial value is a string without the trailing null, the
            individual characters must be dumped, instead of the string
            literal. */
-        putc('{', f_C_output);
+        fputc('{', f_C_output);
         dump_exploded_string(constant);
-        putc('}', f_C_output);
+        fputc('}', f_C_output);
       } else {
         dump_constant_value(constant);
       }  /* if */
@@ -4513,7 +4667,7 @@ characters should be put out separately (to initialize a substring, probably).
           ipdp->curr_field = type->variant.class_struct_union.field_list;
 #if CHECKING
           if (ipdp->curr_field == NULL) {
-            internal_error("dump_initializer: bad field");
+            internal_error("dump_initializer_part: bad field");
           }  /* if */
 #endif /* CHECKING */
           elem_type = ipdp->curr_field->type;
@@ -4532,12 +4686,12 @@ characters should be put out separately (to initialize a substring, probably).
 #endif /* ifdef FFE */
 #if CHECKING
         default:
-          internal_error("dump_initializer: bad entity type");
+          internal_error("dump_initializer_part: bad entity type");
 #endif /* CHECKING */
       }  /* switch */
     }  /* if */
     if (!*gen_assignments) {
-      putc('{', f_C_output);
+      initializer_open_brace();
       need_close_brace = TRUE;
     }  /* if */
     /* Loop through the list of constants and process each one. */
@@ -4555,7 +4709,7 @@ characters should be put out separately (to initialize a substring, probably).
 #if CHECKING
         if (num_zeros < 0) {
           internal_error(
-                       "dump_initializer: init_position offset < curr_offset");
+                  "dump_initializer_part: init_position offset < curr_offset");
         }  /* CHECKING */
 #endif /* CHECKING */
         if (num_zeros > 0) {
@@ -4597,14 +4751,14 @@ characters should be put out separately (to initialize a substring, probably).
 #endif /* ifdef FFE */
 #if CHECKING
       if (elem_type == NULL) {
-        internal_error("dump_initializer: elem_type is NULL");
+        internal_error("dump_initializer_part: elem_type is NULL");
       }  /* if */
 #endif /* CHECKING */
 #ifdef FFE
       while (repeat_count-- > 0)  {
         /* Generate the initialization for one constant or aggregate piece. */
-        dump_initializer(variable, elem_type, init_con, gen_assignments,
-                         separate_chars, ipdp);
+        dump_initializer_part(variable, elem_type, init_con, gen_assignments,
+                              separate_chars, ipdp);
         curr_offset += elem_type->size;
         if (repeat_count != 0) {
           if (!*gen_assignments) {
@@ -4618,8 +4772,8 @@ characters should be put out separately (to initialize a substring, probably).
         (void)fprintf(f_C_output, "}");
       }  /* if */
 #else /* !defined(FFE) */
-      dump_initializer(variable, elem_type, elem_con, gen_assignments,
-                       separate_chars, ipdp);
+      dump_initializer_part(variable, elem_type, elem_con, gen_assignments,
+                            separate_chars, ipdp);
 #endif /* ifdef FFE */
       if (elem_con->next != NULL) {
         if (!*gen_assignments) {
@@ -4635,7 +4789,7 @@ characters should be put out separately (to initialize a substring, probably).
           ipdp->curr_field = ipdp->curr_field->next;
 #if CHECKING
           if (ipdp->curr_field == NULL) {
-            internal_error("dump_initializer: bad field in loop");
+            internal_error("dump_initializer_part: bad field in loop");
           }  /* if */
 #endif /* CHECKING */
           elem_type = ipdp->curr_field->type;
@@ -4647,9 +4801,64 @@ characters should be put out separately (to initialize a substring, probably).
 #endif /* ifdef CFE */
       }  /* if */
     }  /* for */
-    if (need_close_brace) putc('}', f_C_output);
+    if (need_close_brace) initializer_close_brace();
     if (outer_level_pos != NULL) outer_level_pos->next = NULL;
   }  /* if */
+}  /* dump_initializer_part */
+
+
+static void dump_initializer(a_variable_ptr variable,
+                             a_constant_ptr constant,
+                             a_boolean      is_dynamic_init)
+/*
+Dump out an initializer to initialize a whole variable.  The variable
+being initialized is "variable"; the initial value is given by "constant".
+*/
+#ifdef CFE
+/*
+Ordinarily, this routine outputs "= constant" as an initializer, and
+therefore assumes is has been called immediately after the declaration
+of the variable (and before the closing semicolon).
+
+If is_dynamic_init is TRUE, this routine is being called for a dynamic
+initialization (i.e., an stmk_init statement or, in C++, a file-scope
+dynamic initialization).  In that case, executable statements must be
+generated.
+
+Executable statements will also be generated when is_dynamic_init is FALSE
+for cases where K&R/pcc C cannot express a constant initialization (i.e.,
+union initializations and initializations of non-static aggregates).
+The parts preceding the troublesome case will have already been written
+out as data declarations.  The inexpressible case and any initializations
+following it will be rendered as executable code.
+*/
+#endif /* ifdef CFE */
+{
+  a_type_ptr type = skip_typerefs(variable->type);
+  a_boolean  gen_assignments = is_dynamic_init;
+
+#ifdef CFE
+  if (!gen_assignments) {
+    if (!static_storage_class(variable->storage_class) &&
+        (type->kind == (a_type_kind)tk_struct ||
+         type->kind == (a_type_kind)tk_union ||
+         type->kind == (a_type_kind)tk_array)) {
+      /* Assignment statements (rather than initializer constants) must be used
+         for automatic variables with union or aggregate type, since K&R/pcc
+         does not allow initializers for those. */
+      gen_assignments = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* ifdef CFE */
+  /* Set flags to indicate that nothing (either constant or executable) has
+     been put out yet for this initializer. */
+  clear_initialization_flags();
+  /* Generate the initialization (constants and/or assignments). */
+  dump_initializer_part(variable, type, constant, &gen_assignments,
+                        /*separate_chars=*/FALSE,
+                        (an_init_pos_descr_ptr)NULL);
+  /* If any assignments were generated, do any wrapup required. */
+  end_initializer_assignments(variable);
 }  /* dump_initializer */
 
 #ifdef FFE
@@ -4783,6 +4992,32 @@ with one or more non-arithmetic (hollerith or hex/octal) constants.
 
 #endif /* ifdef FFE */
 
+static a_constant_ptr constant_initializer(a_variable_ptr variable)
+/*
+If variable has a constant initializer return a pointer to the constant value.
+Otherwise, return NULL.
+*/
+{
+  a_constant_ptr init_con = NULL;
+
+  if (variable->init_kind == (an_init_kind)initk_static) {
+    /* The variable has a constant static initializer. */
+    init_con = variable->initializer.constant;
+#ifdef CFE
+  } else if (variable->init_kind == (an_init_kind)initk_dynamic) {
+    a_dynamic_init_ptr dip = variable->initializer.dynamic;
+    if (dip->kind == (a_dynamic_init_kind)dik_constant ||
+        (dip->kind == (a_dynamic_init_kind)dik_aggregate &&
+         dip->variant.aggregate.dynamic_init_list == NULL)) {
+      /* The variable has a constant dynamic initializer. */
+      init_con = variable->initializer.dynamic->variant.constant;
+    }  /* if */
+#endif /* ifdef CFE */
+  }  /* if */
+  return init_con;
+}  /* constant_initializer */
+
+
 static void dump_variable(a_variable_ptr variable,
                           a_boolean      dump_vars_without_initializers,
                           a_boolean      dump_initializers)
@@ -4793,22 +5028,13 @@ dumped only if dump_initializers is TRUE.  This routine is not used for
 parameters.
 */
 {
-  a_boolean       gen_assignments;
   char            *var_name;
   a_storage_class storage_class;
-  a_constant_ptr  init_con = NULL;
+  a_constant_ptr  init_con;
 
   /* Determine whether or not the variable has a constant initializer.
-     Non-constant initializers are handled by gen_dynamic_init. */
-  if (variable->init_kind == (an_init_kind)initk_static) {
-    /* The variable has a constant static initializer. */
-    init_con = variable->initializer.constant;
-  } else if (variable->init_kind == (an_init_kind)initk_dynamic &&
-             variable->initializer.dynamic->kind ==
-                                           (a_dynamic_init_kind)dik_constant) {
-    /* The variable has a constant dynamic initializer. */
-    init_con = variable->initializer.dynamic->variant.constant;
-  }  /* if */
+     Non-constant initializers are handled by dump_dynamic_init. */
+  init_con = constant_initializer(variable);
   if (!dump_vars_without_initializers && init_con == NULL) {
     /* The variable has no initializer, and we're not supposed to dump
        variables without initializers. */
@@ -4875,25 +5101,11 @@ parameters.
       {
         simple_type_reference(var_name, variable->type);
       }  /* if */
-      /* Dump the initializer if there is one. */
+      /* Dump the initializer if there is a constant one. */
       if (dump_initializers && init_con != NULL) {
-#ifdef CFE
-        /* Assignment statements (rather than an initializer) must be used
-           for automatic variables with union or aggregate type, since K&R
-           does not allow initializers for those. */
-        a_type_kind var_type_kind = skip_typerefs(variable->type)->kind;
-        gen_assignments = !static_storage_class(variable->storage_class) &&
-                          (var_type_kind == (a_type_kind)tk_struct ||
-                           var_type_kind == (a_type_kind)tk_union ||
-                           var_type_kind == (a_type_kind)tk_array);
-#else /* !defined(CFE) */
-        gen_assignments = FALSE;
-#endif /* ifdef CFE */
-        dump_initializer(variable, variable->type, init_con,
-                         &gen_assignments, /*separate_chars=*/FALSE,
-                         (an_init_pos_descr_ptr)NULL);
+        dump_initializer(variable, init_con, /*is_dynamic_init=*/FALSE);
       }  /* if */
-      putc(';', f_C_output);
+      fputc(';', f_C_output);
     }  /* if */
     end_unreferenced_bracket(&variable->source_corresp);
   }  /* if */
@@ -5591,7 +5803,7 @@ Generate code for a list of I/O items.
                  we do the opening parenthesis. */
               (void)fprintf(f_C_output, "(&(");
             }  /* if */
-            dump_ampersand(pointer_referenced_type(expr->type));
+            dump_ampersand(type_pointed_to(expr->type));
             dump_lvalue(expr);
             if (complex_case) {
               /* For the complex number case, output the real part on the first
@@ -6099,26 +6311,167 @@ Generate code for the I/O statement pointed to by iodp.
 #endif /* ifdef FFE */
 #ifdef CFE
 
-static void dump_dynamic_init(a_dynamic_init_ptr dip)
+static void dump_init_entity_name(an_expr_node_ptr      var_expr,
+                                  an_init_pos_descr_ptr ipdp,
+                                  a_variable_ptr        whole_variable)
 /*
-Dump code for a dynamic initialization operation.  This routine only emits
-code for non-constant initializations; the constant initializations are
-handled in declaration processing.
+Output a description of an entity being initialized.  This routine is
+necessary because there are three different ways of describing an entity:
+(1) var_expr points to an lvalue expression (this is ruled out if var_expr
+is NULL); (2) ipdp points to a description of the current location within
+an aggregate being initialized, and whole_variable identifies the underlying
+variable (this is ruled out if ipdp is NULL); and (3) whole_variable
+points to a variable entry.
 */
 {
-  if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-    /* Initialization to an expression. */
-    startline(dip->variable->source_corresp.decl_position.seq);
-    dump_var_name(dip->variable);
-    fputs(" = ", f_C_output);
-    dump_expression(dip->variant.expression, /*need_parens=*/TRUE);
-    putc(';', f_C_output);
+  if (var_expr != NULL) {
+    dump_lvalue(var_expr);
+  } else if (ipdp != NULL) {
+    dump_var_for_init(whole_variable, ipdp);
+  } else {
 #if CHECKING
-  } else if (dip->kind != (a_dynamic_init_kind)dik_constant) {
-    internal_error("dump_statement: bad dynamic init");
+    if (whole_variable == NULL) {
+      internal_error("dump_init_entity_name: all 3 params are NULL");
+    }  /* if */
 #endif /* CHECKING */
+    dump_var_name(whole_variable);
   }  /* if */
+}  /* dump_init_entity_name */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
+static void dump_dynamic_init(a_dynamic_init_ptr    dip,
+                              an_expr_node_ptr      var_expr,
+                              an_init_pos_descr_ptr ipdp,
+                              a_variable_ptr        variable)
+/*
+Dump code for a dynamic initialization operation.  If this dynamic init is
+pointed to from an stmk_init entry, var_expr is the expr field from that
+entry; otherwise, var_expr is NULL.  If this dynamic init is pointed to
+from a ck_dynamic_init entry, ipdp gives information about the aggregate
+element to be initialized, and variable identifies the variable; otherwise,
+both are NULL.
+*/
+{
+  FILE             *save_f_C_output;
+  int              save_indent;
+  an_expr_node_ptr constr_arg;
+
+  if (dip->variable != NULL) variable = dip->variable;
+  if (variable != NULL) {
+    set_init_file(variable, &save_f_C_output, &save_indent);
+    startline(variable->source_corresp.decl_position.seq);
+  } else {
+    startline((a_seq_number)0);
+  }  /* if */
+  switch (dip->kind) {
+    case dik_none:
+      /* No initialization. */
+      break;
+    case dik_constant:
+      /* Initialization to a constant.  Output
+           variable = constant;
+      */
+      dump_init_entity_name(var_expr, ipdp, variable);
+      fprintf(f_C_output, " = ");
+      dump_constant_value(dip->variant.constant);
+      fprintf(f_C_output, ";");
+      break;
+    case dik_expression:
+      /* Initialization to an expression.  Output
+           variable = expression;
+      */
+      dump_init_entity_name(var_expr, ipdp, variable);
+      fprintf(f_C_output, " = ");
+      dump_expression(dip->variant.expression, /*need_parens=*/TRUE);
+      fprintf(f_C_output, ";");
+      break;
+    case dik_constructor:
+      /* Initialization by a constructor.  Output
+           constr-name(&(variable), args, ...);
+      */
+      dump_rout_name(dip->variant.constructor.routine);
+      fprintf(f_C_output, "(&(");
+      dump_init_entity_name(var_expr, ipdp, variable);
+      fprintf(f_C_output, ")");
+      for (constr_arg = dip->variant.constructor.args;
+           constr_arg != NULL;
+           constr_arg = constr_arg->next) {
+        fprintf(f_C_output, ", ");
+        dump_expression(constr_arg, /*need_parens=*/TRUE);
+      }  /* for */
+      fprintf(f_C_output, ")");
+      break;
+#if CHECKING
+    case dik_aggregate:
+      /* Initialization by an aggregate constant. */
+      /* Should have been handled in dump_stmk_init. */
+    default:
+      internal_error("dump_dynamic_init: bad kind");
+#endif /* CHECKING */
+  }  /* switch */
+  if (variable != NULL) unset_init_file(save_f_C_output, save_indent);
 }  /* dump_dynamic_init */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
+static void dump_whole_variable_dynamic_init(a_dynamic_init_ptr dip)
+/*
+Generate code for a dynamic initialization that applies to a whole variable.
+*/
+{
+  a_variable_ptr whole_variable = dip->variable;
+  a_boolean      init_already_done = FALSE;
+
+  /* If the initial value is a constant, the initialization was
+     done in dump_variable and should not be done here. */
+  if (constant_initializer(whole_variable) != NULL) {
+    init_already_done = TRUE;
+  } else if (dip->kind == (a_dynamic_init_kind)dik_none) {
+    /* No initialization to be done. */
+    init_already_done = TRUE;
+  } else if (dip->kind == (a_dynamic_init_kind)dik_aggregate) {
+    /* Initialization to an aggregate is handled by calling
+       dump_initializer. */
+    dump_initializer(whole_variable, dip->variant.aggregate.aggr_const,
+                     /*is_dynamic_init=*/TRUE);
+    init_already_done = TRUE;
+  }  /* if */
+  if (!init_already_done) {
+    /* Initialization is still to be done. */
+    clear_initialization_flags();
+    start_initializer_assignments(whole_variable);
+    dump_dynamic_init(dip, (an_expr_node_ptr)NULL, (an_init_pos_descr_ptr)NULL,
+                      (a_variable_ptr)NULL);
+    end_initializer_assignments(whole_variable);
+  }  /* if */
+}  /* dump_whole_variable_dynamic_init */
+
+#endif /* ifdef CFE */
+#ifdef CFE
+
+static void dump_stmk_init(a_statement_ptr statement)
+/*
+Generate code for a stmk_init (dynamic initialization) statement.
+*/
+{
+  a_dynamic_init_ptr dip = statement->variant.dynamic_init;
+
+  /* The executable code can be output directly to f_C_output instead
+     of to a temporary file. */
+  output_initializer_code_directly = TRUE;
+  if (dip->variable != NULL) {
+    /* This is a whole-variable initialization. */
+    dump_whole_variable_dynamic_init(dip);
+  } else {
+    /* This is a partial-variable initialization. */
+    dump_dynamic_init(dip, statement->expr, (an_init_pos_descr_ptr)NULL,
+                      (a_variable_ptr)NULL);
+  }  /* if */
+  output_initializer_code_directly = FALSE;
+}  /* dump_stmk_init */
 
 #endif /* ifdef CFE */
 
@@ -6143,14 +6496,19 @@ Generate C for a statement.
   if (statement == NULL) {
     /* Empty statement. */
     startline((a_seq_number)0);
-    putc(';', f_C_output);
+    fputc(';', f_C_output);
     goto routine_end;
   }  /* if */
-  startline(statement->seq_number);
+  /* Identify the line number except for lines that put out their own
+     line info. */
+  if (statement->kind != (a_statement_kind)stmk_init &&
+      statement->kind != (a_statement_kind)stmk_label) {
+    startline(statement->seq_number);
+  }  /* if */
   switch (statement->kind) {
     case stmk_expr:
       dump_expression(statement->expr, /*need_parens=*/FALSE);
-      putc(';', f_C_output);
+      fputc(';', f_C_output);
       break;
     case stmk_if:
       fputs("if ", f_C_output);
@@ -6181,11 +6539,8 @@ Generate C for a statement.
                           get_name(&statement->variant.label->source_corresp));
       break;
     case stmk_label:
-      if (!statement->variant.label->source_corresp.referenced) {
-        start_unreferenced_bracket(&statement->variant.label->source_corresp);
-        /* Compensate for fact that startline has already been called. */
-        startline((a_seq_number)0);
-      }  /* if */
+      start_unreferenced_bracket(&statement->variant.label->source_corresp);
+      startline(statement->seq_number);
       /* Note that K&R/pcc compilers do not provide a separate name space
          for labels. */
       (void)fprintf(f_C_output, "_L_%s:;",
@@ -6212,15 +6567,15 @@ Generate C for a statement.
         fputs(" 0", f_C_output);
 #endif /* ifdef FFE */
       }  /* if */
-      putc(';', f_C_output);
+      fputc(';', f_C_output);
       break;
     case stmk_block:
-      putc('{', f_C_output);
+      fputc('{', f_C_output);
       indent += 2;
       dump_block(statement);
       indent -= 2;
       startline(statement->variant.block.extra_info->final_seq_number);
-      putc('}', f_C_output);
+      fputc('}', f_C_output);
       break;
 #ifdef CFE
     case stmk_end_test_while:
@@ -6307,7 +6662,7 @@ Generate C for a statement.
 #ifdef CFE
     case stmk_init:
       /* Dynamic initialization. */
-      dump_dynamic_init(statement->variant.dynamic_init);
+      dump_stmk_init(statement);
       break;
     case stmk_asm:
       /* stmk_asm is only used in versions with ASM_STATEMENT_ALLOWED set 
@@ -7101,7 +7456,7 @@ Output the upper-cased version of the indicated string.
   for (; *str != '\0'; str++) {
     ch = *str;
     if (islower(ch)) ch = toupper(ch);
-    putc(ch, f_C_output);
+    fputc(ch, f_C_output);
   }  /* for */
 }  /* dump_upper_cased_string */
 
@@ -7386,7 +7741,7 @@ routine has a body (dump nothing if it has no body).
   if (!dump_with_body) {
     /* This is a prototype declaration, or we want only an interface and 
        no body. */
-    putc(';', f_C_output);
+    fputc(';', f_C_output);
   } else {
     /* This declaration is for a routine with a body. */
 #ifdef CFE
@@ -7420,7 +7775,7 @@ routine has a body (dump nothing if it has no body).
     if (block != NULL) {
       startline(block->seq_number);
     }  /* if */
-    putc('{', f_C_output);
+    fputc('{', f_C_output);
     indent += 2;
 #ifdef FFE
     /* Define the function result variable if necessary. */
@@ -7502,7 +7857,7 @@ routine has a body (dump nothing if it has no body).
     if (block != NULL) {
       startline(block->variant.block.extra_info->final_seq_number);
     }  /* if */
-    putc('}', f_C_output);
+    fputc('}', f_C_output);
 #ifdef FFE
     if (has_entries) {
       /* For a program unit with ENTRYs, generate the actual routines for the
@@ -7582,8 +7937,9 @@ Generate old-style (K&R/pcc) C from the intermediate language.
   curr_stmt_func_call_node = NULL;
 #endif /* ifdef FFE */
 #ifdef CFE
-  f_file_scope_inits = f_rout_static_inits = f_rout_dynamic_inits = NULL;
+  f_file_scope_inits = f_rout_dynamic_inits = NULL;
 #endif /* ifdef CFE */
+  output_initializer_code_directly = FALSE;
 
   switch (il_header.source_language) {
 #ifdef CFE
@@ -7635,6 +7991,14 @@ Generate old-style (K&R/pcc) C from the intermediate language.
   dump_all_variables(scope,
                      /*dump_vars_without_initializers=*/FALSE,
                      /*dump_initializers=*/TRUE);
+#ifdef CFE
+  /* If there are any dynamic inits (C++ only), dump them out. */
+  { a_dynamic_init_ptr dip;
+    for (dip = scope->dynamic_inits; dip != NULL; dip = dip->next) {
+      dump_whole_variable_dynamic_init(dip);
+    }  /* if */
+  }  /* if */
+#endif /* ifdef CFE */
   dump_all_routines(scope, /*bodies=*/TRUE);
 
 #ifdef CFE
@@ -7648,28 +8012,29 @@ Generate old-style (K&R/pcc) C from the intermediate language.
          not called from anywhere in this module.  It must be called
          from the main program, by using the appropriate option. */
       (void)fprintf(stderr,
-              "This compilation contains file-scope union initializations.\n");
+"This file contains file-scope initializations that involve executable code.\n"
+                   );
       (void)fprintf(stderr,
-              "For it to execute correctly, you must include \"%s\" in\n",
+"For it to execute correctly, you must include \"%s\" in the list of\n",
               module_name);
       (void)fprintf(stderr,
-              "the list of modules in the \"-i\" option during compilation\n");
+"modules in the \"-i\" option during compilation of the associated main\n");
       (void)fprintf(stderr,
-              "of the associated main program.\n");
+"program.\n");
     }  /* if */
     copy_and_delete_file(&f_file_scope_inits);
   }  /* if */
   startline((a_seq_number)0);
-  putc('}', f_C_output);
+  fputc('}', f_C_output);
 #if CHECKING
-  if (f_rout_static_inits != NULL || f_rout_dynamic_inits != NULL) {
+  if (f_rout_dynamic_inits != NULL) {
     internal_error("Routine assignment inits not dumped out");
   }  /* if */
 #endif /* CHECKING */
 #endif /* ifdef CFE */
 
   /* Print one more newline to force out the last line. */
-  putc('\n', f_C_output);
+  fputc('\n', f_C_output);
   /* Check for errors in writing the output file, then close it. */
   if (fflush(f_C_output) || ferror(f_C_output) ||
       (f_C_output != stdout && fclose(f_C_output))) {
