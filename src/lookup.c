@@ -75,7 +75,7 @@ locator.  In the case of an ambiguity, return NULL.
                even doing it correctly."  Especially since the user may not
                have been intending to do any such thing.  However, this may
                introduce some differences with Cfront (2.1), which is wedded
-               to the nested class anachronism is surprising ways. */
+               to the nested class anachronism in surprising ways. */
             nested_type_sym = NULL;
             break;
           }  /* if */
