@@ -2426,6 +2426,8 @@ end_sizeof:;
 #endif /* DO_IL_LOWERING */
         remap_ptr(ptr->lifetime_of_overlapping_temps, an_object_lifetime_ptr,
                   iek_object_lifetime);
+        remap_ptr(ptr->master_entry, a_dynamic_init_ptr,
+                  iek_dynamic_init);
       }
       break;
     case iek_local_static_variable_init:

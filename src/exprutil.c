@@ -6436,6 +6436,102 @@ be used (e.g., eok_negate, not eok_inegate).
 }  /* template_unary_operation */
 
 
+static a_boolean optimizable_class_rvalue_question(
+                                                 an_operand         *operand_2,
+                                                 an_operand         *operand_3,
+                                                 a_dynamic_init_ptr *dip_2,
+                                                 a_dynamic_init_ptr *dip_3)
+
+/*
+operand_2 and operand_3 are the second and third operands of a "?"
+operation that returns a class rvalue.  Check to see whether a copy
+elision optimization can be applied, and return TRUE if so, with
+*dip_2 and *dip_3 set to point to the underlying dynamic initialization
+entries for the operands.
+*/
+{
+  a_boolean optimizable = FALSE;
+
+  *dip_2 = *dip_3 = NULL;
+  if (is_expression_operand(operand_2) &&
+      is_expression_operand(operand_3)) {
+    an_expr_node_ptr op_2 = operand_2->variant.expression;
+    an_expr_node_ptr op_3 = operand_3->variant.expression;
+    /* See if the second and third operands are both temporaries. */
+    if (op_2->kind == (an_expr_node_kind)enk_temp_init &&
+        op_3->kind == (an_expr_node_kind)enk_temp_init) {
+      check_assertion(op_2->variant.init.result_is_addr ==
+                      op_3->variant.init.result_is_addr);
+      /* Both are temporaries.  The optimization can be done. */
+      optimizable = TRUE;
+      *dip_2 = op_2->variant.init.dynamic_init;
+      *dip_3 = op_3->variant.init.dynamic_init;
+    }  /* if */
+  }  /* if */
+  return optimizable;
+}  /* optimizable_class_rvalue_question */
+
+
+static void do_class_rvalue_question_optimization(a_dynamic_init_ptr dip_2,
+                                                  a_dynamic_init_ptr dip_3,
+                                                  an_operand         *result)
+/*
+Do the copy elision optimization for a class rvalue "?" operation.
+optimizable_class_rvalue_question has previously determined that the
+optimization can be done.  dip_2 and dip_3 point to the dynamic
+initializations for the temporaries of the operands of the "?", and
+result is the "?" operation on those operands, without the final
+temporary initialization.  The necessary initialization is
+added and result is updated.
+*/
+{
+  an_expr_node_ptr   expr, temp_init_node;
+  a_dynamic_init_ptr dip;
+
+  /* In the optimized form, the temporary that is the result of the
+     overall "?" is a dik_expression marked with
+     is_optimized_class_rvalue_question_mark, which means the expression
+     pointed to should be evaluated for its effects (mainly, initializing
+     the top-level temporary) but its value should not be stored into the
+     temporary.  The initializations for the temporaries for each operand
+     are linked to the master entry so that they will initialize its
+     temporary (i.e., the operand initializations become dependent
+     entries that do not have temporaries of their own), and any
+     destructions indicated are removed (because they will be done by
+     the master entry). */
+  /* Unlink the destructions, as they will not be used. */
+  remove_from_destruction_list(dip_2);
+  remove_from_destruction_list(dip_3);
+  dip_2->destructor = NULL;
+  dip_3->destructor = NULL;
+  dip_2->inside_conditional_expression = FALSE;
+  dip_3->inside_conditional_expression = FALSE;
+  if (strict_ansi_mode) {
+    /* In strict mode, issue an error if the copy constructor that would
+       have been called is not accessible. */
+    check_access_to_elided_copy_constructor(result->type,
+                                            &result->position);
+  }  /* if */
+  /* Make the enk_temp_init node and the dynamic-init entry under it. */
+  temp_init_node = create_expr_temporary(result->type,
+                                         /*result_is_addr=*/FALSE,
+                                         /*is_explicit_cast=*/FALSE,
+                                         /*suppress_abstract_test=*/TRUE,
+                                         (a_dynamic_init_kind)dik_expression,
+                                         &result->position,
+                                         &dip);
+  dip->is_optimized_class_rvalue_question_mark = TRUE;
+  expr = make_node_from_operand(result);
+  set_expr_result_not_used(expr);
+  dip->variant.expression = expr;
+  make_expression_operand(temp_init_node, temp_init_node->type, result);
+  /* Link the initializations for the operands to the result initialization
+     so they will use the same temporary. */
+  dip_2->master_entry = dip;
+  dip_3->master_entry = dip;
+}  /* do_class_rvalue_question_optimization */
+
+
 void do_question_operation(an_operand *operand_1,
                            an_operand *operand_2,
                            an_operand *operand_3,
@@ -6454,6 +6550,9 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
   a_type_ptr operation_type;
   a_boolean  class_rvalue_case = FALSE;
   a_boolean  class_rvalue_cctor_case = FALSE;
+  a_boolean  optimizable = FALSE;
+  a_dynamic_init_ptr
+             dip_2, dip_3;
 
   if (result_is_an_lvalue) {
     /* If the result is an lvalue, the type of the "?" node must be a
@@ -6590,17 +6689,25 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
       /* When the result is a class rvalue, we will do a final copy. */
       if (!symbol_supplement_for_class(result_type)->
                                         construction_by_bitwise_copy_allowed) {
-        /* A copy constructor will be used to do the final copy, so the
-           operands of the "?" are the addresses of the class objects.
-           The class test here is needed for mixed throw/class cases. */
-        class_rvalue_cctor_case = TRUE;
-        if (is_class_struct_union_type(operand_2->type)) {
-          conv_class_operand_to_object_pointer(operand_2);
-          operation_type = operand_2->type;
-        }  /* if */
-        if (is_class_struct_union_type(operand_3->type)) {
-          conv_class_operand_to_object_pointer(operand_3);
-          operation_type = operand_3->type;
+        /* See if this operation can be optimized to avoid a copy.  Note that
+           we don't attempt to optimize cases that use a bitwise copy, because
+           the unoptimized version is efficient enough. */
+        if (optimizable_class_rvalue_question(operand_2, operand_3,
+                                              &dip_2, &dip_3)) {
+          optimizable = TRUE;
+        } else {
+          /* A copy constructor will be used to do the final copy, so the
+             operands of the "?" are the addresses of the class objects.
+             The class test here is needed for mixed throw/class cases. */
+          class_rvalue_cctor_case = TRUE;
+          if (is_class_struct_union_type(operand_2->type)) {
+            conv_class_operand_to_object_pointer(operand_2);
+            operation_type = operand_2->type;
+          }  /* if */
+          if (is_class_struct_union_type(operand_3->type)) {
+            conv_class_operand_to_object_pointer(operand_3);
+            operation_type = operand_3->type;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -6609,18 +6716,24 @@ expression case (a GNU C extension) is characterized by operand_2 being NULL.
                                   operation_type, result);
     if (!C_mode()) {
       if (class_rvalue_case) {
-        /* For the class rvalue case, make an extra copy, producing a
-           single temporary result for the whole operation. */
         /* Give the operand a position so it can be used as an error position
-           in case the copy constructor is not callable. */
+           if necessary. */
         result->position = operand_2->position;
-        if (class_rvalue_cctor_case) {
-          /* Copy constructor call needed, so the operands and the "?"
-             result are pointers. */
-          conv_object_pointer_to_lvalue(result);
+        if (optimizable) {
+          /* Do the copy optimization. */
+          do_class_rvalue_question_optimization(dip_2, dip_3, result);
+        } else {
+          /* For the unoptimized class rvalue case, make an extra copy,
+             producing a single temporary result for the whole operation. */
+          if (class_rvalue_cctor_case) {
+            /* Copy constructor call needed, so the operands and the "?"
+               result are pointers. */
+            conv_object_pointer_to_lvalue(result);
+          }  /* if */
+          temp_init_from_operand(result, /*result_is_addr=*/FALSE);
         }  /* if */
-        temp_init_from_operand(result, /*result_is_addr=*/FALSE);
         if (!is_error_operand(result)) {
+          /* Mark the initialization as being for a class rvalue "?". */
           check_assertion(is_expression_operand(result) &&
                           result->variant.expression->kind ==
                                              (an_expr_node_kind)enk_temp_init);

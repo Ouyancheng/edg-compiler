@@ -1693,6 +1693,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->is_explicit_cast = FALSE;
   dip->is_partially_initialized_compound_literal = FALSE;
   dip->is_result_for_class_rvalue_question_mark = FALSE;
+  dip->is_optimized_class_rvalue_question_mark = FALSE;
 #if CENTERLINE_CHECKING
   dip->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -1701,6 +1702,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->destructible_entity_descr     = NULL;
 #endif /* DO_IL_LOWERING */
   dip->lifetime_of_overlapping_temps = NULL;
+  dip->master_entry                  = NULL;
 }  /* clear_dynamic_init */
 
 

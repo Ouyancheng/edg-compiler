@@ -5830,6 +5830,13 @@ C99 mode for the same reason.
   saved_error_position = error_position;
   if (constant_to_keep != NULL) *constant_to_keep = NULL;
   variable = dip->variable;
+  if (dip->master_entry != NULL) {
+    /* A dependent initialization isn't considered the initialization of
+       the variable indicated as a whole. (One doesn't want to allow
+       changing the initializer of that variable to indicate this
+       initialization.) */
+    variable = NULL;
+  }  /* if */
   if (variable != NULL) {
     /* Whole-variable initialization. */
     /* Track the source position. */
@@ -6112,6 +6119,13 @@ C99 mode for the same reason.
         } else {
           /* Normal case: not a full expression. */
           lower_expr(source_node, expr_is_lvalue);
+        }  /* if */
+        if (dip->is_optimized_class_rvalue_question_mark) {
+          /* For the optimized "?" class rvalue case, the expression must
+             be evaluated (it initializes the temporary) but its value is
+             not stored into the temporary. */
+          (void)insert_expr_statement(source_node, eff_insert_location);
+          break;
         }  /* if */
         { a_variable_ptr var;
           if (!simple_constant_init_opt_ruled_out &&
@@ -7669,20 +7683,27 @@ Do IL lowering of an enk_temp_init expression node.
          so drop the pointer-to to get the temporary type. */
       temp_type = type_pointed_to(temp_type);
     }  /* if */
-    /* Create a temporary variable.  Make it static if necessary. */
-    if (!expr->variant.init.static_temp && !long_lifetime_temps &&
-        dip->has_temporary_lifetime) {
-      /* Simple case; a temporary that lasts until the end of the full
-         expression will do. */
-      temp_var = make_local_temporary(temp_type);
+    if (dip->master_entry != NULL) {
+      /* This entry initializes the temporary associated with another
+         dynamic initialization.  Get the variable assigned for that. */
+      temp_var = dip->master_entry->variable;
+      check_assertion(temp_var != NULL);
     } else {
-      temp_var = make_temporary_in_scope(temp_type,
-                                         (a_scope_ptr)NULL,
-                                         (a_boolean)
+      /* Create a temporary variable.  Make it static if necessary. */
+      if (!expr->variant.init.static_temp && !long_lifetime_temps &&
+          dip->has_temporary_lifetime) {
+        /* Simple case; a temporary that lasts until the end of the full
+           expression will do. */
+        temp_var = make_local_temporary(temp_type);
+      } else {
+        temp_var = make_temporary_in_scope(temp_type,
+                                           (a_scope_ptr)NULL,
+                                           (a_boolean)
                                                expr->variant.init.static_temp);
-      /* With a unique temporary, there is the possibility of keeping
-         some part of the initialization on the variable. */
-      eff_keep_dynamic_init = &keep_dynamic_init;
+        /* With a unique temporary, there is the possibility of keeping
+           some part of the initialization on the variable. */
+        eff_keep_dynamic_init = &keep_dynamic_init;
+      }  /* if */
     }  /* if */
     dip->variable = temp_var;
     if (dip->is_partially_initialized_compound_literal) {

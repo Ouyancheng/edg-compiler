@@ -4945,6 +4945,12 @@ Display the indicated dynamic_init structure.
   if (ptr->is_result_for_class_rvalue_question_mark) {
     disp_boolean("is_result_for_class_rvalue_question_mark", TRUE);
   }  /* if */
+  if (ptr->is_optimized_class_rvalue_question_mark) {
+    disp_boolean("is_optimized_class_rvalue_question_mark", TRUE);
+  }  /* if */
+  if (ptr->master_entry != NULL) {
+    disp_ptr("master_entry", (char *)ptr->master_entry, iek_dynamic_init);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case dik_none:

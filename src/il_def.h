@@ -1828,6 +1828,17 @@ typedef struct a_dynamic_init {
 			/* If TRUE, this entity is the temporary that is
 			   the result of a "?" operator that returns a
 			   class rvalue in C++. */
+  a_bit_field	is_optimized_class_rvalue_question_mark:1;
+			/* If TRUE, is_result_for_class_rvalue_question_mark
+			   will also be TRUE, and an optimization has been
+			   done to avoid the final copy of the result of the
+			   "?" operation.  The kind is dik_expression and
+			   the expression pointed to by variant.expression
+			   is evaluated to effect the initialization of this
+			   temporary, but the value of the expression is not
+			   stored into the temporary.  Note that this case
+			   is eliminated by IL lowering and therefore will
+			   never be seen in lowered code. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
@@ -1849,7 +1860,9 @@ typedef struct a_dynamic_init {
 			/* The expression that gives the initial value
 			   (dik_expression), or the call that returns the
 			   initial value via a copy constructor
-			   (dik_call_returning_class_via_cctor). */
+			   (dik_call_returning_class_via_cctor).  See the
+			   note on is_optimized_class_rvalue_question_mark
+			   regarding one special case of dik_expression. */
     /* When kind == dik_constructor: */
     /* Used only in C++. */
     struct {
@@ -1908,6 +1921,13 @@ typedef struct a_dynamic_init {
 		lifetime_of_overlapping_temps;
 			/* When overlaps_temps_in_inner_lifetime is TRUE, this
 			   identifies the inner lifetime. */
+  a_dynamic_init_ptr
+		master_entry;
+			/* If non-NULL, this entry initializes a temporary
+			   associated with the initialization entry pointed to.
+			   The master entry handles destruction etc.  This is
+			   used for the optimization of a "?" operator
+			   returning a class rvalue. */
 } a_dynamic_init;
 
 

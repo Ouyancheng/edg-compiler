@@ -685,6 +685,10 @@ extern void user_convert_operand(
                            a_conv_descr *ctor_arg_conversion,
                            a_boolean    force_temp_for_class_bitwise_copy);
 
+extern void check_access_to_elided_copy_constructor(
+                                             a_type_ptr        source_type,
+                                             a_source_position *err_pos);
+
 extern void prep_elision_initializer_operand(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,

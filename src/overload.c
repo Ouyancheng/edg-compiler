@@ -11383,9 +11383,8 @@ processed_arg, see conversion_to_class_possible.
 }  /* prep_conversion_operand */
 
 
-static void check_access_to_elided_copy_constructor(
-                                                 a_type_ptr        source_type,
-                                                 a_source_position *err_pos)
+void check_access_to_elided_copy_constructor(a_type_ptr        source_type,
+                                             a_source_position *err_pos)
 /*
 A conversion from source_type (a possibly-qualified class type) is being done
 by eliding a copy constructor.  Check that the copy constructor that would
