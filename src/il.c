@@ -8539,7 +8539,7 @@ in il_init.)
      that the enumeration an_il_entry_kind and the array sizeof_il_entry
      are in sync. */
   if (sizeof_il_entry[(int)iek_last] != IEK_LAST_CHECK_SIZE) {
-    internal_error("il_init: bad initialization of sizeof_il_entry");
+    internal_error("il_one_time_init: bad initialization of sizeof_il_entry");
   }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
 #if NEED_IL_DISPLAY || DEBUG
@@ -8549,7 +8549,8 @@ in il_init.)
      update il_entry_kind_names. */
   if (il_entry_kind_names[(int)iek_last] == NULL ||
       strcmp(il_entry_kind_names[(int)iek_last], "last") != 0) {
-    internal_error("il_init: incorrect initialization of il_entry_kind_names");
+    internal_error(
+          "il_one_time_init: incorrect initialization of il_entry_kind_names");
   }  /* if */
 #endif /* NEED_IL_DISPLAY || DEBUG */
 #if DEBUG
@@ -8560,21 +8561,22 @@ in il_init.)
   if (db_storage_class_names[(int)sc_last] == NULL ||
       strcmp(db_storage_class_names[(int)sc_last], "last") != 0) {
     internal_error(
-                "il_init: incorrect initialization of db_storage_class_names");
+       "il_one_time_init: incorrect initialization of db_storage_class_names");
   }  /* if */
   /* Check that the table of special function kind names is correctly
      initialized. */
   if (db_special_function_kinds[(int)sfk_last] == NULL ||
       strcmp(db_special_function_kinds[(int)sfk_last], "last") != 0) {
     internal_error(
-             "il_init: incorrect initialization of db_special_function_kinds");
+    "il_one_time_init: incorrect initialization of db_special_function_kinds");
   }  /* if */
   /* Check that the table of operator names is correctly initialized.  This
      guards against someone changing the enumeration and forgetting to update
      db_operator_names. */
   if (db_operator_names[(int)eok_last] == NULL ||
       strcmp(db_operator_names[(int)eok_last], "last") != 0) {
-    internal_error("il_init: incorrect initialization of db_operator_names");
+    internal_error(
+            "il_one_time_init: incorrect initialization of db_operator_names");
   }  /* if */
 #endif /* DEBUG */
   /* Variable in il_def.h: */
@@ -8582,14 +8584,15 @@ in il_init.)
   if (name_linkage_kind_names[(int)nlk_last] == NULL ||
       strcmp(name_linkage_kind_names[(int)nlk_last], "last") != 0) {
     internal_error(
-               "il_init: incorrect initialization of name_linkage_kind_names");
+      "il_one_time_init: incorrect initialization of name_linkage_kind_names");
   }  /* if */
 #if DECL_MODIFIERS_IN_USE
   /* Variable in il_def.h: */
   /* Check that the table of decl modifier names is correctly initialized. */
   if (decl_modifier_names[(int)dmt_last] == NULL ||
       strcmp(decl_modifier_names[(int)dmt_last], "last") != 0) {
-    internal_error("il_init: incorrect initialization of decl_modifier_names");
+    internal_error(
+          "il_one_time_init: incorrect initialization of decl_modifier_names");
   }  /* if */
 #endif /* DECL_MODIFIERS_IN_USE */
   /* Variable in il_def.h: */
@@ -8598,7 +8601,8 @@ in il_init.)
      update pragma_ids. */
   if (pragma_ids[(int)pk_last] == NULL ||
       strcmp(pragma_ids[(int)pk_last], "last") != 0) {
-    internal_error("il_init: incorrect initialization of pragma_ids");
+    internal_error(
+                   "il_one_time_init: incorrect initialization of pragma_ids");
   }  /* if */
 #endif /* CHECKING */
 
