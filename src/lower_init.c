@@ -3831,7 +3831,7 @@ do_assignment:;
          a whole-variable initialization, but can be used in a ctor-initializer
          to iterate over an array initialization, etc. */
       if (!C_mode()) {
-        latest_initialization_on_entry = curr_context->latest_initialization;
+        latest_initialization_on_entry = eff_context->latest_initialization;
       }  /* if */
       keep_constant = FALSE;
       lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
@@ -3888,7 +3888,7 @@ do_assignment:;
       if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
           !C_mode() &&
           latest_initialization_on_entry !=
-                                         curr_context->latest_initialization) {
+                                          eff_context->latest_initialization) {
         /* This is an aggregate for which some partial-aggregate
            initializations were done.  Adjust the cleanup state now that
            the entire aggregate is completed. */
