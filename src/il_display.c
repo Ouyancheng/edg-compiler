@@ -585,6 +585,8 @@ entity_name:
       (void)printf("init position");
       break;
 #endif /* ifdef FFE */
+    case ck_template_param:
+      /* Front end only. */
     default:
       (void)printf("**BAD CONSTANT KIND**");
   }  /* switch */
@@ -1007,6 +1009,8 @@ Display the indicated constant entry.
                          ptr->variant.init_position.segment_size);
       break;
 #endif /* ifdef FFE */
+    case ck_template_param:
+      /* Front end only. */
     default:
       printf("**BAD CONSTANT KIND**\n");
   }  /* switch */
