@@ -812,9 +812,6 @@ do_variable:
     case sk_namespace:
       break;
     case sk_namespace_projection:
-     if (sym->variant.namespace_projection.is_explicit) {
-       put_string("is_explicit");
-     }  /* if */
      break;
 #if CHECKING
     default:
@@ -822,6 +819,9 @@ do_variable:
       break;
 #endif /* CHECKING */
   }  /* switch */
+  if (sym->synthesized_namespace_projection) {
+    put_string("synth_namespace_proj");
+  }  /* if */
   if (type != NULL) {
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
     if (type->use_cfront_transitional_nested_type_name_mangling) {
@@ -1698,7 +1698,6 @@ state.
       break;
     case sk_namespace_projection:
       sym_ptr->variant.namespace_projection.fundamental_symbol = NULL;
-      sym_ptr->variant.namespace_projection.is_explicit = FALSE;
       break;
 #if CHECKING
     default:
@@ -6058,14 +6057,16 @@ options contains bits indicating special restrictions, i.e., the symbol
 must a tag.  Projection symbols are not considered in the lookup.
 */
 {
-  a_symbol_ptr    sym;
-  a_scope_number  scope_number;
-  a_boolean	  must_be_tag = (options & IDL_MUST_BE_TAG);
+  a_symbol_ptr			sym;
+  a_scope_number		scope_number;
+  a_boolean			must_be_tag = (options & IDL_MUST_BE_TAG);
+  a_scope_stack_entry_ptr	ssep;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym)                                       \
    ((!must_be_tag || is_tag_symbol(sym)) &&				\
-    sym->kind != (a_symbol_kind)sk_projection)
+    sym->kind != (a_symbol_kind)sk_projection &&			\
+    !sym->synthesized_namespace_projection)
 
 #if CHECKING
   if ((options & ~IDL_MUST_BE_TAG) != 0) {
@@ -6081,9 +6082,10 @@ must a tag.  Projection symbols are not considered in the lookup.
     check_assertion(is_acceptable_symbol(sym));
     /* The locator is for a specific symbol, so return the symbol for it. */
   } else {
+    ssep = &scope_stack[decl_scope_level];
     /* Look for a symbol in the current scope for which the kind matches that
        of the scope level specified by the caller. */
-    scope_number = scope_stack[decl_scope_level].number;
+    scope_number = ssep->number;
     sym = symbol_list_from_locator(*locator);
     for (; sym != NULL; sym = sym->next) {
      if (sym->decl_scope == scope_number && is_acceptable_symbol(sym)) {
@@ -6091,7 +6093,34 @@ must a tag.  Projection symbols are not considered in the lookup.
         break;
       }  /* if */
     }  /* for */
-    locator->specific_symbol = sym;
+    if (sym == NULL && ssep->kind == (a_scope_kind)sck_namespace_extension) {
+      /* If no symbol was found on the active list, and this is a namespace
+         extension, then look on the inactive list too.  This doesn't
+         have to be done for original namespace scopes because their symbols
+         will still be on the active list. */
+      a_symbol_ptr	tag_symbol = NULL;
+      for (sym = inactive_symbol_list_from_locator(*locator);
+           sym != NULL;
+           sym = sym->next) {
+        if (is_acceptable_symbol(sym)) {
+          /* Found an acceptable symbol. */
+          /* If the symbol is a tag symbol, there's the possibility that
+             there is a non-type symbol in the same scope later in the list
+             (because the inactive list is not ordered in any way).  Save the
+             tag symbol and keep looking.  If nothing else turns up,
+             use the tag symbol. */
+          if (!is_tag_symbol(sym)) {
+            tag_symbol = NULL;
+            break;
+          }  /* if */
+          tag_symbol = sym;
+        }  /* if */
+      }  /* for */
+      /* We reached the end of the list.  If there is a tag symbol saved
+         within the loop, use it. */
+      if (tag_symbol != NULL) sym = tag_symbol;
+   }  /* if */
+   locator->specific_symbol = sym;
   }  /* if */
   return sym;
 #undef is_acceptable_symbol
@@ -6564,7 +6593,8 @@ C and C++.
   ((!must_be_class_or_namespace ||					\
     symbol_may_precede_qualifier(fund_sym)) &&                          \
    (!must_be_tag   ||						        \
-    is_tag_or_tag_proxy_symbol(fund_sym)))
+    is_tag_or_tag_proxy_symbol(fund_sym)) &&				\
+   !((sym)->synthesized_namespace_projection))
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
 #define is_acceptable_active_symbol(sym, fund_sym)                           \
@@ -7170,7 +7200,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym)                                     \
-  ((sym)->is_class_member &&                                          \
+  ((sym)->is_class_member &&					      \
+   !(sym)->synthesized_namespace_projection &&                        \
    (sym)->parent.class_type == class_type &&                          \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(sym)) &&	     		      \
@@ -7334,6 +7365,7 @@ namespace.  This routine is used only in C++ mode.
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((!(sym)->is_class_member) &&                                       \
+   !(sym)->synthesized_namespace_projection &&			      \
    (sym)->parent.namespace_ptr == ns_ptr &&                           \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&      \
@@ -10095,22 +10127,23 @@ are handled in symbol_tbl_init.)
 
   /* Static variables in symbol_tbl.c: */
   /* Clear a symbol that can be used to make initialization more efficient. */
-  cleared_symbol.header                         = NULL;
-  cleared_symbol.next                           = NULL;
-  cleared_symbol.next_in_scope                  = NULL;
-  cleared_symbol.decl_scope                     = NO_SCOPE_NUMBER;
-  cleared_symbol.decl_seq                       = 0;
-  cleared_symbol.decl_position                  = null_source_position;
-  cleared_symbol.parent.class_type              = NULL;
-  cleared_symbol.referenced                     = FALSE;
-  cleared_symbol.defined                        = FALSE;
-  cleared_symbol.explicit_linkage_specifier     = FALSE;
-  cleared_symbol.reentered_from_prototype_scope = FALSE;
-  cleared_symbol.is_class_member                = FALSE;
-  cleared_symbol.is_error                       = FALSE;
-  cleared_symbol.is_template_param              = FALSE;
-  cleared_symbol.template_param_not_visible     = FALSE;
-  cleared_symbol.force_external_linkage         = FALSE;
+  cleared_symbol.header                           = NULL;
+  cleared_symbol.next                             = NULL;
+  cleared_symbol.next_in_scope                    = NULL;
+  cleared_symbol.decl_scope                       = NO_SCOPE_NUMBER;
+  cleared_symbol.decl_seq                         = 0;
+  cleared_symbol.decl_position                    = null_source_position;
+  cleared_symbol.parent.class_type                = NULL;
+  cleared_symbol.referenced                       = FALSE;
+  cleared_symbol.defined                          = FALSE;
+  cleared_symbol.explicit_linkage_specifier       = FALSE;
+  cleared_symbol.reentered_from_prototype_scope   = FALSE;
+  cleared_symbol.is_class_member                  = FALSE;
+  cleared_symbol.is_error                         = FALSE;
+  cleared_symbol.is_template_param                = FALSE;
+  cleared_symbol.template_param_not_visible       = FALSE;
+  cleared_symbol.force_external_linkage           = FALSE;
+  cleared_symbol.synthesized_namespace_projection = FALSE;
   /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {

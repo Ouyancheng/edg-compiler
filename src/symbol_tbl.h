@@ -1479,6 +1479,12 @@ typedef struct a_symbol {
 			/* TRUE if this is a class or enum type that has been
 			   used in a way that would force external linkage (if
 			   it has linkage at all). */
+  unsigned int	synthesized_namespace_projection:1;
+			/* TRUE for sk_namespace_projection and
+			   sk_overloaded_function symbols that were created
+			   as a result of a lookup that found one or more
+			   symbols that are visible as a result of
+			   using directives. */
   union {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
@@ -1678,10 +1684,6 @@ typedef struct a_symbol {
 			   symbol; rather, separate projection symbols will be
 			   created for members of the fundamental namespace's
 			   overload set. */
-      a_byte_boolean
-		is_explicit;
-			/* The projection symbol was brought into the current
-			   scope by means of a using-declaration. */
     } namespace_projection;
   } variant;
 } a_symbol;
