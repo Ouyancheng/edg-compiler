@@ -35,6 +35,8 @@ static void prep_conversion_operand(an_operand        *source_operand,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos);
 static a_boolean operand_is_temp_init(an_operand *operand);
+static a_boolean type_matches_type_code(a_type_ptr type,
+                                        char       type_code);
 
 
 /*
@@ -3742,6 +3744,56 @@ check_next_function:;
 }  /* match_is_better_on_at_least_one_arg */
 
 
+static a_boolean function_candidate_with_same_sig_as_builtin_present(
+                                  a_candidate_function_ptr builtin_cfp,
+                                  a_candidate_function_ptr candidate_functions)
+/*
+Return TRUE if on the list of candidate_functions there is a function
+with the same signature as the builtin operator indicated by builtin_cfp.
+*/
+{
+  a_boolean present = FALSE;
+
+  /* See 13.3.1.2 [over.match.oper] paragraph 2 bullet 3 sub-bullet 4
+     in the C++98 standard:
+
+     -- do not have the same parameter type list as any non-template
+        non-member candidate.
+
+     Note that because there aren't any built-in operators that
+     take operands of class types, the real issue is only
+     builtin operators that take enum types.
+  */
+  if (builtin_cfp->operand_type_pattern[0] == 'E' &&
+      builtin_cfp->operand_type_pattern[1] == 'E') {
+    a_candidate_function_ptr cfp;
+    for (cfp = candidate_functions; cfp != NULL; cfp = cfp->next) {
+      if (builtin_cfp != cfp &&
+          cfp->function_symbol != NULL &&
+          !cfp->is_function_template &&
+          !cfp->function_symbol->is_class_member) {
+        /* Compare the function parameter types to the builtin operator
+           operand types. */
+        an_arg_match_summary_ptr arg = cfp->arg_matches;
+        char *type_code = builtin_cfp->operand_type_pattern;
+        for (; arg != NULL; arg = arg->next, type_code++) {
+          check_assertion(arg->param_type != NULL);
+          if (!type_matches_type_code(arg->param_type, *type_code)) {
+            /* This function does not match. */
+            goto next_function;
+          }  /* if */
+        }  /* for */
+        /* This function matches. */
+        present = TRUE;
+        break;
+      }  /* if */
+next_function:;
+    }  /* for */
+  }  /* if */
+  return present;
+}  /* function_candidate_with_same_sig_as_builtin_present */
+
+
 static void select_best_candidate_functions(
                         a_candidate_function_ptr *candidate_functions,
                         a_source_position        *source_pos,
@@ -3764,6 +3816,7 @@ is set to TRUE.
 {
   a_candidate_function_ptr candidates = *candidate_functions;
   a_candidate_function_ptr cfp, best_cfp, end_candidate_functions, cfp_next;
+  a_candidate_function_ptr prev_cfp;
   unsigned long            number_in_best_match_set;
   an_arg_match_summary_ptr curr_arg;
   int                      cmp;
@@ -3796,20 +3849,43 @@ is set to TRUE.
     /* Put all functions in the best-match set, and set the current argument
        for each function to the first one. */
     number_in_best_match_set = 0;
-    for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-      cfp->in_best_match_set = TRUE;
-      cfp->in_best_match_set_for_some_argument = FALSE;
-      number_in_best_match_set++;
-      set_first_arg_match(cfp);
-      if (cfp->function_symbol != NULL &&
-          is_ambiguous_by_inheritance(cfp->function_symbol)) {
-        /* A candidate is an ambiguous symbol, which is an arbitrary
-           representative of a set of functions that collided due
-           to inheritance.  The overload resolution is ambiguous. */
-        overall_ambiguity = TRUE;
+    prev_cfp = NULL;
+    for (cfp = candidates; cfp != NULL; cfp = cfp_next) {
+      cfp_next = cfp->next;
+      /* Look for a candidate that is a builtin operator that has the
+         same signature as a function in the candidate set, and eliminate
+         the builtin operator. */
+      if (cfp->operand_type_pattern != NULL &&
+          function_candidate_with_same_sig_as_builtin_present(cfp,
+                                                              candidates)) {
+        /* Remove the builtin operator candidate. */
+        if (prev_cfp == NULL) {
+          candidates = *candidate_functions = cfp_next;
+        } else {
+          prev_cfp->next = cfp_next;
+        }  /* if */
+        cfp->next = NULL;
+        free_candidate_function_list(cfp);
+      } else {
+        /* Normal case. */
+        cfp->in_best_match_set = TRUE;
+        cfp->in_best_match_set_for_some_argument = FALSE;
+        number_in_best_match_set++;
+        set_first_arg_match(cfp);
+        if (cfp->function_symbol != NULL &&
+            is_ambiguous_by_inheritance(cfp->function_symbol)) {
+          /* A candidate is an ambiguous symbol, which is an arbitrary
+             representative of a set of functions that collided due
+             to inheritance.  The overload resolution is ambiguous. */
+          overall_ambiguity = TRUE;
+        }  /* if */
+        prev_cfp = cfp;
       }  /* if */
     }  /* for */
     if (overall_ambiguity) goto create_final_list;
+    /* If we have only one candidate left after removing builtin operators
+       above, skip the rest of the processing. */
+    if (number_in_best_match_set == 1) goto create_final_list;
     /* Loop for each argument. */
     while (candidates->current_arg_match != NULL) {
       /* Find the best-match set for this argument. */
