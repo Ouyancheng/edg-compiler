@@ -2189,8 +2189,8 @@ bound with the function in *bound_function_selector.
                         gid_flags;
   a_type_ptr            dtor_type;
   a_boolean             pcc_mode_integral_pointer_case = FALSE;
-  a_source_position     operator_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position     operator_position;
   a_source_position     end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
@@ -2198,7 +2198,9 @@ bound with the function in *bound_function_selector.
 
   /* Remember if this was an arrow or a dot selector. */
   is_arrow_operator = (curr_token == tok_arrow);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   operator_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Field selection not allowed in preprocessor expression. */
@@ -9743,7 +9745,7 @@ See section 3.3.16 of the standard.
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
-      if (!property_ref_case) {
+      if (!property_ref_case) { /*lint !e774*/
         do_operand_transformations(operand_1,
                                    TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
         if (!C_mode() && is_enum_type(operand_1->type)) {
