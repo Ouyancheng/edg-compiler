@@ -785,6 +785,24 @@ only if customer code modifies the IL statement tree.
 #ifndef ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
 #define ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C FALSE
 #endif /* ifndef ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
+
+/*
+Flag that is TRUE if, when the C-generating back end (c_gen_be) or
+C++/C-generating back end (cp_gen_be) is run, the "restrict" keyword may
+appear in the output.
+*/
+#ifndef RESTRICT_ALLOWED_IN_OUTPUT
+#if RESTRICT_ALLOWED
+#define RESTRICT_ALLOWED_IN_OUTPUT TRUE   /* You can change this. */
+#else /* !RESTRICT_ALLOWED */
+#define RESTRICT_ALLOWED_IN_OUTPUT FALSE  /* Do not change this. */
+#endif /* RESTRICT_ALLOWED */
+#else /* defined(RESTRICT_ALLOWED_IN_OUTPUT) */
+#if !RESTRICT_ALLOWED
+ #error -- RESTRICT_ALLOWED must be TRUE if RESTRICT_ALLOWED_IN_OUTPUT is set.
+#endif /* !RESTRICT_ALLOWED */
+#endif /* RESTRICT_ALLOWED_IN_OUTPUT */
+
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 #if DO_IL_LOWERING
