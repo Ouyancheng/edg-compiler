@@ -1,5 +1,15 @@
 Version 2.40
 
+10/2/98   stat() declaration no longer included in host_envir.h by default
+
+Formerly, a declaration of stat() has been provided in host_envir.h
+because some (old) systems did not include a declaration of stat() in
+the standard header files.  Including this declaration causes problems
+on some systems (for example, Windows NT) that may specify additional
+system-specific information in the declaration of stat().  The declaration
+of stat() is now only provided if the STAT_DECLARATION_NEEDED macro is
+defined.
+
 10/2/98   Incorrect lookup in member template
 
 If a member template was declared within a nested class declared within a
