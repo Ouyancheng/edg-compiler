@@ -4481,6 +4481,7 @@ type should not be used in the matching process.
        template should be done. */
     *templ_arg_list = create_initial_template_arg_list(templ_param_list,
                                                        explicit_arg_list);
+    if (*templ_arg_list == NULL) goto done;
   }  /* if */
   /* Make a pass over the entries representing instantiations of the function
      template to see if any of them match the current type signature. */
