@@ -1366,6 +1366,7 @@ ec_float_to_fixed_conversion;;"floating-point value does not fit in required fix
 ec_inexact_fixed_conversion;;"value cannot be converted to fixed-point value exactly"
 ec_fixed_sign_change;;"fixed-point conversion resulted in a change of sign"
 ec_integer_to_fixed_conversion;;"integer value does not fit in required fixed-point type"
+ec_bad_fixed_operation_result;;"fixed-point operation result is out of range"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

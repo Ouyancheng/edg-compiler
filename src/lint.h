@@ -356,6 +356,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_inexact_fixed_conversion)*/
 /*lint -esym(769,ec_fixed_sign_change)*/
 /*lint -esym(769,ec_integer_to_fixed_conversion)*/
+/*lint -esym(769,ec_bad_fixed_operation_result)*/
 /*lint -esym(759,number_of_bits_in_mantissa)*/
 /*lint -esym(765,number_of_bits_in_mantissa)*/
 /*lint -esym(759,init_mantissa)*/

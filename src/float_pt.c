@@ -1224,6 +1224,7 @@ adjusted to make the implicit bit explicit.
 
 static void store_hex_fp_value(a_mantissa_ptr		mp,
 			       long			exponent,
+			       a_boolean		is_negative,
 			       a_float_kind		kind,
 			       an_internal_float_value	*float_value,
 			       a_boolean		any_digits)
@@ -1237,7 +1238,8 @@ there were any non-zero digits specified (i.e., it is FALSE if the
 value is zero).
 
 Store the value into "float_value".  The value stored is of the kind
-specified by kind.
+specified by kind.  When USE_LONG_DOUBLE_FOR_HOST_FP_VALUE is FALSE,
+the long double kind will have already been mapped to double by the caller.
 */
 {
   int			offset;
@@ -1245,10 +1247,6 @@ specified by kind.
   an_fp_value_part	val;
   an_fp_value_part	fp_temp[4];
 
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-  /* When long double is mapped onto double, store this value as a double. */
-  if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   fp_ptr = &fp_temp[0];
   if (host_little_endian) {
     /* On little endian systems, we start storing with the last 32-bit value
@@ -1268,6 +1266,7 @@ specified by kind.
        bit. */
   } else if (kind == (a_float_kind)fk_float) {
     val = (mp->parts[0] >> 9) | ((exponent + 127) << 23);
+    if (is_negative) val |= 0x80000000;
     memcpy((char*)float_value, (char*)&val, sizeof(val));
   } else if (kind == (a_float_kind)fk_double ||
              (kind == (a_float_kind)fk_long_double &&
@@ -1281,6 +1280,7 @@ specified by kind.
     /* Update the pointer to refer to the last 32-bit word of the value. */
     if (host_little_endian) fp_ptr += 1;
     val = ((exponent + 1023) << 20) | (mp->parts[0] >> 12);
+    if (is_negative) val |= 0x80000000;
     *fp_ptr = val;
     val = (mp->parts[0] << 20) | (mp->parts[1] >> 12);
     fp_ptr += offset;
@@ -1294,6 +1294,7 @@ specified by kind.
       /* Update the pointer to refer to the last 32-bit word of the value. */
       if (host_little_endian) fp_ptr += 2;
       val = (exponent + 16383);
+      if (is_negative) val |= 0x8000;
       *fp_ptr = val;
       fp_ptr += offset;
       val = mp->parts[0];
@@ -1308,6 +1309,7 @@ specified by kind.
       /* Update the pointer to refer to the last 32-bit word of the value. */
       if (host_little_endian) fp_ptr += 3;
       val = ((exponent + 16383) << 16) | (mp->parts[0] >> 16);
+      if (is_negative) val |= 0x80000000;
       *fp_ptr = val;
       fp_ptr += offset;
       val = (mp->parts[0] << 16) | (mp->parts[1] >> 16);
@@ -1332,12 +1334,10 @@ void conv_hex_string_to_mantissa_and_exponent(
 				char			*str,
 				a_mantissa_ptr		mantissa,
 				long			*p_exponent,
-				a_boolean		*p_any_digits,
 				a_boolean		*exponent_overflow)
 /*
 Convert a hexadecimal floating-point number in the null-terminated
-string str to internal form in mantissa and p_exponent.  Set p_any_digits
-to TRUE if the mantissa contains any non-zero digits.
+string str to internal form in mantissa and p_exponent.
 
 The number is known to be syntactically correct, but may not be representable
 (it may be too large or too small).  Most errors must be detected later when
@@ -1352,7 +1352,6 @@ set to TRUE if the exponent is too large to represent.
   int				nibble_in_part = 0;
   a_boolean			too_many_digits = FALSE;
   a_boolean			bits_discarded = FALSE;
-  a_boolean			any_digits = FALSE;
 
   *exponent_overflow = FALSE;
   /* Start by extracting the hex digits from the string.  An entry of
@@ -1402,7 +1401,6 @@ set to TRUE if the exponent is too large to represent.
         nibble_in_part = 0;
         if (part >= MANTISSA_PARTS) too_many_digits = TRUE;
       }  /* if */
-      any_digits = TRUE;
     }  /* if */
     /* If this character precedes the decimal point, update the implied
        exponent. */
@@ -1444,16 +1442,97 @@ set to TRUE if the exponent is too large to represent.
        Set the underflow bit so that a warning will be issued. */
     mantissa->underflow = TRUE;
   }  /* if */
+  *p_exponent = exponent;
+}  /* conv_hex_string_to_mantissa_and_exponent */
+
+
+void conv_mantissa_to_floating_point(
+				a_mantissa_ptr			mp,
+				long				exponent,
+				a_boolean			is_negative,
+				a_float_kind			kind,
+				an_internal_float_value		*float_value,
+				a_boolean			overflow,
+				a_boolean			*err,
+				a_boolean			*inexact)
+/*
+Given a mantissa (mp) and exponent that represent a floating-point
+value, check that the value is representable in the destination type
+specified by kind.  is_negative is TRUE if the value to be stored must
+be created as a negative value.  Set *err on overflow.  Set *inexact
+if any bits are lost because the precision of the destination type.
+overflow is TRUE if the value is already known to be too large (i.e.,
+because the exponent was out of range).
+*/
+{
+  a_boolean	any_digits;
+  int		mant_dig;
+
+#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  /* When long double is mapped onto double, store this value as a double. */
+  if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  switch (kind) {
+    case fk_float:
+      mant_dig = targ_flt_mant_dig;
+      break;
+    case fk_double:
+      mant_dig = targ_dbl_mant_dig;
+      break;
+    case fk_long_double:
+      mant_dig = targ_ldbl_mant_dig;
+      break;
+    default:
+      unexpected_condition();
+      break;
+  }  /* switch */
+  any_digits = number_of_bits_in_mantissa(mp) != 0;
   /* Normalize the mantissa. */
   if (any_digits) {
-    while ((mantissa->parts[0] & 0x80000000) == 0) {
-      shift_left_mantissa(mantissa, 1);
+    while ((mp->parts[0] & 0x80000000) == 0) {
+      shift_left_mantissa(mp, 1);
       exponent--;
     }  /* while */
   }  /* if */
-  *p_exponent = exponent;
-  *p_any_digits = any_digits;
-}  /* conv_hex_string_to_mantissa_and_exponent */
+  if (any_digits) {
+    /* Round the value to the nearest representable value. */
+    round_hex_fp_value(mp, &exponent, mant_dig, inexact);
+    if (kind != (a_float_kind)fk_long_double ||
+        !long_double_has_no_implicit_bit) {
+      /* Shift one bit further to have an implied initial one bit.  This is
+         only done for floating point representations that use an implicit
+         bit. */
+      shift_left_mantissa(mp, 1);
+    }  /* if */
+    exponent--;
+  } else {
+    /* There were no digits specified.  Reset the exponent. */
+    exponent = 0;
+    overflow = FALSE;
+  }  /* if */
+  /* Set the error flag if the exponent was too large. */
+  if (overflow) *err = TRUE;
+#if DEBUG
+  if (db_flag_is_set("fp_hex_string_to_float")) {
+    fprintf(f_debug, "fp hex value: ");
+    db_mantissa(mp);
+    fprintf(f_debug, "exponent=%ld\n", exponent);
+  }  /* if */
+#endif /* DEBUG */
+  /* Check whether the resulting value fits in the type being used. */
+  check_and_denormalize_hex_fp_value(mp, &exponent, kind, err, inexact,
+                                     float_value);
+  /* Store the value in the appropriate kind of floating point value.  If
+     the value is out of range, float_value will have already been set to
+     infinity, so it is not updated here. */
+  if (!*err) {
+    store_hex_fp_value(mp, exponent, is_negative, kind, float_value,
+                       any_digits);
+  }  /* if */
+  /* If an underflow occurred, set the flag that indicates that the resulting
+     value is not an exact representation of the specified value. */
+  if (mp->underflow) *inexact = mp->underflow;
+}  /* conv_mantissa_to_floating_point */
 
 
 void fp_hex_string_to_float(a_float_kind		kind,
@@ -1474,73 +1553,24 @@ fit in the indicated type.
 {
   long		exponent = 0;
   a_mantissa	mantissa;
-  a_boolean	any_digits = FALSE;
   a_boolean	exponent_overflow = FALSE;
-  int		mant_dig;
 
   *err = FALSE;
   *inexact = FALSE;
-  switch (kind) {
-    case fk_float:
-      mant_dig = targ_flt_mant_dig;
-      break;
-    case fk_double:
-      mant_dig = targ_dbl_mant_dig;
-      break;
-    case fk_long_double:
-      mant_dig = targ_ldbl_mant_dig;
-      break;
-    default:
-      unexpected_condition();
-      break;
-  }  /* switch */
   /* Convert the string into a mantissa and exponent. */
   conv_hex_string_to_mantissa_and_exponent(str, &mantissa, &exponent,
-                                           &any_digits, &exponent_overflow);
-  if (any_digits) {
-    /* Round the value to the nearest representable value. */
-    round_hex_fp_value(&mantissa, &exponent, mant_dig, inexact);
-    if (kind != (a_float_kind)fk_long_double ||
-        !long_double_has_no_implicit_bit) {
-      /* Shift one bit further to have an implied initial one bit.  This is
-         only done for floating point representations that use an implicit
-         bit. */
-      shift_left_mantissa(&mantissa, 1);
-    }  /* if */
-    exponent--;
-  } else {
-    /* There were no digits specified.  Reset the exponent. */
-    exponent = 0;
-    exponent_overflow = FALSE;
-  }  /* if */
-  /* Set the error flag if the exponent was too large. */
-  if (exponent_overflow) *err = TRUE;
-#if DEBUG
-  if (db_flag_is_set("fp_hex_string_to_float")) {
-    fprintf(f_debug, "fp hex value: ");
-    db_mantissa(&mantissa);
-    fprintf(f_debug, "exponent=%ld\n", exponent);
-  }  /* if */
-#endif /* DEBUG */
-  /* Check whether the resulting value fits in the type being used. */
-  check_and_denormalize_hex_fp_value(&mantissa, &exponent, kind, err, inexact,
-                                     float_value);
-  /* Store the value in the appropriate kind of floating point value.  If
-     the value is out of range, float_value will have already been set to
-     infinity, so it is not updated here. */
-  if (!*err) {
-    store_hex_fp_value(&mantissa, exponent, kind, float_value, any_digits);
-  } else {
+                                           &exponent_overflow);
+  conv_mantissa_to_floating_point(&mantissa, exponent, /*is_negative=*/FALSE,
+                                  kind, float_value, exponent_overflow,
+                                  err, inexact);
 #if TARG_HAS_IEEE_FLOATING_POINT
+  if (*err) {
     /* Reset the error flag to prevent the overflow from being diagnosed.
        This only done when using IEEE floating point because the value
        is replaced with infinity when using IEEE floating point. */
     if (gnu_mode) *err = FALSE;
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
   }  /* if */
-  /* If an underflow occurred, set the flag that indicates that the resulting
-     value is not an exact representation of the specified value. */
-  if (mantissa.underflow) *inexact = mantissa.underflow;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 }  /* fp_hex_string_to_float */
 
 

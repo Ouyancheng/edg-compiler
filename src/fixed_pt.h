@@ -21,6 +21,8 @@ fixed_pt.h -- Declarations for fixed_pt.c (having to do with manipulation of
 #define cmp_fixed_point_constants(cp1, cp2)  \
   cmp_integer_constants((cp1), (cp2))
 
+extern a_fixed_point_type_descr *fxp_descr_for_constant(a_constant_ptr	cp);
+
 extern void fxp_init_value(a_fixed_point_value  *value);
 
 extern a_boolean fxp_value_is_zero(a_fixed_point_value  *value);
@@ -50,6 +52,15 @@ void conv_float_to_fixed_point(a_constant_ptr		old_constant,
 
 extern char* fxp_to_string(a_fixed_point_type_descr  *fxp_descr,
                            a_fixed_point_value       *value);
+
+extern
+void fxp_add(a_fixed_point_value      *value_1,
+             a_fixed_point_type_descr *fxp_descr_1,
+             a_fixed_point_value      *value_2,
+             a_fixed_point_type_descr *fxp_descr_2,
+             a_fixed_point_value      *result,
+             a_fixed_point_type_descr *fxp_descr_result,
+             a_boolean                *err);
 
 extern unsigned int fxp_hash(a_fixed_point_value *value);
 

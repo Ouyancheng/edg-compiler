@@ -65,8 +65,17 @@ extern void conv_hex_string_to_mantissa_and_exponent(
 				char			*str,
 				a_mantissa_ptr		mantissa,
 				long			*p_exponent,
-				a_boolean		*p_any_digits,
 				a_boolean		*exponent_overflow);
+
+extern void conv_mantissa_to_floating_point(
+				a_mantissa_ptr			mp,
+				long				exponent,
+				a_boolean			is_negative,
+				a_float_kind			kind,
+				an_internal_float_value		*float_value,
+				a_boolean			overflow,
+				a_boolean			*err,
+				a_boolean			*inexact);
 
 #if FIXED_POINT_EXTENSIONS_ALLOWED
 

@@ -35,15 +35,6 @@ static an_integer_value
 #define INT_VALUE_PART_BASE ((a_host_large_unsigned)MAX_UINT_VALUE_PART + 1)
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
-/* Return TRUE if the sign of the integer value is negative. */
-#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-#define sign_of(value) ((a_signed_integer_value)(value) < 0)
-#else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-#define sign_of(value)						\
-  (((value).part[0] & SIGN_BIT_INT_VALUE_PART) != 0)
-#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-
-
 
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 void set_integer_value(an_integer_value		*intval,

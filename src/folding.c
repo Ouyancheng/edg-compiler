@@ -2853,6 +2853,44 @@ Do the logical "or" (||) operation on integers, floats, and pointers.
 #endif /* DEBUG */
 }  /* do_lor */
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+
+static void do_fxadd(a_constant        *constant_1,
+		     a_constant        *constant_2,
+		     a_constant        *result,
+		     an_error_code     *err_code,
+		     an_error_severity *err_severity)
+/*
+Do the addition operation on all types of fixed-point values.
+*/
+{
+  a_boolean    err;
+
+  *err_code = ec_no_error;
+  *err_severity = es_warning;
+
+  check_assertion(constant_1->kind == constant_2->kind);
+  set_constant_kind(result, constant_1->kind);
+  /* FIXME -- how should the result type be determined? */
+  result->type = constant_1->type;
+  fxp_add(&constant_1->variant.fixed_point_value,
+          fxp_descr_for_constant(constant_1),
+          &constant_2->variant.fixed_point_value,
+          fxp_descr_for_constant(constant_2),
+          &result->variant.fixed_point_value,
+          fxp_descr_for_constant(result),
+          &err);
+  if (err) {
+    *err_code = ec_bad_fixed_operation_result;
+    *err_severity = es_error;
+  }  /* if */
+
+#if DEBUG
+  db_binary_operation("fx+", constant_1, constant_2, result, *err_code);
+#endif /* DEBUG */
+}  /* do_fxadd */
+
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 
 static void do_fadd(a_constant        *constant_1,
 		    a_constant        *constant_2,
@@ -4173,8 +4211,9 @@ as the position for any diagnostics issued.
                                  did_not_fold, template_constant, err_pos);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_EXTENSIONS_ALLOWED
-  } else if (constant_1->kind == (a_constant_repr_kind)ck_fixed_point ||
-             constant_2->kind == (a_constant_repr_kind)ck_fixed_point) {
+  } else if (op != eok_fxadd &&
+             (constant_1->kind == (a_constant_repr_kind)ck_fixed_point ||
+              constant_2->kind == (a_constant_repr_kind)ck_fixed_point)) {
     /* Binary operators applied to fixed-point constants are not currently
        folded. */
     *did_not_fold = TRUE;
@@ -4322,6 +4361,11 @@ as the position for any diagnostics issued.
           do_fcompare(constant_1, op, constant_2, result);
           break;
 
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+        case eok_fxadd:
+          do_fxadd(constant_1, constant_2, result, &err_code, &err_severity);
+          break;
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xadd:
           do_xadd(constant_1, constant_2, result, &err_code, &err_severity,
