@@ -5539,8 +5539,12 @@ is a template specialization declaration.
     } else if (is_nontype_template_param_symbol(sym)) {
       /* A name like "A<T>::x" that is a nontype member of a proxy class.
          This should only happen in friend templates. */
-      check_assertion(idlb.is_friend_decl && locator->is_class_member);
-      if (curr_token != tok_semicolon) {
+      check_assertion(locator->is_class_member);
+      if (!idlb.is_friend_decl) {
+        pos_stsy_error(ec_not_a_member, &locator->source_position,
+                       sym->header->identifier, parent_class_sym);
+        set_to_error_locator(*locator);
+      } else if (curr_token != tok_semicolon) {
         pos_sy_error(ec_bad_scope_for_definition,
                      &locator->source_position, sym);
         set_to_error_locator(*locator);
