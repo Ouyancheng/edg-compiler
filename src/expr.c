@@ -2513,7 +2513,7 @@ qualified_name_check:
       /* Class case. */
       dtor_type = skip_typerefs(dtor_type);
       if (operand_1_is_complete_class &&
-          class_struct_union_type != dtor_type) {
+          !identical_types(class_struct_union_type, dtor_type)) {
         /* Cast to a base class in a case like
              struct A {};
              struct B : public A {};
