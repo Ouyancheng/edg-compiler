@@ -2816,6 +2816,7 @@ destructors in the IA-64 ABI.
     a_type_ptr                    this_param_type;
     a_param_type_ptr              param_type, last_param_type;
     a_routine_type_supplement_ptr rtsp, new_rtsp;
+    a_storage_class               new_storage_class;
     rtsp = routine->type->variant.routine.extra_info;
     if (!has_name(routine)) {
       /* A constructor or destructor for an unnamed class may not have a
@@ -2842,13 +2843,17 @@ destructors in the IA-64 ABI.
        normal parameter). */
     this_param_type = implicit_this_param_type_of(routine_type);
     /* Additional parameter types, if any, are added below. */
+    new_storage_class = routine->storage_class;
+    if (new_storage_class == (a_storage_class)sc_unspecified) {
+      new_storage_class = (a_storage_class)sc_extern;
+    }  /* if */
     /* The routine is not added to the routines list now; see
        promote_routines.  Check that the routine has not already
        been promoted out of its class, to make sure we will get
        to promote_routines later. */
     check_assertion(routine->source_corresp.is_class_member);
     new_routine = make_rout_entry_no_add(
-                                  name, routine->storage_class,
+                                  name, new_storage_class,
                                   routine_type->variant.routine.return_type,
                                   this_param_type);
     new_routine->is_inline = routine->is_inline;
@@ -2911,8 +2916,11 @@ destructors in the IA-64 ABI.
                                    /*do_lowering=*/FALSE);
   }  /* if */
   /* Define the routine if appropriate. */
-  if (routine->storage_class != (a_storage_class)sc_extern && 
+  if (routine->assoc_scope != NULL_region_number &&
       define_now) {
+    if (routine->storage_class == (a_storage_class)sc_extern) {
+      routine->storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
     define_default_version_of_routine(routine, new_routine, 
                                       (an_expr_node_ptr)NULL);
   }  /* if */
