@@ -62,7 +62,7 @@ array_size.  Return a pointer to the beginning of the user array.
 }  /* _vec_new */
 
 
-void _vec_delete(void               *array_ptr,
+void _vec_delete(char               *array_ptr,
                  ptr_to_delete_func delete_func)
 /*
 After adjusting the array_ptr for the length of the header preceding array,
