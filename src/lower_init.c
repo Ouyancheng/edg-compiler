@@ -7541,6 +7541,9 @@ Generate code for a stmk_init (dynamic initialization) statement.
     /* Initialization of a local static variable cannot be dynamic in C.
        Code must be used to do the initialization. */
     non_C_case = TRUE;
+  } else if (var_is_return_value_variable(var)) {
+    /* Initialization of the return value variable is a C++ case. */
+    non_C_case = TRUE;
   }  /* if */
   switch (dip->kind) {
     case dik_none:
