@@ -1,5 +1,20 @@
 Version 3.1
 
+8/9/02   GNU compatibility: flexible array members
+
+In GNU C and C++ modes, the front end now accepts C99-style flexible array
+members.  Just as in Microsoft mode, the last field of a class type can
+have a type whose last field is a flexible array member.
+
+  struct A {
+    int a;
+    int x[];  // OK in GNU C and C++ modes
+  };
+  struct B {
+    int b;
+    A y;  // OK in GNU C and C++ modes
+  };
+
 8/8/02   Layout of bit fields with size larger than their base type
 
 If C++, bit fields are allowed to be declared with a size that is

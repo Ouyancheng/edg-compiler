@@ -2421,6 +2421,8 @@ exclude the GNU C mode already.  Hence those are not checked again here.)
     /* Enable the use of __restrict__ in GNU mode. */
     restrict_enabled = TRUE;
   }  /* if */
+  /* Enable flexible array member support. */
+  flexible_array_members_allowed = TRUE;
   /* Enable // comments. */
   end_of_line_comments_allowed = TRUE;
   /* Enable recognition of digraphs. */
@@ -2468,6 +2470,8 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     /* Enable the use of __restrict__ in GNU mode. */
     restrict_enabled = TRUE;
   }  /* if */
+  /* Enable flexible array member support. */
+  flexible_array_members_allowed = TRUE;
   /* Enable // comments. */
   end_of_line_comments_allowed = TRUE;
   /* Enable recognition of digraphs. */
