@@ -8669,7 +8669,17 @@ by things that will be in the file scope.
         }  /* if */
       }  /* if */
     }  /* for */
-    check_assertion(scope->namespaces == NULL);
+#if CHECKING
+    /* The only namespace entries that should appear at this level are
+       namespace aliases. */
+    { a_namespace_ptr nsp;
+      for (nsp = scope->namespaces;
+           nsp != NULL;
+           nsp = nsp->next) {
+        check_assertion(nsp->is_namespace_alias);
+      }  /* for */
+    }
+#endif /* CHECKING */
     /* Visit all block scopes. */
     for (block_scope = scope->scopes;
          block_scope != NULL;
@@ -8884,7 +8894,17 @@ scope) along with the class members.
       assoc_pointers_block_of(&scope_stack[depth])->last_variable = NULL;
     }  /* if */
   }  /* if */
-  check_assertion(scope->namespaces == NULL);
+#if CHECKING
+  /* The only namespace entries that should appear at this level are
+     namespace aliases. */
+  { a_namespace_ptr nsp;
+    for (nsp = scope->namespaces;
+         nsp != NULL;
+         nsp = nsp->next) {
+      check_assertion(nsp->is_namespace_alias);
+    }  /* for */
+  }
+#endif /* CHECKING */
   /* Visit all block scopes and promote the local entities therein. */
   for (block_scope = scope->scopes;
        block_scope != NULL;
