@@ -7414,6 +7414,22 @@ Do IL lowering of the indicated scope and everything under it.
       /* this_param_variable is not cleared.  It's harmless and it's
          helpful to be able to check it when one does not know whether or
          not it has been lowered. */
+#if ASSIGNMENT_TO_THIS_ALLOWED || NEW_CAN_BE_FOLDED_INTO_CTOR
+      /* If an assignment to "this" will be done in this routine, because it
+         contains a user-written assignment to "this" or because it's a
+         constructor that will do the "new" allocation internally, drop the
+         top-level "const" on the "this" parameter variable type. */
+      { a_boolean drop_const = FALSE;
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+        if (routine->special_kind ==
+            (a_special_function_kind)sfk_constructor) drop_const = TRUE;
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if ASSIGNMENT_TO_THIS_ALLOWED
+        if (routine->assignment_to_this_done) drop_const = TRUE;
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+        if (drop_const) param_var->type = f_skip_typerefs(param_var->type);
+      }
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED || NEW_CAN_BE_FOLDED_INTO_CTOR */
     }  /* if */
     lower_variable_list(scope->variant.routine.parameters);
     /* For any parameters that are passed by copy constructor, change the
