@@ -1,5 +1,13 @@
 Version 2.13
 
+1/7/93 Tag mismatch when using template class in elaborated type specifier
+
+We now issue an error for cases like this, where union and nonunion tags
+are mixed:
+
+  template <class T> union U { /* ... */ };
+  class U<int> { /* ... */ };
+
 1/6/93 A function template may not have the name "main"
 
 A function template named "main" is not explicitly prohibited in the
