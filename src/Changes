@@ -1,5 +1,24 @@
 Version 2.14
 
+2/5/93  Conversion functions to reference types used in more cases
+
+Conversion functions to reference types are now considered as possibilities
+in getting to the underlying type, e.g., a conversion function to
+"const int &" will be considered when trying to create an "int" (the
+qualifiers get dropped when the lvalue returned from the conversion
+function is converted to an rvalue).
+
+2/4/93  list_position fields in IL definition
+
+The two list_position fields in the IL definition (for template types
+and constants), formerly declared of type "int", are now "unsigned long".
+These fields are not significant outside of the front end.
+
+2/4/93  Instantiation of functions whose pointer-to-member address is taken
+
+Taking the pointer-to-member address of a member function now causes
+it to be instantiated if necessary.
+
 2/2/93  Incomplete types from function prototypes not on types list
 
 In C mode an incomplete type that is declared in a function prototype
