@@ -1031,7 +1031,7 @@ Output the indicated constant.
       if (need_ptr_cast) {
         /* Start with a cast to the desired result type. */
         write_tok_str("(");
-        dump_cast(orig_type);
+        gen_cast(orig_type);
         /* Look for cases where a pointer is implicitly cast to a strange type
            (e.g., "char").  The original code probably did this conversion
            as two casts, but the implicit_cast mechanism only retains
