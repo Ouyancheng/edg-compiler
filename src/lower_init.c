@@ -6445,6 +6445,9 @@ constructor scope, and also lower the user code.
 }  /* lower_constructor_code */
 
 
+#if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+/*ARGSUSED*/ /* <-- destruction_vtbls_var is not used in that case. */
+#endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 static void lower_dtor_init(a_constructor_init_ptr ctor_init,
                             a_variable_ptr         this_param_var,
                             a_boolean              have_complete_object,
