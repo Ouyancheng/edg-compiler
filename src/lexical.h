@@ -1262,6 +1262,10 @@ extern void cache_curr_token(a_token_cache *cache);
 /* Save a token stream in a token cache. */
 extern void cache_token_stream(a_token_cache      *cache,
                                a_token_set_array  stop_tokens);
+extern
+void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
+                                             a_token_set_array  stop_tokens,
+                                             a_token_cache_ptr	src_cache);
 /* Put some cached tokens on the get_token rescan list. */
 extern void rescan_cached_tokens(a_token_cache *cache);
 /* Push a reusable cache on to the reusable cache stack. */
@@ -1273,7 +1277,8 @@ extern
 void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,
                        a_token_sequence_number split_location,
-                       a_boolean	       include_prev_token);
+                       a_boolean	       include_prev_token,
+                       a_boolean	       okay_if_not_found);
 
 /* Move a list of tokens from one cache to another. */
 extern

@@ -871,11 +871,15 @@ issue an error if a default argument expression is encountered.
   a_source_position       pos_of_first_param_type;
   a_func_info_block       local_func_info_block;
   a_boolean               restrict_qualified = FALSE;
+  a_token_cache		  decl_token_cache;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
   set_err_pos_to_curr_token();
   add_stop_token(tok_rparen);
+  /* Initialize a token cache that might be needed for default argument
+     processing. */
+  clear_token_cache(&decl_token_cache, /*reusable=*/TRUE);
   /* If the caller passed in a func_info pointer, this is the declarator of
      a "top-level" function declaration.  Use the storage passed in by the
      caller.  But if func_info is NULL, use a local func info block.  This
@@ -1203,7 +1207,7 @@ issue an error if a default argument expression is encountered.
                when an instance of the function template is created. */
             if (is_member_function) {
               /* Scan the default arguments for a member function. */
-              prescan_member_function_default_arg_expr(ptp);
+              prescan_member_function_default_arg_expr(ptp, &decl_token_cache);
             } else {
               /* Scan the default arguments for a function template. */
               prescan_function_template_default_arg_expr(ptp);
@@ -1533,6 +1537,11 @@ issue an error if a default argument expression is encountered.
   }  /* if */
   done_with_func_info(local_func_info_block);
   copy_source_position(start_pos, error_position);
+  if (decl_token_cache.first_token != NULL) {
+    /* If a declaration token cache was built while processing member function
+       default arguments, free it now. */
+    discard_token_cache(&decl_token_cache);
+  }  /* if */
   db_exit();
 }  /* function_declarator */
 

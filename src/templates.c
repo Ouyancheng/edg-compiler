@@ -157,8 +157,8 @@ Structure used to pass information about the current template declaration
 between the routines used to implement the processing of template
 declarations.
 */
-typedef struct a_decl_state *a_decl_state_ptr;
-typedef struct a_decl_state {
+typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
+typedef struct a_tmpl_decl_state {
   a_boolean	is_template_friend;
 			/* TRUE if this is a friend declaration. */
   a_boolean	is_member_decl;
@@ -249,10 +249,10 @@ typedef struct a_decl_state {
 			   template declaration, or NULL if no entry has been
 			   created. */
 #endif /* RECORD_TEMPLATES_IN_IL */
-} a_decl_state;
+} a_tmpl_decl_state;
 
 
-static void init_templ_decl_state(a_decl_state_ptr	tdsp)
+static void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp)
 /*
 Initialize a template declaration state block.
 */
@@ -4627,7 +4627,7 @@ any classes that declared the nested class as a template friend.
 
 
 static
-void record_specialization(a_decl_state_ptr			decl_state,
+void record_specialization(a_tmpl_decl_state_ptr		decl_state,
                            a_symbol_ptr				template_sym,
    		           a_template_symbol_supplement_ptr	tssp)
 /*
@@ -4699,7 +4699,7 @@ error was diagnosed.
 
 
 static void class_template_declaration(
-                         a_decl_state_ptr      decl_state,
+                         a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
 		         a_boolean             *resolution,
    		         a_type_ptr            *new_type)
@@ -5284,126 +5284,92 @@ decl_pos is the position of the function declarator.
 }  /* cache_function_template_body */
 
 
-static void cache_template_param_list(a_decl_state_ptr	decl_state)
+static void prescan_template_declaration(a_tmpl_decl_state_ptr decl_state)
 /*
-Cache the tokens from "template" to the ">" that terminates the template
-parameter list.  This is necessary because we need to inspect the
-template declaration that follows the template parameter lists to see
-if it is a friend declaration.  It is also used to determine in advance
-whether we are dealing with a full specialization of a template
-entity.  The cache may also be used later to build the string representing
-the template declaration if the template needs to appear in the IL.
-
+Scan the tokens of a template declaration and determine whether
+it is full specialization, and whether the token "friend" is used in
+the declaration.
 */
 {
-  a_token_set_array	stop_tokens;
-  a_boolean		is_specialization = FALSE;
-  a_boolean		is_full_specialization = TRUE;
-  a_token_cache_ptr	p_token_cache = &decl_state->param_list_cache;
-
-  db_enter(3, "cache_template_param_list");
-  clear_token_cache(p_token_cache, /*reusable=*/TRUE);
-  while (curr_token == tok_template && next_token() == tok_lt) {
-    /* Cache the current token and advance past it. */
-    cache_curr_token(p_token_cache);
+  a_boolean	is_template_friend = FALSE;
+  a_boolean	is_full_specialization = TRUE;
+ 
+  rescan_reusable_cache(&decl_state->param_list_cache);
+  /* See if the beginning of the declaration consists of template
+     parameter clauses that are all of the form "template <>". */
+  while (is_full_specialization && curr_token == tok_template) {
     (void)get_token();
-    if (next_token() == tok_gt) {
-      /* Contains a template clause with no parameter list, so this is
-         a specialization of some kind. */
-      is_specialization = TRUE;
-    } else {
-      /* One ore more template parameters are present in one of the template
-         parameter lists, so this is not a full specialization. */
-      is_full_specialization = FALSE;
-    }  /* if */
-    /* Initialize a local stop token set. */
-    clear_token_set_array(stop_tokens);
-    /* Cache all tokens up to the ">" that matches the current "<". */
-    incr_token_set_array_element(stop_tokens, tok_gt);
-    incr_token_set_array_element(stop_tokens, tok_lbrace);
-    incr_token_set_array_element(stop_tokens, tok_colon);
-    incr_token_set_array_element(stop_tokens, tok_semicolon);
-    cache_token_stream(p_token_cache, stop_tokens);
-    if (curr_token == tok_gt) {
-      cache_curr_token(p_token_cache);
-      (void)get_token();
-    }  /* if */
+     /* Exit the loop if a template parameter list is missing.  The
+        error recovery is better this way. */
+     if (curr_token != tok_lt) break;
+    (void)get_token();
+     if (curr_token != tok_gt) is_full_specialization = FALSE;
+    (void)get_token();
   }  /* while */
-  /* Add an end-of-source token to the end of the token cache to
-     assure that we don't scan past the end of the cache in the actual
-     scan. */
-  terminate_token_cache(p_token_cache);
-  decl_state->is_specialization = is_specialization;
+  /* Go through the remaining tokens of the cache.  We have to scan all
+     the way to the end even if the friend token is found so that the
+     token stream will be at the right place when we return. */
+  while (curr_token != tok_end_of_source) {
+    if (curr_token == tok_friend) is_template_friend = TRUE;
+    (void)get_token();
+  }  /* if */
+  /* Skip past the tok_end_of_source. */
+  (void)get_token();
+  decl_state->is_template_friend = is_template_friend;
   decl_state->is_full_specialization = is_full_specialization;
-  db_exit();
-}  /* cache_template_param_list */
+}  /* prescan_template_declaration */
 
 
-static void cache_template_declaration(a_decl_state_ptr decl_state,
-                                       a_boolean	skip_params)
+static void cache_template_declaration(a_tmpl_decl_state_ptr decl_state)
 /*
 Scan one or more template parameter clauses and the declaration that
 follows, and cache the tokens so that they can be rescanned for the
 instantiation.  The declarations for functions must be saved
 so that they may be rescanned with the appropriate values substituted
-for the template parameters.  In addition, there are a number of lookahead
-operations that must be done to determine the type of entity being processed.
-is_full_specialization specifies whether the template parameter clauses
-that are cached indicate that this declaration is a full specialization of
-a template entity.  A full specialization is one in which all of the template
-clauses contain empty template parameter lists.  skip_params is TRUE
-when this routine is called a second time in certain error conditions
-to rescan just the template declaration and not the template parameter list.
+for the template parameters.  The parameter clauses and the actual
+declaration are scanned into the parameter list cache at this point.
+The template declaration will be split into a separate cache later
+later once the template parameter clauses have been scanned.
+
+An initial pass is made through the cache to determine if the declaration
+is a full specialization, and whether the declaration is a friend
+declaration.  A full specialization is one in which all of the template
+clauses contain empty template parameter lists.
 */
 {
   a_token_set_array  stop_tokens;
 
   db_enter(3, "cache_template_declaration");
-  if (!skip_params) {
-    /* Cache the tokens of the template parameter list(s).  This step is
-       skipped if skip_params is TRUE.  This is the case if the declaration
-       is being rescanned because of some kind of a syntax error that caused
-       the original declaration that was scanned to be incorrect. */
-    cache_template_param_list(decl_state);
-  }  /* if */
-  if (curr_token != tok_end_of_source) {
-    /* In an error case, we could be at the end of the source file.  Don't
-       try to cache the end-of-source token. */
-    /* Cache the current token and advance past it. */
-    cache_curr_token(&decl_state->decl_token_cache);
-    (void)get_token();
-    /* Initialize a local stop token set. */
-    clear_token_set_array(stop_tokens);
-    /* Cache all tokens up to the ";" that follows a declaration, the "{" that
-       begins a definition, or a ":" that begins a ctor initializer list.
-       For static data members, some or all of the initializer will be
-       in the cache.  The initializer tokens will be removed from this
-       cache later.  The only case in which the entire initializer will not
-       be in this cache is in cases where the initializer contains a
-       brace enclosed list. */
-    incr_token_set_array_element(stop_tokens, tok_lbrace);
-    incr_token_set_array_element(stop_tokens, tok_colon);
-    incr_token_set_array_element(stop_tokens, tok_semicolon);
-    cache_token_stream(&decl_state->decl_token_cache, stop_tokens);
-  }  /* if */
+  /* Cache the current token and advance past it. */
+  cache_curr_token(&decl_state->param_list_cache);
+  (void)get_token();
+  /* Initialize a local stop token set. */
+  clear_token_set_array(stop_tokens);
+  /* Cache all tokens up to the ";" that follows a declaration, the "{" that
+     begins a definition, or a ":" that begins a ctor initializer list.
+     For static data members, some or all of the initializer will be
+     in the cache.  The initializer tokens will be removed from this
+     cache later.  The only case in which the entire initializer will not
+     be in this cache is in cases where the initializer contains a
+     brace enclosed list. */
+  incr_token_set_array_element(stop_tokens, tok_lbrace);
+  incr_token_set_array_element(stop_tokens, tok_colon);
+  incr_token_set_array_element(stop_tokens, tok_semicolon);
+  cache_token_stream(&decl_state->param_list_cache, stop_tokens);
   /* Add an end-of-source token to the end of the token cache to
      assure that we don't scan past the end of the cache in the actual
      scan. */
-  terminate_token_cache(&decl_state->decl_token_cache);
+  terminate_token_cache(&decl_state->param_list_cache);
+  /* Do an initial scan of the template declaration to determine whether
+     it is a full specialization and/or a friend declaration. */
+  prescan_template_declaration(decl_state);
   /* Rescan a copy of the cached tokens from this cache.  This is done so that
      when the original template declaration is scanned the last token of
      the cache is followed by the token that followed it in the original
      source program with no intervening tok_end_of_source.  This also
      allows the reusable token cache to be discarded if it turns out that
      this is not a function declaration. */
-  rescan_copy_of_cache(&decl_state->decl_token_cache);
-  if (!skip_params) {
-    /* Also rescan the tokens from the template parameter list(s).  This
-       is done after the rescan of the template declaration because the
-       rescanning is a stack-based processed (i.e., the last tokens added
-       the rescan list are fetched first. */
-    rescan_copy_of_cache(&decl_state->param_list_cache);
-  }  /* if */
+  rescan_copy_of_cache(&decl_state->param_list_cache);
   db_exit();
 }  /* cache_template_declaration */
 
@@ -5438,12 +5404,23 @@ pointed to by the template symbol supplement.
 */
 {
   a_def_arg_expr_fixup_ptr	*list;
+  a_scope_stack_entry_ptr	ssep;
+  a_token_cache_ptr		decl_cache;
+
+  /* The current scope stack entry is expected to be a function prototype
+     scope.  The enclosing scope is expected to be the template declaration
+     scope for the current function template. */
+  ssep = scope_stack_entry_for(depth_scope_stack-1);
+  check_assertion(ssep->kind == (a_scope_kind)sck_template_declaration);
+  /* Get a pointer to the declaration token cache for the function template. */
+  decl_cache = &ssep->tmpl_decl_state->decl_token_cache;
   list = &curr_default_args;
-  prescan_default_function_arg_expr(ptp, list);
+  prescan_default_function_arg_expr(ptp, list, decl_cache);
 }  /* prescan_function_template_default_arg_expr */
 
 
-static void prescan_template_param_decl(a_token_cache	*token_cache)
+static void prescan_template_param_decl(a_token_cache	      *token_cache,
+                                        a_tmpl_decl_state_ptr decl_state)
 /*
 Place the tokens for a template parameter into a token cache.
 */
@@ -5451,7 +5428,6 @@ Place the tokens for a template parameter into a token cache.
   a_token_set_array  stop_tokens;
 
   db_enter(3, "prescan_template_param_decl");
-  clear_token_cache(token_cache, /*reusable=*/TRUE);
   /* Initialize a local stop token set. */
   clear_token_set_array(stop_tokens);
   /* In the normal case we will scan an expression and encounter a comma
@@ -5460,12 +5436,10 @@ Place the tokens for a template parameter into a token cache.
   incr_token_set_array_element(stop_tokens, tok_comma);
   incr_token_set_array_element(stop_tokens, tok_gt);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
-  cache_token_stream(token_cache, stop_tokens);
+  cache_token_stream_coalesce_identifiers(token_cache, stop_tokens,
+                                          &decl_state->param_list_cache);
   /* Note that the terminating token (comma, etc.) is not added to
      the cache. */
-  /* Add an end-of-source token to the end of the token cache.  This assures
-     that we won't scan past the end of the cache in the actual scan. */
-  terminate_token_cache(token_cache);
   /* Rescan a copy of the tokens that were just cached.  Rescanning a copy
      ensures that processing of the remainder of the original line will
      not be affected by the tok_end_of_source that terminates the cache. */
@@ -5535,7 +5509,7 @@ Scan the declaration of a single template nontype parameter.
 
 
 static
-a_template_param_ptr scan_template_param_list(a_decl_state_ptr decl_state)
+a_template_param_ptr scan_template_param_list(a_tmpl_decl_state_ptr decl_state)
 /*
 Scan a comma-separated list of template parameters.  The opening "<" will
 already have been scanned, and an empty list will have already been
@@ -5571,7 +5545,7 @@ to represent the template parameters.
 
     /* If we've unexpectedly reached the end of the template parameter list,
        issue an error. */
-    if (curr_token == tok_gt) {
+    if (curr_token == tok_gt || curr_token == tok_end_of_source) {
       error(ec_missing_template_param);
       break;
     }  /* if */
@@ -5579,7 +5553,7 @@ to represent the template parameters.
     /* Cache the tokens that comprise the template parameter declaration.
        If the parameter depends on other template parameters this cache
        will be saved and rescanned to scan template argument lists. */
-    prescan_template_param_decl(&param_cache);
+    prescan_template_param_decl(&param_cache, decl_state);
     add_stop_token(tok_comma);
     /* Determine whether this is a "type-argument" (a parameter that
        represents a type) or a "arg-declaration" (a parameter that represents
@@ -5629,7 +5603,8 @@ to represent the template parameters.
 	/* Skip past the equals sign. */
         (void)get_token();
         /* Cache the tokens that make up the default argument expression. */
-        prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE);
+        prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
+                                 &decl_state->param_list_cache);
         rescan_copy_of_cache(&def_arg_cache);
         type_name(&default_arg_type);
         if (is_or_contains_template_param(default_arg_type)) {
@@ -5674,7 +5649,8 @@ to represent the template parameters.
 	/* Skip past the equals sign. */
         (void)get_token();
         /* Cache the tokens that make up the default argument expression. */
-        prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE);
+        prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
+                                 &decl_state->param_list_cache);
         if (const_type_involves_template_param) {
 	  /* The type of the constant parameter involve a template parameter
 	     type so we can't scan the expression now.  When the type of the
@@ -6090,7 +6066,7 @@ its source correspondence entry, if any, has been put out.)
 
 
 static a_symbol_ptr template_static_data_member_declaration
-                    (a_decl_state_ptr                 decl_state,
+                    (a_tmpl_decl_state_ptr            decl_state,
                      a_symbol_locator                 *locator,
 		     a_decl_flag_set                  do_flags,
 		     a_type_ptr                       type,
@@ -6187,7 +6163,8 @@ returned to the caller.
     split_location = curr_token_sequence_number;
     split_token_cache(&decl_state->decl_token_cache,
                       p_token_cache, split_location,
-                      /*include_prev_token=*/has_parenthesized_initializer);
+                      /*include_prev_token=*/has_parenthesized_initializer,
+                      /*okay_if_not_found=*/FALSE);
     /* Skip over the tokens that are already part of the token cache. */
     clear_token_set_array(stop_tokens);
     incr_token_set_array_element(stop_tokens, tok_lbrace);
@@ -6358,7 +6335,7 @@ is the position to be used if a diagnostic is issued.
 
 
 static void complete_function_template_decl(
-                     a_decl_state_ptr		      decl_state,
+                     a_tmpl_decl_state_ptr	      decl_state,
                      a_symbol_ptr                     sym,
                      a_func_info_block                *func_info,
                      a_template_symbol_supplement_ptr *p_tssp,
@@ -6530,7 +6507,7 @@ caller.
 
 
 static a_symbol_ptr function_template_specialization(
-				a_decl_state_ptr	decl_state,
+				a_tmpl_decl_state_ptr	decl_state,
 				a_symbol_locator	*locator,
 				a_type_ptr		type,
 				a_decl_flag_set		dso_flags,
@@ -6633,7 +6610,7 @@ declaration (following any template clauses).
 
 
 static a_symbol_ptr function_template_declaration(
-                               a_decl_state_ptr		decl_state,
+                               a_tmpl_decl_state_ptr	decl_state,
                                a_symbol_locator         *locator,
                                a_func_info_block        *func_info,
                                a_storage_class          storage_class,
@@ -6716,28 +6693,6 @@ the declaration token cache.
 }  /* is_class_template_decl */
 
 
-static a_boolean is_template_friend_decl(a_decl_state_ptr decl_state)
-/*
-Scan the tokens of a template declaration and determine whether
-the token "friend" is used in the declaration.
-*/
-{
-  a_boolean	result = FALSE;
- 
-  rescan_reusable_cache(&decl_state->decl_token_cache);
-  /* Go through the tokens of the cache.  We have to scan all the way to
-     the end even if the friend token is found so that the token stream
-     will be at the right place when we return. */
-  while (curr_token != tok_end_of_source) {
-    if (curr_token == tok_friend) result = TRUE;
-    (void)get_token();
-  }  /* if */
-  /* Skip past the tok_end_of_source. */
-  (void)get_token();
-  return result;
-}  /* is_template_friend_decl */
-
-
 static void prescan_nonclass_template_declaration(a_token_cache *token_cache)
 /*
 This routine is called before scanning a template declaration to determine
@@ -6804,7 +6759,7 @@ instantiation, then you don't know what X is.
 }  /* prescan_nonclass_template_declaration */
 
 
-static void scan_template_param_clauses(a_decl_state_ptr	decl_state)
+static void scan_template_param_clauses(a_tmpl_decl_state_ptr	decl_state)
 /*
 Scan one or more template parameter lists of the form:
 
@@ -6847,6 +6802,9 @@ lists must by non-empty.
         prev_template_decl_info = template_decl_info;
         push_template_declaration_scope(template_decl_info);
         decl_state->number_of_template_decl_scopes++;
+        /* Save a pointer to the template declaration information in the
+           scope stack entry. */
+        scope_stack[depth_scope_stack].tmpl_decl_state = decl_state;
         template_decl_info->parameters = scan_template_param_list(decl_state);
         template_decl_info->declaration_scope =
                                          scope_stack[decl_scope_level].number;
@@ -6857,6 +6815,7 @@ lists must by non-empty.
         /* A specialization declaration.  If a previous "template < >" clause
            contained a template parameter list, all subsequent parameter
            lists must be non-empty. */
+        decl_state->is_specialization = TRUE;
         if (param_list_seen) {
           error(ec_specialization_follows_param_list);
           decl_state->decl_scope_err = TRUE;
@@ -6869,17 +6828,13 @@ lists must by non-empty.
     }  /* if */
   }  /* while */
   decl_state->decl_info = template_decl_info;
-  if (curr_token_sequence_number !=
-            decl_state->decl_token_cache.first_token->token_sequence_number &&
-      curr_token != tok_end_of_source) {
-    /* We aren't where we expected to be after scanning the template parameter
-       lists.  This should be the result of an error.  Recache the template
-       declaration at this point. */
-    check_assertion(total_errors != 0);
-    discard_token_cache(&decl_state->decl_token_cache);
-    clear_token_cache(&decl_state->decl_token_cache, /*reusable=*/TRUE);
-    cache_template_declaration(decl_state, /*skip_params=*/TRUE);
-  }  /* if */
+  /* Now that we know where the template declaration begins (and the template
+     parameter list ends), break the original token cache at this point. */
+  split_token_cache(&decl_state->param_list_cache,
+                    &decl_state->decl_token_cache,
+                    curr_token_sequence_number,
+                    /*include_prev_token=*/FALSE,
+                    /*okay_if_not_found=*/TRUE);
   if (decl_state->is_member_decl && !decl_state->is_template_friend &&
       decl_state->number_of_template_param_clauses > 1) {
     /* A declaration with more than one template parameter clause is only
@@ -6892,7 +6847,7 @@ lists must by non-empty.
 
 
 static
-void template_declaration(a_decl_state_ptr	decl_state)
+void template_declaration(a_tmpl_decl_state_ptr	decl_state)
 /*
 Scan a C++ template declaration.  Syntax:
 
@@ -7272,7 +7227,7 @@ by type.
 
 static void check_template_nesting_depth(a_symbol_ptr		sym,
 					 a_source_position	*pos,
-					 a_decl_state_ptr	decl_state)
+					 a_tmpl_decl_state_ptr	decl_state)
 /*
 This routine is used to determine whether the number of template clauses
 in a full specialization matches the template nesting depth of the
@@ -7338,7 +7293,7 @@ issued.
 }  /* check_template_nesting_depth */
 
 
-static void full_specialization(a_decl_state_ptr decl_state)
+static void full_specialization(a_tmpl_decl_state_ptr decl_state)
 /*
 One or more empty template parameter clauses ("template <>") have been
 scanned, and this routine handles the specialization of the template instance
@@ -7678,7 +7633,7 @@ that follows.
 }  /* full_specialization */
 
 
-static void decl_level_of_template(a_decl_state_ptr decl_state)
+static void decl_level_of_template(a_tmpl_decl_state_ptr decl_state)
 /*
 Determine the effective declaration scope for a template declaration
 in this context.  is_template_friend (in decl_state) is TRUE if this is
@@ -7721,7 +7676,7 @@ differs between function and nonfunction declarations.
      inside a class this is determine by inspecting the tokens that
      make up the template declaration. */
   decl_state->is_template_friend = decl_state->is_member_decl &&
-                                           is_template_friend_decl(decl_state);
+                                           decl_state->is_template_friend;
   /* Determine the nesting depth of this template declaration.  Templates
      not enclosed within other templates are given a depth of "1".  The
      depth is incremented for each successive template declaration. */
@@ -7743,8 +7698,9 @@ lists (e.g., "template <>").  Declarations that are not full specializations
 are either the specialization of a template or a template declaration.
 */
 {
-  a_decl_state			decl_state;
+  a_tmpl_decl_state		decl_state;
   a_def_arg_expr_fixup_ptr	saved_curr_default_args;
+  a_scope_depth			orig_depth = depth_scope_stack;
 
   check_assertion_str2(curr_token == tok_template,
                        "template__or_specialization_declaration:",
@@ -7777,22 +7733,11 @@ are either the specialization of a template or a template declaration.
      tok_end_of_source).  The cache is also needed for several different
      kinds of prescans that are done to determine the kind of declaration
      being processed. */
-  cache_template_declaration(&decl_state, /*skip_params=*/FALSE);
+  cache_template_declaration(&decl_state);
   decl_level_of_template(&decl_state);
   /* Make sure that this template declaration is permitted in the current
      scope. */
-  if (decl_state.is_specialization) {
-    /* A specialization declaration is only permitted in a namespace scope. */
-    a_scope_stack_entry_ptr ssep = scope_stack_entry_for(depth_scope_stack);
-    if ((ssep->kind == (a_scope_kind)sck_file ||
-        ssep->kind == (a_scope_kind)sck_namespace ||
-        ssep->kind == (a_scope_kind)sck_namespace_extension)) {
-      /* A valid template specialization scope. */
-    } else {
-      error(ec_explicit_specialization_not_in_namespace_scope);
-      decl_state.decl_scope_err = TRUE;
-    }  /* if */
-  } else if (decl_state.effective_decl_level == NO_SCOPE_DEPTH) {
+  if (decl_state.effective_decl_level == NO_SCOPE_DEPTH) {
     pos_error(ec_bad_template_declaration_scope, &decl_state.start_pos);
     decl_state.decl_scope_err = TRUE;
     /* Set the effective declaration level to a valid value for the remainder
@@ -7816,6 +7761,21 @@ are either the specialization of a template or a template declaration.
      optional (but once a parameter list has been specified, all subsequent
      param-lists must be present). */
   scan_template_param_clauses(&decl_state);
+  if (decl_state.is_specialization) {
+    /* A specialization declaration is only permitted in a namespace scope. */
+    a_scope_stack_entry_ptr ssep = scope_stack_entry_for(orig_depth);
+    if ((ssep->kind == (a_scope_kind)sck_file ||
+        ssep->kind == (a_scope_kind)sck_namespace ||
+        ssep->kind == (a_scope_kind)sck_namespace_extension)) {
+      /* A valid template specialization scope. */
+    } else {
+      if (!decl_state.decl_scope_err) {
+        pos_error(ec_explicit_specialization_not_in_namespace_scope,
+                  &decl_state.start_pos);
+        decl_state.decl_scope_err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (decl_state.is_full_specialization) {
     full_specialization(&decl_state);
     /* Advance past the semicolon or closing rbrace if required. */

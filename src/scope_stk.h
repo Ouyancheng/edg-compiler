@@ -251,6 +251,9 @@ typedef struct a_scope_stack_entry {
 			   (such as template instantiation scopes),
 			   but for which the context information should
 			   be suppressed. */
+  a_bit_field	suppress_diagnostics:1;
+			/* TRUE if diagnostics, issued when this is the
+			   current scope, should be suppressed. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be
@@ -604,6 +607,11 @@ typedef struct a_scope_stack_entry {
 			   for-init declarations of for-statements in the
 			   current scope).  Always NULL in C-mode or when
 			   use_nonstandard_for_init_scope is TRUE. */
+  struct a_tmpl_decl_state
+		*tmpl_decl_state;
+			/* For template declaration scopes, points to the
+			   entry used to record information about the
+			   current template declaration. */
 } a_scope_stack_entry;
 
 /*

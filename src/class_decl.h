@@ -42,7 +42,9 @@ extern void check_for_conflicts_with_using_decls(
                                              a_symbol_ptr       overload_sym,
                                              a_source_position  *pos);
 
-extern void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp);
+extern
+void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
+					      a_token_cache_ptr decl_cache);
 
 extern a_symbol_ptr class_member_template_declaration(a_type_ptr  class_type);
 

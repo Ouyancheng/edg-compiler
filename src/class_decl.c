@@ -580,7 +580,8 @@ and ending token sequence numbers of the function definition in
 }  /* prescan_function_definition */
 
 
-void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp)
+void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
+					      a_token_cache_ptr decl_cache)
 /*
 Scan a default argument expression and link the default argument
 entry onto a list in the current routine fixup entry.
@@ -597,7 +598,30 @@ entry onto a list in the current routine fixup entry.
   } else {
     list = &curr_routine_fixup->def_arg_expr_fixup_list;
   }  /* if */
-  prescan_default_function_arg_expr(ptp, list);
+  if (decl_cache->first_token == NULL) {
+    /* When prescanning a default argument we need to make sure that the
+       remainder of the declaration is in a token cache.  If the declaration
+       has not been cached yet, cache it now.  This cache will be discarded
+       at the end of processing this function declarator. */
+    /* Initialize a local stop token set. */
+    a_token_set_array  stop_tokens;
+    clear_token_set_array(stop_tokens);
+    /* Cache all tokens up to the ";" that follows a declaration, the "{" that
+       begins a definition, or a ":" that begins a ctor initializer list.
+       For static data members, some or all of the initializer will be
+       in the cache. */
+    incr_token_set_array_element(stop_tokens, tok_lbrace);
+    incr_token_set_array_element(stop_tokens, tok_colon);
+    incr_token_set_array_element(stop_tokens, tok_semicolon);
+    cache_token_stream(decl_cache, stop_tokens);
+    /* Add an end-of-source token to the end of the token cache to
+       assure that we don't scan past the end of the cache in the actual
+       scan. */
+    terminate_token_cache(decl_cache);
+    /* Rescan the cached tokens from a copy of this token cache. */
+    rescan_copy_of_cache(decl_cache);
+  }  /* if */
+  prescan_default_function_arg_expr(ptp, list, decl_cache);
 }  /* prescan_member_function_default_arg_expr */
 
 

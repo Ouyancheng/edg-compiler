@@ -605,7 +605,86 @@ references.
 }  /* is_template_reference */
 
 
-static a_boolean cache_token_stream_until_matching_token(a_token_cache *cache)
+/*
+Get a token and, if it is a tok_identifier, call
+is_generalized_identifier_start to coalesce it in case it is the
+beginning of something like a qualified name. 
+*/
+#define get_token_and_coalesce_if_needed(coalesce_ids)		\
+  (void)get_token();						\
+  if (coalesce_ids) {						\
+    (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL); \
+  }
+
+
+static
+void copy_tokens_from_cache(a_token_cache_ptr	       src_cache,
+                            a_token_sequence_number    first_tsn,
+                            a_token_sequence_number    last_tsn,
+                            a_token_cache_ptr	       dest_cache)
+/*
+Copy the tokens from src_cache to dest_cache that are in the range
+of token sequence numbers from first_tsn to last_tsn.  last_tsn
+is actually the first token to not be included in the cache.
+*/
+{
+  a_cached_token_ptr		ctp;
+  a_cached_token_ptr		first_ctp_to_copy;
+  a_cached_token_ptr		last_ctp_to_copy;
+
+  clear_token_cache(dest_cache, /*reusable=*/TRUE);
+  check_assertion_str2(src_cache->is_reusable,
+                       "copy_tokens_from_cache:",
+                       "cache not reusable");
+  /* first_ctp_to_copy is set for each non-pragma token in the cache, and
+     points to the cache entry that follows it (which may be a pragma entry
+     the precedes the next token). */
+  first_ctp_to_copy = src_cache->first_token;
+  for (ctp = src_cache->first_token; ctp != NULL; ctp = ctp->next) {
+    if (ctp->token_sequence_number == first_tsn) break;
+    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
+      /* The token sequence looks something like:
+		 pragma-n0 token-n1 pragma-n2 token-n3 token-n4
+         where token-n3 is the first token to be copied.  We also want to
+         copy any pragmas that precede token-n3 to the destination cache.
+         When we break out of the loop first_ctp_to_copy will point to
+         pragma-n2. */
+      first_ctp_to_copy = ctp->next;
+    }  /* if */
+  }  /* for */
+  check_assertion_str(ctp != NULL,
+                      "copy_tokens_from_cache: first_tsn missing");
+  last_ctp_to_copy = ctp;
+  for (; ctp != NULL; ctp = ctp->next) {
+    if (ctp->token_sequence_number == last_tsn) break;
+    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
+      /* The token sequence looks something like:
+		 pragma-n0 token-n1 pragma-n2 token-n3 token-n4
+         where token-n3 is the first token to be copied.  We also want to
+         copy any pragmas that precede token-n3 to the destination cache.
+         When we break out of the loop first_ctp_to_copy will point to
+         pragma-n2. */
+      last_ctp_to_copy = ctp->next;
+    }  /* if */
+  }  /* for */
+  check_assertion_str(ctp != NULL, "copy_tokens_from_cache: last_tsn missing");
+  /* Copy the specified range of tokens to the destination cache. */
+  for (ctp = first_ctp_to_copy; ctp != last_ctp_to_copy; ctp = ctp->next) {
+    a_cached_token_ptr	copy_ctp;
+    /* Make a copy of the token to be added. */
+    alloc_cached_token(copy_ctp);
+    *copy_ctp = *ctp;
+    copy_ctp->next = NULL;
+    add_cached_token_to_cache(copy_ctp, dest_cache);
+  }  /* for */
+  /* Terminate the new destination cache. */
+  terminate_token_cache(dest_cache);
+}  /* copy_tokens_from_cache */
+
+
+static
+a_boolean cache_token_stream_until_matching_token(a_token_cache *cache,
+                                                  a_boolean     coalesce_ids)
 /*
 Given curr_token of '(', '[', or '{', copy tokens into the token cache
 specified by cache up to but not including the corresponding closing token,
@@ -615,10 +694,15 @@ of throwing tokens away it adds them to the specified token cache.)
 
 Normally returns FALSE.  Returns TRUE if it returns without finding
 the desired token (i.e., on end-of-source or a zero level right brace).
+
+coalesce_ids is TRUE if identifiers found in the token stream should
+be coalesced.  This should be done when the stop token set includes
+tokens that can appear in an expression, which means that the
+caching process must be able to determine whether a "<" starts
+a template argument list or is just a less-than sign.
 */
 {
   a_token_kind  closing_token;
-  a_token_kind	prev_token = tok_error;
   int           paren_count = 0, bracket_count = 0, brace_count = 0;
   a_boolean	done = FALSE;
   a_boolean	error = FALSE;
@@ -629,15 +713,14 @@ the desired token (i.e., on end-of-source or a zero level right brace).
     case tok_lparen:    closing_token = tok_rparen;   break;
     case tok_lbracket:  closing_token = tok_rbracket; break;
     case tok_lbrace:    closing_token = tok_rbrace;   break;
-    case tok_lt:        closing_token = tok_gt;       break;
 #if CHECKING
     default:
       internal_error("cache_token_stream_until_matching_token: bad token");
 #endif /* CHECKING */
   }  /* switch */
   /* Cache the current token, and advance to its successor. */
-  cache_curr_token(cache);
-  (void)get_token();
+  if (!coalesce_ids) cache_curr_token(cache);
+  get_token_and_coalesce_if_needed(coalesce_ids)
   /* Keep looping through successive tokens until the corresponding closing
      token is found at level zero (i.e., not within a nesting of parens,
      brackets, or braces). */
@@ -669,53 +752,51 @@ the desired token (i.e., on end-of-source or a zero level right brace).
         case tok_rbracket:  if (bracket_count > 0) bracket_count--; break;
         case tok_lbrace:                           brace_count++;   break;
         case tok_rbrace:    if (brace_count > 0) brace_count--;     break;
-        case tok_gt:
-          /* A ">" is only meaningful if when it is the token we are looking
-             for. */
-          if (closing_token == tok_gt) {
-            /* A ">" only counts as the end of the parameter list if we are not
-               inside some other construct.  For example when scanning
-               "A<(1>2)>" the first ">" doesn't count. */
-            if (paren_count == 0 && bracket_count == 0 && brace_count == 0) {
-              done = TRUE;
-            }  /* if */
-          }  /* if */
-          break;
         default:;
       }  /* switch */
     }  /* if */
     /* Always stop the flush on end of source. */
     if (curr_token == tok_end_of_source) break;
-    /* Check for the start of a template parameter list. */
-    if (curr_token == tok_lt && prev_token == tok_identifier) {
-      if (is_template_reference()) {
-        error = cache_token_stream_until_matching_token(cache);
-        if (error) break;
-      }  /* if */
-    }  /* if */
     /* None of the conditions was satisfied, so keep going. */
-    cache_curr_token(cache);
-    prev_token = curr_token;
-    (void)get_token();
+    if (!coalesce_ids) cache_curr_token(cache);
+    get_token_and_coalesce_if_needed(coalesce_ids);
   }  /* while */
   db_exit();
   return error;
 }  /* cache_token_stream_until_matching_token */
 
 
-void cache_token_stream(a_token_cache      *cache,
-                        a_token_set_array  stop_tokens)
+static
+void cache_token_stream_with_coalesce_flag(a_token_cache_ptr  cache,
+                                           a_token_set_array  stop_tokens,
+                                           a_boolean	      coalesce_ids,
+                                           a_token_cache_ptr  src_cache)
 /*
 Copy the current token and succeeding tokens into the token cache specified
 by cache up to but not including the first token that matches a member of
 the stop tokens array.  Return immediately if end of source is reached.
 (This routine is similar to flush_tokens, but instead of throwing tokens
 away it adds them to the specified token cache.)
+
+coalesce_ids is TRUE if identifiers found in the token stream should
+be coalesced.  This should be done when the stop token set includes
+tokens that can appear in an expression, which means that the
+caching process must be able to determine whether a "<" starts
+a template argument list or is just a less-than sign.
+src_cache must be provided when coalesce_ids is TRUE, and points to
+a token cache containing the tokens that are being coalesced.  Once the
+end of the token stream has been found, the tokens from that cache will
+be copies to the new cache.
 */
 {
-  a_token_kind	prev_token = tok_error;
+  a_token_sequence_number	first_tsn = curr_token_sequence_number;
+  a_token_sequence_number	last_tsn;
 
-  db_enter(4, "cache_token_stream");
+  db_enter(4, "cache_token_stream_with_coalesce_flag");
+  if (coalesce_ids) {
+    /* Attempt to coalesce this token in case it begins an identifier. */
+    (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL);
+  }  /* if */
   /* Loop through the tokens, beginning with the current token and stopping
      when a token in the stop token array is found.  Whenever a '(', '[', or
      '{' is encountered, ignore the stop token array until the corresponding
@@ -723,23 +804,65 @@ away it adds them to the specified token cache.)
   while (stop_tokens[(int)curr_token] == 0) {
     a_boolean	error;
     if (curr_token == tok_lparen || curr_token == tok_lbracket ||
-        curr_token == tok_lbrace ||
-        (curr_token == tok_lt && prev_token == tok_identifier &&
-         is_template_reference())) {
-      error = cache_token_stream_until_matching_token(cache);
+        curr_token == tok_lbrace) {
+      error = cache_token_stream_until_matching_token(cache, coalesce_ids);
       if (error) break;
     }  /* if */
     /* Stop immediately when end of source is reached. */
     if (curr_token == tok_end_of_source) break;
     /* Add the current token to the cache and advance to its successor. */
-    cache_curr_token(cache);
-    prev_token = curr_token;
-    (void)get_token();
+    if (!coalesce_ids) cache_curr_token(cache);
+    get_token_and_coalesce_if_needed(coalesce_ids);
   }  /* while */
   /* Leave error_position associated with what is now curr_token. */
   set_err_pos_to_curr_token();
+  if (coalesce_ids) {
+    if (curr_token != tok_end_of_source) {
+      /* Make a copy of the specified range of tokens from the source cache. */
+      last_tsn = curr_token_sequence_number;
+     copy_tokens_from_cache(src_cache, first_tsn, last_tsn, cache);
+    } else {
+      /* An error case -- we ran into the end of the source file.  Create
+         an empty cache. */
+      clear_token_cache(cache, /*reusable=*/TRUE);
+      terminate_token_cache(cache);
+    }  /* if */
+  }  /* if */
   db_exit();
+}  /* cache_token_stream_with_coalecse_flag */
+
+
+void cache_token_stream(a_token_cache      *cache,
+                        a_token_set_array  stop_tokens)
+/*
+Interface to cache_token_stream_with_coalasce_flag that does not
+cause identifiers to be coalesced.
+*/
+{
+  cache_token_stream_with_coalesce_flag(cache, stop_tokens,
+                                        /*coalesce_ids=*/FALSE,
+                                        (a_token_cache_ptr)NULL);
 }  /* cache_token_stream */
+
+
+void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
+                                             a_token_set_array  stop_tokens,
+                                             a_token_cache_ptr	src_cache)
+/*
+Interface to cache_token_stream_with_coalasce_flag that causes
+identifiers to be coalesced.
+*/
+{
+  check_assertion_str2(src_cache != NULL,
+                       "cache_token_stream_coalesce_identifiers:",
+                       "no source cache specified");
+  /* Suppress diagnostics that result from this prescan. */
+  begin_suppression_of_diagnostics();
+  cache_token_stream_with_coalesce_flag(cache, stop_tokens,
+                                        /*coalesce_ids=*/TRUE, src_cache);
+
+  end_suppression_of_diagnostics();
+}  /* cache_token_stream_coalesce_identifiers */
 
 
 void rescan_cached_tokens(a_token_cache *cache)
@@ -917,16 +1040,20 @@ Free an individual token from a reusable cache.
 }  /* free_cached_token_from_reusable_cache */
 
 
+/*ARGSUSED*/ /* <-- "okay_if_not_found" is only used by checking code. */
 void split_token_cache(a_token_cache	       *cache1,
                        a_token_cache	       *cache2,
                        a_token_sequence_number split_location,
-                       a_boolean	       include_prev_token)
+                       a_boolean	       include_prev_token,
+                       a_boolean	       okay_if_not_found)
 /*
 Split cache1 into two pieces.  cache1 will contain all the tokens up
 to the one that precedes the token number specified by split location.
 cache2 will contain all the tokens that follow.  If incldue_prev_token
 is TRUE, we should include the token before the split location in the tokens
-that are moved to cache2.
+that are moved to cache2.  okay_if_not_found is TRUE if it is okay
+if the split location is not found.  This suppresses an internal
+error.
 */
 {
   a_cached_token_ptr		ctp;
@@ -955,6 +1082,7 @@ that are moved to cache2.
       before_first_ctp_to_move = ctp;
     }  /* if */
   }  /* for */
+  if (ctp == NULL && okay_if_not_found) goto exit;
   check_assertion_str2(ctp != NULL, "split_token_cache:",
                        "specified token not found");
   if (include_prev_token) {
@@ -988,6 +1116,8 @@ that are moved to cache2.
   cache1->last_token->next = NULL;
   /* Add a new terminator to the end of the original. */
   terminate_token_cache(cache1);
+exit:
+  return;
 }  /* split_token_cache */
 
 

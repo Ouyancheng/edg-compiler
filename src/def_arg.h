@@ -55,11 +55,15 @@ typedef struct a_def_arg_expr_fixup {
 			   have been scanned. */
 } a_def_arg_expr_fixup;
 
-extern void prescan_default_arg_expr(a_token_cache	*token_cache,
-				     a_boolean          is_template_param);
+extern
+void prescan_default_arg_expr(a_token_cache_ptr	token_cache,
+			      a_boolean		is_template_param,
+                              a_token_cache_ptr src_cache);
 
-extern void prescan_default_function_arg_expr(a_param_type_ptr 	      ptp,
-				              a_def_arg_expr_fixup_ptr *list);
+extern
+void prescan_default_function_arg_expr(a_param_type_ptr 	ptp,
+			               a_def_arg_expr_fixup_ptr *list,
+				       a_token_cache_ptr	src_cache);
 
 extern void delayed_scan_of_default_arg_expr
 				(a_param_type_ptr param_type_entry,

@@ -89,17 +89,18 @@ available-list.
 }  /* free_def_arg_expr_fixup */
 
 
-void prescan_default_arg_expr(a_token_cache	*token_cache,
-			      a_boolean		is_template_param)
+void prescan_default_arg_expr(a_token_cache_ptr	token_cache,
+			      a_boolean		is_template_param,
+                              a_token_cache_ptr src_cache)
 /*
 Place the tokens for a default argument expression into a token cache, to
-await actual processing at a later point.
+await actual processing at a later point.  src_cache points to a token
+cache containing the tokens that will be copied to token_cache.
 */
 {
   a_token_set_array  stop_tokens;
 
   db_enter(3, "prescan_default_arg_expr");
-  clear_token_cache(token_cache, /*reusable=*/TRUE);
   /* Initialize a local stop token set. */
   clear_token_set_array(stop_tokens);
   /* In the normal case we will scan an expression and encounter a comma
@@ -115,22 +116,23 @@ await actual processing at a later point.
   if (is_template_param) {
     incr_token_set_array_element(stop_tokens, tok_gt);
   }  /* if */
-  cache_token_stream(token_cache, stop_tokens);
+  cache_token_stream_coalesce_identifiers(token_cache, stop_tokens,
+                                          src_cache);
   /* Note that the terminating token (comma, rparen, etc.) is not added to
      the cache. */
-  /* Add an end-of-source token to the end of the token cache.  This assures
-     that we won't scan past the end of the cache in the actual scan. */
-  terminate_token_cache(token_cache);
   db_exit();
 }  /* prescan_default_arg_expr */
 
 
 void prescan_default_function_arg_expr(a_param_type_ptr 	ptp,
-			               a_def_arg_expr_fixup_ptr	*list)
+			               a_def_arg_expr_fixup_ptr	*list,
+                                       a_token_cache_ptr	src_cache)
 /*
 Place the tokens for a default argument expression into a token cache, to
 await actual processing at a later point.  Link the default argument
-entry onto the list provided by the caller.
+entry onto the list provided by the caller.  src_cache points to
+a token cache containing the entire template declaration, of which
+this default argument is a part.
 */
 {
   a_def_arg_expr_fixup_ptr  new_daefp, daefp;
@@ -138,7 +140,8 @@ entry onto the list provided by the caller.
 
   db_enter(3, "prescan_default_function_arg_expr");
   /* Scan the default argument expression. */
-  prescan_default_arg_expr(&token_cache, /*is_template_param=*/FALSE);
+  prescan_default_arg_expr(&token_cache, /*is_template_param=*/FALSE,
+                           src_cache);
   /* Allocate a default arg expr fixup entry. */
   new_daefp = alloc_def_arg_expr_fixup();
   new_daefp->param_type = ptp;
