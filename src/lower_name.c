@@ -359,7 +359,11 @@ at *store_at if store_at != NULL, and (always) return the length of the
 mangled form.
 */
 {
-  sizeof_t mangled_expr_length, section_length;
+  sizeof_t mangled_expr_length = 0, section_length;
+  a_boolean cast_to_unknown =
+             (type->kind == (a_type_kind)tk_template_param &&
+              type->variant.template_param.kind ==
+                    (a_template_param_type_kind)tptk_type_of_unknown_constant);
 
   /* Output has the form
        Ocsi1Z1ZO <-- "(int)Z1", Z1 indicating a nontype template parameter.
@@ -372,31 +376,37 @@ mangled form.
      mangled_encoding_for_expression generates a compatible structure, so
      if you change this be sure to change that as well.
   */
-  /* Put out the initial "O". */
-  mangled_expr_length = 1;
-  if (store_at != NULL) *store_at++ = 'O';
-  /* Put out the operator name "cs". */
-  mangled_expr_length += 2;
-  if (store_at != NULL) {
-    (void)strcpy(store_at, "cs");
-    store_at += 2;
+  /* If the cast is to an unknown type, omit the cast and just put out the
+     underlying constant. */
+  if (!cast_to_unknown) {
+    /* Put out the initial "O". */
+    mangled_expr_length++;
+    if (store_at != NULL) *store_at++ = 'O';
+    /* Put out the operator name "cs". */
+    mangled_expr_length += 2;
+    if (store_at != NULL) {
+      (void)strcpy(store_at, "cs");
+      store_at += 2;
+    }  /* if */
+    /* The operator name "cs" is followed by the encoding for the
+       type cast to. */
+    section_length = mangled_encoding_for_type(type, store_at);
+    mangled_expr_length += section_length;
+    if (store_at != NULL) store_at += section_length;
+    /* Put out the count of operands. */
+    mangled_expr_length++;
+    if (store_at != NULL) *store_at++ = '1';
   }  /* if */
-  /* The operator name "cs" is followed by the encoding for the
-     type cast to. */
-  section_length = mangled_encoding_for_type(type, store_at);
-  mangled_expr_length += section_length;
-  if (store_at != NULL) store_at += section_length;
-  /* Put out the count of operands. */
-  mangled_expr_length++;
-  if (store_at != NULL) *store_at++ = '1';
   /* Put out the operand. */
   section_length = mangled_encoding_for_constant(con, /*old_form=*/FALSE,
                                                  store_at);
   mangled_expr_length += section_length;
   if (store_at != NULL) store_at += section_length;
-  /* Put out the final "O". */
-  mangled_expr_length++;
-  if (store_at != NULL) *store_at++ = 'O';
+  if (!cast_to_unknown) {
+    /* Put out the final "O". */
+    mangled_expr_length++;
+    if (store_at != NULL) *store_at++ = 'O';
+  }  /* if */
   return mangled_expr_length;
 }  /* mangled_encoding_for_constant_cast */
 
