@@ -1,5 +1,14 @@
 Version 2.33
 
+9/17/96 Microsoft compatibility: cases requiring __cdecl calling convention
+
+In Microsoft-compatibility mode a routine that takes a variable number of
+arguments (and in general any routine type declared with an ellipsis) now
+gets the __cdecl calling convention; this is done even if it was explicitly
+declared to get another calling convention.  In addition, main and the
+predeclared global operator new and delete routines are assigned __cdecl
+calling convention.
+
 9/17/96 External symbols not assumed to have non-null addresses
 
 In the presence or weak external symbols and similar linker magic,
