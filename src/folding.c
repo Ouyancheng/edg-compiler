@@ -1486,6 +1486,30 @@ Return TRUE if the given constant is a null pointer constant.
 }  /* is_null_pointer_constant */
 
 
+a_boolean is_or_might_be_null_pointer_constant(a_constant *constant)
+/*
+Return TRUE if the given constant is a null pointer constant or is
+a template parameter constant that might be a null pointer constant.
+*/
+{
+  a_boolean might_be_null_pointer = FALSE;
+
+  if (constant->kind != (a_constant_repr_kind)ck_template_param) {
+    might_be_null_pointer = is_null_pointer_constant(constant);
+  } else {
+    /* Template parameter constant.  This might be a null pointer constant
+       if its type is integral or a template parameter type (so not,
+       for example, if it's a pointer to a template parameter type). */
+    a_type_ptr type = skip_typerefs(constant->type);
+    if (type->kind == (a_type_kind)tk_integer ||
+        type->kind == (a_type_kind)tk_template_param) {
+      might_be_null_pointer = TRUE;
+    }  /* if */
+  }  /* if */
+  return might_be_null_pointer;
+}  /* is_or_might_be_null_pointer_constant */
+
+
 #if DEBUG
 static void db_unary_operation(char          *operation,
 			       a_constant    *operand,

@@ -3598,7 +3598,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   /* Get the type pointed to and drop type qualifiers and typedefs. */
   dest_type_pointed_to = type_pointed_to(dest_type);
   unqual_dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
-  if (source_is_constant && is_null_pointer_constant(source_constant)) {
+  if (source_is_constant &&
+      is_or_might_be_null_pointer_constant(source_constant)) {
     /* A null pointer constant may be converted to a pointer to any type.
        ANSI C 3.3.9 (equality operators); ANSI C 3.3.15 (?: operator);
        ANSI C 3.3.16.1 (assignment); ARM 4.6 (pointer conversions).
@@ -3614,12 +3615,6 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       /* Normal case. */
       std_conv->pointer_normalization_needed = TRUE;
     }  /* if */
-  } else if (source_is_constant &&
-             source_constant->kind==(a_constant_repr_kind)ck_template_param) {
-    /* A template parameter constant might be a constant zero, and therefore
-       is considered to be convertible to a pointer type. */
-    okay = TRUE;
-    std_conv->pointer_normalization_needed = TRUE;
   } else if (is_pointer(source_type)) {
     /* Pointer --> pointer. */
     qualifiers_checked = FALSE;
@@ -4114,12 +4109,8 @@ pointers to members).
       }  /* if */
     }  /* if */
   } else if (source_is_constant &&
-             (is_null_pointer_constant(source_constant) ||
-              source_constant->kind ==
-                                    (a_constant_repr_kind)ck_template_param)) {
-    /* 0 --> pointer-to-member.  See ARM 4.8.  A nontype template parameter
-       might be zero, and therefore is considered to be convertible to
-       a pointer-to-member. */
+             is_or_might_be_null_pointer_constant(source_constant)) {
+    /* 0 --> pointer-to-member. */
     okay = TRUE;
     std_conv->pointer_normalization_needed = TRUE;
   } else if (is_error(source_type)) {

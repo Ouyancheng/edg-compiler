@@ -4452,10 +4452,7 @@ The value of the operation is an lvalue of type "const struct _GUID".
     uuidof_type = operand.type;
     /* __uuidof(0) is a special case that yields a zero GUID. */
     if (is_constant_operand(&operand) &&
-        (is_null_pointer_constant(&operand.variant.constant) ||
-         /* A template parameter constant might be zero. */
-         operand.variant.constant.kind ==
-                                    (a_constant_repr_kind)ck_template_param)) {
+        is_or_might_be_null_pointer_constant(&operand.variant.constant)) {
       uuidof_type = NULL;
     }  /* if */
     pop_expr_stack();
@@ -6407,9 +6404,8 @@ this routine is called.
     } else if ((is_pointer_type(dest_type) ||
                 is_ptr_to_member_type(dest_type)) &&
                is_constant_operand(operand) &&
-               (is_null_pointer_constant(&operand->variant.constant) ||
-                operand->variant.constant.kind ==
-                                    (a_constant_repr_kind)ck_template_param)) {
+               is_or_might_be_null_pointer_constant(
+                                                 &operand->variant.constant)) {
       /* Cast of a null pointer constant to a pointer or pointer-to-member
          type.  Allowed as an extension. */
     } else if (microsoft_mode &&

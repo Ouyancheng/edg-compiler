@@ -3145,7 +3145,7 @@ This routine is called only in Microsoft mode.
       /* The operand is a comma expression. */
       expr = expr->variant.operation.operands->next;
       if (is_constant_node(expr) &&
-          is_null_pointer_constant(expr->variant.constant)) {
+          is_or_might_be_null_pointer_constant(expr->variant.constant)) {
         /* The operand is a comma node with a second operand that is a
            null pointer constant, e.g., (x, 0). */
         *operand_is_constant = TRUE;
