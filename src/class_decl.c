@@ -2053,7 +2053,8 @@ or struct definition.  The syntax is
           add_indirect_base_class(bcp, ctsp->base_classes,
                                   &end_of_base_classes_list,
                                   new_direct_bcp->derivation, type_ptr);
-        } else if (bcp->overriding_virtual_functions != NULL) {
+        }  /* if */
+        if (bcp->overriding_virtual_functions != NULL) {
           any_base_class_with_override_list = TRUE;
         }  /* if */
       }  /* for */
