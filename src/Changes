@@ -18,14 +18,16 @@ constructor:
 5/15/97   Microsoft compatibility: Microsoft bugs mode
 
 A new mode called "Microsoft bugs mode" has been added, and some of the
-features formerly enabled Microsoft mode are instead enabled by Microsoft
+features formerly enabled by Microsoft mode are instead enabled by Microsoft
 bugs mode.  Microsoft bugs mode is automatically enabled when Microsoft
 mode is used and the configuration flag DEFAULT_MICROSOFT_BUGS is TRUE.
 When DEFAULT_MICROSOFT_BUGS is TRUE, Microsoft mode can be enabled without
 enabling Microsoft bugs mode through use of the --no_microsoft_bugs
 command line option.  Likewise, if DEFAULT_MICROSOFT_BUGS is FALSE,
 Microsoft bugs mode can be enabled with the --microsoft_bugs command line
-option.
+option.  The "External Interface" chapter of the internal documentation
+now contains a section that lists features accepted only in Microsoft bugs
+mode.
 
 5/15/97   Exception specification ignored diagnostic is now a remark
 
