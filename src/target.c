@@ -135,6 +135,19 @@ Perform consistency check on target configuration variables.
   if (targ_host_string_char_bit > CHAR_BIT) {
     internal_error("check_target_config: targ_host_string_char_bit too large");
   }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
+  /* Be sure the maximum and minimum values for "pack alignment" are
+     appropriate and may be stored within a_targ_alignment, which is a_byte
+     (= unsigned char). */
+  if (targ_minimum_pack_alignment < 1 ||
+      targ_minimum_pack_alignment > UCHAR_MAX) {
+    internal_error("check_target_config: invalid targ_minimum_pack_alignment");
+  }  /* if */
+  if (targ_maximum_pack_alignment < targ_minimum_pack_alignment ||
+      targ_maximum_pack_alignment > UCHAR_MAX) {
+    internal_error("check_target_config: invalid targ_maximum_pack_alignment");
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 }  /* check_target_configuration */
 

@@ -468,6 +468,28 @@ EXTERN a_targ_alignment
 			   Initialized to the default value but
 			   reconfigurable. */
 
+#if USER_CONTROL_OF_STRUCT_PACKING
+EXTERN a_targ_alignment
+		targ_minimum_pack_alignment
+#if VAR_INITIALIZERS
+                                            = TARG_MINIMUM_PACK_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+                                                                         ;
+			/* The minimum value which a "pack alignment" value
+			   may have.  Initialized to the default value but
+			   reconfigurable. */
+
+EXTERN a_targ_alignment
+		targ_maximum_pack_alignment
+#if VAR_INITIALIZERS
+                                            = TARG_MAXIMUM_PACK_ALIGNMENT
+#endif /* VAR_INITIALIZERS */
+                                                                         ;
+			/* The maximum value which a "pack alignment" value
+			   may have.  Initialized to the default value but
+			   reconfigurable. */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+
 #if DO_IL_LOWERING
 
 EXTERN a_boolean
