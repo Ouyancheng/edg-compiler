@@ -7182,6 +7182,9 @@ is set to NULL by this function.
        a function definition is present). */
     set_inline_flag(rtn, TRUE);
   }  /* if */
+  if (compiler_generated) {
+    rtn->compiler_generated = TRUE;
+  }  /* if */
   if (locator->is_operator_name) {
     /* Overloaded operator function. */
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_operator);
@@ -7241,17 +7244,15 @@ is set to NULL by this function.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
-  if (!compiler_generated && !rtn->source_corresp.is_deprecated) {
-    /* Check if a deprecated type was involved in this declaration. */
-    warn_about_use_of_deprecated_type(member_type, &locator->source_position);
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
-  if (compiler_generated) {
-    rtn->compiler_generated = TRUE;
-  } else {
+  if (!compiler_generated) {
     a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
-
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+    if (!rtn->source_corresp.is_deprecated) {
+      /* Check if a deprecated type was involved in this declaration. */
+      warn_about_use_of_deprecated_type(member_type,
+      &locator->source_position);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
     if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     declarator_ssep = func_info->declarator_ssep;

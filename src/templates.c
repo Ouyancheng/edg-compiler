@@ -19770,10 +19770,12 @@ emitted in this translation unit.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
              (rout_ptr->explicit_extern_inline ||
-              (rout_ptr->decl_modifiers & DM_DLLEXPORT) != 0)) {
+              (!rout_ptr->compiler_generated &&
+               (rout_ptr->decl_modifiers & DM_DLLEXPORT) != 0))) {
     /* In Microsoft mode "extern inline" in the source indicates that the
        function definition should be spilled (even if unused).  Similarly,
-       inline functions that are exported from a DLL must be spilled. */
+       inline functions that are exported from a DLL must be spilled (except
+       for compiler-generated functions). */
     result = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (instantiation_mode == tim_used ||

@@ -3247,7 +3247,7 @@ be issued at the given position.
       routine->suppress_inline_body = FALSE;
       new_dll_export = ((routine->decl_modifiers & DM_DLLEXPORT) != 0);
     }  /* if */
-    if (new_dll_export &&
+    if (new_dll_export && !routine->compiler_generated &&
         ((routine->is_template_function && !routine->is_specialized)
 #if INSTANTIATE_EXTERN_INLINE
          || is_inline
@@ -3255,7 +3255,8 @@ be issued at the given position.
                      )) {
       /* dllexport forces the instantiation of nonexplicit specializations.
          If inline functions are "instantiated", this also applies to inline
-         functions. */
+         functions.  (However, compiler-generated member functions are not so
+         treated.) */
       set_instance_required(symbol_for(routine), TRUE, SIR_DEFER_INLINE);
     }  /* if */
   }  /* if */
