@@ -1435,7 +1435,7 @@ the default constructor (if one exists) is called.
   a_type_ptr                     var_type, tp;
   a_class_symbol_supplement_ptr  cssp;
   a_dynamic_init                 local_di;
-  a_routine_ptr                  rp = NULL;
+  a_routine_ptr                  ctor = NULL, dtor = NULL;
   a_targ_size_t                  count;
   a_memory_region_number         region_to_switch_back_to = NULL_region_number;
 
@@ -1463,40 +1463,36 @@ the default constructor (if one exists) is called.
       }  /* if */
       cssp = symbol_supplement_for_class(tp);
       if (cssp->constructor != NULL) {
-        rp = select_default_constructor(tp, err_pos, tp, /*evaluated=*/TRUE);
-        if (rp == NULL) {
-          /* An error was diagnosed in trying to find the default constructor.
-             Set the flag indicating that default initialization was done even
-             though it wasn't -- this will prevent a redundant diagnostic from
-             being issued. */
-          def_init_performed = TRUE;
-        } else {
-          a_param_type_ptr  ptp = (skip_typerefs(rp->type))->
+        ctor = select_default_constructor(tp, err_pos, tp, /*evaluated=*/TRUE);
+        /* Even if ctor is NULL (as a result of failing to find a default
+           constructor) we still set def_init_performed as though default
+           initialization were done even though it wasn't -- this will
+           prevent a redundant diagnostic from being issued. */
+        def_init_performed = TRUE;
+      }  /* if */
+      dtor = select_destructor(tp, tp, err_pos, /*honor_virtual=*/FALSE,
+                               /*evaluated=*/TRUE);
+      if (ctor == NULL && dtor == NULL) {
+        /* No constructor for default initialization; no destructor either. */
+      } else {
+        if (ctor != NULL) {
+          /* Normal case -- there's a constructor to do the initialization. */
+          a_param_type_ptr  ptp = (skip_typerefs(ctor->type))->
                                    variant.routine.extra_info->param_type_list;
 
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-          local_di.variant.constructor.ptr = rp;
+          local_di.variant.constructor.ptr = ctor;
           /* A user defined default constructor may have default args that
              should be incorporated into the constructor call. */
           local_di.variant.constructor.args = copy_default_arg_expr_list(ptp);
-          local_di.destructor = select_destructor(tp, tp, err_pos,
-                                                  /*honor_virtual=*/FALSE,
-                                                  /*evaluated=*/TRUE);
-        }  /* if */
-      } else {
-        /* No constructor. */
-        rp = select_destructor(tp, tp, err_pos, /*honor_virtual=*/FALSE,
-                               /*evaluated=*/TRUE);
-        if (rp != NULL) {
+        } else {
           /* Default initialization of an object that has a destructor.  We
              generate a dik_none dynamic initialization entry for this object,
              even though it is not actually initialized, so that the existence
              of the destructor can be duly recorded. */
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
-          local_di.destructor = rp;
         }  /* if */
-      }  /* if */
-      if (rp != NULL) {
+        local_di.destructor = dtor;
         /* A constructor (or at least a destructor) was found and a dynamic
            init entry (local_di) was set to represent the initialization. */
         if (var_type != tp) {
@@ -1527,13 +1523,6 @@ the default constructor (if one exists) is called.
         /* Allocate a dynamic init entry (a copy of local_di) and attach it
            to the variable. */
         gen_dynamic_initialization(var, &local_di, err_pos);
-        if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
-          /* Default initialization via constructor. */
-          def_init_performed = TRUE;
-        } else {
-          /* Don't set def_init_performed if there's no constructor.  A
-             dik_none dynamic initialization isn't really as initialization. */
-        }  /* if */
 #if DEBUG
         if (debug_level >= 3) {
           db_variable(var);
