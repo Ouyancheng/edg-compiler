@@ -3017,36 +3017,40 @@ NULL.
         a_type_ptr      type = type_symbol_type(sym);
         a_class_type_supplement_ptr
                         ctsp = type->variant.class_struct_union.extra_info;
-        a_routine_ptr   rp = ctsp->assoc_scope->routines;
-        a_variable_ptr  vp = ctsp->assoc_scope->variables;
-        /* Diagnose undefined and unused member functions: */
-        for (; rp != NULL; rp = rp->next) {
-          if (rp->source_corresp.referenced || rp->is_virtual) {
-            if (!routine_defined(rp)) {
-              pos_sy_error(ec_never_defined,
-                           &rp->source_corresp.decl_position,
-                           (a_symbol_ptr)rp->source_corresp.assoc_info);
+
+        if (ctsp->assoc_scope != NULL) {
+          /* A class definition was provided. */
+          a_routine_ptr   rp = ctsp->assoc_scope->routines;
+          a_variable_ptr  vp = ctsp->assoc_scope->variables;
+          /* Diagnose undefined and unused member functions: */
+          for (; rp != NULL; rp = rp->next) {
+            if (rp->source_corresp.referenced || rp->is_virtual) {
+              if (!routine_defined(rp)) {
+                pos_sy_error(ec_never_defined,
+                             &rp->source_corresp.decl_position,
+                             (a_symbol_ptr)rp->source_corresp.assoc_info);
+              }  /* if */
+            } else if (!rp->source_corresp.referenced &&
+                       !rp->compiler_generated &&
+                       !rp->is_virtual) {
+              report_unreferenced((a_symbol_ptr)rp->source_corresp.assoc_info,
+                                  ec_declared_but_not_referenced,
+                                  es_warning);
             }  /* if */
-          } else if (!rp->source_corresp.referenced &&
-                     !rp->compiler_generated &&
-                     !rp->is_virtual) {
-            report_unreferenced((a_symbol_ptr)rp->source_corresp.assoc_info,
-                                ec_declared_but_not_referenced,
-                                es_warning);
-          }  /* if */
-        }  /* for */
-        /* Diagnose undefined and unused static data members: */
-        for (; vp != NULL; vp = vp->next) {
-          if (vp->source_corresp.referenced &&
-              vp->storage_class == (a_storage_class)sc_extern &&
-              !vp->is_member_constant) {
-            pos_sy_error(ec_never_defined,
-                         &vp->source_corresp.decl_position,
-                         (a_symbol_ptr)vp->source_corresp.assoc_info);
-          } else if (!vp->source_corresp.referenced) {
-            report_unreferenced((a_symbol_ptr)vp->source_corresp.assoc_info,
-                                ec_declared_but_not_referenced,
-                                es_warning);
+          }  /* for */
+          /* Diagnose undefined and unused static data members: */
+          for (; vp != NULL; vp = vp->next) {
+            if (vp->source_corresp.referenced &&
+                vp->storage_class == (a_storage_class)sc_extern &&
+                !vp->is_member_constant) {
+              pos_sy_error(ec_never_defined,
+                           &vp->source_corresp.decl_position,
+                           (a_symbol_ptr)vp->source_corresp.assoc_info);
+            } else if (!vp->source_corresp.referenced) {
+              report_unreferenced((a_symbol_ptr)vp->source_corresp.assoc_info,
+                                  ec_declared_but_not_referenced,
+                                  es_warning);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
