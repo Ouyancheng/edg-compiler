@@ -5672,7 +5672,8 @@ process_class_specifier:
                      with the class name.  Issue an error. */
                   if (locator_for_curr_id.specific_symbol->
                                class_of_which_a_member == tp) {
-                    error(ec_id_already_declared);
+                    str_error(ec_id_already_declared,
+                              locator_for_curr_id.symbol_header->identifier);
                   }  /* if */
                   locator_for_curr_id.specific_symbol = tag_sym;
                 }  /* if */
@@ -7610,7 +7611,7 @@ continue_with_declaration:
           local_is_parameter = FALSE;
         } else if (param_id->type != NULL) {
           /* Parameter has already been declared. */
-          error(ec_id_already_declared);
+          str_error(ec_id_already_declared, locator.symbol_header->identifier);
         }  /* if */
         adjust_parameter_type(&local_type_ptr);
         is_function = top_declarator_type_is_function = FALSE;

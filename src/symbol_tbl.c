@@ -1116,31 +1116,13 @@ the proper insert location.
                                                  &insert_after)) {
             /* Error, this identifier has already been declared. */
             if (!suppress_error) {
-#if 0
-              /* Issue a redeclaration error.  Special versions of the message
-                 are used for parameters and for type name redeclarations in
-                 C++. */
-              if (sym_ptr->kind == (a_symbol_kind)sk_parameter &&
-                  old_sym_ptr->kind == (a_symbol_kind)sk_parameter) {
-                error_code = ec_dupl_param_name;
-              } else if (C_dialect == C_dialect_cplusplus &&
-                         is_type_symbol(sym_ptr) &&
-                         is_type_symbol(old_sym_ptr)) {
-                error_code = ec_bad_type_name_redeclaration;
-              } else {
-                error_code = ec_id_already_declared;
-              }  /* if */
-              pos_error(error_code, &(sym_ptr->decl_position));
-              /* Issue a redeclaration error.  A special version of the message
-                 is used for type name redeclarations in C++. */
-#else
-              pos_error((is_type_symbol(sym_ptr) &&
-                         is_type_symbol(old_sym_ptr) &&
-                         C_dialect == C_dialect_cplusplus) ?
+              pos_st_error((is_type_symbol(sym_ptr) &&
+                            is_type_symbol(old_sym_ptr) &&
+                            C_dialect == C_dialect_cplusplus) ?
                                                ec_bad_type_name_redeclaration :
                                                ec_id_already_declared,
-                        &(sym_ptr->decl_position));
-#endif /* if 0 */
+                           &(sym_ptr->decl_position),
+                           sym_ptr->header->identifier);
             }  /* if */
           }  /* if */
           /* Go ahead and enter the symbol anyway.  Both symbols will be

@@ -2918,7 +2918,7 @@ if access, static-ness, and virtual-ness are unchanged.  A warning is issued.
       (is_virtual && !rp->is_virtual) ||
       (routine_type_is_nonstatic_member_function(rp->type) !=
          routine_type_is_nonstatic_member_function(member_type))) {
-    pos_error(ec_id_already_declared, err_pos);
+    pos_st_error(ec_id_already_declared, err_pos, sym->header->identifier);
   } else {
     /* Issue a warning that this redeclaration is nonstandard. */
     pos_warning(ec_nonstd_member_function_redeclaration, err_pos);
@@ -5597,7 +5597,9 @@ and "class_type" indicates the class in which the declaration occurs.
     if (projection_into_curr_class->
                            variant.projection.access_adjustment_made) {
       /* Name has already been declared in an access declaration. */
-      pos_error(ec_id_already_declared, &locator_for_curr_id.source_position);
+      pos_st_error(ec_id_already_declared,
+                   &locator_for_curr_id.source_position,
+                   locator_for_curr_id.symbol_header->identifier);
       goto done;
     }  /* if */
   } else {
@@ -5616,7 +5618,9 @@ and "class_type" indicates the class in which the declaration occurs.
     } else {
       /* Name has already been declared in the current scope and cannot
          appear in an access adjustment. */
-      pos_error(ec_id_already_declared, &locator_for_curr_id.source_position);
+      pos_st_error(ec_id_already_declared,
+                   &locator_for_curr_id.source_position,
+                   locator_for_curr_id.symbol_header->identifier);
       goto done;
     }  /* if */
   }  /* if */
