@@ -2378,6 +2378,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
   a_type_ptr            result_type;
   a_boolean             err = FALSE, processed = FALSE;
   an_operand            zero_operand;
+  an_opname_kind        opname_kind;
 
   db_enter(4, "scan_postfix_incr_decr");
 
@@ -2394,25 +2395,23 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
          See ARM 13.4.7.  The second compiler-supplied argument is an
          integer zero. */
       make_integer_constant_operand(&zero_operand, 0L);
-      check_for_operator_overloading(opname_kind_for_token[(int)curr_token],
+      opname_kind = opname_kind_for_token[(int)curr_token];
+      check_for_operator_overloading(opname_kind,
                                      /*unary_operator=*/FALSE,  /* sic! */
                                      /*must_be_member_function=*/FALSE,
-                                     /*try_conversions=*/TRUE,
+                                     /*try_conversions=*/!allow_anachronisms,
                                      /*has_predef_meaning=*/allow_anachronisms,
                                      operand, &zero_operand,
                                      expression_kind, &operand->position,
                                      result, &processed);
-      if (!processed && allow_anachronisms &&
-          /* Do not go further if a conversion has been applied to the operand
-             to make it suitable for the built-in operator. */
-          is_class_or_error_operand(operand)) {
+      if (!processed && allow_anachronisms) {
         /* Try the anachronism that allows a one-argument function to
            be used for both prefix and postfix ++/--. */
-        check_for_operator_overloading(opname_kind_for_token[(int)curr_token],
+        check_for_operator_overloading(opname_kind,
                                        /*unary_operator=*/TRUE,
                                        /*must_be_member_function=*/FALSE,
                                        /*try_conversions=*/FALSE,
-                                       /*has_predef_meaning=*/FALSE,
+                                       /*has_predef_meaning=*/TRUE,
                                        operand, (an_operand *)NULL,
                                        expression_kind, &operand->position,
                                        result, &processed);
@@ -2423,6 +2422,19 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                               &operand->position,
                               token_names[(int)curr_token]);
           }  /* if */
+        } else {
+          /* The anachronism does not apply, so try finding a conversion
+             function that will convert the operand to the right type for
+             the builtin version of the operator.  Note that this call
+             will also try the normal match again, and fail. */
+          check_for_operator_overloading(opname_kind,
+                                         /*unary_operator=*/FALSE,  /* sic! */
+                                         /*must_be_member_function=*/FALSE,
+                                         /*try_conversions=*/TRUE,
+                                         /*has_predef_meaning=*/FALSE,
+                                         operand, &zero_operand,
+                                         expression_kind, &operand->position,
+                                         result, &processed);
         }  /* if */
       }  /* if */
     }  /* if */
