@@ -437,7 +437,6 @@ precompiled headers is suppressed.
 {
   a_void_ptr		addr;
   static a_boolean	additional_allocation_needed = FALSE;
-  a_boolean		not_enough_memory;
 
   if (!additional_allocation_needed) {
     if (mem_alloc_history_entries_used == num_of_mem_alloc_history_entries) {
@@ -1027,7 +1026,7 @@ usage counts in other files.
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
   if (precompiled_header_processing_required) {
     fprintf(f_debug, "%25s %8s %8s %8lu\n",
-            "Preallocated PCH memory", "", "", pch_mem_size);
+            "Preallocated PCH memory", "", "", (unsigned long)pch_mem_size);
   }  /* if */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   total_accounted_for += num_alignment_bytes_allocated;

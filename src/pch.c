@@ -227,7 +227,7 @@ macros.
 
 /*
 Dynamically allocated buffer used to contain string that are used
-during precompiled header prefix comparisions.
+during precompiled header prefix comparisons.
 */
 static char	*pch_buffer = NULL;
 			/* Not allocated on a per-file basis. */
@@ -818,7 +818,7 @@ variable lists.
          psvp++) {
       a_void_ptr	address = psvp->var_address;
       /* If the indirect flag is set, get the address stored at the
-         specified addrerss. */
+         specified address. */
       if (psvp->indirect) address = *(a_void_ptr*)address;
 #if DEBUG
       if (debug_level >= 5) {
@@ -1322,7 +1322,7 @@ write out the precompiled header file.
       size_needed = HOST_ALLOCATION_INCREMENT * total_mem_blocks_allocated;
       size_needed = (size_needed / 1024) + 1;
       /* Convert the size needed to a string. */
-      (void)sprintf(size_string, "%0dK", size_needed);
+      (void)sprintf(size_string, "%0luK", (unsigned long)size_needed);
       str_warning(ec_not_enough_preallocated_memory, size_string);
     } else if (large_mem_block_needed) {
       pos_warning(ec_program_entity_too_large_for_pch,
@@ -1881,7 +1881,8 @@ may be used.
     if (new_alloc_history != NULL) {
       /* Free the new allocation history information. */
       free_general((a_void_ptr)new_alloc_history,
-                   new_alloc_history_entries * sizeof(a_mem_alloc_history));
+                   (sizeof_t)(new_alloc_history_entries *
+                                             sizeof(a_mem_alloc_history)));
     }  /* if */
     /* Save the sequence number as of this point. */
     saved_curr_seq_number = curr_seq_number;

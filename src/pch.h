@@ -189,7 +189,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		cannot_create_pch_file;
 			/* TRUE is a condition has occurred that makes
-			   the current compilation ineligable to create
+			   the current compilation ineligible to create
 			   a precompiled header.  For example, using
 			   the predefined macros __DATE__ and __TIME__. */
 
@@ -201,11 +201,6 @@ EXTERN a_source_position
 			   directive.  This is used by the declaration
 			   processing routines to determine when they have
 			   reached the implied header stop point. */
-
-EXTERN a_boolean
-		header_stop_is_end_of_source;
-			/* TRUE if the header stop point is the end of
-			   the primary source file. */
 
 EXTERN a_boolean
 		header_stop_position_pending;
