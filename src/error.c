@@ -578,7 +578,7 @@ redundant file names in a diagnostic.*/
 #if CHECKING
       if (digits_to_represent((unsigned long)pos->seq)
                           >= BASE_MSG_SEGMENT_SIZE) {
-        internal_error("form_bound: buffer size too small");
+        internal_error("form_source_position: buffer size too small");
       }  /* if */
 #endif /* CHECKING */
       (void)sprintf(buffer, "%lu", (unsigned long)line_number);
