@@ -11618,7 +11618,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                                                  operand_3.ref_entries_list);
     }  /* if */
   }  /* if */
-  if (string_literals_are_const && !strict_ansi_mode) {
+  if (string_literals_are_const && !strict_ansi_mode && !gpp_mode) {
     /* As an extension, allow a "?" operator where the second and third
        operands are string literals to be eligible for the deprecated
        conversion to "char *".  This allows things like
