@@ -1626,7 +1626,7 @@ typedef struct a_routine_type_supplement {
 		throw_specification;
 			/* In C++ only, pointer to an entry describing the
 			   exception specification declared for this routine.
-			   NULL when any exception may be throw, e.g.,
+			   NULL when any exception may be thrown, e.g.,
 			     void f();     // No throw specification declared
 			   Also NULL in C mode or if exceptions are disabled
 			   for this compilation; also NULL if the type is not
