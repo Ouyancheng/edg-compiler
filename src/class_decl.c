@@ -6676,14 +6676,35 @@ next_declaration:
        since symbols may be inherited. */
     cssp->symbols = scope_stack[depth_scope_stack].symbols;
     if (C_dialect == C_dialect_cplusplus) {
-      /* Issue a warning on a class with no user-defined constructor and with
-         one or more members with reference or const type.  Note that this
-         check is done before compiler-generated constructors, if any, are
-         entered. */
+      /* Classes with no constructors, no private or protected members, no
+         base classes, and no virtual functions are used to declare
+         "aggregate" objects (ARM 8.4.1). */
+      if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
+        cssp->is_class_aggregate = TRUE;
+      }  /* if */
+      /* Issue a diagnostic on a class with no user-defined constructor and
+         with one or more members with reference or const type.  Note that
+         this check is done before compiler-generated constructors, if any,
+         are entered. */
       if (any_const_or_ref_fields && cssp->constructor == NULL) {
         a_symbol_ptr  sym;
-        pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
+
+        if (class_aggregate_ruled_out) {
+          /* Issue an error for a non-aggregate class, since there's no other
+             way to initialize an object of the claass. */
+          pos_sy_start_error(ec_no_ctor_but_const_or_ref_member,
                              &error_position, tag_sym);
+        } else {
+          /* Issue a warning for an aggregate class.  If an attempt is made
+             to declare an object without appropriate initialization, an error
+             will be issued.  For example:
+               class A { const int i; };     // Just a warning
+               A x = { 0 };                  // Okay -- ARM 8.4.1
+               A y = x;                      // Probably okay -- ARM 8.4.1
+               A z;                          // Error will be issued       */
+          pos_sy_start_warning(ec_no_ctor_but_const_or_ref_member,
+                               &error_position, tag_sym);
+        }  /* if */
         /* List each of the uninitialized const or ref member. */
         for (sym = cssp->symbols; sym != NULL; sym = sym->next_in_scope) {
           if (sym->kind == (a_symbol_kind)sk_field) {
@@ -6720,12 +6741,6 @@ next_declaration:
          through its base classes to determine whether it is abstract by
          inheritance and set the flag accordingly. */
       check_abstract_class(class_type);
-      /* Classes with no constructors, no private or protected members, no
-         base classes, and no virtual functions are used to declare
-         "aggregate" objects (ARM 8.4.1). */
-      if (!class_aggregate_ruled_out && cssp->constructor == NULL) {
-        cssp->is_class_aggregate = TRUE;
-      }  /* if */
       /* Issue a warning on a class with an operator new() but no operator
          delete() or vice versa. */
       if (cssp->has_operator_new != cssp->has_operator_delete) {
