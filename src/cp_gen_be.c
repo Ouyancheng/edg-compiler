@@ -350,14 +350,22 @@ static a_source_sequence_entry_ptr last_src_seq_of_class_definition(
 /*
 Return a pointer to the last source sequence entry for the members of the
 class "type".  This is used only in C mode, to simulate a scope for the class.
-The class is known to be defined and to have at least one field.
 */
 {
   a_field_ptr field = type->variant.class_struct_union.field_list;
+  /* Set the source sequence entry to the one for the class in case there
+     are no source sequence entries for the members of the class. */
+  a_source_sequence_entry_ptr
+              ssep = type->source_corresp.source_sequence_entry;
 
-  /* Find the last field. */
-  while (field->next != NULL) field = field->next;
-  return field->source_corresp.source_sequence_entry;
+  /* Visit all fields and remember the last source sequence entry
+     encountered. */
+  for (; field != NULL; field = field->next) {
+    if (field->source_corresp.source_sequence_entry != NULL) {
+      ssep = field->source_corresp.source_sequence_entry;
+    }  /* if */
+  }  /* for */
+  return ssep;
 }  /* last_src_seq_of_class_definition */
 
 
@@ -848,32 +856,21 @@ is given by scp.
 {
   char *name = scp->name;
 
-  check_assertion_str(name != NULL, "gen_name: NULL name");
 #if 0
   /* Qualified name, template names. */
 #endif /* 0 */
-  write_tok_str(name);
-}  /* gen_name */
-
-
-static void gen_name_allowing_unnamed(a_source_correspondence *scp)
-/*
-Output the name of the entity whose source correspondence information
-is given by scp.  Generate a name if the entity is unnamed.
-*/
-{
-  char *name = scp->name;
-
   if (name != NULL) {
-    gen_name(scp);
+    write_tok_str(name);
   } else {
+    /* The entity is unnamed (compiler-generated label, unnamed bit field,
+       unnamed union, unnamed type, etc.). */
     /* Make up a name of the form "__Tnnnn" for an unnamed entity. */
     char buffer[50];
     (void)sprintf(buffer, "__T%lu",
                   (unsigned long)unique_id_for_il_pointer(scp));
     write_tok_str(buffer);
   }  /* if */
-}  /* gen_name_allowing_unnamed */
+}  /* gen_name */
 
 
 static void gen_constant_name(a_constant_ptr con)
@@ -892,7 +889,7 @@ Output the name of the indicated type.
 {
   /* Unnamed enums and classes are emitted with compiler-generated names, so
      in some cases the type may be unnamed.  That's okay. */
-  gen_name_allowing_unnamed(&type->source_corresp);
+  gen_name(&type->source_corresp);
 }  /* gen_type_name */
 
 
@@ -1459,43 +1456,17 @@ Return a string that describes the tag kind for the indicated type, i.e.,
 }  /* tag_kind */
 
 
-/*ARGSUSED*/  /* <-- Temporary until routine implemented fully. */
-static void gen_unnamed_bit_fields(a_field_ptr field,
-                                   a_field_ptr prev_field,
-                                   a_field_ptr field_list)
+static void gen_field_decl(a_field_ptr field)
 /*
-Generate any unnamed bit fields that precede "field" in its class field
-list.  If field is NULL, generate any unnamed bit fields that appear
-at the end of the class field list.  prev_field is the field preceding
-field, or NULL if there is no such field.  field_list is the complete
-field list.
+Generate the declaration for a field (a nonstatic data member).
 */
 {
-#if 0
-  /* Not implemented yet. */
-#endif /* 0 */
-}  /* gen_unnamed_bit_fields */
-
-
-static void gen_field_decl(a_field_ptr field,
-                           a_field_ptr prev_field,
-                           a_field_ptr field_list)
-/*
-Generate the declaration for a field (a nonstatic data member).  prev_field
-points to the field processed before this one, or is NULL if no fields
-were processed before this one; field_list is the complete list of fields
-for the current class.  These are used to spot unnamed fields that must
-be put out (they don't have sequence entries).
-*/
-{
-  /* See if any unnamed bit fields precede the field.  If so, they are put
-     out now. */
-  gen_unnamed_bit_fields(field, prev_field, field_list);
   set_output_position(&field->source_corresp.decl_position);
   /* Generate the field type and name. */
-  gen_declaration_using_type(field->type, &field->source_corresp,
+  gen_declaration_using_type(field->type,
+                             has_name(field) ? &field->source_corresp : NULL,
                              (a_src_seq_secondary_decl_ptr)NULL);
-  if (field->bit_size != 0) {
+  if (field->is_bit_field) {
     /* A bit field.  Put out the size. */
     write_tok_str(":");
     write_unsigned_num((unsigned long)field->bit_size);
@@ -1509,7 +1480,7 @@ static gen_class_definition(a_type_ptr type)
 Output the definition of the indicated class type.
 */
 {
-  a_field_ptr                 field_list, field, prev_field;
+  a_field_ptr                 field_list, field;
   a_class_type_supplement_ptr ctsp;
   a_scope_ptr                 scope;
   a_source_sequence_entry_ptr ssep;
@@ -1557,9 +1528,11 @@ Output the definition of the indicated class type.
     }  /* if */
     /* Go through the source sequence list and generate the members of the
        class. */
-    prev_field = NULL;
-    while ((ssep = class_scope_source_sequence_entry) != NULL) {
-      char *entity_ptr = ssep->entity.ptr;
+    for (;;) {
+      char *entity_ptr;
+      ssep = class_scope_source_sequence_entry;
+      if (ssep == NULL) break;
+      entity_ptr = ssep->entity.ptr;
       /* Advance the source sequence list for the next iteration of the
          loop. */
       (void)next_class_scope_source_sequence_entry();
@@ -1575,8 +1548,7 @@ Output the definition of the indicated class type.
         case iek_field:
           /* Generate the declaration for a field (nonstatic data member). */
           field = (a_field_ptr)entity_ptr;
-          gen_field_decl(field, prev_field, field_list);
-          prev_field = field;
+          gen_field_decl(field);
           break;
         case iek_type:
           /* Nested type. */
@@ -1606,9 +1578,7 @@ Output the definition of the indicated class type.
         default:
           unexpected_condition_str("gen_class_definition: bad entity kind");
       }  /* switch */
-    }  /* while */
-    /* Generate any unnamed bit fields at the end of the class. */
-    gen_unnamed_bit_fields((a_field_ptr)NULL, prev_field, field_list);
+    }  /* for */
     /* Restore the previous value of class_scope_source_sequence_entry. */
     class_scope_source_sequence_entry= saved_class_scope_source_sequence_entry;
     if (scope == NULL) type_declaration_cannot_be_emitted_now--;
@@ -1628,7 +1598,7 @@ or enum.
     /* Put out the definition if it is needed and was delayed because we're
        in a context where we can't put out a freestanding declaration.
        Also put it out if it has not been put out yet and the type is
-       unnamed. */
+       unnamed (there's no way to refer to it otherwise). */
     type->definition_delayed = FALSE;
     if (type->kind == (a_type_kind)tk_integer) {
       gen_enum_definition(type);
@@ -3045,14 +3015,16 @@ Generate code for the indicated statement.
     case stmk_goto:
       /* "goto" statement: generate "goto name;". */
       write_tok_str("goto ");
-      /* Labels for "break" and "continue" are compiler-generated. */
-      gen_name_allowing_unnamed(&statement->variant.label->source_corresp);
+      /* Labels for "break" and "continue" are compiler-generated and may
+         be unnamed. */
+      gen_name(&statement->variant.label->source_corresp);
       write_tok_str(";");
       break;
     case stmk_label:
       /* Label statement: generate "name:;". */
-      /* Labels for "break" and "continue" are compiler-generated. */
-      gen_name_allowing_unnamed(&statement->variant.label->source_corresp);
+      /* Labels for "break" and "continue" are compiler-generated and may be
+         unnamed. */
+      gen_name(&statement->variant.label->source_corresp);
       write_tok_str(":;");
       break;
     case stmk_return:
