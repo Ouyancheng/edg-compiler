@@ -2775,7 +2775,7 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
       } while (local_ch != '\n');
       ch = local_ch;
       loc_in_line = local_loc_in_line;
-#if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
+#if IGNORE_CARRIAGE_RETURN_IN_SOURCE
       /* Ignore carriage return right before newline. */
       if (*(loc_in_line-1) == '\r') {
         loc_in_line--;
@@ -2785,7 +2785,7 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
           goto add_newline_and_null_and_return;
         }  /* if */
       }  /* if */
-#endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
+#endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
       /* End of a line containing at least one character.  Check to see
          if the last character is a backslash.  If so, the current line
          should be spliced with the line following. */

@@ -553,7 +553,16 @@ are handled by the front end instead of the host C runtime library.
 #endif /* ifndef READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 #if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
 #define CONTROL_Z (0x1a)
+#define IGNORE_CARRIAGE_RETURN_IN_SOURCE TRUE
 #endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
+
+/*
+Flag that is TRUE to indicate that carriage return characters at the ends
+of input lines should be ignored.
+*/
+#ifndef IGNORE_CARRIAGE_RETURN_IN_SOURCE
+#define IGNORE_CARRIAGE_RETURN_IN_SOURCE FALSE
+#endif /* ifndef IGNORE_CARRIAGE_RETURN_IN_SOURCE */
 
 /*
 Default temporary file directory.
