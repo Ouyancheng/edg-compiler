@@ -1239,6 +1239,11 @@ do_struct_union:
                                       explicit_memory_attribute_made_implicit);
       }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
+      if (ptr->variant.typeref.has_variably_modified_type) {
+        disp_boolean("has_variably_modified_type",
+                     (a_boolean)ptr->variant.typeref.
+                                                   has_variably_modified_type);
+      }  /* if */
 #if BACK_END_IS_CP_GEN_BE
       if (ptr->surrounding_name_linkage_state !=
                                               (a_name_linkage_kind)nlk_none) {
