@@ -4829,9 +4829,27 @@ skip_overloading:;
     a_boolean suppress_diagnostic = linked_redecl_error;
 
     if (routine_ptr->compiler_generated) {
-      /* This is an entry for a compiler generated ::operator new or
-         ::operator delete.  It was created during initialization, but
-         is overridden by the present declaration. */
+      /* This is an entry for an intrinsic function or operator (e.g., the
+         compiler generated ::operator new or ::operator delete).  It was
+         created during initialization, but is overridden by the present
+         definition.  If the declaration is not a definition, we do not want
+         to lose track of the fact that this is an intrinsic entity. */
+      if (is_function_def) {
+        routine_ptr->compiler_generated = FALSE;
+      }  /* if */
+      if (routine_ptr->source_corresp.decl_position.seq == 0) {
+        /* Since the IL entry wasn't assigned a position yet, this must be
+           the first time we see a source-level declaration for it. Don't
+           diagnose linkage mismatches either. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
+        first_decl = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
+        suppress_diagnostic = TRUE;
+      }  /* if */
+      /* Record the new source position, both in the symbol and in the
+         routine entry. */
+      sym->decl_position = locator->source_position;
+      routine_ptr->source_corresp.decl_position = sym->decl_position;
 #if CHECKING
       if (routine_ptr->special_kind ==
                              (a_special_function_kind)sfk_operator) {
@@ -4840,18 +4858,6 @@ skip_overloading:;
                              "decl_routine: bad opname kind");
       }  /* if */
 #endif /* CHECKING */
-      if (!redeclaration) {
-        /* This is probably a block-extern declaration. */
-      } else {
-        routine_ptr->compiler_generated = FALSE;
-        check_assertion_str(sym->decl_position.seq == 0,
-                            "decl_routine: decl position already set");
-        /* Record the new source position, both in the symbol and in the
-           routine entry. */
-        sym->decl_position = locator->source_position;
-        routine_ptr->source_corresp.decl_position = sym->decl_position;
-        suppress_diagnostic = TRUE;
-      }  /* if */
     }  /* if */
 #if ASM_FUNCTION_ALLOWED
     if (storage_class == (a_storage_class)sc_asm ||
