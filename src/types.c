@@ -2226,11 +2226,10 @@ conversions (constructors and conversion functions).
     /* This catches incomplete enums for completeness.  The caller probably
        ruled out incomplete types anyway. */
     /* okay = FALSE; -- already set. */
-  } else if (C_dialect == C_dialect_cplusplus &&
-             is_integral(source_type) && is_enum(dest_type)) {
+  } else if (is_integral(source_type) && is_enum(dest_type)) {
     /* In C++, integral --> enum can only be done by explicit conversion.
-       In C, it's allowed as an implicit conversion and therefore need not
-       be checked again here. */
+       In C, it's allowed as an implicit conversion but we check for it
+       again here to avoid the warning. */
     okay = TRUE;
   } else if (is_pointer(source_type) && is_integral(dest_type) &&
              dest_of_ptr_cast_big_enough(source_type, dest_type)) {
