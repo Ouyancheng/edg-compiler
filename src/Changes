@@ -23,7 +23,7 @@ mode.
 A number of small bugs have been fixed in supplying source range
 information when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  They involved:
   -- non-standard enum declarations
-  -- bit-field declarator with an explcit length
+  -- bit-field declarators
   -- identifier of a conversion function
   -- a "vacuous" class declaration that follows the class's definition
 
