@@ -13843,7 +13843,7 @@ which of the various keywords was used.
   if (is_string) {
     /* The construct is to be treated as a string literal. */
     make_string_constant_operand(&const_for_curr_token, result);
-    result->is_simple_string_literal = FALSE;
+    if (!microsoft_mode) result->is_simple_string_literal = FALSE;
   } else {
     /* Variable case.  The string literal will be the initializer for the
        static variable. */
@@ -14117,7 +14117,7 @@ see expr.h).
                "abc" __FUNCTION__
           */
           concat_adjacent_string_literals(/*function_name_case=*/TRUE);
-          is_simple_string = FALSE;
+          if (!microsoft_mode) is_simple_string = FALSE;
         }  /* if */
         make_string_constant_operand(&const_for_curr_token, &local_result);
         local_result.is_simple_string_literal = is_simple_string;
