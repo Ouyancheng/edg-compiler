@@ -794,8 +794,7 @@ any entries generated for a function prototype scope.
 {
   a_source_sequence_entry_ptr  ssep;
 
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
-      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+  if (!source_sequence_entries_disallowed) {
     /* Locate the last source sequence entry on the current list. */
     ssep = scope_stack[depth_innermost_ss_list_scope].
                                             last_source_sequence_entry;
@@ -824,8 +823,7 @@ function scope source sequence list -- see scan_function_body.
   a_source_sequence_entry_ptr  starting_ssep, ending_ssep;
   a_src_seq_sublist_ptr        sublist = NULL;
 
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
-      depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+  if (!source_sequence_entries_disallowed) {
     /* The first entry in the function prototype list segment is prev's
        successor. */
     if (prev != NULL) {
@@ -4274,6 +4272,7 @@ of local variables (and types, etc.) of functions and in blocks.
   a_variable_ptr    var_ptr;
   a_source_sequence_entry_ptr
                     declarator_ssep = NULL;
+  a_boolean         first_declarator = TRUE;
 #if ASM_FUNCTION_ALLOWED
   a_boolean         is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -4294,6 +4293,16 @@ of local variables (and types, etc.) of functions and in blocks.
        processing. */
     (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
+    /* This is a declaration at file scope.  Set the source-sequence insert
+       point for instantiations to NULL -- it will be set to point to the
+       first source sequence entry that add_to_source_sequence_list sees,
+       which should be the first entry associated with the current
+       declaration. */
+    scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point = NULL;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (C_dialect == C_dialect_cplusplus) {
     if (curr_token == tok_extern && next_token() == tok_string_literal) {
       /* This looks like a C++ linkage specification, which is "extern"
@@ -4579,6 +4588,15 @@ continue_with_declaration:
         copy_source_position(pos_curr_token, declarator_pos);
       }  /* if */
       clear_func_info(&func_info);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (!first_declarator && depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
+        /* This is a declaration at file scope, and not the first declarator
+           in the declarator list.  As for the start of the declaration,
+           set the source-sequence insert point for instantiations to NULL. */
+        scope_stack[DEPTH_OF_FILE_SCOPE].
+                                ss_list_instantiation_insert_point = NULL;
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                  &local_type_ptr, &bottom_derived_type, &declarator_ssep,
@@ -5190,6 +5208,7 @@ continue_with_declaration:
       done_with_func_info(func_info);
       remove_stop_token(tok_comma);
       need_comma_remove_stop_token = FALSE;
+      first_declarator = FALSE;
       /* Keep scanning the list of declarators. */
     } while (loop_token(tok_comma));
   }  /* if */
