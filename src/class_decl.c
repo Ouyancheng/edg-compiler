@@ -3860,7 +3860,6 @@ static void decl_static_data_member(a_symbol_locator *locator,
                                     a_type_ptr       class_type,
                                     a_type_ptr       member_type,
                                     an_access_specifier access,
-                                    a_boolean        is_anonymous_union,
                                     a_boolean        is_nonreal_class,
                                     a_symbol_ptr     corresp_prototype_tag_sym,
                                     a_source_sequence_entry_ptr  ssep)
@@ -3882,16 +3881,8 @@ table.
      current class. */
   var = make_variable(member_type, (a_storage_class)sc_static,
                       /*at_file_scope=*/FALSE);
-  if (!is_anonymous_union) {
-    /* Enter a new symbol in the symbol table. */
-    sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
-                             decl_scope_level,
-                             /*suppress_redecl_error=*/FALSE);
-  } else {
-    sym = make_anonymous_parent_object_symbol(
-                                 (a_symbol_kind)sk_static_data_member,
-                                 &locator->source_position);
-  }  /* if */
+  sym = enter_local_symbol((a_symbol_kind)sk_static_data_member, locator,
+                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
   /* Set the source correspondence fields of the variable. */
   set_source_corresp(&var->source_corresp, sym);
   sym->class_of_which_a_member = class_type;
@@ -3903,12 +3894,6 @@ table.
      data members will also be changed. */
   var->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
   var->source_corresp.access = access;
-  if (is_anonymous_union) {
-    /* A static data member is not allowed to be an anonymous union.  An error
-       will have been issued already, but promote the fields anyway. */
-    var->is_anonymous_parent_object = TRUE;
-    check_anonymous_union_symbols(sym, (a_type_ptr)NULL, /*is_nonstd=*/FALSE);
-  }  /* if */
   /* This is entered as a declaration rather than a definition, since the
      definition must appear outside the class definition. */
   record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
@@ -4101,7 +4086,7 @@ new ones are allocated in scope specified by decl_scope_level.
 */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 {
-  a_symbol_ptr                   sym, next_sym, mf_sym;
+  a_symbol_ptr                   sym, next_sym, mf_sym, apo_sym;
   a_class_symbol_supplement_ptr  cssp;
   a_class_type_supplement_ptr    ctsp;
   an_access_specifier            access, assoc_object_access;
@@ -4200,7 +4185,27 @@ new ones are allocated in scope specified by decl_scope_level.
            of a variable anonymous union should be (i.e., should remain)
            public. */
         sym->variant.field.ptr->source_corresp.access = assoc_object_access;
-        sym->variant.field.anonymous_parent_object = assoc_object_sym;
+        /* Only update the anonymous-parent-object pointer for a given
+           symbol on the first promotion. */
+        apo_sym = sym->variant.field.anonymous_parent_object;
+        if (apo_sym == NULL) {
+          sym->variant.field.anonymous_parent_object = assoc_object_sym;
+        } else {
+          /* Walk up the chain of anonymous_parent_objects, which represent
+             nested anonymous unions.  Stop if the current assoc_object_sym
+             is found -- it will have been recorded, presumably, for a
+             previously promoted field). */
+          while (apo_sym != assoc_object_sym) {
+            if (apo_sym->variant.field.anonymous_parent_object == NULL) {
+              /* The end of the list: add assoc_object_sym and stop. */
+              apo_sym->variant.field.
+                         anonymous_parent_object = assoc_object_sym;
+              break;
+            }  /* if */
+            /* Advance up the chain. */
+            apo_sym = apo_sym->variant.field.anonymous_parent_object;
+          }  /* while */
+        }  /* if */
         break;
       case sk_member_function:
       case sk_overloaded_function:
@@ -6364,8 +6369,7 @@ Scan the body of a class definition, including the base classes list.
                 pos_error(ec_static_not_allowed, &decl_start_pos);
               }  /* if */
               decl_static_data_member(&locator, class_type, local_type,
-                                      access, is_anonymous_union,
-                                      is_nonreal_instantiation,
+                                      access, is_nonreal_instantiation,
                                       corresp_prototype_tag_sym,
                                       declarator_ssep);
             } else {
