@@ -789,8 +789,10 @@ the class template token cache in class_tssp.
   a_cached_token_ptr			ctp;
   a_cached_token_ptr			prev_ctp;
   a_cached_token_ptr			first_to_discard;
+  a_cached_token_ptr			last_to_discard;
   a_cached_token_ptr			replacement_token;
   a_token_cache_ptr			class_cache;
+  a_boolean				insert_semicolon;
 
   rout_tssp = tip->template_info;
   first_to_remove = rout_tssp->token_cache.first_token->token_sequence_number;
@@ -810,21 +812,38 @@ the class template token cache in class_tssp.
   for (; ctp != NULL; ctp = ctp->next) {
     if (ctp->token_sequence_number == last_to_remove) break;
   }  /* for */
+  last_to_discard = ctp;
   /* At this point prev_ctp points to the token prior to the first token to
-     be removed and ctp points to the last token to be removed. */
-  check_assertion_str2(prev_ctp != NULL && ctp != NULL,
+     be removed and last_to_discard points to the last token to be removed. */
+  check_assertion_str2(prev_ctp != NULL && last_to_discard != NULL,
                        "extract_member_function_body:",
                        "could not find start or end of body");
   first_to_discard = prev_ctp->next;
-  /* Make a new cached token entry for a semicolon, the function body
-     will be replaced with the semicolon.  Give it the same token
-     sequence number as the first token of the body. */
-  replacement_token = build_cached_token(tok_semicolon, first_to_remove,
-                                         &first_to_discard->source_position);
-  /* Link the replacement token into the cache in the place of the body. */
-  prev_ctp->next = replacement_token;
-  replacement_token->next = ctp->next;
-  ctp->next = NULL;
+  /* See if the last token if the cache is followed by an optional
+     semicolon.  Only insert one if there is not already one there. */
+  for (ctp = ctp->next; ctp != NULL; ctp = ctp->next) {
+    /* Ignore pragma tokens. */
+    if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) {
+      continue;
+    }  /* if */
+    insert_semicolon = ctp->token != (a_byte_token_kind)tok_semicolon;
+    break;
+  }  /* for */
+  if (insert_semicolon) {
+    /* Make a new cached token entry for a semicolon, the function body
+       will be replaced with the semicolon.  Give it the same token
+       sequence number as the first token of the body. */
+    replacement_token = build_cached_token(tok_semicolon, first_to_remove,
+                                           &first_to_discard->source_position);
+    /* Link the replacement token into the cache in the place of the body. */
+    prev_ctp->next = replacement_token;
+    replacement_token->next = last_to_discard->next;
+  } else {
+    /* No semicolon is needed.  Just link the tokens to remove the member
+       body */
+    prev_ctp->next = last_to_discard->next;
+  }  /* if */
+  last_to_discard->next = NULL;
   /* Remove the extracted tokens from the original cache. */
   class_cache = &class_tssp->token_cache;
   ctp = first_to_discard;
