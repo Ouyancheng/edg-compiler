@@ -1,5 +1,20 @@
 Version 3.2
 
+3/24/03  Internal error on catch parameter with ambiguous copy constructor
+
+The front end used to abort with an internal error when catch clause
+parameter had a type with an ambiguous copy constructor.  For example:
+
+  struct S {
+    S(S const&);
+    S(S volatile&);
+  };
+  void f() {
+    try {} catch (S) {}  // Error: Ambiguous copy constructor for S.
+  }                      // Used to trigger an internal error.
+
+This is now fixed: An error is issued without aborting.
+
 3/21/03  GNU compatibility: Label attributes
 
 The front end now parses attributes following a label as being associated

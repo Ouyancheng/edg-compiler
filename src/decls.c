@@ -8778,7 +8778,11 @@ a normal try.
                                           (a_type_qualifier_set)TQ_NONE,
                                           &pos, type_ptr, &bitwise_copy,
                                           /*evaluated=*/TRUE);
-          check_assertion((cctor == NULL) == bitwise_copy);
+          /* Only an implicit copy constructor (cctor == NULL) can correspond
+             to a bitwise copy.  However, cctor can also be NULL if the
+             copy constructor was ambiguous. */
+          check_assertion((cctor == NULL) == bitwise_copy ||
+                          total_errors != 0);
           dtor = select_destructor(type_ptr, type_ptr, &pos,
                                    /*honor_virtual=*/FALSE,
                                    /*evaluated=*/TRUE);
