@@ -9347,17 +9347,19 @@ be indicated in the dynamic initialization.
     discard_curr_expr_object_lifetime();
   } else {
     /* Set the dynamic init entry to represent constructor initialization. */
-    if (fill_in_dtor) {
-      *dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_constructor,
-                                     class_type,
-                                     /*evaluated=*/TRUE,
-                                     /*in_return_by_cctor_expression=*/FALSE,
-                                     &start_position);
-    } else {
-      *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-    }  /* if */
+    *dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
     (*dip)->variant.constructor.ptr = conversion_routine;
     (*dip)->variant.constructor.args = arg_list;
+    if (fill_in_dtor) {
+      /* Fill in the destructor information.  Note that we cannot use
+         alloc_dtor_dynamic_init because it does not allow for the
+         object_class_type to differ from the class_type. */
+      (*dip)->destructor = select_destructor(class_type, object_class_type,
+                                             &start_position,
+                                             /*honor_virtual=*/FALSE,
+                                             /*evaluated=*/TRUE,
+                                             /*suppress_access_check=*/FALSE);
+    }  /* if */
     /* If there's an object lifetime around the initialization, transfer it
        to the dynamic initialization entry. */
     wrap_up_dynamic_init_full_expression(*dip);
