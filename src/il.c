@@ -414,6 +414,9 @@ Dump a direct base class entry, for debug purposes.
     }  /* if */
     fputc(')', f_debug);
   } else {
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+    if (complete_subobject) fputs(" (complete subobj)", f_debug);
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
     fprintf(f_debug, " (offset = %lu)", bcp->offset);
     for (bcp = tp->variant.class_struct_union.extra_info->base_classes;
          bcp != NULL;
