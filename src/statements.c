@@ -843,7 +843,9 @@ the diagnostic and return TRUE.
 
   db_enter(4, "check_for_branch_out_of_goto_protected_block");
   cfdp = goto_cfdp->parent;
-  if (cfdp->variant.block.is_within_goto_protected_block) {
+  /* The only case right now is branching out of a statement expression
+     in C++ mode, so do no check in C mode. */
+  if (!C_mode() && cfdp->variant.block.is_within_goto_protected_block) {
     /* The goto is inside a statement that cannot be branched into.
        That's a superset of the cases we want to look at, so look to
        see if we're inside a statement expression. */
@@ -4034,7 +4036,8 @@ is NULL to indicate a return; it's non-null for the other cases
 (break, continue, __leave).
 */
 {
-  if (gnu_mode && struct_stmt_stack[depth_stmt_stack].inside_statement_expr) {
+  /* The error check applies only in C++ mode. */
+  if (gpp_mode && struct_stmt_stack[depth_stmt_stack].inside_statement_expr) {
     a_scope_depth depth, dest_depth = 0;
     if (dest_sssep != NULL) dest_depth = dest_sssep - struct_stmt_stack;
     for (depth = depth_scope_stack; depth > dest_depth; depth--) {
