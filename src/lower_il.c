@@ -2364,11 +2364,12 @@ function).
   }  /* if */
   if (promoted_type != arg_type) {
     /* Put in the promotion cast. */
-    an_expr_node_ptr expr_cast = expr;
+    an_expr_node_ptr expr_cast = expr, expr_next = expr->next;
     an_expr_node     node_copy;
 
     cast_node(&expr_cast, promoted_type, /*is_implicit_cast=*/TRUE,
               &error_position);
+    expr_cast->next = expr_next;
     if (expr_cast != expr) {
       /* A cast was added, so swap the cast and the original node so that the
          cast node ends up at the original address. */
