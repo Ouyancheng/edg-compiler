@@ -209,6 +209,11 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_void:
       case tok_bool:
       case tok_wchar_t:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Microsoft type specifiers. */
+      case tok_int32:
+      case tok_int64:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         type_specifier_seen = TRUE;
         break;
       /* Type qualifier. */
