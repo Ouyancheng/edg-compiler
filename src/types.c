@@ -4043,6 +4043,37 @@ in that of its top-level parent class).
 }  /* ttt_set_force_external_linkage_flag */
 
 
+/* Static variable initialized to FALSE by caller and used to return status
+   information from ttt_is_ptr_or_ref_to_unknown_bound_array. */
+static a_boolean type_is_ref_to_unknown_bound_array;
+
+static a_boolean ttt_is_ptr_or_ref_to_unknown_bound_array(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+/*
+Return TRUE if type_ptr is a pointer or reference to an array of unknown
+bound.
+*/
+{
+  a_boolean   found = FALSE;
+  a_type_ptr  tp;
+
+  if (is_ptr_or_ref_type(type_ptr)) {
+    tp = skip_typerefs(type_pointed_to(type_ptr));
+    if (is_array(tp)) {
+      if (!tp->variant.array.is_variable_size_array &&
+          tp->variant.array.variant.number_of_elements == 0) {
+        *force_end_of_traversal = found = TRUE;
+        if (is_reference_type(type_ptr)) {
+          type_is_ref_to_unknown_bound_array = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* ttt_is_ptr_or_ref_to_unknown_bound_array */
+
+
 static a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                                     a_type_predicate_function_ptr  func,
                                     a_type_tree_traversal_flag_set flags)
@@ -4349,6 +4380,30 @@ set the force_external_linkage flag for each class and enum type in the tree.
     set_force_external_linkage_flag(type_ptr);
   }  /* if */
 }  /* set_used_in_exception_flag */
+
+
+a_boolean is_or_contains_ptr_or_ref_to_unknown_bound_array(a_type_ptr tp,
+                                                           a_boolean  *is_ref)
+/*
+Return TRUE if tp is or contains a pointer or reference to an array of
+unknown bound.  If a reference to such an array is found, return *is_ref
+TRUE; otherwise, return *is_ref FALSE.
+*/
+{
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_SKIP_TYPEREFS |
+                                               TTT_TEMPLATE_ARGS);
+  a_boolean                       result = FALSE;
+
+  /* Set the initial value for the static variable that may be set by
+     ttt_is_ptr_or_ref_to_unknown_bound_array. */
+  type_is_ref_to_unknown_bound_array = FALSE;
+  result = traverse_type_tree(tp, ttt_is_ptr_or_ref_to_unknown_bound_array,
+                              ttt_flags);
+  *is_ref = type_is_ref_to_unknown_bound_array;
+  return result;
+}  /* is_or_contains_ptr_or_ref_to_unknown_bound_array */
 
 
 /* Type of service function called by traverse_and_modify_type_tree to return

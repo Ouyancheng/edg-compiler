@@ -303,6 +303,9 @@ extern a_boolean type_contains_specific_template_param_constant(
 #endif /* if 0 */
 extern void set_force_external_linkage_flag(a_type_ptr  type_ptr);
 extern void set_used_in_exception_flag(a_type_ptr  type_ptr);
+extern a_boolean is_or_contains_ptr_or_ref_to_unknown_bound_array(
+                                                           a_type_ptr tp,
+                                                           a_boolean  *is_ref);
 extern a_type_ptr strip_local_typedefs(a_type_ptr  type);
 
 /*
