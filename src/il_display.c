@@ -71,6 +71,8 @@ static an_il_to_str_output_control_block
 static void disp_ptr(char             *ptr_name,
                      char             *entry_ptr,
                      an_il_entry_kind entry_kind);
+static void disp_template_arg_list(char                *name,
+                                   a_template_arg_ptr  ptr);
 
 
 static void disp_string(char    *string_ptr,
@@ -694,7 +696,7 @@ do_type_cases:
                (char *)ptr->variant.template_param.variant.template_ref.con,
                iek_constant);
       disp_template_arg_list("arg_list",
-                             (char *)ptr->variant.template_param.variant.
+                             ptr->variant.template_param.variant.
                                                         template_ref.arg_list);
       break;
     default:
