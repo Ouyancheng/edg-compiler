@@ -2014,6 +2014,7 @@ scope is that of a class definition.
   a_boolean               bad_first_param_for_copy_constructor = FALSE;
   a_source_position       pos_of_first_param_type;
   a_func_info_block       local_func_info_block;
+  a_memory_region_number  region_to_switch_back_to;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -2113,6 +2114,7 @@ scope is that of a class definition.
       /* Remember the scope number for later use if and when a body appears. */
       func_info->scope_number = scope_stack[depth_scope_stack].number;
       last_param_type = NULL;
+      switch_to_file_scope_region(&region_to_switch_back_to);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       ss_entry_start_prev = init_param_source_sequence_sublist();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2484,6 +2486,7 @@ scope is that of a class definition.
         func_info->prototype_scope_symbols =
                                         scope_stack[depth_scope_stack].symbols;
       }  /* if */
+      switch_back_to_original_region(region_to_switch_back_to);
       /* Pop the function prototype scope. */
       pop_scope();
     } else {
