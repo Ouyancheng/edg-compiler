@@ -106,6 +106,11 @@ Integer types:
 #define TARG_LONG_MAX ((long)0x7fffffffL)
 #define TARG_LONG_MIN ((long)0x80000000L)
 #define TARG_ULONG_MAX ((unsigned long)0xffffffffL)
+#if LONG_LONG_ALLOWED
+#define TARG_LONG_LONG_MAX ((long)0x7fffffffL)
+#define TARG_LONG_LONG_MIN ((long)0x80000000L)
+#define TARG_ULONG_LONG_MAX ((unsigned long)0xffffffffL)
+#endif /* LONG_LONG_ALLOWED */
 
 /* Remember that the size of a type must be a multiple of the alignment. */
 #define TARG_SIZEOF_SHORT 2
@@ -114,6 +119,10 @@ Integer types:
 #define TARG_ALIGNOF_INT 4
 #define TARG_SIZEOF_LONG 4
 #define TARG_ALIGNOF_LONG 4
+#if LONG_LONG_ALLOWED
+#define TARG_SIZEOF_LONG_LONG 8
+#define TARG_ALIGNOF_LONG_LONG 8
+#endif /* LONG_LONG_ALLOWED */
 
 /*
 If this flag is TRUE, overflows on signed integer operations do
