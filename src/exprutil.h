@@ -619,12 +619,18 @@ Macro that is TRUE if the operand is a function designator.
 /*
 Return TRUE if a variable is a constant identifier usable in
 constant expressions.  Such a variable has const integral or enum type.
-In a prototype instantiation, it could instead have template parameter type.
+In a prototype instantiation, it could instead have a template parameter type.
+The other half of this check, that the variable has an initializer,
+is done in var_constant_value.  Note that class members are considered
+constants only if they are initialized within the class, in which case
+is_member_constant is set.
 */
 #define is_const_variable(var)                                          \
-  ((is_integral_or_enum_type((var)->type) &&                            \
-    is_const_qualified_type((var)->type)) ||                            \
-   is_template_param_type((var)->type))
+  ((var)->source_corresp.is_class_member ?                              \
+      (var)->is_member_constant :                                       \
+      ((is_integral_or_enum_type((var)->type) &&                        \
+        is_const_qualified_type((var)->type)) ||                        \
+       is_template_param_type((var)->type)))
 
 
 extern a_ref_entry_ptr copy_ref_entry_list(a_ref_entry_ptr ref_list);
