@@ -859,7 +859,6 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
   a_boolean         param_is_class_type, arg_is_class_type;
   a_boolean         ref_type_qualifiers_dropped, ref_type_qualifiers_added;
   a_std_conv_descr  std_conversion;
-  a_base_class_ptr  bcp;
   a_boolean         ambiguous;
   a_boolean         arg_operand_is_constant;
   a_constant_ptr    arg_operand_constant;
@@ -947,7 +946,9 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       /* There are some type qualifiers on the argument type that do not
          appear on the parameter type, so some type qualifiers are being
          dropped. */
-      ref_type_qualifiers_dropped = TRUE;
+      /* cfront allows this kind of thing as an anachronism; a temporary
+         will be used. */
+      if (!any_cfront_mode()) ref_type_qualifiers_dropped = TRUE;
     } else {
       /* Some type qualifiers are being added.  That's okay, but it may
          be a tie-breaker later. */
@@ -1085,7 +1086,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       arg_operand_constant = &arg_operand->variant.constant;
     }  /* if */
   }  /* if */
-  if (impl_conversion_possible(arg_type,
+  param_is_class_type = is_immediate_class_type(unqual_param_type);
+  arg_is_class_type = is_immediate_class_type(unqual_arg_type);
+  if (!ref_type_qualifiers_dropped &&
+      impl_conversion_possible(arg_type,
                                arg_operand_is_constant,
                                arg_operand_constant,
                                param_type, /*suppress_extensions=*/TRUE,
@@ -1093,8 +1097,27 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     /* Match with standard conversions. */
     arg_summary->match_level = aml_std_conversion;
     arg_summary->conversion.std = std_conversion;
-    if (cfront_2_1_mode && param_is_reference &&
-        arg_summary->conversion.std.cast_base_class == NULL) {
+    if (param_is_class_type && arg_is_class_type &&
+        std_conversion.cast_base_class != NULL) {
+      /* The argument is a derived class and the parameter is a base class. */
+      if (param_is_reference) {
+        /* This case falls under the reference standard conversions
+           (ARM 4.7). */
+        /* The operand need not be forced to an rvalue. */
+        check_assertion(arg_operand != NULL);
+        arg_summary->conversion.result_is_an_lvalue= is_an_lvalue(arg_operand);
+      } else {
+        /* This case falls under the aggregate initialization rules (ARM 8.4.1)
+           or the copy constructor rules (ARM 12.8).  Note that this case
+           counts as a standard conversion even if a copy constructor is
+           called. */
+        check_assertion(arg_operand != NULL);
+        set_user_conversion_for_class_copy(arg_operand,
+                                           &arg_summary->conversion,
+                                           param_type);
+      }  /* if */
+    } else if (cfront_2_1_mode && param_is_reference &&
+               std_conversion.cast_base_class == NULL) {
       /* cfront 2.1 has a bug: when a reference parameter is initialized
          with something that requires a standard conversion that isn't
          class-related, the cost is considered to be a user-defined
@@ -1103,32 +1126,6 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
          aml_user_conversion but arg_summary->conversion does not indicate a
          user-defined conversion. */
       arg_summary->match_level = aml_user_conversion;
-    }  /* if */
-    goto have_level;
-  }  /* if */
-  param_is_class_type = is_immediate_class_type(unqual_param_type);
-  arg_is_class_type = is_immediate_class_type(unqual_arg_type);
-  if (param_is_class_type && arg_is_class_type &&
-      !ref_type_qualifiers_dropped &&
-      (bcp = find_base_class_of(arg_type, param_type)) != NULL) {
-    /* The argument is a derived class and the parameter is a base class,
-       so the conversion can be done. */
-    arg_summary->match_level = aml_std_conversion;
-    arg_summary->conversion.std.cast_base_class = bcp;
-    if (param_is_reference) {
-      /* This case falls under the reference standard conversions (ARM 4.7). */
-      /* The operand need not be forced to an rvalue. */
-      check_assertion(arg_operand != NULL);
-      arg_summary->conversion.result_is_an_lvalue = is_an_lvalue(arg_operand);
-    } else {
-      /* This case falls under the aggregate initialization rules (ARM 8.4.1)
-         or the copy constructor rules (ARM 12.8).  Note that this case
-         counts as a standard conversion even if a copy constructor is
-         called. */
-      check_assertion(arg_operand != NULL);
-      set_user_conversion_for_class_copy(arg_operand,
-                                         &arg_summary->conversion,
-                                         param_type);
     }  /* if */
     goto have_level;
   }  /* if */
@@ -6517,10 +6514,12 @@ initializer has previously been found to be acceptable, and
         /* In a constant context (e.g., a nontype template argument),
            a temporary or conversion is not allowed. */
         error_in_operand(ec_init_needing_temp_not_allowed, source_operand);
-      } else if (dropping_qualifiers) {
+      } else if (dropping_qualifiers && !any_cfront_mode()) {
         /* Type qualifiers were dropped (and otherwise the type is okay).
            Note that testing this early means that an implicit conversion
            cannot be used to drop the qualifiers. */
+        /* This test is skipped in cfront mode because cfront allows
+           the use of a temporary in this case. */
         error_in_operand(ec_qualifier_dropped_in_ref_init, source_operand);
       } else {
         /* Allocate a temporary and copy the operand into it, converting
