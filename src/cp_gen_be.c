@@ -3249,6 +3249,15 @@ to the type.  If set is FALSE, reset the flag without putting out the
 typedef.
 */
 {
+  while (type->kind == (a_type_kind)tk_typeref &&
+         typeref_is_typedef(type) &&
+         (set ? !type->typedef_definition_has_been_put_out :
+                !type->replace_by_generated_typedef)) {
+    /* Drop typedefs that aren't visible at this point.  When set is FALSE,
+       drop whatever typedefs were dropped on setting, without assuming that
+       typedef_definition_has_been_put_out has the setting it had. */
+    type = type->variant.typeref.type;
+  }  /* while */
   if (set) {
     if (!type->replace_by_generated_typedef) {
       write_tok_str("typedef ");
