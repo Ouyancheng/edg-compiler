@@ -1361,6 +1361,11 @@ type is in fact valid.
   a_boolean   both_defined = TRUE;
   a_type_ptr  corresp_type =
                       (a_type_ptr)checked_trans_unit_corresp_pointer_of(type);
+#define class_info type->variant.class_struct_union
+#define corresp_info corresp_type->variant.class_struct_union
+  a_class_type_supplement_ptr
+              sup = class_info.extra_info,
+              corresp_sup = corresp_info.extra_info;
 
   if (!match) {
     /* An error was already issued. */
@@ -1373,12 +1378,10 @@ type is in fact valid.
        one is incomplete and therefore has no inner structure to conflict
        with. */
     both_defined = FALSE;
-  } else if (corresp_type != NULL) {
+  } else {
     /* Traverse fields: (both C and C++) */
-    a_field_ptr  field = skip_generated_field(
-                                 type->variant.class_struct_union.field_list);
-    a_field_ptr  corresp_field = skip_generated_field(corresp_type->
-                                       variant.class_struct_union.field_list);
+    a_field_ptr  field = skip_generated_field(class_info.field_list);
+    a_field_ptr  corresp_field = skip_generated_field(corresp_info.field_list);
     for (; field != NULL && corresp_field != NULL;
          field = skip_generated_field(field->next),
            corresp_field = skip_generated_field(corresp_field->next)) {
@@ -1398,10 +1401,8 @@ type is in fact valid.
 
     if (!C_mode()) {
       /* Traverse entities only available in C++ mode. */
-      a_scope_ptr  scope = type->
-                           variant.class_struct_union.extra_info->assoc_scope;
-      a_scope_ptr  corresp_scope = corresp_type->
-                           variant.class_struct_union.extra_info->assoc_scope;
+      a_scope_ptr  scope = sup->assoc_scope;
+      a_scope_ptr  corresp_scope = corresp_sup->assoc_scope;
   
       /* Traverse member templates: */
       {
@@ -1536,9 +1537,8 @@ type is in fact valid.
       }
       /* Traverse member using declarations. */
       {
-        /* Like base class entries, member using declaration enties do not have
-           a correspondence pointer set.  However, they must match across
-           translation units. */
+        /* Member using declaration enties do not have a correspondence
+           pointer set.  However, they must match across translation units. */
         a_using_decl_ptr  ud = scope->using_decls;
         a_using_decl_ptr  corresp_ud = corresp_scope->using_decls;
         for (; ud != NULL && corresp_ud != NULL;
@@ -1556,14 +1556,52 @@ type is in fact valid.
           goto done;
         }  /* if */
       }
+      /* Traverse friend function declarations. */
+      {
+        /* Similar to member using declarations. */
+        a_routine_list_entry_ptr  rle = sup->friend_routines;
+        a_routine_list_entry_ptr  corresp_rle = corresp_sup->friend_routines;
+        for (; rle != NULL && corresp_rle != NULL;
+             rle = rle->next, corresp_rle = corresp_rle->next) {
+          if (canonical_il_entry_of(rle->routine) !=
+                                canonical_il_entry_of(corresp_rle->routine)) {
+            match = FALSE;
+            report_error = TRUE;
+            goto done;
+          }  /* if */
+        }  /* for */
+        if ((rle == NULL && corresp_rle != NULL) ||
+            (rle != NULL && corresp_rle == NULL)) {
+          match = FALSE;
+          report_error = TRUE;
+          goto done;
+        }  /* if */
+      }
+      /* Traverse friend class declarations. */
+      {
+        /* Similar to member using declarations. */
+        a_class_list_entry_ptr  cle = sup->friend_classes;
+        a_class_list_entry_ptr  corresp_cle = corresp_sup->friend_classes;
+        for (; cle != NULL && corresp_cle != NULL;
+             cle = cle->next, corresp_cle = corresp_cle->next) {
+          if (canonical_il_entry_of(cle->class_type) !=
+                             canonical_il_entry_of(corresp_cle->class_type)) {
+            match = FALSE;
+            report_error = TRUE;
+            goto done;
+          }  /* if */
+        }  /* for */
+        if ((cle == NULL && corresp_cle != NULL) ||
+            (cle != NULL && corresp_cle == NULL)) {
+          match = FALSE;
+          report_error = TRUE;
+          goto done;
+        }  /* if */
+      }
     }  /* if */
   }  /* if */
   if (match) {
     /* Check various properties of the type. */
-#define class_info type->variant.class_struct_union
-#define corresp_info corresp_type->variant.class_struct_union
-    a_class_type_supplement_ptr
-        sup = class_info.extra_info, corresp_sup = corresp_info.extra_info;
     if ((both_defined &&
          (class_info.any_const_member != corresp_info.any_const_member ||
           class_info.any_mutable_member != corresp_info.any_mutable_member ||
