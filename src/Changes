@@ -1,5 +1,16 @@
 Version 2.46
 
+5/17/01  Abort on __based specifier with local variable
+
+The front end used to produce invalid IL when processing __based pointer types
+with local base variables.  This resulted in internal errors in some
+configurations.  Such pointer types are now diagnosed as errors.
+
+  int main() {
+    int *bp;
+    int __based(bp) *p;  // Used to generate invalid IL.
+  }                      // Now diagnosed as an error.
+
 5/15/01  Microsoft compatibility: definitions of members of in-class
          specializations not emitted
 

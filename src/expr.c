@@ -14658,6 +14658,14 @@ this routine is called only when microsoft_mode is TRUE.
           pos_error(ec_based_var_must_be_ptr, &operand.position);
         }  /* if */
         variable = NULL;
+      } else if (variable->storage_class != (a_storage_class)sc_extern &&
+                 variable->storage_class != (a_storage_class)sc_static &&
+                 variable->storage_class != (a_storage_class)sc_unspecified) {
+        /* Local variables cannot be used in the __based specifier. */
+        if (!is_error_type(variable->type)) {
+          pos_error(ec_based_var_must_have_linkage, &operand.position);
+        }  /* if */
+        variable = NULL;
       }  /* if */
     }  /* if */
   }  /* if */
