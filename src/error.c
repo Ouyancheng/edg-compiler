@@ -1807,6 +1807,9 @@ error code.
     case ec_destructor_type_mismatch:
       m = "type used as destructor name does not match type %t";
       break;
+    case ec_called_member_function_redeclared_inline:
+      m = "%n may not be redeclared \"inline\" after being called";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
