@@ -1,5 +1,26 @@
 Version 2.42
 
+7/2/99  Microsoft compatibility: constructor chosen over conversion function
+        to do conversion
+
+In Microsoft bugs mode, a constructor will be chosen over a conversion
+function to do a conversion.
+
+  struct _variant_t;
+  struct _bstr_t {
+    _bstr_t(const _bstr_t& s);
+    _bstr_t(const _variant_t& var);
+  };
+  struct _variant_t {
+    _variant_t();
+    operator _bstr_t() const;  // Not chosen
+  };
+  int main() {
+    _variant_t v;
+    _bstr_t b = (_bstr_t) v;  // Not ambiguous in Microsoft bugs mode.
+    return 0;
+  }
+
 7/2/99  Extra slash in temporary file name on DOS/Windows
 
 On Microsoft operating systems, a temporary file name would contain
