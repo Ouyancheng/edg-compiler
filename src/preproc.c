@@ -1485,9 +1485,12 @@ again in the same compilation unit, the include should be skipped.
 Record this information in the input stack entry.
 */
 {
-  set_ifg_state(IFG_STATE_ONCE);
-  curr_ise->include_history->pragma_once = TRUE;
-  /* Bypass the "once" token. */
+  if (curr_ise->is_include_file) {
+    /* No processing is needed for a #once pragma in a primary file. */
+    set_ifg_state(IFG_STATE_ONCE);
+    curr_ise->include_history->pragma_once = TRUE;
+    /* Bypass the "once" token. */
+  }  /* if */
   (void)get_token();
 }  /* once_pragma */
 
