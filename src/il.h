@@ -508,6 +508,9 @@ EXTERN an_object_lifetime_ptr
 			/* The top of the currently active object lifetime
 			   stack. */
 
+extern void add_to_destructions_list(a_dynamic_init_ptr      dip,
+                                     an_object_lifetime_ptr  olp);
+
 extern void record_end_of_lifetime_destruction(
                                         a_dynamic_init_ptr  dip,
                                         a_boolean           static_lifetime,
@@ -522,7 +525,6 @@ extern void unbind_object_lifetime(an_object_lifetime_ptr  olp);
 extern void push_object_lifetime(an_il_entry_kind         entity_kind,
                                  char                     *entity_ptr,
                                  an_object_lifetime_kind  kind);
-
 
 extern a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp);
 

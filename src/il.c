@@ -7232,6 +7232,25 @@ to it.
 }  /* alloc_object_lifetime */
 
 
+void add_to_destructions_list(a_dynamic_init_ptr      dip,
+                              an_object_lifetime_ptr  olp)
+/*
+Add the indicated dynamic init entry to the destructions list of the
+indicated object lifetime entry.
+*/
+{
+  check_assertion(in_file_scope(olp) == in_file_scope(dip));
+  check_assertion(dip->lifetime == NULL);
+  /* Add the dynamic init entry to the front of the destructions list for
+     the lifetime.  (It's on the front because the last entry constructed
+     will be the first entry destructed.) */
+  dip->next_in_destruction_list = olp->destructions;
+  olp->destructions = dip;
+  /* Update the lifetime pointer in the dynamic init entry. */
+  dip->lifetime = olp;
+}  /* add_to_destructions_list */
+
+
 void record_end_of_lifetime_destruction(a_dynamic_init_ptr  dip,
                                         a_boolean           static_lifetime,
                                         a_boolean           scope_lifetime)
@@ -7280,18 +7299,13 @@ top of the object lifetime stack) is used.
          stack. */
       olp = curr_object_lifetime;
     }  /* if */
-    check_assertion(in_file_scope(olp) == in_file_scope(dip));
-    /* Update the lifetime pointer in the dynamic init entry. */
-    dip->lifetime = olp;
-    /* Add the dynamic init entry to the front of the destructions list for
-       the lifetime.  (It's on the front because the last entry constructed
-       will be the first entry destructed.) */
-    dip->next_in_destruction_list = olp->destructions;
-    olp->destructions = dip;
+    /* Now that we've determined the appropriate object lifetime, add the
+       dynamic init entry to its destructions list. */
+    add_to_destructions_list(dip, olp);
 #if DEBUG
-    if (debug_level >= 4) {
-      db_pending_destructions(dip, (an_object_lifetime_ptr)NULL);
-    }  /* if */
+  if (debug_level >= 4) {
+    db_pending_destructions(dip, (an_object_lifetime_ptr)NULL);
+  }  /* if */
 #endif /* DEBUG */
   }  /* if */
   db_exit();
