@@ -1919,10 +1919,18 @@ final semicolon if output_final_semi is TRUE.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
         {
           /* Put out a bit field declaration. */
-          /* Generate the bit field type to match the signedness. */
           /* Note that "const" is dropped; that's important so that
              initialization code rewritten as executable code by IL lowering
              can assign to this member and the overall struct. */
+#if ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
+          /* The bit field can be put out with its actual base type. */
+          dump_general_declaration_using_type(field->type,
+                                              &field->source_corresp,
+                                              NO_VARIABLE, NO_TEMP, TQ_NONE,
+                                              /*suppress_const=*/TRUE);
+#else /* !ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
+          /* Use only standard "int" or "unsigned int" base types. */
+          /* Generate the bit field type to match the signedness. */
           write_tok_str(field->bit_field_is_signed ?
 #if C_GEN_BE_GENERATES_ANSI_C
                                        "signed int" : "unsigned int"
@@ -1935,6 +1943,7 @@ final semicolon if output_final_semi is TRUE.
             write_space();
             dump_field_name(field);
           }  /* if */
+#endif /* ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
           write_tok_str(": ");
           write_unsigned_num((unsigned long)field->bit_size);
           write_tok_ch(';');

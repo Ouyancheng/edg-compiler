@@ -1230,6 +1230,15 @@ the generated C for that case.
 #endif /* !define(ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C) */
 
 /*
+If the C-generating back end is being used, are bit fields in the
+generated C allowed to have base types other than the standard
+"int" and "unsigned int"?
+*/
+#ifndef ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C
+#define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C TRUE
+#endif /* ifndef ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C */
+
+/*
 If the C-generating back end is being used, and the target environment
 has .init sections (e.g., SVR4), this flag is TRUE to enable generation of
 asm directives to get startup routines called (thus eliminating the need
