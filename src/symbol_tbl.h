@@ -857,9 +857,10 @@ extern void set_symbol_kind(a_symbol_ptr  sym_ptr,
 
 extern void remove_symbol(a_symbol_ptr sym_ptr);
 
-extern a_symbol_ptr find_external_symbol(a_symbol_locator *location,
-                                         a_boolean        is_static,
-                                         a_symbol_locator *ext_location);
+extern a_symbol_ptr find_external_symbol(a_symbol_locator     *location,
+                                         a_name_linkage_kind  linkage,
+                                         a_type_ptr           type,
+                                         a_symbol_locator     *ext_location);
 
 extern void tildize_locator(a_symbol_locator *locator);
 

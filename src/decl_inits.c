@@ -668,8 +668,7 @@ vp had an incomplete array type that has been completed by an initializer.
          char a[] = "abc";  <-- Error; int [3] is incompatible with int [5].
     */
     make_locator_for_symbol(symbol_ptr, &locator);
-    ext_sym = find_external_symbol(&locator,
-                                   /*is_static=*/(linkage==idl_internal),
+    ext_sym = find_external_symbol(&locator, linkage, /*rout_type=*/NULL,
                                    &ext_locator);
 #if CHECKING
     if (ext_sym == NULL) {
