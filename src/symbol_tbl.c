@@ -81,6 +81,7 @@ static unsigned long
 		num_dependent_type_fixups_allocated,
 		num_template_instances_allocated,
 		num_symbol_list_entries_allocated,
+		num_namespace_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
 		num_projection_descrs_allocated,
@@ -119,6 +120,12 @@ static a_scope_depth
 			   Heads a list linked by
 			   next_scope_that_affects_access_control. */
 
+static a_namespace_list_entry_ptr
+		global_namespace_list_entry;
+			/* Pointer to a namespace list entry for the
+			   global scope.  This contains a NULL namespace
+			   pointer. */
+
 /*
 Array used to hold an identifier for external name or destructor name
 generation.
@@ -152,6 +159,11 @@ static an_access_error_descr_ptr
 static an_active_using_directive_ptr
 		avail_active_using_directives;
 			/* List of active using directive entries freed and
+			   available for reuse. */
+
+static a_symbol_list_entry_ptr
+		avail_symbol_list_entries;
+			/* List of symbol list entries freed and
 			   available for reuse. */
 
 
@@ -1244,22 +1256,45 @@ Allocate a new conversion header and return a pointer to it.
 
 a_symbol_list_entry_ptr alloc_symbol_list_entry(void)
 /*
-Allocate a new conversion list entry and return a pointer to it.
+Allocate a new symbol list entry and return a pointer to it.
 */
 {
   register a_symbol_list_entry_ptr ptr;
 
   db_enter(5, "alloc_symbol_list_entry");
-  ptr = (a_symbol_list_entry_ptr)alloc_fe(sizeof(a_symbol_list_entry));
+  if (avail_symbol_list_entries != NULL) {
+    /* Reuse an existing entry. */
+    ptr = avail_symbol_list_entries;
+    avail_symbol_list_entries = avail_symbol_list_entries->next;
+  } else {
+    /* Allocate a new entry. */
+    ptr = (a_symbol_list_entry_ptr)alloc_fe(sizeof(a_symbol_list_entry));
 #if DEBUG
-  num_symbol_list_entries_allocated++;
+   num_symbol_list_entries_allocated++;
 #endif /* DEBUG */
+  }  /* if */
   ptr->next    = NULL;
   ptr->symbol  = NULL;
   
   db_exit();
   return ptr;
 }  /* alloc_symbol_list_entry */
+
+
+void free_list_of_symbol_list_entries(a_symbol_list_entry_ptr slep)
+/*
+Add a list of symbol list entries to the available list.
+*/
+{
+  a_symbol_list_entry_ptr	slep_tail;
+  check_assertion(slep != NULL);
+  /* Find the last entry on the list. */
+  for (slep_tail = slep; slep_tail->next != NULL; slep_tail = slep_tail->next);
+  /* Add the current available list to the end of the list passed by the
+     caller. */
+  slep_tail->next = avail_symbol_list_entries;
+  avail_symbol_list_entries = slep_tail;
+}  /* free_list_of_symbol_list_entries */
 
 
 a_symbol_ptr find_symbol(char             *identifier,
@@ -1425,6 +1460,23 @@ Initialize the fields in a scope-pointers-block substructure.
   spbp->unnamed_namespace_sym        = NULL;
   spbp->add_symbols_to_inactive_list = FALSE;
 }  /* clear_scope_pointers_block */
+
+
+a_namespace_list_entry_ptr alloc_namespace_list_entry(void)
+/*
+Allocate a namespace list entry and return a pointer to it.
+*/
+{
+  a_namespace_list_entry_ptr ptr;
+
+  ptr = (a_namespace_list_entry_ptr)alloc_fe(sizeof(a_namespace_list_entry));
+#if DEBUG
+  num_namespace_list_entries_allocated++;
+#endif /* DEBUG */
+  ptr->next = NULL;
+  ptr->ptr = NULL;
+  return ptr;
+}  /* alloc_namespace_list_entry */
 
 
 a_boolean namespace_is_enclosed_by_scope(a_symbol_ptr            sym,
@@ -1707,6 +1759,7 @@ return a pointer to it.
                    alloc_fe(sizeof(a_namespace_symbol_supplement));
   nssp->scope_depth_at_which_using_directive_applies = NO_SCOPE_DEPTH;
   nssp->depth_innermost_active_using_directive = NO_SCOPE_DEPTH;
+  nssp->namespace_list_entry = NULL;
 #if DEBUG
   num_namespace_symbol_supplements_allocated++;
 #endif /* DEBUG */
@@ -1831,6 +1884,7 @@ state.
         cssp->corresp_prototype_sym = NULL;
         cssp->prototype_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
         cssp->dependent_type_fixup_list = NULL;
+        cssp->operator_lookup_namespaces = NULL;
         cssp->constructor_required = FALSE;
         cssp->destructor_required = FALSE;
         cssp->has_default_constructor = FALSE;
@@ -8095,6 +8149,14 @@ be found.
 }  /* opname_function_symbol */
 
 
+a_symbol_list_entry_ptr nonmember_operator_function_lookup(
+                                 a_type_ptr	type_1,
+                                 a_type_ptr     type_2)
+/*
+*/
+{
+}  /* nonmember_operator_function_lookup */
+
 
 static void update_template_param_symbols(a_template_param_ptr  tpp,
                                           a_template_arg_ptr    arg_list)
@@ -10655,6 +10717,180 @@ next_list_entry:;
 }  /* check_dependent_type_fixup_list */
 
 
+static
+a_namespace_list_entry_ptr list_entry_for_namespace(a_namespace_ptr nsp,
+                                                    a_boolean       shared)
+/*
+Return a pointer to a namespace list entry that points to the namespace
+nsp.  The namespace symbol supplement contains a pointer to a shared
+namespace list entry.  This routine allocates and initializes that entry
+if it has not yet been generated.  shared is TRUE if the caller can
+use an entry that will be shared between multiple lists (i.e., it is
+known to be the last entry on the list).  If a shared entry is
+acceptable, the entry pointed to by the namespace symbol supplement
+is returned.  If a nonshared entry is required, a new entry is
+allocated and returned.
+
+Note that nsp can be NULL, in which case a the variable
+global_namespace_list_entry is used to save a pointer to the shared
+list entry (because the global namespace has no namespace symbol
+supplement).
+*/
+{
+  a_symbol_ptr				ns_sym;
+  a_namespace_list_entry_ptr		nlep;
+  a_namespace_symbol_supplement_ptr	nssp;
+
+  if (nsp == NULL) {
+    /* When nsp is NULL, the namespace is the global namespace. */
+    nlep = global_namespace_list_entry;
+    /* If the sharable entry has not yet been allocated, allocate one now. */
+    if (nlep == NULL) {
+      nlep = alloc_namespace_list_entry();
+      nlep->ptr = nsp;
+      global_namespace_list_entry = nlep;
+    }  /* if */
+  } else {
+    /* A "real" namespace. */
+    nsp = skip_namespace_aliases(nsp);
+    ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
+    nssp = ns_sym->variant.namespace_info.extra_info;
+    /* If the sharable entry has not yet been allocated, allocate one now. */
+    if (nssp->namespace_list_entry == NULL) {
+      nlep = alloc_namespace_list_entry();
+      nlep->ptr = nsp;
+      nssp->namespace_list_entry = nlep;
+    }  /* if */
+    nlep = nssp->namespace_list_entry;
+  }  /* if */
+  /* If the caller wants a shared entry, return the shared pointer.
+     Otherwise allocate a new entry. */
+  if (shared) {
+    /* Use the value of nlep set above that points to the shared entry. */
+  } else {
+    /* Allocate a new entry and point it to the namespace. */
+    nlep = alloc_namespace_list_entry();
+    nlep->ptr = nsp;
+  }  /* if */
+  return nlep;
+}  /* list_entry_for_namespace */
+
+
+static
+void add_to_operator_lookup_namespaces(a_class_symbol_supplement_ptr cssp,
+                                       a_namespace_ptr		 nsp_to_add)
+/*
+See if the namespace pointed to by nsp_to_add is already on the
+operator_lookup_namespaces list of cssp.  If it is not on
+the list, add it to the front of the list.
+*/
+{
+  a_namespace_list_entry_ptr	nlep;
+  for (nlep = cssp->operator_lookup_namespaces;
+       nlep != NULL; nlep = nlep->next) {
+    /* If the namespaces match, exit the loop. */
+    if (nlep->ptr == nsp_to_add) break;
+  }  /* for */
+  if (nlep == NULL) {
+    nlep = list_entry_for_namespace(nsp_to_add, /*shared=*/FALSE);
+    nlep->next = cssp->operator_lookup_namespaces;
+    cssp->operator_lookup_namespaces = nlep;
+  }  /* if */
+}  /* add_to_operator_lookup_namespaces */
+           
+
+
+void determine_operator_lookup_namespaces(a_type_ptr	class_type)
+/*
+Build a list of the namespace of which the class or one of its base classes
+is a member.  This list is used to determine which operator functions
+should be considered for operands of a given class type.  The list that
+is constructed may be partially or completely shared with a base class
+of the class.
+*/
+{
+  a_class_type_supplement_ptr	ctsp;
+  a_class_symbol_supplement_ptr	cssp;
+  a_namespace_ptr		class_nsp;
+  a_base_class_ptr		bcp;
+
+  check_assertion_str2(class_type->kind == (a_type_kind)tk_class ||
+                       class_type->kind == (a_type_kind)tk_struct ||
+                       class_type->kind == (a_type_kind)tk_union,
+                       "deterine_operator_lookup_namespace:",
+                       "type is not class type");
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  cssp = symbol_supplement_for_class(class_type);
+  check_assertion(cssp != NULL);
+  /* Determine the namespace of this class. */
+  if (class_type->source_corresp.is_class_member) {
+    /* If this is a class member, skip out to the outermost class type. */
+    a_type_ptr	tp = class_type->source_corresp.parent.class_type;
+    while (tp->source_corresp.is_class_member) {
+      tp = tp->source_corresp.parent.class_type;
+    }  /* while */
+    /* Get the namespace pointer from the outermost class. */
+    class_nsp = tp->source_corresp.parent.namespace_ptr;
+  } else {
+    /* This is not a nested class, get the immediate parent namespace. */
+    class_nsp = class_type->source_corresp.parent.namespace_ptr;
+  }  /* if */
+  if (ctsp->base_classes == NULL) {
+    /* No base classes.  The only namespace is the namespace of this class. */
+    a_namespace_list_entry_ptr	nlep;
+    nlep = list_entry_for_namespace(class_nsp, /*shared=*/TRUE);
+    cssp->operator_lookup_namespaces = nlep;
+  } else {
+    /* This class has one or more direct base.  Share the list with the
+       first base class, then add the namespace for this class, and the
+       namespaces from any other direct bases to the list. */
+    a_boolean				first_base_found = FALSE;
+    /* Find any other direct bases in the base class list. */
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      if (bcp->direct) {
+        a_type_ptr			base_type = bcp->type;
+        a_class_symbol_supplement_ptr	base_cssp;
+        base_cssp = symbol_supplement_for_class(base_type);
+        if (!first_base_found) {
+          /* This is the direct base class with which we are sharing a list.
+             Copy the namespace list pointer to the current class and add
+             the namespace for this class to the front of the list. */
+          cssp->operator_lookup_namespaces =
+                                         base_cssp->operator_lookup_namespaces;
+          add_to_operator_lookup_namespaces(cssp, class_nsp);
+          first_base_found = TRUE;
+        } else {
+          /* Add the namespace from this base class to the front of the
+             list for this class. */
+          a_namespace_list_entry_ptr	nlep;
+          for (nlep = base_cssp->operator_lookup_namespaces;
+               nlep != NULL; nlep = nlep->next) {
+            add_to_operator_lookup_namespaces(cssp, nlep->ptr);
+          }  /* for */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 5 || db_flag_is_set("operator_namespaces")) {
+    a_namespace_list_entry_ptr	nlep = cssp->operator_lookup_namespaces;
+    fprintf(f_debug, "operator namespaces for class: ");
+    db_type_name(class_type);
+    fprintf(f_debug, "\n");
+    for (; nlep != NULL; nlep = nlep->next) {
+      fprintf(f_debug, "  ");
+      if (nlep->ptr == NULL) {
+        fprintf(f_debug, "<global>");
+      } else {
+        db_name(&nlep->ptr->source_corresp);
+      }  /* if */
+      fprintf(f_debug, "\n");
+    }  /* for */
+  }  /* if */
+#endif /* DEBUG */
+}  /* determine_operator_lookup_namespaces */
+
+
 a_template_param_ptr alloc_template_param
                                  (a_symbol_ptr sym,
 			          a_boolean    def_arg_involves_template_param)
@@ -10777,8 +11013,10 @@ for space tracking purposes.
                      a_dependent_type_fixup);
   db_space_used("template instance", num_template_instances_allocated,
                 a_template_instance);
-  db_space_used("symbol list entry", num_symbol_list_entries_allocated,
-                a_symbol_list_entry);
+  db_space_used_lost("symbol list entry", avail_symbol_list_entries,
+                     num_symbol_list_entries_allocated, a_symbol_list_entry);
+  db_space_used("namespace list entry", num_namespace_list_entries_allocated,
+               a_namespace_list_entry);
   db_space_used("projection symbol descr", num_projection_descrs_allocated,
                 a_projection_descr);
   db_space_used_lost("access error descr", avail_access_error_descrs,
@@ -10937,12 +11175,14 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(anonymous_parent_object_symbol_header),
       pch_saved_var_array_elem(avail_access_error_descrs),
       pch_saved_var_array_elem(avail_active_using_directives),
+      pch_saved_var_array_elem(avail_symbol_list_entries),
       pch_saved_var_array_elem(avail_dependent_type_fixups),
       pch_saved_var_array_elem(avail_param_ids),
       pch_saved_var_array_elem(error_symbol_header),
       pch_saved_var_array_elem(unnamed_tag_symbol_header),
       pch_saved_var_array_elem(unnamed_namespace_symbol_header),
       pch_saved_var_array_elem(unnamed_field_symbol_header),
+      pch_saved_var_array_elem(global_namespace_list_entry),
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
       pch_saved_var_array_elem(last_ctor_or_dtor_sym),
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
@@ -10958,6 +11198,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(num_extern_symbol_descrs_allocated),
       pch_saved_var_array_elem(num_extern_type_fixups_allocated),
       pch_saved_var_array_elem(num_fast_id_lookups),
+      pch_saved_var_array_elem(num_namespace_list_entries_allocated),
       pch_saved_var_array_elem(num_param_ids_allocated),
       pch_saved_var_array_elem(num_projection_descrs_allocated),
       pch_saved_var_array_elem(num_searches_for_symbols),
@@ -11017,6 +11258,7 @@ of the front end.
   avail_dependent_type_fixups = NULL;
   avail_access_error_descrs = NULL;
   avail_active_using_directives = NULL;
+  avail_symbol_list_entries = NULL;
   error_symbol_header = NULL;
   unnamed_tag_symbol_header = NULL;
   unnamed_namespace_symbol_header = NULL;
@@ -11024,6 +11266,7 @@ of the front end.
   unnamed_field_symbol_header = NULL;
   num_classes_on_scope_stack = 0;
   depth_of_innermost_scope_that_affects_access_control = NO_SCOPE_DEPTH;
+  global_namespace_list_entry = NULL;
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
   /* Global variable declared in symbol_ref.c. */
@@ -11044,6 +11287,7 @@ of the front end.
   num_param_ids_allocated                      = 0;
   num_dependent_type_fixups_allocated          = 0;
   num_template_instances_allocated             = 0;
+  num_namespace_list_entries_allocated         = 0;
   num_symbol_list_entries_allocated            = 0;
   num_extern_symbol_descrs_allocated           = 0;
   num_extern_type_fixups_allocated             = 0;
