@@ -9054,6 +9054,15 @@ again on a member declaration.
     a_class_type_supplement_ptr
                ctsp = class_type->variant.class_struct_union.extra_info;
     *decl_modifiers &= ~ctsp->decl_modifiers;
+    /* As a special case, suppress "__declspec(dllexport)" if the class is
+       marked as dllimport.  This case arises when a member of a dllimport
+       class is defined, which forces it to be dllexport (even though that
+       is a conflict with the class, it's only a warning).  The Microsoft
+       compiler treats conflicting explicit specifications as an error,
+       however, so the member specification must be suppressed. */
+    if (ctsp->decl_modifiers & DM_DLLIMPORT) {
+      *decl_modifiers &= ~DM_DLLEXPORT;
+    }  /* if */
   }  /* if */
 }  /* suppress_microsoft_decl_modifiers_put_out_on_class */
 
