@@ -659,6 +659,7 @@ to allocate the space in the intermediate language memory region.
 }  /* combine_dir_and_file_name */
 
 
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
 char *replace_file_name_suffix(char  *new_suffix,
                                char  *file_name,
                                char  *buffer,
@@ -764,6 +765,7 @@ place in file_name where the suffix begins.
   return new_file_name;
 #undef SUFFIX_DELIMITER
 }  /* replace_file_name_suffix */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
 FILE *open_source_file(char          *file_name,
