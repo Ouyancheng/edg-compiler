@@ -7254,12 +7254,12 @@ locator, and return TRUE.  If it doesn't, return FALSE.
 
 a_type_ptr type_keyword(void)
 /*
-The current token is a type keyword (e.g., int, long); return the type
-indicated by the keyword.  This is used in scanning a simple-type-name
-for C++ functional-notation casts.  The current token is not advanced.
-Note that this routine does not deal with identifiers that are defined
-as types, only keywords; it also does not accept multi-token types,
-e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
+If the current token is a type keyword (e.g., int, long); return the type
+indicated by the keyword, otherwise, return NULL.  This is used in scanning
+a simple-type-name for C++ functional-notation casts.  The current token is
+not advanced.  Note that this routine does not deal with identifiers that
+are defined as types, only keywords; it also does not accept multi-token
+types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
 */
 {
   a_type_ptr type;
@@ -7290,10 +7290,9 @@ e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
     case tok_void:
       type = void_type();
       break;
-#if CHECKING
     default:
-      internal_error("type_keyword: unexpected token");
-#endif /* CHECKING */
+      type = NULL;
+      break;
   }  /* switch */
   return type;
 }  /* type_keyword */
