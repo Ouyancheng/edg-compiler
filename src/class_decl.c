@@ -10649,6 +10649,8 @@ nested classes when their definition appears outside of the class template.
           syntax_error(ec_missing_class_definition);
         }  /* if */
         err = TRUE;
+        /* Clear the base-classes field to avoid problems down the line. */
+        class_type->variant.class_struct_union.extra_info->base_classes = NULL;
         if (delayed_nested_class_def && !is_template_instantiation) {
           /* Restore the scope stack to its original state. For template
              instantiations, this is done when the template instantiation

@@ -1,5 +1,19 @@
 Version 2.40
 
+10/7/98   Error recovery abort
+
+An "error recovery" abort occurred in the following code fragment, where
+class D was recorded as having a base class even though it was incomplete.
+Now fixed.
+
+  class B {
+    void operator delete(void *);
+  };
+  class D : public B;              // Error
+  void f(D *p) {
+    delete p;                      // Abort here has been fixed
+  }
+
 10/5/98   Recursion loop in protected member access checking
 
 The fix for protected member access checking done recently (see Changes
