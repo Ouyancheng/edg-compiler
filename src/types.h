@@ -31,19 +31,6 @@ types.h -- Declarations related to types.c (having to do with types).
 #define skip_typerefs(tp)                                             \
   ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : f_skip_typerefs(tp))
 
-#if !STANDALONE_UTILITY_PROGRAM
-/* When Microsoft extensions are enabled, we need a special routine that
-   can skip typerefs over a possibly null referenced type.  When these
-   extensions are not enabled, we can just use the normal skip_typerefs. */
-#if MICROSOFT_KEYWORDS_ALLOWED
-extern
-a_type_ptr skip_typerefs_allow_null_referenced_type(a_type_ptr type_ptr);
-#else /* !MICROSOFT_KEYWORDS_ALLOWED */
-#define skip_typerefs_allow_null_referenced_type(tp) skip_typerefs(tp)
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-
-
 /* Fast macro version of is_error_type. */
 #define m_is_error_type(tp)                                           \
   (skip_typerefs(tp)->kind == (a_type_kind)tk_error)
@@ -273,12 +260,6 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_IGNORE_TYPE_QUALIFIERS 0x2
 			/* Ignore type qualifiers at the first level.  In C++,
 			   this includes qualifiers on array element types. */
-
-#define TCF_ALLOW_DEFAULT_CALLING_CONVENTION 0x04
-			/* If a type does not have a calling convention
-			   qualifier, assume that it uses the default
-			   calling convention. */
-
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 extern a_boolean param_types_are_compatible(a_type_ptr              rout_type1,
@@ -292,9 +273,7 @@ extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
    when an error type should be treated as compatible with any type; use
    types_are_strictly_compatible when an error type is incompatible with any
    type, including an error type; use types_are_compatible_ignoring_qualifiers
-   to check compatibility while ignoring first-level qualifiers; use
-   routine_types_are_compatible for types of routine where top-level
-   qualifiers might be ignored. */
+   to check compatibility while ignoring first-level qualifiers. */
 #define types_are_compatible(t1, t2) \
 	 ((t1) == (t2) ||            \
           f_types_are_compatible((t1), (t2),                          \
@@ -307,10 +286,6 @@ extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
    f_types_are_compatible((t1), (t2),                                 \
                           TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |   \
                           TCF_IGNORE_TYPE_QUALIFIERS))
-#define routine_types_are_compatible(t1, t2) \
-	 ((t1) == (t2) ||            \
-          f_types_are_compatible((t1), (t2),                          \
-                                 TCF_ALLOW_DEFAULT_CALLING_CONVENTION))
 
 
 extern a_boolean same_type_with_added_qualifiers(a_type_ptr dest_type,

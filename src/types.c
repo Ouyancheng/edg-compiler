@@ -117,66 +117,16 @@ that ordinarily this routine should not be called directly; use the macro
 of the macro to avoid multiple evaluations of the argument.
 */
 {
-#if MICROSOFT_KEYWORDS_ALLOWED && CHECKING
-  a_boolean	microsoft_qualifier_used = FALSE;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED && CHECKING */
-
   while (type_ptr->kind == (a_type_kind)tk_typeref) {
-    a_type_ptr next = type_ptr->variant.typeref.type;
-
-#if MICROSOFT_KEYWORDS_ALLOWED
+    type_ptr = type_ptr->variant.typeref.type;
 #if CHECKING
-    /* See whether this typeref contains any Microsoft qualifiers. */
-    microsoft_qualifier_used |= (type_ptr->variant.typeref.qualifiers &
-                                 TQ_ALL_MICROSOFT_QUALIFIERS) != 0;
-#endif /* CHECKING */
-    if (next == NULL) break;
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-
-    type_ptr = next;
-  }  /* while */
-
-  check_assertion_str(type_ptr != NULL,
-                       "f_skip_typerefs: NULL referenced type");
-
-#if MICROSOFT_KEYWORDS_ALLOWED && CHECKING
-  /* When Microsoft keywords are allowed, it is possible for there to
-     be no underlying type.  If the underlying type is missing, make sure
-     that a Microsoft qualifier was present. */
-  if (type_ptr != NULL && type_ptr->kind == (a_type_kind)tk_typeref) {
-    if (type_ptr->variant.typeref.type != NULL || !microsoft_qualifier_used) {
-      unexpected_condition_str("f_skip_typerefs: no underlying type");
+    if (type_ptr == NULL) {
+      internal_error("f_skip_typerefs: NULL referenced type");
     }  /* if */
-  }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED && CHECKING */
-
+#endif /* CHECKING */
+  }  /* while */
   return type_ptr;
 }  /* f_skip_typerefs */
-
-#if !STANDALONE_UTILITY_PROGRAM
-#if MICROSOFT_KEYWORDS_ALLOWED
-a_type_ptr skip_typerefs_allow_null_referenced_type(a_type_ptr type_ptr)
-/*
-Similar to skip_typerefs, except the referenced type may be NULL.  This 
-is used while scanning a declarator when some qualifiers may have been
-scanned, but the underlying type is not yet known.  This condition only
-occurs when Microsoft keywords are allowed.
-
-Normally this routine returns the referenced type under the typerefs.
-When the referenced type is NULL, a NULL pointer is returned.
-*/
-{
-  if (microsoft_mode) {
-    while (type_ptr != NULL && type_ptr->kind == (a_type_kind)tk_typeref) {
-      type_ptr = type_ptr->variant.typeref.type;
-    }  /* while */
-  } else {
-    type_ptr = skip_typerefs(type_ptr);
-  }  /* if */
-  return type_ptr;
-}  /* skip_typerefs_allow_null_referenced_type */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
 a_type_ptr skip_typedefs(a_type_ptr type_ptr)
@@ -2070,7 +2020,6 @@ for exact pointer equality.
   a_boolean                     ignore_type_qualifiers = FALSE;
   a_boolean                     error_matches_anything = 
                         (flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) != 0;
-  a_boolean			allow_default_calling_convention = FALSE;
 
   db_enter(5, "f_types_are_compatible");
 
@@ -2081,10 +2030,6 @@ for exact pointer equality.
     ignore_type_qualifiers = TRUE;
     flags &= ~TCF_IGNORE_TYPE_QUALIFIERS;
   }  /* if */
-  if (flags & TCF_ALLOW_DEFAULT_CALLING_CONVENTION) {
-    allow_default_calling_convention = TRUE;
-    flags &= ~TCF_ALLOW_DEFAULT_CALLING_CONVENTION;
-  }  /* if */
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls. */
   if (type_1 == type_2) {
@@ -2092,21 +2037,9 @@ for exact pointer equality.
   } else {
     /* Test for a qualifier mismatch. */
     a_boolean qualifier_mismatch = FALSE;
-    if (!ignore_type_qualifiers) {
-      a_type_qualifier_set	qualifiers_1 = get_type_qualifiers(type_1);
-      a_type_qualifier_set	qualifiers_2 = get_type_qualifiers(type_2);
-#if MICROSOFT_KEYWORDS_ALLOWED
-      /* Certain qualifiers that have no calling convention are considered
-         to have the default calling convention.  Add this before checking
-         for equality. */
-      if (microsoft_mode && allow_default_calling_convention) {
-        qualifiers_1 |= TQ_DEFAULT_CALLING_CONVENTION;
-        qualifiers_2 |= TQ_DEFAULT_CALLING_CONVENTION;
-      }  /* if */
-#endif /* MICROSOFT_QUALIFIERS_ALLOWED */
-      if (qualifiers_1 != qualifiers_2) {
-        qualifier_mismatch = TRUE;
-      }  /* if */
+    if (!ignore_type_qualifiers &&
+        !type_qualifiers_match(type_1, type_2)) {
+      qualifier_mismatch = TRUE;
     }  /* if */
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
