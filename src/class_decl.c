@@ -6348,7 +6348,14 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                    treated as an aggregate either; this seems in accord with
                    the intent of 8.4.1 if not the letter. */
                 if (access != (an_access_specifier)as_public) {
-                  class_aggregate_ruled_out = TRUE;
+                  if (unnamed_field) {
+                    /* Unnamed bit fields are not subject to initialization
+                       (and are not even members, according to WP 9.6) so a
+                       nonpublic one (whatever that means) has no effect on
+                       aggregregate status. */
+                  } else {
+                    class_aggregate_ruled_out = TRUE;
+                  }  /* if */
                 } else {
                   a_type_ptr  tp = local_type;
                   if (is_array_type(tp)) {
