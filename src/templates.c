@@ -85,6 +85,9 @@ typedef enum /* a_template_info_line_type */ {
   /*lint -esym(749,tilt_curr_dir)*/
   /*lint -esym(749,tilt_file_name)*/
   /*lint -esym(749,tilt_instantiation_dir_name)*/
+  /* The Instantiation file name is only used when one instantiation per
+     object mode is used. */
+  /*lint -esym(749,tilt_instantiation_file_name)*/
 } a_template_info_line_type;
 
 /*
