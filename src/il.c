@@ -4705,7 +4705,9 @@ Copy the type entry "from" to "to".
   a_dependent_type_fixup_kind   dtf_kind;
 
   from_kind = from->kind;
-  check_assertion(from_kind == to->kind);
+  /* If one type is a routine, both must be. */
+  check_assertion((from_kind == (a_type_kind)tk_routine) ==
+                  (to->kind == (a_type_kind)tk_routine));
   if (from_kind == (a_type_kind)tk_routine) {
     /* For a routine type, preserve the type supplement pointer for the
        copy below. */
