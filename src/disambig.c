@@ -52,6 +52,9 @@ Macros to test bits in a disambiguation flag set.
 #define condition_is_for_stmt(flags)					\
   (((flags) & DFS_CONDITION_IS_FOR_STMT) != 0)
 
+#define is_cast(flags)						\
+  (((flags) & DFS_IS_CAST) != 0)
+
 
 
 static void cache_tokens_until(a_token_cache	*token_cache_ptr,
@@ -100,7 +103,8 @@ scanned are coalesced prior to analysis.
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static void prescan_microsoft_extended_decl_modifiers(void)
+static
+void prescan_microsoft_extended_decl_modifiers(a_token_cache *token_cache_ptr)
 /*
 Prescan the Microsoft __declspec specifier:
 
@@ -114,13 +118,19 @@ keyword.
                        "prescan_microsoft_extended_decl_modifiers:",
                        "curr_token not tok_declspec");
   /* Bypass the __declspec token. */
+  cache_curr_token(token_cache_ptr);
   (void)get_token();
   if (curr_token == tok_lparen) {
+    cache_curr_token(token_cache_ptr);
     get_token_and_coalesce_if_identifier();
     while (curr_token == tok_identifier) {
+      cache_curr_token(token_cache_ptr);
       get_token_and_coalesce_if_identifier();
     }  /* while */
-    if (curr_token == tok_rparen) get_token_and_coalesce_if_identifier();
+    if (curr_token == tok_rparen) {
+      cache_curr_token(token_cache_ptr);
+      get_token_and_coalesce_if_identifier();
+    }  /* if */
   }  /* if */
 }  /* prescan_microsoft_extended_decl_modifiers */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -160,7 +170,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_declspec:
-        prescan_microsoft_extended_decl_modifiers();
+        prescan_microsoft_extended_decl_modifiers(token_cache_ptr);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Type specifier - identifier that may be a simple type name.
@@ -569,10 +579,13 @@ evidence to the contrary.
     if (!*may_be_decl) goto done;
     for (;;) {
       /* Parenthesized initializers are only allowed in contexts that
-         in which only real declarators are allowed. */
+         in which only real declarators are allowed, but not in
+         conditions. */
+      a_boolean	paren_initializer_allowed;
+      paren_initializer_allowed = !abstract_declarator_allowed(flags) &&
+                                  !is_condition(flags);
       prescan_declarator(token_cache_ptr, flags,
-                         /*paren_initializer_allowed=*/
-                                  !abstract_declarator_allowed(flags),
+                         paren_initializer_allowed,
 			 is_top_level && is_first_declarator, may_be_decl);
       if (!*may_be_decl) goto done;
       /* If we are not processing real declarators, don't look for
@@ -698,12 +711,31 @@ types separated by commas (when single_type_required is FALSE).
       } else {
         /* We are scanning a real declaration, we should be at the end of
            the statement now. */
-        if (curr_token != tok_semicolon) may_be_decl = FALSE;
+        if (is_condition(flags) && !condition_is_for_stmt(flags)) {
+          /* Condition statements (except in for statements) must end
+             with a right parenthesis. */
+          if (curr_token != tok_rparen) may_be_decl = FALSE;
+        } else {
+          /* All other declarations must end in a semicolon. */
+          if (curr_token != tok_semicolon) may_be_decl = FALSE;
+        }  /* if */
       }  /* if */
     } else {
       /* Otherwise, if we are scanning one or more types.  We should be
          at the right parenthesis. */
       if (curr_token != tok_rparen) may_be_decl = FALSE;
+      if (may_be_decl && is_cast(flags)) {
+        /* If we are in a cast context, look at what follows the right
+           parenthesis to see if it is something that could follow a cast.
+           This is to prevent (A()) from being interpretted as an invalid
+           cast. */
+        cache_curr_token(&token_cache);
+        (void)get_token();
+        /* If the thing after the right parenthesis is not the start of
+           an expression, then this is not a cast -- so indicate that this
+           is not a declaration. */
+        if (!is_expr_start_token(curr_token)) may_be_decl = FALSE;
+      }  /* if */
     }  /* if */
 done:
     /* Restore the tokens. */

@@ -1,5 +1,23 @@
 Version 2.29
 
+4/28/95  Disambiguation of cast vs. expression
+
+Formerly, an expression of the form (A()) was always treated as a cast,
+even if no expression followed (in which case an error was issued).
+Now, expressions like (A()) are only considered casts if they are
+followed by an expression, as in (A())+1.
+
+4/28/95  Disambiguation and Microsoft __declspec modifiers
+
+__declspec modifiers used in a context that requires a lookahead
+to disambiguate between a declaration and an expression could result
+in the loss of the __declspec modifiers.  This has been corrected.
+
+int main()
+{
+	int(*i)(__declspec(naked) int j);
+}
+
 4/28/95  Function redeclarations in Microsoft C mode
 
 In Microsoft C mode only a warning is issued for redeclaring a function
