@@ -9632,9 +9632,10 @@ non-NULL, *p_ms_attributes is returned NULL.
     if (decl_info->is_anonymous_union) {
       member_sym = make_anonymous_parent_object_symbol(
                                        (a_symbol_kind)sk_field,
-                                       &locator->source_position,
+                                       &decl_info->decl_start_pos,
                                        scope_stack[depth_scope_stack].number);
       field->is_anonymous_parent_object = TRUE;
+      field->source_corresp.decl_position = decl_info->decl_start_pos;
     } else {
       member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
                                       depth_scope_stack,
@@ -9644,6 +9645,9 @@ non-NULL, *p_ms_attributes is returned NULL.
     member_sym->variant.field.ptr = field;
     decl_info->member_sym = member_sym;
   }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  update_decl_pos_info(&field->source_corresp, &decl_info->decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Set the parent class in the field and (unless member_sym is NULL) in the
      symbol. */
   set_class_membership(member_sym, &field->source_corresp, class_type);
@@ -9679,9 +9683,6 @@ non-NULL, *p_ms_attributes is returned NULL.
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, member_sym,
                               &locator->source_position,
                               decl_info->declarator_ssep);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    update_decl_pos_info(&field->source_corresp, &decl_info->decl_pos_block);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Do processing required for any pragmas that are bound to the current
        declaration. */
     process_curr_construct_pragmas(member_sym, (a_statement_ptr)NULL);

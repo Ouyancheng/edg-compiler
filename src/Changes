@@ -1,5 +1,12 @@
 Version 3.5
 
+5/12/04  Position information for anonymous union fields
+
+The front end previously did not record any position information for anonymous
+union fields.  Now the position of the beginning of the anonymous union
+declaration is recorded in the field entry.  When EXTRA_SOURCE_POSITIONS_IN_IL
+is TRUE, additional position information is also recorded in the entry.
+
 5/12/04  Missing source sequence entries for empty statements
 
 In configurations with REPRESENT_EMPTY_STATEMENTS_IN_IL set to TRUE, the
