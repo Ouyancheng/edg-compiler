@@ -5725,10 +5725,10 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       }  /* if */
       /* Do further rewriting on the operations just inserted. */
       lower_operations_returning_lvalue_instead_of_usual_rvalue(newop1,
-                                                           /*is_lvalue=*/TRUE);
+                                                                is_lvalue);
       if (newop2 != NULL) {
         lower_operations_returning_lvalue_instead_of_usual_rvalue(newop2,
-                                                           /*is_lvalue=*/TRUE);
+                                                                  is_lvalue);
       }  /* if */
     } else if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue&&
                ((op = expr->variant.operation.kind) !=

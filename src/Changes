@@ -1,5 +1,18 @@
 Version 2.27
 
+11/28/94 IL lowering rewrite of lvalue-returning operations
+
+In some complicated cases, the rewritten version of some lvalue-returning
+operations produced by IL lowering had some remaining lvalue operations
+in the expression tree.  For example:
+
+   void m() {
+     int i;
+     ++ ++ ++i;		
+   }
+
+The middle "++" used to remain an lvalue-returning operation.
+
 11/23/94 Change in disambiguation for error cases
 
 The disambiguation of a function declarator versus a parenthesized
