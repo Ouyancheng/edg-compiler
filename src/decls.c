@@ -6023,6 +6023,28 @@ instructions (unquoted).
       /* A Microsoft asm statement may not appear at file scope. */
     } else if (curr_token == tok_lparen) {
       /* Fall through for normal processing. */
+    } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+      /* Only standard asm declarations are supported inside a template.
+         The implementation reason for this is that scan_asm_block is
+         designed to deal with a string, not tokens from a token cache. */
+      /* This error will probably be removed for a future release -- for now
+         it prevents an internal error in scan_asm_block. */
+      pos_error(ec_nonstd_asm_decl_within_template, &asm_pos);
+      /* Flush the tokens comprising the asm declaration. */
+      if (curr_token == tok_lbrace) {
+        /* Flush to the closing brace, advance past it, and advance past the
+           optional semicolon. */
+        flush_until_matching_token();
+        if (curr_token == tok_rbrace) {
+          (void)get_token();
+          if (curr_token == tok_semicolon) (void)get_token();
+        }  /* if */
+      } else {
+        /* Flush the rest of the current source line. */
+        while (pos_curr_token.seq == asm_pos.seq) (void)get_token();
+      }  /* if */
+      asm_decl_allowed = FALSE;
+      goto make_asm_entry;
     } else {
       if (curr_token == tok_lbrace) {
       /* In Microsoft mode an asm statement may have the form "__asm { ... }",
