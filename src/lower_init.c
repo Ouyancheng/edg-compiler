@@ -815,7 +815,8 @@ tree.
                                                    modifiers->curr_field);
     } else if (modifiers->curr_base != NULL) {
       /* Add a base class selection. */
-      entity_node = make_base_class_lvalue(entity_node, modifiers->curr_base);
+      entity_node = make_base_class_lvalue(entity_node, modifiers->curr_base,
+                                           /*complete_object=*/FALSE);
     } else {
       /* Add an array element selection. */
       /* Do the pointer decay from array to pointer to element. */
@@ -3551,8 +3552,9 @@ constructor, but may instead be after an assignment to "this".
       if (bcp->is_virtual) {
         /* Make an expression whose value is the address of the virtual
            base class. */
-        vaddr_node = make_cobj_vbase_class_lvalue_from_var(this_param_var,
-                                                           bcp);
+        vaddr_node = make_vbase_class_lvalue_from_var(this_param_var,
+                                                      bcp,
+                                                     /*complete_object=*/TRUE);
         /* Add a cast if necessary to convert from a pointer to the base
            class type to a pointer to the type-as-subobject for the base
            class type. */
@@ -3635,6 +3637,8 @@ constructor, but may instead be after an assignment to "this".
      that is required. */
   /* Loop through the base classes of the current class. */
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+    /* Set the pointer if it exists and is not shared with the current class
+       pointer already set above. */
     vtbl_var = bcp->virtual_function_table_var;
     if (vtbl_var != NULL && vtbl_var != primary_vtbl_var) {
       /* The base class's virtual function table pointer must be set to
@@ -3644,13 +3648,20 @@ constructor, but may instead be after an assignment to "this".
       vtbl_var->address_taken = TRUE;
       vtbl_var->source_corresp.referenced = TRUE;
       if (!bcp->is_virtual) {
-        /* For non-virtual base classes, the base class can be accessed
-           directly. */
-        vptr_node = make_base_class_lvalue_from_var(this_param_var, bcp);
+        /* For non-virtual base classes, use the usual code.  Note that if
+           the base class here is non-virtual itself but is inside a virtual
+           base class, the code will use a pointer to get to the virtual base
+           class and then field selection(s) to get to the non-virtual base
+           class within that.  It would be possible to use the implicit
+           parameter for the virtual base class to do better, but this code
+           works (the virtual base class pointers are all set by this
+           point). */
+        vptr_node = make_base_class_lvalue_from_var(this_param_var, bcp,
+                                                    /*complete_object=*/FALSE);
       } else {
         /* For virtual base classes, access the class by using the implicit
            parameter.  That works even when the current class is not a
-           complete object. */
+           complete object, and is a little better than the general code. */
         vbase_param_var = implicit_virtual_base_parameter(class_type,
                                                           bcp->type,
                                                           this_param_var);
@@ -3942,10 +3953,13 @@ destructor scope.
       vtbl_addr_node = make_vtbl_address_node(vtbl_var);
       vtbl_var->address_taken = TRUE;
       vtbl_var->source_corresp.referenced = TRUE;
-      /* Build a node to address the virtual table pointer.  Since we do not
-         know whether or not we have a complete object, use the virtual base
-         class pointers. */
-      vptr_node = make_base_class_lvalue_from_var(this_param_var, bcp);
+      /* Build a node to address the virtual table pointer in the base
+         class.   The base class may be virtual or may be inside a virtual
+         base class.  We cannot optimize virtual base class cases because
+         we do not know whether or not we have a complete object (at least,
+         we don't know at compile time). */
+      vptr_node = make_base_class_lvalue_from_var(this_param_var, bcp,
+                                                  /*complete_object=*/FALSE);
       vptr_node = make_vptr_field_lvalue(vptr_node);
       /* Make and insert the assignment statement. */
       (void)insert_assignment_statement(vptr_node,

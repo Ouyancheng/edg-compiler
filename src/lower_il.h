@@ -296,8 +296,15 @@ extern a_boolean is_or_was_ptr_to_data_member_type(a_type_ptr type);
 extern an_expr_node_ptr au_field_lvalue_selection_expr(an_expr_node_ptr node,
                                                        a_field_ptr      field);
 
-extern an_expr_node_ptr make_base_class_lvalue(an_expr_node_ptr node,
-                                               a_base_class_ptr bcp);
+extern an_expr_node_ptr make_base_class_lvalue(
+                                             an_expr_node_ptr node,
+                                             a_base_class_ptr bcp,
+                                             a_boolean        complete_object);
+
+extern an_expr_node_ptr make_base_class_lvalue_from_var(
+                                             a_variable_ptr   var,
+                                             a_base_class_ptr bcp,
+                                             a_boolean        complete_object);
 
 extern an_expr_node_ptr add_cast(an_expr_node_ptr node,
                                  a_type_ptr       new_type);
@@ -315,12 +322,10 @@ extern an_expr_node_ptr make_vptr_field_lvalue(an_expr_node_ptr node);
 
 extern an_expr_node_ptr make_vptr_field_lvalue_from_var(a_variable_ptr var);
 
-extern an_expr_node_ptr make_base_class_lvalue_from_var(a_variable_ptr   var,
-                                                        a_base_class_ptr bcp);
-
-extern an_expr_node_ptr make_cobj_vbase_class_lvalue_from_var(
-                                                         a_variable_ptr   var,
-                                                         a_base_class_ptr bcp);
+extern an_expr_node_ptr make_vbase_class_lvalue_from_var(
+                                             a_variable_ptr   var,
+                                             a_base_class_ptr bcp,
+                                             a_boolean        complete_object);
 
 extern an_expr_node_ptr add_cast_if_necessary(an_expr_node_ptr node,
                                               a_type_ptr       new_type);

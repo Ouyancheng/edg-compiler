@@ -1,5 +1,12 @@
 Version 2.19
 
+7/30/93  IL lowering: better code for access to virtual base classes
+
+The code generated to access virtual base classes that are nested
+within other virtual base classes now uses a single pointer indirection to
+get to the final virtual base class instead of going stepwise through
+the pointers to all the intervening virtual base classes.
+
 7/29/93  No warning that vacuous destructor call has no effect
 
 The warning about expressions that have no effect is now suppressed
