@@ -8582,7 +8582,7 @@ the tokens should be scanned and discarded.
   /* The current scope stack entry is expected to be a function prototype
      scope.  The enclosing scope is expected to be either the template
      declaration scope for the current function template or the instantiation
-     scope for the partial instantiation of a template function declaration
+     scope for the partial instantiation of a template function declaration.
      In the latter case, the tokens that are cached are simply discarded. */
   ssep = scope_stack_entry_for(depth_scope_stack-1);
   if (ssep->kind == (a_scope_kind)sck_template_declaration) {
