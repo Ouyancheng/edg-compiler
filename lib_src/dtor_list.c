@@ -149,6 +149,10 @@ a_link* __dummy_variable_used_to_force_definition_of__link = &__link;
    for the main program.  */
 a_dso_handle __dso_handle;
 
+#endif /* !SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
+
+#if !SYSTEM_RUNTIME_HAS_IA64_ATEXIT
+
 void ABI_NAMESPACE::__cxa_finalize(a_dso_handle dso_handle)
 /*
 Go through the needed destructions list and perform the required
@@ -183,9 +187,6 @@ dso_handle is NULL.
   }  /* while */
 }  /* __cxa_finalize */
 
-#endif /* !SYSTEM_RUNTIME_HAS_IA64_SUPPORT */
-
-#if !SYSTEM_RUNTIME_HAS_IA64_ATEXIT
 
 int ABI_NAMESPACE::__cxa_atexit(a_destructor_ptr destruction_routine,
                                 void             *object,
