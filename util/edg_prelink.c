@@ -2657,8 +2657,10 @@ if the file should be recompiled.
   a_pl_object_file_ptr		pofp = pifp->objects;
   a_pl_file_list_entry_ptr	flep;
 
-  check_assertion(pofp != NULL);
-  if (pofp->modification_time == 0) {
+  /* The objects file pointer can be NULL in certain error cases. */
+  if (pofp == NULL) {
+    goto done;
+  } else if (pofp->modification_time == 0) {
     /* We have not gotten the modification time of this object file yet.
        Get it now. */
     if (!get_file_modification_time(pofp->file_name,
