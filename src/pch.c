@@ -957,7 +957,6 @@ file.  See write_a_memory_region for more information.
 #endif /* DEBUG */
   for (;;) {
     sizeof_t	size;
-    size = mbhp->next_avail_in_block - (char *)mbhp;
     pch_read_value(size);
     pch_read_value(mbhp);
 #if DEBUG
