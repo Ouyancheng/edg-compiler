@@ -714,6 +714,7 @@ is TRUE any new pragmas are added to the end of the existing list.
     }  /* if */
     ppp = next_ppp;
   }  /* while */
+  ssep->pragmas_bound_to_curr_decl_or_stmt = list_start;
 }  /* select_pragma_bound_to_curr_decl_or_stmt */
 
 
