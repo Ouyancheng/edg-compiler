@@ -4905,11 +4905,6 @@ white_space_loop:
              location of the character following the macro invocation, and
              continue there. */
           slmp = assoc_source_line_modif(curr_char_loc);
-          /* See if the current position is part of the text of a macro
-             argument being macro-expanded; such text is expanded in
-             isolation from the rest of the source file (see 3.8.3.1).
-             In that case, the end-of-insertion is returned to the caller. */
-          if (slmp->is_isolated_text) goto end_skip;
           if (slmp->being_rescanned_for_token_pasting) {
             /* We're rescanning a macro expansion in order to do old-style
                token pasting (e.g., in pcc mode).  We've reached the end of
@@ -4924,6 +4919,13 @@ white_space_loop:
             /* Continue into the primary source line.  Clear the flag to
                indicate that we went off the end. */
             slmp->being_rescanned_for_token_pasting = FALSE;
+            slmp->is_isolated_text = FALSE;
+          } else {
+            /* See if the current position is part of the text of a macro
+               argument being macro-expanded; such text is expanded in
+               isolation from the rest of the source file (see 3.8.3.1).
+               In that case, the end-of-insertion is returned to the caller. */
+            if (slmp->is_isolated_text) goto end_skip;
           }  /* if */
           /* Normal case; continue with the text following the macro
              invocation. */
@@ -5028,8 +5030,7 @@ white_space_loop:
                  This is disallowed partly because you get in trouble with
                  copy_modif_list later if you allow it (the modification
                  entries are in the wrong order). */
-              if (slmp->is_isolated_text ||
-                  slmp->being_rescanned_for_token_pasting) goto end_skip;
+              if (slmp->is_isolated_text) goto end_skip;
               leave_insertion(slmp, curr_char_loc);
             } while (!within_curr_source_line(curr_char_loc));
             if (need_to_delete_comment()) {

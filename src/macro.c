@@ -1343,6 +1343,7 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
   /* Turn on some special processing at the end of the macro insertion
      to decide whether we need to continue into the primary line. */
   main_slmp->being_rescanned_for_token_pasting = TRUE;
+  main_slmp->is_isolated_text = TRUE;
   /* Make sure we don't run off the current line if we do need to run
      off the end of the macro. */
   treat_newline_as_token = TRUE;
@@ -1500,6 +1501,7 @@ end_loop:
   *pos_in_aux_buffer++ = LE_END_OF_INSERTION;
   /* Restore the flags that were changed before the scan. */
   main_slmp->being_rescanned_for_token_pasting = FALSE;
+  main_slmp->is_isolated_text = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
   curr_char_loc = save_curr_char_loc;
   treat_newline_as_token = FALSE;
