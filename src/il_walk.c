@@ -341,58 +341,23 @@ flags.
   ((type)->source_corresp.is_local_to_function || \
    (type)->declared_in_function_prototype)
 
-
-static a_boolean should_not_walk_subtree(char             *entry_ptr,
-                                         an_il_entry_kind entry_kind,
-                                         a_boolean        keep_in_il_case)
 /*
 Given an IL entry at entry_ptr with kind entry_kind, return TRUE if the
 entry's subtree should not be walked at this time.  This is used when
-setting the "needed" or "keep_in_il" flags (keep_in_il_case indicates
-the latter).  Entities that can be defined or redeclared later (e.g., classes)
-shouldn't have their subtrees walked until after there is no longer the
-possibility of the subtree changing.  end_of_file_scope_needed_flags_phase
-is set to TRUE in a phase where subtrees should finally be walked.
-Entities local to functions are always fully walked immediately.
+setting the "needed" or "keep_in_il" flags.  Entities that can be
+defined or redeclared later (e.g., classes) shouldn't have their subtrees
+walked until after there is no longer the possibility of the subtree changing.
+end_of_file_scope_needed_flags_phase is set to TRUE in a phase where subtrees
+should finally be walked.  is_class is TRUE if the entity is a class.
+Entities local to functions (indicated by local_class, which is defined
+only if is_class is TRUE) are always fully walked immediately.
 */
-{
-  a_boolean prune = FALSE;
-
-  if (entry_kind == iek_type &&
-      is_immediate_class_type((a_type_ptr)entry_ptr)) {
-    /* A class type. */
-    a_type_ptr type = (a_type_ptr)entry_ptr;
-    if (class_is_function_local(type)) {
-      /* Function-local class -- not visited in the sweep at the end of
-         the file scope, so handle now.  Since the definitions of local
-         classes are never removed, visit the subtree even if the
-         class definition is not needed. */
-      prune = FALSE;
-    } else if (keep_in_il_case ?
-                      !type->variant.class_struct_union.keep_definition_in_il :
-                      !type->variant.class_struct_union.definition_needed) {
-      /* Don't walk the subtree of a class if its definition is not
-         needed.  Note that this assumes that the class definition will
-         be removed if not needed (so it's good that local classes don't
-         get this far). */
-      prune = TRUE;
-    } else {
-      /* For the remaining cases the class is walked only in the
-         end-of-file scope phase. */
-      prune = !end_of_file_scope_needed_flags_phase;
-    }  /* if */
-  } else if (entry_kind == iek_variable) {
-    /* A variable.  The subtree is walked if we're in the end-of-file-scope
-       sweep or if the variable is local to a function. */
-    prune = !end_of_file_scope_needed_flags_phase &&
-            !((a_variable_ptr)entry_ptr)->source_corresp.is_local_to_function;
-  } else if (entry_kind == iek_routine) {
-    /* A routine.  The subtree is walked if we're in the end-of-file-scope
-       sweep. */
-    prune = !end_of_file_scope_needed_flags_phase;
-  }  /* if */
-  return prune;
-}  /* should_not_walk_subtree */
+#define should_not_walk_subtree(entry_ptr, entry_kind, is_class, local_class) \
+ (!end_of_file_scope_needed_flags_phase && \
+  (((is_class) && !(local_class)) || \
+   ((entry_kind) == iek_variable && \
+    !((a_variable_ptr)(entry_ptr))->source_corresp.is_local_to_function) || \
+   ((entry_kind) == iek_routine)))
 
 
 #if DO_IL_LOWERING
@@ -403,25 +368,6 @@ entry_kind will remain after IL lowering is done.
 #define parent_will_exist_after_lowering(entry_kind) \
   (suppress_il_lowering || entry_kind == iek_field)
 #endif /* DO_IL_LOWERING */
-
-
-/*
-The subtree of the entry with entry kind entry_kind at entry_ptr is not
-being walked.  If the entity is a template class, walk its template arguments
-anyway (they are needed even if the subtree is not walked).
-*/
-#define walk_template_arguments_for_pruned_entity(entry_ptr, entry_kind) \
-{ if ((entry_kind) == iek_type) { \
-    a_type_ptr type = (a_type_ptr)(entry_ptr); \
-    if (is_immediate_class_type(type)) { \
-      a_class_type_supplement_ptr ctsp = \
-                               type->variant.class_struct_union.extra_info; \
-      if (ctsp != NULL) { \
-        walk_list(ctsp->template_arg_list, a_template_arg_ptr, iek_template_arg); \
-      }  /* if */ \
-    }  /* if */ \
-  }  /* if */ \
-}  /* walk_template_arguments_for_pruned_entity */
 
 
 static a_boolean prune_needed_flag_il_walk(char             *entry_ptr,
@@ -478,8 +424,11 @@ as needed.
         }  /* if */
       }  /* if */
       /* Determine whether the subtree of this entry should be walked. */
-      prune = should_not_walk_subtree(entry_ptr, entry_kind,
-                                      /*keep_in_il_case=*/FALSE);
+      prune = should_not_walk_subtree(
+                             entry_ptr, entry_kind,
+                             (entry_kind == iek_type &&
+                               is_immediate_class_type((a_type_ptr)entry_ptr)),
+                             class_is_function_local((a_type_ptr)entry_ptr));
       if (prune) {
         if (scp->is_class_member
 #if DO_IL_LOWERING
@@ -496,9 +445,6 @@ as needed.
           walk_tree_and_set_needed((char *)parent_class, iek_type);
           set_class_definition_needed(parent_class);
         }  /* if */
-        /* Also walk template arguments on a class, needed even if the class
-           is just declared and not defined. */
-        walk_template_arguments_for_pruned_entity(entry_ptr, entry_kind);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -677,7 +623,14 @@ keep_in_il walk.
     befriending_class = clep->class_type;
     if (!befriending_class->variant.class_struct_union.definition_needed &&
         !befriending_class->variant.class_struct_union.keep_definition_in_il &&
-        !class_is_function_local(befriending_class)) {
+        !class_is_function_local(befriending_class)
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        /* If source sequence entries are being used, it's too hard to
+           promote the friend from inside the class if the class is not
+           needed.  Therefore we always make the containing class needed. */
+        && befriending_class->source_corresp.source_sequence_entry == NULL
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+                                                                          ) {
       /* The class will be removed or its definition will be removed,
          so the friendship will be eliminated. */
     } else {
@@ -790,7 +743,7 @@ pruned at the given entry, because the entry has already been marked
 to be kept.
 */
 {
-  a_boolean prune = FALSE;
+  a_boolean prune = FALSE, is_class = FALSE, is_function_local_class = FALSE;
 
   /* Note that this routine is very similar to prune_needed_flag_il_walk. */
   if (il_entry_prefix_of(entry_ptr).keep_in_il) {
@@ -798,6 +751,19 @@ to be kept.
     prune = TRUE;
   } else {
     /* The flag is not set, so set it and keep walking. */
+    is_class = (entry_kind == iek_type &&
+                is_immediate_class_type((a_type_ptr)entry_ptr));
+    if (is_class) {
+      /* For a function-local class, the definition will never be removed,
+         so mark it to be kept as soon as the keep_in_il flag is set on
+         the class.  This is done before setting keep_in_il to avoid
+         the rewalk of the subtree. */
+      is_function_local_class = class_is_function_local((a_type_ptr)entry_ptr);
+      if (is_function_local_class) {
+        set_class_keep_definition_in_il((a_type_ptr)entry_ptr);
+      }  /* if */
+    }  /* if */
+    /* Set the flag. */
     il_entry_prefix_of(entry_ptr).keep_in_il = TRUE;
 #if DEBUG
     if (db_flag_is_set("needed_flags")) {
@@ -818,8 +784,8 @@ to be kept.
 #endif /* DEBUG */
     /* If this is an entry that might be redeclared or redefined later,
        do not walk its subtree now. */
-    prune = should_not_walk_subtree(entry_ptr, entry_kind,
-                                    /*keep_in_il_case=*/TRUE);
+    prune = should_not_walk_subtree(entry_ptr, entry_kind, is_class,
+                                    is_function_local_class);
     if (prune) {
       /* When the subtree is not going to be walked now and the entity is
          a class member, mark the parent as needed anyway.  This is done
@@ -842,9 +808,6 @@ to be kept.
           set_class_keep_definition_in_il(parent_class);
         }  /* if */
       }  /* if */
-      /* Also walk template arguments on a class, needed even if the class
-         is just declared and not defined. */
-      walk_template_arguments_for_pruned_entity(entry_ptr, entry_kind);
     }  /* if */
   }  /* if */
   return prune;

@@ -642,10 +642,20 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_class:
           case tk_struct:
           case tk_union:
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+            /* Handle the class type supplement inline, because we need
+               to have a pointer to the class to decide whether or not to
+               process definition-related fields.  The walking of field_list
+               is handled there too, if the definition is needed. */
+            if (ptr->variant.class_struct_union.extra_info != NULL) {
+              goto handle_class_type_supplement_for_class;
+            }  /* if */
+#else /* (!NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
             walk_list(ptr->variant.class_struct_union.field_list,
                       a_field_ptr, iek_field);
             walk_ptr(ptr->variant.class_struct_union.extra_info,
                      a_class_type_supplement_ptr, iek_class_type_supplement);
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
             break;
           case tk_typeref:
             walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);
@@ -1782,26 +1792,24 @@ do_set_proper_definition_needed_flag:
       break;
     case iek_class_type_supplement:
       {
-        a_class_type_supplement_ptr ptr =
-                                        (a_class_type_supplement_ptr)entry_ptr;
-        walk_list(ptr->base_classes, a_base_class_ptr, iek_base_class);
-        switch (ptr->anonymous_union_kind) {
-          case auk_none:
-          case auk_variable:
-            break;
-          case auk_field:
-            remap_ptr(ptr->anonymous_union_field, a_field_ptr, iek_field);
-            break;
-          default:
-            unexpected_condition_str(
-                           "walk_entry_and_subtree: bad anonymous union kind");
-        } /* switch */
-        walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
-        remap_ptr_not_needed(ptr->virtual_function_info_base_class,
-                             a_base_class_ptr, iek_base_class);
-        walk_list_not_needed(ptr->class_member_using_decls,
-                             a_class_member_using_decl_ptr,
-                             iek_class_member_using_decl);
+        a_class_type_supplement_ptr ptr;
+        a_boolean                   entry_from_class;
+        ptr = (a_class_type_supplement_ptr)entry_ptr;
+        entry_from_class = FALSE;
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+        goto after_entry_from_class;
+handle_class_type_supplement_for_class:
+        /* Processing comes here from the class type.  For the "needed" and
+           "keep_in_il" walk we have to be able to know where the class type
+           is. */
+        ptr = ((a_type_ptr)entry_ptr)->variant.class_struct_union.extra_info;
+        entry_from_class = TRUE;
+after_entry_from_class:
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+        /* Fields to be processed even if the definition of the class is
+           not to be processed: */
+        walk_list(ptr->template_arg_list, a_template_arg_ptr,
+                  iek_template_arg);
 #if !NEEDED_FLAG_WALK
 #if KEEP_IN_IL_WALK
         /* Visit befriending classes for the "keep_in_il" sweep. */
@@ -1812,26 +1820,63 @@ do_set_proper_definition_needed_flag:
                   iek_class_list_entry);
 #endif /* KEEP_IN_IL_WALK */
 #endif /* !NEEDED_FLAG_WALK */
-        walk_list_not_needed(ptr->friend_routines, a_routine_list_entry_ptr,
-                             iek_routine_list_entry);
-        walk_list_not_needed(ptr->friend_classes, a_class_list_entry_ptr,
-                             iek_class_list_entry);
-        walk_list(ptr->template_arg_list, a_template_arg_ptr,
-                  iek_template_arg);
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+        /* During these walks, visit the definition only if necessary. */
+        if (((a_type_ptr)entry_ptr)->variant.class_struct_union.
+#if NEEDED_FLAG_WALK
+                                                   definition_needed
+#else /* !NEEDED_FLAG_WALK (i.e., KEEP_IN_IL_WALK) */
+                                                   keep_definition_in_il
+#endif /* NEEDED_FLAG_WALK */
+                                                                        )
+#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+        /* Do not insert code here. */
+        {
+          /* Fields to be processed only if the definition of the class
+             is to be processed: */
+          if (entry_from_class) {
+            walk_list(((a_type_ptr)entry_ptr)->variant.class_struct_union.
+                                                                    field_list,
+                      a_field_ptr, iek_field);
+          }  /* if */
+          walk_list(ptr->base_classes, a_base_class_ptr, iek_base_class);
+          switch (ptr->anonymous_union_kind) {
+            case auk_none:
+            case auk_variable:
+              break;
+            case auk_field:
+              remap_ptr(ptr->anonymous_union_field, a_field_ptr, iek_field);
+              break;
+            default:
+              unexpected_condition_str(
+                           "walk_entry_and_subtree: bad anonymous union kind");
+          }  /* switch */
+          walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
+          remap_ptr_not_needed(ptr->virtual_function_info_base_class,
+                               a_base_class_ptr, iek_base_class);
+          walk_list_not_needed(ptr->class_member_using_decls,
+                               a_class_member_using_decl_ptr,
+                               iek_class_member_using_decl);
+          walk_list_not_needed(ptr->friend_routines, a_routine_list_entry_ptr,
+                               iek_routine_list_entry);
+          walk_list_not_needed(ptr->friend_classes, a_class_list_entry_ptr,
+                               iek_class_list_entry);
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
-        remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr, iek_routine);
+          remap_ptr(ptr->assoc_operator_new_routine, a_routine_ptr,
+                    iek_routine);
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
-        remap_ptr(ptr->assoc_operator_delete_routine, a_routine_ptr,
-                  iek_routine);
+          remap_ptr(ptr->assoc_operator_delete_routine, a_routine_ptr,
+                    iek_routine);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
-        clear_pointer_if_remapping_only(ptr->virtual_function_table_var);
-        clear_pointer_if_remapping_only(ptr->type_as_subobject);
+          clear_pointer_if_remapping_only(ptr->virtual_function_table_var);
+          clear_pointer_if_remapping_only(ptr->type_as_subobject);
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-        clear_pointer_if_remapping_only(ptr->promoted_local_types);
+          clear_pointer_if_remapping_only(ptr->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
+        }  /* if */
       }
       break;
     case iek_constructor_init:
