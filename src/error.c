@@ -876,6 +876,18 @@ error code.
     case ec_inaccessible_base_class:
       m = "base class is inaccessible";
       break;
+    case ec_not_member_of_a_direct_base_class:
+      m = "not a member of a class from which \"%s\" is directly derived";
+      break;
+    case ec_private_access_declaration_not_allowed:
+      m = "access adjustment of \"private\" not allowed";
+      break;
+    case ec_increasing_access_not_allowed:
+      m = "increasing the access of an inherited member is not allowed";
+      break;
+    case ec_restricting_access_not_allowed:
+      m = "restricting access of an inherited member is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
