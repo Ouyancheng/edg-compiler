@@ -154,7 +154,7 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING 0x1
 			/* An error type is considered compatible with
 			   anything. */
-#define TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANYTHING 0x2
+#define TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANOTHER 0x2
 			/* A template parameter type is considered
 			   compatible with anything. */
 #define TCF_NO_FLAGS 0x0

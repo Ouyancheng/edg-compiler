@@ -1586,12 +1586,6 @@ initial test for exact pointer equality.
       /* An error type is compatible with anything under the right setting
          of TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING. */
       compat = TRUE;
-    } else if ((flags & TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANYTHING) &&
-               (type_1->kind == (a_type_kind)tk_template_param ||
-                type_2->kind == (a_type_kind)tk_template_param)) {
-      /* A template type is compatible with anything under the right setting
-         of TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANYTHING. */
-      compat = TRUE;
     } else if (qualifier_mismatch) {
       /* The type qualifiers do not match, so the types are not compatible. */
       /* compat = FALSE;  -- Already set. */
@@ -1702,10 +1696,16 @@ initial test for exact pointer equality.
                                            flags));
           break;
         case tk_template_param:
-          /* Template parameter types are considered to be compatible if
-             their positions in the template parameter list are the same. */
-          compat = (type_1->variant.list_position ==
-                                           type_2->variant.list_position);
+          if (flags & TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANOTHER) {
+            /* A template type is compatible with any other under the right
+               setting of TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANOTHER. */
+            compat = TRUE;
+          } else {
+            /* Template parameter types are considered to be compatible if
+               their positions in the template parameter list are the same. */
+            compat = (type_1->variant.list_position ==
+                                                type_2->variant.list_position);
+          }  /* if */
           break;
 #if CHECKING
         default:
@@ -2977,7 +2977,7 @@ cumulative over all the parameters).
      will be enough to distinguish the types.  Template types are
      considered compatible with anything. */
   if (!f_types_are_compatible(type_1, type_2,
-                              TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANYTHING)) {
+                              TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANOTHER)) {
     /* The two types are distinguishable. */
     distinguishable = TRUE;
   } else {
