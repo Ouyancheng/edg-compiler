@@ -60,7 +60,9 @@ enum an_attribute_kind_tag {
   ak_cdecl,
   ak_stdcall,
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   ak_visibility,
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   ak_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -101,7 +103,9 @@ EXTERN char *attribute_kind_names[(int)ak_last + 1]
 /* ak_cdecl */                      "cdecl",
 /* ak_stdcall */                    "stdcall",
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 /* ak_visibility */                 "visibility",
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 /* ak_last */                       "last" /* used to check that
                                               initialization is right. */
 }
@@ -188,10 +192,12 @@ typedef struct an_attribute {
     int         fmt_arg;
 			/* The index (starting from 1) of the argument
 			   that is a format string. */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     an_ELF_visibility_kind
 		ELF_visibility;
 			/* The visibility of an entity in an ELF object
 			   file. */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   } variant;
   an_attribute_ptr
   		next;

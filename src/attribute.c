@@ -215,9 +215,11 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_format_arg:
       ap->variant.fmt_arg = 0;
       break;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     case ak_visibility:
       ap->variant.ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
       break;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     default:
       unexpected_condition_str("alloc_attribute: bad kind");
   }  /* switch */
@@ -281,9 +283,11 @@ Return a copy of the complete attribute list.
       case ak_format_arg:
         (*end)->variant.fmt_arg = attributes->variant.fmt_arg;
         break;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       case ak_visibility:
         (*end)->variant.ELF_visibility = attributes->variant.ELF_visibility;
         break;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       default:
         unexpected_condition_str("copy_attribute_list: bad kind");
         break;
@@ -533,6 +537,7 @@ that do take arguments.
         result = TRUE;
       }
       break;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     case ak_visibility:
       { char  *visibility_str;
         /* Look for a string-literal specifying the visibillity. */
@@ -564,6 +569,7 @@ that do take arguments.
         (void)get_token();
       }
       break;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     default:
       unexpected_condition();
   }  /* switch */
@@ -674,6 +680,7 @@ function returns the address of the last attribute.
           case ak_alias:
           case ak_format:
           case ak_format_arg:
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
           case ak_visibility:
             if (!scan_attribute_arguments(attribute)) {
               /* If the arguments were erroneous, it sometimes makes
@@ -683,6 +690,7 @@ function returns the address of the last attribute.
               free_attribute_list(attribute);
             }  /* if */
             break;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
           case ak_error:
             /* Skip over the arguments. */
             flush_tokens();
@@ -1349,9 +1357,11 @@ messages about any invalid attributes.
         }
         break;
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       case ak_visibility:
         rp->ELF_visibility = ap->variant.ELF_visibility;
         break;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       default:
         /* An invalid attribute. */
         pos_sy_warning(ec_attribute_does_not_apply,

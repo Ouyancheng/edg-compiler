@@ -462,6 +462,14 @@ recorded in the IL).
 #endif /* ifndef GNU_NAKED_ATTRIBUTE_ALLOWED */
 
 /*
+Flag that is TRUE is the "visibility" attribute should be recognized (and
+recorded in the IL).
+*/
+#ifndef GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+#define GNU_VISIBILITY_ATTRIBUTE_ALLOWED FALSE
+#endif /* ifndef GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.

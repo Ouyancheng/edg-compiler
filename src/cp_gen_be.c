@@ -3056,6 +3056,7 @@ Write out attributes that apply to the indicated field.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 }  /* write_field_attributes */
 
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
 static void write_ELF_visibility_attribute(an_ELF_visibility_kind  visibility)
 /*
@@ -3081,6 +3082,7 @@ not evk_unspecified).
   }  /* switch */
 }  /* write_ELF_visibility_attribute */
 
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 static void write_routine_attributes(a_routine_ptr rout)
 /*
@@ -3130,7 +3132,9 @@ Write out attributes that apply to the indicated routine.
                       "__alias__", rout->aliased_routine->source_corresp.name);
   }  /* if */
   write_routine_type_attributes(rout->type);
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   write_ELF_visibility_attribute(rout->ELF_visibility);
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 }  /* write_routine_attributes */
 
 
