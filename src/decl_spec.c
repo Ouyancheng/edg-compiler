@@ -4561,8 +4561,9 @@ Returns TRUE if there is an error in the specifiers.
             *output_flags |= DSO_MUTABLE;
             storage_class_pos = pos_curr_token;
           }  /* if */
-        } else if ((decl_specifiers_seen & DS_FRIEND) && !microsoft_mode) {
-          /* Note: in Microsoft-compatibility mode a friend function can
+        } else if ((decl_specifiers_seen & DS_FRIEND) &&
+                   !microsoft_mode && !sun_mode) {
+          /* Note: in Microsoft and Sun modes a friend function can
              be declared "static" or "extern".  The check is done later. */
           error(ec_storage_class_in_friend_decl);
           err = TRUE;
@@ -5895,12 +5896,14 @@ no_get_token:
   }  /* for */
 
 exit_loop:
-  if (microsoft_mode && (decl_specifiers_seen & DS_STORAGE_CLASS)) {
+  if ((microsoft_mode || sun_mode) &&
+      (decl_specifiers_seen & DS_STORAGE_CLASS)) {
     /* Certain Microsoft-mode diagnostics involving storage class specifiers
-       are put off until all the specifiers have been collected. */
+       are put off until all the specifiers have been collected.  The same is
+       done in Sun mode. */
     if (decl_specifiers_seen & DS_FRIEND) {
       /* "extern" and "static" are permitted on a friend declaration in
-         Microsoft compatibility mode -- other storage classes are ignored,
+         Microsoft and Sun modes -- other storage classes are ignored,
          with a warning. */
       if (*storage_class != (a_storage_class)sc_extern &&
           *storage_class != (a_storage_class)sc_static) {

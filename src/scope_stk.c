@@ -4199,6 +4199,10 @@ it is an external definition).
          because the initialization may have side effects.  Mark it as
          needed now. */
       is_needed = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (var->aliased_variable != NULL) {
+      is_needed = variable_needed_even_if_unreferenced(var->aliased_variable);
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   } else {
     /* A template static data member. */
@@ -4420,6 +4424,9 @@ e.g., because it's externally defined.
        even if not otherwise referenced, because it will be called
        at program startup. */
     is_needed = TRUE;
+  } else if (rout->aliased_routine != NULL) {
+    /* An alias is needed if the routine it aliases may be needed. */
+    is_needed = routine_needed_even_if_unreferenced(rout->aliased_routine);
   } else 
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */

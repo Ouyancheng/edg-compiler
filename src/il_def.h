@@ -5422,10 +5422,10 @@ typedef struct a_variable {
   char		*section;
 			/* If non-NULL, the section in which this
 			   variable should be placed. */
-  char		*aliased_variable;
-			/* If non-NULL, the name of the variable for
-			   which the name of this variable is an
-			   alias. */
+  a_variable_ptr
+		aliased_variable;
+			/* If non-NULL, the variable for which this variable
+			   is an alias. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr	declared_type;
@@ -6276,10 +6276,9 @@ typedef struct a_routine {
   char		*section;
 			/* If non-NULL, the section in which this
 			   routine should be placed. */
-  char		*aliased_routine; 
-                        /* If non-NULL, the name of the routine for
-			   which the name of this routine is an
-			   alias. */
+  a_routine_ptr	aliased_routine; 
+			/* If non-NULL, the routine for which this routine
+			   is an alias. */
   char		*asm_name;
 			/* If non-NULL, the name to be used as an assembly
 			   language level symbol for this routine. */

@@ -3004,7 +3004,8 @@ Write out attributes that apply to the indicated variable.
     write_section_attribute(var->section);
   }  /* if */
   if (var->aliased_variable != NULL) {
-    write_string_argument_attribute("__alias__", var->aliased_variable);
+    write_string_argument_attribute(
+                      "__alias__", var->aliased_variable->source_corresp.name);
   }  /* if */
   if (is_pointer_type(var->type) &&
       is_function_type(type_pointed_to(var->type))) {
@@ -3054,7 +3055,8 @@ Write out attributes that apply to the indicated routine.
     write_section_attribute(rout->section);
   }  /* if */
   if (rout->aliased_routine != NULL) {
-    write_string_argument_attribute("__alias__", rout->aliased_routine);
+    write_string_argument_attribute(
+                      "__alias__", rout->aliased_routine->source_corresp.name);
   }  /* if */
 }  /* write_routine_attributes */
 

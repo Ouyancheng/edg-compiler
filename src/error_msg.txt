@@ -1200,6 +1200,8 @@ ec_super_not_in_class;;"__super may only be used in a class scope"
 ec_unqualified_super;;"__super must followed by \"::\""
 ec_context_lines_skipped;;"[ %s instantiation contexts not shown ]"
 ec_mangled_name_too_long;;"mangled name is too long"
+ec_error_aliased_name_undeclared;;"the aliased name was not declared as an entity with linkage"
+ec_error_aliased_name_bad_kind;;"the aliased name corresponds to an entity of a different kind"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -218,6 +218,8 @@ extern void check_function_param_attributes(a_func_info_block_ptr func_info);
 extern a_boolean check_transparent_union(a_type_ptr        tp,
                                          a_source_position *pos);
 
+extern void process_alias_fixup_list(void);
+
 extern void attribute_one_time_init(void);
 
 extern void attribute_init(void);

@@ -31,6 +31,108 @@ attribute.c -- Processing of attributes, a GCC extension.
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+
+/*
+The "alias" attribute can refer to entities that are declared later in a
+translation unit.  Therefore, we record such attributes in a fixup list and
+process the list at the end of the translation unit.
+*/
+
+typedef struct an_alias_fixup *an_alias_fixup_ptr;
+typedef struct an_alias_fixup {
+  an_alias_fixup_ptr
+		next;	/* Pointer to the next fixup to process. */
+  a_symbol_ptr	alias;
+			/* The symbol that is an alias for another entity. */
+  char*		aliased_name;
+			/* The name of the entity being aliased. */
+} an_alias_fixup;
+
+/* Pointer to the head of the list of alias fixups. */
+static an_alias_fixup_ptr
+	alias_fixup_list;
+
+/* Pointer to a list of available (freed) alias fixups. */
+static an_alias_fixup_ptr
+	avail_alias_fixups;
+
+
+static void add_alias_fixup(a_symbol_ptr  alias,
+                            char*         aliased_name)
+/*
+Allocate a fixup entry for a new alias described by the given parameters.
+*/
+{
+  an_alias_fixup_ptr  entry;
+
+  if (avail_alias_fixups != NULL) {
+    entry = avail_alias_fixups;
+    avail_alias_fixups = avail_alias_fixups->next;
+  } else {
+    entry = (an_alias_fixup_ptr)alloc_fe(sizeof(an_alias_fixup));
+  }  /* if */
+  entry->next = alias_fixup_list;
+  alias_fixup_list = entry;
+  entry->alias = alias;
+  entry->aliased_name = aliased_name;
+}  /* add_alias_fixup */
+
+
+static void free_alias_fixup(an_alias_fixup_ptr  entry)
+/*
+Return the given entry to the list of available entries.
+*/
+{
+  entry->next = avail_alias_fixups;
+  avail_alias_fixups = entry->next;
+}  /* free_alias_fixup */
+
+
+void process_alias_fixup_list(void)
+/*
+Traverse the list of alias fixups and set the alias fields as needed.
+*/
+{
+  an_alias_fixup_ptr  entries = alias_fixup_list, entry;
+  a_symbol_ptr        aliased_sym;
+  a_symbol_locator    locator;
+
+  while (entries != NULL) {
+    entry = entries;
+    entries = entries->next;
+    (void)find_symbol(entry->aliased_name, strlen(entry->aliased_name),
+                      &locator);
+    aliased_sym = locator.symbol_header->inactive_symbols;
+    for (; aliased_sym != NULL; aliased_sym = aliased_sym->next) {
+      if (aliased_sym->decl_scope == FILE_SCOPE_NUMBER) {
+        break;
+      }  /* if */
+    }  /* for */
+    if (aliased_sym == NULL) {
+      pos_error(ec_error_aliased_name_undeclared,
+                &entry->alias->decl_position);
+    } else if (aliased_sym->kind != entry->alias->kind) {
+      pos_error(ec_error_aliased_name_bad_kind,
+                &entry->alias->decl_position);
+    } else {
+      switch (entry->alias->kind) {
+        case sk_routine:
+          entry->alias->variant.routine.ptr->aliased_routine =
+                                              aliased_sym->variant.routine.ptr;
+          break;
+        case sk_variable:
+          entry->alias->variant.variable.ptr->aliased_variable =
+                                             aliased_sym->variant.variable.ptr;
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+    }  /* if */
+    free_alias_fixup(entry);
+  }  /* while */
+}  /* process_alias_fixup_list */
+
+
 /* Needed because of forward references: */
 static a_type_ptr copy_type_and_apply_attributes(an_attribute_ptr attributes,
                                                  a_type_ptr       tp,
@@ -895,7 +997,8 @@ invalid attributes.
                          &ap->position,
                          (a_symbol_ptr)vp->source_corresp.assoc_info);
           } else {
-            vp->aliased_variable = ap->variant.alias;
+            add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
+                            ap->variant.alias);
           }  /* if */
         }  /* if */
         break;
@@ -1019,12 +1122,8 @@ messages about any invalid attributes.
                        &ap->position,
                        (a_symbol_ptr)rp->source_corresp.assoc_info);
         } else {
-          rp->aliased_routine = ap->variant.alias;
-#if MAINTAIN_NEEDED_FLAGS
-          /* This routine must be kept so that we remember the fact that
-             it aliases another routine. */
-          mark_as_needed((char *)rp, (an_il_entry_kind)iek_routine);
-#endif /* MAINTAIN_NEEDED_FLAGS */
+          add_alias_fixup((a_symbol_ptr)rp->source_corresp.assoc_info,
+                          ap->variant.alias);
         }  /* if */
         break;
       case ak_malloc:
@@ -1483,6 +1582,8 @@ be initialized for each compilation.
 */
 {
   avail_attributes = NULL;
+  avail_alias_fixups = NULL;
+  alias_fixup_list = NULL;
 }  /* attribute_init */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
