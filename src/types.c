@@ -1049,6 +1049,7 @@ itself.)
   return result;
 }  /* first_address_space_encloses_second */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_type_ptr type_without_named_address_space_qualifiers(a_type_ptr  tp)
 /*
@@ -1062,6 +1063,7 @@ address space.
   return make_qualified_type(result, simple_qualifiers(qualifiers));
 }  /* type_without_named_address_space_qualifiers */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 
 a_boolean f_any_qualifier_missing(a_type_ptr  tp1,
