@@ -7878,20 +7878,44 @@ Microsoft's Visual C++ compiler has a bug that makes an expression like
 "l + i", where l is a long and i is an int, have a result type of int.
 This routine is called in cases where that bug should be duplicated.
 operand_1 and operand_2 are the first and second operands of an operation.
-Note that the bug only operates in one direction, i.e., "i + l" does not
-yield an int.
+There are similar cases other than long and int, and the cases are not
+symmetrical, e.g., "i + l" does not yield an int.
 */
 {
-  if (microsoft_bugs &&
+  if (microsoft_bugs && 
       targ_sizeof_long == targ_sizeof_int &&
       is_integral_type(operand_1->type) &&
-      is_integral_type(operand_2->type)) {
-    a_type_ptr op1_type = skip_typerefs(operand_1->type);
-    a_type_ptr op2_type = skip_typerefs(operand_2->type);
-    if (op1_type->variant.integer.int_kind == (an_integer_kind)ik_long &&
-        op2_type->variant.integer.int_kind == (an_integer_kind)ik_int) {
-      /* The bug applies.  Cast the first operand to int. */
-      cast_operand(op2_type, operand_1,
+      is_integral_type(operand_2->type) &&
+      (!is_constant_operand(operand_1) || !is_constant_operand(operand_2))) {
+    a_type_ptr      op1_type = skip_typerefs(operand_1->type);
+    a_type_ptr      op2_type = skip_typerefs(operand_2->type);
+    an_integer_kind t1 = op1_type->variant.integer.int_kind;
+    an_integer_kind t2 = op2_type->variant.integer.int_kind;
+    an_integer_kind c1 = t1;
+    an_integer_kind c2 = t2;
+    if (t1 == (an_integer_kind)ik_long &&
+        (t2 == (an_integer_kind)ik_int ||
+         t2 == (an_integer_kind)ik_short ||
+         t2 == (an_integer_kind)ik_unsigned_short ||
+         t2 == (an_integer_kind)ik_char ||
+         t2 == (an_integer_kind)ik_unsigned_char ||
+         t2 == (an_integer_kind)ik_signed_char)) {
+      c1 = (an_integer_kind)ik_int;
+    } else if (t1 == (an_integer_kind)ik_long &&
+               t2 == (an_integer_kind)ik_unsigned_int) {
+      c1 = (an_integer_kind)ik_unsigned_int;
+    } else if (t1 == (an_integer_kind)ik_unsigned_int &&
+               (t2 == (an_integer_kind)ik_long ||
+                t2 == (an_integer_kind)ik_unsigned_long)) {
+      c2 = (an_integer_kind)ik_unsigned_int;
+    }  /* if */
+    if (c1 != t1) {
+      cast_operand(integer_type(c1), operand_1,
+                   /*check_cast_access=*/FALSE, /*is_implicit_cast=*/TRUE,
+                   /*is_reinterpret_cast=*/FALSE);
+    }  /* if */
+    if (c2 != t2) {
+      cast_operand(integer_type(c2), operand_2,
                    /*check_cast_access=*/FALSE, /*is_implicit_cast=*/TRUE,
                    /*is_reinterpret_cast=*/FALSE);
     }  /* if */
