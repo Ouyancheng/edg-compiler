@@ -1,5 +1,22 @@
 Version 2.36
 
+5/16/97   Abort in cfront mode on anonymous union assignment operator
+
+An abort (with --exceptions --cfront_2.1) has been fixed on the following:
+
+  struct S {
+    S& operator=(const struct S& s);
+  };
+  struct T {
+    union {
+      S s;             // Only a warning in cfront 2.1 mode
+    };
+  };
+  void main() {
+    T u1, u2;
+    u1 = u2;          // Abort in generating definition of T::operator=
+  }                   //    has been fixed
+
 5/16/97   Diagnostic for defined but unreferenced variable that is initialized
           by constructor call
 
