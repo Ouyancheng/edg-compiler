@@ -2826,6 +2826,11 @@ on the specified member and class types.
   a_type_ptr  tp;
 
   tp = fs_type((a_type_kind)tk_ptr_to_member);
+#if CHECKING
+  if (member_type != NULL && !in_file_scope((char *)member_type)) {
+    internal_error("ptr_to_member_type: member type not in file scope");
+  }  /* if */
+#endif /* CHECKING */
   tp->variant.ptr_to_member.type = member_type;
   tp->variant.ptr_to_member.class_of_which_a_member = class_type;
   /* If member_type is NULL we are creating an incomplete type; otherwise,
