@@ -1303,6 +1303,28 @@ Dump the initializer of a variable for debug purposes.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#define TEMP_TEXT_BUFFER_INCREMENTAL_ALLOCATION 2000
+			/* Initial and incremental allocation size for
+			   temp_text_buffer.  The initial allocation
+			   should be such that almost all cases can be
+			   accepted (so that the realloc is hardly ever
+			   needed). */
+
+void expand_temp_text_buffer(sizeof_t size_needed)
+/*
+Expand the temp_text_buffer by reallocating it, so that its total size
+is at least size_needed.  Called by ensure_temp_text_buffer_space.
+*/
+{
+  sizeof_t new_size;
+
+  new_size = size_temp_text_buffer + TEMP_TEXT_BUFFER_INCREMENTAL_ALLOCATION;
+  if (new_size < size_needed) new_size  = size_needed;
+  temp_text_buffer = realloc_general(temp_text_buffer, size_temp_text_buffer,
+                                     new_size);
+  size_temp_text_buffer = new_size;
+}  /* expand_temp_text_buffer */
+
 
 /*
 Macro to increment the entry prefix allocation count only if DEBUG
@@ -8466,6 +8488,9 @@ Display and return the amount of space used for various IL tables.
                              (double)num_compares_for_shareable_constants /
                              (double)num_searches_for_shareable_constants, "");
   }  /* if */
+  (void)fputc('\n', f_debug);
+  db_space_used_general_buffer("temp text buffer",
+                               (unsigned long)size_temp_text_buffer);
 
   return grand_total;
 }  /* show_il_space_used */

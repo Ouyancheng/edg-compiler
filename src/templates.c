@@ -147,35 +147,14 @@ static a_boolean
 #if RECORD_TEMPLATES_IN_IL
 /*
 Static variables and routines that are used to build up a string representation
-of a template.  Characters are added to the buffer, which is indefinitely
-expandable, and then a string is created -- a copy of the assigned portion of
-the buffer, with a null terminator appended -- that the IL template entry can
-point to.
+of a template.  Characters are added to the temp_text_buffer, which is
+indefinitely expandable, and then a string is created -- a copy of the
+assigned portion of the buffer, with a null terminator appended -- that
+the IL template entry can point to.
 */
-
-static char	*templ_str_buffer = NULL;
-			/* Not allocated on a per-file basis.  Characters are
-			   added to it, and the number of characters added is
-			   tracked in pos_in_temp_str_buffer (such that
-			   templ_str_buffer[pos_in_temp_str_buffer-1] is the
-			   last character added).  But no terminating null
-			   character is used. */
-
-#define TEMPL_STR_BUFFER_INITIAL_ALLOCATION 500
-#define TEMPL_STR_BUFFER_INCREMENTAL_ALLOCATION 500
-			/* Initial and incremental allocation sizes for
-			   templ_str_buffer.  The initial allocation
-			   should be such that almost all cases can be
-			   accepted (so that the realloc is hardly ever
-			   needed). */
-
-static sizeof_t	size_templ_str_buffer = 0;
-			/* The size of templ_str_buffer, as currently
-			   allocated. */
-
-static sizeof_t pos_in_templ_str_buffer;
+static sizeof_t pos_in_temp_text_buffer;
 			/* The number of characters that have been added to
-			   templ_str_buffer thus far in processing. */
+			   temp_text_buffer thus far in processing. */
 
 static a_seq_number
 		curr_seq;
@@ -187,48 +166,22 @@ static an_il_to_str_output_control_block
 			/* Output control block used to interface to the
 			   il_to_str routines. */
 
-static void expand_templ_str_buffer(sizeof_t size_needed)
-/*
-Expand the templ_str_buffer by reallocating it, so that its total size
-is at least size_needed.  Called by ensure_templ_str_buffer_space.
-*/
-{
-  sizeof_t new_size;
-
-  new_size = size_templ_str_buffer + TEMPL_STR_BUFFER_INCREMENTAL_ALLOCATION;
-  if (new_size < size_needed) new_size  = size_needed;
-  templ_str_buffer = realloc_general(templ_str_buffer, size_templ_str_buffer,
-                                     new_size);
-  size_templ_str_buffer = new_size;
-}  /* expand_templ_str_buffer */
-
-
-/*
-Ensure that templ_str_buffer has at least size_needed bytes in it.  If not,
-expand templ_str_buffer by reallocating it.
-*/
-#define ensure_templ_str_buffer_space(size_needed)                     \
-{ if (size_templ_str_buffer < size_needed) {                           \
-    expand_templ_str_buffer((sizeof_t)(size_needed));                  \
-  }  /* if */                                                          \
-}  /* ensure_templ_str_buffer_space */
-
 
 static void add_whitespace_to_template_string(a_seq_number     seq_incr,
                                               a_column_number  column_incr)
 
 /*
-Add seq_incr newline characters and column_incr blanks to templ_str_buffer,
-incrementing pos_in_templ_str_buffer accordingly.
+Add seq_incr newline characters and column_incr blanks to temp_text_buffer,
+incrementing pos_in_temp_text_buffer accordingly.
 */
 {
-  ensure_templ_str_buffer_space(pos_in_templ_str_buffer + seq_incr +
+  ensure_temp_text_buffer_space(pos_in_temp_text_buffer + seq_incr +
                                 column_incr);
   for (; seq_incr > 0; --seq_incr) {
-    templ_str_buffer[pos_in_templ_str_buffer++] = '\n';
+    temp_text_buffer[pos_in_temp_text_buffer++] = '\n';
   }  /* for */
   for (; column_incr > 0; --column_incr) {
-    templ_str_buffer[pos_in_templ_str_buffer++] = ' ';
+    temp_text_buffer[pos_in_temp_text_buffer++] = ' ';
   }  /* for */
 }  /* add_whitespace_to_template_string */
 
@@ -236,8 +189,8 @@ incrementing pos_in_templ_str_buffer accordingly.
 static void add_string_to_template_string(char *str)
 /*
 Copy the characters that precede the terminating null of character string
-str into templ_str_buffer.  Note that the terminating null itself is not
-copied -- the buffer itself has no terminating null.  pos_in_templ_str_buffer
+str into temp_text_buffer.  Note that the terminating null itself is not
+copied -- the buffer itself has no terminating null.  pos_in_temp_text_buffer
 will be modified to the represent the total number of characters in the
 buffer.
 */
@@ -247,17 +200,17 @@ buffer.
   if (str != NULL) {
     len = strlen(str);
     /* Be sure there's room in the buffer before copying in the string. */
-    ensure_templ_str_buffer_space(pos_in_templ_str_buffer + len);
-    strncpy(&templ_str_buffer[pos_in_templ_str_buffer], str, size_t_arg(len));
-    pos_in_templ_str_buffer += len;
+    ensure_temp_text_buffer_space(pos_in_temp_text_buffer + len);
+    strncpy(&temp_text_buffer[pos_in_temp_text_buffer], str, size_t_arg(len));
+    pos_in_temp_text_buffer += len;
   }  /* if */
 }  /* add_string_to_template_string */
 
 
 static void add_token_to_template_string(void)
 /*
-Copy characters representing the current token into templ_str_buffer, and
-increase pos_in_templ_str_buffer by the number of characters added.
+Copy characters representing the current token into temp_text_buffer, and
+increase pos_in_temp_text_buffer by the number of characters added.
 */
 {
   a_seq_number     seq_incr;
@@ -270,12 +223,12 @@ increase pos_in_templ_str_buffer by the number of characters added.
        the current token may be less than curr_seq when a macro expansion
        occurs.  Treat the token as being on the current line.) */
     if (curr_token == tok_comma || curr_token == tok_semicolon ||
-        pos_in_templ_str_buffer == 0) {
+        pos_in_temp_text_buffer == 0) {
       /* No space is needed before a comma or semicolon -- or if this is
          the very first token of the declaration. */
       column_incr = 0;
     } else {
-      check_assertion(pos_in_templ_str_buffer > 0 ||
+      check_assertion(pos_in_temp_text_buffer > 0 ||
                       curr_seq < pos_curr_token.seq);
       /* Add a single space. */
       column_incr = 1;
@@ -330,7 +283,7 @@ increase pos_in_templ_str_buffer by the number of characters added.
 static void add_curr_token_pragmas_to_template_string(void)
 /*
 If the current token has any pragmas associated with it, add strings to
-represent them to templ_str_buffer.  Note that all pragmas that are
+represent them to temp_text_buffer.  Note that all pragmas that are
 encountered, whatever their other characteristics, are included.
 */
 {
@@ -419,7 +372,7 @@ the "text" field of *template_ptr to point to it.
   /* curr_seq is initialized to the line on which the template declaration
      begins. */
   curr_seq = template_ptr->source_corresp.decl_position.seq;
-  pos_in_templ_str_buffer = 0;
+  pos_in_temp_text_buffer = 0;
   /* The outer loop goes though the three token caches in order, beginning
      with "template < ... >". */
   cache = template_param_list_cache;
@@ -459,15 +412,15 @@ the "text" field of *template_ptr to point to it.
   }  /* for */
   /* Terminate the string with a semicolon (which will not have been
      included among the cached tokens). */
-  ensure_templ_str_buffer_space(pos_in_templ_str_buffer + 1);
-  templ_str_buffer[pos_in_templ_str_buffer++] = ';';
+  ensure_temp_text_buffer_space(pos_in_temp_text_buffer + 1);
+  temp_text_buffer[pos_in_temp_text_buffer++] = ';';
   /* Allocate a block of file scope IL memory into which the string may
      be copied. */
-  il_string = (char *)alloc_il(pos_in_templ_str_buffer + 1);
-  (void)memcpy(il_string, templ_str_buffer,
-               size_t_arg(pos_in_templ_str_buffer));
+  il_string = (char *)alloc_il(pos_in_temp_text_buffer + 1);
+  (void)memcpy(il_string, temp_text_buffer,
+               size_t_arg(pos_in_temp_text_buffer));
   /* Add a null terminator. */
-  il_string[pos_in_templ_str_buffer] = '\0';
+  il_string[pos_in_temp_text_buffer] = '\0';
   template_ptr->text = il_string;
 #if DEBUG
   if (debug_level >= 3) {

@@ -404,14 +404,6 @@ EXTERN a_variable_ptr
 			   at which the result will be stored; NULL
 			   otherwise. */
 
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-EXTERN sizeof_t	size_mangled_name_buffer /* = 0*/;
-			/* Current allocated size of mangled_name_buffer.
-			   Not per-file.  See lower_name.c for the definition
-			   of mangled_name_buffer. */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-
-
 /*
 Return TRUE if the indicated variable is the return value optimization
 variable for the current function.

@@ -70,6 +70,32 @@ a function can be substituted that does something else.
 */
 #define unique_id_for_il_pointer(ptr) ((unsigned long)(ptr))
 
+/*
+Dynamically-allocated and expandable buffer used for short-lived text.
+"short-lived" means text that is needed during a bit of processing during
+which no parsing or lexical advance is done (no get_token calls, no
+macro expansions, etc.).
+*/
+EXTERN char	*temp_text_buffer /* = NULL */;
+			/* The buffer itself.  Not allocated on a per-file
+			   basis. */
+EXTERN sizeof_t	size_temp_text_buffer /* = 0 */;
+			/* The size of temp_text_buffer, as currently
+			   allocated. */
+/* See il.c for TEMP_TEXT_BUFFER_INCREMENTAL_ALLOCATION. */
+
+extern void expand_temp_text_buffer(sizeof_t size_needed);
+
+/*
+Ensure that temp_text_buffer has at least size_needed bytes in it.  If not,
+expand temp_text_buffer by reallocating it.
+*/
+#define ensure_temp_text_buffer_space(size_needed)                     \
+{ if (size_temp_text_buffer < (size_needed)) {                         \
+    expand_temp_text_buffer((sizeof_t)(size_needed));                  \
+  }  /* if */                                                          \
+}  /* ensure_temp_text_buffer_space */
+
 
 extern char *alloc_il(sizeof_t size);
 

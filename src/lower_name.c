@@ -24,7 +24,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #include "const_ints.h"
 #include "float_pt.h"
 #include "types.h"
-#include "mem_manage.h"
+#include "il.h"
 
 
 static sizeof_t mangled_encoding_for_type(a_type_ptr type,
@@ -36,57 +36,6 @@ static sizeof_t mangled_static_data_member_name(a_variable_ptr variable,
                                                 char           *store_at);
 static void do_scope_other_name_mangling(a_scope_ptr scope);
 
-
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-/*
-Dynamically allocated buffer used to contain transient mangled names,
-those created to find out the mangled name of an entity without recording
-the mangled name in the IL entry.
-*/
-static char	*mangled_name_buffer = NULL;
-			/* Not allocated on a per-file basis. */
-#define MANGLED_NAME_BUFFER_INITIAL_ALLOCATION 300
-#define MANGLED_NAME_BUFFER_INCREMENTAL_ALLOCATION 300
-			/* Initial and incremental allocation sizes for
-			   mangled_name_buffer.  The initial allocation
-			   should be such that almost all cases can be
-			   accepted (so that the realloc is hardly ever
-			   needed). */
-/* See lower_il.h for size_mangled_name_buffer. */
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-
-static void expand_mangled_name_buffer(sizeof_t size_needed)
-/*
-Expand the mangled_name_buffer by reallocating it, so that its total size is at
-least size_needed.  Called by ensure_mangled_name_buffer_space.
-*/
-{
-  sizeof_t new_size;
-
-  db_enter(4, "expand_mangled_name_buffer");
-  new_size = size_mangled_name_buffer +
-             MANGLED_NAME_BUFFER_INCREMENTAL_ALLOCATION;
-  if (new_size < size_needed) new_size  = size_needed;
-  mangled_name_buffer = realloc_general(mangled_name_buffer,
-                                        size_mangled_name_buffer, new_size);
-  size_mangled_name_buffer = new_size;
-  db_exit();
-}  /* expand_mangled_name_buffer */
-
-
-/*
-Ensure that mangled_name_buffer has at least size_needed bytes in it.
-If not, expand mangled_name_buffer by reallocating it.
-*/
-#define ensure_mangled_name_buffer_space(size_needed)                 \
-{ if (size_mangled_name_buffer < size_needed) {                       \
-    expand_mangled_name_buffer((sizeof_t)(size_needed));              \
-  }  /* if */                                                         \
-}  /* ensure_mangled_name_buffer_space */
-
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 static sizeof_t digits_to_represent(unsigned long value)
 /*
@@ -1455,7 +1404,7 @@ char *get_mangled_function_name(a_routine_ptr routine)
 /*
 Get the mangled name for the indicated routine, and return a pointer
 to it.  If the routine name has not been mangled yet, create a copy
-of the mangled name in mangled_name_buffer but do not change the
+of the mangled name in temp_text_buffer but do not change the
 name in the routine entry.
 */
 {
@@ -1476,10 +1425,10 @@ name in the routine entry.
     mangled_name_length = mangled_function_name(routine,
                                                 suppress_param_encoding,
                                                 (char *)NULL);
-    /* Make sure we have enough space in mangled_name_buffer. */
+    /* Make sure we have enough space in temp_text_buffer. */
     alloc_length = mangled_name_length + 1;
-    ensure_mangled_name_buffer_space(alloc_length);
-    mangled_name = mangled_name_buffer;
+    ensure_temp_text_buffer_space(alloc_length);
+    mangled_name = temp_text_buffer;
     /* Create the name. */
     (void)mangled_function_name(routine, suppress_param_encoding,
                                 mangled_name);
@@ -1578,7 +1527,7 @@ char *get_mangled_static_data_member_name(a_variable_ptr variable)
 /*
 Get the mangled name for the indicated static data member, and return
 a pointer to it.  If the variable name has not been mangled yet, create a
-copy of the mangled name in mangled_name_buffer but do not change the
+copy of the mangled name in temp_text_buffer but do not change the
 name in the variable entry.
 */
 {
@@ -1595,10 +1544,10 @@ name in the variable entry.
     /* Determine how long the mangled name is. */
     mangled_name_length = mangled_static_data_member_name(variable,
                                                           (char *)NULL);
-    /* Make sure we have enough space in mangled_name_buffer. */
+    /* Make sure we have enough space in temp_text_buffer. */
     alloc_length = mangled_name_length + 1;
-    ensure_mangled_name_buffer_space(alloc_length);
-    mangled_name = mangled_name_buffer;
+    ensure_temp_text_buffer_space(alloc_length);
+    mangled_name = temp_text_buffer;
     /* Create the name. */
     (void)mangled_static_data_member_name(variable, mangled_name);
     /* Store the final null. */
