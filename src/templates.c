@@ -3944,12 +3944,12 @@ this will never be a class declaration.
   /* Initialize a local stop token set. */
   clear_token_set_array(stop_tokens);
   /* Cache all tokens up to the ";" that follows a declaration, the "{" that
-     begins a definition, or a ":" that begins a ctor initializer list, or a
-     "=" that begins a static data member initializer. */
+     begins a definition, or a ":" that begins a ctor initializer list.
+     For static data members, the entire declaration, including the 
+     initializer, is included in the cache. */
   incr_token_set_array_element(stop_tokens, tok_lbrace);
   incr_token_set_array_element(stop_tokens, tok_colon);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
-  incr_token_set_array_element(stop_tokens, tok_assign);
   cache_token_stream(p_token_cache, stop_tokens);
   /* Add an end-of-source token to the end of the token cache to
      assure that we don't scan past the end of the cache in the actual
@@ -5143,9 +5143,9 @@ as the current token; otherwise, it is consumed.
                                                       template_param_list,
                                                       &tssp);
 #if RECORD_TEMPLATES_IN_IL
-        /* Save a pointer to the token cache for the initializer.  tssp may
-           be NULL in error cases. */
-        if (tssp != NULL) p_template_body_cache = &tssp->token_cache;
+        /* There is no body for static data members.  The initializer
+           is included in the decl_token_cache. */
+        p_template_body_cache = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
       } else if (is_function_type(type)) {
         sym = function_template_declaration(&locator, &func_info,
