@@ -170,8 +170,9 @@ definition.  The locator must refer to a qualified name.
          a tentative type lookup (so that no error will be issued if the
          name is not found).  The look at the resulting symbol. */
       a_symbol_ptr	sym;
-      coalesce_and_lookup_qualified_name(GID_NO_OPTIONS, ilm_tentative_type,
-                                         &err);
+      (void)coalesce_and_lookup_qualified_name(GID_NO_OPTIONS,
+                                               ilm_tentative_type,
+                                               &err);
       sym = locator_for_curr_id.specific_symbol;
       if (sym != NULL && is_constructor_symbol(sym)) {
         result = TRUE;
