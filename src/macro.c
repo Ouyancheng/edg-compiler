@@ -404,7 +404,7 @@ ensure_arg_raw_text_space.
       new_size = avail_map->max_len;
       avail_map->raw_text = map->raw_text;
       avail_map->max_len = map->max_len;
-      memcpy(new_raw_text, map->raw_text, (int)map->raw_len);
+      (void)memcpy(new_raw_text, map->raw_text, size_t_arg(map->raw_len));
       goto have_space;
     }  /* if */
   }  /* for */
@@ -656,7 +656,7 @@ reallocated; that's why an extra level of indirection is used.
          this use. */
       ensure_macro_buffer_space(len);
       text_loc = next_avail_in_macro_buffer;
-      memcpy(text_loc, old_slmp->inserted_text, (int)len);
+      (void)memcpy(text_loc, old_slmp->inserted_text, size_t_arg(len));
       next_avail_in_macro_buffer += len;
     }  /* if */
     /* Add the new source line modification. */
@@ -852,9 +852,9 @@ so a hanging delete is in effect).
       ensure_macro_buffer_space(len_of_curr_token+2);
       /* Insert the identifier name. */
       ins_loc = next_avail_in_macro_buffer;
-      memcpy(ins_loc,
-             locator_for_curr_id.symbol_header->identifier,
-             (int)len_of_curr_token);
+      (void)memcpy(ins_loc,
+                   locator_for_curr_id.symbol_header->identifier,
+                   size_t_arg(len_of_curr_token));
       next_avail_in_macro_buffer += len_of_curr_token;
       *next_avail_in_macro_buffer++ = '\n';
       *next_avail_in_macro_buffer++ = '\0';
@@ -1139,7 +1139,8 @@ of that text).
        auxiliary buffer. */
     if (any_white_space_skipped) *pos_in_aux_buffer++ = ' ';
     /* Copy the text of the token to the auxiliary buffer. */
-    memcpy(pos_in_aux_buffer, start_of_curr_token, (int)len_of_curr_token);
+    (void)memcpy(pos_in_aux_buffer, start_of_curr_token,
+                size_t_arg(len_of_curr_token));
     pos_in_aux_buffer += len_of_curr_token;
     last_token_of_expansion = curr_token;
   }  /* while */
@@ -1193,8 +1194,8 @@ of that text).
 #endif /* DEBUG */
     ensure_aux_buffer_for_pcc_macros_space(num_chars_added_from_source_line,
                                            pos_in_aux_buffer);
-    memcpy(pos_in_aux_buffer, loc_following_insertion,
-           (int)num_chars_added_from_source_line);
+    (void)memcpy(pos_in_aux_buffer, loc_following_insertion,
+                 size_t_arg(num_chars_added_from_source_line));
     pos_in_aux_buffer += num_chars_added_from_source_line;
     /* Adjust the line modification so that the additional text in the
        primary source line is also deleted. */
@@ -1242,7 +1243,8 @@ of that text).
     ensure_macro_buffer_space(len_new);
     /* Copy the new text over the old text.  This will copy up to and
        including the final null. */
-    memcpy(pos_in_macro_buffer, aux_buffer_for_pcc_macros, (int)len_new);
+    (void)memcpy(pos_in_macro_buffer, aux_buffer_for_pcc_macros,
+                 size_t_arg(len_new));
     /* Reset the next available position in macro_buffer to just after
        the new text. */
     next_avail_in_macro_buffer += len_new;
@@ -1678,8 +1680,8 @@ end_scan_for_macro_modifs:;
             if (any_white_space_skipped) {
               map->raw_text[(map->raw_len)++] = ' ';
             }  /* if */
-            memcpy(&(map->raw_text[map->raw_len]), start_of_curr_token,
-                   (int)len_of_curr_token);
+            (void)memcpy(&(map->raw_text[map->raw_len]), start_of_curr_token,
+                         size_t_arg(len_of_curr_token));
             map->raw_len += len_of_curr_token;
             /* Suppress end-of-token markers in pcc mode. */
             if (C_dialect != C_dialect_pcc) need_end_of_token_marker = TRUE;
@@ -1927,7 +1929,7 @@ end_all_args_scan:;
   *next_avail_in_macro_buffer++ = '\0';
   if (special_repl_text) {
     /* __LINE__,  __FILE__, or defined; the text is just a string. */
-    memcpy(src_loc, repl_text, (int)repl_text_len);
+    (void)memcpy(src_loc, repl_text, size_t_arg(repl_text_len));
   } else {
     /* More complicated expansion; do it by interpreting the replacement
        text sections. */
@@ -1964,7 +1966,7 @@ end_all_args_scan:;
 #endif /* CHECKING */
         }  /* switch */
       }  /* if */
-      memcpy(src_loc, text_loc, (int)sect_len);
+      (void)memcpy(src_loc, text_loc, size_t_arg(sect_len));
       if (rts_kind == rt_argument && map->modif_list != NULL) {
         /* If this is an expanded argument value, and there are any source
            modifications to the raw text to produce the expanded text
@@ -2327,7 +2329,7 @@ text section, if there is one, or is NULL otherwise.
     put_start_of_section(rt_text, 0);
   }  /* if */
   ensure_macro_buffer_space(length);
-  memcpy(next_avail_in_macro_buffer, str, (int)length);
+  (void)memcpy(next_avail_in_macro_buffer, str, size_t_arg(length));
   next_avail_in_macro_buffer += length;
   /* Increment number of characters in current text section. */
   rtp = *curr_text_section+1;
@@ -2456,7 +2458,8 @@ Scan and process a #define directive.
 #if DEBUG
             param_name_string_space += len_of_curr_token+1;
 #endif /* DEBUG */
-            memcpy(pp->name, start_of_curr_token, (int)len_of_curr_token);
+            (void)memcpy(pp->name, start_of_curr_token,
+                         size_t_arg(len_of_curr_token));
             pp->name[len_of_curr_token] = '\0';
             if (param_list == NULL) {
               param_list = pp;
@@ -2730,7 +2733,7 @@ redef_error:
 #if DEBUG
     macro_definition_space += repl_text_len+1;
 #endif /* DEBUG */
-    memcpy(repl_text, macro_buffer, (int)repl_text_len);
+    (void)memcpy(repl_text, macro_buffer, size_t_arg(repl_text_len));
     repl_text[repl_text_len] = '\0';
     /* Allocate and fill the macro definition block. */
     if (mdp == NULL) {
@@ -2837,7 +2840,7 @@ the entry in either case.
     /* The name must be copied to front end storage since it's currently
        part of the source line. */
     app->name   = alloc_fe((sizeof_t)(name_len+1));
-    memcpy(app->name, name, (int)name_len);
+    (void)memcpy(app->name, name, size_t_arg(name_len));
     app->name[name_len] = '\0';
     app->values = NULL;
   }  /* if */
@@ -2891,8 +2894,8 @@ TRUE if there was some error.
          into macro_buffer.  White space is not significant and is not
          saved. */
       ensure_macro_buffer_space(len_of_curr_token+1);
-      memcpy(next_avail_in_macro_buffer, start_of_curr_token,
-             (int)len_of_curr_token);
+      (void)memcpy(next_avail_in_macro_buffer, start_of_curr_token,
+                   size_t_arg(len_of_curr_token));
       next_avail_in_macro_buffer += len_of_curr_token;
       *next_avail_in_macro_buffer++ = ' ';
     }  /* while */

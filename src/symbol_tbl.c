@@ -1076,7 +1076,7 @@ have to set it directly.
 #if DEBUG
   symbol_name_string_space += length+1;
 #endif /* DEBUG */
-  memcpy(hdr_ptr->identifier, identifier, (int)length);
+  (void)memcpy(hdr_ptr->identifier, identifier, size_t_arg(length));
 
   /* Terminate the string and set the length. */
   hdr_ptr->identifier[length] = '\0';
@@ -2590,8 +2590,8 @@ front.  This is used in C++ for destructor names.
   /* Copy the identifier name into a dynamically-allocated buffer and put
      a tilde at the front.  The final null is not copied. */
   ensure_ident_buffer_space(ident_length);
-  memcpy(ident_buffer+1, locator->symbol_header->identifier,
-         (int)ident_length);
+  (void)memcpy(ident_buffer+1, locator->symbol_header->identifier,
+               size_t_arg(ident_length));
   ident_buffer[0] = '~';
   ident_length++;
   position = locator->source_position;
@@ -2696,7 +2696,7 @@ used for C++ constructs like "operator+".  Use pos as the source position.
     opname_length = OPERATOR_LEN + strlen(opstr) + blank_needed;
     hdr_ptr->identifier_length = opname_length;
     hdr_ptr->identifier = str = alloc_il((sizeof_t)(opname_length + 1));
-    (void)memcpy(str, "operator", OPERATOR_LEN);
+    (void)memcpy(str, "operator", size_t_arg(OPERATOR_LEN));
     if (blank_needed) str[OPERATOR_LEN] = ' ';
     (void)strcpy(str+OPERATOR_LEN+blank_needed, opstr);
 #if DEBUG
@@ -2760,7 +2760,7 @@ in the conversion header list; if there is none, a new one is created.
       type_name = format_type_string(type, &type_name_length);
       sym_hdr->identifier_length = (sizeof_t)OPERATOR_LEN + type_name_length;
       sym_hdr->identifier = alloc_il(sym_hdr->identifier_length + 1);
-      (void)memcpy(sym_hdr->identifier, "operator ", OPERATOR_LEN);
+      (void)memcpy(sym_hdr->identifier, "operator ", size_t_arg(OPERATOR_LEN));
       (void)strcpy((sym_hdr->identifier + OPERATOR_LEN), type_name);
 #if DEBUG
       symbol_name_string_space += sym_hdr->identifier_length;
