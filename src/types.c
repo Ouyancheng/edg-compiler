@@ -1486,6 +1486,7 @@ which do the initial test for exact pointer equality.
   register a_boolean            identical = FALSE;
   a_param_type_ptr              list1, list2;
   a_routine_type_supplement_ptr rtsp1, rtsp2;
+  a_symbol_ptr                  sym_1, sym_2;
 
   db_enter(5, "f_identical_types");
 
@@ -1589,6 +1590,13 @@ which do the initial test for exact pointer equality.
                              /*if_func_template=*/FALSE)) {
                 identical = TRUE;
               }  /* if */
+            } else if (cssp_1->template_param_for_proxy_class != NULL &&
+                       cssp_2->template_param_for_proxy_class != NULL) {
+              if (f_identical_types(cssp_1->template_param_for_proxy_class,
+                                    cssp_2->template_param_for_proxy_class,
+                                    il_identical)) {
+                identical = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
           break;
@@ -1644,10 +1652,11 @@ funcs_not_identical:;
                              type_2->variant.template_param.list_position);
                 break;
               case tptk_member:
-                check_assertion(type_1->source_corresp.name != NULL &&
-                                type_2->source_corresp.name != NULL);
-                if (strcmp(type_1->source_corresp.name,
-                           type_2->source_corresp.name) == 0) {
+                sym_1 = (a_symbol_ptr)type_1->source_corresp.assoc_info;
+                sym_2 = (a_symbol_ptr)type_2->source_corresp.assoc_info;
+                check_assertion(sym_1 != NULL && sym_2 != NULL);
+                if (sym_1->header == sym_2->header) {
+                  /* The names are the same. */
                   identical = (identical_types(type_1->source_corresp.
                                                     class_of_which_a_member,
                                                type_2->source_corresp.
