@@ -50,23 +50,15 @@ extern an_expr_node_ptr make_runtime_rout_call(char             *name,
                                                a_type_ptr       return_type,
                                                an_expr_node_ptr arg_expr_list);
 
-extern a_statement_ptr insert_assignment_statement(
-                                       an_expr_node_ptr       lvalue_expr,
-                                       an_expr_operator_kind  op,
-                                       an_expr_node_ptr       rvalue_expr,
-                                       an_insert_location_ptr insert_location);
-
-extern a_statement_ptr insert_var_assignment_statement(
-                                       a_variable_ptr         lvalue_var,
-                                       an_expr_operator_kind  op,
-                                       an_expr_node_ptr       rvalue_expr,
-                                       an_insert_location_ptr insert_location);
-
 extern void set_var_init_pos_descr(a_variable_ptr        var,
                                    an_init_pos_descr_ptr ipdp);
 
 extern void set_var_indirect_init_pos_descr(a_variable_ptr        var,
                                             an_init_pos_descr_ptr ipdp);
+#if !DO_FULL_PORTABLE_EH_LOWERING
+extern void set_thrown_object_init_pos_descr(a_type_ptr            throw_type,
+                                             an_init_pos_descr_ptr ipdp);
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 
 extern a_type_ptr type_from_init_pos_descr(an_init_pos_descr_ptr ipdp);
 

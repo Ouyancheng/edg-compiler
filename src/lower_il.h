@@ -74,14 +74,9 @@ when a just-allocated entry requires lowering.
 */
 #define mark_as_not_visited(entry_ptr) (il_lowering_flag_of(entry_ptr) = FALSE)
 
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
 
-typedef unsigned long a_cleanup_region_number;
-			/* Number for a destructible region, used for
-			   exception handling cleanup. */
-
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
-
+/* This type is defined even if GENERATE_EH_TABLES is FALSE because it's
+   used as a parameter type. */
 typedef unsigned long a_handle_number;
 			/* Number in the region table that identifies an
 			   entry in the object address table or in the array
@@ -127,6 +122,13 @@ typedef struct an_init_pos_descr {
   a_variable_ptr
 		variable;
 			/* The base variable. */
+#if !DO_FULL_PORTABLE_EH_LOWERING
+  a_byte_boolean
+		thrown_object_address;
+			/* TRUE if the entity is the runtime location to which
+			   a thrown object should be copied.  Note that
+			   variable will be NULL in that case. */
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   a_byte_boolean
 		indirect_through_variable;
 			/* If TRUE, variable is a pointer and its value gives
@@ -160,13 +162,26 @@ typedef struct a_destructible_entity_descr {
   an_init_pos_descr
 		init_pos_descr;
 			/* Location of the entity. */
+  a_dynamic_init_ptr
+		cleanup_state_to_set_when_starting_destruction;
+			/* When destroying this entity when exceptions are
+			   enabled, this is the cleanup state to establish
+			   as current when beginning the destruction.  It's
+			   the next destruction to process after this
+			   entity is destroyed. */
+#if DO_UNORDERED_EH_PROCESSING
+			/* In the presence of unordered initializations in the
+			   IL, this indicates the first entry in a set of
+			   unordered destructions, and in that way differs from
+			   next_in_region_table. */
+#endif /* DO_UNORDERED_EH_PROCESSING */
   a_variable_ptr
 		conditional_flag_var;
 			/* If non-NULL, points to a variable that is the
 			   conditional flag variable that is set to non-zero
 			   to indicate that the initialization has been
 			   done. */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
   a_handle_number
 		conditional_flag_handle;
 			/* If conditional_flag_var is non-NULL, this is
@@ -186,19 +201,6 @@ typedef struct a_destructible_entity_descr {
 			/* Note that if the initialization/destruction is part
 			   of an unordered set, this number will be the number
 			   of the first member of the set. */
-#endif /* DO_UNORDERED_EH_PROCESSING */
-  a_dynamic_init_ptr
-		cleanup_state_to_set_when_starting_destruction;
-			/* When destroying this entity when exceptions are
-			   enabled, this is the cleanup state to establish
-			   as current when beginning the destruction.  It's
-			   the next destruction to process after this
-			   entity is destroyed. */
-#if DO_UNORDERED_EH_PROCESSING
-			/* In the presence of unordered initializations in the
-			   IL, this indicates the first entry in a set of
-			   unordered destructions, and in that way differs from
-			   next_in_region_table. */
 #endif /* DO_UNORDERED_EH_PROCESSING */
   a_constant_ptr
 		region_table_entry;
@@ -226,7 +228,7 @@ typedef struct a_destructible_entity_descr {
 			   front end order (reflected by the dynamic init
 			   next_in_destruction_list pointer). */
 #endif /* DO_UNORDERED_EH_PROCESSING */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
 } a_destructible_entity_descr;
 
 EXTERN a_destructible_entity_descr_ptr
@@ -356,17 +358,19 @@ typedef struct a_context {
 			/* Used to save/restore the global variable
 			   curr_object_lifetime over push_context/
 			   pop_context. */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
   a_dynamic_init_ptr
 		saved_curr_cleanup_state;
 			/* Used to save/restore the global variable
 			   curr_cleanup_state over push_context/pop_context. */
+#if DO_FULL_PORTABLE_EH_LOWERING
   a_variable_ptr
 		try_frame;
 			/* For a context associated with a "try" block, this
 			   points to the variable for the stack frame for the
 			   try. */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* GENERATE_EH_TABLES */
 } a_context;
 
 EXTERN a_context_ptr
@@ -480,6 +484,22 @@ extern void insert_expr(an_expr_node_ptr       inserted_expr,
 
 extern void insert_statement(a_statement_ptr        statement,
                              an_insert_location_ptr insert_location);
+
+extern a_statement_ptr insert_expr_statement(
+                                       an_expr_node_ptr       node,
+                                       an_insert_location_ptr insert_location);
+
+extern a_statement_ptr insert_assignment_statement(
+                                       an_expr_node_ptr       lvalue_expr,
+                                       an_expr_operator_kind  op,
+                                       an_expr_node_ptr       rvalue_expr,
+                                       an_insert_location_ptr insert_location);
+
+extern a_statement_ptr insert_var_assignment_statement(
+                                       a_variable_ptr         lvalue_var,
+                                       an_expr_operator_kind  op,
+                                       an_expr_node_ptr       rvalue_expr,
+                                       an_insert_location_ptr insert_location);
 
 extern a_statement_ptr make_call_statement(a_routine_ptr    routine,
                                            an_expr_node_ptr arg_list);

@@ -46,10 +46,10 @@ static void lower_destructor_dynamic_init(
                                    an_init_pos_descr_ptr  ipdp,
                                    a_boolean              have_complete_object,
                                    an_insert_location_ptr insert_location);
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location);
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
 
 /*
 Put the current code_pos_for_lowering into a statement, if the statement
@@ -146,83 +146,6 @@ its return type is return_type.
   }  /* if */
   return *routine;
 }  /* make_runtime_routine */
-
-
-static a_statement_ptr insert_expr_statement(
-                                        an_expr_node_ptr       node,
-                                        an_insert_location_ptr insert_location)
-/*
-Make a statement from expression expr.  Insert the statement at
-*insert_location and update *insert_location.  Return a pointer to the
-statement, or NULL if no statement was created (in an expression insert
-context).
-*/
-{
-  a_statement_ptr stmt;
-
-  if (is_expr_insert_location_kind(insert_location->kind)) {
-    /* Insert within an expression.  The statement need not be created. */
-    insert_expr(node, insert_location);
-    stmt = NULL;
-  } else {
-    /* Make the expression statement. */
-    stmt = alloc_expr_statement(node);
-    /* Insert the statement at the right location. */
-    insert_statement(stmt, insert_location);
-  }  /* if */
-  return stmt;
-}  /* insert_expr_statement */
-
-
-a_statement_ptr insert_assignment_statement(
-                                        an_expr_node_ptr       lvalue_expr,
-                                        an_expr_operator_kind  op,
-                                        an_expr_node_ptr       rvalue_expr,
-                                        an_insert_location_ptr insert_location)
-/*
-Make a statement that assigns rvalue_expr to lvalue_expr using assignment
-operator op.  Insert the statement at *insert_location and update
-*insert_location.  Return a pointer to the statement, or NULL if no
-statement was created (in an expression insert context).
-*/
-{
-  a_statement_ptr  assign_stmt;
-  an_expr_node_ptr assign_node;
-
-  lvalue_expr->next = rvalue_expr;
-  /* Make the assignment operation. */
-  assign_node = make_operator_node(op,
-                                   f_skip_typerefs(
-                                           type_pointed_to(lvalue_expr->type)),
-                                   lvalue_expr);
-  /* Make the expression statement. */
-  assign_stmt = insert_expr_statement(assign_node, insert_location);
-  return assign_stmt;
-}  /* insert_assignment_statement */
-
-
-a_statement_ptr insert_var_assignment_statement(
-                                        a_variable_ptr         lvalue_var,
-                                        an_expr_operator_kind  op,
-                                        an_expr_node_ptr       rvalue_expr,
-                                        an_insert_location_ptr insert_location)
-/*
-Make a statement that assigns rvalue_expr to lvalue_var using assignment
-operator op.  Insert the statement at *insert_location and update
-*insert_location.  Return a pointer to the statement, or NULL if no
-statement was created (in an expression insert context).
-*/
-{
-  a_statement_ptr  assign_stmt;
-  an_expr_node_ptr lvalue_expr;
-
-  /* Make an expression for the lvalue address. */
-  lvalue_expr = var_lvalue_expr(lvalue_var);
-  /* Make and insert the assignment. */
-  assign_stmt = insert_assignment_statement(lvalue_expr, op, rvalue_expr,
-                                            insert_location);
-  return assign_stmt;
-}  /* insert_var_assignment_statement */
 
 
 static an_expr_node_ptr make_vtbl_address_node(a_variable_ptr var)
@@ -691,6 +614,9 @@ Clear an initialization position description entry to default values.
 */
 {
   ipdp->variable                  = NULL;
+#if !DO_FULL_PORTABLE_EH_LOWERING
+  ipdp->thrown_object_address     = FALSE;
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   ipdp->indirect_through_variable = FALSE;
   ipdp->whole_array               = FALSE;
   ipdp->base_type                 = NULL;
@@ -724,6 +650,22 @@ to by variable var.
   ipdp->base_type = type_pointed_to(var->type);
 }  /* set_var_indirect_init_pos_descr */
 
+#if !DO_FULL_PORTABLE_EH_LOWERING
+
+void set_thrown_object_init_pos_descr(a_type_ptr            throw_type,
+                                      an_init_pos_descr_ptr ipdp)
+/*
+Make an initialization position description entry for the runtime location
+to which a thrown object should be copied.  throw_type is the type of
+object being thrown.
+*/
+{
+  clear_init_pos_descr(ipdp);
+  ipdp->thrown_object_address = TRUE;
+  ipdp->base_type = throw_type;
+}  /* set_thrown_object_init_pos_descr */
+
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 
 a_type_ptr type_from_init_pos_descr(an_init_pos_descr_ptr ipdp)
 /*
@@ -767,6 +709,9 @@ variable (or a part of one).
 */
 {
   a_boolean is_for_static_var = !ipdp->indirect_through_variable &&
+#if !DO_FULL_PORTABLE_EH_LOWERING
+                                !ipdp->thrown_object_address &&
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
                     has_static_storage_duration(ipdp->variable->storage_class);
   return is_for_static_var;
 }  /* init_pos_is_static */
@@ -795,13 +740,13 @@ and return a pointer to it.
   dedp->next = NULL;
   clear_init_pos_descr(&dedp->init_pos_descr);
   dedp->conditional_flag_var = NULL;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
   dedp->conditional_flag_handle = 0;
   dedp->region_number = null_eh_region_number;
   dedp->cleanup_state_to_set_when_starting_destruction = NULL;
   dedp->region_table_entry = NULL;
   dedp->next_in_region_table = NULL;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
   return dedp;
 }  /* alloc_destructible_entity_descr_copy */
 
@@ -895,7 +840,7 @@ cannot be a bitfield selection.
        address_taken flag has changed a few times, so the processing
        here is conservative -- it sets the flag in all cases, which
        guarantees it will work. */
-    if (!ipdp->indirect_through_variable) {
+    if (!ipdp->indirect_through_variable && ipdp->variable != NULL) {
       set_variable_address_taken(ipdp->variable);
     }  /* if */
   }  /* if */
@@ -978,6 +923,16 @@ TRUE, the entity is the destination of an initialization operation.
   an_expr_node_ptr entity_node;
 
   /* Make a node for the base address. */
+#if !DO_FULL_PORTABLE_EH_LOWERING
+  if (ipdp->thrown_object_address) {
+    /* The address is the address in the runtime to which a thrown object
+       should be copied. */
+    entity_node = make_thrown_object_address_node();
+    entity_node = add_cast_if_necessary(entity_node,
+                                        make_pointer_type(ipdp->base_type));
+  } else
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+  /* Do not insert code here; this is the else of the above if. */
   if (ipdp->indirect_through_variable) {
     /* Indirect through the variable. */
     entity_node = var_rvalue_expr(ipdp->variable);
@@ -1088,9 +1043,6 @@ for the source parameter of the copy constructor.
 }  /* var_for_copy_constructor_source */
 
 
-#if !DO_LOWERING_OF_EXCEPTION_HANDLING
-/*ARGSUSED*/  /* <-- dest is not used in that case. */
-#endif /* !DO_LOWERING_OF_EXCEPTION_HANDLING */
 static an_expr_node_ptr implied_source_of_copy(
                                        a_constructor_init_ptr ctor_init,
                                        an_init_pos_descr_ptr  dest,
@@ -1122,34 +1074,19 @@ address that escapes, not simply as an address because it's an lvalue).
     source_node = make_init_entity_node(&cctor_source_ipd, using_as_address,
                                         /*using_as_dest=*/FALSE);
   } else {
-    /* The implied source is the address in __caught_object_address. */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
-    a_variable_ptr catch_parameter, caught_object_addr;
+    a_variable_ptr catch_parameter;
     a_type_ptr     param_type;
-    caught_object_addr = make_caught_object_address_var();
+
     /* We expect a simple catch parameter as the destination. */
     check_assertion(dest->modifiers == NULL &&
                     !dest->indirect_through_variable);
     catch_parameter = dest->variable;
     param_type = catch_parameter->type;
-    if (is_reference_type(param_type)) {
-      /* Initializing a reference parameter, so copy the pointer into
-         the parameter, instead of copying the object pointed to. */
-      source_node = var_lvalue_expr(caught_object_addr);
-      /* Set the address_taken flag if the variable address escapes.  This
-         is for completeness; it would be strange for this routine to be
-         called with using_as_address TRUE for this case. */
-      if (using_as_address) set_variable_address_taken(caught_object_addr);
-     } else {
-      /* Normal case (not a reference). */
-      source_node = var_rvalue_expr(caught_object_addr);
-    }  /* if */
+    /* Make the address of the caught object. */
+    source_node = make_caught_object_address_node(param_type);
     /* Cast the source node a pointer to the type of thing to be copied. */
     source_node = add_cast_if_necessary(source_node,
                                         make_pointer_type(param_type));
-#else  /* !DO_LOWERING_OF_EXCEPTION_HANDLING */
-    unexpected_condition_str("implied_source_of_copy: catch parameter");
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   }  /* if */
   return source_node;
 }  /* implied_source_of_copy */
@@ -1399,9 +1336,6 @@ type of the array pointed to by ptr_type, and return a pointer to it.
 }  /* size_elem_node_from_pointer_type */
 
 
-#if !DO_LOWERING_OF_EXCEPTION_HANDLING
-/*ARGSUSED*/  /* <-- dtor_routine is not used in that case. */
-#endif /* !DO_LOWERING_OF_EXCEPTION_HANDLING */
 static an_expr_node_ptr make_vec_new_call(an_expr_node_ptr entity_node,
                                           an_expr_node_ptr num_elem_node,
                                           a_routine_ptr    ctor_routine,
@@ -1449,7 +1383,6 @@ A pointer to the expression created is returned.
   entity_node->next = num_elem_node;
   num_elem_node->next = size_elem_node;
   size_elem_node->next = func_addr_node;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   if (exceptions_enabled && dtor_routine != NULL) {
     /* __vec_new_eh call, with destructor. */
     an_expr_node_ptr dtor_addr_node = function_addr_expr(dtor_routine,
@@ -1459,13 +1392,10 @@ A pointer to the expression created is returned.
     call_node = make_runtime_rout_call("__vec_new_eh", &vec_new_eh_routine,
                                        void_star_type(), arg_expr_list);
   } else {
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     /* __vec_new call, without destructor. */
     call_node = make_runtime_rout_call("__vec_new", &vec_new_routine,
                                        void_star_type(), arg_expr_list);
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   return call_node;
 }  /* make_vec_new_call */
 
@@ -1594,10 +1524,8 @@ typedef struct a_generated_routine_context {
 		region_to_switch_back_to;
   a_scope_depth	depth_innermost_function_scope;
   a_scope_ptr	innermost_function_scope;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   a_dynamic_init_ptr
 		curr_cleanup_state;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 } a_generated_routine_context;
 
 
@@ -1619,9 +1547,7 @@ grcontext is a local variable used to save state for later restoration.
      for object lifetimes in this function (there is no scope stack entry). */
   grcontext->depth_innermost_function_scope = depth_innermost_function_scope;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   grcontext->curr_cleanup_state = curr_cleanup_state;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   grcontext->innermost_function_scope = innermost_function_scope;
   innermost_function_scope = scope;
   add_object_lifetime_to_function_scope(scope);
@@ -1652,9 +1578,7 @@ Pop function corresponding to push_generated_routine_context.
   add_scope_orphaned_il_lists(scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   innermost_function_scope = grcontext->innermost_function_scope;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   curr_cleanup_state = grcontext->curr_cleanup_state;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
   done_with_memory_region(region_number);
   switch_il_region(grcontext->region_to_switch_back_to);
@@ -1982,7 +1906,6 @@ and not for constructor_init entries in destructors.
   an_insert_location_ptr          effective_insert_loc;
 
   check_assertion(dedp != NULL);
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   if (exceptions_enabled) {
     /* Set the cleanup state to what it should be after the destruction,
        because as soon as we start the destruction it's the destructor's
@@ -1991,7 +1914,6 @@ and not for constructor_init entries in destructors.
                           dedp->cleanup_state_to_set_when_starting_destruction,
                           insert_location);
   }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   effective_insert_loc = insert_location;
   /* If the entity is conditionally-created temporary, generate an
      "if" statement to test whether or not the variable was ever
@@ -2001,9 +1923,8 @@ and not for constructor_init entries in destructors.
                               insert_location, &insert_location2);
     effective_insert_loc = &insert_location2;
   }  /* if */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
-  if (exceptions_enabled) {
 #if DO_UNORDERED_EH_PROCESSING
+  if (exceptions_enabled) {
     if (dip->unordered) {
       /* For unordered destructions, clear the associated conditional flag
          to indicate that the destruction has been done.  That's necessary
@@ -2019,9 +1940,8 @@ and not for constructor_init entries in destructors.
                                    effective_insert_loc);
       }  /* if */
     }  /* if */
-#endif /* DO_UNORDERED_EH_PROCESSING */
   }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* DO_UNORDERED_EH_PROCESSING */
   add_destructor_call(dip->destructor,
                       &dedp->init_pos_descr,
                       /*have_complete_object=*/TRUE,
@@ -2403,9 +2323,9 @@ may be many different such routines generated (all unnamed).
 }  /* file_scope_term_insert_location */
 
 
-#if !DO_LOWERING_OF_EXCEPTION_HANDLING
+#if !GENERATE_EH_TABLES
 /*ARGSUSED*/  /* <-- cond_var_handle is not used in that case. */
-#endif /* !DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* !GENERATE_EH_TABLES */
 void init_conditional_flag_var(a_variable_ptr     cond_var,
                                a_handle_number    cond_var_handle,
                                an_insert_location *insert_location)
@@ -2417,14 +2337,14 @@ object address table entry to the address of the variable.  The code is
 inserted at *insert_location.
 */
 {
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
   if (exceptions_enabled) {
     an_init_pos_descr ipd;
     /* Put the address of the variable into the object address table. */
     set_var_init_pos_descr(cond_var, &ipd);
     init_object_addr_table_entry(&ipd, cond_var_handle, insert_location);
   }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
   /* If the conditional flag is static, initialization to zero is
      implicit and requires nothing special in the IL. */
   if (cond_var->storage_class != (a_storage_class)sc_static) {
@@ -2473,7 +2393,7 @@ to a nonzero value.
                             insert_location);
 }  /* set_conditional_flag_var */
 
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
 
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location)
@@ -2490,7 +2410,7 @@ variable to a zero value.
                             insert_location);
 }  /* reset_conditional_flag_var */
 
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
 
 /*
 Pointer to the struct type used to provide information to the runtime about
@@ -3069,17 +2989,17 @@ do_assignment:;
         set_conditional_flag_var(dedp->conditional_flag_var,
                                  eff_insert_location);
       }  /* if */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
       if (exceptions_enabled) {
+#if GENERATE_EH_TABLES
         /* Make a region table entry for the entity (and for its conditional
            flag, if it has one). */
         make_dyn_init_region_table_entry(dip,
                                          eff_context->latest_initialization,
                                          insert_location);
+#endif /* GENERATE_EH_TABLES */
         /* Insert code to set the current cleanup state. */
         set_curr_cleanup_state(dip, insert_location);
       }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
       /* Record this dynamic initialization as the last encountered in the
          current context (and therefore the place to start to generate
          cleanup code if we exit the lifetime after this point). */
@@ -3192,7 +3112,6 @@ and *insert_location is updated.
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   if (exceptions_enabled) {
     a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
     /* Put the entity position in the destructible_entity_descr. */
@@ -3204,7 +3123,6 @@ and *insert_location is updated.
                           dedp->cleanup_state_to_set_when_starting_destruction,
                           insert_location);
   }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   add_destructor_call(dip->destructor, ipdp, have_complete_object,
                       insert_location);
   error_position = saved_error_position;
@@ -3504,9 +3422,7 @@ The subtree of the node has not yet been lowered.
   an_insert_location          insert_location;
   an_init_pos_descr           ipd;
   a_boolean                   keep_dynamic_init;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   a_dynamic_init_ptr          dyn_init_to_free_storage;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
@@ -3585,7 +3501,6 @@ The subtree of the node has not yet been lowered.
          type so that it is an array if necessary. */
       set_var_indirect_init_pos_descr(temp_var, &ipd);
       ipd.base_type = ndsp->type;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
       dyn_init_to_free_storage = ndsp->freeing_of_storage_on_exception;
       if (dyn_init_to_free_storage != NULL) {
         /* The storage for this "new" is supposed to be freed if an exception
@@ -3604,26 +3519,27 @@ The subtree of the node has not yet been lowered.
         copy_init_pos_descr(&ipd,
                             &dyn_init_to_free_storage->
                                     destructible_entity_descr->init_pos_descr);
+#if GENERATE_EH_TABLES
         make_dyn_init_region_table_entry(dyn_init_to_free_storage,
                                          curr_context->latest_initialization,
                                          &insert_location);
-        /* Set the cleanup state to the delete cleanup entry. */
-        set_curr_cleanup_state(dyn_init_to_free_storage,
-                               &insert_location);
         /* Set the conditional_flag variable to nonzero. */
         set_conditional_flag_var(dyn_init_to_free_storage->
                                destructible_entity_descr->conditional_flag_var,
                                    &insert_location);
+#endif /* GENERATE_EH_TABLES */
+        /* Set the cleanup state to the delete cleanup entry. */
+        set_curr_cleanup_state(dyn_init_to_free_storage,
+                               &insert_location);
         curr_context->latest_initialization = dyn_init_to_free_storage;
       }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
       /* Generate code for the initialization. */
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL,
                          &insert_location, &keep_dynamic_init);
       check_assertion(!keep_dynamic_init);
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
       if (dyn_init_to_free_storage != NULL) {
         /* While the initialization was being done, if an exception was
            thrown the storage would have been freed.  Now, the initialization
@@ -3632,7 +3548,7 @@ The subtree of the node has not yet been lowered.
                                destructible_entity_descr->conditional_flag_var,
                                    &insert_location);
       }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
       /* Build the ?: operation.  Its first argument is the comparison of
          the temp pointer against NULL; its second is the initialization code;
          and its third is another NULL constant of the right type. */
@@ -4530,10 +4446,8 @@ constructor scope, and also lower the user code.
   a_routine_ptr      new_routine = ctsp->assoc_operator_new_routine;
   a_variable_ptr     this_param_var = scope->variant.routine.parameters;
   an_expr_node_ptr   if_node;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   a_destructible_entity_descr_ptr
                      dedp;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 
   saved_code_pos = code_pos_for_lowering;
@@ -4585,7 +4499,6 @@ constructor scope, and also lower the user code.
       this_param_node->next = call_node;
       assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
                                        call_node->type, this_param_node);
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
       if (exceptions_enabled) {
         an_insert_location expr_insert_location;
         a_dynamic_init_ptr dyn_init_to_free_storage;
@@ -4625,19 +4538,20 @@ constructor scope, and also lower the user code.
         dedp = dyn_init_to_free_storage->destructible_entity_descr;
         set_var_indirect_init_pos_descr(this_param_var,
                                         &dedp->init_pos_descr);
-        /* Set the conditional_flag variable to nonzero.  The code to
-           initialize it to zero is inserted later in this routine. */
-        set_conditional_flag_var(dedp->conditional_flag_var,
-                                 &expr_insert_location);
+#if GENERATE_EH_TABLES
         /* Add the cleanup region table entry. */
         make_dyn_init_region_table_entry(dyn_init_to_free_storage,
                                          (a_dynamic_init_ptr)NULL,
                                          &expr_insert_location);
+        /* Set the conditional_flag variable to nonzero.  The code to
+           initialize it to zero is inserted later in this routine. */
+        set_conditional_flag_var(dedp->conditional_flag_var,
+                                 &expr_insert_location);
+#endif /* GENERATE_EH_TABLES */
         /* Set the cleanup state to the delete cleanup entry. */
         set_curr_cleanup_state(dyn_init_to_free_storage,
                                &expr_insert_location);
       }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
       /* Make "(this = new_rout(size)) != NULL". */
       make_zero_of_proper_type(this_param_var->type, &null_constant);
       null_constant_node = alloc_node_for_constant(&null_constant);
@@ -4679,17 +4593,19 @@ constructor scope, and also lower the user code.
          As mentioned above, this must be done after the user code is
          lowered. */
       enclose_routine_in_if(scope, if_node, this_param_var);
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
       if (exceptions_enabled) {
         /* Initialize the conditional flag to zero.  This must be done after
            enclose_routine_in_if is called so that the initialization is
            done at the right place (i.e., outside the "if"). */
         set_block_start_insert_location(scope->assoc_block, &insert_location);
         init_conditional_flag_var(dedp->conditional_flag_var,
+#if GENERATE_EH_TABLES
                                   dedp->conditional_flag_handle,
+#else /* !GENERATE_EH_TABLES */
+                                  (a_handle_number)0,
+#endif /* GENERATE_EH_TABLES */
                                   &insert_location);
       }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     }  /* if */
   }
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
@@ -4750,39 +4666,41 @@ at *insert_location, and *insert_location is updated.
   }  /* if */
 }  /* lower_dtor_init */
 
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
 
-static void assign_dtor_init_cleanup_region_number(a_dynamic_init_ptr dip)
+static void initialize_dtor_init_for_cleanup(a_dynamic_init_ptr dip)
 /*
-Assign a cleanup region number to the indicated destruction (from
+Do cleanup initialization for the indicated destruction (from
 the constructor_inits list of a destructor) and to its successors.
-These region numbers are assigned early so that the next region number
-is available when each entry is processed.
+The is done early so the information is available when each entry
+is processed.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
   a_dynamic_init_ptr              next_dip = dip->next_in_destruction_list;
-  a_cleanup_region_number         region_number;
 
-  /* Each destruction gets a region number one higher than the region
-     number of the next destruction, or the next available number
-     (zero) if there is no next destruction.  Note that the
-     recursive call here reverses the entries, which gives entry
-     numbers in the desired order. */
-  if (next_dip != NULL) {
-    assign_dtor_init_cleanup_region_number(next_dip);
-    /* Note that these entries cannot require a conditional flag.  Otherwise,
-       we would have to count an entry for it too. */
-    region_number = cleanup_region_number(next_dip) + 1;
-  } else {
-    region_number = 0;  /* That is, the first region number. */
-  }  /* if */
-  dedp->region_number = region_number;
   dedp->cleanup_state_to_set_when_starting_destruction = next_dip;
-}  /* assign_dtor_init_cleanup_region_number */
+  /* Do a recursive call to process the rest of the list. */
+  if (next_dip != NULL) initialize_dtor_init_for_cleanup(next_dip);
+#if GENERATE_EH_TABLES
+  { a_cleanup_region_number         region_number;
+    /* Each destruction gets a region number one higher than the region
+       number of the next destruction, or the next available number
+       (zero) if there is no next destruction.  Note that the
+       recursive call above reverses the entries, which gives entry
+       numbers in the desired order. */
+    if (next_dip != NULL) {
+      /* Note that these entries cannot require a conditional flag.  Otherwise,
+         we would have to count an entry for it too. */
+      region_number = cleanup_region_number(next_dip) + 1;
+    } else {
+      region_number = 0;  /* That is, the first region number. */
+    }  /* if */
+    dedp->region_number = region_number;
+  }
+#endif /* GENERATE_EH_TABLES */
+}  /* initialize_dtor_init_for_cleanup */
 
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
 
 static void make_dtor_init_region_table_entries(
                                            a_dynamic_init_ptr dip,
@@ -4812,13 +4730,13 @@ is inserted at *insert_location.
   check_assertion_str(dedp->conditional_flag_var == NULL,
                       "make_dtor_init_region_table_entries: cond flag used");
   /* The region number assigned should be the one we pre-assigned in
-     assign_dtor_init_cleanup_region_number. */
+     initialize_dtor_init_for_cleanup. */
   check_assertion_str(old_region_number == cleanup_region_number(dip),
                       "make_dtor_init_region_table_entries: wrong region num");
 #endif /* CHECKING */
 }  /* make_dtor_init_region_table_entries */
 
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
 
 void lower_destructor_code(a_scope_ptr scope)
 /*
@@ -4844,9 +4762,7 @@ destructor scope, and also lower the user code.
   a_return_memo_ptr      rmp, rmp_next;
   a_label_ptr            epilogue_label;
   a_source_position      saved_error_position, saved_code_pos;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   a_dynamic_init_ptr     first_prologue_destruction;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the destructor routine.  Lines enclosed in [...]
@@ -5000,7 +4916,6 @@ destructor scope, and also lower the user code.
     prologue_insert_location = insert_location;
     epilogue_block = alloc_statement((a_statement_kind)stmk_block);
     set_block_start_insert_location(epilogue_block, &insert_location);
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
     if (exceptions_enabled) {
       /* Assign cleanup region numbers to the destructions.  This is done
          early so that we will know the right value to set __eh_curr_region
@@ -5015,9 +4930,8 @@ destructor scope, and also lower the user code.
              first_prologue_destruction =
                        first_prologue_destruction->next_in_destruction_list) {}
       }  /* if */
-      assign_dtor_init_cleanup_region_number(first_prologue_destruction);
+      initialize_dtor_init_for_cleanup(first_prologue_destruction);
     }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     /* Generate a destructor call for each data member that appears on the
        ctor_init list. */
     for (; ctor_init != NULL &&
@@ -5069,20 +4983,20 @@ destructor scope, and also lower the user code.
       }  /* for */
       /* Note that the "if" created above effectively ends here. */
     }  /* if */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
     if (exceptions_enabled) {
+#if GENERATE_EH_TABLES
       /* Make the region table entries for the prologue destructions.
          This is done late because we want to put out the entries in
          reversed order, and we need to wait until they all have position
          information recorded. */
       make_dtor_init_region_table_entries(first_prologue_destruction,
                                           &prologue_insert_location);
+#endif /* GENERATE_EH_TABLES */
       /* Set the cleanup state at the end of the prologue (i.e., just before
          going into user code) to the first cleanup for the wrapper. */
       set_curr_cleanup_state(first_prologue_destruction,
                              &prologue_insert_location);
     } /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   }  /* if */
   /* Now lower the user code. */
   lower_statement_list(user_code_stmts, &top_level_stmt);
@@ -5262,12 +5176,10 @@ Do lowering on the file-scope dynamic initializations list.
        containing them. */
     scope = file_scope_init_insert_location(&insert_location, &region_number);
     push_generated_routine_context(scope, region_number, &grcontext);
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
     if (exceptions_enabled) {
       /* Initialize for exception handling lowering. */
       eh_function_lower_init();
     }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     processing_file_scope_init_routine = TRUE;
     /* Generate the initializations. */
     for (; dip != NULL; dip = dip_next) {
@@ -5305,12 +5217,10 @@ Do lowering on the file-scope dynamic initializations list.
       }  /* if */
 #endif /* CHECKING */
     }  /* for */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
     if (exceptions_enabled) {
       /* Add prologue/epilogue code for exceptions if needed. */
       add_eh_function_prologue(scope);
     }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     /* Free any return memos that were not used. */
     free_return_memo_list(return_memo_list);
     processing_file_scope_init_routine = FALSE;

@@ -445,16 +445,16 @@ scope, or the lifetime from the parent context, will be used.
   if (new_lifetime) {
     context->saved_curr_object_lifetime = curr_object_lifetime;
     curr_object_lifetime = lifetime;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
     context->saved_curr_cleanup_state = curr_cleanup_state;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
 #if CHECKING
   } else {
     /* Clear entries to be neat, even though they are not used. */
     context->saved_curr_object_lifetime = NULL;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
     context->saved_curr_cleanup_state = NULL;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
 #endif /* CHECKING */
   }  /* if */
   /* The latest_initialization list starts at NULL for a new object lifetime,
@@ -464,9 +464,9 @@ scope, or the lifetime from the parent context, will be used.
     context->latest_initialization = parent_context->latest_initialization;
   }  /* if */
   context->successor_lifetime_at_statement = NULL;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if DO_FULL_PORTABLE_EH_LOWERING
   context->try_frame = NULL;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 }  /* push_context */
 
 
@@ -482,9 +482,9 @@ Pop an entry off the context stack.
        and curr_cleanup_state are restored to what they were at push_context
        time. */
     curr_object_lifetime = context->saved_curr_object_lifetime;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
     curr_cleanup_state = context->saved_curr_cleanup_state;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
   } else {
     /* This context does not have its own object lifetime, so the
        latest_initialization pointer is propagated up to the parent (it's
@@ -2210,6 +2210,82 @@ so the next insertion will be after the statement added.
 }  /* insert_statement */
 
 
+a_statement_ptr insert_expr_statement(an_expr_node_ptr       node,
+                                      an_insert_location_ptr insert_location)
+/*
+Make a statement from expression expr.  Insert the statement at
+*insert_location and update *insert_location.  Return a pointer to the
+statement, or NULL if no statement was created (in an expression insert
+context).
+*/
+{
+  a_statement_ptr stmt;
+
+  if (is_expr_insert_location_kind(insert_location->kind)) {
+    /* Insert within an expression.  The statement need not be created. */
+    insert_expr(node, insert_location);
+    stmt = NULL;
+  } else {
+    /* Make the expression statement. */
+    stmt = alloc_expr_statement(node);
+    /* Insert the statement at the right location. */
+    insert_statement(stmt, insert_location);
+  }  /* if */
+  return stmt;
+}  /* insert_expr_statement */
+
+
+a_statement_ptr insert_assignment_statement(
+                                        an_expr_node_ptr       lvalue_expr,
+                                        an_expr_operator_kind  op,
+                                        an_expr_node_ptr       rvalue_expr,
+                                        an_insert_location_ptr insert_location)
+/*
+Make a statement that assigns rvalue_expr to lvalue_expr using assignment
+operator op.  Insert the statement at *insert_location and update
+*insert_location.  Return a pointer to the statement, or NULL if no
+statement was created (in an expression insert context).
+*/
+{
+  a_statement_ptr  assign_stmt;
+  an_expr_node_ptr assign_node;
+
+  lvalue_expr->next = rvalue_expr;
+  /* Make the assignment operation. */
+  assign_node = make_operator_node(op,
+                                   f_skip_typerefs(
+                                           type_pointed_to(lvalue_expr->type)),
+                                   lvalue_expr);
+  /* Make the expression statement. */
+  assign_stmt = insert_expr_statement(assign_node, insert_location);
+  return assign_stmt;
+}  /* insert_assignment_statement */
+
+
+a_statement_ptr insert_var_assignment_statement(
+                                        a_variable_ptr         lvalue_var,
+                                        an_expr_operator_kind  op,
+                                        an_expr_node_ptr       rvalue_expr,
+                                        an_insert_location_ptr insert_location)
+/*
+Make a statement that assigns rvalue_expr to lvalue_var using assignment
+operator op.  Insert the statement at *insert_location and update
+*insert_location.  Return a pointer to the statement, or NULL if no
+statement was created (in an expression insert context).
+*/
+{
+  a_statement_ptr  assign_stmt;
+  an_expr_node_ptr lvalue_expr;
+
+  /* Make an expression for the lvalue address. */
+  lvalue_expr = var_lvalue_expr(lvalue_var);
+  /* Make and insert the assignment. */
+  assign_stmt = insert_assignment_statement(lvalue_expr, op, rvalue_expr,
+                                            insert_location);
+  return assign_stmt;
+}  /* insert_var_assignment_statement */
+
+
 static void lower_source_correspondence(
                                        a_source_correspondence *source_corresp)
 /*
@@ -2515,13 +2591,15 @@ Do IL lowering of the indicated constant and everything under it.
       case ck_aggregate:
         lower_constant_list(constant->variant.aggregate.first_constant);
         break;
-#if CHECKING
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+      case ck_stack_offset:
+        /* Shouldn't come up here. */
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
       case ck_dynamic_init:
         /* Shouldn't come up here.  See
            lower_dynamic_init_aggregate_constant. */
       default:
-        internal_error("lower_constant: bad kind");
-#endif /* CHECKING */
+        unexpected_condition_str("lower_constant: bad kind");
     }  /* switch */
   }  /* if */
 }  /* lower_constant */
@@ -3118,24 +3196,24 @@ virtual function table.
   a_constant_ptr              aggr_con;
   a_virtual_function_number   next_entry_number;
   a_memory_region_number      region_to_switch_back_to;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
   a_type_ptr                  class_whose_vtbl_is_being_made;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
 
   switch_to_file_scope_region(&region_to_switch_back_to);
   /* Find the appropriate virtual function table variable. */
   if (bcp == NULL) {
     /* We're doing the virtual function table for class_type itself. */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
     class_whose_vtbl_is_being_made = class_type;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
     ctsp = class_type->variant.class_struct_union.extra_info;
     vtbl_var = ctsp->virtual_function_table_var;
   } else {
     /* We're doing the virtual function table for bcp in class_type. */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
     class_whose_vtbl_is_being_made = bcp->type;
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
     ctsp = bcp->type->variant.class_struct_union.extra_info;
     vtbl_var = bcp->virtual_function_table_var;
   }  /* if */
@@ -3166,14 +3244,14 @@ virtual function table.
     vtbl_var->storage_class = (a_storage_class)sc_unspecified;
     /* The variable can be referenced from another compilation unit. */
     vtbl_var->source_corresp.referenced = TRUE;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
     /* If exceptions are enabled, force generation of the typeinfo variable
        for the type because it might be referenced from some other compilation
        unit. */
     if (exceptions_enabled) {
       type_is_used_in_exception(class_whose_vtbl_is_being_made);
     }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
   }  /* if */
   /* Do not put out the initial value if the class should not be defined
      in this compilation. */
@@ -3789,13 +3867,13 @@ Do IL lowering of the indicated type and everything under it.
     for (btlmp = type->based_types; btlmp != NULL; btlmp = btlmp->next) {
       lower_type(btlmp->based_type);
     }  /* for */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
     if (type->used_in_exception) {
       /* If the type was used in an exception context, generate typeinfo
          information for it. */
       type_is_used_in_exception(type);
     }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
     switch (type->kind) {
       case tk_void:
       case tk_float:
@@ -4199,7 +4277,9 @@ Do IL lowering of the indicated asm entry and everything under it.
   if (!visited_yet(asm_entry)) {
     mark_as_visited(asm_entry);
     lower_source_correspondence(&asm_entry->source_corresp);
-    lower_constant(asm_entry->asm_string);
+    if (!asm_entry->is_asm_func_body) {
+      lower_constant(asm_entry->variant.asm_string);
+    }  /* if */
   }  /* if */
 }  /* lower_asm_entry */
 
@@ -5672,7 +5752,8 @@ Lower an enk_object_lifetime expression and its subtree.  This defines
 an object lifetime for the evaluation of the subexpression.  The expression
 is being used as an lvalue if is_lvalue is TRUE.  The expression is
 a full expression (i.e., it's not part of some larger expression), because
-an enk_object_lifetime should only occur at the top of a full expression.
+an enk_object_lifetime should only occur at the top of a full expression
+(at least, that's true before IL lowering).
 */
 {
   a_context              context;
@@ -5980,17 +6061,18 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       lower_new_delete(expr);
       break;
     case enk_throw:
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
       lower_throw(expr);
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
       break;
     case enk_object_lifetime:
       lower_enk_object_lifetime(expr, is_lvalue);
       break;
-#if CHECKING
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+    /* Nodes generated by IL lowering for partial lowering of exception
+       handling features.  Not expected here. */
+    case enk_lowered_eh_construct:
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
     default:
-      internal_error("lower_expr: bad kind");
-#endif /* CHECKING */
+      unexpected_condition_str("lower_expr: bad kind");
   }  /* switch */
 }  /* lower_expr */
 
@@ -6041,14 +6123,14 @@ whether the construction was done.
 
   cond_var = make_lowered_temporary(integer_type((an_integer_kind)ik_int));
   dedp->conditional_flag_var = cond_var;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
   if (exceptions_enabled) {
     /* Pre-assign the object address table slot for the conditional variable,
        because we're going to have to set that entry of the object address
        table right away. */
     dedp->conditional_flag_handle = object_addr_table_index();
   }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
 }  /* add_conditional_flag */
 
 
@@ -6069,14 +6151,14 @@ If insert_location == NULL, no initialization code is generated.
   "initial_processing_on_destr...: destructible entity descr already present");
   dip->destructible_entity_descr = alloc_destructible_entity_descr();
   if (dip->inside_conditional_expression
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
       || (exceptions_enabled &&
           (dip->is_freeing_of_storage_on_exception
 #if DO_UNORDERED_EH_PROCESSING
            || dip->unordered
 #endif /* DO_UNORDERED_EH_PROCESSING */
                                                   ))
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
                                                     ) {
     /* This destruction requires a conditional flag that indicates that
        the construction was done; add one and initialize it to zero.
@@ -6095,12 +6177,12 @@ If insert_location == NULL, no initialization code is generated.
     if (insert_location != NULL) {
       init_conditional_flag_var(dip->destructible_entity_descr->
                                                           conditional_flag_var,
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
                                 dip->destructible_entity_descr->
                                                        conditional_flag_handle,
-#else /* !DO_LOWERING_OF_EXCEPTION_HANDLING */
+#else /* !GENERATE_EH_TABLES */
                                 (a_handle_number)0,
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
                                 insert_location);
     }  /* if */
   }  /* if */
@@ -6256,7 +6338,7 @@ associated with a switch clause.
   start_label_region_of_lifetime(lifetime, /*switch_clause=*/TRUE);
 }  /* begin_switch_clause_object_lifetime */
 
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
 
 static void adjust_region_table_to_remove_long_lifetime_temps(
                                               a_boolean need_regions_for_temps)
@@ -6353,7 +6435,7 @@ are enabled.
   }  /* if */
 }  /* adjust_region_table_to_remove_long_lifetime_temps */
 
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
 
 static void destroy_long_lifetime_temporaries_before_statement(
                                                     a_statement_ptr *statement)
@@ -6378,13 +6460,13 @@ Called only in long lifetime temporaries mode.
       (*statement)->variant.label.ptr->reachable_by_fall_through) {
     need_to_destroy_temps = TRUE;
   }  /* if */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
   if (exceptions_enabled) {
     /* If necessary, adjust the cleanup region table to reflect the
        fact that the temporaries are no longer in the cleanup chain. */
     adjust_region_table_to_remove_long_lifetime_temps(need_to_destroy_temps);
   }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
   if (need_to_destroy_temps) {
     /* Go through the list of destructions, find the ones for temporaries,
        and generate destruction code. */
@@ -6405,7 +6487,6 @@ Called only in long lifetime temporaries mode.
       }  /* if */
     }  /* for */
   }  /* if */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   if (exceptions_enabled && any_temps_destroyed) {
     /* Set the current cleanup state, but not if the current statement
        is a label (because in that case it will be set in a moment
@@ -6414,7 +6495,6 @@ Called only in long lifetime temporaries mode.
       set_curr_cleanup_state(curr_cleanup_state, &insert_location);
     }  /* if */
   }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 }  /* destroy_long_lifetime_temporaries_before_statement */
 
 
@@ -6545,14 +6625,14 @@ it; otherwise, switch_lifetime is NULL.
         (a_switch_clause_ptr)lifetime->entity.ptr == clause) {
       /* A different object lifetime begins at the beginning of this
          clause. */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
       if (exceptions_enabled && long_lifetime_temps) {
         /* If necessary, adjust the cleanup region table to reflect the
            fact that the temporaries are no longer in the cleanup chain. */
         adjust_region_table_to_remove_long_lifetime_temps(
                                              /*need_regions_for_temps=*/FALSE);
       }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
       begin_switch_clause_object_lifetime(lifetime);
       lifetime = label_successor_lifetime(lifetime, /*switch_clause=*/TRUE);
     }  /* if */
@@ -6687,7 +6767,6 @@ code.
           gen_one_destruction(dip, insert_location);
         }  /* if */
       }  /* for */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
       { a_scope_ptr            scope;
         /* In some cases, the context itself requires cleanup. */
         if (lifetime->kind == (an_object_lifetime_kind)olk_try_block) {
@@ -6695,6 +6774,7 @@ code.
           any_cleanup_needed = TRUE;
           if (check_only) goto done;
           cleanup_on_exit_from_try_block(context_for_lifetime(lifetime),
+                                    (a_try_supplement_ptr)lifetime->entity.ptr,
                                          insert_location);
         } else if ((an_il_entry_kind)lifetime->entity.kind == iek_scope &&
                    (scope = (a_scope_ptr)lifetime->entity.ptr,
@@ -6703,10 +6783,10 @@ code.
           /* Exit from a "catch" clause. */
           any_cleanup_needed = TRUE;
           if (check_only) goto done;
-          cleanup_on_exit_from_catch(insert_location);
+          cleanup_on_exit_from_catch(scope->variant.assoc_handler,
+                                     insert_location);
         }  /* if */
       }
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
       /* Stop when the outer lifetime has been processed. */
       if (lifetime == outer_lifetime) break;
       /* Continuing into the parent. */
@@ -6961,13 +7041,11 @@ Do IL lowering of the indicated statement and everything under it.
         gen_goto_cleanup_actions(statement);
         break;
       case stmk_label:
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
         if (exceptions_enabled) {
           /* Exceptions are enabled.  Set the cleanup state. */
           set_insert_location(statement, &insert_location);
           set_curr_cleanup_state(curr_cleanup_state, &insert_location);
         }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
         break;
       case stmk_return:
         return_expr = statement->expr;
@@ -7006,12 +7084,9 @@ Do IL lowering of the indicated statement and everything under it.
         }  /* if */
         any_cleanup_on_return =
                        any_cleanup_actions(innermost_function_scope->lifetime);
-        if (any_cleanup_on_return
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
-            || (exceptions_enabled &&
-                innermost_function_scope->lifetime != NULL)
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
-                                                           ) {
+        if (any_cleanup_on_return ||
+            (exceptions_enabled &&
+             innermost_function_scope->lifetime != NULL)) {
           /* Some code will have to be inserted on return, either for
              cleanup or to pop the exception handling stack entry.  It has
              to be inserted after the evaluation of the return expression,
@@ -7115,13 +7190,11 @@ Do IL lowering of the indicated statement and everything under it.
         block = statement->variant.block.extra_info;
         scope = block->assoc_scope;
         if (scope != NULL) {
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
           if (scope->variant.assoc_handler != NULL) {
             /* This statement is the dependent statement of a catch handler.
                Generate code to start the catch clause. */
             begin_catch_clause(scope->variant.assoc_handler);
           }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
         }  /* if */
         lower_statement_list(statement_list, &last_statement);
         /* Generate any cleanup actions and pop the context. */
@@ -7159,9 +7232,7 @@ Do IL lowering of the indicated statement and everything under it.
         lower_stmk_init(statement);
         break;
       case stmk_try_block:
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
         lower_try_block(statement);
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
         break;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       case stmk_decl:
@@ -8106,12 +8177,10 @@ Do IL lowering of the indicated scope and everything under it.
     /* Clear the list of return statements found in the routine.  This list
        is built so that epilogue code can be added at each return. */
     return_memo_list = NULL;
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
     if (exceptions_enabled) {
       /* Initialize for exception handling lowering. */
       eh_function_lower_init();
     }  /* if */
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     /* Lower the executable code. */
     if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
       /* For a constructor, add wrapper code around the user code, and also
@@ -8128,10 +8197,8 @@ Do IL lowering of the indicated scope and everything under it.
          inside block scopes. */
       lower_statement(scope->assoc_block);
     }  /* if */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
     /* Add prologue code for exceptions. */
     if (exceptions_enabled) add_eh_function_prologue(scope);
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     /* If the routine is the main program, insert a call of _main at its
        start.  This is done after inserting the exception handling function
        prologue, if any, so that the call to _main is always first. */
@@ -8277,12 +8344,12 @@ C++ to C, so that a C back end can handle it without change.
       lower_file_scope_dynamic_inits();
       make_code_to_invoke_file_scope_init_routine();
     }  /* if */
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
+#if GENERATE_EH_TABLES
     /* Add definitions for any typeinfo variables generated for classes.
        This must be done late so that all the required typeinfo variables
        will have been created already. */
     define_scope_class_typeinfo_vars(scope);
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#endif /* GENERATE_EH_TABLES */
     /* Pop the file-scope context. */
     pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
@@ -8461,9 +8528,7 @@ are handled in il_lower_init.)
     register_pch_saved_variables(saved_vars);
   }  /* if */
   init_lower_one_time_init();
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   eh_lower_one_time_init();
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 }  /* il_lower_one_time_init */
 
 
@@ -8514,10 +8579,8 @@ of the front end.
      be used separately from the rest of IL lowering. */
   /* Do lower_init.c initialization. */
   init_lower_init();
-#if DO_LOWERING_OF_EXCEPTION_HANDLING
   /* Do lower_eh.c initialization. */
   eh_lower_init();
-#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 }  /* il_lower_init */
 
 #endif /* DO_IL_LOWERING */
