@@ -6184,6 +6184,9 @@ a routine to lookup the appropriate instance (or generate one if needed).
     /* If the current token is a ">" then exit the loop.  This should only be
        possible on the first iteration if we have an empty argument list. */
     if (curr_token == tok_gt) break;
+    /* If the template parameter list is empty, exit the loop.  This only
+       occurs in error cases. */
+    if (param_ptr == NULL) break;
     add_stop_token(tok_comma);
     sym = param_ptr->param_symbol;
     /* Determine whether this argument should be a type or a constant. */

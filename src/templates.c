@@ -3780,6 +3780,12 @@ to represent the template parameters.
     a_constant_ptr default_arg_constant;
     a_type_ptr	   default_arg_type;
 
+    /* If we've unexpectedly reached the end of the template parameter list,
+       issue an error. */
+    if (curr_token == tok_gt) {
+      error(ec_missing_template_param);
+      break;
+    }  /* if */
     ++template_param_list_pos;
     /* Cache the tokens that comprise the template parameter declaration.
        If the parameter depends on other template parameters this cache
@@ -3955,9 +3961,6 @@ to represent the template parameters.
     remove_stop_token(tok_comma);
     /* Keep looping on a comma. */
   } while (loop_token(tok_comma));
-  if (template_param_list == NULL) {
-    error(ec_missing_template_param);
-  }  /* if */
   /* Check for an bypass the ">".  If the closing ">" is missing, an
      error will have already been issued  above. */
   if (curr_token == tok_gt) (void)get_token();
@@ -4541,8 +4544,15 @@ as the current token; otherwise, it is consumed.
   (void)get_token();
   (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
                    (a_type_ptr)NULL, (a_routine_ptr)NULL);
-  /* The template parameters. */
-  template_param_list = scan_template_param_list();
+  if (curr_token == tok_lt) {
+    /* The template parameters. */
+    template_param_list = scan_template_param_list();
+  } else {
+    /* Eventually, support for explicit instantiation request processing
+       will be done here.  Until that is implemented, issue an error that
+       the template parameter list is missing. */
+    error(ec_missing_template_param_list);
+  }  /* if */
   /* Cache the tokens for this declaration.  If this turns out to be
      a function the cache will be saved to generates new routine types
      for this function.  If it is not a function the cache will be
