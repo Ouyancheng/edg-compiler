@@ -3601,9 +3601,6 @@ Display the indicated class type supplement entry.
       }  /* switch */
     }  /* if */
   }  /* if */
-  if (ptr->qualifiers != TQ_NONE) {
-    disp_type_qualifiers(ptr->qualifiers);
-  }  /* if */
   if (ptr->inheritance_kind != (an_inheritance_kind)ihk_none) {
     disp_name("inheritance_kind");
     switch (ptr->inheritance_kind) {
@@ -3616,6 +3613,12 @@ Display the indicated class type supplement entry.
                  (a_boolean)ptr->inheritance_kind_is_explicit);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEAR_AND_FAR_ALLOWED
+  if (ptr->qualifiers != TQ_NONE) {
+    disp_name("qualifiers");
+    disp_type_qualifiers(ptr->qualifiers);
+  }  /* if */
+#endif /* NEAR_AND_FAR_ALLOWED */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     disp_name("anonymous_union_kind");
     switch (ptr->anonymous_union_kind) {
