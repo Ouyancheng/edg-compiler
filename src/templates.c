@@ -2974,17 +2974,14 @@ static a_boolean class_template_declaration(
                                     a_symbol_ptr         *p_sym_ptr,
                                     a_boolean            *resolution,
                                     a_type_ptr           *new_type,
-                                    a_boolean            *defines_something,
-                                    a_boolean            *get_token_required)
+                                    a_boolean            *defines_something)
 /*
 If this turns out to be a class template declaration, scan it and return
 TRUE, setting *p_sym_ptr to the class template symbol.  If it is not a class
 declaration, return FALSE.  If a class template had been declared previously
 but not defined, and this is a defining declaration, return *resolution
 TRUE.  In addition, if this is a defining declaration, cache all the tokens
-that make up the declaration and do a prototype instantiation.  Return
-*get_token_required TRUE if the caller needs to advance beyond a terminating
-rbrace of a class template definition.
+that make up the declaration and do a prototype instantiation.
 */
 {
   a_boolean                         is_class_template_decl = FALSE;
@@ -3199,8 +3196,8 @@ rbrace of a class template definition.
         /* Now cache the "}" (unless we didn't find one). */
         if (curr_token == tok_rbrace) {
           cache_curr_token(&tssp->token_cache);
-          /* Let the caller know there's another token to be fetched. */
-          *get_token_required = TRUE;
+          /* Advance past the '}'. */
+          (void)get_token();
         }  /* if */
       }  /* if */
       /* Add an end-of-source token to the end of the token cache to assure
@@ -3224,16 +3221,13 @@ done:;
 
 static void cache_function_template_body(a_token_cache  *p_token_cache,
                                          a_boolean      is_constructor,
-                                         a_boolean      *defines_something,
-                                         a_boolean      *get_token_required)
+                                         a_boolean      *defines_something)
 /*
 Scan a function template body and cache the tokens (in *p_token_cache) so
 that they can be rescanned for the instantiation.  is_constructor is
 TRUE if the function is a constructor.  The current source position is
 immediately after the function declarator.  *defines_something is set
-to TRUE if either a ctor-initializer or a function body appears.  Return
-*get_token_required TRUE if the caller needs to advance beyond a terminating
-rbrace of a function template definition.
+to TRUE if either a ctor-initializer or a function body appears.
 */
 {
   a_token_set_array  stop_tokens;
@@ -3263,8 +3257,8 @@ rbrace of a function template definition.
       /* Cache the "}" and append an end-of-source token. */
       if (curr_token == tok_rbrace) {
         cache_curr_token(p_token_cache);
-        /* Let the caller know there's another token to be fetched. */
-        *get_token_required = TRUE;
+        /* A get_token is intentionally not done -- the caller will
+           advance past the end of the template declaration. */
       }  /* if */
       /* Add an end-of-source token to the end of the token cache to
          assure that we don't scan past the end of the cache in the actual
@@ -3596,32 +3590,15 @@ to represent the template parameters.
         }  /* if */
       }  /* if */
     } else {
-      /* Error case, but scan it as a template declaration anyway. */
-      a_boolean  defines_something;
-
-      sym = template_declaration(&defines_something);
+      /* Error case ("template ..."). */
       set_to_error_locator(locator_for_curr_id);
-      if (sym != NULL &&
-          sym->kind == (a_symbol_kind)sk_class_template) {
-        /* It's a class declaration in the template param list.  Just to be
-           complete, be sure there's a full declaration. */
-        if (!defines_something) error(ec_exp_declaration);
-        /* Enter a dummy param type. */
-        sym = enter_symbol((a_symbol_kind)sk_type, &locator_for_curr_id,
-                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
-        sym->variant.type = error_type();
-      } else {
-        /* It's not a class declaration, so (whatever it might be) treat it
-           as a constant. */
-        sym = enter_symbol((a_symbol_kind)sk_constant, &locator_for_curr_id,
-                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
-        sym->variant.constant =
-                         fs_constant((a_constant_repr_kind)ck_template_param);
-        sym->variant.constant->type = error_type();
-        sym->variant.constant->variant.template_param.variant.list_position =
-                                                      template_param_list_pos;
-      }  /* if */
-      sym->is_template_param = TRUE;
+      locator_for_curr_id.source_position = pos_curr_token;
+      set_err_pos_to_curr_token();
+      syntax_error(ec_template_not_allowed);
+      /* Enter a dummy param type. */
+      sym = enter_symbol((a_symbol_kind)sk_type, &locator_for_curr_id,
+                         decl_scope_level, /*suppress_redecl_error=*/FALSE);
+      sym->variant.type = error_type();
     }  /* if */
     /* Allocate a template parameter and set its fields based on sym. */
     template_param = alloc_template_param(sym);
@@ -3708,7 +3685,8 @@ arguments.
 }  /* template_param_appears_in_param_list */
 
 
-a_symbol_ptr template_declaration(a_boolean  *defines_something)
+a_symbol_ptr template_declaration(a_boolean  *defines_something,
+                                  a_boolean  no_advance_past_final_token)
 /*
 Scan a C++ template declaration.  Syntax:
 
@@ -3728,7 +3706,9 @@ Scan a C++ template declaration.  Syntax:
 Template declarations will declare either a class template or a function
 template; in the latter case the template argument list may include only
 type-arguments. During the scan of the template declaration a special scope
-entry is pushed on the scope stack.
+entry is pushed on the scope stack.  If no_advance_past_final_token is TRUE,
+the right brace or semicolon terminating the template declaration is left
+as the current token; otherwise, it is consumed.
 */
 {
   a_template_param_ptr              tpp, template_param_list = NULL;
@@ -3741,7 +3721,6 @@ entry is pushed on the scope stack.
   a_boolean		            decl_token_cache_used = FALSE;
   a_boolean                         nonglobal_decl_err = FALSE;
   a_pending_pragma_ptr		    pragmas_bound_to_template;
-  a_boolean                         get_token_required = FALSE;
 #if RECORD_TEMPLATES_IN_IL
   a_template_ptr                    il_template_entry = NULL;
   a_token_cache                     template_param_list_cache;
@@ -3801,7 +3780,7 @@ entry is pushed on the scope stack.
      of the definition (if any) and cache them away of later reference. */
   if (class_template_declaration(template_param_list, nonglobal_decl_err,
                                  &sym, &tag_resolution, &prototype_type,
-                                 defines_something, &get_token_required)) {
+                                 defines_something)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
 #if RECORD_TEMPLATES_IN_IL
@@ -3959,7 +3938,7 @@ entry is pushed on the scope stack.
         a_token_cache  local_token_cache;
         clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
         cache_function_template_body(&local_token_cache, /*is_ctor=*/TRUE,
-                                     defines_something, &get_token_required);
+                                     defines_something);
         discard_token_cache(&local_token_cache);
       } else {
 	a_def_arg_expr_fixup_ptr  daefp;
@@ -3983,7 +3962,7 @@ entry is pushed on the scope stack.
         tssp->declaration_scope = scope_stack[decl_scope_level].number;
         cache_function_template_body(&tssp->token_cache,
                                      is_constructor_symbol(sym),
-                                     defines_something, &get_token_required);
+                                     defines_something);
 #if RECORD_TEMPLATES_IN_IL
         if (*defines_something) {
           /* Save a pointer to the token cache for function body. */
@@ -4039,6 +4018,24 @@ entry is pushed on the scope stack.
   } else {
     /* Template parameters are declared, but the declaration is missing. */
     pos_error(ec_exp_declaration, &pos_curr_token);
+  }  /* if */
+  /* Check and/or advance past the terminating token of the declaration. */
+  if (*defines_something && prototype_type == NULL) {
+    /* It's a definition but not a class template definition, so it must be
+       a function template definition. */
+    if (no_advance_past_final_token) {
+      /* Leave it to the caller to advance past the closing right brace. */
+    } else if (curr_token == tok_rbrace) {
+      (void)get_token();
+    }  /* if */
+  } else {
+    /* All template declarations except function template definitions should
+       terminate with a semicolon. */
+    if (no_advance_past_final_token) {
+      (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+    } else {
+      (void)required_token(tok_semicolon, ec_exp_semicolon);
+    }  /* if */
   }  /* if */
   /* Note that the template declaration scope must be popped before doing the
      prototype instantiation. */
@@ -4177,12 +4174,6 @@ skip_template_string:
   if (!decl_token_cache_used) {
     discard_token_cache(&decl_token_cache);
   }  /* if */
-  /* Bypass the terminating token of the declaration.  It is postponed till
-     all template processing has been done, since get_token can cause the
-     input stack to be popped, which in turn can cause a pch file to be
-     generated -- in which case we want the current state of the compilation
-     to be complete. */
-  if (get_token_required) get_token();
 #if DEBUG
   if (debug_level >= 3) {
     if (sym != NULL) db_symbol(sym, "template symbol: ", 2);
