@@ -69,14 +69,15 @@ a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
 /*
 */
 {
-  a_symbol_ptr        sym;
-  a_template_arg_ptr  old_list;
-  a_type_kind         type_kind;
-  a_type_ptr          class_type;
+  a_symbol_ptr                      sym;
+  a_template_arg_ptr                old_list;
+  a_type_kind                       type_kind;
+  a_type_ptr                        class_type;
+  a_template_symbol_supplement_ptr  tssp;
 
   db_enter(3, "find_template_class");
-  sym = class_template_sym->variant.template.extra_info->
-                                        variant.class.instantiations;
+  tssp = class_template_sym->variant.template.extra_info ;
+  sym = tssp->variant.class.instantiations;
   for (; sym != NULL; sym = sym->next) {
     old_list = sym->variant.type->
                      variant.class_struct_union.extra_info->template_arg_list;
@@ -103,9 +104,13 @@ a_symbol_ptr find_template_class(a_symbol_ptr        class_template_sym,
                                   (a_name_linkage_kind)nlk_cplusplus_external;
     add_to_types_list(class_type, DEPTH_OF_FILE_SCOPE,
                       /*in_old_style_param_decl_list=*/FALSE);
-
+    sym->next = tssp->variant.class.instantiations;
+    tssp->variant.class.instantiations = sym;
 #if DEBUG
-    if (debug_level >= 3) db_symbol(sym, "created: ", 2);
+    if (debug_level >= 3) {
+      db_symbol(sym, "created: ", 2);
+      db_symbol(class_template_sym, "template: ", 2);
+    }  /* if */
 #endif /* DEBUG */
   }  /* if */
   db_exit();
