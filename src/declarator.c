@@ -1808,7 +1808,7 @@ is not a variable with pointer type, return NULL.
     }  /* if */
     remove_stop_token(tok_rparen);
     /* Bypass the closing parenthesis. */
-    required_token(tok_rparen, ec_exp_rparen);
+    (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
   return sym;
 }  /* scan_based_modifier */
