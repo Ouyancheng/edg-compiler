@@ -3968,7 +3968,7 @@ a_symbol_ptr find_default_operator_new_sym(a_symbol_ptr sym,
 Given the symbol for an operator new() (which may be overloaded), find the
 default (i.e., single-argument) version and return a pointer to its symbol,
 or NULL if it is not found or there is an ambiguity (e.g., resulting from
-default arguments.  The symbol might be for a class-specific operator new(),
+default arguments).  The symbol might be for a class-specific operator new(),
 and therefore might be a projection symbol.  If there is an ambiguity return
 *ambiguous set to TRUE.
 */
@@ -4024,7 +4024,9 @@ a_symbol_ptr find_default_operator_delete_sym(a_symbol_ptr sym,
 /*
 Given the symbol for an operator delete() (which may be overloaded and/or
 be a projection symbol), find the default version (usually the single-argument
-version) and return a pointer to its symbol (which may be a projection symbol), or NULL if it is not found or there is an ambiguity.  If there is an ambiguity return *ambiguous set to TRUE.
+version) and return a pointer to its symbol (which may be a projection
+symbol), or NULL if it is not found or there is an ambiguity.  If there is an
+ambiguity return *ambiguous set to TRUE.
 */
 {
   a_boolean        is_overloaded, ambiguous_alternate = FALSE, is_class_member;
@@ -4110,11 +4112,11 @@ symbol or an overload set.  Looking in the scope of class_type, or in the
 global scope if class_type is NULL, find and return the corresponding
 operator delete function (i.e., the operator delete function with identical
 parameter types as the operator new function, excluding the first parameter
-in each).  Return NULL if no match is found.  If there is an ambiguity return
-*ambiguous set to TRUE.  Also return in *overload_sym the result of looking
-up the delete operator; it may be the same as the symbol that is returned
-as the corresponding operator delete symbol, but it may an overload symbol
-instead.
+in each).  Return NULL if no match is found or if there is an ambiguity; in
+the latter case, return *ambiguous set to TRUE.  Also return in *overload_sym
+the result of looking up the delete operator; it may be the same as the
+symbol that is returned as the corresponding operator delete symbol, but it
+may an overload symbol instead.
 */
 {
   a_symbol_ptr      sym = NULL, corresp_op_delete_sym = NULL, fund_sym;
