@@ -1723,6 +1723,15 @@ typedef struct a_label {
                            definition is found. */
 #endif /* ifdef FIL */
   } variant;
+#ifdef CIL
+  a_statement_ptr
+		parent_block;
+			/* Pointer to the statement for the innermost block
+			   (with or without an associated scope) that
+			   contains this label.  Note that blocks fabricated
+			   by the front end are not "real" and are therefore
+			   not pointed to as parents. */
+#endif /* ifdef CIL */
 } a_label;
 
 /*
@@ -2183,6 +2192,18 @@ typedef struct a_block {
                            function (i.e., the block for the compound 
                            statement that is the body of a function has
                            assoc_scope == NULL). */
+  a_statement_ptr
+		parent_block;
+			/* Pointer to the statement for the innermost block
+			   (with or without an associated scope) that
+			   contains this block.  Note that blocks fabricated
+			   by the front end are not "real" and have this
+			   pointer NULL.  They are also not pointed to as
+			   parents. */
+  a_byte_boolean
+		end_of_block_reachable;
+			/* TRUE if the end of the block is reachable.  The
+			   safe setting is TRUE. */
 #endif /* ifdef CIL */
 } a_block;
 

@@ -3183,6 +3183,7 @@ to it.
   set_default_source_corresp(&(lp->source_corresp));
   lp->next = NULL;
   lp->variant.exec_stmt = NULL;
+  lp->parent_block = NULL;
 #ifdef FIL
   lp->kind = (a_label_kind)lk_executable;
   lp->used_in_assign = FALSE;
@@ -3489,6 +3490,8 @@ fields to default values.
 #endif /* DEBUG */
       bp->final_seq_number = 0;
       bp->assoc_scope      = NULL;
+      bp->parent_block     = NULL;
+      bp->end_of_block_reachable = TRUE;
       break;
     case stmk_init:
       sp->variant.dynamic_init = NULL;

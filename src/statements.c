@@ -696,6 +696,19 @@ asm ( "string" ) ;
 }  /* asm_statement */
 #endif /* ASM_STATEMENT_ALLOWED */
 
+static a_statement_ptr nearest_enclosing_compound_statement(void)
+/*
+Return a pointer to the nearest enclosing compound statement.
+*/
+{
+  a_struct_stmt_stack_entry_ptr sssep;
+
+  for (sssep = &struct_stmt_stack[depth_stmt_stack];
+       sssep->kind != ssk_compound;
+       sssep--) {}
+  return sssep->statement;
+}  /* nearest_enclosing_compound_statement */
+
 
 static a_struct_stmt_stack_entry_ptr find_enclosing_struct_stmt(
                                                      a_boolean find_switch,
@@ -1233,14 +1246,14 @@ the current routine.
   /* Get a pointer to the current routine entry, and get its return
      type. */
   rout = current_routine_entry();
-  tp = skip_typerefs(rout->type)->variant.routine.return_type;
+  tp = rout->type->variant.routine.return_type;
   if (!is_void_type(tp) && !is_error_type(tp)) {
     /* If a return with no expression appears in a function with a
        non-void type, issue a warning.  Do not issue the warning for
        the main program, or if the declaration of the function did not
        have an explicit type specifier (omitting the specifier implies
        "int", but may have been intended to mean "void" in old-style C). */
-    if (struct_stmt_stack->rout_type_explicitly_specified) {
+    if (!struct_stmt_stack->rout_type_explicitly_specified) {
       /* No warning if the routine's type was not explicitly specified. */
     } else if (rout == il_header.main_routine) {
       /* No warning for "main". */
@@ -1703,6 +1716,7 @@ rescan_statement:
         /* Scan the label identifier, and enter it into the symbol table
            if needed. */
         label = scan_label(/*is_definition=*/TRUE);
+        label->parent_block = nearest_enclosing_compound_statement();
         /* See if the label has already been declared. */
         if (label->variant.exec_stmt != NULL) {
           str_error(ec_label_already_defined, label->source_corresp.name);
@@ -1826,6 +1840,10 @@ come out on the closing "}".
       check_for_unreachable_code();
     }  /* if */
     block = add_statement((a_statement_kind)stmk_block);
+    /* Make the parent pointer in the block point to the nearest enclosing
+       compound statement. */
+    block->variant.block.extra_info->parent_block =
+                                        nearest_enclosing_compound_statement();
     /* Clear the entry for "else" in the stop tokens set.  Without this,
        an else encountered where a statement is expected could cause an
        error recovery loop. */
@@ -1874,7 +1892,10 @@ come out on the closing "}".
   /* If a lint-style "notreached" comment was detected, suppress the
      warning on unreachable code. */
   check_lint_notreached_flag();
-
+  /* Remember whether or not the end of the block is reachable.  This
+     is helpful in IL lowering. */
+  block->variant.block.extra_info->end_of_block_reachable = 
+                                              (code_reachable == rc_reachable);
   if (at_function_level) {
     /* If the code at the end of a function runs off the end, a default
        return must be added.  See 3.6.6.4. */
