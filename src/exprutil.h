@@ -470,8 +470,10 @@ extern void make_lvalue_variable_operand(a_variable_ptr    variable,
 extern void make_rvalue_variable_operand(a_variable_ptr variable,
                                          an_operand     *result);
 
-extern void make_ptr_to_member_constant_operand(a_symbol_ptr member_proj_sym,
-                                                an_operand   *result);
+extern void make_ptr_to_member_constant_operand(
+                                         a_symbol_ptr      member_proj_sym,
+                                         a_source_position *position,
+                                         an_operand        *result);
 
 extern a_boolean check_object_pointer_operand(an_operand    *operand,
                                               an_error_code err_code);

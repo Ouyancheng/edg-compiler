@@ -1,5 +1,10 @@
 Version 2.07
 
+6/26/92  Compiler-generated functions created on explicit references
+
+Compiler-generated functions (operator= and destructor) are now
+created when invoked explicitly, not just when invoked implicitly.
+
 6/25/92  Error now issued for reference to local variable in default
          argument expression.
 

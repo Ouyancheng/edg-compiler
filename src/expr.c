@@ -2678,11 +2678,13 @@ operation is a pointer-to-member (see ARM 5.3).
             error_in_operand(ec_address_of_bit_field, &operand);
             make_error_operand(result);
           } else {
-            make_ptr_to_member_constant_operand(member_proj_sym, result);
+            make_ptr_to_member_constant_operand(member_proj_sym,
+                                                &start_position, result);
           }  /* if */
         } else if (member_sym->kind == (a_symbol_kind)sk_member_function) {
           /* Pointer to nonstatic member function. */
-          make_ptr_to_member_constant_operand(member_proj_sym, result);
+          make_ptr_to_member_constant_operand(member_proj_sym,
+                                              &start_position, result);
         } else {
 #if CHECKING
           if (member_sym->kind != (a_symbol_kind)sk_overloaded_function) {
