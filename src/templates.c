@@ -15679,6 +15679,10 @@ that follows.
         vp = sym->variant.static_data_member.variable;
         scp = &vp->source_corresp;
         already_specialized = vp->is_specialized;
+        /* Update the variable type if needed: The specialization may have
+           more detailed type information than the in-class declaration (e.g.,
+           an array bound). */
+        vp->type = composite_type(vp->type, type);
       } else {
         check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
                         sym->kind == (a_symbol_kind)sk_member_function);
