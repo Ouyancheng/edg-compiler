@@ -39,12 +39,12 @@ error.c -- Error reporting routines.
 /* Get bsearch definition. */
 #include <stdlib.h>
 #else /* __ANSIC__ */
-EXTERN_C a_void_ptr bsearch(const a_void_ptr key,
-                            const a_void_ptr base,
+EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
+                            a_const_void_ptr base,
                             sizeof_t         nmemb,
                             sizeof_t         size,
-                            int(*compar)(const a_void_ptr,
-                                         const a_void_ptr));
+                            int(*compar)(a_const_void_ptr,
+                                         a_const_void_ptr));
 #endif /* __ANSIC__ */
 
 
