@@ -25,11 +25,23 @@ Declarations for EDG template prelink utility.
 
 /* Suffix to be used for instantiation object files created in one
    instantiation per object mode. */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+/* When the C or C++ generating back end is used, the suffix will
+   include ".int" and the object file suffix. */
 #if __MICROSOFT_OS__
 #define INSTANTIATION_OBJECT_SUFFIX ".int.obj"
 #else /* !__MICROSOFT_OS__ */
 #define INSTANTIATION_OBJECT_SUFFIX ".int.o"
 #endif /* __MICROSOFT_OS__ */
+#else /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
+/* When a "real" back end is used, the instantiation suffix is just the
+   object file suffix. */
+#if __MICROSOFT_OS__
+#define INSTANTIATION_OBJECT_SUFFIX ".obj"
+#else /* !__MICROSOFT_OS__ */
+#define INSTANTIATION_OBJECT_SUFFIX ".o"
+#endif /* __MICROSOFT_OS__ */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 /* Special mangled name prefixes used by the prelinker. */
 #define PL_CAN_BE_INSTANTIATED_PREFIX		"__CBI__"

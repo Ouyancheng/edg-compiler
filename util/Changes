@@ -1,5 +1,14 @@
 Version 2.42
 
+6/2/99   Instantiation object suffix when not using the C-generating back end
+
+The prelinker removes instantiation object files that are no longer
+needed.  To do so, it must know the file suffix that is used for such
+files.  Formerly, it assumed that the suffix was either ".int.o" or
+".int.obj", neither of which is correct when a "real" back end is
+being used.  The prelinker now uses ".o" or ".obj" when the back end
+is not the C or C++ generating back end.
+
 4/27/99  Prelinker accepts nm code of "R" for read-only variable definition
 
 The Linux "nm" command uses a type code of "R" to indicate the definition
