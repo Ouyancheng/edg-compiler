@@ -5825,7 +5825,11 @@ to represent the template parameters.
       /* Enter a dummy param type. */
       sym = enter_symbol((a_symbol_kind)sk_type, &locator_for_curr_id,
                          decl_scope_level, /*suppress_redecl_error=*/FALSE);
-      sym->variant.type = error_type();
+      /* Allocate a template parameter type that this type can point to.
+         Because it has no coordinates it can't match any other template
+         parameter.  An error type cannot be used because the code that
+         uses the parameter list does not expect error types. */
+      sym->variant.type = alloc_type((a_type_kind)tk_template_param);
     }  /* if */
     /* Allocate a template parameter and set its fields based on sym. */
     template_param = alloc_template_param(sym,

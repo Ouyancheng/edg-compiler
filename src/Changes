@@ -1,5 +1,11 @@
 Version 2.33
 
+9/27/96  Use of template template parameters could result in abort
+
+Use of template template parameters (which are not yet implemented)
+could result in an abort caused by an error recovery problem.  This
+has been fixed.
+
 9/26/96  Bug fixed in processing lint NOTREACHED comments
 
 When a lint NOTREACHED comment was the last thing before the closing brace
