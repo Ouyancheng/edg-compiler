@@ -2711,11 +2711,14 @@ Dump all types declared within one scope.
     for (type = scope->types; type != NULL; type = type->next) {
       dump_type_decl(type, pass);
     }  /* for */
-    /* Examine functions with definitions and generate any
-       prototype scope types as file-scope types so that they will be
-       the same for the declaration and definition of the function.
-       This effectively promotes those prototype scope types out of the
-       prototype scope. */
+    /* Examine functions and generate any prototype scope types as
+       file-scope types so that they will be the same for the declaration
+       and definition of the function.  This effectively promotes those
+       prototype scope types out of the prototype scope.  Note that
+       this is done even for functions without a definition because it
+       is possible to call those functions (e.g., with a 0 to match a
+       pointer) and the types would get referenced in the cast of
+       the argument. */
 #if 0
     /* These prototype scope types should really be merged with the types
        from the top level of the function, since there can be references
@@ -2732,16 +2735,13 @@ Dump all types declared within one scope.
       a_boolean     any_found = FALSE;
       a_routine_ptr rout;
       for (rout = scope->routines; rout != NULL; rout = rout->next) {
-        if (rout->assoc_scope != NULL_region_number) {
-          /* This function has a definition. */
-          a_routine_type_supplement_ptr rtsp =
-                                        rout->type->variant.routine.extra_info;
-          a_scope_ptr                   proto_scope = rtsp->prototype_scope;
-          if (proto_scope != NULL) {
-            /* This function has a prototype scope.  Output any types
-               declared therein. */
-            dump_prototype_scope_types(proto_scope, rout, pass, &any_found);
-          }  /* if */
+        a_routine_type_supplement_ptr rtsp =
+                         skip_typerefs(rout->type)->variant.routine.extra_info;
+        a_scope_ptr                   proto_scope = rtsp->prototype_scope;
+        if (proto_scope != NULL) {
+          /* This function has a prototype scope.  Output any types
+             declared therein. */
+          dump_prototype_scope_types(proto_scope, rout, pass, &any_found);
         }  /* if */
       }  /* for */
       /* If no types were found in prototype scopes on the first pass,
