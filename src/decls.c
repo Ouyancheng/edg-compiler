@@ -2322,7 +2322,7 @@ that it is the default operator new().
 
 
 static an_id_linkage_kind id_linkage(a_symbol_locator *locator,
-                                     a_storage_class  storage_class,
+                                     a_storage_class  *storage_class,
                                      a_type_ptr       type,
                                      a_boolean        is_main_function,
                                      a_symbol_ptr     *linked_symbol,
@@ -2349,10 +2349,11 @@ will be involved in overloading.
   a_boolean          is_list, is_friend_decl = FALSE;
   a_symbol_ptr       other_decl, sym;
   a_boolean          is_default_global_operator_new = FALSE;
+  a_storage_class    local_storage_class = *storage_class;
 
   *linked_symbol = NULL;
   *overload_symbol = NULL;
-  if (storage_class == (a_storage_class)sc_typedef) {
+  if (local_storage_class == (a_storage_class)sc_typedef) {
     /* A typedef is not an object or function, and has no linkage. */
     linkage = idl_none;
   } else if ((sym = locator->specific_symbol) != NULL &&
@@ -2372,7 +2373,7 @@ will be involved in overloading.
     /* In pcc mode, functions and extern variables are always effectively
        declared at the file scope level. */
     if (C_dialect == C_dialect_pcc &&
-        (is_function || storage_class == (a_storage_class)sc_extern)) {
+        (is_function || local_storage_class == (a_storage_class)sc_extern)) {
       *effective_decl_level = DEPTH_OF_FILE_SCOPE;
     } else if (C_dialect == C_dialect_cplusplus &&
                is_default_operator_new(locator, type)) {
@@ -2476,7 +2477,7 @@ will be involved in overloading.
     }  /* if */
 determine_linkage:
     /* Determine the linkage. */
-    if (!file_scope && storage_class != (a_storage_class)sc_extern) {
+    if (!file_scope && local_storage_class != (a_storage_class)sc_extern) {
       /* A non-file-scope object without extern storage class has no
          linkage.  In C++ a non-file-scope function may be declared --
          a friend function defined inline within a local class; it too
@@ -2484,18 +2485,28 @@ determine_linkage:
       linkage = idl_none;
 #if CHECKING
       if (is_function &&
-          (!is_friend_decl || storage_class != (a_storage_class)sc_static)) {
+          (!is_friend_decl ||
+           local_storage_class != (a_storage_class)sc_static)) {
         internal_error("id_linkage: expected friend and static storage class");
       }  /* if */
 #endif /* CHECKING */
     } else if (file_scope &&
-               storage_class == (a_storage_class)sc_static) {
+               local_storage_class == (a_storage_class)sc_static) {
       /* An object or function at file scope with static storage class
          has internal linkage. */
       linkage = idl_internal;
-    } else if (storage_class == (a_storage_class)sc_extern ||
+      /* File scope objects with internal linkage must have static storage
+         class.  Sometimes an adjustment must be made on the storage class
+         passed in, e.g.,
+           static int i; extern int i;
+         or
+           static void f(); void f() { }
+         The variable and function acquire static storage class from the prior
+         declarations. */
+      *storage_class = (a_storage_class)sc_static;
+    } else if (local_storage_class == (a_storage_class)sc_extern ||
                (is_function &&
-                storage_class == (a_storage_class)sc_unspecified)) {
+                local_storage_class == (a_storage_class)sc_unspecified)) {
       /* An object or function with extern storage class, or a function
          with no storage class, has the same linkage as any visible
          declaration of this identifier with file scope.  If there is
@@ -2508,9 +2519,9 @@ determine_linkage:
         is_object = !is_function;
         file_scope = TRUE;
         if (is_function) {
-          storage_class = other_decl->variant.routine->storage_class;
+          local_storage_class = other_decl->variant.routine->storage_class;
         } else {
-          storage_class = other_decl->variant.variable->storage_class;
+          local_storage_class = other_decl->variant.variable->storage_class;
         }  /* if */
         /* If we check again for visible identifiers, there can be no
            other visible identifier with the same name. */
@@ -2520,11 +2531,11 @@ determine_linkage:
       /* No visible declaration found, so the linkage is external. */
       linkage = idl_external;
     } else if (is_object && file_scope &&
-               storage_class == (a_storage_class)sc_unspecified) {
+               local_storage_class == (a_storage_class)sc_unspecified) {
       /* An object at file scope with no storage class has external linkage. */
       linkage = idl_external;
 #if ASM_FUNCTION_ALLOWED
-    } else if (storage_class == (a_storage_class)sc_asm) {
+    } else if (local_storage_class == (a_storage_class)sc_asm) {
       /* An asm function has internal linkage. */
       linkage = idl_internal;
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -3026,7 +3037,7 @@ otherwise, set *ext_sym to NULL.
 */
 {
   a_symbol_ptr      sym = NULL;
-  a_boolean         is_function;
+  a_boolean         is_function, is_variable_definition = FALSE;
   a_boolean         at_file_scope;
   a_symbol_ptr      linked_symbol, homonym_symbol, overload_symbol = NULL;
   a_boolean         redecl_error_already_issued = FALSE;
@@ -3058,6 +3069,20 @@ otherwise, set *ext_sym to NULL.
 #endif /* CHECKING */
     storage_class = (a_storage_class)sc_static;
   }  /* if */
+  if (!is_function) {
+    /* Set the is_variable_definition flag.  The rules are slightly different
+       in C and C++, since the latter does not allow tentative definitions.
+       In C++ the declaration of any variable without an "extern"
+       specification is a definition; in C a storage class of unspecified
+       means it is just a declaration (unless there's an initializer). */
+    if (storage_class != (a_storage_class)sc_extern) {
+      if (C_dialect == C_dialect_cplusplus ||
+          storage_class != (a_storage_class)sc_unspecified ||
+          decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+        is_variable_definition = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (is_implicit_function) {
     /* For an implicit function, the identifier would not be in the process
        of being declared implicitly as a function if there were any visible
@@ -3068,7 +3093,7 @@ otherwise, set *ext_sym to NULL.
     sym = *symbol_ptr;
   } else {
     /* Determine the linkage of this symbol. */
-    linkage = id_linkage(locator, storage_class, type_ptr, is_main_function,
+    linkage = id_linkage(locator, &storage_class, type_ptr, is_main_function,
                          &linked_symbol, &homonym_symbol,
                          &effective_decl_level);
   }  /* if */
@@ -3083,7 +3108,7 @@ otherwise, set *ext_sym to NULL.
     redeclaration = TRUE;
     if (linked_symbol->kind == (a_symbol_kind)sk_variable && !is_function) {
       if (C_dialect == C_dialect_cplusplus && linked_symbol->defined &&
-          storage_class != (a_storage_class)sc_extern) {
+          is_variable_definition) {
         /* Variable has already been defined.  Force an error on symbol lookup
            by leaving sym NULL. */
         linked_redecl_error = TRUE;
@@ -3269,18 +3294,8 @@ otherwise, set *ext_sym to NULL.
   }  /* if */
   if (!is_function) {
     /* The entity being declared is a variable. */
-    /* Set the defined flag in the symbol.  The rules are slightly different
-       in C and C++, since the latter does not allow tentative definitions.
-       In C++ the declaration of any variable without an "extern"
-       specification is a definition; in C a storage class of unspecified
-       means it is just a declaration (unless there's an initializer). */
-    if (storage_class != (a_storage_class)sc_extern) {
-      if (C_dialect == C_dialect_cplusplus ||
-          storage_class != (a_storage_class)sc_unspecified ||
-          decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-        sym->defined = TRUE;
-      }  /* if */
-    }  /* if */
+    /* Set the defined flag in the symbol. */
+    if (is_variable_definition) sym->defined = TRUE;
     if (variable_ptr == NULL) {
       /* There is no IL entry, so create one now.  If the variable has
          internal or external linkage, it is entered at the file scope. */
@@ -3295,16 +3310,24 @@ otherwise, set *ext_sym to NULL.
                                  /*suppress_diagnostic=*/linked_redecl_error);
       /* Modify the storage class if necessary (an unspecified storage 
          class on the new declaration indicates a tentative definition --
-         see 3.7.2). */
+         see 3.7.2).  Do not force anything but sc_unspecified on the
+         preexisting variable entry -- we don't want to change the storage
+         class in a case like this:  int i; extern int i; . */
       if (storage_class == (a_storage_class)sc_unspecified) {
         variable_ptr->storage_class = (a_storage_class)sc_unspecified;
       }  /* if */
       /* If the IL entry was previously referenced, and this is a definition
          of the variable, the symbol should be considered to have been
          referenced as well. */
-      if (storage_class != (a_storage_class)sc_extern &&
+      if (is_variable_definition &&
           variable_ptr->source_corresp.referenced) {
-         sym->referenced = TRUE;
+        /* We may have a case like this:
+             void f() { extern int i; i = 0; }
+             int i;
+           The IL entity associated with i is referenced in the function
+           scope and is subsequently defined in the file scope.  Retroactively
+           mark its symbol as referenced, in case it's new. */
+        sym->referenced = TRUE;
       }  /* if */
     }  /* if */
     source_corresp_ptr = &variable_ptr->source_corresp;
@@ -3357,13 +3380,9 @@ otherwise, set *ext_sym to NULL.
            order that their bodies appear. */
         remove_from_routines_list(routine_ptr);
         add_to_routines_list(routine_ptr, /*at_file_scope=*/TRUE);
-        if (routine_ptr->storage_class != (a_storage_class)sc_static) {
-          /* Put in the storage class for the definition (static or 
-             unspecified).  If it's already static, we don't change it to
-             unspecified.  If it used to be unspecified and is now static,
-             an error will already have been issued. */
-          routine_ptr->storage_class = storage_class;
-        }  /* if */
+        /* Put in the storage class for the definition (static or 
+           unspecified). */
+        routine_ptr->storage_class = storage_class;
         /* If the IL entry was previously referenced, the symbol should
            be considered to have been referenced as well. */
         saved_referenced_flag = routine_ptr->source_corresp.referenced;
