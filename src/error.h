@@ -323,7 +323,8 @@ typedef enum /*an_error_code*/ {
   ec_not_equivalent_to_inherited_member,
   ec_id_must_be_class_name,
   ec_bad_friend_decl,
-  ec_value_returned_in_constructor
+  ec_value_returned_in_constructor,
+  ec_bad_destructor_decl
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -903,6 +903,9 @@ error code.
     case ec_value_returned_in_constructor:
       m = "a constructor or destructor may not return a value";
       break;
+    case ec_bad_destructor_decl:
+      m = "invalid destructor declaration";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
