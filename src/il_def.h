@@ -533,7 +533,11 @@ enum an_arg_pragma_kind_tag {
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_arg_pragma_kind;
-
+/* Type used to hold a lint varargs argument count: */
+typedef short a_lint_varargs_count;
+#define LINT_VARARGS_COUNT_MAX SHRT_MAX
+/* Value used to indicate that there is no lint varargs count: */
+#define NOT_LINT_VARARGS (-1)
 #endif /* ifdef CIL */
 /* Entry containing additional information about a routine type
 (segregated to keep down the size of a_type). */
@@ -591,8 +595,8 @@ typedef struct a_routine_type_supplement {
                            to a lint-style "argsused" flag, indicating that
                            warnings on unreferenced parameters should not
                            be issued. */
-  short         lint_varargs_count;
-#define NOT_LINT_VARARGS (-1)
+  a_lint_varargs_count
+	         lint_varargs_count;
                         /* If not equal to NOT_LINT_VARARGS (-1), this
                            function declaration is subject to a lint-style
                            "varargs" comment.  The count is the argument to
