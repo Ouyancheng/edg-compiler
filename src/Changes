@@ -41,18 +41,20 @@ than one name, but all of the names found refer to the same type.
 
 The front end generates a module ID, which is appended to certain
 names to guarantee that they are unique across an entire program.  The
-module ID is made up of the primary source file and some additional
-information to guarantee that the module ID is unique across the
-entire program.  Template entities are no longer used as a component
-of the module ID.  This change was made because some implementations
-generate template instantiations in more than one file.  When no
-external symbol is available for use in the module ID, the compilation
-time and current directory are now included.  Because the module ID is
-now used as a component of external names in more circumstances, a CRC
-code is sometimes used in place of the additional information
-described above.  If the additional information to be used in the
-module ID is more than 8 characters, the CRC code is used in its
-place.
+module ID is made up of the primary source file name and some additional
+information (e.g., the mangled name of an external entity defined in
+the compilation).  The following changes have been made:
+
+-- Template entities are no longer chosen for the external entity.
+   This change was made because some implementations generate
+   template instantiations in more than one file.
+-- When no external entity is available for use in the module ID, the
+   compilation time and current directory are now included.
+-- Because the module ID is now used as a component of external names
+   in more circumstances, a CRC code is sometimes used in place of the
+   additional information described above.  If the additional information
+   to be used in the module ID is more than 8 characters, the hexadecimal
+   representation of the CRC code is used in its place.
 
 10/8/97   Applying a cv-qualifier to a function type is not allowed in C++
 
