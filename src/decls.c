@@ -10308,6 +10308,50 @@ diagnostics.
   }  /* if */
 }  /* check_main_function */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void scan_gnu_declarator_attributes(char*             *asm_name,
+                                           an_attribute_ptr  *attributes,
+                                           a_storage_class   declared_storage,
+                                           a_boolean         is_function)
+/*
+Scan asm_name constructs and attribute lists following a declarator.
+The resulting asm() symbol name tag is return through asm_name.
+The attributes are appended to the list pointed to by *attributes.
+*/
+{
+  char  *asm_sym_name = NULL;
+
+  if (gnu_mode) {
+    /* Look for an asm() symbol name tag.  It is ignored on typedefs (with
+       a warning). */
+    a_source_position  asm_start_pos = pos_curr_token;
+    asm_sym_name = scan_asm_name();
+    if (asm_sym_name != NULL &&
+        declared_storage == (a_storage_class)sc_typedef) {
+      pos_warning(ec_asm_name_in_typedef, &asm_start_pos);
+      asm_sym_name = NULL;
+    }  /* if */
+    if (asm_sym_name != NULL && !is_function &&
+        depth_innermost_function_scope != NO_SCOPE_DEPTH &&
+        (declared_storage == (a_storage_class)sc_auto ||
+         declared_storage == (a_storage_class)sc_unspecified)) {
+      /* Automatic variables can only have an asm() name if they are
+         also declared with the "register" keyword. */
+      pos_warning(ec_asm_name_on_auto_variable, &asm_start_pos);
+      asm_sym_name = NULL;
+    }  /* if */
+    /* Look for optional (declarator) attributes. */
+    if (curr_token == tok_attribute) {
+      an_attribute_ptr  *last_declarator_attribute = 
+                                              last_attribute_link(attributes);
+      *last_declarator_attribute = scan_attributes();
+    }  /* if */
+  }  /* if */
+  *asm_name = asm_sym_name;
+}  /* scan_gnu_declarator_attributes */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void declaration(a_boolean       function_definition_allowed,
                  a_boolean       is_old_style_param_decl,
@@ -10390,12 +10434,10 @@ of local variables (and types, etc.) of functions and in blocks.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                    first_declarator = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  an_attribute_ptr             prefix_attributes = NULL;
   char                         *asm_name = NULL;
+  an_attribute_ptr             specifier_attributes = NULL;
 #if GNU_EXTENSIONS_ALLOWED
-  an_attribute_ptr             *last_prefix_attribute;
-  an_attribute_ptr             attributes = NULL;
-  a_source_position            asm_start_pos;
+  an_attribute_ptr             *last_specifier_attribute;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean                    access_checks_deferred = FALSE;
   a_token_kind                 final_token = tok_semicolon;
@@ -10607,12 +10649,12 @@ continue_with_declaration:
   }  /* if */
   /* Scan the specifiers. */
   err = decl_specifiers(dsi_flags, &dso_flags, &declared_storage_class,
-                        &type_ptr, &qualifiers, &prefix_attributes,
+                        &type_ptr, &qualifiers, &specifier_attributes,
                         &decl_modifiers, &decl_pos_block,
                         (a_upc_block_size*)NULL);
 #if GNU_EXTENSIONS_ALLOWED
   /* Find the last prefix_attribute. */
-  last_prefix_attribute = last_attribute_link(&prefix_attributes);
+  last_specifier_attribute = last_attribute_link(&specifier_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   has_explicit_type_specifier =
                       ((dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0);
@@ -10713,6 +10755,8 @@ continue_with_declaration:
     }  /* if */
     /* Scan the declarator list. */
     do {
+      an_attribute_ptr  declarator_attributes = NULL;
+      an_attribute_ptr  attributes = NULL;
       add_stop_token(tok_comma);
       need_comma_remove_stop_token = TRUE;
       add_stop_token(tok_assign);
@@ -10737,18 +10781,17 @@ continue_with_declaration:
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
-      /* Look for optional attributes, which are added to the prefix
+      /* Look for optional attributes, which are added to the specifier
          attributes.  Note that the draft GCC manual for version 3.1
          says that in the future, these attributes may apply only to
          the next declarator, but that they presently apply to all
-         declarators. */
+         subsequent declarators. */
       if (gnu_mode) {
-        /* Scan the attributes. */
-        attributes = scan_attributes();
-        /* Add these to the prefix_attributes. */
-        *last_prefix_attribute = attributes;
-        /* And compute what's now the end of the prefix attributes. */
-        last_prefix_attribute = last_attribute_link(last_prefix_attribute);
+        /* Scan the attributes and add them to the specifier attributes. */
+        *last_specifier_attribute = scan_attributes();
+        /* Compute what's now the end of the specifier attributes. */
+        last_specifier_attribute =
+                                last_attribute_link(last_specifier_attribute);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Save the source position of the first token of the declarator. */
@@ -10756,42 +10799,16 @@ continue_with_declaration:
       declarator(di_flags, &do_flags, type_ptr, 
                  /*member_parent_type=*/(a_type_ptr)NULL, &locator,
                  &local_type_ptr, &declarator_ssep, &func_info,
-                 &decl_pos_block, 
-#if GNU_EXTENSIONS_ALLOWED
-                 last_prefix_attribute
-#else /* !GNU_EXTENSIONS_ALLOWED */
-                 (an_attribute_ptr *)NULL
-#endif /* !GNU_EXTENSIONS_ALLOWED */
-                 );
+                 &decl_pos_block, &declarator_attributes);
       is_function = (declared_storage_class != (a_storage_class)sc_typedef &&
                      is_function_type(local_type_ptr));
 #if GNU_EXTENSIONS_ALLOWED
-      last_prefix_attribute = last_attribute_link(last_prefix_attribute);
-      asm_name = NULL;
-      if (gnu_mode) {
-        /* Look for an asm() symbol name tag.  It is ignored on
-           typedefs (with a warning). */
-        asm_start_pos = pos_curr_token;
-        asm_name = scan_asm_name();
-        if (asm_name != NULL &&
-            declared_storage_class == (a_storage_class)sc_typedef) {
-          pos_warning(ec_asm_name_in_typedef, &asm_start_pos);
-          asm_name = NULL;
-        }  /* if */
-        if (asm_name != NULL && !is_function &&
-            depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-            (declared_storage_class == (a_storage_class)sc_auto ||
-             declared_storage_class == (a_storage_class)sc_unspecified)) {
-          /* Automatic variables can only have an asm() name if they are
-             also declared with the "register" keyword. */
-          pos_warning(ec_asm_name_on_auto_variable, &asm_start_pos);
-          asm_name = NULL;
-        }  /* if */
-        /* Look for optional (postfix) attributes. */
-        attributes = scan_attributes();
-        /* Combine the prefix and postfix attributes. */
-        *last_prefix_attribute = attributes;
-      }  /* if */
+      scan_gnu_declarator_attributes(&asm_name, &declarator_attributes,
+                                     declared_storage_class, is_function);
+      /* Combine the specifier and declarator attributes (they are separated
+         again at the end of the loop. */
+      attributes = specifier_attributes;
+      *last_specifier_attribute = declarator_attributes;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* If a parenthesized constructor declarator is scanned, di_flags would
          not have DI_IS_CONSTRUCTOR set, but do_flags would have
@@ -10967,12 +10984,12 @@ continue_with_declaration:
             /* We need a copy of the attribute list so that we can
                apply the attributes when we create the variable
                corresponding to this parameter. */
-            param_id->attributes = copy_attribute_list(prefix_attributes);
+            param_id->attributes = copy_attribute_list(attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
           }  /* if */
           /* Check that the type is legal, and do required adjustments. */
           check_and_adjust_parameter_type(&local_type_ptr, &decl_start_pos,
-                                          prefix_attributes);
+                                          attributes);
           is_function = top_declarator_type_is_function = FALSE;
           /* For pcc compatibility, promote float parameters to double. */
           if (C_dialect == C_dialect_pcc) {
@@ -11106,7 +11123,7 @@ continue_with_declaration:
 #if GNU_EXTENSIONS_ALLOWED
           /* GCC does not allow "void f() __attribute((...)) {}".  It
              does, however, allow "void __attribute((...)) f() {}". */
-          if (attributes != NULL) {
+          if (declarator_attributes != NULL) {
             pos_error(ec_attributes_in_rout_defn, &locator.source_position); 
           }  /* if */
           /* GNU C doesn't allow "void f() asm("bar") {}". */
@@ -11120,7 +11137,7 @@ continue_with_declaration:
           (void)function_definition(&locator, local_type_ptr,
                                     &func_info, local_storage_class,
                                     has_explicit_type_specifier,
-                                    &decl_modifiers, prefix_attributes,
+                                    &decl_modifiers, attributes,
                                     &decl_pos_block);
           done_with_func_info(func_info);
           if (is_function_try_block) {
@@ -11337,7 +11354,7 @@ continue_with_declaration:
       } else if (local_storage_class == (a_storage_class)sc_typedef) {
         /* A typedef declaration. */
         decl_typedef(&locator, local_type_ptr, (a_type_ptr)NULL,
-                     prefix_attributes, &symbol_ptr, declarator_ssep,
+                     attributes, &symbol_ptr, declarator_ssep,
                      &decl_pos_block);
       } else if (is_static_data_member) {
         /* A static data member definition. */
@@ -11386,7 +11403,7 @@ continue_with_declaration:
         }  /* if */          
         decl_routine(&locator, local_storage_class, local_type_ptr,
                      &func_info, declarator_ssep, SRK_DECLARATION,
-                     &local_decl_modifiers, prefix_attributes, asm_name,
+                     &local_decl_modifiers, attributes, asm_name,
                      &symbol_ptr, &linkage, &old_type, &ext_sym,
                      &decl_pos_block);
       } else {
@@ -11491,7 +11508,7 @@ continue_with_declaration:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         decl_variable(&locator, local_storage_class, local_type_ptr,
                       declarator_ssep, srk_flags, &local_decl_modifiers,
-                      prefix_attributes, asm_name, &symbol_ptr, &linkage,
+                      attributes, asm_name, &symbol_ptr, &linkage,
                       &old_type, &ext_sym, &decl_pos_block);
         var_ptr = symbol_ptr->variant.variable.ptr;
         /* Fetch the type of the symbol again, since it might have been
@@ -11741,9 +11758,9 @@ continue_with_declaration:
       first_declarator = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
-      /* We are done with the postfix attributes. */
-      *last_prefix_attribute = NULL;
-      free_attribute_list(attributes);
+      /* We are done with the declarator attributes. */
+      *last_specifier_attribute = NULL;
+      free_attribute_list(declarator_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       /* Keep scanning the list of declarators. */
     } while (loop_token(tok_comma));
@@ -11798,7 +11815,7 @@ return_point:
     if (restore_name_linkage) pop_name_linkage();
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  free_attribute_list(prefix_attributes);
+  free_attribute_list(specifier_attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
