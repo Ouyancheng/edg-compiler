@@ -3323,10 +3323,16 @@ and create a function instantiation entry to bind the two symbols together.
     }  /* if */
   }  /* if */
 #if CHECKING
-  if (sym == NULL || sym->kind != (a_symbol_kind)sk_member_function) {
+  if ((sym == NULL || sym->kind != (a_symbol_kind)sk_member_function) &&
+      total_errors == 0) {
     internal_error("find_member_function_template: no corresponding template");
   }  /* if */
 #endif /* CHECKING */
+  if (sym == NULL) {
+    /* An error must have occurred previously.  Don't create the template
+       instance information in this case. */
+    goto error_exit;
+  }  /* if */
   /* sym is the template symbol for which member function rout_sym is an
      instantiation.  Create the function instantiation entry and set the
      pointers to bind them together. */
