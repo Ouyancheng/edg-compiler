@@ -1725,7 +1725,7 @@ do
   if [ $multi_trans_unit -ne 0 ] ; then
     command=$command" "$secondary_files
   fi
-  if [ $trans_unit_test_mode -eq 1 ] ; then
+  if [ $trans_unit_test_mode -eq 1 -a $multi_trans_unit -eq 0 ] ; then
     # In translation unit test mode, specify the source file to be compiled
     # twice on the front end invocation command.
     command=$command" "$cfile
