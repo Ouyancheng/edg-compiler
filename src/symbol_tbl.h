@@ -2027,14 +2027,15 @@ are two kinds of ambiguity: ambiguity caused by inheritance and
 ambiguity caused by using directives.  Inheritance ambiguity
 checking precedes access control (ARM, 10.1.1).  Call a subroutine
 to do further checking if the ambiguous flag is set, or for class
-members in C++ (so that access checking can be done).
+members in C++ (so that access checking can be done).  This macro
+does nothing when called in C mode.
 */
 #define check_ambiguity_and_verify_access(locator)                    \
-{ if ((locator)->specific_symbol != NULL &&			       \
-      (((locator)->specific_symbol->is_class_member &&                 \
-       C_dialect == C_dialect_cplusplus) ||			      \
-       (locator)->specific_symbol->ambiguous)) {                        \
-    f_check_ambiguity_and_verify_access(locator);                \
+{ if (C_dialect == C_dialect_cplusplus &&                             \
+      (locator)->specific_symbol != NULL &&                           \
+      ((locator)->specific_symbol->is_class_member &&                 \
+       (locator)->specific_symbol->ambiguous)) {                      \
+    f_check_ambiguity_and_verify_access(locator);                     \
   }  /* if */                                                         \
 }  /* check_ambiguity_and_verify_access */
 
