@@ -501,7 +501,8 @@ a smaller-sized block.  Return a pointer to the block header.
   db_enter(5, "alloc_mem_block");
   /* Determine the desirable default allocation size. */
   if (small_extension) {
-    default_size = HOST_ALLOCATION_INCREMENT / 32;
+    default_size = (sizeof_t)(sizeof(a_per_instantiation_needed_flags_entry)*
+                              100);
   } else {
     default_size = HOST_ALLOCATION_INCREMENT;
   }  /* if */
