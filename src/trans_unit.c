@@ -547,6 +547,11 @@ treated as separate translation units of a single compilation.
     translation_unit();
   }  /* if */
   translation_unit_wrapup();
+#if DEBUG
+  if (debug_level >= 1 || db_flag_is_set("trans_unit")) {
+    fprintf(f_debug, "Done processing translation unit %s\n", file_name);
+  }  /* if */
+#endif  /* DEBUG */
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
   if (is_primary) {
     /* Process any secondary translation units specified on the
@@ -554,11 +559,6 @@ treated as separate translation units of a single compilation.
     proc_secondary_translation_units();
   }  /* if */
 #endif /* COMPILE_MULTIPLE_TRANSLATION_UNITS */
-#if DEBUG
-  if (debug_level >= 1 || db_flag_is_set("trans_unit")) {
-    fprintf(f_debug, "Done processing translation unit %s\n", file_name);
-  }  /* if */
-#endif  /* DEBUG */
   /* No db_exit because the start and end of this routine are not in
      the same translation unit and that fouls up the stop tokens check. */
 }  /* process_translation_unit */
