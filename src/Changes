@@ -125,16 +125,20 @@ searching for the file.
 
 Formerly, the EDG C++ headers used the .h suffix.  The front end would
 implicitly add the .h so that, for example, an include of <typeinfo>
-would result in the inclusion of typeinfo.h.  The implicit addition of
-a .h to file names with no suffix created problems when some other
-file with the .h name was found in the include search path before
-the desired file.
+would result in the inclusion of typeinfo.h.  Unfortunately, the
+implicit addition of a .h to file names with no suffix created
+problems when some other file with the .h name was found in the
+include search path before the desired file.
 
 To resolve this, the default suffix list has been changed to use a
-suffix that is unlikely to be used on other header files (.std).  The
+suffix that is unlikely to be used on other header files (.stdh).  The
 EDG C++ headers have been renamed to use that suffix.  The default
 suffix list continues to include the null suffix so that header files
 without a suffix may also be used.
+
+If an implementation chooses to use (only) suffix-less names for headers,
+the include file suffix list can be changed to "::" to turn off the feature
+of adding suffixes to such file names.
 
 See the include directory Changes file for more information about the
 header file changes.
