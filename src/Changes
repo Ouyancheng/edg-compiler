@@ -68,6 +68,17 @@ is used, C compiler support.  See
   INSTANTIATE_TEMPLATES_EVERYWHERE_USED
   DEFAULT_INSTANTIATION_MODE
 
+As part of this change, local static variables are promoted out
+of functions and made external in more cases.  For template functions
+instantiated wherever used, this is clearly necessary.  Less
+obviously, it's necessary for all extern inline functions, even
+when this new mode is not selected, and even when inline functions
+are instantiated, because even though instantiation will guarantee
+a single external definition, any given call of the function might
+be expanded from the inline definition.  (This does not come up with
+the EDG minimal inlining, because functions with inline statics are
+not inlined, but it is possible when inlining is done in the back end).
+
 11/26/02 IL write-read error on extern "C" redeclaration
 
 In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE, the front
