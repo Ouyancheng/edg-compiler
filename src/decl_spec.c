@@ -3527,14 +3527,16 @@ typedef enum {
   size_int64
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_type_size;
-#if C99_IL_EXTENSIONS_SUPPORTED
 /* C99 complex modifiers. */
 typedef enum {
   cxa_none,
   cxa_complex,
   cxa_imaginary
 } a_complex_attribute;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if !C99_IL_EXTENSIONS_SUPPORTED
+/*lint -esym(749,cxa_complex)*/
+/*lint -esym(749,cxa_imaginary)*/
+#endif /* !C99_IL_EXTENSIONS_SUPPORTED */
 
 
 #if !C99_IL_EXTENSIONS_SUPPORTED
