@@ -8,7 +8,7 @@ the wrong result type on operations involving integers.  A number of
 additional cases have been pointed out to us (for example, unsigned int +
 long ==> unsigned int), and we have now implemented those as well.
 
-5/2/98    Microsoft compatibility: on array new, operator new() considered
+5/2/98    Microsoft compatibility: on array new, operator new considered
           if no operator new[] declared
 
 In Microsoft mode, if no global operator new[] is declared, an array new
