@@ -9618,13 +9618,21 @@ next_declaration:
     }  /* if */    
     if (C_mode() && curr_token == tok_rbrace &&
         !class_state.any_named_fields) {
-      /* In C mode, there must be at least one named field.  This covers
+      /* In ANSI C mode, there must be at least one named field.  This covers
          both "struct S { };" and "struct S { int:1; };", the latter producing
-         undefined behavior according to the C standard.  Issue an error
-         and also create a dummy field to reduce error recovery problems
-         down the line. */
-      error(ec_no_named_fields);
-      add_error_field(class_type, &class_state.end_of_field_list);
+         undefined behavior according to the C standard.  Even if not in
+         strict mode, issue an error on "struct S { };".  When the class is
+         completely empty, create a dummy field to reduce error recovery
+         problems down the line. */
+      an_error_severity  severity = es_none;
+
+      if (class_state.end_of_field_list == NULL) {
+        severity = es_error;
+        add_error_field(class_type, &class_state.end_of_field_list);
+      } else if (strict_ansi_mode) {
+        severity = strict_ansi_error_severity;
+      }  /* if */
+      if (severity != es_none) diagnostic(severity, ec_no_named_fields);
     }  /* if */
     if (!class_state.is_nonreal_instantiation) {
       if (is_template_instantiation && delayed_nested_class_def) {
