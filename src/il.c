@@ -3449,36 +3449,21 @@ declaration of the function and must be completed by the point of call.
 {
   a_routine_type_supplement_ptr rtsp;
   a_type_ptr                    return_type;
-  a_class_type_supplement_ptr   ctsp;
 
   routine_type = skip_typerefs(routine_type);
   rtsp = routine_type->variant.routine.extra_info;
   if (rtsp->assoc_routine != NULL) {
-    /* The routine has been defined, so the flags are set correctly. */
+    /* The routine has been defined, so the flag is set correctly. */
   } else if (C_dialect != C_dialect_cplusplus) {
     /* The flags cannot be set in C mode. */
   } else {
-    /* If the function returns a class object whose address may have to be
-       taken, make the caller provide a temporary for the result. */
+    /* If the function returns a class object that has a copy
+       constructor, make the caller provide a temporary for the result. */
     return_type = routine_type->variant.routine.return_type;
     return_type = skip_typerefs(return_type);
     if (is_class_struct_union_type(return_type)) {
-      ctsp = return_type->variant.class_struct_union.extra_info;
-      if (ctsp->base_classes != NULL) {
-        /* The class has base classes.  The address of the class object
-           will be required to do base class casts. */
+      if (symbol_supplement_for_class(return_type)->has_copy_constructor) {
         rtsp->caller_provides_place_to_put_return_value = TRUE;
-      } else {
-        a_scope_ptr scope = ctsp->assoc_scope;
-        if (scope != NULL) {
-          /* The class definition is known. */
-          if (scope->routines != NULL) {
-            /* The class has member functions, so the class object address
-               will have to be passed as a "this" parameter.  (This could
-               be refined to exclude static member functions.) */
-            rtsp->caller_provides_place_to_put_return_value = TRUE;
-          }  /* if */
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

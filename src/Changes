@@ -1,5 +1,13 @@
 Version 2.08
 
+7/10/92  Functions return class objects like cfront
+
+For cfront compatibility, functions that return class objects now do
+so through a caller-supplied pointer only if the class has a copy
+constructor.  Previously, the fact that the class had base classes or
+defined member functions would also force the more complicated
+calling sequence.
+
 7/10/92  Added break_seq_number to switch clause
 
 The IL entry a_switch_clause now has a field break_seq_number that gives the
