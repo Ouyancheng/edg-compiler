@@ -14,6 +14,7 @@ C++ runtime routines to provide vector new() and delete() functionality.
 */
 
 #include <stdlib.h>
+#include "basics.h"
 #include "main.h"
 #include "config.h"
 

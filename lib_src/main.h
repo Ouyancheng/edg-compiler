@@ -4,7 +4,7 @@
 * Edison Design Group C++  Runtime                           - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1992 Edison Design Group Inc.                        [_]          *
+* Copyright 1992-1993 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -55,14 +55,6 @@ typedef void (*func_ptr)();
 extern func_ptr _ctors[];
 extern func_ptr _dtors[];
 
-#define TRUE 1
-#define FALSE 0
-
-typedef int a_boolean;
-
-/* Set to TRUE to enable debugging code. */
-#define DEBUG TRUE
-
 #endif /* MAIN_H */
 
 
@@ -72,6 +64,6 @@ typedef int a_boolean;
 * Edison Design Group C++  Runtime                           - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1992 Edison Design Group Inc.                        [_]          *
+* Copyright 1992-1993 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

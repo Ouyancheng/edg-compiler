@@ -16,6 +16,7 @@ static_init.c -- called by _main to handle calling of static constructors
 
 #include <stddef.h>
 #include <stdlib.h>
+#include "basics.h"
 #include "static_init.h"
 #include "main.h"
 #include "config.h"
