@@ -3167,6 +3167,7 @@ namespace-extension scope.
   a_storage_class  storage_class;
   a_symbol_locator *locator = idlbp->locator;
   a_namespace_ptr  nsp = qualifier_namespace_ptr(*locator);
+  a_scope_depth    orig_effective_decl_level;
 
   db_enter(3, "qualified_name_redecl_sym");
   if (!idlbp->is_definition && !idlbp->is_friend_decl && !microsoft_mode) {
@@ -3202,6 +3203,7 @@ namespace-extension scope.
            in a scope other than that of the namespace to which it belongs, so
            extend the original namespace scope. */
         push_namespace_extension_scope(nsp);
+        orig_effective_decl_level = idlbp->effective_decl_level;
         idlbp->effective_decl_level = depth_scope_stack;
       }  /* if */
       idlbp->namespace_reactivated = TRUE;
@@ -3310,6 +3312,7 @@ namespace-extension scope.
           pop_namespace_reactivation_scope();
         } else {
           pop_namespace_extension_scope();
+          idlbp->effective_decl_level = orig_effective_decl_level;
         }  /* if */
         idlbp->namespace_reactivated = FALSE;
       }  /* if */
@@ -4401,8 +4404,7 @@ skip_overloading:;
   if (sym == NULL) {
     /* There is no (compatible) symbol, so enter one now. */
     sym = enter_local_symbol((a_symbol_kind)sk_routine, locator,
-                             is_error_locator(*locator) ?
-                                  decl_scope_level : effective_decl_level,
+                             effective_decl_level,
                              redecl_error_already_issued);
     if (microsoft_mode && invalid_scope_for_new_or_delete) {
       /* An operator new or delete function was declared in a namespace scope.
