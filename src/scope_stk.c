@@ -243,7 +243,7 @@ within the scope specified by ssep.  Return TRUE if it is, FALSE otherwise.
     }  /* if */
   }  /* if */
   return result;
-}  /* namespace_is_enclosed_by_curr_scope */
+}  /* namespace_is_enclosed_by_scope */
 
 
 static an_active_using_directive_ptr alloc_active_using_directive(void)
