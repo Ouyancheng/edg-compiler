@@ -3983,8 +3983,7 @@ fixed up at this time.  For example:
     template <class T> class X;
     typedef X<int> arr[10];
     template <class T> class X { ... };
-Now that template X has been def
-ined, X<int> can be instantiated and
+Now that template X has been defined, X<int> can be instantiated and
 the size of arr can be computed.
 */
 {
