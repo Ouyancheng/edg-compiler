@@ -1,5 +1,11 @@
 Version 2.46
 
+10/5/01  New configuration variable to set the alignment type
+
+The type of a_targ_alignment is a_byte.  However, a new configuration
+variable TYPE_FOR_TARG_ALIGNMENT allows this to be changed (it is still a_byte
+by default), thereby enabling a larger range for TARG_MAXIMUM_PACK_ALIGNMENT.
+
 10/2/01  Spurious error possible when using-declaration refers to both
          a tag and non-tag
 

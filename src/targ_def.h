@@ -938,8 +938,12 @@ typedef a_host_large_unsigned a_targ_size_t;  /* Must be
 #endif /* ifndef TARG_SIZE_T_MAX */
 
 /* Specification of a target alignment requirement.  1 means no alignment
-   requirement. */
-typedef a_byte a_targ_alignment;
+   requirement.  (TARG_MAXIMUM_PACK_ALIGNMENT must fit in this type.) */
+#ifndef TYPE_FOR_TARG_ALIGNMENT
+#define TYPE_FOR_TARG_ALIGNMENT a_byte
+#endif /* ifndef TYPE_FOR_TARG_ALIGNMENT */
+
+typedef TYPE_FOR_TARG_ALIGNMENT a_targ_alignment;
 
 /*
 Float types:
