@@ -50,6 +50,7 @@ static unsigned long
 		num_routine_type_supplements_allocated,
 		num_class_type_supplements_allocated,
                 num_base_classes_allocated,
+                num_virtual_base_classes_allocated,
 		num_types_allocated,
 		num_dynamic_inits_allocated,
 		num_variables_allocated,
@@ -1561,6 +1562,27 @@ to it.
 }  /* alloc_base_class */
 
 
+a_virtual_base_class_ptr alloc_virtual_base_class(void)
+/*
+Allocate a virtual base class entry, initialize its fields, and return a
+pointer to it.
+*/
+{
+  a_virtual_base_class_ptr vbcp;
+
+  vbcp = (a_virtual_base_class_ptr)alloc_cil(sizeof(a_virtual_base_class));
+
+#if DEBUG
+  num_virtual_base_classes_allocated++;
+#endif
+  vbcp->next                = NULL;
+  vbcp->class               = NULL;
+  vbcp->data_section_offset = 0;
+
+  return vbcp;
+}  /* alloc_virtual_base_class */
+
+
 static a_class_type_supplement_ptr alloc_class_type_supplement(void)
 /*
 Allocate a class-type-supplement entry, initialize its fields, and return
@@ -1574,10 +1596,12 @@ a pointer to it.
 #if DEBUG
   num_class_type_supplements_allocated++;
 #endif /* DEBUG */
-  ctsp->base_classes                  = NULL;
-  ctsp->access_adjustments            = NULL;
-  ctsp->befriending_classes           = NULL;
-  ctsp->assoc_scope                   = NULL;
+  ctsp->base_classes                      = NULL;
+  ctsp->virtual_base_classes              = NULL;
+  ctsp->size_without_virtual_base_classes = 0;
+  ctsp->access_adjustments                = NULL;
+  ctsp->befriending_classes               = NULL;
+  ctsp->assoc_scope                       = NULL;
   return ctsp;
 }  /* alloc_class_type_supplement */
 
@@ -2808,6 +2832,8 @@ Display and return the amount of space used for various IL tables.
   write_one("class type supplement", num_class_type_supplements_allocated,
                                      a_class_type_supplement);
   write_one("base class", num_base_classes_allocated, a_base_class);
+  write_one("virtual base class", num_virtual_base_classes_allocated,
+                                  a_virtual_base_class);
   write_one("type", num_types_allocated, a_type);
   write_one("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
   write_one("variable", num_variables_allocated, a_variable);
@@ -2897,6 +2923,7 @@ of the front end.
   num_routine_type_supplements_allocated = 0;
   num_class_type_supplements_allocated   = 0;
   num_base_classes_allocated             = 0;
+  num_virtual_base_classes_allocated     = 0;
   num_types_allocated                    = 0;
   num_dynamic_inits_allocated            = 0;
   num_variables_allocated                = 0;
