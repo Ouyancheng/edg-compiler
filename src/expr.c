@@ -1787,7 +1787,7 @@ bound with the function in *bound_function_selector.
   a_symbol_ptr          member_sym, projection_member_sym;
   a_boolean             is_arrow_operator;
   a_type_ptr            class_struct_union_type, orig_class_struct_union_type;
-  a_boolean             err = FALSE, processed = FALSE;
+  a_boolean             err = FALSE, processed = FALSE, found_id = FALSE;
   an_error_code         err_in_operand_1 = ec_no_error;
   an_xref_entry_ptr     xep;
   a_routine_ptr         routine_ptr;
@@ -1889,6 +1889,7 @@ bound with the function in *bound_function_selector.
   if (is_qualified_name_start() ||  /* Identifier and "::". */
       curr_token == tok_compl ||    /* Destructor name like "~A". */
       curr_token == tok_operator) { /* Operator name like "operator+". */
+    found_id = TRUE;
     /* See if the name following the operator is a C++ qualified name, as
        in "p->A::x". */
     is_qualified_name = get_qualified_name(IDL_NO_OPTIONS);
@@ -1980,9 +1981,8 @@ bound with the function in *bound_function_selector.
         }  /* if */
       }  /* if */
     }  /* if */
-    (void)get_token();
   } else {
-    /* The token was not an identifier; error. */
+    /* The identifier is not present; error. */
     (void)required_token(tok_identifier, ec_exp_field_name);
     err = TRUE;
   }  /* if */
@@ -1991,6 +1991,7 @@ bound with the function in *bound_function_selector.
   if (err_in_operand_1 != ec_no_error) {
     error_in_operand(err_in_operand_1, operand_1);
     err_in_operand_1 = ec_no_error;
+    err = TRUE;
   }  /* if */
 
   /* Set the error position to the starting position. */
@@ -2125,6 +2126,12 @@ nonstatic_member_function:
 #endif /* CHECKING */
       }  /* switch */
     }  /* if */
+  }  /* if */
+
+  if (found_id) {
+    /* The identifier was present; advance past it.  This is done late
+       in order not to disturb locator_for_curr_id while it's still needed. */
+    (void)get_token();
   }  /* if */
 
   /* The position of the operand is the start position of the selection
