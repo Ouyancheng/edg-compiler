@@ -1,5 +1,67 @@
 Version 2.35
 
+1/30/96 #pragma pack directives and templates
+
+When USER_CONTROL_OF_STRUCT_PACKING is TRUE, the default "pack alignment"
+(given by a "#pragma pack" directive or specified on the command line) for
+a function template instantiation is now the setting at the point of the
+template definition.  (This was already true for class template
+instantiations -- see entry for 3/5/96.)  For example,
+
+  #pragma pack(1)
+  template <class T> int f(T) {
+    struct S { char c; int i; };
+    return sizeof(S);
+  }
+  #pragma pack(4)
+  main() {
+    int i = f(0);                    // i = 5, not 8
+  }
+
+Moreover, if a #pragma pack directive appears inside a template, it will
+no longer affect declarations following the point at which it is
+instantiated -- in other words, a #pragma pack directive is sometimes
+treated as "local".  Here's an example:
+
+  template <class T> class A {
+    :
+  #pragma pack(1)
+    :
+  };
+  #pragma pack(4)
+  main() {
+    A<int> a;                       // #pragma pack(1) is local to A<int>
+    struct S { char c; int i; };    // sizeof(S) == 8, not 5
+  }
+
+The same approach is now used for member functions defined within the
+class definition, because their bodies are scanned "out of order" relative
+to the textual order of the source program.  For example,
+
+  #pragma pack(4)
+  struct A {
+    int f() {
+  #pragma pack(1)                   // #pragma pack(1) is local to A::f
+      struct S { char c; int i; };  // sizeof(S) is 5
+    }
+    int g() {
+      struct S { char c; int i; };  // sizeof(S) is 8
+    }
+  #pragma pack(1)
+    int h() {
+      struct S { char c; int i; };  // sizeof(S) is 5
+    }
+  };                                // inline functions are not scanned
+                                    //   until here (i.e., not till all
+                                    //   members have been declared)
+
+When entering a class or function template instantiation or the definition
+of an inline-defined member function, the current pack alignment state is
+saved and the appropriate default is set.  Within that context, #pragma
+pack directives are treated as "local" and a warning are issued.  When the
+instantiation or function body is complete, the original pack alignment
+state is restored.
+
 1/30/97 C++-generating back end: typedef name on vacuous destructor call
 
 The C++-generating back end now puts the original typedef name in a non-class
