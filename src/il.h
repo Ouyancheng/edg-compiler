@@ -507,6 +507,8 @@ extern a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp);
 
 extern void pop_object_lifetime(void);
 
+extern void pop_object_lifetimes_until(an_object_lifetime_ptr  stop_at);
+
 extern a_scope_ptr alloc_scope(a_scope_kind   kind,
                                a_scope_number number,
                                a_routine_ptr  assoc_routine);

@@ -7474,6 +7474,16 @@ void pop_object_lifetime(void)
 }  /* pop_object_lifetime */
 
 
+void pop_object_lifetimes_until(an_object_lifetime_ptr  stop_at)
+/*
+*/
+{
+  while (curr_object_lifetime != stop_at) {
+    pop_object_lifetime();
+  }  /* while */
+}  /* pop_object_lifetimes_until */
+
+
 a_scope_ptr alloc_scope(a_scope_kind   kind,
                         a_scope_number number,
                         a_routine_ptr  assoc_routine)
