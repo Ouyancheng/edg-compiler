@@ -2062,7 +2062,7 @@ optimize calls to nested_source_line_modif.
 #if DEBUG
       num_compares_in_source_line_modif_hash_table++;
 #endif /* DEBUG */
-      if (tslmp->line_loc == slmp->line_loc) {
+      if (tslmp == slmp) {
         /* Found the entry.  Unlink it from the hash table. */
         if (pslmp == NULL) {
           source_line_modif_hash_table[hash] = tslmp->next_in_hash_table;
