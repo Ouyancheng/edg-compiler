@@ -5605,6 +5605,54 @@ expression.
 }  /* process_boolean_controlling_expression */
 
 
+static void reference_cast(an_operand         *operand,
+                           a_base_class_ptr   bcp,
+                           an_expression_kind expression_kind)
+/*
+Convert operand (an lvalue that came from a reference) to the type
+of the base class indicated by bcp.  It remains an lvalue.  expression_kind
+is the current expression kind.
+*/
+{
+  a_boolean is_arrow_operator = TRUE;
+
+  /* Convert to a pointer to the object. */
+  take_address_of_lvalue(operand, expression_kind);
+  /* Cast the pointer to a pointer to the new type. */
+  base_class_cast_operand(operand, bcp, &is_arrow_operator,
+                          /*is_implicit_cast=*/TRUE, expression_kind);
+  /* Make an address (an lvalue) for the base class object. */
+  conv_object_pointer_to_lvalue(operand);
+}  /* reference_cast */
+
+
+static void do_reference_conversions(an_operand         *operand_1,
+                                     an_operand         *operand_2,
+                                     an_expression_kind expression_kind)
+/*
+operand_1 and operand_2 are the second and third operands of a "?" operator,
+and they are lvalues that came from references.  Do the reference conversions
+of ARM 4.7 if possible to bring them to a common type.  expression_kind
+is the current expression kind.
+*/
+{
+  a_type_ptr       type_1 = operand_1->type;
+  a_type_ptr       type_2 = operand_2->type;
+  a_base_class_ptr bcp;
+
+  if (is_class_struct_union_type(type_1) &&
+      is_class_struct_union_type(type_2)) {
+    if ((bcp = find_base_class_of(type_1, type_2)) != NULL) {
+      /* type_2 is a base class of type_1, so cast operand_1 to type_2. */
+      reference_cast(operand_1, bcp, expression_kind);
+    } else if ((bcp = find_base_class_of(type_2, type_1)) != NULL) {
+      /* type_1 is a base class of type_2, so cast operand_2 to type_1. */
+      reference_cast(operand_2, bcp, expression_kind);
+    }  /* if */
+  }  /* if */
+}  /* do_reference_conversions */
+
+
 static void scan_conditional_operator(an_operand         *operand_1,
                                       an_operand         *result,
                                       an_expression_kind expression_kind)
@@ -5727,6 +5775,16 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     if (processed) {
       err = TRUE;
     } else {
+      if (C_dialect == C_dialect_cplusplus &&
+          is_an_lvalue(&operand_2) && is_an_lvalue(&operand_3) &&
+          operand_2.came_from_reference &&
+          operand_3.came_from_reference) {
+        /* The two operands are lvalues that came from references.  Bring
+           them to a common type if possible by using the reference
+           conversions of ARM 4.7.  Note that we know that they
+           do not have the same type, or they would have been handled above. */
+        do_reference_conversions(&operand_2, &operand_3, expression_kind);
+      }  /* if */
       conv_lvalue_to_rvalue(&operand_2, expr2_kind);
       conv_lvalue_to_rvalue(&operand_3, expr3_kind);
       operand_2_is_pointer = is_pointer_type(operand_2.type);
