@@ -341,6 +341,7 @@ Initialize target machine characteristics.
   /* Compute the maximum size of a class object. */
   if (targ_max_class_object_size == 0) {
     targ_max_class_object_size = targ_size_t_max;
+#if DO_IL_LOWERING
   } else if (C_mode()) {
     /* Leave it set as initialized. */
   } else {
@@ -357,13 +358,14 @@ Initialize target machine characteristics.
        in that size. */
     bits = size * targ_char_bit;
     if (int_kind_is_signed[TARG_DELTA_INT_KIND]) bits -= 1;
-    temp = ~((-1) << bits);
+    temp = ~((~0U) << bits);
     if (temp > (unsigned long)targ_size_t_max) {
       /* It shouldn't exceed the maximum that can fit in a_targ_size_t. */
       targ_max_class_object_size = targ_size_t_max;
     } else {
       targ_max_class_object_size = (a_targ_size_t)temp;
     }  /* if */
+#endif /* DO_IL_LOWERING */
   }  /* if */
 }  /* target_init */
 
