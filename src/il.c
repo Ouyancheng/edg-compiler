@@ -4892,7 +4892,7 @@ is already an entry of the indicated kind on the list.
     /* If the "needed" or "keep_in_il" flag has already been set on this
        type, clear it and set it again to ensure that the entry on the based
        types list is visited if required.  This is done by calling
-       mark_as_needed/mark_to_keep_in_il for the primary entry, rather
+       remark_as_needed/mark_to_keep_in_il for the primary entry, rather
        than for the based types list member, because the marking process
        ignores some based type entries and we don't want to duplicate the
        logic for that here. */
@@ -12141,6 +12141,71 @@ eliminated, if appropriate.
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+
+static unsigned long r_max_set_instantiation_needed_bit_number(
+                             a_per_instantiation_needed_flags_entry_ptr pinfep)
+/*
+Return the number of the maximum instantiation "needed" bit number that is
+set in the list of instantiation needed flags entries pointed to by pinfep.
+The first bit of the first entry is numbered 1.  If no bit is set, or if the
+list is empty, return 0.
+*/
+{
+  unsigned long highest_set_bit;
+  int           byte_number;
+  int           bit_number;
+
+  if (pinfep == NULL) {
+    /* Empty list. */
+    highest_set_bit = 0;
+  } else {
+    if (pinfep->next != NULL) {
+      /* There is an entry following this one.  See if it (or any entry
+         following it on the list) has a bit set. */
+      highest_set_bit= r_max_set_instantiation_needed_bit_number(pinfep->next);
+      if (highest_set_bit != 0) {
+        /* There is a bit set, so we've found the last bit set.  Adjust
+           the bit number for the bits in the current entry and return. */
+        highest_set_bit += BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT;
+        goto end_of_routine;
+      }  /* if */
+    }  /* if */
+    /* There's no entry after this one with a bit set. */
+    /* Find the highest bit set in the current entry. */
+    highest_set_bit = BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY*CHAR_BIT;
+    byte_number = BYTES_PER_INSTANTIATION_NEEDED_FLAG_ENTRY-1;
+    for (;;) {
+      a_byte curr_byte = pinfep->bytes[byte_number];
+      bit_number = CHAR_BIT-1;
+      for (;;) {
+        /* On finding a set bit, exit both loops. */
+        if (((a_byte)1 << bit_number) & curr_byte) goto end_of_routine;
+        highest_set_bit--;
+        if (bit_number == 0) break;
+        bit_number--;
+      }  /* for */
+      if (byte_number == 0) break;
+      byte_number--;
+    }  /* for */
+  }  /* if */
+end_of_routine:
+  return highest_set_bit;
+}  /* r_max_set_instantiation_needed_bit_number */
+
+
+unsigned long max_set_instantiation_needed_bit_number(
+                                                  a_source_correspondence *scp)
+/*
+Return the number of the maximum instantiation "needed" bit number that is
+set in the given source correspondence.
+*/
+{
+  unsigned long bit_number =
+             r_max_set_instantiation_needed_bit_number(
+                                          scp->per_instantiation_needed_flags);
+  return bit_number;
+}  /* max_set_instantiation_needed_bit_number */
+
 
 a_boolean instantiation_needed_flag_is_set(a_source_correspondence *scp,
                                            int                     bit_offset)

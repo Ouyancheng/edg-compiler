@@ -6846,9 +6846,8 @@ associated class was declared.
 {
   a_type_ptr     class_type = con->variant.address.variant.type;
   a_type_ptr     orig_con_type = con->type;
-#if MAINTAIN_NEEDED_FLAGS
-  a_boolean      orig_needed = con->source_corresp.needed;
-#endif /* MAINTAIN_NEEDED_FLAGS */
+  a_source_correspondence
+                 orig_source_corresp = con->source_corresp;
   a_variable_ptr uuid_var;
 
   /* Create the initialized uuid variable for the type, if it doesn't
@@ -6861,10 +6860,13 @@ associated class was declared.
   set_variable_address_constant(uuid_var, con,
                                 /*set_address_taken_flag=*/TRUE);
   implicit_cast(con, orig_con_type);
+  con->source_corresp = orig_source_corresp;
 #if MAINTAIN_NEEDED_FLAGS
   /* If the constant has already been marked as needed, mark it as
      needed again and visit its new subtree. */
-  if (orig_needed) mark_as_needed((char *)con, iek_constant);
+  if (con->source_corresp.needed) {
+    remark_as_needed((char *)con, iek_constant);
+  }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* lower_uuidof */
 

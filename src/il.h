@@ -117,6 +117,9 @@ EXTERN unsigned long
 			   be tested and set by the "needed" flag
 			   processing. */
 
+extern unsigned long max_set_instantiation_needed_bit_number(
+                                                 a_source_correspondence *scp);
+
 #endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 /* Macro to fetch the value of the needed flag. */

@@ -99,6 +99,11 @@ extern void walk_routine_scope_il(
 extern void mark_as_needed(char             *entry_ptr,
                            an_il_entry_kind entry_kind);
 
+extern void mark_as_needed_like(char                    *entry_ptr,
+                                an_il_entry_kind        entry_kind,
+                                a_source_correspondence *model_scp,
+                                a_boolean               set_class_defn_needed);
+
 extern void remark_as_needed(char             *entry_ptr,
                              an_il_entry_kind entry_kind);
 

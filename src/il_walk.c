@@ -489,11 +489,7 @@ definition of the class is needed, and not just the declaration.
     /* If the class is already marked as needed, redo the sweep for that,
        because before the definition_needed flag is set the subtree of
        the class is not swept when the class needed flag is set. */
-    if (needed_flag_is_set(&type->source_corresp)) {
-      /* walk_tree_and_set_needed is not used here so that this routine can
-         be callable from outside of the needed flag walk. */
-      remark_as_needed((char *)type, iek_type);
-    }  /* if */
+    remark_as_needed((char *)type, iek_type);
   }  /* if */
 }  /* set_class_definition_needed */
 
@@ -709,37 +705,72 @@ references.
 }  /* mark_as_needed */
 
 
+void mark_as_needed_like(char                    *entry_ptr,
+                         an_il_entry_kind        entry_kind,
+                         a_source_correspondence *model_scp,
+                         a_boolean               set_class_defn_needed)
+/*
+Set the needed flag(s) of the entry pointed to by entry_ptr (of kind
+entry_kind) to match the needed flag(s) of model_scp (which might be
+from the same entry).  The needed flag(s) of the entry are cleared
+before being set.  If set_class_definition_needed is TRUE, the
+entry is for a class, and its definition needed flags(s) are set to
+match the needed flags(s).
+*/
+{
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  unsigned long saved_needed_flag_bit_number = needed_flag_bit_number;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+  a_source_correspondence *scp = (a_source_correspondence *)entry_ptr;
+
+  if (scp != model_scp) {
+    /* The model entry is not the same as the entry to set. */
+    scp = source_corresp_for_il_entry(entry_ptr, entry_kind);
+    check_assertion(scp != NULL);
+  }  /* if */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  /* For each "needed" bit set in the model, set the corresponding bit in the
+     entry. */
+  needed_flag_bit_number = max_set_instantiation_needed_bit_number(model_scp);
+  for (; needed_flag_bit_number > 0; needed_flag_bit_number--) {
+    if (needed_flag_is_set(model_scp)) {
+      /* Clear the bit if set, then set it. */
+      set_instantiation_needed_flag(scp, 0, 0);
+      mark_as_needed(entry_ptr, entry_kind);
+      if (set_class_defn_needed) {
+        set_class_definition_needed((a_type_ptr)entry_ptr);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  needed_flag_bit_number = 0;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+  if (model_scp->needed) {
+    ((a_source_correspondence *)entry_ptr)->needed = FALSE;
+    mark_as_needed(entry_ptr, entry_kind);
+    if (set_class_defn_needed) {
+      set_class_definition_needed((a_type_ptr)entry_ptr);
+    }  /* if */
+  }  /* if */
+#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
+  needed_flag_bit_number = saved_needed_flag_bit_number;
+#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
+}  /* mark_as_needed_like */
+
+
 void remark_as_needed(char             *entry_ptr,
                       an_il_entry_kind entry_kind)
 /*
-The "needed" flag in the indicated entity is already set.  Clear it and
+If the "needed" flag in the indicated entity is already set, clear it and
 set it again.  This is used when the subtree of the entity may have changed,
 to make sure the entities in the subtree are marked as needed.
 */
 {
-  clear_needed_flag((a_source_correspondence *)entry_ptr);
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-  if (one_instantiation_per_object && needed_flag_bit_number == 0) {
-    /* If we're maintaining a separate set of "needed" flags for each
-       instantiation, and this is an instantiation whose associated flag
-       is set, clear it so it can be set again. */
-    unsigned long saved_needed_flag_bit_number = needed_flag_bit_number;
-    needed_flag_bit_number = 0;
-    if (entry_kind == (an_il_entry_kind)iek_routine) {
-      a_routine_ptr rout = (a_routine_ptr)entry_ptr;
-      needed_flag_bit_number = rout->instantiation_needed_bit_number;
-    } else if (entry_kind == (an_il_entry_kind)iek_variable) {
-      a_variable_ptr var = (a_variable_ptr)entry_ptr;
-      needed_flag_bit_number = var->instantiation_needed_bit_number;
-    }  /* if */
-    if (needed_flag_bit_number != 0) {
-      set_instantiation_needed_flag((a_source_correspondence *)entry_ptr,
-                                    0, 0);
-    }  /* if */
-    needed_flag_bit_number = saved_needed_flag_bit_number;
-  }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
-  mark_as_needed(entry_ptr, entry_kind);
+  a_source_correspondence *scp =
+                            source_corresp_for_il_entry(entry_ptr, entry_kind);
+
+  check_assertion(scp != NULL);
+  mark_as_needed_like(entry_ptr, entry_kind, scp,
+                      /*set_class_defn_needed=*/FALSE);
 }  /* remark_as_needed */
 
 

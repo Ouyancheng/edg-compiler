@@ -4638,12 +4638,15 @@ Do IL lowering of the indicated type and everything under it.
         /* Set the "needed" flag appropriately.  Without this, the typeref
            could be marked as needed and that might prevent processing of
            the underlying type. */
-        if (type->source_corresp.needed) {
-          mark_as_needed((char *)new_type, iek_type);
-          if (is_immediate_class_type(new_type)) {
-            set_class_definition_needed(new_type);
-          }  /* if */
-        }  /* if */
+        /* The class definition needed flag is set on the new type if it
+           is a class (i.e., for the pointer to member function case).
+           Previous sweeps of the IL would have noted the need for a
+           complete type, but since the type was a pointer to member at
+           that time, no class definition needed flag would have been set. */
+        mark_as_needed_like((char *)new_type, iek_type,
+                            &type->source_corresp,
+                            /*set_class_defn_needed=*/
+                                            is_immediate_class_type(new_type));
         if (il_entry_prefix_of(type).keep_in_il) {
           mark_to_keep_in_il((char *)new_type, iek_type);
           if (is_immediate_class_type(new_type)) {

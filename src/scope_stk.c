@@ -3304,12 +3304,12 @@ is done, is that all the classes have to have been marked first.
     if (tp->kind == (a_type_kind)tk_typeref) {
       /* If a typeref type points to a class that is needed, has a name, and
          was originally unnamed, the typeref type is needed, too. */
-      if (!needed_flag_is_set(&tp->source_corresp) &&
-          is_immediate_class_type(class_type = tp->variant.typeref.type)) {
-        if (class_type->variant.class_struct_union.originally_unnamed &&
-            needed_flag_is_set(&class_type->source_corresp)) {
-          mark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
-        }  /* if */
+      if (is_immediate_class_type(class_type = tp->variant.typeref.type) &&
+          class_type->variant.class_struct_union.originally_unnamed &&
+          class_type->source_corresp.needed) {
+        mark_as_needed_like((char *)tp, (an_il_entry_kind)iek_type,
+                            &class_type->source_corresp,
+                            /*set_class_defn_needed=*/FALSE);
       }  /* if */
     } else if (is_immediate_class_type(tp)) {
       ctsp = tp->variant.class_struct_union.extra_info;
@@ -3353,10 +3353,10 @@ been completed.
   /* Check for classes defined in the current scope. */
   for (tp = scope->types; tp != NULL; tp = tp->next) {
     if (is_immediate_class_type(tp)) {
-      /* If the class has been marked to indicate that a definition is needed,
+      /* If the class has been marked to indicate that it is needed,
          then we need to walk the subtree of the class; if not, we can ignore
          it. */
-      if (needed_flag_is_set(&tp->source_corresp)) {
+      if (tp->source_corresp.needed) {
         /* Walk the class subtree, if appropriate.  Clear the needed flag
            first, else the subtree walk will not be done. */
         remark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
@@ -3364,7 +3364,7 @@ been completed.
       ctsp = tp->variant.class_struct_union.extra_info;
       if (ctsp != NULL && ctsp->assoc_scope != NULL) {
         /* Check nested classes and static data members, too.  Note that this
-           may be done even if the class definition itself is not needed. */
+           may be done even if the class itself is not needed. */
         set_needed_flags_at_end_of_file_scope(ctsp->assoc_scope);
       }  /* if */
     }  /* if */
@@ -3373,7 +3373,7 @@ been completed.
      members). */
   for (vp = scope->variables; vp != NULL; vp = vp->next) {
     if (vp->storage_class == (a_storage_class)sc_unspecified ||
-        needed_flag_is_set(&vp->source_corresp) ||
+        vp->source_corresp.needed ||
         vp->init_kind == (an_init_kind)initk_dynamic) {
       /* This is an externally linked variable that has been defined or
          (whatever its linkage) has been marked as "needed" (typically
@@ -3385,11 +3385,15 @@ been completed.
          initializer, if appropriate.  (Even if it was already marked as
          needed, the initializer is not scanned till this end-of-file-scope
          phase, so we have to do it again.) */
-      remark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
+      if (!vp->source_corresp.needed) {
+        mark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
+      } else {
+        remark_as_needed((char *)vp, (an_il_entry_kind)iek_variable);
+      }  /* if */
     }  /* if */
   }  /* for */
   for (rp = scope->routines; rp != NULL; rp = rp->next) {
-    if (needed_flag_is_set(&rp->source_corresp)) {
+    if (rp->source_corresp.needed) {
       /* Marking the routine type as needed was suppressed before (since it
          can be redeclared even after it's called), so do that now. */
       /* If the "defined" flag is TRUE, the body will already have been
@@ -3425,47 +3429,6 @@ been completed.
 }  /* set_needed_flags_at_end_of_file_scope */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-
-static void set_per_instantiation_needed_flags_at_end_of_file_scope(void)
-/*
-Repeat the processing done by set_needed_flags_at_end_of_file_scope for each
-"needed" flags bit number assigned to an instantiation.
-*/
-{
-  a_routine_ptr  rout;
-  a_variable_ptr var;
-
-  /* Note that this routine works only when IL lowering has been done,
-     because it doesn't visit definitions of classes etc. */
-  check_assertion(needed_flag_bit_number == 0);
-  /* Do one sweep for bit 1, which is used for the things needed in the
-     compilation when all instantiations are removed. */
-  needed_flag_bit_number = 1;
-  set_needed_flags_at_end_of_file_scope(il_header.primary_scope);
-  /* Look through the list of routines to find all instantiated functions. */
-  for (rout = il_header.primary_scope->routines;
-       rout != NULL;
-       rout = rout->next) {
-    if (rout->instantiation_needed_bit_number != 0) {
-      needed_flag_bit_number = rout->instantiation_needed_bit_number;
-      set_needed_flags_at_end_of_file_scope(il_header.primary_scope);
-    }  /* if */
-  }  /* for */
-  /* Look through the list of variables to find all instantiated static
-     data members. */
-  for (var = il_header.primary_scope->variables;
-       var != NULL;
-       var = var->next) {
-    if (var->instantiation_needed_bit_number != 0) {
-      needed_flag_bit_number = var->instantiation_needed_bit_number;
-      set_needed_flags_at_end_of_file_scope(il_header.primary_scope);
-    }  /* if */
-  }  /* for */
-  needed_flag_bit_number = 0;
-}  /* set_per_instantiation_needed_flags_at_end_of_file_scope */
-
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
 
 void pop_scope(void)
 /*
@@ -3828,7 +3791,11 @@ End a name scope by popping an entry off the scope stack.
          that entities eliminated (e.g., by inlining) are not. */
       /* It must also be called before the depth_in_scope_stack flag is
          cleared. */
-      remark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
+      if (!curr_routine->source_corresp.needed) {
+        mark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
+      } else {
+        remark_as_needed((char *)curr_routine, (an_il_entry_kind)iek_routine);
+      }  /* if */
 #if DEBUG
     } else if (debug_level >= 3) {
       fprintf(f_debug, "Not calling mark_as_needed for \"");
@@ -3842,11 +3809,6 @@ End a name scope by popping an entry off the scope stack.
        both in the file scope and in each of the namespace scopes. */
     end_of_file_scope_needed_flags_phase = TRUE;
     set_needed_flags_at_end_of_file_scope(il_scope);
-#if MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS
-    if (one_instantiation_per_object) {
-      set_per_instantiation_needed_flags_at_end_of_file_scope();
-    }  /* if */
-#endif /* MAINTAIN_PER_INSTANTIATION_NEEDED_FLAGS */
     end_of_file_scope_needed_flags_phase = FALSE;
     /* Don't bother pruning the IL of unneeded entries if errors were seen. */
     if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
