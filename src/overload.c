@@ -5050,8 +5050,11 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
   an_operand_state      saved_operand_state = operand->state;
   an_expr_operator_kind op;
 
-#if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  if (curr_expr_kind_is_const()) {
+  if (curr_expr_kind_is_const()
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      && !curr_expr_kind_is_one_in_which_const_exprs_are_recorded()
+#endif /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+                                                                   ) {
     /* In a constant expression, just throw away the left operand.  This
        comes up in prototype instantiations and with an extension in
        cfront and Microsoft modes:
@@ -5059,10 +5062,7 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
          int x[a.e1];
     */
     discard_operand(bound_function_selector);
-  } else
-#endif /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-  /* Do not insert code here. */
-  {
+  } else {
     orig_operand = *operand;
     /* In some cases (with bound function references) the selector is
        standardized to a pointer.  Change back to the "." form for

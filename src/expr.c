@@ -4535,7 +4535,8 @@ Syntax:
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
         /* Make a sizeof expression that sits behind the constant and
            gives the original expression. */
-        if (!is_type &&
+        if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
+            !is_type &&
             curr_il_region_number == file_scope_region_number &&
             innermost_function_scope != NULL) {
           /* An expression in a function scope might point to a local variable,
@@ -9492,7 +9493,8 @@ Also scans GNU C statement expressions:
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-      if (is_constant_operand(result) &&
+      if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
+          is_constant_operand(result) &&
           result->variant.constant.expr == NULL) {
         /* Record an expression for a constant so that we have the position
            of the constant and also the position of the constant surrounded
@@ -13728,7 +13730,8 @@ been annotated in the source with the GNU keyword __extension__.
     case ok_constant:
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       expr = op->variant.constant.expr;
-      if (expr == NULL) {
+      if (expr == NULL &&
+          curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         /* Create a constant expression to record the extension flag. */
         a_memory_region_number  region_to_switch_back_to;
         a_constant_ptr  con = fs_constant(op->variant.constant.kind);
@@ -15454,8 +15457,9 @@ converted result in *constant.  This is callable from outside of the
 expression processing routines.
 */
 {
-  an_operand          operand;
-  an_expr_stack_entry expr_stack_entry;
+  an_operand             operand;
+  an_expr_stack_entry    expr_stack_entry;
+  a_memory_region_number region_to_switch_back_to;
 
   db_enter(3, "conv_nontype_template_arg_to_param_type");
 
@@ -15463,11 +15467,13 @@ expression processing routines.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
+  switch_to_file_scope_region(&region_to_switch_back_to);
   copy_nontype_template_arg_operand(arg_operand, &operand);
   /* Convert the operand to the parameter type and extract a constant. */
   prep_nontype_template_argument_initializer(&operand,
                                              param_type, constant);
   pop_expr_stack();
+  switch_back_to_original_region(region_to_switch_back_to);
 
 #if DEBUG
   if (debug_level >= 3) {
