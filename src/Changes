@@ -1,5 +1,11 @@
 Version 2.40
 
+12/4/98   Configurability of namespace for class type_info
+
+Whether class type_info is assumed to belong to namespace std is now
+separately configurable.  See DEFAULT_TYPE_INFO_IN_NAMESPACE_STD (in
+targ_def.h) and global variable type_info_in_namespace_std.
+
 12/4/98   Generated operator= function: base class operator= called
           non-virtually
 
