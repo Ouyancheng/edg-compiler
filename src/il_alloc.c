@@ -1312,6 +1312,9 @@ to default values.
     case tk_struct:
     case tk_union:
       pte->variant.class_struct_union.field_list = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      pte->variant.class_struct_union.is_microsoft_interface = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pte->variant.class_struct_union.any_const_member = FALSE;
       pte->variant.class_struct_union.any_mutable_member = FALSE;
       pte->variant.class_struct_union.any_virtual_base_classes = FALSE;

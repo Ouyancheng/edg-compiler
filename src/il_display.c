@@ -1497,6 +1497,11 @@ do_struct_union:
                  (char *)ptr->variant.class_struct_union.extra_info,
                  iek_class_type_supplement);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (ptr->variant.class_struct_union.is_microsoft_interface) {
+        disp_boolean("is_microsoft_interface", TRUE);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (ptr->variant.class_struct_union.any_const_member) {
         disp_boolean("any_const_member", TRUE);
       }  /* if */

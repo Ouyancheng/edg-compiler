@@ -5097,6 +5097,15 @@ typedef struct a_type {
                         /* Supplementary information, in a separate block
                            to keep down the size of a_type.  This pointer
                            is only used in C++, and will be NULL in C. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+                is_microsoft_interface:1;
+			/* TRUE if this is a struct type declared with the
+			   Microsoft keyword __interface.  Member functions of
+			   such types are implicitly pure virtual.  (Implies
+			   kind == tk_struct, but a number of restrictions not
+			   applicable to structs are imposed.) */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
                 any_const_member:1;
                         /* TRUE if any member of the class, struct, or union
@@ -5115,7 +5124,8 @@ typedef struct a_type {
 			/* If TRUE, as a result of having one or more pure
 			   virtual member functions, this is an "abstract"
 			   class and is subject to certain restrictions
-			   (C++ only, ARM 10.3). */
+			   (C++ only, ARM 10.3).  Also TRUE for Microsoft
+			   interface classes. */
       a_bit_field
 		any_virtual_functions:1;
 			/* TRUE if one or more member functions declared in

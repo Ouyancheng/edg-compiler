@@ -875,6 +875,7 @@ static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_symbol_locator  *locator,
                                   a_boolean         *is_friend_decl,
                                   a_boolean         *check_for_vacuous_decl,
+                                  a_boolean         is_microsoft_interface,
                                   a_boolean         is_ref_within_new_expr,
                                   a_scope_depth     *effective_decl_level,
                                   a_boolean         *tag_resolution,
@@ -1405,21 +1406,38 @@ caution when modifying this routine.
         }  /* if */
       }  
     }  /* if */
-    if (!tag_err && tag_sym != NULL && tag_sym->kind != tag_kind) {
-      an_error_severity  severity;
-      if (any_cfront_mode() && tag_kind != (a_symbol_kind)sk_enum_tag &&
-          tag_sym->kind != (a_symbol_kind)sk_enum_tag) {
-        /* Allow mixing of struct/class and union in cfront mode. */
-        severity = (an_error_severity)es_warning;
-      } else {
-        severity = (an_error_severity)es_error;
-        tag_err = TRUE;
+    if (!tag_err && tag_sym != NULL) {
+      if (tag_sym->kind != tag_kind) {
+        an_error_severity  severity;
+        if (any_cfront_mode() && tag_kind != (a_symbol_kind)sk_enum_tag &&
+            tag_sym->kind != (a_symbol_kind)sk_enum_tag) {
+          /* Allow mixing of struct/class and union in cfront mode. */
+          severity = (an_error_severity)es_warning;
+        } else {
+          severity = (an_error_severity)es_error;
+          tag_err = TRUE;
+        }  /* if */
+        pos_stsy_diagnostic(severity,
+                            ec_tag_kind_incompatible_with_declaration,
+                            &locator->source_position,
+                            name_of_symbol_kind(tag_kind), tag_sym);
+        if (tag_err) tag_sym = NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_mode && !tag_err &&
+                 tag_sym->kind == (a_symbol_kind)sk_class_or_struct_tag) {
+        /* Both the current declaration and the previous must match wrt. to
+           the use of __interface. */
+        a_type_ptr  class_type = type_symbol_type(tag_sym);
+        if (is_microsoft_interface !=
+               class_type->variant.class_struct_union.is_microsoft_interface) {
+          pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
+                         &locator->source_position,
+                         name_of_symbol_kind(tag_kind), tag_sym);
+          tag_sym = NULL;
+          tag_err = TRUE;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
-      pos_stsy_diagnostic(severity,
-                          ec_tag_kind_incompatible_with_declaration,
-                          &locator->source_position,
-                          name_of_symbol_kind(tag_kind), tag_sym);
-      if (tag_err) tag_sym = NULL;
     }  /* if */
   }  /* if */
 done:
@@ -1713,6 +1731,7 @@ new expression and should therefore not be treated as a declaration.
   a_boolean               tag_id_present;
   a_type_ptr              class_type;
   a_boolean               is_local_class = FALSE;
+  a_boolean               is_microsoft_interface = FALSE;
   a_boolean               is_template_class_instantiation = FALSE;
   a_boolean               tag_resolution = FALSE;
   a_boolean               err = FALSE;
@@ -1760,17 +1779,20 @@ new expression and should therefore not be treated as a declaration.
        it is a local class. */
     is_local_class = TRUE;
   }  /* if */
-  if (curr_token == tok_class ||
-      curr_token == tok_struct ||
-      curr_token == tok_union) {
-    /* Skip over "class", "struct", or "union", remembering which appears. */
+  if (is_class_type_keyword(curr_token)) {
+    /* Skip over "class", "struct", or "union", remembering which appears.
+       In Microsoft mode, we may also encounter "__interface", which is a
+       special kind of "struct". */
     if (curr_token == tok_union) {
       tag_kind = (a_symbol_kind)sk_union_tag;
       type_kind = (a_type_kind)tk_union;
     } else {
       tag_kind = (a_symbol_kind)sk_class_or_struct_tag;
-      type_kind = (a_type_kind)(curr_token == tok_struct ?
-                                                    tk_struct : tk_class);
+      type_kind = (a_type_kind)(curr_token == tok_class ?
+                                                    tk_class : tk_struct);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      is_microsoft_interface = (curr_token == tok_interface);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
@@ -1822,9 +1844,10 @@ new expression and should therefore not be treated as a declaration.
     *declares_something = TRUE;
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
-                            &vacuous_decl_allowed, is_ref_within_new_expr,
-                            &effective_decl_level, &tag_resolution,
-                            &is_predeclared_type_decl, &local_decl_pos_block);
+                            &vacuous_decl_allowed, is_microsoft_interface,
+                            is_ref_within_new_expr, &effective_decl_level,
+                            &tag_resolution, &is_predeclared_type_decl,
+                            &local_decl_pos_block);
   }  /* if */
   if (tag_id_present) {
     if (tag_sym != NULL) {
@@ -1921,6 +1944,7 @@ new expression and should therefore not be treated as a declaration.
 #endif /* CHECKING */
         }  /* if */
       } else if (tag_sym->kind != tag_kind) {
+// FIXME: Isn't this already handled in scan_tag_name?
         /* Union/nonunion mismatch on a redeclaration. */
         if (is_nonreal_instance_class_symbol(tag_sym)) {
           /* Ignore a union/nonunion mismatch on nonreal classes. */
@@ -2308,6 +2332,18 @@ new expression and should therefore not be treated as a declaration.
       class_type->variant.class_struct_union.originally_unnamed = TRUE;
     }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Check various scoping constraints on interface types. */
+      if (!microsoft_mode) {
+        /* Nothing to be checked. */
+      } else if (is_microsoft_interface) {
+        if (is_local_class) {
+          pos_error(ec_microsoft_interface_cannot_be_local, &decl_start_pos);
+        }  /* if */
+        class_type->variant.class_struct_union.is_microsoft_interface = TRUE;
+        class_type->variant.class_struct_union.abstract = TRUE;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (is_class_definition && is_friend_decl) {
         /* Issuing the diagnostic was deferred till now. */
         pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
@@ -2321,11 +2357,20 @@ new expression and should therefore not be treated as a declaration.
               (vacuous_decl_allowed && curr_token == tok_semicolon)) {
             /* Either a definition or a vacuous declaration -- the latter
                introduces a name into the current scope. */
+            a_type_ptr  parent = scope_stack[decl_scope_level].assoc_type;
             check_assertion(!is_ref_within_new_expr);
-            set_class_membership(tag_sym, &class_type->source_corresp,
-                                 scope_stack[decl_scope_level].assoc_type);
+            set_class_membership(tag_sym, &class_type->source_corresp, parent);
             class_type->source_corresp.access =
                                  scope_stack[depth_scope_stack].current_access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            if (microsoft_mode && is_class_definition &&
+                parent->variant.class_struct_union.is_microsoft_interface) {
+              /* Interface types cannot contain class type definitions. */
+              pos_error(
+                   ec_microsoft_interface_cannot_have_nested_class_definition,
+                   &decl_start_pos);
+            }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           }  /* if */
           break;
         case sck_namespace:
@@ -2846,6 +2891,7 @@ to indicate whether an enumeration is actually defined.
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
                             &is_friend_decl, &vacuous_decl_allowed,
                             /*is_ref_within_new_expr=*/FALSE,
+                            /*is_microsoft_interface=*/FALSE,
                             &effective_decl_level, &tag_resolution,
                             &is_predeclared_type_decl, &local_decl_pos_block);
     if (tag_resolution) {                            
@@ -5794,6 +5840,9 @@ Returns TRUE if there is an error in the specifiers.
         break;
       case tok_class:
       case tok_struct:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_interface:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_union:
 process_class_specifier:
         /* A struct or union specifier (3.5.2.1). */

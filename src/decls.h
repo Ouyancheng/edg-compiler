@@ -122,14 +122,31 @@ If you change this, see also type_keyword.
    or_is_microsoft_type_keyword(tok))
 
 /*
+Macro to be used in conjunction with is_class_type_keyword to check for
+Microsoft __interface specifiers.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define or_is_microsoft_interface_keyword(tok) || ((tok) == tok_interface)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define or_is_microsoft_interface_keyword(tok) /* nothing */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Macro that is TRUE if the given token can introduce an elaborated class type
+specifier.
+*/
+#define is_class_type_keyword(tok)                                    \
+  ((tok) == tok_struct || (tok) == tok_union ||                       \
+   (tok) == tok_class  or_is_microsoft_interface_keyword(tok))
+
+/*
 Macro that is TRUE if the current token is the start of a type
 specifier (except for the typedef and friend cases).  (3.5.2)
 */
 #define is_type_specifier()                                           \
- (is_type_keyword(curr_token) ||                                      \
-  curr_token == tok_struct   || curr_token == tok_union    ||         \
-  curr_token == tok_enum     || curr_token == tok_class    ||         \
-  curr_token == tok_typename || curr_token == tok_typeof)
+ (is_type_keyword(curr_token) || is_class_type_keyword(curr_token) || \
+  curr_token == tok_enum      || curr_token == tok_typename        || \
+  curr_token == tok_typeof)
 
 /*
 Macro that is TRUE if the current token is the start of a type qualifier

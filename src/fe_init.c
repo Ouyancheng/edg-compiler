@@ -375,6 +375,7 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_if_not_exists, "__if_not_exists");
       enter_keyword((a_token_kind)tok_super, "__super");
       enter_keyword((a_token_kind)tok_noop, "__noop");
+      enter_keyword((a_token_kind)tok_interface, "__interface");
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

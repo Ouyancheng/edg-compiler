@@ -1903,8 +1903,9 @@ the meaning of need_closing_paren.
 
 static char *tag_kind(a_type_kind kind)
 /*
-Return a string that describes the tag kind for the indicated type, i.e.,
-"class" or "enum".
+Return a string that describes the tag kind for the indicated type kind, i.e.,
+"class", "struct", "union", or "enum".  This routine cannot distinguish
+interface types from struct types: Use tag_keyword to do so.
 */
 {
   char *str;
@@ -1918,7 +1919,42 @@ Return a string that describes the tag kind for the indicated type, i.e.,
   }  /* switch */
   return str;
 }  /* tag_kind */
-  
+
+
+static char *tag_keyword(a_type_ptr type)
+/*
+Return a string that describes the tag kind for the indicated type (i.e.,
+"__interface", "class", "struct", "union", or "enum").
+*/
+{
+  char *result;
+
+  switch (kind) {
+    case tk_enum:
+      result = "enum";
+      break;
+    case tk_class:
+      result = "class";
+      break;
+    case tk_struct:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (type->variant.class_struct_union.is_microsoft_interface) {
+        result = "__interface";
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        result = "struct";
+      }  /* if */
+      break;
+    case tk_union:
+      result = "union";
+      break;
+    default:        unexpected_condition_str("tag_kind: bad type kind");
+  }  /* switch */
+  return result;
+}  /* tag_keyword */
+
 
 static void gen_name(a_source_correspondence *scp,
                      an_il_entry_kind        entry_kind,
@@ -1974,7 +2010,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
              (Prefer the former variants to select the right namespace.) */
           a_type_ptr  type = (a_type_ptr)scp;
           if (is_immediate_class_type(type) || is_immediate_enum_type(type)) {
-            write_tok_str(tag_kind(type->kind));
+            write_tok_str(tag_keyword(type));
             write_space();
           } else {
             write_tok_str("typename ");
@@ -2754,7 +2790,7 @@ or enum.
   } else {
     /* Put out a reference to the tag by name.  Note that unnamed tags will
        have been given compiler-generated names so they can be referred to. */
-    char *tag_kind_str = tag_kind(type->kind);
+    char *tag_kind_str = tag_keyword(type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* The Microsoft compiler mangles class and struct types differently,
        and the kind used on the initial declaration is the important one.
@@ -4257,7 +4293,7 @@ is the one associated with the definition of the class.
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
   /* Put out the tag kind, e.g., "class". */
-  write_tok_str(tag_kind(type->kind));
+  write_tok_str(tag_keyword(type));
   write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE

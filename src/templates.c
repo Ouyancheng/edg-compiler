@@ -10534,6 +10534,9 @@ diagnostics can be inhibited by setting diagnose to FALSE.
       case tok_class:
       case tok_struct:
       case tok_union:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_interface:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* These are the possible valid tokens: continue normal parsing. */
         goto done;
       case tok_const:
@@ -10772,6 +10775,12 @@ declaration of a partial specialization declared outside of its class.
     (void)get_token();
   }  /* if */
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/TRUE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (curr_token == tok_interface) {
+    error(ec_microsoft_interface_cannot_be_template);
+    curr_token = tok_struct;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   switch (curr_token) {
     case tok_class:  type_kind = (a_type_kind)tk_class;  break;
     case tok_struct: type_kind = (a_type_kind)tk_struct; break;
@@ -14239,8 +14248,7 @@ the declaration token cache.
   rescan_reusable_cache(token_cache);
   if (curr_token == tok_friend) (void)get_token();
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/FALSE);
-  if (curr_token == tok_class || curr_token == tok_struct ||
-      curr_token == tok_union) {
+  if (is_class_type_keyword(curr_token)) {
     (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
     if (microsoft_mode or_near_and_far_enabled()) {
@@ -15801,6 +15809,14 @@ keyword.
        of the processing. */
     decl_state.effective_decl_level = depth_scope_stack;
     decl_state.orig_decl_level = depth_scope_stack;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (decl_state.is_member_decl &&
+             decl_state.class_declared_in
+                       ->variant.class_struct_union.is_microsoft_interface) {
+    /* Member templates should not appear in interface definitions. */
+    pos_error(ec_microsoft_interface_cannot_have_member_templates,
+              &decl_state.start_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (export_present) {
     if (scope_stack[depth_scope_stack].within_unnamed_namespace) {

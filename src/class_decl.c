@@ -2076,22 +2076,31 @@ void report_abstract_class_error(an_error_code      error_code,
 Issue an error (using the message specified by error_code) on an incorrect
 use of an object of abstract class type, as indicated by class_type.
 *error_pos is the source position at which the error should be issued.
-The diagnostic includes a list of pure virtual functions, to assist the
-user in correcting the class declarations that produced the problem.
+Except for the case of Microsoft interfaces, the diagnostic includes a list
+of pure virtual functions, to assist the user in correcting the class
+declarations that produced the problem.
 */
 {
   a_boolean  found = FALSE;
 
   class_type = skip_typerefs(class_type);
   pos_ty_start_error(error_code, error_pos, class_type);
-  /* Put out the list of pure virtual functions. */
-  report_pure_virtual_functions(class_type, (a_base_class_ptr)NULL,
-                                ec_pure_virtual_function, &found);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (class_type->variant.class_struct_union.is_microsoft_interface) {
+    ty_add_diag_info(ec_type_is_interface, class_type);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* Put out the list of pure virtual functions. */
+    report_pure_virtual_functions(class_type, (a_base_class_ptr)NULL,
+                                  ec_pure_virtual_function, &found);
 #if CHECKING
-  /* If class_type is marked as abstract, at least one pure virtual function
-     should have been found. */
-  check_assertion(found);
+    /* If class_type is marked as abstract, at least one pure virtual function
+       should have been found. */
+    check_assertion(found);
 #endif /* if */
+  }  /* if */
   /* Terminate the supplementary messages. */
   end_error();
 }  /* report_abstract_class_error */
@@ -4547,6 +4556,61 @@ shares virtual function info.
 }  /* set_virtual_function_info_base_class */
 
 
+static void scan_inheritance_kind(a_type_ptr           type_ptr,
+                                  a_boolean            *is_virtual,
+                                  an_access_specifier  *access)
+/*
+Scan any of the keywords "virtual", "public", "private", and "protected"
+that might precede a base class specifier in the definition of the class
+represented by type_ptr.  Set *is_virtual to TRUE if "virtual" is seen,
+and set *access to any explicitly mentioned access specifier.  Issue any
+diagnostics that can be emitted based on this information.
+*/
+{
+  a_boolean  access_already_specified = FALSE;
+
+  *is_virtual = FALSE;
+  for (;;) {
+    if (curr_token == tok_virtual) {
+      if (*is_virtual) {
+        error(ec_dupl_decl_specifier);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (type_ptr->variant.class_struct_union.is_microsoft_interface) {
+        error(ec_microsoft_interface_cannot_have_virtual_base);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      } else {
+        *is_virtual = TRUE;
+      }  /* if */
+    } else if (curr_token == tok_public || curr_token == tok_protected ||
+               curr_token == tok_private) {
+      if (access_already_specified) {
+        error(ec_access_already_specified);
+      } else {
+        if (curr_token == tok_public) {
+          *access = (an_access_specifier)as_public;
+        } else {
+          if (curr_token == tok_protected) {
+            *access = (an_access_specifier)as_protected;
+          } else {
+            *access = (an_access_specifier)as_private;
+          }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (type_ptr->variant.class_struct_union.is_microsoft_interface) {
+            error(ec_microsoft_interface_cannot_have_private_or_protected);
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        }  /* if */
+        access_already_specified = TRUE;
+      }  /* if */
+    } else {
+      /* Leave the loop and scan the class name. */
+      break;
+    }  /* if */
+    (void)get_token();
+  }  /* for */
+}  /* scan_inheritance_kind */
+
+
 static void scan_base_specifier_list(a_type_ptr             type_ptr,
                                      a_class_def_state_ptr  class_state)
 /*
@@ -4581,9 +4645,6 @@ or struct definition.  The syntax is
   a_boolean                     ambiguous;
   a_class_symbol_supplement_ptr cssp, bcp_cssp;
   a_boolean                     any_base_class_fixup_required;
-#if !IA64_ABI
-  a_boolean                     first_direct_nonvirtual_base_class = TRUE;
-#endif /* !IA64_ABI */
   a_source_position             base_class_decl_pos;
   a_source_position             base_specifier_start_pos;
   a_derivation_step_ptr         path;
@@ -4591,7 +4652,16 @@ or struct definition.  The syntax is
   a_base_class_sequence_number	direct_base_number = 0;
 #if IA64_ABI
   a_base_class_ptr              first_indirect_primary_vbase = NULL;
+#else /* !IA64_ABI */
+  a_boolean                     first_direct_nonvirtual_base_class = TRUE;
 #endif /* IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean                     microsoft_interface_definition =
+                                   microsoft_mode &&
+                                   type_ptr->kind == (a_type_kind)tk_struct &&
+                                   type_ptr->variant.class_struct_union
+                                                      .is_microsoft_interface;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "scan_base_specifier_list");
 #if DEBUG
@@ -4623,36 +4693,11 @@ or struct definition.  The syntax is
       access = (an_access_specifier)as_public;
       default_access_str = "public";
     }  /* if */
-    is_virtual = FALSE;
-    access_already_specified = FALSE;
     base_specifier_start_pos = pos_curr_token;
     direct_base_number++;
     /* Scan a single base specification, first looping through the specifying
        keywords virtual, public, private, and protected. */
-    for (;;) {
-      if (curr_token == tok_virtual) {
-        if (is_virtual) error(ec_dupl_decl_specifier);
-        is_virtual = TRUE;
-      } else if (curr_token == tok_public || curr_token == tok_protected ||
-                 curr_token == tok_private) {
-        if (access_already_specified) {
-          error(ec_access_already_specified);
-        } else {
-          if (curr_token == tok_public) {
-            access = (an_access_specifier)as_public;
-          } else if (curr_token == tok_protected) {
-            access = (an_access_specifier)as_protected;
-          } else {
-            access = (an_access_specifier)as_private;
-          }  /* if */
-          access_already_specified = TRUE;
-        }  /* if */
-      } else {
-        /* Leave the loop and scan the class name. */
-        break;
-      }  /* if */
-      (void)get_token();
-    }  /* for */
+    scan_inheritance_kind(type_ptr, &is_virtual, &access);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     {
@@ -4770,6 +4815,13 @@ or struct definition.  The syntax is
           type_ptr->variant.class_struct_union.has_zero_init_component = TRUE;
         }  /* if */
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_interface_definition &&
+          !base_class_type
+                        ->variant.class_struct_union.is_microsoft_interface) {
+        error(ec_microsoft_interface_must_derive_from_interface);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Issue a diagnostic if an explicit access specifier was not provided
          (as per the recommendation on p. 243 of the ARM). */
       if (!access_already_specified) {
@@ -5587,8 +5639,16 @@ of the function, and again overloading is a possibility.
        prototype instantiation scopes, but severe syntax errors can get us
        here nonetheless.  In that case we just skip the friend processing. */
     set_to_named_error_locator(*locator);
-  }  /* if */    
+  }  /* if */
   if (!is_error_locator(*locator)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* Friend declarations cannot appear in interface types. */
+    if (microsoft_mode &&
+        class_type->variant.class_struct_union.is_microsoft_interface) {
+      pos_error(ec_microsoft_interface_cannot_have_friend,
+                &decl_info->decl_start_pos);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     sym = locator->specific_symbol;
     if (sym == NULL && locator->is_template_id) {
       /* If this is a template-id for which the symbol has not yet been
@@ -5611,7 +5671,7 @@ of the function, and again overloading is a possibility.
         goto done;
       }  /* if */
     }  /* if */
-  }  /* if */    
+  }  /* if */
   if (!is_error_locator(*locator)) {
     if (!(microsoft_mode || any_cfront_mode()) ||
         (sym != NULL && sym->ambiguous)) {
@@ -6654,6 +6714,19 @@ Update the flags in the class symbol supplement accordingly.
 }  /* check_member_decl_is_copy_constructor */
 
 
+static void make_virtual_function_pure(a_routine_ptr  routine,
+                                       a_type_ptr     class_type)
+/*
+Update the given virtual routine to indicate that it is "pure virtual".
+Also record the presence of a pure virtual function in the given class type.
+*/
+{
+  routine->pure_virtual = TRUE;
+  class_type->variant.class_struct_union.any_pure_virtual_functions = TRUE;
+  class_type->variant.class_struct_union.abstract = TRUE;
+}  /* make_virtual_function_pure */
+
+
 #if !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* <-- attributes and asm_name are not used in that case. */
 #endif /* !GNU_EXTENSIONS_ALLOWED */
@@ -7099,6 +7172,30 @@ otherwise these are NULL).
          its appearance in the base classes of the current class. */
       a_boolean  is_virtual = ((decl_info->dso_flags & DSO_VIRTUAL) &&
                                !decl_info->invalid_virtual_specifier);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (class_type->variant.class_struct_union.is_microsoft_interface) {
+        switch (rtn->special_kind) {
+          case sfk_none:
+            is_virtual = TRUE;
+            make_virtual_function_pure(rtn, class_type);
+            break;
+          case sfk_constructor:
+          case sfk_destructor:
+            if (!compiler_generated) {
+              pos_error(ec_microsoft_interface_cannot_have_ctor_or_dtor,
+                        &locator->source_position);
+            }  /* if */
+            break;
+          case sfk_conversion:
+          case sfk_operator:
+            if (!compiler_generated) {
+              pos_error(ec_microsoft_interface_cannot_have_operator,
+                        &locator->source_position);
+            }  /* if */
+            break;
+        }  /* switch */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (check_for_virtual_function(is_virtual, sym, class_type, class_state,
                                      &locator->source_position)) {
         /* Classes with virtual functions require constructors. */
@@ -7433,9 +7530,7 @@ and it is legal for virtual member functions only.
        other forms of "zero" are accepted (including "__null" in GNU mode). */
     if (pure_specifier_allowed) {
       /* Update the routine and class type entities. */
-      rout_sym->variant.routine.ptr->pure_virtual = TRUE;
-      class_type->variant.class_struct_union.any_pure_virtual_functions = TRUE;
-      class_type->variant.class_struct_union.abstract = TRUE;
+      make_virtual_function_pure(rout_sym->variant.routine.ptr, class_type);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       {
       /* Include the pure-specifier in the declarator range.  Note that
@@ -7753,6 +7848,12 @@ otherwise these are NULL).
   update_variable_decl_modifiers(var, &decl_info->decl_modifiers,
                                  &locator->source_position,
                                  /*is_redecl=*/FALSE);
+  /* Disallow data members in interface types. */
+  if (microsoft_mode &&
+      class_type->variant.class_struct_union.is_microsoft_interface) {
+    pos_error(ec_microsoft_interface_cannot_have_data_member,
+              &locator->source_position);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode) {
@@ -9125,7 +9226,7 @@ respectively.
 static void decl_nonstatic_data_member(a_symbol_locator        *locator,
                                        a_type_ptr              class_type,
                                        a_type_ptr              member_type,
-				       an_attribute_ptr        attributes,
+                                       an_attribute_ptr        attributes,
                                        a_class_def_state_ptr   class_state,
                                        a_member_decl_info_ptr  decl_info)
 /*
@@ -9329,6 +9430,12 @@ specific information about the member declaration, respectively.
     if (decl_info->decl_modifiers.allocate_segname != NULL) {
       /* Only allowed for variables with static storage duration. */
       pos_error(ec_declspec_allocate_not_allowed, &locator->source_position);
+    }  /* if */
+    /* Disallow data members in interface types. */
+    if (microsoft_mode &&
+        class_type->variant.class_struct_union.is_microsoft_interface) {
+      pos_error(ec_microsoft_interface_cannot_have_data_member,
+                &locator->source_position);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -10867,12 +10974,18 @@ static void check_friend_class_decl(a_type_ptr              member_type,
                                     a_member_decl_info_ptr  decl_info)
 /*
 The current construct seems to make member_type a friend of class_type.
-Check that this is a valid type and if so make member_type a friend.  
+Check that this is a valid type and if so make member_type a friend.
 *decl_info contains some additional information about the declaration.
 */
 {
   if (is_error_type(member_type)) {
     /* An error was already issued. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode &&
+             class_type->variant.class_struct_union.is_microsoft_interface) {
+    pos_error(ec_microsoft_interface_cannot_have_friend,
+              &decl_info->decl_start_pos);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((is_class_struct_union_type(member_type) ||
               is_template_param_type(member_type)) &&
              !is_top_level_qualified_type(member_type) &&
@@ -12594,7 +12707,7 @@ a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_boolean        is_local_class,
                                 a_boolean        delayed_nested_class_def,
                                 a_boolean        is_template_instantiation,
-				a_boolean	 is_template_specialization,
+                                a_boolean        is_template_specialization,
                                 a_template_ptr   il_template_entry,
                                 a_decl_pos_block *decl_pos_block)
 /*
