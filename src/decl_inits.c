@@ -982,16 +982,29 @@ unreachable code).
   vp->init_kind = (an_init_kind)initk_dynamic;
   vp->initializer.dynamic = new_dip;
   new_dip->variable = vp;
-  if (decl_scope_level == DEPTH_OF_FILE_SCOPE) {
+  if (scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_function ||
+      scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_block) {
+#if CHECKING
+    if (vp->source_corresp.class_of_which_a_member != NULL) {
+      internal_error("gen_dynamic_initialization: expected local static var");
+    }  /* if */
+#endif /* CHECKING */
+    /* Must be the initialization of a local static variable.  Build the
+       initialization statement and add it to the statement block. */
+    init_stmt = add_statement((a_statement_kind)stmk_init);
+    init_stmt->seq_number = vp->source_corresp.decl_position.seq;
+    init_stmt->variant.dynamic_init = new_dip;
+  } else {
+#if CHECKING
+    if (decl_scope_level != DEPTH_OF_FILE_SCOPE &&
+        vp->source_corresp.class_of_which_a_member == NULL) {
+      internal_error("gen_dynamic_intialization: expected file-scope var");
+    }  /* if */
+#endif /* CHECKING */
     /* A dynamic file-scope initialization (possible only in C++) has
        no associated stmk_init statement, so attach the dynamic initialization
        entry to the scope list. */
     add_to_dynamic_inits_list(new_dip);
-  } else {
-    /* Build the initialization statement. */
-    init_stmt = add_statement((a_statement_kind)stmk_init);
-    init_stmt->seq_number = vp->source_corresp.decl_position.seq;
-    init_stmt->variant.dynamic_init = new_dip;
   }  /* if */
   /* Mark all dynamically initialized variables as referenced.  (They are
      "referenced" in the sense that a variable assigned to, even if never
