@@ -4560,8 +4560,8 @@ typedef struct an_expr_node {
 			/* If the argument of the typeid operator is an
 			   expression with one of the special forms (*p or
 			   p[x]), and the type is a polymorphic class type,
-			   this is the expression specified; otherwise
-			   NULL. */
+			   this is the lvalue expression specified (i.e.,
+			   its value is the address); otherwise NULL. */
     } typeid_info;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     /* When kind == enk_lowered_eh_construct: */
