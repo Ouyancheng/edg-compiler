@@ -5803,29 +5803,32 @@ is not allowed.  The symbol may be a member of an anonymous union.
         }  /* if */
 #endif /* CHECKING */
       }  /* if */
-      /* Only nonstatic variables might be a problem. */
-      if (!has_static_storage_duration(var->storage_class)) {
-        /* Find the scope of the variable in the scope stack. */
-        for (sd = depth_scope_stack; ; sd--) {
-          a_scope_kind skind;
-          if (scope_stack[sd].number == sym_ptr->decl_scope) break;
-          skind = scope_stack[sd].kind;
-          if (skind == (a_scope_kind)sck_class_struct_union ||
-              skind == (a_scope_kind)sck_class_reactivation) {
-            /* We've hit a class and we haven't hit the variable yet, so the
-               variable must be a local variable of some function that
-               contains the class. */
+      /* Find the scope of the variable in the scope stack. */
+      for (sd = depth_scope_stack; ; sd--) {
+        a_scope_kind skind;
+        if (scope_stack[sd].number == sym_ptr->decl_scope) break;
+        skind = scope_stack[sd].kind;
+        if (skind == (a_scope_kind)sck_class_struct_union ||
+            skind == (a_scope_kind)sck_class_reactivation) {
+          /* We've hit a class and we haven't hit the variable yet, so the
+             variable must be a local variable of some function that
+             contains the class. */
+          /* Only nonstatic variables are a problem. */
+          if (!has_static_storage_duration(var->storage_class)) {
             bad_ref = TRUE;
-            break;
+          } else {
+            /* Static variable.  The reference is okay, but remember that
+               it exists to help back-end aliasing analysis. */
+            var->referenced_non_locally = TRUE;
           }  /* if */
+          break;
+        }  /* if */
 #if CHECKING
-          if (sd <= DEPTH_OF_FILE_SCOPE) {
-            internal_error(
-                          "bad_nested_function_variable_ref: scope not found");
-          }  /* if */
+        if (sd <= DEPTH_OF_FILE_SCOPE) {
+          internal_error("bad_nested_function_variable_ref: scope not found");
+        }  /* if */
 #endif /* CHECKING */
-        }  /* for */
-      }  /* if */
+      }  /* for */
     }  /* if */
   }  /* if */
   return bad_ref;
