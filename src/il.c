@@ -5725,10 +5725,7 @@ class need not be an immediate base class.
   a_derivation_step_ptr dsp;
 
   /* Add a base class cast for each step in the derivation. */
-#if 0
-/* This needs to be fixed. */
-#endif
-  for (dsp = preferred_derivation_of(bcp)->path;
+  for (dsp = cast_derivation_path_of(bcp);
        dsp != NULL;
        dsp = dsp->next) {
     node = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
