@@ -1452,7 +1452,7 @@ error code.
       m = "global anonymous union must be declared static";
       break;
     case ec_missing_initializer_on_fields:
-      m = "no initializer provided for:";
+      m = "%nf provides no initializer for:";
       break;
     case ec_cannot_initialize_fields:
       m = "implicitly generated constructor for class %t cannot initialize:";
