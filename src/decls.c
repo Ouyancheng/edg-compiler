@@ -8257,10 +8257,28 @@ Process a handler declaration:
     if (prev_handler == NULL) {
       sp->variant.try_block.handlers = handler;
     } else {
+      a_boolean  masked = FALSE;
+      /* Make a pass over the previously declared handlers in this try block
+         to do error checking and locate the end of the list, where the new
+         handler will be added. */
       for (;;) {
-#if 0
-        /* Check type against types of previously declared handler. */
-#endif /* if 0 */
+        if (masked) {
+          /* One "masking" diagnostic has already been issued -- there's no
+             point in putting out another. */
+        } else if (prev_handler->parameter == NULL) {
+          /* Anything following a default handler is masked by it. */
+          pos_error(ec_masked_by_default_handler, &decl_pos);
+          masked = TRUE;
+        } else if (handler->parameter == NULL) {
+          /* Current handler is a default handler. */
+        } else if (type_masks_handler_param_type(prev_handler->parameter->type,
+                                                 type_ptr)) {
+          /* The type of prev_handler assures that handler will never be
+             called, because it masks current handler's type.  See ARM 15.4. */
+          pos_ty_error(ec_masked_by_handler, &decl_pos,
+                       prev_handler->parameter->type);
+          masked = TRUE;
+        }  /* if */
         if (prev_handler->next == NULL) break;
         prev_handler = prev_handler->next;
       }  /* for */
