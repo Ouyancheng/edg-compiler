@@ -436,6 +436,8 @@ as the class type, and use as a base class.
   a_symbol_ptr				templ_param_sym;
   a_class_symbol_supplement_ptr		cssp;
 
+  check_assertion_str(templ_param_type->kind == (a_type_kind)tk_template_param,
+                      "proxy_class_for_template_param: bad type");
   tptsp = templ_param_type->variant.template_param.extra_info;
   /* If the template parameter does not yet have a proxy class, create one
      now. */
