@@ -1,4 +1,10 @@
-Version 2.29
+Version 2.30
+
+9/1/95    Namespace changes
+
+The runtime has been changed to define standard types and routines in the
+std namespace, but only if the front end option RUNTIME_USES_NAMESPACES
+is TRUE.
 
 7/7/95    USE_SYSTEM_JMP_BUF_DEFINITION in config.h
 
