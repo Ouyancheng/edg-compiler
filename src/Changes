@@ -4,7 +4,8 @@ Version 3.6
 
 If a C++-generating back end version was configured with GCC_BUILTIN_VARARGS
 as TRUE, the back end entered an infinite loop processing the builtin
-va_list typeref.  Now fixed.
+va_list typeref that is created when the inclusion of <stdarg.h>
+is suppressed.  Now fixed.
 
 1/26/05  Less fragile code for local entity promotion in generated routines
 
