@@ -6168,9 +6168,9 @@ is a template specialization declaration.
            symbol and add it to an overload list. */
         a_boolean  overload_set_is_invisible = FALSE;
 
-#if MICROSOFT_EXTENSIONS_ENABLED
+#if MICROSOFT_EXTENSIONS_ALLOWED
         check_assertion(!microsoft_mode || !invalid_scope_for_new_or_delete);
-#endif /* MICROSOFT_EXTENSIONS_ENABLED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (set_invisible && homonym_symbol->is_invisible) {
           overload_set_is_invisible = TRUE;
         }  /* if */
