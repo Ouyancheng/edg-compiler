@@ -559,9 +559,9 @@ the block header.
     }  /* if */
 #ifdef USING_PURIFY
   } else {
-    /* If the minimum size is zero, allocate at least one byte of storage
-       beyond what is used by the header. */
-    if (min_size == 0) alloc_size++;
+    /* If the minimum size is zero, allocate HOST_ALIGNMENT_REQUIRED bytes
+       of storage beyond what is used by the header. */
+    if (min_size == 0) alloc_size += HOST_ALIGNMENT_REQUIRED;
   }  /* if */
 #endif /* USING_PURIFY */
   /* Make sure the block size preserves alignment of the end (this is
@@ -593,10 +593,12 @@ have_hdr:
   /* Everything in the block is available. */
   hdr->next_avail_in_block = hdr->start_of_block;
 #ifdef USING_PURIFY
-  /* When using Purify, reserve at least one byte when a zero allocation
-     is done.  This is done to prevent an what looks like an unused memory
-     block from being created. */
-  if (min_size == 0 && purify_is_active) hdr->next_avail_in_block++;
+  /* When using Purify, reserve the smallest possible piece of memory
+     at the beginning of the block.  This is done to prevent an what
+     looks like an unused memory block from being created. */
+  if (min_size == 0 && purify_is_active) {
+    hdr->next_avail_in_block += HOST_ALIGNMENT_REQUIRED;
+  }  /* if */
 #endif /* USING_PURIFY */
   /* Link the block into the region. */
   hdr->next = mem_region_table[region_number];
