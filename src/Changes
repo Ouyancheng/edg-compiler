@@ -20,13 +20,14 @@ below for more information about g++ compatibility), but this facility
 can be used for any sort of predefined macro.
 
 The front end can be configured to read macro definitions from a file.  The
-file EDG_BASE/PREDEFINED_MACRO_DIR_NAME/PREDEFINED_MACRO_FILE_NAME is read
+file EDG_BASE/EDG_AUXILIARY_INFO_DIR_NAME/PREDEFINED_MACRO_FILE_NAME is read
 to provide the macro definitions.  The EDG_BASE directory can be specified
 by an environment variable (EDG_BASE), build-time macro (DEFAULT_EDG_BASE),
-or command-line option (--edg_base_dir).  PREDEFINED_MACRO_DIR_NAME and
+or command-line option (--edg_base_dir).  EDG_AUXILIARY_INFO_DIR_NAME and
 PREDEFINED_MACRO_FILE_NAME are configuration macros with default values of
-"lib" and "predefined_macros.txt".  The format of the entries in the file
-is:
+"lib" and "predefined_macros.txt".  If EDG_AUXILIARY_INFO_DIR_NAME is null,
+the EDG_BASE directory is used directly.  The format of the entries in the
+file is:
 
 mode,!mode,mode   cannot_redefine   macro_name   macro_value
 
