@@ -976,7 +976,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
       if (dynamic_init_required && !err) {
         /* Issue a warning for a dynamic initialization in an unreachable
            block. */
-        if (!curr_code_reachable()) {
+        if (depth_stmt_stack >= 0 && !curr_code_reachable()) {
           pos_warning(ec_initialization_not_reachable, source_pos);
         }  /* if */
       }  /* if */
