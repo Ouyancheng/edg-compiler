@@ -808,12 +808,12 @@ E.g., "    stdio   " becomes "stdio".
 */
 {
   /* Skip leading whitespace. */
-  while (*len > 0 && **name == ' ' || **name == '\t') {
+  while (*len > 0 && (**name == ' ' || **name == '\t')) {
     ++(*name);
     --(*len);
   }  /* while */
   /* Trim trailing whitespace. */
-  while (*len > 0 && (*name)[*len - 1] == ' ' || (*name)[*len - 1] == '\t') {
+  while (*len > 0 && ((*name)[*len - 1] == ' ' || (*name)[*len - 1] == '\t')) {
     --(*len);
   }  /* while */
 }  /* trim_leading_and_trailing_blanks_from_header_name */
