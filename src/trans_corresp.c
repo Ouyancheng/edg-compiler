@@ -3092,13 +3092,19 @@ are not checked.
       {
         a_template_ptr  templ = scope->templates;
         a_template_ptr  corresp_templ = corresp_scope->templates;
+        a_boolean       error_issued = FALSE;
         for (; templ != NULL && corresp_templ != NULL;
              templ = templ->next, corresp_templ = corresp_templ->next) {
-          if (templ->kind != corresp_templ->kind) {
+          if (templ->kind != corresp_templ->kind || error_issued) {
             /* Could only be due to an error. */
-            f_report_bad_trans_unit_corresp(
-                                (char*)templ,
-                                &corresp_templ->source_corresp.decl_position);
+            if (!error_issued) {
+              report_corresp_error(
+                                 (char*)templ,
+                                 &corresp_templ->source_corresp.decl_position,
+                                 ec_entity_differs_in_other_trans_unit,
+                                 ec_corresp_member_template_is_different_kind);
+              error_issued = TRUE;
+            }  /* if */
             set_no_trans_unit_corresp(iek_template, templ);
             clear_instantation_correspondences(templ, /*visited=*/TRUE);
           } else {
