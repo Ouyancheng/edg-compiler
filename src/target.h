@@ -182,6 +182,15 @@ EXTERN a_targ_alignment
 #endif /* LONG_LONG_ALLOWED */
 
 EXTERN a_targ_size_t
+		targ_max_class_object_size
+#if VAR_INITIALIZERS
+                                           = TARG_MAX_CLASS_OBJECT_SIZE
+#endif /* VAR_INITIALIZERS */
+								       ;
+			/* Maximum size of a class object.  Initialized to the
+			   default value but may be reset in target_init. */
+
+EXTERN a_targ_size_t
 		targ_max_bit_field_size
 #if VAR_INITIALIZERS
                                         = TARG_MAX_BIT_FIELD_SIZE
