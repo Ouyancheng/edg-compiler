@@ -657,7 +657,11 @@ do_variable:
         if (tssp->token_cache.first_token != NULL) {
           put_string("template body cached");
         }  /* if */
-        if (sym->kind == (a_symbol_kind)sk_class_template) {
+        if (sym->kind == (a_symbol_kind)sk_function_template) {
+          if (tssp->variant.function.cannot_be_called) {
+            put_string("cannot be called");
+          }  /* if */
+        } else if (sym->kind == (a_symbol_kind)sk_class_template) {
           switch (tssp->variant.class_template.type_kind) {
             case tk_class:  put_string("class");           break;
             case tk_struct: put_string("struct");          break;
@@ -742,9 +746,6 @@ do_variable:
             fprintf(f_debug, "(routine ptr is NULL)");
           }  /* if */
           fprintf(f_debug, "\n");
-	  if (tssp->variant.function.cannot_be_called) {
-            fprintf(f_debug, "%*scannot be called\n", indentation, "");
-	  }  /* if */
           tip = tssp->variant.function.instantiations;
           while (tip != NULL) {
             fprintf(f_debug, "%*sinstantiation", indentation, "");
