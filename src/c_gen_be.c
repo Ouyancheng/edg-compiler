@@ -7710,9 +7710,11 @@ with initialization to the proper values.
      parameter, so advance past that. */
   master_param = master_param->next;
   /* Get the call that is the body of the wrapper, and get to its
-     arguments. */
+     arguments.  When the entry point returns a value, the call expression
+     is the expression of a return statement. */
   check_assertion(stmt != NULL &&
-                  stmt->kind == (a_statement_kind)stmk_expr);
+                  (stmt->kind == (a_statement_kind)stmk_expr ||
+                   stmt->kind == (a_statement_kind)stmk_return));
   call_expr = stmt->expr;
   check_assertion(is_operation_node(call_expr) &&
                   call_expr->variant.operation.kind ==

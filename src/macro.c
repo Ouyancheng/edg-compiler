@@ -4844,6 +4844,12 @@ from the front end to the runtime.
 			   "__EDG_IA64_ABI_USE_VARIANT_ARRAY_COOKIES",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+  /* Do constructors and destructors return "this" for the IA-64 ABI? */
+  (void)enter_predef_macro(conv_unsigned_long_to_str(
+                  (unsigned long)IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS),
+                          "__EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
 #endif /* IA64_ABI */
 }  /* init_runtime_macros */
 

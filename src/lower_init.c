@@ -352,15 +352,24 @@ it would appear as the type on a call of the function in the lowered IL.
   a_type_ptr return_type;
 
   routine_type = skip_typerefs(routine_type);
-#if !IA64_ABI
-  if (routine_type->variant.routine.extra_info->assoc_routine_is_ctor) {
-    /* Constructors return "pointer to class" in the Cfront-like ABI. */
+#if CTORS_RETURN_THIS
+  if (!visited_yet(routine_type) &&
+      routine_type->variant.routine.extra_info->assoc_routine_is_ctor) {
+    /* Constructors return "pointer to class" in the Cfront-like ABI and
+       a variant of the IA-64 ABI. */
     a_type_ptr class_type =
                           routine_type->variant.routine.extra_info->this_class;
     check_assertion(class_type != NULL);
     return_type = make_pointer_type(class_type);
   } else
-#endif /* !IA64_ABI */
+#endif /* CTORS_RETURN_THIS */
+#if DTORS_RETURN_THIS
+  if (!visited_yet(routine_type) &&
+      routine_type->variant.routine.extra_info->assoc_routine_is_dtor) {
+    /* Destructors return "void *" in a variant of the IA-64 ABI. */
+    return_type = void_star_type();
+  } else
+#endif /* DTORS_RETURN_THIS */
   /* Do not insert code here. */
   {
     return_type = il_return_type_of(routine_type);
@@ -3077,7 +3086,7 @@ default_arg_list.
   /* If the routine has a void type, insert a statement for the call
      followed by a return statement.  Otherwise, attach the call directly
      to the return. */
-  void_return = is_void_type(lowered_return_type_of(routine_type));
+  void_return = is_void_type(lowered_return_type_of(new_routine->type));
   insert_as_statement = void_return;
   /* If we might have to insert destructor calls, insert the call as
      a statement. */
@@ -3288,7 +3297,7 @@ destructors in the IA-64 ABI.
   }  /* for */
   if (new_routine == NULL) {
     a_type_ptr                    routine_type = skip_typerefs(routine->type);
-    a_type_ptr                    this_param_type;
+    a_type_ptr                    this_param_type, return_type;
     a_param_type_ptr              param_type, last_param_type;
     a_routine_type_supplement_ptr rtsp, new_rtsp;
     a_storage_class               new_storage_class;
@@ -3297,6 +3306,14 @@ destructors in the IA-64 ABI.
     /* The "this" parameter is generated in its lowered form (i.e., as a
        normal parameter). */
     this_param_type = implicit_this_param_type_of(routine_type);
+    return_type = lowered_return_type_of(routine_type);
+#if IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+    /* Deleting destructors return void even in the variant. */
+    if (kind == (a_ctor_or_dtor_kind)cdk_deleting &&
+        routine->special_kind == (a_special_function_kind)sfk_destructor) {
+      return_type = void_type();
+    }  /* if */
+#endif /* IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
     /* Additional parameter types, if any, are added below. */
     new_storage_class = routine->storage_class;
     if (new_storage_class == (a_storage_class)sc_unspecified) {
@@ -3307,10 +3324,9 @@ destructors in the IA-64 ABI.
        been promoted out of its class, to make sure we will get
        to promote_routines later. */
     check_assertion(routine->source_corresp.is_class_member);
-    new_routine = make_rout_entry_no_add(
-                                  (char *)NULL, new_storage_class,
-                                  lowered_return_type_of(routine_type),
-                                  this_param_type);
+    new_routine = make_rout_entry_no_add((char *)NULL, new_storage_class,
+                                         return_type,
+                                         this_param_type);
     new_routine->is_inline = routine->is_inline;
 #if DECL_MODIFIERS_IN_USE
     new_routine->decl_modifiers = routine->decl_modifiers;
@@ -7033,6 +7049,27 @@ the point at which code should be inserted.
 }  /* turn_off_freeing_of_storage_on_exception */
 
 
+static a_boolean is_constructor_call(an_expr_node_ptr expr)
+/*
+Return TRUE if the indicated expression is a call of a constructor.
+*/
+{
+  a_boolean is_ctor_call = FALSE;
+
+  if (is_operation_node(expr) &&
+      expr->variant.operation.kind == (an_expr_operator_kind)eok_call) {
+    an_expr_node_ptr first_operand = expr->variant.operation.operands;
+    if (is_routine_address_node(first_operand)) {
+      a_routine_ptr rout = first_operand->variant.routine;
+      if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
+        is_ctor_call = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_ctor_call;
+}  /* is_constructor_call */
+
+
 static void lower_new(an_expr_node_ptr expr)
 /*
 Do IL lowering of an enk_new_delete expression node for a "new".
@@ -7133,6 +7170,10 @@ The subtree of the node has not yet been lowered.
            ((temp = (type *)new-call(...)) != NULL) ?
                                      (initialization, temp) : NULL
       */
+#if CTORS_RETURN_THIS
+      a_boolean is_constructor_init =
+                           (dip->kind == (a_dynamic_init_kind)dik_constructor);
+#endif /* CTORS_RETURN_THIS */
       /* Allocate the temporary. */
       ptr_base_type = make_pointer_type(base_type);
       temp_var = make_local_temporary(ptr_base_type);
@@ -7183,10 +7224,27 @@ The subtree of the node has not yet been lowered.
         turn_off_freeing_of_storage_on_exception(ndsp, &ipd, delete_args,
                                                  &insert_location);
       }  /* if */
-      /* End the initialization code with an expression that gets the
-         value of the temporary. */
-      init_node = var_rvalue_expr(temp_var);
-      insert_expr(init_node, &insert_location);
+      {
+#if CTORS_RETURN_THIS
+        a_boolean can_optimize_away_temp = FALSE;
+        if (is_constructor_init) {
+          /* Try to use the result of the constructor call directly
+             instead of the value of the temporary (the constructor
+             returns the address of the object). */
+          if (is_constructor_call(insert_location.variant.expr)) {
+            can_optimize_away_temp = TRUE;
+          }  /* if */
+        }  /* if */
+        if (!can_optimize_away_temp)
+#endif /* CTORS_RETURN_THIS */
+        /* Do not insert code here. */
+        {
+          /* End the initialization code with an expression that gets the
+             value of the temporary. */
+          init_node = var_rvalue_expr(temp_var);
+          insert_expr(init_node, &insert_location);
+        }  /* if */
+      }
       init_node = insert_location.variant.expr;
       /* Build the ?: operation.  Its first argument is the comparison of
          the temp pointer against NULL; its second is the initialization code;
@@ -7252,7 +7310,10 @@ virtual, it is called as a virtual function, which involves some special
 tricks.
 */
 {
-  an_expr_node_ptr ptr_node_test, ptr_node_delete, call_node;
+  an_expr_node_ptr ptr_node_test, call_node;
+#if !DTORS_RETURN_THIS
+  an_expr_node_ptr ptr_node_delete;
+#endif /* !DTORS_RETURN_THIS */
   an_expr_node_ptr compare_node;
   a_type_ptr       class_type;
   a_constant       null_constant;
@@ -7308,15 +7369,20 @@ tricks.
     /* Make a copy of the object pointer so we can use it later in building
        the null-pointer test.  Force use of a temporary now if we would
        be using one for the copy for the delete call anyway. */
+    a_boolean vars_can_change = FALSE;
+#if !DTORS_RETURN_THIS
+    if (delete_routine != NULL) vars_can_change = TRUE;
+#endif /* !DTORS_RETURN_THIS */
     ptr_node_test = ptr_node;
-    ptr_node = make_reusable_copy(ptr_node,
-                                 /*vars_can_change=*/(delete_routine != NULL));
+    ptr_node = make_reusable_copy(ptr_node, vars_can_change);
   }  /* if */
+#if !DTORS_RETURN_THIS
   if (delete_routine != NULL) {
     /* Make a copy of the object pointer so that we can use it later in
        building the call of the delete routine. */
     ptr_node_delete = make_reusable_copy(ptr_node, /*vars_can_change=*/TRUE);
   }  /* if */
+#endif /* !DTORS_RETURN_THIS */
 #if !IA64_ABI
   /* Add an implicit parameter to the destructor call with bits
      0x2 (whole object) + 0x1 (free storage, if deallocate is TRUE). */
@@ -7333,12 +7399,18 @@ tricks.
     lower_virtual_function_call(call_node);
   }  /* if */
   if (delete_routine != NULL) {
+#if !DTORS_RETURN_THIS
     /* Add a call of the delete routine, so we have a comma expression
          (dtor(...), delete(...))
     */
     an_expr_node_ptr delete_call_node =
                  make_delete_call(delete_routine, class_type, ptr_node_delete);
     call_node = make_comma_node(call_node, delete_call_node);
+#else /* DTORS_RETURN_THIS */
+    /* In the variant of the IA-64 ABI where destructors return "this",
+       build delete(dtor(...)). */
+    call_node = make_delete_call(delete_routine, class_type, call_node);
+#endif /* DTORS_RETURN_THIS */
   }  /* if */
   if (need_null_ptr_test) {
     /* Add a null pointer test, producing
@@ -7555,9 +7627,7 @@ Do IL lowering of an enk_temp_init expression node.
           expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
         an_expr_node_ptr first_operand = expr->variant.operation.operands;
         an_expr_node_ptr second_operand = first_operand->next;
-        if (is_operation_node(first_operand) &&
-            first_operand->variant.operation.kind ==
-                                             (an_expr_operator_kind)eok_call &&
+        if (is_constructor_call(first_operand) &&
             /* In ABIs where the constructor returns nothing (e.g., the
                IA-64 ABI), this optimization can be done only if the
                result is not used. */

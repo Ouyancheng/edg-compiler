@@ -49,13 +49,22 @@ In certain unusual examples, a large number of symbols were allocated when
 doing lookups that make use of using-directives.  This process has been
 improved to dramatically reduce the amount of memory required.
 
-6/7/04   Variant cookie for IA-64 ABI array allocation
+6/7/04   Options for features of the ARM EABI variant of the IA-64 ABI
 
-The front end now supports a variant form of the cookie used
-to record an array allocation in the IA-64 ABI.  This variant
-form matches the requirements of the ARM EABI and is enabled
-by IA64_ABI_USE_VARIANT_ARRAY_COOKIES.  The runtime has also
-been updated to support this.
+The front end now supports some additional features of the ARM
+EABI variant of the IA-64 ABI.  Previously, the ARM EABI
+pointer-to-member representation was selected by
+IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR, and the ARM EABI
+use of guard/release routines on static initializations was selected
+by IA64_ABI_USE_GUARD_ACQUIRE_RELEASE.  Now, we have added:
+
+  - Support for the variant form of the cookie used to record an
+    array allocation, which is selected by
+    IA64_ABI_USE_VARIANT_ARRAY_COOKIES.
+  - Support for having constructors and destructors return "this",
+    which is selected by IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS.
+
+The runtime has also been updated to support these features.
 
 6/2/04   Wide string not accepted in _Pragma operator
 

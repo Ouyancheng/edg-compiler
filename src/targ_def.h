@@ -143,6 +143,17 @@ This variant version is used for the ARM architecture.  See
 #endif /* ifndef IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
 
 /*
+TRUE to make constructors and destructors return the "this" value
+in a variant of the IA-64 ABI.  This is used by the ARM EABI.
+Constructors return "pointer to class", and destructors return
+"void *", except deleting destructors, which return the standard
+"void".
+*/
+#ifndef IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+#define IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS FALSE
+#endif /* ifndef IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
+
+/*
 The early GNU implementations of the IA-64 ABI (e.g., versions 3.2 and 3.3)
 had several bugs.  Set the following FLAG to TRUE if those bugs should be
 emulated by this implementation.  This is the initial value of the global
@@ -1816,6 +1827,35 @@ into the runtime routine to process those.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
 #endif /* !defined(NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_...) */
 /* This must be TRUE for IL lowering.  There's a consistency check there. */
+
+/*
+Flag that indicates whether constructors return "this".  This is
+TRUE in the Cfront-like ABI and FALSE in the IA-64 ABI, but TRUE in
+the ARM EABI variant of the IA-64 ABI.
+*/
+#ifndef CTORS_RETURN_THIS
+#if !IA64_ABI || IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+#define CTORS_RETURN_THIS TRUE
+#else /* IA64_ABI && !IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
+#define CTORS_RETURN_THIS FALSE
+#endif /* !IA64_ABI || IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
+#else /* defined(CTORS_RETURN_THIS) */
+ #error -- CTORS_RETURN_THIS should not be defined.
+#endif /* ifndef CTORS_RETURN_THIS */
+
+/*
+Flag that indicates whether destructors return "this".  This is
+FALSE except in the ARM EABI variant of the IA-64 ABI.
+*/
+#ifndef DTORS_RETURN_THIS
+#if IA64_ABI && IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
+#define DTORS_RETURN_THIS TRUE
+#else /* !IA64_ABI || !IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
+#define DTORS_RETURN_THIS FALSE
+#endif /* IA64_ABI && IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
+#else /* defined(DTORS_RETURN_THIS) */
+ #error -- DTORS_RETURN_THIS should not be defined.
+#endif /* ifndef DTORS_RETURN_THIS */
 
 /*
 Enumerated types:  Default setting for targ_enum_types_can_be_smaller_than_int.
