@@ -2780,9 +2780,7 @@ static void write_position_and_severity(an_error_severity severity,
                                         a_source_position *error_pos,
                                         char              **file_name,
                                         a_line_number     *line_number,
-#if !STANDALONE_UTILITY_PROGRAM
                                         a_boolean         *src_text_needed,
-#endif /* !STANDALONE_UTILITY_PROGRAM */
                                         int               *line_len)
 /*
 
@@ -2874,7 +2872,7 @@ static void write_position_and_severity(an_error_severity severity,
 #if CHECKING
     case es_none:
     default:
-      internal_error("write_position_severity_to_stderr: bad severity");
+      internal_error("write_position_and_severity_to_stderr: bad severity");
 #endif /* CHECKING */
   }  /* switch */
   if (capitalize_severity && *severity_string != '\0') {
@@ -2885,7 +2883,7 @@ static void write_position_and_severity(an_error_severity severity,
   } else {
     *line_len += fprintf(stderr, "%s", severity_string);
   }  /* if */
-}  /* write_position_severity_to_stderr */
+}  /* write_position_and_severity_to_stderr */
 
 
 static void write_diag_to_raw_listing(an_error_severity          severity,
@@ -2975,9 +2973,7 @@ additional messages in a multiple message diagnostic.
 		
   static char              *file_name;
   static a_line_number     line_number;
-#if !STANDALONE_UTILITY_PROGRAM
   static a_boolean         source_text_needed;
-#endif /* !STANDALONE_UTILITY_PROGRAM */
   int                      line_len;
   static a_source_position *saved_error_position;
   static an_error_severity saved_severity;
@@ -3033,9 +3029,7 @@ reestablish_arguments:
       /* Collect and output error position and severity information. */
       write_position_and_severity(severity, error_pos, &file_name,
                                   &line_number,
-#if !STANDALONE_UTILITY_PROGRAM
                                   &source_text_needed,
-#endif /* !STANDALONE_UTILITY_PROGRAM */
                                   &line_len);
     }  /* if */
 
