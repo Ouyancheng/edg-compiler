@@ -1,5 +1,25 @@
 Version 3.4
 
+2/24/04  Template name lookup and using-directives
+
+When using the default template lookup mechanism (i.e., when not using
+the dependent name lookup rules specified in the standard) names made
+visible by using-directives that appeared after the point of definition
+of a template were considered when the template was instantiated.  This
+could result in errors, such as the ambiguity reported on the example
+below.  Such using-directives are now ignored during template instantiation.
+
+  namespace N { namespace X { } }
+  namespace X {
+   template<class T> struct B {};
+  }
+  template <class T> void f(X::B<T>);
+  X::B<int> x;
+  using namespace N;
+  int main() {
+    f(x);
+  }
+
 2/23/04  GNU mode: Diagnose asm name conflicts
 
 The front end now issues a warning on asm name constructs that specify

@@ -1386,7 +1386,10 @@ specified after the point of definition of the template.
     for (; audp != NULL; audp = audp->next) {
       a_namespace_symbol_supplement_ptr	nssp;
       a_scope_depth			new_depth;
-      if (do_dependent_name_processing && set_value &&
+      /* Note that this is done in all modes, not just when doing dependent
+         name processing, so that using-directives from after the definition
+         of a template are not considered. */
+      if (set_value &&
           ssep->kind != (a_scope_kind)sck_block &&
           ssep->kind != (a_scope_kind)sck_function &&
           effective_decl_seq != NO_DECL_SEQUENCE_NUMBER &&
