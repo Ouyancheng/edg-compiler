@@ -309,36 +309,18 @@ be used when the back end is invoked by the driver as a separate program.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
-Is the C-generating back end included in the program currently being 
-compiled?  This flag should be set to TRUE externally when compiling the
-C-generating back end; here, it's set for the compilation of the front
-end (i.e., FALSE if the back end is not being called, as appropriate
-if the back end is being called).
-See also C_GEN_BE_GENERATES_ANSI_C in targ_def.h.
+Is the C-generating back end being used as the back end?
+See also C_GEN_BE_GENERATES_ANSI_C et al. in targ_def.h.
 */
 #ifndef BACK_END_IS_C_GEN_BE
-#if BACK_END_SHOULD_BE_CALLED
 #define BACK_END_IS_C_GEN_BE TRUE  /* You can change this. */
-#else /* !BACK_END_SHOULD_BE_CALLED */
-/* Back end is not called, so back end is not included. */
-#define BACK_END_IS_C_GEN_BE FALSE  /* Do not change this. */
-#endif /* BACK_END_SHOULD_BE_CALLED */
 #endif /* ifndef BACK_END_IS_C_GEN_BE */
 
 /*
-Is the C++/C-generating back end included in the program currently being 
-compiled?  This flag should be set to TRUE externally when compiling the
-C++/C-generating back end; here, it's set for the compilation of the front
-end (i.e., FALSE if the back end is not being called, as appropriate
-if the back end is being called).
+Is the C++-generating back end being used as the back end?
 */
 #ifndef BACK_END_IS_CP_GEN_BE
-#if BACK_END_SHOULD_BE_CALLED
 #define BACK_END_IS_CP_GEN_BE FALSE  /* You can change this. */
-#else /* !BACK_END_SHOULD_BE_CALLED */
-/* Back end is not called, so back end is not included. */
-#define BACK_END_IS_CP_GEN_BE FALSE  /* Do not change this. */
-#endif /* BACK_END_SHOULD_BE_CALLED */
 #endif /* ifndef BACK_END_IS_CP_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE
@@ -985,8 +967,10 @@ extern void delete_file(char *file_name);
    b)  When writing an IL file that will be passed to a back end in the
        same program.
 */
-#define NEED_TEMP_FILES (BACK_END_IS_C_GEN_BE || \
-  (IL_SHOULD_BE_WRITTEN_TO_FILE && BACK_END_SHOULD_BE_CALLED))
+#define NEED_TEMP_FILES                                               \
+  ((BACK_END_IS_C_GEN_BE && (STANDALONE_C_GEN_BE ||                   \
+                             BACK_END_SHOULD_BE_CALLED)) ||           \
+   (IL_SHOULD_BE_WRITTEN_TO_FILE && BACK_END_SHOULD_BE_CALLED))
 #if NEED_TEMP_FILES
 
 /* Open a temporary file. */
