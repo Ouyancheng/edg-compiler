@@ -2553,11 +2553,8 @@ in C++.
     /* Scan the controlling expression and check to see that it is integral. */
     sp->expr = scan_integer_expression();
   } else {
-    /* Scan the controlling expression, and check to see that it is scalar. */
-    a_boolean  repeated_in_loop = (sp->kind != (a_statement_kind)stmk_if);
-
-    sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/TRUE,
-                                                   repeated_in_loop);
+    /* Scan the controlling expression and check to see that it is scalar. */
+    sp->expr = scan_boolean_controlling_expression();
   }  /* if */
 }  /* scan_condition */
 
@@ -2838,8 +2835,7 @@ See also 3.6.5.2.
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
   /* Scan the controlling expression, and check to see that it is scalar. */
-  sp->expr = scan_boolean_controlling_expression(/*is_condition_expr=*/FALSE,
-                                                 /*repeated_in_loop=*/TRUE);
+  sp->expr = scan_boolean_controlling_expression();
   /* Check for and skip the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
