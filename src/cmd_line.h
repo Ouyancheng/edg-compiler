@@ -993,6 +993,18 @@ EXTERN char	*instantiation_dir_name /* = NULL*/;
 			   being put into each file. */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+EXTERN a_boolean stdc_zero_in_nonstrict_mode
+#if VAR_INITIALIZERS
+                                             = STDC_ZERO_IN_NONSTRICT_MODE
+#endif /* VAR_INITIALIZERS */
+									  ;
+			/* TRUE if __STDC__ should be defined to 0
+			   in nonstrict mode and 1 in strict mode.
+			   This flag affects both ANSI C and C++ mode
+			   and overrides other factors that affect the
+			   setting of __STDC__.  For example, __STDC__
+			   will be defined even in Microsoft mode. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

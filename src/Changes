@@ -1,5 +1,15 @@
 Version 2.38
 
+11/20/97  Setting __STDC__ to zero in nonstrict mode
+
+A configuration flag (STDC_ZERO_IN_NONSTRICT_MODE) has been added to
+specify that __STDC__ should be 0 in nonstrict ANSI C and C++ modes.
+This flag also overrides other factors that affect the setting of
+__STDC__ (for example, __STDC__ is defined even in Microsoft mode when
+this flag is set).  This flag is useful on systems, such as Solaris,
+that use the value of __STDC__ to control whether certain extensions
+are included in the system header files.
+
 11/20/97  EH cleanup state for delete from constructor wrapper code
 
 In a common configuration, the constructor wrapper code generated

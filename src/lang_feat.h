@@ -132,6 +132,16 @@ preprocessor.  Also suppresses definition of __STDC__.
 #endif /* ifndef OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
 
 /*
+TRUE if __STDC__ should be defined to 0 in nonstrict mode and 1 in
+strict mode.  This flag affects both ANSI C and C++ mode and overrides other
+factors that affect the setting of __STDC__.  For example, __STDC__ will
+be defined even in Microsoft mode.
+*/
+#ifndef STDC_ZERO_IN_NONSTRICT_MODE
+#define STDC_ZERO_IN_NONSTRICT_MODE FALSE
+#endif /* ifndef STDC_ZERO_IN_NONSTRICT_MODE */
+
+/*
 Flag that is TRUE if the address of a bit field may be taken as long
 as the bit field has a size and alignment that match some integral type.
 A warning is issued.

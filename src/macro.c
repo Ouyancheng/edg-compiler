@@ -3805,23 +3805,35 @@ command line -D options.
   }  /* if */
   /* Enter the symbols for the __DATE__ and __TIME__ macros. */
   init_date_and_time_macros(curr_date_time);
-  /* __STDC__ is defined as 1 if we are compiling the ANSI C dialect
-     or if we are compiling C++ (ARM 16.10: "Whether __STDC__ is defined
-     and, if so, what its value is are implementation dependent."),
-     left undefined otherwise.  __STDC__ cannot be redefined when
-     compiling ANSI C, but can be redefined when compiling C++. */
-  if ((C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus) &&
+  /* Determine whether __STDC__ should be set, and if so, the value to
+     which it should be set.  Normally, __STDC__ is set to 1 in ANSI
+     C mode and in C++ (in C++ it is implementation defined whether __STDC__
+     is defined, and if so, what value it has).  The setting of __STDC__
+     is affected by stdc_zero_in_nonstrict_mode, Microsoft mode, and
+     cfront mode.  __STDC__ can be redefined only in C++. */
+  if (C_dialect == C_dialect_ANSI || C_dialect == C_dialect_cplusplus) {
+    a_boolean	define_stdc = TRUE;
+    a_boolean	stdc_value = TRUE;
+    a_boolean	stdc_can_be_redefined = C_dialect == C_dialect_ANSI;
+    if (stdc_zero_in_nonstrict_mode) {
+      /* In this mode, __STDC__ is 1 in strict mode and zero otherwise. */
+      stdc_value = strict_ansi_mode;
+    } else if (microsoft_mode) {
       /* The Microsoft compiler does not define __STDC__ in either C or
          C++ mode when it supports extensions. */
-      !microsoft_mode
+      define_stdc = FALSE;
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
+    } else if (any_cfront_mode()) {
       /* If configured to use old-style preprocessing in cfront
          compatibility mode, do not define __STDC__ in that mode. */
-      && !any_cfront_mode()
+      define_stdc = FALSE;
 #endif /* OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE */
-                           ) {
-    (void)enter_predef_macro("1", "__STDC__", C_dialect == C_dialect_ANSI,
-                             /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+    if (define_stdc) {
+      (void)enter_predef_macro(stdc_value ? "1" : "0", "__STDC__",
+                               stdc_can_be_redefined,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
   }  /* if */
   if (C_dialect == C_dialect_ANSI) {
     /* __STDC_VERSION__ is defined to 199409L in ANSI C mode and is undefined
