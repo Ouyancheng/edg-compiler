@@ -12598,6 +12598,9 @@ files can reference it.
   (void)strcpy(ptr, module_id);
   scp->name = new_name;
   scp->name_linkage = (a_name_linkage_kind)nlk_external;
+  /* Clear the same_name_as_external_entity_in_secondary_trans_unit because
+     it should be set only for entities without external linkage. */
+  scp->same_name_as_external_entity_in_secondary_trans_unit = FALSE;
 }  /* externalize_source_correspondence */
 
 
