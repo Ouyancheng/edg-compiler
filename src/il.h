@@ -98,6 +98,9 @@ EXTERN char	*temp_text_buffer /* = NULL */;
 EXTERN sizeof_t	size_temp_text_buffer /* = 0 */;
 			/* The size of temp_text_buffer, as currently
 			   allocated. */
+EXTERN sizeof_t	pos_in_temp_text_buffer;
+			/* The number of characters actually in
+			   temp_text_buffer currently. */
 /* See il.c for TEMP_TEXT_BUFFER_INCREMENTAL_ALLOCATION. */
 
 extern void expand_temp_text_buffer(sizeof_t size_needed);
@@ -112,6 +115,9 @@ expand temp_text_buffer by reallocating it.
   }  /* if */                                                          \
 }  /* ensure_temp_text_buffer_space */
 
+extern void put_str_to_temp_text_buffer(char *str);
+
+extern void put_ch_to_temp_text_buffer(char ch);
 
 extern void set_error_constant(a_constant *cp);
 

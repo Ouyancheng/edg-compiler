@@ -150,10 +150,6 @@ indefinitely expandable, and then a string is created -- a copy of the
 assigned portion of the buffer, with a null terminator appended -- that
 the IL template entry can point to.
 */
-static sizeof_t pos_in_temp_text_buffer;
-			/* The number of characters that have been added to
-			   temp_text_buffer thus far in processing. */
-
 static a_seq_number
 		curr_seq;
 			/* The sequence number of the source position of the
@@ -173,36 +169,13 @@ Add seq_incr newline characters and column_incr blanks to temp_text_buffer,
 incrementing pos_in_temp_text_buffer accordingly.
 */
 {
-  ensure_temp_text_buffer_space(pos_in_temp_text_buffer + seq_incr +
-                                column_incr);
   for (; seq_incr > 0; --seq_incr) {
-    temp_text_buffer[pos_in_temp_text_buffer++] = '\n';
+    put_ch_to_temp_text_buffer('\n');
   }  /* for */
   for (; column_incr > 0; --column_incr) {
-    temp_text_buffer[pos_in_temp_text_buffer++] = ' ';
+    put_ch_to_temp_text_buffer(' ');
   }  /* for */
 }  /* add_whitespace_to_template_string */
-
-
-static void add_string_to_template_string(char *str)
-/*
-Copy the characters that precede the terminating null of character string
-str into temp_text_buffer.  Note that the terminating null itself is not
-copied -- the buffer itself has no terminating null.  pos_in_temp_text_buffer
-will be modified to the represent the total number of characters in the
-buffer.
-*/
-{
-  sizeof_t  len;
-
-  if (str != NULL) {
-    len = strlen(str);
-    /* Be sure there's room in the buffer before copying in the string. */
-    ensure_temp_text_buffer_space(pos_in_temp_text_buffer + len);
-    strncpy(&temp_text_buffer[pos_in_temp_text_buffer], str, size_t_arg(len));
-    pos_in_temp_text_buffer += len;
-  }  /* if */
-}  /* add_string_to_template_string */
 
 
 static void add_token_to_template_string(void)
@@ -276,11 +249,11 @@ increase pos_in_temp_text_buffer by the number of characters added.
   } else if (curr_token == tok_identifier) {
     /* An identifier. */
     check_assertion(!locator_for_curr_id.has_been_coalesced);
-    add_string_to_template_string(locator_for_curr_id.symbol_header->
+    put_str_to_temp_text_buffer(locator_for_curr_id.symbol_header->
                                                                identifier);
   } else {
     /* A keyword or other token whose literal name can be put out. */
-    add_string_to_template_string(token_names[(int)curr_token]);
+    put_str_to_temp_text_buffer(token_names[(int)curr_token]);
   }  /* if */    
   db_exit();
 }  /* add_token_to_template_string */
@@ -323,19 +296,19 @@ encountered, whatever their other characteristics, are included.
     is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
     if (is_pseudo_pragma) {
       /* Add comment delimiter to the template string. */
-      add_string_to_template_string("/*");
+      put_str_to_temp_text_buffer("/*");
     } else {
       /* Add "#pragma " to the template string. */
-      add_string_to_template_string("#pragma ");
+      put_str_to_temp_text_buffer("#pragma ");
     }  /* if */
     if (ppp->descr_ptr->make_text_not_tokens) {
       /* Note: the pragma id is already part of pragma_text. */
       check_assertion(ppp->pragma_text != NULL);
-      add_string_to_template_string(ppp->pragma_text);
+      put_str_to_temp_text_buffer(ppp->pragma_text);
     } else {
       /* The pragma id is not part of pragma_text, so it has to be added
          explicitly. */
-      add_string_to_template_string(pragma_ids[(int)ppp->descr_ptr->kind]);
+      put_str_to_temp_text_buffer(pragma_ids[(int)ppp->descr_ptr->kind]);
       if (ppp->token_cache.first_token != NULL) {
 	/* Activate the cache and then go through each of its tokens. */
 	rescan_reusable_cache(&ppp->token_cache);
@@ -350,7 +323,7 @@ encountered, whatever their other characteristics, are included.
     }  /* if */
     if (is_pseudo_pragma) {
       /* Add terminating comment delimiter to the template string. */
-      add_string_to_template_string("*/");
+      put_str_to_temp_text_buffer("*/");
     }  /* if */
   }  /* for */
   db_exit();
@@ -423,12 +396,11 @@ the "text" field of *template_ptr to point to it.
   } else {
     /* Terminate the string with a semicolon (which will not have been
        included among the cached tokens). */
-    ensure_temp_text_buffer_space(pos_in_temp_text_buffer + 1);
-    temp_text_buffer[pos_in_temp_text_buffer++] = ';';
+    put_ch_to_temp_text_buffer(';');
   }  /* if */
   /* Allocate a block of file scope IL memory into which the string may
      be copied. */
-  il_string = (char *)alloc_il(pos_in_temp_text_buffer + 1);
+  il_string = (char *)alloc_il((sizeof_t)(pos_in_temp_text_buffer + 1));
   (void)memcpy(il_string, temp_text_buffer,
                size_t_arg(pos_in_temp_text_buffer));
   /* Add a null terminator. */
@@ -6861,7 +6833,7 @@ Initializations for template.
 #if RECORD_TEMPLATES_IN_IL
   /* Initialize the output control block for the il-to-str routines. */
   clear_il_to_str_output_control_block(&octl);
-  octl.output_str = add_string_to_template_string;
+  octl.output_str = put_str_to_temp_text_buffer;
   octl.gen_compilable_code = TRUE;
 #endif /* RECORD_TEMPLATES_IN_IL */
 }  /* templates_init */

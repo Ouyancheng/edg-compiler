@@ -2379,21 +2379,6 @@ section, if there is one, or a new text section will be begun if necessary.
 
 #if RECORD_MACROS_IN_IL
 
-static void put_string_into_temp_buffer(char     *str,
-                                        sizeof_t *pos)
-/*
-Put the indicated string into temp_text_buffer at the offset indicated
-by *pos, and update *pos.
-*/
-{
-  sizeof_t len = strlen(str), offset = *pos;
-
-  ensure_temp_text_buffer_space(offset + len);
-  (void)strcpy(temp_text_buffer + offset, str);
-  *pos = offset + len;
-}  /* put_string_into_temp_buffer */
-
-
 static char *macro_param_name(sizeof_t        number,
                               a_macro_def_ptr mdp)
 /*
@@ -2416,7 +2401,6 @@ source position *macro_pos.
 {
   a_macro_def_ptr      mdp = macro_sym->variant.macro_def;
   a_macro_ptr          mp;
-  sizeof_t             pos = 0;
   a_macro_param_ptr    pp;
   a_repl_text_seq_kind rts_kind;
   sizeof_t             rts_number;
@@ -2425,22 +2409,23 @@ source position *macro_pos.
 
   /* Make a string for the macro in temp_text_buffer, then copy it into
      the file-scope IL. */
+  pos_in_temp_text_buffer = 0;
   /* Put out #define. */
-  put_string_into_temp_buffer("#define ", &pos);
+  put_str_to_temp_text_buffer("#define ");
   /* Put out the macro name. */
-  put_string_into_temp_buffer(macro_sym->header->identifier, &pos);
+  put_str_to_temp_text_buffer(macro_sym->header->identifier);
   /* If the macro is function-like, put out the parameters. */
   if (!mdp->object_like) {
-    put_string_into_temp_buffer("(", &pos);
+    put_ch_to_temp_text_buffer('(');
     for (pp = mdp->param_list; pp != NULL; pp = pp->next) {
       /* Put out a macro parameter name. */
-      put_string_into_temp_buffer(pp->name, &pos);
+      put_str_to_temp_text_buffer(pp->name);
       /* There are more parameters, so put out a comma separator. */
-      if (pp->next != NULL) put_string_into_temp_buffer(",", &pos);
+      if (pp->next != NULL) put_ch_to_temp_text_buffer(',');
     }  /* for */
-    put_string_into_temp_buffer(")", &pos);
+    put_ch_to_temp_text_buffer(')');
   }  /* if */
-  put_string_into_temp_buffer(" ", &pos);
+  put_ch_to_temp_text_buffer(' ');
   /* Put out the macro body. */
   suppress_paste = FALSE;
   for (ptr = mdp->repl_text; *ptr != (int)rt_null;) {
@@ -2454,17 +2439,16 @@ source position *macro_pos.
         for (; rts_number > 0; rts_number--) {
           char ch = *ptr++;
           if (ch != END_OF_TOKEN_MARKER) {
-            ensure_temp_text_buffer_space(pos + 1);
-            temp_text_buffer[pos++] = ch;
+            put_ch_to_temp_text_buffer(ch);
           }  /* for */
         }  /* for */
         break;
       case rt_raw_argument:
         /* parameter ## normal or parameter ## parameter, or pcc-mode
            parameter. */
-        put_string_into_temp_buffer(macro_param_name(rts_number, mdp), &pos);
+        put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
         if (C_dialect != C_dialect_pcc) {
-          put_string_into_temp_buffer("##", &pos);
+          put_str_to_temp_text_buffer("##");
           /* If this is the parameter ## parameter case, suppress the "##"
              when the second parameter is processed. */
           if ((a_repl_text_seq_kind)*ptr == rt_right_raw_argument) {
@@ -2474,18 +2458,18 @@ source position *macro_pos.
         break;
       case rt_right_raw_argument:
         /* ## parameter */
-        if (!suppress_paste) put_string_into_temp_buffer("##", &pos);
+        if (!suppress_paste) put_str_to_temp_text_buffer("##");
         suppress_paste = FALSE;
-        put_string_into_temp_buffer(macro_param_name(rts_number, mdp), &pos);
+        put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
         break;
       case rt_stringized_raw_argument:
         /* #parameter */
-        put_string_into_temp_buffer("#", &pos);
-        put_string_into_temp_buffer(macro_param_name(rts_number, mdp), &pos);
+        put_ch_to_temp_text_buffer('#');
+        put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
         break;
       case rt_argument:
         /* Simple parameter name. */
-        put_string_into_temp_buffer(macro_param_name(rts_number, mdp), &pos);
+        put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
         break;
       default:
         unexpected_condition_str(
@@ -2493,10 +2477,10 @@ source position *macro_pos.
     }  /* switch */
   }  /* for */
   /* Allocate an IL area of the right size and copy the string into it. */
-  ptr = alloc_il((sizeof_t)(pos + 1));
-  (void)memcpy(ptr, temp_text_buffer, size_t_arg(pos));
+  ptr = alloc_il((sizeof_t)(pos_in_temp_text_buffer + 1));
+  (void)memcpy(ptr, temp_text_buffer, size_t_arg(pos_in_temp_text_buffer));
   /* Add a terminating null. */
-  ptr[pos] = '\0';
+  ptr[pos_in_temp_text_buffer] = '\0';
   /* Allocate and fill in the IL macro entry. */
   mp = alloc_macro();
   mp->text = ptr;

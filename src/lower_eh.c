@@ -572,24 +572,6 @@ allocated in the file scope memory region.
 
 #if ABI_CHANGES_FOR_RTTI
 
-static sizeof_t typeinfo_name_length;
-			/* size of the typeinfo name in temp_text_buffer. */
-
-static void put_str_to_temp_text_buffer(char *str)
-/*
-Output the indicated string to the temp_text_buffer.  This is
-used as an output routine when using the il_to_str routines.
-*/
-{
-  sizeof_t len = strlen(str);
-  sizeof_t new_size = typeinfo_name_length + len;
-
-  ensure_temp_text_buffer_space(new_size+1);
-  (void)strcpy(temp_text_buffer+typeinfo_name_length, str);
-  typeinfo_name_length = new_size;
-}  /* put_str_to_temp_text_buffer */
-
-
 static char *make_typeinfo_name(a_type_ptr type)
 /*
 Make a null-terminated string for the name of the indicated type (in the
@@ -602,13 +584,12 @@ file scope IL memory region), and return a pointer to it.
   /* Set up for use of form_type. */
   clear_il_to_str_output_control_block(&octl);
   octl.output_str = put_str_to_temp_text_buffer;
-  typeinfo_name_length = 0;
+  pos_in_temp_text_buffer = 0;
   /* Generate the string for the type in temp_text_buffer. */
   form_type(type, &octl);
-  /* Add 1 to typeinfo_name_length for the final null.  The null has already
+  /* Add 1 to pos_in_temp_text_buffer for the final null.  The null has already
      been stored. */
-  typeinfo_name_length++;
-  name = alloc_text_of_string_literal(typeinfo_name_length);
+  name = alloc_text_of_string_literal((sizeof_t)(pos_in_temp_text_buffer + 1));
   (void)strcpy(name, temp_text_buffer);
   return name;
 }  /* make_typeinfo_name */

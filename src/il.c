@@ -1596,6 +1596,35 @@ is at least size_needed.  Called by ensure_temp_text_buffer_space.
 }  /* expand_temp_text_buffer */
 
 
+void put_str_to_temp_text_buffer(char *str)
+/*
+Output the indicated string to temp_text_buffer at the position indicated by
+pos_in_temp_text_buffer, and update the latter.  The terminating null character
+is copied but not counted in updating pos_in_temp_text_buffer.
+*/
+{
+  sizeof_t len = strlen(str);
+  sizeof_t new_size = pos_in_temp_text_buffer + len;
+
+  ensure_temp_text_buffer_space(new_size+1);
+  (void)strcpy(temp_text_buffer+pos_in_temp_text_buffer, str);
+  pos_in_temp_text_buffer = new_size;
+}  /* put_str_to_temp_text_buffer */
+
+
+void put_ch_to_temp_text_buffer(char ch)
+/*
+Output the indicated character to temp_text_buffer at the position indicated
+by pos_in_temp_text_buffer, and update the latter.
+*/
+{
+  sizeof_t new_size = pos_in_temp_text_buffer + 1;
+
+  ensure_temp_text_buffer_space(new_size);
+  temp_text_buffer[pos_in_temp_text_buffer++] = ch;
+}  /* put_ch_to_temp_text_buffer */
+
+
 static void reset_seq_cache(void)
 /*
 Clear the cached information used to convert sequence number to source
