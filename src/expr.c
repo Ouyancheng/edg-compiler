@@ -1810,13 +1810,14 @@ the caller will be setting those things.
 */
 {
   a_symbol_ptr     anon_parent_sym = field_sym;
-  a_field_ptr      parent_field;
+  a_field_ptr      field;
   an_expr_node_ptr orig_node = make_node_from_operand(result);
   an_expr_node_ptr node = orig_node;
 
   /* Loop for multiple levels of anonymous parent objects. */
   for (;;) {
     check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
+    field = anon_parent_sym->variant.field.ptr;
     anon_parent_sym = anon_parent_sym->variant.field.anonymous_parent_object;
     /* Stop if there's no anonymous parent, meaning we've handled all
        the levels of anonymous parents. */
@@ -1824,23 +1825,22 @@ the caller will be setting those things.
     /* Stop if we've worked up to a top-level (variable) anonymous union. */
     if (anon_parent_sym->kind == (a_symbol_kind)sk_variable) break;
     check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
-    parent_field = anon_parent_sym->variant.field.ptr;
     /* In C++, skip a standard anonymous union, because those don't get
        handled here.  But keep looping because there might be more
        nonstandard cases further out. */
     if (!C_mode()) {
       /* C++.  See if this is an anonymous union case. */
-      a_type_ptr                  field_class =
-                          parent_field->source_corresp.class_of_which_a_member;
-      a_class_type_supplement_ptr ctsp =
-                            field_class->variant.class_struct_union.extra_info;
+      a_type_ptr field_class = field->source_corresp.class_of_which_a_member;
+      a_class_type_supplement_ptr
+                 ctsp = field_class->variant.class_struct_union.extra_info;
       /* Skip this level if the field is from a standard anonymous union. */
       if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
         continue;
       }  /* if */
     }  /* if */
     /* Rewrite the field selection to add an implied selection. */
-    adjust_anonymous_union_field_selection(node, parent_field);
+    adjust_anonymous_union_field_selection(node,
+                                           anon_parent_sym->variant.field.ptr);
     /* Loop to see if the rewritten first operand still refers to an
        anonymous union field (because there are several nested anonymous
        unions), and if so, rewrite it. */
