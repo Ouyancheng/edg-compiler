@@ -1842,6 +1842,14 @@ Similar macro based on the setting of curr_il_region_number.
   (set_il_walk_flag_to_initial_value(entry_ptr,                       \
                  (curr_il_region_number == FILE_SCOPE_REGION_NUMBER)))
 
+/*
+Similar macro for use on entries always allocated in the file scope
+memory region (e.g., types).
+*/
+#define set_il_walk_entry_for_fs_entry(entry_ptr)                     \
+  ((entry_ptr)->source_corresp.il_walk_flag =                         \
+                                curr_fs_initial_il_walk_flag_setting)
+
 
 static void set_default_source_corresp(a_source_correspondence *sc)
 /*
@@ -3068,7 +3076,7 @@ associated variant fields to default values.
   clear_type(tp, kind);
   /* Type entries are always in the file scope, so use the il_walk_flag
      value for the file scope memory region. */
-  tp->source_corresp.il_walk_flag = curr_fs_initial_il_walk_flag_setting;
+  set_il_walk_entry_for_fs_entry(tp);
   db_exit();
   return tp;
 }  /* alloc_type */
@@ -3085,6 +3093,10 @@ return a pointer to it.
   if (int_types[kind] != NULL) {
     /* The type has previously been created, and can be reused. */
     pit = int_types[kind];
+    /* Set the il_walk_flag for the case where an entry had been allocated
+       previously but not linked into the IL tree, and is then found again
+       during a later phase (e.g., IL lowering). */
+    set_il_walk_entry_for_fs_entry(pit);
   } else {
     /* The type must be created. */
     int_types[kind] = pit = alloc_type((a_type_kind)tk_integer);
@@ -3103,7 +3115,12 @@ necessary because the two may be different for bit fields.  Return a
 pointer to the type entry.
 */
 {
-  if (il_signed_int_type == NULL) {
+  if (il_signed_int_type != NULL) {
+    /* Set the il_walk_flag for the case where an entry had been allocated
+       previously but not linked into the IL tree, and is then found again
+       during a later phase (e.g., IL lowering). */
+    set_il_walk_entry_for_fs_entry(il_signed_int_type);
+  } else {
     /* The type must be created. */
     il_signed_int_type = alloc_type((a_type_kind)tk_integer);
     il_signed_int_type->variant.integer.int_kind = (an_integer_kind)ik_int;
@@ -3125,6 +3142,10 @@ return a pointer to it.
   if (float_types[kind] != NULL) {
     /* The type has previously been created, and can be reused. */
     pft = float_types[kind];
+    /* Set the il_walk_flag for the case where an entry had been allocated
+       previously but not linked into the IL tree, and is then found again
+       during a later phase (e.g., IL lowering). */
+    set_il_walk_entry_for_fs_entry(pft);
   } else {
     /* The type must be created. */
     float_types[kind] = pft = alloc_type((a_type_kind)tk_float);
@@ -3147,6 +3168,10 @@ and return a pointer to it.
       string_types[num_chars] != NULL) {
     /* The type has previously been created, and can be reused. */
     pst = string_types[num_chars];
+    /* Set the il_walk_flag for the case where an entry had been allocated
+       previously but not linked into the IL tree, and is then found again
+       during a later phase (e.g., IL lowering). */
+    set_il_walk_entry_for_fs_entry(pst);
   } else {
     /* The type must be created. */
     pst = alloc_type((a_type_kind)tk_array);
@@ -3173,6 +3198,10 @@ and return a pointer to it.
       wide_string_types[num_chars] != NULL) {
     /* The type has previously been created, and can be reused. */
     pst = wide_string_types[num_chars];
+    /* Set the il_walk_flag for the case where an entry had been allocated
+       previously but not linked into the IL tree, and is then found again
+       during a later phase (e.g., IL lowering). */
+    set_il_walk_entry_for_fs_entry(pst);
   } else {
     /* The type must be created. */
     pst = alloc_type((a_type_kind)tk_array);
@@ -3219,7 +3248,12 @@ a_type_ptr error_type(void)
 Make or find a type entry for an error type, and return a pointer to it.
 */
 {
-  if (il_error_type == NULL) {
+  if (il_error_type != NULL) {
+    /* Set the il_walk_flag for the case where an entry had been allocated
+       previously but not linked into the IL tree, and is then found again
+       during a later phase (e.g., IL lowering). */
+    set_il_walk_entry_for_fs_entry(il_error_type);
+  } else {
     il_error_type = alloc_type((a_type_kind)tk_error);
     set_type_size(il_error_type);
   }  /* if */
@@ -3234,7 +3268,12 @@ Such a type is only used in the front end; it does not survive into the back
 end.
 */
 {
-  if (il_unknown_type == NULL) {
+  if (il_unknown_type != NULL) {
+    /* Set the il_walk_flag for the case where an entry had been allocated
+       previously but not linked into the IL tree, and is then found again
+       during a later phase (e.g., IL lowering). */
+    set_il_walk_entry_for_fs_entry(il_unknown_type);
+  } else {
     il_unknown_type = (a_type_ptr)alloc_fe(sizeof(a_type));
     clear_type(il_unknown_type, (a_type_kind)tk_unknown);
     set_type_size(il_unknown_type);
@@ -3245,19 +3284,24 @@ end.
 
 a_type_ptr void_type(void)
 /*
-Make or find a type entry for an void type, and return a pointer to it.
+Make or find a type entry for a void type, and return a pointer to it.
 */
 {
-  if (il_void_type == NULL) {
+  if (il_void_type != NULL) {
+    /* Set the il_walk_flag for the case where an entry had been allocated
+       previously but not linked into the IL tree, and is then found again
+       during a later phase (e.g., IL lowering). */
+    set_il_walk_entry_for_fs_entry(il_void_type);
+  } else {
     il_void_type = alloc_type((a_type_kind)tk_void);
   }  /* if */
   return il_void_type;
 }  /* void_type */
 
 
-a_type_ptr get_based_type(a_type_ptr        base_type,
-                          a_based_type_kind kind,
-                          a_type_ptr        class_type)
+static a_type_ptr get_based_type(a_type_ptr        base_type,
+                                 a_based_type_kind kind,
+                                 a_type_ptr        class_type)
 /*
 Search the based_types list of base_type to see if it contains a based type
 of the kind indicated by "kind".  If the kind is "btk_ptr_to_member", the
@@ -4112,7 +4156,7 @@ to it.
   set_default_source_corresp(&(fp->source_corresp));
   /* Field entries are always in the file scope, so use the il_walk_flag
      value for the file scope memory region. */
-  fp->source_corresp.il_walk_flag = curr_fs_initial_il_walk_flag_setting;
+  set_il_walk_entry_for_fs_entry(fp);
   fp->next       = NULL;
   fp->type       = NULL;
   fp->bit_offset = 0;
@@ -4140,7 +4184,7 @@ to it.  The entry is allocated in the file scope memory region.
   set_default_source_corresp(&(rp->source_corresp));
   /* Routine entries are always in the file scope, so use the il_walk_flag
      value for the file scope memory region. */
-  rp->source_corresp.il_walk_flag = curr_fs_initial_il_walk_flag_setting;
+  set_il_walk_entry_for_fs_entry(rp);
   rp->next                    = NULL;
   rp->type                    = NULL;
   rp->assoc_scope             = NULL_region_number;
