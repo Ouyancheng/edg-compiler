@@ -3512,11 +3512,15 @@ Returns TRUE if there is an error in the specifiers.
                     curr_token != tok_auto)) {
           /* For parameters, the only allowed storage class specifiers are
              "register" and (in C++ only) "auto". */
-          if (curr_token == tok_typedef &&
-              (input_flags & DSI_IS_OLD_STYLE_PARAM_DECL)) {
-            /* Error will be handled by caller. */
-            *storage_class = (a_storage_class)sc_typedef;
-            decl_specifiers_seen |= DS_STORAGE_CLASS;
+          if (curr_token == tok_typedef) {
+            if (input_flags & DSI_IS_OLD_STYLE_PARAM_DECL) {
+              /* Error will be handled by caller. */
+              *storage_class = (a_storage_class)sc_typedef;
+              decl_specifiers_seen |= DS_STORAGE_CLASS;
+            } else {
+              error(ec_typedef_not_allowed);
+              err = TRUE;
+            }  /* if */
           } else {
             error(ec_bad_param_storage_class);
             err = TRUE;
