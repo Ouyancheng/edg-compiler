@@ -11925,6 +11925,10 @@ lists must by non-empty.
 
 This is used to scan the initial portion of template declarations and
 also for template template parameters (when is_template_param is TRUE).
+
+The parameter decl_state points to information describing the general state
+of the parsing of the template clause so far (and this routine adds to that
+information).  See the definition of a_tmpl_decl_state for details.
 */
 {
   a_template_decl_info_ptr	    prev_template_decl_info = NULL;
