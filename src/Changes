@@ -1,5 +1,10 @@
 Version 2.13
 
+1/9/93 Bug in error detection/recovery for p->::x
+
+An error is now issued for the above case.  Formerly, the front end
+aborted.
+
 1/7/93 Bug in IL lowering generation of constructor wrappers
 
 A problem in generating the code to initialize the pointers to

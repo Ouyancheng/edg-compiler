@@ -2036,14 +2036,15 @@ bound with the function in *bound_function_selector.
 
   /* Scan the second operand. */
   (void)get_token();
-  if (is_qualified_name_start() ||  /* Identifier and "::". */
-      curr_token == tok_compl ||    /* Destructor name like "~A". */
-      curr_token == tok_operator) { /* Operator name like "operator+". */
+  /* See if an identifier (or equivalent) is next. */
+  if (is_generalized_identifier_start(GID_DEFER_ACCESS_ERRORS |
+                                      GID_DTOR_RECOGNIZED)) {
     found_id = TRUE;
     /* See if the name following the operator is a C++ qualified name, as
        in "p->A::x". */
     is_qualified_name = coalesce_and_lookup_qualified_name
-                            (GID_DTOR_RECOGNIZED, &err);
+                          (GID_DTOR_RECOGNIZED | GID_DISALLOW_GLOBAL_QUALIFIER,
+                           &err);
     /* If the member is something like "A::x", member_position will give
        the position of the "x" and qualified_member_position will give the
        position of the "A". */
