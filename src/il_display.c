@@ -1131,7 +1131,7 @@ do_struct_union:
       }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
       disp_boolean("definition_needed",
-                   ptr->variant.class_struct_union.definition_needed);
+                 (a_boolean)ptr->variant.class_struct_union.definition_needed);
       /* Note: the keep_definition_in_il flag is not displayed, since it is
          for front-end use only. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -1785,6 +1785,11 @@ Display the indicated routine.
   if (ptr->expl_template_arg_list_used) {
     disp_boolean("expl_template_arg_list_used", TRUE);
   }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+  disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
+  /* Note: the keep_definition_in_il flag is not displayed, since it is
+     for front-end use only. */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (ptr->defined_outside_of_parent) {
     disp_boolean("defined_outside_of_parent", TRUE);
