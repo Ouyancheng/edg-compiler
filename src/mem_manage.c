@@ -1029,24 +1029,23 @@ any unused space.
 }  /* trim_memory_region */
 
 
-void done_with_memory_region(a_memory_region_number region_number)
+void check_for_done_with_memory_region(a_memory_region_number region_number)
 /*
-We're done generating the indicated memory region in the front end.
-(The memory region may be used further in the back end, but we're
-done creating it.)  Save it if necessary, free the space if possible.
-If this compilation may result in PCH file being generated, we can't
-complete the IL processing until such time that we know whether the IL
-will need to be saved in the PCH file.   In this case, the write of the
-IL to a file, and the freeing of the memory, is deferred until the
-decision whether to generate a PCH is made.
+We're done creating the indicated memory region in the front end.  Determine
+whether the front end has any further use for it and/or whether is has to be
+kept around in order possibly to be written to a PCH file.  If either is
+TRUE, the memory region can be trimmed (since it in any case is not going to
+grow any larger), but it must be kept around.  If not, it may be possible to
+dispose of it, depending on whether the IL is passed to the back end in
+memory or with an IL file.
 */
 {
-  a_boolean keep_memory;
+  a_boolean  keep_memory;
 
-  db_enter(5, "done_with_memory_region");
+  db_enter(5, "check_for_done_with_memory_region");
 #if DEBUG
   if (debug_level >= 1) {
-    fprintf(f_debug, "done_with_memory_region: region %lu, size = %lu\n",
+    fprintf(f_debug, "check_done_with_memory_region: region %lu, size = %lu\n",
                      (unsigned long)region_number,
                      (unsigned long)allocated_in_region[region_number]);
   }  /* if */
@@ -1065,25 +1064,39 @@ decision whether to generate a PCH is made.
   if (may_be_building_new_pch()) {
     /* We are still considering whether to build a PCH file, so keep this
        region around so we can use it in generating the PCH file.
-       done_with_memory_region will be called again once we've written
-       the PCH or decided not to write one.  We can still trim the unused
-       portion of the memory block at this time, though. */
+       check_for_done_with_memory_region will be called again once we've
+       written the PCH or decided not to write one.  We can still trim the
+       unused portion of the memory block at this time, though. */
     keep_memory = TRUE;
   } else {
-    /* Write the region to the file. */
-    write_memory_region(region_number);
+#if MAINTAIN_NEEDED_FLAGS || MINIMAL_INLINING
+    a_scope_ptr scope = il_header.region_scope_entry[region_number];
+    a_boolean   write_region = TRUE;
+
+    check_assertion(scope != NULL);
+    if (scope->kind == (a_scope_kind)sck_function) {
+#if MAINTAIN_NEEDED_FLAGS
+      if (scope->variant.routine.ptr->source_corresp.needed) {
+        /* This is the memory region for function scope that may not be
+           needed.  As an optimization to keep the IL file from growing too
+           large, don't write it out.  If we later discover that it's needed,
+           the memory region will be written out at that time. */
+        write_region = FALSE;
+        keep_memory = TRUE;
+      }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 #if MINIMAL_INLINING
-    if (inlining_enabled) {
-      a_scope_ptr scope = il_header.region_scope_entry[region_number];
-      check_assertion(scope != NULL);
-      if (scope->kind == (a_scope_kind)sck_function &&
-          scope->variant.routine.ptr->is_inline) {
+      if (inlining_enabled && scope->variant.routine.ptr->is_inline) {
         /* Keep the region for an inline function so it can be used to
            do inlining. */
         keep_memory = TRUE;
       }  /* if */
-    }  /* if */
 #endif /* MINIMAL_INLINING */
+    }  /* if */
+    if (write_region)
+#endif /* MAINTAIN_NEEDED_FLAGS || MINIMAL_INLINING */
+                     /* Write the region to the file. */
+                     write_memory_region(region_number);
   }  /* if */
 #endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -1097,7 +1110,7 @@ decision whether to generate a PCH is made.
     free_memory_region(region_number);
   }  /* if */
   db_exit();
-}  /* done_with_memory_region */
+}  /* check_for_done_with_memory_region */
 
 
 #if DEBUG
