@@ -240,10 +240,10 @@ extern an_integer_kind int_kind_for_size_and_alignment(
 
 extern char *conv_unsigned_long_to_str(unsigned long val);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI
 extern an_integer_kind int_kind_for_bit_size(unsigned int  number_of_bits,
                                              a_boolean     is_signed);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI */
 
 #if DEBUG
 extern char* db_format_integer_value(an_integer_value  *value);
