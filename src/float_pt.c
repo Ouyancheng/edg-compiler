@@ -506,18 +506,18 @@ look like an integer).  It may have a leading "-" sign.
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
   /* Convert the number. */
   temp = str_to_long_double(str);
-  *err = (errno != 0);
 #else /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   /* Convert the number. */
   temp = strtod_interface(str);
-  if (errno == ERANGE && temp != 0.0) {
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+  if (errno == ERANGE && (temp != 0.0 || microsoft_mode)) {
     /* Do not give an error on cases that involve partial loss of significance,
-       e.g., extremely small values like 4.9e-324. */
+       e.g., extremely small values like 4.9e-324.  In Microsoft mode, do
+       not give an error on a small number that was converted to zero. */
     /* Do not clear the error for large values that overflow. */
     if ((temp >= 0.0) ? temp < 1.0 : temp > -1.0) errno = 0;
   }  /* if */
   *err = (errno != 0);
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   store_host_fp_value(temp, kind, float_value, err);
 }  /* fp_string_to_float */
 

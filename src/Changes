@@ -1,5 +1,11 @@
 Version 2.43
 
+12/2/99  Microsoft compatibility: no error issued on floating-point
+         constant that is too small
+
+The Microsoft compiler silently accepts floating-point constants that are
+too small.  We now emulate this behavior in Microsoft mode.
+
 12/2/99  Internal error when pragma appears in template argument list
 
 An internal error could occur if a pragma occurred in a function body
