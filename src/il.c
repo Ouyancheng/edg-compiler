@@ -4786,7 +4786,8 @@ a pointer to the statement.
   func_addr_node->next = dest;
   dest->next = source;
   /* Make the call node. */
-  node = func_call_expr(func_addr_node, rout->type, rout->is_virtual,
+  node = func_call_expr(func_addr_node, rout->type,
+                        (a_boolean)rout->is_virtual,
                         /*new_or_delete_call_for_array=*/FALSE);
   /* Put the call node under the statement. */
   stmt->expr = node;
