@@ -69,8 +69,8 @@ For example (assuming 32-bit ints aligned on 4-byte boundaries):
 
 A spurious error would result during the instantiation (or, in some modes,
 the prototype instantiation) of a template static data member containing a
-top-level ":" (i.e., the error only occurred if the colon was enclosed by
-parentheses, etc.).  Now fixed.
+top-level ":" (i.e., the error only occurred if the colon was not enclosed
+by parentheses, etc.).  Now fixed.
 
   int x;
   template <class T> struct A {
