@@ -1620,6 +1620,53 @@ in the file scope).
 }  /* make_variable */
 
 
+static void make_anonymous_union_variable(a_type_ptr      anon_union_type,
+                                          a_storage_class storage_class)
+/*
+Create a variable to represent an anonymous union.  Issue an error if its
+storage class is invalid.  Also promote the fields of the union to the
+current scope.
+*/
+{
+  a_variable_ptr vp;
+  a_boolean      at_file_scope = (decl_scope_level == DEPTH_OF_FILE_SCOPE);
+
+  /* Allocate a variable to represent the anonymous union. */
+  vp = alloc_variable();
+  vp->type = anon_union_type;
+  /* Check the storage class.  At file scope, only static is allowed. */
+  if (at_file_scope) {
+    if (storage_class == (a_storage_class)sc_unspecified) {
+      /* Default to static. */
+    } else if (storage_class == (a_storage_class)sc_extern) {
+      /* Disallowed (ARM 9.5). */
+      error(ec_anon_union_storage_class);
+    } else if (storage_class != (a_storage_class)sc_static) {
+      /* Invalid for any variable at file scope. */
+      error(ec_bad_file_scope_storage_class);
+    }  /* if */
+    storage_class = (a_storage_class)sc_static;
+  } else {
+    /* Not at file scope. */
+    if (storage_class == (a_storage_class)sc_unspecified) {
+      /* Default to automatic. */
+      storage_class = (a_storage_class)sc_auto;
+    } else if (storage_class != (a_storage_class)sc_static &&
+               storage_class != (a_storage_class)sc_auto &&
+               storage_class != (a_storage_class)sc_register) {
+      error(ec_anon_union_storage_class);
+      storage_class = (a_storage_class)sc_auto;
+    }  /* if */
+  }  /* if */
+  vp->storage_class = storage_class;
+  /* Add the variable to the variables list for the current scope. */
+  add_to_variables_list(vp, at_file_scope);
+  /* Promote the fields of the anonymous union to the current scope, and do
+     some error checking on the anonymous union's members. */
+  check_anonymous_union_symbols((a_type_ptr)NULL, (a_field_ptr)NULL, vp);
+}  /* make_anonymous_union_variable */
+
+
 a_variable_ptr make_parameter(a_param_type_ptr ptp,
                               a_storage_class  storage_class,
                               a_symbol_ptr     sym)
@@ -6313,10 +6360,26 @@ continue_with_declaration:
             struct x {int a;};
          since it declares something (namely x). */
       if (!declares_something) {
-        /* ANSI probably thinks of this as an error, but that seems a bit
-           extreme, so we make it a warning.  pcc allows this, so the most
-           we can issue in that case is a warning. */
-        warning(ec_useless_decl);
+        if (C_dialect == C_dialect_cplusplus && defines_something &&
+            type_ptr->kind == (a_type_kind)tk_union &&
+            storage_class != (a_storage_class)sc_typedef) {
+#if CHECKING
+          if (!is_unnamed_class_symbol(
+                        (a_symbol_ptr)(type_ptr->source_corresp.assoc_info))) {
+            internal_error("declaration: nameless symbol expected");	
+          }  /* if */
+#endif /* CHECKING */
+          /* Special C++ case:  the declaration of an anonymous union.   Do
+             the required error checking and special processing, including the
+             creation of a variable to represent the anonymous union and with
+             which its fields will be aliased. */
+          make_anonymous_union_variable(type_ptr, storage_class);
+        } else {
+          /* ANSI probably thinks of this as an error, but that seems a bit
+             extreme, so we make it a warning.  pcc allows this, so the most
+             we can issue in that case is a warning. */
+          warning(ec_useless_decl);
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (dangling_type_specifier && (curr_token != tok_identifier ||
