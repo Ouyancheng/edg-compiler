@@ -130,6 +130,19 @@ handled incorrectly when compiled with --guiding_decls:
 This is relevant only in versions configured with
 NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE.
 
+
+7/30/98   C++-generating back end: qualifier on function template references
+
+Sometimes the C++-generating back end omitted a required qualifier on a
+function template reference, causing it to be hidden by a local
+declaration.  Now fixed.
+
+  template <class T> void f(T);
+  void f() {
+    extern void f(int);
+    ::f<double>(0);     // Qualifier is no longer omitted in generated C++
+  }
+
 7/29/98   C++-generating back end: bug in optimization to eliminate body
           of unneeded inline member function
 
