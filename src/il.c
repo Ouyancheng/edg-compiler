@@ -1210,13 +1210,16 @@ initialization entry or the static initial value of a variable.
 }  /* db_static_initializer */
 
 
-static void db_destructor(a_routine_ptr  dtor)
+static void db_destructor(a_dynamic_init_ptr  dip)
 /*
 Dump debug information on the destructor part of a dynamic initialization
 entry.
 */
 {
-  fputs("dtor: ", f_debug);
+  a_routine_ptr  dtor = dip->destructor;
+
+  fprintf(f_debug, "%sdtor: ",
+        dip->destruction_is_for_partially_constructed_aggregate ? "EH-" : "");
   if (dtor != NULL) {
     db_name(&dtor->source_corresp);
     fputs("()", f_debug);
@@ -1234,23 +1237,77 @@ dik_constructor.
 */
 {
   an_expr_node_ptr  arg;
+  int               a;
 
   fputs("ctor: ", f_debug);
   db_name(&dip->variant.constructor.ptr->source_corresp);
   db_function_param_list(dip->variant.constructor.ptr->type);
   if (dip->destructor != NULL) {
     fputs("; ", f_debug);
-    db_destructor(dip->destructor);
+    db_destructor(dip);
   }  /* if */
-  if ((arg = dip->variant.constructor.args) == NULL) {
-    fputs("\n", f_debug);
-  } else {
-    fputs("; ctor args =\n", f_debug);
+  fputs("\n", f_debug);
+  if ((arg = dip->variant.constructor.args) != NULL) {
+    for (a = 0; a < level; a++) fputs(" ", f_debug);
+    fputs("ctor args =\n", f_debug);
     for (; arg != NULL; arg = arg->next) {
       db_expr_node(arg, level+2);
     }  /* if */
   }  /* if */
 }  /* db_constructor_initializer */
+
+
+#if 0
+static void db_dynamic_init_kind(a_dynamic_init_kind kind)
+/*
+Dump a string identifying a dynamic-init kind, for debug purposes.
+*/
+{
+  char *s;
+
+  switch (kind) {
+    case dik_none:          s = "dik_none";			      break;
+    case dik_zero:          s = "dik_zero";       		      break;
+    case dik_constant:      s = "dik_constant";   		      break;
+    case dik_expression:    s = "dik_expression"; 		      break;
+    case dik_call_returning_class_via_cctor:
+                            s = "dik_call_returning_class_via_cctor"; break;
+    case dik_constructor:   s = "dik_constructor";                    break;
+    case dik_nonconstant_aggregate:
+                            s = "dik_nonconstant_aggregate";          break;
+    case dik_bitwise_copy:  s = "dik_bitwise_copy";                   break;
+    default:                s = "**BAD DYNAMIC INIT KIND";
+  }  /* switch */
+  fputs(s, f_debug);
+}  /* db_dynamic_init_kind */
+#endif /* if 0 */
+
+static void db_constant_repr_kind(a_constant_repr_kind  kind)
+/*
+Dump a string identifying a constant-reprsentation kind, for debug purposes.
+*/
+{
+  char *s;
+
+  switch (kind) {
+    case ck_error:          s = "ck_error";		break;
+    case ck_integer:        s = "ck_integer";		break;
+    case ck_string:         s = "ck_string";		break;
+    case ck_float:          s = "ck_float";		break;
+    case ck_address:        s = "ck_address";		break;
+    case ck_ptr_to_member:  s = "ck_ptr_to_member";	break;
+#if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
+    case ck_stack_offset:   s = "ck_stack_offset";	break;
+#endif /* DO_IL_LOWERING && ... */
+    case ck_dynamic_init:   s = "ck_dynamic_init";	break;
+    case ck_aggregate:      s = "ck_aggregate";		break;
+    case ck_init_repeat:    s = "ck_init_repeat";	break;
+    case ck_template_param: s = "ck_template_param";	break;
+    case ck_cast:           s = "ck_cast";		break;
+    default:                s = "**BAD CONSTANT KIND";
+  }  /* switch */
+  fputs(s, f_debug);
+}  /* db_constant_repr_kind */
 
 
 static void db_nonconstant_aggregate(a_constant_ptr  con,
@@ -1263,53 +1320,24 @@ dik_nonconstant_aggregate.
   int  a;
 
   for (; con != NULL; con = con->next) {
+    for (a = 0; a < level; a++) fputs(" ", f_debug);
+    db_constant_repr_kind(con->kind);
+    if (con->type != NULL) {
+      fputs(" (", f_debug);
+      db_abbreviated_type(con->type);
+      fputs(")", f_debug);
+    }  /* if */
+    fputs(": ", f_debug);
     if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
       a_dynamic_init_ptr  dip = con->variant.dynamic_init;
-      switch (dip->kind) {
-        case dik_expression:
-        case dik_call_returning_class_via_cctor:
-          db_expr_node(dip->variant.expression, level);
-          if (dip->destructor != NULL) {
-            for (a = 0; a < level; a++) fputs(" ", f_debug);
-            db_destructor(dip->destructor);
-            (void)fputc('\n', f_debug);
-          }  /* if */
-          break;
-        case dik_constructor:
-          for (a = 0; a < level; a++) fputs(" ", f_debug);
-          db_constructor_initializer(dip, level);
-          break;
-        case dik_none:
-        case dik_zero:
-          for (a = 0; a < level; a++) fputs(" ", f_debug);
-          fputs(dip->kind == (a_dynamic_init_kind)dik_none ?
-		    "no initializer" : "zero initializer",
-                f_debug);
-          if (dip->destructor != NULL) {
-            fputs(", ", f_debug);
-            db_destructor(dip->destructor);
-          }  /* if */
-          (void)fputc('\n', f_debug);
-          break;
-        case dik_constant:
-        case dik_nonconstant_aggregate:
-        case dik_bitwise_copy:
-          for (a = 0; a < level; a++) fputs(" ", f_debug);
-          db_dynamic_initializer(dip, level + 2);
-          break;
-#if CHECKING
-        default:
-          fputs("<bad dynamic init kind>\n", f_debug);
-#endif /* CHECKING */
-      }  /* switch */
+      db_dynamic_initializer(dip, level+2);
     } else {
-      for (a = 0; a < level; a++) fputs(" ", f_debug);
       if (con->kind == (a_constant_repr_kind)ck_aggregate) {
-        fputs("aggregate:\n", f_debug);
+        (void)fputc('\n', f_debug);
         db_nonconstant_aggregate(con->variant.aggregate.first_constant,
                                  level + 2);
       } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
-        fprintf(f_debug, "%lu repetitions of:\n",
+        fprintf(f_debug, "%lu repetitions of\n",
                          (unsigned long)con->variant.init_repeat.count);
         db_nonconstant_aggregate(con->variant.init_repeat.constant,
                                  level + 2);
@@ -1340,7 +1368,7 @@ Dump a dynamic initializer entry for debug purposes.
       db_static_initializer(dip->variant.constant);
       if (dip->destructor != NULL) {
         fputs("; ", f_debug);
-        db_destructor(dip->destructor);
+        db_destructor(dip);
       }  /* if */
       (void)fputc('\n', f_debug);
       break;
@@ -1360,7 +1388,7 @@ Dump a dynamic initializer entry for debug purposes.
 destructor_on_next_line:
       if (dip->destructor != NULL) {
         for (a = 0; a < level; a++) fputs(" ", f_debug);
-        db_destructor(dip->destructor);
+        db_destructor(dip);
         (void)fputc('\n', f_debug);
       }  /* if */
       break;
@@ -1378,7 +1406,7 @@ destructor_on_next_line:
 destructor_on_this_line:
       if (dip->destructor != NULL) {
         fputs(", ", f_debug);
-        db_destructor(dip->destructor);
+        db_destructor(dip);
       }  /* if */
       (void)fputc('\n', f_debug);
       break;
@@ -7038,7 +7066,7 @@ destruction.
     db_name(&dip->variable->source_corresp);
     fputs("\", ", f_debug);
   }  /* if */
-  db_destructor(dip->destructor);
+  db_destructor(dip);
 }  /* db_destruction */
 
 
