@@ -153,6 +153,7 @@ enum a_symbol_kind_tag {
 			   linkage, ditto. */
   sk_projection,	/* Projection of a member symbol from a base class
 			   into a derived class. */
+  sk_overloaded_function, /* C++ overloaded function (member or non-member). */
   sk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -169,7 +170,7 @@ EXTERN char	*db_sym_names[(int)sk_last + 1]
    "keyword", "macro", "constant", "type", "class-or-struct", "union",
    "enum", "variable", "field", "static-data-member", "member-function",
    "routine", "label", "undefined", "extern-variable", "extern-routine",
-   "projection",
+   "projection", "overloaded-function",
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -306,6 +307,33 @@ to the first byte of the number; it is advanced past the number on return.
 }  /* get_macro_repl_text_number */
 
 
+typedef struct a_class_symbol_supplement *a_class_symbol_supplement_ptr;
+typedef struct a_class_symbol_supplement {
+  /* Additional information about a C++ class, struct, or union, supplementing
+     the information residing in the class's symbol entry. */
+  a_symbol_ptr	symbols;
+			/* Symbol entries for members of the class. */
+  a_symbol_ptr	constructor;
+			/* Pointer to either an sk_member_function symbol (when
+			   there is only one constructor defined for the class)
+			   or an sk_overloaded_function symbol (when there are
+			   more than one); NULL if there is none. */
+  a_symbol_ptr	destructor;
+			/* Pointer to an sk_member_function symbol that
+			   identifies the destructor for this class; NULL if
+			   there is none. */
+  unsigned int	any_nonpublic_members:1;
+			/* TRUE if the class contains any members declared
+			   private or protected. */
+  unsigned int	any_virtual_functions:1;
+			/* TRUE if the class contains any member functions
+			   declared virtual. */
+  unsigned int	any_virtual_base_classes:1;
+			/* TRUE if the class is derived, either directly or
+			   indirectly, from a base class declared as virtual. */
+} a_class_symbol_supplement;
+
+
 typedef struct an_extern_symbol_descr *an_extern_symbol_descr_ptr;
 typedef struct an_extern_symbol_descr {
   /* Information on an sk_extern_variable or sk_extern_routine entry, i.e.,
@@ -436,9 +464,10 @@ typedef struct a_symbol {
       a_type_ptr
 		type;
 			/* The type. */
-      a_symbol_ptr
-		symbols;
-			/* The symbols in the class scope. */
+      a_class_symbol_supplement_ptr
+		extra_info;
+			/* Pointer to an entry providing additional info about
+			   a C++ class. */
     } class_struct_union;
     /* When kind == sk_variable or sk_static_data_member: */
     a_variable_ptr
@@ -489,6 +518,12 @@ typedef struct a_symbol {
                         /* TRUE if progenitor_symbol is hidden from the
                            current scope by an overriding declaration. */
     } projection;
+    /* When kind = sk_overloaded_function: */
+    a_symbol_ptr
+		function_symbols;
+			/* Pointer to one or more sk_member_function or
+			   sk_routine symbol entries that represent instances
+			   of an overloaded function name. */
   } variant;
 } a_symbol;
 
