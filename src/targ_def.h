@@ -367,27 +367,6 @@ match the target machine behavior on integer operations in C.
 #define TARG_NO_ERROR_ON_INTEGER_OVERFLOW TRUE
 #endif /* ifndef TARG_NO_ERROR_ON_INTEGER_OVERFLOW */
 
-/*
-If this flag is TRUE, integer types with the same representation
-(same size, alignment, and signedness) are considered to be
-identical in the IL.  This requires back end support, i.e., the back
-end must be comfortable with the fact that these types will be used
-interchangeably without casts between them.  In pcc mode, such types
-will be considered identical, which will typically make "int" and
-"long" interchangeable, and likewise "unsigned int" and "unsigned
-long".  ANSI mode IL is affected in that casts between such types
-will not be generated.  However, the language accepted in ANSI mode
-is not affected; such types are not considered to be identical, and
-errors are still generated for type mismatches.
-*/
-#ifndef SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
-#if BACK_END_IS_CP_GEN_BE
-#define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL FALSE
-#else /* !BACK_END_IS_CP_GEN_BE */
-#define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL TRUE
-#endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* !defined(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL) */
-
 /* Maximum size of a bit-field.  Must not be larger than the size of a
    long (or a long long, if they are allowed). */
 #ifndef TARG_MAX_BIT_FIELD_SIZE
@@ -1144,6 +1123,27 @@ MICROSOFT_EXTENSIONS_ALLOWED is TRUE.
 #endif /* SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+
+/*
+If this flag is TRUE, integer types with the same representation
+(same size, alignment, and signedness) are considered to be
+identical in the IL.  This requires back end support, i.e., the back
+end must be comfortable with the fact that these types will be used
+interchangeably without casts between them.  In pcc mode, such types
+will be considered identical, which will typically make "int" and
+"long" interchangeable, and likewise "unsigned int" and "unsigned
+long".  ANSI mode IL is affected in that casts between such types
+will not be generated.  However, the language accepted in ANSI mode
+is not affected; such types are not considered to be identical, and
+errors are still generated for type mismatches.
+*/
+#ifndef SAME_REPR_INTS_INTERCHANGEABLE_IN_IL
+#if BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C
+#define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL TRUE
+#else /* !(BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C) */
+#define SAME_REPR_INTS_INTERCHANGEABLE_IN_IL FALSE
+#endif /* BACK_END_IS_C_GEN_BE && !C_GEN_BE_GENERATES_ANSI_C */
+#endif /* !defined(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL) */
 
 #if DO_IL_LOWERING
 
