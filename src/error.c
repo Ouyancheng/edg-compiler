@@ -1020,7 +1020,7 @@ error code.
       break;
 #endif /* ASM_FUNCTION_ALLOWED */
     case ec_file_delete_error:
-      m = "error while deleting %s file";
+      m = "error while deleting file %sq";
       break;
     case ec_integer_to_float_conversion:
       m = "integral value does not fit in required floating-point type";
@@ -2004,6 +2004,9 @@ error code.
       break;
     case ec_omitted_throw_specification:
       m = "omission of throw specification is incompatible with previous %nd";
+      break;
+    case ec_cannot_create_instantiation_information_file:
+      m = "could not create instantiation information file %sq";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:

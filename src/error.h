@@ -581,7 +581,8 @@ typedef enum /*an_error_code*/ {
   ec_previously_omitted_throw_type,
   ec_previously_included_throw_type,
   ec_no_exception_support,
-  ec_omitted_throw_specification
+  ec_omitted_throw_specification,
+  ec_cannot_create_instantiation_information_file
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
