@@ -10240,10 +10240,12 @@ is built in *operand.  It's an lvalue for the field.
 }  /* make_anonymous_union_field_operand */
 
 
-static a_boolean bad_nested_function_variable_ref(a_symbol_ptr sym_ptr)
+static a_boolean bad_nested_function_variable_ref(a_symbol_ptr    sym_ptr,
+                                                  an_operand      *operand,
+                                                  a_ref_entry_ptr *rep)
 /*
 sym_ptr is a symbol for a variable being referenced in an expression.
-Return TRUE if the reference is invalid because either
+Issue an error and return TRUE if the reference is invalid because either
 
 (1)  we are inside a local class, and the variable is a nonstatic variable
      from an enclosing function (ARM 9.8), or
@@ -10253,6 +10255,11 @@ Return TRUE if the reference is invalid because either
 The symbol may be a top-level anonymous union (references to field symbols
 within that anonymous union result in the present routine being called
 with the sk_variable symbol for the union).
+
+error_position is used for the position of any error or warning.
+operand is the operand for the variable reference, and *rep is the list
+of reference entries for the reference.  On an error, they are updated
+to reflect the error.
 */
 {
   a_boolean      bad_ref = FALSE;
@@ -10287,7 +10294,13 @@ with the sk_variable symbol for the union).
              contains the class. */
           /* Only nonstatic variables are a problem. */
           if (!has_static_storage_duration(var->storage_class)) {
-            bad_ref = TRUE;
+            if (!strict_ansi_mode && !expr_stack->potentially_evaluated) {
+              /* As an extension, allow references to nonstatic variables
+                 inside sizeof expressions. */
+              warning(ec_ref_to_nested_function_var);
+            } else {
+              bad_ref = TRUE;
+            }  /* if */
           } else {
             /* Static variable.  The reference is okay, but remember that
                it exists to help back-end aliasing analysis. */
@@ -10311,6 +10324,13 @@ with the sk_variable symbol for the union).
 #endif /* CHECKING */
       }  /* for */
     }  /* if */
+  }  /* if */
+  if (bad_ref) {
+    /* Issue the error. */
+    error_and_make_error_operand(ec_ref_to_nested_function_var, operand);
+    /* Avoid further diagnostics by making this an error reference. */
+    change_refs_to_error(*rep);
+    *rep = NULL;
   }  /* if */
   return bad_ref;
 }  /* bad_nested_function_variable_ref */
@@ -10545,13 +10565,8 @@ variable:
                inside a default argument expression, we're not allowed to
                reference local variables of any containing function.
                Check for those. */
-            if (bad_nested_function_variable_ref(sym_ptr)) {
-              error_and_make_error_operand(ec_ref_to_nested_function_var,
-                                           result);
-              /* Avoid further diagnostics by making this an error
-                 reference. */
-              change_refs_to_error(rep);
-              rep = NULL;
+            if (bad_nested_function_variable_ref(sym_ptr, result, &rep)) {
+              /* Error. */
             } else {
               /* Make a variable operand that is a variable address node.
                  The type of the operand is a pointer to the type of the
@@ -10607,18 +10622,13 @@ normal_function:
               error_and_make_error_operand(ec_expr_not_constant, result);
               change_refs_to_error(rep);
               rep = NULL;
-            } else if (bad_nested_function_variable_ref(anon_var_sym)) {
+            } else if (bad_nested_function_variable_ref(anon_var_sym,
+                                                        result, &rep)) {
               /* If we're inside a local class, we are not allowed to reference
                  non-static variables of the containing function.  If we're
                  inside a default argument expression, we're not allowed to
                  reference local variables of any containing function.
                  Check for those. */
-              error_and_make_error_operand(ec_ref_to_nested_function_var,
-                                           result);
-              /* Avoid further diagnostics by making this an error
-                 reference. */
-              change_refs_to_error(rep);
-              rep = NULL;
             } else {
               make_anonymous_union_field_operand(sym_ptr, anon_var_sym,
                                                  &locator_for_curr_id.
