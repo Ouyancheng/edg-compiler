@@ -436,7 +436,7 @@ typedef struct a_dynamic_init {
 } a_dynamic_init;
 
 
-typedef enum a_template_param_constant_kind_tag {
+enum a_template_param_constant_kind_tag {
   /* When a constant is marked as a template parameter it may one of several
      kinds. */
   tpck_param,		/* The template param constant represents a simple
@@ -1438,7 +1438,7 @@ typedef struct a_class_type_supplement {
 } a_class_type_supplement;
 
 
-typedef enum a_template_param_type_kind_tag {
+enum a_template_param_type_kind_tag {
   /* When a type is marked as a template parameter it may one of several
      kinds. */
   tptk_param,		/* The template param type represents a simple
