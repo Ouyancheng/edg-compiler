@@ -1,5 +1,15 @@
 Version 2.37
 
+7/1/97    Microsoft C mode: integral <--> pointer implicit conversions
+
+In Microsoft C mode, implicit conversions between pointers and integral
+types are now allowed, with a warning.
+
+  long handle;
+  int f(void* p) {
+    return handle == p;
+  }
+
 7/1/97    Microsoft C++ mode: cast of pointer to smaller integer allowed
 
 In Microsoft C++ mode, an explicit cast of a data or function pointer
