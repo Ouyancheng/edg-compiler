@@ -2549,6 +2549,18 @@ begins at next_offset and has alignment next_alignment.
   if (excess_bytes != 0) {
     rounded_after_field += next_alignment - excess_bytes;
   }  /* if */
+#if CHECKING
+  if (next_offset < rounded_after_field) {
+#if DEBUG
+    fprintf(f_debug, "curr field     %s\n", field->source_corresp.name);
+    fprintf(f_debug, "curr offset    %lu\n", (unsigned long)field->offset);
+    fprintf(f_debug, "after_field    %lu\n", (unsigned long)after_field);
+    fprintf(f_debug, "next_offset    %lu\n", (unsigned long)next_offset);
+    fprintf(f_debug, "next_alignment %lu\n", (unsigned long)next_alignment);
+#endif /* DEBUG */
+    internal_error("dump_field_padding: negative padding required");
+  }  /* if */
+#endif /* CHECKING */
   padding = (next_offset - rounded_after_field);
   if (padding > 0) {
     /* Some padding is required. */  
