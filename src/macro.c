@@ -4083,6 +4083,12 @@ command line -D options.
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
 #endif /* DEFINE_MACRO_WHEN_BOOL_IS_KEYWORD */
+    if (microsoft_mode && bool_is_keyword) {
+      /* In Microsoft, always define __BOOL_DEFINED when bool is a keyword. */
+      (void)enter_predef_macro("1", "__BOOL_DEFINED",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
 #if DEFINE_MACRO_WHEN_ARRAY_NEW_AND_DELETE_ENABLED
     if (array_new_and_delete_enabled) {
       /* Enter a predefined macro that can be used to determine that

@@ -1,5 +1,10 @@
 Version 2.42
 
+7/12/99  Microsoft compatibility: __BOOL_DEFINED predefined macro
+
+In Microsoft mode, the macro __BOOL_DEFINED is predefined when bool
+is a keyword.
+
 7/12/99  Alignment pragma stack in templates
 
 Manipulations of the pragma stack for field packing inside class template
