@@ -1062,6 +1062,7 @@ decision whether to generate a PCH is made.
 
 
 #if DEBUG
+#if !STANDALONE_UTILITY_PROGRAM
 void show_mem_manage_space_used(unsigned long total_accounted_for)
 /*
 Display the total amounts of memory used, for debug purposes.
@@ -1120,6 +1121,7 @@ usage counts in other files.
   fprintf(f_debug, "%25s %8s %8s %8lu\n", "Max mem alloc", "", "",
                    max_mem_allocated);
 }  /* show_mem_manage_space_used */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
 
 
