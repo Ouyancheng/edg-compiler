@@ -656,7 +656,6 @@ Process the arguments on the command line that invoked the compiler.
         /* cfront 2.1 compatibility mode.  If both 2.1 and 3.0 modes are
            selected, only the most recent applies. */
         check_assertion(opt_value == TRUE);
-        cfront_compatibility_mode = TRUE;
         cfront_2_1_mode = TRUE;
         cfront_3_0_mode = FALSE;
         /* This option implies C++ dialect. */
@@ -667,7 +666,6 @@ Process the arguments on the command line that invoked the compiler.
         /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
            selected, only the most recent applies. */
         check_assertion(opt_value == TRUE);
-        cfront_compatibility_mode = TRUE;
         cfront_3_0_mode = TRUE;
         cfront_2_1_mode = FALSE;
         /* This option implies C++ dialect. */

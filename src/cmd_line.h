@@ -61,10 +61,6 @@ EXTERN a_boolean
                 cfront_3_0_mode /* = FALSE */;
                         /*  accept language features supported
                             by cfront release 3.0. */
-EXTERN a_boolean
-                cfront_compatibility_mode /* = FALSE */;
-                        /*  accept language features supported
-                            by cfront release 2.1. */
 
 /*
 Macro that is TRUE if any cfront mode has been selected.
