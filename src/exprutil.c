@@ -7979,6 +7979,26 @@ convert source_operand to an error operand, and return *err TRUE.
 }  /* convert_operand_into_temp */
 
 
+static a_boolean is_field_selection_lvalue_operand(an_operand *operand)
+/*
+Return TRUE if the operand is a field selection lvalue.  This is used for a
+limited loophole allowed in cfront compatibility mode.
+*/
+{
+  a_boolean is_field_selection = FALSE;
+
+  if (is_expression_operand(operand) && is_an_lvalue(operand)) {
+    an_expr_node_ptr node = operand->variant.expression;
+    if (is_operation_node(node)) {
+      if (node->variant.operation.kind == (an_expr_operator_kind)eok_field) {
+        is_field_selection = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_field_selection;
+}  /* is_field_selection_lvalue_operand */
+
+
 void prep_initializer_operand(an_operand         *source_operand,
                               a_type_ptr         dest_type,
                               a_boolean          initializing_return_value,
@@ -8001,7 +8021,7 @@ prep_elision_initializer_operand.
   a_type_ptr base_dest_type, base_source_type;
   a_type_ptr unqual_dest_type, unqual_source_type;
   a_boolean  type_is_correct_or_derived, err = FALSE;
-  a_boolean  conversion_to_temp_done;
+  a_boolean  conversion_to_temp_done, ref_to_nonconst;
   an_operand orig_operand;
 
   orig_operand = *source_operand;
@@ -8018,23 +8038,46 @@ prep_elision_initializer_operand.
               and the reference points to the temporary.
     */
     base_dest_type = type_pointed_to(dest_type);
-    if (fewer_qualifiers(base_dest_type, base_source_type)) {
+    unqual_source_type = skip_typerefs(base_source_type);
+    unqual_dest_type = skip_typerefs(base_dest_type);
+    type_is_correct_or_derived = FALSE;
+    if (types_are_compatible(unqual_dest_type, unqual_source_type)) {
+      /* The type is correct. */
+      type_is_correct_or_derived = TRUE;
+    } else if (is_class_struct_union_type(unqual_dest_type) &&
+               is_class_struct_union_type(unqual_source_type) &&
+               find_base_class_of(unqual_source_type,
+                                  unqual_dest_type) != NULL) {
+      /* The initializer has a derived type. */
+      type_is_correct_or_derived = TRUE;
+    }  /* if */
+    ref_to_nonconst = !is_const_qualified_type(base_dest_type);
+    /* The destination type must have no fewer type qualifiers than the source
+       type. */
+    if (type_is_correct_or_derived &&
+        fewer_qualifiers(base_dest_type, base_source_type)) {
       /* There are fewer qualifiers on the destination than on the source,
          so the initialization would involve dropping qualifiers. */
-      error_in_operand(incompatible_err, source_operand);
-    } else {
-      type_is_correct_or_derived = FALSE;
-      unqual_source_type = skip_typerefs(base_source_type);
-      unqual_dest_type = skip_typerefs(base_dest_type);
-      if (types_are_compatible(unqual_dest_type, unqual_source_type)) {
-        /* The type is correct. */
-        type_is_correct_or_derived = TRUE;
-      } else if (is_class_struct_union_type(unqual_dest_type) &&
-                 is_class_struct_union_type(unqual_source_type) &&
-                 find_base_class_of(unqual_source_type,
-                                    unqual_dest_type) != NULL) {
-        /* The initializer has a derived type. */
-        type_is_correct_or_derived = TRUE;
+      /* cfront makes a field selected from a const structure compatible
+         with a non-const reference to the underlying type:
+           struct A {};
+           struct B {
+             A a;
+             B() {}
+           };
+           const B bb;
+           A &r = bb.a;  // okay according to cfront, no warning
+           const B *pb;
+           A &rr = pb->a;  // okay according to cfront, warning
+      */
+      if (cfront_compatibility_mode &&
+          ref_to_nonconst && is_const_qualified_type(base_source_type) &&
+          is_field_selection_lvalue_operand(source_operand)) {
+        /* Okay.  Note that a temporary will not be used in these cases. */
+        pos_warning(ec_cfront_nonconst_ref_init, &source_operand->position);
+      } else {
+        /* Not okay -- qualifiers are being dropped. */
+        type_is_correct_or_derived = FALSE;
       }  /* if */
       if (type_is_correct_or_derived && is_an_lvalue(source_operand)) {
         /* The initial value is an lvalue of the right type; the initialization
@@ -8090,7 +8133,7 @@ prep_elision_initializer_operand.
           /* The reference must be to a const object (otherwise the user might
              change the temporary thinking he is changing the original
              object). */
-          if (!is_const_qualified_type(base_dest_type)) {
+          if (ref_to_nonconst) {
             /* A reference to non-const; this is an error according to the ARM
                (8.4.3), but we allow it as an anachronism. */
             if (allow_anachronisms) {

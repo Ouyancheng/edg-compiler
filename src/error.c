@@ -1632,6 +1632,9 @@ error code.
     case ec_return_ref_init_requires_temp:
       m = "returning reference to local temporary";
       break;
+    case ec_cfront_nonconst_ref_init:
+      m = "const qualifier dropped in initializing reference to non-const";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

@@ -1,9 +1,22 @@
 Version 2.08
 
+8/21/92  Handling of type qualifiers in reference initializations changed
+
+Formerly, if a reference had fewer type qualifiers on its underlying
+type than the value from which it is being initialized, an error was issued.
+Now, that case just falls through to the attempt to use a temporary for
+the initial value, which will get an error if the reference is to a
+non-const type.
+
+In cfront compatibility mode, a reference to a non-const type may be
+initialized from a value that is a const-qualified version of the same
+type, but only if the value is the result of selecting a member from a
+const class object or a pointer to such an object.
+
 8/19/92  Incomplete type in parameter declaration
 
-An error is now issued when a parameter is declared with an incomplete
-type.
+An error is now issued when a parameter of a function definition is
+declared with an incomplete type.
 
 8/19/92  Fixed bug in overload discrimination
 
