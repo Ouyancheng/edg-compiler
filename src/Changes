@@ -1,5 +1,27 @@
 Version 2.21
 
+11/15/94 Unreferenced const variables and inline functions in header file
+
+A diagnostic is no longer issued on unreferenced const variables and
+inline functions that are defined in a header file.  This is to be more
+supportive of replacing #defines with the corresponding C++ idiom.
+
+11/15/94 Cross-reference info on items in ctor-initializer list
+
+mark_referenced is now called for base classes and members that appear in
+a ctor-initializer list.
+
+11/15/94 Referenced flag for types implicitly declared in a cast
+
+A bug has been fixed to assure the referenced flag is set when a type is
+implicitly declared in a cast -- here's a case (legal in C mode only)
+that used to be missed:
+
+  void * vp;
+  void main() {
+    ((struct S { int i; } *)vp)->i = 0;
+  }
+
 11/15/94 Referenced flag for template static data members
 
 The referenced flag for template static data members initialized
