@@ -5226,7 +5226,6 @@ enum an_object_lifetime_kind_tag {
 			     }      */
   olk_function_static,	/* Lifetime of function-local static variables. */
   olk_expr_temporary,	/* Lifetime of expression temporaries. */
-  olk_constructor_init	/* Lifetime of a constructor initialization. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_object_lifetime_kind;
@@ -5242,9 +5241,7 @@ typedef struct an_object_lifetime {
 			  block).  This is the common case of an object
 			  lifetime that exactly matches a scope.  Includes
 			  as a special case scopes for exception handlers
-			  (catch clauses).  Also, scopes for constructors
-			  and destructors have a separate lifetime for
-			  their constructor_inits lists.
+			  (catch clauses).
 	iek_expr_node	Full expression; points to enk_object_lifetime node
 			  which is the top node of expression.  Used for
 			  temporaries that last to end of full expression.
@@ -5268,6 +5265,11 @@ typedef struct an_object_lifetime {
 		kind;
 			/* The kind of lifetime this object lifetime entry
 			   represents. */
+  a_byte_boolean
+		has_block_after_label_child_lifetime;
+			/* TRUE if this entry is of kind olk_block or
+			   olk_block_after_label and has a child lifetime of
+			   kind olk_block_after_label. */
   a_tagged_pointer
 		entity;	/* Entity with which this object lifetime is
 			   associated.  See list of possible kinds above.

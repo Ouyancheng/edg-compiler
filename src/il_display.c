@@ -2276,10 +2276,10 @@ Display the indicated object lifetime.
       (void)printf("olk_global_static\n");
       break;
     case olk_block:
-      (void)printf("olk_local\n");
+      (void)printf("olk_block\n");
       break;
     case olk_block_after_label:
-      (void)printf("olk_local\n");
+      (void)printf("olk_block_after_label\n");
       break;
     case olk_function_static:
       (void)printf("olk_function_static\n");
@@ -2287,12 +2287,12 @@ Display the indicated object lifetime.
     case olk_expr_temporary:
       (void)printf("olk_expr_temporary\n");
       break;
-    case olk_constructor_init:
-      (void)printf("olk_constructor_init\n");
-      break;
     default:
       (void)printf("**BAD OBJECT LIFETIME KIND**\n");
   }  /* switch */
+  if (ptr->has_block_after_label_child_lifetime) {
+    disp_boolean("has_block_after_label_child_lifetime", TRUE);
+  }  /* if */
   disp_ptr("destructions", (char *)ptr->destructions, iek_dynamic_init);
   disp_ptr("parent_lifetime", (char *)ptr->parent_lifetime,
            iek_object_lifetime);
