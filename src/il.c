@@ -2770,9 +2770,6 @@ the lists later.  Also visit all block scopes attached to this scope
 and do the same processing.
 */
 {
-  check_assertion_str(!scope->variant.routine.ptr->
-                                        is_trivial_default_constructor,
-                      "add_scope_orphaned_il_lists: trivial default ctor");
   r_add_scope_orphaned_il_lists(scope, scope->variant.routine.ptr);
 }  /* add_scope_orphaned_il_lists */
 

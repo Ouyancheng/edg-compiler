@@ -1096,90 +1096,57 @@ memory or with an IL file.
   check_assertion(scope != NULL);
   rout = (scope->kind == (a_scope_kind)sck_function) ?
                                       scope->variant.routine.ptr : NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode && rout != NULL &&
-      (rout->decl_modifiers & DM_DLLIMPORT)) {
-    /* __declspec(dllimport) functions are deallocated elsewhere. */
-    keep_memory = TRUE;
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  if (rout != NULL && rout->is_trivial_default_constructor) {
-    /* Always free the memory for the generated definition of a trivial
-       default constructor.  It is an incidental byproduct of front-end
-       processing (to detect some constraint violations) and is never needed
-       by the back end. */
-    keep_memory = FALSE;
-  } else if (translation_unit_needed_only_for_exported_templates &&
-             rout != NULL && rout->is_template_function &&
-             !rout->is_specialized
-#if MINIMAL_INLINING
-             && (!inlining_enabled || !rout->is_inline)
-#endif /* MINIMAL_INLINING */
-                                                       ) {
-    /* This is a secondary translation unit needed only for its exported
-       templates.  Non-instantiated functions need not be kept. */
-    /* Keep inline functions in case we need to inline from them. */
-    keep_memory = FALSE;
-  } else {
 #if !IL_SHOULD_BE_WRITTEN_TO_FILE
-    /* The IL is passed to the back end in memory, so it is always kept. */
-    keep_memory = TRUE;
+  /* The IL is passed to the back end in memory, so it is always kept. */
+  keep_memory = TRUE;
 #else /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-    /* Communication with the back end is via a file.  The memory
-       is freed after it's been written to the IL file. */
-    keep_memory = FALSE;
-    if (may_be_building_new_pch()) {
-      /* We are still considering whether to build a PCH file, so keep this
-         region around so we can use it in generating the PCH file.
-         check_for_done_with_memory_region will be called again once we've
-         written the PCH or decided not to write one.  We can still trim the
-         unused portion of the memory block at this time, though. */
-      keep_memory = TRUE;
-#if MINIMAL_INLINING
-    } else if (inlining_enabled && rout != NULL && rout->is_inline) {
-      /* Keep the region for an inline function so it can be used to
-         do inlining. */
-      keep_memory = TRUE;
-#endif /* MINIMAL_INLINING */
-#if ONE_INSTANTIATION_PER_OBJECT
-    } else if (one_instantiation_per_object &&
-               rout != NULL && rout->is_inline) {
-      /* In one-instantiation-per-object mode, keep an inline function
-         around so that its body can be swept for each instantiation that
-         needs it. */
-      keep_memory = TRUE;
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-    } else if (!is_primary_translation_unit) {
-      /* In a secondary translation unit, hold on to all memory regions
-         for further processing. */
-      keep_memory = TRUE;
+  /* Communication with the back end is via a file.  The memory
+     is freed after it's been written to the IL file. */
+  keep_memory = FALSE;
+  if (may_be_building_new_pch()) {
+    /* We are still considering whether to build a PCH file, so keep this
+       region around so we can use it in generating the PCH file.
+       check_for_done_with_memory_region will be called again once we've
+       written the PCH or decided not to write one.  We can still trim the
+       unused portion of the memory block at this time, though. */
+    keep_memory = TRUE;
+  } else if (!is_primary_translation_unit) {
+    /* In a secondary translation unit, hold on to all memory regions
+       for further processing.  Note that functions that are supposed
+       to be discarded (such as non-templates in a translation unit
+       compiled only for its exported templates) will have been thrown
+       away before this routine is called. */
+    keep_memory = TRUE;
+  } else if (rout != NULL &&
+             keep_function_body_for_possible_inlining(rout)) {
+    /* Keep the region for an inline function so it can be used to
+       do inlining. */
+    keep_memory = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
-    } else if (rout != NULL &&
-               (!rout->keep_definition_in_il || !rout->definition_needed)) {
-      /* This memory region so far looks as if it's unneeded.  Hold on
-         to it for now.  If we make it to the end of the compilation with
-         the memory region still unneeded, we will have the option of
-         freeing it at that point. */
-      keep_memory = TRUE;
+  } else if (rout != NULL &&
+             (!rout->keep_definition_in_il || !rout->definition_needed)) {
+    /* This memory region so far looks as if it's unneeded.  Hold on
+       to it for now.  If we make it to the end of the compilation with
+       the memory region still unneeded, we will have the option of
+       freeing it at that point. */
+    keep_memory = TRUE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
-    }  /* if */
-#if DEBUG
-    if (rout != NULL && (debug_level >= 3 || db_flag_is_set("needed_flags"))) {
-      fprintf(f_debug, "check_for_done_with_memory_region: ");
-      fprintf(f_debug, "%s memory region for ",
-              keep_memory ? "keeping" : "writing/freeing");
-      db_name(&rout->source_corresp);
-      fprintf(f_debug, "\n");
-    }  /* if */
-#endif /* DEBUG */
-    if (!keep_memory) {
-      /* Write the region to the file and free it. */
-      check_assertion(is_primary_translation_unit);
-      write_memory_region(region_number);
-    }  /* if */
-#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
   }  /* if */
+#if DEBUG
+  if (rout != NULL && (debug_level >= 3 || db_flag_is_set("needed_flags"))) {
+    fprintf(f_debug, "check_for_done_with_memory_region: ");
+    fprintf(f_debug, "%s memory region for ",
+            keep_memory ? "keeping" : "writing/freeing");
+    db_name(&rout->source_corresp);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  if (!keep_memory) {
+    /* Write the region to the file and free it. */
+    check_assertion(is_primary_translation_unit);
+    write_memory_region(region_number);
+  }  /* if */
+#endif /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   if (keep_memory) {
     /* Keep the memory for the region.  Trim the region to reclaim unused

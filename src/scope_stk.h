@@ -975,6 +975,8 @@ extern void set_needed_flags_at_end_of_file_scope(a_scope_ptr scope);
 extern a_boolean routine_needed_even_if_unreferenced(a_routine_ptr rout);
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+a_boolean keep_function_body_for_possible_inlining(a_routine_ptr routine);
+
 extern void clear_scope_pointers_block(a_scope_pointers_block_ptr  spbp);
 
 extern void wrapup_namespace_scopes(a_scope_ptr scope_ptr);

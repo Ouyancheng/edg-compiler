@@ -579,24 +579,6 @@ pointer decay).
 }  /* decl_parameter */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-static void eliminate_body_if_imported(a_scope_ptr scope)
-/*
-Remove any trace of the function definition of "routine" from the IL
-if it's a Microsoft dllimport routine.  "scope" is the scope of the
-routine body.
-*/
-{
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (scope->variant.routine.ptr->decl_modifiers & DM_DLLIMPORT) {
-    clear_function_body(scope);
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-}  /* eliminate_body_if_imported */
-
-
 void scan_function_body(a_routine_ptr     rout_ptr,
                         a_func_info_block *func_info,
                         a_decl_flag_set   flags)
@@ -1081,17 +1063,6 @@ and for the instantiation of template functions.
     if (curr_token != tok_rbrace) {
       pos_error(ec_exp_rbrace, &pos_curr_token);
     }  /* if */
-  }  /* if */
-  if (microsoft_mode) {
-    /* A dllimport routine definition may be allowed, but it is thrown away
-       after semantic checking is completed. */
-    eliminate_body_if_imported(scope_ptr);
-  }  /* if */
-  if (!prototype_instantiations_in_il &&
-      rout_ptr->is_prototype_instantiation) {
-    /* If prototype instantiations are not passed to the back end through the
-       main IL tree, we can eliminate them at this time. */
-    clear_function_body(scope_ptr);
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -2258,23 +2229,10 @@ empty statement block.
                    variant.block.extra_info->end_of_block_reachable = FALSE;
     /* Terminate the function scope. */
     pop_scope();
-    if (microsoft_mode) {
-      /* A dllimport routine definition may be allowed, but it is thrown away
-         after semantic checking is completed. */
-      eliminate_body_if_imported(scope);
-    }  /* if */
     /* Terminate the class reactivation scope. */
     pop_class_reactivation_scope();
     /* Mark the symbol for this routine "defined". */
     ((a_symbol_ptr)rout_ptr->source_corresp.assoc_info)->defined = TRUE;
-    if (rout_ptr->is_trivial_default_constructor) {
-      /* The memory region for a trivial default constructor has already
-         been freed.  A dllimport routine will already have had its
-         associated scope entry cleared (in clear_function_body). */
-      check_assertion(rout_ptr->assoc_scope == NULL_region_number ||
-                      mem_region_table[rout_ptr->assoc_scope] == NULL);
-      rout_ptr->assoc_scope = NULL_region_number;
-    }  /* if */
   }  /* if */
   db_exit();
 }  /* define_special_member_function */

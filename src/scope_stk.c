@@ -4272,6 +4272,71 @@ e.g., because it's externally defined.
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+a_boolean keep_function_body_for_possible_inlining(a_routine_ptr routine)
+/*
+Return TRUE if it's desirable to keep the body of the indicated
+function around for possible use in inlining calls to it.
+*/
+{
+  a_boolean keep = FALSE;
+
+  if (routine->is_inline) {
+#if MINIMAL_INLINING
+    if (inlining_enabled) {
+      keep = TRUE;
+    }  /* if */
+#endif /* MINIMAL_INLINING */
+#if ONE_INSTANTIATION_PER_OBJECT
+    if (one_instantiation_per_object) {
+      /* In one-instantiation-per-object mode, keep an inline function
+         around so that its body can be swept for each instantiation that
+         needs it. */
+      keep = TRUE;
+    }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+  }  /* if */
+  return keep;
+}  /* keep_function_body_for_possible_inlining */
+
+  
+static a_boolean function_body_should_be_discarded(a_routine_ptr routine)
+/*
+Return TRUE if the body of the indicated function should be discarded.
+For example, the bodies of generated trivial default constructors are
+discarded right after they have been generated.
+*/
+{
+  a_boolean discard = FALSE;
+
+  if (routine->is_trivial_default_constructor) {
+    /* Discard trivial default constructors. */
+    discard = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode && (routine->decl_modifiers & DM_DLLIMPORT)) {
+    /* In Microsoft mode, routines marked __declspec(dllimport) can
+       have bodies, which are discarded. */
+    discard = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (routine->is_prototype_instantiation &&
+             !prototype_instantiations_in_il) {
+    /* This is a prototype instantiation, and we're not keeping prototype
+       instantiations in the IL. */
+    discard = TRUE;
+  } else if (translation_unit_needed_only_for_exported_templates &&
+             (!routine->is_template_function || routine->is_specialized)) {
+    /* This is a non-template or a specialization in a secondary translation
+       unit that is being compiled only for its exported templates.
+       Discard it. */
+    discard = TRUE;
+    if (keep_function_body_for_possible_inlining(routine)) {
+      /* ... but keep inline functions so we can inline from them. */
+      discard = FALSE;
+    }  /* if */
+  }  /* if */
+  return discard;
+}  /* function_body_should_be_discarded */
+
+
 void pop_scope(void)
 /*
 End a name scope by popping an entry off the scope stack.
@@ -4286,6 +4351,7 @@ End a name scope by popping an entry off the scope stack.
   a_boolean                old_region_still_needed;
   a_scope_ptr              il_scope;
   a_routine_ptr            curr_routine = NULL;
+  a_boolean                discard_function_body = FALSE;
 
   db_enter(3, "pop_scope");
   ssep = &scope_stack[depth_scope_stack];
@@ -4491,16 +4557,32 @@ End a name scope by popping an entry off the scope stack.
       parent_ssep->last_scope = ssep->last_scope;
     }  /* if */
   }  /* if */
+#if DEBUG
+  if (kind == (a_scope_kind)sck_file ||
+      kind == (a_scope_kind)sck_function) {
+    /* Dump type list and object lifetime information. */
+    if (db_flag_is_set("dump_type_lists")) {
+      db_type_lists(il_scope, 0);
+    }  /* if */
+    if (db_flag_is_set("dump_lifetimes")) {
+      fprintf(f_debug, "Object lifetime for ");
+      db_scope(il_scope);
+      fprintf(f_debug, ":\n");
+      db_object_lifetime_tree(il_scope->lifetime);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
   /* Determine and remember the current (old) memory region, to see
      if it changes when returning to the outer scope. */
   old_memory_region_number = ssep->il_memory_region;
   /* Don't finish the file scope at this point.  That is deferred until
      the compilation unit (not translation unit) is completed. */
-  old_region_still_needed = old_memory_region_number ==
-                                                      file_scope_region_number;
-  if (!old_region_still_needed) {
+  if (old_memory_region_number == file_scope_region_number) {
+    old_region_still_needed = TRUE;
+  } else {
     /* If the old memory region number does not appear anywhere in the
        remaining stack, the region is no longer needed by the front end. */
+    old_region_still_needed = FALSE;
     for (scope_depth = depth_scope_stack-1; scope_depth >= 0; scope_depth--) {
       if (scope_stack[scope_depth].il_memory_region ==
                                                      old_memory_region_number){
@@ -4511,72 +4593,41 @@ End a name scope by popping an entry off the scope stack.
   }  /* if */
   if (!old_region_still_needed) {
     /* The old memory region is no longer needed. */
-#if DO_IL_LOWERING
-    a_boolean  function_body_will_be_discarded =
-                 (kind == (a_scope_kind)sck_function &&
-                  (curr_routine->is_trivial_default_constructor
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                  || (microsoft_mode &&
-                      (curr_routine->decl_modifiers & DM_DLLIMPORT))
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                    ));
-#endif /* DO_IL_LOWERING */
-#if DEBUG
-    if (db_flag_is_set("dump_type_lists")) {
-      db_type_lists(il_scope, 0);
-    }  /* if */
-    if (db_flag_is_set("dump_lifetimes")) {
-      fprintf(f_debug, "Object lifetime for ");
-      db_scope(il_scope);
-      fprintf(f_debug, ":\n");
-      db_object_lifetime_tree(il_scope->lifetime);
-    }  /* if */
-#endif /* DEBUG */
-#if DO_IL_LOWERING
+    check_assertion(kind == (a_scope_kind)sck_function);
+    /* See whether this is a function whose body should be discarded. */
+    discard_function_body = function_body_should_be_discarded(curr_routine);
+    /* Don't do lowering and similar processing now for functions in
+       secondary translation units. */
     if (is_primary_translation_unit) {
-      /* Scopes from secondary translation units are not lowered. */
-      if (kind != (a_scope_kind)sck_function ||
-          (!function_body_will_be_discarded &&
-           !ssep->in_prototype_instantiation)) {
+#if DO_IL_LOWERING
+      if (!discard_function_body &&
+          !ssep->in_prototype_instantiation) {
         /* Do IL lowering (change the C++ IL into C IL). */
         lower_il_memory_region(old_memory_region_number);
       }  /* if */
-    }  /* if */
+      if (il_lowering_needed()) {
+        /* If we're not supposed to pass object lifetime information to the
+           back end, unlink all object lifetimes from the IL tree. */
+        clean_up_all_object_lifetimes(il_scope);
+      }  /* if */
 #endif /* DO_IL_LOWERING */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-    if (is_primary_translation_unit &&
-        kind == (a_scope_kind)sck_function &&
-        !curr_routine->is_trivial_default_constructor &&
-        !(ssep->in_prototype_instantiation &&
-          !prototype_instantiations_in_il)) {
       /* If a function or block scope has local types or static variables,
          make a special entry to record those orphan lists on the il_header
          scope_orphaned_list_headers list so they can be found when processing
          the file scope memory region.  Note that processing for block scopes
          is done at the end of the function scope to give IL lowering a chance
-         to add variables and types in block scopes.
-         Trivial default constructors cannot contain macros and pragmas that
-         must be preserved when the routine is discarded, so there is no need
-         to seek such entities for collection on the orphan lists.  Other
-         discarded functions (like Microsoft dllimport routines) appear in
-         the source and hence may contain such orphans. */
+         to add variables and types in block scopes.  Note that one reason
+         for doing this processing even for routines whose bodies will
+         be discarded is to pick up macros and pragmas on source sequence
+         lists. */
       add_scope_orphaned_il_lists(il_scope);
-    }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+    }  /* if */
     /* Clear out the shareable constants table for the function scope. */
     if (ssep->kind != (a_scope_kind)sck_file) {
       empty_func_shareable_constants_table();
     }  /* if */
-  }  /* if */
-  if (!C_mode()) {
-#if DO_IL_LOWERING
-    if (!old_region_still_needed && il_lowering_needed()) {
-      /* If we're not supposed to pass object lifetime information to the back
-         end, unlink all object lifetimes from the IL tree.  Note that this
-         does not handle the file scope.  That is done later. */
-      clean_up_all_object_lifetimes(il_scope);
-    }  /* if */
-#endif /* DO_IL_LOWERING */
   }  /* if */
   if (curr_routine != NULL) {
 #if MAINTAIN_NEEDED_FLAGS
@@ -4622,7 +4673,14 @@ End a name scope by popping an entry off the scope stack.
     il_scope->depth_in_scope_stack = NO_SCOPE_DEPTH;
   }  /* if */
   if (!old_region_still_needed) {
-    check_for_done_with_memory_region(old_memory_region_number);
+    if (discard_function_body) {
+      /* This is a function whose body should be discarded (e.g., a
+         trivial default constructor).  Discard it now. */
+      clear_function_body(il_scope);
+    } else {
+      /* Write the memory region and free it as appropriate. */
+      check_for_done_with_memory_region(old_memory_region_number);
+    }  /* if */
   }  /* if */
   /* For any entities on the extern_type_fixup_list, restore the type of the
      variable or routine to what it was earlier.  This is used for cases like
