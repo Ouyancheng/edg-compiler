@@ -1969,7 +1969,7 @@ it.  The entry is allocated in the file scope memory region.
   a_namespace_ptr nsp;
 
   db_enter(5, "alloc_namespace");
-  nsp = (a_namespace_ptr)alloc_il(sizeof(a_namespace));
+  nsp = (a_namespace_ptr)alloc_cil(sizeof(a_namespace));
 #if DEBUG
   num_namespaces_allocated++;
 #endif /* DEBUG */
