@@ -537,6 +537,7 @@ string literals were implemented).
 #if !IA64_ABI
     base_class = make_user_type_info_type();
 #else /* IA64_ABI */
+    /* Develop the base class type. */
     switch (kind) {
       case tik_fundamental:
       case tik_enum:
@@ -602,25 +603,32 @@ string literals were implemented).
         make_lowered_field("flags",
                            integer_type((an_integer_kind)ik_unsigned_int),
                            *type_ptr, &last_field);
-        /* field: type_info* type */
-        make_lowered_field("type",
-                           make_pointer_type(make_user_type_info_type()),
+        /* field: const type_info* pointee */
+        make_lowered_field("pointee",
+                           make_pointer_type(
+                                  make_qualified_type(
+                                           make_user_type_info_type(),
+                                           TQ_CONST)),
                            *type_ptr, &last_field);
         break;
       case tik_ptr_to_member:
-        /* field: __class_type_info* context */
-        make_lowered_field("contxt",
+        /* field: const __class_type_info* context */
+        make_lowered_field("context",
                            make_pointer_type(
+                                  make_qualified_type(
                                         make_typeinfo_type(tik_class,
-                                                           (a_type_ptr)NULL)),
+                                                           (a_type_ptr)NULL),
+                                        TQ_CONST)),
                            *type_ptr, &last_field);
         break;
       case tik_si_class:
-        /* field: __class_type_info* base_type */
+        /* field: const __class_type_info* base_type */
         make_lowered_field("base_type",
                            make_pointer_type(
+                                  make_qualified_type(
                                         make_typeinfo_type(tik_class,
-                                                           (a_type_ptr)NULL)),
+                                                           (a_type_ptr)NULL),
+                                        TQ_CONST)),
                            *type_ptr, &last_field);
         break;
       case tik_vmi_class:
@@ -875,7 +883,7 @@ and return a pointer to it.  Its definition is
 
   struct base_class_spec {
 #if IA64_ABI 
-    class_type_info 
+    const class_type_info 
                   *tinfo;  // typeinfo for base class
 #if POINTERS_HAVE_AT_LEAST_32_BITS
     long          offset_flags; 
@@ -900,16 +908,22 @@ and return a pointer to it.  Its definition is
     base_class_spec_type = alloc_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(base_class_spec_type);
     last_field = NULL;
-    /* field: typeinfo *tinfo */
-    make_lowered_field("tinfo", 
-                       make_pointer_type(make_typeinfo_type(
+    /* field: typeinfo *tinfo (Cfront-like ABI). */
 #if !IA64_ABI
-                                                            tik_implementation,
-#else /* IA64_ABI */
-                                                            tik_class,
-#endif /* IA64_ABI */
+    make_lowered_field("tinfo", 
+                       make_pointer_type(make_typeinfo_type(tik_implementation,
                                                             (a_type_ptr)NULL)),
                        base_class_spec_type, &last_field);
+#else /* IA64_ABI */
+    /* field: const class_type_info *tinfo (IA-64 ABI). */
+    make_lowered_field("tinfo", 
+                       make_pointer_type(
+                                make_qualified_type(
+                                         make_typeinfo_type(tik_class,
+                                                            (a_type_ptr)NULL),
+                                         TQ_CONST)),
+                       base_class_spec_type, &last_field);
+#endif /* IA64_ABI */
     /* field: short offset */
     make_lowered_field("offset", 
                        integer_type(TARG_DELTA_INT_KIND),
@@ -954,7 +968,8 @@ allocated in the file scope memory region.
   /* Make an initialized static variable that is an array of base_class_spec
      structures. */
   /* Make the array type. */
-  array_type = array_of(make_base_class_spec_type());
+  array_type = array_of(make_qualified_type(make_base_class_spec_type(),
+                                            TQ_CONST));
   /* Make the variable.  It is unnamed and static and in the file scope. */
   /* make_init_unnamed_local_static_array_var cannot be used because we
      want the variable always to be in the file scope. */
@@ -1114,6 +1129,7 @@ the variable containing the constant is emitted in a COMDAT group.
 #if IA64_ABI
   char           *var_name;
   a_variable_ptr typeinfo_name_var;
+  a_type_ptr     var_type;
 #endif /* IA64_ABI */
 
   /* Generate a string constant. */
@@ -1124,12 +1140,14 @@ the variable containing the constant is emitted in a COMDAT group.
 #if IA64_ABI
   /* An initial value string cannot be shared. */
   string_con = alloc_unshared_constant(&constant);
+  /* Make the variable const even if strings are not const. */
+  var_type = make_qualified_type(string_con->type, TQ_CONST);
   /* Store the constant in a variable; the IA64 ABI requires that the name
      be stored in a variable with a prescribed name. */
   var_name = mangled_typeinfo_string_name(type);
   typeinfo_name_var = make_lowered_variable(var_name, 
                                             /*already_il_name=*/FALSE,
-                                            string_con->type,
+                                            var_type,
                                             (force_static ? 
                                              (a_storage_class)sc_static :
                                              (a_storage_class)sc_unspecified));
@@ -1565,7 +1583,9 @@ typeinfo variable in a COMDAT group.
                                         pointee_con,
                                         /*set_address_taken_flag=*/TRUE);
           implicit_cast(pointee_con, 
-                        make_pointer_type(make_user_type_info_type()));
+                        make_pointer_type(
+                              make_qualified_type(make_user_type_info_type(),
+                                                  TQ_CONST)));
           type_info_con->next = flags_con;
           flags_con->next = pointee_con;
           /* Make the pbase_type_info initializer. */
@@ -1585,8 +1605,11 @@ typeinfo variable in a COMDAT group.
                                           context_con,
                                           /*set_address_taken_flag=*/TRUE);
             implicit_cast(context_con,
-                          make_pointer_type(make_typeinfo_type(tik_class,
-                                                         (a_type_ptr)NULL)));
+                          make_pointer_type(
+                                 make_qualified_type(
+                                          make_typeinfo_type(tik_class,
+                                                             (a_type_ptr)NULL),
+                                          TQ_CONST)));
             pbase_con->next = context_con;
             aggr_con->variant.aggregate.last_constant = pbase_con;
           }  /* if */
@@ -1622,9 +1645,12 @@ typeinfo variable in a COMDAT group.
             set_variable_address_constant(make_typeinfo_var(base->type),
                                           base_con,
                                           /*set_address_taken_flag=*/TRUE);
-            implicit_cast (base_con,
-                           make_pointer_type(make_typeinfo_type(tik_class,
-                                                         (a_type_ptr)NULL)));
+            implicit_cast(base_con,
+                          make_pointer_type(
+                                  make_qualified_type(
+                                          make_typeinfo_type(tik_class,
+                                                             (a_type_ptr)NULL),
+                                          TQ_CONST)));
             class_con->next = base_con;
             aggr_con->variant.aggregate.last_constant = base_con;
           } else {
@@ -1633,7 +1659,7 @@ typeinfo variable in a COMDAT group.
                may do more work than it needs to do, but the answers it gets
                will be correct. */
             vmi_flags_value = VMI_NON_DIAMOND_REPEAT | VMI_DIAMOND;
-            /* Simultaneously build the base_count, and base_info fields. */
+            /* Build up the base class information array. */
             base_count = 0;
             base_array_con = alloc_constant(
                                          (a_constant_repr_kind)ck_aggregate);
@@ -1650,8 +1676,11 @@ typeinfo variable in a COMDAT group.
                                             base_con,
                                             /*set_address_taken_flag=*/TRUE);
               implicit_cast(base_con,
-                            make_pointer_type(make_typeinfo_type(tik_class,
-                                                          (a_type_ptr)NULL)));
+                            make_pointer_type(
+                                    make_qualified_type(
+                                          make_typeinfo_type(tik_class,
+                                                             (a_type_ptr)NULL),
+                                          TQ_CONST)));
               /* Offset field. */
 	      offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
               if (base->is_virtual) {
@@ -1854,6 +1883,7 @@ pointers-to-members).
 */
 {
   a_variable_ptr  typeinfo_var;
+  a_type_ptr      typeinfo_var_type;
   char            *mangled_name;
   a_storage_class storage_class;
   a_boolean       define_now;
@@ -1953,9 +1983,12 @@ pointers-to-members).
       }  /* if */
 #endif /* !ABI_CHANGES_FOR_RTTI || IA64_ABI */
     }  /* if */
+    typeinfo_var_type = make_qualified_type(
+                                          make_appropriate_typeinfo_type(type),
+                                          TQ_CONST);
     typeinfo_var = make_lowered_variable(mangled_name,
                                          /*already_il_name=*/TRUE,
-                                         make_appropriate_typeinfo_type(type),
+                                         typeinfo_var_type,
                                          storage_class);
     typeinfo_var->source_corresp.name_has_been_mangled = TRUE;
     /* Remember the variable in the type. */
@@ -2039,11 +2072,11 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
 #else /* !IA64_ABI */
     /* Move down through the base classes until we find the user type_info
        member. */
-    for (typeinfo_type = type_pointed_to(new_expr->type);
+    for (typeinfo_type = f_skip_typerefs(type_pointed_to(new_expr->type));
          !identical_types(typeinfo_type, typeinfo_types[(int)tik_user]);
-         typeinfo_type = type_pointed_to(new_expr->type)) {
+         typeinfo_type = f_skip_typerefs(type_pointed_to(new_expr->type))) {
       a_field_ptr field;
-      typeinfo_type = skip_typerefs(typeinfo_type);
+      check_assertion(is_immediate_class_type(typeinfo_type));
       field = typeinfo_type->variant.class_struct_union.field_list;
       new_expr = field_lvalue_selection_expr(new_expr, field);
     }  /* for */
@@ -3503,9 +3536,9 @@ for exception throw and catch specifications) if it is not made already,
 and return a pointer to it.  Its definition is
 
   struct exception_type_spec {
-    typeinfo      *tinfo;
-    unsigned char flags;
-    unsigned char *ptr_flags;
+    const typeinfo *tinfo;
+    unsigned char  flags;
+    unsigned char  *ptr_flags;
   };
 
 The ptr_flags field is not present for ABI levels less than 2.41.
@@ -3520,9 +3553,12 @@ The ptr_flags field is not present for ABI levels less than 2.41.
     last_field = NULL;
     /* field: typeinfo *tinfo */
     make_lowered_field("tinfo", 
-                       make_pointer_type(make_typeinfo_type(
+                       make_pointer_type(
+                              make_qualified_type(
+                                         make_typeinfo_type(
                                                       tik_implementation,
-                                                      (a_type_ptr)NULL)),
+                                                      (a_type_ptr)NULL),
+                                         TQ_CONST)),
                        exception_type_spec_type, &last_field);
     /* field: unsigned char flags */
     make_lowered_field("flags",
@@ -3599,9 +3635,12 @@ beginning and end of the list of constants for the array.  Increment
   typeinfo_con = alloc_constant((a_constant_repr_kind)ck_address);
   if (type == NULL) {
     /* This entry is for an ellipsis, so the typeinfo pointer is NULL. */
-    make_zero_of_proper_type(make_pointer_type(make_typeinfo_type(
+    make_zero_of_proper_type(make_pointer_type(
+                                    make_qualified_type(
+                                               make_typeinfo_type(
                                                         tik_implementation,
-                                                        (a_type_ptr)NULL)),
+                                                        (a_type_ptr)NULL),
+                                               TQ_CONST)),
                              typeinfo_con);
     flags_value = ETS_IS_ELLIPSIS;
   } else {
@@ -3614,8 +3653,11 @@ beginning and end of the list of constants for the array.  Increment
        implementation typeinfo type.  Cast the address constant to the
        appropriate type. */
     implicit_cast(typeinfo_con,
-                  make_pointer_type(make_typeinfo_type(tik_implementation,
-                                                       (a_type_ptr)NULL)));
+                  make_pointer_type(
+                         make_qualified_type(
+                                    make_typeinfo_type(tik_implementation,
+                                                       (a_type_ptr)NULL),
+                                    TQ_CONST)));
 #endif /* IA64_ABI */
   }  /* if */
   if (last_entry) flags_value |= ETS_LAST;
