@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-1992 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-1999 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -37,6 +37,19 @@ decl_inits.c -- Scanning of initializers in declarations.
 
 
 /*
+While scanning a designation in an aggregate initializer, we may be in one
+of three states: (1) no designators have just been scanned, (2) a designator
+was just scanned, but another one is expected right after it, or (3) a
+designator that completes a designation was just scanned.
+*/
+typedef enum a_designation_state {
+  ds_no_designation,
+  ds_partial_designation,
+  ds_complete_designation
+} a_designation_state;
+
+
+/*
 Data structure containing information to be passed among get_initializer
 and its subroutines.  There is one such entry for each top-level (i.e.,
 non-recursive) call to get_initializer.
@@ -57,13 +70,17 @@ typedef struct an_aggregate_init_info {
 		init_end_position;
 			/* Source position of the end of the initializer. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_designation_state
+                designation_state;
+                        /* Have we just collected a partial or complete
+                           designation? */
 } an_aggregate_init_info;
 
 
 static void initialize_init_info(an_aggregate_init_info_ptr  init_info,
                                  a_boolean                   static_lifetime)
 /*
-Initialize an entry of type an_aggregreate_init_info.
+Initialize an entry of type an_aggregrate_init_info.
 */
 {
   init_info->static_lifetime = static_lifetime;
@@ -72,6 +89,7 @@ Initialize an entry of type an_aggregreate_init_info.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   init_info->init_end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  init_info->designation_state = ds_no_designation;
 }  /* initialize_init_info */
 
 
@@ -106,15 +124,21 @@ typedef struct an_aggregate_init_context {
 			/* Pointer to a constant entry produced when
 			   scanning for a whole-class-object initializer for
 			   an aggregate class.  The class as a whole cannot
-			   be initialized, so the initializer is save to
+			   be initialized, so the initializer is saved to
 			   initialize a member. */
+  a_constant_ptr
+      repeat;
+         /* NULL when the next initializer was not preceded by a
+            designator of the form '[' <expr> '...' <expr> ']'.
+            Otherwise, a ck_init_repeat constant describing how
+            many times the initializer should be repeated. */
   a_byte_boolean
 		any_dynamic_initialization;
 			/* Flag that is TRUE if the current aggregate member
 			   requires dynamic initialization.  This information
 			   percolates back up when returning from recursive
 			   calls to get_initializer. */
-  a_byte_boolean
+  a_byte
 		pending_init_levels;
 			/* When pending_init_con is non-NULL, the number of
 			   levels down at which to find the member to be
@@ -137,6 +161,7 @@ Initialize an entry of type an_aggregreate_init_context.
   init_context->end_of_constant_list = NULL;
   init_context->any_dynamic_initialization = FALSE;
   init_context->pending_init_con = NULL;
+  init_context->repeat = NULL;
   init_context->pending_init_levels = 0;
   if (prev_init_context != NULL) {
     a_constant_ptr  init_con = prev_init_context->pending_init_con;
@@ -849,7 +874,670 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
   }  /* if */
   return cp;
 }  /* scan_initializer_of_simple_object */
-  
+
+
+static a_boolean designator_coming()
+/*
+A proposed ANSI C extension allows aggregate initializers to be preceded by
+a "designation" that indicates which field or element is initialized. The
+syntax looks like:
+   X x = { .a = 1, .b.c = 2, { [3] = { 0 }, [4][0] = { 4 } }, .d[2].d = 0 };
+Each '.<identifier>' and '[<const-expr>]' is called a "designator".
+Furthermore, some compilers also allow the following syntax for field
+designators:
+   X x = { a: 1 };
+This function returns TRUE if a designator is the next thing in the stream of
+tokens (assuming designators are enabled).
+*/
+{
+  a_boolean result = FALSE;
+  if (designators_allowed) {
+    if (curr_token == tok_period || curr_token == tok_lbracket) {
+      result = TRUE;
+    } else if (extended_designators_allowed) {
+      /* designators of the form <identifier> <colon> need look_ahead to
+         recognize the colon: */
+      if (curr_token == tok_identifier && next_token() == tok_colon) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* designator_coming */ 
+
+
+static a_boolean looks_like_whole_object_init_case(
+                                   a_boolean                   top_level,
+                                   an_aggregate_init_info_ptr  init_info,
+                                   a_type_ptr                  *dest_type,
+                                   a_boolean                   *brace_flag)
+/*
+This function takes the untyperefed type (*dest_type) of an object being
+initialized, and returns whether this might be a "whole object initialization
+case" (see further). If an error is encountered at this stage, *dest_type is
+set to an error type. The object *init_info carries state about the complete
+aggregate initializer being processed. If a brace is scanned, *brace_flag
+will be set to TRUE.
+NOTE: the side-effect of setting brace_flag may be needed even in C (where
+      whole-object initialization is not an issue).
+There is special handling to initialize a field or array element that
+is itself a class object.  If the class is not an aggregate, then
+whole-object initialization is done (by calling a constructor).
+However, if it's an aggregate class, the initializer can apply to
+either the initial field of the aggregate or to the class as a whole.
+   struct S { int a, b; };        // aggregate class
+   S s1 = { 1, 2 };               // okay
+   S s2 = s1;                     // okay
+   S sa1[] = { 1, 2, 1, 2 };      // equivalent to {{1,2},{1,2}}
+   S sa2[] = { s1, s2 };          // okay
+   S sa3[] = { s1, 1, 2 };        // okay
+Whole object initialization is not considered for designated aggregate
+fields or elements (since that is really a C extension).
+*/
+{
+  a_boolean whole_object_initialization = FALSE;
+
+  if (!C_mode() && is_class_struct_union_type(*dest_type)) {
+    if (!(symbol_supplement_for_class(*dest_type)->is_class_aggregate)) {
+      if (curr_token == tok_lbrace) {
+        /* Only aggregates can be initialized by brace-enclosed lists. */
+        pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
+                     *dest_type);
+        *dest_type = error_type();
+      } else {
+        /* We will check for a constructor. */
+        whole_object_initialization = TRUE;
+      }  /* if */
+    } else if (!top_level) {
+      /* An aggregate. */
+      a_field_ptr  fp;
+      fp = next_initializable_field((*dest_type)->
+                                       variant.class_struct_union.field_list);
+      if (fp == NULL && curr_token == tok_lbrace) {
+        /* An empty class can be initialized with "{}". */
+      } else {
+        /* Since this is an aggregate, whole object initialization is
+           possible but not required.  That is determined by
+           scan_aggregate_class_initializer_expression. */
+        whole_object_initialization = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  check_for_opening_brace(brace_flag);
+  if (*brace_flag == TRUE) {
+    /* Since we saw a left brace, we start afresh with designations: */
+    init_info->designation_state = ds_no_designation;
+  }  /* if */
+  if (curr_token == tok_lbrace || designator_coming()) {
+    /* If we bypassed a left-brace only to encounter another, this can't be
+       whole-object initialization.  E.g.,
+          S sa[] = { { 1, 2 }, { 1, 2 } };
+       Also, if we encounter something that looks like a field or element
+       designator (a C extension), whole-object initialization shouldn't
+       apply. */
+    whole_object_initialization = FALSE;
+  }  /* if */
+  check_assertion_str(!(whole_object_initialization && top_level),
+                      "get_initializer: class encountered at top level");
+  return whole_object_initialization;
+}  /* looks_like_whole_object_init_case */
+
+
+static a_boolean process_whole_object_init(
+                                   an_aggregate_init_info_ptr  init_info,
+                                   an_aggregate_init_context   *context,
+                                   a_type_ptr                  *dest_type_ptr,
+                                   a_constant_ptr              *initializer,
+                                   a_boolean                   *brace_flag)
+/*
+Process the initializer of a aggregate sub-item that requires initialization
+"by constructor" (see looks_like_whole_object_init_case). Information about
+the state of the processing of the complete initializer and the current
+subaggregate initializer is kept in *init_info and *context respectively.
+The type of the current subaggregate is pointed to by *dest_type_ptr, and
+may be be set to an error type. If whole object initialization indeed applies,
+*initializer is set to the (possibly dynamic) constant that was scanned.
+Either way, *brace_flag is set to true if a brace was seen.
+*/
+{
+  /* Really "whole object" initialization? */
+  a_boolean                      confirmed = TRUE;
+  a_boolean                      top_level = (context->prev_context == NULL);
+  a_boolean                      err = FALSE, is_constant = FALSE;
+  a_constant                     constant;
+  unsigned long                  levels_down;
+  a_class_symbol_supplement_ptr  cssp;
+  a_dynamic_init_ptr             dip;
+
+
+  /* The following test can have to side-effects: *brace_flag may become true
+     and *dest_type may become the error type. */
+  if (!looks_like_whole_object_init_case(top_level, init_info,
+                                         dest_type_ptr, brace_flag)) {
+    confirmed = FALSE;
+  } else {
+    a_type_ptr dest_type = *dest_type_ptr;
+
+    cssp = symbol_supplement_for_class(dest_type);
+    check_assertion_str(cssp->has_copy_constructor ||
+                          cssp->construction_by_bitwise_copy_allowed,
+                        "get_initializer: missing copy constructor");
+    /* This is an array element that can only be initialized by a
+       constructor.  Treat the expression as an argument for the constructor
+       call. */
+    if (context->pending_init_con != NULL) {
+      /* The initializer has already been scanned. */
+      levels_down = context->pending_init_levels;
+      if (levels_down == 0) {
+        /* This is the level at which the initializer is to be applied. */
+        *initializer = context->pending_init_con;
+        if ((*initializer)->kind == (a_constant_repr_kind)ck_dynamic_init) {
+          dip = (*initializer)->variant.dynamic_init;
+        } else {
+          is_constant = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if (!scan_aggregate_class_initializer_expression(
+                              dest_type, init_info->static_lifetime,
+                              &levels_down, &is_constant, &dip, &constant)) {
+      /* No appropriate initializer was found. */
+      err = TRUE;
+    } else {
+      if (is_constant) {
+        /* A constant initializer was found. */
+        *initializer = alloc_unshared_constant(&constant);
+      } else {
+        /* A dynamic initialization. */
+        check_assertion(dip != NULL);
+        *initializer = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+        (*initializer)->variant.dynamic_init = dip;
+      }  /* if */
+    }  /* if */
+    if (!err) {
+      if (levels_down == 0) {
+        /* The initialization applies at the current level. */
+        (*initializer)->type = dest_type;
+        if (!is_constant) {
+          context->any_dynamic_initialization = TRUE;
+          if (exceptions_enabled) {
+            if (cssp->destructor != NULL) {
+              /* If appropriate, add a destructor pointer to the dynamic
+                 init entry. This is for the case in which an exception is
+                 thrown by the constructor before the entire array has been
+                 initialized. */
+              a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
+              add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Whole object initialization will not be done at this level after
+           all.  (This will only occur for aggregate classes.) */
+        confirmed = FALSE;
+        if (*initializer != NULL) {
+          /* The initialization applies one or more levels down.  Remember
+             what was "prescanned". */
+          context->pending_init_con = *initializer;
+          context->pending_init_levels = levels_down;
+          *initializer = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return confirmed;
+}  /* process_whole_object_init */
+
+
+static void handle_missing_brace(a_type_ptr *dest_type)
+/*
+In ANSI C and C++, the top-level initializer for a class, struct, union, or
+array must be surrounded by braces (except for whole object initialization of
+classes, handled elsewhere).  However, pcc allows it -- e.g., "int a[2] = 1;"
+is equivalent to "int a[2] = { 1 };".  We allow pcc behavior as an extension
+in C mode, but it's an error in C++ mode. The type of the object being
+initialized is *dest_type; if an error occurs this will be set to an error
+type.
+*/
+{
+  if (C_dialect != C_dialect_pcc) {
+    an_error_severity  severity;
+
+    if (C_dialect == C_dialect_cplusplus) {
+      severity = es_error;
+    } else if (strict_ansi_mode) {
+      severity = strict_ansi_error_severity;
+    } else {
+      /* Issue a warning in non-ANSI C mode. */
+      severity = es_warning;
+    }  /* if */
+    diagnostic(severity, ec_missing_initializer_list);
+    /* If we're issuing an error, avoid error recovery problems by
+       setting dest_type to an error type. */
+    if (severity == es_error) *dest_type = error_type();
+  }  /* if */
+}  /* handle_missing_brace */
+
+
+static void start_aggregate_init_scan_loop(
+                          a_type_ptr                 dest_type,
+                          an_aggregate_init_context  *init_context,
+                          a_type_ptr                 *member_type,
+                          a_boolean                  *any_more_members,
+                          a_boolean                  *is_incomplete_array)
+/*
+Initialize the state for the loop that will scan an aggregate initializer
+list.  The type of the aggregate or subaggregate whose initializer is about
+to be scanned is dest_type.  State information about this initializer scanning
+is maintained in *init_context and its "field" member will be made to point to
+the first initializable field (if any) if dest_type is a class type.
+*member_type will be set to the type of the next member to be initialized (or
+an error type if dest_type is an error_type).  If there are any members to
+initialize, *any_more_members will be set to TRUE.  If dest_type is an array
+type of unknown size, *is_incomplete_array will be set to TRUE.
+*/
+{
+  a_type_kind kind = dest_type->kind;
+
+  *any_more_members = TRUE;  /* Assume. */
+  *is_incomplete_array = FALSE;
+  if (kind == (a_type_kind)tk_error) {
+    /* Error type. */
+    *member_type = error_type();
+  } else if (kind == (a_type_kind)tk_array) {
+    /* Array.  Start with first element. */
+    *is_incomplete_array = is_incomplete_type(dest_type);
+    *member_type = dest_type->variant.array.element_type;
+    /* Note that arrays of incomplete struct/union types (an extension)
+       do not make it to here (they're caught as an error at the top
+       level in the routine "initializer" and replaced by an error type),
+       so we don't have to check for them here. */
+  } else {
+    a_field_ptr field;
+    /* Class/struct/union.  Start with first field. */
+    check_assertion(is_immediate_class_type(dest_type));
+    field = dest_type->variant.class_struct_union.field_list;
+    /* Skip past an unnamed field. */
+    field = next_initializable_field(field);
+    *any_more_members = (field != NULL);
+    init_context->field = field;
+  }  /* if */
+}  /* start_aggregate_init_scan_loop */
+
+
+static a_boolean any_initializers(an_aggregate_init_context_ptr context,
+                                  a_boolean                     brace_flag,
+                                  a_boolean                     any_members,
+                                  a_boolean                     *nothing_taken)
+/*
+Returns whether any initializers are available for the initialization of the
+aggregate tracked by init_context. If an introductory brace was scanned,
+brace_flag should be TRUE. If the aggregate has any initializable members,
+any_members should be TRUE. This function detects the case where an empty
+class is being initialized and sets *nothing_taken accordingly to inidicate
+if no initializer was consumed.
+*/
+{
+  /* Check for cases that involve initializing nothing, i.e., the
+     zero-trip-loop cases: */
+  a_boolean result = TRUE;  /* Assume. */
+
+  if (brace_flag) {
+    /* The list for the aggregate at this level is enclosed in { }. */
+    if (curr_token == tok_rbrace && context->pending_init_con == NULL) {
+      /* Empty initializer list --  "{ }".  An error in C, okay in C++. */
+      if (C_mode()) error(ec_exp_primary_expr);
+      result = FALSE;
+    }  /* if */
+  } else {
+    /* The list for the aggregate is not enclosed in braces. */
+    a_boolean top_level = (context->prev_context == NULL);
+    if (!any_members && !top_level) {
+      /* This is an initialization of an aggregate with no members,
+         i.e., an empty class, and there are no braces for this
+         level of the aggregate.  Take nothing to satisfy this
+         initialization. */
+      *nothing_taken = TRUE;
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* any_initializers */
+
+
+static a_boolean scan_array_element_subscript(a_type_ptr    dest_type,
+                                              a_targ_size_t *subscript)
+/*
+This function scans an integral constant expression and checks that it can
+be a valid subcript for the given array type.  dest_type is an array type
+(typerefs should be peeled).  The function returns FALSE if an error occurs;
+otherwise TRUE is returned and *subscript is set to the scanned value.
+*/
+{
+  a_constant    constant;
+  a_boolean     all_OK = TRUE;
+
+  scan_integral_constant_expression(&constant);
+  switch (constant.kind) {
+    case ck_integer: {
+      if (sign_of_integer_constant(&constant) >= 0) {
+        a_boolean overflow;
+        a_targ_size_t value = unsigned_value_of_integer_constant(&constant,
+                                                                 &overflow);
+        if (overflow ||
+            (!is_incomplete_type(dest_type) &&
+             value >= dest_type->variant.array.variant.number_of_elements)) {
+          error(ec_subscript_out_of_range);
+          all_OK = FALSE;
+        } else {
+          *subscript = value;
+        }  /* if */
+      } else {
+        error(ec_subscript_out_of_range);
+        all_OK = FALSE;
+      }  /* if */
+    } break;
+    case ck_error: {
+      all_OK = FALSE;
+    } break;
+    default: {
+      internal_error("array intialization designator: bad constant kind");
+    }
+  }  /* switch */
+  return all_OK;
+}  /* scan_array_element_subscript */
+
+
+static a_boolean scan_array_element_init_designator(
+                                    a_type_ptr                 dest_type,
+                                    an_aggregate_init_context  *context, 
+                                    a_targ_size_t              *start_pos)
+/*
+Proposed C language extension:
+   int a[20][40] = { [1] = { 7, 8, 9 }, [3][4] = 11 };
+When extended_designators_allowed is TRUE, we also accept:
+   int b[20][40] = { [1] { 7, 8, 9 }, [3 ... 7][4] = 11 };
+This routine scans a single '[' <expr> ']' (or '[' <expr> '...' <expr> ']'
+designator. Designations consisting of multiple designators are handled by
+the recursion in get_initializer.
+The aggregate or subaggregate being initialized has type dest_type.
+The state of this initialization is described by context. If a valid
+designator is found, *start_pos is set to the designated position. Moreover,
+if a valid extended designator of the form '[' <expr> '...' <expr> ']' if
+found, context->repeat is set to a newly created ck_init_repeat constant.
+*/
+{
+  a_boolean found_array_designator = FALSE;
+  a_boolean all_OK = TRUE;
+  a_targ_size_t start_el, last_el = 0;
+
+  if (designators_allowed && curr_token == tok_lbracket) {
+    /* Eat the left bracket and set a recovery point at the right bracket: */
+    (void)get_token();
+    add_stop_token(tok_rbracket);
+    add_stop_token(tok_ellipsis);
+    /* Parse the expression and evaluate it if possible: */
+    all_OK = all_OK && scan_array_element_subscript(dest_type, &start_el);
+    if (extended_designators_allowed && curr_token == tok_ellipsis) {
+      /* We're in a designator of the for '[ 5 ... 7 ]': scan the '...' and
+         following integral constant expression. */
+      (void)get_token();
+      all_OK = all_OK && scan_array_element_subscript(dest_type, &last_el);
+      if (all_OK && last_el < start_el) {
+        error(ec_no_negative_designator_range);
+        all_OK = FALSE;
+        last_el = 0;
+      }  /* if */
+    }  /* if */
+    remove_stop_token(tok_ellipsis);
+    /* Eat the closing right bracket: */
+    (void)required_token(tok_rbracket, ec_exp_rbracket);
+    remove_stop_token(tok_rbracket);
+    if (all_OK) {
+      *start_pos = start_el;
+      if (last_el > start_el) {
+        /* The initialization constant should be repeated at least twice.
+           Record this in context: */
+        context->repeat = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+        context->repeat->variant.init_repeat.count = last_el-start_el+1;
+      }  /* if */
+      found_array_designator = TRUE;
+    }  /* if */
+  }  /* if */
+  return found_array_designator;
+}  /* scan_array_element_init_designator */
+
+
+static a_boolean scan_field_init_designator(a_type_ptr   dest_type,
+                                            a_field_ptr  *field)
+/*
+C language extension (C9X):
+   typedef struct X { int a, b, c; } X;
+   struct Y { X p, q, r; } y = { .p = { 12, 13, 14 }, .q.b = 42 };
+Some compilers also accept the following extended form:
+   X x = { b: 71 }; // Only one extended designator per designation
+This routine field designator. Designations consisting of multiple designators
+are handled by the recursion in get_initializer. dest_type is the aggregate
+type for which an initializer is being scanned. If a valid field designator
+is found, *field is set to point to it; if no errors occurred, TRUE is
+returned, else FALSE.
+*/
+{
+  a_boolean found_field_designator = FALSE;
+
+  /* Part I: check if a well-formed designator is coming up: */
+  if (designators_allowed) {
+    if (curr_token == tok_period) {
+      /* Eat the period: */
+      (void)get_token();
+      /* Normally, we should find an identifier next: */
+      if (curr_token != tok_identifier) {
+        /* If not, assume the period was spurious: */
+        syntax_error(ec_exp_identifier);
+      } else {
+        found_field_designator = TRUE;
+      }  /* if */
+    } else if (extended_designators_allowed) {
+      if (curr_token == tok_identifier && next_token() == tok_colon) {
+        found_field_designator = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+
+  /* Part II: look up the field associated with the identifier: */
+  if (found_field_designator) {
+    a_symbol_ptr member_sym = class_qualified_id_lookup(&locator_for_curr_id,
+                                                        dest_type,
+                                                        IDL_NO_OPTIONS);
+    if (member_sym == NULL) {
+      found_field_designator = FALSE;
+      *field = NULL;
+      pos_stsy_error(ec_not_a_field, &error_position,
+                     locator_for_curr_id.symbol_header->identifier,
+                     (a_symbol_ptr)dest_type->source_corresp.assoc_info);
+    } else
+    if (member_sym->kind != sk_field) {
+      found_field_designator = FALSE;
+      *field = NULL;
+      internal_error("field intialization designator: non-field member");
+    } else { /* We seem to have a valid field designator. */
+      *field = member_sym->variant.field.ptr;
+    }  /* if */
+    /* eat the identifier */
+    (void)get_token();
+    if (extended_designators_allowed &&
+        curr_token == tok_identifier && next_token() == tok_colon) {
+      /* It looks like someone is trying { .a q: 2 }, but designations
+         cannot combine ordinary and extended field designators: */
+      syntax_error(ec_no_ordinary_and_extended_designators);
+    }  /* if */
+  }  /* if */
+  return found_field_designator;
+}  /* scan_field_init_designator */
+
+
+static a_designation_state scan_designation_state(a_boolean allow_colon,
+                                                  a_boolean assign_optional)
+/*
+After a designator has been scanned, call this function to check if the
+designation is completed (returns ds_complete_designation) or more
+designators are to come (returns ds_partial_designation). If extended field
+designators of the form 'x:' are allowed, allow_colon should be set to true
+(and the colon indicates a complete designation has been seen). Similarly,
+extended array element designators make the '=' optional and assign_optional
+should be TRUE in that case.
+*/
+{
+  a_designation_state result;
+
+  /* If the next token is '=' the designation is complete. Eat the '=': */
+  if (curr_token == tok_assign ||
+      (allow_colon && curr_token == tok_colon)) {
+    (void)get_token();
+    result = ds_complete_designation;
+  } else if (curr_token != tok_period && curr_token != tok_lbracket) {
+    /* A designator should be followed by '=' or another designator.
+       When extended field designators are allowed, the '=' is optional on
+       array element designators; otherwise, it we have an error and we'll
+       assume the token was forgotten. */
+    if (!assign_optional) {
+      error(ec_exp_assign);
+    }  /* if */
+    result = ds_complete_designation;
+  } else {
+    result = ds_partial_designation;
+  }  /* if */
+  return result;
+}  /* scan_designation_state */
+
+
+static void append_initializer_constant(
+                         an_aggregate_init_context_ptr context,
+                         a_constant_ptr                constant)
+/*
+Add the IL entry constant to end of the list of constants tracked by context.
+*/
+{
+  if (context->constant_list == NULL) {
+    context->constant_list = constant;
+  } else {
+    context->end_of_constant_list->next = constant;
+  }  /* if */
+  context->end_of_constant_list = constant;
+}  /* append_initializer_constant */
+
+
+static void get_array_element_init_info(
+                              a_type_ptr                  dest_type,
+                              an_aggregate_init_info_ptr  init_info,
+                              an_aggregate_init_context   *context,
+                              a_targ_size_t               *curr_array_element)
+/*
+We're scanning the initializer for an array whose type is dest_type.
+Adjust *curr_array_element if a designator is encountered (and record the
+designator in the active list of constants). The parameter context is a
+pointer to a structure that keeps track of the initializer for the current
+subaggregate (see get_initializer), while init_info tracks the whole
+initializer. 
+*/
+{
+  /* If we just saw the '=' that completed a designation, don't scan for
+     another designator. If there is one (e.g., '[2] = [3] = ...') it will
+     result in a syntax error. */
+  if (init_info->designation_state != ds_complete_designation &&
+      scan_array_element_init_designator(dest_type, context,
+                                         curr_array_element)) {
+    a_constant_ptr designator = alloc_constant(ck_designator);
+
+    designator->variant.designator.array_element = *curr_array_element;
+    /* Append the designator to the list of constants for the current
+       object. */
+    append_initializer_constant(context, designator);
+    /* Is this designator followed by a '='? */
+    init_info->designation_state = scan_designation_state(
+                     /* allow_colon = */FALSE,
+                     /* assign_optional = */extended_designators_allowed);
+  }  /* if */
+#if DEBUG
+  if (debug_level == 4) {
+    a_type_ptr member_type = dest_type->variant.array.element_type;
+    fprintf(f_debug, "getting initializer for element %d, type = ",
+            (int)*curr_array_element);
+    db_abbreviated_type(member_type);
+    fputc('\n', f_debug);
+  }  /* if */
+#endif /* DEBUG */
+}  /* get_array_element_init_info */
+
+
+static a_type_ptr get_field_init_info(a_type_ptr                  dest_type,
+                                      an_aggregate_init_info_ptr  init_info,
+                                      an_aggregate_init_context   *context,
+                                      a_field_ptr                 *field)
+/*
+This function adjusts the current field (*field) in an initializer for the
+aggregate type dest_type (if a field designator is present) and returns the
+type of adjusted current field. Any field designator is added to the active
+list of constants. The parameter context is a pointer to a structure that
+keeps track of the initializer for the current subaggregate (see
+get_initializer), while init_info tracks the whole initializer. In case of
+error NULL is returned.
+*/
+{
+  a_field_ptr designated_field = *field;
+  a_type_ptr  member_type;
+
+  if (init_info->designation_state != ds_complete_designation &&
+      scan_field_init_designator(dest_type, &designated_field)) {
+    /* We found a valid field designator: */
+    a_constant_ptr designator = alloc_constant(ck_designator);
+
+    designator->variant.designator.field = designated_field;
+    *field = designated_field;
+    /* Append the designator to the list of constants for the current
+       object. */
+    append_initializer_constant(context, designator);
+    /* Is this designator followed by a '=' or ':'? */
+    init_info->designation_state =
+       scan_designation_state(/* allow_colon = */extended_designators_allowed,
+                              /* assign_optional = */FALSE);
+  }  /* if */
+  if (designated_field == NULL) {
+    /* Something went wrong while scanning the field designator: */
+    member_type = NULL;
+  } else {
+    member_type = (*field)->type;
+#if DEBUG
+    if (debug_level == 4) {
+      fputs("getting initializer for field \"", f_debug);
+      db_name(&(*field)->source_corresp);
+      fputs("\", type = ", f_debug);
+      db_abbreviated_type(member_type);
+      fputc('\n', f_debug);
+    }  /* if */
+#endif /* DEBUG */
+#if CHECKING
+    if (is_incomplete_type(member_type)) {
+      /* Members of unions or aggregates cannot be incomplete. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_boolean top_level = (context->prev_context == NULL);
+      if (microsoft_mode && top_level && is_array_type(member_type) &&
+            (*field)->next == NULL) {
+        /* ... except that in Microsoft mode it's okay to initialize
+           a field of incomplete array type when it's the last field in
+           the struct (but only when the struct is the top-level object
+           type). */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+              /* Do not add code here. */
+      {
+        internal_error("get_field_init_info: can't init 0-size member");
+      }  /* if */
+    }  /* if */
+#endif /* CHECKING */
+  }  /* if */
+  return member_type;
+}  /* get_field_init_info */
+
 
 static a_constant_ptr get_initializer(
                               a_type_ptr                    *type,
@@ -875,18 +1563,15 @@ this function points to a tree that includes a dynamic-init entry.
 {
   a_constant_ptr                 init_con = NULL;
   a_boolean                      is_incomplete_array;
-  a_type_ptr                     local_type, member_type;
+  a_type_ptr                     dest_type, member_type;
   a_boolean                      brace_flag;
   a_constant_ptr                 member_con;
-  a_targ_size_t                  curr_array_element;
-  a_field_ptr                    curr_field;
   a_boolean                      any_more_initializers, any_more_members;
   a_boolean                      local_nothing_taken, local_any_dynamic_init;
   a_type_kind                    kind;
   a_boolean                      array_too_long_error_given = FALSE;
   a_boolean                      took_extra_comma;
   a_dynamic_init_ptr             dip;
-  a_boolean                      whole_object_initialization = FALSE;
   a_class_symbol_supplement_ptr  cssp;
   an_aggregate_init_context      init_context;
   a_boolean                      top_level = (prev_init_context == NULL);
@@ -895,130 +1580,16 @@ this function points to a tree that includes a dynamic-init entry.
   *nothing_taken = FALSE;
   *any_dynamic_init = FALSE;
   initialize_init_context(&init_context, prev_init_context);
-  local_type = skip_typerefs(*type);
-  if (!C_mode() && is_class_struct_union_type(local_type)) {
-    /* There is special handling to initialize a field or array element that
-       is itself a class object.  If the class is not an aggregate, then
-       whole-object initialization is done (by calling a constructor).
-       However, if it's an aggregate class, the initializer can apply to
-       either the initial field of the aggregate or to the class as a whole.
-          struct S { int a, b; };        // aggregate class
-          S s1 = { 1, 2 };               // okay
-          S s2 = s1;                     // okay
-          S sa1[] = { 1, 2, 1, 2 };      // equivalent to {{1,2},{1,2}}
-          S sa2[] = { s1, s2 };          // okay
-          S sa3[] = { s1, 1, 2 };        // okay
-    */
-    if (!(symbol_supplement_for_class(local_type)->is_class_aggregate)) {
-      if (curr_token == tok_lbrace) {
-        /* Only aggregates can be initialized by brace-enclosed lists. */
-        pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
-                     local_type);
-        local_type = error_type();
-      } else {
-        /* We will check for a constructor. */
-        whole_object_initialization = TRUE;
-      }  /* if */
-    } else if (!top_level) {
-      /* An aggregate. */
-      a_field_ptr  fp;
-      fp = next_initializable_field(local_type->
-                                       variant.class_struct_union.field_list);
-      if (fp == NULL && curr_token == tok_lbrace) {
-        /* An empty class can be initialized with "{}". */
-      } else {
-        /* Since this is an aggregate, whole object initialization is
-           possible but not required.  That is determined by
-           scan_aggregate_class_initializer_expression. */
-        whole_object_initialization = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  check_for_opening_brace(&brace_flag);
-  if (curr_token == tok_lbrace) {
-    /* We must have bypassed a left-brace only to encounter another.  This
-       can't be whole-object initialization.  E.g.,
-          S sa[] = { { 1, 2 }, { 1, 2 } };
-    */
-    whole_object_initialization = FALSE;
-  }  /* if */
-  if (whole_object_initialization) {
-    a_boolean      err = FALSE, is_constant = FALSE;
-    a_constant     constant;
-    unsigned long  levels_down;
-
-    cssp = symbol_supplement_for_class(local_type);
-    check_assertion_str(!top_level,
-                        "get_initializer: class encountered at top level");
-    check_assertion_str(cssp->has_copy_constructor ||
-                          cssp->construction_by_bitwise_copy_allowed,
-                        "get_initializer: missing copy constructor");
-    /* This is an array element that can only be initialized by a
-       constructor.  Treat the expression as an argument for the constructor
-       call. */
-    if (init_context.pending_init_con != NULL) {
-      /* The initializer has already been scanned. */
-      levels_down = init_context.pending_init_levels;
-      if (levels_down == 0) {
-        /* This is the level at which the initializer is to be applied. */
-        init_con = init_context.pending_init_con;
-        if (init_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
-          dip = init_con->variant.dynamic_init;
-        } else {
-          is_constant = TRUE;
-        }  /* if */
-      }  /* if */
-    } else if (!scan_aggregate_class_initializer_expression(
-                              local_type, init_info->static_lifetime,
-                              &levels_down, &is_constant, &dip, &constant)) {
-      /* No appropriate initializer was found. */
-      err = TRUE;
-    } else {
-      if (is_constant) {
-        /* A constant initializer was found. */
-        init_con = alloc_unshared_constant(&constant);
-      } else {
-        /* A dynamic initialization. */
-        check_assertion(dip != NULL);
-        init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
-        init_con->variant.dynamic_init = dip;
-      }  /* if */
-    }  /* if */
-    if (!err) {
-      if (levels_down == 0) {
-        /* The initialization applies at the current level. */
-        init_con->type = local_type;
-        if (!is_constant) {
-          init_context.any_dynamic_initialization = TRUE;
-          if (exceptions_enabled) {
-            if (cssp->destructor != NULL) {
-              /* If appropriate, add a destructor pointer to the dynamic
-                 init entry. This is for the case in which an exception is
-                 thrown by the constructor before the entire array has been
-                 initialized. */
-              a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
-              add_dtor_for_partially_constructed_aggregate(dtor_rp, dip);
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      } else {
-        /* Whole object initialization will not be done at this level after
-           all.  (This will only occur for aggregate classes.) */
-        whole_object_initialization = FALSE;
-        if (init_con != NULL) {
-          /* The initialization applies one or more levels down.  Remember
-             what was "prescanned". */
-          init_context.pending_init_con = init_con;
-          init_context.pending_init_levels = levels_down;
-          init_con = NULL;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  if (whole_object_initialization) {
-    /* Already done. */
-  } else if (is_aggregate_or_union_type(local_type) ||
-             (is_error_type(local_type) && brace_flag)) {
+  dest_type = skip_typerefs(*type);
+  if (process_whole_object_init(init_info, &init_context, &dest_type,
+                                &init_con, &brace_flag)) {
+    /* process_whole_object_init might have found that the "whole object
+       initialization" case did not apply after all, in which case "FALSE"
+       was returned and we fall through. Otherwise, all the required work
+       was done. Note that an important side effect of the test is to set
+       brace_flag is a brace was encountered (and eaten). */
+  } else if (is_aggregate_or_union_type(dest_type) ||
+             (is_error_type(dest_type) && brace_flag)) {
     /* Initialization of an array (complete or incomplete), struct, or
        union.  The result will be an aggregate constant except when an
        array of char is initialized by a string.  The initial
@@ -1036,140 +1607,53 @@ this function points to a tree that includes a dynamic-init entry.
       if (brace_flag && curr_token == tok_comma) (void)get_token();
     } else {
       /* Normal case, not array of char.  Could be an array, a struct,
-         or a union, or an error type.  Note that local_type has already
+         or a union, or an error type.  Note that dest_type has already
          been stripped of typerefs above. */
+      a_targ_size_t curr_array_element = 0, array_size = 0;
+      a_field_ptr   curr_field;
       /* In ANSI C and C++, the top-level initializer for a struct, union, or
          array must be surrounded by braces.  e.g., "int a[1] = 1;" is
          not allowed.  However, pcc will allow initialization with
          a single value and we allow it as an extension. */
       if (top_level && !brace_flag) {
-        /* In ANSI C and C++, the top-level initializer for a class, struct,
-           union, or array must be surrounded by braces (except for whole
-           object initialization of classes, handled elsewhere).  However,
-           pcc allows it -- e.g., "int a[2] = 1;" is equivalent to
-           "int a[2] = { 1 };".  We allow pcc behavior as an extension in
-           C mode, but it's an error in C++ mode. */
-        if (C_dialect != C_dialect_pcc) {
-          an_error_severity  severity;
-
-          if (C_dialect == C_dialect_cplusplus) {
-            severity = es_error;
-          } else if (strict_ansi_mode) {
-            severity = strict_ansi_error_severity;
-          } else {
-            /* Issue a warning in non-ANSI C mode. */
-            severity = es_warning;
-          }  /* if */
-          diagnostic(severity, ec_missing_initializer_list);
-          /* If we're issuing an error, avoid error recovery problems by
-             setting local_type to an error type. */
-          if (severity == es_error) local_type = error_type();
-        }  /* if */
+        /* If a hard error is decided, dest_type will become error_type(). */
+        handle_missing_brace(&dest_type);
       }  /* if */
       /* Get information on the first member of the aggregate to be
-         initialized. */
-      any_more_members = TRUE;  /* Assume. */
-      is_incomplete_array = FALSE;
-      kind = local_type->kind;
-      if (kind == (a_type_kind)tk_error) {
-        /* Error type. */
-        member_type = error_type();
-      } else if (kind == (a_type_kind)tk_array) {
-        /* Array.  Start with first element. */
-        curr_array_element = 0;
-        is_incomplete_array = is_incomplete_type(local_type);
-        member_type = local_type->variant.array.element_type;
-        /* Note that arrays of incomplete struct/union types (an extension)
-           do not make it to here (they're caught as an error at the top
-           level in the routine "initializer" and replaced by an error type),
-           so we don't have to check for them here. */
-      } else {
-        /* Class/struct/union.  Start with first field. */
-        check_assertion(is_immediate_class_type(local_type));
-        curr_field = local_type->variant.class_struct_union.field_list;
-        /* Skip past an unnamed field. */
-        curr_field = next_initializable_field(curr_field);
-        any_more_members = (curr_field != NULL);
-        init_context.field = curr_field;
-      }  /* if */
-      /* Check for cases that involve initializing nothing, i.e., the
-         zero-trip-loop cases. */
-      any_more_initializers = TRUE;  /* Assume. */
-      if (brace_flag) {
-        /* The list for the aggregate at this level is enclosed in { }. */
-        if (curr_token == tok_rbrace &&
-            init_context.pending_init_con == NULL) {
-          /* Empty initializer list --  "{ }".  An error in C, okay in C++. */
-          if (C_mode()) error(ec_exp_primary_expr);
-          any_more_initializers = FALSE;
-        }  /* if */
-      } else {
-        /* The list for the aggregate is not enclosed in braces. */
-        if (!any_more_members && !top_level) {
-          /* This is an initialization of an aggregate with no members,
-             i.e., an empty class, and there are no braces for this
-             level of the aggregate.  Take nothing to satisfy this
-             initialization. */
-          *nothing_taken = TRUE;
-          any_more_initializers = FALSE;
-        }  /* if */
-      }  /* if */
+         initialized (if any). */
+      kind = dest_type->kind;
+      start_aggregate_init_scan_loop(dest_type, &init_context, &member_type,
+                                     &any_more_members, &is_incomplete_array);
+      curr_field = init_context.field;
+      any_more_initializers = any_initializers(&init_context,
+                                               brace_flag,
+                                               any_more_members,
+                                               nothing_taken);
       took_extra_comma = FALSE;
       /* Loop, scanning initializers and building an aggregate constant. */
       while (any_more_initializers) {
         /* Determine the type of the member being initialized. */
-        if (!any_more_members) {
-          /* There are more initializers, but we've run out of members
-             into which to put them. */
+        if (!(any_more_members || designator_coming())) {
+          /* There are more undesignated initializers, but we've run out of
+             members into which to put them. */
           error(ec_too_many_initializer_values);
-          /* Switch to an error type to take this and all following
-             initializers without error. */
-          member_type = error_type();
-          kind = (a_type_kind)tk_error;
-          any_more_members = TRUE;
-        }  /* if */
-        if (kind == (a_type_kind)tk_error) {
-          /* No processing for this case. */
+          member_type = NULL;
+        } else if (kind == (a_type_kind)tk_error) {
         } else if (kind == (a_type_kind)tk_array) {
           /* member_type was set outside the loop. */
-#if DEBUG
-          if (debug_level == 4 && kind == (a_type_kind)tk_array) {
-            fprintf(f_debug, "getting initializer for element %d, type = ",
-                    (int)curr_array_element);
-            db_abbreviated_type(member_type);
-            fputc('\n', f_debug);
-          }  /* if */
-#endif /* DEBUG */
+          get_array_element_init_info(dest_type, init_info,
+                                      &init_context, &curr_array_element);
         } else {
           /* Class type: get the type of the current field. */
-          member_type = curr_field->type;
-#if DEBUG
-          if (debug_level == 4) {
-            fputs("getting initializer for field \"", f_debug);
-            db_name(&curr_field->source_corresp);
-            fputs("\", type = ", f_debug);
-            db_abbreviated_type(member_type);
-            fputc('\n', f_debug);
-          }  /* if */
-#endif /* DEBUG */
-#if CHECKING
-          if (is_incomplete_type(member_type)) {
-            /* Members of unions or aggregates cannot be incomplete. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_mode && top_level && is_array_type(member_type) &&
-                curr_field->next == NULL) {
-              /* ... except that in Microsoft mode it's okay to initialize
-                 a field of incomplete array type when it's the last field in
-                 the struct (but only when the struct is the top-level object
-                 type). */
-            } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            /* Do not add code here. */
-            {
-              internal_error("get_initializer: can't init 0-size member");
-            }  /* if */
-          }  /* if */
-#endif /* CHECKING */
+          member_type = get_field_init_info(dest_type, init_info,
+                                            &init_context, &curr_field);
+        }  /* if */
+        if (member_type == NULL) {
+          /* Switch to an error type to take this and all following
+             initializers without error. */
+          kind = tk_error;
+          member_type = error_type();
+          any_more_members = TRUE;
         }  /* if */
         add_stop_token(tok_comma);
         /* Get the initializer for this one member. */
@@ -1209,15 +1693,19 @@ this function points to a tree that includes a dynamic-init entry.
             init_context.any_dynamic_initialization = TRUE;
           }  /* if */
         }  /* if */
+        /* If this initializer was preceded by a array-range designator, put
+           the pending ck_init_repeat constant on top of member_con: */
+        if (init_context.repeat != NULL) {
+          init_context.repeat->variant.init_repeat.constant = member_con;
+          member_con = init_context.repeat;
+          init_context.repeat = NULL;
+        }  /* if */
+        /* Add the constant entry to the list of constants. */
+        append_initializer_constant(&init_context, member_con);
+        /* If a designation was active, it is now consumed: */
+        init_info->designation_state = ds_no_designation;
         remove_stop_token(tok_comma);
         check_assertion(!(local_nothing_taken && is_incomplete_array));
-        /* Add the constant entry to the list of constants. */
-        if (init_context.constant_list == NULL) {
-          init_context.constant_list = member_con;
-        } else {
-          init_context.end_of_constant_list->next = member_con;
-        }  /* if */
-        init_context.end_of_constant_list = member_con;
         /* Advance to the next member of the aggregate.  Set
            any_more_members FALSE if there are no more members. */
         if (kind == (a_type_kind)tk_error) {
@@ -1238,13 +1726,18 @@ this function points to a tree that includes a dynamic-init entry.
             }  /* if */
           } else {
             /* Advance to next array element. */
-            curr_array_element++;
-            check_assertion(!local_type->variant.array.is_variable_size_array);
+            ++curr_array_element;
+            check_assertion(!dest_type->variant.array.is_variable_size_array);
             if (!is_incomplete_array &&
-                local_type->variant.array.variant.number_of_elements <=
+                dest_type->variant.array.variant.number_of_elements <=
                                                        curr_array_element) {
               /* No more elements in the array. */
               any_more_members = FALSE;
+            } else if (is_incomplete_array) {
+              /* Keep track of the maximum subscript seen: */
+              if (curr_array_element>array_size) {
+                array_size = curr_array_element;
+              }  /* if */
             }  /* if */
           }  /* if */
         } else if (kind == (a_type_kind)tk_class ||
@@ -1309,6 +1802,11 @@ this function points to a tree that includes a dynamic-init entry.
           if (curr_token == tok_rbrace) {
             took_extra_comma = any_more_initializers;
             any_more_initializers = FALSE;
+          } else if (designator_coming()) {
+            /* A designator ends a non-brace-enclosed list of initializer,
+               but if it is brace-enclosed then an upcoming designator means
+               more initializers are following. */
+            any_more_initializers = brace_flag;
           }  /* if */
         }  /* if */
         /* Keep looping while there are more initializers. */
@@ -1319,7 +1817,7 @@ this function points to a tree that includes a dynamic-init entry.
       /* The entire list of values for the entity being initialized has
          now been read.  We stopped either because we exhausted the
          initial values or because we ran out of members to initialize. */
-      if (top_level && !brace_flag && is_error_type(local_type)) {
+      if (top_level && !brace_flag && is_error_type(dest_type)) {
         /* An error has been issued on the missing {...} list.  Although
            the initializer was scanned anyway, don't create an aggregate
            constant to represent the initialization -- just an error constant
@@ -1329,11 +1827,10 @@ this function points to a tree that includes a dynamic-init entry.
            in its initial value.  Note that arrays of char initialized
            to strings are not handled here. */
         if (is_incomplete_array) {
-          /* Note that curr_array_element indicates the *next* array element
-             to be initialized, and is therefore one larger than the one
-             last initialized.  Thus, it is the array size. */
-          set_initialized_array_size(&local_type, curr_array_element);
-          *type = local_type;
+          /* Note that the size is not necessarily curr_array_element since
+             intermediate designations may have implied a larger size. */
+          set_initialized_array_size(&dest_type, array_size);
+          *type = dest_type;
           any_more_members = FALSE;
         } else if (C_dialect == C_dialect_cplusplus) {
           if (curr_token == tok_rbrace && kind == (a_type_kind)tk_array) {
@@ -1342,7 +1839,7 @@ this function points to a tree that includes a dynamic-init entry.
                such that a constructor is required to initialize the elements,
                we are required to provide default initialization by calling
                the default constructor. */
-            if (init_remaining_array_elements(local_type, curr_array_element,
+            if (init_remaining_array_elements(dest_type, curr_array_element,
                                               init_info, &init_context)) {
               any_more_members = FALSE;
             }  /* if */
@@ -1358,7 +1855,7 @@ this function points to a tree that includes a dynamic-init entry.
         /* Allocate the aggregate constant that is the value for the
            initializer. */
         init_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-        init_con->type = local_type;
+        init_con->type = dest_type;
         init_con->variant.aggregate.first_constant =
                                           init_context.constant_list;
         init_con->variant.aggregate.last_constant =
@@ -1395,7 +1892,7 @@ this function points to a tree that includes a dynamic-init entry.
          another scan. */
       check_assertion(init_context.pending_init_levels == 0);
       init_con = init_context.pending_init_con;
-      init_con->type = local_type;
+      init_con->type = dest_type;
       if (init_con->kind == (a_constant_repr_kind)ck_dynamic_init) {
         dip = init_con->variant.dynamic_init;
         check_assertion(dip != NULL);
@@ -1418,7 +1915,7 @@ this function points to a tree that includes a dynamic-init entry.
                                        (a_boolean)init_info->static_lifetime,
                                        /*force_object_lifetime=*/FALSE,
                                        /*is_copy_initialization=*/TRUE,
-                                       local_type, &dip);
+                                       dest_type, &dip);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       init_info->init_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1428,7 +1925,7 @@ this function points to a tree that includes a dynamic-init entry.
            init constant to point to it. */
         init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
         init_con->variant.dynamic_init = dip;
-        init_con->type = local_type;
+        init_con->type = dest_type;
       }  /* if */
     }  /* if */
     if (dip != NULL) {

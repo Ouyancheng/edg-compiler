@@ -2425,7 +2425,8 @@ confusion.  Do the output in the way described by octl.
   /* Watch out for constants (like ck_init_repeat) that have no type. */
   if (orig_type == NULL) {
 #if CHECKING
-    if (kind != (a_constant_repr_kind)ck_init_repeat) {
+    if (kind != (a_constant_repr_kind)ck_init_repeat &&
+	kind != (a_constant_repr_kind)ck_designator) {
 #if DEBUG
       if (octl->debug_output) {
         octl->output_str("**NULL-CONSTANT-TYPE**");
@@ -2724,6 +2725,20 @@ confusion.  Do the output in the way described by octl.
       octl->output_str("<hex-octal-constant>");
       break;
 #endif /* ifdef FFE */
+#ifdef CFE
+    case ck_designator:
+      if (constant->variant.designator.field != NULL) {
+        a_field_ptr field = constant->variant.designator.field;
+        octl->output_str(".");
+        form_unqualified_name(&field->source_corresp, iek_field, octl);
+        octl->output_str(" = ");
+      } else {
+        octl->output_str("[");
+        form_unsigned_num(constant->variant.designator.array_element, octl);
+        octl->output_str("] = ");
+      } /* if */
+      break;
+#endif /* ifdef CFE */
     default:
 #if DEBUG
       if (octl->debug_output) {

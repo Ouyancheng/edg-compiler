@@ -1144,6 +1144,8 @@ enum a_constant_repr_kind_tag {
   ck_hex_octal,         /* Hex and octal constants; does not appear in the
                            final IL. */
 #endif /* ifdef FIL */
+  ck_designator,        /* Used to change the "current object" in an
+                           aggregate initializer (C extension). */
   ck_last		/*lint -esym(769,a_constant_repr_kind_tag::ck_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -1602,12 +1604,11 @@ typedef struct a_constant {
                            in an initialization list).  NULL if the constant
                            is not on a list, or is the last on a list. */
   a_type_ptr    type;
-			/* The type of the constant.  Will be compatible
-			   with the representation below.  A ck_init_repeat
+			/* The type of the constant.  Will be compatible with the
+            representation below.  A ck_init_repeat or ck_designator
 			   entry has a NULL type pointer. */
 #ifdef FIL
-			/* A ck_init_position entry also has a NULL type
-			   pointer. */
+			/* A ck_init_position entry also has a NULL type pointer. */
 #endif /* ifdef FIL */
   a_bit_field	implicit_cast:1;
                         /* If this is TRUE, then the value indicated by
@@ -1866,6 +1867,18 @@ typedef struct a_constant {
                            zero bytes dropped. */
     } hex_octal;
 #endif /* ifdef FIL */
+    /* When kind == ck_designator: */
+    /* A ck_designator is only used in initialization, and as such is always
+       an unshared constant. The designated field or element is initialized
+       by the constant pointed to by 'next'. */
+    struct {
+      a_field_ptr     field;
+                        /* NULL if the designator indicates an array element.
+                           Otherwise, the field indicated by a designator. */
+      a_targ_size_t   array_element;
+                        /* Undefined if field != NULL. Otherwise the subscript
+                           indicated by the designator. */
+    } designator;
   } variant;
 } a_constant;
 
@@ -2462,7 +2475,6 @@ enum a_decl_modifier_tag {
   dmt_last
 };
 
-#if DECL_MODIFIERS_IN_USE
 EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 #if VAR_INITIALIZERS
 = {
@@ -2482,7 +2494,6 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 } /* decl_modifier_names */
 #endif /* VAR_INITIALIZERS */
 ;
-#endif /* DECL_MODIFIERS_IN_USE */
 
 /*
 A bit set whose values are used to supply additional declarative information
@@ -7432,11 +7443,7 @@ typedef struct a_scope {
 			   of statements.  NULL if none (including implicitly
 			   generated sck_block scopes containing for-init
 			   declarations).  Used only when kind == sck_function
-			   or sck_block.  The statement pointed to is
-			   usually an stmk_block statement; however, in C++
-			   mode when kind == sck_function, it can also be an
-			   stmk_try_block statement, to indicate a
-			   function-try-block. */
+			   or sck_block. */
 #if ASM_FUNCTION_ALLOWED
 			/* Also used to point to the stmk_asm_func_body
 			   statement that represents the uninterpreted body

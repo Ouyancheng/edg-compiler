@@ -1503,6 +1503,7 @@ Dump a string identifying a constant-representation kind, for debug purposes.
     case ck_aggregate:      s = "ck_aggregate";		break;
     case ck_init_repeat:    s = "ck_init_repeat";	break;
     case ck_template_param: s = "ck_template_param";	break;
+    case ck_designator:     s = "ck_designator";	break;
     default:                s = "**BAD CONSTANT KIND";
   }  /* switch */
   fputs(s, f_debug);

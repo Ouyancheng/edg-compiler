@@ -1045,6 +1045,28 @@ value of the global variable nonstandard_using_decl_allowed.
 #endif /* DEFAULT_NONSTANDARD_USING_DECL_ALLOWED */
 
 /*
+Flag that is TRUE if designators of the form '.x' and '[expr]' should be
+accepted in aggregate initializers.  It is the initial value of the global
+variable designators_allowed.
+*/
+#ifndef DEFAULT_DESIGNATORS_ALLOWED
+#define DEFAULT_DESIGNATORS_ALLOWED FALSE
+#endif /* DEFAULT_DESIGNATORS_ALLOWED */
+
+/*
+Flag that is TRUE if designators of the form 'x:' and '[expr ... expr]'
+should be accepted in aggregate initializers.  This also makes the '='
+following an array element designation optional.  It should not be TRUE
+if DEFAULT_DESIGNATORS_ALLOWED is FALSE.  It is the initial value
+of the global variable extended_designators_allowed.
+*/
+#ifndef DEFAULT_EXTENDED_DESIGNATORS_ALLOWED
+#define DEFAULT_EXTENDED_DESIGNATORS_ALLOWED FALSE
+#endif /* DEFAULT_EXTENDED_DESIGNATORS_ALLOWED */
+
+
+
+/*
 Flag that is TRUE if the tiebreaker processing in overload resolution
 (e.g., to decide between "void f(int &)" and "void f(const int &)")
 should be done late by default.  It is the initial value of the

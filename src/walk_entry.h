@@ -589,6 +589,8 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_ptr(ptr->variant.init_repeat.constant, a_constant_ptr,
                      iek_constant);
             break;
+          case ck_designator:
+            break;
 #ifdef FFE
           case ck_init_position:
             break;

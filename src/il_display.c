@@ -734,6 +734,20 @@ display_constant_value:
                iek_constant);
       disp_unsigned_long("count", ptr->variant.init_repeat.count);
       break;
+    case ck_designator:
+      (void)printf("ck_designator\n");
+      if (ptr->variant.designator.field != NULL) {
+        /* A field designator: */
+        disp_string_ptr("field",
+                        ptr->variant.designator.field->source_corresp.name,
+                        iek_id_name,
+                        (sizeof_t)0);
+      } else {
+        /* An array element designator: */
+        disp_unsigned_long("array_element",
+                           ptr->variant.designator.array_element);
+      }  /* if */
+      break;
 #ifdef FFE
     case ck_init_position:
       (void)printf("ck_init_position\n");

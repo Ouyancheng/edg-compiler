@@ -778,6 +778,22 @@ Initialize the option information table.
                          "no_nonstd_using_decl",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_designators,
+                         "designators",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_designators,
+                         "no_designators",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_extended_designators,
+                         "extended_designators",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_extended_designators,
+                         "no_extended_designators",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_system_include_dir, "sys_include", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
@@ -2017,6 +2033,15 @@ enable_microsoft_mode:
            should or should not be accepted. */
         nonstandard_using_decl_allowed = opt_value;
         break;
+      case optk_designators:
+        /* Ordinary designators should or should not be accepted. */
+        designators_allowed = opt_value;
+        break;
+      case optk_extended_designators:
+        /* Ordinary designators should or should not be accepted. */
+        designators_allowed = opt_value;
+        extended_designators_allowed = opt_value;
+        break;
       case optk_include_file_suffixes:
         /* Specifies the list of suffixes to be used when searching for an
            include file name specified with no suffix. */
@@ -2206,6 +2231,14 @@ enable_microsoft_mode:
     }  /* if */
     vla_enabled = FALSE;
 #endif /* VLA_ALLOWED */
+    if (option_kind_used[(int)optk_designators]) {
+      command_line_error(ec_cl_designators_option_only_in_C);
+    }  /* if */
+    designators_allowed = FALSE;
+    if (option_kind_used[(int)optk_extended_designators]) {
+      command_line_error(ec_cl_extended_designators_option_only_in_C);
+    }  /* if */
+    extended_designators_allowed = FALSE;
   }  /* if */
   if (strict_ansi_mode) {
     /* Strict ANSI mode is incompatible with K&R/pcc mode. */
@@ -2293,6 +2326,16 @@ enable_microsoft_mode:
         vla_enabled = FALSE;
       }  /* if */
 #endif /* VLA_ALLOWED */
+      if (!(option_kind_used[(int)optk_extended_designators])) {
+        /* Support for extended designators is turned off by default in
+           strict C mode. */
+        extended_designators_allowed = FALSE;
+        if (!(option_kind_used[(int)optk_designators])) {
+          /* Support for designators is turned off by default in strict C
+             mode. */
+          designators_allowed = FALSE;
+        }  /* if */
+      }  /* if */
     } else {
       /* Set optional features to standard settings for strict C++ mode. */
       allow_copy_assignment_op_with_base_class_param = FALSE;
