@@ -1220,6 +1220,10 @@ Output the name of the indicated type.
     /* Don't let va_list copied from a secondary translation unit be
        given a generated name. */
     type->source_corresp.name_linkage = (a_name_linkage_kind)nlk_external;
+    /* Make its name "va_list" if it was mangled in C++ because it's
+       std::va_list.  In the generated code we're including <stdarg.h> and
+       we have to refer to va_list. */
+    type->source_corresp.name = "va_list";
   }  /* if */
   dump_name(&type->source_corresp);
 }  /* dump_type_name */
