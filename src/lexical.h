@@ -1198,6 +1198,8 @@ extern void conv_line_loc_to_source_pos(char              *loc_in_line,
 /* Check for a specific token. */
 extern a_boolean required_token(a_token_kind  token,
 				an_error_code error_code);
+extern a_boolean required_token_no_advance(a_token_kind  token,
+                                           an_error_code error_code);
 /* Check for a specific token, at the bottom of a loop for a repeated
    syntactic construct. */
 extern a_boolean loop_token(a_token_kind token);
