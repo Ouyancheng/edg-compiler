@@ -243,8 +243,14 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if the scope is pushed for a C++ for-init
 			   declaration (sck_block only). */
   a_bit_field	namespace_pushed:1;
-			   /* TRUE for class reactivation scopes if the
-                              parent namespace was pushed. */
+    		        /* TRUE for class reactivation scopes if the
+                           parent namespace was pushed. */
+  a_bit_field	exclude_from_context_output:1;
+			/* TRUE for scopes that would normally result in
+			   the creation of error context information
+			   (such as template instantiation scopes),
+			   but for which the context information should
+			   be suppressed. */
   a_scope_pointers_block_ptr
 		assoc_pointers_block;
 			/* Pointer to a scope pointer block that should be

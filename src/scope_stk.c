@@ -879,6 +879,7 @@ to the declaration information for the template declaration scope being pushed.
   ssep->within_try_block         = FALSE;
   ssep->within_unnamed_namespace = FALSE;
   ssep->namespace_pushed         = FALSE;
+  ssep->exclude_from_context_output = FALSE;
   ssep->reactivated_class_being_defined = FALSE;
   ssep->is_for_init_block        = FALSE;
   ssep->il_scope                 = sp;
@@ -1796,16 +1797,24 @@ The following fixups need to be performed:
   a_scope_depth			primary_instantiation_depth = NO_SCOPE_DEPTH;
   a_scope_depth			depth;
   a_scope_stack_entry_ptr	primary_ssep;
+  a_boolean			exclude_from_context_output = FALSE;
 
   /* Mark all instantiation scopes that have been pushed as nested
      instantiations.  Save the depth of the outermost instantiation
      scope that was pushed.  It will be changed back to nonnested later.
      When this loop completes, primary_instantiation_depth will
-     mark the first instantiation scope pushed. */
+     mark the first instantiation scope pushed.  All instantiation
+     scopes pushed as part of this set, except the innermost one,
+     should have the "exclude from context output" flag set so that
+     only the context information associated with the innermost scope
+     will be included in error output. */
   for (depth = depth_scope_stack; depth >= orig_depth; depth--) {
     if (scope_stack[depth].kind == (a_scope_kind)sck_template_instantiation) {
+      a_scope_stack_entry_ptr	ssep = scope_stack_entry_for(depth);
       primary_instantiation_depth = depth;
-      scope_stack[depth].nested_instantiation = TRUE;
+      ssep->nested_instantiation = TRUE;
+      ssep->exclude_from_context_output = exclude_from_context_output;
+      exclude_from_context_output = TRUE;
     }  /* if */
   }  /* for */
   primary_ssep = &scope_stack[primary_instantiation_depth];

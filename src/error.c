@@ -2487,7 +2487,9 @@ message appears by itself on a separate line.
   a_symbol_ptr	sym;
   an_error_code error_code;
 
-  if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+  if (ssep->exclude_from_context_output) {
+    /* Don't include this scope in the context output. */
+  } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
     /* Template instantiations (except for prototype instantiations)
        need additional context information. */
     sym = ssep->instance_sym;
