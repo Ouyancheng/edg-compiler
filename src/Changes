@@ -1,5 +1,23 @@
 Version 2.42
 
+3/26/99  Microsoft compatibility: bit-field allocation
+
+If TARG_MICROSOFT_BIT_FIELD_ALLOCATION is configured to TRUE and
+TARG_BIT_FIELD_CONTAINER_SIZE to -1, when one compiled with --pack=1
+or --pack=2, the size of the struct was computed incorrectly when the
+last field was a bit field.  Here's an example:
+
+  struct C { int a; int b:1; int c; int d:1; };
+  struct E { unsigned char a; unsigned int b:1; };
+
+                  with pack=1:          with pack=2:
+                 MSVC++    EDG         MSVC++    EDG
+  sizeof(C)       16       13           16       14
+  sizeof(E)        5        2            6        4
+
+The problem was that padding was not being provided for the bit-field
+container.  Now fixed.
+
 3/25/99  Exception specification on function parameter
 
 If an exception specification appears on a function parameter

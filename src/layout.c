@@ -1222,6 +1222,14 @@ are allocated in declaration order).
        size this union has to be. */
     lob->byte_offset = max_byte_offset;
     lob->bit_offset = max_bit_offset;
+  } else {
+    if (targ_microsoft_bit_field_allocation &&
+        lob->curr_container_type != NULL) {
+      /* The last field in the struct was a bit field.  When emulating
+         Microsoft bit-field allocation, treat the container as having been
+         independently allocated: pad out the rest of it before proceeding. */
+      pad_ms_bit_field_container(lob);
+    }  /* if */
   }  /* if */
 }  /* set_offsets_for_fields */
 
