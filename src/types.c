@@ -3147,7 +3147,11 @@ typedef int a_type_tree_traversal_flag_set;
 #define TTT_BASE_CLASSES 0x40
 			/* When the type being traversed is a class type,
 			   apply the predicate check to its base classes. */
-#define TTT_SKIP_TYPEDEFS 0x80
+#define TTT_TEMPLATE_ARGS 0x80
+			/* When the type being traversed is a class type,
+			   apply the predicate check to its template args
+                           (if it is a template class). */
+#define TTT_SKIP_TYPEDEFS 0x100
 			/* Skip over typedefs before applying the predicate
 			   check to a given type. */
 
@@ -3247,7 +3251,7 @@ its parameters?).
         }  /* if */
         if (flags & TTT_THIS_PARAM_TYPE) {
           tp = type_ptr->variant.routine.extra_info->implicit_this_param_type;
-          if (traverse_type_tree(tp, func, flags)) {
+          if (tp != NULL && traverse_type_tree(tp, func, flags)) {
             status = TRUE;
             break;
           }  /* if */
@@ -3267,15 +3271,32 @@ its parameters?).
         break;
       case tk_array:
         tp = type_ptr->variant.array.element_type;
-        status = traverse_type_tree(tp, func, flags);
+        if (tp != NULL) status = traverse_type_tree(tp, func, flags);
         break;
       case tk_class:
       case tk_struct:
       case tk_union:
         /* Conditional traversal of contained types. */
+        if (flags & TTT_TEMPLATE_ARGS) {
+          a_template_arg_ptr  tap;
+
+          for (tap = type_ptr->variant.class_struct_union.extra_info->
+                                                          template_arg_list;
+               tap != NULL;
+               tap = tap->next) {
+            if (tap->is_type) {
+              tp = tap->variant.type;
+              if (traverse_type_tree(tp, func, flags)) {
+                status = TRUE;
+                break;
+              }  /* if */
+            }  /* if */
+          }  /* for */
 #if 0
+        } else {
         /* To be implemented when needed. */
 #endif /* if 0 */
+        }  /* if */
         break;
       case tk_typeref:
         tp = type_ptr->variant.typeref.type;
@@ -3320,7 +3341,8 @@ type entry or is a type tree containing such a type.
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
-                                               TTT_PARAM_TYPES);
+                                               TTT_PARAM_TYPES |
+                                               TTT_TEMPLATE_ARGS);
 
   return (traverse_type_tree(type_ptr, ttt_is_template_param, ttt_flags));
 }  /* is_or_contains_template_param */
