@@ -5606,7 +5606,7 @@ static an_expr_node_ptr vtbl_addr_from_construction_vtbls_array(
 /*
 Construct an expression for an lvalue for the "index-1"-th element of the
 indicated array of special virtual function table values.  Return a pointer
-to the expression.  If var_is_array is TRUE, construction_vtbls is the
+to the expression.  If var_is_array is TRUE, construction_vtbls_var is the
 array itself; if FALSE, it is a pointer to the first element of the array.
 */
 {
@@ -5755,7 +5755,7 @@ Insert an assignment statement to store the address of the "index-1"-th
 element of the array of special virtual functions pointed to by
 construction_vtbls_var into the so-called transfer pointer in the
 subobject described by ipdp to pass the array to a subobject constructor
-or destructor.  If var_is_array is TRUE, construction_vtbls is the
+or destructor.  If var_is_array is TRUE, construction_vtbls_var is the
 array itself; if FALSE, it is a pointer to the first element of the array.
 The subobject class type is subobject_class_type (this is passed because
 the type of the expression produced from ipdp may have the type-as-subobject).
