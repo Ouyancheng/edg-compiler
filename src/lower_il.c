@@ -9686,6 +9686,55 @@ next_kind:;
 }  /* lower_orphaned_entries */
 
 
+#if !(NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR)
+/*ARGSUSED*/
+#endif /* !(NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR) */
+static void do_class_lowering_wrapup(a_scope_ptr scope)
+/*
+Do any wrapup processing on classes that has to wait until the very
+end of the lowering process for a memory region.  Note that this is done
+for each memory region.
+*/
+{
+#if NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR 
+  a_type_ptr  type;
+  a_scope_ptr block_scope;
+
+  /* Visit all types to find all class types.  Note that this routine is
+     called at the end of lowering a memory region, so the IL is flattened
+     here; there are no nested classes and no namespaces. */
+  /* Note that when processing a function or block scope we will be crossing
+     into the file scope here, but these class types are truly local types
+     and are not used in the file scope, so it's okay to process them
+     now. */
+  for (type = scope->types; type != NULL; type = type->next) {
+    if (is_immediate_class_type(type)) {
+      /* Found a class type. */
+      /* Clear any pointers that we do not want going on to the back end.
+         In particular, clear any pointers that would introduce spurious
+         "needed" flag dependencies if left alone.  Note that this clearing
+         is done at the end of lowering of each function so that the fields
+         are cleared before the IL is walked to set the "needed" flag. */
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
+      ctsp->assoc_operator_new_routine = NULL;
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
+      ctsp->assoc_operator_delete_routine = NULL;
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
+    }  /* if */
+  }  /* for */
+  /* Visit all block scopes. */
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    do_class_lowering_wrapup(block_scope);
+  }  /* for */
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || DELETE_CAN_BE_FOLDED_INTO_DTOR */
+}  /* do_class_lowering_wrapup */
+
+
 void lower_il_memory_region(a_memory_region_number region_number)
 /*
 Rewrite the intermediate language in memory region region_number from
@@ -9773,6 +9822,8 @@ C++ to C, so that a C back end can handle it without change.
        This must be done late so that all the required typeinfo variables
        will have been created already. */
     define_scope_class_typeinfo_vars(scope);
+    /* Do any processing on classes that has to wait until the very end. */
+    do_class_lowering_wrapup(scope);
     /* Pop the file-scope context. */
     pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
