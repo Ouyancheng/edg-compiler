@@ -16059,14 +16059,24 @@ for adding the entries to the actual instantiation request file.
        flag to be set for entities that cannot be instantiated. */
     if (tip->add_to_request_file && tip->already_instantiated) {
       char	*name;
-      if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
-        a_variable_ptr	vp;
-        vp = tip->instance_sym->variant.static_data_member.variable;
-        name = vp->source_corresp.name;
+      if (symbol_is_from_trans_unit(tip->instance_sym, translation_units)) {
+        /* A symbol from the primary translation unit.  We don't use
+           get_mangled_name_for_symbol here because the file scope has already
+           been lowered. */
+        if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+          a_variable_ptr	vp;
+          vp = tip->instance_sym->variant.static_data_member.variable;
+          name = vp->source_corresp.name;
+        } else {
+          a_routine_ptr	rp;
+          rp = tip->instance_sym->variant.routine.ptr;
+          name = rp->source_corresp.name;
+        }  /* if */
       } else {
-        a_routine_ptr	rp;
-        rp = tip->instance_sym->variant.routine.ptr;
-        name = rp->source_corresp.name;
+        /* A symbol from a secondary translation unit.  We can use
+           get_mangled_name_for_symbol because secondary file scopes do
+           not get lowered. */
+        name = get_mangled_name_for_symbol(tip->instance_sym);
       }  /* if */
       fputs(name, f_definition_list);
       fputs("\n", f_definition_list);
