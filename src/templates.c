@@ -14183,6 +14183,11 @@ are instantiated using a mechanism like the template instantiation mechanism.
   for (rlep = inline_function_list; rlep != NULL; rlep = rlep->next) {
     set_body_needed_flag_for_inline_function(rlep->routine);
   }  /* for */
+  if (any_instantiations_required && use_template_info_file &&
+      generate_template_files()) {
+    /* Make sure the template information file has been created. */
+    if (f_template_info == NULL) open_template_info_file();
+  }  /* if */
 #endif /* INSTANTIATE_EXTERN_INLINE */
 }  /* inline_function_wrapup */
 
