@@ -277,8 +277,10 @@ errors are still generated for type mismatches.
    integral type into which the field will fit".  < 0 means "use the
    base type given in the declaration". */
 #define TARG_BIT_FIELD_CONTAINER_SIZE 0
-/* How plain "int" bit fields are to be treated (signed or unsigned).
-   Note that 1-bit fields are made unsigned regardless of this switch. */
+/* How plain "int" bit fields are to be treated (signed or unsigned).  Note
+   that 1-bit fields are made unsigned regardless of this switch. This flag
+   also controls how plain "short", "long", and "long long" are treated as
+   bit field types. */
 #define TARG_PLAIN_INT_BIT_FIELD_IS_UNSIGNED (!DEFAULT_TARG_HAS_SIGNED_CHARS)
 /* Signedness for enum bit fields (an extension): if TRUE, enum bit fields
    are always unsigned.  If FALSE, the rules are: (a) if the enum contains
