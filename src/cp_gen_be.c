@@ -7344,7 +7344,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
               /* Don't use gen_type here, because we don't want the template
                  arguments, if any, listed, and we don't want a qualified
                  name. */
-              write_str(type->source_corresp.name);
+              gen_bare_name(&type->source_corresp, iek_type);
             } else {
               /* Case like "int::~int". */
               gen_type(type);
