@@ -1529,7 +1529,8 @@ hence its name should not be changed.
           break;
 #if CHECKING
         default:
-          internal_error("macro_invocation: expansion section unknown");
+          internal_error(
+                     "length_of_replacement_text: expansion section unknown");
 #endif /* CHECKING */
       }  /* switch */
     }  /* if */
@@ -2083,7 +2084,7 @@ end_arg_expansion:;
           if (pp != NULL) {
             pp = pp->next;
             ++n_params;
-          }
+          }  /* if */
           /* Keep looping while a comma is the next token. */
           not_done = (curr_token == tok_comma);
           if (not_done) {
