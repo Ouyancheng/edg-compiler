@@ -2450,6 +2450,9 @@ after_entry_from_class:
           remap_ptr(ptr->entity.ptr, a_char_ptr, kind);
         }  /* if */
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+        walk_ptr(ptr->template_decl, a_template_decl_ptr, iek_template_decl);
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);
