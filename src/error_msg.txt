@@ -839,6 +839,7 @@ ec_specialization_follows_param_list;;"a template declaration containing a templ
 ec_specialization_of_referenced_template;;"explicit specialization of %n1 must precede the first use of %n2"
 ec_explicit_specialization_not_in_namespace_scope;;"explicit specialization is not allowed in the current scope"
 ec_partial_specialization_not_allowed;;"partial specialization of %n is not allowed"
+ec_entity_cannot_be_specialized;;"%nf is not an entity that can be explicitly specialized"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

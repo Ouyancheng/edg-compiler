@@ -6876,35 +6876,34 @@ any non-empty template parameter lists that were scanned.
 }  /* template_declaration */
 
 
-static a_boolean find_matching_template_function(a_type_ptr        type,
-                                                 a_symbol_locator  *locator,
-                                                 a_symbol_ptr      *new_sym)
+static
+a_symbol_ptr find_matching_template_instance(a_symbol_ptr      sym,
+                                             a_type_ptr        type)
 /*
-type is the type declared for a function template instance; *locator
-indicates its name.  Return in new_sym the symbol for the instance.  The
-function returns FALSE if any error was detected.
+sym is some kind of function symbol.  type is the type declared for a
+function template instance; *locator indicates its name.  Return in
+the symbol for the instance, or NULL if no instance is found.
 */
 {
-  a_symbol_ptr  sym = NULL, orig_sym, lookup_sym;
-  a_boolean     is_list;
+  a_symbol_ptr  orig_sym;
   a_boolean     any_found = FALSE;
   a_symbol_ptr  sym_found = NULL;
-  a_boolean     err = FALSE;
+  a_symbol_ptr	new_sym = NULL;
 
-  *new_sym = NULL;
-  if (is_error_locator(*locator)) {
-    sym = NULL;
-    err = TRUE;
-  } else {
-    sym = locator->specific_symbol;
-    if (sym == NULL) sym = normal_id_lookup(locator, IDL_NO_OPTIONS);
+  orig_sym = sym;
+  if (sym->is_class_member) {
+    /* A member function symbol, find the member function that matches
+       the specified type. */
+    new_sym = member_function_redecl_sym(sym, type);
+    if (new_sym != NULL) any_found = TRUE;
   }  /* if */
-  if (sym == NULL) {
-    pos_st_error(ec_undefined_identifier, &locator->source_position,
-                 locator->symbol_header->identifier);
-    err = TRUE;
-  } else {
-    orig_sym = sym;
+  if (!any_found) {
+    /* A regular function name that is expected to represent one or
+       more function templates.  Loop through the function templates
+       and find an instance that matches the specified function type.
+       If none exists, a new one can is generated, if possible.  If
+       more than one exists (or can be generated) an error is issued. */
+    a_boolean		is_list;
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
       sym = sym->variant.overloaded_function.symbols;
       is_list = TRUE;
@@ -6912,38 +6911,33 @@ function returns FALSE if any error was detected.
       is_list = FALSE;
     }  /* if */
     for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+      a_symbol_ptr	lookup_sym = NULL;
       /* If this is a function template symbol, use it to find a function
-	 that matches the type we are looking for.  If it is a member
-	 function symbol, get the corresponding function template symbol
-	 from the function instantiation entry. */
-      if (sym->kind == (a_symbol_kind)sk_function_template) {
-        lookup_sym = sym;
-      } else if (sym->kind == (a_symbol_kind)sk_member_function &&
-	         sym->variant.routine.instance_ptr != NULL) {
-        lookup_sym = sym->variant.routine.instance_ptr->template_sym;
-      } else {
-        continue;
-      }  /* if */
+         that matches the type we are looking for.  If it is a member
+         function symbol, get the corresponding function template symbol
+         from the function instantiation entry. */
+      if (sym->kind != (a_symbol_kind)sk_function_template) continue;
+      lookup_sym = sym;
       /* Look for a match on the list of instantiations. */
-      sym_found = matching_template_function(lookup_sym, type,
-                                             /*is_decl_context=*/TRUE);
-      if (sym_found != NULL) {
-        if (any_found) {
-          sym_error(ec_ambiguous_overloaded_function, orig_sym);
-          err = TRUE;
-          break;
+      if (lookup_sym != NULL) {
+        sym_found = matching_template_function(lookup_sym, type,
+                                               /*is_decl_context=*/TRUE);
+        if (sym_found != NULL) {
+          if (any_found) {
+            sym_error(ec_ambiguous_overloaded_function, orig_sym);
+            break;
+          }  /* if */
+          any_found = TRUE;
+          new_sym = sym_found;
         }  /* if */
-        any_found = TRUE;
-        *new_sym = sym_found;
       }  /* if */
     }  /* for */
-    if (!any_found) {
-      sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
-      err = TRUE;
-    }  /* if */
   }  /* if */
-  return !err;
-}  /* find_matching_template_function */
+  if (!any_found) {
+    sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
+  }  /* if */
+  return new_sym;
+}  /* find_matching_template_instance */
 
 
 static void full_template_specialization(void)
@@ -6993,43 +6987,40 @@ that follows.
                 DI_OPERATOR_NAME_ALLOWED),
                &do_flags, type, (a_type_ptr)NULL, &locator, &type,
                &declarator_ssep, &func_info);
-    sym = NULL;
-    if (is_error_locator(locator)) {
-      /* Ignore it. */
-    } else if (is_function_type(type) &&
-               find_matching_template_function(type, &locator, &sym)) {
-      locator.specific_symbol = sym;
-    } else {
+    sym = NULL; 
+    if (!is_error_locator(locator)) {
       sym = locator.specific_symbol;
-      if (sym != NULL &&
-          sym->kind == (a_symbol_kind)sk_static_data_member &&
-          sym->variant.static_data_member.instance_ptr != NULL) {
-        /* Okay. */
-      } else {
-        if (sym == NULL) {
-          /* Lookup the symbol for use in the error message. */
-          sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
-        }  /* if */
-        if (sym == NULL) {
-          /* No symbol, which means the lookup failed. */
-          pos_st_error(ec_undefined_identifier, &locator.source_position,
-                       locator.symbol_header->identifier);
-        } else {
-          pos_sy_error(ec_not_instantiatable_entity,
-                       &locator.source_position, sym);
-          sym = NULL;
-        }  /* if */
-        /* Check for the semicolon. */
-        if (curr_token == tok_lbrace) {
-          /* This may have been intended to be a function definition.  Flush
-             tokens to the closing right brace. */
-          flush_until_matching_token();
-        } else {
-          (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
-        }  /* if */
+      if (sym == NULL) {
+        sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
       }  /* if */
     }  /* if */
-    if (sym != NULL) {
+    if (is_error_locator(locator)) {
+      /* Ignore it. */
+    } else if (sym == NULL) {
+      /* No symbol, which means the lookup failed. */
+      pos_st_error(ec_undefined_identifier, &locator.source_position,
+                   locator.symbol_header->identifier);
+    } else if (is_function_type(type) && is_function_or_template_symbol(sym)) {
+      sym = find_matching_template_instance(sym, type);
+    } else if (sym->kind == (a_symbol_kind)sk_static_data_member &&
+               sym->variant.static_data_member.instance_ptr != NULL) {
+      /* Okay. */
+    } else {
+      pos_sy_error(ec_entity_cannot_be_specialized,
+                   &locator.source_position, sym);
+      sym = NULL;
+    }  /* if */
+    if (sym == NULL) {
+      /* Check for the semicolon. */
+      if (curr_token == tok_lbrace) {
+        /* This may have been intended to be a function definition.  Flush
+           tokens to the closing right brace. */
+        flush_until_matching_token();
+      } else {
+        (void)required_token_no_advance(tok_semicolon, ec_exp_semicolon);
+      }  /* if */
+    } else {
+      /* The symbol is not NULL. */
       check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
                       sym->kind == (a_symbol_kind)sk_member_function ||
                       sym->kind == (a_symbol_kind)sk_static_data_member);
@@ -8617,11 +8608,9 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   a_decl_flag_set               do_flags, dso_flags;
   a_type_qualifier_set          qualifiers;
   a_decl_modifier	        decl_modifiers;
-  a_symbol_ptr                  orig_sym;
   a_symbol_ptr                  new_sym;
   a_source_sequence_entry_ptr   declarator_ssep;
   a_symbol_ptr		        sym;
-  a_boolean			err = FALSE;
   a_token_kind			end_of_statement_token;
 
   /* If this is a pragma it will end with a tok_newline, if not
@@ -8650,7 +8639,6 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     } else {
       /* Something else -- issue an error. */
       sym_error(ec_not_instantiatable_entity, sym);
-      err = TRUE;
     }  /* if */
     goto done;
   } else {
@@ -8673,7 +8661,6 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
   if (sym == NULL) {
     sym = normal_id_lookup(&locator, IDL_NO_OPTIONS);
   }  /* if */
-  orig_sym = sym;
   if (sym == NULL) {
     /* No symbol was found.  If the declarator has a function type
        then say that the name is undefined.  If it was not a function
@@ -8685,7 +8672,6 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
       pos_st_error(ec_undefined_identifier, &locator.source_position,
                    locator.symbol_header->identifier);
     }  /* if */
-    err = TRUE;
   } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
     if (sym->variant.static_data_member.instance_ptr != NULL) {
       /* A static data member -- set the instantiation flags. */
@@ -8694,77 +8680,22 @@ TRUE if this is a pragma and FALSE if it is an explicit instantiation.
     } else {
       /* A static data member, but of a template class. */
       sym_error(ec_not_instantiatable_entity, sym);
-      err = TRUE;
     }  /* if */
-  } else if (!is_function_symbol(sym) &&
-             sym->kind != (a_symbol_kind)sk_function_template) {
+  } else if (!is_function_or_template_symbol(sym)) {
     /* Not a function symbol -- issue an error. */
     pos_error(ec_invalid_instantiation_argument, start_pos);
-    err = TRUE;
   } else if (!is_function_type(type)) {
     /* The symbol represents a function but the type is not a routine
        type.  This can occur if a declaration contains the name of a
        function but the declaration is not a function declarator. */
     pos_sy_error(ec_not_compatible_with_previous_decl,
                  &locator.source_position, sym);
-  } else if (is_member_function_symbol(sym)) {
-    /* A member function symbol, find the member function that matches
-       the specified type. */
-    sym = member_function_redecl_sym(sym, type);
-    if (sym == NULL) {
-      sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
-      err = TRUE;
-    } else {
-      /* Update the flags for the symbol found. */
-      update_instantiation_flags(sym, kind, start_pos,
-                                 /*is_class_instantiation=*/FALSE, is_pragma);
-    }  /* if */
   } else {
-    /* A regular function name that is expected to represent one or
-       more function templates.  Loop through the function templates
-       and find an instance that matches the specified function type.
-       If none exists, a new one can is generated, if possible.  If
-       more than one exists (or can be generated) an error is issued. */
-    a_boolean		is_list;
-    a_boolean		any_found = FALSE;
-    a_symbol_ptr	sym_found = NULL;
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      sym = sym->variant.overloaded_function.symbols;
-      is_list = TRUE;
-    } else {
-      is_list = FALSE;
-    }  /* if */
-    for (; sym != NULL; sym = is_list ? sym->next : NULL) {
-      a_symbol_ptr	lookup_sym = NULL;
-      /* If this is a function template symbol, use it to find a function
-	 that matches the type we are looking for.  If it is a member
-	 function symbol, get the corresponding function template symbol
-	 from the function instantiation entry. */
-      if (sym->kind == (a_symbol_kind)sk_function_template) {
-        lookup_sym = sym;
-      } else if (sym->kind == (a_symbol_kind)sk_member_function &&
-	         sym->variant.routine.instance_ptr != NULL) {
-        lookup_sym = sym->variant.routine.instance_ptr->template_sym;
-      }  /* if */
-      /* Look for a match on the list of instantiations. */
-      if (lookup_sym != NULL) {
-        sym_found = matching_template_function(lookup_sym, type,
-                                               /*is_decl_context=*/TRUE);
-        if (sym_found != NULL) {
-	  if (any_found) {
-	    sym_error(ec_ambiguous_overloaded_function, orig_sym);
-	    err = TRUE;
-	    break;
-          }  /* if */
-	  any_found = TRUE;
-	  new_sym = sym_found;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    if (!any_found) {
-      sym_error(ec_no_match_for_type_of_overloaded_function, orig_sym);
-      err = TRUE;
-    } else if (!err) {
+    /* The symbol found is a function, and the type returned from declarator
+       is a function type.  Match this declaration with a previous
+       declaration or a template instance. */
+    new_sym = find_matching_template_instance(sym, type);
+    if (new_sym != NULL) {
       /* Update the flags for the symbol found. */
       update_instantiation_flags(new_sym, kind, start_pos,
                                  /*is_class_instantiation=*/FALSE, is_pragma);
