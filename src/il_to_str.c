@@ -3190,7 +3190,7 @@ name_cases:
   if (need_reinterpret_cast) octl->output_str(")");
   if (need_cast_close_paren) octl->output_str(")");
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-done:
+done:;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 }  /* form_constant */
 
