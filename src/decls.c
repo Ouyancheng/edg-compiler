@@ -8253,6 +8253,10 @@ and for the instantiation of template functions.
   (void)check_function_return_type(rout_type,
                                    &rout_ptr->source_corresp.decl_position,
                                    /*is_call=*/FALSE);
+  /* In certain very obscure cases, the routine type associated with
+     rout_ptr may be replaced by an equivalent type entry.  Refetch the type,
+     just in case. */
+  rout_type = skip_typerefs(rout_ptr->type);
   rtsp = rout_type->variant.routine.extra_info;
   if (class_type != NULL && !(flags & SFB_NO_CLASS_REACTIVATION)) {
     /* Push a class symbol reactivation scope, to make class member names
