@@ -550,7 +550,7 @@ not specifically allow this syntax, but it is supported by cfront.
   if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
       get_class_qualifier(&class_type, &is_file_scope_qualifier,
                           &has_global_qualifier, &is_ptr_to_member, &err)) {
-    if (class_type == ssep->assoc_type) {
+    if (!is_ptr_to_member && class_type == ssep->assoc_type) {
       is_member_id = TRUE;
       /* Skip to the token after the qualifier (the identifier). */
       get_token();
