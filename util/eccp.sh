@@ -98,10 +98,12 @@ cc_command="$EDG_C_TO_OBJ_COMPILER $EDG_C_TO_OBJ_DEFAULT_OPTIONS"
 # versions of the front and that don't support then --gen_c_file_name
 # option.
 #
-gen_c_in_curr_dir=0
-if [ "$EDG_GEN_C_IN_CURR_DIR" != "" ] ; then
-  gen_c_in_curr_dir=1
-fi
+gen_c_in_curr_dir=${EDG_GEN_C_IN_CURR_DIR-0}
+#
+# Flag that indicates that the old instantiation information file
+# format (without the current directory) should be used.
+#
+old_ii_format=${EDG_OLD_II_FORMAT-0}
 #
 # The suffix to be used on the generated C file.
 #
@@ -151,6 +153,10 @@ rofiles=
 loptions=
 Loptions=
 lfiles=
+#
+# Other options to be passed to the linker
+#
+ldoptions=
 #
 # Options to be passed to the underlying C compiler
 #
@@ -328,7 +334,7 @@ do
       ;;
     -Bstatic)
 #     Pass through to linker.
-      loptions=$loptions" "$1
+      ldoptions=$ldoptions" "$1
       ;;
     -purify | --purify)
 #     Link using the purify command
@@ -348,6 +354,10 @@ do
     --pch_test_mode)
 #     Special option for testing precompiled headers
       pch_test_mode=1
+      ;;
+    --old_ii_format)
+#     Use the old .ii file format that does not include the current directory
+      old_ii_format=1
       ;;
     *\.a)
 #     Collect a list of library archive names (.a) files.
@@ -590,6 +600,13 @@ if [ $cmode -eq 0 -a $more_than_one_c_file -eq 0 -a $cc_only -eq 0 -a	\
   feoptions=$feoptions" -tused"
 fi
 #
+# If we should use the old .ii file format, update the prelinker default
+# options.
+#
+if [ $old_ii_format -ne 0 ] ; then
+  EDG_PRELINK_DEFAULT_OPTIONS=$EDG_PRELINK_DEFAULT_OPTIONS" -R1"  
+fi
+#
 # Run through the list of .c files and compile.
 #
 any_errors=0
@@ -669,6 +686,9 @@ do
       ii_tmp_file=$TMPDIR/$$edgII
       sed -e "1,1 d" $ii_file_name >$ii_tmp_file
       echo $instantiation_command_line $cfile >$ii_file_name
+      if [ $old_ii_format -ne 1 ] ; then
+        pwd >>$ii_file_name
+      fi
       cat $ii_tmp_file >>$ii_file_name
       rm -f $ii_tmp_file
     fi
@@ -775,7 +795,7 @@ then
 #     Note:  -lC is missing from this command and is supplied later using
 #     the variable link_command_suffix.
       link_command="$cc_command $c_to_obj_options $Loptions -L$LIBDIR \
-                       -o $executable \
+                       $ldoptions -o $executable \
                        $ofiles $lfiles $loptions $EDG_STD_LIBS \
 		       $EDG_C_TO_OBJ_LIBRARIES"
       link_command_suffix=" -lC$EDG_LIB_SUFFIX"
