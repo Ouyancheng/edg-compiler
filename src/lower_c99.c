@@ -1047,6 +1047,10 @@ in C99 mode to represent a compound literal.
   set_expr_insert_location(expr, &insert_location);
   set_var_init_pos_descr(var, &ipd);
   /* Lower the initialization. */
+  if (dip->kind == (a_dynamic_init_kind)dik_constant ||
+      dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+    lower_designated_initializers(dip->variant.constant);
+  }  /* if */
   lower_dynamic_init(dip, &ipd,
                      (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                      (a_constructor_init_ptr)NULL, LDIO_NONE,
