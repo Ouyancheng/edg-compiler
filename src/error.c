@@ -724,7 +724,7 @@ error code.
       m = "constant string subscript out of range";
       break;
     case ec_declared_but_not_referenced:
-      m = "%nf declared and never referenced";
+      m = "%n declared and never referenced";
       break;
     case ec_pcc_address_of_array:
       m = "\"&\" applied to an array has no effect";
