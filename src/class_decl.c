@@ -11313,9 +11313,19 @@ Check that this is a valid type and if so make member_type a friend.
                           &locator_for_curr_id.source_position,
                           class_key_string);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        if (class_type->variant.class_struct_union.is_template_class  &&
+            !class_type
+                    ->variant.class_struct_union.is_prototype_instantiation &&
+            !class_type->variant.class_struct_union.is_specialized) {
+          /* We're parsing a normal instantiation and it is not to be
+             recorded in the source sequence list in this configuration. */
+          goto done_with_sse_for_nonstandard_friend;
+        }  /*  */
+#endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
         if (kind == (a_type_kind)tk_template_param) {
           if (!prototype_instantiations_in_il) {
-            /* We are in a prototype instantiation, but we do not record them,
+            /* We are in a prototype instantiation, but we do not record them
                in the IL: Nothing should be done in terms of source sequence
                entries. */
             goto done_with_sse_for_nonstandard_friend;
