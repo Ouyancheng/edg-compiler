@@ -10084,7 +10084,7 @@ first operand (but not the second) has been lowered already.
       select1_node = integral_promote_node(
                               expr_for_pmf_component(op1_node, mptr_d_field,
                                                      /*need_copy=*/TRUE,
-                                                     vars_can_change);
+                                                     vars_can_change));
       select1_node->next = integral_promote_node(
                               expr_for_pmf_component(op2_node, mptr_d_field,
                                                      /*need_copy=*/TRUE,
