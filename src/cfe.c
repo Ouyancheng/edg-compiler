@@ -71,10 +71,8 @@ int edg_main(int argc, char *argv[])
   /* Get the execution starting time.  Do this unconditionally because the
      timing command line option will not have been processed yet. */
   get_timer(&start_time);
-  /* Set handlers for unusual abort signals. */
-  set_signal_handlers();
-  /* Do host-specific initialization. */
-  host_envir_startup_init();
+  /* Do early (before command-line processing) initialization. */
+  fe_early_init();
   /* Process the command line. */
   proc_command_line(argc, argv);
   /* Initialize values that apply to the entire compilation in multiple

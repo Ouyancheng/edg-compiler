@@ -1497,7 +1497,7 @@ typedef a_signal_handler_return_value a_signal_handler(int, ...);
 typedef a_signal_handler_return_value a_signal_handler(int);
 #endif /* ifdef __SUNPRO_CC */
 
-void set_signal_handlers(void)
+static void set_signal_handlers(void)
 /*
 Enable any signal handlers necessary to catch signals that may come up during
 execution of the front end (for example, SIGINT).
@@ -2521,13 +2521,15 @@ is done after command line processing.
 }  /* host_envir_one_time_init */
 
 
-void host_envir_startup_init(void)
+void host_envir_early_init(void)
 /*
 One time initialization that must take place early on in the front end.
 This is done before command line processing.
 */
 {
   char  *ptr;
+  /* Set handlers for unusual abort signals. */
+  set_signal_handlers();
 #if SVR4_TRAP_NULL_POINTER_REFERENCES
   svr4_trap_null_pointer_references();
 #endif /* SVR4_TRAP_NULL_POINTER_REFERENCES */
@@ -2535,7 +2537,7 @@ This is done before command line processing.
   ptr = get_curr_dir_name();
   current_directory_name = (char *)alloc_general((sizeof_t)strlen(ptr) + 1);
   (void)strcpy(current_directory_name, ptr);
-}  /* host_envir_startup_init */
+}  /* host_envir_early_init */
 
 
 void host_envir_init(void)

@@ -1159,8 +1159,6 @@ extern void open_mapped_input_file(char *file_name);
 extern void close_mapped_input_file(void);
 #endif /* __WIN32__ */
 
-/* Set up signal handlers. */
-extern void set_signal_handlers(void);
 /* Custom version of memcmp. */
 extern int smemcmp(char     *s1,
                    char     *s2,

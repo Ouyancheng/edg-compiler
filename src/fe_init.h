@@ -19,6 +19,7 @@ fe_init.h -- Declarations relating to fe_init.c (having to do with
 #define FE_INIT_H 1
 
 /* Initialize front end: */
+extern void fe_early_init(void);
 extern void fe_one_time_init(void);
 extern void fe_init_part_1(void);
 extern void fe_init_for_pch_prefix_scan(void);
