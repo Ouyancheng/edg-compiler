@@ -913,6 +913,7 @@ Process the arguments on the command line that invoked the compiler.
         C_dialect = C_dialect_cplusplus;
         allow_anachronisms = TRUE;
         long_lifetime_temps = TRUE;
+        disallow_operator_keywords = TRUE;
         break;
       case optk_cfront_3_0_mode:
         /* cfront 3.0 compatibility mode.  If both 2.1 and 3.0 modes are
@@ -924,6 +925,7 @@ Process the arguments on the command line that invoked the compiler.
         C_dialect = C_dialect_cplusplus;
         allow_anachronisms = TRUE;
         long_lifetime_temps = TRUE;
+        disallow_operator_keywords = TRUE;
         break;
       case optk_front_end_only:
         /* Run just the front end to do syntax checking; do not run the back

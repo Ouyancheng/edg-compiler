@@ -5,7 +5,8 @@ Version 2.28
 The front end now supports C++ digraphs (e.g., <&%, %>, etc.), and
 the operator keywords (e.g., bitor, bitand, or, etc.)  The operator
 keywords are enabled by default, but may be disabled with the
---no_operator_keywords command line option.
+--no_operator_keywords command line option.  They are also disabled
+in cfront mode.
 
 2/17/95  Destructor names containing template parameter lists
 
