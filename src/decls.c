@@ -1232,7 +1232,8 @@ depth, find and return the depth of the containing non-class scope.
 */
 {
   db_enter(4, "compute_friend_effective_decl_level");
-  while (scope_stack[depth].kind == (a_scope_kind)sck_class_struct_union) {
+  while (scope_stack[depth].kind == (a_scope_kind)sck_class_struct_union ||
+         scope_stack[depth].kind == (a_scope_kind)sck_class_reactivation) {
     depth--;
     if (scope_stack[depth].kind == (a_scope_kind)sck_template_instantiation) {
       if (scope_stack[depth].in_prototype_instantiation) {
