@@ -140,7 +140,9 @@ EXTERN a_boolean
 Error routines.
 */
 #if CHECKING
+/*lint -sem(internal_error, r_no)*/
 extern DOES_NOT_RETURN internal_error(char *error_message);
+/*lint -sem(assertion_failed, r_no)*/
 extern DOES_NOT_RETURN assertion_failed(char *filename,
 			                int  line_number,
 					char *string1,
@@ -204,7 +206,9 @@ extern a_boolean set_severity_for_error_tag(char		*tag,
 				            an_error_severity	severity);
 extern a_boolean set_severity_for_error_number(int		  error_number,
 				               an_error_severity  severity);
+/*lint -sem(command_line_error, r_no)*/
 extern DOES_NOT_RETURN command_line_error(an_error_code error_code);
+/*lint -sem(str_command_line_error, r_no)*/
 extern DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
                                               char          *fill_in_string);
 extern void pos_st_diagnostic(an_error_severity error_severity,
@@ -368,11 +372,14 @@ extern void pos_syty_error(an_error_code     error_code,
 extern void sym_error(an_error_code   error_code,
                       struct a_symbol *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+/*lint -sem(pos_st_catastrophe, r_no)*/
 extern DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
                                           a_source_position *error_pos,
                                           char              *error_string);
+/*lint -sem(str_catastrophe, r_no)*/
 extern DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
                                        char          *error_string);
+/*lint -sem(catastrophe, r_no)*/
 extern DOES_NOT_RETURN catastrophe(an_error_code error_code);
 
 /* Interfaces for producing multiple message diagnostics. */
@@ -443,6 +450,7 @@ extern void end_error(void);
 extern void start_command_line_error(an_error_code      error_code,
 			             char		 *error_string);
 
+/*lint -sem(end_command_line_error, r_no)*/
 extern DOES_NOT_RETURN end_command_line_error(void);
 
 /* Report a syntax error, flush to a token in the stop set. */

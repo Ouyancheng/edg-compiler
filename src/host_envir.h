@@ -1522,6 +1522,7 @@ EXTERN void display_time_used(char		*message,
 
 
 #if STANDALONE_UTILITY_PROGRAM
+/*lint -sem(normal_termination, r_no)*/
 extern DOES_NOT_RETURN normal_termination(void);
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
@@ -1547,10 +1548,12 @@ typedef enum /*an_error_severity*/ {
 } an_error_severity;
 
 /* Terminate the compilation. */
+/*lint -sem(term_compilation, r_no)*/
 extern DOES_NOT_RETURN term_compilation(an_error_severity severity);
 /* Write a compilation signoff message if appropriate. */
 extern void write_signoff(void);
 /* Terminate the compilation without a signoff message. */
+/*lint -sem(exit_compilation, r_no)*/
 extern DOES_NOT_RETURN exit_compilation(an_error_severity severity);
 #endif /* !defined(COMPILING_MK_ERRINFO) */
 
