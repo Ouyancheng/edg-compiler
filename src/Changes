@@ -1,9 +1,23 @@
 Version 2.40
 
+11/23/98  Needed flag processing for local static initializer
+
+The processing to set the "needed" flag unnecessarily set that flag
+on an unreferenced initialized local static variable.  The flag is
+no longer set in such a case.
+
+  struct SSS {
+    int aa;
+    int bb;
+  };
+  void fff() {
+    static const SSS sss = {1, 2};
+  }
+
 11/20/98  Incorrect cross-reference position on call of overloaded function
 
-The cross-reference position for "S::f" pointed to the "S" while it should
-have pointed to the "f".  This has been fixed.
+In the following example, the cross-reference position for "S::f" pointed
+to the "S" while it should have pointed to the "f".  This has been fixed.
 
   struct S {
     static void f();
