@@ -4546,6 +4546,7 @@ typedef struct a_routine {
 			   the IL is passed to the back end).  It is for
 			   front-end use only. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+  bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
 		decl_modifiers;

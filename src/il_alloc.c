@@ -1394,6 +1394,9 @@ to it.  The entry is allocated in the file scope memory region.
   rp->definition_needed           = FALSE;
   rp->keep_definition_in_il       = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
+#if CHECKING
+  rp->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
 #if DECL_MODIFIERS_IN_USE
   rp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
