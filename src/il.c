@@ -4033,6 +4033,7 @@ nonidentical.
 {
   a_boolean  eq = FALSE, unordered;
   a_type_ptr cp1_type = cp1->type, cp2_type = cp2->type;
+  a_boolean  same_types;
 
   if (cp1 == cp2) {
     eq = TRUE;
@@ -4042,8 +4043,32 @@ nonidentical.
     goto end_of_routine;
   }  /* if */
   if (!strictly_identical) {
-    cp1_type = skip_typerefs(cp1_type);
-    cp2_type = skip_typerefs(cp2_type);
+    /* The types must be "the same", but it is sufficient that they be
+       compatible (don't use the types_are_compatible or
+       types_are_redecl_compatible macros because we don't want errors
+       to be considered compatible with everything, but we do need
+       a[] and a[3] to be considered compatible, because in two
+       translation units the types might be different in that way). */
+    a_type_ptr eff_cp1_type = skip_typerefs(cp1_type);
+    a_type_ptr eff_cp2_type = skip_typerefs(cp2_type);
+    /* For address constants, compare the types underneath the pointer
+       types so that address of a[] and address of a[3] are considered
+       compatible. */
+    if (cp1->kind == (a_constant_repr_kind)ck_address &&
+        cp1->variant.address.kind == (an_address_base_kind)abk_variable &&
+        cp2->variant.address.kind == (an_address_base_kind)abk_variable &&
+        !cp1->implicit_cast &&
+        !cp2->implicit_cast &&
+        is_pointer_type(eff_cp1_type) &&
+        is_pointer_type(eff_cp2_type)) {
+      eff_cp1_type = type_pointed_to(eff_cp1_type);
+      eff_cp1_type = skip_typerefs(eff_cp1_type);
+      eff_cp2_type = type_pointed_to(eff_cp2_type);
+      eff_cp2_type = skip_typerefs(eff_cp2_type);
+    }  /* if */
+    same_types = f_types_are_compatible(eff_cp1_type,
+                                        eff_cp2_type,
+                                        TCF_REDECLARATION);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   } else if (cp1->expr != cp2->expr) {
     /* Do not attempt to share constants if they are the result of different
@@ -4051,15 +4076,13 @@ nonidentical.
     /* eq = FALSE; */
     goto end_of_routine;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  } else {
+    /* strictly_identical is TRUE. */
+    /* The types must be pointer-identical. */
+    same_types = same_entities(cp1_type, cp2_type);
   }  /* if */
-  /* If strict identity is required, the types must be pointer-identical.
-     Otherwise, it is sufficient that they be compatible (don't use the
-     types_are_compatible or types_are_redecl_compatible macros because we
-     don't want errors to be considered compatible with everything, but we
-     do need a[] and a[3] to be considered compatible). */
-  if (strictly_identical ? same_entities(cp1_type, cp2_type) :
-                           f_types_are_compatible(cp1_type, cp2_type,
-                                                  TCF_REDECLARATION)) {
+  /* The constants can be the same only if their types are the same. */
+  if (same_types) {
     switch (cp1->kind) {
       case ck_error:
         /* No further field to check. */
