@@ -53,6 +53,12 @@ extern a_boolean is_assignment_operator_for_copy(
                                             a_boolean             *is_ref_arg,
                                             a_type_qualifier_set  *qualifiers);
 
+extern void update_friend_function_info(a_routine_ptr   rout_ptr,
+					a_type_ptr      class_type);
+
+extern void decl_friend_class(a_type_ptr          class_type,
+			      a_type_ptr          friend_class_type);
+
 extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
                                                a_type_ptr    type);
 

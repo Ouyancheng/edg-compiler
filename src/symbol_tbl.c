@@ -2606,8 +2606,9 @@ template with no current instantiation or definition, we return FALSE.
           /* Get the instance symbol pointed to by the type from the scope
              stack entry. */
           if (is_instantiation_scope) {
-              /* Don't look beyond the innermost instantiation scope. */
-            break;
+              /* Don't look beyond the innermost instantiation scope that
+                 is not a nested instantiation. */
+            if (!ssep->nested_instantiation) break;
           } else {
             check_assertion_str(ssep->assoc_type != NULL,
 				"ccsict: assoc_type is NULL");
@@ -7139,6 +7140,7 @@ specific version of the template.
        be deferred. */
     if (kind == (a_scope_kind)sck_file ||
         kind == (a_scope_kind)sck_pragma ||
+        kind == (a_scope_kind)sck_template_instantiation ||
         kind == (a_scope_kind)sck_class_struct_union) {
       /* A scope that introduces a new level at which deferred access
          checks may be recorded. */

@@ -484,7 +484,7 @@ ec_qualifier_dropped_in_ref_init;;"initial value of reference has excess const/v
 ec_bad_nonconst_ref_init;;"initial value of reference to non-const has incorrect type"
 ec_delete_of_function_pointer;;"a pointer to function may not be deleted"
 ec_bad_conversion_function_decl;;"conversion function must be a nonstatic member function"
-ec_nonglobal_template_declaration;;"nonglobal template declaration is not allowed"
+ec_bad_template_declaration_scope;;"template declaration is not allowed at this point"
 ec_exp_lt;;"expected a \"<\""
 ec_exp_gt;;"expected a \">\""
 ec_missing_template_param;;"template parameter declaration is missing"

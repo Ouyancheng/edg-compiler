@@ -2961,8 +2961,8 @@ of a C++ class, struct, or union or a C struct or union.
 }  /* is_member_decl_start */
 
 
-static void decl_friend_class(a_type_ptr          class_type,
-                              a_type_ptr          friend_class_type)
+void decl_friend_class(a_type_ptr          class_type,
+		       a_type_ptr          friend_class_type)
 /*
 Do processing for declaring an entire class (friend_class_type) friend of
 the current class (class_type).
@@ -3093,6 +3093,42 @@ without it.
 }  /* member_function_redecl_sym */
 
 
+void update_friend_function_info(a_routine_ptr   rout_ptr,
+				 a_type_ptr      class_type)
+/*
+Update the list of befriending classes associated with rout_ptr to
+reflect that it is now a friend of class_type.  Also update class_type
+to indicate that the routine indicated by rout_ptr is a friend.
+*/
+{
+  a_class_list_entry_ptr clep;
+
+  clep = rout_ptr->befriending_classes;
+  /* Issue a warning if this is a duplicate friend declaration. */
+  for (; clep != NULL; clep = clep->next) {
+    if (clep->class_type == class_type) {
+      remark(ec_duplicate_friend_decl);
+      break;
+    } /* if */
+  } /* for */
+  if (clep == NULL) {
+    a_class_type_supplement_ptr ctsp;
+    a_routine_list_entry_ptr    rlep;
+    /* No duplication was detected. */
+    clep = alloc_list_entry_for_class();
+    clep->class_type = class_type;
+    clep->next = rout_ptr->befriending_classes;
+    rout_ptr->befriending_classes = clep;
+    /* Now add the routine to the friends list for the current class. */
+    ctsp = class_type->variant.class_struct_union.extra_info;
+    rlep = alloc_list_entry_for_routine();
+    rlep->routine = rout_ptr;
+    rlep->next = ctsp->friend_routines;
+    ctsp->friend_routines = rlep;
+  } /* if */
+}  /* update_friend_function_info */
+
+
 static a_symbol_ptr decl_friend_function(a_symbol_locator      *locator,
                                          a_type_ptr            class_type,
                                          a_type_ptr            function_type,
@@ -3109,11 +3145,8 @@ of the function, and again overloading is a possibility.
   a_symbol_ptr                 sym, ext_sym;
   an_id_linkage_kind           linkage;
   a_type_ptr                   old_type;
-  a_class_list_entry_ptr       clep;
   a_boolean                    is_overloaded_function;
   a_storage_class              storage_class;
-  a_class_type_supplement_ptr  ctsp;
-  a_routine_list_entry_ptr     rlep;
   a_symbol_reference_kind      srk_flags;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
 
@@ -3249,27 +3282,7 @@ of the function, and again overloading is a possibility.
     /* Set the source correspondence. */
     set_source_corresp(&sym->variant.routine.ptr->source_corresp, sym);
   } else {
-    clep = sym->variant.routine.ptr->befriending_classes;
-    /* Issue a warning if this is a duplicate friend declaration. */
-    for (; clep != NULL; clep = clep->next) {
-      if (clep->class_type == class_type) {
-        remark(ec_duplicate_friend_decl);
-        break;
-      }  /* if */
-    }  /* for */
-    if (clep == NULL) {
-      /* No duplication was detected. */
-      clep = alloc_list_entry_for_class();
-      clep->class_type = class_type;
-      clep->next = sym->variant.routine.ptr->befriending_classes;
-      sym->variant.routine.ptr->befriending_classes = clep;
-      /* Now add the routine to the friends list for the current class. */
-      ctsp = class_type->variant.class_struct_union.extra_info;
-      rlep = alloc_list_entry_for_routine();
-      rlep->routine = sym->variant.routine.ptr;
-      rlep->next = ctsp->friend_routines;
-      ctsp->friend_routines = rlep;
-    }  /* if */
+    update_friend_function_info(sym->variant.routine.ptr, class_type);
   }  /* if */
   if (func_info->is_definition) {
     /* Since this is a definition, record the current lint argsused and
@@ -5942,9 +5955,8 @@ Scan the body of a class definition, including the base classes list.
           }  /* if */
           /* Check for template declaration. */
           if (curr_token == tok_template) {
-            /* It is currently treated as an error to declare a template
-               that is a member of a class. */
-            local_defines_something = FALSE;
+            /* A friend template declaration may appear in a class
+	       declaration. */
             (void)template_declaration(&local_defines_something,
                                        /*no_advance_past_final_token=*/FALSE);
             goto next_declaration;

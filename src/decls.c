@@ -1315,10 +1315,6 @@ will be involved in overloading.
         (C_dialect != C_dialect_cplusplus &&
          (is_function && local_storage_class == (a_storage_class)sc_static))) {
       *effective_decl_level = DEPTH_OF_FILE_SCOPE;
-    } else if (scope_stack[decl_scope_level].kind ==
-                                     (a_scope_kind)sck_template_declaration) {
-      is_function_template_decl = TRUE;
-      *effective_decl_level = DEPTH_OF_FILE_SCOPE;
     } else if (C_dialect == C_dialect_cplusplus &&
                is_default_operator_new(locator, type)) {
       /* Default global operator new must always be entered at file scope. */
@@ -1326,6 +1322,14 @@ will be involved in overloading.
       is_default_global_operator_new = TRUE;
     } else {
       *effective_decl_level = decl_scope_level;
+      if (scope_stack[decl_scope_level].kind ==
+                                     (a_scope_kind)sck_template_declaration) {
+        /* Template declaration scopes may appear in the file scope, or
+           for friend declarations, in a class scope.  Skip out to the
+           enclosing scope before continuing. */
+        (*effective_decl_level)--;
+	is_function_template_decl = TRUE;
+      }  /* if */
       while (scope_stack[*effective_decl_level].kind ==
                                        (a_scope_kind)sck_class_struct_union) {
         /* This must be a friend function declaration.  Enter the name at the
@@ -1335,7 +1339,12 @@ will be involved in overloading.
         is_friend_decl = TRUE;
         if (scope_stack[*effective_decl_level].kind ==
                                  (a_scope_kind)sck_template_instantiation) {
-          *effective_decl_level = DEPTH_OF_FILE_SCOPE;
+          if (scope_stack[*effective_decl_level].in_prototype_instantiation) {
+            /* During prototype instantiation, use the instantiation scope
+               as the effective declaration scope. */
+          } else {
+            *effective_decl_level = DEPTH_OF_FILE_SCOPE;
+          }  /* if */
           break;
         }  /* if */
       }  /* while */
@@ -3165,7 +3174,7 @@ class template.
     /* Default. */
     storage_class = (a_storage_class)sc_extern;
   }  /* if */
-  effective_decl_level = DEPTH_OF_FILE_SCOPE;
+  effective_decl_level = depth_scope_stack;
   if (locator->is_qualified_name && locator->specific_symbol != NULL) {
     /* Member function template. */
     sym = locator->specific_symbol;
@@ -3271,7 +3280,7 @@ class template.
       } else {
         /* No overloading.  Simply create a new symbol. */
         sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
-                                 DEPTH_OF_FILE_SCOPE,
+                                 effective_decl_level,
                                  /*suppress_redecl_error=*/FALSE);
       }  /* if */
     } else {

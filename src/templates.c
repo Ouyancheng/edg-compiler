@@ -456,10 +456,11 @@ declaration as a whole.
      update_source_sequence_list directly. */
   update_source_sequence_list((char *)tp, (an_il_entry_kind)iek_template,
                               (a_source_sequence_entry_ptr)NULL);
-  check_assertion(depth_scope_stack == DEPTH_OF_FILE_SCOPE);
-  /* Set the source-sequence insert point for instantiations to NULL -- no
-     instantiations should be inserted before it. */
-  scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point = NULL;
+  if (depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
+    /* Set the source-sequence insert point for instantiations to NULL -- no
+       instantiations should be inserted before it. */
+    scope_stack[DEPTH_OF_FILE_SCOPE].ss_list_instantiation_insert_point = NULL;
+  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
   return tp;
@@ -568,6 +569,22 @@ itself recursively to process classes nested within this class.
   }  /* if */
   db_exit();
 }  /* set_instantiation_required_for_template_class_members */
+
+
+static void update_befriending_classes_for_class
+                           (a_template_symbol_supplement_ptr tssp,
+			    a_type_ptr                       class_type)
+/*
+Loop through the list of classes that have declared this template
+class a friend and update the friend information.
+*/
+{
+  a_class_list_entry_ptr   clep;
+
+  for (clep = tssp->befriending_classes; clep != NULL; clep = clep->next) {
+    decl_friend_class(clep->class_type, class_type);
+  }  /* for */
+}  /* update_befriending_classes_for_class */
 
 
 void f_check_for_uninstantiated_template_class(a_type_ptr  tp)
@@ -819,6 +836,71 @@ encountered.
 }  /* instantiate_class_template */
 
 
+static
+a_boolean reactivate_class_declared_in(a_type_ptr  class_declared_in,
+				       a_boolean   *instantiation_scope_pushed)
+/*
+This routine is used when instantiating a function that was declared
+within a class definition (which may be a template class definition).
+The context must be reactivated so that names used in the template
+definition can be looked up properly.  If the class is a template
+class instance, a template instantiation scope must be pushed to make
+template parameters from the class visible.
+*/
+{
+  a_type_ptr                        class_type;
+  a_symbol_ptr                      instance_sym;
+  a_symbol_ptr                      template_sym;
+  a_template_symbol_supplement_ptr  tssp;
+  a_class_symbol_supplement_ptr     cssp;
+  a_template_arg_ptr                template_arg_list;
+  a_boolean                         is_nested_instantiation = FALSE;
+
+  class_type = skip_typerefs(class_declared_in);
+  instance_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+  *instantiation_scope_pushed = FALSE;
+  if (is_template_class_and_not_specific_def_symbol(instance_sym)) {
+    cssp = instance_sym->variant.class_struct_union.extra_info;
+    template_sym = cssp->class_template;
+    tssp = template_sym->variant.template_info;
+    if (tssp->variant.class_template.prototype_instantiation_complete) {
+      /* Push an template instantiation scope associated with the
+         class in which this template was defined.  Don't do this if
+         the prototype instantiation is already in process. */
+      template_arg_list = class_type->variant.class_struct_union.extra_info->
+                                                           template_arg_list;
+      (void)push_template_instantiation_scope(tssp->declaration_scope,
+					      class_type,
+					      (a_routine_ptr)NULL,
+					      instance_sym, template_sym,
+					      template_arg_list,
+					      /*nested_instantiation=*/FALSE);
+      *instantiation_scope_pushed = TRUE;
+    }  /* if */
+    /* This flag needs to be set both when a scope is pushed and when the
+       prototype scope is still pending. */
+    is_nested_instantiation = TRUE;
+  }  /* if */
+  /* Reactive the class scope. */
+  push_class_reactivation_scope(class_type);
+  return is_nested_instantiation;
+}  /* reactivate_class_declared_in */
+
+
+static void deactivate_class_declared_in(a_boolean  instantiation_scope_pushed)
+/*
+Pop any scopes pushed by a prior call of reactivate_class_declared_in.
+*/
+{
+  pop_class_reactivation_scope();
+  if (instantiation_scope_pushed) {
+    /* Pop the template instantiation scope. */
+    pop_scope();
+  }  /* if */
+}  /* deactivate_class_declared_in */
+
+
+
 static void instantiate_template_function(a_template_instance_ptr  tip)
 /*
 Instantiate the body of the template function associated with tip.
@@ -827,6 +909,9 @@ Instantiate the body of the template function associated with tip.
   a_symbol_ptr                      rout_sym;
   a_routine_ptr                     rout_ptr;
   a_template_symbol_supplement_ptr  tssp;
+  a_type_ptr                        class_declared_in;
+  a_boolean                         is_nested_instantiation = FALSE;
+  a_boolean                         instantiation_scope_pushed;
 
   db_enter(3, "instantiate_template_function");
   rout_sym = tip->instance_sym;
@@ -910,12 +995,20 @@ Instantiate the body of the template function associated with tip.
     }  /* if */
   }  /* if */
   ++(tssp->pending_instantiations);
+  /* If this template was declared within a class scope, reactivate
+     that scope. */
+  class_declared_in = tssp->variant.function.class_declared_in;
+  if (class_declared_in != NULL) {
+    is_nested_instantiation =
+                     reactivate_class_declared_in(class_declared_in,
+						  &instantiation_scope_pushed);
+  }  /* if */
   /* Push the template instantiation scope. */
   (void)push_template_instantiation_scope(tssp->declaration_scope,
 					  (a_type_ptr)NULL, rout_ptr,
 					  rout_sym, tip->template_sym,
 					  tip->arg_list,
-					  /*nested_instantiation=*/FALSE);
+					  is_nested_instantiation);
   if (rout_sym->defined) {
     /* Member functions of class templates where the definition appears
        inside the class definition will already have been marked as defined
@@ -947,6 +1040,11 @@ Instantiate the body of the template function associated with tip.
   process_curr_construct_pragmas(rout_sym, (a_statement_ptr)NULL);
   /* Pop the template instantiation scope. */
   pop_scope();
+  /* Pop the reactivation of the class in which this template was declared,
+     if necessary. */
+  if (class_declared_in != NULL) {
+    deactivate_class_declared_in(instantiation_scope_pushed);
+  }  /* if */
   --(tssp->pending_instantiations);
   /* In the normal case the current token should be end_of_source, which was
      inserted to mark the end of the cached token stream. If necessary, keep
@@ -1224,7 +1322,7 @@ included in the search.
   a_template_arg_ptr                tap;
 
   db_enter(3, "find_template_class");
-  tssp = class_template_sym->variant.template_info ;
+  tssp = class_template_sym->variant.template_info;
   sym = NULL;
   prototype_sym = tssp->variant.class_template.prototype_instantiation;
   if (prototype_allowed && prototype_sym != NULL) {
@@ -1319,6 +1417,10 @@ included in the search.
     if (sym->variant.class_struct_union.extra_info->is_nonreal_class) {
       class_type->size = 1;
       class_type->alignment = 1;
+    } else if (sym != prototype_sym) {
+      /* Update the friend information associated with this template.
+         These are the classes that declared this template as a friend. */
+      update_befriending_classes_for_class(tssp, class_type);
     }  /* if */
 #if DEBUG
     if (debug_level >= 3) {
@@ -1869,7 +1971,8 @@ Rescan the default arguments of a function template.
 
 
 static void scan_template_declaration(a_boolean         is_initial_decl,
-                                      a_boolean         nonglobal_decl_err,
+                                      a_boolean         is_member_decl,
+				      a_boolean         invalid_decl_scope_err,
                                       a_decl_flag_set   *dso_flags,
                                       a_decl_flag_set   *do_flags,
                                       a_symbol_locator  *locator,
@@ -1903,24 +2006,22 @@ of a function template.
   if (is_initial_decl) {
     dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
     di_flags |= DI_IS_TEMPLATE_DECLARATION;
-    if (nonglobal_decl_err) {
-      /* If this declaration does not appear at file scope, then it might
-         be inside a class definition -- in which case set another flag to
-         avoid error recovery problems. */
-      if (scope_stack[decl_scope_level-1].kind ==
-                                     (a_scope_kind)sck_class_struct_union) {
-        dsi_flags |= DSI_IS_MEMBER_DECLARATION;
-      }  /* if */
-    } else {
-      begin_deferral_of_access_checks();
-    }  /* if */
     /* An end-of-source marker is not present when the initial declaration
        is scanned. */
     add_stop_token(tok_lbrace);
     add_stop_token(tok_colon);
     add_stop_token(tok_semicolon);
+    if (!invalid_decl_scope_err) {
+      /* This should only be done when we know that this is a valid template
+         declaration scope. */
+      begin_deferral_of_access_checks();
+    }  /* if */
   } else {
     add_stop_token(tok_end_of_source);
+  }  /* if */
+  if (is_member_decl) {
+    /* This is a declaration inside a class definition. */
+    dsi_flags |= DSI_IS_MEMBER_DECLARATION;
   }  /* if */
   (void)decl_specifiers(dsi_flags, dso_flags, storage_class, type,
                         &qualifiers, decl_modifiers);
@@ -1940,11 +2041,6 @@ of a function template.
         (*type)->kind == (a_type_kind)tk_typeref) {
       func_info->function_type_from_typedef = TRUE;
     }  /* if */
-    if (nonglobal_decl_err) {
-      /* An error has already been issued on a template declaration that
-         is not at file scope. */
-      set_to_named_error_locator(*locator);
-    }  /* if */
   }  /* if */
   if (is_initial_decl) {
     /* An end-of-source marker is not present when the initial declaration
@@ -1952,7 +2048,7 @@ of a function template.
     remove_stop_token(tok_lbrace);
     remove_stop_token(tok_colon);
     remove_stop_token(tok_semicolon);
-    if (!nonglobal_decl_err) {
+    if (!invalid_decl_scope_err) {
       /* We can't reliably check accesses in template declarations.  We need to
          wait until we have an instance. */
       discard_deferred_access_checks();
@@ -1966,6 +2062,22 @@ of a function template.
     flush_past_token_cache_terminator();
   }  /* if */
 }  /* scan_template_declaration */
+
+
+static void update_befriending_classes_for_function
+                           (a_template_symbol_supplement_ptr tssp,
+			    a_routine_ptr                    rout_ptr)
+/*
+Loop through the list of classes that have declared this template
+function a friend and update the friend information.
+*/
+{
+  a_class_list_entry_ptr   clep;
+
+  for (clep = tssp->befriending_classes; clep != NULL; clep = clep->next) {
+    update_friend_function_info(rout_ptr, clep->class_type);
+  }  /* for */
+}  /* update_befriending_classes_for_function */
 
 
 static a_symbol_ptr make_template_function(a_symbol_ptr        templ_sym,
@@ -1987,6 +2099,9 @@ type based on the template argument list and the template parameter list
   a_routine_ptr                     templ_rout, rp;
   a_type_ptr			    rout_type = NULL;
   a_decl_flag_set		    dso_flags;
+  a_boolean                         is_nested_instantiation = FALSE;
+  a_boolean                         instantiation_scope_pushed;
+  a_type_ptr                        class_declared_in;
 
   db_enter(4, "make_template_function");
 #if CHECKING
@@ -2024,6 +2139,15 @@ type based on the template argument list and the template parameter list
     a_decl_modifier	decl_modifiers;
     a_source_position   saved_pos_curr_token;
     a_source_position   saved_error_position;
+
+    /* If this template was declared within a class scope, reactivate
+       that scope. */
+    class_declared_in = tssp->variant.function.class_declared_in;
+    if (class_declared_in != NULL) {
+      is_nested_instantiation =
+                    reactivate_class_declared_in(class_declared_in,
+						 &instantiation_scope_pushed);
+    }  /* if */
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_template_instantiation_scope is NULL.  This is done
        because the type associated with the symbol is not yet complete
@@ -2034,17 +2158,19 @@ type based on the template argument list and the template parameter list
 					    (a_routine_ptr)NULL,
 					    (a_symbol_ptr)NULL, templ_sym,
 					    templ_arg_list,
-					    /*nested_instantiation=*/FALSE);
+					    is_nested_instantiation);
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
     reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
     /* Rescan the tokens of the function declaration. */
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
+    begin_deferral_of_access_checks();
     rescan_reusable_cache(&tssp->variant.function.decl_token_cache);
     clear_func_info(&func_info);
     scan_template_declaration(/*is_initial_decl=*/FALSE,
-                              /*nonglobal_decl_err=*/FALSE,
+                              /*is_member_decl=*/class_declared_in != NULL,
+			      /*invalid_decl_scope_err=*/FALSE,
                               &dso_flags, &do_flags, &locator,
                               &rout_type, &func_info, &storage_class,
                               &decl_modifiers);
@@ -2066,6 +2192,11 @@ type based on the template argument list and the template parameter list
                                   /*is_redecl=*/FALSE, /*is_definition=*/TRUE);
     /* Add it to the file scope routines list. */
     add_to_routines_list(rp, /*at_file_scope=*/TRUE);
+    if (tssp->befriending_classes != NULL) {
+      update_befriending_classes_for_function(tssp, rp);
+    }  /* if */
+    perform_deferred_access_checks_for_function(rp);
+    end_deferral_of_access_checks();
   }
   /* Create the associated function instantiation entry and link it
      onto the front of the instantiation list for the template. */
@@ -2082,6 +2213,11 @@ type based on the template argument list and the template parameter list
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   /* Pop the template instantiation scope. */
   pop_scope();
+  /* Pop the reactivation of the class in which this template was declared,
+     if necessary. */
+  if (class_declared_in != NULL) {
+    deactivate_class_declared_in(instantiation_scope_pushed);
+  }  /* if */
   switch_back_to_original_region(region_to_switch_back_to);
   {
     a_symbol_locator	locator;
@@ -2536,6 +2672,10 @@ and create a function instantiation entry to bind the two symbols together.
   tip->arg_list =
              tp->variant.class_struct_union.extra_info->template_arg_list;
   tssp = sym->variant.routine.instance_ptr->template_info;
+  if (tssp->befriending_classes != NULL) {
+    update_befriending_classes_for_function(tssp,
+					    rout_sym->variant.routine.ptr);
+  }  /* if */
   /* Link the new entry to the start of the instantiation list of the
      function template. */
   tip->next = tssp->variant.function.instantiations;
@@ -2964,16 +3104,50 @@ Make sure that any default arguments are at the end of the parameter list.
     }  /* if */
     tpp = tpp->next;
   }  /* while */
- }  /* check_template_param_default_args */
+}  /* check_template_param_default_args */
 
 
-static a_boolean class_template_declaration(
-                                    a_template_param_ptr templ_params,
-                                    a_boolean            nonglobal_decl_err,
-                                    a_symbol_ptr         *p_sym_ptr,
-                                    a_boolean            *resolution,
-                                    a_type_ptr           *new_type,
-                                    a_boolean            *defines_something)
+static void add_befriending_class_to_class_template
+                      (a_template_symbol_supplement_ptr     tssp,
+		       a_type_ptr                           class_declared_in)
+/*
+Indicate that the template designated by tssp is a friend of the class
+specified by class_declared_in.  If any instances of the template have already
+been instantiated, update the befriending information for the instances.
+*/
+{
+  a_class_list_entry_ptr  clep;
+  a_symbol_ptr            instance_sym;
+  a_symbol_ptr            prototype_sym;
+
+  clep = alloc_list_entry_for_class();
+  clep->next = tssp->befriending_classes;
+  clep->class_type = class_declared_in;
+  tssp->befriending_classes = clep;
+  /* Update any instances that have already been created. */
+  prototype_sym = tssp->variant.class_template.prototype_instantiation;
+  for (instance_sym = tssp->variant.class_template.instantiations;
+       instance_sym != NULL; instance_sym = instance_sym->next) {
+    a_type_ptr  tp = instance_sym->variant.class_struct_union.type;
+    if (instance_sym != prototype_sym) {
+      /* Don't do this for the prototype instantiation. */
+      decl_friend_class(class_declared_in, tp);
+    }  /* if */
+  }  /* for */
+}  /* add_befriending_class_to_class_template */
+
+
+static a_boolean class_template_declaration
+                                 (a_template_param_ptr templ_params,
+				  a_boolean            is_member_decl,
+				  a_boolean            is_nonglobal_decl,
+				  a_boolean            *invalid_decl_scope_err,
+				  a_source_position    *start_pos,
+				  a_type_ptr           class_declared_in,    
+				  a_symbol_ptr         *p_sym_ptr,
+				  a_boolean            *resolution,
+				  a_type_ptr           *new_type,
+				  a_boolean            *defines_something)
 /*
 If this turns out to be a class template declaration, scan it and return
 TRUE, setting *p_sym_ptr to the class template symbol.  If it is not a class
@@ -2985,7 +3159,7 @@ that make up the declaration and do a prototype instantiation.
 {
   a_boolean                         is_class_template_decl = FALSE;
   a_boolean                         suppress_redecl_error = FALSE;
-  a_boolean                         is_definition, is_redecl;
+  a_boolean                         is_definition, is_redecl = FALSE;
   a_symbol_locator                  locator;
   a_symbol_ptr                      sym = NULL, prototype_sym, param_sym;
   a_template_symbol_supplement_ptr  tssp;
@@ -2996,6 +3170,10 @@ that make up the declaration and do a prototype instantiation.
   a_template_param_ptr              tpp;
   a_boolean			    err;
   a_token_set_array                 stop_tokens;
+  a_token_kind                      token;
+  a_boolean                         is_template_friend = FALSE;
+  a_boolean                         in_prototype_instantiation;
+  a_source_position                 friend_pos;
 
   db_enter(3, "class_template_declaration");
   if (curr_token == tok_typedef || curr_token == tok_auto ||
@@ -3003,9 +3181,16 @@ that make up the declaration and do a prototype instantiation.
     error(ec_bad_storage_class_on_template_decl);
     (void)get_token();
   }  /* if */
-  if (curr_token == tok_class || curr_token == tok_struct ||
-      curr_token == tok_union) {
-    switch (curr_token) {
+  in_prototype_instantiation =
+                   scope_stack[depth_scope_stack].in_prototype_instantiation;
+  token = curr_token;
+  if (curr_token == tok_friend) {
+    is_template_friend = TRUE;
+    friend_pos = pos_curr_token;
+    token = next_token();
+  }  /* if */
+  if (token == tok_class || token == tok_struct || token == tok_union) {
+    switch (token) {
       case tok_class:  type_kind = (a_type_kind)tk_class;  break;
       case tok_struct: type_kind = (a_type_kind)tk_struct; break;
       case tok_union:  type_kind = (a_type_kind)tk_union;  break;
@@ -3016,9 +3201,14 @@ that make up the declaration and do a prototype instantiation.
        these keywords.  We'll proceed on the assumption that it is indeed
        a class template until we see evidence to the contrary. */
     is_class_template_decl = TRUE;
+    clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
+    if (is_template_friend) {
+      /* If "friend" was present, add it to the cache. */
+      cache_curr_token(&local_token_cache);
+      (void)get_token();
+    }  /* if */
     /* Bypass "class", "struct", or "union".  It has to be cached in case it
        has to be rescanned as part of a function template declaration. */
-    clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
     cache_curr_token(&local_token_cache);
     (void)get_token();
     /* Next should be the class name. */
@@ -3059,12 +3249,28 @@ that make up the declaration and do a prototype instantiation.
         set_to_error_locator(locator);
         sym = NULL;
       }  /* if */
-      if (nonglobal_decl_err) {
-        /* An error has already been issued on a template declaration that
-           is not at file scope. */
-        set_to_named_error_locator(locator);
-        sym = NULL;
+    }  /* if */
+    /* Make sure this declaration is valid in this scope. */
+    if (is_template_friend && is_member_decl) {
+      /* A friend declaration in a class scope -- okay. */
+    } else {
+      if (is_template_friend) {
+        /* A friend declaration in a nonclass scope. */
+	pos_error(ec_bad_specifier_outside_class_decl, &friend_pos);
+	*invalid_decl_scope_err = TRUE;
+      } else if (is_nonglobal_decl) {
+        if (!(*invalid_decl_scope_err)) {
+	  /* A class scope nonfriend, or a template in some other scope. */
+	  pos_error(ec_bad_template_declaration_scope, start_pos);
+	  *invalid_decl_scope_err = TRUE;
+	}  /* if */
       }  /* if */
+    }  /* if */
+    if (*invalid_decl_scope_err) {
+      /* An error has already been issued on a template declaration that
+	 is not at file scope. */
+      set_to_named_error_locator(locator);
+      sym = NULL;
     }  /* if */
     /* We needed local_token_cache only in case this was not a class
        template declaration.  But now we can assume it is. */
@@ -3116,100 +3322,133 @@ that make up the declaration and do a prototype instantiation.
         sym = NULL;
       }  /* if */
     }  /* if */
-    /* Make sure that the default arguments for the template parameters
-       are valid (i.e., that they are at the end of the parameter list).
-       This is done now because we have to wait until the parameter lists
-       have been merged to do the test. */
-    check_template_param_default_args(templ_params);
-    if (sym == NULL) {
-      /* Enter the symbol at file scope. */
-      sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
-                         DEPTH_OF_FILE_SCOPE, suppress_redecl_error);
-      tssp = sym->variant.template_info;
-      is_redecl = FALSE;
-    }  /* if */
-    if (is_definition || !is_redecl) {
-      /* Either this is the first declaration of the template class or a
-         defining redeclaration. */
+    if (!in_prototype_instantiation) {
+      /* Make sure that the default arguments for the template parameters
+	 are valid (i.e., that they are at the end of the parameter list).
+	 This is done now because we have to wait until the parameter lists
+	 have been merged to do the test. */
+      check_template_param_default_args(templ_params);
+      if (sym == NULL) {
+	/* Enter the symbol at file scope. */
+	sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
+			   DEPTH_OF_FILE_SCOPE, suppress_redecl_error);
+	tssp = sym->variant.template_info;
+	is_redecl = FALSE;
+      }	/* if */
+      if (is_definition || !is_redecl) {
+	/* Either this is the first declaration of the template class or a
+	   defining redeclaration. */
 
-      /* Save the type kind (corresponding to the class/struct/union token)
-         in the class template symbol's supplement -- it will be needed when
-         type entries for instantiations are created. */
-      tssp->variant.class_template.type_kind = type_kind;
+	/* Save the type kind (corresponding to the class/struct/union token)
+	   in the class template symbol's supplement -- it will be needed when
+	   type entries for instantiations are created. */
+	tssp->variant.class_template.type_kind = type_kind;
 
-      tssp->parameters = templ_params;
-      tssp->declaration_scope = scope_stack[decl_scope_level].number;
+	tssp->parameters = templ_params;
+	tssp->declaration_scope = scope_stack[decl_scope_level].number;
+      }	/* if */
+      if (is_template_friend) {
+	/* This is a template friend declaration, add the current class to
+	   the list of friend classes associated with this template. */
+        add_befriending_class_to_class_template(tssp, class_declared_in);
+      }  /* if */
     }  /* if */
     if (is_definition) {
-      mark_defined(sym, &locator.source_position);
+      a_token_cache_ptr  p_token_cache;
+      /* If an error occurred earlier, cache the definition in a local
+         cache and then discard it.  Otherwise, cache it in the cache
+         associated with the template symbol supplement. */
+      if (sym == NULL) {
+        clear_token_cache(&local_token_cache, /*reusable=*/FALSE);
+        p_token_cache = &local_token_cache;
+      } else {
+        p_token_cache = &tssp->token_cache;
+      }  /* if */
       *defines_something = TRUE;
-      prototype_sym = make_template_class_symbol(sym, &sym->decl_position);
-      /* Add the new symbol to the head of the instantiation list. */
-      prototype_sym->next = tssp->variant.class_template.instantiations;
-      tssp->variant.class_template.instantiations = prototype_sym;
-      /* Now create a new type entry. */
-      prototype_type = alloc_type(tssp->variant.class_template.type_kind);
-      prototype_sym->variant.class_struct_union.type = prototype_type;
-      set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
-      prototype_type->source_corresp.name_linkage =
+      if (!in_prototype_instantiation && sym != NULL) {
+        mark_defined(sym, &locator.source_position);
+        prototype_sym = make_template_class_symbol(sym, &sym->decl_position);
+        /* Add the new symbol to the head of the instantiation list. */
+        prototype_sym->next = tssp->variant.class_template.instantiations;
+        tssp->variant.class_template.instantiations = prototype_sym;
+        /* Now create a new type entry. */
+        prototype_type = alloc_type(tssp->variant.class_template.type_kind);
+        prototype_sym->variant.class_struct_union.type = prototype_type;
+        set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
+        prototype_type->source_corresp.name_linkage =
                                            (a_name_linkage_kind)nlk_internal;
-      prototype_sym->defined = TRUE;
-      /* Build the template argument list for the prototype instantiation
-         of this template.  Loop through the template parameters and
-         create a corresponding template argument for each. */
-      append_addr = &prototype_type->
-                     variant.class_struct_union.extra_info->template_arg_list;
-      for (tpp = templ_params; tpp != NULL; tpp = tpp->next) {
-        param_sym = tpp->param_symbol;
-        if (param_sym->kind == (a_symbol_kind)sk_type) {
-          tap = alloc_template_arg(/*is_arg_type=*/TRUE);
-          tap->variant.type = param_sym->variant.type;
-        } else {
-          tap = alloc_template_arg(/*is_arg_type=*/FALSE);
-          tap->variant.constant = param_sym->variant.constant;
-        }  /* if */
-        *append_addr = tap;
-        append_addr = &tap->next;
-      }  /* for */
+        prototype_sym->defined = TRUE;
+        /* Build the template argument list for the prototype instantiation
+           of this template.  Loop through the template parameters and
+           create a corresponding template argument for each. */
+        append_addr = &prototype_type->
+                    variant.class_struct_union.extra_info->template_arg_list;
+        for (tpp = templ_params; tpp != NULL; tpp = tpp->next) {
+          param_sym = tpp->param_symbol;
+          if (param_sym->kind == (a_symbol_kind)sk_type) {
+            tap = alloc_template_arg(/*is_arg_type=*/TRUE);
+            tap->variant.type = param_sym->variant.type;
+          } else {
+            tap = alloc_template_arg(/*is_arg_type=*/FALSE);
+            tap->variant.constant = param_sym->variant.constant;
+          }  /* if */
+          *append_addr = tap;
+          append_addr = &tap->next;
+        }  /* for */
+      }  /* if */
       /* Initialize a local stop token set. */
       clear_token_set_array(stop_tokens);
       /* This is a class template definition, so scan all the tokens that
-         comprise it and cache them away. */
+	 comprise it and cache them away. */
       incr_token_set_array_element(stop_tokens, tok_semicolon);
       if (curr_token == tok_colon) {
-        /* Scan the tokens in the base class declarations, stopping when
-           the "{" is reached. */
-        incr_token_set_array_element(stop_tokens, tok_lbrace);
-        cache_token_stream(&tssp->token_cache, stop_tokens);
-        decr_token_set_array_element(stop_tokens, tok_lbrace);
+	/* Scan the tokens in the base class declarations, stopping when
+	   the "{" is reached. */
+	incr_token_set_array_element(stop_tokens, tok_lbrace);
+	cache_token_stream(p_token_cache, stop_tokens);
+	decr_token_set_array_element(stop_tokens, tok_lbrace);
       }  /* if */
       decr_token_set_array_element(stop_tokens, tok_semicolon);
       /* Scan the class body.  If the body is missing the error will be
-         found during prototype instantiation. */
+	 found during prototype instantiation. */
       if (curr_token == tok_lbrace) {
         /* Swallow the "{" and then cache everything through to the "}". */
-        cache_curr_token(&tssp->token_cache);
+        cache_curr_token(p_token_cache);
         (void)get_token();
         incr_token_set_array_element(stop_tokens, tok_rbrace);
-        cache_token_stream(&tssp->token_cache, stop_tokens);
+        cache_token_stream(p_token_cache, stop_tokens);
         /* Now cache the "}" (unless we didn't find one). */
         if (curr_token == tok_rbrace) {
-          cache_curr_token(&tssp->token_cache);
+          cache_curr_token(p_token_cache);
           /* Advance past the '}'. */
           (void)get_token();
         }  /* if */
       }  /* if */
       /* Add an end-of-source token to the end of the token cache to assure
          that we don't scan past the end of the cache in the actual scan. */
-      terminate_token_cache(&tssp->token_cache);
+      terminate_token_cache(p_token_cache);
       /* Note that the semicolon is not cached. */
+      if (sym == NULL) {
+        /* An error occurred earlier.  Discard the cached body. */
+        discard_token_cache(p_token_cache);
+      }  /* if */
+      if (is_template_friend) {
+	/* A friend template declaration may not be used to define a
+	   class.  If a definition is found, issue an error and discard
+	   the token cache so that no instantiations will be attempted. */
+	pos_error(ec_template_friend_definition_not_allowed,
+		  &locator.source_position);
+	discard_token_cache(p_token_cache);
+      }	/* if */
     } else {
-      mark_declared(sym, &locator.source_position);
+      if (!in_prototype_instantiation) {
+        mark_declared(sym, &locator.source_position);
+      }  /* if */
       /* This is not a class template definition, so we have no need to
          cache the tokens. */
     }  /* if */
   }  /* if */
-done:;
+ done:;
   *p_sym_ptr = sym;
   *new_type = prototype_type;
 
@@ -3977,7 +4216,33 @@ are a new feature and are not yet implemented).
 }  /* check_function_template_param_usage */
 
 
-static a_symbol_ptr template_function_declaration
+static void add_befriending_class_to_function_template
+                      (a_template_symbol_supplement_ptr     tssp,
+		       a_type_ptr                           class_declared_in)
+/*
+Indicate that the template designated by tssp is a friend of the class
+specified by class_declared_in.  If any instances of the template have already
+been instantiated, update the befriending information for the instances.
+*/
+{
+  a_class_list_entry_ptr  clep;
+  a_template_instance_ptr tip;
+
+  clep = alloc_list_entry_for_class();
+  clep->next = tssp->befriending_classes;
+  clep->class_type = class_declared_in;
+  tssp->befriending_classes = clep;
+  /* Update any instances that have already been created. */
+  for (tip = tssp->variant.function.instantiations;
+       tip != NULL; tip = tip->next) {
+    a_symbol_ptr  instance_sym = tip->instance_sym;
+    a_routine_ptr rout_ptr = instance_sym->variant.routine.ptr;
+    update_friend_function_info(rout_ptr, class_declared_in);
+  }  /* for */
+}  /* add_befriending_class_to_function_template */
+
+
+static a_symbol_ptr function_template_declaration
                     (a_symbol_locator                 *locator,
 		     a_func_info_block                *func_info,
 		     a_storage_class                  storage_class,
@@ -3986,6 +4251,8 @@ static a_symbol_ptr template_function_declaration
 		     a_template_param_ptr             template_param_list,
 		     a_token_cache                    *decl_token_cache,
 		     a_boolean                        *decl_token_cache_used,
+		     a_boolean                        is_template_friend,
+		     a_type_ptr                       class_declared_in,
 		     a_template_symbol_supplement_ptr *p_tssp,
 		     a_boolean                        *defines_something)
 /*
@@ -4025,7 +4292,8 @@ declaration.
     mark_defined(sym, &locator->source_position);
   } else {
     mark_declared(sym, &locator->source_position);
-    if (sym->kind == (a_symbol_kind)sk_member_function) {
+    if (sym->kind == (a_symbol_kind)sk_member_function &&
+	!is_template_friend) {
       /* A non-defining declaration of a member function is not
 	 allowed. */
       pos_error(ec_member_function_redecl_outside_class,
@@ -4058,29 +4326,46 @@ declaration.
     cache_function_template_body(&tssp->token_cache,
 				 is_constructor_symbol(sym),
 				 defines_something, sym);
-    if (*defines_something || 
-	tssp->variant.function.decl_token_cache.first_token == NULL) {
-      /* The decl_token_cache should point to the declaration associated
-	 with the definition, if a definition is present. */
-      tssp->variant.function.decl_token_cache = *decl_token_cache;
-      *decl_token_cache_used = TRUE;
-      /* Copy the func_info block and then null out its the param-id
-	 pointer so that it won't be freed. */
-      tssp->variant.function.func_info = *func_info;
-      func_info->param_id_list = NULL;
-      tssp->parameters = template_param_list;
-      tssp->declaration_scope = scope_stack[decl_scope_level].number;
-    } /* if */
-    /* Link the default argument list from the template supplement
-       onto the end of the list of current default arguments.  The
-       list in the supplement must be for arguments that follow the
-       new list (otherwise it would be an error).  Find the end
-       of the current list and link the existing list to the end. */
-    daefp = curr_default_args;
-    if (daefp != NULL) {
-      while (daefp->next != NULL) daefp = daefp->next;
-      daefp->next = tssp->variant.function.def_arg_expr_list;
-      tssp->variant.function.def_arg_expr_list = curr_default_args;
+    if (*defines_something && is_template_friend) {
+      /* A friend template declaration may not be used to define a
+	 function.  If a definition is found, issue an error and discard
+	 the token cache so that no instantiations will be attempted. */
+      pos_error(ec_template_friend_definition_not_allowed,
+		&locator->source_position);
+      discard_token_cache(&tssp->token_cache);
+    }	/* if */
+    if (!scope_stack[depth_scope_stack].in_prototype_instantiation) {
+      /* Suppress this processing during prototype instantiations. */
+      if (*defines_something || 
+	  tssp->variant.function.decl_token_cache.first_token == NULL) {
+	/* The decl_token_cache should point to the declaration associated
+	   with the definition, if a definition is present. */
+	tssp->variant.function.decl_token_cache = *decl_token_cache;
+	*decl_token_cache_used = TRUE;
+	/* Copy the func_info block and then null out its the param-id
+	   pointer so that it won't be freed. */
+	tssp->variant.function.func_info = *func_info;
+	func_info->param_id_list = NULL;
+	tssp->parameters = template_param_list;
+	tssp->declaration_scope = scope_stack[decl_scope_level].number;
+	tssp->variant.function.class_declared_in = class_declared_in;
+      } /* if */
+      /* Link the default argument list from the template supplement
+	 onto the end of the list of current default arguments.  The
+	 list in the supplement must be for arguments that follow the
+	 new list (otherwise it would be an error).  Find the end
+	 of the current list and link the existing list to the end. */
+      daefp = curr_default_args;
+      if (daefp != NULL) {
+	while (daefp->next != NULL) daefp = daefp->next;
+	daefp->next = tssp->variant.function.def_arg_expr_list;
+	tssp->variant.function.def_arg_expr_list = curr_default_args;
+      } /* if */
+      if (is_template_friend) {
+	/* This is a template friend declaration, add the current class to
+	   the list of friend classes associated with this template. */
+        add_befriending_class_to_function_template(tssp, class_declared_in);
+      }	/* if */
     } /* if */
   } /* if */
   if (sym->class_of_which_a_member != NULL) {
@@ -4098,7 +4383,7 @@ declaration.
   *p_tssp = tssp;
   db_exit();
   return sym;
-}  /* template_function_declaration */
+}  /* function_template_declaration */
 
 
 a_symbol_ptr template_declaration(a_boolean  *defines_something,
@@ -4135,13 +4420,19 @@ as the current token; otherwise, it is consumed.
   a_def_arg_expr_fixup_ptr	    saved_curr_default_args;
   a_token_cache 		    decl_token_cache;
   a_boolean		            decl_token_cache_used = FALSE;
-  a_boolean                         nonglobal_decl_err = FALSE;
   a_pending_pragma_ptr		    pragmas_bound_to_template;
 #if RECORD_TEMPLATES_IN_IL
   a_template_ptr                    il_template_entry = NULL;
   a_token_cache                     template_param_list_cache;
   a_token_cache                     *p_template_body_cache = NULL;
 #endif /* RECORD_TEMPLATES_IN_IL */
+  a_source_position                 start_pos;
+  a_boolean                         is_template_friend = FALSE;
+  a_boolean                         is_nonglobal_decl = FALSE;
+  a_boolean                         is_member_decl;
+  a_type_ptr                        class_declared_in = NULL;
+  a_boolean                         invalid_decl_scope_err = FALSE;
+  a_boolean                         is_class_template = FALSE;
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -4158,23 +4449,31 @@ as the current token; otherwise, it is consumed.
   saved_curr_default_args = curr_default_args;
   curr_default_args = NULL;
   *defines_something = FALSE;
-  if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
-    /* template declarations may appear at file scope only (ARM 14.1). */
-    error(ec_nonglobal_template_declaration);
-    nonglobal_decl_err = TRUE;
-#if RECORD_TEMPLATES_IN_IL
-  } else {
-    /* Create an IL template entry for this declaration, and build the first
-       cache upon which its string representation will be based. */
-    il_template_entry = make_il_template_entry();
-    /* If there are any pk_immediate pragmas associated with the current
-       token, process them now, before the current token is cached, instead
-       of in get_token, as is usually done. */
-    process_curr_token_pragmas();
-    /* Cache "template" through ">". */
-    cache_template_param_list(&template_param_list_cache);
-#endif /* RECORD_TEMPLATES_IN_IL */
+  start_pos = pos_curr_token;
+  is_member_decl = scope_stack[decl_scope_level].kind ==
+                                        (a_scope_kind)sck_class_struct_union;
+  if (is_member_decl) {
+    /* If this template declaration is within a class definition,
+       save a pointer to the class in which the definition appears. */
+    class_declared_in = scope_stack[decl_scope_level].assoc_type;
   }  /* if */
+  is_nonglobal_decl = decl_scope_level != DEPTH_OF_FILE_SCOPE;
+  if (is_nonglobal_decl && !is_member_decl) {
+    /* Issue an invalid template scope error, if not already done. */
+    invalid_decl_scope_err = TRUE;
+    pos_error(ec_bad_template_declaration_scope, &start_pos);
+  }  /* if */
+#if RECORD_TEMPLATES_IN_IL
+  /* Create an IL template entry for this declaration, and build the first
+     cache upon which its string representation will be based. */
+  il_template_entry = make_il_template_entry();
+  /* If there are any pk_immediate pragmas associated with the current
+     token, process them now, before the current token is cached, instead
+     of in get_token, as is usually done. */
+  process_curr_token_pragmas();
+  /* Cache "template" through ">". */
+  cache_template_param_list(&template_param_list_cache);
+#endif /* RECORD_TEMPLATES_IN_IL */
   /* Bypass "template".  The next token should be "<".  This is done
      before the scope is pushed so that any pragma associated with the
      tok_template token will be processed in the current scope. */
@@ -4195,13 +4494,16 @@ as the current token; otherwise, it is consumed.
   cache_template_declaration(&decl_token_cache);
   /* See if it is a class template declaration.  If it is, scan the tokens
      of the definition (if any) and cache them away of later reference. */
-  if (class_template_declaration(template_param_list, nonglobal_decl_err,
-                                 &sym, &tag_resolution, &prototype_type,
-                                 defines_something)) {
+  if (class_template_declaration(template_param_list, is_member_decl,
+				 is_nonglobal_decl, &invalid_decl_scope_err,
+				 &start_pos, class_declared_in, &sym,
+				 &tag_resolution, &prototype_type,
+				 defines_something)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
+    is_class_template = TRUE;
 #if RECORD_TEMPLATES_IN_IL
-    if (*defines_something) {
+    if (*defines_something && sym != NULL) {
       /* Save a pointer to the token cache for class template body. */
       p_template_body_cache = &sym->variant.template_info->token_cache;
     }  /* if */
@@ -4221,9 +4523,25 @@ as the current token; otherwise, it is consumed.
 
     /* Scan the decl. specifiers and the declaration. */
     clear_func_info(&func_info);
-    scan_template_declaration(/*is_initial_decl=*/TRUE, nonglobal_decl_err,
+    scan_template_declaration(/*is_initial_decl=*/TRUE, is_member_decl,
+			      invalid_decl_scope_err,
                               &dso_flags, &do_flags, &locator, &type,
                               &func_info, &storage_class, &decl_modifiers);
+    if (is_nonglobal_decl) {
+      /* If the current decl_scope_level is not the global scope then the
+         only valid template declaration is a template friend declaration.
+         If this is not a friend declaration, issue an error. */
+      if (is_member_decl && (dso_flags & DSO_FRIEND) != 0) {
+        is_template_friend = TRUE;
+      } else {
+	if (!invalid_decl_scope_err) {
+          /* Issue an invalid template scope error, if not already done. */
+          invalid_decl_scope_err = TRUE;
+	  pos_error(ec_bad_template_declaration_scope, &start_pos);
+	  set_to_named_error_locator(locator);
+	}  /* if */
+      }  /* if */
+    }  /* if */
     if (!is_function_type(type) && 
         (locator.specific_symbol != NULL ||
          (is_error_locator(locator) && curr_token == tok_assign))) {
@@ -4236,11 +4554,13 @@ as the current token; otherwise, it is consumed.
       if (tssp != NULL) p_template_body_cache = &tssp->token_cache;
 #endif /* RECORD_TEMPLATES_IN_IL */
     } else if (is_function_type(type)) {
-      sym = template_function_declaration(&locator, &func_info, storage_class,
+      sym = function_template_declaration(&locator, &func_info, storage_class,
 					  decl_modifiers, type,
 					  template_param_list,
 					  &decl_token_cache,
 					  &decl_token_cache_used,
+					  is_template_friend,
+					  class_declared_in,
 					  &tssp, defines_something);
 
 #if RECORD_TEMPLATES_IN_IL
@@ -4264,7 +4584,7 @@ as the current token; otherwise, it is consumed.
     pos_error(ec_exp_declaration, &pos_curr_token);
   }  /* if */
   /* Check and/or advance past the terminating token of the declaration. */
-  if (*defines_something && prototype_type == NULL) {
+  if (*defines_something && !is_class_template) {
     /* It's a definition but not a class template definition, so it must be
        a function template definition. */
     if (no_advance_past_final_token) {
@@ -4305,7 +4625,7 @@ as the current token; otherwise, it is consumed.
       free_pending_pragma_list(pragmas_bound_to_template);
     }  /* if */
   }
-  if (!nonglobal_decl_err && prototype_type != NULL) {
+  if (!invalid_decl_scope_err && prototype_type != NULL) {
 #if CHECKING
     if (sym == NULL || sym->kind != (a_symbol_kind)sk_class_template ||
         (tssp = sym->variant.template_info) == NULL ||
