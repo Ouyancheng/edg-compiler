@@ -660,7 +660,7 @@ Display a ck_template_param constant.
       break;
     case tpck_unknown_function:
       (void)printf("tpck_unknown_function\n");
-      if (ptr->is_qualified_name) {
+      if (ptr->variant.template_param.is_qualified_name) {
         disp_boolean("is_qualified_name", TRUE);
       }  /* if */
       disp_ptr("conversion_type",
