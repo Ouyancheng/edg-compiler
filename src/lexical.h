@@ -540,7 +540,7 @@ EXTERN char	*curr_char_loc;
 
 /*
 Marker characters used within curr_source_line and macro_buffer.
-These must not conflict with any characters than can be read from input.
+These must not conflict with any characters that can be read from input.
 */
 #ifdef lint
 /* Define the characters in a way that will avoid lint warnings about
@@ -549,16 +549,13 @@ These must not conflict with any characters than can be read from input.
 #define END_OF_TOKEN_MARKER '`'
 #define ATTENTION_MARKER    '@'
 #else /* !defined(lint) */
-#if CHAR_MIN < 0
-/* Host has signed characters. */
-#define UNUSED_CHAR_POS (-1)
-#else /* CHAR_MIN < 0 */
-/* Host has unsigned characters. */
-#define UNUSED_CHAR_POS UCHAR_MAX
-#endif /* CHAR_MIN < 0 */
+/* 0x80 is a good choice because it works okay with ISO 8859 (Latin-1, ...)
+   and EUC.  However, for full internationalization there should really
+   be no special characters. */
+#define UNUSED_CHAR_POS 0x80
 #define END_OF_TOKEN_MARKER ((char)UNUSED_CHAR_POS)
 #if !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
-#define ATTENTION_MARKER    ((char)(UNUSED_CHAR_POS-1))
+#define ATTENTION_MARKER    ((char)(UNUSED_CHAR_POS+1))
 #else /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 /* When reading source in binary mode under MS-DOS, we know that control-Z
    indicates end-of-file, so use that character as the attention marker
