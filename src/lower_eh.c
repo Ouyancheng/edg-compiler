@@ -1262,23 +1262,23 @@ returned, and *flags_value is set to indicate a pointer.
 */
 {
   a_variable_ptr        typeinfo_var;
-  a_type_ptr            typeinfo_type;
+  a_type_ptr            eff_type;
   a_type_qualifier_set  qualifiers;
 
-  typeinfo_type = type;
+  eff_type = type;
   *flags_value = 0;
   /* For a pointer or reference to a type, use the typeinfo for the
      underlying type and a flag to indicate the reference or pointer.
      Both flags are on for a reference to a pointer. */
-  if (is_reference_type(typeinfo_type)) {
-    typeinfo_type = type_pointed_to(typeinfo_type);
+  if (is_reference_type(eff_type)) {
+    eff_type = type_pointed_to(eff_type);
     *flags_value |= ETS_IS_REFERENCE;
   }  /* if */
-  if (is_pointer_type(typeinfo_type)) {
-    typeinfo_type = type_pointed_to(typeinfo_type);
+  if (is_pointer_type(eff_type)) {
+    eff_type = type_pointed_to(eff_type);
     *flags_value |= ETS_IS_POINTER;
     /* Remember the type qualifiers on the type pointed to. */
-    qualifiers = get_type_qualifiers(typeinfo_type);
+    qualifiers = get_type_qualifiers(eff_type);
     if (qualifiers & TQ_CONST) {
       *flags_value |= ETS_POINTER_TO_CONST;
     }  /* if */
@@ -1287,9 +1287,9 @@ returned, and *flags_value is set to indicate a pointer.
     }  /* if */
   }  /* if */
   /* Strip typerefs but watch out for rewritten pointers-to-members. */
-  typeinfo_type = underlying_type(typeinfo_type);
+  eff_type = underlying_type(eff_type);
   /* Create the typeinfo variable. */
-  typeinfo_var = make_typeinfo_var(typeinfo_type);
+  typeinfo_var = make_typeinfo_var(eff_type);
   return typeinfo_var;
 }  /* typeinfo_var_for_type */
 
@@ -1427,6 +1427,7 @@ the runtime's definition.
 */
 typedef unsigned long a_region_descr_flags_set;
 #define RDF_NONE		0
+/*lint -esym(750,RDF_INDIRECT,RDF_THIS_PARAM_OFFSET)*/
 #define RDF_INDIRECT		0x01
 			/* TRUE if the address provided by the handle field
 			   is a pointer to the object. */
@@ -3379,7 +3380,7 @@ Do IL lowering for an stmk_try_block statement.
   a_statement_ptr    orig_stmt, orig_stmt_to_try;
   a_handler_ptr      handlers = tsp->handlers, handler;
   an_insert_location insert_location;
-  a_context          context;
+  a_context          try_context;
   an_object_lifetime_ptr
                      lifetime;
 #if DO_FULL_PORTABLE_EH_LOWERING
@@ -3407,7 +3408,7 @@ Do IL lowering for an stmk_try_block statement.
   /* Push a context around the try and catch.  This is needed to ensure that
      the "try" stack frame is popped on a goto out of the try or catch. */
   lifetime = tsp->lifetime;
-  push_context(&context, (a_scope_ptr)NULL, lifetime);
+  push_context(&try_context, (a_scope_ptr)NULL, lifetime);
 #if DO_FULL_PORTABLE_EH_LOWERING
   curr_context->try_frame = try_frame;
   if (keep_object_lifetime_info_in_lowered_il) {
