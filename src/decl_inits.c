@@ -759,18 +759,28 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
   }  /* if */
   if (cssp != NULL && parenthesized_initializer) {
     /* This is an initialization of the form S x (arg [, ...]), where S is a
-       class type name.  Depending on the arguments present, a constructor,
-       possibly the copy constructor, will be selected and returned.  The
-       scan function returns FALSE if it finds no constructor for which the
-       arguments match. */
-    scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine);
-    if (conversion_routine == NULL) {
-      err = TRUE;
+       class type name. */
+    if (cssp->constructor != NULL) {
+      /* Depending on the arguments present, a constructor, possibly the copy
+         constructor, will be selected and returned. */
+      scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine);
+      if (conversion_routine == NULL) {
+        err = TRUE;
+      } else {
+        /* Set the dynamic init entry to represent constructor
+           initialization. */
+        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
+        local_di.variant.constructor.routine = conversion_routine;
+        local_di.variant.constructor.args = arg_list;
+      }  /* if */
     } else {
-      /* Set the dynamic init entry to represent constructor initialization. */
-      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
-      local_di.variant.constructor.routine = conversion_routine;
-      local_di.variant.constructor.args = arg_list;
+      /* C-style class with no constructors, so initialization by bitwise
+         copy is allowed. */
+      scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
+                                        vp_type, &local_di);
+      /* The closing right paren will not be consumed, as it is when scanning
+         the arg list for a constructor call, so bypass it explicitly. */
+      check_closing_paren_after_expr_list();
     }  /* if */
     initialization_is_dynamic = TRUE;
   } else if (cssp != NULL && !cssp->is_class_aggregate &&
@@ -886,18 +896,7 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
        the initializer. */
     if (parenthesized_initializer) {
       remove_stop_token(tok_rparen);
-      if (curr_token == tok_rparen) {
-        (void)get_token();
-      } else {
-        /* Flush to and past the right paren, but first remove tok_comma
-           from the stop token set.  This allows us to handle errors like
-           "int i(1,2);" more gracefully. */
-        int  saved_value = stop_token_array[(int)tok_comma];
-
-        stop_token_array[(int)tok_comma] = 0;
-        (void)required_token(tok_rparen, ec_exp_rparen);
-        stop_token_array[(int)tok_comma] = saved_value;
-      }  /* if */
+      check_closing_paren_after_expr_list();
     } else {
       /* If an extra opening brace was ignored earlier, ignore the matching
          closing brace now.  Check also for an extra comma (required in C++
