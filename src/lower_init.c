@@ -2748,6 +2748,8 @@ and update *insert_location accordingly.
     a_statement_ptr  assign_stmt;
     object_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
                                         /*using_as_dest=*/FALSE);
+    object_node = add_cast_if_necessary(object_node,
+                                        needed_destruction_object_field->type);
     field_node = field_lvalue_selection_expr(var_lvalue_expr(var),
                                              needed_destruction_object_field);
     assign_stmt = insert_assignment_statement(field_node,
