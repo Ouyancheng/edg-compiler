@@ -1472,7 +1472,7 @@ of the storage before the constructor is called.
      has data members that require zero initialization. */
   if (dip->variant.constructor.value_initialization &&
       ctor_routine->compiler_generated &&
-      ctor_routine->type->variant.routine.extra_info->this_class->
+      ctor_routine->source_corresp.parent.class_type->
                           variant.class_struct_union.has_zero_init_component) {
     need_zeroing = TRUE;
   }  /* if */
@@ -1516,7 +1516,7 @@ already been lowered.
                                 make_reusable_copy(entity_node,
                                                    /*vars_can_change=*/FALSE);
     a_type_ptr       class_type =
-                    ctor_routine->type->variant.routine.extra_info->this_class;
+                                ctor_routine->source_corresp.parent.class_type;
 #if IA64_ABI
     if (contains_ptr_to_data_member(class_type)) {
       /* Pointers to data members must be initialized to -1. */
@@ -2786,7 +2786,7 @@ a_routine_ptr alternate_entry_point(a_routine_ptr       routine,
 Return a pointer to the alternate entry point for "routine" indicated by
 "kind".  If the alternate entry point does not already exist, it is created.
 If define_now is TRUE, the routine is defined if appropriate.  This
-is used to created alternate entry points for constructors and
+is used to create alternate entry points for constructors and
 destructors in the IA-64 ABI.
 */
 {
@@ -2854,12 +2854,11 @@ destructors in the IA-64 ABI.
     }  /* if */
 #endif /* LOWER_EXTERN_INLINE */
     new_routine->source_corresp.name_has_been_mangled = TRUE;
+    new_routine->source_corresp.is_class_member = TRUE;
+    new_routine->source_corresp.parent.class_type =
+                                     routine->source_corresp.parent.class_type;
     new_routine->ctor_dtor_kind = kind;
     new_rtsp = new_routine->type->variant.routine.extra_info;
-    /* There are places in lower_dynamic_init where this new alternate entry
-       point will replace the existing constructor, and the code there expects
-       to be able to use implicit_this_param_type, so we must set
-       this_class. */
     new_rtsp->this_class = rtsp->this_class;
     /* Make the new routine virtual if the old one is so that virtual
        destructors work correctly.  The virtual function number for the
