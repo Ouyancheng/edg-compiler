@@ -4727,6 +4727,7 @@ process_class_specifier:
               }  /* if */
               basic_type = bt_no_type;
               locator_for_curr_id.specific_symbol = sym;
+              locator_for_curr_id.symbol_header = sym->header;
               goto exit_loop;
             }  /* if */
           }  /* if */
