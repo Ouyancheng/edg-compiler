@@ -1,5 +1,18 @@
 Version 3.5
 
+8/20/04  Microsoft and GNU C++ compatibility: Duplicate extern "C" definitions
+
+In GNU C++ and Microsoft C++ modes, the front end normally does not attempt to
+link two extern "C" declarations in different namespaces (see Changes entries
+of 7/28/04 and 10/6/99).  A change was made to perform this linking in these
+modes when the two declarations are both definitions.  As a consequence, a
+duplicate definition error is issued in such circumstances.  For example:
+
+  extern "C" void f() {}
+  namespace N {
+    extern "C" void f() {}  // Duplicate definition error issued by the front
+  }                         // end, even in GNU and Microsoft modes.
+
 8/20/04  Microsoft compatibility: dllimport/dllexport and threads
 
 In Microsoft modes, the front end now issues an error for thread-local
