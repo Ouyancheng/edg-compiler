@@ -1,5 +1,15 @@
 Version 2.06
 
+5/7/92   Bug in overloaded "+" operator resolution with conversion functions
+
+A case like
+
+  a + 1
+
+where there is a conversion function that will convert "a" to an integer
+type was incorrectly diagnosed as ambiguous, because int(a) + pointer(1)
+was thought to be a second possible interpretation.
+
 5/7/92   Address of overloaded static member function is a normal pointer
 
 It was considered to be a pointer to member, with the usual result being
