@@ -1824,7 +1824,9 @@ associated symbols are listed under the same header).
                        sym2 = (a_symbol_ptr)scp2->assoc_info;
   a_symbol_header_ptr  sh1, sh2;
 
-  if (scp1->name == scp2->name) {
+  if (unmangled_name_of(scp1) == unmangled_name_of(scp2)) {
+    /* Note that in some cases one entity may already have a mangled name,
+       while the other does not. */
     match = TRUE;
   } else if (sym1 == NULL || sym2 == NULL ||
              (!sym1->is_class_member && is_unnamed_tag_symbol(sym1)) || 

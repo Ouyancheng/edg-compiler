@@ -1,5 +1,13 @@
 Version 3.4
 
+8/21/03  Abort while determining the correspondence of an unnamed class type
+
+Under some circumstances involving exported templates and an unnamed class
+type that acquired a name for linkage purposes through a typedef the front end
+triggered an internal error while determining the correspondence for the
+unnamed class type.  (This problem was introduced by the fix for the issue
+described in the Changes entry of 6/24/03.)
+
 8/21/03  Concatenation of narrow and wide string literals
 
 Adjacent string literals are concatenated into a longer
