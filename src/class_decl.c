@@ -923,9 +923,6 @@ Process the default argument expressions for the indicated class.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     for (; rfp != NULL; rfp = rfp->next) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      a_boolean  do_declared_type_fixup = FALSE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       daefp = rfp->def_arg_expr_fixup_list;
       if (rfp->is_template) {
         /* A routine fixup for a template function declaration.  The default
@@ -943,6 +940,9 @@ Process the default argument expressions for the indicated class.
           }  /* if */
         }  /* if */
       } else if (daefp != NULL) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+        a_boolean  do_declared_type_fixup = is_function_symbol(rfp->symbol);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         /* There is at least one default argument associated with this
            function type. */
         sym = rfp->symbol;
@@ -1023,7 +1023,6 @@ Process the default argument expressions for the indicated class.
           curr_scope_class_type = rfp->class_type;
         }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-        do_declared_type_fixup = is_function_symbol(sym);
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         if (instantiations_permitted_in_class_src_seq_list) {
           if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
