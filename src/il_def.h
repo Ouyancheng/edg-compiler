@@ -14,10 +14,9 @@ il_def.h -- Definition of the intermediate language.
 */
 
 /*
-NOTE:  If you modify definitions here, be sure to modify il_walk (routine
-walk_entry_and_subtree et al.), lower_il, and il_display accordingly.
-This is crucial in cases where a pointer is added, and important in
-other cases.
+NOTE:  If you modify definitions here, be sure to modify walk_entry.h,
+lower_il, and il_display accordingly.  This is crucial in cases where
+a pointer is added, and important in other cases.
 */
 
 /*
