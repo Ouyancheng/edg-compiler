@@ -334,6 +334,10 @@ static void gen_variable_decl(a_boolean is_condition,
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch);
 static void gen_cast(a_type_ptr type);
+static void gen_full_cast(a_type_ptr            dest_type,
+                          an_expr_node_ptr      expr,
+                          a_boolean             is_lvalue,
+                          an_expr_operator_kind op);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens);
 /* Interfaces to gen_expr for the usual cases. */
@@ -3307,8 +3311,7 @@ precedence confusion.
             type_copy = *con_type;
             type_copy.variant.pointer.is_reference = TRUE;
             write_tok_ch('(');
-            gen_cast(&type_copy);
-            gen_lvalue(operand_1);
+            gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE, op);
             write_tok_ch(')');
             processed = TRUE;
           }  /* if */
@@ -3452,6 +3455,64 @@ Generate a cast to the indicated type.
   gen_type(type);
   m_write_tok_ch(')');
 }  /* gen_cast */
+
+
+static void gen_full_cast(a_type_ptr            dest_type,
+                          an_expr_node_ptr      expr,
+                          a_boolean             is_lvalue,
+                          an_expr_operator_kind op)
+/*
+Generate a cast of expr to the type dest_type.  expr is an lvalue if
+is_lvalue is TRUE.  op is the expression operator for the cast.  Usually,
+the output is an old-style cast, but a reinterpret_cast is put out
+when appropriate.
+*/
+{
+  a_boolean  is_reinterpret_cast = FALSE;
+  a_type_ptr source_type = expr->type;
+
+  if (op == (an_expr_operator_kind)eok_cast &&
+      il_header.source_language == sl_Cplusplus) {
+    if (is_lvalue) {
+      a_type_ptr underlying_source_type = type_pointed_to(source_type);
+      a_type_ptr underlying_dest_type = type_pointed_to(dest_type);
+      if (is_class_struct_union_type(underlying_source_type) &&
+          is_class_struct_union_type(underlying_dest_type) &&
+          find_base_class_of(underlying_source_type,
+                             underlying_dest_type) != NULL) {
+        /* reinterpret_cast<Base &>(Derived_lvalue) */
+        is_reinterpret_cast = TRUE;
+      }  /* if */
+    } else {
+      a_boolean        baseward_cast;
+      a_base_class_ptr bcp;
+
+      if (related_class_pointers(source_type, dest_type,
+                                 &baseward_cast, &bcp) ||
+          related_member_pointers(source_type, dest_type,
+                                  &baseward_cast, &bcp)) {
+        /* A cast between pointers or pointers to members of related
+           classes. */
+        is_reinterpret_cast = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (is_reinterpret_cast) {
+    write_tok_str("reinterpret_cast<");
+    gen_type(dest_type);
+    write_tok_str(">(");
+  } else {
+    gen_cast(dest_type);
+  }  /* if */
+  if (is_lvalue) {
+    gen_lvalue(expr);
+  } else {
+    gen_expr_with_parens(expr);
+  }  /* if */
+  if (is_reinterpret_cast) {
+    write_tok_ch(')');
+  }  /* if */
+}  /* gen_full_cast */
 
 
 static void gen_argument_list(an_expr_node_ptr arg,
@@ -3815,8 +3876,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
               gen_expression(operand_1);
             }  /* if */
           } else {
-            gen_cast(expr->type);
-            gen_expr_with_parens(operand_1);
+            gen_full_cast(expr->type, operand_1, /*is_lvalue=*/FALSE,
+                          (an_expr_operator_kind)eok_cast);
           }  /* if */
           goto done_with_operation;
         case eok_base_class_cast:
