@@ -1087,6 +1087,9 @@ error code.
     case ec_bad_linkage_specifier:
       m = "unknown external linkage specification";
       break;
+    case ec_incompatible_linkage_specifier:
+      m = "linkage specification is incompatible with previous declaration";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
