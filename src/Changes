@@ -31,7 +31,7 @@ The front end now implements this rule.
 
 In Microsoft and GNU C++ compatibility modes, the front end now accepts
 expressions of the form x.y, where x is a reference to class and y is
-a constant (e.g., an enumerator) in constant expression contexts.
+a constant (e.g., an enumerator), in constant expression contexts.
 This is an extension beyond what the C++ standard allows.
 
   struct A {
