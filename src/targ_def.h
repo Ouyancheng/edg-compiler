@@ -385,7 +385,7 @@ typedef unsigned long a_host_large_unsigned;
 
 /* Define a macro that has the same value as TARG_CHAR_BIT.  This is done
    because TARG_CHAR_BIT cannot be used outside of targ_def.h (it gets
-   undefined below).  The simulated integer routines to not support 
+   undefined below).  The simulated integer routines do not support 
    implementations on which targ_char_bit can be changed. */
 #ifndef INTERNAL_TARG_CHAR_BIT
 #if TARG_CHAR_BIT == 8

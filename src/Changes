@@ -108,7 +108,7 @@ sys_predef.c.
         differ
 
 The computation of INT_VALUE_PARTS_PER_INTEGER_VALUE, which is used when
-the the largest target integer is larger than the largest host integer,
+the largest target integer is larger than the largest host integer,
 was incorrect when the number of bits in a byte on the host and target
 differed.  This has been fixed.
 
