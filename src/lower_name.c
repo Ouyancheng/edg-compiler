@@ -2493,7 +2493,9 @@ mangled without parameter encoding.
      they exist in a scope that does not exist in the C version of the
      program (of course, none of them have C external linkage, so no
      separate test is needed). */
-  if (is_name_linkage_kind_subject_to_name_mangling(
+  if (routine == il_header.main_routine) {
+    /* Don't mangle "main" regardless of its linkage. */
+  } else if (is_name_linkage_kind_subject_to_name_mangling(
                                        routine->source_corresp.name_linkage)) {
     mangling_needed = TRUE;
   } else if (routine->special_kind != (a_special_function_kind)sfk_none) {
