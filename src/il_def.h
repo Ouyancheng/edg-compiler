@@ -1320,7 +1320,7 @@ typedef struct a_type {
   a_type_kind   kind;
                         /* The kind of type. */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-  unsigned int  is_semivisable_nested_type:1;
+  unsigned int  is_semivisible_nested_type:1;
                         /* TRUE if this type should be treated as a
                            non-nested type for purposes such as name
                            mangling.  This is used for compatibility

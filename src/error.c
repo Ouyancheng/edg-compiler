@@ -1679,7 +1679,7 @@ error code.
       m = "%n1 is not used in declaring the argument types of %n2";
       break;
     case ec_cfront_multiple_nested_types:
-      m = "two nested type have the same name: %no1 and %nod2 (cfront compatibility)";
+      m = "two nested types have the same name: %no1 and %nod2 (cfront compatibility)";
       break;
     case ec_cfront_global_defined_after_nested_type:
       m = "global %no1 was declared after nested %nod2 (cfront compatibility)";
