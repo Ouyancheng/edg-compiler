@@ -4226,8 +4226,10 @@ for example, in something like "(short)i = 0").
       if (is_operation_node(expr) &&
           (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast ||
            (gcc_mode &&
-            expr->variant.operation.kind ==
-                                       (an_expr_operator_kind)eok_question))) {
+            (expr->variant.operation.kind ==
+                                         (an_expr_operator_kind)eok_question ||
+             expr->variant.operation.kind ==
+                                         (an_expr_operator_kind)eok_comma)))) {
         a_boolean converted;
         a_boolean casts_removed = 
              (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast);
