@@ -10250,7 +10250,7 @@ Syntax:
         }  /* if */
       } else if (gpp_mode &&
                  identical_types(source_type, type_cast_to)) {
-        /* g++ (through 3.4 at least) allows a do-nothing reinterpret_cast
+        /* g++ (through 3.4 at least) allows a do-nothing reinterpret_cast,
            e.g., int --> int, class --> class.  No cast is actually added
            to the IL.  The result is an rvalue. */
         pos_warning(ec_nonstd_reinterpret_cast, &start_position);
