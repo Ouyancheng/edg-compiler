@@ -3809,6 +3809,11 @@ well as C++ mode.
     /* Pointer --> integral is okay if (a) the integer is big enough or
        (b) it's not big enough but we're compiling C. */
     okay = TRUE;
+    if (!dest_of_ptr_cast_big_enough(source_type, dest_type)) {
+      /* The destination it not large enough to hold all of the bits
+         of the pointer.  Issue a warning. */
+      *warning_suggested = ec_pointer_conversion_loses_bits;
+    }  /* if */
   } else if (is_integral(source_type) && is_pointer(dest_type)) {
     /* Integral --> pointer. */
     okay = TRUE;
