@@ -522,15 +522,17 @@ typedef struct msg_segment {
 				   error_msg_types[]. */
     /* When kind == msk_symbol:    The pointer to the symbol is in
 				   error_msg_syms[]. */
-    a_byte_boolean
+    struct symbol {
+      a_byte_boolean
 		full_type;
 				/* True if the symbol should be expanded
 				   into an object (type and name). */
-    a_byte_boolean
+      a_byte_boolean
 		name_only;	/* True if only the symbol name is needed. */
-    a_byte_boolean
+      a_byte_boolean
 		decl_pos;	/* True if the declaration position is
 				   to be generated. */
+    } symbol;
   } variant;
 } msg_segment;
 

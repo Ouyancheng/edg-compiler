@@ -1847,11 +1847,11 @@ Add the parameter list of a function to the type string being formatted.
     for (param_ptr = suppl_ptr->param_type_list;
          param_ptr != NULL;
          param_ptr = param_ptr->next) {
+      form_type_first_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
+      form_type_second_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
       if (param_ptr->next != NULL || has_ellipsis) {
         add_string_to_segment(", ", seg_ptr);
       }  /* if */
-      form_type_first_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
-      form_type_second_part(param_ptr->type, /*need_parens=*/FALSE, seg_ptr);
     }  /* for */
     if (has_ellipsis) {
       add_string_to_segment("...", seg_ptr);
@@ -1907,7 +1907,7 @@ segment described by seg_ptr.  The generated format is:
       add_string_to_segment(" of \"", seg_ptr);
     }  /* if */
     add_string_to_segment(file_name, seg_ptr);
-    add_string_to_segment("\" )", seg_ptr);
+    add_string_to_segment("\")", seg_ptr);
   }  /* if */
 }  /* form_decl_position */
 
@@ -1942,12 +1942,12 @@ described by "seg_ptr".
     case sk_constant:
       type = sym->variant.constant->type;
 simple_symbol_name:
-      if (seg_ptr->variant.full_type && type != NULL) {
+      if (seg_ptr->variant.symbol.full_type && type != NULL) {
         form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
         add_string_to_segment(" ", seg_ptr);
       }  /* if */
       add_string_to_segment(sym->header->identifier, seg_ptr);
-      if (seg_ptr->variant.full_type && type != NULL) {
+      if (seg_ptr->variant.symbol.full_type && type != NULL) {
         form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
       }  /* if */
       break;
@@ -1971,7 +1971,7 @@ simple_symbol_name:
         form_class_name(sym->class_of_which_a_member, seg_ptr);
       }  /* if */
       add_string_to_segment(sym->header->identifier, seg_ptr);
-      if (! seg_ptr->variant.name_only) {
+      if (! seg_ptr->variant.symbol.name_only) {
         add_string_to_segment("()", seg_ptr);
       }  /* if */
       break;
@@ -1979,15 +1979,15 @@ simple_symbol_name:
     case sk_member_function:
       type = routine_symbol_type(sym);
 function_name:
-      if (seg_ptr->variant.full_type && type != NULL) {
+      if (seg_ptr->variant.symbol.full_type && type != NULL) {
         form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
         add_string_to_segment(" ", seg_ptr);
       }  /* if */
       form_class_name(sym->class_of_which_a_member, seg_ptr);
       add_string_to_segment(sym->header->identifier, seg_ptr);
-      if (seg_ptr->variant.full_type && type != NULL) {
+      if (seg_ptr->variant.symbol.full_type && type != NULL) {
         form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
-      } else if (! seg_ptr->variant.name_only) {
+      } else if (! seg_ptr->variant.symbol.name_only) {
         add_string_to_segment("()", seg_ptr);
       }  /* if */
       break;
@@ -1999,13 +1999,13 @@ function_name:
     case sk_field:
       type = sym->variant.field.ptr->type;
 class_data_member:
-      if (seg_ptr->variant.full_type && type != NULL) {
+      if (seg_ptr->variant.symbol.full_type && type != NULL) {
         form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
         add_string_to_segment(" ", seg_ptr);
       }  /* if */
       form_class_name(sym->class_of_which_a_member, seg_ptr);
       add_string_to_segment(sym->header->identifier, seg_ptr);
-      if (seg_ptr->variant.full_type && type != NULL) {
+      if (seg_ptr->variant.symbol.full_type && type != NULL) {
         form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
       }  /* if */
       break;
@@ -2020,7 +2020,7 @@ class_data_member:
   add_string_to_segment("\"", seg_ptr);
 
   /* Add the declaration position is requested. */
-  if (seg_ptr->variant.decl_pos) {
+  if (seg_ptr->variant.symbol.decl_pos) {
     form_decl_position(sym, seg_ptr);
   }  /* if */
 }  /* name_of_symbol */
@@ -2103,20 +2103,20 @@ substitutions to form the desired diagnostic message is constructed.
             goto check_for_seq_number;
           case 'n':
             curr_segment->kind = msk_symbol;
-            curr_segment->variant.full_type = FALSE;
-            curr_segment->variant.name_only = FALSE;
-            curr_segment->variant.decl_pos = FALSE;
+            curr_segment->variant.symbol.full_type = FALSE;
+            curr_segment->variant.symbol.name_only = FALSE;
+            curr_segment->variant.symbol.decl_pos = FALSE;
             msg_ptr++;
             if (*msg_ptr == 'f') {
               /* Display complete type and object name. */
-              curr_segment->variant.full_type = TRUE;
+              curr_segment->variant.symbol.full_type = TRUE;
               msg_ptr++;
             } else if (*msg_ptr == 'o') {
-              curr_segment->variant.name_only = TRUE;
+              curr_segment->variant.symbol.name_only = TRUE;
               msg_ptr++;
             }  /* if */
             if (*msg_ptr == 'd') {
-              curr_segment->variant.decl_pos = TRUE;
+              curr_segment->variant.symbol.decl_pos = TRUE;
               msg_ptr++;
             }  /* if */
 check_for_seq_number:
