@@ -2168,7 +2168,8 @@ curr_default_upc_access_method to reflect the new default.
   end_output_line_if_begun();
   indent = 0;
   disable_line_wrapping();
-  write_str(is_strict ? "#pragma upc strict" : "#pragma upc relaxed");
+  write_str(is_strict ? (char *)"#pragma upc strict" :
+                        (char *)"#pragma upc relaxed");
   enable_line_wrapping();
   end_output_line();
   indent = saved_indent;
@@ -7038,8 +7039,9 @@ statement expression, i.e., ({...}).
         }  /* if */
       }  /* if */
       set_output_position_for_stmt(&statement->position);
-      write_tok_str(kind == (a_statement_kind)stmk_for ? "for ("
-                                                       : "upc_forall (");
+      write_tok_str(kind == (a_statement_kind)stmk_for ?
+                                                       (char *)"for (" :
+                                                       (char *)"upc_forall (");
       if (init_expr != NULL) {
 #if CHECKING
         check_result_not_used_flag(init_expr);
@@ -7248,9 +7250,11 @@ statement expression, i.e., ({...}).
     case stmk_upc_notify:
     case stmk_upc_wait:
     case stmk_upc_barrier:
-      write_tok_str(kind == (a_statement_kind)stmk_upc_notify ? "upc_notify" :
-                    kind == (a_statement_kind)stmk_upc_wait ?   "upc_wait" :
-                                                                "upc_barrier");
+      write_tok_str(kind == (a_statement_kind)stmk_upc_notify ?
+                                                        (char *)"upc_notify" :
+                    kind == (a_statement_kind)stmk_upc_wait ?
+                                                        (char *)"upc_wait" :
+                                                        (char *)"upc_barrier");
       if (statement->expr != NULL) {
         write_space();
         dump_expression(statement->expr);
