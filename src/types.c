@@ -1225,7 +1225,7 @@ which do the initial test for exact pointer equality.
 {
   register a_boolean            identical = FALSE;
   a_param_type_ptr              list1, list2;
-  a_routine_type_supplement_ptr extra_info1, extra_info2;
+  a_routine_type_supplement_ptr rtsp1, rtsp2;
 
   db_enter(5, "f_identical_types");
 
@@ -1310,22 +1310,22 @@ which do the initial test for exact pointer equality.
           /* For functions, the return types must be identical, the
              parameter lists must be identical, and the implicit "this"
              parameter type (if any) must be identical. */
-          extra_info1 = type_1->variant.routine.extra_info;
-          extra_info2 = type_2->variant.routine.extra_info;
+          rtsp1 = type_1->variant.routine.extra_info;
+          rtsp2 = type_2->variant.routine.extra_info;
           if (f_identical_types(type_1->variant.routine.return_type,
                                 type_2->variant.routine.return_type,
                                 il_identical) &&
-              extra_info1->prototyped == extra_info2->prototyped &&
-              extra_info1->has_ellipsis == extra_info2->has_ellipsis &&
-              ((extra_info1->implicit_this_param_type == NULL) ?
-                  (extra_info2->implicit_this_param_type == NULL) :
-                  (extra_info2->implicit_this_param_type != NULL &&
-                   f_identical_types(extra_info1->implicit_this_param_type,
-                                     extra_info2->implicit_this_param_type,
+              rtsp1->prototyped == rtsp2->prototyped &&
+              rtsp1->has_ellipsis == rtsp2->has_ellipsis &&
+              ((rtsp1->implicit_this_param_type == NULL) ?
+                  (rtsp2->implicit_this_param_type == NULL) :
+                  (rtsp2->implicit_this_param_type != NULL &&
+                   f_identical_types(rtsp1->implicit_this_param_type,
+                                     rtsp2->implicit_this_param_type,
                                      il_identical)))) {
             /* Compare the types of the parameters on the two lists. */
-            for (list1 = extra_info1->param_type_list,
-                                          list2 = extra_info2->param_type_list;
+            for (list1 = rtsp1->param_type_list,
+                                                list2 = rtsp2->param_type_list;
                  list1 != NULL && list2 != NULL;
                  list1 = list1->next, list2 = list2->next) {
               if (!f_identical_types(list1->type, list2->type, il_identical)) {
@@ -1365,44 +1365,90 @@ funcs_not_identical:;
 }  /* f_identical_types */
 
 
-a_boolean arg_types_are_compatible(a_type_ptr  rout_type1,
-                                   a_type_ptr  rout_type2)
+a_boolean param_types_are_compatible(a_type_ptr  rout_type_1,
+                                     a_type_ptr  rout_type_2)
 /*
-rout_type1 and rout_type2 point to routine type entries with parameter
-lists that are guaranteed to be prototyped.  Return TRUE if the
+rout_type_1 and rout_type_2 point to routine type entries.  Return TRUE if the
 parameter lists are compatible.  The "this" parameter types (if any) are
 not compared.
 */
 {
-  a_routine_type_supplement_ptr  extra_info1, extra_info2;
-  a_param_type_ptr               list1, list2;
-  a_boolean                      compatible;
+  a_param_type_ptr              list1, list2;
+  a_boolean                     compatible = FALSE;
+  a_boolean                     list1_prototyped, list2_prototyped;
+  a_routine_type_supplement_ptr rtsp1, rtsp2, local_rtsp2;
+  a_type_ptr                    param_2_type;
 
-  extra_info1 = rout_type1->variant.routine.extra_info;
-  extra_info2 = rout_type2->variant.routine.extra_info;
-  if (extra_info1->has_ellipsis != extra_info2->has_ellipsis) {
+  rout_type_1 = skip_typerefs(rout_type_1);
+  rout_type_2 = skip_typerefs(rout_type_2);
+  rtsp1 = rout_type_1->variant.routine.extra_info;
+  rtsp2 = rout_type_2->variant.routine.extra_info;
+  if (rtsp1->has_ellipsis != rtsp2->has_ellipsis) {
     /* One has a variable length parameter list and the other does not, so
        they cannot be compatible. */
-    compatible = FALSE;
+    /* compatible = FALSE; -- already set. */
   } else {
-    /* Compare the lists, parameter by parameter. */
-    list1 = extra_info1->param_type_list;
-    list2 = extra_info2->param_type_list;
-    for (; list1 != NULL && list2 != NULL;
-         list1 = list1->next, list2 = list2->next) {
-      /* Compare the corresponding parameter types. */
-      if (!types_are_compatible(list1->type, list2->type)) {
-        compatible = FALSE;
-        goto done;
+    /* If either function has a new-style parameter list, the individual
+       parameter types must be compatible.  See the C standard, 3.5.4.3. */
+    list1_prototyped = rtsp1->prototyped;
+    list2_prototyped = rtsp2->prototyped;
+    if (!list1_prototyped && !list2_prototyped) {
+      /* Both parameter lists are old-style, so they are compatible. */
+      compatible = TRUE;
+    } else {
+      /* At least one of the function types has a prototyped parameter list. */
+      list1 = rtsp1->param_type_list;
+      list2 = rtsp2->param_type_list;
+      local_rtsp2 = rtsp2;
+      if (!list1_prototyped) {
+        /* Switch the two parameter lists, so that if there is an old-style
+           parameter list involved, it is list2. */
+        list1 = list2;
+        list2 = rtsp1->param_type_list;
+        list1_prototyped = TRUE;
+        list2_prototyped = FALSE;
+        local_rtsp2 = rtsp1;
       }  /* if */
-    }  /* for */
-    /* All the parameter types are compatible.  Be sure the lists ended at
-       the same time. */
-    compatible = (list1 == list2);
+      if (!list2_prototyped) {
+        /* The second parameter list is old-style.  */
+        if (local_rtsp2->assoc_routine == NULL) {
+          /* The old-style type is the type for a routine without a body,
+             so there is no parameter information.  The prototyped parameter
+             list from the first type is used, and each type on the list will
+             be promoted before comparison. */
+          list2 = list1;
+        }  /* if */
+      }  /* if */
+      /* Compare the types of the parameters on the two lists. */
+      for (; list1 != NULL && list2 != NULL;
+           list1 = list1->next, list2 = list2->next) {
+        /* Compare the parameter types, with the second parameter type
+           promoted appropriately if it is old-style. */
+        param_2_type = list2->type;
+        if (!list2_prototyped) {
+          param_2_type = default_argument_promotion(param_2_type);
+        }  /* if */
+        if (!types_are_compatible(list1->type, param_2_type)) {
+          /* The parameter types are not compatible. */
+          goto funcs_not_compatible;
+        }  /* if */
+      }  /* for */
+      /* The parameter lists are compatible if they both ended together. */
+      compatible = (list1 == NULL && list2 == NULL);
+funcs_not_compatible:;
+    }  /* if */
   }  /* if */
-done:
   return compatible;  
-}  /* arg_types_are_compatible */
+}  /* param_types_are_compatible */
+
+
+#if 0
+#else
+/* Remove this. */
+a_boolean arg_types_are_compatible(a_type_ptr  rout_type_1,
+                                   a_type_ptr  rout_type_2)
+{ return param_types_are_compatible(rout_type_1, rout_type_2); }
+#endif
 
 
 a_boolean f_types_are_compatible(a_type_ptr type_1,
@@ -1416,10 +1462,7 @@ types_are_compatible, which does the initial test for exact pointer equality.
 */
 {
   register a_boolean            compat = FALSE;
-  a_param_type_ptr              list1, list2;
-  a_boolean                     list1_prototyped, list2_prototyped;
-  a_routine_type_supplement_ptr extra_info1, extra_info2, local_extra_info2;
-  a_type_ptr                    param_2_type;
+  a_routine_type_supplement_ptr rtsp1, rtsp2;
 
   db_enter(5, "f_types_are_compatible");
 
@@ -1496,74 +1539,20 @@ types_are_compatible, which does the initial test for exact pointer equality.
              aren't compatible. */
           break;
         case tk_routine:
-          /* For functions, the return types must be compatible.  If
-             either function has a new-style parameter list, the
-             individual parameter types must be compatible.
-             See 3.5.4.3. */
-          /* Both types must have an ellipsis or neither must. */
-          /* The implicit "this" parameter types (if any) must be compatible
-             too. */
-          extra_info1 = type_1->variant.routine.extra_info;
-          extra_info2 = type_2->variant.routine.extra_info;
+          /* For functions, the return types must be compatible, the parameter
+             types must be compatible, and the "this" parameter types (if any)
+             must be compatible. */
+          rtsp1 = type_1->variant.routine.extra_info;
+          rtsp2 = type_2->variant.routine.extra_info;
           if (types_are_compatible(type_1->variant.routine.return_type,
                                    type_2->variant.routine.return_type) &&
-              extra_info1->has_ellipsis == extra_info2->has_ellipsis &&
-              ((extra_info1->implicit_this_param_type == NULL) ?
-                  (extra_info2->implicit_this_param_type == NULL) :
-                  (extra_info2->implicit_this_param_type != NULL &&
-                   types_are_compatible(
-                                 extra_info1->implicit_this_param_type,
-                                 extra_info2->implicit_this_param_type)))) {
-            list1_prototyped = extra_info1->prototyped;
-            list2_prototyped = extra_info2->prototyped;
-            if (!list1_prototyped && !list2_prototyped) {
-              /* Both parameter lists are old-style, so they are compatible. */
-              compat = TRUE;
-            } else {
-              /* At least one of the function types has a prototyped
-                 parameter list. */
-              list1 = extra_info1->param_type_list;
-              list2 = extra_info2->param_type_list;
-              local_extra_info2 = extra_info2;
-              if (!list1_prototyped) {
-                /* Switch the two parameter lists, so that if there is
-                   an old-style parameter list involved, it is list2. */
-                list1 = list2;
-                list2 = extra_info1->param_type_list;
-                list1_prototyped = TRUE;
-                list2_prototyped = FALSE;
-                local_extra_info2 = extra_info1;
-              }  /* if */
-              if (!list2_prototyped) {
-                /* The second parameter list is old-style.  */
-                if (local_extra_info2->assoc_routine == NULL) {
-                  /* The old-style type is the type for a routine without a
-                     body, so there is no parameter information.  The
-                     prototyped parameter list from the first type is used,
-                     and each type on the list will be promoted before
-                     comparison. */
-                  list2 = list1;
-                }  /* if */
-              }  /* if */
-              /* Compare the types of the parameters on the two lists. */
-              for (; list1 != NULL && list2 != NULL;
-                   list1 = list1->next, list2 = list2->next) {
-                /* Compare the parameter types, with the second parameter
-                   type promoted appropriately if it is old-style. */
-                param_2_type = list2->type;
-                if (!list2_prototyped) {
-                  param_2_type = default_argument_promotion(param_2_type);
-                }  /* if */
-                if (!types_are_compatible(list1->type, param_2_type)) {
-                  /* The parameter types are not compatible. */
-                  goto funcs_not_compatible;
-                }  /* if */
-              }  /* for */
-              /* The parameter lists are compatible if they both ended
-                 together. */
-              compat = (list1 == NULL && list2 == NULL);
-funcs_not_compatible:;
-            }  /* if */
+              param_types_are_compatible(type_1, type_2) &&
+              ((rtsp1->implicit_this_param_type == NULL) ?
+                  (rtsp2->implicit_this_param_type == NULL) :
+                  (rtsp2->implicit_this_param_type != NULL &&
+                   types_are_compatible(rtsp1->implicit_this_param_type,
+                                        rtsp2->implicit_this_param_type)))) {
+            compat = TRUE;
           }  /* if */
           break;
         case tk_ptr_to_member:
@@ -1610,7 +1599,7 @@ and arguments of old-style calls.
 {
   a_boolean       interch = FALSE;
   an_integer_kind ikind1, ikind2;
-  a_type_ptr      ptr_type1, ptr_type2;
+  a_type_ptr      ptr_type_1, ptr_type_2;
 
   db_enter(5, "interchangeable_types");
   /* The footnote in 3.1.2.5 applies to four cases:
@@ -1668,14 +1657,14 @@ and arguments of old-style calls.
              !type_1->variant.pointer.is_reference &&
              !type_2->variant.pointer.is_reference) {
     /* Pointer types.  Get the underlying types. */
-    ptr_type1 = skip_typerefs(type_1->variant.pointer.type);
-    ptr_type2 = skip_typerefs(type_2->variant.pointer.type);
-    if (ptr_type1 == ptr_type2 ||  /* This test for speed. */
-        interchangeable_types(ptr_type1, ptr_type2)) {
+    ptr_type_1 = skip_typerefs(type_1->variant.pointer.type);
+    ptr_type_2 = skip_typerefs(type_2->variant.pointer.type);
+    if (ptr_type_1 == ptr_type_2 ||  /* This test for speed. */
+        interchangeable_types(ptr_type_1, ptr_type_2)) {
       /* Pointers to interchangeable types are interchangeable. */
       interch = TRUE;
-    } else if ((is_void(ptr_type1) && is_character(ptr_type2)) ||
-               (is_character(ptr_type1) && is_void(ptr_type2))) {
+    } else if ((is_void(ptr_type_1) && is_character(ptr_type_2)) ||
+               (is_character(ptr_type_1) && is_void(ptr_type_2))) {
       /* void * and char * are interchangeable. */
       interch = TRUE;
     }  /* if */
@@ -1910,6 +1899,67 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 }  /* impl_pointer_conversion */
 
 
+static a_boolean this_param_types_correspond(a_type_ptr rout_type_1,
+                                             a_type_ptr rout_type_2)
+/*
+Return TRUE if the "this" parameter types of the two function types given
+match if one ignores any difference in the underlying class.  If neither
+function type has a "this" parameter, they are also considered to match.
+*/
+{
+  a_boolean  correspond = FALSE;
+  a_type_ptr this_type_1, this_type_2;
+
+  rout_type_1 = skip_typerefs(rout_type_1);
+  rout_type_2 = skip_typerefs(rout_type_2);
+  this_type_1 = rout_type_1->variant.routine.extra_info->
+                                                      implicit_this_param_type;
+  this_type_2 = rout_type_2->variant.routine.extra_info->
+                                                      implicit_this_param_type;
+  if (this_type_1 == NULL) {
+    /* type_1 does not have a "this" parameter type.  Match if type_2 also
+       does not. */
+    correspond = (this_type_2 == NULL);
+  } else if (this_type_2 == NULL) {
+    /* type_1 has a "this" parameter type, type_2 does not. */
+    /* correspond = FALSE;  -- already set. */
+  } else if (!type_qualifiers_match(this_type_1, this_type_2)) {
+    /* The type qualifiers do not match. */
+    /* correspond = FALSE;  -- already set. */
+  } else {
+    this_type_1 = type_pointed_to(this_type_1);
+    this_type_2 = type_pointed_to(this_type_2);
+    if (!type_qualifiers_match(this_type_1, this_type_2)) {
+      /* The type qualifiers do not match. */
+      /* correspond = FALSE;  -- already set. */
+    } else {
+      /* The underlying types are assumed to be appropriate class types. */
+      correspond = TRUE;
+    }  /* if */
+  }  /* if */
+  return correspond;
+}  /* this_param_types_correspond */
+
+
+a_boolean function_types_correspond(a_type_ptr rout_type_1,
+                                    a_type_ptr rout_type_2)
+/*
+Return TRUE if the two function types given are compatible if one ignores any
+difference in the underlying class of their "this" parameter types.
+*/
+{
+  a_boolean correspond;
+
+  rout_type_1 = skip_typerefs(rout_type_1);
+  rout_type_2 = skip_typerefs(rout_type_2);
+  correspond = types_are_compatible(rout_type_1->variant.routine.return_type,
+                                   rout_type_2->variant.routine.return_type) &&
+               param_types_are_compatible(rout_type_1, rout_type_2) &&
+               this_param_types_correspond(rout_type_1, rout_type_2);
+  return correspond;
+}  /* function_types_correspond */
+
+
 static a_boolean member_types_correspond(a_type_ptr member_type_1,
                                          a_type_ptr member_type_2)
 /*
@@ -1920,8 +1970,7 @@ difference in the underlying class of the "this" parameter type must
 be ignored.
 */
 {
-  a_boolean  correspond;
-  a_type_ptr this_type_1, this_type_2;
+  a_boolean correspond;
 
   if (!is_function_type(member_type_1) || !is_function_type(member_type_2)) {
     /* This is not the special function case, so the normal
@@ -1933,37 +1982,7 @@ be ignored.
        of the "this" parameter.  Note that this test must be done even
        when the class types are the same, because the routines may
        be from base classes. */
-    member_type_1 = skip_typerefs(member_type_1);
-    this_type_1 = member_type_1->variant.routine.extra_info->
-                                                      implicit_this_param_type;
-    member_type_2 = skip_typerefs(member_type_2);
-    this_type_2 = member_type_2->variant.routine.extra_info->
-                                                      implicit_this_param_type;
-    /* Compare the function types with the "this" parameter types set equal
-       to one another. */
-    member_type_1->variant.routine.extra_info->implicit_this_param_type =
-                                                                   this_type_2;
-    correspond = types_are_compatible(member_type_1, member_type_2);
-    /* Restore the original "this" parameter type for the first type. */
-    member_type_1->variant.routine.extra_info->implicit_this_param_type =
-                                                                   this_type_1;
-    if (correspond) {
-      /* The types match except for the "this" parameter types.  Check
-         those. */
-      if (!type_qualifiers_match(this_type_1, this_type_2)) {
-        /* The type qualifiers do not match. */
-        correspond = FALSE;
-      } else {
-        this_type_1 = type_pointed_to(this_type_1);
-        this_type_2 = type_pointed_to(this_type_2);
-        if (!type_qualifiers_match(this_type_1, this_type_2)) {
-          /* The type qualifiers do not match. */
-          correspond = FALSE;
-        } else {
-          /* The underlying types must be appropriate class types. */
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    correspond = function_types_correspond(member_type_1, member_type_2);
   }  /* if */
   return correspond;
 }  /* member_types_correspond */
@@ -2594,16 +2613,15 @@ is allocated, it is allocated in the file scope.
             comp_type = base_type_2;
           } else {
             /* Build a new function type. */
-            a_routine_type_supplement_ptr extra_info, extra_info1;
+            a_routine_type_supplement_ptr rtsp, rtsp1;
             comp_type = alloc_type((a_type_kind)tk_routine);
             comp_type->variant.routine.return_type = comp_elem;
-            extra_info = comp_type->variant.routine.extra_info;
-            extra_info1 = base_type_1->variant.routine.extra_info;
-            extra_info->param_type_list = comp_param_list;
-            extra_info->prototyped = comp_prototyped;
-            extra_info->has_ellipsis = extra_info1->has_ellipsis;
-            extra_info->implicit_this_param_type =
-                                         extra_info1->implicit_this_param_type;
+            rtsp = comp_type->variant.routine.extra_info;
+            rtsp1 = base_type_1->variant.routine.extra_info;
+            rtsp->param_type_list = comp_param_list;
+            rtsp->prototyped = comp_prototyped;
+            rtsp->has_ellipsis = rtsp1->has_ellipsis;
+            rtsp->implicit_this_param_type = rtsp1->implicit_this_param_type;
           }  /* if */
           break;
         case tk_ptr_to_member:
