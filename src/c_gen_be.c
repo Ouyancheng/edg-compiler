@@ -1098,8 +1098,9 @@ Return TRUE if "name" is a C reserved word.
       break;
     case '_':
       if (sun_is_generated_code_target) {
-        if (strcmp(name, "__global") || strcmp(name, "__symbolic") ||
-            strcmp(name, "__hidden")) {
+        if (strcmp(name, "__global"  ) == 0 ||
+            strcmp(name, "__symbolic") == 0 ||
+            strcmp(name, "__hidden"  ) == 0) {
           res = TRUE;
         }  /* if */
       }  /* if */
