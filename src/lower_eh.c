@@ -880,6 +880,7 @@ static a_field_ptr
 		ehse_try_setjmp_buffer_field,
 		ehse_try_catch_entries_field,
 		ehse_try_rtinfo_field,
+		ehse_try_region_number_field,
 		ehse_function_field,
 		ehse_function_regions_field,
 		ehse_function_obj_table_field,
@@ -909,9 +910,10 @@ Its definition is
     unsigned char  kind    // try, function, or throw
     union {
       struct {
-        jmp_buf  setjmp_buffer; // Buffer for setjmp
-        exception_type_spec *catch_entries;  // Catch list
-        void     *rtinfo;       // Runtime info
+        jmp_buf        setjmp_buffer;       // Buffer for setjmp
+        exception_type_spec *catch_entries; // Catch list
+        void           *rtinfo;             // Runtime info
+        unsigned short region_number;       // Region number at entry
       } try_block;
       struct {
         region_descr   *regions;            // Cleanup regions
@@ -919,7 +921,7 @@ Its definition is
         array_descr    *array_table;        // Array table
         unsigned short saved_region_number; // Saved __eh_curr_region
       } function;
-      exception_type_spec *throw_spec; // Throw spec list
+      exception_type_spec *throw_spec;      // Throw spec list
     } variant;
   };
 
@@ -959,6 +961,11 @@ Its definition is
     make_lowered_field("rtinfo", void_star_type(),
                        &byte_offset, try_block_struct_type, &last_field);
     ehse_try_rtinfo_field = last_field;
+    /* field: unsigned short region_number */
+    make_lowered_field("region_number",
+                       integer_type(TARG_REGION_NUMBER_INT_KIND),
+                       &byte_offset, try_block_struct_type, &last_field);
+    ehse_try_region_number_field = last_field;
     finish_class_type(try_block_struct_type, &byte_offset);
     /* Make the function variant struct. */
     function_struct_type = alloc_type((a_type_kind)tk_struct);
@@ -1359,12 +1366,79 @@ if it has not already been made.  Return a pointer to it.
 }  /* make_caught_object_address_var */
 
 
+static a_cleanup_action_ptr last_cleanup_region(a_cleanup_action_ptr cap)
+/*
+Find the first cleanup region on the indicated list that has an associated
+exception cleanup region, and return a pointer to it.  "First" means first
+encountered on the list, which means last added.  If there is no such
+region, return NULL.  cap is allowed to be NULL on entry.
+*/
+{
+  /* Ignore entries that are not regions. */
+  for (; cap != NULL && !cap->applies_on_exception_cleanup; cap = cap->next) {}
+  return cap;
+}  /* last_cleanup_region */
+
+
+static a_cleanup_region_number cleanup_region_number(a_cleanup_action_ptr cap)
+/*
+Return the cleanup region number from the indicated cleanup action entry.
+Check that the value will fit in the integral type used for region numbers,
+and issue an error if not.  If cap is NULL, return max_region_number
+(a truncated version of NULL_EH_REGION_NUMBER).
+*/
+{
+  a_cleanup_region_number region_number;
+
+  /* Get the region number. */
+  if (cap != NULL) {
+    region_number = cap->region_number;
+    if (region_number >= max_region_number) {
+      /* The region number is too big. */
+      error(ec_integer_truncated);
+      region_number = max_region_number;
+    }  /* if */
+  } else {
+    /* There is no previous region.  Use a code (all 1 bits) that indicates
+       that. */
+    region_number = max_region_number;
+  }  /* if */
+  return region_number;
+}  /* cleanup_region_number */
+
+
+static a_cleanup_region_number context_cleanup_region_number(
+                                                         a_context_ptr context)
+/*
+Return the exception cleanup region number that applies at the end of the
+indicated context, or NULL_EH_REGION_NUMBER if none applies.  If necessary,
+work outwards through contexts to find a cleanup region.  context is not
+allowed to be NULL on entry.
+*/
+{
+  a_cleanup_action_ptr last_region_cap = NULL;
+
+  /* Work outwards through the contexts, looking for one that has an
+     associated region. */
+  for (;; context = context->parent) {
+    last_region_cap = last_cleanup_region(context->cleanup_actions);
+    if (last_region_cap != NULL) break;
+    /* Stop at the function context.  There can be cleanup actions in the
+       file scope context but we're not interested in them here. */
+    if (!context->subscope_region &&
+        context->scope->kind == (a_scope_kind)sck_function) break;
+  }  /* for */
+  return cleanup_region_number(last_region_cap);
+}  /* context_cleanup_region_number */
+
+
 /*
 Pointer to the variable entry for the region table of a function (which
 contains information about destructible objects).  NULL until allocated.
 */
 static a_variable_ptr
 		region_table_var;
+
 
 void make_region_table_entry(a_cleanup_action_ptr cap,
                              an_insert_location   *insert_location)
@@ -1387,8 +1461,6 @@ pointer can be examined.
   a_cleanup_region_number
                    prev_region_number;
   a_routine_ptr    dtor_routine;
-  a_cleanup_action_ptr
-                   next_cap;
 
   /* Note that the current memory region must not have been forced to the
      file scope memory region at this point. */
@@ -1457,26 +1529,7 @@ pointer can be examined.
                                                     handle_number,
                                                     TARG_VAR_HANDLE_INT_KIND);
   /* Make the previous region index number. */
-  /* Find the previous region by going backwards on the cleanup action
-     list. */
-  next_cap = cap->next;
-  while (next_cap != NULL && !next_cap->applies_on_exception_cleanup) {
-    /* Ignore entries that are not regions. */
-    next_cap = next_cap->next;
-  }  /* while */
-  if (next_cap != NULL) {
-    /* There is a previous entry. */
-    prev_region_number = next_cap->region_number;
-    if (prev_region_number >= max_region_number) {
-      /* The region number is too big. */
-      error(ec_integer_truncated);
-      prev_region_number = 0;
-    }  /* if */
-  } else {
-    /* There is no previous region.  Use a code (all 1 bits) that indicates
-       that. */
-    prev_region_number = max_region_number;
-  }  /* if */
+  prev_region_number = cleanup_region_number(last_cleanup_region(cap->next));
   prev_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(prev_con, prev_region_number,
                                 TARG_REGION_NUMBER_INT_KIND);
@@ -1508,22 +1561,10 @@ on the list attached to the indicated context.  If there are no cleanup
 actions in that context, set eh_curr_region to NULL_EH_REGION_NUMBER.
 */
 {
-  a_cleanup_action_ptr    cap;
   a_cleanup_region_number region_number;
 
-  /* See if there is a cleanup action entry. */
-  cap = context->cleanup_actions;
-  while (cap != NULL && !cap->applies_on_exception_cleanup) {
-    /* Ignore entries that are not regions. */
-    cap = cap->next;
-  }  /* while */
-  /* Determine the region number to be used. */
-  if (cap != NULL) {
-    region_number = cap->region_number;
-  } else {
-    /* Use the maximum region number (all 1 bits) to indicate no region. */
-    region_number = max_region_number;
-  }  /* if */
+  /* Get the region number of the last cleanup action in the region. */
+  region_number = context_cleanup_region_number(context);
   /* Generate an assignment statement to set curr_eh_region. */
   (void)insert_var_assignment_statement(
                                   make_eh_curr_region_var(),
@@ -2039,7 +2080,7 @@ Do IL lowering for an stmk_try_block statement.
   an_insert_location insert_location;
   a_statement_ptr    stmt_to_try, copy_of_orig_stmt;
   an_expr_node_ptr   try_frame_catch_entries, try_frame_setjmp_buffer;
-  an_expr_node_ptr   try_frame_rtinfo;
+  an_expr_node_ptr   try_frame_rtinfo, try_frame_region_number;
   an_expr_node_ptr   setjmp_call, compare_node, catch_clause_number_node;
   a_statement_ptr    prev_if_stmt, if_stmt;
   long               catch_clause_number;
@@ -2047,6 +2088,8 @@ Do IL lowering for an stmk_try_block statement.
   a_context          context;
   a_cleanup_action_ptr
                      cap;
+  a_cleanup_region_number
+                     region_number;
 
   /* Change the stmk_try_block statement into a block, and prepare to insert
      code at the start of the block. */
@@ -2095,6 +2138,23 @@ Do IL lowering for an stmk_try_block statement.
   (void)insert_assignment_statement(try_frame_rtinfo,
                                     (an_expr_operator_kind)eok_passign,
                                     alloc_node_for_constant(&null_constant),
+                                    &insert_location);
+  /* Set the region_number field to the region number at entry to the try
+     block.  This tells the runtime where to stop the cleanup process to
+     end the "try" but not things in the surrounding function. */
+  try_frame_region_number = 
+                  field_lvalue_selection_expr(
+                    field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(var_lvalue_expr(try_frame),
+                                                  ehse_variant_field),
+                      ehse_try_field),
+                    ehse_try_region_number_field);
+  region_number = context_cleanup_region_number(curr_context);
+  (void)insert_assignment_statement(try_frame_region_number,
+                                    (an_expr_operator_kind)eok_passign,
+                                    node_for_integer_constant(
+                                                  (long)region_number,
+                                                  TARG_REGION_NUMBER_INT_KIND),
                                     &insert_location);
   /* Change the original stmk_try_block statement into an if statement
      that looks like
