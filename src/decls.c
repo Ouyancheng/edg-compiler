@@ -4491,7 +4491,8 @@ is not a template declaration scope.
       rout_ptr->special_kind = (a_special_function_kind)sfk_operator;
       rout_ptr->opname_kind = locator->variant.opname;
     }  /* if */
-    check_assertion(!locator->is_conversion_name);
+    check_assertion(is_error_locator(*locator) ||
+                    !locator->is_conversion_name);
     set_source_corresp(&rout_ptr->source_corresp, sym);
     set_membership_in_source_corresp(&(rout_ptr->source_corresp), sym);
     rout_ptr->source_corresp.name_linkage =
