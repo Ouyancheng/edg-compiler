@@ -1808,27 +1808,27 @@ and the class instantiation will detect the runaway case.
                          "bad storage class or name linkage");
 #endif /* CHECKING */
   }  /* if */
+  /* Push a template instantiation scope.  The real values of the template
+     arguments will be associated with the template parameter names. */
+  /* For static data members, the argument list comes from the enclosing
+     class that is reactivated by push_template_instantiation_scope. */
+  (void)push_template_instantiation_scope(tssp->cache.decl_info,
+                                          (a_type_ptr)NULL,
+                                          (a_routine_ptr)NULL,
+                                          static_data_member_sym,
+                                          tip->template_sym,
+                                          (a_template_arg_ptr)NULL);
+  /* Reactivate any pragmas that should be bound to the generated
+     instance. */
+  reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
+  /* Call mark_defined *after* the template instantiation scope is pushed --
+     correct behavior for source sequence entry generation depends on it. */
+  mark_defined(static_data_member_sym, &tip->template_sym->decl_position);
   if (tssp->cache.tokens.first_token != NULL) {
+    /* An initializer was specified in the template declaration. */
     a_boolean  incomplete_type_error_reported;
     a_boolean  has_parenthesized_initializer;
 
-    /* Push a template instantiation scope.  The real values of the
-       the template arguments will be associated with the template
-       parameter names. */
-    /* For static data members, the argument list comes from the enclosing
-       class that is reactivated by push_template_instantiation_scope. */
-    (void)push_template_instantiation_scope(tssp->cache.decl_info,
-					    (a_type_ptr)NULL,
-					    (a_routine_ptr)NULL,
-					    static_data_member_sym,
-					    tip->template_sym,
-                                            (a_template_arg_ptr)NULL);
-    /* Reactivate any pragmas that should be bound to the generated
-       instance. */
-    reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
-    /* Call mark_defined *after* the template instantiation scope is pushed --
-       correct behavior for source sequence entry generation depends on it. */
-    mark_defined(static_data_member_sym, &tip->template_sym->decl_position);
     rescan_reusable_cache(&tssp->cache.tokens);
     /* If the first token is an equals sign then this is not a parenthesized
        initializer.   Initializers that begin with an invalid token will
@@ -1847,16 +1847,15 @@ and the class instantiation will detect the runaway case.
     /* By pass end-of-source token, which is probably the terminator token
        in the cache. */
     (void)get_token();
-    /* Process any pragmas that are to be bound to this instance. */
-    process_curr_construct_pragmas(static_data_member_sym,
-                                   (a_statement_ptr)NULL);
-    pop_template_instantiation_scope();
-
   } else {
-    mark_defined(static_data_member_sym, &tip->template_sym->decl_position);
+    /* There's no explicit initializer. */
     (void)def_initializer(static_data_member_sym,
                           &tip->template_sym->decl_position);
   }  /* if */
+  /* Process any pragmas that are to be bound to this instance. */
+  process_curr_construct_pragmas(static_data_member_sym,
+                                 (a_statement_ptr)NULL);
+  pop_template_instantiation_scope();
   /* Usually template static data members are instantiated "on demand" and
      so the referenced flag will already have been set.  But if the
      instantiation mode says to instantiate whether or not there is
