@@ -370,6 +370,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
                                              NULL :
                                              fundamental_symbol_of(hidden_by);
           if (microsoft_mode &&
+              fund_hiding_sym != NULL &&
               fund_hiding_sym->kind == (a_symbol_kind)sk_type &&
               fund_hiding_sym->variant.type.is_injected_class_name) {
             /* In Microsoft compilers an injected class name is only visible
