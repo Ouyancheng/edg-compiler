@@ -1103,7 +1103,9 @@ the template.
           if (!is_friend_decl &&
               ssep->current_access !=
                           type_symbol_type(tag_sym)->source_corresp.access) {
-            pos_sy_warning(ec_cannot_change_access, &tag_position, tag_sym);
+            pos_sy_diagnostic(any_cfront_mode() ?
+                                es_warning : es_discretionary_error,
+                              ec_cannot_change_access, &tag_position, tag_sym);
           }  /* if */
         } else if (is_class_definition) {
           /* A definition of a nested class that appears in the scope other
@@ -1577,8 +1579,10 @@ to indicate whether an enumeration is actually defined.
         /* enum_type is a class member and is being defined having been
            forward-declared. */
         if (enum_type->source_corresp.access != access) {
-          pos_sy_warning(ec_cannot_change_access, &locator.source_position,
-                         tag_sym);
+          pos_sy_diagnostic(any_cfront_mode() ?
+                              es_warning : es_discretionary_error,
+                            ec_cannot_change_access, &locator.source_position,
+                            tag_sym);
           access = enum_type->source_corresp.access;
         }  /* if */
       }  /* if */

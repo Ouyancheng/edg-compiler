@@ -1,5 +1,17 @@
 Version 2.32
 
+6/12/96 Diagnostic on member redeclaration with different access
+
+Reflecting a recent Working Paper change, we now issue a discretionary
+error instead of a warning when a member redeclaration is subject to
+different access than the original declaration:
+
+  struct S {
+    struct N;
+  private:
+    struct N { ... };     // Error (but still a warning in cfront mode)
+  };
+
 6/12/96 Assigning a "name for linkage purposes" to a type
 
 Except in cfront-compatibility mode, the source_corresp.name field of an

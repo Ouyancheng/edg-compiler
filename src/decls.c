@@ -4884,8 +4884,10 @@ return a pointer to it in *symbol_ptr.
           check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
           if (type_symbol_type(sym)->source_corresp.access !=
                                                ssep->current_access) {
-            pos_sy_warning(ec_cannot_change_access, &locator->source_position,
-                           sym);
+            pos_sy_diagnostic(any_cfront_mode() ?
+                                es_warning : es_discretionary_error,
+                              ec_cannot_change_access,
+                              &locator->source_position, sym);
           }  /* if */
         }  /* if */
         /* However, in C++ we may still need an sk_type symbol,
@@ -4894,7 +4896,8 @@ return a pointer to it in *symbol_ptr.
           if (C_mode()) {
             /* Allowing a benign redeclaration is an extension in C, so issue
                a warning. */
-            pos_diagnostic(strict_ansi_error_severity,
+            pos_diagnostic(strict_ansi_mode ?
+                             strict_ansi_error_severity : es_warning,
                            ec_duplicate_typedef, &locator->source_position);
           }  /* if */
           record_symbol_declaration(SRK_DECLARATION, sym,
