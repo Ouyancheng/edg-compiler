@@ -13384,15 +13384,17 @@ static void scan_microsoft_member_decl_prefix(
 /*
 Scan Microsoft-specific leading components of a member declaration.  Normally,
 these are the Microsoft attributes enclosed in square brackets: *ms_attributes
-is updated to point to any such attributes.  If the attributes are followed by
-a semicolon, *complete_decl is set to TRUE.  Some Microsoft compilers also have
-a bug that allows for a member declaration to start with a left parenthesis:
-We scan the parenthesis here (with a warning) and record its presence in
-*class_state.  The "matching" right parenthesis (which Microsoft compilers
-accept almost anywhere in the member declaration) should be consumed using the
-macro consume_any_stray_microsoft_rparen.
+is updated to point to any such attributes.  If attributes are scanned and if
+the are followed by a semicolon, *complete_decl is set to TRUE; otherwise,
+*complete_decl is to FALSE.  Some Microsoft compilers also have a bug that
+allows for a member declaration to start with a left parenthesis: We scan the
+parenthesis here (with a warning) and record its presence in *class_state.
+The "matching" right parenthesis (which Microsoft compilers accept almost
+anywhere in the member declaration) should be consumed using the macro
+consume_any_stray_microsoft_rparen.
 */
 {
+  *complete_decl = FALSE;
   if (curr_token == tok_lbracket) {
     /* A Microsoft attribute of the form "[ ... ]". */
     *ms_attributes = scan_microsoft_attributes(/*is_parameter=*/FALSE);
@@ -13408,8 +13410,6 @@ macro consume_any_stray_microsoft_rparen.
       cannot_bind_to_curr_construct();
       (void)get_token();
       *complete_decl = TRUE;
-    } else {
-      *complete_decl = FALSE;
     }  /* if */
   }  /* if */
   class_state->ms_parenthesized_member = FALSE;
@@ -13834,7 +13834,7 @@ classes.
           if (microsoft_mode) {
             /* Scan any Microsoft attributes, and perhaps a leading
                parenthesis. */
-            a_boolean  complete_decl = FALSE;
+            a_boolean  complete_decl;
             scan_microsoft_member_decl_prefix(&class_state, &ms_attributes,
                                               &complete_decl);
             if (complete_decl) goto next_declaration;

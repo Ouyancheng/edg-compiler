@@ -176,6 +176,10 @@ EXTERN a_pending_class_definition_count
 			   process.  This includes normal class definitions
 			   and template class instantiations. */
 
+/*
+Macro to consume and ignore certain right parentheses in declarations.  This
+is used to emulate a strange bug in some versions of the Microsoft compiler.
+*/
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void f_consume_any_stray_microsoft_rparen(void);
 
