@@ -1,5 +1,13 @@
 Version 2.39
 
+7/30/98  Prelinker fails when object file name is also an archive member name
+
+A bug was introduced into the prelinker in version 2.37, when
+one-instantiation-per-object support was added, that would cause the
+prelinker to fail if an object file name specified on the command-line
+was the same as an object file name found in an archive that is being
+used.  This has been fixed.
+
 7/29/98  eccp: driver name can be changed for diagnostic purposes
 
 The eccp script now uses a variable for the driver name to be displayed

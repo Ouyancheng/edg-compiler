@@ -1646,6 +1646,16 @@ or defined in that object file.
          the input line. */
       is_archive = name2 != NULL;
       for (pifp = pl_input_files; pifp != NULL; pifp = pifp->next) {
+        /* If the object is from an archive, make sure that the archive
+           name matches the input file name.  If the input is not from
+           an archive, we then go on to see if any of the object file names
+           associated with the input file match.  This is done to find
+           an instantiation object file associated with a "primary" object
+           file. */
+        if (is_archive && strcmp(pifp->file_name, name1) != 0) continue;
+        /* Don't search the object file list associated with archives -- they
+           can't have associated instantiation files. */
+        if (pifp->is_archive) continue;
         /* Look for a match among the instantiation object files associated
            with this input file. */
         for (pofp = pifp->objects; pofp != NULL; pofp = pofp->next) {
