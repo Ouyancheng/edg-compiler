@@ -1,10 +1,31 @@
 Version 2.24
 
+6/22/94 IL Change: entity_type recorded in a_src_seq_secondary_decl
+
+A new field has been added to entries in a source-sequence list that
+represent secondary declarations -- the entity type.  This is useful for
+reconstructing the original source when the type on the entity differs from
+the type used in the secondary declaration.  Here's an example:
+
+  typedef void (F)();
+  F f;
+  void f() { }
+
+The source sequence entry for the first declaration of f points to a
+secondary-decl entry that in turn points to the typedef F.
+
+In a related change, a declaration that is not a primary declaration (e.g.,
+an extern declaration or a function declaration where no body is provided)
+is always represented now with a secondary-decl entry -- it used to be that
+the first such declaration was treated as the primary declaration when no
+"real" primary declaration appeared later.  (The old convention is still
+retained in C mode for tentative variable definitions.)
+
 6/22/94 C++-generating BE: Elimination of unnecessary casts on ptrs-to-members
 
-The C++-generating back end no longer puts out some unnecessary casts
-on pointer-to-member constants.  These casts, though correct, tickled a
-bug in cfront.
+The C++-generating back end no longer puts out some unnecessary casts on
+pointer-to-member constants.  These casts, though correct, tickled a bug in
+cfront.
 
 6/22/94 Internal error on class_decl.c checking code fixed
 
