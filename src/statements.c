@@ -1219,7 +1219,6 @@ start of a sequence of declarations.
          bound to the next declaration. */
       ssep = prev_ssep->next;
       while (ssep != NULL) {
-        check_assertion(ssep->entity.kind != (a_byte_il_entry_kind)iek_none);
         if (ssep->entity.kind == (a_byte_il_entry_kind)iek_pragma) {
           /* The source sequence entry represents a pragma.  See if it's
              a binds-to-next-decl pragma. */
@@ -1237,6 +1236,10 @@ start of a sequence of declarations.
         } else if (is_sublist_parent(ssep) && ssep->next == NULL) {
           /* Scan the sublist. */
           ssep = assoc_sublist_of(ssep)->source_sequence_list;
+        } else if (ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {
+          /* Ignore it.  It may be associated with a pragma that has not
+             yet been processed. */
+          ssep = ssep->next;
         } else {
           /* Assume this to be the source sequence entry created by the
              declaration. */
