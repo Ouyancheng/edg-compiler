@@ -576,7 +576,7 @@ unknown_option:
       "instantiation mode (-t) can only be used when compiling C++");
     }  /* if */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
-    if (do_auto_instantiation) {
+    if (process_instantiation_list_file) {
       command_line_error(
       "instantiation information file (-F) can only be used when compiling C++");
     }  /* if */

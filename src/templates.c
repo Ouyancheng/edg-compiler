@@ -3697,7 +3697,7 @@ were entered in the hash table; otherwise returns FALSE.
   char				*line;
   a_boolean			result = FALSE;
 
-  if (do_auto_instantiation) {
+  if (process_instantiation_list_file) {
     /* The variable do_auto_instantiation indicates that an instantiation
        list file is present. */
     while ((line = read_info_file()) != NULL) {
@@ -3705,6 +3705,7 @@ were entered in the hash table; otherwise returns FALSE.
       result = TRUE;
     }  /* while */
   }  /* if */
+  (void)fclose(f_instantiation_information);
   return result;
 }  /* read_instantiation_information_file */
 

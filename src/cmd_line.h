@@ -245,6 +245,32 @@ EXTERN a_template_instantiation_mode
                                              ;
                         /* The default template instantiation mode. */
 
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
+EXTERN a_boolean
+                automatic_instantiation_mode
+#if VAR_INITIALIZERS
+                          = DEFAULT_AUTOMATIC_INSTANTIATION_MODE
+#endif /* VAR_INITIALIZERS */
+                                                      ;
+                        /* Should automatic instantiation processing be
+			   performed.  This includes both the generation of
+ 			   the instantiation flags and the processing of the
+			   instantiation list. */
+
+EXTERN a_boolean	process_instantiation_list_file
+#if VAR_INITIALIZERS
+			          = FALSE
+#endif /* VAR_INITIALIZERS */
+                                             ;
+                        /* When automatic_instantiation_mode is TRUE this
+			   flag indicates whether there is an instantiation
+			   list file to be read.  When this flag is FALSE
+			   and automatic_instantiation_mode is TRUE it means
+			   that no files have been assigned to this compilation
+			   for automatic instantiation but the front end should
+			   still generate automatic instantiation flags to
+			   be passed to the back end. */
+
 EXTERN char	*instantiation_list_filename
 #if VAR_INITIALIZERS
 			          = NULL
@@ -256,30 +282,11 @@ EXTERN char	*instantiation_list_filename
 			   feedback mechanisms to provide automatic
 			   instantiation. */
 
-EXTERN a_boolean	do_auto_instantiation
-#if VAR_INITIALIZERS
-			          = FALSE
-#endif /* VAR_INITIALIZERS */
-                                             ;
-                        /* TRUE if automatic instantiation processing should
-			   be done.  This flag is set when an automatic
-			   instantiation list filename is specified. */
-
 EXTERN FILE	*f_instantiation_information /* = NULL */;
 			/* File from which the instantiation list should be
 			   read.  Only valid when do_auto_instantiation is
 			   TRUE. */
-
-EXTERN a_boolean
-                automatic_instantiation_mode
-#if VAR_INITIALIZERS
-                          = DEFAULT_AUTOMATIC_INSTANTIATION_MODE
-#endif /* VAR_INITIALIZERS */
-                                                      ;
-                        /* Should automatic instantiation processing be
-			   performed.  This includes both the generation of
- 			   the instantiation flags and the processing of the
-			   instantiation list. */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 
 /* Process the command line arguments. */
