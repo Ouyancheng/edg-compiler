@@ -1399,6 +1399,7 @@ Process the arguments on the command line that invoked the compiler.
     exceptions_enabled = FALSE;
     rtti_enabled = FALSE;
     wchar_t_is_keyword = FALSE;
+    bool_is_keyword = FALSE;
     alternative_tokens_allowed = FALSE;
   } else {
     /* The dialect is C++. */
@@ -1457,6 +1458,8 @@ Process the arguments on the command line that invoked the compiler.
       /* Set optional features to standard settings for strict C++ mode. */
       /* Enable recognition of operator keywords and digraphs. */
       alternative_tokens_allowed = TRUE;
+      wchar_t_is_keyword = TRUE;
+/*    bool_is_keyword = TRUE; -- set when bool is ready. */
       /* Temporary lifetime is short. */
       long_lifetime_temps = FALSE;
 #if RTTI_ENABLING_POSSIBLE
