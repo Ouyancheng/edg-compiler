@@ -16,8 +16,17 @@ extasm.c -- Scanning and validation of GNU extended asm() statements.
 /* Header files common to all files. */
 #include "fe_common.h"
 
-#include "mem_manage.h"
 #include "extasm.h"
+
+#ifdef PCH_PRAGMA_GUARD
+/* Mark the end of the sequence of headers subject to precompiled header
+   processing. */
+#pragma hdrstop
+#endif /* ifdef PCH_PRAGMA_GUARD */
+
+/* Header files used by files involved in declaration processing. */
+#include "decl_hdrs.h"
+
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -91,6 +100,7 @@ static struct name_to_reg extra_reg_names[] = {
   { "st6", (a_named_register)anr_st6 },
   { "st7", (a_named_register)anr_st7 },
 #endif /* TARG_IS_X86 */
+  { "", (a_named_register)anr_last }
 };
 
 /* The complete map between register names and enumerators, and its size. */
@@ -127,6 +137,52 @@ In the latter case, issues an error.
   }  /* if */
   return result;
 }  /* name_to_register */
+
+
+typedef struct a_named_register_list_entry *a_named_register_list_entry_ptr;
+typedef struct a_named_register_list_entry {
+  /* Helper structure to accumulate a list of registers. */
+  a_named_register_list_entry_ptr
+		next;
+			/* Pointer to the next entry (if any). */
+  a_named_register
+		reg;
+			/* Register description. */
+} a_named_register_list_entry;
+
+/* Previously allocated entries available for reused. */
+static a_named_register_list_entry_ptr avail_named_register_list_entries;
+
+static a_named_register_list_entry_ptr alloc_named_register_list_entry(void)
+/*
+Allocate an entry of a list of named register entries.
+*/
+{
+  a_named_register_list_entry_ptr  result;
+
+  if (avail_named_register_list_entries != NULL) {
+    /* Reuse a previously allocated entry. */
+    result = avail_named_register_list_entries;
+    avail_named_register_list_entries =
+                                      avail_named_register_list_entries->next;
+  } else {
+    /* Allocate memory for a new entry. */
+    result = (a_named_register_list_entry_ptr)alloc_fe(
+                                         sizeof(a_named_register_list_entry));
+  }  /* if */
+  return result;
+}  /* alloc_named_register_list_entry */
+
+
+static void free_named_register_list_entry(a_named_register_list_entry_ptr  p)
+/*
+Return an entry of a list of named register entries to the available pool.
+*/
+{
+  p->next = avail_named_register_list_entries;
+  avail_named_register_list_entries = p;
+  p->reg = (a_named_register)anr_last;
+}  /* free_named_register_list_entry */
 
 
 /*ARGSUSED*/
@@ -346,7 +402,7 @@ even if they are invalid.
          single_register_constraints[j].cons != (a_named_register)anr_last;
          j++) {
       if (operands[i].constraint == single_register_constraints[j].cons) {
-        r = single_register_constraints[j].cons;
+        r = single_register_constraints[j].reg;
         /* Test used == 1 so the error is issued once per register. */
         if (regs_used[(int)r] == 1) {
           pos_st_error(ec_register_used_twice, &operands[i].position,
@@ -513,29 +569,26 @@ The syntax is
 */
 {
   /* There is no hard limit on the number of clobbers. */
-  a_named_register *clobbers = NULL;
-  a_named_register *clobbuf = NULL;
-  a_named_register reg;
-  int              n = 0, nparsed = 0;
-  int              bufsiz = 16;
+  a_named_register                 *clobbers = NULL;
+  a_named_register                 reg;
+  int                              n = 0, nparsed = 0;
+  a_named_register_list_entry_ptr  first_reg = NULL, last_reg = NULL;
 
   db_enter(3, "asm_clobbers_spec");
   if (curr_token == tok_colon || curr_token == tok_colon_colon) {
     (void)get_token();
-    clobbuf = (a_named_register*)alloc_general(
-                                           bufsiz * sizeof(a_named_register));
     while (curr_token == tok_string_literal) {
       nparsed++;
       reg = name_to_register(const_for_curr_token.variant.string.value);
       if (reg != (a_named_register)anr_invalid) {
-        clobbuf[n++] = reg;
-        if (n >= bufsiz) {
-          clobbuf = (a_named_register*)realloc_general(
-                                       (char*)clobbuf,
-                                       bufsiz * sizeof(a_named_register),
-                                       bufsiz * sizeof(a_named_register) * 2);
-          bufsiz *= 2;
+        /* Add this register to our list. */
+        if (first_reg == NULL) {
+          first_reg = last_reg = alloc_named_register_list_entry();
+        } else {
+          last_reg->next = alloc_named_register_list_entry();
         }  /* if */
+        last_reg->reg = reg;
+        ++n;
       }  /* if */
       /* advance past string */
       (void)get_token();
@@ -559,12 +612,16 @@ The syntax is
   }  /* if */
   /* Copy to IL pool and return. */
   if (n > 0) {
+    int i;
     clobbers = (a_named_register *)
          alloc_in_region(curr_il_region_number, n * sizeof(a_named_register));
-    memcpy(clobbers, clobbuf,
-           size_t_arg(n * sizeof(a_named_register)));  /*lint !e668*/
+    for (i = 0; i < n; ++i) {
+      a_named_register_list_entry_ptr  to_free = first_reg;
+      clobbers[i] = first_reg->reg;
+      first_reg = first_reg->next;
+      free_named_register_list_entry(to_free);
+    }  /* for */
   }  /* if */
-  free_general(clobbuf, bufsiz * sizeof(a_named_register));
   *p_clobbers = clobbers;
   db_exit();
   return n;
@@ -608,17 +665,28 @@ extended asm statements.
      extra register names.  regmap does not include entries for
      anr_invalid or anr_last. */
   regmap_size = (int)anr_last - 1;
-  regmap_size += sizeof(extra_reg_names) / sizeof(struct name_to_reg);
+  regmap_size += (sizeof(extra_reg_names) / sizeof(struct name_to_reg)) - 1;
   regmap = (struct name_to_reg *)
                       alloc_general(regmap_size * sizeof(struct name_to_reg));
+  /* Start with i = 1 since anr_invalid is not copied. */
   for (i = 1; i < (int)anr_last; i++) {
     regmap[i-1].name = named_register_names[i];
     regmap[i-1].reg = i;
   }  /* for */
-  memcpy(&regmap[(int)anr_last-1], extra_reg_names, sizeof(extra_reg_names));
+  memcpy(&regmap[(int)anr_last-1], extra_reg_names,
+         regmap_size * sizeof(struct name_to_reg));
   /* name_to_register requires that regmap be sorted. */
   qsort(regmap, (qsort_nmemb_type)regmap_size,
         (qsort_nmemb_type)sizeof(struct name_to_reg), compare_n2r);
+  /* Save variables from extasm.h and extasm.c that are needed for
+     precompiled headers */
+  if (precompiled_header_processing_required) {
+    static a_pch_saved_variable saved_vars[] = {
+      pch_saved_var_array_elem(avail_named_register_list_entries),
+      pch_saved_var_array_terminating_elem()
+    };
+    register_pch_saved_variables(saved_vars);
+  }  /* if */
 }  /* extasm_one_time_init */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
