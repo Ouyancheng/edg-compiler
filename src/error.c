@@ -953,7 +953,8 @@ error code.
       m = "no constructor exists for class \"%s\"";
       break;
     case ec_bad_union_field:
-      m = "invalid union member -- disallowed member function in class \"%s\"";
+      m =
+       "invalid union member -- class \"%s\" has a disallowed member function";
       break;
     case ec_overloaded_function_types_too_similar:
       m = "cannot overload functions -- parameter types are too similar";
