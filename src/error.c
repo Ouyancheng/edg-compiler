@@ -19,7 +19,7 @@ error.c -- Error reporting routines.
 #include "cmd_line.h"
 #include "mem_manage.h"
 #include "float_pt.h"
-
+#include "const_ints.h"
 #include "il.h"
 #if !STANDALONE_UTILITY_PROGRAM
 #include "symbol_tbl.h"
@@ -1879,9 +1879,11 @@ the length of the type qualifier added.
 }  /* form_type_qualifier */
 
 
-/* Forward declaration for recursive call. */
-static void form_class_name(a_type_ptr        type,
-                            a_msg_segment_ptr seg_ptr);
+/* Forward declarations for recursive calls. */
+static void form_class_qualifier(a_type_ptr        type,
+                                 a_msg_segment_ptr seg_ptr);
+static void form_type_name(a_type_ptr        type,
+                           a_msg_segment_ptr seg_ptr);
 
 
 static void form_constant(a_constant_ptr     cp,
@@ -1898,8 +1900,7 @@ Add a string representing a constant value to a string being formed.
 
   switch (cp->kind) {
     case ck_integer:
-      sprintf(buffer, "%ld", cp->variant.integer_value);
-      add_string_to_segment(buffer, seg_ptr);
+      add_string_to_segment(str_for_integer_constant(cp), seg_ptr);
       break;
     case ck_string:
       /* Opening quote. */
@@ -1984,8 +1985,8 @@ Add a string representing a constant value to a string being formed.
     case ck_ptr_to_member:
       /* C++ pointer-to-member. */
       add_string_to_segment("&", seg_ptr);
-      form_class_name(cp->variant.ptr_to_member.class_of_which_a_member,
-                      seg_ptr);
+      form_class_qualifier(cp->variant.ptr_to_member.class_of_which_a_member,
+                           seg_ptr);
       add_string_to_segment(".", seg_ptr);
       if (cp->variant.ptr_to_member.is_function_ptr) {
         scp = &cp->variant.ptr_to_member.variant.routine->source_corresp;
@@ -2051,15 +2052,11 @@ Add the type specifier to the type string being formed.
       tag_kind = "class ";
 do_tag_name:
       if (type->source_corresp.name != NULL) {
-        s = type->source_corresp.name;
         /* For C++, do not generate the tag kind for named types. */
         if (C_dialect == C_dialect_cplusplus) tag_kind = NULL;
-      } else {
-        /* Have an unnamed class. */
-        s = "<unnamed>";
       }  /* if */
       add_string_to_segment(tag_kind, seg_ptr);
-      form_class_name(type->source_corresp.class_of_which_a_member, seg_ptr);
+      form_type_name(type, seg_ptr);
       break;
     case tk_typeref:
       /* Look at each level of typeref.  If one with a name is found, print
@@ -2128,8 +2125,8 @@ Add the first of possibly two parts of a type reference.
     /* C++ pointer to member type. */
     form_type_first_part(type->variant.ptr_to_member.type,
                          /*needs_parens=*/TRUE, seg_ptr);
-    form_class_name(type->variant.ptr_to_member.class_of_which_a_member,
-                    seg_ptr);
+    form_class_qualifier(type->variant.ptr_to_member.class_of_which_a_member,
+                         seg_ptr);
     add_string_to_segment("*", seg_ptr);
     if (need_parens) add_string_to_segment("(", seg_ptr);
   } else if (type->kind == (a_type_kind)tk_routine) {
@@ -2292,35 +2289,49 @@ surrounded by "<" and ">".
 }  /* form_template_args */
 
 
-static void form_class_name(a_type_ptr        type,
-                            a_msg_segment_ptr seg_ptr)
+static void form_type_name(a_type_ptr        type,
+                           a_msg_segment_ptr seg_ptr)
 /*
-Add the class name of the specified type followed by "::" to the message
-segment being constructed at *seg_ptr.  Use "<unnamed>" if the class
-has no user name.
+Add the name of a type to the message segment being constructed
+at *seg_ptr.  Use "<unnamed>" if the type has no user name.  This is
+used for classes and enums.
 */
 {
   char                         *s;
-  a_class_type_supplement_ptr  ctsp = NULL;
+  a_class_type_supplement_ptr  ctsp;
 
+  if (type->source_corresp.name != NULL) {
+    s = type->source_corresp.name;
+  } else {
+    s = "<unnamed>";
+  }  /* if */
+  add_string_to_segment(s, seg_ptr);
+  /* If a class is an instantiation of a class template, put out the
+     template arguments. */
+  if (is_immediate_class_type(type)) {
+    ctsp = type->variant.class_struct_union.extra_info;
+    if (ctsp != NULL) form_template_args(ctsp->template_arg_list, seg_ptr);
+  }  /* if */
+}  /* form_type_name */
+
+
+static void form_class_qualifier(a_type_ptr        type,
+                                 a_msg_segment_ptr seg_ptr)
+/*
+Add the class name of the specified type followed by "::" to the message
+segment being constructed at *seg_ptr.
+*/
+{
   if (type != NULL && C_dialect == C_dialect_cplusplus) {
     /* Check for nested classes. */
     if (type->source_corresp.class_of_which_a_member != NULL) {
-      form_class_name(type->source_corresp.class_of_which_a_member, seg_ptr);
+      form_class_qualifier(type->source_corresp.class_of_which_a_member,
+                           seg_ptr);
     }  /* if */
-    if (type->source_corresp.name != NULL) {
-      s = type->source_corresp.name;
-      ctsp = type->variant.class_struct_union.extra_info;
-    } else {
-      s = "<unnamed>";
-    }  /* if */
-    add_string_to_segment(s, seg_ptr);
-    /* If a class is an instantiation of a class template, put out the
-       template arguments. */
-    if (ctsp != NULL) form_template_args(ctsp->template_arg_list, seg_ptr);
+    form_type_name(type, seg_ptr);
     add_string_to_segment("::", seg_ptr);
   }  /* if */
-}  /* form_class_name */
+}  /* form_class_qualifier */
 
 
 static void form_type_summary(a_type_ptr        tp,
@@ -2617,7 +2628,7 @@ symbol_name:
           add_string_to_segment(" ", seg_ptr);
         }  /* if */
       }  /* if */
-      form_class_name(sym->class_of_which_a_member, seg_ptr);
+      form_class_qualifier(sym->class_of_which_a_member, seg_ptr);
       /* Use the name in the header. */
       add_string_to_segment(sym->header->identifier, seg_ptr);
       if (type != NULL &&
