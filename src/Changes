@@ -1,5 +1,12 @@
 Version 2.20
 
+10/20/93 Increase in number of include files that may be opened at once
+
+The constant MAX_INCLUDE_FILES_OPEN_AT_ONCE has been increased from
+3 to 8.  This is a more reasonable value for virtually all systems.
+The definition of this value has also been moved from lexical.c to
+host_envir.h.
+
 10/19/93 Explicit destructor calls using template parameters
 
 The front end now supports explicit destructor calls using the name of

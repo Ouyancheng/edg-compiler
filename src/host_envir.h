@@ -75,6 +75,16 @@ concatenation).
 #endif /* ifndef HOST_ALLOCATION_INCREMENT */
 
 /*
+The number of include files that may be opened at any given time.
+After include nesting gets this deep, the same file will be re-opened
+for all other include files.  The primary source file is not included
+in this count.
+*/
+#ifndef MAX_INCLUDE_FILES_OPEN_AT_ONCE
+#define MAX_INCLUDE_FILES_OPEN_AT_ONCE 8
+#endif /* ifndef MAX_INCLUDE_FILES_OPEN_AT_ONCE */
+
+/*
 Width at which error message lines should be wrapped to another line
 (typically, a "normal" terminal width).
 */

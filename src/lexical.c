@@ -51,11 +51,6 @@ Variables pertaining to the input stack (for include files and the
 primary source file) and the current input file (the top entry on the
 stack).
 */
-#define MAX_INCLUDE_FILES_OPEN_AT_ONCE 3
-			/* To avoid having too many open files: After include
-			   nesting gets this deep, the same file will be
-			   re-opened for all other include files.  The primary
-			   source file is not included in this count. */
 static an_input_stack_entry_ptr
 		input_stack = NULL;
 			/* Input stack, one entry for each active source 
