@@ -2249,6 +2249,14 @@ called is different.
 
   /* Build a constant node for the number of array elements. */
   num_elem_node = num_elem_node_from_count(array_element_count);
+  /* The num_elems parameter of __vec_cctor has type size_t, which
+     is different than most of the similar routines. */
+  cast_node(&num_elem_node, integer_type(targ_size_t_int_kind),
+            /*check_cast_access=*/FALSE,
+            /*is_implicit_cast=*/TRUE,
+            /*is_reinterpret_cast=*/FALSE,
+            /*reinterpret_semantics=*/FALSE,
+            &error_position);
   /* Build a constant node for the size of the array elements. */
   size_elem_node = size_elem_node_from_pointer_type(entity_node->type);
   /* Build an expression for the address of the copy constructor. */
