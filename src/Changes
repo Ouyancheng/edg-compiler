@@ -1,5 +1,17 @@
 Version 3.4
 
+5/2/04   Microsoft compatibility: cast to pointer type in nontype template
+         argument
+
+Microsoft bugs mode now allows explicit casts to pointer types in
+nontype template arguments.  Formerly, such casts were allowed only
+if they did nothing more than adjust cv-qualifiers.
+
+  typedef void (*PF)();
+  template<PF pfn> struct C {};
+  void f();
+  C<(PF)f> c; // Now allowed, in Microsoft bugs mode
+
 5/1/04   Microsoft compatibility: const_cast to enum type
 
 The Microsoft compiler (versions 6.0, 7.0, and 7.1 at least) allows

@@ -8210,6 +8210,12 @@ this routine is called.
                             f_skip_typerefs(type_pointed_to(operand->type)))) {
       /* A cast that strips qualifiers from a pointer type.  Allow as an
          extension in Microsoft mode. */
+    } else if (microsoft_bugs &&
+               is_pointer_type(dest_type) &&
+               (is_pointer_type(operand->type) ||
+                is_integral_type(operand->type))) {
+      /* A more controversial cast to pointer type.  Allow in Microsoft bugs
+         mode. */
     } else if (is_template_param_type(dest_type)) {
       /* Casting to an unknown template parameter type is okay. */
     } else {
