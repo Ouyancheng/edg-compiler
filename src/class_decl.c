@@ -1274,13 +1274,20 @@ located.
   /* The list must also include all non-overridden pure virtual functions in
      base classes. */
   for (bcp = base_classes_of(tp); bcp != NULL; bcp = bcp->next) {
+    /* Only base classes that are themselves abstract need to be considered.
+       Traverse the derivation hierarchy by visiting the direct base classes
+       for the current level and, if this is the top-level base class list,
+       the virtual base classes.  (We only visit virtual base classes when
+       base_class is NULL to avoid hitting them more than once.) */
     if (bcp->type->variant.class_struct_union.abstract &&
-        (bcp->direct || (bcp->is_virtual && base_class == NULL))) {
+        bcp->is_virtual ? base_class == NULL : bcp->direct) {
       /* Recursive call.  Note that the a different error code is used for
          base class pure virtual functions. */
       report_pure_virtual_functions(class_type,
-                                    corresponding_base_class(bcp, class_type,
-                                                             base_class),
+                                    base_class == NULL ?
+                                      bcp :
+                                      corresponding_base_class(bcp, class_type,
+                                                               base_class),
                                     ec_no_overrider_for_pure_virtual_function,
                                     found);
     }  /* if */
