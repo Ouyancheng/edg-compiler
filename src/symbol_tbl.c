@@ -2080,6 +2080,17 @@ there's only one) declared in the condition scope.
 }  /* is_redeclared_condition_decl_name */
 
 
+static void add_symbol_to_inactive_list(a_symbol_ptr sym_ptr)
+/*
+Add the given symbol to its symbol header's inactive list.
+*/
+{
+  a_symbol_header_ptr sym_hdr = sym_ptr->header;
+  sym_ptr->next = sym_hdr->inactive_symbols;
+  sym_hdr->inactive_symbols = sym_ptr;
+}  /* add_symbol_to_inactive_list */
+
+
 static void link_symbol_into_symbol_table(a_symbol_ptr  sym_ptr,
                                           a_scope_depth scope_depth,
                                           a_boolean     suppress_error)
@@ -2090,6 +2101,10 @@ in the same scope, and issue an error in that case.  The error is suppressed
 if suppress_error is TRUE.  scope_depth indicates the level in the scope
 stack at which the symbol is being entered, which is needed to determine
 the proper insert location.
+
+Symbols are usually added to the symbol header's active list.  When
+a symbol is added to a a sck_namespace_extension scope, however, the
+symbol must be added to the inactive list.
 */
 {
   register a_symbol_ptr        old_sym_ptr;
@@ -2103,6 +2118,7 @@ the proper insert location.
   if (sym_ptr->is_error) {
     /* Error symbols are never added to the symbol table. */
   } else {
+    a_boolean	is_namespace_extension = FALSE;
 #if CHECKING
     if (hdr_ptr == NULL || hdr_ptr == error_symbol_header) {
       internal_error("link_symbol_into_symbol_table: NULL or error header");
@@ -2114,22 +2130,32 @@ the proper insert location.
          for keywords and command-line -D options, for example.  No error
          check is done. */
     } else {
-      /* If the symbol is not being entered in the innermost scope, skip
-         past any symbols on the active list from the scopes inside the
-         entry scope.  That's necessary so that the new symbol can be added
-         at the right place in the active list, which is ordered from
-         innermost to outermost scope. */
-      old_sym_ptr = hdr_ptr->symbol;
-      for (curr_depth = depth_scope_stack; ; curr_depth--) {
-        scope_number = scope_stack[curr_depth].number;
-        if (curr_depth == scope_depth) break;
-        /* Ignore any symbols from the scope skipped over. */
-        while (old_sym_ptr != NULL &&
-               old_sym_ptr->decl_scope == scope_number) {
-          insert_after = old_sym_ptr;
-          old_sym_ptr = old_sym_ptr->next;
-        }  /* while */
-      }  /* for */
+      is_namespace_extension = scope_stack[scope_depth].kind ==
+                                         (a_scope_kind)sck_namespace_extension;
+      if (is_namespace_extension) {
+        /* Symbols entered into namespace extension scopes are added
+           directly to the inactive list.  The sequence of symbols on the
+           inactive list is not significant. */
+        old_sym_ptr = hdr_ptr->inactive_symbols;
+        scope_number = scope_stack[scope_depth].number;
+      } else {
+        /* If the symbol is not being entered in the innermost scope, skip
+           past any symbols on the active list from the scopes inside the
+           entry scope.  That's necessary so that the new symbol can be added
+           at the right place in the active list, which is ordered from
+           innermost to outermost scope. */
+        old_sym_ptr = hdr_ptr->symbol;
+        for (curr_depth = depth_scope_stack; ; curr_depth--) {
+          scope_number = scope_stack[curr_depth].number;
+          if (curr_depth == scope_depth) break;
+          /* Ignore any symbols from the scope skipped over. */
+          while (old_sym_ptr != NULL &&
+                 old_sym_ptr->decl_scope == scope_number) {
+            insert_after = old_sym_ptr;
+            old_sym_ptr = old_sym_ptr->next;
+          }  /* while */
+        }  /* for */
+      }  /* if */
       sym_name_space_kind = name_space_for_symbol_kind[(int)sym_ptr->kind];
       /* See if this name a redeclaration of a template parameter name. */
       redeclared_template_param = (depth_innermost_instantiation_scope !=
@@ -2175,9 +2201,18 @@ the proper insert location.
            suppress_error is TRUE, because tag names must still be entered
            behind existing non-tag names in C++.  suppress_error is only TRUE
            when there has already been an error issued, so in practical terms
-           the extra check costs nothing. */
-        for (; old_sym_ptr != NULL && old_sym_ptr->decl_scope == scope_number;
+           the extra check costs nothing.  If the symbol is being entered
+           into a namespace extension scope, then the list being scanned is
+           the inactive list (and not the active list).  The inactive list
+           is not ordered, so we have to scan the entire list looking for
+           symbols from the appropriate scope. */
+        for (; old_sym_ptr != NULL &&
+               (old_sym_ptr->decl_scope == scope_number ||
+                                                       is_namespace_extension);
              old_sym_ptr = old_sym_ptr->next) {
+          /* If this is a symbols from another scope (which can only occur
+             when adding to a namespace extension scope) skip this symbol. */
+          if (old_sym_ptr->decl_scope != scope_number) continue;
           if (name_space_for_symbol_kind[(int)old_sym_ptr->kind] ==
                                                          sym_name_space_kind) {
             /* Two declarations in the same name space in the same scope:
@@ -2226,7 +2261,11 @@ the proper insert location.
         }  /* for */
       }  /* if */
     }  /* if */
-    if (insert_after == NULL) {
+    if (is_namespace_extension) {
+      /* In namespace extension scopes, just add the symbol to the
+         inactive list.  The sequence is not significant. */
+      add_symbol_to_inactive_list(sym_ptr);
+    } else if (insert_after == NULL) {
       /* Link the symbol onto the front of the list in the symbol header.
          This is the normal case. */
       sym_ptr->next = hdr_ptr->symbol;
@@ -2472,8 +2511,7 @@ so that there is a symbol against which a reference can be recorded.
                            &locator->source_position);
     sym_ptr->is_error = TRUE;
     /* Add the symbol to the front of the inactive list. */
-    sym_ptr->next = sym_hdr->inactive_symbols;
-    sym_hdr->inactive_symbols = sym_ptr;
+    add_symbol_to_inactive_list(sym_ptr);
   }  /* if */
   db_exit();
   return sym_ptr;
@@ -5751,8 +5789,7 @@ it is added to the end of the scope entry symbol list for the class.
         pointers_block->last_symbol = new_sym;
       } else {
         /* Add it to the inactive list.  It can go at the beginning. */
-        new_sym->next = locator->symbol_header->inactive_symbols;
-        locator->symbol_header->inactive_symbols = new_sym;
+        add_symbol_to_inactive_list(new_sym);
       }  /* if */
 #if DEBUG
       if (debug_level >= 4) db_symbol(new_sym, "symbol created: ", 2);
@@ -6160,8 +6197,7 @@ class_type that is a ck_template_param.
   set_source_corresp_with_scope_depth(scp, sym, depth);
   set_class_membership(sym, scp, class_type);
   /* Add the symbol to the inactive list. */
-  sym->next = sym->header->inactive_symbols;
-  sym->header->inactive_symbols = sym;
+  add_symbol_to_inactive_list(sym);
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "Adding: ");
@@ -6459,6 +6495,7 @@ C and C++.
          class reactivation). */
       for (first_scope = TRUE;; first_scope = FALSE) {
         if (ssep->kind == (a_scope_kind)sck_class_reactivation ||
+            ssep->kind == (a_scope_kind)sck_namespace_extension ||
 	    ssep->kind == (a_scope_kind)sck_template_instantiation) {
           if (cfront_2_1_mode &&
               ssep->kind == (a_scope_kind)sck_class_reactivation &&
@@ -7046,9 +7083,9 @@ namespace.  This routine is used only in C++ mode.
     /* There is an existing specific symbol. */
   } else {
     /* Search for a symbol in the right scope. */
-    /* First, search the list of inactive symbols.  These are class
-       members for classes that are no longer active.  Or, in C,
-       fields of structs/unions. */
+    /* First, search the list of inactive symbols.  Namespace symbols
+       are moved to the inactive list after the initial definition of
+       the namespace. */
     tag_symbol = NULL;
     for (sym = inactive_symbol_list_from_locator(*locator);
          sym != NULL;
@@ -7071,9 +7108,8 @@ namespace.  This routine is used only in C++ mode.
       goto end_lookup;
     }  /* if */
     /* The name was not found on the inactive symbols list.  Try the
-       active symbols list.  This would come up when a qualified name
-       is used when the qualification is not really necessary, i.e.,
-       when we're inside the class mentioned in the qualifier. */
+       active symbols list.  This would be used during the initial
+       definition of the namespace. */
     for (sym = symbol_list_from_locator(*locator);
          sym != NULL;
          sym = sym->next) {
@@ -7542,12 +7578,13 @@ specific version of the template.
     decl_scope_level = depth_scope_stack;
   }  /* if */
   if (C_dialect == C_dialect_cplusplus) {
-    /* Check for class reactivations, classes with base classes, and
-       template instantiations.  When these are found name lookup is more
-       involved.  If the new scope is neither, we can just use the state
-       from the previous scope. */
+    /* Check for class reactivations, classes with base classes,
+       namespace extensions, and template instantiations.  When these
+       are found name lookup is more involved.  If the new scope is neither,
+       we can just use the state from the previous scope. */
     if (kind == (a_scope_kind)sck_class_reactivation ||
         kind == (a_scope_kind)sck_template_instantiation ||
+        kind == (a_scope_kind)sck_namespace_extension ||
         (kind == (a_scope_kind)sck_class_struct_union &&
          base_classes_of(assoc_type) != NULL)) {
       ssep->inactive_symbols_may_be_visible = TRUE;
@@ -7698,6 +7735,7 @@ specific version of the template.
        be deferred. */
     if (kind == (a_scope_kind)sck_file ||
         kind == (a_scope_kind)sck_namespace ||
+        kind == (a_scope_kind)sck_namespace_extension ||
         kind == (a_scope_kind)sck_pragma ||
         kind == (a_scope_kind)sck_template_instantiation ||
         kind == (a_scope_kind)sck_class_struct_union) {
@@ -8533,20 +8571,34 @@ End a name scope by popping an entry off the scope stack.
     } else if (is_prototype_instantiation) {
       /* Don't check on symbols entered in the scope of a class template
          prototype instantiation -- the information may not be complete. */
+    } else if (kind == (a_scope_kind)sck_namespace ||
+               kind == (a_scope_kind)sck_namespace_extension) {
+      /* Don't check symbols in namespaces and namespace extensions because
+         we don't have complete information yet.  This will be done at the
+         end of the file scope. */
     } else {
       end_of_scope_symbol_check(sym, curr_routine);
     }  /* if */
-    /* Remove the symbol from the symbol table.  (Note that symbols are not
-       removed from the scope list.  This is because they must sometimes
-       remain accessible and the scope list, saved away in some other data
-       structure, is a convenient way to get at them again.) */
-    unlink_symbol_from_symbol_table(sym);
-    /* Put struct/union/class members and template parameters on the
-       inactive list of the proper symbol header. */
+    if (kind != (a_scope_kind)sck_namespace_extension) {
+      /* Remove the symbol from the symbol table.  This is not done for
+         namespace extension scopes because symbols from namespace extension
+         scopes are put directly on the inactive list.  The symbol list from
+         the scope entry includes all symbols in the namespace, not only those
+         added as a result of this extension.  (Note that symbols are not
+         removed from the scope list.  This is because they must sometimes
+         remain accessible and the scope list, saved away in some other data
+         structure, is a convenient way to get at them again.) */
+      unlink_symbol_from_symbol_table(sym);
+    }  /* if */
+    /* Put struct/union/class members, namespace members, and template
+       parameters on the inactive list of the proper symbol header.  For
+       namespace members, this only needs to be done for the initial
+       definition.  When a namespace extension is done, the symbols are
+       added directly to the inactive list. */
     if (kind == (a_scope_kind)sck_class_struct_union ||
+        kind == (a_scope_kind)sck_namespace ||
         kind == (a_scope_kind)sck_template_declaration) {
-      sym->next = sym->header->inactive_symbols;
-      sym->header->inactive_symbols = sym;
+      add_symbol_to_inactive_list(sym);
       /* Check for nested class/struct/unions on the inactive list.  If
          there are any, set the flag in the symbol header.  This is
          used to support the nonnested class anachronism.  We do not
