@@ -4726,10 +4726,9 @@ functions befriending_list_test and class_scope_test.
              to the enclosing class".  That is, references outside of
              member functions do have special access.  This allows nested
              classes to use their own names in a data member declaration. */
-          if (test_routine != NULL &&
-              test_routine->source_corresp.is_class_member &&
-              test_routine->source_corresp.parent.class_type ==
-                                                            ssep->assoc_type) {
+          /* Note that the test as written also handles friend functions
+             defined inside nested classes (they get no special access). */
+          if (test_routine != NULL) {
             skipping_to_function = TRUE;
           }  /* if */
           test_routine = NULL;
