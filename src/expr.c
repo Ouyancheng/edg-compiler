@@ -8301,12 +8301,13 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
                              opt
 */
 {
-  an_operand         operand;
-  a_source_position  start_position;
-  a_boolean          err = FALSE, expr_present;
-  an_expr_node_ptr   node, throw_node;
-  a_dynamic_init_ptr dip;
-  a_type_ptr         throw_type;
+  an_operand          operand;
+  a_source_position   start_position;
+  a_boolean           err = FALSE, expr_present;
+  an_expr_node_ptr    node, throw_node;
+  a_dynamic_init_ptr  dip;
+  a_type_ptr          throw_type;
+  an_expr_stack_entry expr_stack_entry;
 
   db_enter(4, "scan_throw_operator");
 
@@ -8341,19 +8342,21 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     /* No. */
     expr_present = FALSE;
   } else {
-    /* Scan the expression. */
-    a_boolean saved_in_cctor_elision_initializer =
-                                      expr_stack->in_cctor_elision_initializer;
-    /* Treat this expression as one subject to the copy constructor
-       elision optimization.  This necessitates a call to
-       fix_up_dynamic_init_dtors later. */
-    expr_stack->in_cctor_elision_initializer = TRUE;
+    /* Yes, an expression is present. */
     expr_present = TRUE;
+    /* Delay recording a reference to the destructor for a class operand,
+       because this is an elision optimization case and the destructor
+       call may be optimized away (the recipient does the destruction
+       for the object actually thrown).  This necessitates a call to
+       fix_up_dynamic_init_dtors later. */
+    push_expr_stack(expr_stack->expression_kind, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE);
+    expr_stack->in_cctor_elision_initializer = TRUE;
+    /* Scan the expression. */
     scan_expr(&operand, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
-    expr_stack->in_cctor_elision_initializer =
-                                            saved_in_cctor_elision_initializer;
     /* Instantiate the type if it is a template class.  The type has to be
-       complete so we can copy it. */
+       complete so we can copy it (and we do this now so we can test whether
+       the type is an abstract class). */
     complete_type_is_needed(operand.type);
     if (is_void_type(operand.type)) {
       /* Cannot throw a void expression. */
@@ -8404,10 +8407,9 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
       throw_node->variant.throw_info->type = throw_type;
 #if !ABI_CHANGES_FOR_RTTI
       /* Generate a list of accessible base classes. */
+      /* This was done for an older version of the ABI. */
       build_accessible_base_class_list_for_throw(throw_node);
 #endif /* !ABI_CHANGES_FOR_RTTI */
-      /* Fix up destructor references in the overall expression. */
-      fix_up_dynamic_init_dtors();
       /* Mark the type as having been used in an exception.  (Also, if it
          "contains" any classes, they are marked as requiring external
          linkage.) */
@@ -8421,6 +8423,12 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     make_expression_operand(throw_node, throw_node->type, result);
   }  /* if */
 
+  if (expr_present) {
+    /* Fix up destructor references in the overall expression. */
+    fix_up_dynamic_init_dtors();
+    /* Pop the expression stack entry pushed above. */
+    pop_expr_stack();
+  }  /* if */
   error_position = start_position;
   result->position = start_position;
 
@@ -9781,9 +9789,9 @@ are marked as actually referenced.
   a_dynamic_init_dtor_fixup_ptr didfp, didfp_next;
   a_routine_ptr                 dtor_routine;
 
-  for (didfp = expr_stack->dynamic_init_dtor_fixup_list;
-       didfp != NULL;
-       didfp = didfp_next) {
+  didfp = expr_stack->dynamic_init_dtor_fixup_list;
+  expr_stack->dynamic_init_dtor_fixup_list = NULL;
+  for (; didfp != NULL; didfp = didfp_next) {
     didfp_next = didfp->next;
     dtor_routine = didfp->dynamic_init->destructor;
     if (dtor_routine != NULL) {

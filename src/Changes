@@ -1,5 +1,20 @@
 Version 2.32
 
+4/22/96 Loop on nested throw
+
+A front end loop on processing nested throw expressions has been fixed.
+
+  struct S {
+    S();
+    ~S();
+  };
+  void foo() {
+    throw (throw S(),1);
+  }
+  void bar() {
+    throw (throw S(),1);
+  }
+
 4/19/96 Diagnostic on array of incomplete class/enum type
 
 In conformance with a recent Working Paper change, a diagnostic is no
