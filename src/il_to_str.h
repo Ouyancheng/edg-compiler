@@ -101,10 +101,6 @@ typedef int a_form_type_options_set;
 			/* Add an extra "const" over the type. */
 #define FTO_SUPPRESS_CONST 0x2
 			/* Suppress top-level "const" on the type. */
-#if MICROSOFT_KEYWORDS_ALLOWED
-#define FTO_SUPPRESS_MICROSOFT_QUALIFIERS 0x4
-			/* Suppress the Microsoft qualifiers like __cdecl. */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 
 extern void clear_il_to_str_output_control_block(
@@ -130,12 +126,6 @@ extern void form_type_qualifier(
                      a_type_qualifier_set                  qualifiers,
                      a_boolean                             need_trailing_space,
                      an_il_to_str_output_control_block_ptr octl);
-#if MICROSOFT_KEYWORDS_ALLOWED
-extern void form_microsoft_qualifier(
-                     a_type_qualifier_set                  qualifiers,
-                     a_boolean                             need_trailing_space,
-                     an_il_to_str_output_control_block_ptr octl);
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #endif /* ifdef CFE */
 
 extern void form_type_first_part(
