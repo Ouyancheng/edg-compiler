@@ -7215,6 +7215,10 @@ expression node.  options is a set of options for the copy.
     new_dip->next_in_destruction_list = NULL;
     record_end_of_lifetime_destruction(new_dip, static_lifetime,
                                        /*block_lifetime=*/FALSE);
+    if (options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) {
+      /* Instantiate the destructor. */
+      instantiate_il_entity(&dip->destructor->source_corresp);
+    }  /* if */
 #if DO_IL_LOWERING
     if (options & CE_UNLINK_SOURCE_DESTRUCTIONS) {
       /* Unlink the source dynamic initialization from its lifetime.  This
