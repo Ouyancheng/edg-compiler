@@ -1,10 +1,10 @@
 Version 3.2
 
-3/13/03  C- and C++-generating back ends: #line inside comment
+3/13/03  C-generating back end: #line inside comment
 
-In some cases, the C- and C++-generating back ends put out a
-#line directive inside an annotation comment when a long line
-was continued to another line.  This was mostly harmless, but
+In some cases, the C-generating back end put out a #line
+directive inside an annotation comment when a long line was
+continued to another line.  This was mostly harmless, but
 also unintentional.  Now fixed.
 
 3/12/03  __FUNCTION__ and other macros accepted in all modes
