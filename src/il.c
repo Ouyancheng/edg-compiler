@@ -6139,7 +6139,7 @@ to kind, and set dependent variant fields to default values.
   node->variant.lowered_eh.kind = kind;
   switch (kind) {
     case leck_caught_object_address:
-      node->variant.lower_eh.caught_object_handler = NULL;
+      node->variant.lowered_eh.variant.caught_object_handler = NULL;
       break;
     case leck_thrown_object_address:
       /* No variant fields. */
@@ -6159,8 +6159,10 @@ to kind, and set dependent variant fields to default values.
         num_eh_prologue_supplements_allocated++;
 #endif /* DEBUG */
         psp->routine = NULL;
+#if GENERATE_EH_TABLES
         psp->region_table = NULL;
         psp->array_table = NULL;
+#endif /* GENERATE_EH_TABLES */
       }
       break;
     case leck_function_epilogue:
@@ -6236,7 +6238,7 @@ Return a pointer to the entry.
 
   /* For most kinds, void type is correct. */
   node->type = void_type();
-  set_lowered_eh_construct_kind(node, kind);
+  set_lowered_eh_construct_node_kind(node, kind);
   return node;
 }  /* alloc_lowered_eh_construct_node */
 

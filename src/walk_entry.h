@@ -1439,8 +1439,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         an_eh_prologue_supplement_ptr ptr =
                                       (an_eh_prologue_supplement_ptr)entry_ptr;
         remap_ptr(ptr->routine, a_routine_ptr, iek_routine);
+#if GENERATE_EH_TABLES
         remap_ptr(ptr->region_table, a_variable_ptr, iek_variable);
         remap_ptr(ptr->array_table, a_variable_ptr, iek_variable);
+#endif /* GENERATE_EH_TABLES */
       }
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */

@@ -1818,8 +1818,10 @@ node.
 */
 {
   disp_ptr("routine", (char *)psp->routine, iek_routine);
+#if GENERATE_EH_TABLES
   disp_ptr("region_table", (char *)psp->region_table, iek_variable);
   disp_ptr("array_table", (char *)psp->array_table, iek_variable);
+#endif /* GENERATE_EH_TABLES */
 }  /* disp_eh_prologue_supplement */
 
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
