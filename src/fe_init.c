@@ -670,10 +670,10 @@ Initialize target machine characteristics.
     }  /* if */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   }
-#endif /* CHECKING */
   if (targ_host_string_char_bit > CHAR_BIT) {
     internal_error("target_init: targ_host_string_char_bit is set wrong");
   }  /* if */
+#endif /* CHECKING */
   /* The signedness of characters can be set on the command line. */
   if (targ_has_signed_chars) {
     /* Target has signed characters. */
