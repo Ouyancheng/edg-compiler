@@ -753,6 +753,7 @@ table.
         sym = pl_find_symbol(&psp->name[PL_CAN_BE_INSTANTIATED_PREFIX_LEN],
                              psp, /*add=*/TRUE);
         sym->can_be_instantiated = TRUE;
+        sym->is_template = TRUE;
 #if !AUTOMATIC_TEMPLATE_INSTANTIATION_BY_IMPLICIT_INCLUSION
         /* Add the current input file to the list of files that could
 	   instantiate the symbol. */
