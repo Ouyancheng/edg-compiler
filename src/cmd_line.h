@@ -877,7 +877,6 @@ EXTERN a_boolean
                         /* Should the front end attempt to implicitly include
 			   a source file (e.g., .c file) to find the
 			   definition of a template. */
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 #if DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE && DEFAULT_EXPORT_TEMPLATE_ALLOWED
  #error -- DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE and \
@@ -891,6 +890,7 @@ EXTERN a_boolean
            COMPILE_MULTIPLE_TRANSLATION_UNITS cannot both be true
 #endif /* DEFAULT_IMPLICIT_TEMPLATE_INCLUSION_MODE &&
           COMPILE_MULTIPLE_TRANSLATION_UNITS */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
 EXTERN a_boolean
