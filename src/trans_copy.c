@@ -2099,18 +2099,32 @@ with linkage.
          wouldn't necessarily have a correspondence here, but A<int>
          must. */
 #if CHECKING
-      /* Only constants and types are okay, and only if they don't
-         go on lists. */
-      a_type_ptr type;
-      check_assertion_str((kind == (an_il_entry_kind)iek_constant &&
-                           !has_name((a_constant_ptr)old_ptr)) ||
-                          (kind == (an_il_entry_kind)iek_type &&
-                           ((type = (a_type_ptr)old_ptr),
-                            !has_name(type)) &&
-                           !is_immediate_class_type(type) &&
-                           !(type->kind == (a_type_kind)tk_enum &&
-                             type->variant.integer.enum_type)),
+      /* Check whether the entity is okay. */
+      { a_boolean err = FALSE;
+        switch (kind) {
+          case iek_constant:
+            { a_constant_ptr con = (a_constant_ptr)old_ptr;
+              if (has_name(con)) err = TRUE;
+            }
+            break;
+          case iek_type:
+            { a_type_ptr type = (a_type_ptr)old_ptr;
+              if (has_name(type) ||
+                  is_immediate_class_type(type) ||
+                  (type->kind == (a_type_kind)tk_enum &&
+                   type->variant.integer.enum_type)) err = TRUE;
+            }
+            break;
+          case iek_template_arg:
+            break;
+          default:
+            err = TRUE;
+        }  /* switch */
+        if (err) {
+          unexpected_condition_str(
                  "remap_secondary_pointer: missing primary IL correspondence");
+        }  /* if */
+      }
 #endif /* CHECKING */
       /* Make a copy of the entry in the primary IL. */
       new_ptr = alloc_il(sizeof_il_entry[(int)kind]);
