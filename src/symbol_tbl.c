@@ -3075,6 +3075,7 @@ the file scope is used.
 
 a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
                                      a_symbol_locator *location,
+                                     a_boolean        is_constructor,
                                      a_symbol_ptr     other_sym,
                                      a_symbol_ptr     *overload_sym)
 /*
@@ -3094,13 +3095,24 @@ a locator for the new symbol.  Return a pointer to the new symbol.
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
   location->is_qualified_name = FALSE;
-  use_namespace = !other_sym->is_class_member &&
+  /* Check for the obscure case in which a non-constructor is being added
+     to an overload set of constructors. */
+  if (other_sym->is_class_member && !is_constructor &&
+      is_constructor_symbol(other_sym)) {
+    pos_error(ec_class_and_member_function_name_conflict,
+              &location->source_position);
+    set_to_error_locator(*location);
+    sym_ptr->is_error = TRUE;
+    *overload_sym = NULL;
+  } else {
+    use_namespace = !other_sym->is_class_member &&
                                       other_sym->parent.namespace_ptr != NULL;
-  if (use_namespace) ns_ptr = other_sym->parent.namespace_ptr;
-  /* Add the symbol to the overloaded function list. */
-  *overload_sym = 
-          add_symbol_to_overload_list(sym_ptr, other_sym, use_namespace,
-                                      ns_ptr);
+    if (use_namespace) ns_ptr = other_sym->parent.namespace_ptr;
+    /* Add the symbol to the overloaded function list. */
+    *overload_sym = 
+            add_symbol_to_overload_list(sym_ptr, other_sym, use_namespace,
+                                        ns_ptr);
+  }  /* if */
   /* Return a pointer to the newly created symbol as well. */
   return sym_ptr;
 }  /* enter_overloaded_symbol */
