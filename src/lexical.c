@@ -8981,6 +8981,7 @@ compiler.
       case tk_class:
       case tk_struct:
       case tk_union:
+      case tk_enum:
       case tk_template_param:
         break;
       default:
