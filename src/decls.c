@@ -4604,6 +4604,14 @@ otherwise it is NULL.  The syntax is:
           }  /* if */
         }  /* if */
         if (required_token(tok_lparen, ec_exp_lparen)) goto function_lparen;
+      } else if (locator->is_conversion_name) {
+        /* A conversion function must be a nonstatic member function. */
+        if (member_parent_type == NULL ||
+            (locator->specific_symbol == NULL &&
+             !(input_flags & DI_NONSTATIC_MEMBER))) {
+          pos_error(ec_bad_conversion_function, &locator->source_position);
+          set_to_error_locator(*locator);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
