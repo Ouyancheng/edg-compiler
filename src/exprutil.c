@@ -5660,6 +5660,10 @@ operand, and set the operand type to the type of the field.
   node->variant.field = field;
   /* Make the operand with the node. */
   make_expression_operand(node, node->type, result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* Set the position in the expression too. */
+  set_operand_expr_position_if_expr(result);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   result->state = (an_operand_state)os_none;
 }  /* make_field_operand */
 
