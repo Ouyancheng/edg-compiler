@@ -1,5 +1,13 @@
 Version 2.20
 
+9/18/93  Reference information always maintained in expression routines
+
+Reference information for symbol references is now maintained always
+(formerly, it was only maintained if cross-reference information was
+requested).  The information is now needed always to allow diagnosis of
+uses of variables before they are set.  Several data structures, routines,
+and variables in expr.c, exprutil.c, and overload.c were renamed.
+
 9/16/93  Qualified names that use template parameters in elaborated types
 
 Formerly, the declaration of b2 would cause an error to be issued.  This

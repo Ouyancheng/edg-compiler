@@ -2775,8 +2775,8 @@ should be NULL in that case).  On return, *access_error_reported is TRUE
 if an access control checking error was detected.
 */
 {
-  a_symbol_locator  function_symbol_locator;
-  an_xref_entry_ptr xep;
+  a_symbol_locator function_symbol_locator;
+  a_ref_entry_ptr  rep;
 
 #if CHECKING
   /* Overloaded functions and projection symbols are not allowed for
@@ -2837,9 +2837,9 @@ if an access control checking error was detected.
         /* Normal case: build an operand for the function. */
         /* Record that the function was referenced, for cross-reference (etc.)
            purposes. */
-        xep = xref_entry(function_symbol, call_position);
+        rep = ref_entry(function_symbol, call_position);
         make_function_designator_operand(function_symbol, is_qualified_name,
-                                         call_position, xep, operand);
+                                         call_position, rep, operand);
         /* Convert the operand to a function pointer. */
         conv_function_designator_to_ptr_to_function(operand);
       }  /* if */

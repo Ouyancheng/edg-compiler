@@ -33,19 +33,19 @@ exprutil.c -- Expression scanning utility routines.
 #include "templates.h"
 
 /*
-Information used when creating cross-reference information.  This is
-done only when f_xref_info != NULL.
+Information on references to symbols, held until the kind of reference to
+the symbol is known.
 */
-static an_xref_entry_ptr
-		avail_xref_entries;
-			/* List of cross-reference entries that have been freed
+static a_ref_entry_ptr
+		avail_ref_entries;
+			/* List of reference entries that have been freed
 			   and are available for reuse. */
-static an_xref_entry_ptr
-		curr_expr_xref_entries;
-			/* List of all the cross-reference entries for
-			   the current expression.  They are written out at
-			   the end of the expression.  Before that, the kind
-			   of reference each indicates might be adjusted. */
+static a_ref_entry_ptr
+		curr_expr_ref_entries;
+			/* List of all the reference entries for the current
+			   expression.  They are recorded at the end of the
+			   expression.  Before that, the kind of reference
+			   each indicates might be adjusted. */
 
 static an_arg_operand_ptr
 		avail_arg_operands;
@@ -64,125 +64,154 @@ static a_dynamic_init_dtor_fixup_ptr
 Counts of entries allocated, for debugging purposes.
 */
 unsigned long	num_arg_operands_allocated,
-		num_xref_entries_allocated,
+		num_ref_entries_allocated,
 		num_dynamic_init_dtor_fixups_allocated;
 #endif /* DEBUG */
 
 
-static an_xref_entry_ptr alloc_xref_entry(a_symbol_reference_kind kind,
-                                          a_symbol_ptr            sym_ptr,
-                                          a_source_position       *pos)
+static a_ref_entry_ptr alloc_ref_entry(a_symbol_reference_kind kind,
+                                       a_symbol_ptr            sym_ptr,
+                                       a_source_position       *pos)
 /*
-Allocate a cross-reference entry and return a pointer to it.  The
-information provided (kind of reference, kind of expression, symbol
-pointer, and location of reference) is placed in the entry.  An entry
-of this kind is used to hold information on a single reference to a
-symbol in an expression.  This is only used when cross-reference
-information is being generated.  The information is held, rather than
-written immediately, because the kind of reference may be revised as
-more of the expression is scanned.
+Allocate a reference entry and return a pointer to it.  The information
+provided (kind of reference, kind of expression, symbol pointer, and
+location of reference) is placed in the entry.  An entry of this kind
+is used to hold information on a single reference to a symbol in an
+expression.  The information is held, rather than recorded immediately,
+because the kind of reference may be revised as more of the expression
+is scanned.
 */
 {
-  an_xref_entry_ptr xep;
+  a_ref_entry_ptr rep;
 
-  if (avail_xref_entries != NULL) {
+  if (avail_ref_entries != NULL) {
     /* Reuse a previously-freed entry. */
-    xep = avail_xref_entries;
-    avail_xref_entries = xep->next;
+    rep = avail_ref_entries;
+    avail_ref_entries = rep->next;
   } else {
     /* Allocate a new entry. */
-    xep = (an_xref_entry_ptr)alloc_fe(sizeof(an_xref_entry));
+    rep = (a_ref_entry_ptr)alloc_fe(sizeof(a_ref_entry));
 #if DEBUG
-    num_xref_entries_allocated++;
+    num_ref_entries_allocated++;
 #endif /* DEBUG */
   }  /* if */
-  xep->kind = kind;
-  xep->symbol = sym_ptr;
-  copy_source_position(*pos, xep->position);
-  xep->next = NULL;
-  xep->next_operand_ref = NULL;
-  return xep;
-}  /* alloc_xref_entry */
+  rep->kind = kind;
+  rep->symbol = sym_ptr;
+  copy_source_position(*pos, rep->position);
+  rep->next = NULL;
+  rep->next_operand_ref = NULL;
+  return rep;
+}  /* alloc_ref_entry */
 
 
-static void free_xref_entry(an_xref_entry_ptr xep)
+static void free_ref_entry(a_ref_entry_ptr rep)
 /*
-Free the cross-reference entry pointed to by xep.
+Free the reference entry pointed to by rep.
 */
 {
   /* Add the entry to the available list. */
-  xep->next = avail_xref_entries;
-  avail_xref_entries = xep;
-}  /* free_xref_entry */
+  rep->next = avail_ref_entries;
+  avail_ref_entries = rep;
+}  /* free_ref_entry */
 
 
-static void flush_xref_entries_list(void)
+static void flush_ref_entries_list(void)
 /*
-If there are any entries on the list of cross-reference entries for the
-current expression, output them now.
+If there are any entries on the list of reference entries for the current
+expression, output them now.
 */
 {
-  an_xref_entry_ptr xep;
+  a_ref_entry_ptr rep;
 
-  while (curr_expr_xref_entries != NULL) {
-    xep = curr_expr_xref_entries;
-    curr_expr_xref_entries = xep->next;
+  while (curr_expr_ref_entries != NULL) {
+    rep = curr_expr_ref_entries;
+    curr_expr_ref_entries = rep->next;
     /* Go write information on this entry to a file. */
-    /* References in not-evaluated expressions should not set the IL
-       entry referenced flag. */
-    reference_to_symbol(xep->kind, xep->symbol, &xep->position,
-                        /*update_il_entry=*/curr_expr_is_evaluated());
-    free_xref_entry(xep);
+    reference_to_symbol(rep->kind, rep->symbol, &rep->position,
+                        /*update_il_entry=*/TRUE);
+    free_ref_entry(rep);
   }  /* while */
-}  /* flush_xref_entries_list */
+}  /* flush_ref_entries_list */
 
 
-an_xref_entry_ptr xref_entry(a_symbol_ptr      sym_ptr,
-                             a_source_position *source_position)
+a_ref_entry_ptr ref_entry(a_symbol_ptr      sym_ptr,
+                          a_source_position *source_position)
 /*
-Allocate a cross-reference entry for a reference to the symbol sym_ptr
+Allocate a reference entry for a reference to the symbol sym_ptr
 at position source_position, put the entry on the list of entries for
-the current expression, and return a pointer to it.  If cross-reference
-information is not being generated, just record a reference immediately,
-do not allocate the entry, and return NULL.
+the current expression, and return a pointer to it.  This is needed when
+the kind of reference is not known yet because it can be affected by
+context.  When the proper reference kind has been determined, the entry
+will be updated, and the reference will be recorded when the entry is
+freed.  If the proper kind of reference is known right away, it is
+recorded right away and no entry is created; NULL is returned.
 */
 {
-  an_xref_entry_ptr xep;
+  a_ref_entry_ptr         rep;
+  a_boolean               ref_kind_can_be_affected_by_context;
+  a_boolean               evaluated = curr_expr_is_evaluated();
+  a_symbol_ptr            fund_sym = fundamental_symbol_of(sym_ptr);
+  a_symbol_reference_kind initial_ref_kind;
 
-  if (f_xref_info == NULL) {
-    /* Cross-reference information is not being generated. */
-    /* References in not-evaluated expressions should not set the IL
-       entry referenced flag. */
-    reference_to_symbol(srk_use, sym_ptr, source_position,
-                        /*update_il_entry=*/curr_expr_is_evaluated());
-    xep = NULL;
+  /* For only certain kinds of symbols can the kind of reference be affected
+     by context: for example, variables can have srk_use, srk_modification,
+     srk_use_and_modif, and srk_address_taken references, but types can
+     only have srk_reference references. */
+  switch (fund_sym->kind) {
+    case sk_constant:            /* Constant (enumerator). */
+    case sk_variable:            /* Variable or parameter. */
+    case sk_field:               /* Noonstatic data member of a class. */
+    case sk_static_data_member:  /* Static data member of a class. */
+      ref_kind_can_be_affected_by_context = TRUE;
+      initial_ref_kind = srk_use;
+      break;
+    case sk_member_function:     /* Member function of a class. */
+    case sk_routine:             /* Nonmember function. */
+      ref_kind_can_be_affected_by_context = TRUE;
+      initial_ref_kind = srk_reference;
+      break;
+#if CHECKING
+    case sk_overloaded_function: /* Overloaded function (member or not). */
+      internal_error("ref_entry: overloaded function");
+#endif /* CHECKING */
+    default:;
+      ref_kind_can_be_affected_by_context = FALSE;
+      break;
+  }  /* switch */
+  /* References in not-evaluated expressions are always plain references,
+     since they don't use or affect the values of variables. */
+  if (!ref_kind_can_be_affected_by_context || !evaluated) {
+    /* The kind of reference is independent of context, so record it right
+       away and do not build an entry. */
+    reference_to_symbol(srk_reference, sym_ptr, source_position,
+                        /*update_il_entry=*/evaluated);
+    rep = NULL;
   } else {
-    xep = alloc_xref_entry(srk_use, sym_ptr, source_position);
+    /* The kind of reference can be affected by context, so build an entry
+       for it. */
+    rep = alloc_ref_entry(initial_ref_kind, sym_ptr, source_position);
     /* Put the entry on the list of entries for the current expression.
-       The list is dumped when flush_xref_entries_list is called. */
-    xep->next = curr_expr_xref_entries;
-    curr_expr_xref_entries = xep;
+       The list is dumped when flush_ref_entries_list is called. */
+    rep->next = curr_expr_ref_entries;
+    curr_expr_ref_entries = rep;
   }  /* if */
-  return xep;
-}  /* xref_entry */
+  return rep;
+}  /* ref_entry */
 
 
-void change_xref_kinds(an_xref_entry_ptr       xref_list,
-                       a_symbol_reference_kind kind)
+void change_ref_kinds(a_ref_entry_ptr         ref_list,
+                      a_symbol_reference_kind kind)
 /*
-Change the kind-of-reference field to "kind" in each of the cross-reference
-entries on the list xref_list.
+Change the kind-of-reference field to "kind" in each of the reference
+entries on the list ref_list.
 */
 {
-  an_xref_entry_ptr xep;
+  a_ref_entry_ptr rep;
 
-  /* Do not change the reference kinds in a not-evaluated expression. */
-  if (curr_expr_is_evaluated()) {
-    for (xep = xref_list; xep != NULL; xep = xep->next_operand_ref) {
-      xep->kind = kind;
-    }  /* for */
-  }  /* if */
-}  /* change_xref_kinds */
+  for (rep = ref_list; rep != NULL; rep = rep->next_operand_ref) {
+    rep->kind = kind;
+  }  /* for */
+}  /* change_ref_kinds */
 
 
 an_arg_operand_ptr alloc_arg_operand(void)
@@ -292,8 +321,8 @@ at the start of a major expression.
 {
   new_entry->prev = expr_stack;
   new_entry->expression_kind = expression_kind;
-  new_entry->old_xref_entries_list = curr_expr_xref_entries;
-  curr_expr_xref_entries = NULL;
+  new_entry->old_ref_entries_list = curr_expr_ref_entries;
+  curr_expr_ref_entries = NULL;
   new_entry->evaluated = TRUE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
@@ -321,10 +350,10 @@ Pop the top entry off the expr_stack.  This is done at the end of a
 major expression.
 */
 {
-  /* Flush the cross-reference entries list for the current expression. */
-  flush_xref_entries_list();
-  /* Restore the old xref entries list, if any. */
-  curr_expr_xref_entries = expr_stack->old_xref_entries_list;
+  /* Flush the reference entries list for the current expression. */
+  flush_ref_entries_list();
+  /* Restore the old ref entries list, if any. */
+  curr_expr_ref_entries = expr_stack->old_ref_entries_list;
   /* Pop the stack. */
   expr_stack = expr_stack->prev;
 }  /* pop_expr_stack */
@@ -381,7 +410,7 @@ values.
   operand->is_operand_of_address_of = FALSE;
   operand->position.seq = 0;
   operand->position.column = SP_COL_UNKNOWN;
-  operand->xref_entries_list = NULL;
+  operand->ref_entries_list = NULL;
   set_operand_kind(operand, kind);
 }  /* clear_operand */
 
@@ -484,18 +513,18 @@ destroyed its source position, etc.  Restore such things from
 }  /* restore_operand_details */
 
 
-static void restore_operand_details_incl_xref(an_operand *operand,
-                                              an_operand *orig_operand)
+static void restore_operand_details_incl_ref(an_operand *operand,
+                                             an_operand *orig_operand)
 /*
 *operand has been subjected to some sort of modification, which may have
 destroyed its source position, etc.  Restore such things from
 *orig_operand, which is a copy of *operand before the modification.
-Restore the xref_entries_list too (not usually wanted).
+Restore the ref_entries_list too (not usually wanted).
 */
 {
   restore_operand_details(operand, orig_operand);
-  operand->xref_entries_list = orig_operand->xref_entries_list;
-}  /* restore_operand_details_incl_xref */
+  operand->ref_entries_list = orig_operand->ref_entries_list;
+}  /* restore_operand_details_incl_ref */
 
 
 void make_error_operand(an_operand *operand)
@@ -707,9 +736,9 @@ is_qualified_name is TRUE if the function was named by a qualified name
 }  /* make_indefinite_function_operand */
 
 
-void make_sym_for_member_operand(a_symbol_ptr      member_sym,
-                                 an_xref_entry_ptr xep,
-                                 an_operand        *operand)
+void make_sym_for_member_operand(a_symbol_ptr    member_sym,
+                                 a_ref_entry_ptr rep,
+                                 an_operand      *operand)
 /*
 Make an operand for a class member name, used in C++ for qualified
 names that appear in a context that calls for (or might call for) a
@@ -717,11 +746,10 @@ pointer-to-member.  For nonstatic data members, that means only cases
 like &A::x.  For nonstatic member functions, it means all cases like
 A::f, because such a thing might decay to a pointer-to-member (that's
 an extension) or it might be called.  Not used for overloaded functions.
-member_sym points to the symbol entry for the member.  xep points to
-an associated cross-reference entry, or is NULL if cross-reference
-information is not being maintained.  The operand is put into *operand.
-It is a function designator if the symbol is a function, an rvalue
-otherwise.
+member_sym points to the symbol entry for the member.  rep points to
+an associated reference entry, or is NULL if none is needed.  The
+operand is put into *operand.  It is a function designator if the
+symbol is a function, an rvalue otherwise.
 */
 {
   a_symbol_ptr fund_sym = fundamental_symbol_of(member_sym);
@@ -740,7 +768,7 @@ otherwise.
   operand->variant.symbol = member_sym;
   operand->is_qualified_name = TRUE;  /* By definition. */
   copy_source_position(pos_curr_token, operand->position);
-  operand->xref_entries_list = xep;
+  operand->ref_entries_list = rep;
 }  /* make_sym_for_member_operand */
 
 
@@ -1289,11 +1317,11 @@ except for casts to ambiguous or inaccessible base classes.
 #endif /* CHECKING */
       }  /* switch */
     }  /* if */
-    /* Restore the original source position, etc.  Keep the cross-reference
+    /* Restore the original source position, etc.  Keep the reference
        information (useful when this is a pointer to a class being cast to
        a base class, or a pointer to an array being cast to a pointer to
        the first element). */
-    restore_operand_details_incl_xref(operand, &orig_operand);
+    restore_operand_details_incl_ref(operand, &orig_operand);
   }  /* if */
 }  /* cast_operand */
 
@@ -1373,7 +1401,7 @@ in C++ mode.
     }  /* if */
   }  /* if */
   /* Restore the original source position, etc. */
-  restore_operand_details_incl_xref(operand, &orig_operand);
+  restore_operand_details_incl_ref(operand, &orig_operand);
 }  /* base_class_cast_operand */
 
 
@@ -2748,18 +2776,17 @@ void add_reference_indirection(an_operand *result)
   /* Instantiate the underlying type if it is a template class. */
   check_for_uninstantiated_template_class(result_type);
   /* Restore the original source position, etc. */
-  restore_operand_details_incl_xref(result, &orig_result);
+  restore_operand_details_incl_ref(result, &orig_result);
 }  /* add_reference_indirection */
 
 
-void make_lvalue_variable_operand(a_variable_ptr    variable,
-                                  an_operand        *result,
-                                  an_xref_entry_ptr xep)
+void make_lvalue_variable_operand(a_variable_ptr  variable,
+                                  an_operand      *result,
+                                  a_ref_entry_ptr rep)
 /*
 Make an operand for the address of a variable.  The source position of
-the operand is set to pos_curr_token.  xep points to an associated
-cross-reference entry, or is NULL if cross-reference information is
-not being maintained.
+the operand is set to pos_curr_token.  rep points to an associated
+reference entry, or is NULL if none is needed.
 */
 {
   an_expr_node_ptr node;
@@ -2785,8 +2812,8 @@ not being maintained.
   copy_source_position(pos_curr_token, result->position);
   /* Instantiate the underlying type if it is a template class. */
   check_for_uninstantiated_template_class(variable_type);
-  /* Start a list of cross-reference entries related to the operand. */
-  result->xref_entries_list = xep;
+  /* Start a list of reference entries related to the operand. */
+  result->ref_entries_list = rep;
   /* If the variable has a reference type, add an implicit indirection. */
   if (C_dialect == C_dialect_cplusplus && is_reference_type(variable_type)) {
     add_reference_indirection(result);
@@ -2915,15 +2942,14 @@ of a "&" operator if is_operand_of_address_of is TRUE.
 void make_function_designator_operand(a_symbol_ptr      routine_sym,
                                       a_boolean         is_qualified_name,
                                       a_source_position *position,
-                                      an_xref_entry_ptr xep,
-				      an_operand        *result)
+                                      a_ref_entry_ptr   rep,
+                                      an_operand        *result)
 /*
 Make an operand for a function designator.  routine_sym points to the
 routine symbol entry (not overloaded, not a projection symbol).
 is_qualified_name is TRUE if the function was named by a qualified name.
-The source position of the operand is set to *position.  xep points to an
-associated cross-reference entry, or is NULL if cross-reference
-information is not being maintained.
+The source position of the operand is set to *position.  rep points to an
+associated reference entry, or is NULL if none is needed.
 */
 {
   a_routine_ptr routine;
@@ -2952,8 +2978,8 @@ information is not being maintained.
      name suppresses the virtual-ness of the function (ARM 10.2). */
   result->virtual_function = routine->is_virtual && !is_qualified_name;
   result->position = *position;
-  /* Start a list of cross-reference entries related to the operand. */
-  result->xref_entries_list = xep;
+  /* Start a list of reference entries related to the operand. */
+  result->ref_entries_list = rep;
   /* If this is a non-virtual call, mark the routine entry as actually
      referenced. */
   if (!result->virtual_function) {
@@ -3358,17 +3384,19 @@ address_taken flag.
   /* The operand is now an rvalue. */
   operand->state = (an_operand_state)os_rvalue;
   operand->came_from_reference = FALSE;
-  /* Change the kind in the cross-reference entries to address-taken. */
-  change_xref_kinds(operand->xref_entries_list, srk_address_taken);
+  /* Change the kind in the reference entries to address-taken. */
+  change_ref_kinds(operand->ref_entries_list, srk_address_taken);
   /* Restore the original source position, etc. */
   restore_operand_details(operand, &orig_operand);
 }  /* take_address_of_lvalue */
 
 
-void modifying_lvalue(an_operand *operand)
+void modifying_lvalue(an_operand *operand,
+                      a_boolean  value_used)
 /*
 The entity indicated by operand (an lvalue) is being modified (e.g.,
-assigned to, incremented, ...).
+assigned to, incremented, ...).  If value_used, the value of the lvalue is
+used before it is modified.
 */
 {
 #if CHECKING
@@ -3377,8 +3405,10 @@ assigned to, incremented, ...).
   }  /* if */
 #endif /* CHECKING */
   using_lvalue(operand);
-  /* Change the kind in the cross-reference entries to modification. */
-  change_xref_kinds(operand->xref_entries_list, srk_modification);
+  /* Change the kind in the reference entries to modification or
+     use/modification. */
+  change_ref_kinds(operand->ref_entries_list,
+                   value_used ? srk_use_and_modif : srk_modification);
 }  /* modifying_lvalue */
 
 
@@ -3783,9 +3813,9 @@ not an lvalue, it is left alone.
       error_in_operand(ec_incomplete_type_not_allowed, operand);
     } else {
       using_lvalue(operand);
-      /* Change the kind in the cross-reference entry for the array from an
+      /* Change the kind in the reference entry for the array from an
          address-taken entry to a simple "use" reference. */
-      change_xref_kinds(operand->xref_entries_list, srk_use);
+      change_ref_kinds(operand->ref_entries_list, srk_use);
       if (is_constant_operand(operand)) {
         /* The lvalue address is specified by a constant. */
         a_constant_ptr con = &operand->variant.constant;
@@ -3895,9 +3925,9 @@ not an lvalue, it is left alone.
     }  /* if */
     /* Restore the operand's source position. */
     restore_operand_details(operand, &orig_operand);
-    /* The xref_entries_list is cleared because it should only contain
+    /* The ref_entries_list is cleared because it should only contain
        information on lvalue addresses. */
-    operand->xref_entries_list = NULL;
+    operand->ref_entries_list = NULL;
     /* Clear the came-from-reference flag, as it is meaningful only for
        lvalues. */
     operand->came_from_reference = FALSE;
@@ -3930,11 +3960,11 @@ are left alone.
       take_address_of_lvalue(operand);
       cast_operand(ptr_type, operand, /*is_implicit_cast=*/TRUE);
       /* Restore the original source position, etc.  Keep the
-         cross-reference entries because if the pointer to the array is
+         reference entries because if the pointer to the array is
          used in a subscript operation or the like we would like to
-         change the kind of reference back to modified or referenced
+         change the kind of reference back to modified or used
          instead of address-taken. */
-      restore_operand_details_incl_xref(operand, &orig_operand);
+      restore_operand_details_incl_ref(operand, &orig_operand);
     }  /* if */
   }  /* if */
 }  /* conv_array_operand_to_pointer_operand */
@@ -4011,12 +4041,12 @@ operand.
   }  /* if */
   operand->state = (an_operand_state)os_rvalue;
   operand->came_from_reference = FALSE;
-  /* Restore the original source position etc.  Keep the cross-reference
+  /* Restore the original source position etc.  Keep the reference
      entries because if the function is called we would like to be able
      to change the reference to referenced instead of address-taken. */
-  restore_operand_details_incl_xref(operand, &orig_operand);
-  /* Change the kind in the cross-reference entries to address-taken. */
-  change_xref_kinds(operand->xref_entries_list, srk_address_taken);
+  restore_operand_details_incl_ref(operand, &orig_operand);
+  /* Change the kind in the reference entries to address-taken. */
+  change_ref_kinds(operand->ref_entries_list, srk_address_taken);
 }  /* conv_function_designator_to_ptr_to_function */
 
 
@@ -4245,8 +4275,8 @@ Display and return the amount of space used for various expression tables.
                      num_arg_match_summaries_allocated, an_arg_match_summary);
   db_space_used_lost("candidate function", avail_candidate_functions,
                      num_candidate_functions_allocated, a_candidate_function);
-  db_space_used_lost("xref entry", avail_xref_entries,
-                      num_xref_entries_allocated, an_xref_entry);
+  db_space_used_lost("ref entry", avail_ref_entries,
+                      num_ref_entries_allocated, a_ref_entry);
   db_space_used_lost("dynamic init dtor fixup", avail_dynamic_init_dtor_fixups,
                       num_dynamic_init_dtor_fixups_allocated,
                       a_dynamic_init_dtor_fixup);
@@ -4270,13 +4300,13 @@ Initialize things related to expression scanning.
 #endif /* DEBUG */
   
   /* Static variables in exprutil.c: */
-  avail_xref_entries = NULL;
-  curr_expr_xref_entries = NULL;
+  avail_ref_entries = NULL;
+  curr_expr_ref_entries = NULL;
   avail_arg_operands = NULL;
   avail_dynamic_init_dtor_fixups = NULL;
 #if DEBUG
-  num_arg_operands_allocated        = 0;
-  num_xref_entries_allocated        = 0;
+  num_arg_operands_allocated             = 0;
+  num_ref_entries_allocated              = 0;
   num_dynamic_init_dtor_fixups_allocated = 0;
 #endif /* DEBUG */
 

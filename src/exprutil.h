@@ -48,11 +48,13 @@ typedef a_byte an_expression_kind;
 
 
 /*
-Information used when creating cross-reference information.  This is
-done only when f_xref_info != NULL.
+Information on a single reference to a symbol.  Used in cases where the kind
+of reference can be affected by context and therefore cannot be recorded
+immediately.  This entry holds the information that must be retained to be
+able to record the reference once the kind of reference is known.
 */
-typedef struct an_xref_entry *an_xref_entry_ptr;
-typedef struct an_xref_entry {
+typedef struct a_ref_entry *a_ref_entry_ptr;
+typedef struct a_ref_entry {
   /* Describes one reference to a symbol. */
   a_symbol_reference_kind
 		kind;	/* Kind of reference (modification, address taken,
@@ -61,15 +63,15 @@ typedef struct an_xref_entry {
   a_source_position
 		position;
 			/* Source location of the reference. */
-  an_xref_entry_ptr
+  a_ref_entry_ptr
 		next;
-			/* Next entry on the list of cross-reference entries
+			/* Next entry on the list of reference entries
 			   for the current expression, NULL if last. */
-  an_xref_entry_ptr
+  a_ref_entry_ptr
 		next_operand_ref;
-			/* Next entry on the list of cross-reference entries
+			/* Next entry on the list of reference entries
 			   that apply to one operand, NULL if last. */
-} an_xref_entry;
+} a_ref_entry;
 
 /* Kinds of operands: */
 enum an_operand_kind_tag {
@@ -154,14 +156,14 @@ typedef struct an_operand {
   a_source_position
 		position;
 			/* The source position for the operand. */
-  an_xref_entry_ptr
-		xref_entries_list;
-			/* A list of cross-reference entries that are
-			   related to the operand.  This list includes
-			   only entries for entities involved in lvalue
+  a_ref_entry_ptr
+		ref_entries_list;
+			/* A list of reference entries that are related
+			   to the operand.  This list includes only entries
+			   for functions and for entities involved in lvalue
 			   address computations, whose reference kinds might
-			   be changed once the full context surrounding
-			   the operand is known. */
+			   be changed once the full context surrounding the
+			   operand is known. */
   union {
     /* When kind == ok_error, no variant fields. */
     /* When kind == ok_expression: */
@@ -250,10 +252,10 @@ typedef struct an_expr_stack_entry {
   an_expression_kind
 		expression_kind;
 			/* The kind of expression. */
-  an_xref_entry_ptr
-		old_xref_entries_list;
-			/* Saved copy of the cross-reference entries list
-			   at the time of the push of this entry. */
+  a_ref_entry_ptr
+		old_ref_entries_list;
+			/* Saved copy of the reference entries list at the
+			   time of the push of this entry. */
   a_byte_boolean
 		evaluated;
 			/* Expression is evaluated, e.g., FALSE if it's the
@@ -400,11 +402,11 @@ constant expressions.  See ARM 7.1.6.
 	(is_const_qualified_type((var)->type) && is_integral_type((var)->type))
 
 
-extern an_xref_entry_ptr xref_entry(a_symbol_ptr      sym_ptr,
-                                    a_source_position *source_position);
+extern a_ref_entry_ptr ref_entry(a_symbol_ptr      sym_ptr,
+                                 a_source_position *source_position);
 
-extern void change_xref_kinds(an_xref_entry_ptr       xref_list,
-                              a_symbol_reference_kind kind);
+extern void change_ref_kinds(a_ref_entry_ptr         ref_list,
+                             a_symbol_reference_kind kind);
 
 extern an_arg_operand_ptr alloc_arg_operand(void);
 
@@ -427,7 +429,8 @@ extern a_constant_ptr var_constant_value(a_variable_ptr var);
 
 extern void using_lvalue(an_operand *operand);
 
-extern void modifying_lvalue(an_operand *operand);
+extern void modifying_lvalue(an_operand *operand,
+                             a_boolean  value_used);
 
 extern a_boolean is_bit_field_operand(an_operand *operand);
 
@@ -490,9 +493,9 @@ extern a_boolean op_is_false_constant(an_operand *operand);
 
 extern void add_reference_indirection(an_operand *result);
 
-extern void make_lvalue_variable_operand(a_variable_ptr    variable,
-                                         an_operand        *result,
-                                         an_xref_entry_ptr xep);
+extern void make_lvalue_variable_operand(a_variable_ptr  variable,
+                                         an_operand      *result,
+                                         a_ref_entry_ptr rep);
 
 extern void make_ptr_to_member_constant_operand(
                                     a_symbol_ptr      member_sym,
@@ -571,9 +574,9 @@ extern void make_indefinite_function_operand(a_symbol_ptr routine_sym,
                                              a_boolean    is_qualified_name,
                                              an_operand   *operand);
 
-extern void make_sym_for_member_operand(a_symbol_ptr      member_sym,
-                                        an_xref_entry_ptr xep,
-                                        an_operand        *operand);
+extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
+                                        a_ref_entry_ptr rep,
+                                        an_operand      *operand);
 
 extern void make_template_param_expr_constant_operand(
                                               an_operand            *operand_1,
@@ -614,7 +617,7 @@ extern void make_function_designator_operand(
                                       a_symbol_ptr      routine_sym,
                                       a_boolean         is_qualified_name,
                                       a_source_position *position,
-                                      an_xref_entry_ptr xep,
+                                      a_ref_entry_ptr   rep,
                                       an_operand        *result);
 
 extern void build_unary_result_operand(an_operand            *operand,

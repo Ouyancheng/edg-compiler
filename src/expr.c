@@ -590,9 +590,8 @@ Syntax:
          has type pointer-to-X, but the operand has type X. */
       result->type = result_type;
       result->state = (an_operand_state)os_lvalue;
-      /* Preserve the cross-reference entries from the first operand (the
-         array). */
-      result->xref_entries_list = operand_1->xref_entries_list;
+      /* Preserve the reference entries from the first operand (the array). */
+      result->ref_entries_list = operand_1->ref_entries_list;
     }  /* if */
   }  /* if */
 
@@ -1519,7 +1518,7 @@ Syntax:
         make_function_designator_operand(func_sym,
                                          /*is_qualified_name=*/TRUE,
                                          &call_position,
-                                         operand->xref_entries_list, operand);
+                                         operand->ref_entries_list, operand);
         /* Note that the function designator will be converted to a pointer
            by the do_operand_transformations call just below. */
       } else {
@@ -1550,7 +1549,7 @@ Syntax:
       make_function_designator_operand(func_sym,
                                        /*is_qualified_name=*/FALSE,
                                        &func_sym->decl_position,
-                                       operand->xref_entries_list,
+                                       operand->ref_entries_list,
                                        operand);
       conv_function_designator_to_ptr_to_function(operand);
       routine = func_sym->variant.routine.ptr;
@@ -1582,9 +1581,9 @@ Syntax:
         routine = routine_from_function_operand(operand);
       }  /* if */
     }  /* if */
-    /* Change the kind in the cross-reference entry for the function from an
-       address-taken entry back to a simple "use" reference. */
-    change_xref_kinds(operand->xref_entries_list, srk_use);
+    /* Change the kind in the reference entry for the function from an
+       address-taken entry back to a simple reference. */
+    change_ref_kinds(operand->ref_entries_list, srk_reference);
   }  /* if */
 
   /* Scan the arguments of the call. */
@@ -1706,13 +1705,13 @@ the same offset, NULL is returned.
 
 
 static void do_field_selection_operation(
-                               an_operand         *operand_1,
-                               a_type_ptr         class_struct_union_type,
-                               a_boolean          is_arrow_operator,
-                               a_symbol_ptr       field_sym,
-                               a_source_position  *member_position,
-                               an_xref_entry_ptr  xep,
-                               an_operand         *result)
+                               an_operand        *operand_1,
+                               a_type_ptr        class_struct_union_type,
+                               a_boolean         is_arrow_operator,
+                               a_symbol_ptr      field_sym,
+                               a_source_position *member_position,
+                               a_ref_entry_ptr   rep,
+                               an_operand        *result)
 /*
 Construct the result operand for a field selection operation.  The left
 operand (the class/struct/union) is given by operand_1.  The type
@@ -1720,10 +1719,9 @@ of the class/struct/union (before C++ downward casts, if any) is given
 by class_struct_union_type; it provides the type qualifiers that should
 be attached to the result expression.  The operator is "->" if
 *is_arrow_operator is TRUE, "." otherwise.  field_sym points to the symbol
-for the right-side field.  *member_position gives its position.  xep
-points to an associated cross-reference entry, or is NULL if
-cross-reference information is not being maintained.  The result is placed
-in *result.
+for the right-side field.  *member_position gives its position.  rep
+points to an associated reference entry, or is NULL if none is needed.
+The result is placed in *result.
 */
 {
   a_field_ptr           field;
@@ -1840,35 +1838,34 @@ in *result.
     if (C_dialect == C_dialect_cplusplus && is_reference_type(result_type)) {
       add_reference_indirection(result);
     }  /* if */
-    /* Preserve the cross-reference entries for the base struct. */
-    result->xref_entries_list = operand_1->xref_entries_list;
-    if (xep != NULL) {
-      /* Add the cross-reference entry for the field to the list of
-         entries for the operand. */
-      xep->next_operand_ref = result->xref_entries_list;
-      result->xref_entries_list = xep;
+    /* Preserve the reference entries for the base struct. */
+    result->ref_entries_list = operand_1->ref_entries_list;
+    if (rep != NULL) {
+      /* Add the reference entry for the field to the list of entries for
+         the operand. */
+      rep->next_operand_ref = result->ref_entries_list;
+      result->ref_entries_list = rep;
     }  /* if */
   }  /* if */
 }  /* do_field_selection_operation */
 
 
 static void do_member_function_selection_operation(
-                                   an_operand         *operand_1,
-                                   a_symbol_ptr       routine_sym,
-                                   a_symbol_locator   *locator,
-                                   an_xref_entry_ptr  xep,
-                                   an_operand         *result,
-                                   an_operand         *bound_function_selector)
+                                     an_operand       *operand_1,
+                                     a_symbol_ptr     routine_sym,
+                                     a_symbol_locator *locator,
+                                     a_ref_entry_ptr  rep,
+                                     an_operand       *result,
+                                     an_operand       *bound_function_selector)
 /*
 Generate the operand for a nonstatic member function selection operation.
 operand_1 is the left operand of the selection (the object).
 routine_sym points to the member function symbol entry (possibly overloaded).
 *locator is a locator for the member function symbol (needed to get the
 projection symbol for the member and to know if a qualified name was used).
-xep points to an associated cross-reference entry, or is NULL if
-cross-reference information is not being maintained.  The operand is
-constructed in *result, and the bound function selector object (usually,
-a copy of operand_1) is placed in *bound_function_selector.
+rep points to an associated reference entry, or is NULL if none is needed.
+The operand is constructed in *result, and the bound function selector
+object (usually, a copy of operand_1) is placed in *bound_function_selector.
 */
 {
   if (routine_sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -1880,7 +1877,7 @@ a copy of operand_1) is placed in *bound_function_selector.
     /* Non-overloaded function. */
     make_function_designator_operand(routine_sym,
                                      (a_boolean)locator->is_qualified_name,
-                                     &locator->source_position, xep, result);
+                                     &locator->source_position, rep, result);
   }  /* if */
   copy_operand(operand_1, bound_function_selector);
   bind_member_function_operand_to_selector(result, bound_function_selector);
@@ -1906,7 +1903,7 @@ bound with the function in *bound_function_selector.
   a_boolean             operand_1_is_complete_class = FALSE;
   a_boolean             need_operand_1_type_check = FALSE;
   a_boolean             need_member_sym_check;
-  an_xref_entry_ptr     xep;
+  a_ref_entry_ptr       rep;
   a_routine_ptr         routine_ptr;
   a_boolean             is_qualified_name;
   a_boolean             is_vacuous_destructor_reference = FALSE;
@@ -2225,9 +2222,9 @@ bound with the function in *bound_function_selector.
     /* Don't do this if the symbol is an overloaded function (we don't
        yet know which function is being called). */
     if (member_sym->kind == (a_symbol_kind)sk_overloaded_function) {
-      xep = NULL;
+      rep = NULL;
     } else {
-      xep = xref_entry(member_sym, &pos_curr_token);
+      rep = ref_entry(member_sym, &pos_curr_token);
     }  /* if */
     /* Do ambiguity and access control checking on the member.  For overloaded
        functions, this checks ambiguity but not access (which can be different
@@ -2249,7 +2246,7 @@ bound with the function in *bound_function_selector.
                                            &locator_for_curr_id);
           do_field_selection_operation(operand_1, orig_class_struct_union_type,
                                        is_arrow_operator,
-                                       member_sym, &member_position, xep,
+                                       member_sym, &member_position, rep,
                                        result);
           break;
         case sk_static_data_member:
@@ -2258,7 +2255,7 @@ bound with the function in *bound_function_selector.
           discard_operand(operand_1);
           make_lvalue_variable_operand(
                               member_sym->variant.static_data_member.variable,
-                              result, xep);
+                              result, rep);
           break;
         case sk_member_function:
           /* Member function (static or non-static). */
@@ -2286,7 +2283,7 @@ nonstatic_member_function:
               do_member_function_selection_operation(operand_1,
                                                      member_sym,
                                                      &locator_for_curr_id,
-                                                     xep,
+                                                     rep,
                                                      result,
                                                      bound_function_selector);
             }  /* if */
@@ -2296,7 +2293,7 @@ nonstatic_member_function:
             make_function_designator_operand(member_sym,
                                              is_qualified_name,
                                              &member_position,
-                                             xep,
+                                             rep,
                                              result);
           }  /* if */
           break;
@@ -2656,7 +2653,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
         err = TRUE;
       } else {
         /* Operand is okay. */
-        modifying_lvalue(operand);
+        modifying_lvalue(operand, /*value_used=*/TRUE);
         result_type = operand->type;
         if (curr_token == tok_plus_plus) {
           switch (skip_typerefs(result_type)->kind) {
@@ -2809,7 +2806,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
         err = TRUE;
       } else {
         /* Operand is okay. */
-        modifying_lvalue(&operand);
+        modifying_lvalue(&operand, /*value_used=*/TRUE);
         result_type = operand.type;
         if (is_increment) {
           switch (skip_typerefs(result_type)->kind) {
@@ -2936,7 +2933,7 @@ operation is a pointer-to-member (see ARM 5.3).
              pointer. */
           take_address_of_lvalue(&operand);
         }  /* if */
-        /* Note that the copy preserves xref_entries_list. */
+        /* Note that the copy preserves ref_entries_list. */
         copy_operand(&operand, result);
       } else if (is_a_function_designator(&operand)) {
         /* "&" of a function designator.  Change it to a pointer to the
@@ -2945,7 +2942,7 @@ operation is a pointer-to-member (see ARM 5.3).
         /* Change the error position to the "&". */
         operand.position = start_position;
         conv_function_designator_to_ptr_to_function(&operand);
-        /* Note that the copy preserves xref_entries_list. */
+        /* Note that the copy preserves ref_entries_list. */
         copy_operand(&operand, result);
       } else if (is_sym_for_member_operand(&operand)) {
         /* The operand is a qualified name for a nonstatic data member, so
@@ -2953,8 +2950,8 @@ operation is a pointer-to-member (see ARM 5.3).
         member_proj_sym = operand.variant.symbol;
         member_sym = fundamental_symbol_of(member_proj_sym);
         check_assertion(member_sym->kind == (a_symbol_kind)sk_field);
-        /* Change the kind in the cross-reference entries to address-taken. */
-        change_xref_kinds(operand.xref_entries_list, srk_address_taken);
+        /* Change the kind in the reference entries to address-taken. */
+        change_ref_kinds(operand.ref_entries_list, srk_address_taken);
         if (member_sym->variant.field.ptr->bit_size != 0) {
           /* Cannot take the address of a bit field. */
           error_in_operand(ec_address_of_bit_field, &operand);
@@ -3058,7 +3055,7 @@ See section 3.3.3.2 of the standard.
         } else {
           operand.state = (an_operand_state)os_lvalue;
         }  /* if */
-        /* Note that the copy preserves xref_entries_list. */
+        /* Note that the copy preserves ref_entries_list. */
         copy_operand(&operand, result);
       } else {
         /* There was some error in the operand. */
@@ -4127,8 +4124,8 @@ As an anachronism, allow an expression inside the [ ].
                             opname_function_symbol((an_opname_kind)onk_delete);
       }  /* if */
       /* Mark the routine symbol used, but not the IL entry (yet). */
-      reference_to_symbol(srk_use, operator_delete_symbol, &delete_position,
-                          /*update_il_entry=*/FALSE);
+      reference_to_symbol(srk_reference, operator_delete_symbol,
+                          &delete_position, /*update_il_entry=*/FALSE);
       /* Since delete cannot be overloaded, the symbol should not be
          overloaded or a function template. */
       check_assertion(operator_delete_symbol->kind ==
@@ -5165,12 +5162,12 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       do_binary_operation(op, operand_1, &operand_2,
                           result_type, result, &operator_position);
       /* For pointer addition or subtraction (but not difference), preserve
-         the cross-reference entries for the pointer operand.  This is in
-         case the result is turned back into an lvalue, as in "*(arr + 1) = x".
+         the reference entries for the pointer operand.  This is in case the
+         result is turned back into an lvalue, as in "*(arr + 1) = x".
          Recall that the pointer operand is always operand_1 by this point. */
       if (op == (an_expr_operator_kind)eok_padd ||
           op == (an_expr_operator_kind)eok_psubtract) {
-        result->xref_entries_list = operand_1->xref_entries_list;
+        result->ref_entries_list = operand_1->ref_entries_list;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6384,7 +6381,7 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
           pos_diagnostic(anachronism_error_severity, ec_assignment_to_this,
                          &operand->position);
           make_lvalue_variable_operand(this_var, operand,
-                                       operand->xref_entries_list);
+                                       operand->ref_entries_list);
           current_routine_entry()->assignment_to_this_done = TRUE;
         }  /* if */
       }  /* if */
@@ -6458,7 +6455,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
       } else {
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
         if (check_modifiable_lvalue_operand(operand_1)) {
-          modifying_lvalue(operand_1);
+          modifying_lvalue(operand_1, /*value_used=*/FALSE);
         }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
       }  /* if */
@@ -6558,7 +6555,7 @@ See section 3.3.16 of the standard.
         }  /* if */
       }  /* if */
       if (check_modifiable_lvalue_operand(operand_1)) {
-        modifying_lvalue(operand_1);
+        modifying_lvalue(operand_1, /*value_used=*/TRUE);
       }  /* if */
       do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       /* Check the operand types. */
@@ -6829,14 +6826,14 @@ EOPT_DISALLOW_COMMA_OPERATOR).
 static void make_anonymous_union_field_operand(
                                             a_symbol_ptr      sym_ptr,
                                             a_source_position *source_position,
-                                            an_xref_entry_ptr xep,
+                                            a_ref_entry_ptr   rep,
                                             an_operand        *result)
 /*
 Make an operand for a field that is a member of a top-level anonymous union.
 (That is, an anonymous union that is not inside a struct or union.)
 sym_ptr is the field; source_position indicates the field identifier
-source position; and xep points to a cross-reference entry or is NULL if
-there isn't one.  The operand is built in *operand.  It's an lvalue for
+source position; and rep points to a reference entry, or is NULL if
+none is needed.  The operand is built in *operand.  It's an lvalue for
 the field.
 */
 {
@@ -6844,11 +6841,11 @@ the field.
   an_operand     operand_1;
 
   /* Start with an operand for the base anonymous union variable. */
-  make_lvalue_variable_operand(union_var, &operand_1, (an_xref_entry_ptr)NULL);
+  make_lvalue_variable_operand(union_var, &operand_1, (a_ref_entry_ptr)NULL);
   /* Add a field selection to get to the field. */
   do_field_selection_operation(&operand_1, union_var->type,
                                /*is_arrow_operator=*/FALSE,
-                               sym_ptr, source_position, xep, result);
+                               sym_ptr, source_position, rep, result);
   result->position = *source_position;
 }  /* make_anonymous_union_field_operand */
 
@@ -6952,7 +6949,7 @@ bound_function_selector to the associated "this" pointer.
   a_variable_ptr    var_ptr;
   a_routine_ptr     routine_ptr;
   a_source_position start_position;
-  an_xref_entry_ptr xep;
+  a_ref_entry_ptr   rep;
   an_operand        this_pointer_operand;
   a_boolean         address_of_qualified_member_name = FALSE;
   a_type_ptr        qual_class_type;
@@ -7003,17 +7000,17 @@ bound_function_selector to the associated "this" pointer.
       clear_operand((an_operand_kind)ok_undefined_symbol, result);
       result->type = unknown_type();
       result->variant.symbol = sym_ptr;
-      result->xref_entries_list = xref_entry(sym_ptr, &pos_curr_token);
+      result->ref_entries_list = ref_entry(sym_ptr, &pos_curr_token);
     }  /* if */
   } else {
     /* The symbol is defined. */
-    /* Create a cross-reference entry for the symbol if needed. */
+    /* Create a reference entry for the symbol if needed. */
     /* Don't do this if the symbol is an overloaded function (we don't
        yet know which function is being called). */
     if (sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
-      xep = NULL;
+      rep = NULL;
     } else {
-      xep = xref_entry(sym_ptr, &pos_curr_token);
+      rep = ref_entry(sym_ptr, &pos_curr_token);
     }  /* if */
     /* Do ambiguity and access control checking on the member.  For overloaded
        functions, this checks ambiguity but not access (which can be different
@@ -7088,7 +7085,7 @@ variable:
                    expressions, because of the extra indirection. */
                 !is_reference_type(var_ptr->type)) {
               /* Make an lvalue operand for the variable. */
-              make_lvalue_variable_operand(var_ptr, result, xep);
+              make_lvalue_variable_operand(var_ptr, result, rep);
             } else if (C_dialect == C_dialect_cplusplus &&
                        is_const_variable(var_ptr)) {
               /* In C++, integral const identifiers can be used in constant
@@ -7121,7 +7118,7 @@ variable:
               /* Make a variable operand that is a variable address node.
                  The type of the operand is a pointer to the type of the
                  variable. */
-              make_lvalue_variable_operand(var_ptr, result, xep);
+              make_lvalue_variable_operand(var_ptr, result, rep);
             }  /* if */
           }  /* if */
           break;
@@ -7138,7 +7135,7 @@ normal_function:
                                                              is_qualified_name,
                                              &locator_for_curr_id.
                                                                source_position,
-                                             xep,
+                                             rep,
                                              result);
           }  /* if */
           break;
@@ -7164,7 +7161,7 @@ normal_function:
               make_anonymous_union_field_operand(sym_ptr,
                                                  &locator_for_curr_id.
                                                                source_position,
-                                                 xep, result);
+                                                 rep, result);
             }  /* if */
           } else {
             /* Normal case -- field is a nonstatic data member of a class. */
@@ -7173,7 +7170,7 @@ normal_function:
                  immediate operand of a unary "&"; make up an operand that
                  preserves the qualified name so scan_ampersand_operator can
                  turn it into a pointer-to-member. */
-              make_sym_for_member_operand(projection_sym_ptr, xep, result);
+              make_sym_for_member_operand(projection_sym_ptr, rep, result);
             } else {
               /* Normal case: "x" is interpreted as "this->x". */
               /* Make an operand for the "this" pointer. */
@@ -7193,7 +7190,7 @@ normal_function:
                                              sym_ptr,
                                              &locator_for_curr_id.
                                                                source_position,
-                                             xep, result);
+                                             rep, result);
               } else {
                 /* There was some problem in constructing the "this"
                    operand. */
@@ -7221,7 +7218,7 @@ normal_function:
                in symbol form so that it can potentially be converted to
                a pointer-to-member (an extension); more typically, it
                will just be called. */
-            make_sym_for_member_operand(projection_sym_ptr, xep, result);
+            make_sym_for_member_operand(projection_sym_ptr, rep, result);
           } else {
             /* Normal simple case: "f" is interpreted as "this->f". */
             /* Make an operand for the "this" pointer. */
@@ -7236,7 +7233,7 @@ normal_function:
               do_member_function_selection_operation(&this_pointer_operand,
                                                      sym_ptr,
                                                      &locator_for_curr_id,
-                                                     xep,
+                                                     rep,
                                                      result,
                                                      bound_function_selector);
             } else {
