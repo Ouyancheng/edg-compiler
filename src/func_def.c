@@ -427,10 +427,11 @@ routine type, and return a pointer to it.
 }  /* make_implicit_this_param_variable */
 
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/* ARGSUSED */ /* <-- declared_type not used in that case. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 static void decl_parameter(a_param_id_ptr    param_id,
-#if GENERATE_SOURCE_SEQUENCE_LISTS
                            a_type_ptr        declared_type,
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                            a_param_type_ptr  ptp,
                            a_boolean         function_instantiation)
 /*
@@ -859,7 +860,7 @@ and for the instantiation of template functions.
       decl_parameter(param_id, declared_param_type, ptp, is_instantiation);
       orig_param_id = orig_param_id->next;
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-      decl_parameter(param_id, ptp, is_instantiation);
+      decl_parameter(param_id, (a_type_ptr)NULL, ptp, is_instantiation);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
           param_id->next != NULL && ptp->next == NULL) {
