@@ -4280,21 +4280,6 @@ function_lparen:
                           (input_flags & DI_IS_TYPEDEF_DECLARATION) != 0,
                           (input_flags & DI_IS_FRIEND_DECL) != 0,
                           decl_pos_block);
-#if GNU_EXTENSIONS_ALLOWED
-      /* Scan a postfix attribute specification. */
-      if (attributes != NULL && gnu_mode && curr_token == tok_attribute) {
-        check_assertion(last_attribute_ptr != NULL);
-        *last_attribute_ptr = scan_attributes();
-        if (*attributes == NULL) {
-          *attributes = *last_attribute_ptr;
-        }  /* if */
-        if (*last_attribute_ptr != NULL) {
-          *output_flags |= DO_POSTFIX_ATTRIBUTES;
-          /* Advance to the end of the list. */
-          last_attribute_ptr = last_attribute_link(last_attribute_ptr);
-        }  /* if */
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {
         /* Record the source sequence entry in func_info even if there was
@@ -4449,6 +4434,21 @@ function_lparen:
     if (specifiers_type == NULL) *p_left_qualifiers = left_qualifiers;
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Scan a postfix attribute specification. */
+  if (attributes != NULL && gnu_mode && curr_token == tok_attribute) {
+    check_assertion(last_attribute_ptr != NULL);
+    *last_attribute_ptr = scan_attributes();
+    if (*attributes == NULL) {
+      *attributes = *last_attribute_ptr;
+    }  /* if */
+    if (*last_attribute_ptr != NULL) {
+      *output_flags |= DO_POSTFIX_ATTRIBUTES;
+      /* Advance to the end of the list. */
+      last_attribute_ptr = last_attribute_link(last_attribute_ptr);
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (specifiers_type != NULL) {
     /* This is a top-level call to declarator.  Do some checks for special
        member functions and set complete_type appropriately, so that it can
