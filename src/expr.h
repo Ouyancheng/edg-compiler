@@ -145,6 +145,10 @@ extern void scan_member_constant_initializer_expression(
 extern void scan_constant_initializer_expression(a_type_ptr required_type,
                                                  a_constant *constant);
 
+extern void scan_dependent_type_parenthesized_initializer(
+                                      a_boolean          force_object_lifetime,
+                                      a_dynamic_init_ptr *dip);
+
 extern an_expr_node_ptr scan_boolean_controlling_expression(void);
 
 extern an_expr_node_ptr make_condition_value_expression(

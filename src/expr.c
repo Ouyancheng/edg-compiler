@@ -7539,6 +7539,39 @@ one argument, return TRUE; otherwise, return FALSE.
 }  /* conversion_has_one_argument */
 
 
+static void scan_dependent_parenthesized_initializer(a_dynamic_init_ptr *dip)
+/*
+Scan a parenthesized list of expressions that is the initializer of
+an entity of a template-dependent type.  Build a dynamic initialization
+entry for the initialization and return a pointer to it in *dip.
+On entry, the current token is the one following the opening parenthesis.
+On return, the current token is the one following the closing parenthesis.
+*/
+{
+  an_expr_node_ptr  arg_list;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+  /* Scan the argument list. */
+  scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
+                      /*already_after_left_paren=*/TRUE,
+                      &arg_list, /*overloaded_function_case=*/FALSE,
+                      (an_arg_operand_ptr *)NULL, (a_source_position *)NULL);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_position = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* Set the dynamic init entry to represent "constructor" initialization,
+     leaving the constructor pointer NULL. */
+  *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
+  (*dip)->variant.constructor.ptr = NULL;
+  (*dip)->variant.constructor.args = arg_list;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* scan_dependent_parenthesized_initializer */
+
+
 static void scan_functional_notation_type_conversion(
                                       a_type_ptr               type_cast_to,
                                       a_source_position        *start_position,
@@ -7619,6 +7652,15 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+  } else if (is_template_param_type(type_cast_to)) {
+    /* A cast to an unknown type in a prototype instantiation.  This is
+       handled specially because it may have more than one argument. */
+    an_expr_node_ptr   temp_init_node;
+    a_dynamic_init_ptr dip;
+    scan_dependent_parenthesized_initializer(&dip);
+    temp_init_node = alloc_temp_init_node(type_cast_to, dip,
+                                          /*result_is_addr=*/FALSE);
+    make_expression_operand(temp_init_node, temp_init_node->type, result);
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
     add_matching_stop_token(tok_rparen);
@@ -13072,6 +13114,36 @@ overall errors.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* scan_class_parenthesized_initializer */
+
+
+void scan_dependent_type_parenthesized_initializer(
+                                      a_boolean          force_object_lifetime,
+                                      a_dynamic_init_ptr *dip)
+/*
+Scan a parenthesized initializer that initializes an object of a template
+parameter type in a prototype instantiation.  Create a dynamic initialization
+entry to describe the initialization and return a pointer to it in *dip.
+An object lifetime is forced around the initialization if
+force_object_lifetime is TRUE.  On entry, the current token is the one
+following the opening parenthesis.  On return, the current token is the
+one following the closing parenthesis.
+*/
+{
+  an_expr_stack_entry expr_stack_entry;
+
+  db_enter(4, "scan_dependent_type_parenthesized_initializer");
+  check_assertion(expr_stack == NULL); /* Check this is a full expression. */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  force_object_lifetime,
+                  /*suppress_object_lifetime=*/FALSE);
+  check_assertion(!C_mode());
+  scan_dependent_parenthesized_initializer(dip);
+  /* If there's an object lifetime around the initialization, transfer it
+     to the dynamic initialization entry. */
+  wrap_up_dynamic_init_full_expression(*dip);
+  pop_expr_stack();
+  db_exit();
+}  /* scan_dependent_type_parenthesized_initializer */
 
 
 an_expr_node_ptr scan_boolean_controlling_expression(void)
