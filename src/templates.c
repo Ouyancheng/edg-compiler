@@ -16565,7 +16565,9 @@ given translation unit.
   set_type_size(type_of_unknown_templ_param_nontype);
   type_of_unknown_templ_param_nontype->variant.template_param.kind = 
                                       (a_template_param_type_kind)tptk_unknown;
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   request_file_check_needed = FALSE;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_trans_unit_init */
 
 
@@ -16594,9 +16596,9 @@ Initializations for template.
   instantiation_request_file_name = NULL;
   f_instantiation_request = NULL;
   f_template_info = NULL;
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   memzero((char *)instance_lookup_table, sizeof(instance_lookup_table));
   any_instantiated_entities_added_to_request_file = FALSE;
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 }  /* templates_init */
 
 /******************************************************************************
