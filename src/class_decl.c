@@ -2385,7 +2385,10 @@ corresponding entry is removed from the registry.
       unsigned int  count = 0;
 
       for (; sym != NULL; sym = sym->next) {
-        if (sym->variant.routine.ptr->is_virtual) ++count;
+        if (sym->kind == (a_symbol_kind)sk_member_function &&
+            sym->variant.routine.ptr->is_virtual) {
+          ++count;
+        }  /* if */
       }  /* for */
       check_assertion(count > 0);
       orep->virtual_function_count = count;
