@@ -8770,7 +8770,8 @@ respectively.
        nonstrict C99 mode, we accept this as an extension).  In non-GNU modes,
        such a member must be the last field.  If the previous field was of
        such a type, no error was issued, in case it was the last field; issue
-       the error now. */
+       the error now.  (In GNU mode, there is no such constraint and this
+       test should be skipped.) */
     if (!is_union_type(class_type) &&
         class_type->variant.class_struct_union.
                               contains_flexible_array_member) {
