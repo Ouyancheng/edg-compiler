@@ -1254,6 +1254,9 @@ ec_handler_redeclares_parameter;;"parameter %sq may not be redeclared in a catch
 ec_specialization_out_of_namespace;;"the initial explicit specialization of %n must be declared in the namespace containing the template"
 ec_cc_clobber_ignored;;"\"cc\" clobber ignored"
 ec_invalid_token_after_template;;"\"template\" must be followed by an identifier"
+ec_mythread_constant_not_allowed;;"MYTHREAD not allowed in this context"
+ec_bad_upc_shared_pointer_layout_qualifier;;"layout qualifier cannot qualify pointer to shared"
+ec_bad_upc_shared_array_layout_qualifier;;"layout qualifier cannot qualify an incomplete array"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

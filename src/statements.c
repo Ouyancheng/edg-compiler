@@ -4729,6 +4729,11 @@ condition is not recognized till the label statement is reached.
     goto_cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
     goto_cfdp->source_pos = *pos;
     goto_cfdp->variant.goto_statement.ptr = sp;
+#if UPC_EXTENSIONS_ALLOWED
+    /* Keep track of any enclosing forall loop so we can diagnose attempts
+       to jump into or out of such loops. */
+    goto_cfdp->enclosing_forall = innermost_forall_loop;
+#endif /* UPC_EXTENSIONS_ALLOWED */
     add_to_control_flow_descr_list(goto_cfdp);
     if (label_sym->defined) {
       /* This is a backwards goto -- i.e., it references a label that has

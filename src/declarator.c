@@ -3781,6 +3781,13 @@ The syntax is:
   /* Advance to the end of the attribute list. */
   attributes = last_attribute_link(attributes);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+  if (upc_mode && complete_type != NULL &&
+      is_underlying_shared_qualified_type(complete_type)) {
+    /* VLAs of UPC shared types are not allowed. */
+    vla_allowed = FALSE;
+  }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   derived_type = NULL;
   bottom_derived_type = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -1,5 +1,23 @@
 Version 3.1
 
+11/7/02  UPC mode: Diagnostics improved
+
+Various constraints on the use of UPC constructs are now diagnosed.
+This includes: the use of THREADS and MYTHREAD in contexts requiring
+constant-expressions, branching into and out of upc_forall loops,
+duplicating "shared" specifiers with different block specifications,
+attempting to declare variable length arrays of "shared" types, declaring
+automatic arrays with "shared" specifiers, and declaring pointers to
+"shared" arrays with pure block specifiers.
+
+11/7/02  Spurious errors on pure block specifiers in UPC mode
+
+The front end used to issue spurious syntax errors on pure block specifiers:
+
+  shared [*] int a[THREADS];
+
+This is now fixed.
+
 11/7/02  Block-extern declaration mismatch ignored in K&R/pcc mode
 
 In K&R/pcc mode, two block-extern declarations with the same name but in

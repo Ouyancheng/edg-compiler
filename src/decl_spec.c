@@ -4585,6 +4585,8 @@ type qualifier.  This routine also scans the enclosing brackets.  E.g.,
     } else if (curr_token == tok_star) {
       /* Pure block allocation requested. */
       block_size = UPC_BLOCK_SIZE_BLOCK;
+      /* Skip the asterisk. */
+      (void)get_token();
     } else {
       /* Get the integer constant for the block size */
       a_constant  constant;
@@ -5347,11 +5349,13 @@ Returns TRUE if there is an error in the specifiers.
           /* We've seen multiple UPC shared qualifiers.  Sometimes this
              is accepted with a warning, but if the block sizes are
              different, an error must be issued (no matter what mode). */
-          if (block_size != saved_block_size) {
-            es = es_error;
+          if (es == es_warning && block_size != saved_block_size) {
+            error(ec_mismatched_shared_block_size);
+            err = TRUE;
+          } else {
+            diagnostic(es, ec_dupl_type_qualifier);
+            if (es == es_error) err = TRUE;
           }  /* if */
-          if (es == es_error) err = TRUE;
-          diagnostic(es, ec_dupl_type_qualifier);
         }  /* if */
         goto no_get_token;
 #endif /* UPC_EXTENSIONS_ALLOWED */

@@ -1105,6 +1105,7 @@ based (through array and pointer constructs only).
   a_type_ptr        elem_type;
   a_boolean         bad_block_size;
   a_upc_block_size  bsize;
+  a_type_ptr        orig_type = skip_typerefs(tp);
 
   while (tp != NULL && (is_pointer_type(tp) ||
                         (is_array_type(tp) &&
@@ -1123,6 +1124,13 @@ based (through array and pointer constructs only).
   if (tp != NULL) {
     bsize = get_underlying_upc_block_size(tp);
     if (bsize == UPC_BLOCK_SIZE_BLOCK) {
+      /* A shared [*] array type cannot be the basis for a pointer type or
+         for an array of unspecified length. */
+      if (is_pointer_type(orig_type)) {
+        error(ec_bad_upc_shared_pointer_layout_qualifier);
+      } else if (is_array_type(orig_type) && is_incomplete_type(orig_type)) {
+        error(ec_bad_upc_shared_array_layout_qualifier);
+      }  /* if */
       if (is_array_type(tp)) {
         /* Handle special case of indeterminate array size that is
            used as a pointer type.  */

@@ -4012,6 +4012,35 @@ to TRUE if we are in Microsoft mode and in a for-init block.
   return hiding;
 }  /* microsoft_for_init_hiding */
 
+#if UPC_EXTENSIONS_ALLOWED
+
+static void check_upc_variable_decl(a_symbol_locator  *locator,
+                                    a_type_ptr        type_ptr,
+                                    a_storage_class   storage_class)
+/*
+A variable is being declared with the given type and storage class.  If the 
+type relies on some UPC constructs, verify that all UPC constraints are met.
+If an error occurs, the given locator may be changed to an error locator.
+*/
+{
+  if (upc_mode) {
+    if (!has_static_storage_duration(storage_class) &&
+        is_underlying_shared_qualified_type(type_ptr)) {
+      /* Only variables with static storage duration can be UPC shared. */
+      pos_error(ec_bad_shared_storage_class, &locator->source_position);
+      set_to_error_locator(*locator);
+    }  /* if */
+    if (get_underlying_upc_block_size(type_ptr) == UPC_BLOCK_SIZE_INDEFINITE &&
+        is_underlying_threads_dimensioned_array_type(type_ptr)) {
+      /* A threads-dimensioned array cannot have an indefinite block size. */
+        pos_error(ec_threads_dimension_requires_definite_block_size,
+                  &locator->source_position);
+        set_to_error_locator(*locator);
+    }  /* if */
+  }  /* if */
+}  /* check_upc_variable_decl */
+
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 #if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* decl_modifiers, attributes, and/or asm_name are not 
@@ -4100,6 +4129,9 @@ declaration.
      variable was declared. */
   type_ptr = apply_attributes_to_variable_type(attributes, type_ptr);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+  check_upc_variable_decl(locator, type_ptr, storage_class);
+#endif /* UPC_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   declared_type = type_ptr;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4912,27 +4944,6 @@ declaration.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
-#if UPC_EXTENSIONS_ALLOWED
-  if (upc_mode) {
-    if (storage_class == (a_storage_class)sc_auto ||
-        storage_class == (a_storage_class)sc_register) {
-      /* "shared" is only allowed for static and extern variables. */
-      if (is_underlying_shared_qualified_type(type_ptr)) {
-        pos_error(ec_bad_shared_storage_class, &locator->source_position);
-        set_to_error_locator(*locator);
-      }  /* if */
-    }  /* if */
-    if (get_underlying_upc_block_size(type_ptr) ==
-                                                  UPC_BLOCK_SIZE_INDEFINITE &&
-        is_underlying_threads_dimensioned_array_type(type_ptr)) {
-      /* Cannot declare a threads-dimensioned array with indefinite block size,
-         only scalars and arrays with finite array size.  */
-        pos_error(ec_threads_dimension_requires_definite_block_size,
-                  &locator->source_position);
-        set_to_error_locator(*locator);
-    }  /* if */
-  }  /* if */
-#endif /* UPC_EXTENSIONS_ALLOWED */
   clear_id_linkage_block(&idlb);
   idlb.locator = locator;
   idlb.storage_class = storage_class;

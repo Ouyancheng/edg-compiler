@@ -12221,6 +12221,9 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_uuidof:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
+    case tok_upc_localsizeof:
+    case tok_upc_elemsizeof:
+    case tok_upc_blocksizeof:
     case tok_upc_threads:
     case tok_upc_mythread:
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -15503,6 +15506,18 @@ nonstandard class member constants.  Assumes copy-initialization
                              ec_bad_initializer_type);
     /* The operand could be a constant or an error. */
     extract_constant_from_operand(&result, constant);
+#if UPC_EXTENSIONS_ALLOWED
+    if (upc_mode && constant != NULL) {
+      /* We cannot use THREADS or MYTHREAD as a constant initializer. */
+      if (constant->kind == ck_upc_threads) {
+        error(ec_threads_constant_not_allowed);
+        set_error_constant(constant);
+      } else if (constant->kind == ck_upc_mythread) {
+        error(ec_mythread_constant_not_allowed);
+        set_error_constant(constant);
+      }  /* if */
+    }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
