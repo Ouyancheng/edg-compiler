@@ -1,4 +1,13 @@
-Version 3.3, July 31, 2003
+Version 3.4
+
+8/4/03  System header flag in GNU preprocessor line directives
+
+The preprocessor line directives emitted by the GNU preprocessor can include
+a flag that indicates that code originated in a system header file.  Formerly,
+this flag was accepted but ignored.  The system header flag is now recognized
+and the associated code is treated as if found in a file specified by the
+--sys_include option.  The flag is recognized in all modes (not just in
+GNU modes).
 
 8/4/03  GNU C++ mode: Undefined extern inline functions
 
