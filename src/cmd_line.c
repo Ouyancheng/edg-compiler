@@ -3424,6 +3424,12 @@ enable_microsoft_mode:
     do_dependent_name_processing = TRUE;
     implicit_template_inclusion_mode = FALSE;
   }  /* if */
+  if (trans_unit_test_mode) {
+    /* Exported templates cannot be used in trans_unit_test mode.  Turn
+       off the feature but reduce the diagnostic to a warning. */
+    export_template_allowed = FALSE;
+    set_severity_for_error_number((int)ec_no_export_support, es_warning);
+  }  /* if */
   if (!nonclass_prototype_instantiations && do_dependent_name_processing) {
     /* We're not doing nonclass prototype instantiations, but dependent
        name processing is specified.  If dependent name processing was not
