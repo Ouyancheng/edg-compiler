@@ -1754,12 +1754,20 @@ an_expr_node_ptr au_field_lvalue_selection_expr(an_expr_node_ptr node,
 /*
 Make an expression for an lvalue reference to field "field" of "node" and
 return a pointer to it.  Differs from field_lvalue_selection_expr in that
-it will deal with fields of anonymous unions and adding the necessary
+it will deal with fields of anonymous unions (both standard ones and the
+nonstandard Microsoft anonymous structs) by adding the necessary
 intermediate field selections.
 */
 {
   node = field_lvalue_selection_expr(node, field);
+#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
+  { a_symbol_ptr field_sym = (a_symbol_ptr)field->source_corresp.assoc_info;
+    adjust_nonstandard_anonymous_object_field_references(node, field_sym,
+                                                         /*std_also=*/TRUE);
+  }
+#else /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   adjust_field_selection_for_anonymous_union_references(node);
+#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   return node;
 }  /* au_field_lvalue_selection_expr */
 

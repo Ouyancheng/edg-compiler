@@ -7769,15 +7769,17 @@ rest.
 
 void adjust_nonstandard_anonymous_object_field_references(
                                                     an_expr_node_ptr node,
-                                                    a_symbol_ptr     field_sym)
+                                                    a_symbol_ptr     field_sym,
+                                                    a_boolean        std_also)
 /*
 node points to an expression for a field selection of the field field_sym.
 field_sym is a member of some kind of anonymous parent object.  If it's
 a member of a nonstandard anonymous parent (rather than a standard
-C++ anonymous union), insert the elided field selections.  The insertions,
-if any, are done in place; the expression address does not change.
-This routine can be called only when IL entries still point back to
-the associated symbols.
+C++ anonymous union), insert the elided field selections.  If std_also
+is TRUE, also do the insertions for standard anonymous unions.
+The insertions, if any, are done in place; the expression address does
+not change.  This routine can be called only when IL entries still point
+back to the associated symbols.
 */
 {
   a_symbol_ptr anon_parent_sym = field_sym;
@@ -7797,7 +7799,8 @@ the associated symbols.
     /* In C++, skip a standard anonymous union, because those don't get
        handled here.  But keep looping because there might be more
        nonstandard cases further out. */
-    if (!C_mode()) {
+    /* If the std_also flag is set, process standard anonymous unions too. */
+    if (!std_also && !C_mode()) {
       /* C++.  See if this is an anonymous union case. */
       a_type_ptr field_class = field->source_corresp.parent.class_type;
       a_class_type_supplement_ptr
@@ -7832,9 +7835,8 @@ IL lowering).
   node = field_lvalue_selection_expr(node, field);
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   { a_symbol_ptr field_sym = (a_symbol_ptr)field->source_corresp.assoc_info;
-    if (field_sym->variant.field.anonymous_parent_object != NULL) {
-      adjust_nonstandard_anonymous_object_field_references(node, field_sym);
-    }  /* if */
+    adjust_nonstandard_anonymous_object_field_references(node, field_sym,
+                                                         /*std_also=*/FALSE);
   }
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
   return node;

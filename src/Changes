@@ -14,7 +14,8 @@ temporary.
 
 The code generated for default copy assignment of a class that contains
 a Microsoft anonymous struct member was incorrect: it was missing the
-field selection for the anonymous struct.  Now fixed.
+field selection for the anonymous struct.  Now fixed.  (Further fix 5/30/98,
+for ctor-initializers.)
 
   struct A {};
   struct B : virtual A {
