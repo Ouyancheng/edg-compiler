@@ -496,6 +496,7 @@ Clear a macro definition entry to default values.
   mdp->object_like                         = TRUE;
   mdp->cannot_be_redefined                 = FALSE;
   mdp->ref_suppresses_pch_file             = FALSE;
+  mdp->variadic                            = FALSE;
   mdp->param_list                          = NULL;
   mdp->repl_text                           = NULL;
 #if RECORD_MACROS_IN_IL

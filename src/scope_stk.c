@@ -1430,17 +1430,19 @@ the scope being pushed.
   ssep->in_nonreal_instantiation = FALSE;
   ssep->in_class_specialization  = FALSE;
   ssep->defer_access_checks      = FALSE;
+  ssep->nested_instantiation     = FALSE;
   ssep->is_try_block             = FALSE;
   ssep->within_try_block         = FALSE;
   ssep->is_catch_in_function_try = FALSE;
+  ssep->using_directives_apply   = FALSE;
   ssep->within_unnamed_namespace = FALSE;
+  ssep->reactivated_class_being_defined = FALSE;
+  ssep->is_for_init_block        = FALSE;
   ssep->namespace_pushed         = FALSE;
   ssep->exclude_from_context_output = FALSE;
   ssep->instantiation_scope_pushed = FALSE;
   ssep->microsoft_specialization_scope_pushed = FALSE;
   ssep->stop_token_stack_pushed  = FALSE;
-  ssep->reactivated_class_being_defined = FALSE;
-  ssep->is_for_init_block        = FALSE;
   ssep->explicitly_declared_namespace_extension = FALSE;
   ssep->microsoft_specialization_instantiation_scope = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -1485,7 +1487,6 @@ the scope being pushed.
   ssep->instance_sym             = instance_sym;
   ssep->template_sym             = template_sym;
   ssep->template_arg_list        = template_arg_list;
-  ssep->nested_instantiation     = FALSE;
   ssep->source_position          = pos_curr_token;
   ssep->depth_innermost_function_scope = depth_innermost_function_scope;
   ssep->template_decl_info       = template_decl_info;

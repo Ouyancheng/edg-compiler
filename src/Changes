@@ -1,5 +1,12 @@
 Version 3.1
 
+10/31/02 Uninitialized bit fields
+
+Two bit fields in front end data structures were not initialized,
+which could lead to incorrect behavior if they happened to come
+out as 1/TRUE.  The fields are the "variadic" field in a_macro_def
+and the "using_directives_apply" field in a_scope_stack_entry.
+
 10/30/02 Using types without name linkage in entity with linkage
 
 In strict C++ mode, the front end used to not consistently diagnose the
