@@ -896,7 +896,7 @@ typedef struct a_template_decl_info {
 		   includes more than one "template <...>" clause), this
 		   points to the template declaration information of
 		   the enclosing template declaration information structure
-                   (i.e., the "template <..." to the left of the current
+                   (i.e., the "template <...>" to the left of the current
 		   one in the declaration).  Contains NULL for the leftmost
 		   "template <...>" clause in a declaration. */
 } a_template_decl_info;
