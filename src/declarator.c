@@ -70,7 +70,7 @@ language defined in the ARM, it is supported for cfront compatibility.
 
 Return TRUE if this is a member function typedef.  Also return a pointer to
 the function type and the class type if this is the case -- and a pointer to
-type symbol for the typedef, for use in diagnostics.
+the type symbol for the typedef, for use in diagnostics.
 */
 {
   a_type_ptr  tp;
