@@ -395,10 +395,15 @@ The given entity should have a source correspondence.
       break;
     case iek_routine:
       /* Note: assoc_sym_defined not used because when unneeded routines are
-         removed the "defined" flag in the symbol is not cleared. */
-      if (((a_routine_ptr)entity)->assoc_scope != NULL_region_number) {
-        rank += 16;
-      }  /* if */
+         removed the "defined" flag in the symbol is not cleared.  If this
+         is a prototype instantiation, follow the template instead. */
+      { a_routine_ptr  routine = (a_routine_ptr)entity;
+        if (routine->assoc_scope != NULL_region_number ||
+            (routine->is_prototype_instantiation &&
+             assoc_sym_defined(routine->assoc_template))) {
+          rank += 16;
+        }  /* if */
+      }
       if (((a_routine_ptr)entity)->is_specialized) {
         rank += 8;
       }  /* if */
