@@ -5120,20 +5120,23 @@ syntax ("a->b") rather than an explicit function call.
 */
 {
   a_boolean result = FALSE;
+
   if (is_operation_node(expr) &&
       expr->variant.operation.call_uses_operator_syntax) {
     an_expr_node_ptr func_expr = expr->variant.operation.operands;
-    a_routine_ptr    rp = func_expr->variant.routine;
-    an_opname_kind   op = rp->variant.opname_kind;
+    a_routine_ptr    rp;
 
-    check_assertion_str(func_expr->kind ==
+    check_assertion_str(func_expr != NULL &&
+                        func_expr->kind ==
                                         (an_expr_node_kind)enk_routine_address,
                  "is_operator_syntax_arrow: operand not a function constant.");
+
+    rp = func_expr->variant.routine;
     check_assertion_str(rp->special_kind ==
 	                                 (a_special_function_kind)sfk_operator,
       "is_operator_syntax_arrow: non-operator function using operator syntax");
 
-    if (op == (an_opname_kind)onk_arrow) {
+    if (rp->variant.opname_kind == (an_opname_kind)onk_arrow) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -6499,22 +6502,31 @@ return FALSE and let the caller generate the code normally.
 
   if (expr->variant.operation.call_uses_operator_syntax) {
     an_expr_node_ptr              func_expr = expr->variant.operation.operands;
-    a_routine_ptr                 rp = func_expr->variant.routine;
-    a_type_ptr                    rout_type = skip_typerefs(rp->type);
-    a_routine_type_supplement_ptr rtsp = rout_type->variant.routine.extra_info;
-    a_param_type_ptr              param = rtsp->param_type_list;
-    an_expr_node_ptr              arg = func_expr->next;
-    an_opname_kind                op = rp->variant.opname_kind;
+    a_routine_ptr                 rp;
+    a_type_ptr                    rout_type;
+    a_routine_type_supplement_ptr rtsp;
+    a_param_type_ptr              param;
+    an_expr_node_ptr              arg;
+    an_opname_kind                op;
     a_boolean                     parens_needed;
     char                          *op_name;
     char                          *right_half;
 
-    check_assertion_str(func_expr->kind ==
+    check_assertion_str(func_expr != NULL &&
+                        func_expr->kind ==
                                         (an_expr_node_kind)enk_routine_address,
                      "handle_operator_call: operand not a function constant.");
+
+    rp = func_expr->variant.routine;
     check_assertion_str(rp->special_kind ==
 	                                 (a_special_function_kind)sfk_operator,
           "handle_operator_call: non-operator function using operator syntax");
+
+    rout_type = skip_typerefs(rp->type);
+    rtsp = rout_type->variant.routine.extra_info;
+    param = rtsp->param_type_list;
+    arg = func_expr->next;
+    op = rp->variant.opname_kind;
 
     /* For postfix operators, there's no need to enclose the generated
        expression in parentheses because the precedence is already higher
