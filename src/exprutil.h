@@ -831,10 +831,11 @@ extern void assemble_function_call(an_operand        *function_operand,
                                    an_operand        *result);
 
 extern a_statement_ptr make_call_assignment_statement(
-                                               a_routine_ptr     rout,
-                                               an_expr_node_ptr  dest,
-                                               an_expr_node_ptr  source,
-                                               a_source_position *err_pos);
+                                            a_routine_ptr     rout,
+                                            a_boolean         suppress_virtual,
+                                            an_expr_node_ptr  dest,
+                                            an_expr_node_ptr  source,
+                                            a_source_position *err_pos);
 
 extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);

@@ -1985,7 +1985,9 @@ passed by reference.  *err_pos is the source position for diagnostics.
               /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
               err_pos);
   }  /* if */
-  sp = make_call_assignment_statement(rp, dest_expr, source_expr, err_pos);
+  /* Calls generated are non-virtual; see 12.8/13 in the C++ standard. */
+  sp = make_call_assignment_statement(rp, /*suppress_virtual=*/TRUE,
+                                      dest_expr, source_expr, err_pos);
   return sp;
 }  /* make_assignment_call */
 

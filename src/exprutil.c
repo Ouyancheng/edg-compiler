@@ -4810,16 +4810,19 @@ in *result.
 }  /* assemble_function_call */
 
 
-a_statement_ptr make_call_assignment_statement(a_routine_ptr     rout,
-                                               an_expr_node_ptr  dest,
-                                               an_expr_node_ptr  source,
-                                               a_source_position *err_pos)
+a_statement_ptr make_call_assignment_statement(
+                                            a_routine_ptr     rout,
+                                            a_boolean         suppress_virtual,
+                                            an_expr_node_ptr  dest,
+                                            an_expr_node_ptr  source,
+                                            a_source_position *err_pos)
 /*
 Create an expression statement pointing to a call operator that
-calls "rout" to assign the lvalue "source" to the lvalue "dest".  Return
-a pointer to the statement.  *err_pos is a source position to be used
-for errors (e.g., the function has an invalid return type).  This
-routine is intended to be called from outside of the expression routines.
+calls "rout" to assign the lvalue "source" to the lvalue "dest".  rout
+is called non-virtually if suppress_virtual is TRUE.  Return a pointer
+to the statement.  *err_pos is a source position to be used for errors
+(e.g., the function has an invalid return type).  This routine is
+intended to be called from outside of the expression routines.
 */
 {
   a_statement_ptr         stmt;
@@ -4854,8 +4857,8 @@ routine is intended to be called from outside of the expression routines.
   dest->next = source;
   /* Make the call node. */
   node = func_call_expr(func_addr_node, rout->type,
-                        (a_boolean)rout->is_virtual,
-                        /*virtual_suppressed=*/FALSE,
+                        rout->is_virtual && !suppress_virtual,
+                        rout->is_virtual && suppress_virtual,
                         err_pos);
   node = wrap_up_full_expression(node);
   /* Allocate the statement. */

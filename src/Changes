@@ -1,5 +1,13 @@
 Version 2.40
 
+12/4/98   Generated operator= function: base class operator= called
+          non-virtually
+
+When a copy assignment operator function (operator=) is generated,
+calls therein to operator= functions for base classes and members
+should be non-virtual even if the called functions are virtual.
+See the C++ standard, 12.8/13.  Now fixed.
+
 12/3/98   Microsoft compatibility: undefined extern inline function
 
 In Microsoft mode, an extern inline function that is referenced but not
