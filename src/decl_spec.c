@@ -3410,16 +3410,16 @@ process_class_specifier:
         break;
       case QUALIFIED_NAME_START_CASE:  /* Identifier or "::". */
         /* Identifier. */
-        /* In case the identifier has not yet been coalesced, do it now. */
-        options = GID_NO_OPTIONS;
-        if (input_flags & DSI_IS_NEW_TYPE_NAME) {
-          options |= GID_IS_NEW_TYPE_NAME;
-        }  /* if */
-        if (!is_generalized_identifier_start(options)) {
-          /* This could result from "::" followed by something strange. */
-          goto something_unexpected;
-        }  /* if */
         if (C_dialect == C_dialect_cplusplus) {
+          /* In case the identifier has not yet been coalesced, do it now. */
+          options = GID_NO_OPTIONS;
+          if (input_flags & DSI_IS_NEW_TYPE_NAME) {
+            options |= GID_IS_NEW_TYPE_NAME;
+          }  /* if */
+          if (!is_generalized_identifier_start(options)) {
+            /* This could result from "::" followed by something strange. */
+            goto something_unexpected;
+          }  /* if */
           /* Check for a constructor declaration.  The following conditions
              must be satisfied:  (1) we are inside a class definition;
              (2) the current token is the name of the class being defined
@@ -3456,7 +3456,7 @@ process_class_specifier:
             } else {
               class_type = ssep->assoc_type;
               check_assertion(class_type != NULL &&
-                              is_class_struct_union_type(class_type)); 
+                              is_class_struct_union_type(class_type));
               if (is_constructor_decl(class_type)) {
                 basic_type = bt_no_type;
                 *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
