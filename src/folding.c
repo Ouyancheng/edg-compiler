@@ -1178,9 +1178,10 @@ casts between unrelated classes.
   constant_type = skip_typerefs(constant->type);
   new_type = skip_typerefs(new_type);
 
-  if (is_error_type(new_type)) {
-    /* Changing to an error type, so produce an error constant as result.
-       new_constant is already set appropriately. */
+  if (is_error_constant(constant) || is_error_type(new_type)) {
+    /* Changing to an error type, or the old constant is an error constant,
+       so produce an error constant as result. */
+    set_error_constant(&new_constant);
     goto exit;
   }  /* if */
   if (identical_types(constant_type, new_type)) {

@@ -1,5 +1,13 @@
 Version 2.35
 
+1/12/97 Abort on type conversion of enumerator with invalid expression
+
+The front end would abort (after a correct error message) if a type
+conversion was applied to an enumerator whose value was given by an
+invalid expression.  This has been fixed.
+
+  enum { X = Y };  // Error, Y undeclared
+  long i = X;  // Abort here on type conversion
 
 1/10/97 Pointer-to-member selection: cv-qualifiers of left operand, rvalue
         result
