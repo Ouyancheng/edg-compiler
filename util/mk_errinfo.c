@@ -459,12 +459,19 @@ static a_font_kind curr_font;
 			/* The font currently used for characters written
 			   to the documentation file. */
 
-a_boolean any_em_chars;
+
+typedef void (*a_doc_string_output_routine)(char *, int, a_font_kind);
+
+static a_doc_string_output_routine
+		output_doc_string;
+			/* Points to the function to be used to output a
+			   documentation string to the documentation file. */
 
 
-static void me_output_doc_string(char	     *string,
-                                 int	     length,
-				 a_font_kind font)
+static
+void me_output_latex_doc_string(char	     *string,
+                                int	     length,
+			        a_font_kind  font)
 /*
 Output characters that are part of the error text.  Make sure that
 certain characters are put in the right font, when needed.
@@ -472,6 +479,7 @@ If the length specified is zero, the string is null terminated and strlen
 should be used to determine the length.
 */
 {
+  static a_boolean any_em_chars;
   int	i;
 
   if (curr_font != font) {
@@ -512,7 +520,42 @@ should be used to determine the length.
     }  /* if */
     if (curr_font == fk_em) any_em_chars = TRUE;
   }  /* if */
-}  /* me_output_doc_string */
+}  /* me_output_latex_doc_string */
+
+
+static
+void me_output_mml_doc_string(char	     *string,
+                                int	     length,
+			        a_font_kind  font)
+/*
+Output characters that are part of the error text.  Make sure that
+certain characters are put in the right font, when needed.
+If the length specified is zero, the string is null terminated and strlen
+should be used to determine the length.
+*/
+{
+  int	i;
+
+  if (curr_font != font) {
+    char	*start_string;
+    /* We need to switch fonts.  Terminate the previous font. */
+    /* Begin the new font. */
+    switch (font) {
+      case fk_normal: start_string = "<rm>"; break;
+      case fk_tt: start_string = "<tt>"; break;
+      case fk_em: start_string = "<em>"; break;
+    }  /* switch */
+    fprintf(doc_output_file, "%s", start_string);
+    curr_font = font;
+  }  /* if */
+  if (length == 0) length = strlen(string);
+  for (i = 0; i < length; ++i) {
+    char	ch = string[i];
+    /* Check for characters that must be escaped. */
+    if (strchr("<>", ch) != NULL) putc('\\', doc_output_file);
+    putc(ch, doc_output_file);
+  }  /* if */
+}  /* me_output_mml_doc_string */
 
 
 static void me_create_doc_fillin(char	**ptr_to_ptr)
@@ -550,7 +593,7 @@ static void me_create_doc_fillin(char	**ptr_to_ptr)
     ptr++;
   }  /* if */
   if (fill_in_override != NULL) {
-    me_output_doc_string(fill_in_override, 0, fk_normal);
+    output_doc_string(fill_in_override, 0, fk_normal);
   } else {
     fis_ptr = fill_in_specifier;
     ch = *fis_ptr++;
@@ -562,18 +605,18 @@ static void me_create_doc_fillin(char	**ptr_to_ptr)
         } else {
           fill_in = "xxxx";
         }  /* if */
-        me_output_doc_string(fill_in, 0, fk_em);
+        output_doc_string(fill_in, 0, fk_em);
         break;
       case 't':
-        me_output_doc_string("\"type\"", 0, fk_em);
+        output_doc_string("\"type\"", 0, fk_em);
         break;
       case 'p':
         fill_in = "at line {\\em xxxx\\/}";
-        me_output_doc_string("at line ", 0, fk_normal);
-        me_output_doc_string("xxxx", 0, fk_em);
+        output_doc_string("at line ", 0, fk_normal);
+        output_doc_string("xxxx", 0, fk_em);
         break;
       case '%':
-        me_output_doc_string("%", 0, fk_normal);
+        output_doc_string("%", 0, fk_normal);
         break;
       case 'n':
         {
@@ -593,13 +636,13 @@ static void me_create_doc_fillin(char	**ptr_to_ptr)
               default: me_error("unexpected symbol fill-in %s\n", fis_ptr-1);
             }  /* switch */
           }  /* while */
-          if (!name_only) me_output_doc_string("entity-kind ", 0, fk_em);
-          me_output_doc_string("\"entity\"", 0, fk_em);
-          if (template_args) me_output_doc_string("<args>", 0, fk_em);
+          if (!name_only) output_doc_string("entity-kind ", 0, fk_em);
+          output_doc_string("\"entity\"", 0, fk_em);
+          if (template_args) output_doc_string("<args>", 0, fk_em);
           if (decl_pos) {
-            me_output_doc_string(" (declared at line ", 0, fk_normal);
-            me_output_doc_string("xxxx", 0, fk_em);
-            me_output_doc_string(")", 0, fk_normal);
+            output_doc_string(" (declared at line ", 0, fk_normal);
+            output_doc_string("xxxx", 0, fk_em);
+            output_doc_string(")", 0, fk_normal);
           }  /* if */
         }
         break;
@@ -671,6 +714,74 @@ Write the tag lookup table to the error data file.
 }  /* me_write_tag_table */
 
 
+typedef void (*a_write_item_header_routine)(int, char*);
+
+static a_write_item_header_routine
+		write_item_header;
+			/* Points to the function used to write the header
+			   for an error message to the documentation file. */
+
+
+static void me_write_latex_item_header(int	number,
+		                       char	*tag)
+/*
+Write the header information for a given error message to the latex
+documentation file.
+*/
+{
+  char	*ptr;
+
+  /* Write the item command containing the number. */
+  fprintf(doc_output_file, "\\item[\\tt %04d ", number);
+  /* Write the tag name. */
+  ptr = tag;
+  while (*ptr != '\0') {
+    if (*ptr == '_') putc('\\', doc_output_file);
+    putc(*ptr, doc_output_file);
+    ptr++;
+  }  /* while */
+  /* Close the tag line. */
+  fprintf(doc_output_file, ":]\n");
+  /* Write an empty item command. */
+  fprintf(doc_output_file, "\\item[]\n");
+  /* Put out a \parskip 0pt and \itemsep 0pt. */
+  fprintf(doc_output_file, "\\parskip 0pt\n\\itemsep 0pt\n");
+}  /* me_write_latex_item_header */
+
+
+static void me_write_mml_item_header(int	number,
+		                     char	*tag)
+/*
+Write the header information for a given error message to the mml
+documentation file.
+*/
+{
+  char			*ptr;
+  static a_boolean	first = TRUE;
+
+  if (first) {
+    first = FALSE;
+  } else {
+    /* Write a blank line to terminate the previous item. */
+    fprintf(doc_output_file, "\n");
+  }  /* if */
+  /* Write the paragraph tag for the number and tag string. */
+  fprintf(doc_output_file, "<ErrorItem>\n");
+  /* Write the item command containing the number. */
+  fprintf(doc_output_file, "<tt>%04d<tab>", number);
+  /* Write the tag name. */
+  ptr = tag;
+  while (*ptr != '\0') {
+    putc(*ptr, doc_output_file);
+    ptr++;
+  }  /* while */
+  /* Close the tag line and a blank line. */
+  fprintf(doc_output_file, ":\n\n");
+  /* Write the paragraph tag for the message text. */
+  fprintf(doc_output_file, "<ErrorText>\n");
+}  /* me_write_mml_item_header */
+
+
 static void me_write_doc_file(void)
 /*
 Generate a TeX file that documents the error messages
@@ -687,21 +798,7 @@ Generate a TeX file that documents the error messages
     if (error_info[i].tag == NULL) continue;
     /* Reset the current font kind. */
     curr_font = fk_normal;
-    /* Write the second item command containing the number. */
-    fprintf(doc_output_file, "\\item[\\tt %04d ", i);
-    /* Write the tag name. */
-    ptr = error_info[i].tag;
-    while (*ptr != '\0') {
-      if (*ptr == '_') putc('\\', doc_output_file);
-      putc(*ptr, doc_output_file);
-      ptr++;
-    }  /* while */
-    /* Close the tag line. */
-    fprintf(doc_output_file, ":]\n");
-    /* Write an empty item command. */
-    fprintf(doc_output_file, "\\item[]\n");
-    /* Put out a \parskip 0pt and \itemsep 0pt. */
-    fprintf(doc_output_file, "\\parskip 0pt\n\\itemsep 0pt\n");
+    write_item_header(i, error_info[i].tag);
     /* Write the error text. */
     /* Skip the opening quote. */
     ptr = error_info[i].text;
@@ -717,11 +814,11 @@ Generate a TeX file that documents the error messages
         if (ch == '\\') ptr++;
         ch = *ptr;
         /* Just a normal character. */
-        me_output_doc_string(&ch, 1, fk_normal);
+        output_doc_string(&ch, 1, fk_normal);
         ptr++;
       }  /* if */
     }  /* for */
-    me_output_doc_string("\n", 0, fk_normal);
+    output_doc_string("\n", 0, fk_normal);
   }  /* for */
 }  /* me_write_doc_file */
 
@@ -733,9 +830,16 @@ int main(int argc, char *argv[])
 
   if (argc != 5) me_command_line_error();
   if (strcmp(argv[argpos], "-d") == 0) {
-    /* We should generate a documentation output file instead of the normal
-       code files. */
+    /* We should generate a latex documentation output file. */
     doc_mode = TRUE;
+    output_doc_string = me_output_latex_doc_string;
+    write_item_header = me_write_latex_item_header;
+    argpos++;
+  } else if (strcmp(argv[argpos], "-mml") == 0) {
+    /* We should generate a MML documentation output file. */
+    doc_mode = TRUE;
+    output_doc_string = me_output_mml_doc_string;
+    write_item_header = me_write_mml_item_header;
     argpos++;
   }  /* if */
   message_input_file_name = argv[argpos++];

@@ -1,5 +1,11 @@
 Version 2.33
 
+9/24/96  mk_errinfo can now generate MML documentation files
+
+The -mml option has been added to mk_errinfo.  This option causes it
+to produce a file in MML format.  MML is "Maker Markup Language", a
+language that can be imported into FrameMaker.
+
 9/17/96  --strip option added to eccp
 
 The --strip option has been added to the eccp script.  This option causes
