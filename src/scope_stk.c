@@ -281,6 +281,23 @@ Dump decl-pos information for the specified symbol (for debugging).
         }  /* if */
       }  /* if */
     }  /* if */
+    if (sym->kind == (a_symbol_kind)sk_function_template) {
+      /* Display decl-pos info for each explicit specialization of the
+         function template. */
+      a_template_instance_ptr  tip;
+      a_symbol_ptr             instance_sym;
+
+      tip = sym->variant.template_info->variant.function.instantiations;
+      for (; tip != NULL; tip = tip->next) {
+        instance_sym = tip->instance_sym;
+        if (instance_sym->kind == (a_symbol_kind)sk_routine ||
+            instance_sym->kind == (a_symbol_kind)sk_member_function) {
+          if (instance_sym->variant.routine.ptr->is_specialized) {
+            db_decl_pos_info(instance_sym);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
 }  /* db_decl_pos_info */
 
