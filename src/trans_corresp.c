@@ -1922,12 +1922,13 @@ is in fact valid.
           !same_exception_spec(routine->type, corresp_routine->type)) ||
          routine->is_virtual != corresp_routine->is_virtual ||
          routine->pure_virtual != corresp_routine->pure_virtual ||
-         /* The inline attribute isn't set on nonprototype template functions
-            until the template is actually instantiated.  Also, it need not
-            match in C99 mode. */
+         /* In C mode (C99 & GNU C), the inline flag does not need to match.
+            In C++ mode, we only require a match if the function is defined. */
          (!C_mode() && routine->is_inline != corresp_routine->is_inline &&
-          (routine->is_prototype_instantiation || routine->is_specialized ||
-           !routine->is_template_function)) ||
+          ((!routine->is_inline &&
+            routine->assoc_scope != NULL_region_number) ||
+           (!corresp_routine->is_inline &&
+            corresp_routine->assoc_scope != NULL_region_number))) ||
          /* If both routines are template specialization, the explicit
             template specialization bit should be the same. */
          (routine->template_arg_list != NULL && 
