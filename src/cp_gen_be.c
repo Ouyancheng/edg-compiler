@@ -152,17 +152,16 @@ static unsigned long
 
 /*
 Entry used to record an adjustment needed at the end of a name context,
-i.e., restoring the previous values of the global_qualification_needed
-and/or elaborated_type_specifier_needed flags of an IL entity, which
-were changed when the entity's name was hidden at the start of the
-name context.
+i.e., restoring the previous values of the qualification_needed and/or
+elaborated_type_specifier_needed flags of an IL entity, which were changed
+when the entity's name was hidden at the start of the name context.
 */
 typedef struct a_hidden_name_fixup *a_hidden_name_fixup_ptr;
 typedef struct a_hidden_name_fixup {
   a_hidden_name_fixup_ptr
 		next;	/* Next fixup on the list, or NULL if this is the
 			   last entry. */
-  a_bit_field	global_qualification_needed:1;
+  a_bit_field	qualification_needed:1;
   a_bit_field	elaborated_type_specifier_needed:1;
 			/* Flag values to restore. */
   a_tagged_pointer
@@ -206,13 +205,6 @@ typedef struct a_name_context {
 			/* TRUE if this context is not visible to cfront
 			   (due to a bug), and should not be used to remove
 			   class qualifiers from name references. */
-  a_byte_boolean
-		inside_class_definition;
-			/* TRUE if assoc_scope indicates a class, and
-			   we are currently inside the definition of that class
-			   (rather than inside some later context -- like a
-			   member function definition -- that reopens that
-			   name context). */
 } a_name_context;
 static a_name_context_ptr
 		curr_name_context;
@@ -236,33 +228,6 @@ Given that the current name context is a class, return the class type.
 */
 #define curr_name_context_class()                                     \
   (curr_name_context->assoc_scope->variant.assoc_type)
-
-/*
-Return TRUE if the current name context is the indicated class.
-*/
-#define curr_name_context_is_class(class_type)                        \
-  (curr_name_context_is_a_class() &&                                  \
-   curr_name_context_class() == (class_type))
-
-/*
-Return TRUE if the current name context is a namespace.
-*/
-#define curr_name_context_is_a_namespace()                            \
-  (curr_name_context->assoc_scope != NULL &&                          \
-   curr_name_context->assoc_scope->kind == (a_scope_kind)sck_namespace)
-
-/*
-Given that the current name context is a namespace, return the namespace.
-*/
-#define curr_name_context_namespace()                                 \
-  (curr_name_context->assoc_scope->variant.assoc_namespace)
-
-/*
-Return TRUE if the current name context is the indicated namespace.
-*/
-#define curr_name_context_is_namespace(nsp)                           \
-  (curr_name_context_is_a_namespace() &&                              \
-   curr_name_context_namespace() == (nsp))
 
 
 /* Value to use to specify that no name is provided. */
@@ -357,8 +322,8 @@ static void alloc_hidden_name_fixup(a_tagged_pointer entity)
 /*
 Allocate a hidden-name fixup entry for the indicated entity and put it
 on the current name context fixup list.  The current values of the
-global_qualification_needed and elaborated_type_specifier_needed flags in
-that entry are saved for restoration at the end of the current name context.
+qualification_needed and elaborated_type_specifier_needed flags in that
+entry are saved for restoration at the end of the current name context.
 */
 {
   a_hidden_name_fixup_ptr hnfp;
@@ -373,8 +338,8 @@ that entry are saved for restoration at the end of the current name context.
   }  /* if */
   hnfp->entity = entity;
   /* Save the flag values from the entity, for later restoration. */
-  hnfp->global_qualification_needed =
-       ((a_source_correspondence *)entity.ptr)->global_qualification_needed;
+  hnfp->qualification_needed =
+       ((a_source_correspondence *)entity.ptr)->qualification_needed;
   if ((an_il_entry_kind)entity.kind == iek_type) {
     hnfp->elaborated_type_specifier_needed =
                     ((a_type_ptr)entity.ptr)->elaborated_type_specifier_needed;
@@ -417,19 +382,18 @@ hidden names in C, so there's no point in maintaining this information).
   }  /* if */
   for (hnp = scope->hidden_names; hnp != NULL; hnp = hnp->next) {
     a_boolean fixup_created = FALSE;
-    if (hnp->global_qualification_needed) {
+    if (hnp->qualification_needed) {
       /* The entity needs a leading "::" in the inner scopes. */
       a_source_correspondence *scp =
                                   (a_source_correspondence *)(hnp->entity.ptr);
-      if (!scp->global_qualification_needed) {
-        /* The global_qualification_needed flag needs to be set.  Also
-           arrange for it to be reset at the end of the current name
-           context. */
+      if (!scp->qualification_needed) {
+        /* The qualification_needed flag needs to be set.  Also arrange for
+           it to be reset at the end of the current name context. */
         if (!fixup_created) {
           alloc_hidden_name_fixup(hnp->entity);
           fixup_created = TRUE;
         }  /* if */
-        scp->global_qualification_needed = TRUE;
+        scp->qualification_needed = TRUE;
       }  /* if */
     }  /* if */
     if (hnp->elaborated_type_specifier_needed) {
@@ -477,7 +441,6 @@ This routine is called for both C and C++.
   ncp->access = (an_access_specifier)as_public;
   ncp->fixups = NULL;
   ncp->invisible_to_cfront = FALSE;
-  ncp->inside_class_definition = FALSE;
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
@@ -506,7 +469,7 @@ Pop the top entry off the name context stack.
     /* Restore the flag values to their state at the start of the current
        name context. */
     ((a_source_correspondence *)(hnfp->entity.ptr))->
-               global_qualification_needed = hnfp->global_qualification_needed;
+               qualification_needed = hnfp->qualification_needed;
     if ((an_il_entry_kind)(hnfp->entity.kind) == iek_type) {
       ((a_type_ptr)(hnfp->entity.ptr))->elaborated_type_specifier_needed =
                                         hnfp->elaborated_type_specifier_needed;
@@ -574,24 +537,22 @@ For a nested class/namespace, also pop the containing classes/namespaces.
 }  /* pop_name_context_if_member */
 
 
-static a_boolean class_defn_is_in_name_context_stack(a_type_ptr class_type)
+static a_boolean scope_is_in_name_context_stack(a_scope_ptr scope)
 /*
-Return TRUE if we are currently inside the definition of the indicated
-class, i.e., it's in the name context stack marked as a definition.
+Return TRUE if the indicated scope is currently on the name context stack.
 */
 {
-  a_boolean          class_in_stack = FALSE;
+  a_boolean          scope_in_stack = FALSE;
   a_name_context_ptr ncp;
 
   for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
-    if (ncp->inside_class_definition &&
-        ncp->assoc_scope->variant.assoc_type == class_type) {
-      class_in_stack = TRUE;
+    if (ncp->assoc_scope == scope) {
+      scope_in_stack = TRUE;
       break;
     }  /* if */
   }  /* for */
-  return class_in_stack;
-}  /* class_defn_is_in_name_context_stack */
+  return scope_in_stack;
+}  /* scope_is_in_name_context_stack */
 
 
 static a_scope_ptr parent_scope_of(a_source_correspondence *scp)
@@ -1643,33 +1604,29 @@ constants, which must have the form of a qualified name).
   if (il_header.source_language == sl_Cplusplus) {
     if (scp->is_class_member) {
       a_type_ptr class_type = scp->parent.class_type;
-      /* If the class type matches the top entry on the name context stack,
-         the qualifier is not necessary. */
-      if (curr_name_context_is_class(class_type) &&
-          /* Use a qualified name in some cases to avoid a cfront bug.  See
-             gen_initializer. */
-          !curr_name_context->invisible_to_cfront &&
-          !force_qualified_name) {
-        /* Reference to class member within its class.  Qualifier is not
-           needed. */
-      } else if (microsoft_mode &&
-                 !force_qualified_name &&
-                 scp->is_class_member &&
-                 class_defn_is_in_name_context_stack(scp->parent.class_type)) {
-        /* MSVC++ chokes on use of a qualified name for a class member within
-           the definition of that class, so avoid that in the output. */
+      /* Use a qualified name in some cases to avoid a cfront bug.  See
+         gen_initializer. */
+      if (curr_name_context->invisible_to_cfront) force_qualified_name = TRUE;
+      if (!force_qualified_name && !scp->qualification_needed &&
+          scope_is_in_name_context_stack(class_type->variant.
+                                 class_struct_union.extra_info->assoc_scope)) {
+        /* A qualified name is not needed, because we're inside a name context
+           for the class and the name is not hidden. */
       } else {
+        /* Use a qualified name. */
         gen_class_qualifier(class_type, /*bound_function=*/FALSE);
       }  /* if */
     } else if (scp->parent.namespace_ptr != NULL) {
       /* The entity is a member of a namespace. */
       a_namespace_ptr nsp = scp->parent.namespace_ptr;
-      if (curr_name_context_is_namespace(nsp)) {
-        /* We are inside the namespace, so the qualifier is not needed. */
+      if (!force_qualified_name && !scp->qualification_needed &&
+          scope_is_in_name_context_stack(nsp->variant.assoc_scope)) {
+        /* A qualified name is not needed, because we're inside a name context
+           for the namespace and the name is not hidden. */
       } else {
         gen_namespace_qualifier(nsp);
       }  /* if */
-    } else if (scp->global_qualification_needed) {
+    } else if (scp->qualification_needed) {
       /* This is a reference to a file-scope entity from within a class
          or function, so add a leading "::". */
       write_tok_str("::");
@@ -1735,9 +1692,9 @@ a definition.
         break;
       }  /* if */
     }  /* for */
-    if (top_scp->global_qualification_needed) write_tok_ch('(');
+    if (top_scp->qualification_needed) write_tok_ch('(');
     gen_name(scp, entry_kind, /*force_qualified_name=*/FALSE);
-    if (top_scp->global_qualification_needed) write_tok_ch(')');
+    if (top_scp->qualification_needed) write_tok_ch(')');
   }  /* if */
 }  /* gen_decl_name */
 
@@ -3070,7 +3027,6 @@ is the one associated with the definition of the class.
   write_tok_str("{ ");
   if (il_header.source_language == sl_Cplusplus) {
     push_name_context(ctsp->assoc_scope);
-    curr_name_context->inside_class_definition = TRUE;
     /* Keep track of the current access category, in order to emit a change
        when necessary. */
     if (ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field) {
@@ -3520,8 +3476,7 @@ this selection.
     /* Do check for a field that ends up requiring a global qualifier.
        Field references are put out as unqualified names, so this is not
        checked when putting out the field. */
-    if (field_expr->variant.field->source_corresp.
-                                                 global_qualification_needed) {
+    if (field_expr->variant.field->source_corresp.qualification_needed) {
       write_tok_str("::");
     }  /* if */
   } else {
@@ -6337,15 +6292,15 @@ declaration following this one is such a continuation.
       }  /* if */
       if (storage_class == (a_storage_class)sc_extern &&
           innermost_function_scope != NULL) {
-        /* Extern within a function.  Clear the global_qualification_needed
-           flag in the entity to suppress leading "::" on references. */
-        if (var->source_corresp.global_qualification_needed) {
+        /* Extern within a function.  Clear the qualification_needed flag
+           in the entity to suppress leading "::" on references. */
+        if (var->source_corresp.qualification_needed) {
           /* Allocate a fixup entry to get the flag switched back later. */
           a_tagged_pointer entity;
           entity.kind = (a_byte_il_entry_kind)iek_variable;
           entity.ptr = (char *)var;
           alloc_hidden_name_fixup(entity);
-          var->source_corresp.global_qualification_needed = FALSE;
+          var->source_corresp.qualification_needed = FALSE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -6691,15 +6646,15 @@ TRUE if the declaration following this one is such a continuation.
       }  /* if */
       if (storage_class == (a_storage_class)sc_extern &&
           decl_within_function) {
-        /* Extern within a function.  Clear the global_qualification_needed
-           flag in the entity to suppress leading "::" on references. */
-        if (rout->source_corresp.global_qualification_needed) {
+        /* Extern within a function.  Clear the qualification_needed flag in
+           the entity to suppress leading "::" on references. */
+        if (rout->source_corresp.qualification_needed) {
           /* Allocate a fixup entry to get the flag switched back later. */
           a_tagged_pointer entity;
           entity.kind = (a_byte_il_entry_kind)iek_routine;
           entity.ptr = (char *)rout;
           alloc_hidden_name_fixup(entity);
-          rout->source_corresp.global_qualification_needed = FALSE;
+          rout->source_corresp.qualification_needed = FALSE;
         }  /* if */
       }  /* if */
     }  /* if */
