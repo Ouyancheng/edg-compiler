@@ -2443,10 +2443,11 @@ and the existing ones (explicit and implied), issue an error (at position
 #endif /* NEAR_AND_FAR_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- because left_calling_convention,
-                    unbound_calling_convention, left_qualifiers, and
-                    unbound_qualifiers are only used when Microsoft
-		    extensions are allowed. */
+/*ARGSUSED*/ /* <-- left_calling_convention and unbound_calling_convention
+                    are only used when Microsoft extensions are allowed.
+                    Moreover, left_qualifiers and unbound_qualifiers are used
+                    only if either Microsoft extensions or near/far are
+                    allowed. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_type_ptr pointer_declarator(
                       a_type_ptr            specifiers_type,
@@ -2563,7 +2564,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                                                     &based_pos,
                                                     decl_pos_block);
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
   /* Loop while there are pointer declarators. */
   for (;;) {
     /* See if there is a pointer declarator. */
@@ -2835,13 +2836,13 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
          compiler, but were applied in MSVC++ 2.0. */
 #if NEAR_AND_FAR_ALLOWED
     } else if ((pending_qualifiers & ~(TQ_NEAR | TQ_FAR)) != TQ_NONE) {
-      /* A qualifier other than near/far.  It are ignored -- strip it out of
+      /* A qualifier other than near/far.  It's ignored -- strip it out of
          the bit vector and issue a warning. */
       pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
       pending_qualifiers &= (TQ_NEAR | TQ_FAR);
 #else /* !NEAR_AND_FAR_ALLOWED */
     } else {
-      pos_warning(ec_type_qualifier_ignored, &pending_qualifier_pos);
+      pos_warning(ec_type_qualifier_ignored, &pending_qualifiers_pos);
       pending_qualifiers = TQ_NONE;
 #endif /* NEAR_AND_FAR_ALLOWED */
     }  /* if */
@@ -3258,9 +3259,10 @@ to FALSE if the entity being declared is not initializable.
 }  /* scan_real_declarator_id */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in Microsoft
-                     mode. */
+#if !MICROSOFT_EXTENSIONS_ALLOWED || !NEAR_AND_FAR_ALLOWED
+/*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in
+                     Microsoft mode, and p_left_qualifiers is used only when
+                     near and far are supported. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void r_declarator(
 		  a_decl_flag_set             input_flags,
