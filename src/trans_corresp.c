@@ -443,7 +443,7 @@ the primary translation unit is preferred.
                   old_tip->master_instance == NULL) {
                 /* In a normal (no correspondence errors) case, we should have
                    valid instance pointers.  However, cases can be constructed
-                   that are invalid C++ where this is not the case.  */
+                   that are invalid C++ where this is not the case. */
                 expect_error();
               } else {
                 set_master_instance_for_new_canonical_variable(var, old_ce);
