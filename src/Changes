@@ -1,5 +1,15 @@
 Version 2.42
 
+6/25/99  C++-generating back end: field selection of static const member
+
+The C++-generating back end now generates a comma operation for a field
+selection of a static member where the member is const and has been replaced
+by its constant value.
+
+  struct X {static const int b = 2;};
+  X x;
+  int i = x.b;  // Was put out as "x.2", now put out as "x,2"
+
 6/25/99  Microsoft compatibility: calling convention applied to constructors
 
 The front end now accepts calling convention specifications on constructor

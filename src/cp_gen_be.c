@@ -4647,6 +4647,24 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
 }  /* gen_bound_function */
 
 
+static void gen_dot_static(char             *opstr,
+                           an_expr_node_ptr operand_2)
+/*
+operand_2 is the second operand of a "dot-static" operation, e.g.,
+eok_lvalue_dot_static.  The first operand has already been put out.
+Put out the operator indicated by opstr and the second operand (as
+an rvalue).
+*/
+{
+  /* If the second operand has been turned into a constant (i.e., it
+     was a const-valued variable), use a comma operator in the output
+     to avoid generating something like "x.2". */
+  if (!is_variable_node(operand_2)) opstr = ",";
+  write_tok_str(opstr);
+  gen_expr_with_parens(operand_2);
+}  /* gen_dot_static */
+
+
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens)
 /*
@@ -4968,20 +4986,17 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_points_to_static:
           /* Static member selection, p->m. */
           gen_expr_with_parens(operand_1);
-          write_tok_str("->");
-          gen_expr_with_parens(operand_2);
+          gen_dot_static("->", operand_2);
           goto done_with_operation;
         case eok_lvalue_dot_static:
           /* Static member selection, lvalue.m. */
           gen_lvalue(operand_1);
-          write_tok_str(".");
-          gen_expr_with_parens(operand_2);
+          gen_dot_static(".", operand_2);
           goto done_with_operation;
         case eok_rvalue_dot_static:
           /* Static member selection, rvalue.m. */
           gen_expr_with_parens(operand_1);
-          write_tok_str(".");
-          gen_expr_with_parens(operand_2);
+          gen_dot_static(".", operand_2);
           goto done_with_operation;
         case eok_shiftl:
           opstr = "<<";
