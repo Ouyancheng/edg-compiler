@@ -387,6 +387,9 @@ fields to default values.
                                   (a_template_param_constant_kind)tpck_param;
       cp->variant.template_param.variant.list_position = 0;
       break;
+    case ck_cast:
+      cp->variant.source_constant = NULL;
+      break;
 #if CHECKING
     default:
       internal_error("set_constant_kind: bad kind");

@@ -617,6 +617,11 @@ display_constant_value:
 #ifdef CFE
     /*case ck_template_param:*/
       /* Front end only. */
+    case ck_cast:
+      (void)printf("ck_cast\n");
+      disp_ptr("source_constant", (char *)ptr->variant.source_constant,
+               iek_constant);
+      break;
 #endif /* CFE */
     case ck_init_repeat:
       (void)printf("ck_init_repeat\n");

@@ -872,6 +872,8 @@ enum a_constant_repr_kind_tag {
 			/* Used in C++, not in C. */
   ck_template_param,	/* Nontype parameter in a class template declaration
                            (C++ front end only). */
+  ck_cast,		/* Represents constant resulting from a nontrivial
+			   cast of a constant from one type to another. */
 #endif /* ifdef CIL */
 #ifdef FIL
   ck_init_position,     /* Used to specify an explicit initialization position
@@ -1438,6 +1440,12 @@ typedef struct a_constant {
            fields. */
       } variant;
     } template_param;
+    /* When kind == ck_cast: */
+    a_constant_ptr
+		source_constant;
+			/* Constant that was cast to the type specified by
+			   field "type"; the current constant is the result
+			   of the cast. */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == ck_init_position: */
