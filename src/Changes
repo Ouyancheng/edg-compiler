@@ -1,5 +1,22 @@
 Version 3.6
 
+12/13/04 Thread-local storage specifier
+
+When THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED is TRUE, the front end can now
+recognize the specifier "__thread" in some modes.  This specifier is allowed
+only on the declaration of static and extern variables, and indicates that
+the variable should be placed in "thread-local storage".  For example:
+
+  void f() {
+    __thread static int s = 0;  // Okay.
+    __thread int i = s;  // Error: i does not have static lifetime.
+  }
+
+The command-line option --thread_local_specifier enables the new specifier.
+By default it is also accepted in GNU and Sun modes (because the GNU and Sun
+compilers also accept this extension), but this can be turned off using the
+command-line option --no_thread_local_specifier.
+
 12/13/04 Microsoft compatibility: injected class names in MSVC 6
 
 Our emulation of the way in which MSVC++ 6 handles injected class names
