@@ -5065,8 +5065,16 @@ See also 3.6.6.4.
            Microsoft C allows an expression of any type.  cfront 2.1 allows
            a void expression.  cfront 3.0 does not allow any expression. */
         if (C_mode()) {
-          if (microsoft_C_mode_void_return) {
-            /* Microsoft C mode.  A warning was already issued above. */
+          if (microsoft_mode) {
+            /* In Microsoft C mode a return statement in a void function may
+               have the form "return expr;".  For this case the return
+               statement is allocated later so that the expression can be put
+               out first as a freestanding expression statement.  This feature
+               is standard in C++, and the rewrite in that case is handled by
+               IL lowering. */
+            check_assertion(is_void_return_type(return_type));
+            warning(ec_value_returned_in_void_function);
+            microsoft_C_mode_void_return = TRUE;
           } else {
             /* Other C modes.  An expression is not allowed. */
             error(ec_value_returned_in_void_function);
@@ -5118,15 +5126,10 @@ See also 3.6.6.4.
   }  /* if */
   if (!return_stmt_allowed) {
     sp = NULL;
-  } else if (expr_present && is_void_type(return_type) &&
-             microsoft_mode && C_mode()) {
-    /* In Microsoft C mode a return statement in a void function may have
-       the form "return expr;".  For this case the return statement is
-       allocated later so that the expression can be put out first as a
-       freestanding expression statement.  This feature is standard in C++,
-       and the rewrite in that case is handled by IL lowering. */
-    warning(ec_value_returned_in_void_function);
-    microsoft_C_mode_void_return = TRUE;
+  } else if (microsoft_C_mode_void_return) {
+    /* Microsoft C mode.  A warning was already issued above. Put out the
+       expression statement holding the return expression.  The return
+       statement will come a little later. */
     sp = add_statement((a_statement_kind)stmk_expr);
   } else {
     /* Allocate the return statement. */
@@ -6062,7 +6065,7 @@ Normally, they should only appear at the beginning of a statement expression.
     warning(ec_local_labels_only_in_statement_expressions);
   }  /* if */
   (void)get_token();
-  ensure_il_scope_exists(&scope_stack[decl_scope_level]);
+  (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
   add_stop_token(tok_semicolon);
   do {
     if (curr_token != tok_identifier) {
@@ -6074,7 +6077,7 @@ Normally, they should only appear at the beginning of a statement expression.
       (void)scan_label(/*is_definition=*/FALSE, /*is_declaration=*/TRUE);
     }  /* if */
   } while (loop_token(tok_comma));
-  required_token(tok_semicolon, ec_exp_semicolon);
+  (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
 }  /* local_label_declaration */
 
