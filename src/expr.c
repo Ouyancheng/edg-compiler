@@ -420,6 +420,17 @@ current expression (used to decide how a comma should be treated).
 }  /* token_ends_expr */
 
 
+static a_boolean is_class_or_error_operand(an_operand *operand)
+/*
+Return TRUE if the given operand has a class type or is an error operand.
+*/
+{
+  a_boolean is_class_or_error = is_error_operand(operand) ||
+                                is_class_struct_union_type(operand->type);
+  return is_class_or_error;
+}  /* is_class_or_error_operand */
+
+
 static void scan_subscript_operator
                            (an_operand               *operand_1,
 	                    an_operand               *result,
@@ -463,7 +474,7 @@ Syntax:
     make_error_operand(result);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(operand_1->type)) {
+        is_class_or_error_operand(operand_1)) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading((an_opname_kind)onk_subscript,
                                      /*unary_operator=*/FALSE,
@@ -1805,7 +1816,7 @@ bound with the function in *bound_function_selector.
        class object or reference to class object, look for another
        operator->() function. */
     if (is_arrow_operator && C_dialect == C_dialect_cplusplus) {
-      while (is_class_struct_union_type(operand_1->type)) {
+      while (is_class_or_error_operand(operand_1)) {
         check_for_operator_overloading((an_opname_kind)onk_arrow,
                                        /*unary_operator=*/TRUE,  /* sic */
                                        /*must_be_member_function=*/TRUE,
@@ -2179,8 +2190,8 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
     make_error_operand(result);
   } else {
     if (is_arrow_operator &&
-        (is_class_struct_union_type(operand_1->type) ||
-         is_class_struct_union_type(operand_2.type))) {
+        (is_class_or_error_operand(operand_1) ||
+         is_class_or_error_operand(&operand_2))) {
       /* Look for C++ operator overloading cases ("->*" only). */
       check_for_operator_overloading((an_opname_kind)onk_arrow_star,
                                      /*unary_operator=*/FALSE,
@@ -2343,7 +2354,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
     make_error_operand(result);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(operand->type)) {
+        is_class_or_error_operand(operand)) {
       /* Look for C++ operator overloading cases. */
       /* Note that postfix ++/-- use a two-argument function to distinguish
          them from the prefix ++/--, which use a one-argument function.
@@ -2490,7 +2501,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
     make_error_operand(result);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(operand.type)) {
+        is_class_or_error_operand(&operand)) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                      /*unary_operator=*/TRUE,
@@ -2620,7 +2631,7 @@ operation is a pointer-to-member (see ARM 5.3).
     make_error_operand(result);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(operand.type)) {
+        is_class_or_error_operand(&operand)) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading((an_opname_kind)onk_ampersand,
                                      /*unary_operator=*/TRUE,
@@ -2752,7 +2763,7 @@ See section 3.3.3.2 of the standard.
     make_error_operand(result);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(operand.type)) {
+        is_class_or_error_operand(&operand)) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading((an_opname_kind)onk_star,
                                      /*unary_operator=*/TRUE,
@@ -2821,7 +2832,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   scan_expr(&operand, PREC_PREFIX, expression_kind, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
-      is_class_struct_union_type(operand.type)) {
+      is_class_or_error_operand(&operand)) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/TRUE,
@@ -4411,8 +4422,8 @@ be of integral type.  See section 3.3.5 of the standard.
   scan_expr(&operand_2, PREC_MULT_DIV, expression_kind, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
-      (is_class_struct_union_type(operand_1->type) ||
-       is_class_struct_union_type(operand_2.type))) {
+      (is_class_or_error_operand(operand_1) ||
+       is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -4499,8 +4510,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   scan_expr(&operand_2, PREC_PLUS_MINUS, expression_kind, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
-      (is_class_struct_union_type(operand_1->type) ||
-       is_class_struct_union_type(operand_2.type))) {
+      (is_class_or_error_operand(operand_1) ||
+       is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -4653,8 +4664,8 @@ Scan the "<<" and ">>" operators.  See section 3.3.7 of the standard.
   scan_expr(&operand_2, PREC_SHIFT, expression_kind, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
-      (is_class_struct_union_type(operand_1->type) ||
-       is_class_struct_union_type(operand_2.type))) {
+      (is_class_or_error_operand(operand_1) ||
+       is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -4741,8 +4752,8 @@ standard.
   scan_expr(&operand_2, PREC_RELATIONAL, expression_kind, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
-      (is_class_struct_union_type(operand_1->type) ||
-       is_class_struct_union_type(operand_2.type))) {
+      (is_class_or_error_operand(operand_1) ||
+       is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -4861,8 +4872,8 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
   scan_expr(&operand_2, PREC_EQ_NE, expression_kind, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
-      (is_class_struct_union_type(operand_1->type) ||
-       is_class_struct_union_type(operand_2.type))) {
+      (is_class_or_error_operand(operand_1) ||
+       is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -4972,8 +4983,8 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
   scan_expr(&operand_2, prec_level, expression_kind, EOPT_NO_OPTIONS);
 
   if (C_dialect == C_dialect_cplusplus &&
-      (is_class_struct_union_type(operand_1->type) ||
-       is_class_struct_union_type(operand_2.type))) {
+      (is_class_or_error_operand(operand_1) ||
+       is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -5060,7 +5071,7 @@ standard.
        If so, we can determine whether or not the second operand should be
        evaluated. */
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(operand_1->type)) {
+        is_class_or_error_operand(operand_1)) {
       /* The first operand is a class in C++ mode.  We cannot convert it to
          an rvalue because a conversion function might be applied to it.
          However, we lose nothing by not doing this -- we know the first
@@ -5094,8 +5105,8 @@ standard.
      to go to the subroutine to look for conversions from class types
      to built-in types. */
   if (C_dialect == C_dialect_cplusplus &&
-      (is_class_struct_union_type(operand_1->type) ||
-       is_class_struct_union_type(operand_2.type))) {
+      (is_class_or_error_operand(operand_1) ||
+       is_class_or_error_operand(&operand_2))) {
     /* Look for C++ operator overloading cases. */
     check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                    /*unary_operator=*/FALSE,
@@ -5553,7 +5564,7 @@ Scan the simple assignment operator ("=").  See section 3.3.16 of the standard.
     make_error_operand(result);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(operand_1->type)) {
+        is_class_or_error_operand(operand_1)) {
       /* Look for C++ operator overloading cases. */
       /* "=" has a predefined meaning for C-style classes (i.e., bitwise
          assignment).  Also go that way for incomplete classes, to get
@@ -5655,8 +5666,8 @@ See section 3.3.16 of the standard.
     make_error_operand(result);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        (is_class_struct_union_type(operand_1->type) ||
-         is_class_struct_union_type(operand_2.type))) {
+        (is_class_or_error_operand(operand_1) ||
+         is_class_or_error_operand(&operand_2))) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading(opname_kind_for_token[(int)save_token],
                                      /*unary_operator=*/FALSE,
@@ -5784,8 +5795,8 @@ EOPT_DISALLOW_COMMA_OPERATOR).
     make_error_operand(result);
   } else {
     if (C_dialect == C_dialect_cplusplus &&
-        (is_class_struct_union_type(operand_1->type) ||
-         is_class_struct_union_type(operand_2.type))) {
+        (is_class_or_error_operand(operand_1) ||
+         is_class_or_error_operand(&operand_2))) {
       /* Look for C++ operator overloading cases. */
       check_for_operator_overloading((an_opname_kind)onk_comma,
                                      /*unary_operator=*/FALSE,
