@@ -494,45 +494,7 @@ Integral kind to be used for the bool type in C++.
 
 /*
 Pointer types:
-
-Note that TARG_ALL_POINTERS_SAME_SIZE is not consulted in 16-bit Microsoft
-mode, where near and far pointers exist.
 */
-#ifndef TARG_ALL_POINTERS_SAME_SIZE
-#define TARG_ALL_POINTERS_SAME_SIZE TRUE
-#endif /* !defined(TARG_ALL_POINTERS_SAME_SIZE) */
-
-#if TARG_ALL_POINTERS_SAME_SIZE
-/*
-All pointers have the same size and alignment, so TARG_SIZEOF_POINTER and
-TARG_ALIGNOF_POINTER should be defined.
-*/
-#ifndef TARG_SIZEOF_POINTER
-#define TARG_SIZEOF_POINTER 4
-			/* Default value, used to initialize global variable
-			   targ_sizeof_pointer. */
-#endif /* !defined(TARG_SIZEOF_POINTER) */
-#ifndef TARG_ALIGNOF_POINTER
-#define TARG_ALIGNOF_POINTER 4
-			/* Default value, used to initialize global variable
-			   targ_alignof_pointer. */
-#endif /* !defined(TARG_ALIGNOF_POINTER) */
-#else /* !TARG_ALL_POINTERS_SAME_SIZE */
-/*
-Pointers may have different sizes and alignments, so TARG_SIZEOF_POINTER and
-TARG_ALIGNOF_POINTER are meaningless.  Consequently, all other definitions
-that depend on TARG_SIZEOF_POINTER and TARG_ALIGNOF_POINTER need to be
-configured in other terms, and it also means that global variables
-targ_sizeof_pointer and targ_alignof_pointer will not be declared at all.
-*/
-#ifdef TARG_SIZEOF_POINTER
- #error -- do not use TARG_SIZEOF_POINTER if !TARG_ALL_POINTERS_SAME_SIZE
-#endif /* defined(TARG_SIZEOF_POINTER) */
-#ifdef TARG_ALIGNOF_POINTER
- #error -- do not use TARG_ALIGNOF_POINTER if !TARG_ALL_POINTERS_SAME_SIZE
-#endif /* defined(TARG_ALIGNOF_POINTER) */
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
-
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Sizes of near/far pointers in 16-bit Microsoft mode.  Note that these values
@@ -551,6 +513,56 @@ are not used in 32-bit Microsoft mode.
 #define TARG_ALIGNOF_NEAR_POINTER 2
 #endif /* ifndef TARG_ALIGNOF_NEAR_POINTER */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Are all pointers the same size?
+
+Note that TARG_ALL_POINTERS_SAME_SIZE is not consulted in 16-bit Microsoft
+mode, where near and far pointers exist.  So this really means "ignoring
+16-bit Microsoft mode, are all pointers the same size?"
+*/
+#ifndef TARG_ALL_POINTERS_SAME_SIZE
+#define TARG_ALL_POINTERS_SAME_SIZE TRUE
+#endif /* !defined(TARG_ALL_POINTERS_SAME_SIZE) */
+
+#if TARG_ALL_POINTERS_SAME_SIZE
+/*
+All pointers have the same size and alignment, so TARG_SIZEOF_POINTER and
+TARG_ALIGNOF_POINTER should be defined.
+*/
+#ifndef TARG_SIZEOF_POINTER
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define TARG_SIZEOF_POINTER TARG_SIZEOF_FAR_POINTER
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define TARG_SIZEOF_POINTER 4
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+			/* Default value, used to initialize global variable
+			   targ_sizeof_pointer. */
+#endif /* !defined(TARG_SIZEOF_POINTER) */
+#ifndef TARG_ALIGNOF_POINTER
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define TARG_ALIGNOF_POINTER TARG_ALIGNOF_FAR_POINTER
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define TARG_ALIGNOF_POINTER 4
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+			/* Default value, used to initialize global variable
+			   targ_alignof_pointer. */
+#endif /* !defined(TARG_ALIGNOF_POINTER) */
+#else /* !TARG_ALL_POINTERS_SAME_SIZE */
+/*
+Pointers may have different sizes and alignments, so TARG_SIZEOF_POINTER and
+TARG_ALIGNOF_POINTER are meaningless.  Consequently, all other definitions
+that depend on TARG_SIZEOF_POINTER and TARG_ALIGNOF_POINTER need to be
+configured in other terms, and it also means that global variables
+targ_sizeof_pointer and targ_alignof_pointer will not be declared at all.
+*/
+#ifdef TARG_SIZEOF_POINTER
+ #error -- do not use TARG_SIZEOF_POINTER if !TARG_ALL_POINTERS_SAME_SIZE
+#endif /* defined(TARG_SIZEOF_POINTER) */
+#ifdef TARG_ALIGNOF_POINTER
+ #error -- do not use TARG_ALIGNOF_POINTER if !TARG_ALL_POINTERS_SAME_SIZE
+#endif /* defined(TARG_ALIGNOF_POINTER) */
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
 
 /* Indication of whether NULL pointer is like integer zero. */
 #ifndef TARG_NULL_IS_ALL_BITS_ZERO
