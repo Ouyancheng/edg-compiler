@@ -8208,6 +8208,7 @@ matches, a new argument list is returned in *new_arg_list.
   a_template_param_ptr			templ_param_list;
 
   *new_arg_list = NULL;
+  template_sym = fundamental_symbol_of(template_sym);
   /* Get the parameter list of the template. */
   check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
   tssp = template_supplement_for_symbol(template_sym);

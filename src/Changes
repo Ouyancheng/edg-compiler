@@ -1,5 +1,22 @@
 Version 3.1
 
+10/03/02 Internal error on function reference with explicit template arguments
+
+An internal error (in explicit_arg_list_identifies_specialization)
+could occur if a function template is called with an explicit argument
+list in a context in which a destination function type is not
+available (a feature added in version 3.0).  The error would occur if
+the template was made visible by a using-directive or using-declaration.
+Now fixed.
+
+  namespace N {
+    template <class T> void f(T);
+  }
+  int main() {
+    using namespace N;
+    f(&f<int>);
+  }
+
 10/1/02  Microsoft compatibility: abort when using --parse_templates
          and Microsoft version > 1200
 
