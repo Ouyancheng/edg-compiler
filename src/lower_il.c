@@ -350,6 +350,8 @@ static void change_node_to_operation(an_expr_node_ptr      node,
                                      an_expr_operator_kind op,
                                      a_type_ptr            type,
                                      an_expr_node_ptr      operand);
+static a_boolean is_assignment_to_temp(an_expr_node_ptr expr,
+                                       a_variable_ptr   *temp_var);
 static void lower_type(a_type_ptr type);
 static void lower_os_constant(a_constant_ptr constant);
 static void lower_variable(a_variable_ptr variable);
@@ -2349,7 +2351,8 @@ object if complete_object is TRUE.  Return a pointer to the new node.
   a_type_ptr       class_type, data_section_class_type;
   a_targ_size_t    data_section_offset;
 #if IA64_ABI
-  an_expr_node_ptr vbase_offset;
+  an_expr_node_ptr second_use, temp_init_node, vbase_offset;
+  a_variable_ptr   temp_var;
 #endif /* IA64_ABI */
 
   class_type = type_pointed_to(node->type);
@@ -2392,9 +2395,17 @@ object if complete_object is TRUE.  Return a pointer to the new node.
     node = add_indirection_to_node(node);
 #else /* IA64_ABI */
     /* IA-64 ABI. */
+    temp_init_node = NULL;
     /* Get the offset to the virtual base out of the virtual table. */
-    vbase_offset = make_vtbl_entry_expr(make_reusable_copy(node, 
-                                                    /*vars_can_change=*/FALSE),
+    second_use = make_reusable_copy(node, /*vars_can_change=*/FALSE);
+    if (is_assignment_to_temp(node, &temp_var)) {
+      /* The node expression is complex and a temporary was used.
+         We will have to use a comma expression to ensure that the
+         temporary is set before the use in the "+". */
+      temp_init_node = node;
+      node = var_rvalue_expr(temp_var);
+    }  /* if */
+    vbase_offset = make_vtbl_entry_expr(second_use,
                                         bcp->vbase_offset_index);
     /* The vbase offset is stored in bytes.  Cast node to a "char*" so
        that pointer arithmetic is performed in bytes. */
@@ -2406,6 +2417,10 @@ object if complete_object is TRUE.  Return a pointer to the new node.
                               node->type, node);
     /* Cast back to the desired pointer type. */
     node = add_cast(node, make_pointer_type(bcp->type));
+    if (temp_init_node != NULL) {
+      /* Add the comma expression to initialize the temporary. */
+      node = make_comma_node(temp_init_node, node);
+    }  /* if */
 #endif /* IA64_ABI */
   }  /* if */
   return node;
