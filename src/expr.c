@@ -6725,10 +6725,15 @@ lifetime list in the right place).
 /*
 Macro to issue a warning about a missing operator delete corresponding to a
 new-expression that might throw an exception.  The warning is only issued if
-the operator is missing and the given boolean flag is TRUE).
+the operator is missing and the given boolean flag is TRUE).  There is no
+need to issue the warning if exceptions are disabled (since no exceptions
+could possibly be thrown in such cases).  In some cases (prototype
+instantiations or errors) the actual operator new being called is not known
+and hence we cannot examine the matching operator delete either.
 */
 #define warn_about_missing_delete_if(cond)                                  \
-{ if (delete_routine == NULL && exceptions_enabled && (cond)) {             \
+{ if (delete_routine == NULL && exceptions_enabled &&                       \
+      function_symbol != NULL && (cond)) {                                  \
     pos_stsy_warning(ec_no_corresponding_delete, &new_position,             \
                      (char *)(array_new ? "[]" : ""), function_symbol);     \
   }  /* if */                                                               \
