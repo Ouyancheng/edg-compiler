@@ -127,6 +127,10 @@ static void gen_curr_func_declaration(void);
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       top_statement_of_switch,
                                a_statement_ptr *last_statement);
+static void gen_cast(a_type_ptr type);
+static void gen_expr_with_parens(an_expr_node_ptr expr);
+static void gen_expression(an_expr_node_ptr expr);
+static void gen_boolean_controlling_expression(an_expr_node_ptr expr);
 
 
 static void unimplemented(void)
@@ -511,6 +515,15 @@ Output the name of the indicated variable.
 }  /* gen_variable_name */
 
 
+static void gen_field_name(a_field_ptr field)
+/*
+Output the name of the indicated field.
+*/
+{
+  gen_name(&field->source_corresp);
+}  /* gen_field_name */
+
+
 static void gen_routine_name(a_routine_ptr rout)
 /*
 Output the name of the indicated routine.
@@ -518,17 +531,6 @@ Output the name of the indicated routine.
 {
   gen_name(&rout->source_corresp);
 }  /* gen_routine_name */
-
-
-static void gen_cast(a_type_ptr type)
-/*
-Generate a cast to the indicated type.
-*/
-{
-  write_str("(");
-  gen_type(type, (a_source_correspondence *)NULL);
-  write_str(")");
-}  /* gen_cast */
 
 
 static void gen_char(char ch)
@@ -1280,22 +1282,429 @@ NULL if there is no name.
 }  /* gen_type */
 
 
+static void gen_field_reference(an_expr_node_ptr node)
+/*
+Generate the name of the field from the indicated node (an enk_field node).
+*/
+{
+  a_field_ptr field;
+
+  check_assertion_str(node->kind == (an_expr_node_kind)enk_field,
+                      "gen_field_reference: not enk_field");
+  field = node->variant.field;
+  gen_field_name(field);
+}  /* gen_field_reference */
+
+
+static void gen_lvalue(an_expr_node_ptr node)
+/*
+Generate an expression that the IL sees as an lvalue address, and C sees as
+an expression.  In effect, add an indirection to the expression.
+*/
+{
+  an_expr_node_kind kind = node->kind;
+  a_boolean         processed = FALSE;
+
+  if (kind == (an_expr_node_kind)enk_variable_address) {
+    /* Address of variable: just write the variable name. */
+    gen_variable_name(node->variant.variable);
+    processed = TRUE;
+  } else if (kind == (an_expr_node_kind)enk_routine_address) {
+    /* Address of routine: just write the routine name. */
+    gen_routine_name(node->variant.routine);
+    processed = TRUE;
+  } else if (kind == (an_expr_node_kind)enk_operation) {
+    an_expr_operator_kind op = node->variant.operation.kind;
+    an_expr_node_ptr      operand_1 = node->variant.operation.operands;
+    an_expr_node_ptr      operand_2 = operand_1->next;
+    if (op == (an_expr_operator_kind)eok_padd ||
+        op == (an_expr_operator_kind)eok_padd_subsc) {
+      /* The expression is a pointer addition.  It can be rewritten as
+         a subscripting operation (i.e., *(a+b) becomes a[b]). */
+      write_str("(");
+      gen_expr_with_parens(operand_1);
+      write_str("[");
+      gen_expression(operand_2);
+      write_str("])");
+      processed = TRUE;
+    } else if (op == (an_expr_operator_kind)eok_field ||
+               op == (an_expr_operator_kind)eok_bit_field) {
+      /* The expression is a field selection, which has an implicit "&"
+         in front of it (in C terms).  Adding the indirection removes 
+         the "&". */
+      write_str("(");
+      gen_lvalue(operand_1);
+      write_str(".");
+      gen_field_reference(operand_2);
+      write_str(")");
+      processed = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!processed) {
+    /* Not a special case: write "*expression". */
+    write_str("(*");
+    gen_expr_with_parens(node);
+    write_str(")");
+  }  /* if */
+}  /* gen_lvalue */
+
+
+static void gen_cast(a_type_ptr type)
+/*
+Generate a cast to the indicated type.
+*/
+{
+  write_str("(");
+  gen_type(type, (a_source_correspondence *)NULL);
+  write_str(")");
+}  /* gen_cast */
+
+
+static void gen_operation(an_expr_node_ptr expr)
+/*
+Generate an expression operation.
+*/
+{
+  char             *opstr;
+  an_expr_node_ptr operand_1, operand_2;
+  a_boolean        operand_1_is_lvalue = FALSE;
+
+  operand_1 = expr->variant.operation.operands;
+  operand_2 = operand_1->next;
+  switch (expr->variant.operation.kind) {
+    /* One-operand operators. */
+    case eok_indirect:
+      opstr = "*";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_inegate:
+    case eok_fnegate:
+      opstr = "-";
+      break;
+    case eok_not:
+      write_str("!");
+      gen_boolean_controlling_expression(operand_1);
+      goto done;
+    case eok_cast:
+      gen_cast(expr->type);
+      goto done;
+    case eok_lvalue_cast:
+      unexpected_condition_str("gen_operation: eok_lvalue_cast as rvalue");
+    case eok_complement:
+      opstr = "~";
+      break;
+    case eok_fpost_incr:
+    case eok_ipost_incr:
+    case eok_ppost_incr:
+      /* Post-increment operators. */
+      gen_lvalue(operand_1);
+      write_str("++");
+      goto done;
+    case eok_ipre_incr:
+    case eok_fpre_incr:
+    case eok_ppre_incr:
+      /* Pre-increment operators. */
+      opstr = "++";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_fpost_decr:
+    case eok_ipost_decr:
+    case eok_ppost_decr:
+      /* Post-decrement operators. */
+      gen_lvalue(operand_1);
+      write_str("--");
+      goto done;
+    case eok_ipre_decr:
+    case eok_fpre_decr:
+    case eok_ppre_decr:
+      /* Pre-decrement operators. */
+      opstr = "--";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_iadd:
+    case eok_fadd:
+    case eok_padd:
+    case eok_padd_subsc:
+      opstr = "+";
+      break;
+    case eok_isubtract:
+    case eok_fsubtract:
+    case eok_psubtract:
+    case eok_pdiff:
+      opstr = "-";
+      break;
+    case eok_imultiply:
+    case eok_fmultiply:
+      opstr = "*";
+      break;
+    case eok_idivide:
+    case eok_fdivide:
+      opstr = "/";
+      break;
+    case eok_ieq:
+    case eok_feq:
+    case eok_peq:
+      opstr = "==";
+      break;
+    case eok_ine:
+    case eok_fne:
+    case eok_pne:
+      opstr = "!=";
+      break;
+    case eok_igt:
+    case eok_fgt:
+    case eok_pgt:
+      opstr = ">";
+      break;
+    case eok_ilt:
+    case eok_flt:
+    case eok_plt:
+      opstr = "<";
+      break;
+    case eok_ige:
+    case eok_fge:
+    case eok_pge:
+      opstr = ">=";
+      break;
+    case eok_ile:
+    case eok_fle:
+    case eok_ple:
+      opstr = "<=";
+      break;
+    case eok_remainder:
+      opstr = "%";
+      break;
+    case eok_iassign:
+    case eok_fassign:
+    case eok_passign:
+    case eok_sassign:
+      opstr = "=";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_imultiply_assign:
+    case eok_fmultiply_assign:
+      opstr = "*=";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_idivide_assign:
+    case eok_fdivide_assign:
+      opstr = "/=";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_remainder_assign:
+      opstr = "%=";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_iadd_assign:
+    case eok_fadd_assign:
+    case eok_padd_assign:
+      opstr = "+=";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_isubtract_assign:
+    case eok_fsubtract_assign:
+    case eok_psubtract_assign:
+      opstr = "-=";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_shiftl_assign:
+      opstr = "<<=";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_shiftr_assign:
+      opstr = ">>=";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_and_assign:
+      opstr = "&=";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_or_assign:
+      opstr = "|=";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_xor_assign:
+      opstr = "^=";
+      operand_1_is_lvalue = TRUE;
+      break;
+    case eok_bassign:
+      /* eok_bassign is generated only by IL lowering */
+      unexpected_condition_str("gen_operation: eok_bassign");
+      break;
+    case eok_subscript:
+      gen_expr_with_parens(operand_1);
+      write_str("[");
+      gen_expression(operand_2);
+      write_str("]");
+      goto done;
+    case eok_field:
+      write_str("&(");
+      gen_lvalue(operand_1);
+      write_str(".");
+      gen_field_reference(operand_2);
+      write_str(")");
+      goto done;
+    case eok_value_field:
+    case eok_value_bit_field:
+      gen_expr_with_parens(operand_1);
+      write_str(".");
+      gen_field_reference(operand_2);
+      goto done;
+    case eok_bit_field:
+      /* This operator shouldn't get past gen_lvalue. */
+      unexpected_condition_str("gen_operation: eok_bit_field as rvalue");
+    case eok_extract_bit_field:
+      gen_lvalue(operand_1);
+      write_str(".");
+      gen_field_reference(operand_2);
+      goto done;
+    case eok_shiftl:
+      opstr = "<<";
+      break;
+    case eok_shiftr:
+      opstr = ">>";
+      break;
+    case eok_and:
+      opstr = "&";
+      break;
+    case eok_or:
+      opstr = "|";
+      break;
+    case eok_xor:
+      opstr = "^";
+      break;
+    case eok_comma:
+      gen_expr_with_parens(operand_1);
+      write_str(", ");
+      if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+        gen_lvalue(operand_2);
+      } else {
+        gen_expr_with_parens(operand_2);
+      }  /* if */
+      goto done;
+    case eok_land:
+      gen_boolean_controlling_expression(operand_1);
+      write_str(" && ");
+      gen_boolean_controlling_expression(operand_2);
+      goto done;
+    case eok_lor:
+      gen_boolean_controlling_expression(operand_1);
+      write_str(" || ");
+      gen_boolean_controlling_expression(operand_2);
+      goto done;
+    case eok_question:
+      /* Three operand operator. */
+      gen_boolean_controlling_expression(operand_1);
+      write_str(" ? ");
+      if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+        gen_lvalue(operand_2);
+      } else {
+        gen_expr_with_parens(operand_2);
+      }  /* if */
+      write_str(" : ");
+      if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+        gen_lvalue(operand_2->next);
+      } else {
+        gen_expr_with_parens(operand_2->next);
+      }  /* if */
+      goto done;
+    case eok_call:
+      /* N operand operator. */
+      /* Put out the function to call. */
+      gen_lvalue(operand_1);
+      write_str("(");
+      { an_expr_node_ptr call_argument;
+        /* Put out the arguments. */
+        for (call_argument = operand_2; call_argument != NULL;) {
+          gen_expr_with_parens(call_argument);
+          call_argument = call_argument->next;
+          if (call_argument != NULL) {
+            write_str(", ");
+          }  /* if */
+        }  /* for */
+        write_str(")");
+      }
+      goto done;
+    default:
+      unexpected_condition_str("gen_operation: bad expression operator");
+  }  /* switch */
+  /* General-case processing: */
+  if (operand_2 == NULL) {
+    /* Unary operator; operator goes first. */
+    write_str(opstr);
+  }  /* if */
+  /* Generate the first operand. */
+  if (operand_1_is_lvalue) {
+    gen_lvalue(operand_1);
+  } else {
+    gen_expr_with_parens(operand_1);
+  }  /* if */
+  if (operand_2 != NULL) {
+    /* Binary operator. */
+    write_str(" ");
+    write_str(opstr);
+    write_str(" ");
+    gen_expr_with_parens(operand_2);
+  }  /* if */
+done:;
+}  /* gen_operation */
+
+
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens)
 /*
 Generate code for the indicated expression.  Put parentheses around it if
-need_parens is TRUE.
+there's some possibility of precedence confusion and need_parens is TRUE.
 */
 {
-  if (need_parens) write_str("(");
-  write_str("expr");
-  if (need_parens) write_str(")");
+  check_assertion_str(expr != NULL, "gen_expr: NULL expression");
+  switch (expr->kind) {
+    case enk_operation:
+      if (need_parens) write_str("(");
+      gen_operation(expr);
+      if (need_parens) write_str(")");
+      break;
+    case enk_constant:
+      gen_constant(expr->variant.constant);
+      break;
+    case enk_variable_address:
+      if (need_parens) write_str("(");
+      write_str("&");
+      gen_variable_name(expr->variant.variable);
+      if (need_parens) write_str(")");
+      break;
+    case enk_variable:
+      gen_variable_name(expr->variant.variable);
+      break;
+    case enk_routine_address:
+      if (need_parens) write_str("(");
+      write_str("&");
+      gen_routine_name(expr->variant.routine);
+      if (need_parens) write_str(")");
+      break;
+    case enk_field:
+      /* enk_field entries are supposed to be handled before this. */
+      unexpected_condition_str("gen_expr: enk_field");
+    default:
+      unexpected_condition_str("gen_expr: bad expr node kind");
+  }  /* switch */
 }  /* gen_expr */
+
+
+static void gen_expr_with_parens(an_expr_node_ptr expr)
+/*
+Generate code for the indicated expression (with surrounding parentheses
+if needed).
+*/
+{
+  gen_expr(expr, /*need_parens=*/TRUE);
+}  /* gen_expr_with_parens */
 
 
 static void gen_expression(an_expr_node_ptr expr)
 /*
-Generate code for the indicated expression (without surrounding parentheses).
+Generate code for the indicated expression (without forced surrounding
+parentheses).
 */
 {
   gen_expr(expr, /*need_parens=*/FALSE);
@@ -1305,10 +1714,13 @@ Generate code for the indicated expression (without surrounding parentheses).
 static void gen_boolean_controlling_expression(an_expr_node_ptr expr)
 /*
 Generate code for the indicated expression, which is the controlling expression
-of a statement or short-circuit operator.
+of a statement or short-circuit operator.  The expression is surrounded
+by parentheses.
 */
 {
-  gen_expr(expr, /*need_parens=*/TRUE);
+  write_str("(");
+  gen_expression(expr);
+  write_str(")");
 }  /* gen_boolean_controlling_expression */
 
 
