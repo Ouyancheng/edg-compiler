@@ -811,7 +811,8 @@ do_variable:
   if (apo_sym != NULL) {
     if (!suppress_newline) (void)fputc('\n', f_debug);
     fprintf(f_debug, "%*s", indentation, "");
-    db_symbol(apo_sym, "- anon parent object: ", indentation + 2);
+    (void)sprintf(buffer, "- anon parent object [%lu]: ", apo_sym);
+    db_symbol(apo_sym, buffer, indentation + 2);
     suppress_newline = TRUE;
   }  /* if */
   /* Recursive calls to db_symbol can create unwanted newlines in the
