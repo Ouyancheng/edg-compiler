@@ -276,6 +276,7 @@ might not be able to if the template itself has not yet been defined.
   a_token_cache                     *p_token_cache;
   a_class_symbol_supplement_ptr     cssp;
   a_template_arg_ptr                template_arg_list;
+  a_scope_stack_entry_ptr           ssep;
 
   db_enter(3, "f_instantiate_template_class");
 #if CHECKING
@@ -381,10 +382,13 @@ might not be able to if the template itself has not yet been defined.
          enter a placeholder type in the class scope to mark the declaration
          position of the instantiation.  This is not an issue when the class
          is a local class, since a template cannot legally be defined in terms
-         of local classes or types that are local class members. */
-      if (scope_stack[decl_scope_level].kind ==
-                                 (a_scope_kind)sck_class_struct_union &&
-          !scope_stack[decl_scope_level].inside_local_class) {
+         of local classes or types that are local class members.  Also, don't
+         do it for class template prototypes, since the class types created
+         for them don't appear in the IL. */
+      ssep = &scope_stack[decl_scope_level];
+      if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
+          !ssep->inside_local_class &&
+          !symbol_supplement_for_class(ssep->assoc_type)->is_nonreal_class) {
         a_type_ptr  tp;
 
         /* Allocate the placeholder type, set its fields, and add it to the
