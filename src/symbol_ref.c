@@ -617,6 +617,101 @@ update the cross reference and source sequence output.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* record_access_adjustment */
 
+static a_boolean is_cfront_base_class_destructor_access_bug(
+                                                a_symbol_ptr   sym,
+                                                a_routine_ptr  rp,
+                                                a_type_ptr     class_of_object)
+/*
+Cfront has a bug in which a private destructor in a base class can be
+called when the derived class really should not have access to it.
+This function, which should only be called in cfront mode, detects
+the condition in which the access error should be suppressed.
+*/
+{
+  a_boolean  result = FALSE;
+  if (rp->special_kind == (a_special_function_kind)sfk_destructor &&
+      sym->class_of_which_a_member != class_of_object &&
+      class_of_object != NULL) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_cfront_base_class_destructor_access_bug */
+
+
+void reference_to_implicitly_invoked_function
+                                (a_symbol_ptr       sym,
+                                 a_source_position  *pos,
+                                 a_type_ptr         class_of_object,
+                                 a_boolean          honor_virtual,
+                                 a_boolean          evaluated,
+                                 a_boolean          suppress_access_check)
+/*
+sym is points to a symbol for a special member function that is invoked
+implicitly -- e.g., a copy constructor that is called when a class
+object is passed by value or an assignment operator that is called when
+another assignment operator function is being created.  Check that the
+special member function is accessible and mark the routine entry
+referenced.  *pos gives the source position of the reference.
+class_of_object points to the type of the object for which the function
+is being called, which is not always the same as the class of which the
+function is a member.  This is used to check protected member access
+which only applies to objects of a derived class.  class_of_object may
+be NULL if protected member access checking is not needed.  Also, if the
+routine is compiler generated, it may still need to be defined, since
+the definition may have been put off until an actual reference occurred
+(e.g., ARM 12.8).  This function deals with implicitly called
+constructors, destructors, assignment operators, and conversion
+functions.  If honor_virtual is TRUE, and the function is virtual, the
+reference is considered to be a virtual call; that means the access
+control checking is done, but the IL entry is not marked as referenced.
+If evaluated is FALSE, the reference is within an unevaluated
+expression; again, access control checking is done, but the IL entry is
+not marked as referenced.  If suppress_access_check is TRUE, no access
+control checking is done.
+*/
+{
+  a_routine_ptr rp = sym->variant.routine.ptr;
+
+  check_assertion(rp->special_kind ==
+                               (a_special_function_kind)sfk_constructor ||
+                  rp->special_kind ==
+                               (a_special_function_kind)sfk_destructor ||
+                  rp->special_kind ==
+                               (a_special_function_kind)sfk_conversion ||
+                  (rp->special_kind == (a_special_function_kind)sfk_operator &&
+                   rp->opname_kind == (an_opname_kind)onk_assign));
+  if (!suppress_access_check) {
+    /* Check for accessibility. */
+    if (!have_access_to_symbol(sym)) {
+      an_error_severity  severity = es_error;
+      /* Normally an error, but in cfront mode there is a special case
+         involving a private base class destructor where we issue a warning. */
+      if (any_cfront_mode() &&
+          is_cfront_base_class_destructor_access_bug(sym, rp,
+                                                     class_of_object)) {
+        severity = es_warning;
+      }  /* if */
+      pos_sy_diagnostic(severity, ec_inaccessible_special_function,
+                        pos, sym);
+    } else if (class_of_object != NULL) {
+      /* Protected members of a base class can only be accessed through an
+         object of a derived class. */
+      check_protected_member_access(sym, pos, class_of_object);
+    }  /* if */
+  }  /* if */
+  if (!evaluated) {
+    /* Unevaluated expression.  Do not set referenced (etc.). */
+  } else if (rp->is_virtual && honor_virtual) {
+    /* Virtual function call.  Do not set referenced (etc.) because the
+       call might actually be of an overriding function. */
+  } else {
+    /* Non-virtual call. */
+    mark_routine_referenced(rp);
+    /* Update the symbol and the cross-reference listing. */
+    record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT), sym, pos,
+                            /*update_il_entry=*/FALSE);
+  }  /* if */
+}  /* reference_to_implicitly_invoked_function */
 
 /******************************************************************************
 *                                                             \  ___  /       *

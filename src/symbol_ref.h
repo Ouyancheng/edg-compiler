@@ -134,6 +134,14 @@ extern void record_access_adjustment(an_access_adjustment_ptr  aap,
 
 extern void mark_variable_value_set(a_symbol_ptr  sym);
 
+extern void reference_to_implicitly_invoked_function
+                                    (a_symbol_ptr       sym,
+                                     a_source_position  *pos,
+                                     a_type_ptr         class_of_object,
+                                     a_boolean          honor_virtual,
+                                     a_boolean          evaluated,
+                                     a_boolean          suppress_access_check);
+
 #endif /* ifndef SYMBOL_REF_H */
 
 /******************************************************************************
