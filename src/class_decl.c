@@ -6604,13 +6604,18 @@ respectively.
         (curr_token == tok_rbrace ||
          (curr_token == tok_semicolon && next_token() == tok_rbrace)) &&
         !is_incomplete_type(underlying_array_element_type(field_type)) &&
-        !class_state->is_first_field && (C_mode()
+        ((!class_state->is_first_field && C_mode())
 #if MICROSOFT_EXTENSIONS_ALLOWED
-         /* Allowed in Microsoft C++ but only for aggregates. */
-         || (microsoft_mode && !class_state->class_aggregate_ruled_out &&
-             class_state->access == (an_access_specifier)as_public)
+         /* In Microsoft mode the incomplete-array-type field *can* be the
+            only field in the struct.  Moreover, a final field of incomplete-
+            array-type is also accepted in C++, as long as the it's a public
+            member of an aggregate class. */
+         || (microsoft_mode &&
+             (C_mode() ||
+              (!class_state->class_aggregate_ruled_out &&
+               class_state->access == (an_access_specifier)as_public)))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                       )) {
+                                                                       )) {
       /* Okay -- unless we're in ANSI-C mode. */
       if (strict_ansi_mode) {
         pos_diagnostic(strict_ansi_error_severity,
