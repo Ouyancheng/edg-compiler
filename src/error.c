@@ -1657,6 +1657,7 @@ Add the type specifier to the type string being formed.
 */
 {
   char	*s = NULL;
+  char	*tag_kind = NULL;
 
   switch (type->kind) {
     case tk_error:
@@ -1670,7 +1671,7 @@ Add the type specifier to the type string being formed.
       break;
     case tk_integer:
       if (type->variant.integer.enum_type) {
-        if (C_dialect != C_dialect_cplusplus) s = "enum ";
+        tag_kind = "enum ";
         goto do_tag_name;
       }  /* if */
       if (type->variant.integer.explicitly_signed) {
@@ -1682,22 +1683,24 @@ Add the type specifier to the type string being formed.
       form_float_kind_name(type->variant.float_kind, seg_ptr);
       break;
     case tk_struct:
-      if (C_dialect != C_dialect_cplusplus) s = "struct ";
+      tag_kind = "struct ";
       goto do_tag_name;
     case tk_union:
-      if (C_dialect != C_dialect_cplusplus) s = "union ";
+      tag_kind = "union ";
+      goto do_tag_name;
     case tk_class:
+      tag_kind = "class ";
 do_tag_name:
-      if (type->source_corresp.class_of_which_a_member != NULL) {
-        form_class_name(type->source_corresp.class_of_which_a_member, seg_ptr);
-      }  /* if */
-      add_string_to_segment(s, seg_ptr);
       if (type->source_corresp.name != NULL) {
         s = type->source_corresp.name;
+        /* For C++, do not generate the tag kind for named types. */
+        if (C_dialect == C_dialect_cplusplus) tag_kind = NULL;
       } else {
         /* Have an unnamed class. */
         s = "<unnamed>";
       }  /* if */
+      add_string_to_segment(tag_kind, seg_ptr);
+      form_class_name(type->source_corresp.class_of_which_a_member, seg_ptr);
       break;
     case tk_typeref:
       /* Look at each level of typeref.  If one with a name is found, print
@@ -2265,15 +2268,18 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
             curr_segment->variant.symbol.name_only = FALSE;
             curr_segment->variant.symbol.decl_pos = FALSE;
             msg_ptr++;
+            /* Check for formatting options. */
             if (*msg_ptr == 'f') {
               /* Display complete type and object name. */
               curr_segment->variant.symbol.full_type = TRUE;
               msg_ptr++;
             } else if (*msg_ptr == 'o') {
+              /* Display only the entity name. */
               curr_segment->variant.symbol.name_only = TRUE;
               msg_ptr++;
             }  /* if */
             if (*msg_ptr == 'd') {
+              /* Display the declaration position following the entity name. */
               curr_segment->variant.symbol.decl_pos = TRUE;
               msg_ptr++;
             }  /* if */
