@@ -1,5 +1,19 @@
 Version 2.32
 
+4/5/96    /**/ treated as token-pasting operator ## in SVR4 C mode
+
+In SVR4 C mode, the sequence /**/ in a macro definition is now treated
+as a token-pasting operation.
+
+  #define SIZEOF(x) sz_/**/x
+  #define sz_XWDColor 12
+  void Read(int size) { }
+  void foo() {
+    Read(SIZEOF(XWDColor));  /* Read(12) */
+  }
+
+This is used in the X Window System headers.
+
 4/4/96    // comment begun in macro expansion in Microsoft mode
 
 The Microsoft Visual C++ compiler allows the following:

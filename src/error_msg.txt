@@ -830,6 +830,7 @@ ec_redeclaration_of_for_init_decl_name;;"%sq, declared in for-loop initializatio
 ec_hidden_by_old_for_init;;"reference is to %nd1 -- under old for-init scoping rules it would have been %nd2"
 ec_cl_for_init_diff_warning_option_only_in_cplusplus;;"option to control warnings on for-init differences can be used only when compiling C++"
 ec_unnamed_class_virtual_function_def_missing;;"definition of virtual %n is required here"
+ec_svr4_token_pasting_comment;;"empty comment interpreted as token-pasting operator \"##\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -2289,12 +2289,29 @@ quote_process:
         (void)get_token();
       }  /* if */
     } else {
-      /* Not inside a cpp string -- get a token.  Explicitly skip any
-         white space preceding the token so that we can know whether or not
-	 there was any. */
-      macro_skip_white_space(*any_white_space_skipped);
+      /* Not inside a cpp string. */
       start_of_white_space_in_cpp_string = NULL;
-      (void)get_token();
+      if (SVR4_C_mode &&
+          curr_char_loc[0] == '/' && curr_char_loc[1] == '*' &&
+          curr_char_loc[2] == '*' && curr_char_loc[3] == '/' &&
+          !isspace((unsigned char)curr_char_loc[4])) {
+        /* In SVR4 C mode, an empty comment is treated as a token pasting
+           operator. */
+        *any_white_space_skipped = FALSE;
+        curr_token = tok_paste;
+        start_of_curr_token = curr_char_loc;
+        end_of_curr_token = curr_char_loc+3;
+        len_of_curr_token = 4;
+        curr_char_loc += 4;
+        conv_line_loc_to_source_pos(start_of_curr_token, &pos_curr_token);
+        pos_warning(ec_svr4_token_pasting_comment, &pos_curr_token);
+      } else {
+        /* Normal case -- get a token.  Explicitly skip any white space
+           preceding the token so that we can know whether or not there was
+           any. */
+        macro_skip_white_space(*any_white_space_skipped);
+        (void)get_token();
+      }  /* if */
     }  /* if */
     /* If the token scanned is an identifier, see if it is a macro name. */
     if (curr_token == tok_identifier) {
