@@ -6504,7 +6504,7 @@ typedef enum /* a_source_language */ {
   sl_C,
   sl_Fortran
 } a_source_language;
-EXTERN struct il_header {
+EXTERN struct il_header_tag {
   a_source_file_ptr
                 primary_source_file;
                         /* The description of the primary source file,
