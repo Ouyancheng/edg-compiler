@@ -378,8 +378,6 @@ Routine called during the "needed" flag IL walk, to process an entry after
 its subtree has been walked.
 */
 {
-  /* After we've processed a function scope, we can dispose of the IL for
-     the function. */
   if (entry_kind == iek_scope) {
     a_scope_ptr scope = (a_scope_ptr)entry_ptr;
     if (scope->kind == (a_scope_kind)sck_function) {
@@ -388,19 +386,6 @@ its subtree has been walked.
          it to note what needs to be kept in the IL (specifically, what
          in the file scope memory region needs to be kept in the IL). */
       mark_to_keep_in_il((char *)scope, iek_scope);
-      /* Decide on disposing of the memory region. */
-      if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH ||
-          innermost_function_scope == scope) {
-        /* This function's scope is still on the scope stack, so do nothing
-           now.  check_for_done_with_memory_region will be called when the
-           scope is popped off the stack.  The innermost_function_scope
-           test is needed for generated routines in IL lowering, since they're
-           not on the scope stack. */
-      } else {
-        /* We may be able to dispose of the memory region now. */
-        a_routine_ptr rout = scope->variant.routine.ptr;
-        check_for_done_with_memory_region(rout->assoc_scope);
-      }  /* if */
     }  /* if */
   }  /* if */
 }  /* needed_flag_walk_entry_process */
@@ -496,6 +481,37 @@ to be kept.
 }  /* prune_keep_in_il_walk */
 
 
+static void keep_in_il_walk_entry_process(char             *entry_ptr,
+                                          an_il_entry_kind entry_kind)
+/*
+Routine called during the keep_in_il flag IL walk, to process an entry after
+its subtree has been walked.
+*/
+{
+  /* After we've processed a function scope, we can dispose of the IL for
+     the function. */
+  if (entry_kind == iek_scope) {
+    a_scope_ptr scope = (a_scope_ptr)entry_ptr;
+    if (scope->kind == (a_scope_kind)sck_function) {
+      /* This is a function scope. */
+      /* Decide on disposing of the memory region. */
+      if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH ||
+          innermost_function_scope == scope) {
+        /* This function's scope is still on the scope stack, so do nothing
+           now.  check_for_done_with_memory_region will be called when the
+           scope is popped off the stack.  The innermost_function_scope
+           test is needed for generated routines in IL lowering, since they're
+           not on the scope stack. */
+      } else {
+        /* We may be able to dispose of the memory region now. */
+        a_routine_ptr rout = scope->variant.routine.ptr;
+        check_for_done_with_memory_region(rout->assoc_scope);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* keep_in_il_walk_entry_process */
+
+
 void mark_to_keep_in_il(char             *entry_ptr,
                         an_il_entry_kind entry_kind)
 /*
@@ -510,7 +526,7 @@ only the entries marked as "needed" are marked to keep in the IL.
   /* Save the state of global variables for later restoration. */
   save_il_walk_state(saved_state);
   /* Set up for this walk. */
-  entry_process_func = NULL;
+  entry_process_func = keep_in_il_walk_entry_process;
   string_entry_process_func = NULL;
   walk_termination_test_func = prune_keep_in_il_walk;
   walk_remap_func = NULL;
