@@ -1400,7 +1400,13 @@ except for casts to ambiguous or inaccessible base classes.
              context, reduce any error to a warning and leave the
              conversion to be done at runtime. */
           did_not_fold = TRUE;
-          if (curr_expr_is_evaluated()) {
+          if (curr_expr_is_evaluated() ||
+              /* In C mode, (void *)0 is a null pointer constant and must
+                 be folded even when not evaluated so it can be recognized
+                 as a null pointer constant. */
+              (C_dialect != C_dialect_cplusplus &&
+               is_zero_constant(&operand->variant.constant) &&
+               is_pointer_type(new_type))) {
             copy_constant(&operand->variant.constant, &local_constant);
             type_change_constant(&local_constant, new_type, is_implicit_cast,
                                  curr_expr_kind_is_const(),
@@ -2021,41 +2027,60 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
   a_type_ptr    operand_2_type = operand_2->type;
   a_boolean     operand_1_is_pointer = is_pointer_type(operand_1_type);
   a_boolean     operand_2_is_pointer = is_pointer_type(operand_2_type);
-  a_boolean     pointer_normalization_needed;
+  a_boolean     pointer_normalization_needed, suppress_extensions;
   an_error_code warning_suggested;
 
-  if (operand_1_is_pointer) {
-    /* See if the second operand can be converted to the type of the
-       first operand. */
-    if (impl_pointer_conversion(operand_2_type,
-                                is_constant_operand(operand_2),
-                                &operand_2->variant.constant,
-                                operand_1_type,
-                                /*check_as_operands_not_conversion=*/TRUE,
-                                &pointer_normalization_needed,
-                                /*suppress_extensions=*/FALSE,
-                                ec_incompatible_operands,
-                                &warning_suggested)) {
-      *operation_type = operand_1_type;
-      okay = TRUE;
+  /* The loop here tries the conversions once without extensions
+     allowed, and (if that fails) again with extensions allowed.
+     This is necessary for cases like the following in C mode:
+       int f();
+       void m() { 0 ? (void *)0 : f }
+     The conversion from f --> void * can be done, but only as an
+     extension.  (void *)0 --> pointer to function is standard.  If we
+     did not do the tests twice, we would find the nonstandard conversion
+     first and use it, and issue a warning, when in fact there is a
+     standard conversion that could be used instead. */
+  suppress_extensions = TRUE;
+  for (;;) {
+    if (operand_1_is_pointer) {
+      /* See if the second operand can be converted to the type of the
+         first operand. */
+      if (impl_pointer_conversion(operand_2_type,
+                                  is_constant_operand(operand_2),
+                                  &operand_2->variant.constant,
+                                  operand_1_type,
+                                  /*check_as_operands_not_conversion=*/TRUE,
+                                  &pointer_normalization_needed,
+                                  suppress_extensions,
+                                  ec_incompatible_operands,
+                                  &warning_suggested)) {
+        *operation_type = operand_1_type;
+        okay = TRUE;
+        break;
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (!okay && operand_2_is_pointer) {
-    /* See if the first operand can be converted to the type of the
-       second operand. */
-    if (impl_pointer_conversion(operand_1_type,
-                                is_constant_operand(operand_1),
-                                &operand_1->variant.constant,
-                                operand_2_type,
-                                /*check_as_operands_not_conversion=*/TRUE,
-                                &pointer_normalization_needed,
-                                /*suppress_extensions=*/FALSE,
-                                ec_incompatible_operands,
-                                &warning_suggested)) {
-      *operation_type = operand_2_type;
-      okay = TRUE;
+    if (operand_2_is_pointer) {
+      /* See if the first operand can be converted to the type of the
+         second operand. */
+      if (impl_pointer_conversion(operand_1_type,
+                                  is_constant_operand(operand_1),
+                                  &operand_1->variant.constant,
+                                  operand_2_type,
+                                  /*check_as_operands_not_conversion=*/TRUE,
+                                  &pointer_normalization_needed,
+                                  suppress_extensions,
+                                  ec_incompatible_operands,
+                                  &warning_suggested)) {
+        *operation_type = operand_2_type;
+        okay = TRUE;
+        break;
+      }  /* if */
     }  /* if */
-  }  /* if */
+    /* Stop after second time around loop. */
+    if (suppress_extensions == FALSE) break;
+    /* Go back for the second iteration with extensions allowed. */
+    suppress_extensions = FALSE;
+  }  /* for */
   if (okay) {
     a_boolean nonstd_case = FALSE;
     if (strict_ansi_mode && C_dialect == C_dialect_ANSI) {
