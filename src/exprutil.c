@@ -3778,6 +3778,7 @@ the expression.
         /* Both branches can be rewritten, so rewrite the whole expression. */
         possible = TRUE;
         if (!see_if_possible) {
+          node->variant.operation.returns_lvalue_instead_of_usual_rvalue= TRUE;
           conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
                                                    /*see_if_possible=*/FALSE);
           conv_class_rvalue_expr_to_object_pointer(&op3, &op3_possible,
@@ -3795,6 +3796,7 @@ the expression.
       if (op2_possible) {
         possible = TRUE;
         if (!see_if_possible) {
+          node->variant.operation.returns_lvalue_instead_of_usual_rvalue= TRUE;
           conv_class_rvalue_expr_to_object_pointer(&op2, &op2_possible,
                                                    /*see_if_possible=*/FALSE);
           op1->next = op2;
