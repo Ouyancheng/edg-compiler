@@ -1,5 +1,11 @@
 Version 2.23
 
+5/23/94  IL CHANGE: definition of an_access_adjustment
+
+The enumeration an_access_adjustment_kind has been eliminated, and
+an_access_adjustment now uses a_tagged_pointer to refer to the entity
+affected by an access adjustment declaration.
+
 5/21/94  Operator new and delete
 
 A diagnostic is no longer issued on redeclaring operator new or delete with
