@@ -5166,6 +5166,8 @@ class/struct/union is actually defined.
         /* Scan a member declaration. */
         add_stop_token(tok_semicolon);
         if (C_dialect == C_dialect_cplusplus) {
+          /* Check for and discard declarations of the form "overload f;". */
+          if (check_for_overload_anachronism()) goto next_declaration;
           if (curr_token == tok_identifier &&
               !simplify_curr_class_qualified_name() &&
               get_qualified_name(IDL_NO_OPTIONS) &&
