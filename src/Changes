@@ -19,6 +19,13 @@ following:
       D od2 = od1;
   }
 
+10/3/94  Fixed bug in string representation of function template
+
+When RECORD_TEMPLATES_IN_IL is TRUE and entries of type a_template are
+created to represent a function template definition, a semicolon is no
+longer added at the end of the textual representation (i.e., after the
+closing brace).
+
 10/3/94  C-generating back end: code ordering problem with local types
          inside member functions of local classes
 
