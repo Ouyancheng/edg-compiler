@@ -868,6 +868,13 @@ scope lookup.  options specifies the options being used for the lookup.
                                                      qualifier_namespace,
                                                      options);
       rout_sym = rout_sym->next;
+    } else if (curr_sym->kind == (a_symbol_kind)sk_namespace_projection &&
+               fundamental_symbol_of(curr_sym) == NULL) {
+      /* The current lookup set is a namespace projection symbol whose
+         fundamental symbol pointer has been cleared.  Simply set this
+         symbol to point to the first member of the overload set. */
+      set_namespace_projection_symbol(curr_sym, rout_sym, depth_scope_stack);
+      rout_sym = rout_sym->next;
     }  /* if */
     for (; rout_sym != NULL; rout_sym = rout_sym->next) {
       /* If rout_sym is not already in the lookup set, add it. */
