@@ -1,5 +1,13 @@
 Version 2.42
 
+5/6/99   C++-generating back end: improvements in hidden name table support
+
+Some changes were made that, when RECORD_HIDDEN_NAMES_IN_IL is configured
+to TRUE, reduce overhead incurred in building the hidden name table,
+which is used by the C++-generating back end.  The principal effect of
+the change was to eliminate a number of superfluous id-lookup calls;
+maintainability improvements were also implemented.
+
 5/5/99   Exception specifications missing on delete routines
 
 The new.h file was missing exception specifications for the placement
