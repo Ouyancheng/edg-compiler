@@ -711,6 +711,7 @@ call end_error.
         type1 [ type2 ]
         type1 : type2     (used for "?")
         type1 ++          (implicit second argument of "int" not displayed)
+        type1 --          (ditto)
      List form used for (), -> new, new[], delete, and delete[]:
         type1, type2, ...
   */
@@ -746,7 +747,8 @@ call end_error.
         put_ch_to_temp_text_buffer(' ');
         put_str_to_temp_text_buffer(opname);
         /* On postfix ++, do not display the implicit second argument. */
-        if (kind == (an_opname_kind)onk_plus_plus) break;
+        if (kind == (an_opname_kind)onk_plus_plus ||
+            kind == (an_opname_kind)onk_minus_minus) break;
         put_ch_to_temp_text_buffer(' ');
       }  /* if */
     } else if (num == 2) {
