@@ -2552,6 +2552,7 @@ static a_symbol_ptr create_external_symbol_for_linked_entity(
                               a_name_linkage_kind  name_linkage,
                               a_boolean            redeclaration,
                               a_boolean            suppress_incompatible_error,
+                              a_boolean            suppress_ext_sym_lookup,
                               a_variable_ptr       *variable_ptr,
                               a_routine_ptr        *routine_ptr)
 /*
@@ -2584,11 +2585,17 @@ created; the caller must set it.
 
   ext_sym_kind = is_function ? (a_symbol_kind)sk_extern_routine :
                                (a_symbol_kind)sk_extern_variable;
-  /* Look up the external name of the identifier (i.e., the name after
-     any truncation, etc.). */
-  ext_sym = find_external_symbol(locator, name_linkage,
-                                 is_function ? type_ptr : NULL,
-                                 &ext_locator);
+  if (suppress_ext_sym_lookup) {
+    /* Ignore the presence of an external symbol with which the current
+       symbol is compatible. */
+    ext_sym = NULL;
+  } else {
+    /* Look up the external name of the identifier (i.e., the name after
+       any truncation, etc.). */
+    ext_sym = find_external_symbol(locator, name_linkage,
+                                   is_function ? type_ptr : NULL,
+                                   &ext_locator);
+  }  /* if */
   if (ext_sym != NULL) {
     /* There is an existing external symbol for the name. */
     esdp = ext_sym->variant.extern_symbol_descr;
@@ -2987,6 +2994,8 @@ otherwise, set *ext_sym to NULL.
                     *source_corresp_ptr;
   a_scope_depth     effective_decl_level = decl_scope_level;
   a_boolean         template_function_specific_decl = FALSE;
+  a_boolean         suppress_ext_sym_lookup = FALSE;
+
   db_enter(3, "decl_var_or_routine");
 #if CHECKING
   if (storage_class == (a_storage_class)sc_typedef) {
@@ -3008,7 +3017,8 @@ otherwise, set *ext_sym to NULL.
     if (C_dialect == C_dialect_cplusplus) {
       /* If this is an overloaded operator, check for errors in the
          argument list. */
-      check_operator_function_params(type_ptr, /*class_type=*/NULL, locator);
+      check_operator_function_params(type_ptr, /*class_type=*/(a_type_ptr)NULL,
+                                     locator);
     }  /* if */
   } else {
     /* Set the is_variable_definition flag.  The rules are slightly different
@@ -3066,6 +3076,13 @@ otherwise, set *ext_sym to NULL.
                      linked_symbol);
         redecl_error_already_issued = TRUE;
         linked_redecl_error = TRUE;
+        /* Set a flag to suppress reuse of the existing external-variable
+           symbol and of the variable aleady in use.  This is to avoid
+           redundant errors in case both this and the previous definition
+           involved initialization.  Also, to suppress a declared-but-not-used
+           message, set the referenced flag in the linked symbol. */
+        suppress_ext_sym_lookup = TRUE;
+        linked_symbol->referenced = TRUE;
       } else {
         /* Linked symbol and new symbol are both variables.  See if they
            are compatible. */
@@ -3274,6 +3291,7 @@ skip_overloading:;
                                                  type_ptr, name_linkage,
                                                  redeclaration,
                                                  linked_redecl_error,
+                                                 suppress_ext_sym_lookup,
                                                  &variable_ptr, &routine_ptr);
   }  /* if */
   if (!is_function) {
