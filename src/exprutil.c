@@ -1850,7 +1850,7 @@ except for casts to ambiguous or inaccessible base classes.
      aren't exactly the same).  Don't do the optimization for constants,
      because type_change_constant does some special things with null
      pointer constants and casts. */
-  if (new_type != operand->type && !is_constant_operand(operand)) {
+  if (new_type != operand->type || is_constant_operand(operand)) {
     /* Save the operand's source position, etc. */
     orig_operand = *operand;
     if (m_is_error_type(new_type)) {
