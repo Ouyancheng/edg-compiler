@@ -112,6 +112,14 @@ extern void lower_destructor_code(a_scope_ptr scope);
 
 extern void lower_stmk_init(a_statement_ptr statement);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
+extern void lower_microsoft_C_mode_nonstant_aggregate_init(
+                                                    a_variable_ptr  vp,
+                                                    a_statement_ptr init_stmt);
+#endif /* LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 extern void lower_file_scope_dynamic_inits(void);
 
 extern void make_code_to_invoke_file_scope_init_routine(void);

@@ -1288,6 +1288,18 @@ tree.
 #define LOWER_LVALUE_RETURNING_OPERATIONS TRUE
 #endif /* !defined(LOWER_LVALUE_RETURNING_OPERATIONS) */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+/*
+Microsoft mode allows a nonconstant aggregate initializer in C mode.
+This switch controls whether such an aggregate is lowered to normal C.
+That is done by invoking some subroutines from IL lowering, not the
+whole process.
+*/
+#ifndef LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
+#define LOWER_MICROSOFT_NONCONSTANT_AGGREGATE TRUE
+#endif /* ifndef LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 /*
 This switch controls whether or not "guard" code is placed around
 initializations of static data members of templates.  Such guard code is

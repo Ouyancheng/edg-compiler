@@ -1,5 +1,12 @@
 Version 2.30
 
+8/28/95  Lowering of nonconstant aggregates in Microsoft C mode
+
+Microsoft mode allows a nonconstant aggregate initializer for an auto
+variable in C mode.  Now, when LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
+is TRUE (which is the default), a piece of IL lowering will be called
+in C mode to lower that construct to standard C.
+
 8/28/95  Namespaces
 
 Namespaces are now supported.  This includes namespace definitions,
@@ -1719,7 +1726,8 @@ NOTE: The IL representing this construct is a dik_nonconstant_aggregate
 dynamic init entry.  Normally, such entries only appear in unlowered C++
 IL.  We intend eventually to add a call to an IL lowering routine (such as
 lower_dynamic_init) to represent this construct in ordinary C IL, but for
-now back ends will have to deal with it in the unlowered form.
+now back ends will have to deal with it in the unlowered form. [8/28/95:
+see LOWER_MICROSOFT_NONCONSTANT_AGGREGATE, set TRUE by default]
 
 4/7/95   Declaring static data members as member constants
 

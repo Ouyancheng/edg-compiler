@@ -4269,6 +4269,41 @@ Generate code for a stmk_init (dynamic initialization) statement.
   }  /* if */
 }  /* lower_stmk_init */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
+
+void lower_microsoft_C_mode_nonstant_aggregate_init(a_variable_ptr  vp,
+                                                    a_statement_ptr init_stmt)
+/*
+In Microsoft C mode, an auto variable is allowed to be initialized with a
+nonconstant aggregate.  This construct is not something usually expected
+by back ends, so lower it to normal C.  vp is the initialized variable.
+init_stmt is the stmk_init statement.
+*/
+{
+  an_init_pos_descr  ipd;
+  an_insert_location insert_location;
+  a_boolean          keep_dynamic_init;
+
+  check_assertion(vp->init_kind == (an_init_kind)initk_dynamic &&
+                  init_stmt != NULL &&
+                  init_stmt->kind == (a_statement_kind)stmk_init);
+  if (!suppress_il_lowering && total_errors == 0) {
+    set_var_init_pos_descr(vp, &ipd);
+    set_insert_location(init_stmt, &insert_location);
+    lower_dynamic_init(vp->initializer.dynamic, &ipd,
+                       (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
+                       (a_constructor_init_ptr)NULL, /*is_full_expr=*/TRUE,
+                       &insert_location, &keep_dynamic_init);
+    if (!keep_dynamic_init) {
+      /* Delete the stmk_init statement. */
+      turn_statement_into_noop(init_stmt);
+    }  /* if */
+  } /* if */
+}  /* lower_microsoft_C_mode_nonstant_aggregate_init */
+
+#endif /* LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_variable_ptr implicit_virtual_base_parameter(
                                                 a_type_ptr     class_type,

@@ -27,6 +27,7 @@ decl_inits.c -- Scanning of initializers in declarations.
 /* Additional header files. */
 #include "expr.h"
 #include "statements.h"
+#include "lower_init.h"
 
 
 static void set_initialized_array_size(a_type_ptr    *type,
@@ -1104,14 +1105,16 @@ should be suppressed.
 
 static void gen_dynamic_initialization(a_variable_ptr      vp,
                                        a_dynamic_init_ptr  dip,
-                                       a_source_position   *source_pos)
+                                       a_source_position   *source_pos,
+                                       a_statement_ptr     *p_init_stmt)
 /*
 Generate a dynamic initialization of the variable vp based on the
 dynamic init entry pointed to by dip.  Except for a dynamic
 initialization at file scope (possible only in C++), also create an
 stmk_init statement at the current point in the code.  *source_pos is
 the source position for an error (dynamic initialization is in
-unreachable code).
+unreachable code).  If p_init_stmt is non-NULL, *p_init_stmt is set
+to point to the stmk_init statement created, or NULL it there is none.
 */
 {
   a_statement_ptr          init_stmt;
@@ -1120,6 +1123,7 @@ unreachable code).
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
   db_enter(4, "gen_dynamic_initialization");
+  if (p_init_stmt != NULL) *p_init_stmt = NULL;
   at_file_scope = (depth_innermost_function_scope == NO_SCOPE_DEPTH);
   if (!at_file_scope) {
     check_assertion(ssep->kind == (a_scope_kind)sck_function ||
@@ -1186,6 +1190,7 @@ unreachable code).
        This must be done after record_end_of_lifetime_destruction is called. */
     init_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_init,
                                           &vp->source_corresp.decl_position);
+    if (p_init_stmt != NULL) *p_init_stmt = init_stmt;
     init_stmt->variant.dynamic_init = dip;
   }  /* if */
   /* Mark all dynamically initialized variables as referenced.  (They are
@@ -1546,16 +1551,23 @@ returned set to TRUE.
     if (init_dip != NULL) {
       /* Generate a dynamic initialization entry, attach it to the variable,
          and generate an stmk_init statement. */
-      gen_dynamic_initialization(vp, init_dip, source_pos);
+      a_statement_ptr init_stmt;
+      gen_dynamic_initialization(vp, init_dip, source_pos, &init_stmt);
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#if LOWER_MICROSOFT_NONCONSTANT_AGGREGATE
       /* Note that if microsoft_mode and C_mode() are TRUE, *vp may be an
          automatic variable with a nonconstant aggregate initializer.  The
          IL representation for this involves a dik_nonconstant_aggregate
          dynamic init entry.  Normally, such entries only appear in unlowered
-         C++ IL.  Eventually there will be a call to an IL lowering routine
-         (see lower_dynamic_init) to represent this construct in ordinary C
-         IL, but for now back ends will have to deal with it in the unlowered
-         form. */
+         C++ IL.  Lower it to C if configured that way. */
+      if (microsoft_mode && C_mode() &&
+          vp->initializer.dynamic->kind == dik_nonconstant_aggregate) {
+        lower_microsoft_C_mode_nonstant_aggregate_init(vp, init_stmt);
+        /* Force re-determination of the last statement of the current
+           sequence. */
+        struct_stmt_stack[depth_stmt_stack].last_dep_statement = NULL;
+      }  /* if */
+#endif /* LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (has_static_storage_duration(vp->storage_class) &&
                vp->source_corresp.is_local_to_function) {
@@ -1768,7 +1780,8 @@ the default constructor (if one exists) is called.
         }  /* if */
         /* Allocate a dynamic init entry (a copy of local_di) and attach it
            to the variable. */
-        gen_dynamic_initialization(var, init_dip, err_pos);
+        gen_dynamic_initialization(var, init_dip, err_pos,
+                                   (a_statement_ptr *)NULL);
 #if DEBUG
         if (debug_level >= 3) {
           db_variable(var);
