@@ -381,6 +381,8 @@ extern a_switch_clause_ptr alloc_switch_clause(void);
 
 extern a_handler_ptr alloc_handler(void);
 
+extern void set_block_scope_handler(a_handler_ptr  handler);
+
 extern void set_statement_kind(a_statement_ptr  sp,
                                a_statement_kind kind);
 
