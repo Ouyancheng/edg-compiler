@@ -3720,7 +3720,7 @@ Reserve space at the end of the class object for virtual base classes.
            virtual bases.  The alignment boundary is forced after this tail
            padding. */
         lob->byte_offset = lob->curr_base_extent + 1;
-        ctsp->alignment_without_virtual_base_classes = lob->alignment;
+        ctsp->size_without_virtual_base_classes = lob->byte_offset;
       }  /* if */
       if (!do_alignment(&lob->byte_offset, &lob->bit_offset, lob->alignment) &&
           !lob->any_overflow) {
