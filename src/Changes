@@ -1,5 +1,9 @@
 Version 2.16
 
+4/16/93  "const void" function return type
+
+A remark is now issued instead of a warning.
+
 4/15/93  New IL form for returning class via copy constructor
 
 Routines that return a class value via a copy constructor no longer
@@ -550,7 +554,7 @@ fill-ins).  This has been corrected.
 -------------------------------------------------------------------------------
 Version 2.15, March 24, 1993
 
-3/24/92 Abort in class template declaration with nonreal base class
+3/24/93 Abort in class template declaration with nonreal base class
 
 In certain unusual cases the front end aborted when a class template
 had a base class specifier that was a nonreal class, e.g.,
@@ -560,19 +564,19 @@ had a base class specifier that was a nonreal class, e.g.,
 
 The failure, which occurred during prototype instantiation, is now fixed.
 
-3/23/92 Diagnostic on linkage conflict
+3/23/93 Diagnostic on linkage conflict
 
 Now in default mode a remark is issued (instead of a warning) when
 there the linkage specified in a declaration is inconsistent with that
 of a previous declaration.  Note that an error or warning is still
 issued in strict ANSI mode.
 
-3/23/92 Diagnostic on duplicate friend declaration
+3/23/93 Diagnostic on duplicate friend declaration
 
 Now a remark is issued (instead of a warning) on duplicate friend
 declarations.
 
-3/23/92 IL walk routines speeded up
+3/23/93 IL walk routines speeded up
 
 The routines that walk the intermediate language tree have been speeded
 up.  This was accomplished largely by moving a lot of code from il_walk.c

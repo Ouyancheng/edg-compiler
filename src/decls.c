@@ -1050,9 +1050,9 @@ type is legal.
             !is_reference_type(new_type_ptr)) {
           /* Type qualifiers on a function return type are meaningless. */
           /* Issue just a remark for "volatile void" -- gcc uses that to
-             indicate a function (like exit()) that does not return. */
-          if (is_void_type(skip_typerefs(new_type_ptr)) &&
-              is_volatile_qualified_type(new_type_ptr)) {
+             indicate a function (like exit()) that does not return.  Also
+             just issue a remark for "const void". */
+          if (is_void_type(skip_typerefs(new_type_ptr))) {
             remark(ec_useless_type_qualifiers);
           } else {
             warning(ec_useless_type_qualifiers);
