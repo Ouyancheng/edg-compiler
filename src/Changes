@@ -1,5 +1,17 @@
 Version 3.4
 
+1/30/04  GNU mode: Spurious error on format attribute
+
+When the last argument of the GNU attribute "format" (which specifies the
+first argument to check against a format string) is zero, GNU compilers
+only check the indicated format string for consistency and do not verify
+that the format string matches the types of the arguments.  Previously,
+the front end issued an error in such cases.  Now it silently ignores
+such attributes (in GNU mode).  For example:
+
+  int f(int, char const*, ...) __attribute__((format(printf, 2, 0)));
+                   /* Previously an error.  Now the attribute is ignored. */
+
 1/29/04  Module IDs in files containing only namespace and/or class members
 
 Module IDs are used to generate unique names for entities such as members

@@ -1575,12 +1575,18 @@ messages about any invalid attributes.
               pos_error(ec_fmt_arg_does_not_exist, &ap->position);
               error_occurred = TRUE;
             }  /* if */
-            if (ap->variant.format.first_subst_arg != count + 1) {
+            if (ap->variant.format.first_subst_arg > 0 &&
+                ap->variant.format.first_subst_arg != count + 1) {
               pos_error(ec_subst_arg_is_not_variable, &ap->position);
               error_occurred = TRUE;
             }  /* if */
           }  /* if */
-          if (!error_occurred) {
+          /* If the "first argument to check" is specified as zero, GNU
+             only checks the format string for consistency without matching
+             it up to argument types.  Since the EDG front end is not set
+             up for just checking format string consistency, we silently
+             ignore the attribute in that case. */
+          if (!error_occurred && ap->variant.format.first_subst_arg > 0) {
             switch (ap->variant.format.kind) {
             case fak_printf:
               rtsp->arg_pragma = (a_pragma_kind)pk_printf_args;
