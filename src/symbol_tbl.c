@@ -44,6 +44,18 @@ static a_symbol_header_ptr
 		unnamed_class_symbol_header,
 		unnamed_field_symbol_header;
 
+/*
+An empty symbol used to initialize newly allocated symbols.
+*/
+static a_symbol cleared_symbol;
+
+/*
+Set the shared fields of a symbol to default values, set the kind, and
+initialize its variant fields.
+*/
+#define clear_symbol(sym, kind)                                    \
+  { *(sym) = cleared_symbol; set_symbol_kind((sym), (kind)); }
+
 #if DEBUG
 /*
 Information used to gather performance statistics on the symbol table:
@@ -1507,37 +1519,6 @@ state.
 }  /* set_symbol_kind */
 
 
-static void clear_symbol(register a_symbol_ptr sym_ptr,
-                         a_symbol_kind         kind)
-/*
-Set the fixed fields of a symbol to some safe state, and set its kind 
-to the indicated kind (and the associated variant fields to safe values).
-*/
-{
-  db_enter(5, "clear_symbol");
-
-  sym_ptr->header                         = NULL;
-  sym_ptr->next                           = NULL;
-  sym_ptr->next_in_scope                  = NULL;
-  sym_ptr->decl_scope                     = NO_SCOPE_NUMBER;
-  sym_ptr->decl_seq                       = 0;
-  sym_ptr->decl_position.seq              = 0;
-  sym_ptr->decl_position.column           = SP_COL_UNKNOWN;
-  sym_ptr->class_of_which_a_member        = NULL;
-  sym_ptr->referenced                     = FALSE;
-  sym_ptr->defined                        = FALSE;
-  sym_ptr->explicit_linkage_specifier     = FALSE;
-  sym_ptr->reentered_from_prototype_scope = FALSE;
-  sym_ptr->is_error                       = FALSE;
-  sym_ptr->is_template_param              = FALSE;
-  sym_ptr->template_param_not_visible     = FALSE;
-  sym_ptr->force_external_linkage         = FALSE;
-  set_symbol_kind(sym_ptr, kind);
-
-  db_exit();
-}  /* clear_symbol */
-
-
 static a_symbol_ptr alloc_symbol(a_symbol_kind       kind,
                                  a_symbol_header_ptr hdr_ptr,
                                  a_source_position   *position)
@@ -1555,7 +1536,10 @@ hdr_ptr == NULL indicates that an error symbol should be constructed.
 #if DEBUG
   num_symbols_allocated++;
 #endif /* DEBUG */
+  /* Set the shared fields to default values, set the kind, and initialize
+     its variant fields. */
   clear_symbol(sym_ptr, kind);
+  /* Set the header. */
   if (hdr_ptr == NULL) {
     /* Use the error symbol header.  Allocate it if necessary. */
     if (error_symbol_header == NULL) {
@@ -2567,10 +2551,13 @@ sake of identifying a given field entry as representing an unnamed field.
   static a_symbol             sym;
 
   if (unnamed_field_symbol_header == NULL) {
+    /* Set the shared fields to default values, set the kind, and initialize
+       its variant fields. */
+    clear_symbol(&sym, (a_symbol_kind)sk_field);
+    /* Set the header. */
     unnamed_field_symbol_header = alloc_symbol_header();
     unnamed_field_symbol_header->identifier = "<unnamed>";
     unnamed_field_symbol_header->identifier_length = 9;
-    clear_symbol(&sym, (a_symbol_kind)sk_field);
     sym.header = unnamed_field_symbol_header;
   }  /* if */
   return &sym;
@@ -8420,21 +8407,39 @@ to avoid an 8-character external name clash with symbol_table.)
   next_scope_number = FILE_SCOPE_NUMBER;
 
   /* Clear a locator that can be used to make initialization more efficient. */
-  cleared_locator.symbol_header = NULL;
-  cleared_locator.source_position.seq = 0;
-  cleared_locator.source_position.column = SP_COL_UNKNOWN;
-  cleared_locator.is_qualified_name = FALSE;
-  cleared_locator.is_global_qualified_name = FALSE;
-  cleared_locator.is_file_scope_qualified_name = FALSE;
-  cleared_locator.is_operator_name = FALSE;
-  cleared_locator.is_conversion_name = FALSE;
-  cleared_locator.is_destructor_name = FALSE;
-  cleared_locator.is_semivisible_nested_type = FALSE;
-  cleared_locator.access_control_error_reported = FALSE;
+  cleared_locator.symbol_header                   = NULL;
+  cleared_locator.source_position.seq             = 0;
+  cleared_locator.source_position.column          = SP_COL_UNKNOWN;
+  cleared_locator.is_qualified_name               = FALSE;
+  cleared_locator.is_global_qualified_name        = FALSE;
+  cleared_locator.is_file_scope_qualified_name    = FALSE;
+  cleared_locator.is_operator_name                = FALSE;
+  cleared_locator.is_conversion_name              = FALSE;
+  cleared_locator.is_destructor_name              = FALSE;
+  cleared_locator.is_semivisible_nested_type      = FALSE;
+  cleared_locator.access_control_error_reported   = FALSE;
   cleared_locator.is_vacuous_destructor_reference = FALSE;
-  cleared_locator.is_nonclass_destructor = FALSE;
-  cleared_locator.specific_symbol = NULL;
-  cleared_locator.variant.conversion_result_type = NULL;
+  cleared_locator.is_nonclass_destructor          = FALSE;
+  cleared_locator.specific_symbol                 = NULL;
+  cleared_locator.variant.conversion_result_type  = NULL;
+
+  /* Clear a symbol that can be used to make initialization more efficient. */
+  cleared_symbol.header                         = NULL;
+  cleared_symbol.next                           = NULL;
+  cleared_symbol.next_in_scope                  = NULL;
+  cleared_symbol.decl_scope                     = NO_SCOPE_NUMBER;
+  cleared_symbol.decl_seq                       = 0;
+  cleared_symbol.decl_position.seq              = 0;
+  cleared_symbol.decl_position.column           = SP_COL_UNKNOWN;
+  cleared_symbol.class_of_which_a_member        = NULL;
+  cleared_symbol.referenced                     = FALSE;
+  cleared_symbol.defined                        = FALSE;
+  cleared_symbol.explicit_linkage_specifier     = FALSE;
+  cleared_symbol.reentered_from_prototype_scope = FALSE;
+  cleared_symbol.is_error                       = FALSE;
+  cleared_symbol.is_template_param              = FALSE;
+  cleared_symbol.template_param_not_visible     = FALSE;
+  cleared_symbol.force_external_linkage         = FALSE;
 
   /* Static variables in symbol_tbl.c: */
   /* size_scope_stack is not per-file and should not be reset. */
