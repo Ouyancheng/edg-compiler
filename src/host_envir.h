@@ -1828,7 +1828,7 @@ storage, not IL storage.
 */
 EXTERN char	*primary_source_file_name;
 
-EXTERN char	*dir_name_of_primary_source_file /* = NULL */;
+EXTERN char	*dir_name_of_primary_source_file;
 			/* The directory name of the primary source file.
                            This is set by the command line processing routines
                            when the primary source file is set. */
@@ -1869,9 +1869,9 @@ Object file name, usually derived from the primary source file name.
 Really used only in generating makefile dependency information.
 The string is allocated in general storage, not IL storage.
 */
-EXTERN char	*object_file_name /* = NULL*/;
+EXTERN char	*object_file_name;
 
-EXTERN char	*current_directory_name /* = NULL */;
+EXTERN char	*current_directory_name;
 			/* String containing the current directory name. */
 
 /*
@@ -1958,11 +1958,7 @@ extern void pop_primary_include_search_dir(char	*dir_name,
 extern void add_to_template_search_path(char		*dir_name);
 
 EXTERN a_boolean
-		stack_referenced_include_directories
-#if VAR_INITIALIZERS
-                                    = STACK_REFERENCED_INCLUDE_DIRECTORIES
-#endif /* VAR_INITIALIZERS */
-                                                                          ;
+		stack_referenced_include_directories;
 			/* If TRUE a stack model is used to manage the include
 			   search list and FALSE if some other model (by
 			   default, a replace-restore model) is to be used
@@ -2360,20 +2356,12 @@ extern void set_cpu_time_limit(int	seconds);
 #endif /* DEBUG */
 
 EXTERN a_boolean
-		prototype_instantiations_in_il
-#if VAR_INITIALIZERS
-                                     = PROTOTYPE_INSTANTIATIONS_IN_IL
-#endif /* VAR_INITIALIZERS */
-                                                                     ;
+		prototype_instantiations_in_il;
 			/* If TRUE, prototype instantiations are recorded
 			   in the IL tree. */
 
 EXTERN a_boolean
-		in_front_end
-#if VAR_INITIALIZERS
-                             = FALSE
-#endif /* VAR_INITIALIZERS */
-                                    ;
+		in_front_end;
 			/* TRUE while in the front end, FALSE elsewhere (e.g.,
 			   in the C-generating back end).  TRUE in IL lowering,
 			   if that is done.  FALSE in command-line processing
@@ -2381,11 +2369,7 @@ EXTERN a_boolean
 			   a standalone utility program. */
 
 EXTERN a_boolean
-		pragma_define_type_info_is_required
-#if VAR_INITIALIZERS
-			= PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED
-#endif /* VAR_INITIALIZERS */
-			                                     ;
+		pragma_define_type_info_is_required;
 			/* TRUE if "#pragma define_type_info" is required
 			   before a declaration of the standard class
 			   "type_info". */
@@ -2401,11 +2385,7 @@ EXTERN char	*edg_base_directory;
 			   predefined macro table). */
 
 EXTERN a_boolean
-		use_predefined_macro_file
-#if VAR_INITIALIZERS
-					  = DEFAULT_USE_PREDEFINED_MACRO_FILE
-#endif /* VAR_INITIALIZERS */
-                                                                             ;
+		use_predefined_macro_file;
 			/* TRUE if the file specified by
 			   PREDEFINED_MACRO_FILE_NAME should be used to
 			   predefine macros at the start of compilation. */

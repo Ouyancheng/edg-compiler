@@ -350,7 +350,7 @@ static a_text_buffer_ptr
 			/* Buffer used when reading from the various files. */
 
 static a_directory_name_entry_ptr
-		avail_directory_name_entries = NULL;
+		avail_directory_name_entries;
 			/* Available list of directory name entries. */
 
 static a_directory_name_entry_ptr
@@ -1335,10 +1335,15 @@ typedef struct a_temp_file_name {
   FILE		*file;	/* File pointer. */
 } a_temp_file_name;
 static a_temp_file_name_ptr
-		open_temp_files = NULL;
+		open_temp_files;
 			/* List of all temp files currently open. */
-			/* This doesn't have to be reset by fe_init. */
 #endif /* __MICROSOFT_OS__ */
+
+/*
+Static variables used by open_temp_file.
+*/
+static char *temp_dir;
+static unsigned long temp_seed;
 
 
 FILE *open_temp_file(a_boolean binary_file)
@@ -1347,8 +1352,6 @@ Open a temporary text file, and return a pointer to its file block.  The
 file should be a binary file if binary_file is TRUE.
 */
 {
-  static char *temp_dir = NULL;
-  static unsigned long seed = 0;
 #define TEMP_NAME_BUFFER_SIZE 150
   char        buffer[TEMP_NAME_BUFFER_SIZE];
   a_boolean   need_slash;
@@ -1382,7 +1385,7 @@ file should be a binary file if binary_file is TRUE.
       str_catastrophe(ec_temp_file_dir_name_too_long, temp_dir);
     }  /* if */
     (void)sprintf(buffer, "%s%sedg%lu_%ld", temp_dir, 
-                  need_slash ? DIRECTORY_SEPARATOR_STRING : "", seed++,
+                  need_slash ? DIRECTORY_SEPARATOR_STRING : "", temp_seed++,
                   (long)getpid());
 #if DEBUG
     if (debug_level >= 4) {
@@ -2307,7 +2310,7 @@ definition whose name can be used as part of the module ID.
 }  /* find_external_name_in_scope */
 
 
-static char	*module_id /* = NULL */;
+static char	*module_id;
 			/* A string used to qualify static names that are put
 			   out as external names to make them unique. */
 
@@ -2809,7 +2812,7 @@ memory for IL memory blocks.
 
 #endif /* EDG_WIN32 */
 
-static int	page_size = 0;
+static int	page_size;
 			/* The size of a host page.  Memory mapped blocks must
 			   be requested in increments of this size. */
 
@@ -3282,6 +3285,7 @@ This is done before command line processing.
   macro_preinclude_file_tail = NULL;
   template_search_path = NULL;
   template_search_path_tail = NULL;
+  avail_directory_name_entries = NULL;
   /* Get the name of the EDG_BASE directory.  This may be overridden by
      a command-line option.  If the environment variable is not set, use
      a built-time default value. */
@@ -3295,6 +3299,36 @@ This is done before command line processing.
     host_little_endian = (*(char *)&i) == 1;
   }
   file_read_buffer = NULL;
+  dir_and_file_buffer = NULL;
+#if __MICROSOFT_OS__
+  open_temp_files = NULL;
+#endif /* __MICROSOFT_OS__ */
+  temp_dir = NULL;
+  temp_seed = 0;
+  module_id = NULL;
+  page_size = 0;
+  dir_buffer1 = NULL;
+  dir_buffer2 = NULL;
+  primary_source_file_name = NULL;
+  dir_name_of_primary_source_file = NULL;
+#if COMPILE_MULTIPLE_SOURCE_FILES
+  more_than_one_source_file = FALSE;
+#endif /* COMPILE_MULTIPLE_SOURCE_FILES */
+  more_than_one_non_export_translation_unit = FALSE;
+  object_file_name = NULL;
+  /* Start with empty include file search paths.  Entries may be added
+     because of command line options, and others will be added as defaults. */
+  incl_search_path = NULL;
+  end_incl_search_path = NULL;
+  sys_incl_search_path = NULL;
+  put_dir_of_each_opened_source_file_on_incl_search_path = TRUE;
+  dir_name_list = NULL;
+  stack_referenced_include_directories = STACK_REFERENCED_INCLUDE_DIRECTORIES;
+  prototype_instantiations_in_il = PROTOTYPE_INSTANTIATIONS_IN_IL;
+  in_front_end = FALSE;
+  pragma_define_type_info_is_required = PRAGMA_DEFINE_TYPE_INFO_IS_REQUIRED;
+  use_predefined_macro_file = DEFAULT_USE_PREDEFINED_MACRO_FILE;
+  memzero(predef_macro_mode_values, sizeof(predef_macro_mode_values));
   /* Make sure the predefined macro mode enumeration and the array of
      mode names match. */
   check_assertion_str2(predef_macro_mode_names[(int)pmm_last] != NULL &&
@@ -3313,7 +3347,6 @@ so that it can be redone to compile more than one source file in a single
 invocation of the front end.
 */
 {
-  dir_and_file_buffer = NULL;
 }  /* host_envir_init */
 
 /*

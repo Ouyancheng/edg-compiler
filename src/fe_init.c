@@ -880,8 +880,6 @@ source file's compilation.
 
   /* error.h: */
   total_remarks = total_warnings = total_errors = total_catastrophes = 0;
-  /* host_envir.h: */
-  dir_name_list = NULL;
   /* statements.h: */
   depth_stmt_stack = -1;
 

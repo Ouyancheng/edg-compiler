@@ -3084,10 +3084,6 @@ Process the arguments on the command line that invoked the compiler.
   /* Some messages have their severity overridden by default.  Set those
      values now. */
   set_default_message_severities();
-  /* Start with empty include file search paths.  Entries may be added
-     because of command line options, and others will be added as defaults. */
-  incl_search_path = end_incl_search_path = sys_incl_search_path = NULL;
-  put_dir_of_each_opened_source_file_on_incl_search_path = TRUE;
   /* Put the current directory on the template search path. */
   add_to_template_search_path(current_directory_name);
   /* Scan the command-line options. */
