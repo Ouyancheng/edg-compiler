@@ -27,6 +27,7 @@ typedef void (*a_ptr_to_destructor) (char *, int);
 extern "C" {
 extern  void	*__nw__FUi(size_t);	/* Mangled name for simple
 					   operator new(). */
+        void	__dl__FPv(void *);	/* Mangled name for operator delete. */
 	char	*_vec_new(char *, int, size_t, a_ptr_to_func_returning_void);
 	void 	_vec_delete(char *, int, size_t, a_ptr_to_destructor,
                             int, int);
@@ -172,7 +173,7 @@ list.
 
     /* Delete the array, if requested. */
     if (delete_flag == 1) {
-      free(array_ptr);
+      __dl__FPv(array_ptr);
       if (info_ptr != (vec_info_ptr)NULL) {
         /* Unhook this array information from the linked list and add to the
            front of the free list. */
