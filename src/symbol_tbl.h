@@ -1101,6 +1101,10 @@ default arguments and bodies of nontemplate member functions.
 */
 typedef struct a_nondependent_call_info {
   a_nondependent_call_info_ptr
+		previous;
+			/* The previous entry in the list.  NULL for the first
+			   entry. */
+  a_nondependent_call_info_ptr
 		next;
 			/* The next entry in the list.  NULL for the last
 			   entry. */

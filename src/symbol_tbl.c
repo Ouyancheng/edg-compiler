@@ -2087,6 +2087,7 @@ fields, and return a pointer to it.
   ndcip = (a_nondependent_call_info_ptr)
                                    alloc_fe(sizeof(a_nondependent_call_info));
   ndcip->next = NULL;
+  ndcip->previous = NULL;
   ndcip->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   ndcip->symbol = NULL;
 #if DEBUG
@@ -2115,22 +2116,34 @@ instantiation scope.
   check_assertion(depth_innermost_instantiation_scope != NO_SCOPE_DEPTH);
   ssep = &scope_stack[depth_innermost_instantiation_scope];
   list_ptr = ssep->next_nondependent_call;
-  /* Find the next entry on the list whose token sequence number is not
-     before the one that we are looking for.  Entries should only
-     be skipped in error recovery cases. */
-  while (list_ptr != NULL && tsn > list_ptr->token_sequence_number) {
-    list_ptr = list_ptr->next;
-  }  /* while */
+  if (list_ptr == NULL) {
+    /* There is no list. */
+  } else if (tsn > list_ptr->token_sequence_number) {
+    /* The current position in the list refers to a lower token sequence
+       number than the one we are looking for.  Look forward in the list
+       to see if an entry exists for this token sequence number. */
+    while (list_ptr != NULL && tsn > list_ptr->token_sequence_number) {
+      list_ptr = list_ptr->next;
+    }  /* while */
+  } else if (tsn < list_ptr->token_sequence_number) {
+    /* The current position in the list refers to a higher token sequence
+       number than the one we are looking for.  Look backward in the list
+       to see if an entry exists for this token sequence number. */
+    while (list_ptr != NULL && tsn < list_ptr->token_sequence_number) {
+      list_ptr = list_ptr->previous;
+    }  /* while */
+  }  /* if */
   if (list_ptr != NULL) {
     if (tsn == list_ptr->token_sequence_number) {
       /* The token sequence number matches the next entry on the list.
-         Return the entry and move to the next entry on the list. */
+         Return the entry. */
       result = list_ptr;
-      list_ptr = list_ptr->next;
     }  /* if */
   }  /* if */
-  /* Save the updated list pointer back into the scope stack entry. */
-  ssep->next_nondependent_call = list_ptr;
+  if (list_ptr != NULL) {
+    /* Save the updated list pointer back into the scope stack entry. */
+    ssep->next_nondependent_call = list_ptr;
+  }  /* if */
   return result;
 }  /* get_nondependent_call_info */
 
@@ -2177,6 +2190,9 @@ entry can be found during a real instantiation.
     /* Either the list is entry, or the token sequence number of this entry
        precedes the previous start of the list. */
     ndcip->next = tdip->nondependent_calls;
+    if (tdip->nondependent_calls != NULL) {
+      tdip->nondependent_calls->previous = ndcip;
+    }  /* if */
     tdip->nondependent_calls = ndcip;
   } else {
     /* The new entry does not go at the start of the list.  See if the
@@ -2196,6 +2212,10 @@ entry can be found during a real instantiation.
       insert_loc = insert_loc->next;
     }  /* while */
     ndcip->next = insert_loc->next;
+    ndcip->previous = insert_loc;
+    if (insert_loc->next != NULL) {
+      insert_loc->next->previous = ndcip;
+    }  /* if */
     insert_loc->next = ndcip;
   }  /* if */
   tdip->last_entry_added = ndcip;
