@@ -901,7 +901,7 @@ but may not be representable (it may be too large or too small); if there's
 an error, return *err = TRUE.  The specific fixed-point kind is indicated by
 *fxp_descr (and will typically affect the representation in *value).
 The string need not have a decimal point or exponent (it can look like an
-integer).  It may have a leading "-" sign.
+integer).
 
 This implementation is for demonstration purposes only: It is known to be
 imprecise.  Specifically, this implementation scans the string as a floating-
