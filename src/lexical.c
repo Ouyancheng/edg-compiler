@@ -372,13 +372,13 @@ primary source file) and the current input file (the top entry on the
 stack).
 */
 static an_input_stack_entry_ptr
-		input_stack = NULL;
+		input_stack;
 			/* Input stack, one entry for each active source 
 			   file.  Entry [0] is for the primary source file.
 			   Dynamically allocated, reallocated if necessary;
 			   size_input_stack gives the current allocated
 			   size.  Not per-file. */
-static int	size_input_stack = 0;
+static int	size_input_stack;
 			/* Allocated size of input_stack, in elements not
 			   bytes.  Not per-file. */
 #define INPUT_STACK_INCREMENTAL_ALLOCATION 30
@@ -442,7 +442,7 @@ static char	curr_raw_listing_line_code;
 			   'S' for a line skipped by an if-skip, 'N' for
 			   a normal line, or '\0' if there is no current 
 			   line. */
-static	char	*raw_listing_buffer = NULL;
+static	char	*raw_listing_buffer;
 			/* Buffer used in writing the macro-expanded versions
 			   of source lines to the raw listing file.  Space is
 			   dynamically allocated, and its upper bound is given
@@ -453,7 +453,7 @@ static	char	*raw_listing_buffer = NULL;
 			   Subsequent reallocations will double the amount
 			   previously allocated.  Should probably match the
 			   corresponding constant for curr_source_line. */
-static char	*after_end_of_raw_listing_buffer = NULL;
+static char	*after_end_of_raw_listing_buffer;
 			/* Address past the last element of raw_listing_buffer,
 			   as an aid to checking for overflow, etc.  A variable
 			   because raw_listing_buffer can be reallocated larger
@@ -595,12 +595,12 @@ typedef struct a_file_suffix {
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
 
 static a_file_suffix_ptr
-		 implicit_instantiation_file_suffix_list = NULL;
+		 implicit_instantiation_file_suffix_list;
 
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 static a_file_suffix_ptr
-		 include_file_suffix_list = NULL;
+		 include_file_suffix_list;
 			/* List of file suffixes used when searching for a
 			   header file whose name does not include a suffix. */
 
@@ -5185,7 +5185,7 @@ ISO C standard.
 Flag that is TRUE while scanning a pcc-mode half-comment (see routine
 below).
 */
-static a_boolean in_pcc_mode_half_comment = FALSE;
+static a_boolean in_pcc_mode_half_comment;
 
 static void skip_pcc_mode_half_comment(void)
 /*
@@ -13977,6 +13977,7 @@ static void init_include_file_suffixes(void)
 Create the include file suffix list used for header files with no suffix.
 */
 {
+  include_file_suffix_list = NULL;
   if (include_file_suffixes != NULL &&
       *include_file_suffixes != '\0') {
     include_file_suffix_list =
@@ -14058,6 +14059,8 @@ are handled in lexical_init.)
                             (sizeof_t)(CURR_SOURCE_LINE_INITIAL_ALLOCATION+1));
   after_end_of_curr_source_line = curr_source_line +
                                     CURR_SOURCE_LINE_INITIAL_ALLOCATION;
+  raw_listing_buffer = NULL;
+  after_end_of_raw_listing_buffer = NULL;
   if (f_raw_listing != NULL) {
     /* Similar allocation for raw_listing_buffer.  Similar reasoning. */
     raw_listing_buffer = alloc_general(
@@ -14066,6 +14069,9 @@ are handled in lexical_init.)
                                         RAW_LISTING_BUFFER_INITIAL_ALLOCATION;
     clear_raw_listing_buffer();
   }  /* if */
+  input_stack = NULL;
+  size_input_stack = 0;
+  in_pcc_mode_half_comment = FALSE;
 #if CHECKING
   /* Check that the table of token names is correctly initialized.  This
      guards against someone changing the enumeration and forgetting to

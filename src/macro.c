@@ -5982,6 +5982,7 @@ Do one-time initialization of variables related to macro processing.
   macro_arg_text_space = 0;
 #endif /* DEBUG */
   registered_pointers = NULL;
+  macro_buffer_region_in_progress = NULL;
   /* Save variables from macro.h and macro.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {

@@ -2205,8 +2205,8 @@ attributes.
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
   pragma_extname_string_space = 0;
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
-#endif /* DEBUG */
   num_attributes_allocated = 0;
+#endif /* DEBUG */
 #if CHECKING
   /* Check that the table of mode names is correctly initialized. */
   if (type_mode_kind_names[(int)tmk_last] == NULL ||

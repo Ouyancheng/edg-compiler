@@ -1024,7 +1024,7 @@ EXTERN char	*curr_source_line;
 			   all the lines of a large macro definition.
 			   Subsequent reallocations will double the amount
 			   previously allocated. */
-EXTERN char	*after_end_of_curr_source_line /* = NULL */;
+EXTERN char	*after_end_of_curr_source_line;
 			/* Address past the last element of curr_source_line,
 			   as an aid to checking for overflow, etc.  A variable
 			   because curr_source_line line can reallocated larger

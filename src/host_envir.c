@@ -3322,7 +3322,6 @@ This is done before command line processing.
   end_incl_search_path = NULL;
   sys_incl_search_path = NULL;
   put_dir_of_each_opened_source_file_on_incl_search_path = TRUE;
-  dir_name_list = NULL;
   stack_referenced_include_directories = STACK_REFERENCED_INCLUDE_DIRECTORIES;
   prototype_instantiations_in_il = PROTOTYPE_INSTANTIATIONS_IN_IL;
   in_front_end = FALSE;
@@ -3347,6 +3346,7 @@ so that it can be redone to compile more than one source file in a single
 invocation of the front end.
 */
 {
+  dir_name_list = NULL;
 }  /* host_envir_init */
 
 /*

@@ -411,9 +411,9 @@ types.
 #if LOWER_COMPLEX
 
 /* Pointers to lowered versions of complex types, once allocated. */
-static a_type_ptr lowered_complex_float = NULL;
-static a_type_ptr lowered_complex_double = NULL;
-static a_type_ptr lowered_complex_long_double = NULL;
+static a_type_ptr lowered_complex_float;
+static a_type_ptr lowered_complex_double;
+static a_type_ptr lowered_complex_long_double;
 
 
 static a_type_ptr make_lowered_complex_type(a_float_kind  fkind,
@@ -509,28 +509,28 @@ static a_routine_ptr  xeq_routine[(int)fk_last];
 static a_routine_ptr  xne_routine[(int)fk_last];
 
 /* Complex-to-complex conversion routines. */
-static a_routine_ptr  cast_cfloat_to_cdouble_routine = NULL;
-static a_routine_ptr  cast_cfloat_to_clong_double_routine = NULL;
-static a_routine_ptr  cast_cdouble_to_cfloat_routine = NULL;
-static a_routine_ptr  cast_cdouble_to_clong_double_routine = NULL;
-static a_routine_ptr  cast_clong_double_to_cfloat_routine = NULL;
-static a_routine_ptr  cast_clong_double_to_cdouble_routine = NULL;
+static a_routine_ptr  cast_cfloat_to_cdouble_routine;
+static a_routine_ptr  cast_cfloat_to_clong_double_routine;
+static a_routine_ptr  cast_cdouble_to_cfloat_routine;
+static a_routine_ptr  cast_cdouble_to_clong_double_routine;
+static a_routine_ptr  cast_clong_double_to_cfloat_routine;
+static a_routine_ptr  cast_clong_double_to_cdouble_routine;
 
 /* Non-complex to complex conversion routines. */
-static a_routine_ptr  cast_float_to_cfloat = NULL;
-static a_routine_ptr  cast_double_to_cdouble = NULL;
-static a_routine_ptr  cast_long_double_to_clong_double = NULL;
-static a_routine_ptr  cast_ifloat_to_cfloat = NULL;
-static a_routine_ptr  cast_idouble_to_cdouble = NULL;
-static a_routine_ptr  cast_ilong_double_to_clong_double = NULL;
+static a_routine_ptr  cast_float_to_cfloat;
+static a_routine_ptr  cast_double_to_cdouble;
+static a_routine_ptr  cast_long_double_to_clong_double;
+static a_routine_ptr  cast_ifloat_to_cfloat;
+static a_routine_ptr  cast_idouble_to_cdouble;
+static a_routine_ptr  cast_ilong_double_to_clong_double;
 
 /* Complex to non-complex conversion routines. */
-static a_routine_ptr  cast_cfloat_to_float = NULL;
-static a_routine_ptr  cast_cdouble_to_double = NULL;
-static a_routine_ptr  cast_clong_double_to_long_double = NULL;
-static a_routine_ptr  cast_cfloat_to_ifloat = NULL;
-static a_routine_ptr  cast_cdouble_to_idouble = NULL;
-static a_routine_ptr  cast_clong_double_to_ilong_double = NULL;
+static a_routine_ptr  cast_cfloat_to_float;
+static a_routine_ptr  cast_cdouble_to_double;
+static a_routine_ptr  cast_clong_double_to_long_double;
+static a_routine_ptr  cast_cfloat_to_ifloat;
+static a_routine_ptr  cast_cdouble_to_idouble;
+static a_routine_ptr  cast_clong_double_to_ilong_double;
 
 
 static char* select_name_from_float_kind(a_float_kind  fkind,

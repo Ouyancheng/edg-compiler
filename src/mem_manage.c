@@ -431,6 +431,12 @@ PCH was created.
 
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
+static a_boolean
+		additional_allocation_needed;
+			/* TRUE when an allocation has been done that
+			   cannot be satisfied by the pre-allocated memory. */
+			
+
 a_void_ptr alloc_new_mem_block(sizeof_t size)
 /*
 Allocate a block of memory to be used for memory region storage.  This
@@ -444,7 +450,6 @@ precompiled headers is suppressed.
 */
 {
   a_void_ptr		addr;
-  static a_boolean	additional_allocation_needed = FALSE;
 
   if (!additional_allocation_needed) {
     if (mem_alloc_history_entries_used == num_of_mem_alloc_history_entries) {
@@ -1447,6 +1452,7 @@ Do one-time initialization of variables related to the mem_manage routines.
   exhausted_preallocated_memory = FALSE;
   large_mem_block_needed = FALSE;
   total_mem_blocks_allocated = 0;
+  additional_allocation_needed = FALSE;
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   /* Register variables that must be saved and restored when switching
      between translation units. */
