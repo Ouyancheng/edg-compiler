@@ -1,5 +1,9 @@
 Version 2.43
 
+12/1/99  Mangling for template template parameters
+
+The name demangler can now demangle template template parameters.
+
 12/1/99  Demangling of unnamed namespace names
 
 The mangled form of an unnamed namespace name now includes a unique

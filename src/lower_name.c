@@ -1437,12 +1437,14 @@ Add to the mangled name the encoding for the name of the class "type".
 This is the version that contains a leading count of the number of
 characters in the name, but not information on parents.  If the class
 is a proxy class for a template parameter, the encoding for the template
-parameter is put out (without a length).  show_partial_spec_args is
-TRUE if template arguments for a partial specialization should be
-put out.  show_template_specialization is TRUE if the class is generated
-from a specialization of a template and an indication of that fact should
-be put out.  show_specialization is TRUE if the class is itself a
-specialization and an indication of that fact should be put out.
+parameter is put out (without a length).  If the class is a template
+template parameter with a template argument list, put out an encoding
+for that.  show_partial_spec_args is TRUE if template arguments for a
+partial specialization should be put out.  show_template_specialization
+is TRUE if the class is generated from a specialization of a template
+and an indication of that fact should be put out.  show_specialization
+is TRUE if the class is itself a specialization and an indication of
+that fact should be put out.
 */
 {
   a_type_ptr template_param = NULL;
@@ -1478,29 +1480,51 @@ specialization and an indication of that fact should be put out.
                             "mangled_class_encoding: bad template param kind");
     }  /* switch */
   } else {
-    /* Not a proxy for a template parameter.  Put out the class name preceded
-       by its length. */
-    a_mangling_control_block sctl;
-    /* Do the mangling once to get the length, then again for real. */
-    set_control_block_for_suppression(&sctl, mctl);
-    mangled_full_class_name(type,
-                            show_partial_spec_args,
-                            show_template_specialization,
-                            show_specialization,
-                            &sctl);
-    if (mctl->suppress_output) {
-      /* If we are suppressing output, we do not need to do the processing
-         again.  We can just increment the length to indicate the number
-         of characters we would have put out. */
-      mctl->slength += digits_to_represent((unsigned long)sctl.slength) +
-                       sctl.slength;
-    } else {
-      add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
+    /* Not a proxy for a template parameter. */
+    /* See whether this is the proxy for a template template parameter. */
+    a_boolean    is_template_template_param = FALSE;
+    a_symbol_ptr template_sym = class_template_for_type(type);
+    if (template_sym != NULL) {
+      a_template_symbol_supplement_ptr tssp =
+                                           template_sym->variant.template_info;
+      if (tssp->variant.class_template.template_template_param) {
+        /* Yes, this is a template template parameter. */
+        is_template_template_param = TRUE;
+        mangled_encoding_for_template_parameter(
+                                     &tssp->variant.class_template.coordinates,
+                                     mctl);
+        mangled_template_arguments(type->variant.class_struct_union.
+                                                 extra_info->template_arg_list,
+                                   /*partial_spec=*/FALSE,
+                                   /*old_form=*/FALSE,
+                                   mctl);
+      }  /* if */
+    }  /* if */
+    if (!is_template_template_param) {
+      /* Not a template template parameter. */
+      /* Put out the class name preceded by its length. */
+      a_mangling_control_block sctl;
+      /* Do the mangling once to get the length, then again for real. */
+      set_control_block_for_suppression(&sctl, mctl);
       mangled_full_class_name(type,
                               show_partial_spec_args,
                               show_template_specialization,
                               show_specialization,
-                              mctl);
+                              &sctl);
+      if (mctl->suppress_output) {
+        /* If we are suppressing output, we do not need to do the processing
+           again.  We can just increment the length to indicate the number
+           of characters we would have put out. */
+        mctl->slength += digits_to_represent((unsigned long)sctl.slength) +
+                         sctl.slength;
+      } else {
+        add_number_to_mangled_name((unsigned long)sctl.slength, mctl);
+        mangled_full_class_name(type,
+                                show_partial_spec_args,
+                                show_template_specialization,
+                                show_specialization,
+                                mctl);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* mangled_class_encoding */

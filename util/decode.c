@@ -4,11 +4,11 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1996 Edison Design Group Inc.                        [_]          *
+* Copyright 1996-1999 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
-Copyright (c) 1996, Edison Design Group, Inc.
+Copyright (c) 1996-1999, Edison Design Group, Inc.
 
 Redistribution and use in source and binary forms are permitted
 provided that the above copyright notice and this paragraph are
@@ -1362,6 +1362,13 @@ controls output of extra information on template parameters.
   if (*p == 'Z') {
     /* A template parameter name. */
     p = demangle_template_parameter_name(p, /*nontype=*/FALSE, dctl);
+    /* A template template parameter is followed by a template
+       argument list. */
+    if (p[0] == '_' && p[1] == '_' && p[2] == 't' && p[3] == 'm' &&
+        p[4] == '_' && p[5] == '_') {
+      p = demangle_template_arguments(p+6, /*partial_spec=*/FALSE,
+                                      temp_par_info, dctl);
+    }  /* if */
   } else {
     /* A simple mangled type name consists of digits indicating the length of
        the name followed by the name itself, e.g., "3abc". */
@@ -2353,6 +2360,6 @@ length returned the second time will be correct).
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1996 Edison Design Group Inc.                        [_]          *
+* Copyright 1996-1999 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
