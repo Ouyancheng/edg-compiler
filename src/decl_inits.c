@@ -194,8 +194,69 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 }  /* check_for_matching_closing_brace */
 
 
+static a_boolean throws_no_exceptions(a_routine_ptr  rp)
+/*
+Return TRUE if the routine pointed to by rp does not throw exceptions; return
+FALSE if it does.
+*/
+{
+  a_boolean                       throws_none = TRUE;
+  an_exception_specification_ptr  esp;
+
+  if (exceptions_enabled) {
+    esp = rp->type->variant.routine.extra_info->exception_specification;
+    if (esp == NULL || esp->exception_specification_type_list != NULL) {
+      /* The constructor is declared to throw something (either anything at
+         at all or a specific set of types). */
+      throws_none = FALSE;
+    }  /* if */
+  }  /* if */
+  return throws_none;
+}  /* throws_no_exceptions */
+
+
+static void add_destructor_to_dynamic_init(a_dynamic_init_ptr  dip,
+                                           a_type_ptr          class_type,
+                                           a_source_position   *pos,
+                                           a_boolean           static_lifetime)
+/*
+This routine should really be called, "add destructor to dynamic init for
+element of partially constructed array".  dip is a dynamic-init entry created
+for the initialization of an array element.  class_type is class of which the
+associated constructor (if there is one) is a member.  *pos is the source
+position in case there's an error looking up the destructor.  If
+static_lifetime is TRUE, the underlying entity has static storage duration.
+*/
+{
+  a_routine_ptr  ctor_rp, dtor_rp;
+
+  if (dip->kind == (a_dynamic_init_kind)dik_constructor &&
+      dip->destructor == NULL) {
+    ctor_rp = dip->variant.constructor.ptr;
+    if (!throws_no_exceptions(ctor_rp)) {
+      class_type = skip_typerefs(class_type);
+      dtor_rp = select_destructor(class_type, class_type, pos,
+                                  /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                                  /*suppress_access_check=*/FALSE);
+      if (dtor_rp != NULL) {
+        dip->destructor = dtor_rp;
+        dip->destruction_is_for_partially_constructed_array = TRUE;
+        /* Since the destructor has been added to a dynamic init entry that
+           will not be "on top" when gen_dynamic_initialization is called,
+           record the destruction, if needed, with the appropriate
+           object-lifetime entry. */
+        record_end_of_lifetime_destruction(dip, static_lifetime,
+                                           /*block_lifetime=*/TRUE);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* add_destructor_to_dynamic_init */
+
+
 static a_boolean init_remaining_array_elements(a_type_ptr     array_type,
                                                a_targ_size_t  curr_element,
+                                               a_boolean      fill_in_dtor,
+                                               a_boolean      static_lifetime,
                                                a_constant_ptr *con_list,
                                                a_constant_ptr *end_of_con_list,
                                                a_boolean      *incomplete_init)
@@ -258,6 +319,13 @@ routine is called in C++ mode only.
           ptp = (skip_typerefs(ctor_rp->type))->
                                    variant.routine.extra_info->param_type_list;
           dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
+          if (exceptions_enabled && fill_in_dtor) {
+            /* If appropriate, add a destructor pointer to the dynamic init
+               entry.  This is for the case in which an exception is thrown by
+               the constructor before the entire array has been initialized. */
+            add_destructor_to_dynamic_init(dip, element_type, &pos_curr_token,
+                                           static_lifetime);
+          }  /* if */
           /* Now create the constant entry that will point to the new dynamic
              init entry. */
           cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
@@ -535,25 +603,32 @@ only if *dip_ptr is NULL.  If the initializer is nonconstant or
   
 
 static a_constant_ptr get_initializer(
-                    a_type_ptr          *type,
-                    a_boolean           top_level,
-                    a_boolean           static_lifetime,
-                    a_boolean           *any_member_uninitialized,
-                    a_boolean           *any_uninit_const_or_ref_member,
-                    a_boolean           *any_dynamic_initialization,
-                    a_boolean           *nothing_taken)
+                            a_type_ptr  *type,
+                            a_boolean   top_level,
+                            a_boolean   static_lifetime,
+                            a_boolean   is_top_level_array,
+                            a_boolean   is_final_array_element,
+                            a_boolean   *any_member_uninitialized,
+                            a_boolean   *any_uninit_const_or_ref_member,
+                            a_boolean   *any_dynamic_initialization,
+                            a_boolean   *nothing_taken)
 /*
-Scan a constant initializer or initializer list, and return a pointer to
-the constant for it (an aggregate constant if an initializer list is
-scanned).  *type indicates the type of the object being initialized.  It
-will be updated if the object is an incomplete array whose size is now
-known because it is initialized.  If there is some error in the
-initializer, an error constant is returned.  top_level is TRUE if this is
-a top-level initializer (braces are required surrounding initializers for
-unions and aggregates at that level).  *nothing_taken is returned TRUE if
-no source tokens were taken because the entity being initialized is an
-empty class. *incomplete_init is returned TRUE when at least one const or
-ref field of a class object (or an array of same) remains uninitialized.
+Scan a constant initializer or initializer list, and return a pointer to the
+constant for it (an aggregate constant if an initializer list is scanned).
+*type indicates the type of the object being initialized.  It will be
+updated if the object is an incomplete array whose size is now known because
+it is initialized.  If there is some error in the initializer, an error
+constant is returned.  top_level is TRUE if this is a top-level initializer
+(braces are required surrounding initializers for unions and aggregates at
+that level).  If static_lifetime is TRUE, the underlying entity has static
+storage duration.  is_top_level_array is TRUE if the entity being
+initialized is an array that is not itself an element of another array; it
+may be a field -- therefore this flag may be TRUE even though top_level is
+FALSE.  is_final_array_element is TRUE if the entity being initialized is
+the last element of an array.  *nothing_taken is returned TRUE if no source
+tokens were taken because the entity being initialized is an empty
+class. *incomplete_init is returned TRUE when at least one const or ref
+field of a class object (or an array of same) remains uninitialized.
 */
 {
   a_constant_ptr      init_con = NULL;
@@ -652,12 +727,13 @@ ref field of a class object (or an array of same) remains uninitialized.
       init_con->type = local_type;
       init_con->variant.dynamic_init = dip;
       *any_dynamic_initialization = TRUE;
-      /* Since the destructor may have been added to a dynamic init entry
-         that will not be "on top" when gen_dynamic_initialization is called,
-         record the destruction, if needed, with the appropriate
-         object-lifetime entry. */
-      record_end_of_lifetime_destruction(dip, static_lifetime,
-                                         /*block_lifetime=*/TRUE);
+      if (exceptions_enabled && !is_final_array_element) {
+        /* If appropriate, add a destructor pointer to the dynamic init entry.
+           This is for the case in which an exception is thrown by the
+           constructor before the entire array has been initialized. */
+        add_destructor_to_dynamic_init(dip, local_type, &pos_curr_token,
+                                       static_lifetime);
+      }  /* if */
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
              (is_error_type(local_type) && brace_flag)) {
@@ -778,6 +854,9 @@ ref field of a class object (or an array of same) remains uninitialized.
       took_extra_comma = FALSE;
       /* Loop, scanning initializers and building an aggregate constant. */
       while (any_more_initializers) {
+        a_boolean  local_is_final_array_element = FALSE;
+        a_boolean  local_is_top_level_array = FALSE;
+
         /* Determine the type of the member being initialized. */
         if (!any_more_members) {
           /* There are more initializers, but we've run out of members
@@ -801,9 +880,15 @@ ref field of a class object (or an array of same) remains uninitialized.
             fputc('\n', f_debug);
           }  /* if */
 #endif /* DEBUG */
+          if ((is_final_array_element || is_top_level_array) &&
+              local_type->variant.array.variant.number_of_elements ==
+                                                 curr_array_element + 1) {
+            local_is_final_array_element = TRUE;
+          }  /* if */
         } else {
           /* Class type: get the type of the current field. */
           member_type = curr_field->type;
+          if (is_array_type(member_type)) local_is_top_level_array = TRUE;
 #if DEBUG
           if (debug_level == 4) {
             fputs("getting initializer for field \"", f_debug);
@@ -833,6 +918,8 @@ ref field of a class object (or an array of same) remains uninitialized.
         /* Get the initializer for this one member. */
         member_con = get_initializer(&member_type, /*top_level=*/FALSE,
                                      static_lifetime,
+                                     local_is_top_level_array,
+                                     local_is_final_array_element,
                                      any_member_uninitialized,
                                      any_uninit_const_or_ref_member,
                                      any_dynamic_initialization,
@@ -970,6 +1057,9 @@ ref field of a class object (or an array of same) remains uninitialized.
                we are required to provide default initialization by calling
                the default constructor. */
             if (init_remaining_array_elements(local_type, curr_array_element,
+                                              (is_final_array_element ||
+                                                        is_top_level_array),
+                                              static_lifetime,
                                               &con_list, &end_of_con_list,
                                              any_uninit_const_or_ref_member)) {
               any_more_members = FALSE;
@@ -1107,6 +1197,8 @@ detection of uninitialized fields).
   }  /* if */
 #endif /* DEBUG */
   *init_con = get_initializer(type, /*top_level=*/TRUE, static_lifetime,
+                              /*is_top_level_array=*/is_array_type(*type),
+                              /*is_final_array_element=*/FALSE,
                               &any_member_uninitialized,
                               &any_const_or_ref_member_uninitialized,
                               &initialization_is_dynamic, &nothing_taken);
