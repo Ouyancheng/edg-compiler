@@ -64,7 +64,7 @@ int edg_main(int argc, char *argv[])
   a_timer	    end_time;
 
 #if DEBUG
-  /* Initiaize the file variable used for debug output.  This should be
+  /* Initialize the file variable used for debug output.  This should be
      done before anything else that could potentially produce debug output. */
   f_debug = stderr;
 #endif /* DEBUG */
