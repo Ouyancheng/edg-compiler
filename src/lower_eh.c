@@ -82,7 +82,8 @@ sometime later to set the size on the type.  The variable is put in the
 current function scope even if the current context is a block inside that.
 */
 {
-  return make_function_scope_temporary(array_of(elem_type));
+  return make_temporary_in_scope(array_of(elem_type), innermost_function_scope,
+                                 /*force_static=*/FALSE);
 }  /* make_unnamed_local_array_var */
 
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
@@ -1489,18 +1490,20 @@ void make_dyn_init_region_table_entry(a_dynamic_init_ptr dip,
 /*
 Add an entry to the region table (which describes destructible objects)
 for the initialization described by dip.  The entry will point to
-next_dip/curr_cleanup_state as its next region.  The initialization
-must have an attached destructible entity description, and the
-conditional_flag_var field of that entry must be filled in if
-appropriate (if a conditional flag variable is indicated, a region
-table entry will be created for it as well).  Also insert (at
-*insert_location) initialization code for the proper entry in the
-object address table.  The region table variable is created if
-necessary.
+next_dip as its next region.  The initialization must have an attached
+destructible entity description, and the conditional_flag_var field of
+that entry must be filled in if appropriate (if a conditional flag
+variable is indicated, a region table entry will be created for it
+as well); cleanup_state_to_set_when_starting_destruction should
+also be set (it differs from next_dip in that the latter does not
+cross over lifetime boundaries).  Also insert (at *insert_location)
+initialization code for the proper entry in the object address table.
+The region table variable is created if necessary.
 */
 {
   a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
   a_handle                        conditional_flag_handle;
+  a_cleanup_region_number         next_region_number;
 
   check_assertion(dedp != NULL);
   /* Make a handle that describes the address of the conditional flag if
@@ -1515,7 +1518,8 @@ necessary.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   }  /* if */
   dedp->next_in_region_table = next_dip;
-  dedp->cleanup_state_to_set_when_starting_destruction = curr_cleanup_state;
+  next_region_number = cleanup_region_number(
+                         dedp->cleanup_state_to_set_when_starting_destruction);
   dedp->region_table_entry =
              make_region_table_entry(&dedp->init_pos_descr,
                                      dip->destructor,
@@ -1523,7 +1527,7 @@ necessary.
                                             is_freeing_of_storage_on_exception,
                                      dedp->conditional_flag_var,
                                      &conditional_flag_handle,
-                                     cleanup_region_number(curr_cleanup_state),
+                                     next_region_number,
                                      &dedp->region_number,
                                      insert_location);
 #if DO_UNORDERED_EH_PROCESSING
@@ -2257,12 +2261,12 @@ statement if necessary.
   }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   if (scope->lifetime != NULL || routine->contains_try_block) {
-    /* The function contains destructible objects, so we need to push a
-       stack entry for the function itself.  Or, it contains try blocks. */
+    /* The function contains destructible objects, or it contains try
+       blocks, so it needs a prologue and epilogue. */
+    need_function_epilogue = TRUE;
 #if DO_FULL_PORTABLE_EH_LOWERING
     /* Generate code to push an entry on the EH stack. */
     push_eh_stack_frame(ehsek_function, &func_frame, &insert_location);
-    need_function_epilogue = TRUE;
     /* Finish off the various arrays and put pointers to them into the
        stack. */
     if (region_table_var != NULL) {
@@ -2900,6 +2904,8 @@ Lower an enk_throw expression node.
   an_insert_location insert_location;
   a_boolean          keep_dynamic_init;
   an_expr_node_ptr   temp_node;
+  a_throw_supplement_ptr
+                     tsp = expr->variant.throw_info;
 #if DO_FULL_PORTABLE_EH_LOWERING
   a_type_ptr         ptr_throw_type;
   a_variable_ptr     temp_var, typeinfo_var;
@@ -2911,7 +2917,7 @@ Lower an enk_throw expression node.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
   /* Check for a throw with no operand, i.e., a rethrow. */
-  if (expr->variant.throw_info == NULL) {
+  if (tsp == NULL) {
 #if DO_FULL_PORTABLE_EH_LOWERING
     /* This is a rethrow.  Replace the enk_throw node with a call of
        __rethrow. */
@@ -2923,10 +2929,10 @@ Lower an enk_throw expression node.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   } else {
     /* Throw of an object. */
-    throw_type = expr->variant.throw_info->type;
+    throw_type = tsp->type;
     lower_os_type(throw_type);
     throw_type = f_skip_typerefs(throw_type);  /* Probably unnecessary. */
-    dip = expr->variant.throw_info->dynamic_init;
+    dip = tsp->dynamic_init;
     /* There should be no destructor indicated, because the runtime handles
        the destruction. */
     check_assertion(dip->destructor == NULL);
@@ -3013,10 +3019,13 @@ Lower an enk_throw expression node.
 #if !DO_FULL_PORTABLE_EH_LOWERING
     /* Pull the "real" code out of from under the dummy expression node
        created above.  The extra dummy nodes are just thrown away. */
-    check_assertion(temp_node->kind == (an_expr_operator_kind)eok_comma);
+    check_assertion(is_operation_node(temp_node) &&
+                    temp_node->variant.operation.kind ==
+                                             (an_expr_operator_kind)eok_comma);
     temp_node = temp_node->variant.operation.operands;
     temp_node->next = NULL;
-    expr->variant.throw_info->expr = temp_node;
+    tsp->expr = temp_node;
+    tsp->dynamic_init = NULL;
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   }  /* if */
 }  /* lower_throw */

@@ -1169,20 +1169,6 @@ Return a pointer to the variable.
 }  /* make_file_scope_temporary */
 
 
-a_variable_ptr make_function_scope_temporary(a_type_ptr temp_type)
-/*
-Make an unnamed auto variable of type temp_type in the nearest function
-scope.  Return a pointer to the variable.
-*/
-{
-  a_variable_ptr temp_var;
-
-  temp_var = make_temporary_in_scope(temp_type, innermost_function_scope,
-                                     /*force_static=*/FALSE);
-  return temp_var;
-}  /* make_function_scope_temporary */
-
-
 a_variable_ptr make_unnamed_local_static_variable(a_type_ptr type,
                                                   a_boolean  in_function_scope)
 /*
@@ -1492,6 +1478,7 @@ type of the node is already "char *" return the original node.
   return add_cast_if_necessary(node, char_star_type());
 }  /* add_cast_to_char_star */
 
+#if DO_FULL_PORTABLE_EH_LOWERING
 
 an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var)
 /*
@@ -1507,6 +1494,7 @@ in that it does the cast to pointer-to-element.
   return node;
 }  /* array_var_lvalue_expr */
 
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 static a_field_ptr field_at_offset(a_type_ptr    class_type,
                                    a_targ_size_t byte_offset)
@@ -2325,6 +2313,7 @@ and if not, issue an error.  This version is for signed integer kinds.
                        &did_not_fold, &error_position);
 }  /* set_integer_constant_with_overflow_check */
 
+#if GENERATE_EH_TABLES
 
 void set_unsigned_integer_constant_with_overflow_check(
                                               a_constant_ptr  con,
@@ -2350,6 +2339,7 @@ and if not, issue an error.  This version is for unsigned integer kinds.
                        &did_not_fold, &error_position);
 }  /* set_unsigned_integer_constant_with_overflow_check */
 
+#endif /* GENERATE_EH_TABLES */
 
 static void set_delta_constant(a_targ_ptrdiff_t delta,
                                a_constant_ptr   delta_con)
@@ -2591,10 +2581,10 @@ Do IL lowering of the indicated constant and everything under it.
       case ck_aggregate:
         lower_constant_list(constant->variant.aggregate.first_constant);
         break;
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+#if GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
       case ck_stack_offset:
         /* Shouldn't come up here. */
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* GENERATE_EH_TABLES && ... */
       case ck_dynamic_init:
         /* Shouldn't come up here.  See
            lower_dynamic_init_aggregate_constant. */

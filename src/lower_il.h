@@ -461,7 +461,9 @@ extern void change_to_cast(an_expr_node_ptr node,
                            an_expr_node_ptr operand_node,
                            a_type_ptr       new_type);
 
+#if DO_FULL_PORTABLE_EH_LOWERING
 extern an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var);
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
 extern an_expr_node_ptr make_node_for_il_constant(a_constant_ptr constant);
 
@@ -534,8 +536,6 @@ extern a_variable_ptr make_lowered_temporary(a_type_ptr temp_type);
 
 extern a_variable_ptr make_file_scope_temporary(a_type_ptr temp_type);
 
-extern a_variable_ptr make_function_scope_temporary(a_type_ptr temp_type);
-
 extern void make_lowered_field(char          *field_name,
                                a_type_ptr    field_type,
                                a_targ_size_t *byte_offset,
@@ -555,11 +555,12 @@ extern void set_integer_constant_with_overflow_check(
                                               a_constant_ptr  con,
                                               long            con_val,
                                               an_integer_kind ikind);
-
+#if GENERATE_EH_TABLES
 extern void set_unsigned_integer_constant_with_overflow_check(
                                               a_constant_ptr  con,
                                               unsigned long   con_val,
                                               an_integer_kind ikind);
+#endif /* GENERATE_EH_TABLES */
 
 /* See also below -- this is defined as a macro if IL lowering is
    configured out. */
