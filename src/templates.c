@@ -7892,6 +7892,11 @@ instantiation.
       if (locator_for_curr_id.is_template_id) {
         is_partial_specialization = TRUE;
       }  /* if */
+      /* If the symbol found is an injected template symbol, replace it with
+         the template that it represents. */
+      if (is_injected_template_symbol(sym)) {
+        sym = class_template_for_injected_template_symbol(sym);
+      }  /* if */
     } else {
       /* Look up the symbol in the current scope.  To do this we must
          temporarily change the decl. scope level to the effective
