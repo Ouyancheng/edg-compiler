@@ -1,5 +1,14 @@
 Version 2.38
 
+11/18/97  Generated output for #ident and #pragma ident
+
+#ident and #pragma ident are both represented the same way in the IL,
+as a pragma entry.  Heretofore, they have both been output (by
+the C-generating back end and the C++-generating back end) as #ident,
+with the idea that #ident is more widely accepted than #pragma ident.
+Now, by setting USE_PRAGMA_IDENT_IN_GENERATED_CODE to TRUE, one can
+request that both be output as #pragma ident instead.
+
 11/17/97  Member class template bodies should not be removed when
           source sequence entries are created for nonclass template
           instantiations

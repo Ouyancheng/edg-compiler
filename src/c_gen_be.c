@@ -1713,9 +1713,11 @@ Dump a single #pragma from the IL entry.
 #if IDENT_DIRECTIVE_AND_PRAGMA
     /* Check for #pragma ident (= #ident). */
     if (pp->kind == (a_pragma_kind)pk_ident) {
-      /* Just put out #ident, which is probably recognized more often than
-         #pragma ident is. */
+#if USE_PRAGMA_IDENT_IN_GENERATED_CODE
+      write_str("#pragma ident ");
+#else /* !USE_PRAGMA_IDENT_IN_GENERATED_CODE */
       write_str("#ident ");
+#endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
       dump_constant(pp->variant.ident_string);
     } else {
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
