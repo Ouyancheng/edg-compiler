@@ -353,7 +353,6 @@ Install the keywords in the symbol table.
                   "__PRETTY_FUNCTION__");
     enter_gnu_keyword((a_token_kind)tok_inline, "inline");
     enter_gnu_keyword((a_token_kind)tok_typeof, "typeof");
-    enter_gnu_keyword((a_token_kind)tok_label, "label");
     enter_keyword((a_token_kind)tok_extension, "__extension__");
     /* Enable alternative token spellings. */
     enter_keyword((a_token_kind)tok_asm, "__asm__");

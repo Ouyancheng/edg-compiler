@@ -6121,7 +6121,7 @@ Scan a GNU C local label declaration of the form:
 Normally, they should only appear at the beginning of a statement expression.
 */
 {
-  check_assertion(gcc_mode && curr_token == tok_label);
+  check_assertion(gcc_mode && curr_token == tok_identifier);
   if (!is_statement_expr) {
     warning(ec_local_labels_only_in_statement_expressions);
   }  /* if */
@@ -6255,7 +6255,9 @@ e.g., ({ ... }).
   if (c99_mode) check_for_stdc_pragmas();
   /* It is also the only place where a GNU C local label can be declared.
      Normally, such labels should only appear in statement expressions. */
-  while (gcc_mode && curr_token == tok_label) {
+  while (gcc_mode && curr_token == tok_identifier &&
+         same_string_ignoring_underscores(
+                    "label", locator_for_curr_id.symbol_header->identifier)) {
     local_label_declaration(is_statement_expr);
   }  /* if */
 

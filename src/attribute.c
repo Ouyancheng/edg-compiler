@@ -35,43 +35,6 @@ attribute.c -- Processing of attributes, a GCC extension.
 static an_attribute_ptr avail_attributes;
 
 
-static a_boolean same_string_ignoring_underscores(char *s1, 
-                                                  char *s2)
-/*
-Returns TRUE if s1 and s2 are the same string, or if s2 has two 
-leading and trailing underscores, but is otherwise the same string as
-s1.  So, for example, if s1 is "byte", s2 will match if it is either
-"byte" or "__byte__".
-*/
-{
-  sizeof_t  length;
-  a_boolean result;
-
-  /* If the strings are an exact match, return quickly. */
-  if (strcmp(s1, s2) == 0) {
-    result = TRUE;
-  } else if (s2[0] != '_' || s2[1] != '_') {
-    /* If s2 does not start with two underscores, there is no match. */
-    result = FALSE;
-  } else {
-    /* Ignore the first two underscores of s2. */
-    s2 += 2;
-    /* Calculate the length of the remaining string. */
-    length = (sizeof_t)strlen(s2);
-    /* If the last two characters of s2 are not underscores, there is no
-       match. */
-    if (length < 2 || s2[length - 2] != '_' || s2[length - 1] != '_') {
-      result = FALSE;
-    } else {
-      /* Compare the remainder of the string. */
-      result = strncmp(s1, s2, strlen(s1)) == 0;
-    }  /* if */
-  }  /* if */
-
-  return result;
-}  /* same_string_ignoring_underscores */
-
-
 static an_attribute_ptr alloc_attribute(an_attribute_kind  kind,
                                         a_source_position  *pos)
 /*
