@@ -453,7 +453,7 @@ are used in resolving calls to overloaded functions.
   cfp->operand_type_pattern = NULL;
   cfp->is_user_conversion = FALSE;
   clear_conv_descr(&cfp->conversion);
-  cfp->pointer_type = NULL;
+  cfp->specific_type = NULL;
   cfp->arg_matches = NULL;
   cfp->arg_operand_list = NULL;
   cfp->dest_type = NULL;
@@ -502,9 +502,9 @@ Print a candidate function entry for debugging purposes.
   } else {
     /* Built-in operator case. */
     fprintf(f_debug, "Built-in %s", cfp->operand_type_pattern);
-    if (cfp->pointer_type != NULL) {
-      fprintf(f_debug, ", pointer_type = ");
-      db_type(cfp->pointer_type);
+    if (cfp->specific_type != NULL) {
+      fprintf(f_debug, ", specific_type = ");
+      db_type(cfp->specific_type);
     }  /* if */
     fprintf(f_debug, "\n");
   }  /* if */
@@ -574,11 +574,11 @@ the actual arguments we have match the function's formal parameters.
 
 static void add_builtin_operator_to_candidate_functions_list(
                                 char                     *operand_type_pattern,
-                                a_type_ptr               pointer_type,
+                                a_type_ptr               specific_type,
                                 an_arg_match_summary_ptr arg_matches,
                                 a_candidate_function_ptr *candidate_functions)
 /*
-Add the built-in operator identified by operand_type_pattern and pointer_type
+Add the built-in operator identified by operand_type_pattern and specific_type
 to the candidate_functions list.  arg_matches gives information about how well
 the operands we have match the operator's required operand types.
 */
@@ -587,7 +587,7 @@ the operands we have match the operator's required operand types.
 
   candidate = alloc_candidate_function();
   candidate->operand_type_pattern = operand_type_pattern;
-  candidate->pointer_type = pointer_type;
+  candidate->specific_type = specific_type;
   candidate->arg_matches = arg_matches;
   candidate->next = *candidate_functions;
   *candidate_functions = candidate;
@@ -4685,7 +4685,7 @@ static void try_builtin_operands_match(
                        a_boolean                first_operand_must_be_lvalue,
                        an_arg_operand_ptr       arg_operand_list,
                        a_candidate_function_ptr *candidate_functions,
-                       a_type_ptr               pointer_type)
+                       a_type_ptr               specific_type)
 /*
 Subroutine for try_conversions_for_builtin_operator.  Check to see how
 well the operand values given by arg_operand_list match the operand type
@@ -4695,7 +4695,7 @@ operand must be an lvalue if first_operand_must_be_lvalue (but this
 routine need only check for the class cases).  The operator being
 considered is described by "kind".  This is used for the case where
 the pattern string contains no corresponding pointer or pointer to
-member types, with pointer_type == NULL, and with pointer_type non-NULL
+member types, with specific_type == NULL, and with specific_type non-NULL
 for pattern strings containing corresponding types (it indicates
 the target type to be used).
 */
@@ -4757,7 +4757,7 @@ the target type to be used).
     end_arg_match_list = arg_match;
     /* See if the operand type matches the type code. */
     type_code = *type_pattern_position;
-    if (pointer_type == NULL) {
+    if (specific_type == NULL) {
       /* Non-pointer or non-specific pointer type required. */
       if (is_class_struct_union_type(operand_type)) {
         /* The operand has a class type, so see if it can be converted to
@@ -4803,7 +4803,8 @@ the target type to be used).
            we already know it is compatible.  However, we still have to
            call conversion_from_class_possible to get the conversion field
            set in the arg_match entry. */
-        if (conversion_from_class_possible(&arg_operand->operand, pointer_type,
+        if (conversion_from_class_possible(&arg_operand->operand,
+                                           specific_type,
                                            (a_builtin_type_kind_set)BTK_NONE,
                                            need_lvalue_result,
                                            /*consider_convs_to_derived=*/FALSE,
@@ -4814,7 +4815,7 @@ the target type to be used).
           /* The conversion can be done with a conversion function. */
           arg_match->match_level = aml_user_conversion;
           arg_match->conversion = conversion;
-          arg_match->param_type = pointer_type;
+          arg_match->param_type = specific_type;
         }  /* if */
       } else {
         a_boolean        ptr_to_member_case = (*type_pattern_position ==
@@ -4851,14 +4852,14 @@ the target type to be used).
                                     operand_type,
                                     source_is_constant,
                                     source_constant,
-                                    pointer_type,
+                                    specific_type,
                                     /*check_as_operands_not_conversion=*/TRUE,
                                     &std_conv) :
               impl_pointer_conversion(
                                     operand_type,
                                     source_is_constant,
                                     source_constant,
-                                    pointer_type,
+                                    specific_type,
                                     /*check_as_operands_not_conversion=*/TRUE,
                                     /*suppress_extensions=*/TRUE,
                                     ec_no_error, /* arbitrary */
@@ -4873,7 +4874,7 @@ the target type to be used).
                                                 aml_std_conversion : aml_exact;
           }  /* if */
           arg_match->conversion.std = std_conv;
-          arg_match->param_type = pointer_type;
+          arg_match->param_type = specific_type;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -4888,7 +4889,7 @@ the target type to be used).
     /* The built-in operator can be used.  Add it to the list of
        candidate functions. */
     add_builtin_operator_to_candidate_functions_list(operand_type_pattern,
-                                                     pointer_type,
+                                                     specific_type,
                                                      arg_match_list,
                                                      candidate_functions);
   } else {
@@ -5215,7 +5216,7 @@ Adjust the operand type to match the type requirement.
 */
 {
   a_boolean  processed;
-  a_type_ptr pointer_type;
+  a_type_ptr specific_type;
 
   if (!is_class_struct_union_type(operand->type)) {
     /* Non-class operands need not be adjusted here; the built-in operator
@@ -5231,7 +5232,8 @@ Adjust the operand type to match the type requirement.
                                      expr_stack->inside_conditional_expression;
       expr_stack->inside_conditional_expression = TRUE;
     }  /* if */
-    if (candidate_function->pointer_type == NULL) {
+    specific_type = candidate_function->specific_type;
+    if (specific_type == NULL) {
       /* Non-pointer or non-specific pointer case.  The conversion function
          result type is the right type. */
       if (conv_usable(&arg_match->conversion)) {
@@ -5260,9 +5262,7 @@ Adjust the operand type to match the type requirement.
     } else {
       /* Pointer cases.  Convert to the pointer type indicated in
          candidate_function. */      
-      pointer_type = candidate_function->pointer_type;
-      check_assertion(pointer_type != NULL);
-      prep_conversion_operand(operand, pointer_type,
+      prep_conversion_operand(operand, specific_type,
                               &arg_match->conversion,
                               /*is_initialization=*/TRUE,
                               /*try_user_conversions=*/TRUE,

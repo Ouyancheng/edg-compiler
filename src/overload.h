@@ -219,10 +219,10 @@ typedef struct a_candidate_function {
 			/* If is_user_conversion is TRUE. description of the
 			   conversion being done, including the user-defined
 			   part. */
-  a_type_ptr	pointer_type;
+  a_type_ptr	specific_type;
 			/* For a built-in operator with an operand pattern
-			   including pointers, this indicates the pointer
-			   type. */
+			   including corresponding types (e.g., pointer types),
+			   this indicates the specific type. */
   an_arg_match_summary_ptr
 		arg_matches;
 			/* List of entries describing how well each actual
