@@ -1,5 +1,27 @@
 Version 2.23
 
+3/31/94  Vacuous enum declarations in strict ANSI mode
+
+The handling of the following case is now different in strict ANSI mode
+and in default mode:
+
+  enum E { e1, e2 };
+  void f() {
+    enum E;                     // New diagnostic in strict ANSI mode
+    enum E e;                   // Now okay in strict ANSI mode, but still
+  }                             //   an error in default mode
+
+In default mode, the vacuous enum declaration is still treated as a
+forward declaration of a local type; no diagnostic is issued.  Until now,
+the only difference in strict ANSI mode was that a warning or error was
+issued complaining that a forward-declared enum is nonstandard, but now
+the "enum E;" declaration is treated as a reference to the global E, and
+the diagnostic complains about the missing declarator.
+
+Consequently, in default mode the declaration of e is ill-formed, since no
+local E has yet been defined.  That used to be the case in strict ANSI
+mode as well, but now, since E is global E, the declaration of e is legal.
+
 3/30/94  Function definition with omitted declaration-specifiers
 
 The following declarations, in which the declaration-specifiers are
