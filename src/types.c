@@ -4074,26 +4074,31 @@ pointers to members).
         clear_std_conv_descr(std_conv);
         std_conv->conv_failed_because_of_exception_specifications = TRUE;
       }  /* if */
-    }  /* if */
-    if (okay && !check_as_operands_not_conversion) {
-      /* The types pointed to must be such that the type pointed to by the
-         left has all the qualifiers of the type pointed to by the right.
-         It might have additional qualifiers.  This is not mentioned in
-         the ARM, but it makes sense by analogy with pointer types
-         (ARM 4.6, 5.17, 8.4). */
-      a_type_qualifier_set dest_type_qualifiers =
+      if (okay && !check_as_operands_not_conversion) {
+        /* The types pointed to must be such that the type pointed to by the
+           left has all the qualifiers of the type pointed to by the right.
+           It might have additional qualifiers.  This is not mentioned in
+           the ARM, but it makes sense by analogy with pointer types
+           (ARM 4.6, 5.17, 8.4). */
+        a_type_qualifier_set dest_type_qualifiers =
                                      get_type_qualifiers(dest_type_pointed_to);
-      a_type_qualifier_set source_type_qualifiers =
+        a_type_qualifier_set source_type_qualifiers =
                                    get_type_qualifiers(source_type_pointed_to);
-      if (dest_type_qualifiers == source_type_qualifiers) {
-        /* The qualifiers are the same. */
-      } else if (qualification_conversion_possible
+        if (dest_type_qualifiers == source_type_qualifiers) {
+          /* The qualifiers are the same. */
+        } else if (qualification_conversion_possible
                                 (source_type_pointed_to, dest_type_pointed_to,
 		                 &qualifiers_added,
                                  /*ignore_underlying_type=*/FALSE)) {
-        /* This is an allowed qualification conversion. */
-        std_conv->type_qualifiers_added = qualifiers_added;
+          /* This is an allowed qualification conversion. */
+          std_conv->type_qualifiers_added = qualifiers_added;
+        }  /* if */
       }  /* if */
+    } else if (is_template_dependent_context() &&
+               (is_or_contains_template_param(source_type) ||
+                is_or_contains_template_param(dest_type))) {
+      /* Conversion to or from a template-dependent type is allowed. */
+      okay = TRUE;
     }  /* if */
   } else if (is_template_param_type(source_type)) {
     /* A template parameter type might be a pointer-to-member type.
