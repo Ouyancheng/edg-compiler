@@ -376,6 +376,7 @@ necessary.
 #define walk_source_corresp(ptr) \
 { walk_string_ptr((ptr).name, iek_id_name, 0); \
   walk_unmangled_name(ptr); \
+  conditionally_clear_fe_pointer((ptr).trans_unit_corresp); \
   remap_parent(ptr); \
   remap_source_sequence_entry(ptr); \
   conditionally_clear_fe_pointer((ptr).assoc_info); \
@@ -2250,6 +2251,7 @@ end_sizeof:;
         remap_ptr(ptr->type, a_type_ptr, iek_type);
         set_proper_definition_needed_flag(ptr->type);
         remap_ptr(ptr->derived_class, a_type_ptr, iek_type);
+        conditionally_clear_fe_pointer(ptr->trans_unit_corresp);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
         remap_ptr_not_needed(ptr->data_section_base_class, a_base_class_ptr,
                              iek_base_class);
