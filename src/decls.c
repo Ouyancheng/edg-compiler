@@ -1495,13 +1495,16 @@ called by id_linkage.
         }  /* for */
       }  /* if */
     }  /* if */
-    if (decls_at_same_scope || is_friend_decl) {
-      /* The function symbol was located in the current scope. If there
-         there was an exact type match of C++ functions, and in general
-         otherwise, this is a redeclaration, and if other_decl has
-         linkage we can return in linked_symbol a pointer to the function
-         or variable it represents. */
+    if (is_friend_decl) {
       linked_symbol = other_decl;
+    } else if (other_decl != NULL && decls_at_same_scope) {
+      /* A function may be redeclared at any scope, but a variable may be
+         redeclared only at file or namespace scope. */
+      if (effective_decl_level == depth_innermost_namespace_scope ||
+          (other_decl->kind != (a_symbol_kind)sk_variable &&
+           is_function_type(type))) {
+        linked_symbol = other_decl;
+      }  /* if */
     }  /* if */
   }  /* if */
 done:
