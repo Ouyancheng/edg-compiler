@@ -1,5 +1,21 @@
 Version 3.2
 
+5/8/03   Microsoft compatibility: spurious ambiguity from overridden
+         using-declaration
+
+In Microsoft mode, a member using-declaration that refers to a function
+that is also declared in the class could result in a spurious ambiguity
+when the function is called.  This has been fixed.
+
+  struct B {
+    void f(int);
+  };
+  struct D : public B {
+    void f(int) {}
+    void g() { f(0); }
+    using B::f;  // causes ambiguity on previous line
+ };
+
 5/7/03   Unreachable code removed after constructor function try block
 
 Some code that pops the top entry off the exception handling stack

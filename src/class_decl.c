@@ -6521,15 +6521,14 @@ as the error position.
              create different entities even if they have the same name and
              type.  However, two such entities do not conflict if they are
              brought in the same scope with a using-declaration. */
-        } else if (!microsoft_mode &&
-                   types_of_decl_and_using_decl_conflict(
+        } else if (types_of_decl_and_using_decl_conflict(
                                                       sym, using_sym, &err)) {
           /* Unless using_sym is a member function being hidden and/or
              overridden by the previous declaration, an error is issued.
              (In Microsoft mode, this case is not diagnosed.  The reverse
              case where a new declaration conflicts with a using-declaration
              is correctly diagnosed by Microsoft compilers.) */
-          if (err) {
+          if (err && !microsoft_mode) {
             pos_sy2_error(ec_using_decl_conflicts_with_prev_decl, pos,
                           using_sym, sym);
           }  /* if */
