@@ -8126,14 +8126,18 @@ destructor is being generated.
                             make_construction_vtbls_array(class_type, 
                                                           construction_vtbls);
   an_expr_node_ptr array_addr = array_var_lvalue_expr(array_var);
-  a_variable_ptr   vtbl_var = class_type->variant.class_struct_union.
-                                        extra_info->virtual_function_table_var;
 
-  /* Set the referenced flag in the virtual function table to say that
-     the virtual function table and VTT must be put out even if they
-     are static. */
-  check_assertion(vtbl_var != NULL);
-  vtbl_var->source_corresp.referenced = TRUE;
+#if IA64_ABI
+  {
+    /* Set the referenced flag in the virtual function table to say that
+       the virtual function table and VTT must be put out even if they
+       are static. */
+    a_variable_ptr   vtbl_var = class_type->variant.class_struct_union.
+                                        extra_info->virtual_function_table_var;
+    check_assertion(vtbl_var != NULL);
+    vtbl_var->source_corresp.referenced = TRUE;
+  }
+#endif /* IA64_ABI */
   (void)insert_var_assignment_statement(construction_vtbls_var,
                                         (an_expr_operator_kind)eok_passign,
                                         array_addr,
