@@ -232,7 +232,7 @@ function).
 
     cast_node(&expr_cast, promoted_type, /*check_cast_access=*/TRUE,
               /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-              &error_position);
+              /*reinterpret_semantics=*/FALSE, &error_position);
     expr_cast->next = expr_next;
     if (expr_cast != expr) {
       /* A cast was added, so swap the cast and the original node so that the
