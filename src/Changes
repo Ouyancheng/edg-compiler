@@ -1,5 +1,14 @@
 Version 2.25
 
+7/18/94  Possible ordering problem in lowered code for ptr-to-member call
+
+The lowered code for a pointer-to-member call included an adjustment of
+a temporary variable in the expression that specifies the function
+to be called, and a use of that temporary as an argument to the call.
+The order of evaluation of those two expressions is not guaranteed
+by the C standard, so we've added another temporary variable and moved
+the adjustment code into a comma expression outside the function call.
+
 7/16/94  Internal error in decls.c on constructor declaration
 
 An internal error in decls.c has been corrected.  It occurred on a
