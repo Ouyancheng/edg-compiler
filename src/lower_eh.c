@@ -1444,7 +1444,7 @@ typeinfo variable in a COMDAT group.
     vtbls_for_type_info[(int)typeinfo_kind]->source_corresp.referenced = TRUE;
     /* Do the array --> pointer decay. */
     implicit_cast(vptr_con, pointer_to_vtbl_type());
-    /* Make the constant for the type_info.  For cases invoving a
+    /* Make the constant for the type_info.  For cases involving a
        derived class, this ends up being the initializer for the
        base class part of the object. */
     type_info_con = alloc_constant((a_constant_repr_kind)ck_aggregate);

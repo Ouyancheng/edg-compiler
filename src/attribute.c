@@ -667,7 +667,7 @@ that do take arguments.
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     case ak_visibility:
       { char  *visibility_str;
-        /* Look for a string-literal specifying the visibillity. */
+        /* Look for a string-literal specifying the visibility. */
         if (curr_token != tok_string_literal) {
           result = FALSE;
           goto error;
