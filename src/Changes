@@ -1,5 +1,10 @@
 Version 2.40
 
+12/3/98   Microsoft compatibility: undefined extern inline function
+
+In Microsoft mode, an extern inline function that is referenced but not
+defined now gets a warning instead of an error.
+
 12/3/98   Microsoft compatibility: friend functions in class templates
           analyzed only if used
 
