@@ -1874,7 +1874,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
           /* If strict ANSI violations are being reported as errors then we
              need to indicate that this is invalid, otherwise just indicate
              that a warning should be issued. */
-          if (strict_ansi_error_severity == (int)es_error) {
+          if ((int)strict_ansi_error_severity == (int)es_error) {
             okay = FALSE;
           } else {
             *warning_suggested = default_warning_code;
@@ -2201,7 +2201,7 @@ See conversion_possible.
           if (C_dialect != C_dialect_cplusplus) {
             /* Mixed integral types allowed in C with a warning. */
             *warning_suggested = ec_mixed_enum_type;
-          } else if ((anachronism_error_severity == (int)es_warning) &&
+          } else if (((int)anachronism_error_severity == (int)es_warning) &&
                       source_is_integral) {
             /* Anachronism warning in C++ mode with anachronisms allowed. */
             *warning_suggested = ec_mixed_enum_type_anachronism;
