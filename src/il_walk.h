@@ -200,6 +200,8 @@ extern void remap_pointers_in_il_entry(char                 *entry_ptr,
 
 extern void remap_il_header_pointers(a_remap_function_ptr remap_function);
 
+extern char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind);
+
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
                      
 #endif /* ifndef IL_WALK_H */

@@ -144,6 +144,79 @@ Process the source correspondence field pointed to by ptr.
 #endif /* ifdef CIL */
 
 
+char *retrieve_il_entry_kind_name(an_il_entry_kind entry_kind)
+/*
+Return a pointer to a constant character string that denotes the IL
+entry kind passed as an argument.
+*/
+{
+  char * s;
+
+  switch (entry_kind) {
+    case iek_source_file:   s = "source-file";             break;
+    case iek_constant:      s = "constant";                break;
+    case iek_param_type:    s = "param-type";              break;
+    case iek_routine_type_supplement:
+                            s = "routine-type-supplement"; break;
+    case iek_based_type_list_member:
+                            s = "based type list member";  break;
+    case iek_type:          s = "type";                    break;
+    case iek_variable:      s = "variable";                break;
+    case iek_routine:       s = "routine";                 break;
+    case iek_label:         s = "label";                   break;
+    case iek_expr_node:     s = "expr-node";               break;
+#ifdef CFE
+    case iek_field:         s = "field";                   break;
+    case iek_switch_clause: s = "switch-clause";           break;
+#endif /* ifdef CFE */
+    case iek_block:         s = "block";                   break;
+    case iek_statement:     s = "statement";               break;
+    case iek_scope:         s = "scope";                   break;
+    case iek_id_name:       s = "id-name";                 break;
+    case iek_string_text:   s = "string-text";             break;
+    case iek_other_text:    s = "other-text";              break;
+#ifdef FFE
+    case iek_internal_complex_value:
+			    s = "internal-complex-value";  break;
+    case iek_bound_info_entry:
+			    s = "bound-info-entry";        break;
+    case iek_do_loop:	    s = "do-loop";                 break;
+    case iek_label_list_entry:
+			    s = "label-list-entry";        break;
+    case iek_io_specifier:  s = "io-specifier";            break;
+    case iek_io_list_item:  s = "io-list-item";            break;
+    case iek_namelist_group_member:
+			    s = "namelist-group-member";   break;
+    case iek_namelist_group:s = "namelist-group";          break;
+    case iek_input_output_description:
+			    s = "input-output-description";break;
+    case iek_entry_param:   s = "entry-param";             break;
+    case iek_entry_description:
+			    s = "entry-description";       break;
+#endif /* ifdef FFE */
+#ifdef CFE
+    case iek_dynamic_init:  s = "dynamic-init";            break;
+    case iek_access_adjustment:
+                            s = "access-adjustment";       break;
+    case iek_overriding_virtual_function:
+        		    s = "overriding-virtual-function";
+                                                               break;
+    case iek_derivation_step:
+                            s = "derivation-step";         break;
+    case iek_base_class:    s = "base-class";              break;
+    case iek_class_list_entry:
+                            s = "class-list-entry";        break;
+    case iek_class_type_supplement:
+			    s = "class-type-supplement";   break;
+    case iek_constructor_init:
+                            s = "constructor-init";        break;
+#endif /* ifdef CFE */
+    default:                s = "**BAD ENTRY KIND**";      break;
+  }  /* switch */
+  return s;
+}  /* retrieve_il_entry_kind_name */
+
+
 static void walk_constant(a_constant_ptr ptr)
 /*
 Process the indicated constant entry.

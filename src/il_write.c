@@ -88,6 +88,30 @@ a_memory_region_number
 
 
 #if ALTERNATE_IL_FILE_FORMAT
+#if CHECKING && DEBUG
+static void display_il_entry_kind_and_ptr (
+				char             *entry_ptr,
+				an_il_entry_kind entry_kind)
+/*
+Print additional diagnostic information about the IL entry that is
+triggering an internal error.
+*/
+{
+  char *s;
+
+  s = retrieve_il_entry_kind_name(entry_kind);
+  (void)fprintf(f_debug, 
+                "IL info: entry kind =%3ld (iek-%s), \n",
+                (long)entry_kind, s, entry_ptr);
+  (void)fprintf(f_debug, "         entry_ptr = 0x%lx\n", entry_ptr);
+#if SABER
+  (void)fprintf(f_debug, "         memory region = %4ld\n",
+                _saber_region_number);
+#endif /* SABER */
+}  /* display_il_entry_kind_and_ptr */
+
+#endif /* CHECKING && DEBUG */
+
 static an_il_entry_number *assign_entry_number(
                                        char               *entry_ptr,
                                        an_il_entry_kind   entry_kind,
@@ -131,6 +155,9 @@ entry_kind, and if it is a string, has length as given by entry_length.
            assign such a number while writing the file scope, and we only do
            that after all the function scopes have been written). */
         if ((*enp & FUNC_ENTRY_NUMBER_TAG) == 0) {
+#if DEBUG
+          display_il_entry_kind_and_ptr(entry_ptr, entry_kind);
+#endif /* DEBUG */
           internal_error("assign_entry_number: file-scope num in func scope");
         }  /* if */
 #endif /* CHECKING */
@@ -180,6 +207,9 @@ entry_kind, and if it is a string, has length as given by entry_length.
       is_file_scope_entry = TRUE;
 #if CHECKING
       if (!in_file_scope(entry_ptr)) {
+#if DEBUG
+        display_il_entry_kind_and_ptr(entry_ptr, entry_kind);
+#endif /* DEBUG */
         internal_error(
          "assign_entry_number: non-file-scope ptr referenced from file scope");
       }  /* if */
@@ -258,6 +288,9 @@ corresponding entry number, and return that number cast to "char *".
         /* All string entries should have entry numbers already.  See
           write_entry.  We can't handle them here because we don't have the
           length. */
+#if DEBUG
+        display_il_entry_kind_and_ptr(entry_ptr, entry_kind);
+#endif /* DEBUG */
         internal_error("remap_ptr_to_entry_number: string entry");
 #ifdef FFE
       } else if (entry_kind == iek_bound_info_entry) {
@@ -265,6 +298,9 @@ corresponding entry number, and return that number cast to "char *".
            processed.  We can't handle them here because we don't know where
            the entry falls within the array of entries (see the variable
            array_bound_walk_index). */
+#if DEBUG
+        display_il_entry_kind_and_ptr(entry_ptr, entry_kind);
+#endif /* DEBUG */
         internal_error("remap_ptr_to_entry_number: bound info entry");
 #endif /* ifdef FFE */
       }  /* if */
@@ -456,6 +492,9 @@ its length.
   if ((entry_number & ENTRY_WRITTEN_TAG) != 0) {
 #if CHECKING
     if (!is_string_entry) {
+#if DEBUG
+      display_il_entry_kind_and_ptr(entry_ptr, entry_kind);
+#endif /* DEBUG */
       internal_error("write_entry: non-string entry already written");
     }  /* if */
 #endif /* CHECKING */
