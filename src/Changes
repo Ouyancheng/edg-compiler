@@ -58,7 +58,7 @@ In Microsoft bugs mode with microsoft_version <= 1200, all standard
 exception specifications are ignored and the "throw (...)" form is
 not recognized.  (In Microsoft mode without Microsoft bugs mode and
 with microsoft_version <= 1200, standard exception handling treatment
-is available, as was the case previously)  In Microsoft modes with 
+is available, as was the case previously.)  In Microsoft modes with 
 microsoft_version >= 1300, the front end recognizes both standard
 exception specifications and the "throw (...)" specification with
 the following caveats:
