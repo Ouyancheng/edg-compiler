@@ -3940,15 +3940,20 @@ corresponding instance, or NULL if no corresponding instance is found.
     if (result_sym == NULL) {
       /* No symbol was found.  Instantiate the class in the other translation
          unit. */
-      a_template_arg_ptr	templ_arg_list;
-      a_type_ptr		class_type;
+      a_template_arg_ptr		templ_arg_list;
+      a_type_ptr			class_type;
+      a_class_type_supplement_ptr	ctsp;
       class_type = sym_to_find->variant.class_struct_union.type;
+      ctsp = class_type->variant.class_struct_union.extra_info;
       /* This routine cannot create a new prototype instantiation in the other
          translation unit. */
       check_assertion(!class_type->
                         variant.class_struct_union.is_prototype_instantiation);
-      templ_arg_list = copy_template_arg_list(
-                                         templ_arg_list_for_class(class_type));
+      /* Make a copy of the template argument list to be used.  Note that
+         templ_arg_list_for_class is not used because, for partial
+         specializations, we still want to use the primary template argument
+         list. */
+      templ_arg_list = copy_template_arg_list(ctsp->template_arg_list);
       result_sym = find_template_class(template_sym, &templ_arg_list,
                                        /*any_prototype_allowed=*/FALSE,
                                        (a_symbol_ptr)NULL);
