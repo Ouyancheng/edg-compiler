@@ -3471,7 +3471,7 @@ symbol must be added to the inactive list.
            names are ignored because the test will have already been done
            on the declaration of the class in the enclosing scope. */
         if (!redecl_err &&
-            (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||
+            (is_nonspecialized_instantiation_context() ||
              depth_template_declaration_scope != NO_SCOPE_DEPTH) &&
             sym_name_space_kind == nsk_other &&
             sym_ptr->kind != (a_symbol_kind)sk_undefined) {

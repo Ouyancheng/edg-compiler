@@ -654,7 +654,7 @@ property fields).
                 severity = es_remark;
               }  /* if */
             } else {
-              if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+              if (is_nonspecialized_instantiation_context() &&
                   !scope_stack[decl_scope_level].in_prototype_instantiation) {
                 /* Inside a template instantiation it is sometimes the case
                    that the type qualifier is "useless" for some instantiations

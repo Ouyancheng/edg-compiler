@@ -1361,7 +1361,7 @@ created for this entity; otherwise, it is NULL.
             reset_ss_list_instantiation_insert_point();
           }  /* if */
         }  /* if */
-      } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+      } else if (is_nonspecialized_instantiation_context()) {
         /* Not a definition.  If this is a nested class declaration inside
            a class template instantiation, only put out the declaration if
            it's the first.  This is to deal with the following case:

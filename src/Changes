@@ -1,5 +1,18 @@
 Version 3.2
 
+4/19/03  Microsoft/Sun compatibility: interaction with dependent name lookup
+
+Dependent name lookup processing is disabled by default in Microsoft and
+Sun modes, but if it is explicitly enabled (using a command-line option) it
+did not work properly in Microsoft and Sun mode. In particular, lookup
+errors would occur in explicitly specialized classes.  Now fixed.
+
+  template <class T> struct A { };
+  void g() {}
+  template <> struct A<int> {
+    void f() { g(); }  // spurious error: no matching "g"
+  };
+
 4/17/03  Unlinking from IL of destructions for non-polymorphic typeid
 
 If a source program contains a typeid applied to an expression

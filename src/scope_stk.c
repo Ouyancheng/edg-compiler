@@ -1690,7 +1690,8 @@ the scope being pushed.
   ssep->microsoft_specialization_scope_pushed = FALSE;
   ssep->stop_token_stack_pushed  = FALSE;
   ssep->explicitly_declared_namespace_extension = FALSE;
-  ssep->microsoft_specialization_instantiation_scope = FALSE;
+  ssep->microsoft_specialization_instantiation_scope =
+                                  (options & PS_MICROSOFT_SPECIALIZATION) != 0;
 #if USER_CONTROL_OF_STRUCT_PACKING
   ssep->pragma_pack_is_local     = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */

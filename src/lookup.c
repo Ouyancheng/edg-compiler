@@ -3085,7 +3085,7 @@ in a friend declaration.
   assoc_symbol = normal_id_lookup(locator, options);
   if (assoc_symbol != NULL) {
     if (assoc_symbol->kind == (a_symbol_kind)sk_class_template &&
-        depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+        is_nonspecialized_instantiation_context()) {
       /* If the symbol found is a class template symbol and we are inside an
          instantiation of the class, use the template class symbol associated
          with the current instantiation. */

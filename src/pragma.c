@@ -560,7 +560,7 @@ if it turns out that no IL pragma entry is created).
 {
   a_pending_pragma_ptr	ppp = curr_token_pragmas;
   db_enter(4, "add_source_sequence_entry_to_curr_token_pragmas");
-  if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
+  if (!is_nonspecialized_instantiation_context() &&
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
     a_memory_region_number   region_to_switch_back_to;
     a_scope_depth            scope_depth_to_switch_to;

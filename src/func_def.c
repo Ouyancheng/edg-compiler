@@ -829,7 +829,7 @@ and for the instantiation of template functions.
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
       decl_parameter(param_id, (a_type_ptr)NULL, ptp, is_instantiation);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+      if (is_nonspecialized_instantiation_context() &&
           param_id->next != NULL && ptp->next == NULL) {
         /* Something may have gone wrong while parsing the template.  This
            might have caused us to miscount the number of parameters (in that

@@ -11224,7 +11224,7 @@ forced only if instantiate is TRUE.
        exported templates, the bodies of noninline external functions are
        discarded.  If this reference is from such a routine, do not
        mark any functions called as required for instantiation purposes. */
-    if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    if (is_nonspecialized_instantiation_context()) {
       /* This reference is from within a template.  Record this reference. */
     } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
       /* We are processing the body of a nontemplate function.  Do not record

@@ -684,7 +684,7 @@ if n is supplied or to the value associated with the last entry popped.
         sym = (a_symbol_ptr)(ssep->il_scope->
                               variant.routine.ptr->source_corresp.assoc_info);
       }  /* if */
-    } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+    } else if (is_nonspecialized_instantiation_context() != NO_SCOPE_DEPTH) {
       ssep = &scope_stack[depth_innermost_instantiation_scope] + 1;
       if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
           !ssep->in_prototype_instantiation) {

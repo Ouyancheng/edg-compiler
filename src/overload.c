@@ -2311,7 +2311,7 @@ call.
   function_template_case = (function_symbol->kind ==
                                           (a_symbol_kind)sk_function_template);
   if (do_dependent_name_processing && !from_arg_dep_lookup &&
-      depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
+      is_nonspecialized_instantiation_context() &&
       !function_symbol->is_class_member &&
       !is_local_symbol(function_symbol) &&
       function_symbol->decl_seq > get_effective_decl_seq()) {
@@ -4476,12 +4476,14 @@ and return NULL.  This routine is called only in C++ mode.
       goto in_instantiation;
     }  /* if */
   } else if (do_dependent_name_processing &&
-             depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+             is_nonspecialized_instantiation_context()) {
     /* In a real (not prototype) instantiation, and doing dependent
        name processing.  Look up this call to see whether it was a
        dependent call in the prototype instantiation.  If it was a
        nondependent call, it was recorded, along with (usually) the
-       symbol chosen by overload resolution. */
+       symbol chosen by overload resolution.  In Microsoft and Sun mode, an
+       instantiation scope may be pushed for a nonstandard specialization
+       scope.  Don't treat such specializations as instantiations. */
 in_instantiation:
     if (!do_arg_dep_lookup) {
       /* Calls where argument-dependent lookup is turned off are
@@ -8776,7 +8778,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                !is_template_dependent_type(operand_2->type)),
                               "check_for_operator_overloading: dep operand");
         } else if (do_dependent_name_processing &&
-                   depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+                   is_nonspecialized_instantiation_context()) {
           /* In a real (not prototype) instantiation, and doing dependent
              name processing.  Look up this call to see whether it was a
              dependent call in the prototype instantiation.  If it was a

@@ -895,11 +895,21 @@ this is FALSE for template declaration contexts.
    !scope_stack[depth_scope_stack].in_class_specialization)
 
 /*
+TRUE if we are in a template instantiation context, but not a special
+instantiation scope pushed for specializations in Microsoft and Sun modes.
+*/
+#define is_nonspecialized_instantiation_context()			\
+  (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
+   (!use_microsoft_specialization_scope ||				\
+    !scope_stack[depth_innermost_instantiation_scope].			\
+                                microsoft_specialization_instantiation_scope))
+
+/*
 TRUE if we are in a template declaration scope or any kind of instantiation
 scope.
 */
 #define is_template_context()						\
-  (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH ||		\
+  (is_nonspecialized_instantiation_context() ||		\
    depth_template_declaration_scope != NO_SCOPE_DEPTH)
 
 /*
