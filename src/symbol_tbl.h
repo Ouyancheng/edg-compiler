@@ -1533,10 +1533,16 @@ typedef struct a_template_symbol_supplement {
 			/* Information about default arguments of friend
 			   templates declared in this class template. */
       a_template_param_coordinate
-			coordinates;
+		coordinates;
 			/* For a class template associated with a template
 			   template parameter, provides the list position and
 			   nesting depth of the parameter. */
+      a_symbol_ptr
+		argument_template;
+			/* For a class template associated with a template
+			   template parameter, points to the symbol of the
+			   actual template template argument for the
+			   current instantiation. */
       a_bit_field
 		prototype_instantiation_complete:1;
 			/* TRUE when the prototype instantiation of the
@@ -3398,6 +3404,19 @@ supplement.
   /* } else { */							\
     NULL								\
   /* } */)
+
+/* Return the template symbol for a given IL template entry. */
+#define symbol_for_template(templ)					\
+  ((a_symbol_ptr)((templ)->source_corresp.assoc_info))
+
+/* If sym is a template template parameter, return the symbol for the template
+   argument, otherwise return the original symbol. */
+#define template_argument_if_template_template_param(sym)		\
+  ((sym)->variant.template_info->					\
+                     variant.class_template.template_template_param	\
+     ? (sym)->variant.template_info->variant.class_template.argument_template \
+     : sym)
+
 
 /* Return TRUE if the symbol represents the prototype instantiation of a
    class template. */

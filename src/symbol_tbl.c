@@ -2003,6 +2003,7 @@ and return a pointer to it.
       tssp->variant.class_template.template_template_param = FALSE;
       tssp->variant.class_template.coordinates.position = 0;
       tssp->variant.class_template.coordinates.depth = NO_NESTING_DEPTH;
+      tssp->variant.class_template.argument_template = NULL;
 #if CHECKING 
       tssp->variant.class_template.avoid_codecenter_warnings = FALSE;
 #endif /* CHECKING */

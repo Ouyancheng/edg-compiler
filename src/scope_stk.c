@@ -830,11 +830,17 @@ values needed for the previous call.
         param_symbol->variant.type.ptr = tap->variant.type;
       } else if (is_template_templ_arg(tap)) {
         /* A template template argument. */
-        a_template_symbol_supplement_ptr	tssp;
+        a_template_symbol_supplement_ptr	param_tssp;
         check_assertion(param_symbol->kind ==
                                            (a_symbol_kind)sk_class_template);
-        tssp = template_supplement_for_template(tap->variant.templ);
-        param_symbol->variant.template_info = tssp;
+        /* Unlike the type and nontype cases, the symbol for a template
+           template parameter is not updated directly.  Instead, the
+           argument_template field of the template supplement is updated
+           to point to the template that is to be used as the actual
+           argument. */
+        param_tssp = param_symbol->variant.template_info;
+        param_tssp->variant.class_template.argument_template =
+                                       symbol_for_template(tap->variant.templ);
       } else {
         check_assertion(param_symbol->kind == (a_symbol_kind)sk_constant);
         param_symbol->variant.constant = tap->variant.constant;
@@ -870,8 +876,10 @@ declaration is scanned and are used as placeholders between instantiations.
     } else if (param_symbol->kind == (a_symbol_kind)sk_constant) {
       param_symbol->variant.constant = tpp->variant.constant.ptr;
     } else {
+      a_template_symbol_supplement_ptr	param_tssp;
       check_assertion(param_symbol->kind == (a_symbol_kind)sk_class_template);
-      param_symbol->variant.template_info = tpp->variant.templ;
+      param_tssp = param_symbol->variant.template_info;
+      param_tssp->variant.class_template.argument_template = param_symbol;
     }  /* if */
     param_symbol->template_param_not_visible = FALSE;
     tpp = tpp->next;

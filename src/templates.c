@@ -3276,16 +3276,11 @@ prototype instantiation is considered as a potential match.
   db_enter(3, "find_template_class");
   check_assertion(class_template_sym->kind ==
                                             (a_symbol_kind)sk_class_template);
-  tssp = class_template_sym->variant.template_info;
-  /* Replace the class template symbol passed in with the one pointed to
-     by the IL template entry.  These will be different when the one
-     passed in is associated with a template template parameter. */
-  check_assertion_str(tssp->il_template_entry != NULL,
-                      "find_template_class: NULL IL template entry");
+  /* If this is a template template parameter, replace the template symbol
+     with the one referred to by the parameter. */
   class_template_sym =
-              (a_symbol_ptr)tssp->il_template_entry->source_corresp.assoc_info;
-  check_assertion(class_template_sym != NULL &&
-                 class_template_sym->kind == (a_symbol_kind)sk_class_template);
+              template_argument_if_template_template_param(class_template_sym);
+  tssp = class_template_sym->variant.template_info;
   if (tssp->is_nonreal_member) eta_options |= ETA_IS_NONREAL_MEMBER;
   if (microsoft_bugs && microsoft_version <= 1100) {
     eta_options |= ETA_MS_IGNORE_QUALIFIERS;
@@ -9623,6 +9618,7 @@ parameter entry for the parameter.
 					      parent_decl_state->nesting_depth;
   tssp->variant.class_template.coordinates.position = template_param_list_pos;
   tssp->il_template_entry = templ_ptr;
+  tssp->variant.class_template.argument_template = sym;
   set_template_cache_info(&tssp->cache,
                           (a_token_cache_ptr)NULL,
                           local_decl_state.decl_info);
