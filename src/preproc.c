@@ -236,16 +236,15 @@ truth value.
   a_boolean  save_fetch_pp_tokens = fetch_pp_tokens;
   a_boolean  save_expand_macros = expand_macros;
   a_constant temp_const;
-  a_boolean  err;
 
   fetch_pp_tokens = FALSE;
   expand_macros = TRUE;
   in_pp_if_expression = TRUE;
   (void)get_token();
   /* Scan the conditional expression. */
-  scan_pp_expression(&temp_const, &err);
+  scan_pp_expression(&temp_const);
   in_pp_if_expression = FALSE;
-  if (err) {
+  if (is_error_constant(&temp_const)) {
     *condition = FALSE;
     some_error_in_curr_directive = TRUE;
   } else {
