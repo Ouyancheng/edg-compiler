@@ -796,6 +796,7 @@ symbol_name:
                              /*under_lhs_declarator=*/FALSE,
                              /*need_trailing_space=*/TRUE,
                              /*add_const=*/FALSE,
+                             /*suppress_const=*/FALSE,
                              &octl);
       }  /* if */
       /* Put out the name, including the class qualifier if any. */
@@ -812,7 +813,8 @@ symbol_name:
           form_function_declarator(type, &octl);
         } else {
           /* Normal case -- put out the complete second part of the type. */
-          form_type_second_part(type, /*under_lhs_declarator=*/FALSE, &octl);
+          form_type_second_part(type, /*under_lhs_declarator=*/FALSE,
+                                /*suppress_const=*/FALSE, &octl);
         }  /* if */
       }  /* if */
       break;
