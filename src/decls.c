@@ -3714,6 +3714,14 @@ class template.
     rout_ptr->type = type_ptr;
     rout_ptr->storage_class = storage_class;
     rout_ptr->is_inline = is_inline;
+    if (locator->is_operator_name) {
+      rout_ptr->special_kind = (a_special_function_kind)sfk_operator;
+      rout_ptr->opname_kind = locator->variant.opname;
+#if 0
+    } else if (locator->is_conversion_name) {
+      ...locator->variant.conversion_result_type...
+#endif /* if 0 */
+    }  /* if */
     set_source_corresp(&rout_ptr->source_corresp, sym);
     rout_ptr->source_corresp.name_linkage =
                           (storage_class == (a_storage_class)sc_extern) ?
