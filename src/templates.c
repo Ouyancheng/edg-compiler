@@ -122,7 +122,9 @@ itself recursively to process classes nested within this class.
     /* Process any classes nested within this class. */
     type = ctsp->assoc_scope->types;
     while (type != NULL) {
-      if (is_class_struct_union_type(type)) {
+      a_type_kind	tk = type->kind;
+      if (tk == (a_type_kind)tk_class ||
+          tk == (a_type_kind)tk_struct || tk == (a_type_kind)tk_union) {
         update_instantiation_required_for_template_class_members(type);
       }  /* if */
       type = type->next;
