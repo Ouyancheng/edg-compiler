@@ -5,7 +5,7 @@ typeinfo.h -- Include file for type information (18.5.1)
 #ifndef _TYPEINFO_STDH
 #define _TYPEINFO_STDH
 
-#include <stdexcept.h>
+#include <exception>
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 namespace std {

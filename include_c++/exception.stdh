@@ -1,4 +1,4 @@
-/* Edison Design Group, 1994. */
+/* Edison Design Group, 1995. */
 /*
 exception -- Include file for exception handling (see 18.6)
 */
@@ -8,11 +8,17 @@ exception -- Include file for exception handling (see 18.6)
 /* This lets users disable the EDG supplied exception classes. */
 #ifndef __NO_EDG_EXCEPTION_CLASSES
 
-#include <stdexcept.h>
-
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
+  class exception {
+  public:
+    exception() throw();
+    exception(const exception&) throw();
+    exception& operator=(const exception&) throw();
+    virtual ~exception() throw();
+    virtual const char* what() const throw();
+  };
 
   /*
   If bool is not supported, use a typedef for bool.
@@ -46,7 +52,7 @@ namespace std {
   extern __bool uncaught_exception();
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
-}  /* namespace */
+}  /* namespace std */
 
 #ifdef __EDG_IMPLICIT_USING_STD
 /* Implicitly include a using directive for the STD namespace when this

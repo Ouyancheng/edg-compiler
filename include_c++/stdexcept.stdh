@@ -11,13 +11,6 @@ stdexcept -- Include file for exception handling (see 19.1.1)
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
-  class exception {
-  public:
-    exception() throw();
-    exception& operator=(const exception&) throw();
-    virtual ~exception() throw();
-    virtual const char* what() const throw();
-  };
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace std */
 
