@@ -2333,7 +2333,7 @@ added to the scope symbols list and is not linked into the symbol table.
            several base classes that match the type in question, and there
            may be more than one for which ref_bcp is on the path. */
         if (!bcp->ambiguous || ref_bcp == bcp ||
-            is_on_any_derivation_of(ref_bcp, bcp)) {
+            is_on_any_derivation_of(bcp, ref_bcp)) {
           pdp->fundamental_base_class = bcp;
           break;
         }  /* if */
@@ -4842,7 +4842,7 @@ qualified reference either to A::i or to C::i will pick up A::i).
           stops when a name match is found; if the path through D were the
           only path to X, A, etc., X::i, A::i, etc., would not be found. */
       if (dominated_bcp == bcp ||
-          is_on_any_derivation_of(bcp, dominated_bcp)) {
+          is_on_any_derivation_of(dominated_bcp, bcp)) {
         dominated = TRUE;
         break;
       }  /* if */

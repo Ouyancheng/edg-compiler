@@ -1593,11 +1593,11 @@ Compare two argument match summary entries and return
              preferable. */
           if (!arg_match1->reversed_cast) {
             /* Normal case: derived --> base cast. */
-            if (is_on_any_derivation_of(bcp_1, bcp_2)) {
+            if (is_on_any_derivation_of(bcp_2, bcp_1)) {
               /* bcp_1 is a subsequence of bcp_2 and thus preferable. */
               cmp = 1;
               goto have_cmp;
-            } else if (is_on_any_derivation_of(bcp_2, bcp_1)) {
+            } else if (is_on_any_derivation_of(bcp_1, bcp_2)) {
               /* bcp_2 is a subsequence of bcp_1 and thus preferable. */
               cmp = -1;
               goto have_cmp;

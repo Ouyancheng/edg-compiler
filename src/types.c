@@ -753,8 +753,8 @@ a type identical to base_class_type.  Return NULL if none is found.
 }  /* find_direct_or_virtual_base_class_of */
 
 
-a_boolean is_on_any_derivation_of(a_base_class_ptr  ref_bcp,
-                                  a_base_class_ptr  bcp)
+a_boolean is_on_any_derivation_of(a_base_class_ptr  bcp,
+                                  a_base_class_ptr  ref_bcp)
 /*
 Return TRUE if ref_bcp appears as a step on any derivation of bcp.
 */
@@ -789,7 +789,7 @@ Return TRUE if ref_bcp appears as a step on any derivation of bcp.
         /* Set start_bcp to the first base class in this path. */
         start_bcp = bcdp->path->base_class;
         if (start_bcp->is_virtual &&
-            is_on_any_derivation_of(ref_bcp, start_bcp)) {
+            is_on_any_derivation_of(start_bcp, ref_bcp)) {
           found = TRUE;
           break;
         }  /* if */
@@ -901,7 +901,7 @@ step on the derivation list serves to confirm the match.
            list.  Check the derivations to resolve the ambiguity. */
         if (disambiguator != NULL) {
           if (!bcp->direct) {
-            if (is_on_any_derivation_of(disambiguator, bcp)) {
+            if (is_on_any_derivation_of(bcp, disambiguator)) {
               new_base_class = bcp;
 #if CHECKING
               /* Be sure the disambiguator actually worked by looking on
@@ -909,7 +909,7 @@ step on the derivation list serves to confirm the match.
               if (bcp->ambiguous) {
                 for (bcp = bcp->next; bcp != NULL; bcp = bcp->next) {
                   if (bcp->type == base_class->type && bcp->ambiguous) {
-                    if (is_on_any_derivation_of(disambiguator, bcp)) {
+                    if (is_on_any_derivation_of(bcp, disambiguator)) {
                       internal_error(
                                 "corresponding_base_class: bad disambiguator");
                     }  /* if */
