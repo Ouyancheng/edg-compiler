@@ -1896,12 +1896,12 @@ evaluated (but not checked to see if the match is good enough).
          the bindings for the template arguments.  This is needed during the
          matching process to ensure that each argument is used consistently
          and also later in this routine to build the instantiation.  The
-         allow_conversion argument is used to determine whether an
-         argument requiring a conversion from Derived<T> to Base<T> should
-         be considered as a matching type.  This conversion is accepted
-         in normal mode but not in strict ANSI mode. */
+         allow_conversion argument is used to allow an
+         argument requiring a conversion from Derived<T> to Base<T>.
+         This conversion was not allowed by the ARM but has been blessed
+         by the standards committee. */
       if (!matches_template_type(arg_type, param_type, &templ_arg_list,
-                                 /*allow_conversion=*/!strict_ansi_mode,
+                                 /*allow_conversion=*/TRUE,
                                  &base_class_conv_needed)) {
         /* Mismatch. */
         goto done;
