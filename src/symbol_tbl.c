@@ -516,7 +516,7 @@ and indentation is the indentation desired.
             db_symbol(inst_sym, "", indentation + 4);
             inst_sym = inst_sym->next;
           }  /* while */
-          mft_sym = tssp->variant.class.instantiations;
+          mft_sym = tssp->variant.class.member_function_templates;
           while (mft_sym != NULL) {
             fprintf(f_debug, "%*smember function template:\n",
                     indentation, "");
@@ -4737,7 +4737,7 @@ must be NULL in other cases.
       ssep->template_arg_list = tap;
       ssep->template_sym = template_sym;
       update_template_param_symbols(template_sym, tap);
-      /* Save the value of the innnermost instantiation for the current
+      /* Save the value of the innermost instantiation for the current
          class template in the scope stack.  This is used by pop_scope to
          restore the parameter values in the case of a recursive
          instantiation. */
