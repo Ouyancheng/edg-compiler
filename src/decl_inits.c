@@ -2722,6 +2722,8 @@ scan_paren:
         if (required_token(tok_lparen, ec_exp_lparen)) {
           if (is_class_struct_union_type(init_type) &&
               (array_type == NULL || curr_token == tok_rparen)) {
+            /* The type of the base or member is class or array-of-class --
+               the latter only if the expression-list is empty. */
             cssp = symbol_supplement_for_class(init_type);
           } else {
             cssp = NULL;
@@ -2783,19 +2785,28 @@ scan_paren:
           } else {
             /* A field whose initialization does not involve a constructor. */
             if (curr_token == tok_rparen) {
-              /* Bypass the right paren. */
-              (void)get_token();
-              if (cssp != NULL) {
-                /* Must be a class with no constructor. */
-                pos_ty_warning(ec_no_constructor, &lparen_pos, init_type);
-                /* Set the initializer field to record that an initialization
-                   was attempted. */
-                dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+              if (is_reference_type(init_type)) {
+                /* Error.  A reference type may not be default-initialized
+                   (8.5 [dcl.init], which says it's a no-op, and 8.5.3
+                   [dcl.init.ref], which says the that the initializer must
+                   be an object. */
+                a_constant_ptr  cp;
+
+                error(ec_default_init_of_reference);
+                /* Create a fake initializer to represent the error. */
+                dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+                cp = alloc_constant((a_constant_repr_kind)ck_error);
+                set_error_constant(cp);
+                dip->variant.constant = cp;
               } else {
-                /* Non-class (scalar or array): zero initialization is
-                   required. */
+                /* Using "()" with the mem-initializer means, perform default
+                   initialization.  Note that the class and array-of-class
+                   cases has already been dealt with, so default initialization
+                   is tantamount to zero-initialization (8.5 [dcl.init]). */
                 dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
               }  /* if */
+              /* Bypass the right paren. */
+              (void)get_token();
             } else {
               add_stop_token(tok_rparen);
               if (array_type != NULL) {

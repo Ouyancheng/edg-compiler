@@ -1,5 +1,16 @@
 Version 2.33
 
+7/31/96 Default initialization of reference member
+
+An error is now issued on a mem-initializer for a reference member when
+the expression-list is empty (i.e., which is otherwise the way to
+specify default-initialization) -- e.g.,
+
+  struct S {
+    int & ri;
+    S() : ri() { }     // Error is now issued
+  };
+
 7/31/96 Ignoring carriage returns in continuation lines
 
 When IGNORE_CARRIAGE_RETURN_IN_SOURCE is TRUE but
