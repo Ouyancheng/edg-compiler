@@ -1,5 +1,17 @@
 Version 3.3
 
+7/25/03  C++-generating back end: Workaround for GNU C++ extern "C" bug
+
+GNU C++ compilers are unable to parse variable declarations of the form
+
+  extern "C" struct S { int i; } x;
+
+To work around this GNU problem, the C++-generating back end now produces
+
+  extern "C" { extern struct S { int i; } x; }
+
+when GCC is selected as the back end's code target.
+
 7/24/03  Microsoft and GNU C++ compatibility: typedef in explicit instantiation
 
 In Microsoft and g++ modes, a typedef that refers to an instance of a class

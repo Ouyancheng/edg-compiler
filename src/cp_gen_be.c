@@ -9589,8 +9589,13 @@ declaration following this one is such a continuation.
            extern "C" { int i; }
          because simply
            extern "C" int i;
-         is no longer a definition. */
-      if (is_definition) {
+         is no longer a definition.
+         Also GNU compilers cannot parse
+           extern "C" struct S { int i; } x;
+         So we must produce
+           extern "C" { extern struct S { int i; } x; }
+         instead. */
+      if (is_definition || gcc_is_generated_code_target) {
         write_tok_str("{ ");
         /* We still need the storage class, for cases like
              extern "C" const int x = 1; 
