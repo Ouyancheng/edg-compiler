@@ -4553,11 +4553,14 @@ typedef struct an_expr_node {
       a_type_ptr
 		type;	/* If the argument of the typeid operator is a type,
 			   the type specified; if it is an expression, the
-			   type of the expression specified. */
+			   type of the expression specified.  In either case,
+			   top-level type qualifiers are removed. */
       an_expr_node_ptr
 		expr;
 			/* If the argument of the typeid operator is an
-			   expression, the expression specified; otherwise
+			   expression with one of the special forms (*p or
+			   p[x]), and the type is a polymorphic class type,
+			   this is the expression specified; otherwise
 			   NULL. */
     } typeid_info;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
