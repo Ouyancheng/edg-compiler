@@ -5470,7 +5470,7 @@ return the original member type.
       new_member_type =
                copy_routine_type_with_param_types(member_type,
                                                   /*copy_default_args=*/FALSE);
-      new_rtsp = new_member_type->variant.routine.extra_info;
+      new_rtsp = skip_typerefs(new_member_type)->variant.routine.extra_info;
       new_rtsp->this_class = class_type;
       member_type = new_member_type;
     }  /* if */
