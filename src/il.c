@@ -5584,6 +5584,7 @@ type in a function definition is based on a typedef).
   return to_type;
 }  /* copy_routine_type_with_param_types */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 
 a_type_ptr routine_type_without_default_args(a_type_ptr  orig_type)
 /*
@@ -5614,6 +5615,7 @@ unchanged.
   return tp;
 }  /* routine_type_without_default_args */
 
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 a_template_arg_ptr copy_template_arg_list(a_template_arg_ptr orig_list)
 /*
