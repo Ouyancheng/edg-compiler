@@ -1426,11 +1426,9 @@ nested class.
           check_assertion(tip != NULL);
           ssep = tip->partial_instantiation;
           if (ssep == NULL) {
-            /* This can happen when the routine has only been referenced
-               through friend declarations (see add_source_sequence_entry_-
-               for_partial_instantiation). */
-            check_assertion(rfp->symbol->variant.routine.ptr
-                                       ->declared_only_as_friend);
+            /* This can happen when the routine has been instantiated because
+               of a friend declaration (see add_source_sequence_entry_for_-
+               partial_instantiation). */
           } else {
             check_assertion(scope_depth != NO_SCOPE_DEPTH);
             tip->partial_instantiation = NULL;
