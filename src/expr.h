@@ -43,10 +43,13 @@ formal parameter, used in resolving overloaded function calls.
 */
 typedef enum /*an_argument_match_level*/ {
   /* Match levels -- See ARM 13.2. */
-  aml_exact=1,		/* Exact match or trivial conversions. */
-  aml_promotions,	/* Match with promotions. */
-  aml_standard_conv,	/* Match with standard conversions. */
-  aml_user_conv,	/* Match with user-defined conversions. */
+  aml_exact,		/* Exact match or trivial conversions. */
+  aml_exact_qualified,	/* Trivial conversions including removal of a type
+			   qualifier from the base type of a reference or
+			   pointer. */
+  aml_promotion,	/* Match with promotions. */
+  aml_std_conversion,	/* Match with standard conversions. */
+  aml_user_conversion,	/* Match with user-defined conversions. */
   aml_ellipsis,		/* Match with ellipsis. */
   aml_error,		/* Match with error type (not in ARM). */
   aml_none		/* No match.  Must be last (highest value). */
@@ -62,13 +65,10 @@ typedef struct an_argument_match_summary {
 		match_level;
 			/* Match level -- see ARM 13.2.  Primary key. */
   unsigned long	downward_cast_levels;
-			/* If the compatibility involves a downward cast,
-			   this is the count of levels; for a cast to void *,
+			/* If match_level == aml_standard_conv, and the
+			   compatibility involves a downward cast, this is
+			   the count of levels; for a cast to void *,
 			   ULONG_MAX.  Zero otherwise.  Secondary key. */
-  a_byte_boolean
-		qualifiers_added;
-			/* Type qualifiers (const/volatile) were added; this
-			   is the tertiary key, used as a tie-breaker. */
   an_error_code	warning_suggested;
 			/* If not ec_no_error, the code for a warning to be
 			   issued if this match is chosen. */
