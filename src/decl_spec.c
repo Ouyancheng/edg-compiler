@@ -982,16 +982,19 @@ to indicate whether an enumeration is actually defined.
       *declares_something = FALSE;
     }  /* if */
   }  /* if */
-  if (tag_sym != NULL) {
-    /* Do processing required for any pragmas that are bound to the current
-       declaration. */
-    process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
-  } else {
-    /* Issue diagnostics on pragmas that are trying to bind to an unnamed
-       enum. */
-    cannot_bind_to_curr_construct();
-  }  /* if */
   if (curr_token == tok_lbrace) {
+    /* We associate a curr-construct pragma with this enum type only if this
+       is a definition.  Otherwise this is assumed to be part of a declaration
+       of something else -- to which the pragma should be bound. */
+    if (tag_sym != NULL) {
+      /* Do processing required for any pragmas that are bound to the current
+         declaration. */
+      process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
+    } else {
+      /* Issue diagnostics on pragmas that are trying to bind to an unnamed
+         enum. */
+      cannot_bind_to_curr_construct();
+    }  /* if */
     /* Scan the enumeration itself.  Since the enumeration type entry is
        allocated in the file scope memory region, all its components should
        also be.  Switch to the file scope memory region here at the start of
