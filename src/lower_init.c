@@ -1722,8 +1722,6 @@ dip->variant.constructor.args has already been lowered.
                                            /*define_now=*/FALSE);
 #endif /* IA64_ABI */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-
-
       /* Set up for passing an array of virtual function table pointers
          to use during the subobject construction, if one is necessary. */
       build_construction_vtbls_pointer_for_subobject_construction(
@@ -9609,7 +9607,7 @@ under dip or generate code.
   if (just_test != NULL) *just_test = FALSE;
   /* The destructible entity description is not allocated if not
      needed, e.g., for a constructor-init in a destructor when
-     exceptions are disabled. for that case, use a dummy one
+     exceptions are disabled.  For that case, use a dummy one
      just long enough to pass information between the two parts
      of this routine. */
   if (dedp == NULL) {
