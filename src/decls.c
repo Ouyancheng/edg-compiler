@@ -1144,10 +1144,10 @@ typedef struct an_id_linkage_block {
 			   always NULL when linked_symbol in non-NULL.  (C++
 			   only, and used only with function declarations.) */
   a_symbol_ptr  prior_decl_in_enclosing_scope;
-			/* If the current declaration is a block-extern
-			   declaration, a prior declaration in an enclosing
-			   scope (used to determine linkage); otherwise
-			   NULL. */
+			/* If the current declaration is a block-extern or
+			   friend declaration, a prior declaration in an
+			   enclosing scope (used to determine linkage);
+			   otherwise NULL. */
   a_symbol_ptr	overload_symbol;
 			/* A symbol representing the overload set to which
 			   the current declaration already belongs or will
@@ -1162,7 +1162,7 @@ typedef struct an_id_linkage_block {
   a_scope_depth
 		effective_decl_level;
 			/* The effective scope depth of the declaration.  It
-			   is usually the same as decl_scope_depth, except
+			   is usually the same as decl_scope_level, except
 			   in the case of friend declarations and certain
 			   template declarations. */
   a_storage_class
@@ -1790,6 +1790,16 @@ called by id_linkage.
         (idlbp->is_block_extern_decl || idlbp->is_local_class_friend_decl) &&
         other_decl->decl_scope != scope_stack[depth_scope_stack].number) {
       idlbp->prior_decl_in_enclosing_scope = other_decl;
+    }  /* if */
+    if (idlbp->is_local_class_friend_decl && strict_ansi_mode &&
+        idlbp->prior_decl_in_enclosing_scope != NULL) {
+      /* A local class friend declaration must refer to a function declared
+         within the immediately enclosing non-class scope. */
+      if (idlbp->prior_decl_in_enclosing_scope->decl_scope !=
+                           scope_stack[idlbp->effective_decl_level].number) {
+        idlbp->prior_decl_in_enclosing_scope = NULL;
+        idlbp->linked_symbol = NULL;
+      }  /* if */
     }  /* if */
     if (idlbp->linked_symbol != NULL) {
       if (idlbp->homonym_symbol == NULL) {
@@ -4389,20 +4399,23 @@ on for use in generating cross-reference output describing this declaration.
           goto skip_overloading;
         }  /* if */
       }  /* if */
-      if (idlb.is_local_class_friend_decl &&
-          idlb.prior_decl_in_enclosing_scope != NULL) {
+      if (is_friend_decl) {
         a_symbol_ptr  prior_decl = idlb.prior_decl_in_enclosing_scope;
+
         if (prior_decl != NULL &&
             !is_function_symbol(fundamental_symbol_of(prior_decl))) {
           /* Issue an error for a case like this:
-               void f() {
-                 int x;
-                 struct S { friend x(); }    // Incompatible decl
-               }
+               int x;
+               struct S { friend x(); }    // Incompatible decl
           */
           pos_sy_error(ec_decl_incompatible_with_previous_use,
                        &locator->source_position, prior_decl);
           redecl_error_already_issued = TRUE;
+        } else if (idlb.is_local_class_friend_decl && prior_decl == NULL) {
+          /* A local class friend declaration requires a prior declaration
+             in the scope that encloses the class definition. */
+          pos_error(ec_local_class_friend_requires_prior_decl,
+                    &locator->source_position);
         }  /* if */
       }  /* if */
     }  /* if */

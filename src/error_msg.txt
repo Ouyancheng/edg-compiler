@@ -995,6 +995,7 @@ ec_cl_arg_dependent_lookup_option_only_in_cplusplus;;"option \"arg_dep_lookup\" 
 ec_cl_friend_injection_option_only_in_cplusplus;;"option \"friend_injection\" can be used only when compiling C++"
 ec_invalid_name_after_template;;"name following \"template\" must be a member template"
 ec_name_after_template_not_template_id;;"name following \"template\" must have a template argument list"
+ec_local_class_friend_requires_prior_decl;;"a friend declaration within a local class must specify a function previously declared within the enclosing scope"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
