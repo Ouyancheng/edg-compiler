@@ -1524,9 +1524,16 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if this scope is associated with the compound
 			   statement of a for, do, or while loop. */
   unsigned int	slow_lookup_required:1;
-			/* TRUE if this a slow lookup is required because
-			   the scope stack contains a scope in which certain
-			   symbols on the active list must not be visible. */
+			/* TRUE if this is a scope for which a slow lookup
+			   is required because the scope stack contains a
+			   scope in which certain symbols on the active list
+			   must not be visible. */
+  unsigned int	return_value_optimization_possible:1;
+			/* TRUE if this scope is a function scope and return
+			   value optimization is possible for the routine.
+			   That is, the routine returns a class value via
+			   a copy constructor, and all return statements
+			   return a single local variable. */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols

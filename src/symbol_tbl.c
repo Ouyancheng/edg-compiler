@@ -6560,6 +6560,7 @@ of the template.
   ssep->template_param_decl_scope= FALSE;
   ssep->is_loop_scope            = FALSE;
   ssep->slow_lookup_required     = FALSE;
+  ssep->return_value_optimization_possible = FALSE;
   ssep->symbols                  = NULL;
   ssep->last_symbol              = NULL;
   ssep->il_scope                 = sp;
