@@ -1,5 +1,15 @@
 Version 2.11
 
+10/27/92 Template support
+
+Substantial changes have been made over the past six weeks to introduce
+support for templates.  Much of the new code is in templates.c and
+templates.h.  Changes to the symbol table and the IL have also been made
+(new symbol kinds sk_class_template and sk_function_template; new type
+kind tk_template_parameter; new structs a_template_symbol_supplement,
+a_function_instantiation_entry, a_template_arg; etc.).  Additional
+changes related to template support will be tracked in this log.
+
 10/27/92 Fixed bug in processing function declarators in C-mode
 
 A bug was fixed in declarator for cases in which a function returns a
