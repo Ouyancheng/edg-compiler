@@ -1018,8 +1018,9 @@ typedef a_host_large_integer a_targ_ptrdiff_t;  /* Must be
 /* TARG_PTRDIFF_T_MAX and TARG_PTRDIFF_T_MIN define the limits of the host
    representation of ptrdiff_t constants; the range they define can be equal
    to or smaller than the integer size implied by TARG_PTRDIFF_T_INT_KIND.
-   Except when the target ptrdiff_t is smaller than the host long, they
-   should be LONG_MAX and LONG_MIN. */
+   Except when the target ptrdiff_t is smaller than the host
+   a_targ_ptrdiff_t, they should be the maximum and mininum values
+   of the host a_targ_ptrdiff_t. */
 #ifndef TARG_PTRDIFF_T_MAX
 #define TARG_PTRDIFF_T_MAX ((a_targ_ptrdiff_t)LONG_MAX)
 			/* Default value, used to initialize global variable
