@@ -4403,7 +4403,9 @@ of local variables (and types, etc.) of functions and in blocks.
   a_variable_ptr    var_ptr;
   a_source_sequence_entry_ptr
                     declarator_ssep = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean         first_declarator = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ASM_FUNCTION_ALLOWED
   a_boolean         is_asm_function = FALSE;
 #endif /* ASM_FUNCTION_ALLOWED */
@@ -5338,7 +5340,9 @@ continue_with_declaration:
       done_with_func_info(func_info);
       remove_stop_token(tok_comma);
       need_comma_remove_stop_token = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
       first_declarator = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Keep scanning the list of declarators. */
     } while (loop_token(tok_comma));
   }  /* if */
