@@ -7927,7 +7927,8 @@ destructor_name:
            the loop (we've taken all we're supposed to).  The first time,
            this is an error. */
 something_unexpected:
-        if (num_specifiers == 0) {
+        if (num_specifiers == 0 &&
+            !(input_flags & DSI_EMPTY_DECL_SPECIFIERS_ALLOWED)) {
           syntax_error(ec_exp_type_specifier);
           err = TRUE;
           basic_type = bt_error;
