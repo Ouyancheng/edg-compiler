@@ -2856,9 +2856,12 @@ precedence confusion.
       gen_lvalue(operand_1);
       processed = TRUE;
     } else if (op == (an_expr_operator_kind)eok_cast &&
-               node->variant.operation.compiler_generated) {
+               node->variant.operation.compiler_generated &&
+               (!is_pointer_type(operand_1->type) ||
+                !is_array_type(type_pointed_to(operand_1->type)))) {
       /* Normal implicit cast.  Remove to avoid problems with casting
-         address of enk_temp_init to some related type. */
+         address of enk_temp_init to some related type.  The pointer test
+         is to avoid removing casts that do array-->pointer decay. */
       gen_lvalue(operand_1);
       processed = TRUE;
     } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
