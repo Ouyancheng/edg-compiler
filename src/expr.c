@@ -5212,7 +5212,7 @@ expression.
        instead of check_boolean_controlling_expr because we don't want
        to issue diagnostics for things like "i = 1&&2;". */
     if (is_constant_operand(result)) {
-      remark(ec_boolean_controlling_expr_is_constant);
+      pos_remark(ec_boolean_controlling_expr_is_constant, &result->position);
     }  /* if */
   }  /* if */
 }  /* process_boolean_controlling_expression */
