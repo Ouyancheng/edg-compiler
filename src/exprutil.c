@@ -3775,7 +3775,8 @@ requires a later destruction, put it into the current object lifetime.
     /* If the lifetime happens to turn out to be static (e.g., when
        long lifetime temps are enabled), mark the temp init as requiring
        a static temporary. */
-    if (dip->lifetime->kind == (an_object_lifetime_kind)olk_global_static) {
+    if (dip->lifetime != NULL &&
+        dip->lifetime->kind == (an_object_lifetime_kind)olk_global_static) {
       temp_init_node->variant.init.static_temp = TRUE;
     }  /* if */
   }  /* if */
