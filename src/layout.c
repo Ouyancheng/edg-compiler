@@ -664,7 +664,14 @@ aligned according to container_alignment.
   db_exit();
   return !overflow;
 }  /* align_offsets_for_bit_field */
-                                      
+                              
+
+/* Return TRUE if a given field is an unnamed field.  Test the name first
+   to reduce the cost. */
+#define is_unnamed_field(fp)                                          \
+  ((fp)->source_corresp.name == NULL &&                               \
+   (fp)->source_corresp.assoc_info == (char *)unnamed_field_symbol())
+
 
 a_boolean set_field_size_and_offset(a_field_ptr      field,
                                     a_targ_size_t    *p_byte_offset,
@@ -712,8 +719,7 @@ if there's no overflow TRUE is returned.
       overflow = !do_alignment(p_byte_offset, p_bit_offset, field_alignment);
     }  /* if */
     if (!overflow) {
-      if (field->source_corresp.assoc_info == NULL &&
-          (C_dialect != C_dialect_cplusplus || !is_union_type(field->type))) {
+      if (is_unnamed_field(field)) {
         /* This is an unnamed bit field (or unnamed non-bit field).  The
            alignment it forces should not affect the alignment of the struct
            as a whole. */
