@@ -2554,7 +2554,8 @@ qualified_name_check:
        functions, this checks ambiguity but not access (which can be different
        for each function in the set). */
     check_ambiguity_and_verify_access(&locator_for_curr_id);
-    if (locator_for_curr_id.is_template_id) {
+    if (locator_for_curr_id.is_template_id &&
+        !is_class_struct_union_symbol(member_sym)) {
       /* At the moment, explicit template arguments on functions are not
          supported in expressions. */
       pos_error(ec_explicit_template_args_in_expr,
@@ -9528,7 +9529,8 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
        functions, this checks ambiguity but not access (which can be different
        for each function in the set). */
     check_ambiguity_and_verify_access(&locator_for_curr_id);
-    if (locator_for_curr_id.is_template_id) {
+    if (locator_for_curr_id.is_template_id &&
+        !is_class_struct_union_symbol(sym_ptr)) {
       /* At the moment, explicit template arguments on functions are not
          supported in expressions. */
       pos_error(ec_explicit_template_args_in_expr,
