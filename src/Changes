@@ -1,5 +1,21 @@
 Version 2.46
 
+6/22/01  Use of template conversion function in context that requires
+         different cv-qualification
+
+Template conversion functions are now considered in contexts where
+the required class type has different cv-qualification than what
+the conversion function produces.
+
+  template <class T> struct A { };
+  struct S {
+    template <class T> operator A<T>();
+  } s;
+  int main() {
+    const A<int> &r = s;  // Requires conversion to const A<int>;
+                          // accepted now.
+  }
+
 6/21/01  Constructors marked "explicit" no longer used for copying
 
 To match TC1 of the C++ standard, the front end no longer uses

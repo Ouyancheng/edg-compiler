@@ -6328,7 +6328,7 @@ This routine is only used in C++ mode.
       conversion_routine = tssp->variant.function.routine;
       conv_routine_type = conversion_routine->type;
       return_type = return_type_of(conv_routine_type);
-      if (!matches_template_type(rvalue_type(dest_type),
+      if (!matches_template_type(skip_typerefs(dest_type),
                                  return_type,
                                  &template_arg_list,
                                  tssp->variant.function.decl_cache.
@@ -6437,7 +6437,8 @@ This routine is only used in C++ mode.
              an rvalue which has no type qualifiers.  To put it another way,
              a conversion function to "const int &" can serve as a conversion
              function to "int" by converting to a "const int" lvalue and then
-             to an "int" rvalue. */
+             to an "int" rvalue.  Note that class types are processed
+             above and don't get here. */
           compatible = TRUE;
           if (result_is_an_lvalue) {
             if (any_qualifier_missing(dest_type, return_type)) {
