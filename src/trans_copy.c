@@ -362,6 +362,21 @@ and remap the pointers in the copy.
 }  /* copy_entry */
 
 
+static void copy_from_secondary_to_primary_IL(void)
+/*
+Copy everything from the current secondary translation unit IL to the
+primary translation unit IL.
+*/
+{
+  db_enter(1, "copy_from_secondary_to_primary_il");
+  walk_file_scope_il(copy_entry, copy_string_entry,
+                     (a_remap_function_ptr)NULL,
+                     copy_termination_test,
+                     /*clear_fe_pointers=*/FALSE);
+  db_exit();
+}  /* copy_from_secondary_to_primary_IL */
+
+
 static void clear_variable_initialization(a_variable_ptr variable)
 /*
 Eliminate the initialization of the indicated variable to turn it
@@ -1164,21 +1179,6 @@ into the primary translation unit il_header.
                   (a_routine_ptr)canonical_il_entry_of(il_header.main_routine);
   }  /* if */
 }  /* merge_il_headers */
-
-
-static void copy_from_secondary_to_primary_IL(void)
-/*
-Copy everything from the current secondary translation unit IL to the
-primary translation unit IL.
-*/
-{
-  db_enter(1, "copy_from_secondary_to_primary_il");
-  walk_file_scope_il(copy_entry, copy_string_entry,
-                     (a_remap_function_ptr)NULL,
-                     copy_termination_test,
-                     /*clear_fe_pointers=*/FALSE);
-  db_exit();
-}  /* copy_from_secondary_to_primary_IL */
 
 
 static void wrap_up_moved_function(a_routine_ptr rout)
