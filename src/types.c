@@ -1645,7 +1645,7 @@ and a diagnostic is issued (unless suppress_error is TRUE).
 #if CHECKING
     if (temp2 == 0 &&
         !(is_array_type(elem_type) &&
-          elem_type->variant.array.bound_is_zero)) {
+          (gcc_mode || elem_type->variant.array.bound_is_zero))) {
       internal_error("set_array_type_size: bad element type");
     }  /* if */
 #endif /* CHECKING */

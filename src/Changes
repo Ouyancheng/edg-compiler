@@ -1,5 +1,14 @@
 Version 3.0
 
+3/14/02  GNU C: incomplete array parameter types
+
+In GNU C mode, the front end now accepts the following code:
+
+  void f(int x[][]) {}
+
+Within the definition of the function, the parameter x is treated as being
+a pointer to an incomplete type (e.g., it cannot be subscripted).
+
 3/11/02  Abort on lowering of static for-init variable in extern inline
 
 IL lowering aborted ("set_block_start_insert_location: NULL stmt")
