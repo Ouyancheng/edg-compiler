@@ -1982,20 +1982,23 @@ in the conversion header list; if there is none, a new one is created.
 }  /* make_type_conversion_locator */
 
 
-a_symbol_ptr global_operator_new_or_delete_symbol(an_opname_kind     opname,
-                                                  a_source_position  *pos)
+a_symbol_ptr global_operator_new_or_delete_symbol(
+                                        an_opname_kind     opname,
+                                        a_source_position  *pos,
+                                        a_boolean          make_default_new)
 /*
 Look up and return a symbol for global operator new or operator delete.
 If no symbol exists, create one along with a routine entry to represent
 the function.
 */
 {
-  a_symbol_header_ptr            sym_hdr;
   a_symbol_ptr                   sym = NULL, ext_sym;
+  a_symbol_ptr                   return_sym;
   a_type_ptr                     tp, rout_type, old_type;
   a_routine_type_supplement_ptr  extra_info;
   an_id_linkage_kind             linkage;
   a_symbol_locator               locator;
+  a_token_kind                   token;
 
   db_enter(4, "global_operator_new_or_delete_symbol");
 #if CHECKING
@@ -2004,22 +2007,28 @@ the function.
     internal_error("global_operator_new_or_delete_symbol: bad opname kind");
   }  /* if */
 #endif /* CHECKING */
-  /* See if the opname symbol table has a header for the operator. */
-  sym_hdr = opname_symbol_table[(int)opname];
-  if (sym_hdr == NULL) {
-    /* No symbol header yet -- force its creation and the creation of the
-       symbol. */
-    sym = NULL;
-  } else {
-    /* Header exists, so look for a symbol that's the global operator (i.e.,
-       ignore symbols for member functions). */
-    for (sym = sym_hdr->symbol; sym != NULL; sym = sym->next) {
-      if (sym->class_of_which_a_member == NULL &&
-          (sym->kind == (a_symbol_kind)sk_routine ||
-           sym->kind == (a_symbol_kind)sk_overloaded_function)) {
-         break;
-      }  /* if */
+  /* Create a locator for the symbol that is to be found or created.
+     This will also create the symbol header if necessary. */
+  token = (opname == (an_opname_kind)onk_new) ? tok_new : tok_delete;
+  make_opname_locator(token, opname, &locator, pos);
+  /* Look up the symbol at file scope. */
+  file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+  /* If a symbol was found in the lookup, that's what we want to return.
+     If none was found, we will create a default global operator new or
+     delete and return that.  Even if we found a symbol we may need to
+     create a default global operator new. */
+  sym = return_sym = locator.specific_symbol;
+  if (make_default_new && sym != NULL) {
+    /* We need to create the default new unless it's already there. */
+    a_boolean is_overloaded = (sym->kind ==
+                                     (a_symbol_kind)sk_overloaded_function);
+    if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
+    for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+      /* Look for a symbol for a function with just one parameter. */
+      extra_info = sym->variant.routine->type-> variant.routine.extra_info;
+      if (extra_info->param_type_list->next == NULL) break;
     }  /* for */
+    /* If sym is NULL then no default new exists already. */
   }  /* if */
   /* If none was found, create one. */
   if (sym == NULL) {
@@ -2041,9 +2050,6 @@ the function.
     extra_info->param_type_list = alloc_param_type(tp, /*at_file_scope=*/TRUE);
     extra_info->prototyped = TRUE;
     set_routine_calling_method_flag(rout_type);
-    /* Create a locator for the symbol that is to be created.  This will also
-       create the symbol header if necessary. */
-    make_opname_locator(tok_new, opname, &locator, pos);
     /* Create the symbol and routine entry.  Note that the routine entry
        is given a storage class of sc_extern since there is no definition
        in the current translation unit. */
@@ -2058,10 +2064,22 @@ the function.
     sym->variant.routine->source_corresp.name_linkage =
                                (a_name_linkage_kind)nlk_cplusplus_external;
     sym->explicit_linkage_specifier = FALSE;
+    /* Determine the symbol to return. */
+    if (return_sym == NULL) {
+      /* Return the one just created. */
+      return_sym = sym;
+    } else if (return_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      /* Return the overloaded function symbol that was originally found --
+         sym will now be amongst its linked list of function symbols. */
+    } else {
+      /* Do the lookup again to get the overloaded function symbol. */
+      file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+      return_sym = locator.specific_symbol;
+    }  /* if */
   }  /* if */
 
   db_exit();
-  return sym;
+  return return_sym;
 }  /* global_operator_new_or_delete_symbol */
 
 
