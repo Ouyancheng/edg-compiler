@@ -323,7 +323,8 @@ Install the keywords in the symbol table.
   enter_keyword((a_token_kind)tok_alignof, "__alignof__");
   enter_keyword((a_token_kind)tok_intaddr, "__INTADDR__");
   if (restrict_enabled) {
-    enter_keyword((a_token_kind)tok_restrict, "restrict");
+    enter_keyword((a_token_kind)tok_restrict, gnu_mode ? "__restrict__"
+                                                       : "restrict");
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
