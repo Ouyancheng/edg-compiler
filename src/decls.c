@@ -404,7 +404,7 @@ static void prescan_declarator(a_token_cache  *token_cache_ptr,
         }  /* if */
       }  /* if */
     } else {
-      *may_be_decl = FALSE;
+      if (!abstract_declarator_allowed) *may_be_decl = FALSE;
       goto done;
     }  /* if */
   }  /* if */
