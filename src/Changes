@@ -1,5 +1,15 @@
 Version 3.4
 
+3/5/04   GNU mode: Attributes ignored on nondefining class declarations
+
+In GNU C and C++ modes, the front end now ignores attributes appearing
+between the class, struct, or union keyword and the type name.  For example:
+
+  struct __attribute__((deprecated)) S *p;  // Attribute ignored: No warning
+                                            // about S being deprecated.
+
+(This corresponds to the behavior of GNU compilers.)
+
 3/5/04   Abort on undefined virtual inline member in secondary translation unit
 
 When compiling multiple translation units simultaneously, an internal error

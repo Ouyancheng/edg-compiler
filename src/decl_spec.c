@@ -2910,7 +2910,12 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && attributes != NULL) {
-    apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
+    /* In GNU mode, attributes appearing between the class/struct/union
+       keyword and the type name are ignored if the elaborated name specifier
+       is not followed by a class type definition. */
+    if (is_class_definition) {
+      apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
+    }  /* if */
     free_attribute_list(attributes);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
