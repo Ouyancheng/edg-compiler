@@ -19523,7 +19523,7 @@ Add the routine to an "instantiation list" of inline functions.
 {
   a_routine_list_entry_ptr	rlep;
 
-  check_assertion(instantiate_extern_inline && rout_ptr->is_inline);
+  check_assertion(instantiate_extern_inline);
   /* All functions are put on the list, even static ones.  Static functions
      will usually be ignored, but may need to be treated as external
      functions when using exported templates. */
