@@ -2150,6 +2150,9 @@ might not be able to if the template itself has not yet been defined.
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(template_sym);
     tssp = template_supplement_for_symbol(template_sym);
+    /* Indicate that this template has been used for the purpose of
+       generating a full instantiation.  */
+    tssp->variant.class_template.any_full_instantiations = TRUE;
     /* Check whether this particular instance should be generated from a
        partial specialization.  This is only done for class templates, not
        normal nested classes of class templates. */

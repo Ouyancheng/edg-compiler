@@ -2300,6 +2300,7 @@ and return a pointer to it.
                                             (a_name_linkage_kind)nlk_none;
       tssp->variant.class_template.not_standalone_nested_class = FALSE;
       tssp->variant.class_template.template_template_param = FALSE;
+      tssp->variant.class_template.any_full_instantiations = FALSE;
       tssp->variant.class_template.argument_template = NULL;
 #if CHECKING 
       tssp->variant.class_template.avoid_codecenter_warnings = FALSE;

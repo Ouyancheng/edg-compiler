@@ -1752,6 +1752,11 @@ typedef struct a_template_symbol_supplement {
 		template_template_param:1;
 			/* TRUE if this is a class template symbol associated
 			   with a template template parameter. */
+      a_bit_field
+		any_full_instantiations:1;
+			/* TRUE if any full instantiations have been done of
+			   this template or any of its partial
+			   specializations. */
       bitfield_to_avoid_codecenter_warnings()
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       a_source_sequence_entry_ptr
