@@ -313,7 +313,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       /* The bit-field size is zero, so the field must be unnamed. */
       if (*unnamed_bit_field) {
         /* Okay. */
-      } else if (cfront_compatibility_mode) {
+      } else if (any_cfront_mode()) {
         /* Cfront compatibility -- permit named bit fields to have zero
            size, but change the value of *unnamed_bit_field so that they
            will not be entered into the symbol table.  Note that it would
@@ -362,7 +362,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
          "long", or "long long") -- it's not explicitly signed or unsigned and
          it's not an enum type. */
       if (bit_field_size > 1 && !targ_plain_int_bit_field_is_unsigned &&
-          !cfront_compatibility_mode) {
+          !any_cfront_mode()) {
         /* Keep the default signedness of the plain integral type.  Note that
            cfront treats all bit fields as unsigned. */
         is_signed = TRUE;
