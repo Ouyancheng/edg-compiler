@@ -67,9 +67,6 @@ multi-byte integer is at the lowest memory address.
 Char types:
 */
 #define TARG_CHAR_BIT 8
-#define TARG_SCHAR_MIN (-128)
-#define TARG_SCHAR_MAX 127
-#define TARG_UCHAR_MAX ((unsigned)255)
 /* Make the default for character signedness on the target the same as
    for the host.  That's not required; it's just the most common case,
    and doing it this way makes it less likely that this configuration

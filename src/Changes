@@ -1,5 +1,9 @@
 Version 2.17
 
+5/12/93 TARG_UCHAR_MAX, TARG_SCHAR_MAX, and TARG_SCHAR_MIN deleted
+
+Those constants are no longer needed are were removed from target.h
+
 5/12/93 Pointless comparisons of unsigned to negative constants
 
 A warning is now issued for pointless comparisons of unsigned values
