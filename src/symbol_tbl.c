@@ -2079,7 +2079,7 @@ the compiler-generated flag should be cleared.
   decl_var_or_routine(&locator, (a_storage_class)sc_extern,
                       rout_type, /*is_implicit_function=*/FALSE,
                       /*if_function_def_with_body=*/FALSE,
-                      /*is_inline=*/FALSE, &sym,
+                      /*is_inline=*/FALSE, /*is_main_function=*/FALSE, &sym,
                       &linkage, &old_type, &ext_sym);
   sym->variant.routine->compiler_generated = TRUE;
 
