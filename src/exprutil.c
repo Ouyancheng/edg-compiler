@@ -5960,7 +5960,6 @@ void add_reference_indirection(an_operand *result)
 {
   a_type_ptr       result_type;
   an_expr_node_ptr node;
-  an_operand_state result_state;
   an_operand       orig_result;
 
   result_type = result->type;
@@ -5969,31 +5968,30 @@ void add_reference_indirection(an_operand *result)
     internal_error("add_reference_indirection: not reference type");
   }  /* if */
 #endif /* CHECKING */
-  result_state = result->state;
   orig_result = *result;
-  /* Change the references to "use". */
-  change_some_ref_kinds(result->ref_entries_list, SRK_REFERENCE, SRK_USE);
-  node = add_indirection_to_node(make_node_from_operand(result));
+  node = make_node_from_operand(result);
+  result_type = type_pointed_to(result_type);
+  if (is_an_lvalue(result)) {
+    /* Change the references to "use". */
+    change_some_ref_kinds(result->ref_entries_list, SRK_REFERENCE, SRK_USE);
+    node = add_indirection_to_node(node);
+    if (is_operation_node(node)) {
+      node->variant.operation.compiler_generated = TRUE;
+    }  /* if */
+  }  /* if */
+  /* Make the node have a pointer type instead of a reference type. */
+  node->type = make_pointer_type(result_type);
   /* Mark the node as being an implicit indirection generated for a
      reference. */
   node->implicit_reference_indirection = TRUE;
-  if (is_operation_node(node)) {
-    node->variant.operation.compiler_generated = TRUE;
-  }  /* if */
-  if (is_an_lvalue(result)) {
-    result_type = type_pointed_to(result_type);
-    /* Make the node have a pointer type instead of a reference type. */
-    node->type = make_pointer_type(result_type);
-    if (is_function_type(result_type)) {
-      /* The thing pointed to is a function, so the result is a function
-         designator. */
-      result_state = (an_operand_state)os_function_designator;
-    }  /* if */
-  } else if (is_an_rvalue(result)) {
-    result_type = node->type;
-  }  /* if */
   make_expression_operand(node, result_type, result);
-  result->state = result_state;
+  if (is_function_type(result_type)) {
+    /* The thing pointed to is a function, so the result is a function
+       designator. */
+    result->state = (an_operand_state)os_function_designator;
+  } else {
+    result->state = (an_operand_state)os_lvalue;
+  }  /* if */
   /* Restore the original source position, etc.  Note that the reference
      entries are NOT restored, on purpose. */
   restore_operand_details(result, &orig_result);

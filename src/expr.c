@@ -1907,14 +1907,17 @@ The result is placed in *result.
        is done to get the value or address of the thing pointed to. */
     if (C_dialect == C_dialect_cplusplus && is_reference_type(result_type)) {
       add_reference_indirection(result);
-    }  /* if */
-    /* Preserve the reference entries for the base struct. */
-    result->ref_entries_list = operand_1->ref_entries_list;
-    if (rep != NULL) {
-      /* Add the reference entry for the field to the list of entries for
-         the operand. */
-      rep->next_operand_ref = result->ref_entries_list;
-      result->ref_entries_list = rep;
+    } else {
+      /* Preserve the reference entries for the base struct.  Don't do this
+         if we are dereferencing a reference, because in that case the
+         reference if not modified if the lvalue is modified. */
+      result->ref_entries_list = operand_1->ref_entries_list;
+      if (rep != NULL) {
+        /* Add the reference entry for the field to the list of entries for
+           the operand. */
+        rep->next_operand_ref = result->ref_entries_list;
+        result->ref_entries_list = rep;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* do_field_selection_operation */

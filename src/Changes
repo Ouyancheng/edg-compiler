@@ -1,5 +1,19 @@
 Version 3.0
 
+3/17/02  rvalue_expr.reference_field should produce an lvalue
+
+A field selection that selects a field of reference type from
+an rvalue class object should produce an lvalue, but the front
+end incorrectly considered the result an rvalue.  Now fixed.
+
+3/17/02  Cross-reference output on reference field selection
+
+On a field selection of a field of reference type used thereafter
+as an lvalue, the reference field was incorrectly noted in the
+cross-reference output at being modified, when in fact in such
+a case it's really just referenced.  The cross-reference output
+is now correct.
+
 3/14/02  GNU C: incomplete array parameter types
 
 In GNU C mode, the front end now accepts the following code:
