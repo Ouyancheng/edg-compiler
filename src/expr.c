@@ -2258,6 +2258,15 @@ bound with the function in *bound_function_selector.
               locator_for_curr_id.is_class_member = TRUE;
               need_member_sym_check = FALSE;
             }  /* if */
+          } else if (member_sym->kind == (a_symbol_kind)sk_class_template) {
+            /* For a member template, coalesce the template reference.
+               This will use the specific symbol already established. */
+            member_sym = coalesce_and_lookup_generalized_identifier(
+                                                                   gid_flags,
+                                                                   ilm_normal,
+                                                                   &local_err);
+            err |= local_err;
+            projection_member_sym = locator_for_curr_id.specific_symbol;
           }  /* if */
         }  /* if */
       }  /* if */
