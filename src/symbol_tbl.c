@@ -494,8 +494,9 @@ and indentation is the indentation desired.
           if (routine != NULL) {
             db_type(tssp->variant.function.routine->type);
           } else {
-            fprintf(f_debug, "(routine ptr is NULL)\n");
+            fprintf(f_debug, "(routine ptr is NULL)");
           }  /* if */
+          fprintf(f_debug, "\n");
         }  /* if */
         col = 0;
         suppress_newline = TRUE;
@@ -581,6 +582,7 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->identifier        = NULL;
   ptr->identifier_length = 0;
   ptr->any_nested_types_on_inactive_list = FALSE;
+  ptr->has_semivisable_nested_type = FALSE;
 
   db_exit();
 
@@ -4626,6 +4628,68 @@ must be NULL in other cases.
 }  /* push_scope */
 
 
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+
+a_boolean check_for_file_scope_type_with_same_name(a_symbol_ptr sym_to_find)
+/*
+This routine is used to implement the "transitional model" for nested types.
+Given a symbol this routine looks for a file scope type (class, struct, union,
+typedef, or enum) with the same name.  Returns TRUE if one is found, FALSE
+otherwise.
+*/
+{
+  a_symbol_ptr   sym;
+  a_boolean      found = FALSE;
+  a_scope_number file_scope_number = scope_stack[DEPTH_OF_FILE_SCOPE].number;
+
+  sym = sym_to_find->header->symbol;
+  while (sym != NULL) {
+    if (sym->decl_scope == file_scope_number) {
+      /* Look for class, struct, union, enum, or typedef. */
+      if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
+        found = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+    sym = sym->next;
+  }  /* while */
+  return found;
+}  /* check_for_file_scope_type_with_same_name */
+
+
+a_symbol_ptr find_semivisable_nested_type_symbol(a_symbol_ptr sym_to_find)
+/*
+Given a symbol looks through the inactive list for a type symbol
+of the same name whose type has the semivisable flag set.
+This is used for error generation of the transitional model for nested
+type support.
+*/
+{
+  a_symbol_ptr   sym;
+
+  sym = sym_to_find->header->inactive_symbols;
+  while (sym != NULL) {
+    /* Look for class, struct, union, enum, or typedef. */
+    if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
+      a_type_ptr  sym_type = type_symbol_type(sym);
+      if (sym_type->is_semivisable_nested_type) {
+        break;
+      }  /* if */
+    }  /* if */
+    sym = sym->next;
+  }  /* while */
+#if CHECKING
+  if (sym == NULL) {
+    internal_error
+      ("find_semivisable_nested_type_symbol: no semivisable symbol found");
+  }  /* if */
+#endif /* CHECKING */
+  return sym;
+}  /* find_semivisable_nested_type_symbol */
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+
+
+
 static void check_referenced_member_functions(a_symbol_ptr  class_sym)
 /*
 Issue an error for member functions that have been referenced but are
@@ -5061,9 +5125,53 @@ End a name scope by popping an entry off the scope stack.
       if (kind == (a_scope_kind)sck_class_struct_union) {
         if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
           sym->header->any_nested_types_on_inactive_list = TRUE;
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+          /* Cfront 2.1 implements a special "transitional model" for nested
+             types.  Under this model cfront promotes nested types to the file
+             scope unless a file scope type of the same name is already
+             defined.  Subsequent definition of additional nested types with
+             the same name is an error.  This code, which simulates the
+             cfront behavior, .sets a flag for the first nested type with
+             a given name and issues errors on subsequent definitions.
+             Template classes are excluded from this check since they
+             are not supported under cfront 2.1. */
+          {
+            a_type_ptr   sym_type = type_symbol_type(sym);
+            if (cfront_compatibility_mode) {
+              if (!is_template_class_type(sym_type)) {
+                /* Only do this if the name is not a type name at file
+                   scope. */
+                if (!check_for_file_scope_type_with_same_name(sym)) {
+                  if (!sym->header->has_semivisable_nested_type) {
+                    sym->header->has_semivisable_nested_type = TRUE;
+                    sym_type->is_semivisable_nested_type = TRUE;
+                  } else {
+                    a_symbol_ptr other_sym;
+                    other_sym = find_semivisable_nested_type_symbol(sym);
+                    pos_sy2_error(ec_cfront_multiple_nested_types,
+                                  &sym->decl_position, sym, other_sym);
+                  }  /* if */
+                }  /* if */
+              }  /* if */
+            }  /* if */
+          }
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
         }  /* if */
       }  /* if */
     }  /* if */
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+    /* Look for file scope symbols that have the "semivisable" nested type
+       flag set.  This indicates that a file scope symbol with the same
+       name was defined after the nested class was seen.  This is an error
+       in cfront compatibility mode. */
+    if (kind == (a_scope_kind)sck_file && cfront_compatibility_mode) {
+      if (sym->header->has_semivisable_nested_type) {
+        a_symbol_ptr other_sym = find_semivisable_nested_type_symbol(sym);
+        pos_sy2_error(ec_cfront_global_defined_after_nested_type,
+                      &sym->decl_position, sym, other_sym);
+      }  /* if */
+    }  /* if */
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   }  /* for */
   if (ssep->first_scope != NULL) {
     /* Transfer the list of scopes nested within the current scope

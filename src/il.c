@@ -775,6 +775,11 @@ class_struct_union:
         }  /* if */
         fprintf(f_debug, "} : size = %lu, alignment = %d",
                 tp->size, tp->alignment);
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+        fprintf(f_debug, ", semivisable=%s",
+                tp->is_semivisable_nested_type ? "TRUE" : "FALSE");
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
+
         if (any_virtual_base_classes) {
           fprintf(f_debug, "; w/o virtuals: size = %lu, alignment = %d",
                               ctsp->size_without_virtual_base_classes,
@@ -2969,6 +2974,9 @@ variant fields to default values.
   pte->based_types = NULL;
   pte->size = 0;
   pte->alignment = 1;
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+  pte->is_semivisable_nested_type = FALSE;
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   set_type_kind(pte, kind);
 }  /* clear_type */
 

@@ -810,12 +810,19 @@ typedef struct a_symbol_header {
 			/* A list of symbols that are currently inactive
 			   but can be reached with some sort of qualification,
 			   i.e., members of structs/unions/classes. */
-  a_byte_boolean
-                any_nested_types_on_inactive_list;
+  unsigned int  any_nested_types_on_inactive_list:1;
 			/* TRUE if a symbol for a nested type has been
                            transferred to the inactive list.  This field is
                            used to speed up processing to support the
                            nested class anachronism (ARM 18.3.5). */
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+  unsigned int  has_semivisable_nested_type:1;
+                        /* TRUE if a nested type has been flagged for
+                           special handling during name mangling.  The first
+                           nested type with a given name will have this flag
+                           set indicating that its name should be mangled as
+                           if it were not a nested type. */
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 } a_symbol_header;
 
 

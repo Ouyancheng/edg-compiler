@@ -1678,6 +1678,12 @@ error code.
     case ec_not_used_in_template_function_params:
       m = "%n1 is not used in declaring the argument types of %n2";
       break;
+    case ec_cfront_multiple_nested_types:
+      m = "two nested type have the same name: %no1 and %nod2 (cfront compatibility)";
+      break;
+    case ec_cfront_global_defined_after_nested_type:
+      m = "global %no1 was declared after nested %nod2 (cfront compatibility)";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

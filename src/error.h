@@ -485,7 +485,9 @@ typedef enum /*an_error_code*/ {
   ec_too_few_template_args,
   ec_too_many_template_args,
   ec_not_a_type_arg,
-  ec_not_used_in_template_function_params
+  ec_not_used_in_template_function_params,
+  ec_cfront_multiple_nested_types,
+  ec_cfront_global_defined_after_nested_type
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1319,6 +1319,15 @@ typedef struct a_type {
                            divisible.  1 if not applicable. */
   a_type_kind   kind;
                         /* The kind of type. */
+#if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
+  unsigned int  is_semivisable_nested_type:1;
+                        /* TRUE if this type should be treated as a
+                           non-nested type for purposes such as name
+                           mangling.  This is used for compatibility
+                           with cfront 2.1 which promotes nested types
+                           to the file scope unless the name is already
+                           used as a type name at the file scope. */
+#endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   union {
     /* When kind == tk_error, tk_unknown, tk_void, or tk_template_param,
        no variant fields. */
