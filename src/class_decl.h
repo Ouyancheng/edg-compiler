@@ -90,9 +90,8 @@ extern void decl_member_function_template(
                                    a_scope_depth        effective_decl_level,
                                    an_access_specifier  access,
                                    a_decl_flag_set      dso_flags,
-                                   a_symbol_ptr         *symbol_ptr,
                                    a_decl_modifier      decl_modifiers,
-                                   a_template_param_ptr templ_param_list);
+                                   a_symbol_ptr         *symbol_ptr);
 
 extern a_derivation_step_ptr make_derivation_step(
                                             a_base_class       *base_class,

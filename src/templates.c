@@ -5474,7 +5474,7 @@ declaration.
   } else {
     decl_member_function_template(locator, class_declared_in, type, func_info,
                                   effective_decl_level, access, dso_flags,
-                                  &sym, decl_modifiers, template_param_list);
+                                  decl_modifiers, &sym);
   }  /* if */
   if (is_error_locator(*locator)) {
     err = TRUE;
