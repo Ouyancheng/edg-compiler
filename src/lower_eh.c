@@ -2905,10 +2905,10 @@ Lower an enk_throw expression node.
   an_init_pos_descr  ipd;
   an_insert_location insert_location;
   a_boolean          keep_dynamic_init;
-  an_expr_node_ptr   temp_node;
   a_throw_supplement_ptr
                      tsp = expr->variant.throw_info;
 #if DO_FULL_PORTABLE_EH_LOWERING
+  an_expr_node_ptr   temp_node;
   a_type_ptr         ptr_throw_type;
   a_variable_ptr     temp_var, typeinfo_var;
   an_expr_node_ptr   call_node, typeinfo_node, size_node, flags_node;
@@ -3007,10 +3007,7 @@ Lower an enk_throw expression node.
        represented by an enk_lowered_eh_construct/leck_thrown_object_address
        expression node. */
     set_thrown_object_init_pos_descr(throw_type, &ipd);
-    /* We need to provide an insert location, so we make a dummy expression
-       node and insert before it, then extract the inserted code. */
-    temp_node = node_for_integer_constant(0L, (an_integer_kind)ik_int);
-    set_expr_insert_location(temp_node, &insert_location);
+    set_expr_creation_insert_location(&insert_location);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
     /* Generate code to copy the thrown expression to the runtime. */
     lower_dynamic_init(dip, &ipd,
@@ -3019,14 +3016,8 @@ Lower an enk_throw expression node.
                        &insert_location, &keep_dynamic_init);
     check_assertion(!keep_dynamic_init);
 #if !DO_FULL_PORTABLE_EH_LOWERING
-    /* Pull the "real" code out of from under the dummy expression node
-       created above.  The extra dummy nodes are just thrown away. */
-    check_assertion(is_operation_node(temp_node) &&
-                    temp_node->variant.operation.kind ==
-                                             (an_expr_operator_kind)eok_comma);
-    temp_node = temp_node->variant.operation.operands;
-    temp_node->next = NULL;
-    tsp->expr = temp_node;
+    /* Put the lowered node pointer into the throw supplement. */
+    tsp->expr = insert_location.variant.expr;
     tsp->dynamic_init = NULL;
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   }  /* if */

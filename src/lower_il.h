@@ -288,11 +288,14 @@ typedef enum an_insert_location_kind {
   ilk_switch_clause_start,
 			/* Insert at the start of a switch clause. */
   ilk_before_expr,	/* Insert before an expression. */
-  ilk_after_expr	/* Insert after an expression. */
+  ilk_after_expr,	/* Insert after an expression. */
+  ilk_expr_creation	/* Create a new expression (first insert provides the
+			   expression). */
 } an_insert_location_kind;
 /* Test for the insertion kinds for insertions within expressions. */
 #define is_expr_insert_location_kind(kind)                            \
- ((kind) == ilk_before_expr || (kind) == ilk_after_expr)
+ ((kind) == ilk_before_expr || (kind) == ilk_after_expr ||            \
+  (kind) == ilk_expr_creation)
 typedef struct an_insert_location *an_insert_location_ptr;
 typedef struct an_insert_location {
   an_insert_location_kind
@@ -431,6 +434,9 @@ extern void set_block_start_insert_location(
 
 extern void set_expr_insert_location(an_expr_node_ptr   node,
                                      an_insert_location *insert_location);
+
+extern void set_expr_creation_insert_location(
+                                          an_insert_location *insert_location);
 
 extern void finish_class_type(a_type_ptr    class_type, 
                               a_targ_size_t *byte_offset);

@@ -261,6 +261,7 @@ the associated variant fields to default values.
       break;
     case ilk_before_expr:
     case ilk_after_expr:
+    case ilk_expr_creation:
       insert_location->variant.expr = NULL;
       break;
     default:
@@ -365,6 +366,16 @@ that an insertion will be made.
     insert_location->variant.expr = assign_node;
   }  /* if */
 }  /* set_after_expr_insert_location */
+
+
+void set_expr_creation_insert_location(an_insert_location *insert_location)
+/*
+Set *insert_location to a state that allows expression insertion and captures
+the first inserted expression as the base expression of the tree.
+*/
+{
+  clear_insert_location(insert_location, ilk_expr_creation);
+}  /* set_expr_insert_location */
 
 
 void add_to_return_memo_list(a_statement_ptr return_stmt)
@@ -2096,37 +2107,47 @@ will be after the expression added.
 
   check_assertion_str(is_expr_insert_location_kind(kind),
                       "insert_expr: insert location is not expr insert");
-  orig_expr = insert_location->variant.expr;
-  /* Make a comma node that has the original node and the expression
-     being inserted as its operands.  The original node is actually copied
-     so that the comma node can be put at the address of the original node. */
-  orig_expr_copy = copy_node(orig_expr);
-  /* Order the operands of the comma operator depending on whether the
-     insertion is supposed to be before or after the original expression. */
-  if (kind == ilk_before_expr) {
-    first_operand = inserted_expr;
-    second_operand = orig_expr_copy;
-    /* Change the insert location so that it inserts before the second
-       expression (the original one).  Note that we cannot make an "after"
-       insertion implicitly; they are tricky and must be made explicitly. */
-    insert_location->variant.expr = second_operand;
+  if (kind == ilk_expr_creation) {
+    /* Special mode used to create an expression unattached to anything
+       else.  The first insertion defines the start of the expression. */
+    insert_location->variant.expr = inserted_expr;
+    /* Subsequent insertions are after this expression. */
+    insert_location->kind = ilk_after_expr;
   } else {
-    first_operand = orig_expr_copy;
-    second_operand = inserted_expr;
-    /* The insert location is left as it is, for insertion after the original
-       node, which will be the comma node.  That's used instead of the
-       second operand to avoid problems with keeping the type of comma
-       nodes up to date when inserts are done under them in their second
-       operands. */
-  }  /* if */
-  first_operand->next = second_operand;
-  second_operand->next = NULL;
-  /* Turn the original node into a comma node. */
-  change_node_to_operation(orig_expr, (an_expr_operator_kind)eok_comma,
-                           second_operand->type, first_operand);
-  if (second_operand->kind == (an_expr_operator_kind)enk_operation) {
-    orig_expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+    /* Normal case (insertion before/after an existing expression). */
+    orig_expr = insert_location->variant.expr;
+    /* Make a comma node that has the original node and the expression
+       being inserted as its operands.  The original node is actually copied
+       so that the comma node can be put at the address of the original
+       node. */
+    orig_expr_copy = copy_node(orig_expr);
+    /* Order the operands of the comma operator depending on whether the
+       insertion is supposed to be before or after the original expression. */
+    if (kind == ilk_before_expr) {
+      first_operand = inserted_expr;
+      second_operand = orig_expr_copy;
+      /* Change the insert location so that it inserts before the second
+         expression (the original one).  Note that we cannot make an "after"
+         insertion implicitly; they are tricky and must be made explicitly. */
+      insert_location->variant.expr = second_operand;
+    } else {
+      first_operand = orig_expr_copy;
+      second_operand = inserted_expr;
+      /* The insert location is left as it is, for insertion after the original
+         node, which will be the comma node.  That's used instead of the
+         second operand to avoid problems with keeping the type of comma
+         nodes up to date when inserts are done under them in their second
+         operands. */
+    }  /* if */
+    first_operand->next = second_operand;
+    second_operand->next = NULL;
+    /* Turn the original node into a comma node. */
+    change_node_to_operation(orig_expr, (an_expr_operator_kind)eok_comma,
+                             second_operand->type, first_operand);
+    if (second_operand->kind == (an_expr_operator_kind)enk_operation) {
+      orig_expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
       second_operand->variant.operation.returns_lvalue_instead_of_usual_rvalue;
+    }  /* if */
   }  /* if */
 }  /* insert_expr */
 
