@@ -1,5 +1,15 @@
 Version 2.46
 
+6/27/01  Prelinker: detection of instantiation loops
+
+An error in the data structures passed to the prelinker, or an inconsistency
+between the data structures and the generated object code can result in
+a prelinker loop in which the same entity is repeatedly assigned to and
+removed from a given file.  The prelinker now detects such cases and
+issues an internal error.  Because this will detect the most common cases
+of instantiation loops, the limit on the number of prelinker iterations has
+been increased to 300 to permit the use of more deeply recursive templates.
+
 1/15/01  eccp: Temporary file not removed in some cases
 
 When using one instantiation per object mode, a temporary file used by

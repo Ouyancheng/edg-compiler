@@ -54,7 +54,7 @@ Declarations for EDG template prelink utility.
 /* The maximum number of iterations after which we give up under the
    assumption that we've encountered an instantiation loop. */
 #ifndef PL_MAX_ITERATIONS
-#define PL_MAX_ITERATIONS	60
+#define PL_MAX_ITERATIONS	300
 #endif /* ifndef PL_MAX_ITERATIONS */
 
 /* Indicates that the object file should be removed when the .ii file

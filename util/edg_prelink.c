@@ -80,6 +80,22 @@ typedef struct a_pl_instantiation_site {
 } a_pl_instantiation_site;
 
 
+/*
+Entry used to record assignments that have been made.  This is used to
+detect instantiation loops.
+*/
+typedef struct a_pl_assignment *a_pl_assignment_ptr;
+typedef struct a_pl_assignment {
+  a_pl_assignment_ptr
+		next;	/* The next entry in the hash table bucket, or NULL
+			   for the last entry. */
+  char		*name;	/* The name of the assigned entry. */
+  int		times_assigned;
+			/* The number of times the entry has been assigned to
+			   this file. */
+} a_pl_assignment;
+
+
 /* Description of a symbol from an object file.  This structure is
    used for both the representation of the symbol from the object file
    and a description of the symbol in the global symbol table.  Most of
@@ -478,6 +494,10 @@ Lines from "nm" are read into this buffer for analysis.
 typedef char		a_pl_input_line[PL_INPUT_LINE_SIZE];
 static a_pl_input_line	pl_input_line;
 
+/* The table used to record assignments of instantiations. */
+#define PL_ASSIGNMENT_TABLE_SIZE	599
+static a_pl_assignment_ptr	pl_assignment_table[PL_ASSIGNMENT_TABLE_SIZE];
+
 /* The symbol table used for simulating the link. */
 #define PL_SYMBOL_TABLE_SIZE	10007
 static a_pl_symbol_ptr	pl_symbol_table[PL_SYMBOL_TABLE_SIZE];
@@ -873,6 +893,21 @@ Return an object file to the available list.
   pofp->next = avail_pl_object_files;
   avail_pl_object_files = pofp;
 }  /* free_pl_object_file */
+
+
+static a_pl_assignment_ptr alloc_pl_assignment(void)
+/*
+Allocate an assignment entry, initialize it, and return a pointer to it.
+*/
+{
+  a_pl_assignment_ptr	ap;
+
+  ap = (a_pl_assignment_ptr)pl_malloc_with_check(sizeof(a_pl_assignment));
+  ap->next = NULL;
+  ap->name = NULL;
+  ap->times_assigned = 0;
+  return ap;
+}  /* alloc_pl_assignment */
 
 
 static a_pl_symbol_ptr alloc_pl_symbol(void)
@@ -1788,37 +1823,19 @@ Add an input file to a list of files that can instantiate a given symbol.
 }  /* add_possible_instantiation_site */
 
 
-static a_pl_symbol_ptr pl_find_symbol(char		*name,
-                                      a_pl_symbol_ptr	other_sym,
-				      a_boolean		add,
-				      a_boolean		*p_new)
+static unsigned int hash_value_for_name(char	*name)
 /*
-Find a symbol entry with the specified name.  Add the name to the
-list if an entry does not already exist.  If p_new is not NULL,
-return a flag indicating whether a new entry was created by this
-call.
+Return a hash for "name".
 */
 {
-  register unsigned            hash_value = 0;
-  register char                *ptr;
-  a_pl_symbol_ptr	       prev_sym_ptr;
-  a_pl_symbol_ptr              sym_ptr    = NULL;
-  int                          bucket_number;
-  int			       length;
-  a_boolean		       is_new = FALSE;
+  unsigned int	hash_value = 0;
+  char		*ptr;
+  int		length;
 
-  /* If the symbol pointer passed from the caller already contains a pointer
-     to the global symbol then simply return that value.  Otherwise,
-     look it up in the symbol table. */
-  if (other_sym != NULL && other_sym->global_sym != NULL) {
-    sym_ptr = other_sym->global_sym;
-    goto symbol_found;
-  }  /* if */
-  /* Compute the string length. */
-  length = strlen(name);
   /* Hash the symbol's identifier.  This involves taking the identifier's
      first 3, last 3, and middle 3 characters.  Of course, if the identifier
      has 9 or fewer characters, take the entire identifier. */
+  length = strlen(name);
   ptr = name;
   if (length > 9) {
     hash_value = (unsigned int)*ptr++;
@@ -1838,7 +1855,68 @@ call.
       hash_value = (hash_value * PL_HASH_FACTOR) + (unsigned int)*ptr++;
     }  /* for */
   }  /* if */
+  return hash_value;
+}  /* hash_value_for_name */
 
+
+static a_pl_assignment_ptr pl_find_assignment(char	*name)
+/*
+Return the assignment entry for "name".  Create a new entry if
+none already exists.
+*/
+{
+  unsigned int		hash_value;
+  a_pl_assignment_ptr	ap;
+  int			bucket_number;
+
+  hash_value = hash_value_for_name(name);
+  bucket_number = hash_value % PL_ASSIGNMENT_TABLE_SIZE;
+  /* Look for an existing entry. */
+  for (ap = pl_assignment_table[bucket_number]; ap != NULL; ap = ap->next) {
+    if (strcmp(ap->name, name) == 0) {
+      break;
+    }  /* if */
+  }  /* for */
+  if (ap == NULL) {
+    /* None was found.  Create one. */
+    ap = alloc_pl_assignment();
+    ap->name = pl_copy_string(name);
+    /* Link the entry into its bucket. */
+    ap->next = pl_assignment_table[bucket_number];
+    pl_assignment_table[bucket_number] = ap;
+  }  /* if */
+  return ap;
+}  /* pl_find_assignment */
+
+
+static a_pl_symbol_ptr pl_find_symbol(char		*name,
+                                      a_pl_symbol_ptr	other_sym,
+				      a_boolean		add,
+				      a_boolean		*p_new)
+/*
+Find a symbol entry with the specified name.  Add the name to the
+list if an entry does not already exist.  If p_new is not NULL,
+return a flag indicating whether a new entry was created by this
+call.
+*/
+{
+  unsigned int		       hash_value;
+  a_pl_symbol_ptr	       prev_sym_ptr;
+  a_pl_symbol_ptr              sym_ptr    = NULL;
+  int                          bucket_number;
+  int			       length;
+  a_boolean		       is_new = FALSE;
+
+  /* If the symbol pointer passed from the caller already contains a pointer
+     to the global symbol then simply return that value.  Otherwise,
+     look it up in the symbol table. */
+  if (other_sym != NULL && other_sym->global_sym != NULL) {
+    sym_ptr = other_sym->global_sym;
+    goto symbol_found;
+  }  /* if */
+  /* Compute the string length. */
+  length = strlen(name);
+  hash_value = hash_value_for_name(name);
   /* Look in the symbol bucket saving the position in case this symbol needs
      to be added. */
   bucket_number = hash_value % PL_SYMBOL_TABLE_SIZE;
@@ -2484,6 +2562,29 @@ of the symbol.
 }  /* pl_can_instantiate */
 
 
+static void record_assignment(char	*name)
+/*
+Make a record that "name" was assigned to a file.  This is used to
+detect instantiation loops caused by some sort of problem with the
+data structures provided by the front end, or an inconsistency between
+the data structure and the object file information.  An internal error
+is issued if a loop is found.
+*/
+{
+  a_pl_assignment_ptr	ap;
+
+  ap = pl_find_assignment(name);
+  /* If the file has been assigned more than once, this is probably an
+     error.  Permit an extra couple of assignments because, under some
+     unusual circumstances (such as a source file changing during the
+     prelink process) an instantiation might be assigned more than once. */
+  if (ap->times_assigned > 3) {
+    pl_internal_error("instantiation loop");
+  }  /* if */
+  ap->times_assigned++;
+}  /* record_assignment */
+
+
 static a_boolean pl_determine_actions(a_boolean do_local_files)
 /*
 Once the link has been performed go through each of the input object
@@ -2624,6 +2725,9 @@ the file is flagged as requiring recompilation.
           pifp->request_file_updated = TRUE;
           pifp->recompile = TRUE;
           done = FALSE;
+          /* Make a record of this assignment for the purpose of detecting
+             a loop caused by some sort of data structure problem. */
+          record_assignment(sym->name);
           if (verbose) {
             fprintf(f_informational, pl_error_text(pl_ec_assigned_to_file),
                     message_prefix, pl_decoded_name(sym->name),
@@ -3446,6 +3550,9 @@ int main(int argc, char *argv[])
   f_informational = stderr;
   /* This must be done before any messages are issued. */
   message_prefix = pl_error_text(pl_ec_message_prefix);
+  /* Clear the assignment table.  Note that this is done once per
+     prelinker invocation. */
+  memzero((char *)pl_assignment_table, sizeof(pl_assignment_table));
   /* Allocate arrays to hold pointers to -L directory names and library
      names specified by -l options.  We don't know how many of these will
      appear on the command line so we will simply use the argument count
