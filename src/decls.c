@@ -5958,10 +5958,10 @@ return a pointer to it in *symbol_ptr.
                (get_original_type_qualifiers(tp) ==
                    get_original_type_qualifiers(type_ptr)))
 #endif /* NEAR_AND_FAR_ALLOWED */
-                                        ) ||
-        is_error_type(tp) ||
-        (microsoft_bugs && C_mode() && is_integral_type(type_ptr) &&
-         interchangeable_types(tp, type_ptr))) {
+                                                           ) ||
+          is_error_type(tp) ||
+          (microsoft_bugs && C_mode() && is_integral_type(type_ptr) &&
+           interchangeable_types(tp, type_ptr))) {
         /* The current declaration simply redefines the name to the same
            type, which is permitted in C++ (ARM 7.1.3) and warned about for
            ordinary C.  In Microsoft C mode we also accept a redeclaration
