@@ -6299,31 +6299,36 @@ NULL.
       } else if (storage_class == (a_storage_class)sc_extern) {
         /* No warning for unused "extern" variables; this is a long-standing
            C convention. */
-      } else if (var_ptr->is_parameter && !sym->referenced) {
-        /* An unreferenced parameter.  Warn unless a lint-style "argsused"
-           comment appeared.  Also do not warn for parameters of "main". */
+      } else if (var_ptr->is_parameter) {
+        if (!sym->referenced) {
+          /* An unreferenced parameter.  Warn unless a lint-style "argsused"
+             comment appeared.  Also do not warn for parameters of "main". */
 #if CHECKING
-        if (curr_routine == NULL) {
-          internal_error(
+          if (curr_routine == NULL) {
+            internal_error(
                "end_of_scope_symbol_check: parameter with no assoc routine");
-        }  /* if */
+          }  /* if */
 #endif /* CHECKING */
-        /* In C++ a routine type can have type qualifiers above it. */
-        if (skip_typerefs(curr_routine->type)->variant.routine.
-                                            extra_info->lint_argsused_flag) {
-          /* The "argsused" flag was specified, so no warning is issued. */
-        } else if (curr_routine == il_header.main_routine) {
-          /* No warning for arguments of the main program, since
-             they're dictated by the environment. */
+          /* In C++ a routine type can have type qualifiers above it. */
+          if (skip_typerefs(curr_routine->type)->variant.routine.
+                                              extra_info->lint_argsused_flag) {
+            /* The "argsused" flag was specified, so no warning is issued. */
+          } else if (curr_routine == il_header.main_routine) {
+            /* No warning for arguments of the main program, since
+               they're dictated by the environment. */
 #if ASM_FUNCTION_ALLOWED
-        } else if (curr_routine->storage_class == (a_storage_class)sc_asm) {
-          /* Parameters of "asm" functions are not referenced in the 
-             usual way, so do not issue warnings. */
+          } else if (curr_routine->storage_class == (a_storage_class)sc_asm) {
+            /* Parameters of "asm" functions are not referenced in the 
+               usual way, so do not issue warnings. */
 #endif /* ASM_FUNCTION_ALLOWED */
-        } else {
-          /* Unreferenced parameter. */
-          report_unreferenced(sym, ec_declared_but_not_referenced,
-                              es_warning);
+          } else {
+            /* Unreferenced parameter. */
+            report_unreferenced(sym, ec_declared_but_not_referenced,
+                                es_remark);
+          }  /* if */
+        } else if (var_ptr->param_value_has_been_changed &&
+                   !sym->variant.variable.used) {
+          report_unreferenced(sym, ec_set_but_not_used, es_warning);
         }  /* if */
       } else if (!sym->referenced ||
                  (sym->variant.variable.value_has_been_set &&
