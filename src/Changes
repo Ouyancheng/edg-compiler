@@ -14,7 +14,11 @@ are rvalues of the proper pointer type.
   char c;
   X<&c> y; // Standard
 
-In Microsoft mode, we now do the same.
+In Microsoft mode, we now do the same.  Note that the change of the
+type of the nontype template parameter will have an effect on some
+mangled names.  The impact of this change is believed to be negligible,
+given that the MSVC++ compiler seems to fail on all uses of a template
+having a nontype parameter of a reference-to-pointer type.
 
 6/18/98   Generated fall-through goto between switch clauses when switch
           is unreachable
