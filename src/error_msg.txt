@@ -947,6 +947,7 @@ ec_expected_template_arg;;"expected a template argument"
 ec_explicit_template_args_in_expr;;"explicit function template argument lists are not supported yet in expression contexts"
 ec_no_params_with_class_or_enum_type;;"nonmember operator requires a parameter with class or enum type"
 ec_cl_enum_overloading_option_only_in_cplusplus;;"option \"enum_overloading\" can be used only when compiling C++"
+ec_using_declaration_not_allowed;;"using-declaration of %n is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
