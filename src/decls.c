@@ -8211,9 +8211,14 @@ continue_with_declaration:
              Treat this as a definition. */
           is_variable_def = TRUE;
         } else if (has_initializer) {
-          /* A variable declaration involving an initializer is always
-             considered to be a definition. */
-          is_variable_def = TRUE;
+          /* A variable declaration involving an initializer is usually
+             considered to be a definition.  An exception is when the
+             initialization is ill-formed -- e.g., when it appears on a
+             block-extern variable declaration. */
+          if (decl_scope_level == depth_innermost_namespace_scope ||
+              local_storage_class != (a_storage_class)sc_extern) {
+            is_variable_def = TRUE;
+          }  /* if */
           srk_flags |= SRK_INITIALIZATION;
         } else if (C_dialect == C_dialect_cplusplus) {
           /* In C++ all other variable declarations are definitions, except
