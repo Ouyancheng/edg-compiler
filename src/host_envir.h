@@ -1059,7 +1059,7 @@ Locale to set when multibyte characters are enabled in source code.
 #ifndef STDLIB_H_INCLUDED
 #define STDLIB_H_INCLUDED 1
 #include <stdlib.h>
-#endif STDLIB_H_INCLUDED
+#endif /* STDLIB_H_INCLUDED */
 #ifndef MB_CUR_MAX
 /* We need setlocale, MB_CUR_MAX, and mblen to support multibyte
    characters. */
