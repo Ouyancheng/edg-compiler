@@ -144,7 +144,7 @@ extern "C" int printf(const char *, ...);
 
 3/26/03  Improvement of helper routine for IA-64 ABI zeroing
 
-When IL lowering needs to to zeroing of an entity that contains
+When IL lowering needs to do zeroing of an entity that contains
 a pointer to data member, it generates a helper routine that
 does the initialization.  In the past, this helper routine
 always had a second parameter that indicated the number of
