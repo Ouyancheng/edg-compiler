@@ -33,6 +33,11 @@ called in the same program as the front end is produced (if needed).
 /* For the main-program version, get global variables defined. */
 #define EXTERN /*empty*/
 #define VAR_INITIALIZERS 1
+#endif /* ifdef STANDALONE_CP_GEN_BE */
+
+#include "basic_hdrs.h"
+
+#if STANDALONE_CP_GEN_BE
 #if !BACK_END_IS_CP_GEN_BE
 /* We could just set the flag here for THIS compilation, but we want to
    ensure that it's set for the compilation of the OTHER files needed
@@ -40,9 +45,7 @@ called in the same program as the front end is produced (if needed).
  #error -- BACK_END_IS_CP_GEN_BE should be defined as 1 (on the command line \
             or in defines.h)
 #endif /* !BACK_END_IS_CP_GEN_BE */
-#endif /* ifdef STANDALONE_CP_GEN_BE */
-
-#include "basic_hdrs.h"
+#endif /* STANDALONE_CP_GEN_BE */
 
 /* See if this code is needed at all. */
 #if BACK_END_IS_CP_GEN_BE
