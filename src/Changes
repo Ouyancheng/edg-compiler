@@ -421,7 +421,9 @@ EDG layout algorithm.  For example:
   struct C4 : C2, virtual C3 {};
   struct C5 : virtual C3, C1, C4 {};  // Abort while lowering this class
 
-This is now fixed.
+This is now fixed.  The underlying issue is an ABI problem that was
+introduced when the empty base class optimization was implemented for
+the Cfront-like ABI.  This is therefore also an ABI CHANGE.
 
 2/19/03  Internal error when using precompiled headers with export
 
