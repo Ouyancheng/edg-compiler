@@ -3995,7 +3995,11 @@ rather than determined directly.
     }  /* if */
     type_ptr->next = NULL;
     if (pointers_block != NULL) pointers_block->last_type = type_ptr;
-    if (!C_mode() && !il_lowering_underway) {
+    if (!C_mode()
+#if DO_IL_LOWERING
+        && !il_lowering_underway
+#endif /* DO_IL_LOWERING */
+                                ) {
       if (is_immediate_class_type(type_ptr)) {
         a_class_symbol_supplement_ptr cssp =
                                         symbol_supplement_for_class(type_ptr);
@@ -4101,7 +4105,11 @@ determined directly.
       pointers_block->last_type = type_ptr;
       type_ptr->next = NULL;
     }  /* if */
-    if (!C_mode() && !il_lowering_underway) {
+    if (!C_mode()
+#if DO_IL_LOWERING
+        && !il_lowering_underway
+#endif /* DO_IL_LOWERING */
+                                ) {
       if (is_immediate_class_type(type_ptr)) {
         a_class_symbol_supplement_ptr cssp =
                                         symbol_supplement_for_class(type_ptr);
