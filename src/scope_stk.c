@@ -4203,7 +4203,7 @@ it is an external definition).
     } else if (var->is_specialized) {
       /* A specialized static data member is always needed. */
       is_needed = TRUE;
-    } else if (!var->is_specialized) {
+    } else {
       /* An instantiation of a static data member must be considered
          to be needed if it was automatically instantiated (i.e, it is
          in the instantiation request file for this compilation), or if
