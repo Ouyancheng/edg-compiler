@@ -1,5 +1,13 @@
 Version 2.24
 
+6/20/94 Concatenation of adjacent string literals
+
+The lexical concatenation of adjacent string literals in get_token
+is now done is a somewhat different way.  The old technique used
+ridiculous amounts of memory for cases that involved thousands of
+adjacent strings (seen in a machine-generated program).  The new
+technique is more reasonable in its memory use.
+
 6/17/94 Instantiation information file only created when the back end is run
 
 The front end and eccp driver script have been modified to only create
