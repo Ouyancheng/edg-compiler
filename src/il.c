@@ -2137,6 +2137,8 @@ to it.
   rp->type                = NULL;
   rp->storage_class       = (a_storage_class)sc_unspecified;
   rp->assoc_scope         = NULL_region_number;
+  rp->is_inline           = FALSE;
+  rp->is_virtual          = FALSE;
 #ifdef FIL
   rp->is_fortran_entry    = FALSE;
   rp->local_routine_scope = NULL;

@@ -1224,6 +1224,14 @@ typedef struct a_routine {
   a_storage_class
                 storage_class;
                         /* Storage class. */
+#ifdef CIL
+  unsigned int	is_inline:1;
+			/* TRUE for functions declared with an inline
+			   specification (C++ only). */
+  unsigned int	is_virtual:1;
+			/* TRUE for class member functions declared with a
+			   virtual specification (C++ only). */
+#endif /* ifdef CIL */
 #ifdef FIL
   a_byte_boolean
                 is_fortran_entry;
