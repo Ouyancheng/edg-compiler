@@ -191,7 +191,7 @@ a global qualified name.
 #define is_type_name() (is_qualified_name_start() && curr_id_is_type_name())
 
 
-a_symbol_ptr curr_tag_symbol(a_symbol_kind tag_kind)
+static a_symbol_ptr curr_tag_symbol(a_symbol_kind tag_kind)
 /*
 The current token is an identifier.  If it is a tag of the indicated kind,
 do ambiguity and access control checking and return a pointer to the tag
@@ -224,7 +224,7 @@ symbol.  Otherwise, return NULL.
 }  /* curr_tag_symbol */
 
 
-a_symbol_ptr curr_scope_tag_symbol(a_symbol_kind kind)
+static a_symbol_ptr curr_scope_tag_symbol(a_symbol_kind kind)
 /*
 The current token is an identifier.  If it represents a tag of the indicated
 kind from the current scope, return a pointer to the corresponding symbol.
@@ -4825,7 +4825,7 @@ that symbol; otherwise return NULL.  If there is no identifier or if there
 is an error, return NULL.
 */
 {
-  a_symbol_ptr      tag_sym;
+  a_symbol_ptr      tag_sym = NULL;
   a_token_kind      next_tok;
 
   db_enter(3, "scan_tag_name");
@@ -4833,12 +4833,28 @@ is an error, return NULL.
   /* Find a declaration of this tag in the current scope.  (We only look
      in the current scope for now, but we may have to do a complete lookup
      later.) */
+  if (C_dialect == C_dialect_cplusplus &&
+      curr_token == tok_identifier && next_token() == tok_lt) {
+    a_symbol_ptr  templ_sym;
+    a_boolean     err;
+    templ_sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+    if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
+      tag_sym = coalesce_template_class_reference(templ_sym, GID_NO_OPTIONS,
+                                                  &err);
+    } else {
+      /* Don't prejudice subsequent lookups. */
+      locator_for_curr_id.specific_symbol = NULL;
+    }  /* if */
+  }  /* if */
   if (curr_token == tok_colon_colon || next_token() == tok_colon_colon) {
     /* This looks like a qualified name, which is not allowed here. */
     error(ec_qualified_name_not_allowed);
     (void)get_qualified_name(IDL_NO_OPTIONS);
     set_to_error_locator(*locator);
     tag_sym = NULL;
+  } else if (tag_sym != NULL) {
+    /* Tag symbol is a template class reference. */
+    *tag_resolution = FALSE;
   } else {
     tag_sym = curr_scope_tag_symbol(tag_kind);
     /* Save the symbol locator for this identifier before doing the
