@@ -19,15 +19,15 @@ for the Cfront "patch" approach.  This is a mostly-obsolete technique,
 and the default is FALSE.  Previously, this code was put out in
 many configurations, and was harmless but unneeded.
 
-5/9/03   Internal error on overlong bit field on some configurations
+5/9/03   Internal error on overlong bit field with some configurations
 
 When both configuration macros TARG_MICROSOFT_BIT_FIELD_ALLOCATION and
-TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE were set to TRUE, the front
+TARG_PAD_BIT_FIELDS_LARGER_THAN_BASE_TYPE were set to TRUE, the front end
 would abort when processing bit fields whose specified length exceeds
 the number of bits in the field's type.  For example:
 
   struct S {
-    int m: 100;  // Used to abort in some configurations.
+    int m: 100;  // Used to abort with some configurations.
   };
 
 This is now fixed.
