@@ -7230,11 +7230,12 @@ NULL.
 {
   a_type_ptr               tp;
   a_symbol_ptr             sym = NULL;
+  a_boolean                is_redecl = FALSE;
   a_boolean                suppress_redecl_error = FALSE;
   a_boolean                saved_referenced_flag;
   a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
   a_namespace_ptr          nsp;
-  a_symbol_ptr		   loc_sym;
+  a_symbol_ptr             loc_sym;
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                linkage_name = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7375,7 +7376,7 @@ NULL.
                                  decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           }  /* if */
-          goto return_point;
+          is_redecl = TRUE;
         } else {
           /* C++ only.  Must be a tag symbol. */
           suppress_redecl_error = TRUE;
@@ -7491,83 +7492,87 @@ NULL.
       }  /* if */
     }  /* if */
   }  /* if */
-  /* Create a new type entry and add it to the types list for the current
-     scope. */
-  tp = alloc_type((a_type_kind)tk_typeref);
-  tp->variant.typeref.type = type_ptr;
-  /* Create a new symbol for this type and bind it to the new type. */
-  sym = enter_typedef_symbol(tp, locator, decl_scope_level,
-                             suppress_redecl_error);
-  set_source_corresp(&(tp->source_corresp), sym);
-  nsp = NULL;
-  if (!C_mode()) {
-    if (class_type != NULL) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (class_type->variant.class_struct_union.is_interface) {
-        pos_error(ec_interface_cannot_have_typedef, &locator->source_position);
+  if (!is_redecl) {
+    /* Create a new type entry and add it to the types list for the current
+       scope. */
+    tp = alloc_type((a_type_kind)tk_typeref);
+    tp->variant.typeref.type = type_ptr;
+    /* Create a new symbol for this type and bind it to the new type. */
+    sym = enter_typedef_symbol(tp, locator, decl_scope_level,
+                               suppress_redecl_error);
+    set_source_corresp(&(tp->source_corresp), sym);
+    nsp = NULL;
+    if (!C_mode()) {
+      if (class_type != NULL) {
+  #if MICROSOFT_EXTENSIONS_ALLOWED
+        if (class_type->variant.class_struct_union.is_interface) {
+          pos_error(ec_interface_cannot_have_typedef,
+                    &locator->source_position);
+        }  /* if */
+  #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        set_class_membership(sym, &tp->source_corresp, class_type);
+        tp->source_corresp.access = ssep->current_access;
+      } else {
+        set_namespace_membership(sym, &tp->source_corresp,
+                                 (a_namespace_ptr)NULL);
+        nsp = tp->source_corresp.parent.namespace_ptr;
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      set_class_membership(sym, &tp->source_corresp, class_type);
-      tp->source_corresp.access = ssep->current_access;
-    } else {
-      set_namespace_membership(sym, &tp->source_corresp,
-                               (a_namespace_ptr)NULL);
-      nsp = tp->source_corresp.parent.namespace_ptr;
     }  /* if */
-  }  /* if */
-  record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
-                            &locator->source_position, declarator_ssep);
-#if IA64_ABI && NEED_NAME_MANGLING
-  if (tp->source_corresp.is_local_to_function &&
-      !tp->source_corresp.is_class_member) {
-    /* Local typedefs may need to be mangled.  If two (or more) such
-       variables in a function have the same name, a discriminator must be
-       appended to the mangled name (this is not strictly an ABI issue, but
-       dictated by our use of a C-generating back end). */
-    compute_name_collision_discriminator(sym);
-  }  /* if */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
-#if BACK_END_IS_CP_GEN_BE
-  /* Set the "name linkage environment" for this type.  This is used by the
-     C++-generating back end to decide when to emit extern "C". */
-  tp->variant.typeref.surrounding_name_linkage_state =
+    record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
+                              &locator->source_position, declarator_ssep);
+  #if IA64_ABI && NEED_NAME_MANGLING
+    if (tp->source_corresp.is_local_to_function &&
+        !tp->source_corresp.is_class_member) {
+      /* Local typedefs may need to be mangled.  If two (or more) such
+         variables in a function have the same name, a discriminator must be
+         appended to the mangled name (this is not strictly an ABI issue, but
+         dictated by our use of a C-generating back end). */
+      compute_name_collision_discriminator(sym);
+    }  /* if */
+  #endif /* IA64_ABI && NEED_NAME_MANGLING */
+  #if BACK_END_IS_CP_GEN_BE
+    /* Set the "name linkage environment" for this type.  This is used by the
+       C++-generating back end to decide when to emit extern "C". */
+    tp->variant.typeref.surrounding_name_linkage_state =
                           scope_stack[depth_scope_stack].default_name_linkage;
-#endif /* BACK_END_IS_CP_GEN_BE */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  update_decl_pos_info(&tp->source_corresp, decl_pos_block);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  add_to_types_list(tp, decl_scope_level);
-  /* Issue a diagnostic if size_t is declared in a way inconsistent with
-     the target configuration. */
-  if (!is_error_type(type_ptr) &&
-      (decl_scope_level == DEPTH_OF_FILE_SCOPE ||
-       (nsp != NULL &&
-        nsp == symbol_for_namespace_std->variant.namespace_info.ptr)) &&
-      strcmp(sym->header->identifier, "size_t") == 0) {
-    /* "size_t" declared at file scope or in namespace "std". */
-    if (!is_integral_type(type_ptr) ||
-        skip_typerefs(type_ptr)->variant.integer.int_kind !=
-                                                targ_size_t_int_kind ||
-        is_qualified_type(type_ptr)) {
-      pos_ty_warning(ec_unexpected_type_for_size_t, &locator->source_position,
-                     integer_type(targ_size_t_int_kind));
+  #endif /* BACK_END_IS_CP_GEN_BE */
+  #if EXTRA_SOURCE_POSITIONS_IN_IL
+    update_decl_pos_info(&tp->source_corresp, decl_pos_block);
+  #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    add_to_types_list(tp, decl_scope_level);
+    /* Issue a diagnostic if size_t is declared in a way inconsistent with
+       the target configuration. */
+    if (!is_error_type(type_ptr) &&
+        (decl_scope_level == DEPTH_OF_FILE_SCOPE ||
+         (nsp != NULL &&
+          nsp == symbol_for_namespace_std->variant.namespace_info.ptr)) &&
+        strcmp(sym->header->identifier, "size_t") == 0) {
+      /* "size_t" declared at file scope or in namespace "std". */
+      if (!is_integral_type(type_ptr) ||
+          skip_typerefs(type_ptr)->variant.integer.int_kind !=
+                                                  targ_size_t_int_kind ||
+          is_qualified_type(type_ptr)) {
+        pos_ty_warning(ec_unexpected_type_for_size_t,
+                       &locator->source_position,
+                       integer_type(targ_size_t_int_kind));
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (vla_enabled && innermost_function_scope != NULL) {
-    /* A typedef declaration inside a function. */
-    if (is_variably_modified_type(type_ptr)) {
-      a_statement_ptr  sp;
-      
-      sp = add_statement_at_stmt_pos((a_statement_kind)stmk_vla_decl,
-                                     &locator->source_position);
-      sp->variant.vla.is_typedef_decl = TRUE;
-      sp->variant.vla.variant.typedef_type = tp;
-      tp->variant.typeref.has_variably_modified_type = TRUE;
-      check_for_vla_inside_statement_expression(&locator->source_position);
+    if (vla_enabled && innermost_function_scope != NULL) {
+      /* A typedef declaration inside a function. */
+      if (is_variably_modified_type(type_ptr)) {
+        a_statement_ptr  sp;
+        
+        sp = add_statement_at_stmt_pos((a_statement_kind)stmk_vla_decl,
+                                       &locator->source_position);
+        sp->variant.vla.is_typedef_decl = TRUE;
+        sp->variant.vla.variant.typedef_type = tp;
+        tp->variant.typeref.has_variably_modified_type = TRUE;
+        check_for_vla_inside_statement_expression(&locator->source_position);
+      }  /* if */
     }  /* if */
-  }  /* if */
+  }  /*if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode && !is_error_type(type_ptr)) {
+  if (gnu_mode && !is_redecl && !is_error_type(type_ptr)) {
     if (attributes != NULL) {
       /* Applying attributes could change the underlying type. */
       apply_attributes_to_typedef(attributes, tp, linkage_name);
@@ -7588,7 +7593,6 @@ NULL.
                                MSAT_TYPEDEF);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-return_point:
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
