@@ -26,9 +26,6 @@ decl_hdrs.h -- Inclusion of header files used by files involved in declaration
 #include "preproc.h"
 #include "symbol_ref.h"
 #include "templates.h"
-#if ASM_FUNCTION_ALLOWED
-#include "asm_func.h"
-#endif /* ASM_FUNCTION_ALLOWED */
 
 /******************************************************************************
 *                                                             \  ___  /       *
