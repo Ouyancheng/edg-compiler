@@ -280,9 +280,11 @@ enum a_dynamic_init_kind_tag {
 			   expression. */
   dik_constructor,	/* Initial value of a simple object is established by
 			   a constructor call. */
-  dik_aggregate		/* Initial value of an aggregate object (array or
-			   class) is represented by a list of constant entries
-			   (some of which may refer to non-constants). */
+  dik_nonconstant_aggregate
+			/* Initial value of a nonconstant aggregate object
+			   (array or class) is represented by a list of
+			   constant entries (some of which will refer to
+			   nonconstants). */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_dynamic_init_kind;
@@ -335,7 +337,8 @@ typedef struct a_dynamic_init {
 			   parameter) with which the constructor should be
 			   called. */
     } constructor;
-    /* When kind == dik_aggregate: */
+    /* When kind == dik_nonconstant_aggregate: */
+    /* Used with C++ only. */
     struct {
       a_constant_ptr
 		aggr_const;
@@ -347,9 +350,7 @@ typedef struct a_dynamic_init {
 		dynamic_init_list;
 			/* Pointer to a linked list of dynamic-init entries
 			   representing all non-constant initializers in the
-			   ck_aggregate "constant" list; NULL when all entries
-			   in the list represent constants, but non-NULL in
-			   C++ only. */
+			   ck_aggregate "constant" list. */
     } aggregate;
   } variant;
 } a_dynamic_init;

@@ -842,19 +842,6 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
           for (a = 0; a < level; a++) fputs(" ", f_debug);
           db_constructor_initializer(dip, level + 2);
           break;
-#if 0
-        case dik_constant:
-          for (a = 0; a < level; a++) fputs(" ", f_debug);
-          db_static_initializer(dip->variant.constant);
-          fputc('\n', f_debug);
-          break;
-        case dik_aggregate:
-          fputs("aggregate with non-constants:\n", f_debug);
-          db_nonconstant_aggregate(dip->variant.aggregate.aggr_const->
-                                            variant.aggregate.first_constant,
-                                   level + 2);
-          break;
-#endif /* if 0 */
 #if CHECKING
         default:
           fputs("**UNEXPECTED DYNAMIC INIT KIND**", f_debug);
@@ -903,24 +890,15 @@ static void db_dynamic_initializer(a_dynamic_init_ptr  dip,
         fputc('\n', f_debug);
       }  /* if */
       break;
-    case dik_aggregate:
-      if (dip->variant.aggregate.dynamic_init_list == NULL) {
-        db_static_initializer(dip->variant.aggregate.aggr_const);
-        if (dip->destructor != NULL) {
-          fputs("; ", f_debug);
-          db_destructor(dip->destructor);
-        }  /* if */
+    case dik_nonconstant_aggregate:
+      fputs("aggregate with non-constants:\n", f_debug);
+      db_nonconstant_aggregate(dip->variant.aggregate.aggr_const->
+                                        variant.aggregate.first_constant,
+                               level);
+      if (dip->destructor != NULL) {
+        for (a = 0; a < level; a++) fputs(" ", f_debug);
+        db_destructor(dip->destructor);
         fputc('\n', f_debug);
-      } else {
-        fputs("aggregate with non-constants:\n", f_debug);
-        db_nonconstant_aggregate(dip->variant.aggregate.aggr_const->
-                                          variant.aggregate.first_constant,
-                                 level);
-        if (dip->destructor != NULL) {
-          for (a = 0; a < level; a++) fputs(" ", f_debug);
-          db_destructor(dip->destructor);
-          fputc('\n', f_debug);
-        }  /* if */
       }  /* if */
       break;
     case dik_constructor:
@@ -2636,7 +2614,7 @@ Initialize a dynamic_init entry of the kind specified.
       dip->variant.constructor.routine = NULL;
       dip->variant.constructor.args = NULL;
       break;
-    case dik_aggregate:
+    case dik_nonconstant_aggregate:
       dip->variant.aggregate.aggr_const = NULL;
       dip->variant.aggregate.dynamic_init_list = NULL;
       break;
@@ -3192,7 +3170,7 @@ to it.  The statement kind is set as indicated.
 #if DEBUG
   num_statements_allocated++;
 #endif /* DEBUG */
-  sp->seq_number       = pos_curr_token.seq;
+  sp->seq_number       = 0;
   sp->next             = NULL;
   set_statement_kind(sp, stmt_kind);
   db_exit();

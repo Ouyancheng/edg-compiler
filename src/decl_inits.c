@@ -537,7 +537,7 @@ also create an stmk_init statement at the current point in the code.
       new_dip->variant.constructor.routine = dip->variant.constructor.routine;
       new_dip->variant.constructor.args = dip->variant.constructor.args;
       break;
-    case dik_aggregate:
+    case dik_nonconstant_aggregate:
       new_dip->variant.aggregate.aggr_const =
                                   dip->variant.aggregate.aggr_const;
       new_dip->variant.aggregate.dynamic_init_list =
@@ -830,31 +830,34 @@ The syntax is:
     /* Scan the initializer list. */
     cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
                          /*top_level=*/TRUE);
-    if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-      /* Scan was successful and the value list was recorded as a list of
-         constant entries hanging off a ck_aggregate constant. */
-      /* Set the dynamic init entry to represent aggregate initialization.
-         (A local dynamic init entry is used only for convenience -- dynamic
-         initialization is not presumed.) */
-      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_aggregate);
-      local_di.variant.aggregate.aggr_const = cp;
-      /* If a list of dynamic init entries was returned, it means that some
-         of the items on the initializer list were not constants (but rather
-         expressions or constructor calls).  If di_list is not NULL, dynamic
-         initialization is called for. */
-      local_di.variant.aggregate.dynamic_init_list = di_list;
-      initialization_is_dynamic = (di_list != NULL);
-    } else if (cp->kind == (a_constant_repr_kind)ck_string) {
-      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
-      local_di.variant.constant = cp;
-    } else {
+    switch (cp->kind) {
+      case ck_aggregate:
+        /* Scan was successful and the value list was recorded as a list of
+           constant entries hanging off a ck_aggregate constant. */
+        if (di_list != NULL) {
+          /* Set the dynamic init entry to represent aggregate
+             initialization. */
+          clear_dynamic_init(&local_di,
+                             (a_dynamic_init_kind)dik_nonconstant_aggregate);
+          local_di.variant.aggregate.aggr_const = cp;
+          local_di.variant.aggregate.dynamic_init_list = di_list;
+          initialization_is_dynamic = TRUE;
+          break;
+        }  /* if */
+        /* Fall through for the case in which all the aggregate initializers
+           are constants. */
+      case ck_string:    
+        clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
+        local_di.variant.constant = cp;
+        break;
+      case ck_error:
+        err = TRUE;
+        break;
 #if CHECKING
-      if (cp->kind != (a_constant_repr_kind)ck_error) {
+      default:
         internal_error("initializer: unexpected constant kind");
-      }  /* if */
 #endif /* CHECKING */
-      err = TRUE;
-    }  /* if */
+    }  /* switch */
     if (!err && put_init_in_variable) {
       /* Copy the type back into the variable.  It might have been changed
          if vp is an incomplete array. */
@@ -1037,7 +1040,8 @@ a_boolean def_initializer(a_symbol_ptr       sym,
           if (var_type != tp) {
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
             *dip = local_di;
-            clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_aggregate);
+            clear_dynamic_init(&local_di,
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
             cp1 = alloc_constant((a_constant_repr_kind)ck_aggregate);
             local_di.variant.aggregate.aggr_const = cp1;
             /* Set the ck_aggregate constant. */
