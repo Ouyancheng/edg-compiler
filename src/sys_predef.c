@@ -78,6 +78,13 @@ Linux using the gcc/g++ header files.
                                /*cannot_be_redefined=*/FALSE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+  } else if (gpp_mode) {
+    /* In GNU C++ mode (but not in GNU C mode), _GNU_SOURCE is predefined
+       on Linux systems.  This macro guards GNU extensions in GNU operating
+       system header files. */
+    (void)enter_predef_macro("1", "_GNU_SOURCE",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
 }  /* enter_linux_predefined_macros */
 

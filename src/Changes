@@ -67,11 +67,11 @@ This was accepted in versions 2.40 and earlier of the front end, but
 versions 2.41 through 3.0.1 diagnosed such cases as errors.  Now it is
 again accepted.
 
-11/4/02  GNU C++ compatibility: Predefined macro _GNU_SOURCE
+11/4/02  GNU C++ compatibility: Predefined macro _GNU_SOURCE on Linux
 
 In GNU C++ mode (but not in GNU C mode) the front end now predefines a
-macro "_GNU_SOURCE" to expand to "1".  This macro guards GNU extensions
-in GNU header files.
+macro "_GNU_SOURCE" to expand to "1" on Linux configurations.
+This macro guards GNU extensions in GNU operating system header files.
 
 11/1/02  GNU compatibility: Use of __FUNCTION__ outside a function
 
