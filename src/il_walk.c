@@ -23,10 +23,6 @@ il_walk.c -- Routines to walk the intermediate language tree.
 #include "il.h"
 #include "error.h"
 
-#if IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING
-#include "cmd_line.h"
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && DO_IL_LOWERING */
-
 #if ALTERNATE_IL_FILE_FORMAT
 #include "il_file.h"
 #endif /* ALTERNATE_IL_FILE_FORMAT */
@@ -136,11 +132,15 @@ Process the source correspondence field pointed to by ptr.
 */
 #ifdef CFE
 #define walk_source_corresp(ptr) \
-{ walk_string_ptr((ptr).name, iek_id_name, 0); \
+{ (ptr).assoc_info = NULL; \
+  walk_string_ptr((ptr).name, iek_id_name, 0); \
   remap_ptr((ptr).class_of_which_a_member, a_type_ptr, iek_type) \
 }  /* walk_source_corresp */
 #else /* if !defined(CIL) */
-#define walk_source_corresp(ptr) walk_string_ptr((ptr).name, iek_id_name, 0)
+#define walk_source_corresp(ptr) \
+{ (ptr).assoc_info = NULL; \
+  walk_string_ptr((ptr).name, iek_id_name, 0) \
+}
 #endif /* ifdef CIL */
 
 
@@ -281,13 +281,8 @@ Process the indicated type entry.
     case tk_typeref:
       walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);
 #if DO_IL_LOWERING
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-      if (!suppress_il_lowering) {
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-        walk_ptr(ptr->variant.typeref.orig_member_type, a_type_ptr, iek_type);
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-      }  /* if */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+      /* Reset the pointers used during IL lowering to NULL. */
+      ptr->variant.typeref.orig_member_type = NULL;
 #endif /* DO_IL_LOWERING */
       break;
     case tk_ptr_to_member:
@@ -1170,14 +1165,8 @@ and the entry pointer is to an entry in the file scope, just return
                     an_overriding_virtual_function_ptr,
                     iek_overriding_virtual_function);
 #if DO_IL_LOWERING
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-          if (!suppress_il_lowering) {
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-            walk_ptr(ptr->virtual_function_table_var, a_variable_ptr,
-                     iek_variable);
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-          }  /* if */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+          /* Reset the pointers used during IL lowering to NULL. */
+          ptr->virtual_function_table_var = NULL;
 #endif /* DO_IL_LOWERING */
         }
         break;
@@ -1199,15 +1188,9 @@ and the entry pointer is to an entry in the file scope, just return
                     iek_class_list_entry);
           walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
 #if DO_IL_LOWERING
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-          if (!suppress_il_lowering) {
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-            walk_ptr(ptr->virtual_function_table_var, a_variable_ptr,
-                     iek_variable);
-            remap_ptr(ptr->type_as_subobject, a_type_ptr, iek_type);
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-          }  /* if */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+          /* Reset the pointers used during IL lowering to NULL. */
+          ptr->virtual_function_table_var = NULL;
+          ptr->type_as_subobject = NULL;
 #endif /* DO_IL_LOWERING */
         }
         break;
