@@ -2495,6 +2495,7 @@ of the function, and again overloading is a possibility.
   a_class_list_entry_ptr  clep;
   a_boolean               is_overloaded_function;
   a_boolean               is_function_def_with_body;
+  a_boolean               is_main_function = FALSE;
   a_storage_class         storage_class;
 
   db_enter(3, "decl_friend_function");
@@ -2518,6 +2519,15 @@ of the function, and again overloading is a possibility.
          specified as inline, that information should be passed on to
          decl_var_or_routine. */
       if (is_function_def_with_body) is_inline = TRUE;
+      if (strcmp(locator->symbol_header->identifier, "main") == 0) {
+        /* Friendship is being given to the main() function. */
+        is_main_function = TRUE;
+        if (is_inline) {
+          /* But it can't be declared "inline" or defined inline. */
+          pos_error(ec_inline_main, &locator->source_position);
+          is_inline = FALSE;
+        }  /* if */
+      }  /* if */
       if (is_inline) {
         storage_class = (a_storage_class)sc_static;
       } else {
@@ -2526,7 +2536,8 @@ of the function, and again overloading is a possibility.
       decl_var_or_routine(locator, storage_class, function_type,
                           /*is_implicit_function=*/FALSE,
                           is_function_def_with_body, is_inline,
-                          &sym, &linkage, &old_type, &ext_sym);
+                          is_main_function, &sym, &linkage, &old_type,
+                          &ext_sym);
     } else {
       /* It's a member function.  Find the right type signature for this
          member function name.  If none can be found, NULL is returned. */
@@ -6262,7 +6273,13 @@ to indicate whether the class/struct/union is actually defined.
                 }  /* if */
 #endif /* CHECKING */
                 rout_sym->defined = TRUE;
-                rout_sym->variant.routine->is_inline = TRUE;
+                if (!friend_specified) {
+                  /* The inline flag is set for friend functions in
+                     decl_friend_function, which also handles cases in which
+                     it should be left unset despite the presence of a
+                     function body. */
+                  rout_sym->variant.routine->is_inline = TRUE;
+                }  /* if */
                 remove_stop_token(tok_comma);
                 /* Cache the tokens comprising the function definition
                    so that they can be rescanned once the entire class
