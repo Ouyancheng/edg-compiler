@@ -7087,6 +7087,9 @@ continue_with_declaration:
       }  /* if */
 #endif /* CHECKING */
       make_anonymous_union_variable(type_ptr, storage_class);
+      /* The anonymous union variable is marked as referenced, as are all
+         unnamed entities.  So its type is also marked referenced. */
+      type_ptr->source_corresp.referenced = TRUE;
     } else {
       if (storage_class == (a_storage_class)sc_typedef) {
         /* A case like "typedef int;" or "typedef struct { int i; };" */
