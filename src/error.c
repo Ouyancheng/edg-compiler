@@ -1180,11 +1180,11 @@ error code.
       m = "redefinition of default argument";
       break;
     case ec_ambiguous_overloaded_function:
-      m = "more than one instance of %n matches the argument list";
+      m = "more than one instance of %n matches the argument list:";
       break;
     case ec_ambiguous_constructor:
       m =
-        "more than one instance of constructor %no matches the argument list";
+        "more than one instance of constructor %no matches the argument list:";
       break;
     case ec_bad_default_arg_type:
       m = "default argument expression is incompatible with parameter";
@@ -1301,13 +1301,13 @@ error code.
       m = "default argument is not allowed";
       break;
     case ec_ambiguous_user_defined_conversion:
-      m = "more than one user-defined conversion from %t1 to %t2 applies";
+      m = "more than one user-defined conversion from %t1 to %t2 applies:";
       break;
     case ec_no_matching_operator_function:
       m = "none of the available operator functions matches these operands";
       break;
     case ec_ambiguous_operator_function:
-      m = "more than one operator function matches these operands";
+      m = "more than one operator function matches these operands:";
       break;
     case ec_bad_arg_type_for_operator_new:
       m = "operator new() requires first argument of type \"size_t\"";
@@ -1511,20 +1511,26 @@ error code.
       m = "no suitable constructor exists to convert from %t1 to %t2";
       break;
     case ec_ambiguous_constructor_for_conversion:
-      m = "more than one constructor applies to convert from %t1 to %t2";
+      m = "more than one constructor applies to convert from %t1 to %t2:";
       break;
     case ec_ambiguous_conversion_function:
-      m = "more than one conversion function from %t1 to %t2 applies";
+      m = "more than one conversion function from %t1 to %t2 applies:";
       break;
     case ec_ambiguous_conversion_to_builtin:
       m =
-        "more than one conversion function from %t to a built-in type applies";
+       "more than one conversion function from %t to a built-in type applies:";
       break;
     case ec_const_member:
       m = "const %n";
       break;
     case ec_reference_member:
       m = "reference %n";
+      break;
+    case ec_ambiguous_function_add_on:
+      m = "%n";
+      break;
+    case ec_builtin_operator_add_on:
+      m = "built-in operator %sq";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:

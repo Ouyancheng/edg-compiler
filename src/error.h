@@ -458,7 +458,9 @@ typedef enum /*an_error_code*/ {
   ec_ambiguous_conversion_function,
   ec_ambiguous_conversion_to_builtin,
   ec_const_member,
-  ec_reference_member
+  ec_reference_member,
+  ec_ambiguous_function_add_on,
+  ec_builtin_operator_add_on
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
