@@ -12661,6 +12661,7 @@ passed via template_decl.
                                     class_state, &decl_info);
       }  /* if */
     } else {
+      /* A static or nonstatic data member. */
       if (mutable_specified &&
           is_const_qualified_type(local_type)) {
         /* "mutable" and top-level "const" are not allowed together. */
@@ -12674,7 +12675,16 @@ passed via template_decl.
                                       /*is_main_function=*/FALSE,
                                       !no_decl_specifiers);
       }  /* if */
-      if (decl_info.storage_class == (a_storage_class)sc_static) {
+      if (!(missing_declarator || decl_info.is_unnamed_field) &&
+          is_error_locator(locator)) {
+        /* Some problem occurred while parsing the declarator.  To avoid
+           strange error recovery problems, we do not add a member to the
+           class type.  (If there was no declarator or if the declarator
+           consisted solely of an unnamed bit field length, the locator is
+           set to an error locator even though there could not possible be
+           not possibly be a declarator-parsing error.) */
+        check_assertion(total_errors != 0);
+      } else if (decl_info.storage_class == (a_storage_class)sc_static) {
         /* Static data member. */
         decl_static_data_member(&locator, class_type, local_type,
                                 class_state, &decl_info, attributes, asm_name,
