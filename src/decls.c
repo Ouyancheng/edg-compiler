@@ -5378,7 +5378,9 @@ caution when modifying this routine.
             while (scope_stack[*effective_decl_level].kind ==
                                    (a_scope_kind)sck_class_struct_union ||
                    scope_stack[*effective_decl_level].kind ==
-                                   (a_scope_kind)sck_func_prototype) {
+                                   (a_scope_kind)sck_func_prototype ||
+                   scope_stack[*effective_decl_level].kind ==
+                                   (a_scope_kind)sck_template_declaration) {
               (*effective_decl_level)--;
             }  /* while */
           }  /* if */

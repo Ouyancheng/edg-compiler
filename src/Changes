@@ -1,5 +1,17 @@
 Version 2.14
 
+1/25/93 Declaration of tags first seen in a template declaration
+
+A bug has been fixed that caused an error to be produced for this code:
+
+	template <struct X* xptr> struct A {};
+	struct X {};
+	X	x;
+	A<&x> *a;
+
+"X" was being considered local to the scope of the template declaration
+and is now considered to be declared at file scope.
+
 1/22/93 Aggregate initializer scanning clean-up
 
 The code in decl_inits.c that scans {...} initializers has been reworked
