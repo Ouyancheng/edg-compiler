@@ -473,10 +473,12 @@ even if they are invalid.
          single_register_constraints[i].cons !=
                                       (an_asm_operand_constraint_kind)aoc_last;
          i++) {
-      a_boolean  input =
-                   (operand->modifiers & (aom_input | aom_earlyclobber)) != 0;
-      a_boolean  output =
-                   (operand->modifiers & (aom_output | aom_earlyclobber)) != 0;
+      a_boolean  input = (operand->modifiers & 
+                            ((an_asm_operand_modifier)aom_input |
+                             (an_asm_operand_modifier)aom_earlyclobber)) != 0;
+      a_boolean  output = (operand->modifiers &
+                            ((an_asm_operand_modifier)aom_output |
+                             (an_asm_operand_modifier)aom_earlyclobber)) != 0;
       for (c = operand->constraints; c != NULL; c = c->next) {
         if (c->kind == single_register_constraints[i].cons) {
           r = single_register_constraints[i].reg;
