@@ -1915,10 +1915,7 @@ page size.
                               incremental_size,
                               PROT_WRITE | PROT_READ, MAP_PRIVATE | MAP_FIXED,
                               fd, (off_t)curr_size);
-      /* The addition of do_page_alignment(1) is used to create an
-         unmapped space between the allocations. */
-      map_address = ((char *)map_address) + incremental_size +
-                    do_page_alignment(1);
+      map_address = ((char *)map_address) + incremental_size;
 #else /* !USE_FIXED_ADDRESS_FOR_MMAP */
       addr = (a_void_ptr)mmap((char*)0, incremental_size + 1,
                               PROT_WRITE | PROT_READ, MAP_PRIVATE,

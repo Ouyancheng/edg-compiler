@@ -438,12 +438,17 @@ Free the storage associated with the indicated memory block.
        a linked list of freed blocks.  As blocks are added, they are
        checked against the existing freed blocks so that adjacent pieces
        can be reunited.  If pieces reunite into a complete block, the 
-       block can be freed by calling free. */
+       block can be freed by calling free.  Make sure that the block
+       that is being added is not from a different allocation
+       (e.g., from a different malloc call).  Memory blocks from
+       different low level allocations cannot be merged. */
     for (prev_hdr = NULL, test_hdr = reusable_blocks_list;
          test_hdr != NULL;
          test_hdr = test_hdr->next) {
-      if (test_hdr->after_end_of_block == (char *)hdr ||
-          hdr->after_end_of_block == (char *)test_hdr) {
+      if ((test_hdr->after_end_of_block == (char *)hdr &&
+           hdr->malloc_size != 0) ||
+          (hdr->after_end_of_block == (char *)test_hdr &&
+           test_hdr->malloc_size != 0)) {
         /* The block on the list is adjacent to the new block.  Remove
            the test_hdr block from the list and join the two blocks together
            as a bigger block pointed to by hdr.  Also back up the loop 
@@ -659,9 +664,14 @@ is used for allocation of general front end memory (i.e., not IL).
   do_host_alignment(size);
 
   /* See if enough space remains in the current block.  If not, get
-     a new block. */
+     a new block.  Note that we add the required host alignment to the
+     requested allocation size.  This is done to ensure that no piece
+     of memory ends precisely at the end of low-level allocation.  On
+     some systems this can cause memory faults by system routines that
+     seem to make the assumption that this won't occur. */
   hdr = mem_region_table[region_number];
-  if (size > (sizeof_t)(hdr->after_end_of_block - hdr->next_avail_in_block)) {
+  if ((size + HOST_ALIGNMENT_REQUIRED) >
+      (sizeof_t)(hdr->after_end_of_block - hdr->next_avail_in_block)) {
     /* Not enough space remaining in current block.  Free any unused
        space at the end of the current last block, and start a new block. */
     trim_mem_block(hdr);
