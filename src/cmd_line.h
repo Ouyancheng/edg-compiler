@@ -111,7 +111,7 @@ EXTERN an_integer_kind
 			   the setting of targ_has_signed_chars. */
 EXTERN long	targ_min_char,
 		targ_max_char;
-			/* Mininum and maximum values for values of type char,
+			/* Minimum and maximum values for values of type char,
 			   dependent on the setting of
 			   targ_has_signed_chars.  The more obvious names
 			   targ_CHAR_MIN and targ_CHAR_MAX were not used
