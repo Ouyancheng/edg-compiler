@@ -512,12 +512,12 @@ EXTERN unsigned long
 EXTERN an_error_severity
                 strict_ansi_error_severity
 #if VAR_INITIALIZERS
-			                   = es_error
+			                   = es_warning
 #endif /* VAR_INITIALIZERS */
                                                      ;
                         /* Strict ANSI mode violations are reported at this
-                           error severity.  It is expected that this will
-                           either be es_error or es_warning. */
+                           error severity.  This must either be es_error
+                           or es_warning. */
 
 
 EXTERN an_error_severity

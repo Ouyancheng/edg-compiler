@@ -254,14 +254,17 @@ Process the arguments on the command line that invoked the compiler.
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
   /* Scan the command-line options. */
-#define COMMAND_LIST "AEPCKMHNabnsuvwrmpV$I:D:U:e:L:X:S:o:i:d:"
+#define COMMAND_LIST "AEPCKMHNOabnsuvwrmpV$I:D:U:e:L:X:S:o:i:d:"
   while ((optchar = getopt(argc, argv, COMMAND_LIST)) != EOF) {
     switch (optchar) {
       case 'A':
+      case 'a':
         /* Warn on non-ANSI features, disable features that conflict
            with ANSI.  Note that "ANSI" means ANSI C or ANSI C++, depending
-           on the C_dialect setting. */
+           on the C_dialect setting.  'A' issues  errors for
+           violations, 'a' issues warnings. */
         strict_ansi_mode = TRUE;
+        strict_ansi_error_severity = (optchar == 'A') ? es_error : es_warning;
         break;
       case 'E':
         /* Do preprocessing only, output to stdout, with #line information. */
@@ -312,7 +315,7 @@ Process the arguments on the command line that invoked the compiler.
         goto unknown_option;
 #define DID_GOTO_UNKNOWN_OPTION
 #endif /* DO_IL_LOWERING */
-      case 'a':
+      case 'O':
         /* Allow anachronisms. Toggle the value (use the non-default value)
            of the flag that specifies whether anachronisms should be
            accepted. */
