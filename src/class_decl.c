@@ -6023,7 +6023,7 @@ Scan the body of a class definition, including the base classes list.
 #endif /* if 0 */
           tp->source_corresp.referenced = TRUE;
         } /* if */
-        local_no_decl_specifiers = dso_flags & DSO_NO_DECL_SPECIFIERS;
+        local_no_decl_specifiers = (dso_flags & DSO_NO_DECL_SPECIFIERS) != 0;
         type_explicitly_specified =
                                dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
         friend_specified = dso_flags & DSO_FRIEND;
@@ -6174,7 +6174,7 @@ Scan the body of a class definition, including the base classes list.
           unnamed_field = FALSE;
           /* The declarator can be omitted for an unnamed bit-field. */
           set_err_pos_to_curr_token();
-          if (type_explicitly_specified && curr_token == tok_colon) {
+          if (curr_token == tok_colon && !local_no_decl_specifiers) {
             /* Unnamed bit-field. */
             unnamed_field = TRUE;
             local_type = member_type;
