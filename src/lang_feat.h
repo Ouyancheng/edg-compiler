@@ -560,6 +560,19 @@ C a for-init statement may not be a declaration.
 #define DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE FALSE
 #endif /* ifndef DEFAULT_USE_NONSTANDARD_FOR_INIT_SCOPE */
 
+/*
+Flag that is TRUE if a diagnostic should be issued when a name that is
+visible under the new for-init scoping rules would be hidden (by the for-init
+declaration itself) under the old rules.  It is only meaningful when the new
+rules are used (i.e., when use_nonstandard_for_init_scope is FALSE).  It is
+the initial value of global variable warning_on_for_init_difference, which
+can also be controlled by command-line option --[no_]for_init_diff_warning.
+Used only in C++ mode.
+*/
+#ifndef DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE
+#define DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE TRUE
+#endif /* ifndef DEFAULT_WARNING_ON_FOR_INIT_DIFFERENCE */
+
 #endif /* ifndef LANG_FEAT_H */
 
 /******************************************************************************
