@@ -115,7 +115,9 @@ Under certain circumstances a globally qualified type name on a parameter
 was parsed incorrectly -- e.g.,
 
   typedef int I;
-  void f(::I);          // Now parsed correctly
+  class A {
+    int operator+(::I);          // Now parsed correctly
+  };
 
 5/18/94  Destruction of expression temporaries on goto/at label
 
