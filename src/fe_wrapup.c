@@ -23,6 +23,7 @@ fe_wrapup.c - End of front end processing.
 #include "macro.h"
 #include "class_decl.h"
 #include "exprutil.h"
+#include "statements.h"
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_write.h"
@@ -47,6 +48,7 @@ Show the amount of memory allocated.
   total_space += show_lexical_space_used();
   total_space += show_expr_space_used();
   total_space += show_il_space_used();
+  total_space += show_statements_space_used();
 #if DO_IL_LOWERING
   total_space += show_lowering_space_used();
 #endif /* DO_IL_LOWERING */
