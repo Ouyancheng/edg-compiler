@@ -564,6 +564,37 @@ static int		throw_buffer[1024];
 static a_boolean	throw_in_process = FALSE;
 
 
+static a_boolean violates_throw_spec(an_eh_stack_entry_ptr	ehsep,
+                	             a_typeinfo_ptr		typeinfo,
+			    	     a_boolean			is_pointer)
+/*
+Determine whether the exception being thrown is on the list of
+throws allowed by a given throw specification.  Returns FALSE if the
+the thrown type is permitted by the throw specification.  Returns TRUE
+if the thrown type violates the throw specification.
+*/
+{
+  an_exception_type_specification_ptr	etsp;
+  a_boolean				result = TRUE;
+  a_boolean				done = FALSE;
+
+  etsp = ehsep->variant.try_block.catch_entries;
+  do {
+    if (etsp->flags & ETS_IS_ELLIPSIS) {
+      result = FALSE;
+    } else if (matching_types(etsp, typeinfo, is_pointer)) {
+      result = FALSE;
+    }  /* if */
+    if (!result) {
+      break;
+    }  /* if */
+    done = etsp->flags & ETS_LAST;
+    etsp++;
+  } while (!done);
+  return result;
+}  /* violates_throw_spec */
+
+
 static int check_catches(an_eh_stack_entry_ptr	ehsep,
                          a_typeinfo_ptr		typeinfo,
 			 a_boolean		is_pointer,
@@ -667,9 +698,10 @@ a try block with a catch that matches the type of the object thrown.
         }  /* if */
       }  /* if */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
-#if 0
       /* Check for violations of throw specifications. */
-#endif /* 0 */
+      if (violates_throw_spec(ehsep, thrown_typeinfo, thrown_is_pointer)) {
+        __call_unexpected();
+      }  /* if */
     } else {
       unexpected_condition();
     }  /* if */
