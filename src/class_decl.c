@@ -2970,7 +2970,7 @@ without it.
   /* Make the check without regard to the presence of an implicit "this"
      parameter.  types_are_compatible should do the comparison based only
      on the return type and parameters. */
-  new_rts = new_type->variant.routine.extra_info;
+  new_rts = (skip_typerefs(new_type))->variant.routine.extra_info;
   new_this_type = new_rts->implicit_this_param_type;
   new_function_is_qualified =
                (new_this_type != NULL &&
