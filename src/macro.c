@@ -1211,7 +1211,7 @@ Call record_pragma to scan the pragma body and create the pragma entry.
 static void scan_microsoft_pragma_operator(
 				a_boolean *got_proper_closing_token)
 /*
-Process a C99 Microsoft __pragma operator.  The current token is the
+Process a Microsoft __pragma operator.  The current token is the
 __pragma identifier token.  The form of a _pragma invocation is:
 
 	__pragma(tokens)

@@ -13420,7 +13420,8 @@ position specified by pos.
 char *make_copy_of_token_string(void)
 /*
 Make a copy of the string generated from token caches and return a pointer
-to it.  The copy is make in IL memory.
+to it.  The source string is in the templ_text_buffer.  The copy is made
+in IL memory.
 */
 {
   char	*il_string;
