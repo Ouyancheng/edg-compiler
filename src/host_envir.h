@@ -622,6 +622,14 @@ flag should be set to FALSE.
 #endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
 
 /*
+Flag that enables recording of allocation sequence numbers in IL
+entries, as an aid to debugging.
+*/
+#ifndef MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+#define MAINTAIN_ALLOCATION_SEQUENCE_NUMBER FALSE
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+
+/*
 The flag IL_WALK_NEEDED controls the compilation of the routines required
 to walk the IL.  These routines are needed if NEED_IL_DISPLAY is TRUE or
 IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE.

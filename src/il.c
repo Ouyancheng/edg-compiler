@@ -362,6 +362,10 @@ information, such as its address and translation unit.
   if (entry == NULL) {
     fprintf(f_debug, "<null pointer>\n");
   } else {
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+    fprintf(f_debug, "(seq %lu) ",
+                     il_entry_prefix_of(entry).alloc_seq_number);
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
     fprintf(f_debug, "%s", il_entry_kind_names[(int)kind]);
     if (kind == iek_type) {
       fprintf(f_debug, " ");

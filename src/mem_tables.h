@@ -139,6 +139,11 @@ typedef struct an_il_entry_prefix {
 			/* Entry number for the IL entry. */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+  unsigned long	alloc_seq_number;
+			/* For debugging purposes, a sequence number assigned
+			   when this block was allocated. */
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 } an_il_entry_prefix;
 
 
@@ -187,6 +192,19 @@ IL entry prefix only if it exists.
 #define clear_il_entry_number(epp) /* Nothing */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
 
+/*
+Macro used by clear_il_entry_prefix to set the allocation sequence
+number if it exists.
+*/
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+EXTERN unsigned long
+		allocation_sequence_number_seed;
+#define init_alloc_seq_number(epp) \
+  ((epp)->alloc_seq_number) = ++allocation_sequence_number_seed;
+#else /* !MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+#define init_alloc_seq_number(epp) /* Nothing */
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+
 
 /*
 Initialize an IL entry prefix to default values.  ptr is a pointer (of
@@ -204,6 +222,7 @@ region of a secondary translation unit, FALSE otherwise.
   clear_keep_in_il_flag(epp);                                         \
   clear_entry_written_flag(epp);                                      \
   clear_il_entry_number(epp);                                         \
+  init_alloc_seq_number(epp);                                         \
 }  /* clear_il_entry_prefix */
 
 

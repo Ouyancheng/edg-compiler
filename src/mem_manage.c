@@ -1489,6 +1489,9 @@ must be initialized for each compilation.
   total_mem_used = 0;
   num_alignment_bytes_allocated = 0;
 #endif /* DEBUG */
+#if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
+  allocation_sequence_number_seed = 0;
+#endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   if (index_for_il_file !=  NULL) {
     /* This pointer will be non-NULL on all but the first compilation when
