@@ -21,7 +21,7 @@ recorded for the implicit cast to the typedef type when
 RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE retained the expression
 associated with the constant definition, when that should have been
 cleared.  This caused incorrect output from the C++-generating back
-end on such cases.  Now fixed.
+end on such cases.  Now fixed.  [Patch sent out 2/14/01.]
 
   typedef enum {a, b=a+1} eType;
   void f() {
@@ -32,7 +32,7 @@ end on such cases.  Now fixed.
 
 Spurious errors could be issued on certain partial specialization
 declarations that appear in the definition of a class template.  This
-has been fixed.
+has been fixed.  [Patch sent out 2/14/01.]
 
   template < class T > class A {
     template <int I, class U> class B {};
@@ -51,6 +51,7 @@ Now fixed.
 In some complex cases involving C99 nonconstant aggregate initialization,
 elided braces, and use of designated initializers to re-initialize
 a member already initialized, an abort could occur.  Now fixed.
+[Patch sent out 2/14/01.]
 
   struct A { const int i; };
   struct B { struct A a; };
@@ -65,7 +66,7 @@ a member already initialized, an abort could occur.  Now fixed.
 C99 aggregate initialization did not correctly handle some cases
 where the initializer expression has a class type and the member being
 initialized has the const-qualified version of the same type.
-Now fixed.
+Now fixed.  [Patch sent out 2/14/01.]
 
   struct A { int i; };
   int main () {
@@ -80,6 +81,7 @@ Template-dependent switch case values of the form T::name, where
 T is a template parameter, were not put out correctly in prototype
 instantiations in the C++-generating back end in some cases.
 A generated name like __T12345678 was put out instead.  Now fixed.
+[Patch sent out 2/14/01.]
 
   template <class T> void f() {
     switch (T::type(1)) {
@@ -94,7 +96,8 @@ When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, a sizeof operator
 that appears inside a function in an integral constant expression
 for an array size and references a local variable produced
 incorrect IL that could cause aborts in some cases.  Now fixed (by
-eliminating the recorded expression in such cases).
+eliminating the recorded expression in such cases).  [Patch sent
+out 2/14/01.]
 
   int main() {
     int i;
@@ -105,7 +108,8 @@ eliminating the recorded expression in such cases).
 
 The code produced by C99 lowering of a cast from imaginary to bool
 compares the operand to a zero constant.  The constant had imaginary
-type, however, and should have real type.  Now fixed.
+type, however, and should have real type.  Now fixed.  [Patch sent
+out 2/14/01.]
 
 2/9/01   C99 mode: sign inversion in imaginary divide operation
 
@@ -114,20 +118,22 @@ floating point value was erroneously represented as an ordinary floating point
 division.  This resulted for example in "0.5/__I__" being (incorrectly)
 treated equal to "0.5*__I__" instead of "-0.5*__I__" (the latter is correct).
 IL CHANGE: a new operator eok_jdivide has been introduced to represent these
-operations (it is eliminated when LOWER_COMPLEX is TRUE).
+operations (it is eliminated when LOWER_COMPLEX is TRUE).  [Patch sent
+out 2/14/01.]
 
 2/9/01   Long double requires additional digit for full precision
 
-When emitting a long double value as a string in the C or C++ generating
+When a long double value is emitted as a string in the C or C++ generating
 back ends, the resulting string did not contain enough digits to
-guarantee that all of the bits of the value were represented (it needed
-one additional digit).  This has been fixed.
+guarantee that all of the bits of the value were represented (one
+more digit was needed).  This has been fixed.  [Patch sent out 2/14/01.]
 
 2/8/01   Checking of template-dependent switch case values
 
 Spurious errors about duplicated values were sometimes issued for
 template-dependent case values in switch statements when prototype
 instantiations of functions are done (e.g., in strict mode).  Now fixed.
+[Patch sent out 2/14/01.]
 
   template <class T> struct A {
     void f(int i) {
@@ -154,7 +160,7 @@ diagnostics on additional redeclarations.  For example:
                                 // specification.
 
 This is now fixed by retaining the throw specification of the first explicit
-declaration.
+declaration.  [Patch sent out 2/14/01.]
 
 2/7/01   Extra position information on explicit declaration of size_t in
          Microsoft mode
@@ -162,13 +168,13 @@ declaration.
 The front end used to not record extra position information (available when
 EXTRA_SOURCE_POSITIONS_IN_IL is configured TRUE) for explicit declarations
 of the size_t typedef in Microsoft mode (in that mode, size_t is predeclared).
-This is now fixed.
+This is now fixed.  [Patch sent out 2/14/01.]
 
 2/6/01   Microsoft compatibility: spurious error on in-class specialization
 
 A spurious error would result when a Microsoft in-class specialization
 that includes an explicit template argument list appears in a nested
-class of a class template.  This has been fixed.
+class of a class template.  This has been fixed.  [Patch sent out 2/14/01.]
 
   template < class > class A {
     class B {
@@ -184,7 +190,7 @@ and attempts to reuse the type already associated with the routine for that
 purpose.  However, in configurations where EXTRA_SOURCE_POSITIONS_IN_IL or
 RECORD_NAME_IN_PARAM_TYPE_ENTRY are TRUE, this often results in invalid
 information regarding the names and positions of parameters.  This is now
-fixed.
+fixed.  [Patch sent out 2/14/01.]
 
 2/2/01   Source positions on preserved expressions for constant expressions
 
@@ -194,13 +200,13 @@ pointed to by the constant.  For the simplest preserved expressions,
 those for references to const variables replaced by their values,
 the expression node for the preserved expression did not have the
 source positions recorded when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.
-The positions are now set.
+The positions are now set.  [Patch sent out 2/14/01.]
 
 2/2/01   C++-generating back end: nonconstant scalar compound literals
 
 The C++-generating back end aborted on attempting to output compound
 literals that are scalar and nonconstant (e.g., in C99 mode).
-Now fixed.
+Now fixed.  [Patch sent out 2/14/01.]
 
   int main() {
     int i = 1;
@@ -212,7 +218,7 @@ Now fixed.
 
 The lowering for C99 did not correctly handle lowering a nonconstant
 initialization of a member of a union other than the first or second.
-Now fixed.
+Now fixed.  [Patch sent out 2/14/01.]
 
   union U { float x; int y; int i; };
   int main () {
@@ -231,7 +237,8 @@ large value internally.  This is now fixed.
 
 The front end used to omit the generation of default member functions in
 prototype instantiations of class templates.  This could lead to errors
-when parsing templates that called such default members.
+when parsing templates that called such default members.  [Patch sent
+out 2/14/01.]
 
   template <class T> struct X { X(); }; // Contains generated copy-constructor
   template <class T> X<T>::X() {
@@ -247,7 +254,8 @@ The lowering of a complicated initialization in a for-initialization
 statement in C99 produced incorrect IL.  One consequence of this
 incorrect IL was that the initialization code was omitted.  Another
 possible consequence is an IL write/read error.  The problem did not
-occur when source sequence entries are generated.
+occur when source sequence entries are generated.  [Patch sent out
+2/14/01.]
 
   int main() {
     _Complex long double a = 37.0;
@@ -262,6 +270,7 @@ The C-generating back end put out invalid code for an initialization
 of a local union that follows an executable statement, when the
 member initialized is not the first member of the union.  The problem
 is more widespread when LOWER_DESIGNATED_INITIALIZERS is FALSE.
+[Patch sent out 2/14/01.]
 
   union U {
     char c;
@@ -282,7 +291,7 @@ the "?" operator is an lvalue, a flag was set incorrectly, which
 might flip a bit of a memory address and cause an abort later (in
 other words, whether you get an abort is dependent on what that
 bit was in the original address, so such cases didn't always abort).
-Now fixed.
+Now fixed.  [Patch sent out 2/14/01.]
 
   int func(int n) {
     return n ? n : 1 ? n: n;
@@ -306,7 +315,8 @@ This is now fixed.
 
 The generated constructors of classes that are unnamed but get a name
 for linkage purposes from a typedef now get mangled names based on the
-linkage-name of the class.  Formerly, they were unnamed.
+linkage-name of the class.  Formerly, they were unnamed.  [Patch sent
+out 2/14/01.]
 
   struct X {
     X();
@@ -347,6 +357,7 @@ first one that could be used to form the module-id.  This has been fixed.
 
 In some cases, the C++-generating back end did not put out throw
 specifications that were present in the source.  Now fixed.
+[Patch sent out 2/14/01.]
 
   void f() throw(int) {}
   void (*pf)() throw(int)=f;  // throw-specification here was dropped
@@ -358,6 +369,7 @@ An abort in error recovery has been corrected.  The problem came
 up in a case that involves calling a member function of a class with
 a generated bitwise copy constructor, with an object that is volatile
 (which therefore cannot be copied by the generated copy constructor).
+[Patch sent out 2/14/01.]
 
   struct A {int i; void f();};
   volatile A fv();
@@ -378,7 +390,7 @@ default constructor after template argument substitution.
     T *const p; // Still an error (missing initializer).
   }
 
-This is now fixed.
+This is now fixed.  [Patch sent out 2/14/01.]
 
 1/24/01  Friend declarations in prototype instantiations
 
@@ -412,7 +424,8 @@ signatures.  Because the module-id would change each time the file was
 compiled, and because the module-id is incorporated in the mangled
 name, the prelinker could not successfully assign the instantiation to
 a file and end up with an instantiation of the expected function,
-resulting in a prelinker loop.  This is now fixed.
+resulting in a prelinker loop.  This is now fixed.  [Patch sent out
+2/14/01.]
 
   namespace {
     struct X {};
@@ -441,7 +454,7 @@ When doing nonclass prototype instantiations, in examples such as the
 following, the lookup of "f" would find the global scope function f instead
 of using the f that is a member of the class specified by template parameter
 T during a real instantiation.  This has been fixed.  [Patch sent
-out 1/23/01.]
+out 1/23/01.  Correction patch sent out 2/14/01.]
 
   void f();
   template <class T> void g(T t) {
