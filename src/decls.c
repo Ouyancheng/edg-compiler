@@ -4295,12 +4295,12 @@ class template.
             a_param_type_ptr  ptp = rp->type->variant.routine.extra_info->
                                                              param_type_list;
             if (ptp->next == NULL) {
-            /* Overloading should not be allowed on the single-argument
-               version of operator new(size_t), though it is not expressly
-               prohibited.  At least one C++ test suite expects an error. */
+              /* Overloading should not be allowed on the single-argument
+                 version of operator new(size_t), though it is not expressly
+                 prohibited.  At least one C++ test suite expects an error. */
               pos_error(ec_template_operator_new, &locator->source_position);
               set_to_error_locator(*locator);
-              homonym_symbol == NULL;
+              homonym_symbol = NULL;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -7948,11 +7948,12 @@ exit_loop:
       } else if (kind == (a_type_kind)tk_error) {
         *type_ptr = error_type();
       } else if (kind == (a_type_kind)tk_integer) {
-	if (ikind == (an_integer_kind)ik_int && explicitly_signed) {
-	  /* For an explicitly "signed" int, use a different type entry.
-	     Plain "int" and "signed int" have to be kept separate because
-	     they may mean different things as bit-field types. */
-	  *type_ptr = signed_int_type();
+	if (explicitly_signed && ikind != (an_integer_kind)ik_signed_char) {
+          /* For an explicitly "signed" int, use a different type entry.
+             Plain "int" and "signed int" have to be kept separate because
+             they may mean different things as bit-field types.  The same
+             applies to explicitly signed short, lond, and long long. */
+	  *type_ptr = signed_integer_type((an_integer_kind)ikind);
 	} else {
           *type_ptr = integer_type((an_integer_kind)ikind);
 	}  /* if */
