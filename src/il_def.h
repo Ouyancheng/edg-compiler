@@ -665,6 +665,11 @@ typedef struct a_source_correspondence {
                         /* Pointer to null-terminated name, or NULL if
                            there is no corresponding source entity. */
 #ifdef CIL
+  /* The parent substructure is used to indicate class or namespace
+     membership.  When is_class_member is TRUE, the class_type pointer may
+     be assumed to be non-NULL.  When it is FALSE, the entity may or may
+     not be a direct namespace member, depending on whether namespace_ptr
+     is non-NULL. */
   union {
     /* When is_class_member is TRUE: */
     a_type_ptr	class_type;
@@ -674,9 +679,10 @@ typedef struct a_source_correspondence {
 #if 0
     /* When is_class_member is FALSE. */
     a_namespace_ptr
-		namespace;
+		namespace_ptr;
 			/* If the entry is an immediate member of a namespace,
-			   a pointer to the latter; otherwise, NULL. */
+			   a pointer to the latter (C++ only); otherwise,
+			   NULL. */
 #endif /* if 0 */
   } parent;
 #endif /* ifdef CIL */
