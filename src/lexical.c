@@ -382,18 +382,8 @@ for pp-tokens.
   ctp->token = (a_byte_token_kind)curr_token;
   if (curr_token == tok_identifier) {
     /* Identifier -- save information about it. */
-    if (locator_for_curr_id.specific_symbol != NULL) {
-      /* For a specific symbol, save the pointer to the symbol. */
-      ctp->extra_info_kind = (a_token_extra_info_kind)teik_specific_symbol;
-      ctp->variant.specific_symbol = locator_for_curr_id.specific_symbol;
-      ctp->is_qualified_name = locator_for_curr_id.is_qualified_name;
-      ctp->ambiguity_and_access_control_check_needed = 
-                 locator_for_curr_id.ambiguity_and_access_control_check_needed;
-    } else {
-      /* For a normal identifier, save a pointer to the symbol header. */
-      ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
-      ctp->variant.identifier_header = locator_for_curr_id.symbol_header;
-    }  /* if */
+    ctp->extra_info_kind = (a_token_extra_info_kind)teik_identifier;
+    ctp->variant.locator = locator_for_curr_id;
   } else if (is_literal_constant_token(curr_token)) {
     /* Literal constant -- save the constant's value. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_constant;
@@ -463,28 +453,6 @@ Free a cached constant entry, i.e., put it on the avail list to be reused.
 }  /* free_cached_constant */
 
 
-static void make_locator_for_qualified_name_symbol(a_symbol_ptr     sym,
-                                                   a_symbol_locator *locator)
-/*
-Make a symbol locator for referring to sym as a qualified name symbol.
-A qualified name symbol locator is used for qualified names like "A::x"
-in C++.
-*/
-{
-  /* Note that the test here for sk_undefined depends on the fact that
-     get_qualified_name enters error qualified names that way. */
-  if (sym->kind == (a_symbol_kind)sk_undefined) {
-    /* The symbol is an error qualified name. */
-    set_to_error_locator(*locator);
-  } else {
-    /* The symbol is a normal symbol. */
-    make_locator_for_symbol(sym, locator);
-  }  /* if */
-  locator->specific_symbol = sym;
-  locator->is_qualified_name = TRUE;
-}  /* make_locator_for_qualified_name_symbol */
-
-
 static a_token_kind get_token_from_cached_token_rescan_list(void)
 /*
 Remove the first token from cached_token_rescan_list, establish it as the
@@ -516,19 +484,7 @@ current token, and return its token kind.
   len_of_curr_token = 0;
   if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
     /* For an identifier, restore the locator. */
-    /* Note that set_to_error_locator uses error_position as the
-       position, which is correct (error_position == pos_curr_token). */
-    set_to_error_locator(locator_for_curr_id);
-    locator_for_curr_id.symbol_header = ctp->variant.identifier_header;
-  } else if (ctp->extra_info_kind ==
-                               (a_token_extra_info_kind)teik_specific_symbol) {
-    /* For a specific symbol, restore the locator. */
-    make_locator_for_symbol(ctp->variant.specific_symbol,
-                            &locator_for_curr_id);
-    locator_for_curr_id.source_position = pos_curr_token;
-    locator_for_curr_id.is_qualified_name = ctp->is_qualified_name;
-    locator_for_curr_id.ambiguity_and_access_control_check_needed =
-                                ctp->ambiguity_and_access_control_check_needed;
+    locator_for_curr_id = ctp->variant.locator;
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
@@ -4237,8 +4193,6 @@ and IDL_OKAY_TO_RETURN_PROJECTION_SYMBOL.
             /* For the error cases, set the current locator to an error locator
                with specific_symbol pointing to a newly-created error
                symbol of kind sk_undefined. */
-            /* See make_locator_for_qualified_name_symbol; it depends on an
-               error qualified name having type sk_undefined. */
             set_to_error_locator(locator_for_curr_id);
             locator_for_curr_id.specific_symbol =
                         enter_symbol((a_symbol_kind)sk_undefined,
