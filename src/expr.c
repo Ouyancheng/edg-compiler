@@ -253,6 +253,10 @@ Return TRUE if the expression node has side effects.
       /* A new or delete always has a side effect. */
       has_side_effects = TRUE;
       break;
+    case enk_throw:
+      /* A throw always has side effects. */
+      has_side_effects = TRUE;
+      break;
 #if CHECKING
     default:
       internal_error("node_has_side_effects: bad node kind");
@@ -5930,6 +5934,15 @@ return FALSE.
 }  /* check_reference_conversions */
 
 
+/*
+Macro that returns TRUE if the given operand is an operand for a throw
+expression.
+*/
+#define is_throw_operand(operand)                                     \
+  (is_expression_operand(operand) &&                                  \
+   (operand)->variant.expression->kind == (an_expr_node_kind)enk_throw)
+
+
 static void scan_conditional_operator(an_operand *operand_1,
                                       an_operand *result)
 /*
@@ -6088,6 +6101,15 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     }  /* if */
     if (types_are_the_same) {
       /* If the types are the same no further checking of types is needed. */
+    } else if (is_throw_operand(&operand_2)) {
+      /* The second operand is a throw expression and the third is not
+         (because if they both were, they would have the same types),
+         so use the type of the third. */
+      result_type = operand_3.type;
+    } else if (is_throw_operand(&operand_3)) {
+      /* The third operand is a throw expression and the second is not,
+         so use the type of the second. */
+      /* result_type = operand_2.type; -- already set. */
     } else {
       operand_2_is_pointer = is_pointer_type(operand_2.type);
       operand_3_is_pointer = is_pointer_type(operand_3.type);
@@ -6556,6 +6578,82 @@ See section 3.3.16 of the standard.
 
   db_exit();
 }  /* scan_compound_assignment_operator */
+
+
+static void scan_throw_operator(an_operand *result)
+/*
+Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
+
+  throw assignment-expression
+                             opt
+*/
+{
+  an_operand        operand;
+  a_source_position start_position;
+  a_boolean         err = FALSE, expr_present;
+  an_expr_node_ptr  node, throw_node;
+
+  db_enter(4, "scan_throw_operator");
+
+  /* Save the source position of the operator. */
+  start_position = pos_curr_token;
+
+  if (curr_expr_kind_is_const()) {
+    /* "throw" not allowed in constant expressions. */
+    pos_error(ec_bad_constant_operator, &start_position);
+    err = TRUE;
+  }  /* if */
+
+#if CHECKING
+  if (curr_token != tok_throw) {
+    internal_error("scan_throw_operator: expected throw");
+  }  /* if */
+#endif /* CHECKING */
+  (void)get_token();
+
+  /* See if the expression is present. */
+#if 0
+  /* This needs to be more sophisticated.  Consider, however
+       throw + 1;
+  */
+#endif /* 0 */
+  if (curr_token == tok_semicolon || curr_token == tok_rparen   ||
+      curr_token == tok_rbrace    || curr_token == tok_rbracket ||
+      curr_token == tok_comma     || curr_token == tok_colon    ||
+      curr_token == tok_quest_mark) {
+    /* No. */
+    expr_present = FALSE;
+  } else {
+    /* Scan the expression. */
+    expr_present = TRUE;
+    scan_expr(&operand, PREC_ASSIGNMENT, EOPT_NO_OPTIONS);
+  }  /* if */
+
+  if (err) {
+    /* Operator not allowed in this kind of expression. */
+    make_error_operand(result);
+  } else {
+    if (expr_present) {
+      /* There is a throw expression. */
+      do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+      node = make_node_from_operand(&operand);
+    } else {
+      /* There is no throw expression (i.e., this is a rethrow). */
+      node = NULL;
+    }  /* if */
+    /* Build the throw node. */
+    throw_node = alloc_expr_node((an_expr_node_kind)enk_throw);
+    throw_node->type = void_type();
+    throw_node->variant.throw_object = node;
+    /* Make an operand for the result. */
+    make_expression_operand(throw_node, throw_node->type, result);
+  }  /* if */
+
+  error_position = start_position;
+  result->position = start_position;
+
+  db_exit();
+}  /* scan_throw_operator */
 
 
 static void scan_comma_operator(an_operand *operand_1,
@@ -7436,6 +7534,10 @@ handle_trapped_left_paren:
                                      &local_result);
         (void)get_token();
       }  /* if */
+      break;
+
+    case tok_throw:
+      scan_throw_operator(&local_result);
       break;
      
     default:
