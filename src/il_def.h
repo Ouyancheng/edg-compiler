@@ -303,8 +303,7 @@ typedef struct a_dynamic_init {
 			   otherwise (e.g., when pointed to from a
 			   ck_dynamic_init constant to indicate initialization
 			   of one member of an aggregate). */
-  a_routine_ptr
-		destructor;
+  a_routine_ptr destructor;
 			/* If non-NULL, the destructor routine to be invoked
 			   when this object ceases to exist; if NULL, no
 			   destructor call is required.  (Note that it is
@@ -689,8 +688,7 @@ typedef struct a_routine_type_supplement {
                            body has been scanned), a NULL list signifies
                            that there are no dummy arguments. */
 #endif /* ifdef FIL */
-  a_routine_ptr
-                assoc_routine;
+  a_routine_ptr assoc_routine;
                         /* If this type is the type for a function that
                            has been defined (has a body), this points to
                            the associated function.  Otherwise, it is NULL. */
@@ -814,6 +812,34 @@ typedef struct an_access_adjustment {
 } an_access_adjustment;
 
 
+typedef struct an_overriding_virtual_function
+                                         *an_overriding_virtual_function_ptr;
+typedef struct an_overriding_virtual_function {
+  /* Representation for a virtual function that is declared in a derived
+     class and that overrides a virtual function declared in a base class
+     (see ARM 10.2).  The declaration that is overridden is referred to as
+     the "primary" virtual function.  This data structure is associated
+     with the base class entry identifying the class of the primary
+     declaration, and provides information required for constructing a
+     virtual function table for the base class. */
+  an_overriding_virtual_function_ptr
+		next;	/* Next in a linked list of overriding virtual
+			   function entries. */
+  a_routine_ptr overriding_function;
+			/* A pointer to the routine entry for the function
+			   that overrides the primary virtual function. */
+  a_routine_ptr primary_function;
+			/* A pointer to the virtual function that is
+			   overridden. */
+  a_base_class_ptr
+		base_class;
+			/* A pointer to the base class entry, on the
+			   base_classes list of the current derived class,
+			   identifying the class of which the overriding
+			   function is a member. */
+} an_overriding_virtual_function;
+
+
 typedef struct a_derivation_step *a_derivation_step_ptr;
 typedef struct a_derivation_step {
   /* Description of one step in the derivation of a projection symbol
@@ -882,6 +908,12 @@ typedef struct a_base_class {
 			   base class; the linked list of step entries always
 			   terminates with a step entry that points to this
 			   base class entry. */
+  an_overriding_virtual_function_ptr
+		overriding_virtual_functions;
+			/* Pointer to a linked list of entries representing
+			   functions declared in derived classes that
+                           overriding virtual functions declared in the
+                           current base class. */
 } a_base_class;
 
 
@@ -1463,6 +1495,12 @@ EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
 #endif /* DEBUG */
 #endif /* ifdef CIL */
 
+/* Numbering for virtual functions.  Each virtual member function in a given
+   class is assigned a unique number.  Although no specific implementation
+   of virtual function calls is predetermined by the front end, this number
+   be used as an virtual function table index value. */
+typedef unsigned short a_virtual_function_number;
+
 /*
 Data structures related to routines:
 */
@@ -1531,6 +1569,12 @@ typedef struct a_routine {
                            the befriending class; in the IL the befriending
                            class is recorded in the befriended class (or
                            routine). */
+  a_virtual_function_number
+		virtual_function_number;
+			/* When is_virtual is TRUE, the number assigned to
+                           this function; it is unique among the virtual
+			   functions of a given class.  When is_virtual is
+			   FALSE, this field is undefined. */
 #endif /* ifdef CIL */
 #ifdef FIL
   a_byte_boolean
