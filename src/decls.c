@@ -10724,7 +10724,9 @@ of local variables (and types, etc.) of functions and in blocks.
   a_variable_ptr               var_ptr;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_boolean                    first_declarator = TRUE;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   char                         *asm_name = NULL;
   a_source_position            asm_name_pos;
@@ -12077,7 +12079,9 @@ continue_with_declaration:
       remove_stop_token(tok_comma);
       need_comma_remove_stop_token = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       first_declarator = FALSE;
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
       /* We are done with the declarator attributes. */
