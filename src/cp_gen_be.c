@@ -2168,6 +2168,7 @@ or enum.
     write_tok_str(tag_kind(type->kind));
     write_space();
     gen_decl_name(&type->source_corresp, iek_type);
+    type->declaration_put_out = TRUE;
   }  /* if */
 }  /* gen_tag_reference */
 
@@ -2186,6 +2187,7 @@ A reference is not the definition unless the type is unnamed.
     /* In C++, don't use "class X" instead of "X" unless that is required,
        e.g., because there's something else called "X" in the same scope. */
     if (il_header.source_language == sl_Cplusplus &&
+        type->declaration_put_out &&
         !type->elaborated_type_specifier_needed) {
       /* Use just the type name. */
       gen_type_name(type);
@@ -2668,6 +2670,7 @@ is the one associated with the definition of the enum.
                       type->variant.integer.enum_type,
                       "gen_enum_definition: not an enum type");
   type->definition_put_out = TRUE;
+  type->declaration_put_out = TRUE;
   /* Advance past the source sequence entry for the enum itself. */
   check_for_and_take_source_seq_entry(
                                    type->source_corresp.source_sequence_entry);
@@ -2913,6 +2916,7 @@ is the one associated with the definition of the class.
                                    type->variant.class_struct_union.extra_info;
 
   type->definition_put_out = TRUE;
+  type->declaration_put_out = TRUE;
   /* Advance past the source sequence entry for the class itself. */
   check_for_and_take_source_seq_entry(
                                    type->source_corresp.source_sequence_entry);
