@@ -96,6 +96,13 @@ in the include files will become external definitions for the symbols.
 #include "lower_eh.h"
 #endif /* DO_IL_LOWERING */
 
+
+/*
+Date/time of compilation, in ctime format ("Sun Sep 16 01:03:52 1973\n"):
+*/
+static char	curr_date_time[26];
+
+
 static void host_init(void)
 /*
 Do required initialization for host-dependent things.
