@@ -3730,6 +3730,7 @@ Set the operator, type, and operand list in an operator expression node.
 {
   node->type = type;
   node->variant.operation.kind = kind;
+  node->variant.operation.assignment_returns_lvalue = FALSE;
   node->variant.operation.operands = operands;
 }  /* set_node_operator */
 
@@ -4047,9 +4048,6 @@ the statement.
   an_expr_node_ptr node;
 
   /* Make the assignment node. */
-#if 0
-  /* Fix the return type when assignment operators return lvalues. */
-#endif
   node = make_operator_node(which_binary_operator(tok_assign, source->type),
                             source->type, dest);
   dest->next = source;
