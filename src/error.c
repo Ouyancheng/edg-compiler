@@ -1528,6 +1528,41 @@ end of the buffer.
 }  /* add_string_to_segment */
 
 
+static msg_segment_ptr new_message_segment(void)
+/*
+Allocate and initialize the fixed part a new message segment.
+*/
+{
+  msg_segment_ptr	msg;
+
+  msg = (msg_segment_ptr)alloc_general(sizeof(msg_segment));
+  msg->next       = NULL;
+  msg->segment    = NULL;
+  msg->length     = 0;
+  msg->max_length = 0;
+  msg->sequence   = 1;
+  return msg;
+}  /* new_message_segment */
+
+
+static msg_segment_ptr establish_first_segment(void)
+/*
+*/
+{
+  register msg_segment_ptr
+		first_segment;
+
+  first_segment = error_message_head;
+  if (first_segment == NULL) {
+    /* When the very first time, this will be NULL. */
+    first_segment = error_message_head = new_message_segment();
+  }  /* if */
+  first_segment->length = 0;
+  first_segment->sequence = 1;
+  return first_segment;
+}  /* establish_first_segment */
+
+
 static void form_int_kind_name(an_integer_kind kind,
                                msg_segment_ptr seg_ptr)
 /*
@@ -1602,7 +1637,7 @@ static void form_class_name(a_type_ptr      type,
                             msg_segment_ptr seg_ptr)
 /*
 Add the class name of the specified type followed by "::" to the message
-segment being constructed at "seg_ptr".  Use "<unnamed>" if the class
+segment being constructed at *seg_ptr.  Use "<unnamed>" if the class
 has no user name.
 */
 {
@@ -1835,8 +1870,8 @@ Add the parameter list of a function to the type string being formatted.
 static void form_type_summary(a_type_ptr      tp,
                               msg_segment_ptr seg_ptr)
 /*
-Format a string that represents the type pointed to by "tp" into the message
-segment described by "seg_ptr".
+Format a string that represents the type pointed to by tp into the message
+segment described by *seg_ptr.
 */
 {
   add_string_to_segment("\"", seg_ptr);
@@ -1844,6 +1879,33 @@ segment described by "seg_ptr".
   form_type_second_part(tp, /*need_parens=*/FALSE, seg_ptr);
   add_string_to_segment("\"", seg_ptr);
 }  /* summarize_type */
+
+
+sizeof_t format_type_string(a_type_ptr tp,
+                            char       **addr_str_ptr)
+/*
+A character string representation of the type pointed to by tp is formatted
+into the first segment of the error diagnostic segment list (pointed to
+by the static variable error_message_head).  The address of the string
+created is returned along with the length of the string created.  Note that
+the string length does not include the terminating NULL character.  The
+caller should make a copy of the string immediately into whichever memory
+region is appropriate.
+*/
+{
+  msg_segment_ptr
+		curr_segment;
+
+  curr_segment = establish_first_segment();
+  /* Make certain that there is a string buffer and that it contains an
+     empty string. */
+  add_string_to_segment("", curr_segment);
+  form_type_first_part(tp, /*need_parens=*/FALSE, curr_segment);
+  form_type_second_part(tp, /*need_parens=*/FALSE, curr_segment);
+  /* Provide the address of the string buffer to the caller. */
+  *addr_str_ptr = curr_segment->segment;
+  return curr_segment->length;
+}  /* format_type_string */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -1947,9 +2009,9 @@ static void form_symbol_name(a_symbol_ptr      sym,
                              a_source_position *error_pos,
                              msg_segment_ptr   seg_ptr)
 /*
-Format the name of the symbol pointed to by "sym" in the message segment
-described by "seg_ptr".  Type information is based on the fundamental symbol
-and the name is that of "sym".  error_pos represents the source position of
+Format the name of the symbol pointed to by sym in the message segment
+described by *seg_ptr.  Type information is based on the fundamental symbol
+and the name is that of sym.  error_pos represents the source position of
 the diagnostic being formed and is used when formatting the symbol source
 declaration position to eliminate redundant file names in a diagnostic.
 */
@@ -1957,8 +2019,8 @@ declaration position to eliminate redundant file names in a diagnostic.
   a_type_ptr	type = NULL;
   a_routine_ptr	routine = NULL;	
   a_symbol_ptr  fund_sym;	/* Pointer to the fundamental symbol of
-				   argument "sym" if it exists.  Otherwise,
-				   the value will be that of "sym". */
+				   argument sym if it exists.  Otherwise,
+				   the value will be that of sym. */
   char		*entity_kind;
   a_boolean	is_constructor = FALSE;
   a_boolean	is_destructor = FALSE;
@@ -2033,7 +2095,7 @@ declaration position to eliminate redundant file names in a diagnostic.
       is_declaration_like = TRUE;
       goto symbol_name;
     case sk_overloaded_function:
-      entity_kind = "function ";
+      entity_kind = "overloaded function ";
       /* There is no specific type information available; this entity cannot
          be expressed as a declaration. */
       goto symbol_name;
@@ -2113,27 +2175,10 @@ symbol_name:
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static msg_segment_ptr new_message_segment(void)
-/*
-Allocate and initialize the fixed part a new message segment.
-*/
-{
-  msg_segment_ptr	msg;
-
-  msg = (msg_segment_ptr)alloc_general(sizeof(msg_segment));
-  msg->next       = NULL;
-  msg->segment    = NULL;
-  msg->length     = 0;
-  msg->max_length = 0;
-  msg->sequence   = 1;
-  return msg;
-}  /* new_message_segment */
-
-
 static void construct_message_segments(char *msg_ptr)
 /*
 Scan the message template pointed to by msg_ptr and construct the message
-segment list.  The global variable error_message_head points to the first
+segment list.  The static variable error_message_head points to the first
 segment descriptor.  Parameter substitutions are specified in the message
 template beginning with a "%".  Accepted substitution designations are:
 
@@ -2171,14 +2216,7 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
   int           i;
   
   /* Establish the message segment descriptor for the first segment. */
-  curr_segment = error_message_head;
-  if (curr_segment == NULL) {
-    /* For the very first time, this will be NULL. */
-    curr_segment = error_message_head = new_message_segment();
-  }  /* if */
-  curr_segment->length = 0;
-  curr_segment->sequence = 1;
-
+  curr_segment = establish_first_segment();
   while (*msg_ptr != '\0') {
     switch (*msg_ptr) {
       case '%':
@@ -2507,7 +2545,7 @@ static void write_diagnostic(a_source_position *error_pos,
 /*
 Write out a diagnostic message with the given message string, position, and
 severity.  If the error is severe, terminate the compilation.
-The "message" to be put out is the concatenation of the linked list of
+The message to be put out is the concatenation of the linked list of
 message segments pointed to by the global variable error_msg_head.
 */
 {
@@ -2625,7 +2663,8 @@ message segments pointed to by the global variable error_msg_head.
        between a quote and a file name). */
 
     for (curr_seg = error_message_head;
-         curr_seg->kind != (a_message_segment_kind)msk_last;
+         curr_seg != NULL &&
+           curr_seg->kind != (a_message_segment_kind)msk_last;
          curr_seg = curr_seg->next) {
       switch (curr_seg->kind) {
         case msk_error_text_part:
@@ -2714,7 +2753,8 @@ message segments pointed to by the global variable error_msg_head.
       /* Put out the error message text. */
       line_len = 0;  /* Meaningless. */
       for (curr_seg = error_message_head;
-           curr_seg->kind != (a_message_segment_kind)msk_last;
+           curr_seg != NULL &&
+             curr_seg->kind != (a_message_segment_kind)msk_last;
            curr_seg = curr_seg->next) {
         switch (curr_seg->kind) {
           case msk_error_text_part:
@@ -2846,7 +2886,7 @@ diagnostic is written.
   /* Walk through the message segments and complete any required 
      expansion. */
   for (curr_seg = error_message_head;
-       curr_seg->kind != (a_message_segment_kind)msk_last;
+       curr_seg != NULL && curr_seg->kind != (a_message_segment_kind)msk_last;
        curr_seg = curr_seg->next ) {
     switch (curr_seg->kind) {
       /* No processing is needed for msk_error_text_part. */
