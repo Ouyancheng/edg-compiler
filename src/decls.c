@@ -5482,7 +5482,7 @@ return a pointer to it in *symbol_ptr.
                                     declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!(ref_kind & SRK_DEFINITION)) {  /*lint !e774*/
-            (void)update_src_seq_secondary_decl((char *)sym->variant.type,
+            (void)update_src_seq_secondary_decl((char *)sym->variant.type.ptr,
                                                 type_ptr, SSSD_NO_FLAGS,
                                                 decl_pos_block);
           }  /* if */
@@ -5577,7 +5577,7 @@ return a pointer to it in *symbol_ptr.
                            decl_scope_level, suppress_redecl_error);
   /* Create a new type entry and add it to the types list for the current
      scope. */
-  sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
+  sym->variant.type.ptr = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
   nsp = NULL;

@@ -563,7 +563,7 @@ routine.
       type->variant.template_param.kind =
                                     (a_template_param_type_kind)tptk_member;
       set_type_size(type);
-      sym->variant.type = type;
+      sym->variant.type.ptr = type;
       scp = &type->source_corresp;
       break;
     }
@@ -2383,7 +2383,7 @@ in a friend declaration.
          pointed to by the template parameter is returned. */
       check_assertion_str(assoc_symbol->kind == (a_symbol_kind)sk_type,
                           "curr_tag_symbol: bad symbol kind");
-      tp = assoc_symbol->variant.type;
+      tp = assoc_symbol->variant.type.ptr;
       new_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
       /* Issue a diagnostic because this usage is no longer permitted by
          the Working Paper. */

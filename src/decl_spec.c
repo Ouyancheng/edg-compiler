@@ -1043,7 +1043,7 @@ caution when modifying this routine.
              scope. */
           if (sym->kind == (a_symbol_kind)sk_type) {
             /* Name is already declared in the current scope as a typedef. */
-            a_type_ptr  tp = skip_typerefs(sym->variant.type);
+            a_type_ptr  tp = skip_typerefs(sym->variant.type.ptr);
             if (is_immediate_class_type(tp) &&
                 ((tag_kind == (a_symbol_kind)sk_union_tag) ==
                  (tp->kind == (a_type_kind)tk_union))) {
@@ -1487,7 +1487,8 @@ the template.
          class template is being referenced in an elaborated type specifier. */
       if (tag_sym->kind == (a_symbol_kind)sk_type) {
 #if CHECKING
-        if (tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {
+        if (tag_sym->variant.type.ptr->kind ==
+                                   (a_type_kind)tk_template_param) {
           /* Template param used in with a class-key -- for instance:
                template <class T> class A {
                  class T x;
@@ -1502,7 +1503,8 @@ the template.
                class B *pa;
              The current declaration must not be a definition and the
              typedef name must refer to a class type. */
-          check_assertion(is_class_struct_union_type(tag_sym->variant.type));
+          check_assertion(is_class_struct_union_type(tag_sym->
+                                                       variant.type.ptr));
         } else {
           internal_error("class_specifier: invalid sk_type tag_sym");
         }  /* if */
@@ -1933,7 +1935,7 @@ the template.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
-    if (tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {
+    if (tag_sym->variant.type.ptr->kind == (a_type_kind)tk_template_param) {
       /* Use of template parameter name as a proxy tag name during a
          prototype instantiation. */
     } else {
@@ -2102,7 +2104,7 @@ the template.
   if (err) {
     *type_ptr = error_type();
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
-    *type_ptr = tag_sym->variant.type;
+    *type_ptr = tag_sym->variant.type.ptr;
   } else {
     *type_ptr = class_type;
   }  /* if */
@@ -3000,7 +3002,8 @@ is a that of a constructor.
          current class. */
       sym = normal_id_lookup(&locator_for_curr_id, IDL_TENTATIVE_TYPE_LOOKUP);
       if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
-          skip_typerefs(sym->variant.type) == class_type && !sym->ambiguous) {
+          skip_typerefs(sym->variant.type.ptr) == class_type &&
+          !sym->ambiguous) {
         /* Note that qualifiers on the typedef name are ignored -- this
            corresponds to MSVC++ behavior. */
         /* name_match = TRUE; */
@@ -3026,7 +3029,7 @@ is a that of a constructor.
           if (is_constructor_symbol(sym)) {
             /* Okay. */
           } else if (sym->kind == (a_symbol_kind)sk_type &&
-                     f_skip_typerefs(sym->variant.type) == class_type) {
+                     f_skip_typerefs(sym->variant.type.ptr) == class_type) {
             /* There is a typedef for the class type with the same name as
                the class.  It was found instead of the class on the lookup.
                That's okay. */

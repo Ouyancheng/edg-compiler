@@ -875,7 +875,7 @@ declaration position to eliminate redundant file names in a diagnostic.
       entity_kind = "label ";
       goto symbol_name;
     case sk_type:
-      if (fund_sym->variant.type->kind == (a_type_kind)tk_template_param) {
+      if (fund_sym->variant.type.ptr->kind == (a_type_kind)tk_template_param) {
         entity_kind = "template parameter ";
       } else {
         entity_kind = "type ";

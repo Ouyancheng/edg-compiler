@@ -1002,8 +1002,9 @@ types separated by commas (when single_type_required is FALSE).
   is_implicit_template_type = 
         curr_token == tok_identifier && implicit_typename_enabled &&
         specific_sym != NULL && specific_sym->kind == (a_symbol_kind)sk_type &&
-        specific_sym->variant.type->kind == (a_type_kind)tk_template_param &&
-        specific_sym->variant.type->variant.template_param.kind ==
+        specific_sym->variant.type.ptr->kind ==
+                                       (a_type_kind)tk_template_param &&
+        specific_sym->variant.type.ptr->variant.template_param.kind ==
                                        (a_template_param_type_kind)tptk_member;
   /* The ambiguous cases all begin a type name followed by a left
      parenthesis.   Check for this case first to quickly discard most

@@ -3172,7 +3172,7 @@ included in the search.
       if (is_prototype_instantiation_symbol(sym)) continue;
       /* Old list is the template argument list from a template class that has
          already been created.  See if the list passed in matches it. */
-      old_list = sym->variant.type->
+      old_list = sym->variant.type.ptr->
                      variant.class_struct_union.extra_info->template_arg_list;
       if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
         /* We've found a match. */
@@ -7362,7 +7362,7 @@ to the newly created list.
     param_sym = tpp->param_symbol;
     if (param_sym->kind == (a_symbol_kind)sk_type) {
       tap = alloc_template_arg(/*is_arg_type=*/TRUE);
-      tap->variant.type = param_sym->variant.type;
+      tap->variant.type = param_sym->variant.type.ptr;
     } else {
       tap = alloc_template_arg(/*is_arg_type=*/FALSE);
       tap->variant.constant = param_sym->variant.constant;
@@ -7401,7 +7401,7 @@ the names of the template parameters specified by templ_param_list.
     check_assertion(tap != NULL);
     param_sym = tpp->param_symbol;
     if (param_sym->kind == (a_symbol_kind)sk_type) {
-      tap->variant.type = param_sym->variant.type;
+      tap->variant.type = param_sym->variant.type.ptr;
     } else {
       tap->variant.constant = param_sym->variant.constant;
     }  /* if */
@@ -7498,7 +7498,7 @@ the type specified by tp.
 
   if (param_sym->kind == (a_symbol_kind)sk_type) {
     result =
-           is_or_contains_specific_template_param(tp, param_sym->variant.type);
+       is_or_contains_specific_template_param(tp, param_sym->variant.type.ptr);
   } else {
     result = type_contains_specific_template_param_constant(
                                               tp, param_sym->variant.constant);
@@ -8838,7 +8838,7 @@ to represent the template parameters.
       /* The type symbol for the template parameter points for now to the
          template-param type -- "for now", since it will be replaced with
          an actual type during instantiation of the class or function. */
-      sym->variant.type = template_param_type;
+      sym->variant.type.ptr = template_param_type;
       sym->is_template_param = TRUE;
       mark_defined(sym, &sym->decl_position);
       /* Bypass the identifier. */
@@ -8951,8 +8951,8 @@ to represent the template parameters.
          Because it has no coordinates it can't match any other template
          parameter.  An error type cannot be used because the code that
          uses the parameter list does not expect error types. */
-      sym->variant.type = alloc_type((a_type_kind)tk_template_param);
-      set_type_size(sym->variant.type);
+      sym->variant.type.ptr = alloc_type((a_type_kind)tk_template_param);
+      set_type_size(sym->variant.type.ptr);
     }  /* if */
     /* Allocate a template parameter and set its fields based on sym. */
     template_param = alloc_template_param(sym,

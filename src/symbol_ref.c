@@ -639,8 +639,8 @@ hiding.
         /* old_sym_ptr is a tag with the same name as sym_ptr and in the
            same or a containing scope. */
         if (sym_ptr->kind == (a_symbol_kind)sk_type &&
-            typeref_is_typedef(sym_ptr->variant.type) &&
-            skip_typerefs(sym_ptr->variant.type) ==
+            typeref_is_typedef(sym_ptr->variant.type.ptr) &&
+            skip_typerefs(sym_ptr->variant.type.ptr) ==
                             old_sym_ptr->variant.class_struct_union.type) {
           /* sym_ptr is a typedef that refers the type represented by
              old_sym_ptr -- something like "typedef struct S { ... } S;"
@@ -1285,7 +1285,7 @@ projection symbol.
       if (sym_ptr->is_template_param) {
         /* A reference to a template parameter during template instantiation is
            actually a reference to the template argument that it represents. */
-        tp = sym_ptr->variant.type;
+        tp = sym_ptr->variant.type.ptr;
         if (tp->kind == (a_type_kind)tk_template_param) {
           /* We are in the midst of a template definition. */
         } else {

@@ -786,7 +786,7 @@ values needed for the previous call.
     if (tap != NULL) {
       /* A template argument exists for this parameter. */
       if (tap->is_type) {
-        param_symbol->variant.type = tap->variant.type;
+        param_symbol->variant.type.ptr = tap->variant.type;
       } else {
         param_symbol->variant.constant = tap->variant.constant;
       }  /* if */
@@ -817,7 +817,7 @@ declaration is scanned and are used as placeholders between instantiations.
   while (tpp != NULL) {
     register a_symbol_ptr  param_symbol = tpp->param_symbol;
     if (param_symbol->kind == (a_symbol_kind)sk_type) {
-      param_symbol->variant.type = tpp->variant.type;
+      param_symbol->variant.type.ptr = tpp->variant.type;
     } else {
       param_symbol->variant.constant = tpp->variant.constant.ptr;
     }  /* if */
@@ -2919,7 +2919,7 @@ NULL.
       }  /* if */
       break;
     case sk_type:
-      scp = &sym->variant.type->source_corresp;
+      scp = &sym->variant.type.ptr->source_corresp;
       break;
     case sk_class_or_struct_tag:
     case sk_union_tag:

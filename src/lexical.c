@@ -7224,7 +7224,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         normal_locator = locator_for_curr_id;
         normal_sym = normal_id_lookup(&normal_locator, IDL_MUST_BE_CLASS);
         if (normal_sym != NULL && is_class_symbol(normal_sym)) {
-          normal_tp = skip_typerefs(normal_sym->variant.type);
+          normal_tp = skip_typerefs(normal_sym->variant.type.ptr);
           if (identical_types(field_sel_type, normal_tp)) {
             type_sym = normal_sym;
             destructor_okay = TRUE;
@@ -7252,7 +7252,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
                                                   IDL_MUST_BE_CLASS);
           }  /* if */
           if (other_sym != NULL && is_class_symbol(other_sym)) {
-            other_tp = skip_typerefs(other_sym->variant.type);
+            other_tp = skip_typerefs(other_sym->variant.type.ptr);
             if (identical_types(field_sel_type, other_tp)) {
               type_sym = other_sym;
               destructor_okay = TRUE;
@@ -7349,7 +7349,7 @@ the destructor is part of a qualified name (e.g., "A::B::~B").
         /* Create a locator that points to the type described by the symbol
            that was found. */
         saved_position = locator_for_curr_id.source_position;
-        tp = skip_typerefs(type_sym->variant.type);
+        tp = skip_typerefs(type_sym->variant.type.ptr);
         type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
         make_locator_for_symbol(type_sym, &locator_for_curr_id);
         locator_for_curr_id.source_position = saved_position;

@@ -498,7 +498,7 @@ and indentation is the indentation desired.
       db_constant(sym->variant.constant);
       break;
     case sk_type:
-      type = sym->variant.type;
+      type = sym->variant.type.ptr;
       break;
     case sk_enum_tag:
       type = sym->variant.enumeration.type;
@@ -1201,7 +1201,7 @@ Return TRUE if the symbol refers to a class member enumeration.
   if (sym->kind == (a_symbol_kind)sk_enum_tag) {
     tp = sym->variant.enumeration.type;
   } else if (sym->kind == (a_symbol_kind)sk_type) {
-    tp = sym->variant.type;
+    tp = sym->variant.type.ptr;
     tp = skip_typerefs(tp);
     if (!is_enum_type(tp)) tp = NULL;
   } else {
@@ -1857,7 +1857,8 @@ state.
       sym_ptr->variant.constant = NULL;
       break;
     case sk_type:
-      sym_ptr->variant.type = NULL;
+      sym_ptr->variant.type.ptr = NULL;
+      sym_ptr->variant.type.is_injected_class_name = FALSE;
       break;
     case sk_enum_tag:
       sym_ptr->variant.enumeration.type = NULL;
@@ -4104,7 +4105,7 @@ called at the point where the #include <stdarg.h> appears.
     /* Note that we update a pre-existing symbol to point to the typedef.
        this is necessary so that the needed and referenced flags will be
        set appropriately on uses of va_list after this point. */
-    sym->variant.type = va_list_typedef;
+    sym->variant.type.ptr = va_list_typedef;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Put out a source sequence entry for the type. */
     add_to_source_sequence_list((char *)va_list_typedef,
@@ -5423,7 +5424,7 @@ with an IL entry, return NULL, and return kind set to iek_none.
       lkind = iek_constant;
       break;
     case sk_type:
-      entry_ptr = (char *)sym->variant.type;
+      entry_ptr = (char *)sym->variant.type.ptr;
       lkind = iek_type;
       break;
     case sk_enum_tag:
@@ -8730,7 +8731,7 @@ and return a pointer to it.
   ptr->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
   if (sym->kind == (a_symbol_kind)sk_type) {
-    ptr->variant.type     = sym->variant.type;
+    ptr->variant.type     = sym->variant.type.ptr;
   } else {
     check_assertion(sym->kind == (a_symbol_kind)sk_constant);
     ptr->variant.constant.ptr = sym->variant.constant;
