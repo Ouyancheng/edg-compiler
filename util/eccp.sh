@@ -639,7 +639,7 @@ do
     echo $command
   fi
   if [ $pch_test_mode -eq 1 ] ; then
-    # In PCH test mode, we immediatly repeat the same compilation.
+    # In PCH test mode, we immediately repeat the same compilation.
     # The first compilation should generate a PCH file, the second should
     # use the generated file.  The output of the first compilation is
     # discarded.
