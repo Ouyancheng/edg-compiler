@@ -7208,7 +7208,7 @@ specific version of the template.
       push_object_lifetime((an_il_entry_kind)iek_scope, (char *)sp,
                            (an_object_lifetime_kind)(
                                 (kind == (a_scope_kind)sck_file) ?
-                                   olk_global_static : olk_local));
+                                   olk_global_static : olk_block));
       ssep->curr_scope_object_lifetime = curr_object_lifetime;
     }  /* if */
   }  /* if */      

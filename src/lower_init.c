@@ -1507,7 +1507,7 @@ The calling routine must also provide local variables
   saved_curr_object_lifetime = curr_object_lifetime;                  \
   curr_object_lifetime = il_header.primary_scope->lifetime;           \
   push_object_lifetime(iek_scope, (char *)(scope),                    \
-                       (an_object_lifetime_kind)olk_local);           \
+                       (an_object_lifetime_kind)olk_block);           \
   push_context(&context, (scope), /*subscope_region=*/FALSE);         \
 }  /* push_generated_routine_context */
 
