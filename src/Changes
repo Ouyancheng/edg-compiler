@@ -1,5 +1,20 @@
 Version 3.0
 
+3/11/02  Checking of exception specifications on function templates and on
+         members of class templates
+
+The front end now diagnoses nonmatching exception specifications when
+redeclaring a function template or a member function of a class template.
+For example:
+  template<typename T> struct S {
+    void f();
+  };
+  template<typename T> void S<T>::f() throw (T) {}  // Used to be accepted;
+                                                    // now an error
+  template<typename T> void g();
+  template<typename T> void g() throw (T) {} // Used to be accepted;
+                                             // now an error
+
 3/10/02  Abort in add_dyn_init_cleanup: no temps
 
 An abort in add_dyn_init_cleanup has been eliminated.  The abort

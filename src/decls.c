@@ -6003,6 +6003,12 @@ is a template specialization declaration.
         a_type_ptr	prev_type;
         tssp = template_supplement_for_symbol(sym);
         prev_type = tssp->variant.function.routine->type;
+        /* Be sure the current throw specification is consistent with the one
+           on the previous declaration.  This must be done prior to reconciling
+           the type with that of a previous declaration. */
+        check_exception_specification(type_ptr, sym,
+                                      &func_info->throw_position,
+                                      /*is_redecl=*/TRUE);
         adjust_member_routine_type(type_ptr, prev_type);
         reconcile_routine_types(tssp->variant.function.routine, type_ptr,
                                 /*preserve_rout_type=*/TRUE,
@@ -6273,6 +6279,12 @@ is a template specialization declaration.
           break;
         }  /* if */
       }  /* for */
+      /* Be sure the current throw specification is consistent with the one
+         on the previous declaration.  This must be done prior to adjusting
+         the member function's type. */
+      check_exception_specification(type_ptr, sym,
+                                    &func_info->throw_position,
+                                    /*is_redecl=*/TRUE);
       /* Merge type information from the two declarations. */
       reconcile_routine_types(rout_ptr, type_ptr,
                               /*preserve_rout_type=*/TRUE,
@@ -6337,10 +6349,6 @@ is a template specialization declaration.
         changed_to_inline = TRUE;
       }  /* if */
     }  /* if */
-    /* Be sure the current throw specification is consistent with the one
-       on the previous declaration. */
-    check_exception_specification(type_ptr, sym, &func_info->throw_position,
-                                  /*is_redecl=*/TRUE);
 #if DECL_MODIFIERS_IN_USE
     redeclaration = TRUE;
 #endif /* DECL_MODIFIERS_IN_USE */
