@@ -2841,6 +2841,12 @@ function to confirm the "is_optimized_empty_base" bit.
         }  /* for */
       }  /* if */
     }  /* if */
+    if (!last->is_optimized_empty_base && last->offset == lob->byte_offset) {
+      /* This empty base class is at the end of the current layout.
+         Adjust the total class size to reflect the fact that this base
+         class occupies some space after all. */
+      lob->byte_offset += last->type->size;
+    }  /* if */
   }  /* if */
 }  /* check_if_last_empty_base_is_optimized */
 
@@ -4246,9 +4252,9 @@ for handling virtual bases and functions.
        fixup on their pointer offsets and (in cfront compatibility mode)
        their data section offsets. */
     fixup_shared_virtual_base_class_offsets(class_type);
+#endif /* !IA64_ABI */
     /* Issue a diagnostic if the offset assigned to any base class is too
        large. */
-#endif /* !IA64_ABI */
     check_base_class_offsets(&lob);
   }  /* if */
   /* Record the overall size and alignment in the class's type entry. */

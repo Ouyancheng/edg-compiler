@@ -2739,6 +2739,7 @@ final semicolon if output_final_semi is TRUE.
          field = field->next) {
       /* Add any required padding before the field. */
       a_targ_size_t  padding = field_padding(prev_field, field, type);
+      check_assertion(padding <= type->size);
       if (padding > 0) {
         dump_field_padding(prev_field, padding);
       }  /* if */
@@ -2925,7 +2926,9 @@ final semicolon if output_final_semi is TRUE.
       if (last_field == NULL) {
         padding = type->size;
       } else {
-        padding = type->size - offset_after_field(last_field);
+        a_targ_size_t  offset_after_fields = offset_after_field(last_field);
+        check_assertion(offset_after_fields <= type->size);
+        padding = type->size - offset_after_fields;
       }  /* if */
       if (padding > 1) {
         write_tok_str("char __dummy[");
