@@ -1,5 +1,13 @@
 Version 2.41
 
+1/22/99   C++-generating back end: virtual function calls, qualified names
+
+The C++-generating back end now never puts out a qualified name for a
+virtual function when the function is called virtually (which is to
+say when the source code did not use a qualified name, because the
+use of a qualified name suppresses the virtual-ness).  This has
+been a problem only in obscure cases involving using-declarations.
+
 1/21/99   const string literals
 
 String literals and wide string literals now have const type as
