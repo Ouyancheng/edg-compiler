@@ -1944,26 +1944,16 @@ to it.
 }  /* alloc_object_lifetime */
 
 
-a_scope_ptr alloc_scope(a_scope_kind   kind,
-                        a_scope_number number,
-                        a_routine_ptr  assoc_routine)
+void set_scope_kind(a_scope_ptr    sp,
+                    a_scope_kind   kind,
+                    a_routine_ptr  assoc_routine)
 /*
-Allocate a scope entry, and return a pointer to it.  Set fixed fields to
-default values.  kind indicates the scope kind (e.g., function, block),
-number indicates the unique number for the scope, and assoc_routine
-points to the associated routine if the kind is sck_function.
+Initialize the variable fields of the scope entry pointed to by sp.
 */
 {
-  a_scope_ptr sp;
-
-  db_enter(5, "alloc_scope");
-
-  sp = (a_scope_ptr)alloc_cil(sizeof(a_scope));
-#if DEBUG
-  num_scopes_allocated++;
-#endif /* DEBUG */
-  sp->next   = NULL;
-  sp->number = number;
+  check_assertion_str(assoc_routine == NULL ||
+                        kind == (a_scope_kind)sck_function,
+                      "set_scope_kind: assoc_routine is non-NULL");
   sp->kind   = kind;
   switch (kind) {
     case sck_file:
@@ -1992,9 +1982,33 @@ points to the associated routine if the kind is sck_function.
       break;
 #if CHECKING
     default:
-      internal_error("alloc_scope: bad scope kind");
+      internal_error("set_scope_kind: bad scope kind");
 #endif /* CHECKING */
   }  /* switch */
+}  /* set_scope_kind */
+
+
+a_scope_ptr alloc_scope(a_scope_kind   kind,
+                        a_scope_number number,
+                        a_routine_ptr  assoc_routine)
+/*
+Allocate a scope entry, and return a pointer to it.  Set fixed fields to
+default values.  kind indicates the scope kind (e.g., function, block),
+number indicates the unique number for the scope, and assoc_routine
+points to the associated routine if the kind is sck_function.
+*/
+{
+  a_scope_ptr sp;
+
+  db_enter(5, "alloc_scope");
+
+  sp = (a_scope_ptr)alloc_cil(sizeof(a_scope));
+#if DEBUG
+  num_scopes_allocated++;
+#endif /* DEBUG */
+  sp->next   = NULL;
+  sp->number = number;
+  set_scope_kind(sp, kind, assoc_routine);
   sp->assoc_block                 = NULL;
   sp->lifetime                    = NULL;
   sp->constants                   = NULL;
@@ -2444,8 +2458,7 @@ in il_init.)
   def_source_corresp.source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-  /* Save variables from il.h and il.c that are needed for precompiled
-     headers */
+  /* Save static variables that are needed for precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_template_args),
