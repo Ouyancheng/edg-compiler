@@ -1857,7 +1857,7 @@ symbol is a function, an rvalue otherwise.
 
 
 void make_template_param_expr_constant_operand(an_expr_node_ptr node,
-                                              an_operand        *result)
+                                               an_operand        *result)
 /*
 Build an operand for a ck_template_param constant for the expression
 "node".  This makes a constant of subkind tpck_expression.  Return the
