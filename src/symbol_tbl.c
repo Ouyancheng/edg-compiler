@@ -6489,9 +6489,9 @@ cleared.
   sym = make_predeclared_function_symbol(&locator, return_type, param1_type,
 					 (a_type_ptr)NULL, (a_type_ptr)NULL,
 					 (a_type_ptr)NULL);
-  if (exceptions_enabled && !ignore_exception_specifications) {
-    /* Add exception specifications (but not if exception specifications are
-       normally just parsed and discarded -- e.g., in Microsoft mode). */
+  if (exceptions_enabled && !microsoft_mode) {
+    /* Add exception specifications (except in Microsoft mode, where exception
+       specifications are usually discarded). */
     rtsp = sym->variant.routine.ptr->type->variant.routine.extra_info;
     if (is_delete_operator(opname)) {
       /* Mark the predeclared operator delete function with "throw()". */

@@ -1,5 +1,33 @@
 Version 3.3
 
+6/19/03  Microsoft mode: Treatment of exception specifications
+
+In Microsoft bugs mode, the front end used to discard all exception
+specifications, except for those of the form "throw (...)" (see also
+the Changes entry of 10/2/00).  This behavior has been modified to
+more closely match the actual behavior of Microsoft C++ compilers.
+In Microsoft bugs mode with microsoft_version <= 1200, all standard
+exception specifications are ignored and the "throw (...)" form is
+not recognized.  (In Microsoft mode without Microsoft bugs mode and
+with microsoft_version <= 1200, standard exception handling treatment
+is available, as was the case previously)  In Microsoft modes with 
+microsoft_version >= 1300, the front end recognizes both standard
+exception specifications and the "throw (...)" specification with
+the following caveats:
+  - non-empty throw specifications (e.g., "throw (char*)") are
+    all recorded as "throw (...)", and
+  - only the form "throw ()" is recorded on functions that do
+    not have extern "C" linkage.
+A consequence of these changes is that, when microsoft_version >= 1300,
+the front end now accepts two declarations of the same function where
+one has a throw (...) specification and the other not if those functions
+do not have extern "C" linkage.  For example:
+
+  void f() throw(...);  // throw (...) parsed but no longer recorded
+  void f();             // No longer an error
+
+Previously such a mismatch triggered an error.
+
 6/20/03  Microsoft mode: #pragma pack(show)
 
 The front end now recognizes a new form of "#pragma pack": When its argument
@@ -16,17 +44,6 @@ These additional arguments are ignored with a warning.  For example:
 
   #pragma pack(show, ignored, 33)  // Additional pack arguments ignored
                                    // with a warning
-
-6/19/03  Microsoft mode: Accept mismatch in throw (...) specification
-
-In Microsoft bugs mode, the front end now accepts two declarations of the same
-function where one has a throw (...) specification and the other not.
-
-  void f() throw(...);
-  void f();  // No longer an error
-
-Previously such a mismatch triggered an error (see also the Changes entry
-of 10/2/00).
 
 6/19/03  Side-effect testing routines moved into il.c
 

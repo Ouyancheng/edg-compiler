@@ -809,10 +809,10 @@ specification is handled later (see check_exception_specification).
     goto done;
   }  /* if */
   if (!exceptions_enabled || !exception_spec_allowed ||
-      ignore_exception_specifications) {
+      (microsoft_bugs && microsoft_version <= 1200)) {
     /* If exception-handling support is not enabled, or if this is a context
-       in which an exception specification is not allowed, or if (e.g., in
-       Microsoft-compatibility mode) exception specifications are recognized
+       in which an exception specification is not allowed, or if (in some
+       Microsoft-compatibility modes) exception specifications are recognized
        but ignored, set a flag to control the diagnostics that are put out. */
     ignoring_exception_spec = TRUE;
   }  /* if */
@@ -828,12 +828,11 @@ specification is handled later (see check_exception_specification).
   } else if (!exception_spec_allowed) {
     /* This is a declaration on which an exception specification is not
        allowed. */
-    pos_diagnostic((!exceptions_enabled || ignore_exception_specifications) ?
+    pos_diagnostic((!exceptions_enabled || microsoft_bugs) ?
                        es_warning : es_discretionary_error,
                    ec_exception_specification_not_allowed, &pos_curr_token);
-  } else if (ignore_exception_specifications) {
-    /* Issue a warning (e.g., in Microsoft mode) -- exception specifications
-       are parsed and discarded. */
+  } else if (microsoft_bugs && microsoft_version <= 1200) {
+    /* Issue a remark: Exception specifications are parsed and discarded. */
     pos_remark(ec_exception_specification_ignored, &pos_curr_token);
   }  /* if */
   /* Bypass "throw". */
@@ -851,20 +850,23 @@ specification is handled later (see check_exception_specification).
          this routine." */
       goto finish_list;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode && curr_token == tok_ellipsis) {
-      /* Microsoft compilers treat function with "C" linkage as having an
+    } else if (microsoft_mode && microsoft_version >= 1300 &&
+               curr_token == tok_ellipsis) {
+      /* Some microsoft compilers treat function with "C" linkage as having an
          implicit "throw()" specification.  For those functions with "C"
-         linkage that can throw any exception, an explicit "throw(...)" must
+         linkage that can throw an exception, an explicit "throw(...)" must
          be specified. */
       /* Bypass the ellipsis. */
       (void)get_token();
-      if (esp == NULL) {
+      if (esp == NULL && exception_spec_allowed) {
         esp = alloc_exception_specification();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         esp->source_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
-      esp->throw_any = TRUE;
+      if (esp != NULL) {
+        esp->throw_any = TRUE;
+      }  /* if */
       goto finish_list;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
@@ -977,6 +979,15 @@ specification is handled later (see check_exception_specification).
       break;
     }  /* if */
   } while (loop_token(tok_comma));
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && microsoft_version >= 1300 &&
+      esp != NULL && estp != 0) {
+    /* Some versions of Microsoft C++ treat any non-empty exception
+       specification as "throw (...)". */
+    esp->exception_specification_type_list = NULL;
+    esp->throw_any = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 finish_list:;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (esp != NULL) {
@@ -1109,17 +1120,153 @@ type.  For templates, use the class template scope.
 } /* current_scope_is_class */
 
 
+static void cplusplus_function_declarator_trailer(
+                        a_routine_type_supplement_ptr  rtsp,
+                        a_func_info_block              *func_info,
+                        a_symbol_locator               *locator,
+                        a_type_ptr                     parent_type,
+                        a_boolean                      top_level,
+                        a_boolean                      is_nonstatic_member,
+                        a_boolean                      is_constructor,
+                        a_boolean                      is_destructor,
+                        a_boolean                      disallow_exception_spec,
+                        a_boolean                      is_typedef_decl,
+                        a_decl_pos_block               *decl_pos_block)
+/*
+Parse any C++-specific additions to a function declarator that follow its
+closing right parenthesis (cv-qualifiers and/or exception specifications),
+and update the given routine type supplement accordingly.  top_level is
+TRUE if we're parsing a top-level declarator.  For the other parameters,
+see function_declarator (below) for which this is a helper function.
+*/
+{
+  a_type_ptr                      this_class = NULL;
+  a_type_qualifier_set            qualifiers = TQ_NONE;
+  a_boolean                       qualifier_err = FALSE;
+  an_exception_specification_ptr  esp;
+
+  /* Create a pointer to the implicit "this" parameter.  This can be done
+     for nonstatic function declarations within a class definition or
+     for member function declarations outside a class definition when
+     a function qualifier is present.  If there is a function qualifier,
+     it is applied to the type pointed to by the this param type. */
+  if ((is_type_qualifier() or_is_near_or_far() ||
+       (microsoft_mode && curr_token == tok_inline)) &&
+      rtsp->prototyped) {
+    /* In C++ the type of certain member functions may be qualified.  Scan
+       for a const or volatile qualifier. */
+    a_source_position  qualifier_pos;
+
+    copy_source_position(pos_curr_token, qualifier_pos);
+    qualifiers = collect_type_qualifiers(decl_pos_block,
+                                         (a_upc_block_size *)NULL);
+    /* When a member function is declared with the restrict qualifier, the
+       qualifier attaches to the this pointer, not to *this (as with const
+       and volatile). */
+    /* If this is not a member function or it is but it is a static member
+       function declared within a class definition, a qualifier on the
+       function is illegal (ARM 8.2.5).  However, qualifiers on a pointer
+       to member function are permitted.  Also, in microsoft mode the
+       keyword "inline" is always accepted as a qualifier (a warning that
+       it is ignored will have been issued earlier). */
+    if (microsoft_mode && qualifiers == TQ_NONE) {
+      /* No diagnostic and no need to adjust the type of this or *this. */
+    } else if (locator != NULL && locator->is_operator_name &&
+               (is_new_operator(locator->variant.opname) ||
+                is_delete_operator(locator->variant.opname))) {
+      /* Operator new and delete can never be qualified. */
+      qualifier_err = TRUE;
+    } else if (parent_type == NULL && !is_typedef_decl) {
+      /* Cv-qualifier is allowed on a member function only. */
+      qualifier_err = TRUE;
+    } else if (!is_nonstatic_member && !is_typedef_decl &&
+               current_scope_is_class(parent_type)) {
+      /* This must be the declaration of a static member function inside
+         its class definition.  "const" and "volatile" are not allowed,
+         but with Cfront it's sometimes okay (depending on the return type!)
+         so just put out a warning in cfront mode. */
+      if (any_cfront_mode() && parent_type != NULL && !is_nonstatic_member) {
+        pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
+      } else {
+        qualifier_err = TRUE;
+      }  /* if */
+    } else if (is_constructor || is_destructor) {
+      /* A qualifier appearing on a constructor or destructor is not
+         allowed (ARM 9.3.1). */
+      if (cfront_2_1_mode) {
+        /* Cfront 2.1 issues no diagnostic for a qualifier on a constructor
+           or destructor. */
+        pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
+      } else {
+        qualifier_err = TRUE;
+      }  /* if */
+      this_class = parent_type;
+      qualifiers = TQ_NONE;
+    } else {
+      this_class = parent_type;
+    }  /* if */
+    if (qualifier_err && 
+        scope_stack[depth_scope_stack].kind !=
+                                 (a_scope_kind)sck_template_instantiation) {
+      /* The qualifier was not allowed here, but if we're parsing an
+         instantiation, the error was already emitted when parsing the
+         template declaration. */
+      pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
+    }  /* if */
+  }  /* if */
+  if (is_nonstatic_member && qualifiers == TQ_NONE && !qualifier_err) {
+    /* This is a nonstatic member function declared within the definition
+       of the class indicated, but without significant qualifiers. */
+    this_class = parent_type;
+  }  /* if */
+  if (this_class != NULL &&
+      this_class->kind == (a_type_kind)tk_template_param) {
+    /* Ensure that "this_class" points to a class type. */
+    this_class = proxy_class_for_template_param(this_class);
+  }  /* if */
+  /* The implicit "this" param type will be either "pointer to class-type"
+     or, if there was a const qualifier on the function, "pointer to const
+     class-type".  However, it is possible to have a cv-qualified function
+     type in a typedef declaration.  So the qualifiers and the class type
+     are encoded separately.  E.g. in
+        typedef void CF() const;
+     this_class == NULL but qualifiers != TQ_NONE. */
+  rtsp->this_class = this_class;
+  rtsp->qualifiers = qualifier_err ? TQ_NONE : qualifiers;
+#if 0
+  /* Should a diagnostic be issued if a throw specification appears other
+     than on a top-level declaration?  The standard is imprecise in this
+     area. */
+  if (curr_token == tok_throw && !top_level) {
+    /* Error? */
+  }  /* if */
+#endif /* if 0 */
+  esp = scan_exception_specification(func_info, !disallow_exception_spec,
+                                     top_level);
+  if ((microsoft_bugs && microsoft_version <= 1200) ||
+      (microsoft_mode && microsoft_version >= 1300 && esp != NULL &&
+       rtsp->routine_name_linkage != (a_name_linkage_kind)nlk_external &&
+       !esp->throw_any && esp->exception_specification_type_list != NULL)) {
+    /* Microsoft compilers used to ignore exception specifications entirely.
+       Current versions have nonstandard semantics for "throw()" and (for
+       extern "C" function) for "throw (...)". */
+  } else {
+    rtsp->exception_specification = esp;
+  }  /* if */
+}  /* cplusplus_function_declarator_trailer */
+
+
 static void function_declarator(a_type_ptr        *new_type_ptr,
                                 a_func_info_block *func_info,
                                 a_symbol_locator  *locator,
-                                a_type_ptr        member_function_parent_type,
+                                a_type_ptr        parent_type,
                                 a_boolean         is_nonstatic_member_function,
                                 a_boolean         is_constructor,
                                 a_boolean         is_destructor,
                                 a_boolean         disallow_default_args,
                                 a_boolean         disallow_exception_spec,
                                 a_boolean         is_typedef_decl,
-				a_boolean	  is_friend_decl,
+                                a_boolean         is_friend_decl,
                                 a_decl_pos_block  *decl_pos_block)
 /*
 Scan a function declarator (3.5.4.3), or an array declarator in an
@@ -1131,23 +1278,21 @@ declarators).  If func_info is NULL, then the function declarator is
 not a top type or this is an abstract declarator (and therefore
 certain forms are disallowed); otherwise, extra information about the
 function declarator is returned in *func_info.  For member functions,
-member_function_parent_type is a pointer to the class (or struct or
-union) type of which it is a member; otherwise it is NULL.  When it is
-non-NULL, is_nonstatic_member_function will distinguish static from
-nonstatic member functions when the current scope is that of a class
-definition.  is_constructor or is_destructor is TRUE if previous
-processing had determined that this is a constructor or destructor
-declaration, respectively.  If disallow_default_args is TRUE issue an
-error if a default argument expression is encountered.  is_friend_decl
-is TRUE if this is the function declarator in a friend function
-declaration.
+parent_type is a pointer to the class (or struct or union) type of which
+it is a member; otherwise it is NULL.  When it is non-NULL,
+is_nonstatic_member_function will distinguish static from nonstatic
+member functions when the current scope is that of a class definition.
+is_constructor or is_destructor is TRUE if previous processing had
+determined that this is a constructor or destructor declaration,
+respectively.  If disallow_default_args is TRUE issue an error if a
+default argument expression is encountered.  is_friend_decl is TRUE
+if this is the function declarator in a friend function declaration.
 */
 {
   a_param_type_ptr        ptp;
   a_storage_class         param_storage_class;
   a_type_ptr              param_type_ptr, declared_type, tp;
   a_decl_flag_set         dso_flags;
-  a_boolean               qualifier_err = FALSE;
   a_decl_modifiers_block  decl_modifiers;
   a_param_type_ptr        last_param_type;
   a_param_id_ptr          last_param_id;
@@ -1270,7 +1415,7 @@ declaration.
     /* Determine whether this is an old-style list of identifiers or
        a prototyped parameter list. */
     if (!C_mode() &&
-        (!allow_anachronisms || member_function_parent_type != NULL)) {
+        (!allow_anachronisms || parent_type != NULL)) {
       /* If this is a C++ member function, it must be prototyped.  If
          anachronism support is not the default or was not explicitly
          requested, always parse the declaration as a prototyped param list
@@ -1765,13 +1910,13 @@ declaration.
           if (extra_info->param_type_list->next == NULL) {
             /* This is the first item on the list. */
             tp = skip_typerefs(param_type_ptr);
-            if (identical_types(member_function_parent_type, tp)) {
+            if (identical_types(parent_type, tp)) {
               /* Type of the first parameter is identical to the type of the
                  parent class. */
               if (done) {
                 /* This is like case 1 above. */
                 pos_ty_error(ec_bad_constructor_param, &param_type_pos,
-                             member_function_parent_type);
+                             parent_type);
                 ptp->type = error_type();
                 ptp->passed_via_copy_constructor = FALSE;
               } else {
@@ -1790,7 +1935,7 @@ declaration.
               if (is_reference_type(param_type_ptr)) {
                 tp = type_pointed_to(param_type_ptr);
                 tp = skip_typerefs(tp);
-                if (identical_types(member_function_parent_type, tp)) {
+                if (identical_types(parent_type, tp)) {
                   /* Depending on whether the next parameter has a default
                      argument, this may be a copy constructor. */
                   may_be_copy_constructor = TRUE;
@@ -1812,20 +1957,19 @@ declaration.
                    the error using the source position of the first param
                    type. */
                 pos_ty_error(ec_bad_constructor_param,
-                             &pos_of_first_param_type,
-                             member_function_parent_type);
+                             &pos_of_first_param_type, parent_type);
                 extra_info->param_type_list->type = error_type();
                 may_be_copy_constructor = FALSE;
               }  /* if */
             }  /* if */
             if (may_be_copy_constructor) {
               tp = skip_typerefs(ptp->type);
-              if (identical_types(member_function_parent_type, tp)) {
+              if (identical_types(parent_type, tp)) {
                 /* Type of this parameter is identical to the type of the
                    parent class (see cases 3 and 4 above).  Since this is a
                    copy constructor, an error is in order. */
                 pos_ty_error(ec_bad_constructor_param, &param_type_pos,
-                             member_function_parent_type);
+                             parent_type);
                 ptp->type = error_type();
                 may_be_copy_constructor = FALSE;
               }  /* if */
@@ -1949,112 +2093,12 @@ declaration.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (C_dialect == C_dialect_cplusplus) {
-    a_type_ptr            this_class = NULL;
-    a_type_qualifier_set  qualifiers = TQ_NONE;
-
-    /* Create a pointer to the implicit "this" parameter.  This can be done
-       for nonstatic function declarations within a class definition or
-       for member function declarations outside a class definition when
-       a function qualifier is present.  If there is a function qualifier,
-       it is applied to the type pointed to by the this param type. */
-    if ((is_type_qualifier() or_is_near_or_far() ||
-         (microsoft_mode && curr_token == tok_inline)) &&
-        extra_info->prototyped) {
-      /* In C++ the type of certain member functions may be qualified.  Scan
-         for a const or volatile qualifier. */
-      a_source_position  qualifier_pos;
-
-      copy_source_position(pos_curr_token, qualifier_pos);
-      qualifiers = collect_type_qualifiers(decl_pos_block,
-                                           (a_upc_block_size *)NULL);
-      /* When a member function is declared with the restrict qualifier, the
-         qualifier attaches to the this pointer, not to *this (as with const
-         and volatile). */
-      /* If this is not a member function or it is but it is a static member
-         function declared within a class definition, a qualifier on the
-         function is illegal (ARM 8.2.5).  However, qualifiers on a pointer
-         to member function are permitted.  Also, in microsoft mode the
-         keyword "inline" is always accepted as a qualifier (a warning that
-         it is ignored will have been issued earlier). */
-      if (microsoft_mode && qualifiers == TQ_NONE) {
-        /* No diagnostic and no need to adjust the type of this or *this. */
-      } else if (locator != NULL && locator->is_operator_name &&
-                 (is_new_operator(locator->variant.opname) ||
-                  is_delete_operator(locator->variant.opname))) {
-        /* Operator new and delete can never be qualified. */
-        qualifier_err = TRUE;
-      } else if (member_function_parent_type == NULL && !is_typedef_decl) {
-        /* Cv-qualifier is allowed on a member function only. */
-        qualifier_err = TRUE;
-      } else if (!is_nonstatic_member_function && !is_typedef_decl &&
-                 current_scope_is_class(member_function_parent_type)) {
-        /* This must be the declaration of a static member function inside
-           its class definition.  "const" and "volatile" are not allowed,
-           but with Cfront it's sometimes okay (depending on the return type!)
-           so just put out a warning in cfront mode. */
-        if (any_cfront_mode() && member_function_parent_type != NULL &&
-            !is_nonstatic_member_function) {
-          pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
-        } else {
-          qualifier_err = TRUE;
-        }  /* if */
-      } else if (is_constructor || is_destructor) {
-        /* A qualifier appearing on a constructor or destructor is not
-           allowed (ARM 9.3.1). */
-        if (cfront_2_1_mode) {
-          /* Cfront 2.1 issues no diagnostic for a qualifier on a constructor
-             or destructor. */
-          pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
-        } else {
-          qualifier_err = TRUE;
-        }  /* if */
-        this_class = member_function_parent_type;
-        qualifiers = TQ_NONE;
-      } else {
-        this_class = member_function_parent_type;
-      }  /* if */
-      if (qualifier_err && 
-          scope_stack[depth_scope_stack].kind !=
-                                   (a_scope_kind)sck_template_instantiation) {
-        /* The qualifier was not allowed here, but if we're parsing an
-           instantiation, the error was already emitted when parsing the
-           template declaration. */
-        pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
-      }  /* if */
-    }  /* if */
-    if (is_nonstatic_member_function &&
-        qualifiers == TQ_NONE && !qualifier_err) {
-      /* This is a nonstatic member function declared within the definition
-         of the class indicated, but without significant qualifiers. */
-      this_class = member_function_parent_type;
-    }  /* if */
-    if (this_class != NULL &&
-        this_class->kind == (a_type_kind)tk_template_param) {
-      /* Ensure that "this_class" points to a class type. */
-      this_class = proxy_class_for_template_param(this_class);
-    }  /* if */
-    /* The implicit "this" param type will be either "pointer to class-type"
-       or, if there was a const qualifier on the function, "pointer to const
-       class-type".  However, it is possible to have a cv-qualified function
-       type in a typedef declaration.  So the qualifiers and the class type
-       are encoded separately.  E.g. in
-          typedef void CF() const;
-       this_class == NULL but qualifiers != TQ_NONE. */
-    extra_info->this_class = this_class;
-    extra_info->qualifiers = qualifier_err ? TQ_NONE : qualifiers;
-#if 0
-    /* Should a diagnostic be issued if a throw specification appears other
-       than on a top-level declaration?  The standard is imprecise in this
-       area. */
-    if (curr_token == tok_throw && !is_top_level_declarator) {
-      /* Error? */
-    }  /* if */
-#endif /* if 0 */
-    extra_info->exception_specification =
-                       scan_exception_specification(func_info,
-                                                    !disallow_exception_spec,
-                                                    is_top_level_declarator);
-
+    cplusplus_function_declarator_trailer(extra_info, func_info, locator,
+                                          parent_type, is_top_level_declarator,
+                                          is_nonstatic_member_function,
+                                          is_constructor, is_destructor,
+                                          disallow_exception_spec,
+                                          is_typedef_decl, decl_pos_block);
   }  /* if */
   if (!is_top_level_declarator) {
     done_with_func_info(local_func_info_block);

@@ -402,16 +402,6 @@ EXTERN a_boolean
 
 
 EXTERN a_boolean
-		ignore_exception_specifications
-#if VAR_INITIALIZERS
-                                                = FALSE
-#endif /* VAR_INITIALIZERS */
-                                                       ;
-			/* TRUE if an exception specification on a function
-			   declarator is recognized but ignored; meaningful
-			   only in C++ when exceptions_enabled is TRUE. */
-
-EXTERN a_boolean
 		rtti_enabled
 #if VAR_INITIALIZERS
                              =

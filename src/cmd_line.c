@@ -1486,8 +1486,6 @@ by a command line option.
       use_nonstandard_for_init_scope = TRUE;
     }  /* if */
     ptr_to_unknown_bound_array_allowed_in_param_type = TRUE;
-    /* Exception specifications should be ignored in Microsoft bugs mode. */
-    ignore_exception_specifications = microsoft_bugs;
     if (!option_kind_used[(int)optk_enum_overloading]) {
       /* Enum overloading is supported by Microsoft Visual C++ 4.x. */
       operator_overloading_on_enums_enabled = microsoft_version >= 1000;
