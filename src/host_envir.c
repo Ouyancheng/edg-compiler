@@ -2655,7 +2655,7 @@ file to a memory region.
   int		mmap_flags = MAP_FIXED;
 
 #ifdef __linux__
-  /* MAP_FIXED is not used because it doe not work properly on Linux.
+  /* MAP_FIXED is not used because it does not work properly on Linux.
      The Linux mmap will succeed even if the block had been previously
      mapped.  Instead, we compare the resulting address with the
      address requested. */
