@@ -4961,9 +4961,6 @@ a new symbol is created and entered in the symbol table.
     pos_error(ec_incomplete_type_not_allowed, &param_id->type_pos);
     tp = ptp->type = error_type();
   }  /* if */
-  /* Check for value parameters that must be passed using a copy
-     constructor. */
-  set_arg_transfer_method_flag(ptp);
   /* Create the parameter variable. */
   vp = make_param_variable(tp, param_id->storage_class);
   add_to_parameters_list(vp);
@@ -8420,11 +8417,7 @@ being taken.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!err) {
-      /* If the function is one that returns its value to a caller-supplied
-         location using a copy constructor, mark the routine type. */
-      set_routine_calling_method_flag(rout_type);
-    } else if (error_code != ec_no_error) {
+    if (!err && error_code != ec_no_error) {
       pos_error(error_code, err_pos);
     }  /* if */
   }  /* if */
