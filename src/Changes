@@ -212,7 +212,7 @@ by its definition or by a semicolon.  Instead, the attribute is applied to the
 entity indicated by the declarator that follows.  For example:
 
   [export] struct S {
-    [swich_type(char)] union {
+    [switch_type(char)] union {
       [case(1)] struct A *p;  // Attribute was previously applied to "A", which
     };                        // resulted in an error.  Now the attribute is
   };                          // (correctly) applied to "p".
