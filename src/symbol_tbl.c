@@ -730,9 +730,10 @@ do_variable:
               if (tplep->variant.type != NULL) {
                 a_type_ptr type = tplep->variant.type;
                 db_type(type);
-                if (type->variant.template_param.descr != NULL) {
+                if (type->variant.template_param.extra_info != NULL) {
                   a_type_ptr  class_type;
-                  class_type = type->variant.template_param.descr->class_type;
+                  class_type =
+                          type->variant.template_param.extra_info->class_type;
                   if (class_type != NULL) {
                     fprintf(f_debug, "\n%*sproxy class: ",
                             indentation + 6, "");

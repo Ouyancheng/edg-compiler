@@ -2824,13 +2824,13 @@ enum a_template_param_type_kind_tag {
 typedef a_byte a_template_param_type_kind;
 
 
-typedef struct a_template_param_type_descr *a_template_param_type_descr_ptr;
-typedef struct a_template_param_type_descr {
-  /* Information about a template parameter type that may be inferred from
-     how it is used.  For example, when a template parameter is used in a
-     way requiring that it be a class (e.g., when it is used as the qualifier
-     in a qualified name) this structure points to a class type that provides
-     the information inferred (e.g., names of members). */
+/*
+Entry containing additional information about a template parameter type
+(tk_template_param).
+*/
+typedef struct a_template_param_type_supplement
+                                         *a_template_param_type_supplement_ptr;
+typedef struct a_template_param_type_supplement {
   a_type_ptr	class_type;
 			/* The "proxy" class type associated with a given
                            template parameter.  This becomes useful in name
@@ -2849,7 +2849,11 @@ typedef struct a_template_param_type_descr {
 			   is will be entered as a member that can be
 			   found by subsequent lookups.  Pointer is NULL
 			   if no class use has been  encountered. */
-} a_template_param_type_descr;
+  a_template_param_coordinate
+		coordinates;
+			/* The parameter list position and template nesting
+			   depth of the parameter. */
+} a_template_param_type_supplement;
 
 
 #endif /* ifdef CIL */
@@ -3313,19 +3317,10 @@ typedef struct a_type {
       a_template_param_type_kind
 		kind;
 			/* The kind of template param type. */
-      a_template_param_coordinate
-		coordinates;
-			/* The parameter list position and template nesting
-			   depth of the parameter. */
-      a_template_param_type_descr_ptr
-		descr;
-			/* Pointer to a descriptor containing additional
-			   information about this template parameter type,
-                           inferred from how the template param type is used.
-			   Its use is optional for tptk_param or tptk_member
-			   template params, but since little can be inferred
-			   about a tptk_type_of_member_constant, it is not
-			   used for that case. */
+      a_template_param_type_supplement_ptr
+		extra_info;
+			/* Pointer to a supplement containing additional
+			   information about this template parameter type, */
     } template_param;
 #endif /* ifdef CIL */
 #ifdef FIL

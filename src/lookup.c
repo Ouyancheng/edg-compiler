@@ -442,20 +442,15 @@ as the class type, and use as a base class.
 */
 {
   a_type_ptr				type;
-  a_template_param_type_descr_ptr	tptdp;
+  a_template_param_type_supplement_ptr	tptsp;
   a_symbol_ptr				sym;
   a_symbol_ptr				templ_param_sym;
   a_class_symbol_supplement_ptr		cssp;
 
-  tptdp = templ_param_type->variant.template_param.descr;
-  if (tptdp == NULL) {
-    /* Allocate a template parameter type description entry. */
-    tptdp = alloc_template_param_type_descr();
-    templ_param_type->variant.template_param.descr = tptdp;
-  }  /* if */
+  tptsp = templ_param_type->variant.template_param.extra_info;
   /* If the template parameter does not yet have a proxy class.  Create one
      now. */
-  if (tptdp->class_type == NULL) {
+  if (tptsp->class_type == NULL) {
     /* Get the symbol pointer associated with the template parameter. */
     templ_param_sym =
                      (a_symbol_ptr)templ_param_type->source_corresp.assoc_info;
@@ -478,14 +473,14 @@ as the class type, and use as a base class.
       set_class_membership(sym, &type->source_corresp,
                            templ_param_type->source_corresp.parent.class_type);
     }  /* if */
-    tptdp->class_type = type;
+    tptsp->class_type = type;
     /* Set the scope number. */
     cssp = symbol_supplement_for_class(type);
     cssp->member_decl_scope = next_scope_number++;
     cssp->template_param_for_proxy_class = templ_param_type;
     cssp->is_nonreal_class = TRUE;
   }  /* if */
-  return tptdp->class_type;
+  return tptsp->class_type;
 }  /* proxy_class_for_template_param */
 
 
@@ -1156,7 +1151,7 @@ static a_symbol_ptr do_using_directive_lookup
                                a_symbol_locator		*locator,
                                a_lookup_state_ptr	lookup_state)
 /*
-Look for a symbol, as described by locator, that is in a namespace whose
+Look for a symbol, as.extra_infoibed by locator, that is in a namespace whose
 scope_depth_at_which_using_directive_applies matches the scope depth of ssep.
 
 sym_from_scope points to a symbol found in ssep by the normal_id_lookup,
@@ -2531,7 +2526,7 @@ lookups.  For functions, the symbol returned may be an overload set
 containing functions from several namespaces.  For nonfunctions,
 an ambiguity may need to be diagnosed.
 
-locator describes the symbol being looked up.  ns_ptr is the namespace
+locator.extra_infoibes the symbol being looked up.  ns_ptr is the namespace
 in which we should look for the symbol.  options are the lookup
 options to be used.  orig_ns_ptr is the namespace specified in the
 qualifier.  *synth_sym points to a synthesized projection symbol that
@@ -2914,7 +2909,7 @@ a_symbol_list_entry_ptr nonmember_operator_function_lookup(
 /*
 Look up the set of operator function symbols that will be used to produce
 a list of candidate functions for a given overloaded operator.
-This routine performs the lookup described in [over.match.oper].
+This routine performs the lookup.extra_infoibed in [over.match.oper].
 Specifically, it produces the set of nonmember candidates by doing
 a normal lookup (but excluding member functions) and combining the
 result of that lookup with a lookup in the namespaces of the classes

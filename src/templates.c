@@ -2518,7 +2518,8 @@ template parameter list.
         /* A real type "matches" a template parameter type if it is identical
            to the real type, if any, that was previously associated with that
            template type. */
-        list_pos = templ_type->variant.template_param.coordinates.position;
+        list_pos = templ_type->
+                      variant.template_param.extra_info->coordinates.position;
         tap = get_template_arg_by_list_pos(templ_param_list, templ_arg_list,
                                            list_pos);
         /* Now we have the nth template argument, which should correspond to
@@ -4143,10 +4144,11 @@ Return the template nesting depth of the specified template parameter.
     /* This is an error case -- use a depth of zero. */
     depth = 0;
   } else if (tpp->param_symbol->kind == (a_symbol_kind)sk_type) {
-    depth = tpp->variant.type->variant.template_param.coordinates.depth;
+    depth = tpp->variant.type->
+                         variant.template_param.extra_info->coordinates.depth;
   } else {
     depth = tpp->variant.constant.ptr->
-                             variant.template_param.variant.coordinates.depth;
+                 variant.template_param.variant.coordinates.depth;
   }  /* if */
   return depth;
 }  /* nesting_depth_of_template_param */
@@ -4209,27 +4211,14 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
       err = TRUE;
     } else if (old_sym->kind == (a_symbol_kind)sk_type) {
       /* Both are types.  Make sure the types match. */
-      a_template_param_type_descr_ptr old_tptdp;
-      a_template_param_type_descr_ptr new_tptdp;
+      a_template_param_type_supplement_ptr old_tptsp;
       a_type_ptr        old_type = old_tpp->variant.type;
       a_type_ptr        new_type = new_tpp->variant.type;
       err = !identical_types(old_type, new_type);
-      /* If one does not already exist, create a template parameter
-         type description record that is pointed to by both types.  A
-         existing description may be associated with either the old or new
-         type. */
-      old_tptdp = old_type->variant.template_param.descr;
-      new_tptdp = new_type->variant.template_param.descr;
-      /* If neither type has a type description, allocate a new one. */
-      if (old_tptdp == NULL) {
-        old_tptdp = new_tptdp;
-        if (old_tptdp == NULL) {
-          old_tptdp = alloc_template_param_type_descr();
-        }  /* if */
-      }  /* if */
       /* Update both type entries to point to the same description entry. */
-      old_type->variant.template_param.descr = old_tptdp;
-      new_type->variant.template_param.descr = old_tptdp;
+      old_tptsp = old_type->variant.template_param.extra_info;
+      old_type->variant.template_param.extra_info = old_tptsp;
+      new_type->variant.template_param.extra_info = old_tptsp;
     } else {
       /* Both are constants.  Make sure the values are the same. */
       check_assertion(old_sym->kind == (a_symbol_kind)sk_constant);
@@ -4576,30 +4565,35 @@ now specialized.  Make sure that no instantiations have already been
 generated. 
 */
 {
-  /* Note that the prototype_template is not set to NULL. */
-  tssp->is_specific_definition = TRUE;
-  /* Check for any existing instantiations.  A specialization must be
-     declared before it is used. */
-  if (template_sym->kind == (a_symbol_kind)sk_function_template) {
-    a_template_instance_ptr	tip;
-    for (tip = tssp->variant.function.instantiations; tip != NULL;
-         tip = tip->next) {
-      pos_sy2_error(ec_specialization_of_referenced_template,
-                    &decl_state->start_pos, template_sym, tip->instance_sym);
-    }  /* for */
+  if (tssp->is_specific_definition) {
+    /* This is already marked as a specific definition.  Don't repeat
+       the test of referenced entities. */
   } else {
-    a_symbol_ptr	sym;
-    check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template);
-    for (sym = tssp->variant.class_template.instantiations; sym != NULL;
-         sym = sym->next) {
-      /* It is only an error if the class type is complete and is not a
-         itself a specialization. */
-      if (is_complete_class_struct_union_type(type_symbol_type(sym)) &&
-          !is_template_instance_specific_def_symbol(sym)) {
+    /* Note that the prototype_template is not set to NULL. */
+    tssp->is_specific_definition = TRUE;
+    /* Check for any existing instantiations.  A specialization must be
+       declared before it is used. */
+    if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+      a_template_instance_ptr	tip;
+      for (tip = tssp->variant.function.instantiations; tip != NULL;
+           tip = tip->next) {
         pos_sy2_error(ec_specialization_of_referenced_template,
-                      &decl_state->start_pos, template_sym, sym);
-      }  /* if */
-    }  /* for */
+                      &decl_state->start_pos, template_sym, tip->instance_sym);
+      }  /* for */
+    } else {
+     a_symbol_ptr	sym;
+      check_assertion(template_sym->kind == (a_symbol_kind)sk_class_template);
+      for (sym = tssp->variant.class_template.instantiations; sym != NULL;
+           sym = sym->next) {
+        /* It is only an error if the class type is complete and is not a
+           itself a specialization. */
+        if (is_complete_class_struct_union_type(type_symbol_type(sym)) &&
+            !is_template_instance_specific_def_symbol(sym)) {
+          pos_sy2_error(ec_specialization_of_referenced_template,
+                        &decl_state->start_pos, template_sym, sym);
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
 }  /* specialization_permitted */
 
@@ -5539,10 +5533,10 @@ to represent the template parameters.
          only and will not appear in the IL passed on to the back end.  It
          is therefore not added to any scope types list. */
       template_param_type = alloc_type((a_type_kind)tk_template_param);
-      template_param_type->variant.template_param.coordinates.depth =
-                                                     decl_state->nesting_depth;
-      template_param_type->variant.template_param.coordinates.position =
-                                                     template_param_list_pos;
+      template_param_type->variant.template_param.extra_info->
+                                coordinates.depth = decl_state->nesting_depth;
+      template_param_type->variant.template_param.extra_info->
+                               coordinates.position = template_param_list_pos;
       set_type_size(template_param_type);
       set_source_corresp(&template_param_type->source_corresp, sym);
       /* The type symbol for the template parameter points for now to the

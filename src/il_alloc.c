@@ -47,7 +47,7 @@ static unsigned long
 		num_base_class_derivations_allocated,
 		num_base_classes_allocated,
 		num_template_args_allocated,
-		num_template_param_type_descrs_allocated,
+		num_template_param_type_supplements_allocated,
 		num_types_allocated,
 		num_dynamic_inits_allocated,
 		num_local_static_variable_inits_allocated,
@@ -617,22 +617,23 @@ Return a list of template argument entries to the available list.
 }  /* free_template_arg_list */
 
 
-a_template_param_type_descr_ptr alloc_template_param_type_descr(void)
+static
+a_template_param_type_supplement_ptr alloc_template_param_type_supplement(void)
 /*
-Allocate a template parameter type description entry, initialize its fields,
+Allocate a template parameter type supplement entry, initialize its fields,
 and return a pointer to it.
 */
 {
-  a_template_param_type_descr_ptr tptdp;
+  a_template_param_type_supplement_ptr tptsp;
 
-  tptdp = (a_template_param_type_descr_ptr)alloc_il(
-                                       sizeof(a_template_param_type_descr));
+  tptsp = (a_template_param_type_supplement_ptr)alloc_il(
+                                       sizeof(a_template_param_type_supplement));
 #if DEBUG
-  num_template_param_type_descrs_allocated++;
+  num_template_param_type_supplements_allocated++;
 #endif /* DEBUG */
-  tptdp->class_type = NULL;
-  return tptdp;
-}  /* alloc_template_param_type_descr */
+  tptsp->class_type = NULL;
+  return tptsp;
+}  /* alloc_template_param_type_supplement */
 
 
 a_base_class_ptr alloc_base_class(void)
@@ -939,11 +940,15 @@ to default values.
       pte->variant.ptr_to_member.type                    = FALSE;
       break;
     case tk_template_param:
-      pte->variant.template_param.kind =
-                                   (a_template_param_type_kind)tptk_param;
-      pte->variant.template_param.coordinates.position = 0;
-      pte->variant.template_param.coordinates.depth = 0;
-      pte->variant.template_param.descr = NULL;
+      {
+        a_template_param_type_supplement_ptr	tptsp;
+        pte->variant.template_param.kind =
+                                       (a_template_param_type_kind)tptk_param;
+        tptsp = alloc_template_param_type_supplement();
+        pte->variant.template_param.extra_info = tptsp;
+        tptsp->coordinates.position = 0;
+        tptsp->coordinates.depth = 0;
+      }
       break;
 #if CHECKING
     default:
@@ -2438,9 +2443,9 @@ Display and return the amount of space used for various IL tables.
                 a_base_class_derivation);
   db_space_used("base class", num_base_classes_allocated, a_base_class);
   db_space_used("template args", num_template_args_allocated, a_template_arg);
-  db_space_used("templ param type descrs",
-                num_template_param_type_descrs_allocated,
-                a_template_param_type_descr);
+  db_space_used("templ param type supplements",
+                num_template_param_type_supplements_allocated,
+                a_template_param_type_supplement);
   db_space_used("type", num_types_allocated, a_type);
   db_space_used("dynamic init", num_dynamic_inits_allocated, a_dynamic_init);
   db_space_used("local static var inits",
@@ -2649,7 +2654,7 @@ in il_init.)
       pch_saved_var_array_elem(num_statements_allocated),
       pch_saved_var_array_elem(num_switch_clauses_allocated),
       pch_saved_var_array_elem(num_template_args_allocated),
-      pch_saved_var_array_elem(num_template_param_type_descrs_allocated),
+      pch_saved_var_array_elem(num_template_param_type_supplements_allocated),
       pch_saved_var_array_elem(num_throw_supplements_allocated),
       pch_saved_var_array_elem(num_condition_supplements_allocated),
       pch_saved_var_array_elem(num_types_allocated),
@@ -2716,7 +2721,7 @@ of the front end.
   num_base_class_derivations_allocated   = 0;
   num_base_classes_allocated             = 0;
   num_template_args_allocated            = 0;
-  num_template_param_type_descrs_allocated
+  num_template_param_type_supplements_allocated
                                          = 0;
   num_types_allocated                    = 0;
   num_dynamic_inits_allocated            = 0;

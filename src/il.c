@@ -934,9 +934,9 @@ class_struct_union:
                    (a_template_param_type_kind)tptk_param) {
           fprintf(f_debug, "#(%0lu,%0lu) ",
                   (unsigned long)tp->variant.
-                                     template_param.coordinates.depth,
+                              template_param.extra_info->coordinates.depth,
                   (unsigned long)tp->variant.
-                                     template_param.coordinates.position);
+                              template_param.extra_info->coordinates.position);
         } else {
           fputc(' ', f_debug);
         }  /* if */

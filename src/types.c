@@ -2073,17 +2073,20 @@ for more information.
         case tk_template_param:
           if (type_1->variant.template_param.kind ==
                                     type_2->variant.template_param.kind) {
+            a_template_param_type_supplement_ptr	tptsp_1;
+            a_template_param_type_supplement_ptr	tptsp_2;
             switch (type_1->variant.template_param.kind) {
               case tptk_param:
                  /* Template parameter types are considered to be identical
                     if their positions in the template parameter list are
                     the same, and they are associated with template
                     declarations of the same nesting level. */
-                identical =
-                      (type_1->variant.template_param.coordinates.position ==
-                       type_2->variant.template_param.coordinates.position) &&
-                      (type_1->variant.template_param.coordinates.depth ==
-                       type_2->variant.template_param.coordinates.depth);
+                tptsp_1 = type_1->variant.template_param.extra_info;
+                tptsp_2 = type_2->variant.template_param.extra_info;
+                identical = (tptsp_1->coordinates.position ==
+                             tptsp_2->coordinates.position) &&
+                            (tptsp_1->coordinates.depth ==
+                             tptsp_2->coordinates.depth);
                 break;
               case tptk_member:
                 /* Members types are the same if their names are the same
@@ -4331,24 +4334,16 @@ is allocated, it is allocated in the file scope.
           comp_type = base_type_1;
           break;
         case tk_template_param:
-          /* Template parameter types.  If only one of the types points to
-             a param_type_descr then it is the composite.  If both point to
-             a type descriptor, but only one includes a proxy class type,
+          /* Template parameter types.  If only one has a proxy class type,
              then it is the composite. */
-            { a_template_param_type_descr_ptr	tptdp_1;
-              a_template_param_type_descr_ptr	tptdp_2;
-              /* The tag kinds (if any) associated with the template parameters
-                 must match. */
-              tptdp_1 = base_type_1->variant.template_param.descr;
-              tptdp_2 = base_type_2->variant.template_param.descr;
+            { a_template_param_type_supplement_ptr	tptsp_1;
+              a_template_param_type_supplement_ptr	tptsp_2;
+              tptsp_1 = base_type_1->variant.template_param.extra_info;
+              tptsp_2 = base_type_2->variant.template_param.extra_info;
               /* Set the composite to type_1 until we determine otherwise. */
               comp_type = base_type_1;
-              if (tptdp_1 == NULL && tptdp_2 != NULL) {
-                /* Only the second type as a type descr. */
-                comp_type = base_type_2;
-              } else if (tptdp_2 != NULL &&
-                         tptdp_1->class_type == NULL &&
-                         tptdp_2->class_type != NULL) {
+              if (tptsp_1->class_type == NULL &&
+                  tptsp_2->class_type != NULL) {
                 /* Only the second type has a proxy class type. */
                 comp_type = base_type_2;
               }  /* if */
