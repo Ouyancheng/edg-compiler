@@ -1,5 +1,19 @@
 Version 2.37
 
+9/18/97   Microsoft compatibility: c_plusplus macro not defined
+
+In Microsoft C++ mode, the macro c_plusplus is no longer defined.
+
+9/18/97   Microsoft compatibility: #define or #undef of predefined macro
+          gets just a warning
+
+In Microsoft mode, an attempt to #define or #undef a predefined macro
+now gets a warning (instead of an error), and the attempt is ignored.
+(Actually, the #undef is done; the warning from MSVC++ says that the
+#undef is ignored, but it gets done, so we do the same.)
+
+The diagnostics in non-Microsoft mode have been made discretionary errors.
+
 9/18/97   Microsoft compatibility: "$" allowed in identifiers
 
 In Microsoft mode, the "$" character is now allowed by default in

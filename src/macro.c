@@ -2651,7 +2651,12 @@ Scan and process a #define directive.
       /* No such macro, so #define can be done. */
     } else if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
       /* The macro is predefined, and therefore cannot be redefined. */
-      error(ec_cannot_redef_predef_macro);
+      /* In Microsoft mode, this is just a warning. */
+      diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+                 ec_cannot_redef_predef_macro);
+      /* Clear the symbol, which means we will enter an error symbol and
+         define it as a macro.  The net effect is that the redefinition
+         is ignored. */
       set_to_error_locator(locator_for_curr_id);
       assoc_symbol = NULL;
     } else {
@@ -3830,7 +3835,7 @@ command line -D options.
   if (C_dialect == C_dialect_cplusplus) {
     (void)enter_predef_macro("1", "__cplusplus", /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
-    if (!strict_ansi_mode) {
+    if (!strict_ansi_mode && !microsoft_mode) {
       (void)enter_predef_macro("1", "c_plusplus",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);

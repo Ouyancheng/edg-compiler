@@ -673,10 +673,16 @@ Scan and process an #undef directive.
     get_symbol_of_kind((a_symbol_kind)sk_macro, assoc_symbol);
     if (assoc_symbol == NULL) {
       /* No such macro, so #undef is ignored. */
-    } else if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
+    } else if (assoc_symbol->variant.macro_def->cannot_be_redefined &&
+               !microsoft_mode) {
       /* The macro is predefined. */
-      error(ec_cannot_undef_predef_macro);
+      diagnostic(es_discretionary_error, ec_cannot_undef_predef_macro);
     } else {
+      if (assoc_symbol->variant.macro_def->cannot_be_redefined) {
+        /* The Microsoft compiler gives a warning for a case like this.
+           The warning says the #undef is ignored, but it isn't. */
+        warning(ec_cannot_undef_predef_macro);
+      }  /* if */
 #if RECORD_MACROS_IN_IL
       /* Make an IL entry for the #undef. */
       make_il_undef_entry(assoc_symbol, &pos_curr_token);
