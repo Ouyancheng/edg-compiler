@@ -1024,6 +1024,16 @@ typedef struct a_class_list_entry {
 			/* The tk_class, tk_struct, or tk_union type entry. */
 } a_class_list_entry;
 
+
+enum an_anonymous_union_kind_tag {
+  auk_none,		/* Not an anonymous union. */
+  auk_variable,		/* Anonymous union is associated with a variable. */
+  auk_field		/* Anonymous union is associated with a field. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte an_anonymous_union_kind;
+
+
 /* Entry containing additional information about a class type (tk_class,
    tk_struct, or tk_union).  The list of nonstatic data members (i.e.,
    "fields") is kept in the type entry. */
@@ -1053,6 +1063,22 @@ typedef struct a_class_type_supplement {
 			   be the offset to a pointer to a virtual function
 			   table.)  If virtual_function_count is zero this
 			   field is undefined. */
+  an_anonymous_union_kind
+		anonymous_union_kind;
+			/* Indication of whether this class is an anonymous
+			   union, and if so whether it is a field of some
+			   other class or a variable. */
+  union {
+    /* When anonymous_union_kind is auk_variable: */
+    a_variable_ptr
+		variable;
+			/* Pointer to the unnamed variable entry whose type
+			   is the anonymous union. */
+    /* When anonymous_union_kind is auk_field: */
+    a_field_ptr field;
+			/* Pointer to the unnamed field entry whose type
+			   is the anonymous union. */
+  } anonymous_union;
   an_access_adjustment_ptr
                 access_adjustments;
                         /* A list of entries adjusting access control on

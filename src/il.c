@@ -2337,17 +2337,19 @@ a pointer to it.
 #if DEBUG
   num_class_type_supplements_allocated++;
 #endif /* DEBUG */
-  ctsp->base_classes                           = NULL;
-  ctsp->size_without_virtual_base_classes      = 0;
+  ctsp->base_classes                      = NULL;
+  ctsp->size_without_virtual_base_classes = 0;
   ctsp->alignment_without_virtual_base_classes = 1;
-  ctsp->virtual_function_count                 = 0;
-  ctsp->virtual_function_info_offset           = 0;
-  ctsp->access_adjustments                     = NULL;
-  ctsp->befriending_classes                    = NULL;
-  ctsp->assoc_scope                            = NULL;
+  ctsp->virtual_function_count            = 0;
+  ctsp->virtual_function_info_offset      = 0;
+  ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
+  ctsp->anonymous_union.variable          = NULL;
+  ctsp->access_adjustments                = NULL;
+  ctsp->befriending_classes               = NULL;
+  ctsp->assoc_scope                       = NULL;
 #if DO_IL_LOWERING
-  ctsp->virtual_function_table_var             = NULL;
-  ctsp->type_as_subobject                      = NULL;
+  ctsp->virtual_function_table_var        = NULL;
+  ctsp->type_as_subobject                 = NULL;
 #endif /* DO_IL_LOWERING */
 
   return ctsp;
