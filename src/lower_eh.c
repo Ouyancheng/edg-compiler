@@ -1053,20 +1053,12 @@ via the typeid operator (but it contains it).
 	 table is defined, and we can't know that yet.  For
 	 non-polymorphic classes, the type of definition is dependent
 	 on the linkage of the class, which is not known until the end
-	 of the compilation. */
-      prelower_class_type(type);
-      if (type->variant.class_struct_union.extra_info->
-                                          virtual_function_table_var != NULL) {
-        /* Polymorphic class type.  The typeinfo is static if and only if
-           the virtual function table is static, and we can't know that yet,
-           so we start with the variable as external and fix it later if
-	   necessary. */
-        storage_class = (a_storage_class)sc_extern;
-      } else {
-        /* Non-polymorphic class type.  Always put out the definition as
-           static. */
-        storage_class = (a_storage_class)sc_static;
-      }  /* if */
+	 of the compilation.  Also, the class might be incomplete now,
+         if incomplete types are allowed in exception specifications
+         as an extension, and therefore we can't even know if the class
+         is polymorphic. */
+      /* Assume an extern typeinfo variable, adjust later if necessary. */
+      storage_class = (a_storage_class)sc_extern;
       /* Keep a count of the number of class typeinfo variables so that the
          final pass to add definitions for these can be stopped when all
          of them have been found. */
