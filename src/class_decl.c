@@ -1332,7 +1332,9 @@ Dump a base class entry, for debug purposes.
     fputs(",\n    deriv: ", f_debug);
     db_path(bcp->derivation, show_offset);
     fputs(" (", f_debug);
-    db_access_control(normal_access_to_end_of_path(bcp->derivation));
+    db_access_control(access_to_end_of_path((an_access_specifier)as_public,
+                                            bcp->derivation,
+                                            /*virt_derivation=*/FALSE));
     fputs(")\n", f_debug);
   } else {
     a_virtual_derivation_ptr  vdp = bcp->paths_to_virtual_base_class;
@@ -2414,7 +2416,9 @@ static void set_preferred_virtual_derivation(a_type_ptr        class_type,
         set_preferred_virtual_derivation(class_type,
                                          vdp->derivation->base_class);
       }  /* if */
-      vdp->normal_access = normal_access_to_end_of_path(vdp->derivation);
+      vdp->normal_access = access_to_end_of_path(
+                                    (an_access_specifier)as_public,
+                                    vdp->derivation, /*virt_derivation=*/TRUE);
       if (vdp->first) {
         preferred_vdp = vdp;
       } else {
