@@ -5682,6 +5682,31 @@ Otherwise, return NULL.
 }  /* constant_initializer */
 
 
+static a_boolean is_or_contains_union(a_type_ptr type)
+/*
+Return TRUE if the indicated type is a union type or if its first element
+(recursively, all the way down) is a union type.
+*/
+{
+  a_type_kind tkind;
+  a_boolean   is_union = FALSE;
+
+  type = skip_typerefs(type);
+  tkind = type->kind;
+  if (tkind == (a_type_kind)tk_union) {
+    is_union = TRUE;
+  } else if (tkind == (a_type_kind)tk_array) {
+    is_union = is_or_contains_union(type->variant.array.element_type);
+  } else if (tkind == (a_type_kind)tk_struct) {
+    a_field_ptr field = type->variant.class_struct_union.field_list;
+    if (field != NULL) {
+      is_union = is_or_contains_union(field->type);
+    }  /* if */
+  }  /* if */
+  return is_union;
+}  /* is_or_contains_union */
+
+
 static void dump_variable(a_variable_ptr variable,
                           a_boolean      dump_vars_without_initializers,
                           a_boolean      dump_initializers)
@@ -5804,14 +5829,18 @@ parameters.
              definition from a real definition). */
           a_type_kind tkind = skip_typerefs(var_type)->kind;
           if (tkind == (a_type_kind)tk_array ||
-              tkind == (a_type_kind)tk_struct) {
+              tkind == (a_type_kind)tk_struct || 
+              tkind == (a_type_kind)tk_union) {
             /* Aggregates. */
-            (void)fprintf(f_C_output, " = {0}");
-          } else if (tkind == (a_type_kind)tk_union) {
-            /* Sorry, there's just no way to say this in K&R C.  That is,
-               there's no way to initialize a union so as to make it clear
-               that it is a definition.  Leave it as it is and hope it works
-               out. */
+            if (is_or_contains_union(var_type)) {
+              /* Sorry, there's just no way to say this in K&R C.  That is,
+                 there's no way to initialize a union so as to make it clear
+                 that it is a definition.  Leave it as it is and hope it works
+                 out. */
+            } else {
+              /* Aggregate not containing a union. */
+              (void)fprintf(f_C_output, " = {0}");
+            }  /* if */
           } else {
             /* Non-aggregates.  The zero initializer should work for all the
                scalar cases. */
