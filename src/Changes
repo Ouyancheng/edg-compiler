@@ -50,7 +50,7 @@ link time.
 
 IL lowering now clears the default argument expressions on the parameter
 types of the declared_type of a function.  The declared_type field is
-present only when GENERATE_SOURCE_SEQUENCE_LISTS is TRUE (not the
+present only when GENERATE_SOURCE_SEQUENCE_LISTS is TRUE (which is not the
 default when IL lowering is done).  This problem caused an unlowered
 pointer-to-member constant to remain in the IL, which provoked
 an internal error in pm_class_type ("not a pointer to member type").
