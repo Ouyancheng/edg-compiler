@@ -1,5 +1,20 @@
 Version 2.35
 
+2/21/97  Selection of member of overload set to match pointer to member
+         of base class
+
+The overload resolution on the following incorrectly concluded that a
+member of the overload set could be used as a pointer to member of the
+base class.  This now gets the appropriate error.
+
+  struct A {};
+  struct B : public A {
+    void f(int);
+    void f(long);
+  };
+  typedef void (A::*pmfA)(int);
+  pmfA a = &B::f;  // Now gets error
+
 2/21/97  Internal error on "~ operator name"
 
 The use of an operator name in a destructor name resulted in an internal

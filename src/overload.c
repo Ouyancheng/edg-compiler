@@ -232,7 +232,12 @@ Overloaded Function".
           if (is_ptr) {
             ptr_routine_type = make_pointer_type(routine_type);
           } else {
-            ptr_routine_type = ptr_to_member_type(routine_type, dest_class);
+            check_assertion(sym->is_class_member);
+            /* The class of the pointer to member is always the class in
+               which the function is defined, not any derived class
+               indicated in the projection symbol. */
+            ptr_routine_type = ptr_to_member_type(routine_type,
+                                                  sym->parent.class_type);
           }  /* if */
           if (impl_conversion_possible(ptr_routine_type,
                                        /*source_is_constant=*/FALSE,
