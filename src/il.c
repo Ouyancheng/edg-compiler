@@ -3486,10 +3486,15 @@ nonidentical.
                                     cp2->variant.template_param.variant.expr);
               break;
             case tpck_member:
-              check_assertion(cp1->source_corresp.assoc_info != NULL);
-              check_assertion(cp2->source_corresp.assoc_info != NULL);
-              eq = (cp1->source_corresp.assoc_info ==
-                    cp2->source_corresp.assoc_info &&
+              eq = (cp1->source_corresp.name ==
+                    cp2->source_corresp.name &&
+                    cp1->source_corresp.is_class_member ==
+                    cp2->source_corresp.is_class_member &&
+                    (cp1->source_corresp.is_class_member ?
+                      (cp1->source_corresp.parent.class_type ==
+                       cp2->source_corresp.parent.class_type) :
+                      (cp1->source_corresp.parent.namespace_ptr ==
+                       cp2->source_corresp.parent.namespace_ptr)) &&
                     cp1->variant.template_param.variant.is_address ==
                     cp2->variant.template_param.variant.is_address);
               break;
@@ -3770,17 +3775,9 @@ put it on a list of constants).
      "master" copy by going up the source correspondence link and back
      down again. */
   assoc_symbol = ((a_symbol_ptr)cp->source_corresp.assoc_info);
-  check_assertion(assoc_symbol == NULL ||
-                  assoc_symbol->kind == (a_symbol_kind)sk_constant);
-  if (assoc_symbol != NULL &&
-      /* Ignore tpck_member constants with the is_address flag set -- they
-         aren't the primary constant for the symbol. */
-      !(cp->kind == (a_constant_repr_kind)ck_template_param &&
-        cp->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member &&
-      
-        cp->variant.template_param.variant.is_address)) {
+  if (assoc_symbol != NULL) {
     /* Constant (enumeration). */
+    check_assertion(assoc_symbol->kind == (a_symbol_kind)sk_constant);
     scp = assoc_symbol->variant.constant;
 #if CHECKING
     if (cp->implicit_cast != scp->implicit_cast) {

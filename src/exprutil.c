@@ -3581,7 +3581,12 @@ the member.
         !con->variant.template_param.variant.is_address &&
         /* Avoid problems with template-dependent enum constant values. */
         operand->type == type_of_unknown_templ_param_nontype) {
+      /* Change the constant to one that refers to the address of the
+         member. */
       con->variant.template_param.variant.is_address = TRUE;
+      /* Clear the assoc_info pointer because this is no longer the
+         constant pointed to from the symbol. */
+      con->source_corresp.assoc_info = NULL;
       operand->state = (an_operand_state)os_lvalue;
     }  /* if */
   }  /* if */
