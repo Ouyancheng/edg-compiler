@@ -2136,9 +2136,13 @@ symbol that has the result type recorded in the ck_template_param constant.
 */
 {
   a_symbol_ptr	result_sym = NULL;
+  a_type_ptr	conv_result = locator->variant.conversion_result_type;
 
-  if (is_template_dependent_context()) {
-    /* A template context.  Create an unknown function symbol to
+  if (is_template_dependent_context() &&
+      (class_type->variant.class_struct_union.is_nonreal_class ||
+       is_or_contains_template_param(conv_result))) {
+    /* A template context where either the source object type or the
+       result type is dependent.  Create an unknown function symbol to
        represent the conversion function. */
     result_sym = create_unknown_conversion_symbol(locator, class_type);
   } else if (conversion_templates != NULL) {
