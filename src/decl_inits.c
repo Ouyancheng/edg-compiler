@@ -2718,7 +2718,6 @@ returned set to TRUE.
   a_type_ptr                        vp_type = NULL;
   a_boolean                         var_err, init_err;
   a_boolean                         static_lifetime;
-  a_constant                        constant;
   a_constant_ptr                    init_con = NULL;
   a_dynamic_init_ptr                init_dip = NULL;
   a_class_symbol_supplement_ptr     cssp = NULL;
@@ -3017,6 +3016,7 @@ returned set to TRUE.
       /* There was an error in the initializer.  Put an error constant
          into the initializer field of the variable, if only to be sure
          another initialization will be prevented. */
+      a_constant  constant;
       set_error_constant(&constant);
       init_con = alloc_unshared_constant(&constant);
       init_dip = NULL;
