@@ -14,11 +14,10 @@ static_init.c -- called by _main to handle calling of static constructors
 
 */
 
-#include <stddef.h>
-#include <stdlib.h>
 #include "basics.h"
+#include "runtime.h"
+#pragma hdrstop
 #include "main.h"
-#include "config.h"
 #include "static_init.h"
 #include "dtor_list.h"
 

@@ -14,7 +14,8 @@ Exit processing.
 */
 
 #include "basics.h"
-#include "config.h"
+#include "runtime.h"
+#pragma hdrstop
 #include "static_init.h"
 
 /* The version of exit to be called must be the system exit routine not the

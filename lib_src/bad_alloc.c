@@ -14,9 +14,7 @@ Member functions of the bad_cast class.
 */
 
 #include "basics.h"
-#include "config.h"
 #include "runtime.h"
-#include "new.h"
 
 /*
 If the runtime should be defined in the std namespace, open

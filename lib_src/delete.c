@@ -13,11 +13,11 @@ C++ operator delete();
 
 */
 
-#include <stdlib.h>
-#include "new.h"
+#include "basics.h"
+#include "runtime.h"
 
 
-extern void operator delete(void *ptr)
+void operator delete(void *ptr)
 /*
 Free the memory pointed to by ptr.
 */

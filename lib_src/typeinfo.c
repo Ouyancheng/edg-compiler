@@ -14,7 +14,6 @@ Run-time type identification -- user callable functions.
 */
 
 #include "basics.h"
-#include "config.h"
 #include "runtime.h"
 
 #if ABI_CHANGES_FOR_RTTI

@@ -14,11 +14,8 @@ Placement version of C++ operator new[]();
 */
 
 
-#include <stddef.h>
-#include <stdlib.h>
 #include "basics.h"
 #include "runtime.h"
-#include "new.h"
 
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
 

@@ -16,7 +16,6 @@ Performs initialization of global variables used by the runtime.
 #define EXTERN /* empty */
 #define VAR_INITIALIZERS 1
 
-#include "stdlib.h"
 #include "basics.h"
 #include "runtime.h"
 #include "main.h"

@@ -17,7 +17,6 @@ Declarations for exception handling.
 #define _EH_H 1
 
 #include <stdlib.h>
-#include "config.h"
 #include "runtime.h"
 #include "exception.h"
 #include "rtti.h"

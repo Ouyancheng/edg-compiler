@@ -15,6 +15,7 @@ dtor_list.c -- destruction list processing.
 
 #include "basics.h"
 #include "runtime.h"
+#pragma hdrstop
 #include "dtor_list.h"
 
 /*

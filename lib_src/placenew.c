@@ -15,8 +15,6 @@ C++ operator new(size_t, void*);
 
 #include "basics.h"
 #include "runtime.h"
-#include <stddef.h>
-#include "new.h"
 
 
 void *operator new(size_t, void *ptr) THROW_NOTHING()

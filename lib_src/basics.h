@@ -17,6 +17,13 @@ Declarations for all runtime routines.
 #define BASICS_H 1
 
 /*
+Include the header file that supplies the default configuration
+parameters for this version.
+*/
+   
+#include "defines.h"
+
+/*
 EXTERN is defined usually as "extern"; in the translation unit that
 actually defines storage for external variables, it is defined as an
 empty string.  EXTERN is used on the declarations of external variables

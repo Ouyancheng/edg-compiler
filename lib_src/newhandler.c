@@ -13,11 +13,8 @@ C++ default new handler.
 
 */
 
-#include <stddef.h>
-#include <stdlib.h>
 #include "basics.h"
 #include "runtime.h"
-#include "new.h"
 
 extern void __default_new_handler(void)
 /*

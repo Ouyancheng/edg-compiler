@@ -17,10 +17,7 @@ exception handling.
 #ifndef _RTTI_H
 #define _RTTI_H
 
-#include <stdlib.h>
 #include <typeinfo.h>
-#include "config.h"
-#include "runtime.h"
 
 #ifndef NULL
 #define NULL (0)

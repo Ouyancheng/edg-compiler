@@ -13,7 +13,6 @@ C++ runtime routine to execute a copy constructor for each element of an array.
 
 */
 
-#include <stdlib.h>
 #include "basics.h"
 #include "runtime.h"
 

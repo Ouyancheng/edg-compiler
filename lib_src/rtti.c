@@ -14,8 +14,8 @@ Run-time type identification.
 */
 
 #include "basics.h"
-#include "config.h"
 #include "runtime.h"
+#pragma hdrstop
 #include "rtti.h"
 
 #if ABI_CHANGES_FOR_RTTI

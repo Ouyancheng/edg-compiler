@@ -13,12 +13,12 @@ C++ runtime routines to provide vector new() and delete() functionality.
 
 */
 
-#include <stdlib.h>
 #include "basics.h"
+#include "runtime.h"
+#include "eh.h"
+#pragma hdrstop
 #include "vec_newdel.h"
 #include "main.h"
-#include "config.h"
-#include "eh.h"
 
 /*
 For arrays, _vec_new() and _vec_delete() will maintain a linked list of 

@@ -16,8 +16,6 @@ Configuration parameters for the runtime.
 #ifndef CONFIG_H
 #define CONFIG_H 1
 
-#include "defines.h"
-
 /*
 Flag used to retain ABI (Application Binary Interface, i.e., runtime layout
 and calling sequence) compatibility with older versions.  The value is the

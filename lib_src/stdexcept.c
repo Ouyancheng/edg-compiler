@@ -14,7 +14,6 @@ Functions that implement the "exception" class (19.1.1).
 */
 
 #include "basics.h"
-#include "config.h"
 #include "runtime.h"
 
 #if EXCEPTION_HANDLING

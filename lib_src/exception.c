@@ -14,7 +14,6 @@ Functions that implement the "bad_exception" class (18.6.2.1).
 */
 
 #include "basics.h"
-#include "config.h"
 #include "runtime.h"
 
 #if EXCEPTION_HANDLING

@@ -13,14 +13,11 @@ C++ functions to support exception handling.
 
 */
 
-#include <stdlib.h>
 #include "basics.h"
-#include "config.h"
 #include "runtime.h"
-
-#if EXCEPTION_HANDLING
 #include "eh.h"
 
+#if EXCEPTION_HANDLING
 static a_boolean
 		terminate_called = FALSE;
 			/* Set to TRUE when terminate() is called by the

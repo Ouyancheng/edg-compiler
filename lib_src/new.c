@@ -13,11 +13,8 @@ C++ operator new();
 
 */
 
-#include <stddef.h>
-#include <stdlib.h>
 #include "basics.h"
 #include "runtime.h"
-#include "new.h"
 
 /* Note that operator new is not in the std namespace. */
 

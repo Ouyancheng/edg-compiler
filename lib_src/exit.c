@@ -19,6 +19,8 @@ Do not include any files that will result in an extern "C" version
 of exit being declared.
 */
 
+#include "basics.h"
+/* Note that runtime.h is not included. */
 #include "edg_exit.h"
 
 

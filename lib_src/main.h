@@ -16,11 +16,7 @@ Declarations relating to main.c -- program startup and termination.
 #ifndef MAIN_H
 #define MAIN_H 1
 
-#ifndef RUNTIME_H
-#include "runtime.h"
-#endif /* ifndef RUNTIME_H */
-
-#include <stddef.h>
+//#include <stddef.h>
 
 	
 /*

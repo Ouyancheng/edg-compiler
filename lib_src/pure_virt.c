@@ -14,8 +14,8 @@ calls a pure virtual function.  This function simply aborts the program.
 
 */
 
-#include <stdlib.h>
-
+#include "basics.h"
+#include "runtime.h"
 
 extern "C" {
 	void __pure_virtual_called(void);

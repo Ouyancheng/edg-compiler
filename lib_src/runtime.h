@@ -17,6 +17,7 @@ Miscellaneous declarations for all runtime routines.
 #define RUNTIME_H 1
 
 #include "config.h"
+#include <stdlib.h>
 #include <stdio.h>
 #include <new.h>
 
@@ -41,8 +42,6 @@ Error routines.
 /* Macro to test an assertion and generate an internal error if
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
-/* stdlib.h is included is to define abort(). */
-#include <stdlib.h>
 #define assert_msg() \
   {									\
     (void)fprintf(__f_debug, "Assertion failed in file \"%s\", line %d\n", \

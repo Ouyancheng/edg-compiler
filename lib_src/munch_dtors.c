@@ -15,6 +15,8 @@ munch_dtors.c -- Provides the definition of the _dtors variable that is
 
 */
 
+#include "basics.h"
+#include "runtime.h"
 
 typedef int (*PFV)();
 PFV _dtors[] = {0};

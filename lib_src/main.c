@@ -14,8 +14,9 @@ and destructors.
 
 */
 
-#include <stddef.h>
 #include "basics.h"
+#include "runtime.h"
+#pragma hdrstop
 #include "main.h"
 #include "static_init.h"
 

@@ -14,11 +14,8 @@ C++ operator new[](size_t, void*) (placement array new).
 */
 
 
-#include <stddef.h>
-#include <stdlib.h>
 #include "basics.h"
-#include "config.h"
-#include "new.h"
+#include "runtime.h"
 
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
 

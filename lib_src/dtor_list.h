@@ -16,10 +16,6 @@ Declarations relating to dtor_list.c -- destruction list processing.
 #ifndef DTOR_LIST_H
 #define DTOR_LIST_H 1
 
-#ifndef RUNTIME_H
-#include "runtime.h"
-#endif /* ifndef RUNTIME_H */
-
 #ifndef MAIN_H
 #include "main.h"
 #endif /* ifndef MAIN_H */

@@ -16,7 +16,7 @@ default operator new() when memory cannot be allocated.
 
 #include "basics.h"
 #include "runtime.h"
-#include "new.h"
+#pragma hdrstop
 
 #ifndef NULL
 #define NULL 0

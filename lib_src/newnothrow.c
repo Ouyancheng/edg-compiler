@@ -13,11 +13,8 @@ C++ operator new() that does not throw an exception.
 
 */
 
-#include <stddef.h>
-#include <stdlib.h>
 #include "basics.h"
 #include "runtime.h"
-#include "new.h"
 
 extern "C" STD_NAMESPACE::new_handler _new_handler;
 

@@ -13,16 +13,13 @@ Throw processing for exception handling.
 
 */
 
-#include <stdlib.h>
 #include "basics.h"
-#include "config.h"
 #include "runtime.h"
+#include "eh.h"
+#pragma hdrstop
 #include "vec_newdel.h"
 
 #if EXCEPTION_HANDLING
-
-#include "eh.h"
-
 
 /* Structure used to maintain a stack of throws that are currently
    being processed. */
