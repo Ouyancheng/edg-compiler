@@ -9182,6 +9182,8 @@ entry into one representing a nondefining declaration.
           /* No match -- keep looping. */
           prev_clep = clep;
         }  /* for */
+        check_assertion_str(clep != NULL,
+                            "friend class not found on befriending list");
       }  /* if */
       /* Check the next friend class. */
       ctsp->friend_classes = ctsp->friend_classes->next;
@@ -9209,6 +9211,8 @@ entry into one representing a nondefining declaration.
         /* No match -- keep looping. */
         prev_clep = clep;
       }  /* for */
+      check_assertion_str(clep != NULL,
+                          "friend routine not found on befriending list");
       /* Check the next friend function. */
       ctsp->friend_routines = ctsp->friend_routines->next;
     }  /* if */
