@@ -350,7 +350,7 @@ is in within a function body.
 {
   a_scope_depth  scope_depth;
 
-  if (sym->decl_scope == FILE_SCOPE_NUMBER) {
+  if (sym->decl_scope == file_scope_number) {
     /* Leave the is_local_to_function flag FALSE. */
     scope_depth = DEPTH_OF_FILE_SCOPE;
   } else if (sym->decl_scope == NO_SCOPE_NUMBER) {
@@ -2616,7 +2616,7 @@ otherwise.
 
   sym = sym_to_find->header->symbol;
   while (sym != NULL) {
-    if (sym->decl_scope == FILE_SCOPE_NUMBER) {
+    if (sym->decl_scope == file_scope_number) {
       /* Look for class, struct, union, enum, or typedef. */
       if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
         found = TRUE;

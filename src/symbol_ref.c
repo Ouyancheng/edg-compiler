@@ -346,7 +346,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
             }  /* if */
             if (tag_hidden_by_nontag) fputs(" class-key", f_debug);
             fprintf(f_debug, " for %s\"",
-                    hidden_sym->decl_scope == FILE_SCOPE_NUMBER ?
+                    hidden_sym->decl_scope == file_scope_number ?
                                                      "global " : "");
             if (kind == (an_il_entry_kind)iek_type) {
               db_abbreviated_type((a_type_ptr)entity);
@@ -634,7 +634,7 @@ hidden name checking on its own members, too.
               is_template_class_symbol(tag_sym)))) {
           /* sym_ptr does not hide old_sym_ptr -- they represent the same
              declaration. */
-        } else if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
+        } else if (old_sym_ptr->decl_scope == file_scope_number ||
                    old_sym_ptr->is_class_member ||
                    old_sym_ptr->parent.namespace_ptr != NULL) {
           /* The name hiding can be defeated by using a qualifier. */
@@ -706,7 +706,7 @@ type specifier when put out by the C++-generating back end.
     } else if (old_sym_ptr->decl_scope != sym_ptr->decl_scope &&
                (old_sym_ptr->is_class_member ||
                 old_sym_ptr->parent.namespace_ptr != NULL ||
-                old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER)) {
+                old_sym_ptr->decl_scope == file_scope_number)) {
       /* No need to defeat the name hiding with an elaborated type
          specifier -- the tag name will be qualified, either by its
          parent class or namespace or by a leading "::".  That's
@@ -775,7 +775,7 @@ C++-generating back end.
          Qualification will not help.  Synthesized namespace projection
          symbols are excluded from this test because their decl_scope is not
          meaningful in this context. */
-    } else if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
+    } else if (old_sym_ptr->decl_scope == file_scope_number ||
                old_sym_ptr->is_class_member ||
                old_sym_ptr->parent.namespace_ptr != NULL ||
                old_sym_ptr->synthesized_namespace_projection) {
@@ -807,7 +807,7 @@ C++-generating back end.
              an unnamed namespace. */
         } else {
           tag_hidden_by_nontag = TRUE;
-          if (old_sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
+          if (old_sym_ptr->decl_scope == file_scope_number ||
               old_sym_ptr->is_class_member ||
               old_sym_ptr->parent.namespace_ptr != NULL) {
             hidden_class_or_namespace_member = TRUE;
@@ -1343,7 +1343,7 @@ created for this entity; otherwise, it is NULL.
 
     if (is_tag_symbol(sym_ptr)) hdr->any_tag_decl = TRUE;
     if (!sym_ptr->is_class_member) {
-      if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER ||
+      if (sym_ptr->decl_scope == file_scope_number ||
           sym_ptr->parent.namespace_ptr != NULL) {
         hdr->any_decl_in_file_or_namespace_scope = TRUE;
       } else if (is_template_symbol(sym_ptr)) {

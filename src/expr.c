@@ -11488,7 +11488,7 @@ to reflect the error.
      class (the class itself or one of its member functions) or a
      default argument expression. */
   if (inside_local_class || expr_stack->is_default_arg_expression) {
-    if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER) {
+    if (sym_ptr->decl_scope == file_scope_number) {
       /* A reference to the file scope is okay. */
     } else if (sym_ptr->is_class_member) {
       /* A reference to a class member is okay. */

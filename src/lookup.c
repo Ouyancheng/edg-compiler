@@ -454,7 +454,7 @@ as the class type, and use as a base class.
        to be some other scope then set_source_corresp_with_scope_depth may
        need to be called because set_source_corresp requires that the
        decl_scope of the symbol still be an active scope. */
-    sym->decl_scope = FILE_SCOPE_NUMBER;
+    sym->decl_scope = file_scope_number;
     /* Create the type for the class. */
     type = alloc_type((a_type_kind)tk_class);
     /* Set the size and alignment so that the type will be considered to
@@ -3636,7 +3636,7 @@ file scope.
    are not found. */
 #define is_acceptable_symbol(sym, fund_sym)                           \
   ((!(fund_sym->is_invisible) || is_linkage_or_friend_lookup) &&      \
-   (sym)->decl_scope == FILE_SCOPE_NUMBER &&                          \
+   (sym)->decl_scope == file_scope_number &&                          \
    (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) &&       \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) && 			      \

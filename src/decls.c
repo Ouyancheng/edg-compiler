@@ -6619,7 +6619,7 @@ return a pointer to it in *symbol_ptr.
         /* Set the flags directly, since record_symbol_declaration is not
            called. */
         sym->header->any_tag_decl = TRUE;
-        if (sym->decl_scope == FILE_SCOPE_NUMBER ||
+        if (sym->decl_scope == file_scope_number ||
             (!sym->is_class_member && sym->parent.namespace_ptr != NULL)) {
           sym->header->any_decl_in_file_or_namespace_scope = TRUE;
         }  /* if */
@@ -6744,7 +6744,7 @@ symbol has already been entered as an undefined symbol.
   /* In pcc mode, all routines are entered at file scope level.  Remove
      and re-enter the symbol (if necessary) so it will be there. */
   if (C_dialect == C_dialect_pcc) {
-    if (symbol_ptr->decl_scope != FILE_SCOPE_NUMBER) {
+    if (symbol_ptr->decl_scope != file_scope_number) {
       /* Take the symbol out of the symbol table. */
       remove_symbol(symbol_ptr);
       /* Put the symbol back into the symbol table at the file scope level. */

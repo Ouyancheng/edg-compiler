@@ -9695,7 +9695,7 @@ Return TRUE if the indicated symbol is a function-local symbol.
   /* Reject the easy cases, i.e., class and namespace members. */
   if (sym->is_class_member ||
       sym->parent.namespace_ptr != NULL ||
-      sym->decl_scope == FILE_SCOPE_NUMBER ||
+      sym->decl_scope == file_scope_number ||
       sym->synthesized_namespace_projection) {
     /* is_local = FALSE;  -- already set. */
   } else {
@@ -10175,6 +10175,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(builtin_va_list_type),
       pch_saved_var_array_elem(conversion_header_list),
       pch_saved_var_array_elem(error_class_template_symbol),
+      pch_saved_var_array_elem(file_scope_number),
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
       pch_saved_var_array_elem(last_ctor_or_dtor_sym),
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
@@ -10227,6 +10228,7 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(last_ctor_or_dtor_sym);
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
   register_trans_unit_variable(error_class_template_symbol);
+  register_trans_unit_variable(file_scope_number);
 }  /* symbol_tbl_one_time_init */
 
 
@@ -10251,6 +10253,12 @@ given translation unit.
   last_ctor_or_dtor_sym = NULL;
 #endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
   error_class_template_symbol = NULL;
+  if (!is_primary_translation_unit) {
+    /* In secondary translation units, the scope numbering continues where it
+       left off, and the file scope number is the next available number.
+       For primary translation units, file_scope_number is already set to 0. */
+    file_scope_number = next_scope_number;
+  }  /* if */
 }  /* symbol_tbl_trans_unit_init */
 
 
@@ -10286,7 +10294,8 @@ of the front end.
 #endif /* DO_IL_LOWERING */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   inside_local_class = FALSE;
-  next_scope_number = FILE_SCOPE_NUMBER;
+  file_scope_number = FILE_SCOPE_NUMBER;
+  next_scope_number = file_scope_number;
 
   /* size_scope_stack is not per-file and should not be reset. */
   /* ident_buffer and size_ident_buffer are not per-file and should not

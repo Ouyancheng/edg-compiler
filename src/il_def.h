@@ -7538,7 +7538,10 @@ typedef long a_scope_number;
 #define NO_SCOPE_NUMBER ((a_scope_number)-1)
 			/* Scope number used for things without scope. */
 #define FILE_SCOPE_NUMBER 0
-			/* Scope number for the file scope. */
+			/* Scope number for the file scope.  Note that in
+			   the front end the variable file_scope_number
+			   should be used instead if a secondary translation
+			   unit might be involved. */
 
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 

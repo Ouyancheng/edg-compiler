@@ -7887,7 +7887,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
     }  /* switch */
 #if RECORD_HIDDEN_NAMES_IN_IL
     if (class_type == NULL &&
-        (sym->decl_scope == FILE_SCOPE_NUMBER ||
+        (sym->decl_scope == file_scope_number ||
          sym->parent.namespace_ptr != NULL)) {
       /* Set a flag in the symbol header to indicate that at least one
          declaration with this name appeared in the file scope or a

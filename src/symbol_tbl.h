@@ -80,6 +80,13 @@ declared.
 #include "scope_stk.h"
 #endif /* ifndef SCOPE_STK_H */
 
+/*
+The scope number for the file scope.  Equal to FILE_SCOPE_NUMBER (zero)
+except in secondary translation units (i.e., when export template is used).
+*/
+EXTERN a_scope_number
+		file_scope_number;
+
 
 typedef struct a_symbol_locator {
   /* Data structure used to store information about an identifier token.

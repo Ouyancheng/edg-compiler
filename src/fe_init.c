@@ -982,6 +982,8 @@ when it is a secondary file.
                     push_scope((a_scope_kind)sck_file,
                                NO_SCOPE_NUMBER, (a_type_ptr)NULL,
                                (a_routine_ptr)NULL);
+  check_assertion(curr_translation_unit->primary_scope->number ==
+                                                           file_scope_number);
   if (!C_mode()) {
     /* This is done even when RTTI is not enabled because the type_info
        struct may still be defined when RTTI is disabled. */
