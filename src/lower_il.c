@@ -9506,7 +9506,7 @@ have been promoted out of those classes.
              to the file scope list. */
           temp_type_next = temp_type->next;
           /* Move temp_type to the file scope types list, following prev_type.
-             Don't move it (discard it instead) it it's a nested class
+             Don't move it (discard it instead) if it's a nested class
              definition placeholder. */
           if (temp_type->kind == (a_type_kind)tk_typeref &&
               temp_type->variant.typeref.is_placeholder_for_nested_class_def) {
