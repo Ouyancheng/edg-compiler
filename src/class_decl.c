@@ -7241,6 +7241,8 @@ otherwise these are NULL).
                         &locator->source_position);
             }  /* if */
             break;
+          default:
+            unexpected_condition();
         }  /* switch */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
