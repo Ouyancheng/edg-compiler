@@ -89,7 +89,6 @@ might result from class template names that are missing argument lists.
       if (assoc_symbol != NULL && !is_type_symbol(assoc_symbol)) {
         /* Symbol was found, but it is not a type name symbol.  Return NULL. */
         assoc_symbol = NULL;
-        clear_specific_symbol(locator_for_curr_id);
       }  /* if */
     }  /* if */
   }  /* if */
