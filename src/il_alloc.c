@@ -1979,6 +1979,9 @@ its kind to the indicated kind.
   node->is_initialization_guard = FALSE;
   node->generated_default_arg = FALSE;
   node->void_expression_lvalue = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+  node->marked_as_gnu_extension = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
@@ -2770,6 +2773,9 @@ and return a pointer to it.
   sssdp->is_partial_instantiation    = FALSE;
   sssdp->compiler_generated_forward_decl = FALSE;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+  sssdp->marked_as_gnu_extension     = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if CHECKING
   sssdp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
@@ -3236,6 +3242,9 @@ in il_alloc_init.)
   def_source_corresp.same_name_as_external_entity_in_secondary_trans_unit =
                                                                         FALSE;
   def_source_corresp.member_of_unknown_base = FALSE;
+#if GNU_EXTENSIONS_ALLOWED  && GENERATE_SOURCE_SEQUENCE_LISTS
+  def_source_corresp.marked_as_gnu_extension = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
 #if RECORD_SCOPE_DEPTH_IN_IL
   def_source_corresp.scope_depth = NO_SCOPE_DEPTH;
 #endif /* RECORD_SCOPE_DEPTH_IN_IL */
