@@ -1,5 +1,12 @@
 Version 2.29
 
+5/10/95  Small improvement in inlining
+
+Inlining now allows inlining of functions containing a return statement
+that isn't the last statement of a function, so long as it is the last
+statement in a block that is the last statement in a block ... that is
+the last statement of the top-level block of the function.
+
 5/10/95  Internal error instantiating a template with duplicate definitions
 
 An internal error would result if a set of overloaded functions in a
