@@ -3976,6 +3976,7 @@ rather than determined directly.
       while (tp->next != NULL) tp = tp->next;
       tp->next = type_ptr;
     }  /* if */
+    type_ptr->next = NULL;
     if (pointers_block != NULL) pointers_block->last_type = type_ptr;
     if (!type_ptr->source_corresp.is_class_member &&
         is_immediate_class_type(type_ptr) &&
@@ -3993,7 +3994,6 @@ rather than determined directly.
       add_placeholder_for_namespace_type(type_ptr);
     }  /* if */
   }  /* if */
-  type_ptr->next = NULL;
 }  /* add_to_types_list */
 
 
