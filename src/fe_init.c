@@ -222,6 +222,9 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_throw,     "throw");
     enter_keyword((a_token_kind)tok_try,       "try");
     enter_keyword((a_token_kind)tok_virtual,   "virtual");
+    if (cfront_compatibility_mode) {
+      enter_keyword((a_token_kind)tok_overload, "overload");
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* keyword_init */

@@ -106,6 +106,8 @@ typedef enum /*a_token_kind*/ {
   tok_public,                       tok_template,
   tok_this,                         tok_throw,
   tok_try,                          tok_virtual,
+  /* Recognized in cfront compatibility mode only. */
+  tok_overload,
   /* Error token. */
   tok_error,
   /* Place-holder for last position in enumeration. */
@@ -135,7 +137,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "::", ".*", "->*", "asm", "catch", "class", "delete", "friend",
    "inline", "new", "operator", "private", "protected", "public",
    "template", "this", "throw", "try", "virtual",
-   "error",
+   "overload", "error",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -409,6 +411,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_throw */
    (an_opname_kind)onk_none,          /* tok_try */
    (an_opname_kind)onk_none,          /* tok_virtual */
+   (an_opname_kind)onk_none,          /* tok_overload */
    (an_opname_kind)onk_none,          /* tok_error */
    (an_opname_kind)onk_last           /* tok_last */
   }
