@@ -195,9 +195,11 @@ This feature is enabled and disabled by the command-line options
 --[no_]enum_overloading.  DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS
 gives the default setting.
 
-There are cases like the following that worked previously and now
-give an ambiguity error.  This is in accordance with the current WP,
-but perhaps that suggests a problem with the WP.
+(6/12/97:) There are cases like the following that worked previously
+and now, according to the current WP, should give an ambiguity error.
+We think this suggests a problem with the WP, and we've made equality
+and relational operators that have two operands of the same enum
+type resolve to the builtin operator as before.
 
   enum E {E1};
   class A {
@@ -206,7 +208,7 @@ but perhaps that suggests a problem with the WP.
   };
   int main() {
     E e;
-    e == E1;  // Now ambiguous
+    e == E1;  // Ambiguous according to WP
   }
 
 6/2/97    Variable length arrays

@@ -823,6 +823,8 @@ for overload resolution.
 			/* Integral type. */
 #define PTRDIFF_T_TYPE_CODE 'D'
 			/* ptrdiff_t. */
+#define ENUM_TYPE_CODE 'E'
+			/* Enumerated type. */
 #define PROMOTED_ARITH_TYPE_CODE 'A'
 			/* Promoted arithmetic type. */
 #define ARITH_TYPE_CODE 'a'
@@ -856,6 +858,9 @@ Return a printable string describing a type code.
     case PROMOTED_INTEGRAL_TYPE_CODE:
     case PTRDIFF_T_TYPE_CODE:
       str = "integer";
+      break;
+    case ENUM_TYPE_CODE:
+      str = "enum";
       break;
     case ARITH_TYPE_CODE:
     case PROMOTED_ARITH_TYPE_CODE:
@@ -4695,19 +4700,31 @@ as its first operand.
       case onk_le:
       case onk_gt:
       case onk_ge:
-        /* Relational operators take arithmetic or pointer operands. */
-        operand_type_pattern = "AA;=PP";
+        /* Relational operators take arithmetic or pointer operands.
+           Also, if overloading on enums is enabled, matching enum types 
+           (as of June 1997, that's an extension over the WP, but it
+           seems necessary). */
         if (cfront_2_1_mode) {
           /* cfront 2.1 is confused and allows pointers to members on this
              case (they get rejected if chosen). */
           operand_type_pattern = "AA;=PP;=MM";
+        } else if (operator_overloading_on_enums_enabled && !microsoft_mode) {
+          operand_type_pattern = "AA;=PP;=EE";
+        } else {
+          operand_type_pattern = "AA;=PP";
         }  /* if */
         break;
       case onk_eq:
       case onk_ne:
         /* Equality operators take arithmetic, pointer, or pointer-to-member
-           operands. */
-        operand_type_pattern = "AA;=PP;=MM";
+           operands.  Also, if overloading on enums is enabled, matching
+           enum types (as of June 1997, that's an extension over the WP,
+           but it seems necessary). */
+        if (operator_overloading_on_enums_enabled && !microsoft_mode) {
+          operand_type_pattern = "AA;=PP;=MM;=EE";
+        } else {
+          operand_type_pattern = "AA;=PP;=MM";
+        }  /* if */
         break;
       case onk_and_and:
       case onk_or_or:
@@ -4787,6 +4804,9 @@ it fits that type description or can be converted to it.
     case PTRDIFF_T_TYPE_CODE:
       matches = is_integral_or_enum_type(type);
       break;
+    case ENUM_TYPE_CODE:
+      matches = is_enum_type(type);
+      break;
     case ARITH_TYPE_CODE:
     case PROMOTED_ARITH_TYPE_CODE:
       matches = is_arithmetic_or_enum_type(type);
@@ -4834,6 +4854,9 @@ type_code.
     case PROMOTED_INTEGRAL_TYPE_CODE:
     case PTRDIFF_T_TYPE_CODE:
       builtin_types_allowed = BTK_INTEGRAL | BTK_ENUM;
+      break;
+    case ENUM_TYPE_CODE:
+      builtin_types_allowed = BTK_ENUM;
       break;
     case ARITH_TYPE_CODE:
     case PROMOTED_ARITH_TYPE_CODE:
