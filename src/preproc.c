@@ -893,7 +893,7 @@ or the specific definition flag (if instantiate is FALSE).
     }  /* if */
     fprintf(f_debug, "\n");
   }  /* if */
-#endif
+#endif /* DEBUG */
   db_exit();
 }  /* update_instantiation_flags */
 
