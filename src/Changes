@@ -121,6 +121,11 @@ mapping, but it can be configured to work on systems without such mapping
 
 See the internal documentation for more details.
 
+Please note that if you have local mods to incorporate, and they use local
+or global static variables, you may have to register the variables so that
+they are properly saved and restored.  See calls of
+register_pch_saved_variables for examples.
+
 10/10/94 IL version number changed to 2.18
 
 10/10/94 Version build date and time information
