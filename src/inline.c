@@ -1238,17 +1238,24 @@ statement).
                                                         expr->type);
             } else {
               /* For non-void functions, the type of the expression can be
-                 wrong if a constructor has an unreachable return statement.
-                 In that case, add a zero cast to the right type. */
+                 wrong if the end of the function is unreachable (e.g.,
+                 because it ends with a throw).  In that case, add a zero
+                 cast to the right type. */
               if (!il_identical_types(expr->type, inlined_call_expr->type)) {
-                a_constant zero_constant;
-                check_assertion_str(is_reference_type(expr->type) &&
-                             routine_scope_being_inlined->variant.routine.ptr->
-                      special_kind == (a_special_function_kind)sfk_constructor,
-                                    "do_inlining_of_call: wrong expr type");
-                make_zero_of_proper_type(expr->type, &zero_constant);
-                insert_expr(alloc_node_for_constant(&zero_constant),
-                            &insert_location);
+                a_constant       zero_constant;
+                a_type_ptr       needed_type = expr->type;
+                an_expr_node_ptr zero_node;
+                a_boolean        class_case =
+                                       is_class_struct_union_type(needed_type);
+                if (class_case) {
+                  /* For a class case, make a null pointer to the type and
+                     indirect through it. */
+                  needed_type = make_pointer_type(needed_type);
+                }  /* if */
+                make_zero_of_proper_type(needed_type, &zero_constant);
+                zero_node = alloc_node_for_constant(&zero_constant);
+                if (class_case) zero_node = add_indirection_to_node(zero_node);
+                insert_expr(zero_node, &insert_location);
                 inlined_call_expr = insert_location.variant.expr;
               }  /* if */
             }  /* if */
