@@ -28,6 +28,10 @@ typedef struct an_attribute *an_attribute_ptr;
 extern void redefine_extname_pragma(a_pending_pragma_ptr  ppp);
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
+extern void process_alias_fixup_list(void);
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+
 #if GNU_EXTENSIONS_ALLOWED
 
 /*
@@ -258,8 +262,6 @@ extern a_boolean check_transparent_union(a_type_ptr        tp,
 
 extern a_type_ptr copy_gnu_type_attributes(a_type_ptr  dst,
                                            a_type_ptr  src);
-
-extern void process_alias_fixup_list(void);
 
 extern void attribute_one_time_init(void);
 
