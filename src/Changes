@@ -1,5 +1,22 @@
 Version 3.2
 
+4/2/03   Zero-valued const integer variable as null pointer constant in cast
+
+The front end did not properly consider a zero-valued const integer
+variable as a null pointer constant in an explicit old-style cast.
+Old-style casts to pointer types were accepted but were considered
+reinterpret_casts, which might be a problem on odd architectures
+where a null pointer is not actually all bits zero.  Old-style
+casts to pointer-to-member types got a spurious error.
+
+  const int null = 0;
+  class B {};
+  int main() {
+    (int *)null;     // Accepted, but incorrectly considered a
+                     //   reinterpret_cast
+    (int B::*)null;  // Got spurious error
+  }
+
 4/2/03   Abort on use of # inside macro argument in #if expression
 
 When ATT_PREPROCESSING_EXTENSIONS_ALLOWED is TRUE, a use of a "#"

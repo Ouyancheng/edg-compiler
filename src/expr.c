@@ -8626,9 +8626,6 @@ C-style casts and C++ functional-notation type conversions.
       }  /* if */
       /* Check for different types of casts and do the cast. */
       if (!err && !processed) {
-        a_boolean      reinterpret_semantics = FALSE;
-        a_boolean      operand_is_constant;
-        a_constant_ptr operand_con = NULL;
         /* The bound function test is done first to make sure bound functions
            cannot wander into the rest of the cases. */
         if (operand->bound_function) {
@@ -8637,8 +8634,6 @@ C-style casts and C++ functional-notation type conversions.
         }  /* if */
         /* Get the source type after the transformations. */
         source_type = operand->type;
-        operand_is_constant = is_constant_operand(operand);
-        if (operand_is_constant) operand_con = &operand->variant.constant;
         if (is_indefinite_function_operand(operand)) {
           /* An overloaded function can be cast to a pointer type that
              disambiguates, but is not valid in any other kind of cast. */
@@ -8647,89 +8642,72 @@ C-style casts and C++ functional-notation type conversions.
             /* The result of a cast to reference is an lvalue. */
             conv_object_pointer_to_lvalue(operand);
           }  /* if */
-        } else if (any_cfront_mode() && operand_is_constant &&
-                   operand_con->kind ==
-                                      (a_constant_repr_kind)ck_ptr_to_member &&
-                   !operand_con->implicit_cast &&
-                   operand_con->variant.ptr_to_member.is_function_ptr &&
-                   !cast_to_reference &&
-                   is_pointer_type(type_cast_to) &&
-                   is_function_type(type_pointed_to(type_cast_to))) {
-          /* In cfront mode, it's okay to cast a pointer-to-member constant
-             to a pointer to function:
-               struct A {int f();};
-               main () {
-                 int (*p)() = (int (*)())A::f;
-               }
-          */
-          a_routine_ptr routine = operand_con->variant.ptr_to_member.
-                                                               variant.routine;
-          a_symbol_ptr  rout_sym =
-                            (a_symbol_ptr)(routine->source_corresp.assoc_info);
-          pos_warning(ec_ptr_to_member_cast_to_ptr_to_function,
-                      start_position);
-          make_function_designator_operand(rout_sym,
-                                         (a_boolean)operand->is_qualified_name,
-                                           start_position,
-                                           (a_ref_entry_ptr)NULL,
-                                           operand);
-          conv_function_designator_to_ptr_to_function(operand,
-                                                      /*allow_ctor=*/FALSE);
-          cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
-                       /*is_implicit_cast=*/FALSE, 
-                       /*is_reinterpret_cast=*/FALSE,
-                       reinterpret_semantics);
         } else if (cast_to_void) {
           /* Cast to (possibly cv-qualified) void. */
           cast_operand_to_void(operand, type_cast_to);
-        } else if (expl_conversion_possible(source_type, operand_is_constant,
-                                            (a_boolean)operand->
+        } else if (microsoft_bugs && is_an_lvalue(operand) &&
+                   f_identical_types(f_skip_typerefs(source_type),
+                                     f_skip_typerefs(type_cast_to),
+                                     ITF_NO_FLAGS) &&
+                   value_of_constant_var_lvalue_operand(operand) == NULL &&
+                   !is_bit_field_operand(operand)) {
+          /* In Microsoft mode, a cast of an lvalue to the same type
+             is just ignored, and the operand stays an lvalue.  Note that
+             this applies in C++ as well as C. */
+          /* The cast can add or drop cv-qualifiers.  If it does, we
+             have to add a cast. */
+          microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to);
+        } else if (is_an_lvalue(operand) &&
+                   (C_dialect == C_dialect_pcc || SVR4_C_mode || gcc_mode ||
+                    (microsoft_mode && C_mode())) &&
+                   still_an_lvalue(source_type, type_cast_to)) {
+          /* In pcc, SVR4 C, GNU C or Microsoft C mode, some lvalues cast to
+             other types remain lvalues (e.g., int to unsigned). */
+          /* Use a special "lvalue cast" operator.  Always do the cast on
+             an expression node, even if the lvalue address is currently
+             given by a constant.  This is because all lvalue casts should
+             be clearly identifiable.  The lvalue cast operator looks a lot
+             like a normal cast, but its operand is an lvalue, and therefore
+             doesn't really have its address taken, which is important when
+             (e.g.) register entities are subjected to an lvalue cast.  See
+             the code in conv_lvalue_to_rvalue that removes the cast if
+             the cast lvalue is then converted to an rvalue (the usual
+             case). */
+          lvalue_cast(type_cast_to, operand);
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (gcc_mode &&
+                   is_class_struct_union_type(type_cast_to) &&
+                   f_identical_types(f_skip_typerefs(source_type),
+                                     f_skip_typerefs(type_cast_to),
+                                     ITF_NO_FLAGS)) {
+          /* GNU C allows a do-nothing cast to a struct or union type.
+             The result does not change type (even if there is a cv-qualifier
+             difference implied) and it is not forced to an rvalue. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        } else {
+          a_boolean      reinterpret_semantics = FALSE;
+          a_boolean      operand_is_constant;
+          a_constant_ptr operand_con = NULL;
+          /* Convert lvalue --> rvalue unless casting to a reference type
+             (in that case, the operand has already been turned into a
+             pointer; the conversion here wouldn't hurt, but it's not
+             needed). */
+          if (!cast_to_reference) {
+            /* Normal cast.  All standard C cases. */
+            conv_lvalue_to_rvalue(operand);
+          }  /* if */
+          operand_is_constant = is_constant_operand(operand);
+          if (operand_is_constant) operand_con = &operand->variant.constant;
+          if (expl_conversion_possible(source_type, operand_is_constant,
+                                       (a_boolean)operand->
                                                       is_simple_string_literal,
-                                            operand_con, type_cast_to,
-                                            &reinterpret_semantics,
-                                            ec_bad_cast, &warning_suggested)) {
-          /* Valid explicit conversion. */
-          if (microsoft_bugs && is_an_lvalue(operand) &&
-              f_identical_types(f_skip_typerefs(source_type),
-                                f_skip_typerefs(type_cast_to),
-                                ITF_NO_FLAGS) &&
-              value_of_constant_var_lvalue_operand(operand) == NULL &&
-              !is_bit_field_operand(operand)) {
-            /* In Microsoft mode, a cast of an lvalue to the same type
-               is just ignored, and the operand stays an lvalue.  Note that
-               this applies in C++ as well as C. */
-            /* The cast can add or drop cv-qualifiers.  If it does, we
-               have to add a cast. */
-            microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to);
-          } else if ((C_dialect == C_dialect_pcc || SVR4_C_mode || gcc_mode ||
-                      (microsoft_mode && C_mode())) &&
-                     is_an_lvalue(operand) &&
-                     still_an_lvalue(source_type, type_cast_to)) {
-            /* In pcc, SVR4 C, GNU C or Microsoft C mode, some lvalues cast to
-               other types remain lvalues (e.g., int to unsigned). */
-            /* Use a special "lvalue cast" operator.  Always do the cast on
-               an expression node, even if the lvalue address is currently
-               given by a constant.  This is because all lvalue casts should
-               be clearly identifiable.  The lvalue cast operator looks a lot
-               like a normal cast, but its operand is an lvalue, and therefore
-               doesn't really have its address taken, which is important when
-               (e.g.) register entities are subjected to an lvalue cast.  See
-               the code in conv_lvalue_to_rvalue that removes the cast if
-               the cast lvalue is then converted to an rvalue (the usual
-               case). */
-            lvalue_cast(type_cast_to, operand);
-          } else {
-            /* Not an lvalue cast.  Issue warning on oddball cases. */
+                                       operand_con, type_cast_to,
+                                       &reinterpret_semantics,
+                                       ec_bad_cast, &warning_suggested)) {
+            /* Valid explicit conversion. */
+            /* Issue a warning on oddball cases. */
             if (warning_suggested != ec_no_error) {
               pos_warning(warning_suggested, start_position);
-            }  /* if */
-            /* Convert lvalue --> rvalue unless casting to a reference type
-               (in that case, the operand has already been turned into a
-               pointer; the conversion here wouldn't hurt, but it's not
-               needed). */
-            if (!cast_to_reference) {
-              /* Normal cast.  All standard C cases. */
-              conv_lvalue_to_rvalue(operand);
             }  /* if */
             /* Do the actual cast. */
             cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
@@ -8740,45 +8718,69 @@ C-style casts and C++ functional-notation type conversions.
               /* The result of a cast to reference is an lvalue. */
               conv_object_pointer_to_lvalue(operand);
             }  /* if */
-          }  /* if */
+          } else if (any_cfront_mode() && operand_is_constant &&
+                     operand_con->kind ==
+                                      (a_constant_repr_kind)ck_ptr_to_member &&
+                     !operand_con->implicit_cast &&
+                     operand_con->variant.ptr_to_member.is_function_ptr &&
+                     !cast_to_reference &&
+                     is_pointer_type(type_cast_to) &&
+                     is_function_type(type_pointed_to(type_cast_to))) {
+            /* In cfront mode, it's okay to cast a pointer-to-member constant
+               to a pointer to function:
+                 struct A {int f();};
+                 main () {
+                   int (*p)() = (int (*)())A::f;
+                 }
+            */
+            a_routine_ptr routine = operand_con->variant.ptr_to_member.
+                                                               variant.routine;
+            a_symbol_ptr  rout_sym =
+                            (a_symbol_ptr)(routine->source_corresp.assoc_info);
+            pos_warning(ec_ptr_to_member_cast_to_ptr_to_function,
+                        start_position);
+            make_function_designator_operand(rout_sym,
+                                         (a_boolean)operand->is_qualified_name,
+                                             start_position,
+                                             (a_ref_entry_ptr)NULL,
+                                             operand);
+            conv_function_designator_to_ptr_to_function(operand,
+                                                        /*allow_ctor=*/FALSE);
+            cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
+                         /*is_implicit_cast=*/FALSE, 
+                         /*is_reinterpret_cast=*/FALSE,
+                         reinterpret_semantics);
 #if GNU_EXTENSIONS_ALLOWED
-        } else if (gcc_mode &&
-                   is_class_struct_union_type(type_cast_to) &&
-                   f_identical_types(f_skip_typerefs(source_type),
-                                     f_skip_typerefs(type_cast_to),
-                                     ITF_NO_FLAGS)) {
-          /* GNU C allows a do-nothing cast to a struct or union type.
-             The result does not change type (even if there is a cv-qualifier
-             difference implied) and it is not forced to an rvalue. */
-        } else if (gcc_mode && is_union_type(type_cast_to)) {
-          /* It may be possible to convert *operand to the type of one of
-             the members of the union.  If so, the conversion is allowed.
-             (This is not the case in GNU C++ mode.) */
-          a_field_ptr field =
+          } else if (gcc_mode && is_union_type(type_cast_to)) {
+            /* It may be possible to convert *operand to the type of one of
+               the members of the union.  If so, the conversion is allowed.
+               (This is not the case in GNU C++ mode.) */
+            a_field_ptr field =
                   transparent_union_conversion_possible(operand, type_cast_to);
-          if (field != NULL) {
-            /* Convert from the type of the field to the type of the
-               union, using a dynamic initializer generated on the fly. */
-            prep_transparent_union_conversion_operand(type_cast_to, field,
-                                                      operand);
-          } else {
-            err = TRUE;
-            pos_ty_error(ec_cast_to_bad_type, type_position,
-                         orig_type_cast_to);
-          }
+            if (field != NULL) {
+              /* Convert from the type of the field to the type of the
+                 union, using a dynamic initializer generated on the fly. */
+              prep_transparent_union_conversion_operand(type_cast_to, field,
+                                                        operand);
+            } else {
+              err = TRUE;
+              pos_ty_error(ec_cast_to_bad_type, type_position,
+                           orig_type_cast_to);
+            }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        } else {
-          /* Not a valid cast. */
-          err = TRUE;
-          if (is_class_struct_union_type(orig_type_cast_to)) {
-            /* Use a special clearer message for casting to a class. */
-            pos_ty_error(ec_cast_to_bad_type, type_position,
-                         orig_type_cast_to);
           } else {
-            /* Generic message. */
-            /* Note: If this is changed to display the types involved,
-               use orig_type_cast_to (because of the reference rewrite). */
-            pos_error(ec_bad_cast, start_position);
+            /* Not a valid cast. */
+            err = TRUE;
+            if (is_class_struct_union_type(orig_type_cast_to)) {
+              /* Use a special clearer message for casting to a class. */
+              pos_ty_error(ec_cast_to_bad_type, type_position,
+                           orig_type_cast_to);
+            } else {
+              /* Generic message. */
+              /* Note: If this is changed to display the types involved,
+                 use orig_type_cast_to (because of the reference rewrite). */
+              pos_error(ec_bad_cast, start_position);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
