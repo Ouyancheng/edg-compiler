@@ -1,5 +1,24 @@
 Version 2.23
 
+4/20/94  Cfront layout compatibility
+
+A bug that resulted in an internal error has been fixed.  Now the data
+section offset is set correctly for a virtual base class that is not
+embedded but is the direct base class of a complete base class.  Here's an
+example:
+
+  class V { };                       //         V
+  class A: public virtual V { };     //         |
+  class B { };                       //     B   A
+  class C: public B, public A { };   //      \ /
+  class D: public C { };             //       C
+  main() {                           //       |
+    D d;                             //       D
+  }
+
+Now the offset of V-in-D is computed correctly.  (Note: this bug appeared
+only when when CFRONT_OBJECT_CODE_COMPATIBILITY was configured to TRUE.)
+
 4/20/94  Operands of "?" operator in C++ mode
 
 The second and third operands of a "?" operator in C++ mode are treated
