@@ -1384,7 +1384,7 @@ not compared.
   a_boolean                     compatible = FALSE;
   a_boolean                     list1_prototyped, list2_prototyped;
   a_routine_type_supplement_ptr rtsp1, rtsp2, local_rtsp2;
-  a_type_ptr                    param_2_type;
+  a_type_ptr                    param_1_type, param_2_type;
 
   rout_type_1 = skip_typerefs(rout_type_1);
   rout_type_2 = skip_typerefs(rout_type_2);
@@ -1430,12 +1430,15 @@ not compared.
       for (; list1 != NULL && list2 != NULL;
            list1 = list1->next, list2 = list2->next) {
         /* Compare the parameter types, with the second parameter type
-           promoted appropriately if it is old-style. */
-        param_2_type = list2->type;
+           type promoted appropriately if it is old-style.
+           The type qualifiers (if any) on the parameter types
+           are ignored (ANSI C standard, 3.5.4.3). */
+        param_1_type = skip_typerefs(list1->type);
+        param_2_type = skip_typerefs(list2->type);
         if (!list2_prototyped) {
           param_2_type = default_argument_promotion(param_2_type);
         }  /* if */
-        if (!f_types_are_compatible(list1->type, param_2_type,
+        if (!f_types_are_compatible(param_1_type, param_2_type,
                                     allow_error_type)) {
           /* The parameter types are not compatible. */
           goto funcs_not_compatible;
@@ -2397,6 +2400,7 @@ is allocated, it is allocated in the file scope.
   a_param_type_ptr comp_param, comp_param_list, end_comp_param_list;
   a_boolean        comp_prototyped;
   an_expr_node_ptr comp_default_arg_expr;
+  a_type_ptr       param_1_type, param_2_type;
 
   db_enter(5, "composite_type");
 
@@ -2550,16 +2554,35 @@ is allocated, it is allocated in the file scope.
                 internal_error("composite_type: unequal length param lists");
               }  /* if */
 #endif /* CHECKING */
-              /* Compare the two parameter types against their composite
-                 type.  Stop if it is no longer true that one of the original
-                 parameter lists can serve as the composite list. */
-              comp_param_type = composite_type(param1->type, param2->type);
+              /* Form the composite of the two types.  If they have type
+                 qualifiers, make a type with the union of the qualifiers.
+                 That's a hole in the ANSI C standard (it makes parameters
+                 with differently-qualified types compatible, but does
+                 not define how to form the composite in that case). */
+              param_1_type = param1->type;
+              param_2_type = param2->type;
+              comp_param_type = composite_type(
+                                          make_unqualified_type(param_1_type),
+                                          make_unqualified_type(param_2_type));
+              if (is_qualified_type(param_1_type)) {
+                comp_param_type = type_plus_qualifiers_from_second_type(
+                                                               comp_param_type,
+                                                               param_1_type);
+              }  /* if */
+              if (is_qualified_type(param_2_type)) {
+                comp_param_type = type_plus_qualifiers_from_second_type(
+                                                               comp_param_type,
+                                                               param_2_type);
+              }  /* if */
               /* Form the composite of the C++ default argument expressions;
                  it's guaranteed that at most one of the parameter lists
                  has a default argument expression. */
               comp_default_arg_expr = (param1->default_arg_expr != NULL) ?
                                                      param1->default_arg_expr :
                                                      param2->default_arg_expr;
+              /* Compare the two parameter types against their composite
+                 type.  Stop if it is no longer true that one of the original
+                 parameter lists can serve as the composite list. */
               if (comp_param_type != param1->type ||
                   comp_default_arg_expr != param1->default_arg_expr) {
                 comp_equals_list1 = FALSE;

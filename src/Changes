@@ -1,5 +1,22 @@
 Version 2.08
 
+7/24/92  Handle parameter types with type qualifiers better
+
+Fixed a bug that gave an error on the following:
+
+  typedef char * caddr_t;
+  int foo(const caddr_t );
+  int foo(i) const caddr_t i; {}
+
+Also fixed a bug that gave an error on the following:
+
+  int f(const int); int f(int);
+
+See the ANSI C standard, 3.5.4.3.  This case is a little strange in that
+the C standard says the parameter types are compatible, but does not
+give a rule for forming the composite type.  We used the union of the
+type qualifiers (but it doesn't really matter).
+
 7/22/92  Change _vec_new et al for cfront compatibility
 
 The calls to allocate, deallocate, construct, and destruct class array
