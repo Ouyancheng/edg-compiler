@@ -2314,6 +2314,48 @@ entities.
 }  /* find_type_correspondence */
 
 
+static a_symbol_list_entry_ptr find_class_template_instantiation(
+                                       a_template_symbol_supplement_ptr  tssp,
+                                       a_symbol_ptr                      inst)
+/*
+Search the list of instantiations attached to the given template symbol
+supplement for an instantiation that matches inst.
+*/
+{
+  a_type_ptr  class_type = type_symbol_type(inst);
+  a_symbol_list_entry_ptr
+              sym_entry = tssp->all_instantiations;
+  a_class_type_supplement_ptr
+              ctsp = class_type->variant.class_struct_union.extra_info;
+
+  for (; sym_entry != NULL; sym_entry = sym_entry->next) {
+    a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
+    a_class_type_supplement_ptr
+                corresp_ctsp =
+                      corresp_type->variant.class_struct_union.extra_info;
+    /* Check that the template arguments and possibly the partial
+       specialization arguments are equivalent.  The ETA_IS_NONREAL_MEMBER
+       option allows differing length for the argument lists.  Do not confuse
+       a prototype instantiation with a similar nonreal instantiation. */
+    if (class_type->variant.class_struct_union.is_prototype_instantiation ==
+           corresp_type
+                    ->variant.class_struct_union.is_prototype_instantiation &&
+        equiv_template_arg_lists(ctsp->template_arg_list,
+                                 corresp_ctsp->template_arg_list,
+                                 ETA_NO_OPTIONS) &&
+        ((ctsp->partial_spec_template_arg_list == NULL &&
+          corresp_ctsp->partial_spec_template_arg_list == NULL) ||
+         equiv_template_arg_lists(
+                             ctsp->partial_spec_template_arg_list,
+                             corresp_ctsp->partial_spec_template_arg_list,
+                             ETA_IS_NONREAL_MEMBER))) {
+      break;
+    }  /* if */
+  }  /* for */
+  return sym_entry;
+}  /* find_class_template_instantiation */
+
+
 static void record_class_template_instantiation(a_symbol_ptr  inst)
 /*
 Search for an instantiation that corresponds to inst in a prior translation
@@ -2341,46 +2383,53 @@ symbol supplement.
     /* Mark the type as visited to avoid infinite recursion. */
     set_no_trans_unit_corresp(class_type);
     if (has_correspondence(templ)) {
-      a_class_type_supplement_ptr
-                    ctsp = class_type->variant.class_struct_union.extra_info;
-      sym_entry = corresp_tssp->all_instantiations;
-      for (; sym_entry != NULL; sym_entry = sym_entry->next) {
-        a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
-        a_class_type_supplement_ptr
-                    corresp_ctsp =
-                          corresp_type->variant.class_struct_union.extra_info;
-        /* Check that the template arguments and possibly the partial
-           specialization arguments are equivalent.  The ETA_IS_NONREAL_MEMBER
-           option allows differing length for the argument lists. */
-        if (equiv_template_arg_lists(ctsp->template_arg_list,
-                                     corresp_ctsp->template_arg_list,
-                                     ETA_NO_OPTIONS) &&
-            ((ctsp->partial_spec_template_arg_list == NULL &&
-              corresp_ctsp->partial_spec_template_arg_list == NULL) ||
-             equiv_template_arg_lists(
-                                 ctsp->partial_spec_template_arg_list,
-                                 corresp_ctsp->partial_spec_template_arg_list,
-                                 ETA_IS_NONREAL_MEMBER))) {
-          /* Restore the type to an unvisited state before setting the
-             correspondence (which will effectively remark it as visited). */
-          trans_unit_corresp_pointer_of(class_type) = NULL;
-          record_trans_unit_corresp(class_type, corresp_type);
-          establish_trans_unit_correspondences_for_class(class_type);
-          if (!sym_entry->symbol->defined && inst->defined) {
-            /* Prefer a definition as the representative. */
-            sym_entry->symbol = inst;
-          }  /* if */
-          break;
-        }  /* if */
-      }  /* for */
+      sym_entry = find_class_template_instantiation(corresp_tssp, inst);
     }  /* if */
     if (sym_entry == NULL) {
       /* The instantiation was not found on the canonical list.  Add it now. */
       add_instantiation(corresp_tssp, inst);
       set_no_class_type_correspondence(class_type);
+    } else {
+      /* Restore the type to an unvisited state before setting the
+         correspondence (which will effectively remark it as visited). */
+      a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
+      trans_unit_corresp_pointer_of(class_type) = NULL;
+      record_trans_unit_corresp(class_type, corresp_type);
+      establish_trans_unit_correspondences_for_class(class_type);
+      if (!sym_entry->symbol->defined && inst->defined) {
+        /* Prefer a definition as the representative. */
+        sym_entry->symbol = inst;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* record_class_template_instantiation */
+
+
+static a_symbol_list_entry_ptr find_function_template_instantiation(
+                                       a_template_symbol_supplement_ptr  tssp,
+                                       a_symbol_ptr                      inst)
+/*
+Search the list of instantiations attached to the given template symbol
+supplement for an instantiation that matches inst.
+*/
+{
+  a_symbol_list_entry_ptr  sym_entry = tssp->all_instantiations;
+  a_routine_ptr            routine = inst->variant.routine.ptr;
+  a_template_arg_ptr       templ_args = routine->template_arg_list;
+
+  for (; sym_entry != NULL; sym_entry = sym_entry->next) {
+    a_routine_ptr  corresp_routine = sym_entry->symbol->variant.routine.ptr;
+    if (identical_types(routine->type, corresp_routine->type) &&
+        /* The ETA_IS_NONREAL_MEMBER option allows comparisons between
+           template argument lists that are not known to match the same
+           template. */
+        equiv_template_arg_lists(corresp_routine->template_arg_list,
+                                 templ_args, ETA_IS_NONREAL_MEMBER)) {
+      break;
+    }  /* if */
+  }  /* for */
+  return sym_entry;
+}  /* find_function_template_instantiation */
 
 
 static void record_function_template_instantiation(
@@ -2401,29 +2450,20 @@ symbol supplement.
                   corresp_tssp =
                        ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
                          ->variant.template_info;
-  a_symbol_list_entry_ptr
-                  sym_entry = corresp_tssp->all_instantiations;
   a_routine_ptr   routine = inst->instance_sym->variant.routine.ptr;
-  a_template_arg_ptr
-                  templ_args = routine->template_arg_list;
+  a_symbol_list_entry_ptr
+                  sym_entry;
 
-  for (; sym_entry != NULL; sym_entry = sym_entry->next) {
-    a_routine_ptr  corresp_routine = sym_entry->symbol->variant.routine.ptr;
-    if (identical_types(routine->type, corresp_routine->type) &&
-        /* The ETA_IS_NONREAL_MEMBER option allows comparisons between
-           template argument lists that are not known to match the same
-           template. */
-        equiv_template_arg_lists(corresp_routine->template_arg_list,
-                                 templ_args, ETA_IS_NONREAL_MEMBER)) {
-      record_trans_unit_corresp(routine, corresp_routine);
-      break;
-    }  /* if */
-  }  /* for */
+  sym_entry = find_function_template_instantiation(corresp_tssp,
+                                                   inst->instance_sym);
   if (sym_entry == NULL) {
     /* The instantiation was not found on the canonical list.  Add it now. */
     add_instantiation(corresp_tssp, inst->instance_sym);
     /* There was no correspondence for that routine. */
     set_no_trans_unit_corresp(routine);
+  } else {
+    record_trans_unit_corresp(routine,
+                              sym_entry->symbol->variant.routine.ptr);
   }  /* if */
 }  /* record_function_template_instantiation */
 
@@ -2441,7 +2481,44 @@ template.
     /* Once errors have been detected correspondence checking is no
        longer done so there's no need to maintain this list. */
   } else if (is_primary_translation_unit) {
-    add_instantiation(tssp, inst);
+    if (is_class_struct_union_symbol(inst)) {
+      a_type_ptr               prim = type_symbol_type(inst);
+      if (prim->variant.class_struct_union.is_prototype_instantiation) {
+        /* Nothing to be done. */
+      } else {
+        a_symbol_list_entry_ptr
+                         slep = find_class_template_instantiation(tssp, inst);
+        if (slep == NULL) {
+          add_instantiation(tssp, inst);
+        } else if (slep->symbol != inst) {
+          /* This template class was presumably first instantiated in a
+             secondary translation unit, but now it is instantiated in the
+             primary translation unit.  The new instantiation should become
+             the canonical correspondence. */
+          a_type_ptr  sec = type_symbol_type(slep->symbol);
+          check_assertion(in_secondary_trans_unit(sec));
+          (void)seek_class_type_corresp(sec, prim);
+          if (inst->defined) {
+            slep->symbol = inst;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    } else if (is_function_symbol(inst)) {
+       a_symbol_list_entry_ptr
+                      slep = find_function_template_instantiation(tssp, inst);
+      if (slep == NULL) {
+        add_instantiation(tssp, inst);
+      } else {
+        /* This template class was presumably first instantiated in a
+           secondary translation unit, but now it is instantiated in the
+           primary translation unit.  The new instantiation should become
+           the canonical correspondence. */
+        a_routine_ptr  prim = inst->variant.routine.ptr,
+                       sec = slep->symbol->variant.routine.ptr;
+        check_assertion(in_secondary_trans_unit(sec));
+        set_trans_unit_corresp(sec, prim);
+      }  /* if */
+    }  /* if */
   } else if (correspondence_checking_done) {
     /* This is an instantiation in a secondary translation unit added
        after correspondence checking has been completed, so do catch-up
