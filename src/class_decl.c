@@ -3968,6 +3968,7 @@ using *pos as the error position.
   a_boolean      err;
   a_symbol_kind  using_sym_kind;
 
+  db_enter(4, "check_for_conflicts_with_using_decls");
   /* The first symbol on the overload list is the current declaration. */
   decl_sym = overload_sym->variant.overloaded_function.symbols;
   if (decl_sym->is_class_member) {
@@ -4010,6 +4011,7 @@ using *pos as the error position.
     }  /* if */
     prev_in_overload_set = sym;
   }  /* for */
+  db_exit();
 }  /* check_for_conflicts_with_using_decls */
 
 
@@ -4385,6 +4387,7 @@ void decl_member_function_template(a_symbol_locator     *locator,
   a_template_symbol_supplement_ptr   tssp;
   a_routine_ptr                      rtn;
   a_symbol_ptr                       sym, overload_sym;
+  a_class_symbol_supplement_ptr      cssp;
 
   db_enter(3, "decl_member_function_template");
   check_operator_function_params(member_type, class_type, locator);
@@ -4421,6 +4424,135 @@ void decl_member_function_template(a_symbol_locator     *locator,
        which they are members. */
     rtn->source_corresp.name_linkage = class_type->source_corresp.name_linkage;
     rtn->storage_class = (a_storage_class)sc_extern;
+  }  /* if */
+  if (locator->is_operator_name) {
+    /* Overloaded operator function. */
+    rtn->special_kind = (a_special_function_kind)sfk_operator;
+    rtn->opname_kind = locator->variant.opname;
+  } else if (locator->is_conversion_name) {
+    /* User-defined conversion function. */
+    rtn->special_kind = (a_special_function_kind)sfk_conversion;
+  }  /* if */
+  if (overload_sym != NULL) {
+    set_mixed_static_nonstatic_flag(overload_sym);
+  }  /* if */
+  cssp = symbol_supplement_for_class(class_type);
+  if (!is_error_locator(*locator)) {
+    /* Do processing for special member functions, including assignment
+       operators, constructors and destructors. */
+    if (locator->is_operator_name) {
+      /* If this is an assignment operator, record a pointer to it in the
+         symbol -- to facilitate generating default assignment operators. */
+      if (rtn->opname_kind == (an_opname_kind)onk_assign) {
+        if (cssp->assignment_operator == NULL) {
+          cssp->assignment_operator = sym;
+        } else if (cssp->assignment_operator->kind ==
+                                    (a_symbol_kind)sk_overloaded_function) {
+          /* The overloaded function symbol is already registered. */
+        } else {
+          /* The overloaded function symbol was just created. */
+          cssp->assignment_operator = overload_sym;
+        }  /* if */
+      } else if (rtn->opname_kind == (an_opname_kind)onk_new) {
+        cssp->has_operator_new = TRUE;
+      } else if (rtn->opname_kind == (an_opname_kind)onk_array_new) {
+        cssp->has_operator_array_new = TRUE;
+      } else if (rtn->opname_kind == (an_opname_kind)onk_delete) {
+        cssp->has_operator_delete = TRUE;
+      } else if (rtn->opname_kind == (an_opname_kind)onk_array_delete) {
+        cssp->has_operator_array_delete = TRUE;
+      } else if (rtn->opname_kind == (an_opname_kind)onk_arrow) {
+        /* For operator->() do a special check on the return type.  It must
+           be something that can be used as a pointer -- either a pointer
+           to a class or an object of or reference to a class for which
+           operator->() is defined (ARM 13.4.6). */
+        check_operator_arrow_return_type(rtn, /*is_expr_use=*/FALSE,
+                                         &locator->source_position);
+      }  /* if */
+    } else if (locator->is_conversion_name) {
+#if 0
+      /* User-defined conversion function. */
+      a_boolean  is_usable = TRUE;
+
+      /* Check the target type of the conversion -- which is the return type
+         of rout_type. */
+      tp = skip_typerefs(rtn->type);
+      tp = skip_typerefs(tp->variant.routine.return_type);
+      if (is_reference_type(tp)) {
+        tp = skip_typerefs(type_pointed_to(tp));
+      }  /* if */
+      if (tp == class_type) {
+        is_usable = FALSE;
+      } else if (is_class_struct_union_type(tp)) {
+        if (!cfront_2_1_mode && find_base_class_of(class_type, tp) != NULL) {
+          /* An operator that converts from a derived class to a base class
+             is allowed by cfront 2.1, but not by cfront 3.0. */
+          is_usable = FALSE;
+        } else {
+          /* The target type of the conversion is a class or ref-to-class
+             type: set a flag to mark it as target of a conversion. */
+          set_target_of_conversion_function_flag(tp);
+        }  /* if */
+      } else if (is_void_type(tp)) {
+        /* Except in cfront-compatibility mode, conversion to void type will
+           already have been checked for. */
+        check_assertion(any_cfront_mode());
+        is_usable = FALSE;
+      }  /* if */
+      if (is_usable) {
+        /* Create a conversion list entry.  This list provides an alternative
+           to traversing the entire symbols list for a class to find its
+           conversion functions. */
+        add_to_conversion_list(sym, cssp);
+      } else {
+        /* Conversion to the same type or a reference to the same type or to
+           a base class or a reference to a base class "is never used" (WP
+           12.3.2; that is, it is not used in implicit or explicit conversions
+           but only in an explicit invocations of the function). */
+        pos_sy_warning(ec_conversion_function_not_usable,
+                       &locator->source_position, sym);
+      }  /* if */
+#endif /* if 0 */
+    }  /* if */
+    if (dso_flags & DSO_CONSTRUCTOR) {
+      rtn->special_kind == (a_special_function_kind)sfk_constructor;
+      /* Set the pointer to the constructor symbol in the class symbol
+         supplement. */
+      if (cssp->constructor == NULL) {
+        cssp->constructor = sym;
+      } else if (cssp->constructor->kind ==
+                                  (a_symbol_kind)sk_overloaded_function) {
+        /* The overloaded function symbol is already registered. */
+      } else {
+        /* The overloaded function symbol was just created. */
+        cssp->constructor = overload_sym;
+      }  /* if */
+#if 0
+      /* Determine if this is a default constructor. */
+      if (is_default_constructor(rtn, /*is_declarative_context=*/TRUE)) {
+        cssp->has_default_constructor = TRUE;
+      }  /* if */
+      /* Determine if this is a copy constructor.  If so, set the class symbol
+         supplement flags appropriately. */
+      if (is_copy_constructor(rtn, class_type, &qualifiers,
+                              /*is_declarative_context=*/TRUE)) {
+        cssp->has_copy_constructor = TRUE;
+        cssp->has_copy_constructor_for_const_object |= 
+                                               ((qualifiers & TQ_CONST) != 0);
+        if (!compiler_generated) {
+          /* If a user-defined copy constructor is declared for the class,
+             construction by bitwise copying is not allowed.  (On the other
+             hand, this flag *may* be TRUE even when the compiler generates a
+             a copy constructor.) */
+          cssp->construction_by_bitwise_copy_allowed = FALSE;
+        }  /* if */
+      }  /* if */
+#endif /* if 0 */
+    }  /* if */
+    update_routine_decl_modifiers(rtn, decl_modifiers,
+                                  &locator->source_position,
+                                  /*is_redecl=*/FALSE,
+                                  (a_boolean)func_info->is_definition);
   }  /* if */
   *symbol_ptr = sym;
   db_exit();
