@@ -1,5 +1,13 @@
 Version 2.43
 
+8/17/99  Strict error for missing typedef declarator in strict ANSI C++ mode
+
+In strict ANSI C++ mode, the front end now more consistently issues an error
+(instead of a warning) on typedef declarations that miss a declarator.
+For example:
+
+  typedef enum {}; /* Error in strict ANSI C++ mode; warning otherwise. */
+
 8/17/99  New and delete operators cannot have internal linkage
 
 The front end now diagnoses attempts to declare new and delete operators as

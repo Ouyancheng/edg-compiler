@@ -8455,8 +8455,8 @@ TRUE if an error was reported while the decl-specifiers were scanned.
       if (storage_class == (a_storage_class)sc_typedef) {
         /* Typedef declaration with no declarator. */
         severity = es_warning;
-        if (declares_something ||
-            (defines_something && is_enum_type(type_ptr))) {
+        if (C_mode() && (declares_something ||
+                         (defines_something && is_enum_type(type_ptr)))) {
           /* No error on a case like "typedef struct S { int i; };" or
              "typedef enum { red, green, blue };" -- see first constraint,
              Section 3.5 of the ANSI C standard.  However, a warning should
