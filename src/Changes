@@ -1,5 +1,18 @@
 Version 2.46
 
+1/16/01  Abort when parsing members of classes nested in templates for
+         some configurations
+
+When both NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and
+PROTOTYPE_INSTANTIATIONS_IN_IL are TRUE the front end used to abort while
+parsing members of class nested in class templates.
+
+  template<class T> struct X {
+    struct N { T f(); };  // Used to cause an abort with --parse_templates
+  };
+
+This is now fixed.
+
 1/16/01  Missing default member functions in prototype instantiations
 
 The front end used to omit the generation of default member functions in
