@@ -5415,6 +5415,14 @@ be delayed until the end of the compilation.
        externalized too, and we can't generate the externalized name
        now because we don't have the module id yet. */
     delay_lowering = TRUE;
+#if GNU_EXTENSIONS_ALLOWED && COMPILE_MULTIPLE_TRANSLATION_UNITS
+  } else if (routine->is_weak) {
+    /* Correspondence checking can choose a secondary translation unit
+       function with a definition as canonical instead of a weak primary
+       translation unit function with a definition, so don't allow a weak
+       definition to be closed out before it might get deleted. */
+    delay_lowering = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED && COMPILE_MULTIPLE_TRANSLATION_UNITS */
   }  /* if */
   if (delay_lowering) {
     function_body_processing_delayed_on_some_func_in_primary_il = TRUE;
