@@ -5121,7 +5121,7 @@ Return TRUE if the parameter lists are compatible.  Otherwise, return FALSE.
       a_boolean new_has_default;
       old_has_default = old_tpp->has_default_arg;
       new_has_default = new_tpp->has_default_arg;
-      if (old_has_default && new_has_default && !microsoft_mode) {
+      if (old_has_default && new_has_default && !microsoft_bugs) {
         /* This parameter already has a default argument.  The
            Microsoft compiler permits this, and uses the new value. */
         pos_error(ec_default_arg_already_defined, &

@@ -110,6 +110,7 @@ typedef enum /*an_option_kind*/ {
   optk_far_data_pointers,
   optk_far_code_pointers,
   optk_microsoft_version,
+  optk_microsoft_bugs,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_wchar_t_is_keyword,
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -628,11 +629,20 @@ EXTERN a_boolean
 #endif /* VAR_INITIALIZERS */
                                                        ;
 			/* TRUE if Microsoft extensions are to be accepted. */
+
+EXTERN a_boolean
+		microsoft_bugs
+#if VAR_INITIALIZERS
+                               = DEFAULT_MICROSOFT_BUGS
+#endif /* VAR_INITIALIZERS */
+                                                       ;
+			/* TRUE if Microsoft bugs are to be emulated. */
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-/* When Microsoft mode is unavailable, replace the variable with a macro.
-   This will allow optimizers to remove some useless code when the front-end
-   itself is compiled. */
+/* When Microsoft mode is unavailable, replace the variables for Microsoft
+   mode and Microsoft bugs with macros.  This will allow optimizers to remove
+   some useless code when the front-end itself is compiled. */
 #define microsoft_mode (FALSE)
+#define microsoft_bugs (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 EXTERN a_boolean

@@ -420,6 +420,12 @@ Initialize the option information table.
   add_option_description(optk_microsoft_version, "microsoft_version",
                          '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_bugs, "microsoft_bugs",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_microsoft_bugs, "no_microsoft_bugs",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if WCHAR_T_ENABLING_POSSIBLE
   add_option_description(optk_wchar_t_is_keyword, "wchar_t_keyword",
@@ -1540,6 +1546,12 @@ common_cfront_mode_settings:
         long_lifetime_temps = opt_value;
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
+      case optk_microsoft_bugs:
+        /* Enable or disable the emulation of Microsoft bugs. */
+        microsoft_bugs = opt_value;
+        /* Now enable Microsoft mode. */
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
       case optk_microsoft_version:
         /* The version of the Microsoft compiler being emulated. */
         microsoft_version = scan_opt_arg_number(opt_arg);
@@ -1547,8 +1559,9 @@ common_cfront_mode_settings:
           str_command_line_error(ec_cl_invalid_microsoft_version, opt_arg);
         }  /* if */
         opt_value = TRUE;
-        /* Note -- falls into setting microsoft mode. */
+        goto enable_microsoft_mode;
       case optk_microsoft_mode:
+enable_microsoft_mode:
         /* Enable or disable Microsoft extensions, in 32-bit mode. */
         microsoft_mode = opt_value;
         il_header.microsoft_16_mode = FALSE;
@@ -1872,13 +1885,15 @@ common_cfront_mode_settings:
     /* Strict ANSI mode is incompatible with Microsoft mode. */
     if (microsoft_mode) {
       if (option_kind_used[(int)optk_microsoft_mode] ||
-          option_kind_used[(int)optk_microsoft_version]) {
+          option_kind_used[(int)optk_microsoft_version] ||
+          option_kind_used[(int)optk_microsoft_bugs]) {
         /* Microsoft mode was enabled by a command line option. */
         command_line_error(ec_cl_strict_ansi_incompatible_with_microsoft);
       } else {
         /* Microsoft mode enabled by default.  Silently disable it in
            strict mode. */
         microsoft_mode = FALSE;
+        microsoft_bugs = FALSE;
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2029,6 +2044,8 @@ common_cfront_mode_settings:
       command_line_error(ec_cl_cfront_incompatible_with_microsoft);
     }  /* if */
   } else {
+    /* Microsoft mode is not being used. */
+    microsoft_bugs = FALSE;
     il_header.microsoft_16_mode = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

@@ -274,6 +274,18 @@ be modified by a command line option.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
+Flag that is TRUE to enable Microsoft bug emulation as the default when
+Microsoft mode is used.  This is the default value used to initialize
+microsoft_bugs (but only when microsoft_mode is TRUE).  This may be modified
+by a command line option.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#ifndef DEFAULT_MICROSOFT_BUGS
+#define DEFAULT_MICROSOFT_BUGS TRUE
+#endif /* ifndef DEFAULT_MICROSOFT_BUGS */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
 Flag that is TRUE to enable Microsoft 16-bit mode as the default mode.  This
 is the default value used to initialize il_header.microsoft_16_mode, which is
 a sub-option under microsoft_mode.  This may be modified by a command line
