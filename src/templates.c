@@ -10353,6 +10353,7 @@ resulting constant is stored in the pointer pointed to by "constant".
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean				type_involves_template_param;
   a_boolean				constant_involves_template_param;
+  static unsigned int			pending_instantiations = 0;
 
   type_involves_template_param =
                param_ptr->variant.constant.type_involves_template_param;
@@ -10364,28 +10365,37 @@ resulting constant is stored in the pointer pointed to by "constant".
   saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (type_involves_template_param) {
-    /* Push the template instantiation scope.  Note that the instance symbol
-       passed to push_scope is NULL because we don't yet know which instance
-       is being instantiated.  Also note that a class type is not being
-       passed for the same reason. */
-    push_template_instantiation_scope(param_ptr->cache.decl_info,
-  				      (a_type_ptr)NULL,
-				      (a_routine_ptr)NULL,
-				      (a_symbol_ptr)NULL,
-				      template_sym, arg_list,
-                                      /*push_stop_tokens=*/TRUE,
-				      PS_NO_OPTIONS);
-    /* Rescan the tokens of the function declaration. */
-    rescan_reusable_cache(&param_ptr->cache.tokens);
-    /* Scan the declaration specifiers. */
-    scan_a_template_parameter_declaration(&param_locator, &constant_type,
-                                          (a_boolean*)NULL);
-    /* Skip past any tokens remaining in the cache.  Extra tokens will
-       be present under certain error conditions and when a default argument
-       has been supplied. */
-    flush_past_token_cache_terminator();
-    /* Pop the template instantiation scope. */
-    pop_template_instantiation_scope();
+    if (pending_instantiations == max_pending_instantiations) {
+      error(ec_recursive_inst_of_templ_default_arg);
+      constant_type = error_type();
+    } else {
+      /* Increment the count of pending default argument instantiations.
+         This is used to detect infinite recursion. */
+      ++pending_instantiations;
+      /* Push the template instantiation scope.  Note that the instance symbol
+         passed to push_scope is NULL because we don't yet know which instance
+         is being instantiated.  Also note that a class type is not being
+         passed for the same reason. */
+      push_template_instantiation_scope(param_ptr->cache.decl_info,
+  				        (a_type_ptr)NULL,
+				        (a_routine_ptr)NULL,
+				        (a_symbol_ptr)NULL,
+				        template_sym, arg_list,
+                                        /*push_stop_tokens=*/TRUE,
+				        PS_NO_OPTIONS);
+      /* Rescan the tokens of the function declaration. */
+      rescan_reusable_cache(&param_ptr->cache.tokens);
+      /* Scan the declaration specifiers. */
+      scan_a_template_parameter_declaration(&param_locator, &constant_type,
+                                            (a_boolean*)NULL);
+      /* Skip past any tokens remaining in the cache.  Extra tokens will
+         be present under certain error conditions and when a default argument
+         has been supplied. */
+      flush_past_token_cache_terminator();
+      /* Pop the template instantiation scope. */
+      pop_template_instantiation_scope();
+      --pending_instantiations;
+    }  /* if */
   } else {
     constant_type = param_sym->variant.constant->type;
   }  /* if */
@@ -10397,21 +10407,31 @@ resulting constant is stored in the pointer pointed to by "constant".
     a_boolean	dependent_arg_list;
     dependent_arg_list = template_arg_list_involves_template_param(arg_list);
     if (constant_involves_template_param && !dependent_arg_list) {
-      /* Push the template instantiation scope.  See note above regarding
-         the instance symbol and class type. */
-      a_template_cache_ptr	tcp = &param_ptr->default_arg_cache;
-      push_template_instantiation_scope(tcp->decl_info,
-					(a_type_ptr)NULL,
-					(a_routine_ptr)NULL,
-					(a_symbol_ptr)NULL,
-					template_sym, arg_list,
-                                        /*push_stop_tokens=*/TRUE,
-					PS_NO_OPTIONS);
-      rescan_reusable_cache(&tcp->tokens);
-      *constant = fs_constant((a_constant_repr_kind)ck_error);
-      delayed_scan_of_template_default_arg_expr(constant_type, *constant);
-      /* Pop the template instantiation scope. */
-      pop_template_instantiation_scope();
+      if (pending_instantiations == max_pending_instantiations) {
+        error(ec_recursive_inst_of_templ_default_arg);
+        *constant = alloc_error_constant();
+      } else {
+        a_template_cache_ptr	tcp;
+        /* Increment the count of pending default argument instantiations.
+           This is used to detect infinite recursion. */
+        ++pending_instantiations;
+        /* Push the template instantiation scope.  See note above regarding
+           the instance symbol and class type. */
+        tcp = &param_ptr->default_arg_cache;
+        push_template_instantiation_scope(tcp->decl_info,
+					  (a_type_ptr)NULL,
+				  	  (a_routine_ptr)NULL,
+				 	  (a_symbol_ptr)NULL,
+					  template_sym, arg_list,
+                                          /*push_stop_tokens=*/TRUE,
+					  PS_NO_OPTIONS);
+        rescan_reusable_cache(&tcp->tokens);
+        *constant = fs_constant((a_constant_repr_kind)ck_error);
+        delayed_scan_of_template_default_arg_expr(constant_type, *constant);
+        /* Pop the template instantiation scope. */
+        pop_template_instantiation_scope();
+        --pending_instantiations;
+      }  /* if */
     } else {
       *constant = param_ptr->default_arg.constant;
     }  /* if */
