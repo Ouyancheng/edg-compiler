@@ -6574,8 +6574,7 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            if (num_specifiers > 0) vacuous_decl_allowed = FALSE;
-            enum_specifier(vacuous_decl_allowed, type_ptr,
+            enum_specifier(/*vacuous_decl_allowed=*/FALSE, type_ptr,
                            &declares_something, &defines_something);
             basic_type = bt_enum;
             is_elaborated_type_specifier = TRUE;
