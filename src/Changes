@@ -1,5 +1,16 @@
 Version 2.44
 
+1/20/00  Possible abort on definition of nested class
+
+An invalid memory reference occurred when a nested class was declared
+and later defined.  This could potentially cause an abort or other
+unspecified behavior.  This has been fixed.
+
+  class A {
+    class B;
+    class B  { };
+  };
+
 1/19/00  Alternate implementation of extern inline functions
 
 A new mechanism for providing out-of-line definitions of extern

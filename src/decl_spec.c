@@ -2137,7 +2137,9 @@ the template.
       class_type->kind = type_kind;
       /* If this is a nested class of a class template, update the type kind
          associated with the template. */
-      update_nested_template_class_symbol_info(tag_sym, type_kind);
+      if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
+        update_nested_template_class_symbol_info(tag_sym, type_kind);
+      }  /* if */
     }  /* if */
     /* Record cross-reference information. */
     if (is_class_definition || is_predeclared_type_decl ||
