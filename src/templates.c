@@ -3278,6 +3278,12 @@ entry is pushed on the scope stack.
     internal_error("template_declaration: expected tok_template");
   }  /* if */
 #endif /* CHECKING */
+  /* Move cached #pragma declarations (if any) to the current scope stack
+     entry so they can be examined and acted upon in subsequent processing. */
+  select_pragmas_bound_to_curr_decl_or_stmt(
+                                       /*decl_allowed=*/TRUE,
+                                       /*stmt_allowed=*/FALSE,
+                                       /*merge_with_existing_list=*/FALSE);
   saved_curr_default_args = curr_default_args;
   curr_default_args = NULL;
   *defines_something = FALSE;
