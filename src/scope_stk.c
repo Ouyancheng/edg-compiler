@@ -4727,7 +4727,8 @@ Return TRUE if there is a reason why the lowering of the function should
 be delayed until the end of the compilation.
 */
 {
-  a_boolean delay_lowering = FALSE;
+  a_boolean   delay_lowering = FALSE;
+  a_scope_ptr scope = il_header.region_scope_entry[routine->assoc_scope];
 
   check_assertion(!in_secondary_trans_unit(routine));
   if (secondary_translation_unit_seen()) {
@@ -4738,7 +4739,8 @@ be delayed until the end of the compilation.
        finish_processing_for_function_bodies. */
     delay_lowering = TRUE;
   } else if (!C_mode() && export_template_allowed &&
-             routine->storage_class == (a_storage_class)sc_static) {
+             routine->storage_class == (a_storage_class)sc_static &&
+             (scope->variables != NULL || scope->scopes != NULL)) {
     /* When exported templates are allowed, a static function might be
        externalized because it might be referenced by a template.
        If it has local static variables, they might have to be
