@@ -8776,6 +8776,9 @@ is a recursive call for a class nested within the template class.
      not for pragmas. */
   if (!is_pragma && top_level) check_instantiation_scope(sym);
   class_type = sym->variant.class_struct_union.type;
+  /* The members of the class will be instantiated. Consider this to
+     be a reference of this class. */
+  class_type->source_corresp.referenced = TRUE;
   if (pragma_kind == (a_pragma_kind)pk_can_instantiate) {
     /* The can_instantiate pragma is a special case.  Instead of
        processing the class now we simply put the class on a list
