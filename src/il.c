@@ -7266,7 +7266,7 @@ about it).
       a_constant_ptr  cp;
       cp = ((a_switch_clause_ptr)olp->entity.ptr)->constant_list;
       if (cp != NULL) {
-        fprintf(f_debug, "case ", str);
+        fputs("case ", f_debug);
         db_constant(cp);
         fputc(' ', f_debug);
       } else {
