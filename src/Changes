@@ -1,5 +1,16 @@
 Version 2.29
 
+5/23/95  More efficient mechanism for recording array sizes in runtime
+
+When an array is allocated by the new operator, the runtime needs to
+record the size of the array so that it can be destroyed correctly
+when it is deleted.  A more efficient mechanism for doing this is
+now provided.  The old mechanism is still used for ABI versions
+earlier than 2.29.  Strictly speaking, the mechanism for recording
+this information is not an ABI issue, but the mechanism used can
+change the behavior of programs that use certain undefined operations.
+See the runtime Changes file for more information.
+
 5/22/95  Cross-reference output for undefined identifier in constant expr
 
 A reference to an undefined identifier in a constant expression now

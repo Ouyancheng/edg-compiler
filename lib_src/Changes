@@ -1,5 +1,36 @@
 Version 2.29
 
+5/23/95   More efficient means of record array sizes
+
+When an array is allocated by the new operator, the runtime needs to
+record the size of the array so that it can be destroyed correctly
+when it is deleted.  Through version 2.28, the algorithm used to
+record this information was simply a linked list of allocations.
+This was intended as a sample implementation and not intended for
+production use.  The runtime now supports a new mechanism in which
+the array size is recorded in a prefix block that is allocated as
+part of the array allocation.  The new mechanism is used by default
+with ABI versions >= 2.29, but may be explicitly enabled or disabled
+using the USE_PREFIX_FOR_ARRAY_ALLOC_INFO flag in the config.h file.
+
+vec_newdel.c has been restructured to make it easier to change the
+mechanism used to record the array size.  Operations that were
+formerly part of _vec_new and __vec_delete have been separated
+out into alloc_array, free_array, record_array_alloc_info, 
+
+The new mechanism is permitted by the rules specified in the Working
+Paper, but may cause a change in behavior in programs that use
+certain undefined operations.  For example, a program that allocates
+memory using array new, but frees the memory using nonarray delete
+could result in a runtime abort where none occurred previously.
+
+5/23/95   Array new and delete
+
+Default operator new[] and operator delete[] routines are now provides.
+By default, these are only supported for ABI versions >= 2.29.
+New interface routines called __array_new and __array_delete are
+provided.
+
 4/19/95   New throw interface
 
 A new runtime routine named __throw_setup has been added.  This routine
