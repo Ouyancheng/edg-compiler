@@ -3924,6 +3924,15 @@ after_check:
       }  /* if */
       push_object_lifetime(entity_kind, entity_ptr,
                          (an_object_lifetime_kind)olk_block_after_label);
+      if (top_sssep->kind == (a_struct_stmt_kind)ssk_compound) {
+        /* If the current structured statement is a compound statement,
+           update its curr_block_object_lifetime; */
+        top_sssep->curr_block_object_lifetime = curr_object_lifetime;
+      }  /* if */
+      if (label_directly_in_switch) {
+        /* Update the object lifetime in the ssk_switch entry. */
+        sssep->curr_block_object_lifetime = curr_object_lifetime;
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
