@@ -1,5 +1,10 @@
 Version 2.34
 
+12/12/96 C++-generating back end: access specifier on member template
+
+The C++-generating back end now puts out an access specifier on a
+member template, if necessary.
+
 12/12/96 Undefined inline virtual functions
 
 The checking for undefined inline virtual functions in non-local classes
