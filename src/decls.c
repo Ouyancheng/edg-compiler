@@ -4927,21 +4927,6 @@ otherwise it is NULL.  The syntax is:
                   }  /* if */
                 }  /* if */
               }  /* if */
-              if (input_flags & DI_IS_TEMPLATE_DECLARATION) {
-                if (symbol_supplement_for_class(member_parent_type)->
-                                                          is_nonreal_class) {
-                  /* Okay -- sym is a member of a class template or of a
-                     class nested within a class template. */
-                } else {
-                  /* Not a member of a class template. */
-                  a_type_ptr  tp = member_parent_type;
-                  while (tp->source_corresp.class_of_which_a_member != NULL) {
-                    tp = tp->source_corresp.class_of_which_a_member;
-                  }  /* while */
-                  pos_ty_error(ec_not_a_class_template, &pos_curr_token, tp);
-                  err = TRUE;
-                }  /* if */
-              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
