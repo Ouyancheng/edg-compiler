@@ -8340,6 +8340,8 @@ to the compound literal.
   if (is_static) switch_to_file_scope_region(&region_to_switch_back_to);
   /* Scan the brace-enclosed initializer. */
   scan_compound_literal_initializer(&literal_type, is_static, &dip);
+  /* No dynamic init entry will be returned if an error occurred. */
+  if (dip == NULL) err = TRUE;
   /* The type can be updated for an incomplete array. */
   *p_literal_type = literal_type;
   restore_expr_stack(saved_expr_stack);
