@@ -114,9 +114,9 @@ namespace __cxxabiv1 {
     /* Constructors return void in the IA-64 ABI.  But in the ARM EABI
        variant, they return void*. */
 #ifdef __EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
-    typedef void* ctor_dtor_return_type;
+    typedef void* __ctor_dtor_return_type;
 #else /* ifndef __EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
-    typedef void ctor_dtor_return_type;
+    typedef void __ctor_dtor_return_type;
 #endif /* ifdef __EDG_IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS */
 
     /* Guard variables are 64 bits in the IA-64 ABI but only 32 bits in
@@ -135,34 +135,36 @@ namespace __cxxabiv1 {
 
     /* Construction and destruction of arrays. */
     void *__cxa_vec_new(size_t, size_t, size_t,
-                        ctor_dtor_return_type (*)(void *),
-                        ctor_dtor_return_type (*)(void *));
+                        __ctor_dtor_return_type (*)(void *),
+                        __ctor_dtor_return_type (*)(void *));
     void *__cxa_vec_new2(size_t, size_t, size_t,
-                         ctor_dtor_return_type (*)(void *),
-                         ctor_dtor_return_type (*)(void *), void *(*)(size_t),
+                         __ctor_dtor_return_type (*)(void *),
+                         __ctor_dtor_return_type (*)(void *),
+                         void *(*)(size_t),
                          void (*)(void *));
     void *__cxa_vec_new3(size_t, size_t, size_t,
-                         ctor_dtor_return_type (*)(void *),
-                         ctor_dtor_return_type (*)(void *), void *(*)(size_t),
+                         __ctor_dtor_return_type (*)(void *),
+                         __ctor_dtor_return_type (*)(void *),
+                         void *(*)(size_t),
                          void (*)(void *, size_t));
     void __cxa_vec_ctor(void *, size_t, size_t,
-                        ctor_dtor_return_type (*)(void *),
-                        ctor_dtor_return_type (*)(void *));
+                        __ctor_dtor_return_type (*)(void *),
+                        __ctor_dtor_return_type (*)(void *));
     void __cxa_vec_dtor(void *, size_t, size_t,
-                        ctor_dtor_return_type (*)(void *));
+                        __ctor_dtor_return_type (*)(void *));
     void __cxa_vec_cleanup(void *, size_t, size_t,
-                           ctor_dtor_return_type (*)(void *));
+                           __ctor_dtor_return_type (*)(void *));
     void __cxa_vec_delete(void *, size_t, size_t,
-                          ctor_dtor_return_type (*)(void *));
+                          __ctor_dtor_return_type (*)(void *));
     void __cxa_vec_delete2(void *, size_t, size_t,
-                           ctor_dtor_return_type (*)(void *),
+                           __ctor_dtor_return_type (*)(void *),
                            void (*)(void *));
     void __cxa_vec_delete3(void *, size_t, size_t,
-                           ctor_dtor_return_type (*)(void *),
+                           __ctor_dtor_return_type (*)(void *),
                            void (*)(void *, size_t));
     void __cxa_vec_cctor(void *, void *, size_t, size_t, 
-                         ctor_dtor_return_type (*)(void *, void *),
-                         ctor_dtor_return_type (*)(void *));
+                         __ctor_dtor_return_type (*)(void *, void *),
+                         __ctor_dtor_return_type (*)(void *));
 
     /* Finalization. */
     int __cxa_atexit(void (*)(void *), void *, void *);
