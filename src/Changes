@@ -1,5 +1,15 @@
 Version 2.37
 
+7/31/97   Cast of template-parameter-based expression to bool type
+
+A cast of a template-parameter-based expression to bool type was
+rejected during the prototype instantiation of a template.  Now fixed.
+
+  template <bool b> struct B {};
+  template <class T> struct A {
+    B<bool(T::X)> b;
+  };
+
 7/31/97   Implicit conversion of pointer-to-function to void * nonstandard
 
 The implicit conversion of a pointer-to-function to void * was allowed

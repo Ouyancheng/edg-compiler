@@ -5751,10 +5751,9 @@ this routine is called.
   a_boolean  err = FALSE;
   a_type_ptr source_type = operand->type;
 
-  if (is_template_param_type(dest_type)) {
-    /* Casting to a template parameter (unknown) type.  Assume okay,
-       but produce an error operand. */
-    err = TRUE;
+  if (is_template_param_type(dest_type) ||
+      is_template_param_type(source_type)) {
+    /* Casting to or from a template parameter (unknown) type.  Assume okay. */
   } else if (curr_expr_kind_is(ek_integral_constant)) {
     /* Only casts from arithmetic to integral or enum types are permitted in
        integral constant expressions. */
