@@ -1711,15 +1711,15 @@ done:
 
 static a_boolean is_primary_virtual_base(a_base_class_ptr  bcp)
 /*
-Return TRUE if and only if bcp has a single derivation path and is a primary
-virtual base of the class of which it is a direct derivation.
+Return TRUE if and only if bcp has a derivation path on which it is a primary
+virtual base of a class directly derived from it.
 */
 {
   a_boolean                    result = FALSE;
   a_base_class_derivation_ptr  dp = bcp->derivation;
 
   check_assertion(bcp->is_virtual);
-  if (dp->next == NULL) {
+  do {
     a_derivation_step_ptr  sp = dp->path;
     while (sp->next != NULL && sp->next->next != NULL) {
       sp = sp->next;
@@ -1729,7 +1729,8 @@ virtual base of the class of which it is a direct derivation.
         result = TRUE;
       }  /* if */
     }  /* if */
-  }  /* if */
+    dp = dp->next;
+  } while (!result && dp != NULL);
   return result;
 }  /* is_primary_virtual_base */
 
