@@ -1341,6 +1341,7 @@ Syntax:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (overloaded_function_case) {
+    a_boolean         have_selector;
     a_source_position id_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     /* Save the end position for later restoration. */
@@ -1355,12 +1356,12 @@ Syntax:
     }  /* if */
     /* Choose the proper function out of a set of overloaded functions based
        on the argument types. */
+    have_selector = (operand->bound_function || try_surrogate_functions);
     routine_type = select_and_prepare_to_call_overloaded_function(
                                             overloaded_function_symbol,
                                             (a_boolean)operand->is_template_id,
                                             operand->template_arg_list,
-                                            operand->bound_function ||
-                                              try_surrogate_functions,
+                                            have_selector,
                                             bound_function_selector,
                                             arg_operand_list,
                                             arg_dependent_lookup_enabled &&
@@ -1392,6 +1393,13 @@ Syntax:
                                             (a_boolean)operand->is_template_id,
                                             operand->template_arg_list,
                                             operand);
+      if (have_selector) {
+        /* This comes up with operator() cases. */
+        a_boolean is_arrow_operator = TRUE;
+        combine_unneeded_selector_with_operand(bound_function_selector,
+                                               &is_arrow_operator,
+                                               operand);
+      }  /* if */
     } else if (routine_type == NULL) {
       /* None of the overloaded functions matches the argument list. */
       make_error_operand(operand);
