@@ -1774,6 +1774,18 @@ initial value of the global variable msvc_is_generated_code_target.
 #define MSVC_IS_GENERATED_CODE_TARGET FALSE
 #endif /* EDG_WIN32 */
 #endif /* ifndef MSVC_IS_GENERATED_CODE_TARGET */
+
+/*
+When generating code to be compiled with the Microsoft compiler,
+this macro specifies the version of the compiler being used.  This effects,
+for example, the static initialization method used by the generated
+code.  The number is the major release number of a Microsoft C/C++
+compiler release.
+*/
+#ifndef MSVC_TARGET_VERSION
+#define MSVC_TARGET_VERSION 7
+#endif /* MSVC_TARGET_VERSION */
+
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE

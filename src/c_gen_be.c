@@ -7597,9 +7597,11 @@ if this routine has a body (dump nothing if it has no body).
           dump_sunpro_init_pragma(rout, (char*)NULL);
       } else {
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
-        if (msvc_is_generated_code_target) {
+        if (msvc_is_generated_code_target &&
+            msvc_target_version >= 7) {
           /* Generate a special code sequence that the Microsoft compiler uses
-             to specify that a routine should be called at program startup. */
+             to specify that a routine should be called at program startup.
+             This pragma is only supported by MSVC version 7.0 and beyond. */
           dump_msvc_init_pragma(rout, (char*)NULL);
         }  /* if */
       }  /* if */
@@ -7745,9 +7747,11 @@ by IL lowering.
       file_scope_init_routine_called = TRUE;
     }  /* if */
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
-    if (!file_scope_init_routine_called && msvc_is_generated_code_target) {
+    if (!file_scope_init_routine_called && msvc_is_generated_code_target &&
+        msvc_target_version >= 7) {
       /* Generate a special code sequence that the Microsoft compiler uses
-         to specify that a routine should be called at program startup. */
+         to specify that a routine should be called at program startup.
+         This pragma is only supported by MSVC version 7.0 and beyond. */
       dump_msvc_init_pragma((a_routine_ptr)NULL, name);
       file_scope_init_routine_called = TRUE;
     }  /* if */

@@ -390,6 +390,9 @@ Initialize the option information table.
   add_option_description(optk_gen_c_file_name, "gen_c_file_name",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+  add_option_description(optk_msvc_target_version, "msvc_target_version",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   add_option_description(optk_create_pch, "create_pch",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
@@ -3028,6 +3031,10 @@ Process the arguments on the command line that invoked the compiler.
       case optk_gen_c_file_name:
         /* The name to be used for the generated C file. */
         gen_c_file_name = opt_arg;
+        break;
+      case optk_msvc_target_version:
+        /* The Microsoft C/C++ compiler being targeted. */
+        msvc_target_version = scan_opt_arg_number(opt_arg);
         break;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
       case optk_create_pch:

@@ -518,9 +518,15 @@ of unexpected_condition_str.  Fixed.
 
 5/23/02  Static initialization on Windows
 
-The C generating back end now emits a Microsoft-specific code sequence to
-get static initialization routines invoked at program startup.  This code
-is emitted if MSVC_IS_GENERATED_CODE_TARGET is TRUE.
+Version 7 of the Microsoft C compiler supports a pragma that can be
+used to perform static initializations at program startup.  A new
+configuration macro, MSVC_TARGET_VERSION, specifies the default
+Microsoft version being targeted when MSVC_IS_GENERATED_CODE_TARGET
+is TRUE.  The C generating back end now emits the new pragma to get
+static initialization routines invoked at program startup when
+MSVC_IS_GENERATED_CODE_TARGET is TRUE and MSVC_TARGET_VERSION is 7 or
+higher.  The --msvc_target_version command-line option can be used to
+override the default version number.  
 
 5/23/02  Spurious error on destructor reference
 

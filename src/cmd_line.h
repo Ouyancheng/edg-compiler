@@ -96,6 +96,7 @@ typedef enum /*an_option_kind*/ {
   optk_display_error_number,
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   optk_gen_c_file_name,
+  optk_msvc_target_version,
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   optk_create_pch,
   optk_use_pch,

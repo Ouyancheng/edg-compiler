@@ -976,6 +976,14 @@ EXTERN a_boolean
                                                                              ;
 			/* TRUE if code is being generated for the Microsoft
 			   MSVC++ compiler. */
+
+EXTERN int	msvc_target_version
+#if VAR_INITIALIZERS
+                                              = MSVC_TARGET_VERSION
+#endif /* VAR_INITIALIZERS */
+                                                                   ;
+			/* The version number (i.e., 7 for 7.0) of the
+			   Microsoft MSVC compiler being targeted. */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
 EXTERN a_boolean
@@ -1072,6 +1080,7 @@ EXTERN a_boolean
 #undef TARG_LDBL_MIN_EXP
 #undef TARG_LDBL_MAX_EXP
 #undef MSVC_IS_GENERATED_CODE_TARGET
+#undef MSVC_TARGET_VERSION
 
 #ifndef MAKE_TARG_NAMES_REFER_TO_VARIABLES
 #define MAKE_TARG_NAMES_REFER_TO_VARIABLES 0
@@ -1173,6 +1182,7 @@ EXTERN a_boolean
 #define TARG_LDBL_MIN_EXP targ_ldbl_min_exp
 #define TARG_LDBL_MAX_EXP targ_ldbl_max_exp
 #define MSVC_IS_GENERATED_CODE_TARGET msvc_is_generated_code_target
+#define MSVC_TARGET_VERSION msvc_target_version
 #endif /* MAKE_TARG_NAMES_REFER_TO_VARIABLES */
 
 extern void set_plain_char_int_kind(a_boolean plain_chars_are_signed);
