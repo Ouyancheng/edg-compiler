@@ -4469,6 +4469,146 @@ must a tag.  Projection symbols are not considered in the lookup.
 }  /* curr_scope_id_lookup */
 
 
+int compare_source_positions(a_source_position	*pos1,
+			     a_source_position  *pos2)
+/*
+Compare two source positions.
+
+  Return +1 if pos1 is greater than pos2.
+  Return  0 if pos1 is equal to pos2.
+  Return -1 if pos1 is less than pos2.
+
+*/
+{
+  int		result;
+  a_seq_number	seq1 = pos1->seq;
+  a_seq_number	seq2 = pos2->seq;
+  if (seq1 != seq2) {
+    result = (seq1 > seq2) ? 1 : -1;
+  } else {
+    /* If the sequence numbers are equal, check the column numbers. */
+    a_column_number column1 = pos1->column;
+    a_column_number column2 = pos2->column;
+    result = (column1 == column2) ? 0 : ((column1 > column2) ? 1 : -1);
+  }  /* if */
+  return result;
+}  /* compare_source_positions */
+
+
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+static a_symbol_ptr check_for_cfront_name_lookup_bug
+					(a_type_ptr                class_type,
+					 a_symbol_ptr	           sym,
+                                         a_symbol_locator          *locator,
+					 an_id_lookup_options_set  options)
+/*
+Cfront 2.1 has a bug that causes a global identifier to be found when
+a member of a class or one of its base classes should actually be found.
+The following code illustrated an instance in which the bug occurs:
+
+struct B   {
+	void func(const char*);	// Needs to be here
+};
+
+struct D : public B {
+public:
+	D();
+	void Init(const char* );
+};
+
+struct func {
+	func( const char* msg);
+};
+
+D::D(){}
+
+void D::Init(const char* t)
+{
+	new func(t);
+}
+
+For the bad lookup to occur:
+
+1. A member in a base class must have the same name as an identifier
+   at the global scope.  Any member kind is OK -- it can be a function,
+   static data member, or nonstatic data members.  Member type names don't
+   apply because a nested type will be promoted to the global scope by
+   cfront which disallows a later declaration of a type with the same name
+   at the global scope.
+
+2. The declaration of the global scope name must occur between the declaration
+   of the derived class and the declaration of either an out-of-line
+   constructor or destructor.
+
+3. No other member function definition -- even one for an unrelated class
+   may appear between the destructor and the offending reference.
+   This has the affect that the bad lookup applies to only one class at
+   any given point in time.
+
+The global variable last_ctor_or_dtor_sym is set by function_declaration
+when the body of a constructor or destructor that is defined outside of
+the class definition is processed.  This field is cleared when any other
+member function is defined.
+*/
+{
+  a_derivation_step_ptr	path = NULL;
+  an_access_specifier   access;
+  a_boolean		ambiguous;
+  a_symbol_ptr		new_sym = sym;
+
+  /* Before this routine is called we will have already verified that the
+     lookup terminated in the class reactivation scope for the same class
+     as indicated by last_ctor_or_dtor_sym.  This means that we are
+     in a member function definition (or static data member definition) of
+     a class for which a constructor or destructor was just defined. */
+  if (sym == NULL || sym->kind != (a_symbol_kind)sk_projection) {
+    /* If sym is NULL it means that a symbol was found but it was not a
+       type when a tentative type lookup was being done.  If the symbol
+       is not a projection symbol, then the name was found in the
+       derived class.  For the bug to occur, the name must be defined
+       in the base class even if the name was redefined in the derived
+       class.  Look for the name in a base class. */
+    new_sym = find_progenitor_symbol(class_type, locator,
+                                     /*must_be_tag=*/FALSE, &path, &access,
+                                     &ambiguous);
+  }  /* if */
+  if (new_sym != NULL) {
+    a_symbol_ptr  fund_sym = fundamental_symbol_of(new_sym);
+    if (!(is_type_symbol(fund_sym) &&
+          type_symbol_type(fund_sym)->
+                       use_cfront_transitional_nested_type_name_mangling)) {
+      /* Names that are in essence promoted to file scope are not
+         considered. */
+      a_symbol_ptr file_scope_sym;
+      /* new_sym must now be a projection symbol or progenitor symbol.  Look
+         for a symbol with the same name at file scope. */
+      check_assertion(class_type != fund_sym->class_of_which_a_member);
+      file_scope_sym = file_scope_id_lookup(locator, options);
+      if (file_scope_sym != NULL) {
+        /* A file scope symbol was found.  For the incorrect lookup to be
+           done the file scope symbol must have been declared after the
+           derived class but before the most recent constructor or
+           destructor body. */
+        a_symbol_ptr	class_sym;
+        class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+        if ((compare_source_positions(&file_scope_sym->decl_position,
+                                      &class_sym->decl_position) > 0) &&
+            (compare_source_positions(&file_scope_sym->decl_position,
+                                      &last_ctor_or_dtor_sym->
+                                                       decl_position) < 0)) {
+          sym = file_scope_sym;
+         pos_sy2_warning(ec_cfront_name_lookup_bug, &locator->source_position,
+                          sym, new_sym);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return (sym);
+}  /* check_for_cfront_name_lookup_bug */
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+
+
+
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                               an_id_lookup_options_set options)
 /*
@@ -4498,6 +4638,9 @@ C and C++.
                             (C_dialect != C_dialect_cplusplus && must_be_tag) ?
                                                            nsk_tag : nsk_other;
   a_boolean		  in_pragma_scope = FALSE;
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+  a_boolean		  projection_symbol_found = FALSE;
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 /* is_class_or_class_proxy_symbol checks for a symbol that is a class,
@@ -4687,6 +4830,9 @@ C and C++.
               /* A symbol was found in a base class, but it was not returned
                  (presumably because must_be_type_name was not satisfied).
                  Don't continue looking. */
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+	      projection_symbol_found = TRUE;
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
               goto end_lookup;
             } else {
               /* A projection symbol was created.  It must still satisfy the
@@ -4729,6 +4875,40 @@ next_scope:
       }  /* if */
     }  /* if */
 end_lookup:
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+    if (cfront_compatibility_mode &&
+        (sym != NULL || projection_symbol_found)) {
+      /* Special case to emulate a cfront 2.1 bug.  See the comments
+         in check_for_cfront_name_lookup_bug for more information.  The
+         special case code is only executed when the symbol found is from
+	 a class reactivation scope for the same class of a constructor
+	 or destructor that was just defined -- so this should not have
+	 a significant performance impact.
+
+         We have either found a symbol (sym != NULL) or a projection symbol
+         was found that was not a type symbol in a tentative type lookup
+         (projection_symbol_found == TRUE).  Call the special routine to
+         see if a file scope name exists that satisfies the required
+         criteria. */
+      if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
+        a_type_ptr      class_type = ssep->assoc_type;
+	if (class_type == last_ctor_or_dtor_sym->class_of_which_a_member) {
+	  sym = check_for_cfront_name_lookup_bug(class_type, sym, locator,
+						 options);
+          /* This looks like we can find an alternate symbol when emulating
+	     the cfront bug and then discard it because it is not the
+	     correct kind of symbol.  In practice this will never happen
+	     because the only symbols that can be rejected are types
+	     (either classes or tags) and because of the transitional model
+	     of nested type handling, will always be defined before a nested
+	     class of the same name can be used. */
+          if (sym != NULL && !is_acceptable_symbol(sym)) {
+	    sym = NULL;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
     locator->specific_symbol = sym;
   }  /* if */
   /* If the symbol is a projection symbol, reduce it to the fundamental
@@ -6018,10 +6198,12 @@ End a name scope by popping an entry off the scope stack.
        in cfront compatibility mode. */
     if (kind == (a_scope_kind)sck_file && cfront_compatibility_mode) {
       if (sym->header->has_cfront_transitional_nested_type_mangled_name) {
-        a_symbol_ptr other_sym;
-        other_sym = find_cfront_transitional_nested_type_symbol(sym);
-        pos_sy2_error(ec_cfront_global_defined_after_nested_type,
-                      &sym->decl_position, sym, other_sym);
+        if (is_type_symbol(sym)) {
+          a_symbol_ptr other_sym;
+          other_sym = find_cfront_transitional_nested_type_symbol(sym);
+          pos_sy2_error(ec_cfront_global_defined_after_nested_type,
+                        &sym->decl_position, sym, other_sym);
+        }  /* if */
       }  /* if */
     }  /* if */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
@@ -7117,6 +7299,9 @@ to avoid an 8-character external name clash with symbol_table.)
   instantiations_required_tail = NULL;
   /* Initialize the conversion header list. */
   conversion_header_list = NULL;
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+  last_ctor_or_dtor_sym = NULL;
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
 #if DEBUG
   num_symbols_allocated                        = 0;
   num_symbol_headers_allocated                 = 0;

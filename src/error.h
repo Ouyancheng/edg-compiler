@@ -535,7 +535,8 @@ typedef enum /*an_error_code*/ {
   ec_no_constructor,
   ec_template_param_only_used_in_default_args,
   ec_no_match_for_type_of_overloaded_function,
-  ec_nonstd_void_param_list
+  ec_nonstd_void_param_list,
+  ec_cfront_name_lookup_bug
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
@@ -778,6 +779,10 @@ extern void pos_sy_start_error(an_error_code     error_code,
 extern void pos_sy_start_warning(an_error_code     error_code,
                                  a_source_position *error_pos,
                                  struct a_symbol   *symbol);
+extern void pos_sy2_warning(an_error_code     error_code,
+                            a_source_position *error_pos,
+                            struct a_symbol   *symbol1,
+                            struct a_symbol   *symbol2);
 extern void sym_add_diag_info(an_error_code   error_code,
                               struct a_symbol *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */

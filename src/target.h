@@ -47,6 +47,15 @@ be used.
 ??=error -- must select either 2.1 compatibility or 3.0 compatibility
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY ... */
 
+/* The code that implements the cfront name lookup bug makes use of the
+   information recorded for semivisible nested type handling.  Consequently,
+   2.1 compatibility mode is required to use the name lookup bug. */
+#if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY && \
+    CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+??=error -- cfront name lookup bug support requires cfront 2.1 compatibility
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+
+
 
 /*
 Target byte order.  Little-endian means the least-significant part of a

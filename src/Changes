@@ -1,5 +1,70 @@
 Version 2.15
 
+2/22/93  Support for cfront name lookup bug
+
+Cfront 2.1 has a bug that causes a global identifier to be found when
+a member of a class or one of its base classes should actually be found.
+This bug is emulated in cfront compatibility mode.  A warning is issued
+when, because of this feature, an incorrect lookup is performed.
+
+This feature is supported only in cfront compatibility mode and only
+when the CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG flag in lang_feat.h is
+TRUE.
+
+The following code illustrated an instance in which the bug occurs:
+
+struct B   {
+	void func(const char*);	// Needs to be here
+};
+
+struct D : public B {
+public:
+	D();
+	void Init(const char* );
+};
+
+struct func {
+	func( const char* msg);
+};
+
+D::D(){}
+
+void D::Init(const char* t)
+{
+	new func(t);
+}
+
+For the bad lookup to occur:
+
+1. A member in a base class must have the same name as an identifier
+   at the global scope.  Any member kind is OK -- it can be a function,
+   static data member, or nonstatic data members.  Member type names don't
+   apply because a nested type will be promoted to the global scope by
+   cfront which disallows a later declaration of a type with the same name
+   at the global scope.
+
+2. The declaration of the global scope name must occur between the declaration
+   of the derived class and the declaration of either an out-of-line
+   constructor or destructor.
+
+3. No other member function definition -- even one for an unrelated class
+   may appear between the destructor and the offending reference.
+   This has the affect that the bad lookup applies to only one class at
+   any given point in time.
+
+2/22/93  Fixed bug in cfront transitional nested type handling
+
+In cfront compatibility mode an error was being issued if a nontype
+entity was declared at file scope after a type was designated as
+being a "semivisible" nested type.  The error should only be issued
+when the entity is a type name.
+
+struct X {
+	struct Y {};
+};
+
+int Y;
+
 2/22/93  Casting to a template parameter type
 
 Casting to a template parameter type within a template is now allowed:

@@ -7729,6 +7729,26 @@ explicitly specified (rather than defaulted to "int").
     /* Pop the class symbol reactivation scope. */
     pop_class_reactivation_scope();
   }  /* if */  
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+  /* Save the symbol associated with the most recent constructor or
+     destructor for which a definition was supplied outside of the
+     class definition.  Clear this value when any other member function
+     is processed.  This is used to emulate a cfront name lookup bug.
+     See check_for_cfront_name_lookup_bug in symbol_tbl.h for more
+     information. */
+  if (is_member_function_def) {
+    if (cfront_compatibility_mode) {
+      if (routine_ptr->special_kind ==
+			 (a_special_function_kind)sfk_constructor ||
+          routine_ptr->special_kind ==
+			 (a_special_function_kind)sfk_destructor) {
+        last_ctor_or_dtor_sym = symbol_ptr;
+      } else {
+        last_ctor_or_dtor_sym = NULL;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
   /* The lint "argsused" and "varargs" flags are only applicable until
      the end of a function declaration. */
   lint_argsused_flag = FALSE;

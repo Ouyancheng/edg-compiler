@@ -1853,6 +1853,9 @@ error code.
     case ec_nonstd_void_param_list:
       m = "declaring a void parameter list with a typedef is nonstandard";
       break;
+    case ec_cfront_name_lookup_bug:
+      m = "global %n used instead of %n2 (cfront compatibility)";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
@@ -5137,6 +5140,22 @@ position and symbol fill-in.
   error_msg_syms[1] = symbol;
   diag_message(error_code, error_pos, es_warning, dck_primary);
 }  /* pos_sy_start_warning */
+
+
+void pos_sy2_warning(an_error_code     error_code,
+                     a_source_position *error_pos,
+                     struct a_symbol   *symbol1,
+                     struct a_symbol   *symbol2)
+/*
+Report the indicated warning (with the indicated symbols) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_syms[1] = symbol1;
+  error_msg_syms[2] = symbol2;
+  diag_message(error_code, error_pos, es_warning, dck_standalone);
+}  /* pos_sy2_warning */
 
 
 void sym_add_diag_info(an_error_code error_code,

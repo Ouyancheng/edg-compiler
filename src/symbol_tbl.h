@@ -1499,6 +1499,16 @@ EXTERN a_scope_number
 			   pseudo-scopes associated with the members of
 			   structs and unions in C (not C++). */
 
+#if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
+EXTERN a_symbol_ptr
+		last_ctor_or_dtor_sym;
+			/* The last constructor or destructor
+			   with a definition outside of a class
+			   declaration.  Used only in cfront
+			   compatibility mode to emulate a cfront
+			   name lookup bug. */
+#endif /* CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG */
+
 
 /*
 Enumeration indicating a kind of reference to a symbol, used in
