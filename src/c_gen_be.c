@@ -78,9 +78,11 @@ instead of K&R C.
             SCOPE_ORPHANED_LIST_PROCESSING_NEEDED TRUE
 #endif /* !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
+#ifndef DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE
 #if !DO_FULL_PORTABLE_EH_LOWERING
  #error -- DO_FULL_PORTABLE_EH_LOWERING required for the C-generating back end.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE */
 
 /*
 See if the target is the Sun cc compiler, which has some bugs we know
@@ -3043,6 +3045,49 @@ done_with_operation:
       dump_expr(expr->variant.object_lifetime.expr, need_parens);
       break;
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
+#if !DO_FULL_PORTABLE_EH_LOWERING
+    /* This code is here as a debugging aid.  Normally, these nodes are
+       not seen by the C-generating back end. */
+    case enk_lowered_eh_construct:
+      switch (expr->variant.lowered_eh.kind) {
+        case leck_caught_object_address:
+          write_tok_str("caught_object_address");
+          break;
+        case leck_thrown_object_address:
+          write_tok_str("thrown_object_address");
+          break;
+        case leck_cleanup_state:
+          write_tok_str("cleanup_state");
+#if GENERATE_EH_TABLES
+          write_tok_str(" = ");
+          write_unsigned_num((unsigned long)expr->variant.
+                                     lowered_eh.variant.cleanup_region_number);
+#endif /* GENERATE_EH_TABLES */
+          break;
+        case leck_function_prologue:
+          write_tok_str("function_prologue");
+          break;
+        case leck_function_epilogue:
+          write_tok_str("function_epilogue");
+          break;
+        case leck_catch_epilogue:
+          write_tok_str("catch_epilogue");
+          break;
+        case leck_try_epilogue:
+          write_tok_str("try_epilogue");
+          break;
+        default:
+          unexpected_condition_str("dump_expr: bad lowered EH construct kind");
+      }  /* switch */
+      break;
+    case enk_throw:
+      write_tok_str("throw");
+      if (expr->variant.throw_info != NULL) {
+        write_tok_str(" ");
+        dump_expr_with_parens(expr->variant.throw_info->expr);
+      }  /* if */
+      break;
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("dump_expr: enk_field");
@@ -4603,6 +4648,37 @@ Generate C for a statement.
       /* asm statement. */
       dump_asm_entry(statement->variant.asm_entry);
       break;
+#if !DO_FULL_PORTABLE_EH_LOWERING
+    /* This code is here as a debugging aid.  Normally, this statement is
+       not seen by the C-generating back end. */
+    case stmk_try_block:
+      write_tok_str("try");
+      indent += 2;
+      dump_statement(statement->variant.try_block->statement);
+      { a_handler_ptr handler;
+        for (handler = statement->variant.try_block->handlers;
+             handler != NULL;
+             handler = handler->next) {
+          a_variable_ptr param = handler->parameter;
+          set_output_position_for_stmt(&handler->catch_position);
+          write_tok_str("catch (");
+          if (param == NULL) {
+            write_tok_str("...");
+          } else {
+            dump_general_declaration_using_type(param->type,
+                                                &param->source_corresp,
+                                                param, NO_TEMP, TQ_NONE,
+                                                /*suppress_const=*/FALSE);
+          }  /* if */
+          write_tok_str(")");
+          indent += 2;
+          dump_statement(handler->statement);
+          indent -= 2;
+        }  /* for */
+      }
+      indent -= 2;
+      break;
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
       /* Statement that marks the location of declarations.  Ignored here. */
@@ -4671,6 +4747,14 @@ its subtree.
     } else if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
       dump_expr_prescan_temps(node->variant.object_lifetime.expr);
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
+#if !DO_FULL_PORTABLE_EH_LOWERING
+    } else if (node->kind == (an_expr_node_kind)enk_throw) {
+      /* This code is here as a debugging aid.  Normally, this node is
+         not seen by the C-generating back end. */
+      if (node->variant.throw_info != NULL) {
+        dump_expr_prescan_temps(node->variant.throw_info->expr);
+      }  /* if */
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
     }  /* if */
   }  /* if */
 }  /* dump_expr_prescan_temps */
@@ -4771,6 +4855,20 @@ its subtree.
           }  /* if */
         }
         break;
+#if !DO_FULL_PORTABLE_EH_LOWERING
+      /* This code is here as a debugging aid.  Normally, this statement is
+         not seen by the C-generating back end. */
+      case stmk_try_block:
+        dump_prescan_temps(statement->variant.try_block->statement);
+        { a_handler_ptr handler;
+          for (handler = statement->variant.try_block->handlers;
+               handler != NULL;
+               handler = handler->next) {
+            dump_prescan_temps(handler->statement);
+          }  /* for */
+        }
+        break;
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
       default:
         unexpected_condition_str("dump_prescan_temps: bad statement kind");
     }  /* switch */
