@@ -635,9 +635,7 @@ if necessary.
     if (pack_alignment > 0 && pack_alignment < *alignment) {
       *alignment = pack_alignment;
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 } /* adjust_alignment_for_packing */
 
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
