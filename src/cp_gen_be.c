@@ -1739,6 +1739,17 @@ for the meaning of need_closing_paren.
 }  /* gen_class_qualifier */
 
 
+static void gen_class_qualifier_wrapper(a_type_ptr class_type)
+/*
+Generate a class qualifier (e.g., "A::B::") that identifies the indicated
+class type.  This is a wrapper for gen_class_qualifier, used as the
+gen_class_qualifier function in the il_to_str output control block.
+*/
+{
+  gen_class_qualifier(class_type, GN_NO_OPTIONS, (a_boolean *)NULL);
+}  /* gen_class_qualifier_wrapper */
+
+
 static void gen_namespace_qualifier(a_namespace_ptr        nsp,
                                     a_gen_name_options_set options,
                                     a_boolean              *need_closing_paren)
@@ -8733,6 +8744,7 @@ Initialize for the C++/C-generating back end.
   octl.output_partial_token_str = write_str;
   octl.output_name = gen_name_reference;
   octl.output_template_name = gen_template_name;
+  octl.output_class_qualifier = gen_class_qualifier_wrapper;
   octl.output_func_declarator = gen_function_declarator;
   octl.output_expression = f_gen_expression;
   octl.gen_compilable_code = TRUE;

@@ -34,6 +34,7 @@ Clear an output control block to default values.
   octl->output_partial_token_str  = NULL;
   octl->output_name               = NULL;
   octl->output_template_name      = NULL;
+  octl->output_class_qualifier    = NULL;
   octl->output_temp_name          = NULL;
   octl->output_func_declarator    = NULL;
   octl->output_expression         = NULL;
@@ -346,22 +347,26 @@ static void form_class_qualifier(
                               an_il_to_str_output_control_block_ptr octl)
 /*
 Output a class qualifier (e.g., "A::B::") that identifies the indicated
-class type.  Do the output in the way described by octl.  Note that
-the output_name routine in the control block (if there is one) will not
-be used to output any part of the name.  Called only for C++.
+class type.  Do the output in the way described by octl.  Called only for C++.
 */
 {
-  a_source_correspondence  *scp = &class_type->source_corresp;
+  /* Use the special routine if there is one. */
+  if (octl->output_class_qualifier != NULL) {
+    octl->output_class_qualifier(class_type);
+  } else {
+    /* Default processing. */
+    a_source_correspondence  *scp = &class_type->source_corresp;
 
-  /* Use recursion to handle multiple levels of nesting. */
-  form_class_or_namespace_qualifier((a_boolean)scp->is_class_member,
-                                    scp->parent, octl);
-  /* Do the last level. */
-  /* Ignore anonymous unions. */
-  if (class_type->variant.class_struct_union.extra_info->
+    /* Use recursion to handle multiple levels of nesting. */
+    form_class_or_namespace_qualifier((a_boolean)scp->is_class_member,
+                                      scp->parent, octl);
+    /* Do the last level. */
+    /* Ignore anonymous unions. */
+    if (class_type->variant.class_struct_union.extra_info->
                    anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
-    form_unqualified_name(scp, iek_type, octl);
-    octl->output_str("::");
+      form_unqualified_name(scp, iek_type, octl);
+      octl->output_str("::");
+    }  /* if */
   }  /* if */
 }  /* form_class_qualifier */
 
@@ -378,7 +383,7 @@ class indicated by parent.class_type.  If is_class_member is FALSE, and
 parent.namespace_ptr is non-NULL, the entity is a member of a namespace,
 and parent.namespace_ptr points to the namespace.  Note that the
 output_name routine in the control block (if there is one) will not
-be used to output any part of the name.  Called only for C++.
+be used to output all of the name.  Called only for C++.
 */
 {
   if (is_class_member) {
