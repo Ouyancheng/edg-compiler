@@ -7048,10 +7048,8 @@ ones are allocated in the scope specified by decl_scope_level.
       if (au_field->is_mutable) {
         /* No storage class is allowed at all, but the others are diagnosed
            elsewhere already. */
-        pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
-                                          es_warning,
-                       ec_no_mutable_allowed_on_anonymous_union,
-                       &assoc_object_sym->decl_position);
+        pos_error(ec_no_mutable_allowed_on_anonymous_union,
+                  &assoc_object_sym->decl_position);
       }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       check_assertion(is_class_struct_union_type(assoc_object_type));

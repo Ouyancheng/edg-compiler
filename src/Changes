@@ -82,12 +82,11 @@ of the outer macro invocation.
 
 8/18/99  Diagnose "mutable" on anonymous unions
 
-The front end now produces a diagnostic (an error in strict ANSI C++ mode; a
-warning otherwise) when "mutable" is specified on a class-scope anonymous
-union.  For example:
+The front end now produces an error when "mutable" is specified on a
+class-scope anonymous union.  For example:
 
   struct S {
-    mutable union { int i; float f; }; // Error or warning.
+    mutable union { int i; float f; }; // Error.
   };
 
 8/17/99  Strict error for missing typedef declarator in strict ANSI C++ mode
