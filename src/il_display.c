@@ -1397,9 +1397,11 @@ Display the indicated routine.
     disp_name("special_kind");
     disp_special_function_kind_name(ptr->special_kind);
     (void)printf("\n");
-    disp_name("opname_kind");
-    disp_opname_kind_name(ptr->opname_kind);
-    (void)printf("\n");
+    if (ptr->special_kind == (a_special_function_kind)sfk_operator) {
+      disp_name("opname_kind");
+      disp_opname_kind_name(ptr->opname_kind);
+      (void)printf("\n");
+    }  /* if */
   }  /* if */
   if (ptr->address_taken) {
     disp_boolean("address_taken", (a_boolean)ptr->address_taken);
