@@ -723,9 +723,9 @@ that it can be available to standalone utilities.
 EXTERN a_boolean
                 sun_mode
 #if VAR_INITIALIZERS
-                         = DEFAULT_SUN_COMPATIBILITY;
+                         = DEFAULT_SUN_COMPATIBILITY
 #endif /* VAR_INITIALIZERS */
-                                ;
+                                                    ;
                         /* Accept C language features supported by SUN C++ 5.x
                            compilers. */
 #else /* !(SUN_EXTENSIONS_ALLOWED || defined(_lint)) */
