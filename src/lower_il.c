@@ -4890,6 +4890,13 @@ Do IL lowering of the indicated variable and everything under it.
       /* In C++, there are no tentative definitions.  Use initk_zero to
          indicate that this variable is "really" defined. */
       variable->init_kind = (an_init_kind)initk_zero;
+    } else if (variable->is_member_constant &&
+               variable->storage_class == (a_storage_class)sc_extern) {
+      /* A member constant (static data member initialized within the
+         class) should be considered uninitialized if no definition
+         appeared. */
+      variable->init_kind = (an_init_kind)initk_none;
+      variable->is_member_constant = FALSE;
     }  /* if */
     if (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&

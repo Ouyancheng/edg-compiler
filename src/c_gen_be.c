@@ -4676,12 +4676,7 @@ for the variable.
   a_constant_ptr     init_con = NULL;
 
   get_variable_initializer(variable, curr_scope, init_kind, &initializer);
-  if (variable->is_member_constant &&
-      variable->storage_class == (a_storage_class)sc_extern) {
-    /* If the variable represents a static data member that was initialized
-       within the class definition and not defined, ignore the initializer,
-       if any. */
-  } else if (*init_kind == (an_init_kind)initk_static) {
+  if (*init_kind == (an_init_kind)initk_static) {
     /* The variable has a constant static initializer. */
     init_con = initializer->constant;
   } else if (*init_kind == (an_init_kind)initk_dynamic) {

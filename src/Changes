@@ -1,5 +1,24 @@
 Version 2.37
 
+9/18/97   Lowering of member constant variables without definitions
+
+IL lowering now removes the initializer from member constant variables
+(static data members initialized within the class) if they are not
+defined in the compilation.  Previously, they were not changed, and
+the variable after lowering was invalid from a C language point of
+view -- a variable with storage class sc_extern should not have an
+initializer.
+
+This change fixes a problem that came up in anachronisms mode:
+the processing of the anachronism that allows the omission of
+the definition of a static data member changes the storage class of
+those variables to sc_unspecified.  However, for member constant
+variables, that produced a variable with sc_unspecified storage
+class and an initializer, which is a full-fledged definition.
+If the member constant appears in more than one source file (quite
+likely, if it is in a header), one would get link-time "multiply
+defined" errors on the variable.
+
 9/18/97   Error on explicit cast of pointer-to-member of derived to
           pointer-to-member of virtual base
 
