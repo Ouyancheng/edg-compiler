@@ -5525,6 +5525,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
                           &locator.source_position);
               }  /* if */
             }  /* if */
+
           }  /* if */
           remove_stop_token(tok_colon);
           if (is_function_type(local_type) &&
@@ -5623,7 +5624,26 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
               if (curr_token == tok_lbrace ||
                   (spec_kind == (a_special_function_kind)sfk_constructor &&
                    curr_token == tok_colon)) {
-                /* Next token indications start of a function definition. */
+                /* Next token indicates start of a function definition. */
+                if (local_type == member_type) {
+                  /* When scanning the declarator does not change the type,
+                     we know this member is a function based on the
+                     specifier type alone.  This is only possible with a
+                     typedef name that represents a function type.  Such a
+                     use is not legal, however, so issue the error. */
+                  a_type_ptr        new_type, old_type;
+
+                  pos_error(ec_function_type_must_come_from_declarator,
+                            &locator.source_position);
+                  /* Build a copy of the routine type so as to have a
+                     non-shared routine type entry. */
+                  /* The type was probably from a typedef -- skip past that. */
+                  old_type = rout_sym->variant.routine.ptr->type;
+                  old_type = skip_typerefs(old_type);
+                  new_type = alloc_type((a_type_kind)tk_routine);
+                  copy_routine_type_with_param_types(old_type, new_type);
+                  rout_sym->variant.routine.ptr->type = new_type;
+                }  /* if */
                 if (rout_sym->defined) {
                   pos_sy_error(ec_function_redefinition,
                                &locator.source_position, rout_sym);
