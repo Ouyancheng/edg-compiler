@@ -320,7 +320,7 @@ typedef struct a_context {
 			   at a label, this is the lifetime.  This helps us
 			   watch for the appearance of the associated
 			   statement, since there is no explicit indication
-			   the the statement that it begins another
+			   in the statement that it begins another
 			   lifetime. */
   a_dynamic_init_ptr
 		latest_initialization;
