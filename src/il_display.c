@@ -694,6 +694,9 @@ Display a_source_file entry.
   if (ptr->related_file_implicit_include_done) {
     disp_boolean("related_file_implicit_include_done", TRUE);
   }  /* if */
+  if (ptr->is_implicit_include) {
+    disp_boolean("is_implicit_include", TRUE);
+  }  /* if */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   if (ptr->is_include_file) {
     disp_boolean("is_include_file", TRUE);

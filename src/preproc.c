@@ -1205,9 +1205,13 @@ may have extra operand at end).
                                                    included_by_system_include,
                                 (a_boolean)actual_sfp->included_by_preinclude,
 				(a_boolean)actual_sfp->preinclude_macros_only,
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+				(a_boolean)actual_sfp->is_implicit_include,
+#else /* !INSTANTIATION_BY_IMPLICIT_INCLUSION */
+                                (a_boolean)FALSE,
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
                                 (actual_sfp->from_system_include_dir ||
                                  from_system_include));
-
   }
   if (generate_pp_output) {
     /* Generate the line-identifying directive if necessary for preprocessing

@@ -155,6 +155,9 @@ typedef struct a_source_file {
 			   (e.g., .c file) that corresponds to this header
 			   file.  This is set to TRUE even if the attempt
 			   failed (e.g., the file does not exist). */
+  a_bit_field	is_implicit_include:1;
+			/* TRUE if this file was implicitly included to provide
+			   a template definition. */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   a_bit_field	is_include_file:1;
 			/* TRUE if this is a file that was included

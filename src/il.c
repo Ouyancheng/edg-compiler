@@ -2608,6 +2608,9 @@ is used.
 }  /* add_seq_number_lookup_entry */
 
 
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+/*ARGSUSED*/  /* <-- is_implicit_include is not used in that mode. */
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 void record_start_of_source_file(a_source_file_ptr parent_file,
 			         a_seq_number      seq_number,
 				 a_line_number     line_number,
@@ -2619,6 +2622,7 @@ void record_start_of_source_file(a_source_file_ptr parent_file,
 				 a_boolean	   is_system_include,
                                  a_boolean         is_preinclude,
 				 a_boolean	   preinclude_macros_only,
+				 a_boolean	   is_implicit_include,
 				 a_boolean	   from_system_include_dir)
 /*
 Create a source file entry in the intermediate language, to record the
@@ -2658,6 +2662,9 @@ in a directory marked as a system include directory.
   sfp->included_by_preinclude = is_preinclude;
   sfp->preinclude_macros_only = preinclude_macros_only;
   sfp->from_system_include_dir = from_system_include_dir;
+#if INSTANTIATION_BY_IMPLICIT_INCLUSION
+  sfp->is_implicit_include = is_implicit_include;
+#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   /* Link the parent or the preceding sibling file to this one. */
   if (parent_file == NULL) {
     /* No parent, so link the il_header to this primary source file.

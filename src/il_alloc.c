@@ -554,6 +554,7 @@ Allocate a source file entry, initialize it, and return a pointer to it.
   sfp->next             = NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   sfp->related_file_implicit_include_done = FALSE;
+  sfp->is_implicit_include = FALSE;
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   sfp->is_include_file = FALSE;
   sfp->included_by_system_include = FALSE;

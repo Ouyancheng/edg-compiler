@@ -3905,6 +3905,7 @@ used to find this file.
                               &(curr_ise->assoc_il_file), is_include_file,
                               is_system_include, is_preinclude,
                               preinclude_macros,
+			      is_implicit_include,
 			      (dir_entry != NULL &&
                                                dir_entry->system_include_dir));
   /* The two il file pointers start out the same.  They will be made to

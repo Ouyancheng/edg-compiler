@@ -1,5 +1,10 @@
 Version 3.5
 
+7/1/04   Implicit include flag added to the source file entry
+
+An is_implicit_include flag has been added to the source file entry.  This
+flag is available when the front end is configured for implicit inclusion.
+
 7/1/04   Source file data structure problem with implicit inclusion
 
 Version 3.4 included an optimization of the translation of a sequence
