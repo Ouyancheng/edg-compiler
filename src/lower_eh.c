@@ -1440,7 +1440,7 @@ the size is not available in the region description entry).
 */
 {
   a_targ_size_t    object_addr_index, entry_number;
-  long             elem_count;
+  a_targ_ptrdiff_t elem_count;
   a_constant_ptr   index_con, elem_size_con, size_con, aggr_con;
   a_type_ptr       elem_type;
 
@@ -1481,7 +1481,7 @@ the size is not available in the region description entry).
     /* Not an array (see header comment above).  Use an element count of 0. */
     elem_count = 0;
   }  /* if */
-  set_integer_constant(size_con, elem_count, (an_integer_kind)ik_long);
+  set_integer_constant(size_con, (long)elem_count, (an_integer_kind)ik_long);
   /* Link the constants together and make an aggregate constant. */
   index_con->next = elem_size_con;
   elem_size_con->next = size_con;
