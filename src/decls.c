@@ -2279,14 +2279,16 @@ not be TRUE.
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
-void set_src_seq_secondary_decl_type(char        *il_entry_ptr,
-                                     a_type_ptr  type)
+a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_type(
+                                                    char        *il_entry_ptr,
+                                                    a_type_ptr  type)
 /*
 Set the declared_type field to "type" in the recently created secondary
 source sequence entry created for the IL entry pointed to by il_entry_ptr.
 */
 {
-  a_source_sequence_entry_ptr  ssep;
+  a_source_sequence_entry_ptr   ssep;
+  a_src_seq_secondary_decl_ptr  sssdp = NULL;
 
   if (source_sequence_entries_disallowed) {
     /* We are in a context in which source sequence entries are not being
@@ -2295,9 +2297,11 @@ source sequence entry created for the IL entry pointed to by il_entry_ptr.
     ssep = last_matching_source_sequence_entry(il_entry_ptr);
     if (ssep != NULL) {
       check_assertion(ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
-      ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->declared_type = type;
+      sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
+      sssdp->declared_type = type;
     }  /* if */
   }  /* if */
+  return sssdp;
 }  /* set_src_seq_secondary_decl_type */
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3110,15 +3114,20 @@ skip_overloading:;
         check_assertion(type_ptr == declared_type);
         routine_ptr->declared_type = type_ptr;
       }  /* if */
+      if (srk_flags & SRK_FRIEND) routine_ptr->defined_in_friend_decl = TRUE;
     } else {
       /* A function declaration but not a definition.  Set the type in the
          secondary declaration entry. */
-      set_src_seq_secondary_decl_type((char *)routine_ptr, declared_type);
+      a_src_seq_secondary_decl_ptr  sssdp;
+      sssdp = set_src_seq_secondary_decl_type((char *)routine_ptr,
+                                              declared_type);
+      if (sssdp != NULL && (srk_flags & SRK_FRIEND)) sssdp->friend_decl = TRUE;
     }  /* if */
   } else {
     if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
       /* A function declaration but not a definition. */
-      set_src_seq_secondary_decl_type((char *)variable_ptr, declared_type);
+      (void)set_src_seq_secondary_decl_type((char *)variable_ptr,
+                                            declared_type);
     } else {
       /* The defining declaration of the variable.  Record the type. */
       if (variable_ptr->declared_type == NULL) {
@@ -3609,7 +3618,8 @@ return a pointer to it in *symbol_ptr.
                                     &locator->source_position,
                                     declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          set_src_seq_secondary_decl_type((char *)sym->variant.type, type_ptr);
+          (void)set_src_seq_secondary_decl_type((char *)sym->variant.type,
+                                                type_ptr);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           goto return_point;
         } else {

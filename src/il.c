@@ -5889,6 +5889,9 @@ to it.  The entry is allocated in the file scope memory region.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   rp->specific_def            = FALSE;
   rp->contains_try_block      = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  rp->defined_in_friend_decl  = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MINIMAL_INLINING
   rp->inlinable               = FALSE;
   rp->need_out_of_line_copy   = FALSE;
@@ -8872,6 +8875,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       a_symbol_ptr                  sym;
       a_boolean                     lparen_printed = FALSE;
       a_boolean                     autonomous = FALSE;
+      a_boolean                     is_friend = FALSE;
       a_type_ptr                    declared_type = NULL;
       a_boolean                     print_type = FALSE;
       a_src_seq_secondary_decl_ptr  sssdp = NULL;
@@ -8887,6 +8891,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           check_assertion(scp != NULL);
           pos = &sssdp->decl_position;
           if (sssdp->autonomous_tag_decl) autonomous = TRUE;
+          if (sssdp->friend_decl) is_friend = TRUE;
         } else {
           scp = source_corresp_for_il_entry(
                                          ssep->entity.ptr,
@@ -8896,6 +8901,10 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           if (kind == (an_il_entry_kind)iek_type) {
             if (((a_type_ptr)ssep->entity.ptr)->autonomous_primary_tag_decl) {
               autonomous = TRUE;
+            }  /* if */
+          } else if (kind == (an_il_entry_kind)iek_routine) {
+            if (((a_routine_ptr)ssep->entity.ptr)->defined_in_friend_decl) {
+              is_friend = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -8913,6 +8922,11 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         if (pos->seq > 0) {
           fprintf(f_debug, "%sat %lu", (lparen_printed ? ", " : " ("),
                   pos->seq);
+          lparen_printed = TRUE;
+        }  /* if */
+        if (is_friend) {
+          fprintf(f_debug, "%sfriend",
+                           (lparen_printed ? ", " : " ("));
           lparen_printed = TRUE;
         }  /* if */
         if (autonomous) {
@@ -9085,6 +9099,10 @@ and return a pointer to it.
   sssdp->entity.ptr    = NULL;
   sssdp->declared_type = NULL;
   sssdp->autonomous_tag_decl = FALSE;
+  sssdp->friend_decl         = FALSE;
+#if CHECKING
+  sssdp->avoid_codecenter_warnings = 0;
+#endif /* CHECKING */
 
   return sssdp;
 }  /* alloc_src_seq_secondary_decl */

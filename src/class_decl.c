@@ -2999,6 +2999,16 @@ the current class (class_type).
       ctsp->friend_classes = clep;
     }  /* if */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  {
+  a_source_sequence_entry_ptr   ssep;
+
+  ssep = last_matching_source_sequence_entry((char *)friend_class_type);
+  if (ssep != NULL && ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+    ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)->friend_decl = TRUE;
+  }  /* if */
+  }
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* decl_friend_class */
 
 
@@ -3225,12 +3235,14 @@ of the function, and again overloading is a possibility.
                           sym->kind == (a_symbol_kind)sk_overloaded_function;
         sym = member_function_redecl_sym(sym, function_type);
         if (sym == NULL) {
+          /* Doesn't match. */
           sym_error(is_overloaded_function ?
                           ec_overloaded_function_incompatible_type :
                           ec_not_compatible_with_previous_decl,
                     locator->specific_symbol);
           set_to_error_locator(*locator);
         } else {
+          /* "inline" may not be introduced by this declaration. */
           if (func_info->is_inline && !func_info->is_definition &&
               !sym->variant.routine.ptr->is_inline) {
             error(ec_inline_not_allowed);
@@ -3261,7 +3273,9 @@ of the function, and again overloading is a possibility.
             /* Since this is a non-defining entry, it is represented by a
                secondary-decl entry in the source sequence list.  Enter the
                current function type. */
-            set_src_seq_secondary_decl_type((char *)rp, function_type);
+            a_src_seq_secondary_decl_ptr  sssdp;
+            sssdp = set_src_seq_secondary_decl_type((char *)rp, function_type);
+            if (sssdp != NULL) sssdp->friend_decl = TRUE;
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         }  /* if */
@@ -3670,7 +3684,7 @@ special function kind (e.g., constructor, destructor), if any.
                                 declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!func_info->is_definition) {
-        set_src_seq_secondary_decl_type((char *)rtn, member_type);
+        (void)set_src_seq_secondary_decl_type((char *)rtn, member_type);
       } else {
         rtn->declared_type = member_type;
       }  /* if */
@@ -4016,7 +4030,7 @@ table.
   record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
                             ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  set_src_seq_secondary_decl_type((char *)var, member_type);
+  (void)set_src_seq_secondary_decl_type((char *)var, member_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */

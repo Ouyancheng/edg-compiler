@@ -538,8 +538,7 @@ typedef struct a_src_seq_secondary_decl {
 			   needn't be.  It is appears on secondary declarations
 			   for typedefs, but NULL for secondary declarations
 			   of class, struct, union, and enum types. */
-  a_byte_boolean
-		autonomous_tag_decl;
+  unsigned int	autonomous_tag_decl:1;
 			/* If entity refers to a type entry representing a
 			   class, struct, union, or enum, this flag is TRUE if
 			   the declaration it corresponds to is not part
@@ -552,6 +551,10 @@ typedef struct a_src_seq_secondary_decl {
 			   The source sequence entries for the first and
 			   fourth of these class declarations will have the
 			   flag set. */
+  unsigned int	friend_decl:1;
+			/* TRUE when the declaration is a friend declaration;
+			   "entity" will refer to a routine or class. */
+  bitfield_to_avoid_codecenter_warnings();
 } a_src_seq_secondary_decl;
 
 
@@ -3649,6 +3652,13 @@ typedef struct a_routine {
 			   at least one "try" block.  This may affect
 			   optimization relating to local variables of the
 			   routine. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  unsigned int	defined_in_friend_decl:1;
+			/* TRUE when the routine definition appears in a
+			   friend declaration.  When this flag is set, a
+			   source sequence entry pointing to this routine
+			   will correspond to a friend declaration. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MINIMAL_INLINING
   unsigned int	inlinable:1;
 			/* TRUE if this routine can be inlined.  Starts out as

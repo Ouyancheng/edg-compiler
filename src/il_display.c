@@ -1479,22 +1479,22 @@ Display the indicated routine.
     }  /* if */
   }  /* if */
   if (ptr->address_taken) {
-    disp_boolean("address_taken", (a_boolean)ptr->address_taken);
+    disp_boolean("address_taken", TRUE);
   }  /* if */
   if (ptr->is_virtual) {
-    disp_boolean("is_virtual", (a_boolean)ptr->is_virtual);
+    disp_boolean("is_virtual", TRUE);
   }  /* if */
   if (ptr->pure_virtual) {
-    disp_boolean("pure_virtual", (a_boolean)ptr->pure_virtual);
+    disp_boolean("pure_virtual", TRUE);
   }  /* if */
   if (ptr->is_inline) {
-    disp_boolean("is_inline", (a_boolean)ptr->is_inline);
+    disp_boolean("is_inline", TRUE);
   }  /* if */
   if (ptr->compiler_generated) {
-    disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
+    disp_boolean("compiler_generated", TRUE);
   }  /* if */
   if (ptr->called) {
-    disp_boolean("called", (a_boolean)ptr->called);
+    disp_boolean("called", TRUE);
   }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->assignment_to_this_done) {
@@ -1521,6 +1521,11 @@ Display the indicated routine.
   if (ptr->contains_try_block) {
     disp_boolean("contains_try_block", TRUE);
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (ptr->defined_in_friend_decl) {
+    disp_boolean("defined_in_friend_decl", TRUE);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_KEYWORDS_ALLOWED
   if (ptr->decl_modifiers & DM_DLLIMPORT) {
     disp_boolean("dllimport", TRUE);
@@ -3135,9 +3140,8 @@ Display the indicated source sequence secondary declaration entry.
   disp_ptr("entity", (char *)sssdp->entity.ptr,
            (an_il_entry_kind)sssdp->entity.kind);
   disp_ptr("declared_type", (char *)sssdp->declared_type, iek_type);
-  if (sssdp->autonomous_tag_decl) {
-    disp_boolean("autonomous_tag_decl", TRUE);
-  }  /* if */
+  if (sssdp->autonomous_tag_decl) disp_boolean("autonomous_tag_decl", TRUE);
+  if (sssdp->friend_decl) disp_boolean("friend_decl", TRUE);
 }  /* disp_src_seq_secondary_decl */
 
 

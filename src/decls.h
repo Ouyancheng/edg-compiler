@@ -255,8 +255,9 @@ extern void check_exception_specification(a_func_info_block_ptr  func_info,
 
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-extern void set_src_seq_secondary_decl_type(char        *il_entry_ptr,
-                                            a_type_ptr  type);
+extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_type(
+                                                    char        *il_entry_ptr,
+                                                    a_type_ptr  type);
 
 extern a_source_sequence_entry_ptr init_param_source_sequence_sublist(void);
 
