@@ -7489,6 +7489,7 @@ continue_with_declaration:
         /* Fetch the type of the symbol again, since it might have been
            changed when reconciled with the original declaration. */
         local_type_ptr = var_ptr->type;
+        local_storage_class = (a_storage_class)var_ptr->storage_class;
         if (is_old_style_param_decl) {
           /* Error case (described above).  Mark the symbol referenced, to
              suppress subsequent "declared and not referenced" warnings. */
