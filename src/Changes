@@ -1,5 +1,18 @@
 Version 2.32
 
+6/14/96 Type decay on conversion functions that return reference to array
+        or function
+
+Type decay (array --> pointer or function --> pointer) is now considered
+when looking at conversion functions that return a reference.
+
+  typedef int T[10];
+  struct A {
+    operator T&();
+  };
+  A a;
+  int *const &t = a;  // Now accepted
+
 6/13/96 Conflict between using-declaration and member function declaration
 
 We no longer issue an error when a base-class member function brought in
@@ -1214,7 +1227,7 @@ Working Paper.
 3/6/96    Warning on inaccessible elided copy constructor eliminated in
           default mode
 
-The warning in default mode about inaccessibity of a copy constructor that
+The warning in default mode about inaccessibility of a copy constructor that
 has been optimized away has been eliminated.  This is a check required
 in strict mode, but the warning in default mode doesn't seem to add anything.
 

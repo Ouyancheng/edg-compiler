@@ -4105,6 +4105,66 @@ the same as call_position.  This routine is called only in C++ mode.
 }  /* select_and_prepare_to_call_overloaded_function */
 
 
+static a_type_ptr type_of_conversion_function_return_after_decay(
+                                               a_type_ptr return_type,
+                                               a_type_ptr dest_type,
+                                               a_boolean  is_reference_binding,
+                                               a_boolean  *result_is_an_lvalue)
+/*
+We're trying to determine if a conversion function that returns an lvalue of
+type return_type can be used if one needs a value of type dest_type (and
+a reference to that type if is_reference_binding is TRUE).  As a small part
+of that determination, see if type decay of arrays or functions applies, and
+return the return type as updated as necessary for type decay.
+*result_is_an_lvalue is set to FALSE if type decay applies.
+*/
+{
+  a_boolean is_array = FALSE, check_for_decay = FALSE;
+
+  if (is_array_type(return_type)) {
+    check_for_decay = TRUE;
+    is_array = TRUE;
+  } else if (is_function_type(return_type)) {
+    check_for_decay = TRUE;
+  }  /* if */
+  if (check_for_decay) {
+    a_boolean do_decay = TRUE;
+    if (!is_reference_binding) {
+      /* Not initializing a reference, so decay will always happen. */
+    } else {
+      /* Binding to a reference: the type decay is done unless the
+         undecayed type happens to be exactly what the reference
+         wants. */
+      a_type_ptr ref_type = make_reference_type(dest_type);
+      a_boolean  dropping_qualifiers;
+      a_boolean  ref_to_const, ref_to_const_volatile;
+      a_boolean  binding_to_rvalue_allowed;
+      if (direct_reference_binding_possible((an_operand *)NULL,
+                                            return_type,
+                                            ref_type,
+                                            &ref_to_const,
+                                            &ref_to_const_volatile,
+                                            &binding_to_rvalue_allowed,
+                                            &dropping_qualifiers)) {
+        do_decay = FALSE;
+      }  /* if */
+    }  /* if */
+    if (do_decay) {
+      /* The type decay does apply. */
+      if (is_array) {
+        return_type = type_after_array_to_pointer_transformation(return_type);
+      } else {
+        return_type =
+             type_after_function_to_pointer_transformation(return_type,
+                                                           (an_operand *)NULL);
+      }  /* if */
+      *result_is_an_lvalue = FALSE;
+    }  /* if */
+  }  /* if */
+  return return_type;
+}  /* type_of_conversion_function_return_after_decay */
+
+
 static void try_conversion_function_match(
                             an_operand               *source_operand,
                             a_type_ptr               dest_type,
@@ -4174,12 +4234,10 @@ This routine is only used in C++ mode.
                                                   variant.routine.return_type);
     if (dest_type != NULL && builtin_types_allowed == BTK_NONE) {
       /* We're looking for a specific type. */
-      a_boolean types_match_ignoring_qualifiers =
-              types_are_compatible_ignoring_qualifiers(dest_type, return_type);
       if (is_class_struct_union_type(return_type)) {
         /* The conversion function returns a class type. */
         bcp = NULL;
-        if (types_match_ignoring_qualifiers ||
+        if (types_are_compatible_ignoring_qualifiers(dest_type, return_type) ||
             ((is_reference_binding || is_copy_initialization) &&
              is_class_struct_union_type(dest_type) &&
              is_class_struct_union_type(return_type) &&
@@ -4222,7 +4280,16 @@ This routine is only used in C++ mode.
         }  /* if */
       } else {
         /* The conversion function returns a nonclass type. */
-        if (types_match_ignoring_qualifiers) {
+        if (result_is_an_lvalue) {
+          /* If the conversion function returns a reference to an array or
+             function type, account for the type decay that follows. */
+          return_type = type_of_conversion_function_return_after_decay(
+                                                         return_type,
+                                                         dest_type,
+                                                         is_reference_binding,
+                                                         &result_is_an_lvalue);
+        }  /* if */
+        if (types_are_compatible_ignoring_qualifiers(dest_type, return_type)) {
           /* This conversion function returns the type we want, ignoring
              type qualifiers.  That means we can use it.  It's easy to
              see that we can use it in the case where the type qualifiers
@@ -6816,7 +6883,7 @@ be a constructor call.
          function is what we want. */
       /* If an rvalue is wanted, convert to an rvalue. */
       if (!conversion->result_is_an_lvalue) {
-        conv_lvalue_to_rvalue(operand);
+        do_operand_transformations(operand, TOPT_NO_OPTIONS);
       }  /* if */
     } else if (is_class_struct_union_type(operand->type)) {
       /* Class types get special handling: they can involve derived --> base
@@ -6831,7 +6898,7 @@ be a constructor call.
            must be done, so convert an lvalue to an rvalue.  The operand
            could only be an lvalue if the conversion function returns a
            reference. */
-        conv_lvalue_to_rvalue(operand);
+        do_operand_transformations(operand, TOPT_NO_OPTIONS);
       }  /* if */
       /* Do any necessary standard or trivial conversion. */
       if (is_an_rvalue(operand)) {
