@@ -2264,6 +2264,7 @@ pointer to the new node.
        and the base class entries have the type of the base class itself
        (that's what step_class_type will contain). */
     for (; dsp != NULL; dsp = dsp->next) {
+      a_field_ptr  base_field;
       /* The base class entry pointed to by dsp->base_class is the base
          class entry relative to the original class type.  Find the base
          class entry for this step relative to the intermediate class we
@@ -2284,9 +2285,14 @@ pointer to the new node.
       }  /* if */
 #endif /* CHECKING */
       /* Create a field selection to select the next non-virtual base class. */
-      node = field_lvalue_selection_expr(node,
-                                         field_at_offset(node_class_type,
-                                                         step_bcp->offset));
+      base_field = field_at_offset(node_class_type, step_bcp->offset);
+      node = field_lvalue_selection_expr(node,  base_field);
+      if (step_bcp->type != base_field->type) {
+        /* Presumably this is an optimized empty base class: it has no
+           associated field and instead we use the field whose offset it
+           shares. */
+        node = add_cast_if_necessary(node, make_pointer_type(step_bcp->type));
+      }  /* if */
       step_class_type = derivation_bcp->type;
     }  /* for */
   }  /* if */
@@ -4991,9 +4997,11 @@ routine assumes the class type is as complete as it will ever get.
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
         if (!bcp->is_virtual) {
           /* Non-virtual base class. */
-          if (bcp->direct) {
+          if (bcp->direct && !bcp->is_optimized_empty_base) {
             /* For a direct non-virtual base class, put out space for an object
-               of the base class. */
+               of the base class, except if it an empty base that was not
+               allocated its own space (i.e., it shares its offset with
+               another subobject). */
             add_base_class_dummy_field(bcp->type, "__b_",
                                        base_class_type, bcp->offset,
                                        class_type);

@@ -1322,9 +1322,11 @@ necessary.
                                                  base_classes_of(class_type));
   a_base_class_ptr ebcp = next_empty_nonvirtual_direct_base(
                                                  base_classes_of(class_type));
+  a_base_class_ptr last_optimized_base = NULL;
   a_boolean conflict;
 
   while (ebcp != NULL) {
+    ebcp->is_optimized_empty_base = TRUE; /* Assume we can overlap it. */
     conflict = FALSE;
     /* First tentatively allocate the empty base ignoring conflicts. */
     if (nbcp != NULL) {
@@ -1353,6 +1355,7 @@ necessary.
     /* If there was no conflict, move to the next empty base; otherwise,
        try to find another slot where the empty base could be allocated. */
     if (!conflict) {
+      last_optimized_base = ebcp;
       ebcp = next_empty_nonvirtual_direct_base(ebcp->next);
     } else {
       if (nbcp != NULL) {
@@ -1362,6 +1365,9 @@ necessary.
            conflict was with a previously allocated empty base. Move to the
            next byte. */
         ++lob->byte_offset;
+        /* The previously allocated empty base takes up its own space after
+           all. */
+        last_optimized_base->is_optimized_empty_base = FALSE;
       }  /* if */
     }  /* if */
   }  /* while */
@@ -1392,6 +1398,11 @@ necessary.
           !class_type->variant.class_struct_union.any_virtual_functions) {
         ++lob->byte_offset;
       }  /* if */
+    }  /* if */
+    if (last_optimized_base &&
+        last_optimized_base->offset != lob->byte_offset) {
+      /* The last empty base takes up its own place after all. */
+      last_optimized_base->is_optimized_empty_base = FALSE;
     }  /* if */
   }  /* if */
 }  /* set_offsets_for_empty_nonvirtual_base_classes */

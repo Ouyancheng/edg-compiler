@@ -742,6 +742,7 @@ to it.
   bcp->direct                          = FALSE;
   bcp->ambiguous                       = FALSE;
   bcp->shares_virtual_function_info    = FALSE;
+  bcp->is_optimized_empty_base         = FALSE;
   bcp->offset                          = 0;
   bcp->pointer_offset                  = 0;
   bcp->pointer_base_class              = NULL;

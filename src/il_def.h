@@ -3004,6 +3004,10 @@ typedef struct a_base_class {
 			   scheme used to emulate cfront's ordering algorithm
 			   involves visiting a base class more than once.) */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+  a_bit_field   is_optimized_empty_base:1;
+			/* TRUE if and only if this is a direct empty base
+			   that has been optimized (i.e., allocated at the
+			   same offset as another subobject). */
   bitfield_to_avoid_codecenter_warnings()
   a_targ_size_t	offset;
 			/* The byte offset from the start of the current
