@@ -7378,8 +7378,8 @@ its subtree.
                                                 (char *)covariant_return_expr,
                                                 NO_NAME, TQ_NONE,
                                                 /*suppress_const=*/FALSE);
+            write_tok_ch(';');
           }  /* if */
-          write_tok_ch(';');
         }  /* if */
         break;
       case stmk_init:
