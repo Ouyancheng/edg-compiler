@@ -1849,7 +1849,10 @@ recognized as cv-qualifiers.
     if (get_token_needed) (void)get_token();
     if (is_type_qualifier()) {
       a_type_qualifier_set  qualifiers;
+      a_type_ptr	    underlying_type;
 
+      underlying_type =
+                       skip_typerefs_allow_null_referenced_type(complete_type);
       set_err_pos_to_curr_token();
       qualifiers = collect_type_qualifiers();
 #if RESTRICT_ALLOWED
@@ -1862,7 +1865,7 @@ recognized as cv-qualifiers.
       }  /* if */
       /* Check for using qualifiers (other than restrict) with a reference
          type. */
-      if (is_reference_type(complete_type) &&
+      if (underlying_type != NULL && is_reference_type(underlying_type) &&
           (qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
         /* There is at least one qualifier besides restrict.  Clear all but
            but restrict from the qualifiers set. */
@@ -1872,14 +1875,21 @@ recognized as cv-qualifiers.
                    ec_qualified_reference_type);
       }  /* if */
 #else /* !RESTRICT_ALLOWED */
-      if (is_reference_type(complete_type)) {
+      if (underlying_type != NULL && is_reference_type(underlying_type)) {
         qualifiers = TQ_NONE;
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
                    ec_qualified_reference_type);
       }  /* if */
 #endif /* RESTRICT_ALLOWED */
       if (qualifiers != TQ_NONE) {
+#if MICROSOFT_KEYWORDS_ALLOWED
+        /* Use the special version to add the qualifer because there may
+           be no underlying type. */
+        complete_type = add_microsoft_qualifier_to_type(complete_type,
+                                                        qualifiers);
+#else /* !MICROSOFT_KEYWORDS_ALLOWED */
         complete_type = make_qualified_type(complete_type, qualifiers);
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
       }  /* if */
     }  /* if */
   }  /* while */
