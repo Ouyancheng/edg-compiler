@@ -1431,14 +1431,15 @@ An object lifetime was previously pushed to surround the initialization of
 a local static variable; local_static_lifetime identifies it.  Bind it
 to the local static variable initializer entry at local_static_var_init,
 and pop it off the object lifetime stack.  err is TRUE if some error has been
-detected in the initialization.
+detected in the initialization.  local_static_var_init is NULL if this
+variable did not require dynamic initialization, if which case the lifetime
+is not needed.
 */
 {
   check_assertion(local_static_lifetime == curr_object_lifetime);
-  if (err) {
+  if (err || local_static_var_init == NULL) {
     mark_object_lifetime_as_useless(local_static_lifetime);
   } else {
-    check_assertion(local_static_var_init != NULL);
     bind_object_lifetime(local_static_lifetime,
                          (an_il_entry_kind)
                              iek_local_static_variable_init,
