@@ -69,7 +69,7 @@ not be widened depending on the implementation.  If we can say "this
 implementation always does widening," the two declarations can be
 considered compatible.
 */
-#define PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED TRUE
+#define PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED FALSE
 
 #endif /* ifndef LANG_FEAT_H */
 
