@@ -1841,6 +1841,26 @@ one step instead of class-by-class, return TRUE.
 }  /* pm_cast_is_unambiguous */
 
 
+static void gen_designator(a_constant_ptr con)
+/*
+Generate code for a ck_designator constant, i.e., a designator in a
+designated initializer.
+*/
+{
+  if (con->variant.designator.field != NULL) {
+    /* Field designator. */
+    write_tok_ch('.');
+    gen_field_name(con->variant.designator.field);
+  } else {
+    /* Array element designator. */
+    write_tok_ch('[');
+    write_unsigned_num((unsigned long)con->variant.designator.array_element);
+    write_tok_ch(']');
+  }  /* if */
+  write_tok_str(" = ");
+}  /* gen_designator */
+
+
 static void gen_initializer_constant(a_constant_ptr constant,
                                      a_type_ptr     type)
 /*
@@ -1883,6 +1903,13 @@ initialized is not a reference.
       check_assertion(array_case);
     } else {
       for (; sub_con != NULL;) {
+        if (sub_con->kind == (a_constant_repr_kind)ck_designator) {
+          /* Put out the introduction for a designated initializer. */
+          gen_designator(sub_con);
+          sub_con = sub_con->next;
+          check_assertion(sub_con != NULL &&
+                          sub_con->kind!=(a_constant_repr_kind)ck_designator);
+        }  /* if */
         /* Determine the type of the entity initialized by the next
            constant. */
         if (!array_case) {
