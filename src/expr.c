@@ -8940,6 +8940,7 @@ Syntax:
     /* MSVC++ (6.0, 7.0, and 7.1 at least) allows a cast to an enum type
        in a const_cast. */
     microsoft_enum_cast_case = TRUE;
+    pos_warning(ec_enum_const_cast, &start_position);
     if (is_an_lvalue(&operand) &&
         !is_bit_field_operand(&operand)) {
       /* The cast is an lvalue cast (its result is also an lvalue). */

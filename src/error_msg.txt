@@ -1390,6 +1390,7 @@ ec_missing_named_register_storage_class;;"missing named-register storage class i
 ec_previous_decl_at;;"(the previous declaration is %p)"
 ec_register_too_small;;"named register is too small for the type of the variable"
 ec_no_named_register_for_array;;"arrays cannot be declared with named-register storage class"
+ec_enum_const_cast;;"const_cast to enum type is nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
