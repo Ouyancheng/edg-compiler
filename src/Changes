@@ -8,11 +8,13 @@ function template, the parent namespace pointer for that instance was
 sometimes set incorrectly.  This could result in name lookup errors
 during the instantiation of the instance.
 
-10/26/98  Base-class access set incorrectly
+10/26/98  Access of virtual base class set incorrectly
 
-The access on one of the derivation paths of D::A was set incorrectly in
-the following example, and as a result no diagnostic was issued in the
-reference to D::i.  Now fixed.
+In cases involving multiple inheritance the access of an indirect virtual
+base class was on rare occasions set incorrectly.  For instance, in the
+following example the access on one of the derivation paths of D::A was
+wrong, and as a result no diagnostic was issued in the reference to D::i.
+Now fixed.
 
   class A { public: int i; };
   class B1 : virtual private A { };
