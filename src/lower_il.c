@@ -7715,6 +7715,8 @@ code.
     for (;;) {
       /* Generate destructions in this context. */
       for (; dip != NULL; dip = dip->next_in_destruction_list) {
+        check_assertion_str(dip->destructible_entity_descr != NULL,
+                 "gen_cleanup_actions_...: missing destructible entity descr");
         if (dip->has_temporary_lifetime && skip_temporaries) {
           /* Skipping temporaries, so skip this destruction. */
         } else if (dip->is_constructor_init ||
