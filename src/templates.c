@@ -2650,8 +2650,9 @@ Instantiate the body of the template function associated with tip.
     /* The function was declared using a typedef.  Now that it is being
        defined (given a body by the instantiation), create an unshared type
        with the typedef stripped off. */
+    check_assertion(!is_qualified_type(rout_ptr->type));
     rout_ptr->type =
-            copy_routine_type_with_param_types(skip_typerefs(rout_ptr->type),
+            copy_routine_type_with_param_types(rout_ptr->type,
                                                /*copy_default_args=*/TRUE);
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -5815,7 +5816,8 @@ type based on the template argument list and the template parameter list
     { a_type_ptr  declared_type = rp->declared_type;
 
       check_assertion(declared_type != NULL);
-      if (declared_type == rp->type) {
+      if (declared_type == rp->type &&
+          declared_type->kind != (a_type_kind)tk_typeref) {
         /* Make a copy of the routine type; default_args, if any, will be
            ignored. */
         declared_type = copy_routine_type_with_param_types(
@@ -5824,6 +5826,7 @@ type based on the template argument list and the template parameter list
       } else {
         /* Use the declared_type in the routine entry only if it has no
            default args; otherwise, make a copy. */
+        check_assertion(!is_qualified_type(declared_type));
         declared_type = routine_type_without_default_args(declared_type);
       }  /* if */
       add_source_sequence_entry_for_partial_instantiation(
@@ -9855,9 +9858,6 @@ declaration (following any template clauses).
              function type to come from a typedef, so too is that an error when
              a function template is being defined. */
           error(ec_function_type_must_come_from_declarator);
-          /* Copy the type entry, since the typedef type may not be shared. */
-          type = copy_routine_type_with_param_types(skip_typerefs(type),
-                                                   /*copy_default_args=*/TRUE);
         }  /* if */
       }  /* if */
       /* Check for a previous definition of this template. */

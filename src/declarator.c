@@ -266,8 +266,7 @@ array-to-pointer decay).
   a_boolean         fixup_needed;
 
   db_enter(4, "form_declared_type");
-  if (type_ptr->kind == (a_type_kind)tk_typeref &&
-      !typeref_is_qualified(type_ptr)) {
+  if (type_ptr->kind == (a_type_kind)tk_typeref) {
     /* Leave the declared type the same as the routine type. */
     declared_type = type_ptr;
   } else {

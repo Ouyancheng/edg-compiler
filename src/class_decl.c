@@ -5661,7 +5661,8 @@ declared member functions.
           if (tp->kind == (a_type_kind)tk_typeref) {
             /* The typedef is potentially shared, so don't modify the
                type it points to without copying it first. */
-            tp = copy_routine_type_with_param_types(skip_typerefs(tp),
+            check_assertion(!is_qualified_type(tp));
+            tp = copy_routine_type_with_param_types(tp,
                                                    /*copy_default_args=*/TRUE);
             rtsp2 = tp->variant.routine.extra_info;
             /* For default arg processing later on, save the type that will

@@ -3821,9 +3821,10 @@ type entry if appropriate, otherwise using the indicated declared_type.
   if (rtsp1->implicit_this_param_type != rtsp2->implicit_this_param_type ||
       rtsp1->routine_name_linkage != rtsp2->routine_name_linkage) {
     if (declared_type->kind == (a_type_kind)tk_typeref) {
+      check_assertion(!is_qualified_type(declared_type));
       declared_type =
-           copy_routine_type_with_param_types(skip_typerefs(declared_type),
-                                              /*copy_default_args=*/TRUE);
+         copy_routine_type_with_param_types(declared_type,
+                                            /*copy_default_args=*/TRUE);
       rtsp2 = declared_type->variant.routine.extra_info;
     }  /* if */
     rtsp2->implicit_this_param_type = rtsp1->implicit_this_param_type;
@@ -3947,6 +3948,8 @@ on for use in generating cross-reference output describing this declaration.
        declared_type now (i.e., before composite_type is called). */
     if (!is_function_def && source_sequence_entries_disallowed) {
       /* The declared_type is not used. */
+    } else if (func_info->declared_type == type_ptr) {
+      /* No fixup required.  (This can happen when type_ptr is a typedef.) */
     } else if (func_info->declared_type != NULL &&
                skip_typerefs(func_info->declared_type)->
                                 variant.routine.extra_info->prototyped) {
