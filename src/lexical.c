@@ -10794,7 +10794,7 @@ list.
   /* Skip over an initial ":" in the string. */
   if (*ptr == ':') ptr++;
   while (*ptr) {
-    /* Skip of any spaces. */
+    /* Skip any spaces. */
     while (*ptr == ' ') ptr++;
     /* See if we've reached the end of the string. */
     if (!*ptr) break;
