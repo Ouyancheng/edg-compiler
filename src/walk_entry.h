@@ -1858,7 +1858,7 @@ end_of_routine:;
 #undef remap_parent
 #undef walk_source_corresp
 
-#ifdef WALK_ORPHANED_FILE_SCOPE_ENTRY_ROUTINE_NAME
+#ifdef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 
 /*
 Process a list of identical type orphaned file scope IL entries linked
@@ -1890,7 +1890,7 @@ array and process the lists of IL entries of each type pointed to by the
 
 /* The routine name is a macro so it can be expanded different ways, e.g.,
    as walk_orphaned_file_scope_il_entries. */
-static void WALK_ORPHANED_FILE_SCOPE_ENTRY_ROUTINE_NAME(void)
+static void WALK_ORPHANED_ENTRY_ROUTINE_NAME(void)
 /*
 For each IL entry kind, process any orphaned file scope IL entries chained
 to the orphaned_file_scope_il_entries table.  As function scopes were walked,
@@ -2005,7 +2005,7 @@ of each kind.
      never appear on an orphan list.  Ditto for iek_src_seq_sublist. */
 }  /* walk_orphaned_file_scope_il_entries */
 
-#endif /* ifdef WALK_ORPHANED_FILE_SCOPE_ENTRY_ROUTINE_NAME */
+#endif /* ifdef WALK_ORPHANED_ENTRY_ROUTINE_NAME */
 
 #if !DO_SUBTREE_WALK
 #if REMAP_ONLY_ROUTINES_NEEDED

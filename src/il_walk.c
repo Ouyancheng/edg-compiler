@@ -86,8 +86,7 @@ static void set_keep_in_il_on_source_sequence_entries(a_scope_ptr scope);
 #define KEEP_IN_IL_WALK FALSE
 #define WALK_ENTRY_ROUTINE_STATIC static
 #define WALK_ENTRY_ROUTINE_NAME walk_entry_and_subtree
-#define WALK_ORPHANED_FILE_SCOPE_ENTRY_ROUTINE_NAME \
-  walk_orphaned_file_scope_il_entries
+#define WALK_ORPHANED_ENTRY_ROUTINE_NAME walk_orphaned_file_scope_il_entries
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
 #include "walk_entry.h"
 
@@ -302,7 +301,7 @@ can be NULL to indicate that the corresponding function is unnecessary.
 #define WALK_ENTRY_ROUTINE_STATIC static
 #undef WALK_ENTRY_ROUTINE_NAME
 #define WALK_ENTRY_ROUTINE_NAME walk_tree_and_set_needed
-#undef WALK_ORPHANED_FILE_SCOPE_ENTRY_ROUTINE_NAME
+#undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
 #define UNDEF_WALK_ENTRY_MACROS_AT_END
 #include "walk_entry.h"
@@ -455,9 +454,8 @@ references.
 #define WALK_ENTRY_ROUTINE_STATIC static
 #undef WALK_ENTRY_ROUTINE_NAME
 #define WALK_ENTRY_ROUTINE_NAME walk_tree_and_set_keep_in_il
-#undef WALK_ORPHANED_FILE_SCOPE_ENTRY_ROUTINE_NAME
-#define WALK_ORPHANED_FILE_SCOPE_ENTRY_ROUTINE_NAME \
-  walk_orphaned_file_scope_il_entries_and_set_keep_in_il
+#undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
+#define WALK_ORPHANED_ENTRY_ROUTINE_NAME walk_orphaned_entries_set_keep_in_il
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
 #include "walk_entry.h"
 
@@ -533,7 +531,7 @@ only the entries marked as "needed" are marked to keep in the IL.
         }  /* if */
       }  /* for */
       /* Visit the orphan lists. */
-      walk_orphaned_file_scope_il_entries_and_set_keep_in_il();
+      walk_orphaned_entries_set_keep_in_il();
     } /* if */
   }  /* if */
 
@@ -797,7 +795,7 @@ running them through walk_remap_func.
 #define WALK_ENTRY_ROUTINE_STATIC /* extern */
 #undef WALK_ENTRY_ROUTINE_NAME
 #define WALK_ENTRY_ROUTINE_NAME remap_pointers_in_il_entry
-#undef WALK_ORPHANED_FILE_SCOPE_ENTRY_ROUTINE_NAME
+#undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 #undef UNDEF_WALK_ENTRY_MACROS_AT_END
 #define UNDEF_WALK_ENTRY_MACROS_AT_END
 #include "walk_entry.h"
@@ -808,7 +806,7 @@ running them through walk_remap_func.
 #undef KEEP_IN_IL_WALK
 #undef WALK_ENTRY_ROUTINE_STATIC
 #undef WALK_ENTRY_ROUTINE_NAME
-#undef WALK_ORPHANED_FILE_SCOPE_ENTRY_ROUTINE_NAME
+#undef WALK_ORPHANED_ENTRY_ROUTINE_NAME
 
 
 void il_walk_init(void)
