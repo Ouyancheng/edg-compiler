@@ -363,7 +363,32 @@ that an insertion will be made.
          x
        is rewritten as
          ((temp = x) , temp)
-       and the insert point is set to insert after the assignment. */
+       and the insert point is set to insert after the assignment.
+       When x looks like "y != 0", keep the "!= 0" on top, by doing the
+       rewriting under the test:
+         (((temp = y), temp) != 0)
+       This avoids the need to add another "!= 0" later, and avoids some bugs
+       in the Sun cc compiler.
+    */
+    if (is_operation_node(node) &&
+        node->variant.operation.kind == (an_expr_operator_kind)eok_ine) {
+      a_constant_ptr   con = NULL;
+      an_expr_node_ptr first_op = node->variant.operation.operands;
+      an_expr_node_ptr second_op = first_op->next;
+      an_expr_node_ptr other_op;
+      if (first_op->kind == (an_expr_node_kind)enk_constant) {
+        con = first_op->variant.constant;
+        other_op = second_op;
+      } else if (second_op->kind == (an_expr_node_kind)enk_constant) {
+        con = second_op->variant.constant;
+        other_op = first_op;
+      }  /* if */
+      if (con != NULL) {
+        /* The is "y != 0" or "0 != y".  Do the transformation on y. */
+        node = other_op;
+        node_type = node->type;
+      }  /* if */
+    }  /* if */        
     temp_var = make_lowered_temporary(node_type);
     /* Make a copy of the original node, then assign it to the temporary. */
     node_copy = copy_node(node);
