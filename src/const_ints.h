@@ -96,6 +96,9 @@ extern void and_integer_values(an_integer_value *op_1,
 extern void make_integer_value_mask(an_integer_value *mask,
 				    int	      	     bits);
 
+extern void sign_extend_integer_value(an_integer_value *value,
+				      int	        bits);
+
 extern void shift_left_integer_value(an_integer_value *op_1,
 				     int	      op_2,
 				     a_boolean	       *err);
@@ -136,7 +139,7 @@ extern void get_integer_size_and_alignment(an_integer_kind  ikind,
 extern char* db_format_integer_value(an_integer_value  *value);
 
 extern void db_integer_value(an_integer_value *value);
-#endif
+#endif /* DEBUG */
 
 #endif /* ifndef CONST_INTS_H */
 
