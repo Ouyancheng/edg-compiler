@@ -5149,14 +5149,14 @@ scope for the symbol must still be active.
   sc->referenced = FALSE;
 #if RECORD_SCOPE_DEPTH_IN_IL
   /* Record the scope depth of the declaration of this entity in the source
-     correspondence.  Typically it is either decl_scope_level or the file
-     scope depth.  Check for those cases first. */
-  if (decl_scope_level == DEPTH_OF_FILE_SCOPE ||
-      scope_stack[decl_scope_level].number == sp->decl_scope) {
-    sc->scope_depth = decl_scope_level;
-  } else if (sp->decl_scope == NO_SCOPE_NUMBER) {
+     correspondence. */
+  if (sp->decl_scope == NO_SCOPE_NUMBER) {
     /* Some entities (e.g., macros) have no decl_scope number. */
     sc->scope_depth = NO_SCOPE_DEPTH;
+  } else if (scope_stack[decl_scope_level].number == sp->decl_scope) {
+    /* The normal case is when the current decl_scope_level corresponds to
+       what's in the symbol. */
+    sc->scope_depth = decl_scope_level;
   } else {
     /* In certain unusual cases (e.g., when an entity is first seen in a
        friend declaration) it is necessary to compute the scope depth by
