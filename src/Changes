@@ -1,5 +1,25 @@
 Version 2.46
 
+2/7/02   Visibility of declarations designated by member using-declarations
+
+When checking the visibility of member using-declarations, the front end did
+not properly handle overload sets resulting from a mix of ordinary member
+functions and using-declarations. E.g., a spurious error was issued for the
+following example:
+
+  struct A {
+    int f(int n) { return 1+n; }
+  };
+  struct B: A {
+    int f(unsigned int n) { return 3+n; }
+    using A::f;
+  };
+  struct C: B {
+    using A::f;  // A::f visible in direct base class B: OK.
+  };
+
+This is now fixed (i.e., no error is issued for the above example anymore).
+
 2/7/02   Limiting the amount of instantiation context output in diagnostics
 
 In certain cases, the context information provided for errors during
