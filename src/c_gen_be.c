@@ -3164,7 +3164,7 @@ of a statement or short-circuit operator.  The expression is surrounded
 by parentheses.
 */
 {
-  an_expr_node_ptr first_op, second_op, other_op, temp_node, parent_node;
+  an_expr_node_ptr first_op, second_op, other_op;
   a_constant_ptr   con;
 
   /* If there is a "!= 0" at the top of the expression, remove it.
@@ -3172,56 +3172,27 @@ by parentheses.
      a bug in handling a "!= 0" on top of a comma operator, as in
        if ((i++, ++i != 6) != 0) {}
      The optimization/problem is there the other way around too,
-     i.e. "0 != ...".  There are similar cases with "== 0".
+     i.e. "0 != ...".
   */
-  temp_node = node;
-  parent_node = NULL;
-  /* Look down through comma nodes, because this optimization applies at
-     each level. */
-  for (;;) {
-    a_boolean eq_case = FALSE;
-    if (temp_node->kind == (an_expr_node_kind)enk_operation &&
-        (temp_node->variant.operation.kind == (an_expr_operator_kind)eok_ine ||
-         (eq_case = temp_node->variant.operation.kind ==
-                                            (an_expr_operator_kind)eok_ieq))) {
-      con = NULL;
-      first_op = temp_node->variant.operation.operands;
-      second_op = first_op->next;
-      if (first_op->kind == (an_expr_node_kind)enk_constant) {
-        con = first_op->variant.constant;
-        other_op = second_op;
-      } else if (second_op->kind == (an_expr_node_kind)enk_constant) {
-        con = second_op->variant.constant;
-        other_op = first_op;
-      }  /* if */
-      if (con == NULL || con->kind != (a_constant_repr_kind)ck_integer ||
-          con->implicit_cast || !eqlit_integer_constant(con, 0L)) break;
-      /* Rewrite this case by getting rid of the "!= 0".  For the "== 0"
-         case, use a "!" operator. */
-      if (eq_case) {
-        temp_node->variant.operation.kind = (an_expr_operator_kind)eok_not;
-        temp_node->variant.operation.operands = other_op;
-        other_op->next = NULL;
-      } else {
-        if (parent_node == NULL) {
-          /* Rewrite is at the top level. */
-          node = other_op;
-        } else {
-          /* Rewrite is under a comma operation. */
-          parent_node->variant.operation.operands->next = other_op;
-          other_op->next = NULL;
-        }  /* if */
-      }  /* if */
-      /* Continue with the subnode. */
-      temp_node = other_op;
+  if (node->kind == (an_expr_node_kind)enk_operation &&
+      node->variant.operation.kind == (an_expr_operator_kind)eok_ine) {
+    con = NULL;
+    first_op = node->variant.operation.operands;
+    second_op = first_op->next;
+    if (first_op->kind == (an_expr_node_kind)enk_constant) {
+      con = first_op->variant.constant;
+      other_op = second_op;
+    } else if (second_op->kind == (an_expr_node_kind)enk_constant) {
+      con = second_op->variant.constant;
+      other_op = first_op;
     }  /* if */
-    if (temp_node->kind != (an_expr_node_kind)enk_operation ||
-        temp_node->variant.operation.kind !=
-                                       (an_expr_operator_kind)eok_comma) break;
-    /* Keep looping under a comma node. */
-    parent_node = temp_node;
-    temp_node = temp_node->variant.operation.operands->next;
-  }  /* for */
+    if (con != NULL) {
+      if (con->kind == (a_constant_repr_kind)ck_integer &&
+          !con->implicit_cast && eqlit_integer_constant(con, 0L)) {
+        node = other_op;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   m_write_tok_ch('(');
   dump_expression(node);
   m_write_tok_ch(')');
