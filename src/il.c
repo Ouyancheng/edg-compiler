@@ -669,9 +669,8 @@ Dump the contents of the indicated type entry, for debug purposes.
     case tk_class:
       fputs("class", f_debug);
 class_struct_union:
-      fputs(" \"", f_debug);
+      fputs(" ", f_debug);
       db_type_name(tp);
-      fputc('"', f_debug);
       ctsp = tp->variant.class_struct_union.extra_info;
       if (tp->variant.class_struct_union.field_list == NULL &&
           (ctsp == NULL || ctsp->assoc_scope == NULL)) {
@@ -4489,8 +4488,8 @@ static void add_based_type_list_member(a_type_ptr        base_type,
 Add a based type list member to the based_types list of base_type
 indicating that based_type is a type based on base_type, and the relationship
 between the types is described by kind.  The entry is allocated in the
-same memory region as base_type.  This routine does not check to see if
-there is already an entry of the indicated kind on the list.
+file scope memory region.  This routine does not check to see if there
+is already an entry of the indicated kind on the list.
 */
 {
   a_based_type_list_member_ptr btlmp;
@@ -4500,6 +4499,19 @@ there is already an entry of the indicated kind on the list.
   /* Add the entry to the front of the existing based_types list. */
   btlmp->next = base_type->based_types;
   base_type->based_types = btlmp;
+#if MAINTAIN_NEEDED_FLAGS
+  /* If the "needed" or "keep_in_il" flag has already been set on this
+     type, clear it and set it again to ensure that the entry on the based
+     types list is visited if required. */
+  if (base_type->source_corresp.needed) {
+    base_type->source_corresp.needed = FALSE;
+    mark_as_needed((char *)base_type, iek_type);
+  }  /* if */
+  if (il_entry_prefix_of(base_type).keep_in_il) {
+    il_entry_prefix_of(base_type).keep_in_il = FALSE;
+    mark_to_keep_in_il((char *)base_type, iek_type);
+  }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* add_based_type_list_member */
 
 
