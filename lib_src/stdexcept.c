@@ -21,7 +21,7 @@ Functions that implement the "exception" class (19.1.1).
 
 #include "exception.h"
 
-exception::exception() throw()
+exception::exception() THROW_NOTHING()
 /*
 Constructor for exception.
 */
@@ -29,7 +29,7 @@ Constructor for exception.
 }  /* exception::exception */
 
 
-exception& exception::operator=(const exception&) throw()
+exception& exception::operator=(const exception&) THROW_NOTHING()
 /*
 Assignment operator for exception.  Currently does nothing.
 */
@@ -38,7 +38,7 @@ Assignment operator for exception.  Currently does nothing.
 }  /* exception::operator= */
 
 
-exception::~exception() throw()
+exception::~exception() THROW_NOTHING()
 /*
 Destructor for exception.
 */
@@ -46,7 +46,7 @@ Destructor for exception.
 }  /* exception::~exception */
 
 
-const char* exception::what() const throw()
+const char* exception::what() const THROW_NOTHING()
 /*
 Return a string providing information about the exception.  Currently,
 no additional information is available.

@@ -21,7 +21,7 @@ Functions that implement the "bad_exception" class (18.6.2.1).
 
 #include "exception.h"
 
-bad_exception::bad_exception() throw()
+bad_exception::bad_exception() THROW_NOTHING()
 /*
 Constructor for bad_exception.
 */
@@ -29,7 +29,8 @@ Constructor for bad_exception.
 }  /* bad_exception::bad_exception */
 
 
-bad_exception::bad_exception(const bad_exception& rhs) throw() : exception(rhs)
+bad_exception::bad_exception(const bad_exception& rhs)
+THROW_NOTHING() : exception(rhs)
 /*
 Copy constructor for bad_exception.  Currently does nothing.
 */
@@ -37,7 +38,8 @@ Copy constructor for bad_exception.  Currently does nothing.
 }  /* bad_exception::bad_exception */
 
 
-bad_exception& bad_exception::operator=(const bad_exception& rhs) throw()
+bad_exception& bad_exception::operator=(const bad_exception& rhs)
+THROW_NOTHING()
 /*
 Assignment operator for bad_exception.  Currently does nothing.
 */
@@ -48,7 +50,7 @@ Assignment operator for bad_exception.  Currently does nothing.
 }  /* bad_exception::operator= */
 
 
-bad_exception::~bad_exception() throw()
+bad_exception::~bad_exception() THROW_NOTHING()
 /*
 Destructor for bad_exception.
 */
@@ -56,7 +58,7 @@ Destructor for bad_exception.
 }  /* bad_exception::~bad_exception */
 
 
-const char* bad_exception::what() const throw()
+const char* bad_exception::what() const THROW_NOTHING()
 /*
 Return a string providing information about the exception.  Currently,
 no additional information is available.

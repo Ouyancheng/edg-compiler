@@ -95,7 +95,7 @@ Destructor for type_info.  This should never actually be called.
 }  /* type_info::~type_info */
 
 
-bad_cast::bad_cast() throw()
+bad_cast::bad_cast() THROW_NOTHING()
 /*
 Constructor for bad_cast.
 */
@@ -103,7 +103,7 @@ Constructor for bad_cast.
 }  /* bad_cast::bad_cast */
 
 
-bad_cast::bad_cast(const bad_cast& rhs) throw() : exception(rhs)
+bad_cast::bad_cast(const bad_cast& rhs) THROW_NOTHING() : exception(rhs)
 /*
 Copy constructor for bad_cast.  Currently does nothing.
 */
@@ -111,7 +111,7 @@ Copy constructor for bad_cast.  Currently does nothing.
 }  /* bad_cast::bad_cast */
 
 
-bad_cast& bad_cast::operator=(const bad_cast& rhs) throw()
+bad_cast& bad_cast::operator=(const bad_cast& rhs) THROW_NOTHING()
 /*
 Assignment operator for bad_cast.  Currently does nothing.
 */
@@ -122,7 +122,7 @@ Assignment operator for bad_cast.  Currently does nothing.
 }  /* bad_cast::operator= */
 
 
-bad_cast::~bad_cast() throw()
+bad_cast::~bad_cast() THROW_NOTHING()
 /*
 Destructor for bad_cast.
 */
@@ -130,7 +130,7 @@ Destructor for bad_cast.
 }  /* bad_cast::~bad_cast */
 
 
-const char* bad_cast::what() const throw()
+const char* bad_cast::what() const THROW_NOTHING()
 /*
 Return a string providing information about the exception.  Currently,
 no additional information is available.
@@ -140,7 +140,7 @@ no additional information is available.
 }  /* bad_cast::~bad_cast */
 
 
-bad_typeid::bad_typeid() throw()
+bad_typeid::bad_typeid() THROW_NOTHING()
 /*
 Constructor for bad_typeid.
 */
@@ -148,7 +148,7 @@ Constructor for bad_typeid.
 }  /* bad_typeid::bad_typeid */
 
 
-bad_typeid::bad_typeid(const bad_typeid& rhs) throw() : exception(rhs)
+bad_typeid::bad_typeid(const bad_typeid& rhs) THROW_NOTHING() : exception(rhs)
 /*
 Copy constructor for bad_typeid.  Currently does nothing.
 */
@@ -156,7 +156,7 @@ Copy constructor for bad_typeid.  Currently does nothing.
 }  /* bad_typeid::bad_typeid */
 
 
-bad_typeid& bad_typeid::operator=(const bad_typeid& rhs) throw()
+bad_typeid& bad_typeid::operator=(const bad_typeid& rhs) THROW_NOTHING()
 /*
 Assignment operator for bad_typeid.  Currently does nothing.
 */
@@ -167,7 +167,7 @@ Assignment operator for bad_typeid.  Currently does nothing.
 }  /* bad_typeid::operator= */
 
 
-bad_typeid::~bad_typeid() throw()
+bad_typeid::~bad_typeid() THROW_NOTHING()
 /*
 Destructor for bad_typeid.
 */
@@ -175,7 +175,7 @@ Destructor for bad_typeid.
 }  /* bad_typeid::~bad_typeid */
 
 
-const char* bad_typeid::what() const throw()
+const char* bad_typeid::what() const THROW_NOTHING()
 /*
 Return a string providing information about the exception.  Currently,
 no additional information is available.

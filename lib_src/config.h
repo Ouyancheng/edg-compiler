@@ -153,14 +153,6 @@ any additional blocks that are required.
 #endif /* ifndef EH_MEMORY_ALLOCATION_INCREMENT */
 
 /*
-The strictest alignment required of any data type.  This should be
-the alignment that malloc uses for memory that is allocated.
-*/
-#ifndef MOST_STRICT_ALIGNMENT
-#define MOST_STRICT_ALIGNMENT 8
-#endif /* ifndef MOST_STRICT_ALIGNMENT */
-
-/*
 A type that, when used, will be aligned with the strictest alignment
 requirements.
 */
@@ -186,6 +178,26 @@ The mangled name of the typeinfo record for a void type.
 
 #endif /* EXCEPTION_HANDLING */
 
+/*
+Define macros that are used to define exception specifications.  The
+macros are used so that the throw specifications can be discarded when
+exception handling is not being used.
+*/
+#if EXCEPTION_HANDLING
+#define THROW(throw_spec) throw(throw_spec)
+#define THROW_NOTHING() throw()
+#else /* !EXCEPTION_HANDLING */
+#define THROW(throw_spec) /* Nothing. */
+#define THROW_NOTHING() /* Nothing. */
+#endif /* EXCEPTION_HANDLING */
+
+/*
+The strictest alignment required of any data type.  This should be
+the alignment that malloc uses for memory that is allocated.
+*/
+#ifndef MOST_STRICT_ALIGNMENT
+#define MOST_STRICT_ALIGNMENT 8
+#endif /* ifndef MOST_STRICT_ALIGNMENT */
 
 #endif /* CONFIG_H */
 
