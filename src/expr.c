@@ -623,7 +623,8 @@ static a_type_ptr next_printf_scanf_arg_type(
                                           a_boolean           is_scanf,
                                           char                **fmt_string_ptr,
                                           a_printf_scan_state *pss_ptr,
-                                          a_boolean           *indirect)
+                                          a_boolean           *indirect,
+                                          a_boolean           *weakly_typed)
 /*
 Return the type that the next argument to a printf or scanf call should have,
 by finding the next thing in the format string that consumes an argument.
@@ -634,7 +635,8 @@ to handle resuming the scan after a "*" field width or precision.
 If there is an error in the format string, issue a warning and set
 *fmt_string_ptr to NULL.  *indirect is returned TRUE if the type returned
 has an added pointer level relative to the type indicated in the formatting
-string, e.g., for scanf.
+string, e.g., for scanf.  *weakly_typed is returned TRUE if the formatting
+specifier is one that is weakly typed, e.g. "%x".
 
 See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 */
@@ -648,6 +650,7 @@ See 4.9.6.1 in the standard for printf, 4.9.6.2 for scanf.
 #endif /* LONG_LONG_ALLOWED */
   a_boolean           suppress_assignment = FALSE;
 
+  *weakly_typed = FALSE;
   *indirect = FALSE;
   /* Pick up in the middle if the previous call returned a field width
      or precision. */
@@ -760,10 +763,12 @@ after_precision:;
           required_type = integer_type((an_integer_kind)ik_int);
         }  /* if */
         break;
-      case 'o':
-      case 'u':
       case 'x':
       case 'X':
+      case 'o':
+        *weakly_typed = TRUE;
+        /*FALLTHROUGH*/
+      case 'u':
         /* Unsigned int conversion.  If "l" was specified, unsigned long
            conversion; if "h" was specified for scanf, unsigned short 
            conversion. */
@@ -819,6 +824,7 @@ after_precision:;
       case 'p':
         /* Pointer conversion.  Basic type is "void *". */
         required_type = make_pointer_type(void_type());
+        *weakly_typed = TRUE;
         break;
       case 'n':
         /* Return number of characters read or written so far.
@@ -882,11 +888,12 @@ format string (they are updated on return).
 */
 {
   a_type_ptr required_type, eff_required_type, eff_argument_type;
-  a_boolean  indirect, ptr_argument;
+  a_boolean  indirect, weakly_typed;
 
   /* Find the next formatting specifier in the string. */
   required_type = next_printf_scanf_arg_type(is_scanf, fmt_string_ptr,
-                                             pss_ptr, &indirect);
+                                             pss_ptr, &indirect,
+                                             &weakly_typed);
   /* If *fmt_string_ptr was set to NULL there was an error in the format
      string. */
   if (*fmt_string_ptr != NULL) {
@@ -915,13 +922,22 @@ format string (they are updated on return).
       /* Drop type qualifiers. */
       eff_argument_type = skip_typerefs(eff_argument_type);
       eff_required_type = skip_typerefs(eff_required_type);
-      ptr_argument = is_pointer_type(eff_argument_type);
       if (types_are_compatible(eff_required_type, eff_argument_type)) {
         /* The types are exactly the same. */
-      } else if (ptr_argument && is_pointer_type(eff_required_type)) {
-        /* Allow any pointer type for %p. */
-      } else if (!strict_ansi_mode && ptr_argument &&
+      } else if (weakly_typed &&
                  is_integral_type(eff_required_type) &&
+                 is_integral_type(eff_argument_type) &&
+                 integral_types_the_same_except_for_signedness(
+                                       eff_required_type, eff_argument_type)) {
+        /* For a weakly-typed specifier like "%x", allow an integral type
+           even if its signedness is different. */
+      } else if (weakly_typed &&
+                 is_pointer_type(eff_required_type) &&
+                 is_pointer_type(eff_argument_type)) {
+        /* Allow any pointer type for %p. */
+      } else if (!strict_ansi_mode &&
+                 is_integral_type(eff_required_type) &&
+                 is_pointer_type(eff_argument_type) &&
                  eff_required_type->size == eff_argument_type->size &&
                  eff_required_type->alignment == eff_argument_type->alignment){
         /* Allow a pointer to be passed where an integral type is expected
@@ -1240,8 +1256,9 @@ build an argument operand list and return a pointer to it in
   if (fmt_string != NULL) {
     /* For a printf- or scanf-like function, check that all the formatting
        specifiers were used. */
-    if (next_printf_scanf_arg_type(is_scanf, &fmt_string, &pss, &indirect)
-                                                                     != NULL) {
+    a_boolean weakly_typed;
+    if (next_printf_scanf_arg_type(is_scanf, &fmt_string, &pss,
+                                   &indirect, &weakly_typed) != NULL) {
       /* There are no more arguments, but the format string has more
          formatting specifiers. */
       warning(ec_too_few_printf_args);
