@@ -1,5 +1,14 @@
 Version 2.32
 
+6/10/96 More characters used in symbol table hash function
+
+The symbol table hash function to date has used the first character,
+last character, and middle three characters of an identifier to generate
+the hash for symbol table lookup.  This caused spectacularly bad performance
+for generated programs with identifiers like "X000000001", "X000000002",
+etc.  The hash function now uses the first three, last three, and middle
+three characters.
+
 6/10/96 Microsoft compatibility -- field of type array-of-unknown-size
 
 In Microsoft compatibility mode, the only field of a struct may be of type
