@@ -104,6 +104,12 @@ typedef struct a_translation_unit {
 			/* TRUE if the translation unit was specified on the
 			   command-line (FALSE if it was loaded to define an
 			   exported template). */
+  a_byte_boolean
+		additional_instantiation_wrapup_required;
+			/* This flag is set when something is changed in the
+			   instantiation state information that requires an
+			   additional pass of instantiation wrapup
+			   processing. */
 #if MODULE_ID_NEEDED
   char		**module_id_ptr;
 			/* Pointer to the module-id value for this translation

@@ -14871,6 +14871,20 @@ Add an entry to the can_instantiate list.
 }  /* add_to_can_instantiate_list */
 
 
+static void additional_instantiation_wrapup_processing_needed(void)
+/*
+Something was done that requires that another iteration of instantiation
+wrapup processing be done for the current translation unit.  Set a
+global flag that indicates that a translation unit requires additional
+processing and mark the current translation unit so that unchanged
+translation units can be bypassed.
+*/
+{
+  additional_instantiation_wrapup_required = TRUE;
+  curr_translation_unit->additional_instantiation_wrapup_required = TRUE;
+}  /* additional_instantiation_wrapup_processing_needed */
+
+
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
 static void do_implicit_include_if_needed(a_template_instance_ptr tip)
 /*
@@ -14971,7 +14985,7 @@ file we simply return.
                  instantiation wrapup.  The presence of additional code
 		 means we need to recheck whether some instantiations can
 		 be done. */
-              additional_instantiation_wrapup_required = TRUE;
+              additional_instantiation_wrapup_processing_needed();
             }  /* if */
 	  }  /* if */
         } else {
@@ -15052,7 +15066,7 @@ added, FALSE if it was already on the list.
          on the list.  This means that instantiation wrapup must make another
          pass over the instantiations list.  We don't need to do this if
          we have already generated the instantiation. */
-      additional_instantiation_wrapup_required = TRUE;
+      additional_instantiation_wrapup_processing_needed();
     }  /* if */
   } else {
     /* The entry must be added to the end of the list.  This is because new
@@ -17835,6 +17849,8 @@ translation unit.
   do {
     additional_instantiation_wrapup_required = FALSE;
     for (tup = translation_units; tup != NULL; tup = tup->next) {
+      /* Skip this translation unit if we know no work is needed. */
+      if (!tup->additional_instantiation_wrapup_required) continue;
       /* Push the translation unit (but don't repush the primary translation
          unit). */
       if (tup != translation_units) push_translation_unit_stack(tup);
@@ -19073,7 +19089,7 @@ Add the routine to an "instantiation list" of inline functions.
       /* Set a flag if this entry was added during instantiation wrapup.
          The addition of inline functions could cause additional instantiations
          to be done. */
-      additional_instantiation_wrapup_required = TRUE;
+      additional_instantiation_wrapup_processing_needed();
     }  /* if */
   }  /* if */
 }  /* add_to_inline_function_list */

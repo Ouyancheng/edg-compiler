@@ -557,6 +557,7 @@ a pointer to the entry created.
   tup->based_type_fixup_list = NULL;
   tup->exported_template_file = NULL;
   tup->specified_on_command_line = FALSE;
+  tup->additional_instantiation_wrapup_required = TRUE;
   /* Translation unit fields that are maintained by the mechanism that
      saves and restores translation unit variables.  They point to whichever
      copy of the information is currently active (either the global variable
