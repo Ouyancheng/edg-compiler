@@ -1,5 +1,13 @@
 Version 2.32
 
+5/24/96 Minor adjustments to typeid
+
+Two minor changes to typeid:
+
+(1)  When the typeid(type-id) form is used, if type-id is a reference type,
+     the typeinfo for the referenced type is returned.
+(2)  typeid of an incomplete array type can now be used.
+
 5/24/96 Restarting initialization of local static when exception thrown
 
 When an exception is thrown during the initialization of a local static

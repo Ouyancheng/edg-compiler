@@ -3801,6 +3801,10 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
                        DFS_SINGLE_TYPE_REQUIRED)) {
     /* Scan a type name. */
     type_name(&typeid_type);
+    /* If the type is a reference, drop that. */
+    if (is_reference_type(typeid_type)) {
+      typeid_type = type_pointed_to(typeid_type);
+    }  /* if */
   } else {
     /* Scan an expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
@@ -3837,8 +3841,9 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   typeid_type = skip_typerefs(typeid_type);
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(typeid_type);
-  /* The type must be complete or void. */
-  if (is_incomplete_type(typeid_type) && !is_void_type(typeid_type)) {
+  /* The type cannot be incomplete if it is a class type. */
+  if (is_class_struct_union_type(typeid_type) &&
+      is_incomplete_type(typeid_type)) {
     error(ec_incomplete_type_not_allowed);
     err = TRUE;
   }  /* if */
