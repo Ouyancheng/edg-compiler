@@ -148,12 +148,23 @@ extern a_boolean interchangeable_types(a_type_ptr type_1,
                                        a_type_ptr type_2);
 extern a_boolean this_param_types_correspond(a_type_ptr type_1,
                                              a_type_ptr type_2);
-extern a_boolean param_types_are_compatible(a_type_ptr  rout_type1,
-                                            a_type_ptr  rout_type2,
-                                            a_boolean   allow_error_type);
-extern a_boolean f_types_are_compatible(a_type_ptr type_1,
-                                        a_type_ptr type_2,
-                                        a_boolean  allow_error_type);
+/*
+Bit flags for calls of f_types_are_compatible et al.
+*/
+#define TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING 0x1
+			/* An error type is considered compatible with
+			   anything. */
+#define TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANYTHING 0x2
+			/* A template parameter type is considered
+			   compatible with anything. */
+#define TCF_NO_FLAGS 0x0
+typedef int a_type_compat_flags_set;
+extern a_boolean param_types_are_compatible(a_type_ptr              rout_type1,
+                                            a_type_ptr              rout_type2,
+                                            a_type_compat_flags_set flags);
+extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
+                                        a_type_ptr              type_2,
+                                        a_type_compat_flags_set flags);
 /* Two macros to be used in calling f_types_are_compatible, since they short
    circuit some of the processing in common cases.  Use types_are_compatible
    when an error type should be treated as compatible with any type; use
@@ -161,10 +172,11 @@ extern a_boolean f_types_are_compatible(a_type_ptr type_1,
    type, including an error type. */
 #define types_are_compatible(t1, t2) \
 	 ((t1) == (t2) ||            \
-          f_types_are_compatible((t1), (t2), /*allow_error_type=*/TRUE))
+          f_types_are_compatible((t1), (t2),                          \
+                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING))
 #define types_are_strictly_compatible(t1, t2)                             \
          ((t1) == (t2) ? !is_error_type(t1) :                             \
-            f_types_are_compatible((t1), (t2), /*allow_error_type=*/FALSE))
+            f_types_are_compatible((t1), (t2), TCF_NO_FLAGS))
 extern a_boolean impl_pointer_conversion(
                                 a_type_ptr    source_type,
                                 a_boolean     source_is_constant,
@@ -198,6 +210,7 @@ extern a_type_ptr composite_type(a_type_ptr type_1,
                                  a_type_ptr type_2);
 extern a_boolean overload_distinguishable(a_symbol_ptr  old_sym_ptr,
                                           a_type_ptr    new_type,
+                                          a_boolean     new_is_template,
                                           an_error_code *err_code);
 a_boolean is_or_contains_local_type(a_type_ptr  type_ptr);
 a_boolean is_or_contains_template_param(a_type_ptr  type_ptr);

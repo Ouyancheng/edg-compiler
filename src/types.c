@@ -1428,13 +1428,13 @@ funcs_not_identical:;
 }  /* f_identical_types */
 
 
-a_boolean param_types_are_compatible(a_type_ptr  rout_type_1,
-                                     a_type_ptr  rout_type_2,
-                                     a_boolean   allow_error_type)
+a_boolean param_types_are_compatible(a_type_ptr              rout_type_1,
+                                     a_type_ptr              rout_type_2,
+                                     a_type_compat_flags_set flags)
 /*
 rout_type_1 and rout_type_2 point to routine type entries.  Return TRUE if the
 parameter lists are compatible.  The "this" parameter types (if any) are
-not compared.
+not compared.  flags is a set of bit flags that modify the comparison.
 */
 {
   a_param_type_ptr              list1, list2;
@@ -1526,13 +1526,11 @@ not compared.
           }  /* if */
         }  /* if */
       }  /* if */
-      if (f_types_are_compatible(param_1_type, param_2_type,
-                                 allow_error_type)) {
+      if (f_types_are_compatible(param_1_type, param_2_type, flags)) {
         /* The parameter types are compatible. */
 #if PROTOTYPED_INT_ARGS_PASSED_LIKE_UNPROTOTYPED
       } else if (!strict_ansi_mode && is_integral_type(param_1_type) &&
-                 f_types_are_compatible(param_1_type, list2->type,
-                                        allow_error_type)) {
+                 f_types_are_compatible(param_1_type, list2->type, flags)) {
         /* As an extension, allow a case like
              void f(char);
              void f(c) char c; {}
@@ -1555,20 +1553,18 @@ done:;
 }  /* param_types_are_compatible */
 
 
-a_boolean f_types_are_compatible(a_type_ptr type_1,
-                                 a_type_ptr type_2,
-                                 a_boolean  allow_error_type)
+a_boolean f_types_are_compatible(a_type_ptr              type_1,
+                                 a_type_ptr              type_2,
+                                 a_type_compat_flags_set flags)
 /*
 Compare two types for compatibility.  In C, that means the types are the
 same or almost the same; see section 3.1.2.6 in the ANSI C standard.
-In C++, the compatible-type rules from C do not apply, so the test is
-for types that are truly the same.  An error type is considered
-compatible with any other type if allow_error_type is TRUE; otherwise an
-error type is compatible with no other type including an error type.
-This routine always checks for compatibility of type-qualifiers.  This
-routine should never be called directly; it's meant to be called only by
-the macros types_are_compatible and types_are_strictly_compatible, which
-do the initial test for exact pointer equality.
+flags is a set of bits indicating options, e.g., is an error type
+considered compatible with any other type.  This routine always checks
+for compatibility of type-qualifiers.  This routine should generally not
+be called directly; it's meant to be called by the macros
+types_are_compatible and types_are_strictly_compatible, which do the
+initial test for exact pointer equality.
 */
 {
   register a_boolean            compat = FALSE;
@@ -1580,24 +1576,35 @@ do the initial test for exact pointer equality.
      so it's present for the recursive calls. */
   if (type_1 == type_2) {
     compat = TRUE;
-  } else if (!type_qualifiers_match(type_1, type_2)) {
-    /* The type qualifiers do not match, so the types are not compatible. */
-    /* compat = FALSE;  -- Already set. */
   } else {
-    /* Now that type qualifiers are no longer an issue, strip them and other
-       typerefs off the types. */
+    /* Test for a qualifier mismatch before dropping typerefs. */
+    a_boolean qualifier_mismatch = !type_qualifiers_match(type_1, type_2);
     type_1 = skip_typerefs(type_1);
     type_2 = skip_typerefs(type_2);
-    if (type_1 == type_2) {
-      /* If the types are now the same, they are compatible -- unless
-         allow_error_type is FALSE and both are error types. */
-      compat = allow_error_type || !is_error(type_1);
+    if ((flags & TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) &&
+        (is_error(type_1) || is_error(type_2))) {
+      /* An error type is compatible with anything under the right setting
+         of TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING. */
+      compat = TRUE;
+    } else if ((flags & TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANYTHING) &&
+               (type_1->kind == (a_type_kind)tk_template_param ||
+                type_2->kind == (a_type_kind)tk_template_param)) {
+      /* A template type is compatible with anything under the right setting
+         of TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANYTHING. */
+      compat = TRUE;
+    } else if (qualifier_mismatch) {
+      /* The type qualifiers do not match, so the types are not compatible. */
+      /* compat = FALSE;  -- Already set. */
+    } else if (type_1 == type_2) {
+      /* If the types are now the same, they are compatible. */
+      compat = TRUE;
     } else if (type_1->kind == type_2->kind) {
       /* The top level kinds are the same, check further. */
       switch (type_1->kind) {
         case tk_error:
-          /* Unless allow_error_type is set, the types are compatible. */
-          compat = !allow_error_type;
+          /* Error types are not compatible by the test above, so they are not
+             compatible here. */
+          compat = FALSE;
           break;
         case tk_unknown:
         case tk_void:
@@ -1635,7 +1642,7 @@ do the initial test for exact pointer equality.
                                         type_2->variant.pointer.is_reference) {
             compat = f_types_are_compatible(type_1->variant.pointer.type,
                                             type_2->variant.pointer.type,
-                                            allow_error_type);
+                                            flags);
           }  /* if */
           break;
         case tk_array:
@@ -1643,7 +1650,7 @@ do the initial test for exact pointer equality.
              element types must be compatible. */
           if (f_types_are_compatible(type_1->variant.array.element_type,
                                      type_2->variant.array.element_type,
-                                     allow_error_type)) {
+                                     flags)) {
             if (type_1->variant.array.number_of_elements == 0 ||
                 type_2->variant.array.number_of_elements == 0 ||
                 type_1->variant.array.number_of_elements ==
@@ -1675,14 +1682,14 @@ do the initial test for exact pointer equality.
           rtsp2 = type_2->variant.routine.extra_info;
           if (f_types_are_compatible(type_1->variant.routine.return_type,
                                      type_2->variant.routine.return_type,
-                                     allow_error_type) &&
-              param_types_are_compatible(type_1, type_2, allow_error_type) &&
+                                     flags) &&
+              param_types_are_compatible(type_1, type_2, flags) &&
               ((rtsp1->implicit_this_param_type == NULL) ?
                   (rtsp2->implicit_this_param_type == NULL) :
                   (rtsp2->implicit_this_param_type != NULL &&
                    f_types_are_compatible(rtsp1->implicit_this_param_type,
                                           rtsp2->implicit_this_param_type,
-                                          allow_error_type)))) {
+                                          flags)))) {
             compat = TRUE;
           }  /* if */
           break;
@@ -1692,7 +1699,7 @@ do the initial test for exact pointer equality.
           compat = (pm_class_type(type_1) == pm_class_type(type_2) &&
                     f_types_are_compatible(pm_member_type(type_1),
                                            pm_member_type(type_2),
-                                           allow_error_type));
+                                           flags));
           break;
         case tk_template_param:
           /* Template parameter types are considered to be compatible if
@@ -1705,10 +1712,6 @@ do the initial test for exact pointer equality.
           internal_error("f_types_are_compatible: bad type");
 #endif /* CHECKING */
       }  /* switch */
-    } else if (allow_error_type && (is_error(type_1) || is_error(type_2))) {
-      /* An error type is compatible with any other type unless
-         allow_error_type is FALSE. */
-      compat = TRUE;
     }  /* if */
   }  /* if */
 
@@ -2153,7 +2156,7 @@ difference in the underlying class of their "this" parameter types.
   correspond = types_are_compatible(rout_type_1->variant.routine.return_type,
                                    rout_type_2->variant.routine.return_type) &&
                param_types_are_compatible(rout_type_1, rout_type_2,
-                                          /*allow_error_type=*/TRUE) &&
+                                    TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) &&
                this_param_types_correspond(rout_type_1, rout_type_2);
   return correspond;
 }  /* function_types_correspond */
@@ -2971,8 +2974,10 @@ cumulative over all the parameters).
     type_2 = skip_typerefs(type_2);
   }  /* if */
   /* Now compare the types.  If any error types appear in the type tree, that
-     will be enough to distinguish the types. */
-  if (!types_are_strictly_compatible(type_1, type_2)) {
+     will be enough to distinguish the types.  Template types are
+     considered compatible with anything. */
+  if (!f_types_are_compatible(type_1, type_2,
+                              TCF_TEMPLATE_TYPE_COMPATIBLE_WITH_ANYTHING)) {
     /* The two types are distinguishable. */
     distinguishable = TRUE;
   } else {
@@ -2990,6 +2995,7 @@ cumulative over all the parameters).
 
 a_boolean overload_distinguishable(a_symbol_ptr  old_sym_ptr,
                                    a_type_ptr    new_type,
+                                   a_boolean     new_is_template,
                                    an_error_code *err_code)
 /*
 Return TRUE if the new function type new_type is distinguishable under
@@ -2998,11 +3004,13 @@ old_sym_ptr (which might be a simple function or an sk_overloaded_function
 symbol).  Otherwise, set *err_code to an appropriate error code
 and return FALSE.  We assume that the caller has already determined that
 the new type is not compatible with any of the existing types.
-Only callable in C++ mode.  See ARM 13.
+The new type may be for a function template (new_is_template is TRUE
+in that case), as may any of the types on the old list.  Only callable
+in C++ mode.  See ARM 13.
 */
 {
   a_boolean        distinguishable, params_all_compatible;
-  a_boolean        old_is_list;
+  a_boolean        old_is_list, old_is_template;
   a_type_ptr       old_type;
   a_param_type_ptr old_param, new_param;
   a_routine_type_supplement_ptr
@@ -3026,17 +3034,29 @@ Only callable in C++ mode.  See ARM 13.
                       is_qualified_type(type_pointed_to(new_this_param_type)));
   do {
     /* See if old_sym_ptr and new_type are distinguishable. */
-    if (old_sym_ptr->kind == (a_symbol_kind)sk_function_template) {
-      /* Function templates are always different from other functions. */
+    old_is_template = (old_sym_ptr->kind ==
+                                          (a_symbol_kind)sk_function_template);
+    if (old_is_template != new_is_template) {
+      /* Function templates are always distinguishable from non-template
+         functions. */
       distinguishable = TRUE;
       goto distinguishable_determined;
     }  /* if */
     distinguishable = FALSE;
     params_all_compatible = TRUE;
-    old_type = routine_symbol_type(old_sym_ptr);
+    /* Get the old routine type. */
+    if (old_is_template) {
+      old_type = old_sym_ptr->variant.template_info->
+                                                variant.function.routine->type;
+      old_type = skip_typerefs(old_type);
+    } else {
+      old_type = routine_symbol_type(old_sym_ptr);
+    }  /* if */
     old_extra_info = old_type->variant.routine.extra_info;
     /* See if the types are sufficiently different that they are
        distinguishable by overload resolution. */
+    /* Note that the code here must match determine_arg_match_level
+       and function_template_matches_operand_list. */
     /* See if the "this" parameter is distinguishable if it exists.
        Note that if one function has a "this" parameter and the other
        does not, they cannot be distinguished on that basis.
@@ -3074,11 +3094,15 @@ Only callable in C++ mode.  See ARM 13.
         distinguishable = TRUE;
         goto distinguishable_determined;
       } else {
-        /* See if the types are distinguishable. */
+        /* See if the types are distinguishable.  A parameter containing
+           template types is always distinguishable from one not containing
+           such types. */
         /* Note that we do NOT do default argument promotions on old-style
            (unprototyped) function parameter types, because in overload
            resolution the unprototyped type is used. */
-        if (types_distinguishable(old_param->type, new_param->type,
+        if (old_param->type_involves_template_param !=
+            new_param->type_involves_template_param ||
+            types_distinguishable(old_param->type, new_param->type,
                                   &params_all_compatible)) {
           distinguishable = TRUE;
           goto distinguishable_determined;
