@@ -3169,10 +3169,7 @@ without it.
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
     /* Ignore projection symbols. */
-    if (sym->kind == (a_symbol_kind)sk_projection ||
-        sym->synthesized_namespace_projection) {
-      continue;
-    }  /* if */
+    if (sym->kind == (a_symbol_kind)sk_projection) continue;
     orig_type = sym->variant.routine.ptr->type;
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
     orig_this_type = orig_rts->implicit_this_param_type;
@@ -3483,8 +3480,6 @@ function symbols.
            it that might belong to the current class. */
         sym = NULL;
         break;
-      } else if (sym->synthesized_namespace_projection) {
-        /* Keep looking. */
       } else if (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) {
         /* Matches a name in the current scope. */
         if (sym->kind == (a_symbol_kind)sk_member_function ||
@@ -4505,7 +4500,6 @@ specified by decl_scope_level.
   check_assertion(decl_scope_level == depth_scope_stack || C_mode());
   for (; sym != NULL; sym = next_sym) {
     next_sym = sym->next_in_scope;
-    if (sym->synthesized_namespace_projection) continue;
     if (reuse_symbol) {
 #if DEBUG
       if (debug_level >= 4) {
