@@ -759,13 +759,13 @@ typedef struct a_source_correspondence {
                            than one symbol can point to the same IL entry. */
 #if MAINTAIN_NEEDED_FLAGS
   a_bit_field	needed:1;
-			/* TRUE to indicate that an entity is referenced (or
-			   potentially referenced) in such a way that it is
-			   "really needed" -- e.g., it is a function with
-			   external linkage (which must be assumed to be
-			   called), an entity (including another function)
-			   referenced in the declaration or body of a function
-			   that is "needed", etc.  This flag is an aid to
+			/* TRUE to indicate that an entity is referenced in
+			   such a way that it is "really needed" -- that is,
+			   it is referenced by something that is itself
+			   "needed".  An entity can end up marked as
+			   "referenced" but not "needed" if, for example, it
+			   is only referenced by a function that is never
+			   called.  This flag is intended as an aid to
 			   optimization -- if it is FALSE, the entity is a
 			   candidate to be optimized away. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
