@@ -2169,6 +2169,7 @@ typedef a_byte an_opname_kind;
 Data structures related to routines:
 */
 #ifdef CIL
+/* An exception specification entry is used in C++ only. */
 typedef struct an_exception_specification *an_exception_specification_ptr;
 typedef struct an_exception_specification {
   an_exception_specification_ptr
@@ -2178,7 +2179,12 @@ typedef struct an_exception_specification {
 			   routine. */
   a_type_ptr	type;
 			/* Pointer to the type declared in the exception
-			   specification. */
+			   specification.  It is NULL to indicate that no
+			   exception will be thrown for a given function, e.g.,
+			     void f() throw ();
+			   (A NULL type pointer will appear only in list with
+			   a single entry.  If a list has more than one entry
+			   all type pointers will be non-NULL.) */
   a_source_position
 		decl_position;
 			/* Source position of the declaration of this
@@ -2293,9 +2299,13 @@ typedef struct a_routine {
 			   FALSE, this field is undefined. */
   an_exception_specification_ptr
 		exception_specifications;
-			/* Pointer to a linked list of entries describing
-			   the exception specifications declared for this
-			   routine, or NULL if none were declared. */
+			/* In C++ only, pointer to a linked list of entries
+			   describing the exception specifications declared
+			   for this routine, or NULL if none was declared.
+			   (Note that a NULL pointer means "any exception
+			   might be thrown", whereas a pointer to a list of
+			   exactly one entry in which the entry's type pointer
+			   is NULL means "no exception will be thrown.") */
 #endif /* ifdef CIL */
 #ifdef FIL
   a_byte_boolean
