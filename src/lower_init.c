@@ -5132,6 +5132,10 @@ This routine returns TRUE if guard code was emitted.
   a_memory_region_number region_to_switch_back_to;
   a_boolean              guard_code_emitted = FALSE;
 
+  /* If the variable has internal linkage (e.g., in -tlocal mode), do not
+     put out guard code at all. */
+  if (variable->source_corresp.name_linkage ==
+                        (a_name_linkage_kind)nlk_internal) goto end_of_routine;
   /* Make the guard variable at the file scope. */
   test_var = make_global_var_with_prefixed_name("__SDG__",
                                                 (an_integer_kind)ik_int,
@@ -5170,6 +5174,7 @@ This routine returns TRUE if guard code was emitted.
                                                       (an_integer_kind)ik_int),
                                           insert_location2);
   }  /* if */
+end_of_routine:
   return guard_code_emitted;
 }  /* add_static_data_member_init_guard_test */
 

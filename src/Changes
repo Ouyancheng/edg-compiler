@@ -1,5 +1,13 @@
 Version 2.37
 
+9/9/97    Template static data member initialization guard code and -tlocal
+
+When TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE is set to TRUE, guard
+code is put around initializations of template static data members.
+Now, this code is suppressed in -tlocal mode, because in that mode
+the static data member is local to the compilation, so no guard code
+is needed.
+
 9/6/97    Microsoft compatibility: mutable in a declarator
 
 In Microsoft bugs mode "mutable" is accepted and ignored when it appears in
