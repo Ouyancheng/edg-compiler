@@ -104,6 +104,7 @@ static sizeof_t size_ident_buffer = 0;
 			/* Incremental allocation for ident_buffer.  Should
 			   be bigger than most identifiers. */
 
+#define DEBUG_LINE_LENGTH 79
 
 #if DEBUG
 /* Two macros used within db_symbol, referencing local variables defined
@@ -114,7 +115,7 @@ static sizeof_t size_ident_buffer = 0;
    Variable col is updated in both cases. */
 #define put_separator(separator, string_len)			\
 { col += strlen(separator) + 1;					\
-  if (col + (string_len) > 79) {				\
+  if (col + (string_len) > DEBUG_LINE_LENGTH) {				\
     fprintf(f_debug, "%s\n%*s", (separator), indentation, "");	\
     col = indentation;						\
   } else {							\
@@ -266,7 +267,7 @@ and indentation is the indentation desired.
   }  /* if */
 
   str = db_sym_names[(int)sym->kind];
-  if (col + strlen(str) + 2 > 79) {
+  if (col + strlen(str) + 2 > DEBUG_LINE_LENGTH) {
     fprintf(f_debug, "\n%*s", indentation, "");
     col = indentation;
   }  /* if */
@@ -443,28 +444,25 @@ and indentation is the indentation desired.
         a_template_symbol_supplement_ptr  tssp;
         a_template_param_ptr              tplep;
         a_symbol_ptr                      inst_sym;
-        int                               inst_count;
 
         tssp = sym->variant.template.extra_info;
         if (tssp->template_body.first_token != NULL) {
           put_string("template body cached");
         }  /* if */
         if (sym->kind == (a_symbol_kind)sk_class_template) {
-          put_string(tssp->variant.class.is_union ?
-                     "is union" : "isn't union");
+          if (tssp->variant.class.is_union) put_string("is_union");
         }  /* if */
         /* Output information from the template symbol supplement. */
         put_string("template parameters =\n");
         for (tplep = tssp->parameters; tplep != NULL; tplep = tplep->next) {
-          fprintf(f_debug, "%*s", indentation, "");
+          fprintf(f_debug, "%*s", indentation + 2, "");
           db_symbol(tplep->param_symbol, "", indentation + 2);
           col = 0;
         }  /* for */
         inst_sym = tssp->variant.class.instantiations;
-        inst_count = 0;
         while (inst_sym != NULL) {
-          fprintf(f_debug, "%*s Instantiation #%0d:\n", indentation, "",
-                  inst_count++);
+          fprintf(f_debug, "%*sInstantiation:\n", indentation, "");
+          fprintf(f_debug, "%*s", indentation + 2, "");
           db_symbol(inst_sym, "", indentation + 2);
           inst_sym = inst_sym->next;
         }  /* while */
@@ -482,7 +480,8 @@ and indentation is the indentation desired.
         (col > 50 && is_array_type(type)) || is_function_type(type) ||
         ((is_pointer_type(type) || is_reference_type(type)) &&
 	 ((is_array_type(type->variant.pointer.type) && col > 45) ||
-	  is_function_type(type->variant.pointer.type)))) {
+	  is_function_type(type->variant.pointer.type))) ||
+        (col > 35 && is_template_class_type(type))) {
       fprintf(f_debug, ",\n%*stype = ", indentation, "");
     } else {
       fputs(", type = ", f_debug);

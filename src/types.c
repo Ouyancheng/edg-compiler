@@ -485,6 +485,30 @@ Return TRUE if the given type is a pointer-to-member type (C++ only).
 }  /* is_ptr_to_member_type */
 
 
+
+a_boolean is_template_class_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a template class type -- an instance
+of a class template that has been created.  This is determined by first
+making sure that the type represents a class, struct, or union, then
+making sure that it has a class type supplement, and finally looking for a
+non-null template argument list.
+*/
+{
+  register a_boolean                    result = FALSE;
+  register a_class_type_supplement_ptr  ctsp;
+  tp = skip_typerefs(tp);
+  if (tp->kind == (a_type_kind)tk_class ||
+      tp->kind == (a_type_kind)tk_struct ||
+      tp->kind == (a_type_kind)tk_union) {
+    if ((ctsp = tp->variant.class_struct_union.extra_info) != NULL) {
+      if (ctsp->template_arg_list != NULL) result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_template_class_type */
+
+
 a_type_ptr array_element_type(a_type_ptr array_type)
 /*
 Return the element type of the given array type.
