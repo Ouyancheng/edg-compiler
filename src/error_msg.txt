@@ -1049,7 +1049,7 @@ ec_no_qualified_friend_definition;;"a qualified name is not allowed for a friend
 ec_not_compatible_with_templ_templ_param;;"%n1 is not compatible with %n2"
 ec_storage_class_requires_function_or_variable;;"a storage class may not be specified here"
 ec_member_using_must_be_visible_in_direct_base;;"class member designated by a using-declaration must be visible in a direct base class"
-ec_cl_sun_incompatible_with_microsoft;;"Sun mode is incompatible with Microsoft mode"
+REMOVED;ec_cl_sun_incompatible_with_microsoft;;"Sun mode is incompatible with Microsoft mode"
 ec_cl_sun_incompatible_with_cfront;;"Sun mode is incompatible with cfront mode"
 ec_cl_strict_ansi_incompatible_with_sun;;"strict ANSI mode is incompatible with Sun mode"
 ec_cl_sun_mode_only_in_cplusplus;;"Sun mode is only allowed when compiling C++"
