@@ -6424,6 +6424,10 @@ Scan the body of a class definition, including the base classes list.
                     diagnostic(strict_ansi_error_severity,
                                ec_incomplete_type_not_allowed);
                   }  /* if */
+                } else if (is_template_param_type(local_type)) {
+                  check_assertion(local_type->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_member);
+                  /* Okay. */
 #if 0
 /* The following code is removed on the assumption (based on Stroustrup et al.,
    document X3J16/92-133) that any "free-symbol" referenced in a prototype
