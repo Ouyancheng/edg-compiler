@@ -34,9 +34,25 @@ PATCH=${EDG_PATCH_PATH-$EDG_BASE/lib/patch}
 #
 MUNCH=$EDG_BASE/lib/edg_munch
 #
+# "edg_prelink" executable
+#
+EDG_PRELINK=${EDG_PRELINK-$EDG_BASE/lib/edg_prelink}
+#
 # Flag indicating whether to use "patch" or "munch" for static initialization.
 #
 patch_mode=1
+#
+# Flag indicating whether to do automatic instantiation by default
+#
+automatic_instantiation=1
+#
+# Other variables used in automatic instantiation mode
+#
+if [ $automatic_instantiation -eq 1 ] ; then
+  instantiation_command_line="$0 -c"
+  directory=`pwd`
+  instantiation_libraries="/edg/cpfe/lib/libC.a"
+fi
 #
 # Suffix to be applied to the standard C++ library names to select a
 # special version.  The names with no suffix are libC.a and libstd.a.
@@ -118,307 +134,287 @@ instantiation_mode_specified=0
 #
 while [ -n "$1" ]
 do
+  add_to_instantiation_command=1
+  curr_param=$1
+  used_two_params=0
   case $1 in
     -O)
 #     Allow anachronisms
       feoptions=$feoptions" -O";
-      shift;
       ;;
     -b)
 #     cfront compatibility
       feoptions=$feoptions" -b";
-      shift;
       ;;
     -d)
 #     Debug information.
       shift;
       feoptions=$feoptions" -d"$1;
-      shift;
+      used_two_params=1
       ;;
     -d*)
       feoptions=$feoptions" "$1;
-      shift;
       ;;
     -e)
 #     Set error limit.
       shift;
       feoptions=$feoptions" -e"$1;
-      shift;
+      used_two_params=1
       ;;
     -e*)
       feoptions=$feoptions" "$1;
-      shift;
       ;;
     -S)
 #     Run front end only.
       fe_only=1;
-      shift;
       ;;
     -n)
 #     Run front end only, suppress output of .int.c file.
       fe_only=1;
       feoptions=$feoptions" -n";
-      shift;
       ;;
     -N)
 #     Suppress IL lowering.  This will ultimately suppress output of a .int.c
 #     file.
       fe_only=1;
       feoptions=$feoptions" -N";
-      shift;
       ;;
     -C)
 #     Keep comments in preprocessing output.
       feoptions=$feoptions" -C";
-      shift;
       ;;
     -c)
 #     Run front end and cc producing a .o file.
       cc_only=1;
-      shift;
+      add_to_instantiation_command=0
       ;;
     -o)
 #     Explicitly name the executable.
       shift;
       executable=$1;
-      shift;
+      used_two_params=1
+      add_to_instantiation_command=0
       ;;
     -w)
 #     Suppress warnings.
       feoptions=$feoptions" -w";
-      shift;
       ;;
     -r)
 #     Enable remarks.
       feoptions=$feoptions" -r";
-      shift;
       ;;
     -A|-a)
 #     Strict ANSI mode.
       feoptions=$feoptions" $1";
-      shift;
       ;;
     -K)
 #     cpp compatible mode.
       feoptions=$feoptions" -K";
       cmode=1;
-      shift;
       ;;
     -s)
 #     Signed chars.
       feoptions=$feoptions" -s";
-      shift;
       ;;
     -u)
 #     Unsigned chars.
       feoptions=$feoptions" -u";
-      shift;
       ;;
     -V)
 #     Suppress virtual table definition if no non-inline, pure virtual
 #     function exists.
       feoptions=$feoptions" -V";
-      shift;
       ;;
     -x)
 #     Disable support for exception handling.
       feoptions=$feoptions" -x";
-      shift;
       ;;
     -v)
 #     Verbose mode; display version of front end.
       feoptions=$feoptions" -v";
-      shift;
       ;;
     -E)
 #     Preprocessor only.
       fe_only=1;
       feoptions=$feoptions" -E";
-      shift;
       ;;
     -P)
 #     Preprocessor only.
       fe_only=1;
       feoptions=$feoptions" -P";
-      shift;
       ;;
     -M)
 #     Generate makefile dependency lines.
       fe_only=1;
       feoptions=$feoptions" -M";
-      shift;
       ;;
     -H)
 #     Generate names of include files used.
       fe_only=1;
       feoptions=$feoptions" -H";
-      shift;
       ;;
     -I)
 #     Collect a list of -I options.
       shift;
       feoptions=$feoptions" -I"$1;
-      shift;
+      used_two_params=1
       ;;
     -I*)
       feoptions=$feoptions" "$1;
-      shift;
       ;;
     -h)
 #     Suppress standard include directory.
       std_incl=0;
-      shift;
       ;;
     -X)
 #     Collect a list of -X options.
+      instantiation_command_line=$instantiation_command_line" "$1
       shift;
       feoptions=$feoptions" -X"$1;
-      shift;
+      used_two_params=1
       ;;
     -X*)
       feoptions=$feoptions" "$1;
-      shift;
       ;;
     -i)
 #     Collect a list of -i options.
       shift;
       feoptions=$feoptions" -i"$1;
-      shift;
+      used_two_params=1
       ;;
     -i*)
       feoptions=$feoptions" "$1;
-      shift;
       ;;
     -D)
 #     Collect a list of -D options.
       shift;
       feoptions=$feoptions" -D"$1;
-      shift;
+      used_two_params=1
       ;;
     -D*)
       feoptions=$feoptions" "$1;
-      shift;
       ;;
     -U)
 #     Collect a list of -U options.
       shift;
       feoptions=$feoptions" -U"$1;
-      shift;
+      used_two_params=1
       ;;
     -U*)
       feoptions=$feoptions" "$1;
-      shift;
       ;;
     -L)
 #     Collect a list of -L options to pass to the linker.
       shift;
       Loptions=$Loptions" -L"$1;
-      shift;
+      used_two_params=1
       ;;
     -L*)
 #     Collect a list of -L options to pass to the linker.
       Loptions=$Loptions" "$1
-      shift;
       ;;
     -m)
 #     Process C instead of C++.
       feoptions=$feoptions" "$1;
       cmode=1;
-      shift;
       ;;
     -l*)
 #     Collect a list of -l options to pass to the linker.
       loptions=$loptions" "$1
-      shift;
       ;;
     -gn)
 #     Enable debugging but don't keep the .int.c file.
       ccsdb=-g;
-      shift;
       ;;
     -g*)
       ccsdb=-g;
       keep_int_file=1;
-      shift;
       ;;
     -munch)
 #     Use "munch" for handling static constructors and destructors
       patch_mode=0
-      shift
       ;;
     -patch)
 #     Use "patch" for handling static constructors and destructors
       patch_mode=1
-      shift
       ;;
     -pic)
 #     Generate position independent code
       ccpic=-pic
-      shift
       ;;
     -target)
 #     SunOS 4.n option, as in "-target sun4" -- ignored.
       shift;
-      shift;
+      used_two_params=1
       ;;
     -t)
 #     Template instantiation mode
       shift;
       fe_options=$feoptions" "$1;
       instantiation_mode_specified=1
-      shift;
+      used_two_params=1
       ;;
     -t*)
 #     Template instantiation mode
       feoptions=$feoptions" "$1;
       instantiation_mode_specified=1
-      shift;
       ;;
     -sun*)
 #     SunOS 4.n option, as in "-sun4" -- ignored.
-      shift;
       ;;
     -*)
       echo "Unknown option: $1";
       error=1;
-      shift;
+      add_to_instantiation_command=0
       ;;
     *\.a)
 #     Collect a list of library archive names (.a) files.
       lfiles=$lfiles" "$1
       any_l_or_o_files=1
-      shift;
+      add_to_instantiation_command=0
       ;;
     *\.so | *\.so.*)
 #     Collect a list of library shared object names (.so) files.
       lfiles=$lfiles" "$1
       any_l_or_o_files=1
-      shift;
+      add_to_instantiation_command=0
       ;;
     *\.c)
 #     Collect a list of .c files.
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
       cfiles=$cfiles" "$1;
-      shift;
+      add_to_instantiation_command=0
       ;;
     *\.C)
 #     Collect a list of .C files.
       if [ "$cfiles" ]; then more_than_one_c_file=1; fi;
       cfiles=$cfiles" "$1;
-      shift;
+      add_to_instantiation_command=0
       ;;
     *\.o)
 #     Collect a list of .o files.
       ofiles=$ofiles" "$1;
       any_l_or_o_files=1
-      shift;
+      add_to_instantiation_command=0
       ;;
     *)
       echo "eccp: Unrecognizable argument.";
-      shift;
       error=1;
       ;;
   esac
+  if [ $automatic_instantiation -eq 1 -a \
+       $add_to_instantiation_command -eq 1 ] ; then
+    # In automatic instantiation mode build a version of the command line
+    # that can be used to compile one file.  This is mostly like the
+    # original command without any file names without certain linker
+    # options.
+    instantiation_command_line=$instantiation_command_line" "$curr_param
+    if [ $used_two_params -eq 1 ] ; then
+      # The option took an argument -- append the argument.
+      instantiation_command_line=$instantiation_command_line" "$1
+    fi
+  fi
+  shift;
 done
 
 if [ $error -eq 1 ]
@@ -468,13 +464,47 @@ do
   then
     echo $cfile: 1>$2
   fi
+  using_ii_file=0
+  ii_option=
+  if [ $cmode -eq 0 -a $automatic_instantiation -eq 1 ] ; then
+    #
+    # See if the .ii file exists.  If it does, extract the instantiation
+    # list to a temporary file.
+    #
+    using_ii_file=1
+    had_old_ii_file=0
+    ii_file_name=$basefile.ii
+    if [ -f $ii_file_name ] ; then
+      had_old_ii_file=1
+      ii_tmp_file=/usr/tmp/$$edgII
+      sed -e "1,1 d" $ii_file_name >$ii_tmp_file
+      ii_option="-T $ii_tmp_file"
+    fi
+  fi
   if [ -z "$CPFE" ]
   then
-    cpfe $feoptions $cfile
+    cpfe $feoptions $ii_option $cfile
   else
-    $CPFE $feoptions $cfile
+    $CPFE $feoptions $ii_option $cfile
   fi
   status=$?
+  #
+  # If we are doing automatic instantiation and if the program involves
+  # templates then the a .ii file will exist after the compilation.
+  # If a .ii file exists that means that the compilation used templates in
+  # some way.  Generate a new .ii file using the current command line
+  # and the saved instantiation list, if any.
+  #
+  if [ $using_ii_file -eq 1 ] ; then
+    if [ -f $ii_file_name ] ; then
+      # An instantiation file exists which means the compilation involves
+      # templates.  Construct the new .ii file.
+      echo $instantiation_command_line $cfile >$ii_file_name
+      if [ $had_old_ii_file -eq 1 ] ; then
+        cat $ii_tmp_file >>$ii_file_name
+      fi
+    fi
+  fi
 #
 # If front end successfully compiled the file, pass it to cc.
 #
@@ -526,6 +556,9 @@ then
   then
     if [ $cc_only -ne 1 ]
     then
+      if [ $automatic_instantiation -ne 0 ] ; then
+        $EDG_PRELINK $ofiles $lfiles $instantiation_libraries
+      fi
 #     Save the link command in a variable so it can be done again in the
 #     "munch" step below.
 #     Note:  -lC is missing from this command and is supplied later.
