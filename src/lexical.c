@@ -3961,9 +3961,14 @@ concatenate_adjacent_string_literals:
       /* Scan the next token.  Scan it as a pp token to avoid string literal
          concatenation and errors during tokenization.  Note that we know that
          fetch_pp_tokens is already FALSE, because of the test above. */
+      /* Save the current string literal value because const_for_curr_token
+         may be changed in the scan forward. */
+      copy_constant(&const_for_curr_token, &con_copy);
       fetch_pp_tokens = TRUE;
       (void)get_token();
       fetch_pp_tokens = FALSE;
+      /* Restore the value of the current string literal. */
+      copy_constant(&con_copy, &const_for_curr_token);
       curr_char_loc = start_of_curr_token;
       if (curr_token != tok_string_literal) {
         /* The next token is not a string literal, so do not take it; leave
@@ -3981,9 +3986,7 @@ concatenate_adjacent_string_literals:
         start_of_curr_token = NULL;
         break;
       }  /* if */
-      /* The next token is a string literal.  Save the old constant, and
-         convert the new. */
-      copy_constant(&const_for_curr_token, &con_copy);
+      /* The next token is a string literal. */
       /* Note that the constant must be re-scanned, not just converted,
          because we need to have the count of characters.  In particular,
          there is a problem if the macro that generated this string has
