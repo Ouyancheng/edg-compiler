@@ -1,5 +1,12 @@
 Version 2.10
 
+9/21/92  IL walk problem with shared types
+
+A problem with shared types that are used, thrown away, and then used
+again in IL lowering, eventually causing an internal error (IL write-read
+error) is now corrected.  This only happened on very small contrived
+examples.
+
 9/21/92  Restriction on conversion functions
 
 An error is now issued on declaring a conversion function that is not a

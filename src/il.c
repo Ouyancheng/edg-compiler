@@ -3095,15 +3095,16 @@ return a pointer to it.
   if (int_types[kind] != NULL) {
     /* The type has previously been created, and can be reused. */
     pit = int_types[kind];
-    /* Set the il_walk_flag for the case where an entry had been allocated
-       previously but not linked into the IL tree, and is then found again
-       during a later phase (e.g., IL lowering). */
-    set_il_walk_entry_for_fs_entry(pit);
   } else {
     /* The type must be created. */
     int_types[kind] = pit = alloc_type((a_type_kind)tk_integer);
     pit->variant.integer.int_kind = kind;
     set_type_size(pit);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)pit, (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
   return pit;
 }  /* integer_type */
@@ -3117,17 +3118,18 @@ necessary because the two may be different for bit fields.  Return a
 pointer to the type entry.
 */
 {
-  if (il_signed_int_type != NULL) {
-    /* Set the il_walk_flag for the case where an entry had been allocated
-       previously but not linked into the IL tree, and is then found again
-       during a later phase (e.g., IL lowering). */
-    set_il_walk_entry_for_fs_entry(il_signed_int_type);
-  } else {
+  if (il_signed_int_type == NULL) {
     /* The type must be created. */
     il_signed_int_type = alloc_type((a_type_kind)tk_integer);
     il_signed_int_type->variant.integer.int_kind = (an_integer_kind)ik_int;
     il_signed_int_type->variant.integer.explicitly_signed = TRUE;
     set_type_size(il_signed_int_type);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)il_signed_int_type,
+                                     (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
   return il_signed_int_type;
 }  /* signed_int_type */
@@ -3144,15 +3146,16 @@ return a pointer to it.
   if (float_types[kind] != NULL) {
     /* The type has previously been created, and can be reused. */
     pft = float_types[kind];
-    /* Set the il_walk_flag for the case where an entry had been allocated
-       previously but not linked into the IL tree, and is then found again
-       during a later phase (e.g., IL lowering). */
-    set_il_walk_entry_for_fs_entry(pft);
   } else {
     /* The type must be created. */
     float_types[kind] = pft = alloc_type((a_type_kind)tk_float);
     pft->variant.float_kind = kind;
     set_type_size(pft);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)pft, (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
   return pft;
 }  /* float_type */
@@ -3170,10 +3173,6 @@ and return a pointer to it.
       string_types[num_chars] != NULL) {
     /* The type has previously been created, and can be reused. */
     pst = string_types[num_chars];
-    /* Set the il_walk_flag for the case where an entry had been allocated
-       previously but not linked into the IL tree, and is then found again
-       during a later phase (e.g., IL lowering). */
-    set_il_walk_entry_for_fs_entry(pst);
   } else {
     /* The type must be created. */
     pst = alloc_type((a_type_kind)tk_array);
@@ -3182,6 +3181,12 @@ and return a pointer to it.
     set_type_size(pst);
     if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {
       string_types[num_chars] = pst;
+#if ORPHAN_PROCESSING_NEEDED
+      /* Record the type entry as an orphan in case it is discarded now
+         and then found again in a later phase (e.g., IL lowering). */
+      add_orphaned_file_scope_il_entry((char *)pst,
+                                       (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
     }  /* if */
   }  /* if */
   return pst;
@@ -3200,10 +3205,6 @@ and return a pointer to it.
       wide_string_types[num_chars] != NULL) {
     /* The type has previously been created, and can be reused. */
     pst = wide_string_types[num_chars];
-    /* Set the il_walk_flag for the case where an entry had been allocated
-       previously but not linked into the IL tree, and is then found again
-       during a later phase (e.g., IL lowering). */
-    set_il_walk_entry_for_fs_entry(pst);
   } else {
     /* The type must be created. */
     pst = alloc_type((a_type_kind)tk_array);
@@ -3213,6 +3214,12 @@ and return a pointer to it.
     set_type_size(pst);
     if (num_chars <= MAX_TRACKED_STRING_TYPE_LENGTH) {
       wide_string_types[num_chars] = pst;
+#if ORPHAN_PROCESSING_NEEDED
+      /* Record the type entry as an orphan in case it is discarded now
+         and then found again in a later phase (e.g., IL lowering). */
+      add_orphaned_file_scope_il_entry((char *)pst,
+                                       (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
     }  /* if */
   }  /* if */
   return pst;
@@ -3250,14 +3257,15 @@ a_type_ptr error_type(void)
 Make or find a type entry for an error type, and return a pointer to it.
 */
 {
-  if (il_error_type != NULL) {
-    /* Set the il_walk_flag for the case where an entry had been allocated
-       previously but not linked into the IL tree, and is then found again
-       during a later phase (e.g., IL lowering). */
-    set_il_walk_entry_for_fs_entry(il_error_type);
-  } else {
+  if (il_error_type == NULL) {
     il_error_type = alloc_type((a_type_kind)tk_error);
     set_type_size(il_error_type);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)il_error_type,
+                                     (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
   return il_error_type;
 }  /* error_type */
@@ -3270,15 +3278,11 @@ Such a type is only used in the front end; it does not survive into the back
 end.
 */
 {
-  if (il_unknown_type != NULL) {
-    /* Set the il_walk_flag for the case where an entry had been allocated
-       previously but not linked into the IL tree, and is then found again
-       during a later phase (e.g., IL lowering). */
-    set_il_walk_entry_for_fs_entry(il_unknown_type);
-  } else {
+  if (il_unknown_type == NULL) {
     il_unknown_type = (a_type_ptr)alloc_fe(sizeof(a_type));
     clear_type(il_unknown_type, (a_type_kind)tk_unknown);
     set_type_size(il_unknown_type);
+    /* Deliberately not recorded as an orphan. */
   }  /* if */
   return il_unknown_type;
 }  /* unknown_type */
@@ -3289,13 +3293,14 @@ a_type_ptr void_type(void)
 Make or find a type entry for a void type, and return a pointer to it.
 */
 {
-  if (il_void_type != NULL) {
-    /* Set the il_walk_flag for the case where an entry had been allocated
-       previously but not linked into the IL tree, and is then found again
-       during a later phase (e.g., IL lowering). */
-    set_il_walk_entry_for_fs_entry(il_void_type);
-  } else {
+  if (il_void_type == NULL) {
     il_void_type = alloc_type((a_type_kind)tk_void);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)il_void_type,
+                                     (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */
   return il_void_type;
 }  /* void_type */
