@@ -637,6 +637,7 @@ the file scope, do not process it (but record an orphan in the latter case).
                        an_expr_node_ptr, iek_expr_node);
             }  /* if */
             walk_ptr(ptr->variant.array.element_type, a_type_ptr, iek_type);
+            definition_needed_if_class(ptr->variant.array.element_type);
             break;
           case tk_class:
           case tk_struct:
