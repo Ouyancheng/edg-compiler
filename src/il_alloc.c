@@ -987,6 +987,7 @@ to default values.
       rtsp->assoc_routine_is_dtor    = FALSE;
       rtsp->suppress_diagnostic_on_incomplete_return_type = FALSE;
       rtsp->routine_name_linkage     = default_routine_name_linkage;
+      rtsp->routine_name_linkage_is_explicit = FALSE;
 #if CHECKING
       rtsp->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

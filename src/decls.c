@@ -2728,6 +2728,9 @@ not be TRUE.
   a_type_ptr        rout_type = routine_ptr->type;
   a_type_ptr        comp_type;
   a_param_type_ptr  rout_type_ptp, comp_type_ptp, next_rout_type_ptp;
+  a_routine_type_supplement_ptr
+                    rtsp, comp_rtsp;
+  a_boolean         preserve_qualifiers_from_rout_type;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_calling_convention
                     orig_calling_convention =
@@ -2780,31 +2783,28 @@ not be TRUE.
          type on top of the existing rout_type (it's guaranteed to be
          unshared). */
       if (comp_type != rout_type) {
-        a_boolean  preserve_qualifiers_from_rout_type = FALSE;
-
         comp_type = skip_typerefs(comp_type);
+        comp_rtsp = comp_type->variant.routine.extra_info;
         rout_type = skip_typerefs(rout_type);
+        rtsp = rout_type->variant.routine.extra_info;
         /* Transfer the composite type to rout_type, which is unshared.
            We want to preserve fields like assoc_routine and arg_pragma in
            rout_type, so we can't just do a copy_type. */
         rout_type->variant.routine.return_type =
                             comp_type->variant.routine.return_type;
-        rout_type->variant.routine.extra_info->prototyped =
-                            comp_type->variant.routine.extra_info->prototyped;
-        if (rout_type->variant.routine.extra_info->param_type_list == NULL) {
+        rtsp->prototyped = comp_rtsp->prototyped;
+        preserve_qualifiers_from_rout_type = FALSE;
+        if (rtsp->param_type_list == NULL) {
           /* The entire list may just be transferred over. */
-          rout_type->variant.routine.extra_info->param_type_list =
-                    comp_type->variant.routine.extra_info->param_type_list;
+          rtsp->param_type_list = comp_rtsp ->param_type_list;
         } else {
           /* Copy the param type entries from the composite type onto the
              param type entries for the routine type.  This is done in case
              new param type entries were created.  The original ones must be
              preserved, however, since they may be pointed to by the parameter
              variables with which they are associated. */
-          rout_type_ptp =
-                     rout_type->variant.routine.extra_info->param_type_list;
-          comp_type_ptp =
-                     comp_type->variant.routine.extra_info->param_type_list;
+          rout_type_ptp = rtsp->param_type_list;
+          comp_type_ptp = comp_rtsp->param_type_list;
           if (remove_qualifiers_from_param_types) {
             /* Usually, the top-level param-type qualifiers recorded for the
                function (either as currently declared or as previously
@@ -2852,15 +2852,19 @@ not be TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           }  /* for */
         }  /* if */
-        if (exceptions_enabled) {
-          /* Preserve the exception specification -- the pointer will have
-             been copied into comp_type by composite_type.  (Note that we
-             just copy the pointer, so that two routine types may end up
-             pointing to the same exception specification entry.  This
-             should be okay.) */
-          rout_type->variant.routine.extra_info->exception_specification =
-               comp_type->variant.routine.extra_info->exception_specification;
-        }  /* if */
+        if (!C_mode()) {
+          if (exceptions_enabled) {
+            /* Preserve the exception specification -- the pointer will have
+               been copied into comp_type by composite_type.  (Note that we
+               just copy the pointer, so that two routine types may end up
+               pointing to the same exception specification entry.  This
+               should be okay.) */
+            rtsp->exception_specification = comp_rtsp->exception_specification;
+          }  /* if */
+          rtsp->routine_name_linkage = comp_rtsp->routine_name_linkage;
+          rtsp->routine_name_linkage_is_explicit =
+                           comp_rtsp->routine_name_linkage_is_explicit;
+        }  /* if */          
         /* has_ellipsis need not be copied -- it will be the same in all of
            the types, since the original two types are compatible. */
         /* Likewise, the implicit_this_param_type pointers should be identical
@@ -2895,6 +2899,30 @@ as appropriate to suppress warnings (e.g., in end_of_scope_symbol_check).
     sym->variant.variable.used = TRUE;
   }  /* if */
 }  /* mark_symbol_to_suppress_warnings */
+
+
+static a_boolean routine_name_linkages_are_compatible(a_type_ptr  rout_type,
+                                                      a_type_ptr  type_ptr)
+/*
+rout_type is a pointer to the type of a previous declaration of a given
+routine, and type_ptr is a pointer to the current type.  Return TRUE if
+the routine-name-linkages of the two declarations are compatible.
+*/
+{
+  a_boolean                      compat = TRUE;
+  a_routine_type_supplement_ptr  rtsp;
+
+  type_ptr = skip_typerefs(type_ptr);
+  rtsp = type_ptr->variant.routine.extra_info;
+  if (rtsp->routine_name_linkage_is_explicit) {
+    rout_type = skip_typerefs(rout_type);
+    if (rtsp->routine_name_linkage !=
+             rout_type->variant.routine.extra_info->routine_name_linkage) {
+      compat = FALSE;
+    }  /* if */
+  }  /* if */
+  return compat;
+}  /* routine_name_linkages_are_compatible */
 
 
 static void set_name_linkage(an_id_linkage_kind      linkage,
@@ -3993,26 +4021,27 @@ on for use in generating cross-reference output describing this declaration.
         set_to_named_error_locator(*locator);
       } else {
         /* Check that the routine types are compatible. */
-        a_boolean routines_compat = FALSE;
+        a_boolean  routines_compat = TRUE;
         if (!C_mode() && !func_info->is_main_function) {
           /* For routines that can be overloaded, id_linkage has already
              checked that the routine types are the same.  "main" cannot
              be overloaded, so it was not checked. */
-          routines_compat = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (microsoft_mode) {
-            /* Check that the calling conventions are compatible. */
-            if (!calling_conventions_are_compatible(routine_ptr->type,
+          if (!routine_name_linkages_are_compatible(routine_ptr->type,
                                                     type_ptr)) {
-              routines_compat = FALSE;
-            }  /* if */
-          }  /* if */
+            routines_compat = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          /* Check that the calling conventions are compatible. */
+          } else if (microsoft_mode &&
+                     !calling_conventions_are_compatible(routine_ptr->type,
+                                                         type_ptr)) {
+            routines_compat = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          }  /* if */
         } else {
           /* When overloading is not allowed (e.g., in C mode), check that
              the types are compatible. */
-          if (types_are_compatible(routine_ptr->type, type_ptr)) {
-            routines_compat = TRUE;
+          if (!types_are_compatible(routine_ptr->type, type_ptr)) {
+            routines_compat = FALSE;
           }  /* if */
         }  /* if */
         if (!routines_compat) {

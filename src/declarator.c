@@ -1115,6 +1115,9 @@ issue an error if a default argument expression is encountered.
      which this type is associated. */
   extra_info->routine_name_linkage =
                           scope_stack[depth_scope_stack].default_name_linkage;
+  if (scope_stack[depth_scope_stack].name_linkage_is_explicit) {
+    extra_info->routine_name_linkage_is_explicit = TRUE;
+  }  /* if */
 #if CHECKING
   if (extra_info->routine_name_linkage == (a_name_linkage_kind)nlk_none ||
       extra_info->routine_name_linkage == (a_name_linkage_kind)nlk_internal) {

@@ -2624,6 +2624,9 @@ typedef struct a_routine_type_supplement {
 			   to which FT points is nlk_external, but those for
 			   functions f and g are nlk_cplusplus_external and
 			   nlk_internal, respectively.) */
+  a_bit_field	routine_name_linkage_is_explicit:1;
+			/* TRUE when the routine_name_linkage is set based
+			   on an explicit linkage specifier in the source. */
   bitfield_to_avoid_codecenter_warnings()
   a_lint_varargs_count
 	         lint_varargs_count;

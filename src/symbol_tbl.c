@@ -4293,10 +4293,17 @@ the latter will be NULL for variables.
                int f(int)   { return 0; }
                int f(undef) { return 0; }
           */
-          if (param_types_are_compatible(
-                                 rout_type,
-                                 sym->variant.extern_symbol_descr->type,
-                                 TCF_NO_FLAGS)) {
+          a_type_ptr           other_type = sym->variant.
+                                            extern_symbol_descr->type;
+          a_name_linkage_kind  other_linkage = other_type->variant.routine.
+                                            extra_info->routine_name_linkage;
+          if (linkage != other_linkage &&
+              (linkage == (a_name_linkage_kind)nlk_external ||
+               other_linkage == (a_name_linkage_kind)nlk_external)) {
+            /* One or the other routine, but not both, has extern "C" name
+               linkage.  They cannot be a match. */
+          } else if (param_types_are_compatible(rout_type, other_type,
+                                                TCF_NO_FLAGS)) {
             /* Param types are compatible, so we have a match.  */
             break;
           }  /* if */

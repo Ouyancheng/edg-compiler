@@ -4789,13 +4789,29 @@ preference is given to the first.
       }  /* if */
     }  /* for */
   }  /* if */
-  if (rtsp1->exception_specification == NULL) {
-    if (rtsp2->exception_specification != NULL) {
-      return_type1_as_comp_type = FALSE;
+  if (!C_mode()) {
+    if (rtsp1->exception_specification == NULL) {
+      if (rtsp2->exception_specification != NULL) {
+        return_type1_as_comp_type = FALSE;
+        if (!return_type2_as_comp_type) goto make_new_comp_type;
+      }  /* if */
+    } else {
+      if (rtsp2->exception_specification == NULL) {
+        return_type2_as_comp_type = FALSE;
+        if (!return_type1_as_comp_type) goto make_new_comp_type;
+      }  /* if */
     }  /* if */
-  } else {
-    if (rtsp2->exception_specification == NULL) {
-      return_type2_as_comp_type = FALSE;
+    /* If the routine-name-linkage of one of the types has been set
+       explicitly (e.g., with extern "C"), the other type cannot be used as
+       the composite type. */
+    if (!rtsp1->routine_name_linkage_is_explicit) {
+      if (rtsp2->routine_name_linkage_is_explicit) {
+        return_type1_as_comp_type = FALSE;
+      }  /* if */
+    } else {
+      if (!rtsp2->routine_name_linkage_is_explicit) {
+        return_type2_as_comp_type = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (return_type1_as_comp_type) {
@@ -4909,13 +4925,14 @@ make_new_comp_type:
       }  /* if */
       /* In C++ mode routine types will be created with a default routine
          name linkage of nlk_cplusplus_external.  If either rout_type1 or
-         rout_type2 has a different value, use it (giving preference to the
-         rout_type1). This assumes routine name linkages of compatible routine
-         types are effectively interchangeable. */
-      if (rtsp1->routine_name_linkage != default_routine_name_linkage) {
+         rout_type2 was explicitly set to a different value, use it
+         (giving preference to the rout_type1). */
+      if (rtsp1->routine_name_linkage_is_explicit) {
         rtsp->routine_name_linkage = rtsp1->routine_name_linkage;
-      } else {
+        rtsp->routine_name_linkage_is_explicit = TRUE;
+      } else if (rtsp2->routine_name_linkage_is_explicit) {
         rtsp->routine_name_linkage = rtsp2->routine_name_linkage;
+        rtsp->routine_name_linkage_is_explicit = TRUE;
       }  /* if */
       /* Pass a NULL source position to set_routine_calling_method_flag to
          avoid inappropriate diagnostics on a type that doesn't correspond

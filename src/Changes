@@ -1,5 +1,35 @@
 Version 2.41
 
+1/13/98   "routine name linkage" set incorrectly in function redeclaration
+
+When a function was declared with an explicit linkage specifier and then
+redeclared without it, the function's type entry was sometimes updated
+incorrectly.  For example:
+
+  extern "C" void f();
+  void f() { }
+
+The name_linkage field in the routine entry for "f" was right, but the
+routine_name_linkage field for f's type was wrong.  Now fixed.
+
+IL CHANGE: new flag routine_name_linkage_is_explicit was added to
+a_routine_type_supplement.
+
+1/12/98   Spurious error in name-linkage compatibility checking
+
+Spurious errors are no longer issued on the following:
+
+  namespace A {
+    extern "C" {
+      void f();
+      void g();
+    }
+  }
+  extern "C++" void f();  // error eliminated -- declaration is no longer
+                          //   treated as a redeclaration of A::f()
+  int g();                // error eliminated -- declaration is no longer
+                          //   treated as a redeclaration of A::g()
+
 1/11/98   Microsoft compatibility: __declspec on class declaration
 
 __declspec and similar declaration modifiers that can appear between

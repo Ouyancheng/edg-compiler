@@ -832,6 +832,9 @@ Display a_routine_type_supplement.
   if (ptr->routine_name_linkage != (a_name_linkage_kind)nlk_none) {
     disp_name_linkage("routine_name_linkage",
                       (a_name_linkage_kind)ptr->routine_name_linkage);
+    if (ptr->routine_name_linkage_is_explicit) {
+      disp_boolean("routine_name_linkage_is_explicit", TRUE);
+    }  /* if */
   }  /* if */
   if (ptr->lint_varargs_count != NOT_LINT_VARARGS) {
     disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
