@@ -2111,9 +2111,9 @@ enum an_expr_operator_kind_tag {
 			/* Produce a normal function pointer for a C++ bound
 			   function.  This is (only) used to implement a C++
 			   anachronism.  The first operand is a pointer to
-			   member (function); the second is a pointer to
-			   a class object.  The result is a bound function
-			   pointer to the selected function. */
+			   a member function (but NOT a pointer-to-member);
+			   the second is a pointer to a class object.  The
+			   result is a pointer to the selected function. */
 #endif /* ifdef CIL */
   eok_land,             /* Logical intersection, with the operand standardized
                            to integer/logical. */
