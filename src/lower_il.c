@@ -4027,8 +4027,8 @@ whether or not to put out the virtual function table.
            If the return value requires an offset adjustment, call an
            entry routine that is a wrapper for the overriding function
            that adds the necessary cast. */
-        a_base_class_ptr bcp = override_list->return_adjustment_base_class;
-        if (bcp->offset != 0 || bcp->is_virtual) {
+        a_base_class_ptr rabcp = override_list->return_adjustment_base_class;
+        if (rabcp->offset != 0 || rabcp->is_virtual) {
           func_to_call = make_covariant_return_type_entry_routine(
                                              func_to_call,
                                              override_list->primary_function);
@@ -6357,7 +6357,8 @@ have already been lowered.
 */
 {
   an_expr_node_ptr func_node, object_node, additional_args;
-  an_expr_node_ptr cast_node, func_select_node, d_value_node;
+  an_expr_node_ptr cast_node; /*lint !e578*/
+  an_expr_node_ptr func_select_node, d_value_node;
   an_expr_node_ptr vtbl_entry_node, vtbl_temp_node;
   an_expr_node_ptr assign_node, padd_node;
   a_variable_ptr   vtbl_temp_var;
@@ -6474,7 +6475,8 @@ the expression have already been lowered.
   an_expr_node_ptr this_temp_node, select_d_node, padd_node, call_node;
   an_expr_node_ptr this_temp_assign_node, vtbl_temp_assign_node;
   an_expr_node_ptr select_i_node, compare_node, select_f_node;
-  an_expr_node_ptr select_f_for_cast_node, cast_node, vtbl_addr_node;
+  an_expr_node_ptr select_f_for_cast_node, vtbl_addr_node;
+  an_expr_node_ptr cast_node; /*lint !e578*/
   an_expr_node_ptr offset_node, vtbl_d_value, vtbl_f_value;
   an_expr_node_ptr this_increment_node, comma_node, question_mark_node;
   an_expr_node_ptr func_addr_node, func_temp_assign_node;
@@ -6981,8 +6983,8 @@ Lower a pointer-to-member selection of a data member.  The operands of
 the expression have already been lowered.
 */
 {
-  an_expr_node_ptr pdm_node, one_node, minus_node, cast_node, plus_node;
-  an_expr_node_ptr object_node;
+  an_expr_node_ptr pdm_node, one_node, minus_node, plus_node, object_node;
+  an_expr_node_ptr cast_node; /*lint !e578*/
 
   /* p->*pdm is lowered to (member-type *)(((char *)p)+(pdm-1)).
      pdm, the pointer to data member, has already been turned into an
@@ -10674,9 +10676,10 @@ scope that is part of the indicated routine) to the file scope.
 /*ARGSUSED*/ /* <-- promote_types is not used if local entities are
                     not being promoted. */
 #endif /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-static void r_promote_local_entities_to_file_scope(a_scope_ptr   scope,
-                                                   a_routine_ptr routine,
-                                                   a_boolean     promote_types)
+static void r_promote_local_entities_to_file_scope(
+                                               a_scope_ptr   scope,
+                                               a_routine_ptr routine,
+                                               a_boolean     do_type_promotion)
 /*
 Promote the local types and static variables of the indicated
 scope and its subscopes to the file scope.  The scope is a function or
@@ -10686,13 +10689,13 @@ block scope and is (directly or indirectly) part of the indicated routine.
   a_scope_ptr block_scope;
 
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-  if (promote_types) {
+  if (do_type_promotion) {
     /* Promote types from this scope. */
     promote_types_out_of_function(scope, routine);
   }  /* if */
 #else /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-  check_assertion_str(!promote_types,
-              "r_promote_local_entities_to_file_scope: promote_types is TRUE");
+  check_assertion_str(!do_type_promotion,
+          "r_promote_local_entities_to_file_scope: do_type_promotion is TRUE");
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   /* Promote static variables from this scope. */
   promote_static_variables_out_of_function(scope, routine);
@@ -10714,7 +10717,7 @@ block scope and is (directly or indirectly) part of the indicated routine.
        block_scope != NULL;
        block_scope = block_scope->next) {
     r_promote_local_entities_to_file_scope(block_scope, routine,
-                                           promote_types);
+                                           do_type_promotion);
   }  /* for */
 }  /* r_promote_local_entities_to_file_scope */
 
@@ -10729,7 +10732,7 @@ part of the lowering of the file scope memory region.
 */
 {
   a_routine_ptr routine = scope->variant.routine.ptr;
-  a_boolean     promote_types = FALSE, promote_statics = FALSE;
+  a_boolean     do_type_promotion = FALSE, do_static_promotion = FALSE;
 
 #if DEBUG
   if (debug_level >= 4) {
@@ -10742,7 +10745,7 @@ part of the lowering of the file scope memory region.
   if (local_entities_should_be_promoted(scope)) {
     /* Local entities need to be promoted because they're potentially
        referenced from code outside the routine. */
-    promote_types = promote_statics = TRUE;
+    do_type_promotion = do_static_promotion = TRUE;
   }  /* if */
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #if LOWER_EXTERN_INLINE
@@ -10751,7 +10754,7 @@ part of the lowering of the file scope memory region.
     /* Promote static variables out of an extern inline routine, making
        them external so the same ones are accessed from all copies of the
        function. */
-    promote_statics = TRUE;
+    do_static_promotion = TRUE;
   }  /* if */
 #endif /* LOWER_EXTERN_INLINE */
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
@@ -10760,11 +10763,11 @@ part of the lowering of the file scope memory region.
     /* For a covariant overriding virtual function and its wrapper routines,
        promote the local statics in case the implementation technique is
        to replicate the body of the primary function. */
-    promote_statics = TRUE;
+    do_static_promotion = TRUE;
   }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-  if (promote_types || promote_statics) {
-    r_promote_local_entities_to_file_scope(scope, routine, promote_types);
+  if (do_type_promotion || do_static_promotion) {
+    r_promote_local_entities_to_file_scope(scope, routine, do_type_promotion);
   }  /* if */
 }  /* promote_local_entities_to_file_scope */
 

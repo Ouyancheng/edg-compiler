@@ -25,10 +25,6 @@ lookup.c - Name lookup routines.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-/* Additional header files. */
-#if DO_IL_LOWERING
-#include "lower_il.h"
-#endif /* DO_IL_LOWERING */
 
 static a_symbol_ptr find_nested_type_symbol(a_symbol_locator *locator)
 /*
@@ -285,8 +281,8 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
       /* We reached the end of the list.  If there is a tag symbol saved
          within the loop, use it. */
       if (tag_symbol != NULL) sym = tag_symbol;
-   }  /* if */
-   locator->specific_symbol = sym;
+    }  /* if */
+    locator->specific_symbol = sym;
   }  /* if */
   /* If the symbol is a projection symbol, reduce it to the fundamental
      symbol.  The specific_symbol in the locator stays pointing to the
@@ -1580,7 +1576,7 @@ that do normal id lookup processing.
       }  /* for */
       /* We reached the end of the list.  If there is a tag symbol saved
          within the loop, use it. */
-     if (sym == NULL && tag_symbol != NULL) {
+      if (sym == NULL && tag_symbol != NULL) {
         sym = tag_symbol;
       }  /* if */
       /* If this is a namespace scope, also look for any symbols that
@@ -1799,7 +1795,7 @@ that do normal id lookup processing.
      active symbol. */
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("scope_stack_lookup")) {
-    fprintf(f_debug, "Scope stack lookup of %s, initial lookup scope=%0d\n",
+    fprintf(f_debug, "Scope stack lookup of %s, initial lookup scope=%d\n",
             locator->symbol_header->identifier, depth_of_initial_lookup_scope);
   }  /* if */
 #endif /* DEBUG */
@@ -2031,9 +2027,9 @@ that do normal id lookup processing.
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("instantiation_lookup")) {
     fprintf(f_debug,
-            "doing instantiation lookup: def_start=%0d, ref_start=%0d, ",
+            "doing instantiation lookup: def_start=%d, ref_start=%d, ",
             def_start, ref_start);
-    fprintf(f_debug, "common=%0d\n", common_depth);
+    fprintf(f_debug, "common=%d\n", common_depth);
   }  /* if */
 #endif /* DEBUG */
   def_sym = scope_stack_lookup(locator, lookup_state, def_start, common_depth);
