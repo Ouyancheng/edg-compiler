@@ -4634,7 +4634,7 @@ precedence confusion and need_parens is TRUE.
                  prod weak areas in compilers, and it's in fact wrong for
                  cases where the original source casts a "void *" pointer
                  to another pointer type and then dereferences it. */
-              a_type_ptr source_type;
+              a_boolean is_reference_cast = FALSE;
               /* Incorporate any implicit steps attached to the explicit
                  cast. */
               while (is_operation_node(operand_1) &&
@@ -4642,28 +4642,40 @@ precedence confusion and need_parens is TRUE.
                                               implicit_step_of_explicit_cast) {
                 operand_1 = operand_1->variant.operation.operands;
               }  /* while */
-              source_type = operand_1->type;
-              if (is_pointer_type(source_type) &&
-                  is_class_struct_union_type(type_pointed_to(source_type))) {
-                a_type_ptr dest_type = node->type;
-                if (dest_type->kind == (a_type_kind)tk_typeref &&
-                    typeref_is_typedef(dest_type)) {
-                  /* The destination type is a typedef for a pointer type,
-                     so the cast must have been to that type rather than
-                     the reference type. */
-                } else {
-                  /* Generate a cast to a reference type. */
-                  a_type type_copy;
-                  dest_type = skip_typerefs(dest_type);
-                  check_assertion(dest_type->kind == (a_type_kind)tk_pointer);
-                  type_copy = *dest_type;
-                  type_copy.variant.pointer.is_reference = TRUE;
-                  if (need_parens) write_tok_ch('(');
-                  gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE,
-                                node->variant.operation.is_reinterpret_cast);
-                  if (need_parens) write_tok_ch(')');
-                  processed = TRUE;
+              if (node->variant.operation.is_reference_cast) {
+                /* We're told explicitly that the source form was a
+                   reference cast. */
+                is_reference_cast = TRUE;
+              } else {
+                /* Try to figure out whether the source form was a
+                   reference cast. */
+                a_type_ptr source_type = operand_1->type;
+                if (is_pointer_type(source_type) &&
+                    is_class_struct_union_type(type_pointed_to(source_type))) {
+                  a_type_ptr dest_type = node->type;
+                  if (dest_type->kind == (a_type_kind)tk_typeref &&
+                      typeref_is_typedef(dest_type)) {
+                    /* The destination type is a typedef for a pointer type,
+                       so the cast must have been to that type rather than
+                       the reference type. */
+                  } else {
+                    /* The cast appears to have been a reference cast. */
+                    is_reference_cast = TRUE;
+                  }  /* if */
                 }  /* if */
+              }  /* if */
+              if (is_reference_cast) {
+                /* Generate a cast to a reference type. */
+                a_type     type_copy;
+                a_type_ptr dest_type = skip_typerefs(node->type);
+                check_assertion(dest_type->kind == (a_type_kind)tk_pointer);
+                type_copy = *dest_type;
+                type_copy.variant.pointer.is_reference = TRUE;
+                if (need_parens) write_tok_ch('(');
+                gen_full_cast(&type_copy, operand_1, /*is_lvalue=*/TRUE,
+                              node->variant.operation.is_reinterpret_cast);
+                if (need_parens) write_tok_ch(')');
+                processed = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */

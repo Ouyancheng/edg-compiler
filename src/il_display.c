@@ -2504,6 +2504,9 @@ Display the indicated expression node.
       if (ptr->variant.operation.implicit_step_of_explicit_cast) {
         disp_boolean("implicit_step_of_explicit_cast", TRUE);
       }  /* if */
+      if (ptr->variant.operation.is_reference_cast) {
+        disp_boolean("is_reference_cast", TRUE);
+      }  /* if */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;

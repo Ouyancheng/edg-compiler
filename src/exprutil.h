@@ -1006,7 +1006,8 @@ extern void prep_generic_operand(an_operand *operand,
 extern void generic_cast_operand(an_operand            *operand,
                                  a_type_ptr            dest_type,
                                  an_expr_operator_kind op,
-                                 a_boolean             is_implicit_cast);
+                                 a_boolean             is_implicit_cast,
+                                 a_boolean             is_reference_cast);
 
 extern an_expr_node_ptr prep_generic_argument_list(
                                              an_arg_operand *arg_operand_list);

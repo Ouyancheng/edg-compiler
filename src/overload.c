@@ -9334,7 +9334,7 @@ an explicit cast.
     if (dest_type == NULL) dest_type = type_of_unknown_templ_param_nontype;
     generic_cast_operand(operand, dest_type,
                          (an_expr_operator_kind)eok_cast,
-                         !is_explicit_cast);
+                         !is_explicit_cast, /*is_reference_cast=*/FALSE);
   } else if (conversion_routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     /* Conversion function. */
@@ -10541,7 +10541,8 @@ to be acceptable, and *conversion describes it.
     }  /* if */
     generic_cast_operand(source_operand, result_ptr_type,
                          (an_expr_operator_kind)eok_cast,
-                         /*is_implicit_cast=*/TRUE);
+                         /*is_implicit_cast=*/TRUE,
+                         /*is_reference_cast=*/TRUE);
   } else if (direct_binding_conversion_possible) {
     /* The initial value can be converted to an lvalue of the right type
        through use of a conversion function returning a reference. */

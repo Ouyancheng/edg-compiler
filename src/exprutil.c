@@ -4804,13 +4804,16 @@ is inserted only for the unexpected case.
 void generic_cast_operand(an_operand            *operand,
                           a_type_ptr            dest_type,
                           an_expr_operator_kind op,
-                          a_boolean             is_implicit_cast)
+                          a_boolean             is_implicit_cast,
+                          a_boolean             is_reference_cast)
 /*
 Add a generic cast that casts the given operand to dest_type.  This is used
 in prototype instantiations to represent conversions to unknown types.
 op is the expression operator to be used (e.g., eok_cast, eok_static_cast).
-is_implicit_cast is TRUE if the cast is implicit.  Note that the cast
-can be bizarre in a number of ways, e.g., the source operand is an lvalue.
+is_implicit_cast is TRUE if the cast is implicit.  is_reference_cast is
+TRUE if the cast is a cast to a reference type in its original form
+(and a cast to a pointer type here).  Note that the cast can be bizarre
+in a number of ways, e.g., if the source operand is an lvalue.
 */
 {
   an_operand orig_operand;
@@ -4836,7 +4839,7 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
           con->variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_address &&
           /* Avoid problems with reference binding. */
-          !is_pointer_type(dest_type)) {
+          !is_reference_cast) {
         /* The constant is the address of a member of a nonreal class.
            It won't matter whether this is considered an lvalue or an
            rvalue as an operand to the generic cast, so convert it to
@@ -4909,6 +4912,7 @@ can be bizarre in a number of ways, e.g., the source operand is an lvalue.
         if (is_implicit_cast) {
           expr->variant.operation.compiler_generated = TRUE;
         }  /* if */
+        expr->variant.operation.is_reference_cast = is_reference_cast;
       } else {
         /* Cast to a class type.  Use an enk_temp_init/dik_constructor. */
         a_dynamic_init_ptr dip;

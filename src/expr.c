@@ -4911,7 +4911,8 @@ Syntax:
        generate a generic operation. */
     generic_cast_operand(&operand, operation_type, 
                          (an_expr_operator_kind)eok_dynamic_cast,
-                         /*is_implicit_cast=*/FALSE);
+                         /*is_implicit_cast=*/FALSE,
+                         /*is_reference_cast=*/FALSE);
     copy_operand(&operand, result);
   } else if (same_type_with_added_qualifiers(operand_type, operation_type,
                                              /*ignore_qualifiers=*/TRUE,
@@ -6736,9 +6737,11 @@ C++ mode.
         /* A template parameter type could be a class type, so assume that
            a conversion is possible. */
         *processed = TRUE;
-        generic_cast_operand(operand, eff_type_cast_to,
+        generic_cast_operand(operand, make_pointer_type(eff_type_cast_to),
                              (an_expr_operator_kind)eok_cast,
-                             /*is_implicit_cast=*/FALSE);
+                             /*is_implicit_cast=*/FALSE,
+                             /*is_reference_cast=*/TRUE);
+        conv_object_pointer_to_lvalue(operand);
       }  /* if */
     } else {
       /* Normal case (not a cast to a reference type). */
@@ -7367,7 +7370,8 @@ Syntax:
          types. */
       generic_cast_operand(&operand, operation_type, 
                            (an_expr_operator_kind)eok_const_cast,
-                           /*is_implicit_cast=*/FALSE);
+                           /*is_implicit_cast=*/FALSE,
+                           /*is_reference_cast=*/FALSE);
       copy_operand(&operand, result);
     } else {
       /* The types are already the same except for qualifiers.  The result
@@ -7508,7 +7512,8 @@ Syntax:
                parameter types. */
             generic_cast_operand(result, type_cast_to,
                                  (an_expr_operator_kind)eok_static_cast,
-                                 /*is_implicit_cast=*/FALSE);
+                                 /*is_implicit_cast=*/FALSE,
+                                 /*is_reference_cast=*/FALSE);
           } else {
             /* Do the actual cast. */
             cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,
@@ -7633,7 +7638,8 @@ Syntax:
              types. */
           generic_cast_operand(result, type_cast_to,
                                (an_expr_operator_kind)eok_reinterpret_cast,
-                               /*is_implicit_cast=*/FALSE);
+                               /*is_implicit_cast=*/FALSE,
+                               /*is_reference_cast=*/FALSE);
         } else {
           /* Do the actual cast. */
           cast_operand(type_cast_to, result, /*check_cast_access=*/TRUE,

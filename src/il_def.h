@@ -6217,6 +6217,13 @@ typedef struct an_expr_node {
 			   was implicitly generated as part of realizing
 			   an explicit cast to a related class.  Used
 			   also for pointer-to-member casts. */
+      a_bit_field
+		is_reference_cast:1;
+			/* TRUE for a cast that was, in source form, a
+			   cast to a reference type (and is rendered as
+			   a cast to a pointer type).  At the moment, set
+			   only for generic casts in prototype
+			   instantiations. */
       bitfield_to_avoid_codecenter_warnings()
       an_expr_node_ptr  
                 operands;
