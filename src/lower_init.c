@@ -6558,7 +6558,7 @@ static void mark_slice_dyn_inits(a_dynamic_init_ptr dip);
 static void mark_constant_slice_dyn_inits(a_constant_ptr con)
 /*
 Set the included_in_slice flag in any dynamic initializations under
-the given constant in the same object lifetime.
+the given constant.
 */
 {
   switch (con->kind) {
@@ -6597,7 +6597,7 @@ the given constant in the same object lifetime.
 static void mark_expr_slice_dyn_inits(an_expr_node_ptr expr)
 /*
 Set the included_in_slice flag in any dynamic initializations under
-the given expression in the same object lifetime.
+the given expression.
 */
 {
   if (expr != NULL) {
@@ -6626,7 +6626,10 @@ the given expression in the same object lifetime.
         mark_slice_dyn_inits(expr->variant.throw_info->dynamic_init);
         break;
       case enk_object_lifetime:
-        /* Don't go into another object lifetime. */
+        /* Note that we do go into another object lifetime, because
+           there might be dynamic inits in there that were promoted into
+           the outer lifetime. */
+        mark_expr_slice_dyn_inits(expr->variant.object_lifetime.expr);
         break;
       case enk_typeid:
         mark_expr_slice_dyn_inits(expr->variant.typeid_info.expr);
@@ -6648,7 +6651,7 @@ the given expression in the same object lifetime.
 static void mark_expr_list_slice_dyn_inits(an_expr_node_ptr expr)
 /*
 Set the included_in_slice flag in any dynamic initializations under
-the given expression list in the same object lifetime.
+the given expression list.
 */
 {
   for (; expr != NULL; expr = expr->next) {
@@ -6660,36 +6663,32 @@ the given expression list in the same object lifetime.
 static void mark_slice_dyn_inits(a_dynamic_init_ptr dip)
 /*
 Set the included_in_slice flag in the given dynamic initialization and
-in all dynamic initializations under it in the same object lifetime.
+in all dynamic initializations under it.
 */
 {
   if (dip != NULL) {
     dip->included_in_slice = TRUE;
-    /* If the dynamic initialization has an object lifetime around the
-       initialization, do not visit the subtree. */
-    if (dip->init_expr_lifetime == NULL) {
-      switch (dip->kind) {
-        case dik_none:
-        case dik_zero:
-        case dik_constant:
-          /* No processing. */
-          break;
-        case dik_expression:
-        case dik_call_returning_class_via_cctor:
-          mark_expr_slice_dyn_inits(dip->variant.expression);
-          break;
-        case dik_constructor:
-          mark_expr_list_slice_dyn_inits(dip->variant.constructor.args);
-          break;
-        case dik_nonconstant_aggregate:
-          mark_constant_slice_dyn_inits(dip->variant.constant);
-          break;
-        case dik_bitwise_copy:
-        default:
-          /* Not expected. */
-          unexpected_condition_str("mark_slice_dyn_inits: bad dyn init kind");
-      }  /* switch */
-    }  /* if */
+    switch (dip->kind) {
+      case dik_none:
+      case dik_zero:
+      case dik_constant:
+        /* No processing. */
+        break;
+      case dik_expression:
+      case dik_call_returning_class_via_cctor:
+        mark_expr_slice_dyn_inits(dip->variant.expression);
+        break;
+      case dik_constructor:
+        mark_expr_list_slice_dyn_inits(dip->variant.constructor.args);
+        break;
+      case dik_nonconstant_aggregate:
+        mark_constant_slice_dyn_inits(dip->variant.constant);
+        break;
+      case dik_bitwise_copy:
+      default:
+        /* Not expected. */
+        unexpected_condition_str("mark_slice_dyn_inits: bad dyn init kind");
+    }  /* switch */
   }  /* if */
 }  /* mark_slice_dyn_inits */
 
