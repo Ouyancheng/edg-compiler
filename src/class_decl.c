@@ -924,10 +924,7 @@ Process the default argument expressions for the indicated class.
            default information from the information saved during the
            prototype instantiation. */
         if (!is_real_template_instantiation) {
-          a_template_symbol_supplement_ptr	rout_tssp;
           sym = rfp->symbol;
-          rout_tssp = template_supplement_for_symbol(sym);
-          daefp = rout_tssp->variant.function.def_arg_expr_list;
           if (daefp != NULL && nonclass_prototype_instantiations) {
             default_arg_prototype_instantiation(sym, daefp,
                                                 rfp->prototype_scope_symbols);
