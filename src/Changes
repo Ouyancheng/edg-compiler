@@ -10,16 +10,6 @@ a possibly dependent type by placing a "class" keyword in front of
 it (not allowed, because a functional-notation cast must have a
 single identifier before the open parenthesis).  Now fixed.
 
-3/21/02  Assertion failure when using --ignore_std
-
-When using the g++ compatibility feature --ignore_std, which causes the
-std namespace to be a synonym for the global namespace, an internal error
-would result when a global scope using-declaration refers to a member
-of the std namespace.  This has been fixed.
-
-  namespace std { int f(); }
-  using std::f;
-
 3/20/02  How conversion functions compete with constructors
 
 The C++ standards committee in closing core issue 243 without action
