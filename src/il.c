@@ -3238,46 +3238,48 @@ Make or find a type entry for an void type, and return a pointer to it.
 }  /* void_type */
 
 
-a_type_ptr ptr_to_member_type(a_type_ptr  member_type,
-                              a_type_ptr  class_type)
-/*
-Allocate and return a pointer-to-member type, initializing its fields based
-on the specified member and class types.
-*/
-{
-  a_type_ptr  tp;
-
-  tp = alloc_type((a_type_kind)tk_ptr_to_member);
-  tp->variant.ptr_to_member.type = member_type;
-  tp->variant.ptr_to_member.class_of_which_a_member = class_type;
-  /* If member_type is NULL we are creating an incomplete type; otherwise,
-     set its type and alignment. */
-  if (member_type != NULL) set_type_size(tp);
-  return tp;
-}  /* ptr_to_member_type */
-
-
 a_type_ptr get_based_type(a_type_ptr        base_type,
-                          a_based_type_kind kind)
+                          a_based_type_kind kind,
+                          a_type_ptr        class_type)
 /*
 Search the based_types list of base_type to see if it contains a based type
-of the kind indicated by "kind".  Return a pointer to the type if such
-an entry exists, or NULL if no such entry exists.  The based_types list is
-used to hold pointers to types based on the base type, so that only one
-copy of pointer-to that type, reference-to that type, etc., is allocated.
+of the kind indicated by "kind".  If the kind is "btk_ptr_to_member", the
+specified "class_type" must also match "class_of_which_a_member" of that
+based type. Return a pointer to the type if such an entry exists, or NULL
+if no such entry exists.  The based_types list is used to hold pointers to
+types based on the base type, so that only one copy of pointer-to that type,
+reference-to that type, etc., is allocated.  As a simple optimization to
+based type lookup, move the desired based type, if found, to the front of
+the list.  This will tend to keep frequently asked for based types at the
+front of the list.
 */
 {
   register a_type_ptr                   ptr = NULL;
   register a_based_type_list_member_ptr btlmp;
+  register a_based_type_list_member_ptr prev_btlmp;
 
 #if DEBUG
   num_get_based_type_calls++;
 #endif /* DEBUG */
   /* Search the based_types list looking for an entry of the right kind. */
-  for (btlmp = base_type->based_types; btlmp != NULL; btlmp = btlmp->next) {
+  for (btlmp = base_type->based_types, prev_btlmp = NULL;
+       btlmp != NULL;
+       prev_btlmp = btlmp, btlmp = btlmp->next) {
     if (btlmp->kind == kind) {
-      ptr = btlmp->based_type;
-      break;
+      if (kind != (a_based_type_kind)btk_ptr_to_member ||
+          btlmp->based_type->variant.ptr_to_member.class_of_which_a_member
+                                                        == class_type) {
+        ptr = btlmp->based_type;
+        /* Move the found based type list member to the front of the list. */
+        if (prev_btlmp != NULL) {
+          /* There is at least one base type list member preceding this one;
+             move the current based type member to the front of the list. */
+          prev_btlmp->next = btlmp->next;
+          btlmp->next = base_type->based_types;
+          base_type->based_types = btlmp;
+        }  /* if */
+        break;
+      }  /* if */
     }  /* if */
   }  /* for */
   return ptr;
@@ -3311,6 +3313,43 @@ there is already an entry of the indicated kind on the list.
 }  /* add_based_type_list_member */
 
 
+a_type_ptr ptr_to_member_type(a_type_ptr  member_type,
+                              a_type_ptr  class_type)
+/*
+Allocate and return a pointer-to-member type, initializing its fields based
+on the specified member and class types.  Attempt to find and reuse an
+existing type entry.
+*/
+{
+  register a_type_ptr tp;
+
+  /* Check if this is an incomplete type being formed. */
+  if (member_type != NULL) {
+    /* See if a pointer-to-member type such as the one being requested has
+       already been allocated.  If one was allocated, a pointer to it is
+       stored in the based_types list of the member type, and the pointer
+       can be reused. */
+    tp = get_based_type(member_type, (a_based_type_kind)btk_ptr_to_member,
+                        class_type);
+  }  /* if */
+  if (member_type == NULL || tp == NULL) {
+    /* No member type (as of yet) or no previously allocated entry, need
+       to allocate one. */
+    tp = alloc_type((a_type_kind)tk_ptr_to_member);
+    tp->variant.ptr_to_member.type = member_type;
+    tp->variant.ptr_to_member.class_of_which_a_member = class_type;
+    /* If member_type is NULL we are creating an incomplete type; otherwise,
+       set its type and alignment. */
+    if (member_type != NULL) {
+      set_type_size(tp);
+      add_based_type_list_member(member_type,
+                                 (a_based_type_kind)btk_ptr_to_member, tp);
+    }  /* if */
+  }  /* if */
+  return tp;
+}  /* ptr_to_member_type */
+
+
 a_type_ptr make_pointer_type(a_type_ptr type_pointed_to)
 /*
 Allocate a pointer type record and initialize it.  Attempt to find and reuse
@@ -3322,7 +3361,8 @@ an existing entry if possible.
   /* See if a pointer type for the type pointed to has already been allocated.
      If one was allocated, a pointer to it is stored in the based_types list
      for the base type, and the pointer type can be reused. */
-  ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_pointer);
+  ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_pointer,
+                       /*class_type=*/ NULL);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
     ptr = alloc_type((a_type_kind)tk_pointer);
@@ -3350,7 +3390,8 @@ an existing entry if possible.
      allocated.  If one was allocated, a pointer to it is stored in the
      based_types list for the base type, and the reference type can be
      reused. */
-  ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_reference);
+  ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_reference,
+                       /*class_type=*/ NULL);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
     ptr = alloc_type((a_type_kind)tk_pointer);
@@ -3415,7 +3456,7 @@ they are not already present.
     } else {
       kind = (a_based_type_kind)btk_volatile;
     }  /* if */
-    ptr = get_based_type(base_type, kind);
+    ptr = get_based_type(base_type, kind, /*class_type=*/ NULL);
     if (ptr == NULL) {
       /* No allocated entry, need to allocate one. */
       ptr = alloc_type((a_type_kind)tk_typeref);
