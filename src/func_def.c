@@ -1292,17 +1292,19 @@ and for the instantiation of template functions.
 }  /* scan_function_body */
 
 
-#if !DECL_MODIFIERS_IN_USE
-/* ARGSUSED */ /* decl_modifiers is not used in some configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE */
+#if !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_modifiers is not used in some configurations;
+                decl_pos_block is not used unless extra source-position
+                information is being recorded in the IL. */
+#endif /* !DECL_MODIFIERS_IN_USE || !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void define_member_function(a_symbol_locator            *locator,
-				   a_type_ptr                  type_ptr,
+                                   a_type_ptr                  type_ptr,
                                    a_func_info_block           *func_info,
-				   a_symbol_ptr                *symbol_ptr,
+                                   a_symbol_ptr                *symbol_ptr,
                                    an_id_linkage_kind          *linkage_ptr,
                                    a_decl_modifiers_block_ptr  decl_modifiers,
-				   a_type_ptr	               *old_type,
-				   a_symbol_ptr	               *ext_sym,
+                                   a_type_ptr                  *old_type,
+                                   a_symbol_ptr                *ext_sym,
                                    a_decl_pos_block_ptr        decl_pos_block)
 /*
 This routine is called in the case of a member function definition.  Its

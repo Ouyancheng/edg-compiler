@@ -4088,6 +4088,10 @@ type entry if appropriate, otherwise using the indicated declared_type.
 }  /* set_routine_declared_type */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
+                information is being recorded in the IL. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 a_boolean update_src_seq_secondary_decl(char                  *il_entry_ptr,
                                         a_type_ptr            declared_type,
                                         an_sssd_flag_set      flags,
