@@ -896,6 +896,7 @@ to default values.
 #endif /* DO_IL_LOWERING */
       pte->variant.typeref.qualifiers  = TQ_NONE;
       pte->variant.typeref.is_placeholder_for_file_scope_type = FALSE;
+      pte->variant.typeref.is_placeholder_for_namespace_type = FALSE;
 #if CHECKING
       pte->variant.typeref.avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
