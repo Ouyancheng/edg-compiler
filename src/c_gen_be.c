@@ -7688,13 +7688,27 @@ definitions needed to support the generated code.
     (void)fputc(ch, f_C_output);
   }  /* for */
   (void)fprintf(f_C_output, ";\n");
-#if !C_GEN_BE_GENERATES_ANSI_C
-  /* Routine/macro needed to adjust the signedness of bit field accesses
+#if C_GEN_BE_GENERATES_ANSI_C
+#if __BSD__
+  /* Get bcopy and bzero declared. */
+  /* Can't put out full prototype because we don't know what size_t is.
+     Can't include <strings.h> because it might declare names that get
+     used otherwise in this program. */
+  (void)fprintf(f_C_output, "void bcopy(); void bzero();\n");
+#else  /* !__BSD__ */
+  /* Get memcpy and memset declared. */
+  /* Can't put out full prototype because we don't know what size_t is.
+     Can't include <string.h> because it might declare names that get
+     used otherwise in this program. */
+  (void)fprintf(f_C_output, "void *memcpy(); void *memset();\n");
+#endif /* __BSD__ */
+#else /* !C_GEN_BE_GENERATES_ANSI_C */
+  /* Routine needed to adjust the signedness of bit field accesses
      (pcc doesn't support signed bit fields). */
   (void)fprintf(f_C_output, "static int __sexten(i,n) int i,n;\n");
   (void)fprintf(f_C_output,
      "{int mask=(1<<(n-1))-1; if(i<0||i>mask)i=(i&mask)|~mask; return(i);}\n");
-#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
 }  /* dump_header_code */
 
 #if !C_GEN_BE_GENERATES_ANSI_C
