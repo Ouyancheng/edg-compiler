@@ -473,6 +473,7 @@ switches before this point.
 */
 #ifndef ABI_COMPATIBILITY_VERSION
 #define ABI_COMPATIBILITY_VERSION 99999 /* Use latest version. */
+#ifndef IA64_ABI
 /* We want enough cfront compatibility to be able to use I/O streams compiled
    by cfront, but we also want the latest features. */
 #ifndef CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
@@ -511,6 +512,7 @@ switches before this point.
 #ifndef TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT
 #define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT 1
 #endif /* ifndef TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT */
+#endif /* ifndef IA64_ABI */
 #endif /* ifndef ABI_COMPATIBILITY_VERSION */
 
 #if ABI_COMPATIBILITY_VERSION == 228
