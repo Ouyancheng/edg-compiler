@@ -46,11 +46,16 @@ considered to be a right shift operator.
 A nontype template parameter with a type of "reference to function" was
 not properly handled in expressions.  Now fixed.
 
+  void f();
+  void (&gp)() = f;
   template <void(&fp)()> struct S {
     static void m() {
       fp(); 		// Now accepted
     }
   };
+  int main(){ 
+    S<f>::m(); 
+  }
 
 2/11/97 Incorrect handling of member function template declared inline
         after having been called
