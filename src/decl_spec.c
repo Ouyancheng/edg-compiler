@@ -1938,16 +1938,18 @@ is a that of a constructor.
     if (is_constructor) {
       /* Turn the current locator from a "specific symbol" locator into a
          constructor locator. */
-      (void)curr_scope_id_lookup(&locator_for_curr_id,
-                                 IDL_PROJ_SYMBOL_ALLOWED);
+      (void)class_qualified_id_lookup(&locator_for_curr_id, class_type,
+                                      IDL_MEMBER_FUNCTION_LOOKUP);
       sym = locator_for_curr_id.specific_symbol;
       if (sym != tag_sym) {
         /* The symbol one gets by looking up the class name is not the same as
            the class symbol.  This might be okay, but it has to be checked
            carefully. */
         if (sym != NULL) {
-          if (sym->kind == (a_symbol_kind)sk_type &&
-              f_skip_typerefs(sym->variant.type) == class_type) {
+          if (is_constructor_symbol(sym)) {
+            /* Okay. */
+          } else if (sym->kind == (a_symbol_kind)sk_type &&
+                     f_skip_typerefs(sym->variant.type) == class_type) {
             /* There is a typedef for the class type with the same name as
                the class.  It was found instead of the class on the lookup.
                That's okay. */
