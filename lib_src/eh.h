@@ -13,6 +13,7 @@ Declarations for exception handling.
 
 */
 
+#include <stdlib.h>
 #include "config.h"
 
 #if EXCEPTION_HANDLING
@@ -391,7 +392,8 @@ EXTERN_C void __call_terminate(void);
 extern a_void_function_ptr set_terminate(a_void_function_ptr);
 
 EXTERN a_void_function_ptr
-		__default_terminate_routine initial_value(NULL);
+		__default_terminate_routine
+                                  initial_value((a_void_function_ptr)abort);
 			/* Pointer to the terminate routine to be used. */
 
 EXTERN void unexpected(void);
@@ -401,7 +403,7 @@ EXTERN_C void __call_unexpected(void);
 extern a_void_function_ptr set_unexpected(a_void_function_ptr);
 
 EXTERN a_void_function_ptr
-		__default_unexpected_routine initial_value(NULL);
+		__default_unexpected_routine initial_value(terminate);
 			/* Pointer to the unexpected routine to be used. */
 
 EXTERN_C void __cleanup_vec_new_or_delete(an_eh_stack_entry_ptr ehsep);
