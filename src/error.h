@@ -460,7 +460,8 @@ typedef enum /*an_error_code*/ {
   ec_const_member,
   ec_reference_member,
   ec_ambiguous_function_add_on,
-  ec_builtin_operator_add_on
+  ec_builtin_operator_add_on,
+  ec_ambiguous_by_inheritance_add_on
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
@@ -611,6 +612,10 @@ extern void start_error(an_error_code error_code);
 extern void pos_ty_start_error(an_error_code     error_code,
                                a_source_position *error_pos,
                                struct a_type     *type);
+extern void pos_ty2_start_error(an_error_code     error_code,
+                                a_source_position *error_pos,
+                                struct a_type     *type1,
+                                struct a_type     *type2);
 extern void type_start_error(an_error_code error_code,
                              struct a_type *type);
 extern void str_add_diag_info(an_error_code error_code,

@@ -1306,7 +1306,7 @@ error code.
       m = "none of the available operator functions matches these operands";
       break;
     case ec_ambiguous_operator_function:
-      m = "more than one operator function matches these operands:";
+      m = "more than one operator %sq matches these operands:";
       break;
     case ec_bad_arg_type_for_operator_new:
       m = "operator new() requires first argument of type \"size_t\"";
@@ -1530,6 +1530,9 @@ error code.
       break;
     case ec_builtin_operator_add_on:
       m = "built-in operator %sq";
+      break;
+    case ec_ambiguous_by_inheritance_add_on:
+      m = "%n (ambiguous by inheritance)";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
@@ -3579,7 +3582,7 @@ indicated position.
   error_msg_types[1] = type1;
   error_msg_types[2] = type2;
   diag_message(error_code, error_pos, es_error, dck_standalone);
-}  /* pos_ty_error */
+}  /* pos_ty2_error */
 
 
 void type_error(an_error_code error_code,
@@ -3750,6 +3753,22 @@ position and type fill-in.
   error_msg_types[1] = type;
   diag_message(error_code, error_pos, es_error, dck_primary);
 }  /* pos_ty_start_error */
+
+
+void pos_ty2_start_error(an_error_code     error_code,
+                         a_source_position *error_pos,
+                         struct a_type     *type1,
+                         struct a_type     *type2)
+/*
+Begin a multiple message error with the specified error code, source
+position, and 2 types as fill-ins.
+*/
+{
+  init_error_params();
+  error_msg_types[1] = type1;
+  error_msg_types[2] = type2;
+  diag_message(error_code, error_pos, es_error, dck_primary);
+}  /* pos_ty2_start_error */
 
 
 void type_start_error(an_error_code error_code,
