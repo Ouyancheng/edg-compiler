@@ -1554,7 +1554,9 @@ Display the indicated expression node.
 {
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_ptr("next", (char *)ptr->next, iek_expr_node);
+#ifdef FFE
   disp_boolean("allow_reordering", ptr->allow_reordering);
+#endif /* ifdef FFE */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:

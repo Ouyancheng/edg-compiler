@@ -2005,20 +2005,21 @@ typedef struct an_expr_node {
                         /* When this node is part of a list of operands, this
                            field is used to link them together; otherwise it is
                            NULL. */
-  a_byte_boolean
-                allow_reordering;
-                        /* TRUE indicates that this expression can be subjected
-                           to execution order reordering, e.g., associative
-                           and distributive reordering. */
-#ifdef CIL
-                        /* Always FALSE in C, by language definition. */
-#endif /* ifdef CIL */
 #ifdef FIL
-                        /* Generally TRUE in Fortran, except when explicit
-                           parentheses appear. */
-#endif /* ifdef FIL */
+  unsigned int	allow_reordering:1;
+			/* TRUE indicates that this expression can be subjected
+			   to execution order reordering, e.g., associative
+			   and distributive reordering.  Generally TRUE in
+			   Fortran, except when explicit parentheses appear. */
+#ifdef CIL
+			/* Always FALSE in C, by language definition. */
+#endif /* ifdef CIL */
+  unsigned int /*an_expr_node_kind*/
+		kind:TARG_CHAR_BIT-1;
+#else /* !defined(FIL) */
   an_expr_node_kind
-                kind;
+		kind;
+#endif /* ifdef FIL */
                         /* Identifies what kind of node this is.  This field
                            determines which member of the union to use. */
   union {
