@@ -1,5 +1,20 @@
 Version 2.33
 
+9/25/96 Scope of an uncaught exception now conforms to the Working Paper
+
+The Working Paper specifies that an exception is "uncaught" from the
+time that object to be thrown is completely evaluated until the time
+that the initialization of the catch parameter is complete.  The EH runtime
+has been updated to conform to this definition.  A new routine named
+__exception_caught is now called to mark the completion of the
+throw.
+
+9/25/96 uncaught_exception routine has been added
+
+The Working Paper specifies that a routine named std::uncaught_exception
+can be called to determine if an exception is in the process of being
+throw.  This routine is now supplied.
+
 9/23/96 Exception specifications added to new routines
 
 The default operator new, placement operator new, and nothrow operator new

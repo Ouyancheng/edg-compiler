@@ -73,6 +73,23 @@ and return the old value.
   return old_func;
 }  /* set_unexpected */
 
+
+_bool uncaught_exception()
+/*
+Return TRUE if an exception is in the process of being thrown.
+*/
+{
+  an_eh_stack_entry_ptr	ehsep = __curr_eh_stack_entry;
+  _bool			result = FALSE;
+
+  for (; ehsep != NULL; ehsep = ehsep->next) {
+    if (ehsep->kind == ehsek_throw_processing_marker) {
+      result = TRUE;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* uncaught_exception */
+
 /*
 If the runtime should be defined in the std namespace, close
 the std namespace.

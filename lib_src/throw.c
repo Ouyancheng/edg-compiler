@@ -55,12 +55,6 @@ typedef struct a_throw_stack_entry {
 			   to base.  This buffer is used to store the modified
 		  	   pointer.  The original pointer must be preserved for
 			   use by a rethrow. */
-  an_eh_stack_entry_ptr
-		nearest_enclosing_try_block;
-			/* Pointer to the nearest enclosing try block
-			   (that is not currently in a handler) at
-			   the point at which the throw was started.
-			   This is used to detect abandoned throws. */
   a_throw_stack_entry_ptr
 		primary_entry;
 			/* If this is a rethrow, points to the throw stack
@@ -106,6 +100,11 @@ typedef struct a_throw_stack_entry {
 			   information in the base class specification
 			   information.  This flag indicates which access
 			   checking method should be used for a given throw. */
+  an_eh_stack_entry
+		throw_marker;
+			/* An EH stack entry for the throw marker to be
+			   linked into the EH stack while a given throw
+			   is active. */
 } a_throw_stack_entry;
 
 
@@ -816,7 +815,6 @@ a try block with a catch that matches the type of the object thrown.
   void*				object_buffer_ptr;
   a_type_info_impl_ptr		thrown_type_info;
   an_ETS_flag_set		throw_flags;
-  an_eh_stack_entry		throw_processing_marker;
   an_exception_type_specification_ptr
 				etsp_found;
   an_access_flag_string         access_flags;
@@ -857,6 +855,9 @@ a try block with a catch that matches the type of the object thrown.
   /* Get the address of the thrown object. */
   /* Find the try block that can catch the object being thrown. */
   ehsep = __curr_eh_stack_entry;
+  check_assertion(ehsep == &curr_throw_stack_entry->throw_marker);
+  /* Skip past the throw marker entry. */
+  ehsep = ehsep->next;
   while (ehsep != NULL) {
     an_eh_stack_entry_kind	kind = ehsep->kind;
     if (kind == (an_eh_stack_entry_kind)ehsek_function) {
@@ -906,15 +907,10 @@ a try block with a catch that matches the type of the object thrown.
     ehsep = ehsep->next;
   }  /* while */
 
-  /* Link the throw processing marker onto the throw stack.  This is used
-     to detect throws done by destructors called during cleanup.  This
-     entry will be removed automatically when __curr_eh_stack_entry is set
-     to destinataion_ehsep below. */
-  throw_processing_marker.kind = ehsek_throw_processing_marker;
-  throw_processing_marker.next = __curr_eh_stack_entry;
-  __curr_eh_stack_entry = &throw_processing_marker;
   /* Go through the EH stack again and do any necessary cleanup. */
   ehsep = __curr_eh_stack_entry;
+  /* Skip past the throw marker entry. */
+  ehsep = ehsep->next;
   while (ehsep != destination_ehsep) {
     an_eh_stack_entry_kind	kind = ehsep->kind;
 #if DEBUG
@@ -981,9 +977,12 @@ a try block with a catch that matches the type of the object thrown.
     }  /* if */
   }  /* if */
 
-  /* Set the current stack entry to point to the appropriate location
-    after all actions have taken place. */
-  __curr_eh_stack_entry = destination_ehsep;
+  /* Update the throw processing marker so that its "next" entry points
+     to the appropriate location after all cleanup actions have taken
+     place. */
+  check_assertion(__curr_eh_stack_entry ==
+                  &curr_throw_stack_entry->throw_marker);
+  __curr_eh_stack_entry->next = destination_ehsep;
   /* Indicate that the current thrown object is now in a handler.  This makes
      the object eligible for a rethrow. */
   curr_throw_stack_entry->in_handler = TRUE;
@@ -1013,8 +1012,9 @@ a try block with a catch that matches the type of the object thrown.
                                 (an_eh_stack_entry_kind)ehsek_throw_spec) {
     /* A destination stack entry indicates that a throw specification was
        violated.  Call unexpected.  Remove the throw specification entry
-       from the stack so that it won't be used to check subsequent throws. */
-    __curr_eh_stack_entry = __curr_eh_stack_entry->next;
+       (and the throw processing marker that precedes it) from the stack
+       so that it won't be used to check subsequent throws. */
+    __curr_eh_stack_entry = __curr_eh_stack_entry->next->next;
     __call_unexpected();
   }  /* if */
   return 0;
@@ -1033,7 +1033,6 @@ Push an entry onto the throw stack and initialize its fields.
 */
 {
   a_throw_stack_entry_ptr	tsep;
-  an_eh_stack_entry_ptr		ehsep;
 
   tsep =
       (a_throw_stack_entry_ptr)eh_alloc_on_stack(sizeof(a_throw_stack_entry));
@@ -1059,26 +1058,11 @@ Push an entry onto the throw stack and initialize its fields.
   tsep->discard_entry = FALSE;
   tsep->in_handler = FALSE;
   tsep->object_copy_complete = FALSE;
-  /* Record a pointer to the nearest enclosing try block in the throw
-     stack entry.  If this throw has the same nearest enclosing try block
-     as the previous throw then the previous throw should be discarded.
-     This can occur if a throw is done from a copy constructor called
-     after __throw_alloc but before __throw. */
-  ehsep = __curr_eh_stack_entry;
-  while (ehsep != NULL) {
-    /* Try blocks that are currently inside a handler are not considered. */
-    if (ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block &&
-        ehsep->variant.try_block.catch_info == NULL) break;
-    ehsep = ehsep->next;
-  }  /* while */
-  tsep->nearest_enclosing_try_block = ehsep;
-  if (tsep->next != NULL) {
-    if (tsep->next->nearest_enclosing_try_block == ehsep) {
-      /* There is a previous throw and it does point to the same nearest
-         enclosing try block. */
-      destroy_thrown_object(tsep);
-    }  /* if */
-  }  /* if */
+  tsep->throw_marker.next = NULL;
+  tsep->throw_marker.kind = ehsek_throw_processing_marker;
+  /* Link the throw processing marker onto the EH stack. */
+  tsep->throw_marker.next = __curr_eh_stack_entry;
+  __curr_eh_stack_entry = &tsep->throw_marker;
 }  /* push_throw_stack */
 
 
@@ -1193,6 +1177,18 @@ the completion of a catch clause.
   }  /* if */
 #endif /* DEBUG */
 }  /* __free_thrown_object */
+
+
+EXTERN_C void __exception_caught(void)
+/*
+Unlink the throw marker entry from the EH stack.  This is called after
+the catch parameter has been copied.
+*/
+{
+  check_assertion(__curr_eh_stack_entry->kind ==
+                  ehsek_throw_processing_marker);
+  __curr_eh_stack_entry = __curr_eh_stack_entry->next;
+}  /* __exception_caught */
 
 
 EXTERN_C void __eh_exit_processing(void)
