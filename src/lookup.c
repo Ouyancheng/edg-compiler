@@ -496,12 +496,18 @@ class_type that is a ck_template_param.
   a_source_correspondence       *scp;
 
   db_enter(4, "add_member_to_proxy_or_nonreal_class");
-  /* If we are doing a  "must be class", "must be tag" or "tentative type"
-     lookup then we create the symbol as a type; otherwise we create it
-     as a constant. */
+  /* Determine whether the member to be created is a type or not.  The
+     symbol is created as a type if the lookup is a "must be class or
+     namespace", "must be tag" or "typename lookup".  In addition,
+     if "implicit typename" is enabled, we also force the member to be
+     a type when doing a "tentative type" lookup.  Implicit typename mode
+     is used to compile code that was not written using "typename". */
   is_type = options & IDL_MUST_BE_CLASS_OR_NAMESPACE ||
             options & IDL_MUST_BE_TAG ||
-            options & IDL_TENTATIVE_TYPE_LOOKUP;
+            options & IDL_TYPENAME_LOOKUP;
+  if (implicit_typename_enabled) {
+    is_type = is_type || options & IDL_TENTATIVE_TYPE_LOOKUP;
+  }  /* if */
   /* Create a symbol for the member.  mark_declared is not called
      because this symbol is not visible to the user. */
   kind = (a_symbol_kind)(is_type ? sk_type : sk_constant);
@@ -1866,7 +1872,8 @@ C and C++.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (sym == NULL && lookup_state.any_nonreal_bases) {
+        if (sym == NULL && lookup_state.any_nonreal_bases &&
+            implicit_typename_enabled) {
           /* If no symbol was found and one of the classes searched has
              a nonreal base class then consider the symbol to be a member
              of the class with the nonreal base class.  This will occur when

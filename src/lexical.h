@@ -352,6 +352,7 @@ typedef enum /* an_identifier_lookup_mode */ {
 			/* Used to look up identifiers in the initializer
 			   list of a constructor declaration. */
   ilm_namespace,	/* Find only namespace names. */
+  ilm_typename,		/* Uses IDL_TYPENAME_LOOKUP to do the lookup. */
   ilm_last
 } an_identifier_lookup_mode;
 

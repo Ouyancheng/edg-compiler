@@ -1752,6 +1752,56 @@ to indicate whether an enumeration is actually defined.
 }  /* enum_specifier */
 
 
+static void typename_specifier(a_type_ptr	*type_ptr)
+/*
+Scan a typename specifier.  Typename is an elaborated type specifier.
+The syntax is
+
+	typename ::    nested-name-specifier identifier
+                   opt
+
+The identifier that follows the typename keyword must be a type name,
+otherwise a diagnostic is issued.  The type is returned in *type_ptr.
+*/
+{
+  a_type_ptr	tp = NULL;
+
+  /* Skip over "typename". */
+  check_assertion(curr_token == tok_typename);
+  (void)get_token();
+  if (!is_generalized_identifier_start(GID_NO_OPTIONS)) {
+    syntax_error(ec_exp_identifier);
+  } else {
+    a_boolean	err = FALSE;
+    if (!coalesce_and_lookup_qualified_name(GID_NO_OPTIONS,
+                                            ilm_typename, &err) ||
+        !locator_for_curr_id.is_class_member || err) {
+      /* The identifier scanned is not a class-qualified name, or
+         is a qualified name that refers to a nonexistent member. */
+      if (!err) {
+        error(ec_class_qualified_name_required);
+      }  /* if */
+    } else {
+      a_symbol_ptr	sym = locator_for_curr_id.specific_symbol;
+      check_assertion(sym != NULL);
+      if (!is_type_symbol(sym)) {
+        /* The symbol is not a type name. */
+        sym_error(ec_not_a_type_name, sym);
+      } else {
+        mark_referenced(sym, &locator_for_curr_id.source_position);
+        tp = type_symbol_type(sym);
+      }  /* if */
+    }  /* if */
+    /* Bypass the identifier token. */
+    (void)get_token();
+  }  /* if */
+  /* If no type was created, an error must have occurred above.  Return
+     an error type. */
+  if (tp == NULL) tp = error_type();
+  *type_ptr = tp;
+}  /* typename_specifier */
+
+
 a_boolean is_constructor_decl(a_type_ptr    class_type)
 /*
 class_type is a pointer to the class that is currently being defined.  Return
@@ -1854,6 +1904,7 @@ typedef enum {
   bt_typedef,
   bt_struct_union,
   bt_enum,
+  bt_typename,
   bt_no_type,
   bt_error
 } a_basic_type;
@@ -2145,6 +2196,7 @@ decl_specifiers.
       break;
     case bt_struct_union:
     case bt_enum:
+    case bt_typename:
     case bt_typedef:
       if (sign != sign_none || size != size_none) bad_combination = TRUE;
       check_assertion_str2(*type_ptr != NULL,
@@ -3035,6 +3087,31 @@ process_class_specifier:
             /* Scan the specifier anyway, but throw it away. */
             enum_specifier(/*vacuous_decl_allowed=*/FALSE,
                            &dummy_type, &dummy_flag, &dummy_flag);
+          }  /* if */
+          goto no_get_token;
+        }  /* if */
+        break;
+      case tok_typename:
+        /* A typename specifier.  The typename keyword is used to
+	   specify that the qualified name that follows the keyword is
+	   a type.  This is used to parse template definitions (as
+           opposed to parsing a template instantiation when the values of
+           the template parameters are known. */
+        if (!type_specifier_allowed) {
+          error(ec_type_specifier_not_allowed);
+          err = TRUE;
+        } else {
+          if (basic_type == bt_none) {
+            typename_specifier(type_ptr);
+            basic_type = bt_typename;
+            is_elaborated_type_specifier = TRUE;
+          } else {
+            a_type_ptr dummy_type;
+            /* Basic type has already been specified in some way. */
+            bad_combination_of_type_specifiers = TRUE;
+            error(ec_bad_combination_of_type_specifiers);
+            /* Scan the specifier anyway, but throw it away. */
+            typename_specifier(&dummy_type);
           }  /* if */
           goto no_get_token;
         }  /* if */

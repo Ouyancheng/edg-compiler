@@ -78,6 +78,11 @@ represented as a bit set:
 				   for instantiation context lookups. */
 #define IDL_MUST_BE_NAMESPACE 0x400
 				/* The symbol must be a namespace. */
+#define IDL_TYPENAME_LOOKUP   0x800
+				/* When a name is being looked up in a
+				   proxy or nonreal class, this flag forces
+				   any symbol that may be created to be a
+				   type symbol. */
 #define IDL_NO_OPTIONS 0	/* No special lookup options. */
 
 /*

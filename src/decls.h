@@ -124,7 +124,8 @@ specifier (except for the typedef and friend cases).  (3.5.2)
    curr_token == tok_unsigned || curr_token == tok_struct   ||        \
    curr_token == tok_union    || curr_token == tok_enum     ||        \
    curr_token == tok_class    || curr_token == tok_wchar_t  ||	      \
-   curr_token == tok_bool     or_is_microsoft_type_specifier())
+   curr_token == tok_bool     || curr_token == tok_typename           \
+   or_is_microsoft_type_specifier())
 
 /*
 Macro that is TRUE if the current token is the start of a type qualifier
