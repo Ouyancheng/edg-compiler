@@ -439,8 +439,9 @@ to be used.
 #endif /* GCC_VERSION_STRING */
 
 /*
-Flag that is TRUE if GNU C builtin operators should be accepted in support of
-<stdarg.h> and <varargs.h>.
+Flag that is TRUE if GNU builtin operators should be accepted in support of
+<stdarg.h> and <varargs.h>.  This flag applies to both GNU C and GNU C++
+modes.
 */
 #ifndef GCC_BUILTIN_VARARGS
 #define GCC_BUILTIN_VARARGS TRUE
