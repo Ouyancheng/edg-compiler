@@ -6948,8 +6948,12 @@ Scan the body of a class definition, including the base classes list.
               } else if (!friend_specified && is_local_class) {
                 /* A member function declared in a local class definition
                    (which is the current case) must be defined within the
-                   class definition (ARM 9.8). */
-                error(ec_local_class_function_def_missing);
+                   class definition if it is used.  If this is a virtual
+                   function, issue the error here; otherwise, issue the
+                   error when it is referenced. */
+                if (rout_sym->variant.routine.ptr->is_virtual) {
+                  sym_error(ec_local_class_function_def_missing, rout_sym);
+                }  /* if */
               }  /* if */
             }  /* if */
           } else if (friend_specified) {

@@ -7569,48 +7569,52 @@ type support.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
 
-
-static void check_referenced_member_functions(a_symbol_ptr  class_sym)
+static void check_referenced_member_functions(a_type_ptr  class_type)
 /*
-Issue an error for member functions that have been referenced but are
-internally linked and undefined.  Only report instances in which the IL
+Issue an error for member functions of class_type that have been referenced
+but are undefined and lack external linkage (i.e., inline member functions
+and member functions of local classes).  If class_type has nested classes,
+check their member functions, too. Only report instances in which the IL
 entry is marked "referenced", since symbols for virtual functions may be
 marked as referenced without the associated routine having actually been
 called.
 */
 {
-  a_symbol_ptr   sym, rout_sym;
   a_routine_ptr  rp;
-  a_boolean      is_overloaded;
+  a_type_ptr     tp;
+  a_scope_ptr    sp;
+  a_boolean      is_local_class;
 
-  if (C_dialect == C_dialect_cplusplus) {
-    sym = class_sym->variant.class_struct_union.extra_info->symbols;
-    for (; sym != NULL; sym = sym->next_in_scope) {
-      if (sym->kind == (a_symbol_kind)sk_member_function) {
-        /* Member function. */
-        rout_sym = sym;
-        is_overloaded = FALSE;
-      } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-        /* Overloaded member function. */
-        rout_sym = sym->variant.overloaded_function.symbols;
-        is_overloaded = TRUE;
-      } else {
-        /* Not a member function -- keep looping. */
-        continue;
+  sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
+  if (sp == NULL) {
+    /* Must be an undefined class. */
+  } else {
+    /* Check for nested classes. */
+    for (tp = sp->types; tp != NULL; tp = tp->next) {
+      if (is_immediate_class_type(tp)) {
+        /* Check the member functions of the nested class. */
+        check_referenced_member_functions(tp);
       }  /* if */
-      for (; rout_sym != NULL;
-             rout_sym = (is_overloaded ? rout_sym->next : NULL)) {
-        rp = rout_sym->variant.routine.ptr;
-        if (rp->source_corresp.referenced) {
-          /* Referenced. */
-          if (rp->storage_class == (a_storage_class)sc_static &&
-              rp->assoc_scope == NULL_region_number) {
-            /* An undefined routine with internal linkage that has been
-               referenced -- issue an error. */
-            pos_sy_error(ec_never_defined, &rout_sym->decl_position, rout_sym);
-          }  /* if */
+    }  /* for */
+    is_local_class = class_type->source_corresp.is_local_to_function;
+    /* Now go though each routine entry for the current class. */
+    for (rp = sp->routines; rp != NULL; rp = rp->next) {
+      /* If the member function was referenced but not defined and was declared
+         inline or is a local class member, it may need a diagnostic. */
+      if (rp->source_corresp.referenced &&
+          rp->assoc_scope == NULL_region_number &&
+          (is_local_class || rp->is_inline)) {
+        /* Referenced but never defined. */
+        if (rp->compiler_generated || rp->is_virtual) {
+          /* These cases are handled elsewhere. */
+        } else {
+          /* Put out the error. */
+          a_symbol_ptr  sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
+          pos_sy_error(is_local_class ? ec_local_class_function_def_missing :
+                                        ec_never_defined,
+                       &sym->decl_position, sym);
         }  /* if */
-      }  /* for */
+      }  /* if */
     }  /* for */
   }  /* if */
 }  /* check_referenced_member_functions */
@@ -7863,9 +7867,6 @@ NULL.
       break;
     case sk_class_or_struct_tag:
     case sk_union_tag:
-      /* Check for referenced but undefined non-extern functions. */
-      check_referenced_member_functions(sym);
-      /* Fall through for further processing. */
     case sk_enum_tag:
       /* Struct, union, or enum tag. */
       type_ptr = type_symbol_type(sym);
@@ -7899,6 +7900,12 @@ NULL.
             add_to_types_list(type_ptr, depth_scope_stack);
           }  /* if */
         }  /* if */
+      } else if (!C_mode() && is_immediate_class_type(type_ptr) &&
+                 type_ptr->source_corresp.class_of_which_a_member == NULL) {
+        /* This is a class that is not a nested class.  Check for non-extern
+           member functions (its own and those of its nested classes) and
+           report any that were referenced but never defined. */
+        check_referenced_member_functions(type_ptr);
       }  /* if */
 #if CHECKING
       scp = &type_ptr->source_corresp;
@@ -8005,10 +8012,27 @@ NULL.
         }  /* for */
       }  /* if */
       break;
-    case sk_type:
-      scp = &sym->variant.type->source_corresp;
-      break;
 #endif /* CHECKING */
+    case sk_type:
+      if (!C_mode()) {
+        /* Check for referenced but undefined member functions of an
+           unnamed class that has acquired a name (sort of) through a
+           typedef -- e.g., typedef struct { void f(); ... } S; where S::f
+           is referenced but undefined.  Note: it isn't handled this way in
+           in cfront compatibility mode, since a tag symbol will have been
+           created. */
+        type_ptr = sym->variant.type->variant.typeref.type;
+        if (!any_cfront_mode() && is_immediate_class_type(type_ptr) &&
+            type_ptr->source_corresp.class_of_which_a_member == NULL &&
+            is_unnamed_class_symbol((a_symbol_ptr)type_ptr->
+                                         source_corresp.assoc_info)) {
+          check_referenced_member_functions(type_ptr);
+        }  /* if */
+      }  /* if */
+#if CHECKING
+      scp = &sym->variant.type->source_corresp;
+#endif /* CHECKING */
+      break;
     case sk_class_template:
       {
       a_template_symbol_supplement_ptr  tssp;
