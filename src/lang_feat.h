@@ -31,6 +31,14 @@ option.
 */
 #define DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS FALSE
 
+
+/*
+Flag that is TRUE to allow anachronisms to be accepted in the source
+lanaguage.  This is the default value for a flag that can be modified by
+a command line option.
+*/
+#define DEFAULT_ALLOW_ANACHRONISMS TRUE
+
 #endif /* ifndef LANG_FEAT_H */
 
 
