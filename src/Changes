@@ -10,10 +10,9 @@ class specialization was encountered; now fixed.  Here's an example:
 
   class A {
     template <class T> class N { ... };
+    N<int> *pn;
   };
-  template<> class A::N<int> { ... };      // Unreferenced, so definition
-                                           //   of A::N<int> is eliminated
-                                           //   from the IL
+  template<> class A::N<int> { ... };      // No definition is needed
 
 10/15/97  Source-sequence representation for class template instantiation
           with dependency on member of class being defined
