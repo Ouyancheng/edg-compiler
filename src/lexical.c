@@ -11455,8 +11455,10 @@ done to determine whether a precompiled header may be used.
   any_tokens_fetched_from_curr_input_file = FALSE;
   curr_token_asm_string = NULL;
   scanning_microsoft_asm = FALSE;
+#if ASM_SUPPORT_NEEDED
   asm_func_body_buffer = NULL;
   size_asm_func_body_buffer = 0;
+#endif /* ASM_SUPPORT_NEEDED */
 }  /* lexical_reset */
 
 
