@@ -68,6 +68,7 @@ extern a_boolean scan_class_initializer_expression(
 extern void scan_class_parenthesized_initializer(
                                           a_type_ptr         class_type,
                                           a_type_ptr         object_class_type,
+                                          a_source_position  *source_pos,
                                           a_boolean          fill_in_dtor,
                                           a_dynamic_init_ptr *dip);
 

@@ -1352,7 +1352,11 @@ returned set to TRUE.
       /* It's a class type and there's a constructor. */
       /* Depending on the arguments present, a constructor, possibly the copy
          constructor, will be selected and returned. */
-      scan_class_parenthesized_initializer(vp_type, vp_type,
+      a_source_position  pos;
+
+      /* Use the source position of the first argument as the call position. */
+      pos = pos_curr_token;
+      scan_class_parenthesized_initializer(vp_type, vp_type, &pos,
                                            /*fill_in_dtor=*/TRUE, &init_dip);
       /* If no dynamic init entry was created, there must have been an
          error. */
@@ -2180,6 +2184,7 @@ scan_paren:
                finds no constructor for which the arguments match. */
             scan_class_parenthesized_initializer(
                                            init_type, object_class_type,
+                                           &lparen_pos,
                                            /*fill_in_dtor=*/exceptions_enabled,
                                            &dip);
             if (dip == NULL) {

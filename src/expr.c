@@ -9304,6 +9304,7 @@ appropriate.
 
 void scan_class_parenthesized_initializer(a_type_ptr         class_type,
                                           a_type_ptr         object_class_type,
+                                          a_source_position  *source_pos,
                                           a_boolean          fill_in_dtor,
                                           a_dynamic_init_ptr *dip)
 /*
@@ -9320,18 +9321,17 @@ object_class_type indicates the class type of the full object being
 initialized.  It is the same as class_type, or a derived type thereof.
 On return, the current position is following the closing parenthesis of
 the initializer.  If fill_in_dtor is TRUE, any required destruction will
-be indicated in the dynamic initialization.
+be indicated in the dynamic initialization.  *source_pos is the source
+position to be used in overall errors.
 */
 {
   an_expr_stack_entry           expr_stack_entry;
-  a_source_position             start_position;
   a_class_symbol_supplement_ptr cssp;
   an_expr_node_ptr              arg_list;
   a_routine_ptr                 conversion_routine;
 
   db_enter(4, "scan_class_parenthesized_initializer");
   check_assertion(expr_stack == NULL); /* Check this is a full expression. */
-  start_position = pos_curr_token;
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*new_object_lifetime=*/FALSE);
   check_assertion(C_dialect == C_dialect_cplusplus &&
@@ -9340,7 +9340,7 @@ be indicated in the dynamic initialization.
   check_assertion(cssp->constructor != NULL);
   /* Scan the constructor argument list. */
   scan_ctor_arguments(cssp->constructor, &arg_list, &conversion_routine,
-                      &start_position, object_class_type);
+                      source_pos, object_class_type);
   if (conversion_routine == NULL) {
     /* An error. */
     *dip = NULL;
@@ -9355,7 +9355,7 @@ be indicated in the dynamic initialization.
          alloc_dtor_dynamic_init because it does not allow for the
          object_class_type to differ from the class_type. */
       (*dip)->destructor = select_destructor(class_type, object_class_type,
-                                             &start_position,
+                                             source_pos,
                                              /*honor_virtual=*/FALSE,
                                              /*evaluated=*/TRUE,
                                              /*suppress_access_check=*/FALSE);
