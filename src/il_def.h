@@ -2675,16 +2675,13 @@ enum an_expr_operator_kind_tag {
                            address in the traditional sense. */
   eok_value_bit_field,  /* Like eok_value_field, but used for bit fields
                            (first operand a struct/union value, second the
-                           bit field, result is the value of the field).
-                           Integral widening to the type indicated in
-                           the eok_value_bit_field node is implied. */
+                           bit field, result is the value of the field). */
   eok_extract_bit_field,
                         /* Extract the value of a bit field.  The first
                            operand is the address of the struct or union,
                            the second (given by an enk_field node) is the
                            member (field).  The result is the value of the
-                           field.  Integral widening to the type indicated
-                           in the eok_extract_bit_field node is implied. */
+                           field. */
   eok_pm_field,		/* C++: Select a field identified by a pointer
 			   to (data) member.  The first operand is the
 			   class object pointer; the second operand is

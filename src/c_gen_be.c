@@ -3840,10 +3840,6 @@ char_compare:
     case eok_value_bit_field:
     case eok_extract_bit_field:
       field = operand_2->variant.field;
-      /* Cast the extracted value to the right type -- this handles integral
-         promotions folded into the extraction node. */
-      dump_cast(expr->type);
-      fputc('(', f_C_output);
       is_signed = field->bit_field_is_signed;
       if (is_signed) {
         /* Signed bit field.  Do sign extension on the unsigned bit field
@@ -3862,7 +3858,6 @@ char_compare:
       if (is_signed) {
         (void)fprintf(f_C_output, ",%d))", field->bit_size);
       }  /* if */
-      fputc(')', f_C_output);
       break;
     case eok_shiftl:
       dump_expression(operand_1, /*need_parens=*/TRUE);

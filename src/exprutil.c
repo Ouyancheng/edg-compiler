@@ -777,17 +777,6 @@ The result type is "type".  Return the operand in *result.
 }  /* make_template_param_expr_constant_operand */
 
 
-/*
-Test an expression node to see if it's a bit-field extraction.
-*/
-#define is_bit_field_extract_node(node) \
-  (is_operation_node(node) && \
-   ((node)->variant.operation.kind == \
-                                (an_expr_operator_kind)eok_value_bit_field || \
-    (node)->variant.operation.kind == \
-                               (an_expr_operator_kind)eok_extract_bit_field))
-
-
 static void add_base_class_casts(a_base_class_ptr  bcp,
                                  a_type_ptr        qualifiers_model,
                                  a_boolean         check_cast_access,
@@ -1134,21 +1123,11 @@ except for casts to ambiguous or inaccessible base classes.
                            err_pos);
     }  /* if */
     if (did_not_fold) {
-      /* The operand is not constant. */
-      /* On a bit-field extract, a cast to an integral type can be folded
-         in by setting the node type.  No cast node is required.  This is
-         allowed because the extract involves a type change anyway.  It comes
-         up most often for the integral promotions (e.g., a 3-bit unsigned
-         bit-field becomes int). */
-      if (is_bit_field_extract_node(*node) && is_integral_type(new_type)) {
-        (*node)->type = new_type;
-      } else {
-        /* Put in a cast. */
-        /* Note that if the constant type-change was attempted, it was
-           done on a copy of the constant.  The original constant and
-           expression were not changed, and therefore can be used here. */
-        add_cast_to_node(node, new_type, is_implicit_cast, err_pos);
-      }  /* if */
+      /* The operand is not constant.  Put in a cast. */
+      /* Note that if the constant type-change was attempted, it was
+         done on a copy of the constant.  The original constant and
+         expression were not changed, and therefore can be used here. */
+      add_cast_to_node(node, new_type, is_implicit_cast, err_pos);
     } else {
       /* The operation was successfully folded to a constant. */
       (*node)->variant.constant = alloc_shareable_constant(&local_constant);
@@ -1395,6 +1374,17 @@ in C++ mode.
   /* Restore the original source position, etc. */
   restore_operand_details_incl_xref(operand, &orig_operand);
 }  /* base_class_cast_operand */
+
+
+/*
+Test an expression node to see if it's a bit-field extraction.
+*/
+#define is_bit_field_extract_node(node) \
+  (is_operation_node(node) && \
+   ((node)->variant.operation.kind == \
+                                (an_expr_operator_kind)eok_value_bit_field || \
+    (node)->variant.operation.kind == \
+                               (an_expr_operator_kind)eok_extract_bit_field))
 
 
 a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
@@ -3818,12 +3808,10 @@ not an lvalue, it is left alone.
           operand->type = type_pointed_to(operand_node->type);
           operand->variant.expression = operand_node;
           conv_lvalue_to_rvalue(operand);
-          if (!is_expression_operand(operand) ||
-               is_bit_field_extract_node(operand->variant.expression)) {
+          if (!is_expression_operand(operand)) {
             /* The operand is not based on an expression node (unexpected,
-               but checked just to be safe), or the operand is a bit-field
-               extraction (where the cast can be folded into the extraction).
-               Throw away the cast node and do a cast. */
+               but checked just to be safe).  Throw away the cast node and
+               do a cast. */
             cast_operand(cast_orig_type, operand, /*is_implicit_cast=*/FALSE);
           } else {
             /* The cast node can be reused (usual case). */

@@ -1,5 +1,20 @@
 Version 2.19
 
+7/31/93  IL CHANGE: Widening of bit field extractions now more explicit
+
+On the eok_value_bit_field and eok_extract_bit_field operators, the
+node type is now always the base type of the bit field; formerly, it
+could be some different integral type, usually the type of the bit field
+after integral promotion.  This was an IL shorthand to avoid the need
+for an additional cast after the extraction, but the shorthand is now
+felt to be undesirable.  The immediate problem was that casting on
+such extractions was always done simply by setting the node type, which
+meant that intermediate narrowing steps were lost (a cast to a small
+size followed by a cast to a large size looked just like a cast to the
+large size).  That bug could be solved, perhaps by allowing only one
+type conversion by way of the shorthand, but even that began to seem
+contrived, so the whole mechanism was removed.
+
 7/30/93  IL lowering: better code for access to virtual base classes
 
 The code generated to access virtual base classes that are nested
