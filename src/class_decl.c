@@ -9233,8 +9233,9 @@ static void check_for_invalid_use_of_virtual(a_symbol_locator       *locator,
 /*
 Issue an error and return TRUE if the virtual specifier is invalid for the
 current function declaration.  *locator identifies the function declared, and
-class_type is the class in which the declared appears.  *decl_info tracks
-information about the current declaration and is updated if an error is found.
+class_type is the class in which the declared function appears.  *decl_info
+tracks information about the current declaration and is updated if an error
+is found.
 */
 {
   an_error_code  error_code = ec_no_error;
