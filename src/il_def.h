@@ -7205,6 +7205,12 @@ typedef struct a_switch_case_entry {
 		constant;
 			/* The case label constant with which the positions
 			   are associated (NULL for the default case). */
+#if GNU_EXTENSIONS_ALLOWED
+  a_constant_ptr
+		range_end;
+			/* The constant representing the end of the range if
+			   this was a GNU C case range (NULL otherwise). */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   a_source_position
 		keyword_position;
 			/* The position of the "case" or "default" keyword. */

@@ -5171,8 +5171,12 @@ See also 3.6.6.4.
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
+#if !GNU_EXTENSIONS_ALLOWED
+/* ARGSUSED */ /* <-- range_end not always used. */
+#endif /* !GNU_EXTENSIONS_ALLOWED */
 static void record_switch_case_entry(a_switch_clause_ptr  clause,
                                      a_constant_ptr       constant,
+                                     a_constant_ptr       range_end,
                                      a_source_position    *keyword_position,
                                      a_source_position    *colon_position)
 /*
@@ -5185,6 +5189,9 @@ position of the colon.
   a_switch_case_entry_ptr  pos_info = alloc_switch_case_entry();
 
   pos_info->constant = constant;
+#if GNU_EXTENSIONS_ALLOWED
+  pos_info->range_end = range_end;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   pos_info->keyword_position = *keyword_position;
   pos_info->colon_position = *colon_position;
   if (clause->case_positions == NULL) {
@@ -5200,11 +5207,13 @@ position of the colon.
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/* ARGSUSED */ /* <-- keyword_position and colon_position not always used. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED
+/* ARGSUSED */ /* <-- range_end, keyword_position and colon_position not
+                  always used. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED */
 static void add_switch_clause(a_struct_stmt_stack_entry_ptr sssep,
                               a_constant_ptr                constant_ptr,
+                              a_constant_ptr                range_end,
                               a_source_position             *keyword_position,
                               a_source_position             *colon_position,
                               a_source_position             *label_position)
@@ -5212,9 +5221,11 @@ static void add_switch_clause(a_struct_stmt_stack_entry_ptr sssep,
 Begin a clause of the switch statement associated with the structured
 statement stack entry pointed to by sssep, for the case value indicated
 by *constant_ptr.  constant_ptr is NULL to indicate the default label.
-label_position indicates the source position of the label.  keyword_position
-describes the position of the "case" or "default" keyword and colon_position
-locates the corresponding following colon.
+*range_end represents the end of a GNU C case range (NULL if this is not
+the first entry of a range).  label_position indicates the source position
+of the label.  keyword_position describes the position of the "case" or
+"default" keyword and colon_position locates the corresponding following
+colon.
 */
 {
   a_switch_clause_ptr scp;
@@ -5476,8 +5487,8 @@ locates the corresponding following colon.
     /* Record extra info about the position of the case and default labels.
        Unlike the constants themselves, this information is recorded in the
        order of source positions. */
-    record_switch_case_entry(scp, constant_ptr,
-                           keyword_position, colon_position);
+    record_switch_case_entry(scp, constant_ptr, range_end,
+                             keyword_position, colon_position);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (can_add_to_curr_clause) {
@@ -5703,7 +5714,7 @@ Scan a case label definition.  The syntax is:
     range_end = scan_case_label_constant(sssep);
     /* Check that *range_end > *constant_ptr. */
     if (range_end != NULL &&
-        cmp_integer_constants(constant_ptr, range_end) >= 0) {
+        cmp_integer_constants(constant_ptr, range_end) > 0) {
       error(ec_invalid_case_range);
       range_end = NULL;
     }  /* if */
@@ -5712,11 +5723,11 @@ Scan a case label definition.  The syntax is:
     if (constant_ptr != NULL) {
       /* Add the proper switch clause. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      add_switch_clause(sssep, constant_ptr,
+      add_switch_clause(sssep, constant_ptr, range_end,
                         &case_position, &pos_curr_token,
                         &constant_ptr->source_corresp.decl_position);
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-      add_switch_clause(sssep, constant_ptr,
+      add_switch_clause(sssep, constant_ptr, (a_constant_ptr)NULL,
                         (a_source_position_ptr)NULL,
                         (a_source_position_ptr)NULL,
                         &constant_ptr->source_corresp.decl_position);
@@ -5731,13 +5742,14 @@ Scan a case label definition.  The syntax is:
         incr_integer_value(&in_between.variant.integer_value);
         while (cmp_integer_constants(&in_between, range_end) < 0) {
           add_switch_clause(sssep, alloc_unshared_constant(&in_between),
+                            (a_constant_ptr)NULL,
                             (a_source_position_ptr)NULL,
                             (a_source_position_ptr)NULL,
                             &ellipsis_position);
           incr_integer_value(&in_between.variant.integer_value);
         }  /* while */
         range_end->source_corresp.decl_position = null_source_position;
-        add_switch_clause(sssep, range_end,
+        add_switch_clause(sssep, range_end, (a_constant_ptr)NULL,
                           (a_source_position_ptr)NULL,
                           (a_source_position_ptr)NULL,
                           &range_end->source_corresp.decl_position);
@@ -5794,11 +5806,11 @@ Scan a default case label definition.  The syntax is:
     /* Found the proper enclosing switch statement. */
     sssep->switch_has_default_clause = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    add_switch_clause(sssep, (a_constant_ptr)NULL,
+    add_switch_clause(sssep, (a_constant_ptr)NULL, (a_constant_ptr)NULL,
                       &label_position, &pos_curr_token,
                       &label_position);
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-    add_switch_clause(sssep, (a_constant_ptr)NULL,
+    add_switch_clause(sssep, (a_constant_ptr)NULL, (a_constant_ptr)NULL,
                       (a_source_position_ptr)NULL,
                       (a_source_position_ptr)NULL,
                       &label_position);
