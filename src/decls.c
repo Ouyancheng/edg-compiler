@@ -4073,6 +4073,20 @@ If an error occurs, the given locator may be changed to an error locator.
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+static void check_for_vla_inside_statement_expression(a_source_position *pos)
+/*
+A VLA is being declared at the indicated position.  If we are inside
+a GNU statement expression, i.e., ({ ... }), issue an error.  VLAs are
+disallowed because they have cleanup issues -- the allocated storage
+may have to be freed on exit from the statement expression.
+*/
+{
+  if (inside_statement_expression()) {
+    pos_error(ec_vla_in_statement_expr, pos);
+  }  /* if */
+}  /* check_for_vla_inside_statement_expression */
+
+
 #if !DECL_MODIFIERS_IN_USE || !GNU_EXTENSIONS_ALLOWED
 /* ARGSUSED */ /* decl_modifiers, attributes, and/or asm_name are not 
                   used in some configurations. */
@@ -4638,6 +4652,7 @@ declaration.
                                              &locator->source_position);
         vla_stmt->variant.vla.is_typedef_decl = FALSE;
         vla_stmt->variant.vla.variant.variable = variable_ptr;
+        check_for_vla_inside_statement_expression(&locator->source_position);
         if (is_vla_type(type_ptr)) {
           if (!is_variable_def) {
             /* Must be an error. */
@@ -7448,6 +7463,7 @@ return a pointer to it in *symbol_ptr.
       sp->variant.vla.is_typedef_decl = TRUE;
       sp->variant.vla.variant.typedef_type = tp;
       tp->variant.typeref.has_variably_modified_type = TRUE;
+      check_for_vla_inside_statement_expression(&locator->source_position);
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
