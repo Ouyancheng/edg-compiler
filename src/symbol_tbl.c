@@ -73,7 +73,7 @@ static unsigned long
 		num_param_ids_allocated,
 		num_dependent_type_fixups_allocated,
 		num_template_instances_allocated,
-		num_conversion_list_entries_allocated,
+		num_symbol_list_entries_allocated,
 		num_extern_symbol_descrs_allocated,
 		num_extern_type_fixups_allocated,
 		num_projection_descrs_allocated,
@@ -1187,24 +1187,24 @@ Allocate a new conversion header and return a pointer to it.
 }  /* alloc_conversion_header */
 
 
-a_conversion_list_entry_ptr alloc_conversion_list_entry(void)
+a_symbol_list_entry_ptr alloc_symbol_list_entry(void)
 /*
 Allocate a new conversion list entry and return a pointer to it.
 */
 {
-  register a_conversion_list_entry_ptr ptr;
+  register a_symbol_list_entry_ptr ptr;
 
-  db_enter(5, "alloc_conversion_list_entry");
-  ptr = (a_conversion_list_entry_ptr)alloc_fe(sizeof(a_conversion_list_entry));
+  db_enter(5, "alloc_symbol_list_entry");
+  ptr = (a_symbol_list_entry_ptr)alloc_fe(sizeof(a_symbol_list_entry));
 #if DEBUG
-  num_conversion_list_entries_allocated++;
+  num_symbol_list_entries_allocated++;
 #endif /* DEBUG */
   ptr->next    = NULL;
   ptr->symbol  = NULL;
   
   db_exit();
   return ptr;
-}  /* alloc_conversion_list_entry */
+}  /* alloc_symbol_list_entry */
 
 
 a_symbol_ptr find_symbol(char             *identifier,
@@ -8890,8 +8890,8 @@ for space tracking purposes.
                      a_dependent_type_fixup);
   db_space_used("template instance", num_template_instances_allocated,
                 a_template_instance);
-  db_space_used("conversion list entry", num_conversion_list_entries_allocated,
-                a_conversion_list_entry);
+  db_space_used("symbol list entry", num_symbol_list_entries_allocated,
+                a_symbol_list_entry);
   db_space_used("projection symbol descr", num_projection_descrs_allocated,
                 a_projection_descr);
   db_space_used_lost("access error descr", avail_access_error_descrs,
@@ -9065,7 +9065,7 @@ to avoid an 8-character external name clash with symbol_table.)
   num_param_ids_allocated                      = 0;
   num_dependent_type_fixups_allocated          = 0;
   num_template_instances_allocated             = 0;
-  num_conversion_list_entries_allocated        = 0;
+  num_symbol_list_entries_allocated            = 0;
   num_extern_symbol_descrs_allocated           = 0;
   num_extern_type_fixups_allocated             = 0;
   num_projection_descrs_allocated              = 0;

@@ -504,21 +504,20 @@ typedef struct a_dependent_type_fixup {
 } a_dependent_type_fixup;
 
 
-typedef struct a_conversion_list_entry *a_conversion_list_entry_ptr;
-typedef struct a_conversion_list_entry {
-  /* Entry representing a user-defined conversion functions for a given class
-     type.  (These are functions that convert a class object to another type
-     and that can be invoked implicitly.) */
-  a_conversion_list_entry_ptr
+typedef struct a_symbol_list_entry *a_symbol_list_entry_ptr;
+typedef struct a_symbol_list_entry {
+  /* Entry created to produce a list of symbols for some special purpose.
+     (For example, such a list is created to track the user-defined conversion
+     functions for a given class type.  The symbol pointed to will be an
+     sk_member_function or sk_projection symbol identifying a function to
+     convert a class object to another type.) */
+  a_symbol_list_entry_ptr
 		next;
-			/* Next in a linked list of conversion list entries;
-			   NULL for the last on the list. */
+			/* Next in a linked list of symbol list entries; NULL
+			   for the last on the list. */
   a_symbol_ptr  symbol;
-			/* Pointer to a symbol entry representing a user-
-			   defined conversion function.  The symbol pointed
-			   to will be an sk_member_function or sk_projection
-			   symbol. */
-} a_conversion_list_entry;
+			/* Pointer to a symbol entry. */
+} a_symbol_list_entry;
 
 
 typedef struct a_class_symbol_supplement *a_class_symbol_supplement_ptr;
@@ -541,7 +540,7 @@ typedef struct a_class_symbol_supplement {
 			   sk_overloaded_function) symbol that identifies
 			   the assignment operator for this class; NULL if
 			   there is none. */
-  a_conversion_list_entry_ptr
+  a_symbol_list_entry_ptr
 		conversion_list;
 			/* Pointer to a linked list of entries providing
 			   quick access to user-defined conversion functions
@@ -2301,7 +2300,7 @@ extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
 
 /* Allocation */
 extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
-extern a_conversion_list_entry_ptr alloc_conversion_list_entry(void);
+extern a_symbol_list_entry_ptr alloc_symbol_list_entry(void);
 extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
 extern a_template_instance_ptr alloc_template_instance(void);
 extern a_param_id_ptr alloc_param_id(void);

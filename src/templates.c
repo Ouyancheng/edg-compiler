@@ -2066,22 +2066,22 @@ and create a function instantiation entry to bind the two symbols together.
   } else if (rout_sym->variant.routine.ptr->special_kind ==
                                     (a_special_function_kind)sfk_conversion) {
     /* Look through the conversion routines of the prototype instantiation. */
-    a_conversion_list_entry_ptr   clep;
+    a_symbol_list_entry_ptr   slep;
 
     sym = NULL;
-    for (clep = corresp_prototype_tag_sym->
+    for (slep = corresp_prototype_tag_sym->
                       variant.class_struct_union.extra_info->conversion_list;
-         clep != NULL;
-         clep = clep->next) {
-      if (clep->symbol->decl_position.seq == rout_sym->decl_position.seq &&
-          clep->symbol->decl_position.column ==
+         slep != NULL;
+         slep = slep->next) {
+      if (slep->symbol->decl_position.seq == rout_sym->decl_position.seq &&
+          slep->symbol->decl_position.column ==
                                              rout_sym->decl_position.column) {
-        /* clep->symbol is the template function symbol for rout_sym. */
+        /* slep->symbol is the template function symbol for rout_sym. */
 #if 0
         /* Eventually we need a more reliable technique than relying on
            declaration position. */
 #endif /* if 0 */
-        sym = clep->symbol;
+        sym = slep->symbol;
         break;
       }  /* if */
     }  /* for */

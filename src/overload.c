@@ -3412,25 +3412,25 @@ setting user_conversion in the candidate function entry.  This routine
 is only used in C++ mode.
 */
 {
-  a_symbol_ptr                conversion_symbol, base_conversion_symbol;
-  a_routine_ptr               conversion_routine;
-  a_conversion_list_entry_ptr clep;
-  a_type_ptr                  source_type, conv_routine_type, return_type;
-  an_arg_match_summary        this_match;
-  an_arg_match_summary_ptr    this_match_ptr;
-  an_error_code               warning_suggested;
-  a_boolean                   compatible, std_conversion_needed;
-  a_boolean                   result_is_an_lvalue;
-  a_candidate_function_ptr    candidate;
+  a_symbol_ptr              conversion_symbol, base_conversion_symbol;
+  a_routine_ptr             conversion_routine;
+  a_symbol_list_entry_ptr   slep;
+  a_type_ptr                source_type, conv_routine_type, return_type;
+  an_arg_match_summary      this_match;
+  an_arg_match_summary_ptr  this_match_ptr;
+  an_error_code             warning_suggested;
+  a_boolean                 compatible, std_conversion_needed;
+  a_boolean                 result_is_an_lvalue;
+  a_candidate_function_ptr  candidate;
 
   db_enter(4, "try_conversion_function_match");
   /* This routine is similar to try_overloaded_function_match. */
   source_type = source_operand->type;
   /* Look at all the conversion functions for the source class. */
-  for (clep = symbol_supplement_for_class(source_type)->conversion_list;
-       clep != NULL;
-       clep = clep->next) {
-    conversion_symbol = clep->symbol;
+  for (slep = symbol_supplement_for_class(source_type)->conversion_list;
+       slep != NULL;
+       slep = slep->next) {
+    conversion_symbol = slep->symbol;
 #if DEBUG
     if (debug_level >= 4) {
       db_symbol(conversion_symbol,
@@ -3566,9 +3566,9 @@ This routine is useful as a quick way of seeing whether or not a particular
 type appears on the list of conversion functions.
 */
 {
-  a_symbol_ptr                conversion_symbol;
-  a_conversion_list_entry_ptr clep;
-  a_type_ptr                  conv_routine_type, return_type;
+  a_symbol_ptr             conversion_symbol;
+  a_symbol_list_entry_ptr  slep;
+  a_type_ptr               conv_routine_type, return_type;
 
 #if CHECKING
   if (!is_class_struct_union_type(class_type)) {
@@ -3577,10 +3577,10 @@ type appears on the list of conversion functions.
 #endif /* CHECKING */
   dest_type = skip_typerefs(dest_type);
   /* Examine each conversion function from the source class. */
-  for (clep = symbol_supplement_for_class(class_type)->conversion_list;
-       clep != NULL;
-       clep = clep->next) {
-    conversion_symbol = clep->symbol;
+  for (slep = symbol_supplement_for_class(class_type)->conversion_list;
+       slep != NULL;
+       slep = slep->next) {
+    conversion_symbol = slep->symbol;
     reduce_projection_symbol_to_fundamental_symbol(conversion_symbol);
     conv_routine_type = routine_symbol_type(conversion_symbol);
     return_type = conv_routine_type->variant.routine.return_type;
@@ -4023,15 +4023,15 @@ case where the pattern string contains "CC", meaning two pointer operands
 that must have the same type.
 */
 {
-  an_arg_operand_ptr          arg_operand;
-  a_type_ptr                  pointer_type, operand_type, class_type;
-  char                        *type_pattern_position;
-  a_symbol_ptr                conversion_symbol, base_conversion_symbol;
-  a_conversion_list_entry_ptr clep;
-  a_type_ptr                  conv_routine_type, return_type;
-  a_type_ptr                  previous_class_type_considered;
-  a_type_ptr                  previous_pointer_type_considered;
-  a_boolean                   any_ptr_conversion_function_this_operand;
+  an_arg_operand_ptr       arg_operand;
+  a_type_ptr               pointer_type, operand_type, class_type;
+  char                     *type_pattern_position;
+  a_symbol_ptr             conversion_symbol, base_conversion_symbol;
+  a_symbol_list_entry_ptr  slep;
+  a_type_ptr               conv_routine_type, return_type;
+  a_type_ptr               previous_class_type_considered;
+  a_type_ptr               previous_pointer_type_considered;
+  a_boolean                any_ptr_conversion_function_this_operand;
 
   db_enter(4, "try_pointer_builtin_operands_match");
   /* The reason the pointer case is more complicated than other cases is
@@ -4054,10 +4054,10 @@ that must have the same type.
       class_type = skip_typerefs(operand_type);
       any_ptr_conversion_function_this_operand = FALSE;
       /* Look at all the conversion functions for the source class. */
-      for (clep = symbol_supplement_for_class(class_type)->conversion_list;
-           clep != NULL;
-           clep = clep->next) {
-        conversion_symbol = clep->symbol;
+      for (slep = symbol_supplement_for_class(class_type)->conversion_list;
+           slep != NULL;
+           slep = slep->next) {
+        conversion_symbol = slep->symbol;
         base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
         conv_routine_type = routine_symbol_type(base_conversion_symbol);
         return_type = conv_routine_type->variant.routine.return_type;
