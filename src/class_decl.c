@@ -1866,9 +1866,52 @@ is a base class.
 }  /* fixup_virtual_base_class */
 
 
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+static void fixup_data_section_base_class_pointers(a_base_class_ptr new_bcp,
+                                                   a_type_ptr       class_type)
+/*
+Indirect virtual base classes of new_bcp have not yet been marked as having
+new_bcp as their data section base class (to allow for a subsequently seen
+complete subobject base class of new_bcp to be the data section base class).
+Do a fixup pass now to indicate that all virtual base classes of new_bcp
+that do no already have the data section base class pointer set will use the
+data section in new_bcp.
+*/
+{
+  a_base_class_ptr  bcp, corresp_bcp;
+
+  if (new_bcp->complete_subobject) {
+    bcp = new_bcp->type->variant.class_struct_union.extra_info->base_classes;
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (bcp->is_virtual) {
+        if (bcp->data_section_base_class != NULL) {
+#if CHECKING
+          /* The data section is not actually in new_bcp but rather in a
+             nonvirtual base class of bcp.  The pointer should already have
+             been set. */
+          corresp_bcp = corresponding_base_class(bcp, new_bcp->type,
+                                                 class_type);
+          if (corresp_bcp->data_section_base_class == NULL) {
+            internal_error(
+              "fixup_data_section_base_class_pointers: NULL data section bcp");
+          }  /* if */
+#endif /* if CHECKING */
+        } else {
+          corresp_bcp = corresponding_base_class(bcp, new_bcp->type,
+                                                 class_type);
+          if (corresp_bcp->data_section_base_class == NULL) {
+            corresp_bcp->data_section_base_class = new_bcp;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* fixup_data_section_base_class_pointers */
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
+
+
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
                                     a_base_class_ptr      directly_derived_bcp,
-                                    a_base_class_ptr      complete_subobj_bcp,
                                     a_base_class_ptr      add_list,
                                     a_base_class_ptr      *p_end_of_add_list,
                                     a_type_ptr            new_class)
@@ -1909,8 +1952,10 @@ for ambiguity and duplicate paths.  The copy will be a base class of new_class.
            virtual base class. */
         /* Specify the base class in which the data section resides, if there
            isn't one yet. */
-        if (bcp->data_section_base_class == NULL) {
-          bcp->data_section_base_class = complete_subobj_bcp;
+        if (bcp->data_section_base_class == NULL &&
+            !directly_derived_bcp->is_virtual &&
+            directly_derived_bcp->complete_subobject) {
+          bcp->data_section_base_class = directly_derived_bcp;
         }  /* if */
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
         goto done;
@@ -1941,14 +1986,15 @@ for ambiguity and duplicate paths.  The copy will be a base class of new_class.
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
     /* The data section of an indirect virtual base class is in the
        complete subobject to which it belongs. */
-    new_bcp->data_section_base_class = complete_subobj_bcp;
+    if (!directly_derived_bcp->is_virtual &&
+        directly_derived_bcp->complete_subobject) {
+      new_bcp->data_section_base_class = directly_derived_bcp;
+    }  /* if */
     /* According to cfront all virtual base classes are complete subobjects. */
     new_bcp->complete_subobject = TRUE;
-    complete_subobj_bcp = new_bcp;
   } else {
     if (base_class_to_copy->complete_subobject) {
       new_bcp->complete_subobject = TRUE;
-      complete_subobj_bcp = new_bcp;
     }  /* if */
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   }  /* if */
@@ -1970,10 +2016,13 @@ for ambiguity and duplicate paths.  The copy will be a base class of new_class.
                   variant.class_struct_union.extra_info->base_classes;
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct) {
-      add_indirect_base_class(bcp, new_bcp, complete_subobj_bcp, add_list,
-                              p_end_of_add_list, new_class);
+      add_indirect_base_class(bcp, new_bcp, add_list, p_end_of_add_list,
+                              new_class);
     }  /* if */
   }  /* for */
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+  fixup_data_section_base_class_pointers(new_bcp, new_class);
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
   /* Add this to the end of add_list. */
   if (*p_end_of_add_list == NULL) {
     new_class->variant.class_struct_union.extra_info->base_classes = new_bcp;
@@ -2019,7 +2068,6 @@ or struct definition.  The syntax is
   a_boolean                     ambiguous;
   a_class_symbol_supplement_ptr cssp, bcp_cssp;
   a_boolean                     any_base_class_with_override_list;
-  a_base_class_ptr              complete_subobj_bcp = NULL;
 #if CFRONT_CLASS_LAYOUT_COMPATIBILITY
   a_boolean                     first_direct_nonvirtual_base_class = TRUE;
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
@@ -2219,9 +2267,6 @@ or struct definition.  The syntax is
          and are therefore marked as having a "complete subobject". */
       if (is_virtual || !first_direct_nonvirtual_base_class) {
         new_direct_bcp->complete_subobject = TRUE;
-        complete_subobj_bcp = new_direct_bcp;
-      } else {
-        complete_subobj_bcp = NULL;
       }  /* if */
 #endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
       new_direct_bcp->direct = TRUE;
@@ -2241,8 +2286,7 @@ or struct definition.  The syntax is
         if (bcp->direct) {
           /* Add the direct base class and all *its* base classes to the
              base class list for the derived class. */
-          add_indirect_base_class(bcp, new_direct_bcp, complete_subobj_bcp,
-                                  ctsp->base_classes,
+          add_indirect_base_class(bcp, new_direct_bcp, ctsp->base_classes,
                                   &end_of_base_classes_list, type_ptr);
         }  /* if */
         if (bcp->overriding_virtual_functions != NULL) {
@@ -2257,6 +2301,9 @@ or struct definition.  The syntax is
         end_of_base_classes_list->next = new_direct_bcp;
       }  /* if */
       end_of_base_classes_list = new_direct_bcp;
+#if CFRONT_CLASS_LAYOUT_COMPATIBILITY
+      fixup_data_section_base_class_pointers(new_direct_bcp, type_ptr);
+#endif /* CFRONT_CLASS_LAYOUT_COMPATIBILITY */
       if (any_base_class_with_override_list) {
         for (bcp = new_direct_bcp->type->
                         variant.class_struct_union.extra_info->base_classes;
