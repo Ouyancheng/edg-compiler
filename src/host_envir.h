@@ -18,6 +18,12 @@ host_envir.h -- Declarations relating to host_envir.c (having to do with
 #ifndef HOST_ENVIR_H
 #define HOST_ENVIR_H 1
 
+/* Include lang_feat.h to get the definition of
+   AUTOMATIC_TEMPLATE_INSTANTIATION. */
+#ifndef LANG_FEAT_H
+#include "lang_feat.h"
+#endif /* ifndef lang_feat.h */
+
 /*
 Vertical tab character.  Defined in this way because \v is not in K&R.
 */
@@ -335,8 +341,9 @@ is TRUE.
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
 /*
-Flag that is TRUE to cause IL lowering to be done, to lower C++ IL
-to C IL, allowing the C++ front end to be used with a C back end.
+Flag that is TRUE to cause IL lowering to be done, to lower C++ intermediate
+language to C intermediate language, allowing the C++ front end to be used
+with a C back end.
 */
 #ifndef DO_IL_LOWERING
 #define DO_IL_LOWERING TRUE
@@ -344,6 +351,10 @@ to C IL, allowing the C++ front end to be used with a C back end.
 #if BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING
 ??=error -- IL lowering must be done for the C-generating back end.
 #endif /* BACK_END_IS_C_GEN_BE && !DO_IL_LOWERING */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION && !DO_IL_LOWERING
+??=error -- IL lowering must be done if automatic instantiation is allowed.
+/* This is because the name mangling routines are needed. */
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION && !DO_IL_LOWERING */
 
 /*
 If DO_IL_LOWERING is TRUE, this gives the routine names used for the
@@ -408,7 +419,7 @@ Default system include directory.
 #endif /* ifndef DEFAULT_USR_INCLUDE */
 
 /*
-Flag that is TRUE to suppress the inclusion of DEFAULT_USER_INCLUDE (or the
+Flag that is TRUE to suppress the inclusion of DEFAULT_USR_INCLUDE (or the
 value of the environment variable USR_INCLUDE) in the include file
 search path.  This may be desirable for cross versions.
 */
@@ -424,10 +435,6 @@ file dependencies for a makefile.
 #ifndef OBJECT_FILE_SUFFIX
 #define OBJECT_FILE_SUFFIX ".o"
 #endif /* ifndef OBJECT_FILE_SUFFIX */
-
-/* Include lang_feat.h to get the definition of
-   AUTOMATIC_TEMPLATE_INSTANTIATION. */
-#include "lang_feat.h"
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 /*
