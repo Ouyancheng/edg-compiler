@@ -4025,7 +4025,6 @@ the "routine" is a block.
          the first routine is processed, so we know by now whether the
          initialization routine is needed. */
       if (f_file_scope_inits != NULL) {
-        end_output_line_if_begun();
         /* Generate a call of the file-scope initialization routine. */
         /* See also the C++-specific processing in c_gen_be that will call
            the init routine. */
