@@ -358,6 +358,7 @@ static an_id_lookup_options_set idl_options_for_lookup_mode[(int)ilm_last+1]= {
   /* ilm_typename */            IDL_TYPENAME_LOOKUP,
   /* ilm_class */  	        IDL_MUST_BE_CLASS,
   /* ilm_linkage */  	        IDL_LINKAGE_LOOKUP,
+  /* ilm_template_linkage */	IDL_LINKAGE_LOOKUP | IDL_TREAT_AS_TEMPLATE_ID,
   /* ilm_using_declaration */  	IDL_USING_DECLARATION,
   /* ilm_using_typename */      IDL_USING_DECLARATION | IDL_TYPENAME_LOOKUP,
   /* ilm_expr */		IDL_IS_EXPR_CONTEXT,
@@ -9048,6 +9049,8 @@ in a declarator of a template declaration.
     /* No error tests are done on unqualified names. */
   } else if (symbol_is_or_contains_template(sym)) {
     /* Okay -- the symbol found refers to a template. */
+  } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    /* Ignore erros in prototype instantiations. */
   } else if (sym->is_class_member &&
              is_prototype_instantiation_symbol((a_symbol_ptr)sym->
                               parent.class_type->source_corresp.assoc_info)) {

@@ -5540,6 +5540,11 @@ recorded in the IL, the template header is passed via template_decl.
       pos_error(ec_inherited_member_not_allowed, &locator->source_position);
       sym = NULL;
       set_to_error_locator(*locator);
+    } else if (is_nontype_template_param_symbol(sym)) {
+      /* A name like "A<T>::x" that is a nontype member of a proxy class.
+         Accept this, but use an error locator. */
+      sym = NULL;
+      set_to_error_locator(*locator);
     } else if (sym->kind != (a_symbol_kind)sk_member_function &&
                sym->kind != (a_symbol_kind)sk_function_template &&
                sym->kind != (a_symbol_kind)sk_overloaded_function) {

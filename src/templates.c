@@ -9192,7 +9192,8 @@ instantiation.
         locator_for_curr_id.is_template_id) {
       a_boolean	err = FALSE;
       sym = coalesce_and_lookup_generalized_identifier
-                             (GID_CLASS_TEMPLATE_REQUIRED, ilm_linkage, &err);
+                             (GID_CLASS_TEMPLATE_REQUIRED,
+                              ilm_template_linkage, &err);
       /* If the class name is a template ID, then this is probably a
          declaration of a partial specialization. */
       if (sym != NULL && is_template_class_symbol(sym) &&
@@ -9259,9 +9260,11 @@ instantiation.
            is not allowed. */
         pos_error(ec_friend_is_nonreal_template, &locator.source_position);
       }  /* if */
-      /* Adjust the effective declaration level.  Friend declarations
-         are added to the nearest enclosing namespace scope. */
-      decl_state->effective_decl_level = depth_innermost_namespace_scope;
+      if (!decl_state->in_prototype_instantiation) {
+        /* Adjust the effective declaration level.  Friend declarations
+           are added to the nearest enclosing namespace scope. */
+        decl_state->effective_decl_level = depth_innermost_namespace_scope;
+      }  /* if */
     } else if (friend_token_seen) {
       /* A friend declaration in a nonclass scope.  Only issue the error
          if we actually scanned the friend token in this routine.  If
@@ -13316,9 +13319,20 @@ differs between function and nonfunction declarations.
                                            decl_state->is_template_friend;
   /* Determine the nesting depth of this template declaration.  Templates
      not enclosed within other templates are given a depth of "1".  The
-     depth is incremented for each successive template declaration. */
-  decl_state->nesting_depth =
-                decl_state->is_template_friend ? 0 : template_nesting_depth();
+     depth is incremented for each successive template declaration.  Friend
+     declarations are normally restarted at a depth of "1" (the depth set here
+     is incremented before used).  This is suppressed inside prototype
+     instantiations because the outer template parameters must be distinct
+     from those of the template when prototype instantiations are put in
+     the IL.  This special processing is okay because a friend in a prototype
+     instantiation is never matched up with an existing declaration of a 
+     template. */
+  if (decl_state->is_template_friend &&
+      !decl_state->in_prototype_instantiation) {
+    decl_state->nesting_depth = 0;
+  } else {
+    decl_state->nesting_depth = template_nesting_depth();
+  }  /* if */
 }  /* decl_level_of_template */
 
 
