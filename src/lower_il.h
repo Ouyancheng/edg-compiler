@@ -74,10 +74,14 @@ when a just-allocated entry requires lowering.
 */
 #define mark_as_not_visited(entry_ptr) (il_lowering_flag_of(entry_ptr) = FALSE)
 
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
 
 typedef unsigned long a_cleanup_region_number;
 			/* Number for a destructible region, used for
 			   exception handling cleanup. */
+
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+
 typedef unsigned long a_handle_number;
 			/* Number in the region table that identifies an
 			   entry in the object address table or in the array
@@ -162,6 +166,7 @@ typedef struct a_destructible_entity_descr {
 			   conditional flag variable that is set to non-zero
 			   to indicate that the initialization has been
 			   done. */
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   a_handle_number
 		conditional_flag_handle;
 			/* If conditional_flag_var is non-NULL, this is
@@ -215,6 +220,7 @@ typedef struct a_destructible_entity_descr {
 			   front end order (reflected by the dynamic init
 			   next_in_destruction_list pointer). */
 #endif /* DO_UNORDERED_EH_PROCESSING */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 } a_destructible_entity_descr;
 
 EXTERN a_destructible_entity_descr_ptr
@@ -308,6 +314,14 @@ typedef struct a_context {
 			/* TRUE if this context entry defines a new object
 			   lifetime (i.e., it has a lifetime and the lifetime
 			   is not inherited from the parent context). */
+  an_object_lifetime_ptr
+		successor_lifetime_at_statement;
+			/* If the object lifetime has a successor that begins
+			   at a label, this is the lifetime.  This helps us
+			   watch for the appearance of the associated
+			   statement, since there is no explicit indication
+			   the the statement that it begins another
+			   lifetime. */
   a_dynamic_init_ptr
 		latest_initialization;
 			/* The current position in the destructions list
@@ -324,24 +338,18 @@ typedef struct a_context {
 			/* Used to save/restore the global variable
 			   curr_object_lifetime over push_context/
 			   pop_context. */
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   a_cleanup_region_number
 		saved_curr_cleanup_region_number;
 			/* Used to save/restore the global variable
 			   curr_cleanup_region_number over push_context/
 			   pop_context. */
-  an_object_lifetime_ptr
-		successor_lifetime_at_statement;
-			/* If the object lifetime has a successor that begins
-			   at a label, this is the lifetime.  This helps us
-			   watch for the appearance of the associated
-			   statement, since there is no explicit indication
-			   the the statement that it begins another
-			   lifetime. */
   a_variable_ptr
 		try_frame;
 			/* For a context associated with a "try" block, this
 			   points to the variable for the stack frame for the
 			   try. */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 } a_context;
 
 EXTERN a_context_ptr

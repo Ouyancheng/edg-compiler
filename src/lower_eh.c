@@ -29,6 +29,7 @@ lower_eh.c -- IL lowering for exception handling constructs.
 
 /* Only include this code if it is needed: */
 #if DO_IL_LOWERING
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
 
 static a_cleanup_region_number
 		next_avail_region_number;
@@ -2786,6 +2787,7 @@ invocation of the front end.
   }
 }  /* eh_lower_init */
 
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 #endif /* DO_IL_LOWERING */
 
 /******************************************************************************

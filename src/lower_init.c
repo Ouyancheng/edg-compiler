@@ -46,8 +46,10 @@ static void lower_destructor_dynamic_init(
                                    an_init_pos_descr_ptr  ipdp,
                                    a_boolean              have_complete_object,
                                    an_insert_location_ptr insert_location);
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location);
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 
 /*
 Put the current code_pos_for_lowering into a statement, if the statement
@@ -793,11 +795,13 @@ and return a pointer to it.
   dedp->next = NULL;
   clear_init_pos_descr(&dedp->init_pos_descr);
   dedp->conditional_flag_var = NULL;
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   dedp->conditional_flag_handle = 0;
   dedp->region_number = null_eh_region_number;
   dedp->region_number_to_set_when_starting_destruction = null_eh_region_number;
   dedp->region_table_entry = NULL;
   dedp->next_in_region_table = NULL;
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   return dedp;
 }  /* alloc_destructible_entity_descr_copy */
 
@@ -1084,6 +1088,9 @@ for the source parameter of the copy constructor.
 }  /* var_for_copy_constructor_source */
 
 
+#if !DO_LOWERING_OF_EXCEPTION_HANDLING
+/*ARGSUSED*/  /* <-- dest is not used in that case. */
+#endif /* !DO_LOWERING_OF_EXCEPTION_HANDLING */
 static an_expr_node_ptr implied_source_of_copy(
                                        a_constructor_init_ptr ctor_init,
                                        an_init_pos_descr_ptr  dest,
@@ -1104,8 +1111,6 @@ address that escapes, not simply as an address because it's an lvalue).
   an_expr_node_ptr     source_node;
   an_init_pos_descr    cctor_source_ipd;
   an_init_pos_modifier cctor_source_ipm;
-  a_variable_ptr       catch_parameter, caught_object_addr;
-  a_type_ptr           param_type;
 
   if (ctor_init != NULL) {
     /* The implied source is the member being copied by the
@@ -1118,6 +1123,9 @@ address that escapes, not simply as an address because it's an lvalue).
                                         /*using_as_dest=*/FALSE);
   } else {
     /* The implied source is the address in __caught_object_address. */
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
+    a_variable_ptr catch_parameter, caught_object_addr;
+    a_type_ptr     param_type;
     caught_object_addr = make_caught_object_address_var();
     /* We expect a simple catch parameter as the destination. */
     check_assertion(dest->modifiers == NULL &&
@@ -1139,6 +1147,9 @@ address that escapes, not simply as an address because it's an lvalue).
     /* Cast the source node a pointer to the type of thing to be copied. */
     source_node = add_cast_if_necessary(source_node,
                                         make_pointer_type(param_type));
+#else  /* !DO_LOWERING_OF_EXCEPTION_HANDLING */
+    unexpected_condition_str("implied_source_of_copy: catch parameter");
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   }  /* if */
   return source_node;
 }  /* implied_source_of_copy */
@@ -1388,6 +1399,9 @@ type of the array pointed to by ptr_type, and return a pointer to it.
 }  /* size_elem_node_from_pointer_type */
 
 
+#if !DO_LOWERING_OF_EXCEPTION_HANDLING
+/*ARGSUSED*/  /* <-- dtor_routine is not used in that case. */
+#endif /* !DO_LOWERING_OF_EXCEPTION_HANDLING */
 static an_expr_node_ptr make_vec_new_call(an_expr_node_ptr entity_node,
                                           an_expr_node_ptr num_elem_node,
                                           a_routine_ptr    ctor_routine,
@@ -1435,6 +1449,7 @@ A pointer to the expression created is returned.
   entity_node->next = num_elem_node;
   num_elem_node->next = size_elem_node;
   size_elem_node->next = func_addr_node;
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   if (exceptions_enabled && dtor_routine != NULL) {
     /* __vec_new_eh call, with destructor. */
     an_expr_node_ptr dtor_addr_node = function_addr_expr(dtor_routine,
@@ -1444,10 +1459,13 @@ A pointer to the expression created is returned.
     call_node = make_runtime_rout_call("__vec_new_eh", &vec_new_eh_routine,
                                        void_star_type(), arg_expr_list);
   } else {
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     /* __vec_new call, without destructor. */
     call_node = make_runtime_rout_call("__vec_new", &vec_new_routine,
                                        void_star_type(), arg_expr_list);
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   return call_node;
 }  /* make_vec_new_call */
 
@@ -1559,9 +1577,11 @@ typedef struct a_generated_routine_context {
   a_memory_region_number
 		region_to_switch_back_to;
   a_scope_depth	depth_innermost_function_scope;
+  a_scope_ptr	innermost_function_scope;
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   a_cleanup_region_number
 		curr_cleanup_region_number;
-  a_scope_ptr	innermost_function_scope;
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 } a_generated_routine_context;
 
 
@@ -1583,7 +1603,9 @@ grcontext is a local variable used to save state for later restoration.
      for object lifetimes in this function (there is no scope stack entry). */
   grcontext->depth_innermost_function_scope = depth_innermost_function_scope;
   depth_innermost_function_scope = NO_SCOPE_DEPTH;
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   grcontext->curr_cleanup_region_number = curr_cleanup_region_number;
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   grcontext->innermost_function_scope = innermost_function_scope;
   innermost_function_scope = scope;
   { an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
@@ -1614,7 +1636,9 @@ Pop function corresponding to push_generated_routine_context.
   }
   clean_up_all_object_lifetimes(scope);
   innermost_function_scope = grcontext->innermost_function_scope;
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   curr_cleanup_region_number = grcontext->curr_cleanup_region_number;
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
   done_with_memory_region(region_number);
   switch_il_region(grcontext->region_to_switch_back_to);
@@ -1942,6 +1966,7 @@ and not for constructor_init entries in destructors.
   an_insert_location_ptr          effective_insert_loc;
 
   check_assertion(dedp != NULL);
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   if (exceptions_enabled) {
     /* Set the region number to what it should be after the destruction,
        because as soon as we start the destruction it's the destructor's
@@ -1949,6 +1974,7 @@ and not for constructor_init entries in destructors.
     set_eh_curr_region(dedp->region_number_to_set_when_starting_destruction,
                        insert_location);
   }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   effective_insert_loc = insert_location;
   /* If the entity is conditionally-created temporary, generate an
      "if" statement to test whether or not the variable was ever
@@ -1958,6 +1984,7 @@ and not for constructor_init entries in destructors.
                               insert_location, &insert_location2);
     effective_insert_loc = &insert_location2;
   }  /* if */
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   if (exceptions_enabled) {
 #if DO_UNORDERED_EH_PROCESSING
     if (dip->unordered) {
@@ -1977,6 +2004,7 @@ and not for constructor_init entries in destructors.
     }  /* if */
 #endif /* DO_UNORDERED_EH_PROCESSING */
   }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   add_destructor_call(dip->destructor,
                       &dedp->init_pos_descr,
                       /*have_complete_object=*/TRUE,
@@ -2358,6 +2386,9 @@ may be many different such routines generated (all unnamed).
 }  /* file_scope_term_insert_location */
 
 
+#if !DO_LOWERING_OF_EXCEPTION_HANDLING
+/*ARGSUSED*/  /* <-- cond_var_handle is not used in that case. */
+#endif /* !DO_LOWERING_OF_EXCEPTION_HANDLING */
 void init_conditional_flag_var(a_variable_ptr     cond_var,
                                a_handle_number    cond_var_handle,
                                an_insert_location *insert_location)
@@ -2369,12 +2400,14 @@ object address table entry to the address of the variable.  The code is
 inserted at *insert_location.
 */
 {
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   if (exceptions_enabled) {
     an_init_pos_descr ipd;
     /* Put the address of the variable into the object address table. */
     set_var_init_pos_descr(cond_var, &ipd);
     init_object_addr_table_entry(&ipd, cond_var_handle, insert_location);
   }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   /* If the conditional flag is static, initialization to zero is
      implicit and requires nothing special in the IL. */
   if (cond_var->storage_class != (a_storage_class)sc_static) {
@@ -2414,6 +2447,7 @@ to a nonzero value.
                             insert_location);
 }  /* set_conditional_flag_var */
 
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
 
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location)
@@ -2430,6 +2464,7 @@ variable to a zero value.
                             insert_location);
 }  /* reset_conditional_flag_var */
 
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 
 /*
 Pointer to the struct type used to provide information to the runtime about
@@ -3008,6 +3043,7 @@ do_assignment:;
         set_conditional_flag_var(dedp->conditional_flag_var,
                                  eff_insert_location);
       }  /* if */
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
       if (exceptions_enabled) {
         /* Make a region table entry for the entity (and for its conditional
            flag, if it has one). */
@@ -3019,6 +3055,7 @@ do_assignment:;
            initialization now. */
         set_eh_curr_region(cleanup_region_number(dip), insert_location);
       }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
       /* Record this dynamic initialization as the last encountered in the
          current context (and therefore the place to start to generate
          cleanup code if we exit the lifetime after this point). */
@@ -3117,9 +3154,8 @@ complete object.  The statements are inserted at *insert_location
 and *insert_location is updated.
 */
 {
-  a_variable_ptr                  variable;
-  a_source_position               saved_error_position;
-  a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
+  a_variable_ptr    variable;
+  a_source_position saved_error_position;
 
   saved_error_position = error_position;
   variable = dip->variable;
@@ -3132,7 +3168,9 @@ and *insert_location is updated.
     }  /* if */
 #endif /* CHECKING */
   }  /* if */
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   if (exceptions_enabled) {
+    a_destructible_entity_descr_ptr dedp = dip->destructible_entity_descr;
     /* Put the entity position in the destructible_entity_descr. */
     copy_init_pos_descr(ipdp, &dedp->init_pos_descr);
     /* Set the region number to what it should be after the destruction,
@@ -3141,6 +3179,7 @@ and *insert_location is updated.
     set_eh_curr_region(dedp->region_number_to_set_when_starting_destruction,
                        insert_location);
   }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   add_destructor_call(dip->destructor, ipdp, have_complete_object,
                       insert_location);
   error_position = saved_error_position;
@@ -3440,7 +3479,9 @@ The subtree of the node has not yet been lowered.
   an_insert_location          insert_location;
   an_init_pos_descr           ipd;
   a_boolean                   keep_dynamic_init;
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   a_dynamic_init_ptr          dyn_init_to_free_storage;
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
@@ -3519,6 +3560,7 @@ The subtree of the node has not yet been lowered.
          type so that it is an array if necessary. */
       set_var_indirect_init_pos_descr(temp_var, &ipd);
       ipd.base_type = ndsp->type;
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
       dyn_init_to_free_storage = ndsp->freeing_of_storage_on_exception;
       if (dyn_init_to_free_storage != NULL) {
         /* Make a cleanup region table entry to get the storage freed if
@@ -3538,12 +3580,14 @@ The subtree of the node has not yet been lowered.
                                    &insert_location);
         curr_context->latest_initialization = dyn_init_to_free_storage;
       }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
       /* Generate code for the initialization. */
       lower_dynamic_init(dip, &ipd,
                          (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
                          (a_constructor_init_ptr)NULL,
                          &insert_location, &keep_dynamic_init);
       check_assertion(!keep_dynamic_init);
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
       if (dyn_init_to_free_storage != NULL) {
         /* While the initialization was being done, if an exception was
            thrown the storage would have been freed.  Now, the initialization
@@ -3552,6 +3596,7 @@ The subtree of the node has not yet been lowered.
                                destructible_entity_descr->conditional_flag_var,
                                    &insert_location);
       }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
       /* Build the ?: operation.  Its first argument is the comparison of
          the temp pointer against NULL; its second is the initialization code;
          and its third is another NULL constant of the right type. */
@@ -4436,8 +4481,10 @@ constructor scope, and also lower the user code.
   a_routine_ptr      new_routine = ctsp->assoc_operator_new_routine;
   a_variable_ptr     this_param_var = scope->variant.routine.parameters;
   an_expr_node_ptr   if_node;
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
   a_variable_ptr     cond_var;
   a_handle_number    cond_var_handle;
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 
   saved_code_pos = code_pos_for_lowering;
@@ -4489,6 +4536,7 @@ constructor scope, and also lower the user code.
       this_param_node->next = call_node;
       assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
                                        call_node->type, this_param_node);
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
       if (exceptions_enabled) {
         an_insert_location      expr_insert_location;
         a_cleanup_region_number new_cleanup_region_number;
@@ -4525,6 +4573,7 @@ constructor scope, and also lower the user code.
         /* Set the region number to the delete cleanup entry. */
         set_eh_curr_region(new_cleanup_region_number, &expr_insert_location);
       }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
       /* Make "(this = new_rout(size)) != NULL". */
       make_zero_of_proper_type(this_param_var->type, &null_constant);
       null_constant_node = alloc_node_for_constant(&null_constant);
@@ -4566,6 +4615,7 @@ constructor scope, and also lower the user code.
          As mentioned above, this must be done after the user code is
          lowered. */
       enclose_routine_in_if(scope, if_node, this_param_var);
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
       if (exceptions_enabled) {
         /* Initialize the conditional flag to zero.  This must be done after
            enclose_routine_in_if is called so that the initialization is
@@ -4573,6 +4623,7 @@ constructor scope, and also lower the user code.
         set_block_start_insert_location(scope->assoc_block, &insert_location);
         init_conditional_flag_var(cond_var, cond_var_handle, &insert_location);
       }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     }  /* if */
   }
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
@@ -4633,6 +4684,7 @@ at *insert_location, and *insert_location is updated.
   }  /* if */
 }  /* lower_dtor_init */
 
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
 
 static a_cleanup_region_number assign_dtor_init_cleanup_region_number(
                                                         a_dynamic_init_ptr dip)
@@ -4667,6 +4719,8 @@ is processed.
   return region_number;
 }  /* assign_dtor_init_cleanup_region_number */
 
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
 
 static void make_dtor_init_region_table_entries(
                                            a_dynamic_init_ptr dip,
@@ -4703,6 +4757,7 @@ is inserted at *insert_location.
 #endif /* CHECKING */
 }  /* make_dtor_init_region_table_entries */
 
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 
 void lower_destructor_code(a_scope_ptr scope)
 /*
@@ -4716,7 +4771,6 @@ destructor scope, and also lower the user code.
   a_class_type_supplement_ptr
                          ctsp;
   a_constructor_init_ptr ctor_init;
-  a_dynamic_init_ptr     first_prologue_destruction;
   an_insert_location     insert_location, insert_location2;
   an_insert_location     prologue_insert_location;
   a_statement_ptr        user_code_stmts, epilogue_block;
@@ -4729,6 +4783,9 @@ destructor scope, and also lower the user code.
   a_return_memo_ptr      rmp, rmp_next;
   a_label_ptr            epilogue_label;
   a_source_position      saved_error_position, saved_code_pos;
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
+  a_dynamic_init_ptr     first_prologue_destruction;
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the destructor routine.  Lines enclosed in [...]
@@ -4882,6 +4939,7 @@ destructor scope, and also lower the user code.
     prologue_insert_location = insert_location;
     epilogue_block = alloc_statement((a_statement_kind)stmk_block);
     set_block_start_insert_location(epilogue_block, &insert_location);
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
     if (exceptions_enabled) {
       /* Assign cleanup region numbers to the destructions.  This is done
          early so that we will know the right value to set __eh_curr_region
@@ -4898,6 +4956,7 @@ destructor scope, and also lower the user code.
       }  /* if */
       (void)assign_dtor_init_cleanup_region_number(first_prologue_destruction);
     }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     /* Generate a destructor call for each data member that appears on the
        ctor_init list. */
     for (; ctor_init != NULL &&
@@ -4949,6 +5008,7 @@ destructor scope, and also lower the user code.
       }  /* for */
       /* Note that the "if" created above effectively ends here. */
     }  /* if */
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
     if (exceptions_enabled) {
       /* Make the region table entries for the prologue destructions.
          This is done late because we want to put out the entries in
@@ -4962,6 +5022,7 @@ destructor scope, and also lower the user code.
       set_eh_curr_region(cleanup_region_number(first_prologue_destruction),
                          &prologue_insert_location);
     } /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
   }  /* if */
   /* Now lower the user code. */
   lower_statement_list(user_code_stmts, &top_level_stmt);
@@ -5141,10 +5202,12 @@ Do lowering on the file-scope dynamic initializations list.
        containing them. */
     scope = file_scope_init_insert_location(&insert_location, &region_number);
     push_generated_routine_context(scope, region_number, &grcontext);
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
     if (exceptions_enabled) {
       /* Initialize for exception handling lowering. */
       eh_function_lower_init();
     }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     processing_file_scope_init_routine = TRUE;
     /* Generate the initializations. */
     for (; dip != NULL; dip = dip_next) {
@@ -5182,10 +5245,12 @@ Do lowering on the file-scope dynamic initializations list.
       }  /* if */
 #endif /* CHECKING */
     }  /* for */
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
     if (exceptions_enabled) {
       /* Add prologue/epilogue code for exceptions if needed. */
       add_eh_function_prologue(scope);
     }  /* if */
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
     /* Free any return memos that were not used. */
     free_return_memo_list(return_memo_list);
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED

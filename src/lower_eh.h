@@ -20,6 +20,7 @@ lower_eh.h -- Declarations related to lower_eh.c (having to do with IL
 
 /* Only include this code if it is needed: */
 #if DO_IL_LOWERING
+#if DO_LOWERING_OF_EXCEPTION_HANDLING
 
 #ifndef IL_H
 #include "il.h"
@@ -101,6 +102,7 @@ extern void eh_lower_one_time_init(void);
 
 extern void eh_lower_init(void);
 
+#endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 #endif /* DO_IL_LOWERING */
 #endif /* ifndef LOWER_EH_H */
 

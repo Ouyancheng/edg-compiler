@@ -172,7 +172,7 @@ This change was motivated by a desire to provide the information that
 formerly was recorded in the cleanup action lists in IL lowering in a
 more implementation-independent way, one more suitable for use in
 code generation in back ends that want to do a "real" implementation
-of exception handling.  See SUPPRESS_LOWERING_OF_EXCEPTION_HANDLING.
+of exception handling.  See DO_LOWERING_OF_EXCEPTION_HANDLING.
 
 Those who use the unlowered IL may have to make some small changes (notably,
 ignoring the enk_object_lifetime expression nodes).  Those using
