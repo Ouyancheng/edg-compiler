@@ -2047,14 +2047,14 @@ Do any desirable consistency checks on the indicated type.
 */
 {
   type = f_skip_typerefs(type);
-  if (is_array_type(type)) {
+  if (is_array_type(type) &&
+      !type->variant.array.is_variable_size_array) {
     /* Check that the size of an array type is the element size times
        the number of elements. */
     a_targ_size_t size = type->size;
     if (size != 0) {
       a_targ_size_t elem_size= f_skip_typerefs(array_element_type(type))->size;
-      check_assertion(!type->variant.array.is_variable_size_array &&
-                      !type->variant.array.is_template_dependent_size_array);
+      check_assertion(!type->variant.array.is_template_dependent_size_array);
       check_assertion_str(
             elem_size * type->variant.array.variant.number_of_elements == size,
             "validate_type: incorrect array size");
