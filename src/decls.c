@@ -2627,7 +2627,7 @@ created; the caller must set it.
          extern "C" function has been declared in this translation unit --
          only one is permitted with a given name, ignoring namespaces.
          (Microsoft compilers ignore this, so in Microsoft bugs mode we
-          weaken this to a warning.) */
+         weaken this to a warning.) */
       a_symbol_ptr   sym = locator->symbol_header->other_symbols;
       a_routine_ptr  rp;
 
