@@ -4013,8 +4013,9 @@ cross-reference output describing this declaration.
     if (!alloc_at_file_scope) {
       scope_depth = decl_scope_level;
     } else if (depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE ||
-               scope_stack[depth_scope_stack].default_name_linkage ==
-                                          (a_name_linkage_kind)nlk_external) {
+               (scope_stack[depth_scope_stack].default_name_linkage ==
+                                          (a_name_linkage_kind)nlk_external &&
+                storage_class != (a_storage_class)sc_static)) {
       scope_depth = DEPTH_OF_FILE_SCOPE;
     } else {
       scope_depth = depth_innermost_namespace_scope;

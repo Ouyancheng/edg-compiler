@@ -1,5 +1,27 @@
 Version 2.44
 
+7/5/00   Namespace scope extern "C" variables with internal linkage
+
+Unlike their counterparts with external linkage, namespace scope extern "C"
+variables with internal linkage refer to distinct entities when declared in
+distinct namespaces.  However, they used not to get mangled which could cause
+name collisions.  For example:
+
+  namespace N1 {
+    extern "C" {
+      int x;
+      static int i = 2;
+    }
+  }
+  namespace N2 {
+    extern "C" {
+      int x;            // Refers to same entity as N1::x.  Not mangled.
+      static int i = 3; // Distinct from N1::i.  Should be mangled.
+    }
+  }
+
+This is now fixed by mangling the names of such variables.
+
 7/3/00   C++-generating back end: "inline" suppressed in some cases
 
 The C++-generating back end now suppresses the keyword "inline"
