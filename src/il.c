@@ -176,7 +176,7 @@ static unsigned long
 #endif /* DEBUG */
 
 /*
-Flag that is set to TRUE when there one or more implicit children of the
+Flag that is set to TRUE when there are one or more implicit children of the
 lifetime object that is associated with the file scope.  (Its implicit
 children are entries that point to it as a parent but which it does not
 point back to on its child_lifetime list; that is because implicit children
@@ -4545,12 +4545,16 @@ only.
   a_type_ptr                    tp;
   a_based_type_list_member_ptr  btlmp, prev_btlmp, next_btlmp;
 
+  /* Traverse the based-type fixup list. */
   for (; btfp != NULL; btfp = btfp->next) {
+    /* For each type on the list, traverse the associated based-type list
+       and look for based-type entries marked front-end-only. */
     tp = btfp->base_type;
     prev_btlmp = NULL;
     for (btlmp = tp->based_types; btlmp != NULL; btlmp = next_btlmp) {
       next_btlmp = btlmp->next;
       if (btlmp->front_end_only) {
+        /* Match -- link around the entry and continue looping. */
         if (prev_btlmp == NULL) {
           tp->based_types = btlmp->next;
         } else {
@@ -4560,7 +4564,7 @@ only.
       } else {
         prev_btlmp = btlmp;
       }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* for */
   based_type_fixup_list = NULL;
 }  /* do_based_type_fixup */
@@ -4586,9 +4590,9 @@ If none is found, create one and add it to the list.
       if (btfp->base_type == base_type) {
         /* The specified base type is already represented on the fixup list.
            Unless it's already there, move the entry to the head of the
-           list (as an optimization for subsequent traversals of the list. */
+           list (as an optimization for subsequent traversals of the list). */
         if (prev_btfp != NULL) {
-          /* Remove the entry and readd it at the front. */
+          /* Remove the entry and re-add it at the front. */
           prev_btfp->next = btfp->next;
           btfp->next = based_type_fixup_list;
           based_type_fixup_list = btfp;
@@ -4596,7 +4600,7 @@ If none is found, create one and add it to the list.
         goto done;
       }  /* if */
       prev_btfp = btfp;
-    }  /* if */
+    }  /* for */
     /* Falling through means a match was not found. */
     btfp = (a_based_type_fixup_ptr)alloc_fe(sizeof(a_based_type_fixup));
 #if DEBUG
@@ -10942,6 +10946,8 @@ Display and return the amount of space used for various IL tables.
 
   (void)fputc('\n', f_debug);
   db_space_used_other("get_based_type_calls", num_get_based_type_calls, "");
+  db_space_used_other("based type fixups",
+                      num_based_type_fixups_allocated, "");
   (void)fputc('\n', f_debug);
   db_space_used_other("num_shareable_constants", num_shareable_constants, "");
   db_space_used_other("Percent of buckets used",
@@ -11083,6 +11089,7 @@ in il_init.)
       pch_array_saved_var_array_elem(shareable_constants_table),
       pch_saved_var_array_elem(curr_object_lifetime),
       pch_saved_var_array_elem(any_function_scope_lifetime_entries),
+      pch_saved_var_array_elem(based_type_fixup_list),
 #if ORPHAN_PROCESSING_NEEDED
       pch_array_saved_var_array_elem(orphaned_file_scope_il_entries),
 #endif /* ORPHAN_PROCESSING_NEEDED */
@@ -11098,6 +11105,7 @@ in il_init.)
       pch_saved_var_array_elem(num_get_based_type_calls),
       pch_saved_var_array_elem(num_shareable_constants),
       pch_saved_var_array_elem(num_used_shareable_constant_buckets),
+      pch_saved_var_array_elem(num_based_type_fixups_allocated),
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
