@@ -714,7 +714,7 @@ then
           if [ $driver_debug -ne 0 ] ; then
             echo $command
           fi
-          $command >$tmpfile.c
+          eval $command >$tmpfile.c
           command="$cc_command $c_to_obj_options -c $tmpfile.c"
           if [ $driver_debug -ne 0 ] ; then
             echo $command
