@@ -2449,9 +2449,7 @@ or enum.
           gen_microsoft_class_decl_modifiers(type);
         } else {
            /* For enums we may have to issue a uuid string. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
            gen_microsoft_uuid_declspec(type->variant.integer.uuid_string);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
@@ -3062,15 +3060,16 @@ is the one associated with the definition of the enum.
   set_output_position(&type->source_corresp.decl_position);
   /* Generate "enum <name>". */
   write_tok_str("enum");
-  /* Put out the name if the enum is named.  In C mode, invent a name for
-     an unnamed enum because it may be needed for casts to enum types defined
-     in prototype scopes. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (type->variant.integer.uuid_string != NULL) {
+    /* enum types may carry uuid specifications. */
     write_space();
     gen_microsoft_uuid_declspec(type->variant.integer.uuid_string);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Put out the name if the enum is named.  In C mode, invent a name for
+     an unnamed enum because it may be needed for casts to enum types defined
+     in prototype scopes. */
   if (has_name(type) || il_header.source_language == sl_C) {
     write_space();
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
