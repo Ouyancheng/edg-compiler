@@ -1,5 +1,11 @@
 Version 2.23
 
+5/19/94  C-generating back end output of minimum integers
+
+The smallest integers on two's complement machines are now output
+by the C-generating back end in the form (-XXX-1) to make them
+standard-conforming and to get the proper type of constant.
+
 5/19/94  Elimination of zeroing of fully-initialized aggregates
 
 Thanks to a new IL flag in the a_variable entry (is_partially_initialized),

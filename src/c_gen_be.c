@@ -1134,6 +1134,82 @@ a constant that appears on the constant list of an enum type.
 
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
 
+static void dump_integer_constant(a_constant_ptr constant)
+/*
+Write out an integer constant (i.e., a constant with a ck_integer
+representation).  The constant is written as an integer even if it has
+been implicitly cast to some other type.  The caller must handle the
+implicit cast if appropriate.
+*/
+{
+  a_boolean      negative = FALSE, err, minus_1_trick = FALSE;
+  a_constant_ptr eff_constant = constant;
+  a_constant     local_constant;
+  a_type_ptr     con_type = skip_typerefs(constant->type);
+
+  if (sign_of_integer_constant(constant) < 0) {
+    /* Negative value.  Put in parentheses. */
+    negative = TRUE;
+    write_tok_ch('(');
+    /* Check for cases on two's complement machines where the constant
+       cannot be represented as a positive constant preceded by a minus
+       sign.  For those cases, use the -INT_MAX-1 trick.  One reason
+       we do this is so that the type of the constant is right. */
+    local_constant = *constant;
+    negate_integer_value(&local_constant.variant.integer_value, &err);
+    check_assertion(con_type->kind == (a_type_kind)tk_integer);
+    if (!err &&
+        le_max_integer_value_of_kind(&local_constant.variant.integer_value,
+                                     /*is_signed=*/TRUE,
+                                     con_type->variant.integer.int_kind)) {
+      /* The negative of the constant is a legal constant. */
+    } else {
+      /* The negative of the constant is not legal.  Use the -INT_MAX-1
+         trick. */
+      minus_1_trick = TRUE;
+      local_constant = *constant;
+      eff_constant = &local_constant;
+      incr_integer_value(&local_constant.variant.integer_value);
+    }  /* if */
+  }  /* if */
+  /* Write the literal form of the constant. */
+  m_write_str(str_for_integer_constant(eff_constant));
+  if (con_type->kind == (a_type_kind)tk_integer) {
+    /* Add suffixes if appropriate. */
+    an_integer_kind ikind = con_type->variant.integer.int_kind;
+    /* Put out a suffix if needed. */
+#if C_GEN_BE_GENERATES_ANSI_C
+    /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
+       a prefix cast is used (the caller must handle that if it's
+       needed). */
+    if (!int_kind_is_signed[(int)ikind]) {
+      /* Unsigned constant. */
+      m_write_ch('U');
+    }  /* if */
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+    if (ikind == (an_integer_kind)ik_long           ||
+        ikind == (an_integer_kind)ik_unsigned_long) {
+      m_write_ch('L');
+#if LONG_LONG_ALLOWED
+   } else if (ikind == (an_integer_kind)ik_long_long ||
+              ikind == (an_integer_kind)ik_unsigned_long_long) {
+      write_str("LL");
+#endif /* LONG_LONG_ALLOWED */
+    }  /* if */
+  } else {
+    /* An integer value cast to a non-integral type, e.g., (char *)0. */
+#if C_GEN_BE_GENERATES_ANSI_C
+    /* Treat as an unsigned constant. */
+    m_write_ch('U');
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+  }  /* if */
+  if (negative) {
+    if (minus_1_trick) write_tok_str("-1");
+    write_tok_ch(')');
+  }  /* if */
+}  /* dump_integer_constant */
+
+
 static void dump_constant(a_constant_ptr constant)
 /*
 Output the indicated constant.
@@ -1142,7 +1218,7 @@ Output the indicated constant.
   a_constant_repr_kind kind = constant->kind;
   a_float_kind         fkind;
   a_type_ptr           con_type = NULL, orig_type;
-  a_boolean            need_cast_close_paren = FALSE, need_close_paren;
+  a_boolean            need_cast_close_paren = FALSE;
   a_boolean            need_second_ptr_cast, need_scaling_cast;
   a_boolean            need_ptr_cast, need_ampersand;
   a_type_ptr           underlying_object_type;
@@ -1189,44 +1265,8 @@ Output the indicated constant.
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
       {
         /* A normal integer constant. */
-        need_close_paren = FALSE;
-        if (sign_of_integer_constant(constant) < 0) {
-          /* Negative value.  Put in parentheses. */
-          need_close_paren = TRUE;
-          write_tok_ch('(');
-        }  /* if */
-        /* Write the literal form of the constant. */
-        m_write_str(str_for_integer_constant(constant));
-        if (con_type->kind == (a_type_kind)tk_integer) {
-          /* Add suffixes if appropriate. */
-          an_integer_kind ikind = con_type->variant.integer.int_kind;
-          /* Put out a suffix if needed. */
-#if C_GEN_BE_GENERATES_ANSI_C
-          /* Unsigned suffix is only valid in ANSI C.  When generating K&R C,
-             a prefix cast is used (see above). */
-          if (!int_kind_is_signed[(int)ikind]) {
-            /* Unsigned constant. */
-            m_write_ch('U');
-          }  /* if */
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-          if (ikind == (an_integer_kind)ik_long           ||
-              ikind == (an_integer_kind)ik_unsigned_long) {
-            m_write_ch('L');
-#if LONG_LONG_ALLOWED
-         } else if (ikind == (an_integer_kind)ik_long_long ||
-                    ikind == (an_integer_kind)ik_unsigned_long_long) {
-            write_str("LL");
-#endif /* LONG_LONG_ALLOWED */
-          }  /* if */
-        } else {
-          /* An integer value cast to a non-integral type, e.g., (char *)0. */
-#if C_GEN_BE_GENERATES_ANSI_C
-          /* Treat as an unsigned constant. */
-          m_write_ch('U');
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
-        }  /* if */
-        if (need_close_paren) write_tok_ch(')');
-      }  /* if */
+        dump_integer_constant(constant);
+      }
       break;
     case ck_string:
       if (is_wide_string_constant(constant) &&
