@@ -5048,9 +5048,9 @@ source position of the type.
     if (cfront_2_1_mode) {
       /* In cfront 2.1 mode, treat a cast to an array type as a cast to
          a pointer to. */
-      type_warning(ec_nonstd_array_cast, type_cast_to);
       *p_type_cast_to = type_cast_to =
                       type_after_array_to_pointer_transformation(type_cast_to);
+      type_warning(ec_nonstd_array_cast, type_cast_to);
     } else {
       /* Normal case.  Casting to an array type is an error. */
       type_error(ec_cast_to_bad_type, type_cast_to);
