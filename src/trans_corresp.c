@@ -3772,7 +3772,7 @@ supplement for an instantiation that matches inst.
         break;
       }  /* if */
     }  /* if */
-  }  /* for */
+  }  /* while */
   /* Remove the guard and restore the list to its original state
      (possibly with some added new entries): */
   guard_ptr = &tssp->all_instantiations;
@@ -3831,7 +3831,6 @@ symbol supplement.
                     sym_entry = NULL;
     corresp_tssp = ((a_symbol_ptr)corresp_templ->source_corresp.assoc_info)
                          ->variant.template_info;
-    /* Mark the type as visited to avoid infinite recursion. */
     sym_entry = find_class_template_instantiation(corresp_tssp, inst);
     if (sym_entry == NULL) {
       /* The instantiation was not found on the canonical list.  Add it now. */
@@ -4584,9 +4583,10 @@ way, determine to which other IL entry this might correspond.
 */
 {
   /* If we're in the process of establishing correspondences, this particular
-     entry may need to be processed now.  Otherwise, it should already have
-     been done or no correspondence can be expected. */
-  if (correspondence_checking_underway &&
+     entry may need to be processed now.  Sometimes, such processing is also
+     needed for members of instantiated classes.  Otherwise, it should already
+     have been done or no correspondence can be expected. */
+  if ((correspondence_checking_underway || scp->is_class_member) &&
       trans_unit_corresp_of_unknown_entry(scp) == NULL) {
     a_type_ptr  root = NULL;
     /* Class members usually have their correspondence set when their parent
@@ -4680,6 +4680,9 @@ way, determine to which other IL entry this might correspond.
           /* A member class template instantiation. */
           record_class_template_instantiation(
                                 (a_symbol_ptr)type->source_corresp.assoc_info);
+        } else {
+          /* A regular member class of a class template instantiation. */
+          find_type_correspondence(type, /*parent_found=*/TRUE);
         }  /* if */
       } else if (kind == (an_il_entry_kind)iek_routine) {
         if (((a_routine_ptr)scp)->is_template_function) {
