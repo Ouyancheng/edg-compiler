@@ -6995,11 +6995,14 @@ continue_with_declaration:
            initialization was performed (or if it was attempted but an error
            was reported). */
         if (!def_initializer(symbol_ptr, &locator.source_position)) {
-          /* No default initialization, so do some additional checking. */
-          if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
+          /* No default initialization, so do some additional checking (unless
+             this is the redeclaration of an already initialized variable). */
+          if (symbol_ptr->kind == (a_symbol_kind)sk_variable &&
+              symbol_ptr->variant.variable->init_kind ==
+                                              (an_init_kind)initk_none) {
+            a_variable_ptr  vp = symbol_ptr->variant.variable;
             if (is_reference_type(local_type_ptr) &&
-                symbol_ptr->variant.variable->storage_class !=
-                                              (a_storage_class)sc_extern) {
+                vp->storage_class != (a_storage_class)sc_extern) {
               /* Non-extern reference variables must be initialized
                  (ARM 8.4.3). */
               error(ec_missing_initializer_on_reference);
@@ -7011,8 +7014,7 @@ continue_with_declaration:
                  but the warning for static file scope variables is given
                  later. */
               a_name_linkage_kind  name_linkage =
-                                           (a_name_linkage_kind)symbol_ptr->
-                                                 variant.variable->
+                                           (a_name_linkage_kind)vp->
                                                  source_corresp.name_linkage;
               if (C_dialect == C_dialect_cplusplus) {
                 if (name_linkage == (a_name_linkage_kind)nlk_none ||
@@ -7028,8 +7030,7 @@ continue_with_declaration:
                   warning(ec_missing_initializer_on_const);
                 }  /* if */
               }  /* if */
-            } else if (symbol_ptr->variant.variable->storage_class !=
-                                              (a_storage_class)sc_extern) {
+            } else if (vp->storage_class != (a_storage_class)sc_extern) {
               /* Check for an uninitialed variable that has members that
                  ought to be initialized.  Issue a warning in such cases. */
               a_type_ptr  tp = local_type_ptr;
