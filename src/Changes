@@ -1,5 +1,17 @@
 Version 2.21
 
+11/16/93 Abort while processing invalid instantiation pragma
+
+An bug has been fixed that can cause an abort when scanning an
+instantiation pragma containing a declaration that names a
+function but is not a function declarator.
+
+  template <class T> struct A {
+    void f();
+  };
+
+  #pragma instantiate void A<int>::f
+
 11/16/93 Name mangling of large nontype template arguments
 
 The mangled name for numeric quanties in nontype template arguments
