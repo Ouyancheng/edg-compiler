@@ -5336,6 +5336,7 @@ otherwise it is NULL.  The syntax is:
   a_boolean       is_name_start;
   a_boolean       is_constructor = FALSE, is_destructor = FALSE;
   a_boolean       is_nonstatic_member_function = FALSE;
+  a_boolean       is_ptr_to_member_typedef = FALSE;
   a_boolean       nonconstant_dimension_allowed;
   a_boolean       parenthesized_initializer_allowed;
   a_boolean       is_friend_decl = FALSE;
@@ -5477,7 +5478,7 @@ otherwise it is NULL.  The syntax is:
             /* Force function_declarator to add an implicit-this-param pointer
                to the routine type. */
             member_parent_type = locator_for_curr_id.qualifier_class_type;
-            is_nonstatic_member_function = TRUE;
+            is_ptr_to_member_typedef = TRUE;
             /* Toss out the qualifier. */
             locator_for_curr_id.qualifier_class_type = NULL;
             locator_for_curr_id.is_qualified_name = FALSE;
@@ -5792,6 +5793,10 @@ function_lparen:
             member_parent_type = NULL;
           }  /* if */
           func_info = NULL;
+          is_constructor = is_destructor = FALSE;
+        } else if (is_ptr_to_member_typedef) {
+          check_assertion(func_info == NULL);
+          is_nonstatic_member_function = TRUE;
           is_constructor = is_destructor = FALSE;
         } else if (func_info == NULL) {
           is_constructor = is_destructor = FALSE;
