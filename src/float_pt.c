@@ -182,6 +182,12 @@ look like an integer).  It may have a leading "-" sign.
   init_strtod();
 #endif /* ifdef SUNOS_STRTOD_BUG */
   temp = atof(str);
+  if (errno == ERANGE && temp != 0.0) {
+    /* Do not give an error on cases that involve partial loss of significance,
+       e.g., extremely small values like 4.9e-324. */
+    /* Do not clear the error for large values that overflow. */
+    if ((temp >= 0.0) ? temp < 1.0 : temp > -1.0) errno = 0;
+  }  /* if */
   *err = (errno != 0);
   store_double(temp, kind, float_value, err);
 }  /* fp_string_to_float */
