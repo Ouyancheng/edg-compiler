@@ -237,10 +237,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_register:
       case tok_static:
       case tok_extern:
-#if 0
-      /* Mutable keyword is not yet implemented. */
       case tok_mutable:
-#endif /* 0 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* The Microsoft __inline keyword is treated as a storage class. */
       case tok_microsoft_inline:
