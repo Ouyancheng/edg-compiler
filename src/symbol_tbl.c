@@ -4956,9 +4956,11 @@ been chosen yet); for class reactivation scopes, scope_number_to_reuse is
 the class scope number; for the other cases, a new scope number is generated.
 assoc_type points to an associated type for the cases where that's
 meaningful (function prototype, class, class reactivation, and template
-instantiation scopes); it must be NULL in other cases.
-assoc_routine points to a routine for the function scope case; it
-must be NULL in other cases.
+instantiation (for class templates only) scopes); it must be NULL in other
+cases.  assoc_routine points to a routine for the function scope case; it
+must be NULL in other cases.  assoc_instantiation is used for instantiations
+of function templates and member functions of class templates and points to
+the function instantiation entry associated with the function.
 */
 {
   a_scope_stack_entry_ptr ssep;
