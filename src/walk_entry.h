@@ -310,19 +310,10 @@ Process the source correspondence field pointed to by ptr.
 */
 /* Macro to remap class or namespace parent only if it exists. */
 #undef remap_parent
-#undef walk_or_remap_parent
 #ifdef CFE
-/* Remap a parent class pointer, except when prototype instantiations
-   are in the IL, where a walk_ptr is required to handle members of
-   nonreal classes. */
-#if PROTOTYPE_INSTANTIATIONS_IN_IL
-#define walk_or_remap_parent(ptr) walk_ptr((ptr), a_type_ptr, iek_type);
-#else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */
-#define walk_or_remap_parent(ptr) remap_ptr((ptr), a_type_ptr, iek_type);
-#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 #define remap_parent(ptr) \
 { if ((ptr).is_class_member) {  \
-    walk_or_remap_parent((ptr).parent.class_type); \
+    remap_ptr((ptr).parent.class_type, a_type_ptr, iek_type);  \
     set_proper_definition_needed_flag((ptr).parent.class_type); \
   } else {  \
     remap_ptr((ptr).parent.namespace_ptr, a_namespace_ptr, iek_namespace); \
@@ -2611,7 +2602,6 @@ end_of_routine:;
 }  /* walk_entry_and_subtree */
 
 #undef remap_parent
-#undef walk_or_remap_parent
 #undef walk_source_corresp
 
 #ifdef WALK_ORPHANED_ENTRY_ROUTINE_NAME
@@ -2819,7 +2809,6 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef set_proper_definition_needed_flag
 #undef set_proper_routine_definition_needed_flag
 #undef remap_parent
-#undef walk_or_remap_parent
 #undef remap_source_sequence_entry
 #undef walk_source_corresp
 #undef walk_unmangled_name
