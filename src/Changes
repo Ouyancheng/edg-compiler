@@ -1,5 +1,19 @@
 Version 2.14
 
+1/29/93 Fixed bug in checking for qualified name with template reference
+
+A bug has been fixed that could cause a name that is both a class name
+and a nonclass name to incorrectly use the class name version when the
+name is followed by a "<".
+
+	struct t;
+	extern long t;
+	void f()
+	{
+		t < 0;
+	}
+
+
 1/29/93 Fixed bug in disambiguation algorithm
 
 A bug has been fixed in the code that determines whether to interpret
