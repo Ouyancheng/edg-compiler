@@ -1185,7 +1185,7 @@ enum a_constant_repr_kind_tag {
                            final IL. */
 #endif /* ifdef FIL */
   ck_designator,        /* Used to change the "current object" in an
-                           aggregate initializer (C extension). */
+                           aggregate initializer (C99). */
   ck_last		/*lint -esym(769,a_constant_repr_kind_tag::ck_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
