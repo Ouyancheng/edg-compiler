@@ -36,6 +36,11 @@ declared.
     ~D() { foo(); }          // Warning now issued
   };
 
+Also, as part of this change more virtual function calls are
+optimized to call a specific function when the complete object
+type is known.  Specifically, calls of virtual functions using
+a derived-class object are now optimized in many cases.
+
 7/24/04  Cast to reference type can use conversion to non-reference
 
 A cast of a class object to a reference to const type can use a conversion
