@@ -422,11 +422,6 @@ EXTERN a_symbol_header_ptr
 /*
 Symbol information related to the current token:
 */
-EXTERN a_symbol_ptr
-		symbol_list_for_curr_id;
-			/* If curr_token == tok_identifier, this points to
-			   the list of symbols with the same name, or is NULL
-			   if there are no symbols with the name. */
 EXTERN a_symbol_locator
 		locator_for_curr_id;
 			/* If curr_token == tok_identifier, this is information

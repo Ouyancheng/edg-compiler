@@ -1,0 +1,2707 @@
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+*                                                                             *
+******************************************************************************/
+/*
+
+macro.c -- Macro definition and expansion routines.
+
+*/
+
+
+#include "basics.h"
+#include "lexical.h"
+#include "preproc.h"
+#include "error.h"
+#include "il.h"
+#include "symbol_tbl.h"
+#include "macro.h"
+#include "cmd_line.h"
+#include "mem_manage.h"
+#include "types.h"
+#include "decls.h"
+#include "expr.h"
+
+/*
+Buffer used to contain the characters of a macro being defined, and the
+characters of macro expansions.
+*/
+static char	*macro_buffer;
+			/* Contains characters of macro expansions and of
+			   macro definitions.  Dynamically allocated,
+			   expanded as needed. */
+#define MACRO_BUFFER_INITIAL_ALLOCATION 4000
+#define MACRO_BUFFER_INCREMENTAL_ALLOCATION 5000
+			/* Initial and incremental allocation sizes for
+			   macro_buffer.  The initial allocation should be
+			   such that almost all cases can be accepted (so that
+			   the realloc is hardly ever needed). */
+static char	*after_end_of_macro_buffer /* = NULL */;
+			/* The address just past the last element of
+			   macro_buffer. */
+static char	*next_avail_in_macro_buffer;
+			/* Next character position in macro_buffer available
+			   for allocation.  Reset at the start of a macro
+			   definition or a top-level macro expansion.  Not
+			   set outside of macro processing. */
+static char	*aux_buffer_for_pcc_macros;
+			/* Auxiliary buffer allocated in pcc mode only and
+			   used to construct the full text of a first-level
+			   macro expansion so that the token pasting can
+			   match pcc's. */
+#define AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION 1000
+#define AUX_BUFFER_FOR_PCC_MACROS_INCREMENTAL_ALLOCATION 2000
+			/* Initial and incremental allocation sizes for
+			   aux_buffer_for_pcc_macros.  The initial allocation
+			   should be such that almost all cases can be
+			   accepted (so that the realloc is hardly ever
+			   needed). */
+static char	*after_end_of_aux_buffer_for_pcc_macros /* = NULL */;
+			/* Pointer to just after the end of
+			   aux_buffer_for_pcc_macros. */
+
+/*
+Data structure used to build a list of local variables that point into
+the curr_source_line data structure.  Such variables need to be updated if
+one of the primary dynamically-allocated buffers is reallocated.
+*/
+typedef struct a_pointer_registration *a_pointer_registration_ptr;
+typedef struct a_pointer_registration {
+  /* A linked list of these entries identifies the local pointer variables
+     to be updated.   These entries are themselves stack variables. */
+  a_pointer_registration_ptr
+		next;
+			/* Next entry on the list, or NULL if this is the
+			   last entry. */
+  char		**ptr_variable;
+			/* Pointer to the pointer variable (which has type
+			   char *). */
+} a_pointer_registration;
+static a_pointer_registration_ptr
+		registered_pointers;
+			/* List of registered pointers. */
+/*
+Macro to add a local pointer variable to the list of registered pointers.
+ptr_var is the pointer variable, and ptr_registration is a_pointer_registration
+dedicated to the variable.  The pointer variable is set to NULL to ensure
+that it has a value that can be examined henceforth (therefore, it
+shouldn't be initialized in its declaration).
+*/
+#define register_pointer_variable(ptr_var, ptr_registration)          \
+{ ptr_registration.next = registered_pointers;                        \
+  ptr_registration.ptr_variable = &(ptr_var);                         \
+  registered_pointers = &ptr_registration;                            \
+  (ptr_var) = NULL;                                                   \
+}  /* register_pointer_variable */
+
+
+/*
+Declaration for the data structure used to hold values of
+arguments to macro calls.
+*/
+typedef struct a_macro_arg *a_macro_arg_ptr;
+
+typedef struct a_macro_arg {
+  a_macro_arg_ptr
+		next;
+			/* Pointer used when this macro arg is freed
+			   and placed on an avail list. */
+  sizeof_t	raw_len;
+			/* Length of the raw version of the argument, in
+			   raw_text, not counting the final null. */
+  a_source_line_modif_ptr
+		modif_list;
+			/* List of modifications to the raw_text to produce
+			   the macro-expanded version of that text.  NULL
+			   if the expanded text is the same as the raw text. */
+  a_boolean	modif_text_used;
+			/* Set to TRUE after the first use of the inserted
+			   text of the modifications on modif_list.  For uses
+			   after that, the text must be copied. */
+  char		*raw_text;
+			/* The raw version of the argument text.  Dynamically
+			   allocated, expanded as needed. */
+#define ARG_RAW_TEXT_INITIAL_ALLOCATION 200
+#define ARG_RAW_TEXT_INCREMENTAL_ALLOCATION 400
+			/* Initial and incremental allocation sizes for
+			   raw_text.  The initial allocation should be
+			   such that almost all cases can be accepted (so that
+			   the realloc is hardly ever needed). */
+  sizeof_t	max_len;
+			/* Allocated size of the raw_text array. */
+} a_macro_arg;
+
+static a_macro_arg_ptr
+		avail_macro_args = NULL;
+			/* List of freed macro arguments available for
+			   reuse. */
+static a_macro_arg_ptr
+		macro_arg_list,
+		end_of_macro_arg_list;
+			/* All the a_macro_arg entries currently being used. */
+
+#if DEBUG
+static unsigned long
+		num_macro_params_allocated,
+		num_macro_defs_allocated,
+		num_macro_args_allocated = 0,  /* Not per-file. */
+		macro_arg_raw_text_space = 0,  /* Not per-file. */
+		param_name_string_space,
+		macro_definition_space;
+			/* Used to track space use. */
+#endif /* DEBUG */
+
+static char	*end_of_cpp_string;
+			/* When preprocessing in cpp-compatibility mode,
+			   the insides of character constants and string
+			   literals in macro definitions are examined for
+			   parameter names.  This is implemented here by
+			   actually tokenizing the insides of strings.
+			   When this flag is non-NULL, we are inside a
+			   string, and it points to the closing quote
+			   character. */
+static char	*start_of_white_space_in_cpp_string;
+			/* When end_of_cpp_string is non-NULL, this
+			   is set by mdefn_get_token to the start of any
+			   white space skipped before the current token,
+			   or to NULL on the pseudo-token for the opening
+			   quote of the string. */
+
+
+void adjust_curr_source_line_structure_after_realloc(char *old_ptr,
+                                                     char *old_after_end_ptr,
+                                                     char *new_ptr)
+/*
+Walk the data structure associated with curr_source_line, and change any
+pointers that point in the range old_ptr..old_after_end_ptr (the latter
+pointer pointing to just after the last byte) to point instead to the
+area following new_ptr.  This is necessary because the area that was
+at old_ptr has been realloc'd (to change its size), and new_ptr is the
+new address for the area.
+*/
+{
+  an_orig_line_modif_ptr     olmp;
+  a_source_line_modif_ptr    slmp;
+  a_macro_arg_ptr            map;
+  a_pointer_registration_ptr prp;
+  char                       *old_after_end_plus_1 = old_after_end_ptr + 1;
+
+/* Macro to adjust a single pointer if it needs it.  Include the address
+   just past the end of the area moved, since a pointer to there should be
+   adjusted.  Recall that an extra byte is allocated at the end of each
+   area so that that address will not be the same as the start address of
+   the area following it in memory. */
+#define fix_ptr(ptr)                                                  \
+{ /* Suppress the warning on use of the expired pointer value in Saber-C. \
+     Version 3.0 warning number. */                                   \
+  /*SUPPRESS 29*/                                                     \
+  if (ptr_in_range(ptr, old_ptr, old_after_end_plus_1)) {             \
+    ptr = ptr - old_ptr + new_ptr;                                    \
+  }  /* if */                                                         \
+}  /* fix_ptr */
+
+/*
+Walk a list of source line modifications and fix up each one.
+*/
+#define fix_source_line_modif_list(list)                              \
+{ for (slmp = list; slmp != NULL; slmp = slmp->next) {                \
+    fix_ptr(slmp->line_loc);                                          \
+    fix_ptr(slmp->inserted_text);                                     \
+    fix_ptr(slmp->end_inserted_text);                                 \
+    /* assoc_copy_modif is on the same list and need not be adjusted. */ \
+  }  /* for */                                                        \
+}  /* fix_source_line_modif_list */
+
+  db_enter(4, "adjust_curr_source_line_structure_after_realloc");
+  /* If the area didn't move, it's not necessary to walk the structure. */
+  /* Suppress the warning on use of the expired pointer value in Saber-C.
+     Version 3.0 warning number. */
+  /*SUPPRESS 29*/
+  if (old_ptr != new_ptr) {
+    /* Walk the original line modif list (which represents trigraphs and
+       line splices).  This is only necessary if it's curr_source_line
+       that has been relocated, but it doesn't cost much to do it in all
+       cases. */
+    for (olmp = orig_line_modif_list; olmp != NULL; olmp = olmp->next) {
+      fix_ptr(olmp->line_loc);
+    }  /* for */
+    /* Walk the source line modif list (which represents macro expansions
+       and comment deletions). */
+    fix_source_line_modif_list(source_line_modif_list);
+    /* Walk the macro args list (which represents the values of the arguments
+       of macro invocations being processed).  This is necessary because the
+       macro args can have lists of source line modifications which reference
+       macro_buffer. */
+    for (map = macro_arg_list; map != NULL; map = map->next) {
+      fix_source_line_modif_list(map->modif_list);
+    }  /* for */
+    /* Adjust global variables that point into the curr_source_line
+       structure. */
+    fix_ptr(curr_char_loc);
+    fix_ptr(delete_source_from_loc);
+    fix_ptr(start_of_curr_token);
+    fix_ptr(end_of_curr_token);
+    /* Adjust local variables that point into the curr_source_line structure.
+       Such variables are registered by calling register_pointer_variable. */
+    for (prp = registered_pointers; prp != NULL; prp = prp->next) {
+      char **ptr_ptr = prp->ptr_variable;
+      fix_ptr(*ptr_ptr);
+    }  /* for */
+  }  /* if */
+  db_exit();
+}  /* adjust_curr_source_line_structure_after_realloc */
+
+
+static void expand_macro_buffer(sizeof_t needed)
+/*
+Expand the macro_buffer by reallocating it.  Called by
+ensure_macro_buffer_space.
+*/
+{
+  sizeof_t old_size, new_size, increment;
+  char     *new_macro_buffer;
+
+  db_enter(4, "expand_macro_buffer");
+  /* Make sure we ask for enough to satisfy the current request and a
+     little bit more. */
+  increment = needed + needed/10 -
+              (after_end_of_macro_buffer - next_avail_in_macro_buffer);
+  if (increment < MACRO_BUFFER_INCREMENTAL_ALLOCATION) {
+    increment = MACRO_BUFFER_INCREMENTAL_ALLOCATION;
+  }  /* if */
+  old_size = after_end_of_macro_buffer - macro_buffer;
+  new_size = old_size + increment;
+  /* Allocate one more byte than required, so that a pointer past the end
+     will not have the same address as a pointer to the next object in
+     memory. */
+  new_macro_buffer = realloc_general(macro_buffer, (sizeof_t)(old_size+1),
+                                                   (sizeof_t)(new_size+1));
+  /* Update any pointers to the old macro_buffer in the curr_source_line
+     data structure. */
+  adjust_curr_source_line_structure_after_realloc(macro_buffer,
+                                                  after_end_of_macro_buffer,
+                                                  new_macro_buffer);
+  next_avail_in_macro_buffer = next_avail_in_macro_buffer - macro_buffer +
+                               new_macro_buffer;
+  macro_buffer = new_macro_buffer;
+  after_end_of_macro_buffer = macro_buffer + new_size;
+  db_exit();
+}  /* expand_macro_buffer */
+
+
+/*
+Ensure that at least "needed" bytes of space remain in macro_buffer.
+If not, expand macro_buffer by reallocating it.
+*/
+#define ensure_macro_buffer_space(needed)                             \
+{ sizeof_t temp_needed = needed;                                      \
+  if (temp_needed > (after_end_of_macro_buffer -                      \
+                     next_avail_in_macro_buffer)) {                   \
+    expand_macro_buffer(temp_needed);                                 \
+  }  /* if */                                                         \
+}  /* ensure_macro_buffer_space */
+
+
+static void expand_aux_buffer_for_pcc_macros(sizeof_t needed,
+                                             char     *pos_in_aux_buffer)
+/*
+Expand aux_buffer_for_pcc_macros by reallocating it.  Called by
+ensure_aux_buffer_for_pcc_macros_space.  pos_in_aux_buffer points to
+the pointer to the next available position in that buffer.
+*/
+{
+  sizeof_t old_size, new_size, increment;
+  char     *new_aux_buffer_for_pcc_macros;
+
+  db_enter(4, "expand_aux_buffer_for_pcc_macros");
+  /* Not enough space; need to expand.  Make sure we ask for enough
+     to satisfy the current request and a little bit more. */
+  increment = needed + needed/10 -
+              (after_end_of_aux_buffer_for_pcc_macros - pos_in_aux_buffer);
+  if (increment < AUX_BUFFER_FOR_PCC_MACROS_INCREMENTAL_ALLOCATION) {
+    increment = AUX_BUFFER_FOR_PCC_MACROS_INCREMENTAL_ALLOCATION;
+  }  /* if */
+  old_size = after_end_of_aux_buffer_for_pcc_macros -
+             aux_buffer_for_pcc_macros;
+  new_size = old_size + increment;
+  /* Allocate one more byte than required, so that a pointer past the end
+     will not have the same address as a pointer to the next object in
+     memory. */
+  new_aux_buffer_for_pcc_macros = realloc_general(aux_buffer_for_pcc_macros,
+                                                  (sizeof_t)(old_size+1),
+                                                  (sizeof_t)(new_size+1));
+  /* Update any pointers to the old aux_buffer_for_pcc_macros in the
+     curr_source_line data structure.  This is only needed for any registered
+     local pointers that might point into the aux. buffer. */
+  adjust_curr_source_line_structure_after_realloc(aux_buffer_for_pcc_macros,
+                                        after_end_of_aux_buffer_for_pcc_macros,
+                                        new_aux_buffer_for_pcc_macros);
+  /* Note that pos_in_aux_buffer is now unusable, since it has not been
+     updated here.  However, the caller has the variable it passed registered
+     as a local pointer, and that will have been updated. */
+  aux_buffer_for_pcc_macros = new_aux_buffer_for_pcc_macros;
+  after_end_of_aux_buffer_for_pcc_macros = aux_buffer_for_pcc_macros +
+                                           new_size;
+  db_exit();
+}  /* expand_aux_buffer_for_pcc_macros */
+
+
+/*
+Ensure that at least "needed" bytes of space remain following
+pos_in_aux_buffer in aux_buffer_for_pcc_macros.  If not, expand
+aux_buffer_for_pcc_macros by reallocating it.
+*/
+#define ensure_aux_buffer_for_pcc_macros_space(needed, pos_in_aux_buffer) \
+{ sizeof_t temp_needed = needed;                                      \
+  if (temp_needed > (after_end_of_aux_buffer_for_pcc_macros -         \
+                     pos_in_aux_buffer)) {                            \
+    expand_aux_buffer_for_pcc_macros(temp_needed, pos_in_aux_buffer); \
+  }  /* if */                                                         \
+}  /* ensure_aux_buffer_for_pcc_macros_space */
+
+
+static void expand_arg_raw_text(sizeof_t        needed,
+                                a_macro_arg_ptr map)
+/*
+Expand the raw_text of a macro arg by reallocating it.  Called by
+ensure_arg_raw_text_space.
+*/
+{
+  a_macro_arg_ptr avail_map;
+  sizeof_t        total_needed, old_size, new_size, increment;
+  char            *new_raw_text;
+
+  db_enter(4, "expand_arg_raw_text");
+  old_size = map->max_len;
+  total_needed = map->raw_len + needed;
+  /* Take a look to see if a freed entry has a large enough raw_text area,
+     in which case the two raw_text allocations can be swapped. */
+  for (avail_map = avail_macro_args;
+       avail_map != NULL;
+       avail_map = avail_map->next) {
+    if (avail_map->max_len >= total_needed) {
+      /* This raw_text entry is big enough.  Note this is "first fit", not
+         "best fit".  It shouldn't matter.  Swap the raw_text areas, and
+         copy the data. */
+      new_raw_text = avail_map->raw_text;
+      new_size = avail_map->max_len;
+      avail_map->raw_text = map->raw_text;
+      avail_map->max_len = map->max_len;
+      memcpy(new_raw_text, map->raw_text, (int)map->raw_len);
+      goto have_space;
+    }  /* if */
+  }  /* for */
+  /* Need to expand.  Make sure we ask for enough to satisfy the current
+     request and a little bit more. */
+  increment = needed + needed/10 - (old_size - map->raw_len);
+  if (increment < ARG_RAW_TEXT_INCREMENTAL_ALLOCATION) {
+    increment = ARG_RAW_TEXT_INCREMENTAL_ALLOCATION;
+  }  /* if */
+  new_size = old_size + increment;
+#if DEBUG
+  macro_arg_raw_text_space += increment;
+#endif /* DEBUG */
+  /* Allocate one more byte than required, so that a pointer past the end
+     will not have the same address as a pointer to the next object in
+     memory. */
+  new_raw_text = realloc_general(map->raw_text, (sizeof_t)(old_size+1),
+                                                (sizeof_t)(new_size+1));
+have_space:
+  /* Update any pointers to the old raw_text in the curr_source_line
+     data structure. */
+  adjust_curr_source_line_structure_after_realloc(map->raw_text,
+                                                  map->raw_text+old_size,
+                                                  new_raw_text);
+  map->raw_text = new_raw_text;
+  map->max_len = new_size;
+  db_exit();
+}  /* expand_arg_raw_text */
+
+
+/*
+Ensure that at least "needed" bytes of space remain in the raw_text of
+the given macro argument entry.  If not, expand raw_text by reallocating it.
+*/
+#define ensure_arg_raw_text_space(needed, map)                        \
+{ sizeof_t temp_needed = needed;                                      \
+  if (temp_needed > (map->max_len - map->raw_len)) {                  \
+    expand_arg_raw_text(temp_needed, map);                            \
+  }  /* if */                                                         \
+}  /* ensure_arg_raw_text_space */
+
+
+static a_macro_param_ptr alloc_macro_param(void)
+/*
+Allocate a macro parameter entry (used for the formal parameters of
+preprocessor macros), clear it to default values, and return a pointer
+to it.
+*/
+{
+  a_macro_param_ptr mpp;
+
+  mpp = (a_macro_param_ptr)alloc_fe(sizeof(a_macro_param));
+#if DEBUG
+  num_macro_params_allocated++;
+#endif /* DEBUG */
+  mpp->name = NULL;
+  mpp->next = NULL;
+  return (mpp);
+}  /* alloc_macro_param */
+
+
+a_macro_def_ptr alloc_macro_def(void)
+/*
+Allocate a macro definition entry (used for preprocessor macros), clear it
+to default values, and return a pointer to it.
+*/
+{
+  a_macro_def_ptr mdp;
+
+  mdp = (a_macro_def_ptr)alloc_fe(sizeof(a_macro_def));
+#if DEBUG
+  num_macro_defs_allocated++;
+#endif /* DEBUG */
+  mdp->object_like                         = TRUE;
+  mdp->try_to_scan_and_save_constant_value = FALSE;
+  mdp->is_manifest_constant                = FALSE;
+  mdp->param_list                          = NULL;
+  mdp->repl_text                           = NULL;
+  mdp->constant_token_kind                 = tok_error;
+  mdp->constant_value                      = NULL;
+  return (mdp);
+}  /* alloc_macro_def */
+
+
+static a_macro_arg_ptr alloc_macro_arg(void)
+/*
+Allocate a macro argument description, set its fields to default values,
+and return a pointer to it.
+*/
+{
+  a_macro_arg_ptr map;
+
+  db_enter(5, "alloc_macro_arg");
+  if (avail_macro_args != NULL) {
+    /* Reuse a freed entry. */
+    map = avail_macro_args;
+    avail_macro_args = avail_macro_args->next;
+  } else {
+    /* Allocate a new entry.  Note the use of alloc_general rather than
+       alloc_fe, so that the raw_text storage can be kept around. */
+    map = (a_macro_arg_ptr)alloc_general(sizeof(a_macro_arg));
+#if DEBUG
+    num_macro_args_allocated++;
+#endif /* DEBUG */
+    /* Allocate an initial raw text array.  This can be expanded later
+       if necessary, but the size here should be able to cover most
+       needs.  Note the use of alloc_general here, since only space
+       allocated via alloc_general can be realloced. */
+    map->max_len = ARG_RAW_TEXT_INITIAL_ALLOCATION;
+    /* Allocate one more byte than required, so that a pointer past the end
+       will not have the same address as a pointer to the next object in
+       memory. */
+    map->raw_text = alloc_general((sizeof_t)(map->max_len+1));
+#if DEBUG
+    macro_arg_raw_text_space += map->max_len;
+#endif /* DEBUG */
+  } /* if */
+  map->next            = NULL;
+  map->raw_len         = 0;
+  map->modif_list      = NULL;
+  map->modif_text_used = FALSE;
+
+  db_exit();
+  return (map);
+}  /* alloc_macro_arg */
+
+
+static void free_macro_arg(a_macro_arg_ptr *map)
+/*
+Free the macro argument description pointed to by *map, and set *map to NULL.
+*/
+{
+  a_source_line_modif_ptr slmp;
+
+  db_enter(5, "free_macro_arg");
+  /* Free any source modification entries attached to this argument. */
+  while ((slmp = (*map)->modif_list) != NULL) {
+    (*map)->modif_list = slmp->next;
+    free_source_line_modif(&slmp);
+  }  /* while */
+  /* Put the macro buffer on a list of macro buffers freed and available
+     to be reused. */
+  (*map)->next = avail_macro_args;
+  avail_macro_args = *map;
+  *map = NULL;
+  db_exit();
+}  /* free_macro_arg */
+
+
+static void copy_modif_list (a_macro_arg_ptr map,
+                             char            **src_loc)
+/*
+Make copies of the source line modifications indicated by map->modif_list,
+to transform the raw text of a macro argument (at *src_loc) to the
+macro-expanded text for that argument.  *src_loc is registered by the caller
+as a local pointer, and therefore may be updated if macro_buffer is
+reallocated; that's why an extra level of indirection is used.
+*/
+{
+  a_source_line_modif_ptr    slmp, old_slmp;
+  sizeof_t                   len;
+  a_boolean                  need_copy;
+
+  /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
+     are dangerous, since those things can be reallocated.  Such pointers
+     must be registered by calling register_pointer_variable so that they
+     can be updated on any reallocation. */
+  char                       *new_line_loc, *old_line_loc, *text_loc;
+  a_pointer_registration     new_line_loc_reg, old_line_loc_reg, text_loc_reg;
+  a_pointer_registration_ptr save_registered_pointers = registered_pointers;
+
+  register_pointer_variable(new_line_loc, new_line_loc_reg);
+  register_pointer_variable(old_line_loc, old_line_loc_reg);
+  register_pointer_variable(text_loc,     text_loc_reg);
+
+  /* The first use of the argument can use the inserted text from the
+     modif list.  For subsequent uses, additional copies of the text are
+     made. */
+  need_copy = map->modif_text_used;
+  map->modif_text_used = TRUE;
+
+  for (old_slmp = map->modif_list;
+       old_slmp != NULL;
+       old_slmp = old_slmp->next) {
+    /* Make a copy of each modification, and apply it to the copy of the
+       raw text.  The modifications are in decreasing order by sequence id,
+       and therefore by the time a modification is processed, the thing
+       modified should already have been processed. */
+    /* Determine the location for the new modification.  If the modification
+       is to the raw_text directly, that is translated to a location
+       relative to *src_loc.  Otherwise, it must be a modification of the
+       text of a modification processed on a previous iteration of this loop.
+       Find the previous modification, and from that the location of the
+       text to be modified, and adjust it accordingly. */
+    old_line_loc = old_slmp->line_loc;
+    /* Note that there is no "+1" after raw_len in the following; it's not
+       needed because a modification cannot be planted on the terminating
+       null. */
+    if (ptr_in_range(old_line_loc, map->raw_text,
+                     map->raw_text+map->raw_len)) {
+      /* This modification is to the raw_text of the argument. */
+      new_line_loc = *src_loc + (old_line_loc - map->raw_text);
+    } else {
+      /* Find the prototype modification whose text is modified by this
+         location. */
+      for (slmp = map->modif_list;; slmp = slmp->next) {
+#if CHECKING
+        if (slmp == NULL) {
+          internal_error("copy_modif_list: loc not found");
+        }  /* if */
+#endif /* CHECKING */
+        /* Note that there is no "+1" after end_inserted_text in the following;
+           it's not needed because a modification cannot be planted on the
+           terminating null. */
+        if (ptr_in_range(old_line_loc, slmp->inserted_text,
+                         slmp->end_inserted_text)) break;
+      }  /* for */
+#if CHECKING
+      if (slmp->assoc_copy_modif == NULL) {
+        internal_error("copy_modif_list: assoc_copy_modif == NULL");
+      }  /* if */
+#endif /* CHECKING */
+      new_line_loc = (slmp->assoc_copy_modif)->inserted_text +
+                     (old_line_loc - slmp->inserted_text);
+    }  /* if */
+    /* Now new_line_loc is set correctly.  Make a new copy of the inserted
+       text of the modification, including the terminating null.  On the first
+       use of an argument, the original inserted text can be used, without
+       copying. */
+    len = old_slmp->end_inserted_text - old_slmp->inserted_text + 1;
+    if (!need_copy) {
+      /* This is the first use of the inserted text, so no copy is required. */
+      text_loc = old_slmp->inserted_text;
+    } else {
+      /* The inserted text has already been used, so it must be copied for
+         this use. */
+      ensure_macro_buffer_space(len);
+      text_loc = next_avail_in_macro_buffer;
+      memcpy(text_loc, old_slmp->inserted_text, (int)len);
+      next_avail_in_macro_buffer += len;
+    }  /* if */
+    /* Add the new source line modification. */
+    slmp = add_source_line_modif(new_line_loc, old_slmp->num_chars_to_delete,
+                                 text_loc, text_loc+len-1);
+    slmp->assoc_macro = old_slmp->assoc_macro;
+    /* Link the prototype modification to its copy, for use in resolving
+       line_locs on later iterations of this loop. */
+    old_slmp->assoc_copy_modif = slmp;
+  }  /* for */
+  /* Drop any local pointer registrations. */
+  registered_pointers = save_registered_pointers;
+}  /* copy_modif_list */
+
+
+#if DEBUG
+static void print_markered_text(char      *str,
+                                sizeof_t  len,
+                                a_boolean go_to_end_of_line)
+/*
+Print the indicated string, interpreting any marker characters therein
+(end of tokens to printable form, attention and null characters to cause
+proper walking of the indicated modifications).  Printing stops after
+"len" characters or when a null of the same level as the start is reached
+(if go_to_end_of_line is TRUE, only stop for the null at end of line or
+a macro argument).  len < 0 can be used to indicate just stopping on the
+null.  This routine is used to print the replacement text and expansions
+of macros.
+*/
+{
+  char                    *p;
+  sizeof_t                n_printed;
+  char                    ch;
+  a_source_line_modif_ptr slmp;
+  int                     level = 0;
+
+  for (p = str, n_printed = 0;
+                n_printed != len;
+                n_printed++) {
+    ch = *p;
+    if (ch == '\0') {
+      /* End of modification or end of entire line. */
+      if (!go_to_end_of_line && level == 0) {
+        /* Null at same level as start of text.  Stop. */
+        break;
+      } else if (within_curr_source_line(p)) {
+        /* End of entire source line.  Stop. */
+        break;
+      } else {
+        /* End of modification.  Find character location after modification. */
+        ch = '$';
+        slmp = assoc_source_line_modif(p);
+        /* If this is the end of a macro argument, stop. */
+        if (slmp->is_isolated_text) break;
+        level--;
+        leave_insertion(slmp, p);
+      }  /* if */
+    } else if (ch == ATTENTION_MARKER) {
+      /* Modification begins here.  Go into it.  Print a deletion as "%"
+         instead. */
+      slmp = nested_source_line_modif(p);
+      if (slmp->inserted_text == slmp->end_inserted_text) {
+        /* Deletion, no inserted text. */
+        ch = '%';
+      } else {
+        /* Insertion. */
+        level++;
+        ch = '@';
+      }  /* if */
+      go_into_insertion(slmp, p);
+    } else {
+      if (ch == END_OF_TOKEN_MARKER) ch = '`';
+      p++;
+    }  /* if */
+    fputc(ch, f_debug);
+  }  /* for */
+
+}  /* print_markered_text */
+#endif /* DEBUG */
+  
+
+a_symbol_ptr find_defined_macro(a_symbol_ptr assoc_symbol)
+/*
+See if there is a macro on the list of symbols pointed to by assoc_symbol.
+If so, return a pointer to it.  If not, return NULL.  This routine exists
+so that "defined" will not be found as a defined macro.
+*/
+{
+  get_symbol_of_kind((a_symbol_kind)sk_macro, assoc_symbol);
+  /* If the macro found is the pseudo-macro "defined" (which is used as
+     an operator in #if statements), pretend it was not found. */
+  if (assoc_symbol == defined_macro_symbol) assoc_symbol = NULL;
+  return (assoc_symbol);
+}  /* find_defined_macro */
+
+
+a_token_kind make_pp_int_constant(long value)
+/*
+Make a constant entry with the given integer value in const_for_curr_token.
+This is being created as the value for some preprocessor operation.
+The type will be long int, since that is what the preprocessor uses.
+Return tok_int_constant.
+*/
+{
+  clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
+  const_for_curr_token.type = integer_type((an_integer_kind)ik_long);
+  const_for_curr_token.variant.integer_value = value;
+  return (tok_int_constant);
+}  /* make_pp_int_constant */
+
+
+static void check_for_following_parenthesis(a_boolean    *paren_found,
+                                            a_boolean    allow_id)
+/*
+The current token is an identifier, probably the macro name at the
+beginning of a macro invocation.  Skip white space and look to see if the
+next token is a "(", and return *paren_found == TRUE if it is.  If allow_id
+is TRUE, also return *paren_found == TRUE if the next token is an identifier.
+If a "(" (or identifier) is not found, return *paren_found == FALSE and
+re-insert the identifier if necessary (delete_source_from_loc is non-NULL,
+so a hanging delete is in effect).
+*/
+{
+  a_seq_number    old_seq_number;
+  char            *orig_loc;
+  char            *ins_loc;
+  a_source_line_modif_ptr
+		  slmp,
+                  slmp2;
+  unsigned long   sequence_id;
+
+  old_seq_number = curr_seq_number;
+  orig_loc = start_of_curr_token;
+  skip_white_space();
+  if (*curr_char_loc == '(') {
+    /* Left parenthesis found. */
+    *paren_found = TRUE;
+  } else if (allow_id &&
+             is_id_char[*curr_char_loc-CHAR_MIN] &&
+             !isdigit(*curr_char_loc) &&
+             /* Watch out for wide character constants and string literals. */
+             (*curr_char_loc != 'L' || (*(curr_char_loc+1) != '"' &&
+                                        *(curr_char_loc+1) != '\''))) {
+    /* Identifier found when allowed. */
+    *paren_found = TRUE;
+  } else {
+    /* Not a macro because not followed by "(", so return as an
+       identifier.  If we have not gone onto another line with
+       the skip_white_space call, we can undo the logical deletion.
+       If we have left the original line, we have to re-insert the
+       identifier at the beginning of the current line, followed by
+       a blank (because there was white space skipped).  Note one
+       strange case: we may have reached end of file, and the
+       re-insertion must therefore be done in the empty end-of-file
+       line. */
+    *paren_found = FALSE;
+    delete_source_from_loc = NULL;
+    len_of_curr_token = locator_for_curr_id.symbol_header->identifier_length;
+    if (curr_seq_number == old_seq_number) {
+      /* We are still on the same line, so re-insertion is not necessary.
+         However, if in getting from the end of the identifier to the
+         current position we entered or left a source modification, some
+         deletions have already been put out.  We must find them and 
+         remove them.  This is a rare case. */
+      if (*orig_loc == ATTENTION_MARKER) {
+        /* Find the entry that deletes the identifier, and remove it. */
+        slmp = nested_source_line_modif(orig_loc);
+        sequence_id = slmp->sequence_id;
+        rem_source_line_modif(slmp);
+        free_source_line_modif(&slmp);
+        /* There might be some deletions following that one, to
+           delete white space.  We can identify those because they have
+           a sequence_id larger than the entry that deleted the
+           identifier.  Remove them.  If any of them are deletions of
+           comments, the comments will be re-examined and deleted again
+           later. */
+        if (sequence_id != sequence_id_for_source_line_modifs) {
+          for (slmp = source_line_modif_list; slmp != NULL;) {
+            slmp2 = slmp;
+            slmp = slmp->next;
+            if (slmp2->sequence_id > sequence_id) {
+              rem_source_line_modif(slmp2);
+              free_source_line_modif(&slmp2);
+            }  /* if */
+          }  /* for */
+        }  /* if */
+      }  /* if */
+      start_of_curr_token = orig_loc;
+    } else {
+      /* We are on a new line, so re-insertion is necessary. */
+      /* Make enough room for the insertion text.  "+2" covers the null and
+         the newline for white space. */
+      ensure_macro_buffer_space(len_of_curr_token+2);
+      /* Insert the identifier name. */
+      ins_loc = next_avail_in_macro_buffer;
+      memcpy(ins_loc,
+             locator_for_curr_id.symbol_header->identifier,
+             (int)len_of_curr_token);
+      next_avail_in_macro_buffer += len_of_curr_token;
+      *next_avail_in_macro_buffer++ = '\n';
+      *next_avail_in_macro_buffer++ = '\0';
+      /* Add a source line modification entry to do the insert.  This is
+         a strange kind of entry: line_loc == NULL indicates that
+         the insertion is to be done preceding the first character
+         of curr_source_line. */
+      (void)add_source_line_modif((char *)NULL, 0,
+                                  ins_loc,
+                                  ins_loc+len_of_curr_token+1);
+      start_of_curr_token = ins_loc;
+    }  /* if */
+    end_of_curr_token = start_of_curr_token + len_of_curr_token - 1;
+  }  /* if */
+}  /* check_for_following_parenthesis */
+
+
+static a_token_kind scan_defined_operator(a_boolean *got_proper_closing_token)
+/*
+Scan an instance of the "defined" operator in a preprocessor expression.
+It has the form
+
+  defined identifier
+
+or
+
+  defined ( identifier )
+
+(See standard, 3.8.1).  Return tok_int_constant with a value of 0L (not
+defined) or 1L (defined).  This is done even if there is an error.
+If the "defined" identifier is not an operator in this case, return
+tok_identifier.  Return *got_proper_closing_token TRUE if the "defined"
+operator was correctly closed and the final token is the current token
+on return.
+*/
+{
+  a_symbol_ptr  assoc_symbol = NULL;
+  a_source_position
+		start_position;
+  a_token_kind	ctoken;
+  a_boolean     save_expand_macros = expand_macros;
+  a_boolean     paren_or_id_found;
+
+  db_enter(4, "scan_defined_operator");
+  *got_proper_closing_token = FALSE;
+  copy_source_position(pos_curr_token, start_position);
+  if (!in_pp_if_expression) {
+    /* If not inside a #if expression, "defined" is just an identifier. */
+    ctoken = tok_identifier;
+  } else {
+    /* Within an #if expression, defined is an operator with a value
+       of 0L or 1L (undefined or defined). */
+    /* If the "defined" came from a macro expansion (which we can tell
+       if it is in a source modification that was generated by a macro
+       expansion), then treat it as an identifier.  See 3.8.1:  "The
+       defined operator shall explicitly appear in the original list
+       of preprocessing tokens". */
+    if (!within_curr_source_line(start_of_curr_token) &&
+      /* The keyword "defined" appears in a source modification.
+         See if the source modification was generated for a macro expansion.
+         (The word might be in a source modification that is a macro argument
+         that appeared in the original source). */
+        assoc_source_line_modif(start_of_curr_token)->assoc_macro != NULL) {
+#if DEBUG
+      if (debug_level >= 4) {
+        fprintf(f_debug, "defined is from macro exp, left as identifier.\n");
+      }  /* if */
+#endif /* DEBUG */
+      ctoken = tok_identifier;
+    } else {
+      /* The "defined" came from the original text, not a macro expansion.
+         Look for a left parenthesis or identifier following it. */
+      check_for_following_parenthesis(&paren_or_id_found, /*allow_id=*/TRUE);
+      if (!paren_or_id_found) {
+        /* "defined" is not followed by an identifier or left parenthesis;
+           therefore, it should be left as an identifier. */
+        ctoken = tok_identifier;
+      } else {
+        /* "defined" is followed by a left parenthesis or identifier.
+           Get it as a token. */
+        /* Turn off macro expansion for the get_token calls that follow. */
+        expand_macros = FALSE;
+        if (get_token() == tok_identifier) {
+          /* First form -- "defined identifier". */
+          assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
+                                     &locator_for_curr_id);
+          *got_proper_closing_token = TRUE;
+        } else {
+          /* Second form -- "defined ( identifier )". */
+#if CHECKING
+          if (curr_token != tok_lparen) {
+            internal_error("scan_defined_operator: next is not id or \"(\"");
+          }  /* if */
+#endif /* CHECKING */
+          add_stop_token(tok_rparen);
+          if (get_token() != tok_identifier) {
+            /* Error -- Expected an identifier. */
+            (void)required_token(tok_identifier, ec_exp_identifier);
+          } else {
+            assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
+                                       &locator_for_curr_id);
+            (void)get_token();
+          }  /* if */
+          if (curr_token == tok_rparen) {
+            *got_proper_closing_token = TRUE;
+          } else {
+            /* Error -- Expected a right parenthesis. */
+            set_err_pos_to_curr_token();
+            syntax_error(ec_exp_rparen);
+          }  /* if */
+          remove_stop_token(tok_rparen);
+        }  /* if */
+        /* Make a 0 or 1 constant depending or whether the symbol is undefined
+           or defined.  Note that for error cases assoc_symbol is NULL and
+           that will produce a value of 0. */
+        assoc_symbol = find_defined_macro(assoc_symbol);
+        if (assoc_symbol != NULL) {
+          mark_referenced(assoc_symbol, &locator_for_curr_id.source_position);
+        }  /* if */
+        ctoken = make_pp_int_constant((long)(assoc_symbol != NULL));
+        /* Set the token position to the start of the keyword "defined". */
+        copy_source_position(start_position, pos_curr_token);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  expand_macros = save_expand_macros;
+  db_exit();
+  return (ctoken);
+}  /* scan_defined_operator */
+
+
+/*
+Skip white space and set a flag indicating whether or not any was
+skipped.  Used within macro invocations.  Under pcc compatibility mode,
+comment-only white space is ignored.
+*/
+#define macro_skip_white_space(any_skipped) \
+{ skip_white_space(); \
+  any_skipped = FALSE; \
+  if (kind_of_white_space_skipped != 0) { \
+    if (kind_of_white_space_skipped != WHITE_SPACE_COMMENTS || \
+        C_dialect != C_dialect_pcc) { \
+      any_skipped = TRUE; \
+    }  /* if */ \
+  }  /* if */ \
+}  /* macro_skip_white_space */
+
+
+static a_token_kind arg_get_token(a_boolean *any_white_space_skipped)
+/*
+Fetch and return a token as part of scanning a macro argument.  Return
+*any_white_space_skipped == TRUE if any white space was skipped (the
+white space will also be deleted).
+*/
+{
+  macro_skip_white_space(*any_white_space_skipped);
+  return (get_token());
+}  /* arg_get_token */
+
+
+static sizeof_t stringized_arg(a_macro_arg_ptr map,
+                               char            **src_loc)
+/*
+Generate the "stringized" version of the macro argument indicated by map,
+store it into the current source line at *src_loc, and increment
+*src_loc appropriately.  See standard, 3.8.3.2.  The "#" operator produces
+the stringized version of an argument.  Return the length of the
+stringized version.  If src_loc is NULL, the output is not stored, so
+the overall function of this routine is just to compute and return the
+length of the stringized version.
+*/
+{
+  register sizeof_t len = 0;
+  register char     *p;
+  register char     ch;
+  a_boolean         within_char_literal = FALSE;
+  a_boolean         start_of_token = TRUE;
+
+  /* Put out initial quote. */
+  len++;
+  if (src_loc != NULL) *(*src_loc)++ = '"';
+  /* Scan through the raw text of the argument, stopping at the final null.
+     Delete end of token markers.  Keep track of when we are inside of
+     a character constant or string literal, and put out a "\" in front
+     of each " or \ within those. */
+  for (p = map->raw_text; (ch = *p) != '\0'; p++) {
+    if (ch == END_OF_TOKEN_MARKER) {
+      /* End of token marker, also indicates end of character constant or
+         string literal, and start of another token soon.  The end of token
+         marker itself is not put out. */
+      within_char_literal = FALSE;
+      start_of_token = TRUE;
+    } else {
+      /* If the current character is a " or ' at the start of a token,
+         then this token is a character constant or string literal. */
+      if (start_of_token && (ch == '"' || ch == '\'')) {
+        /* Start of character constant or string literal. */
+        within_char_literal = TRUE;
+      }  /* if */
+      /* Reset the start of token flag on the first actual character of
+         a token.  Note that all white space has already been standardized
+         to a single blank so that is all we have to check for. */
+      if (ch != ' ') start_of_token = FALSE;
+      if (within_char_literal && (ch == '"' || ch == '\\')) {
+        /* Escape " and \ within a character constant or string literal.
+           Note that the quotes delimiting string literals are
+           replaced too. */
+        len++;
+        if (src_loc != NULL) *(*src_loc)++ = '\\';
+      }  /* if */
+      /* Put out the character itself. */
+      len++;
+      if (src_loc != NULL) *(*src_loc)++ = ch;
+    }  /* if */
+  }  /* for */
+  /* Put out final quote. */
+  len++;
+  if (src_loc != NULL) *(*src_loc)++ = '"';
+
+  return (len);
+}  /* stringized_arg */
+
+
+static void expand_top_level_pcc_macro(a_source_line_modif_ptr main_slmp)
+/*
+We are in pcc mode, and a top-level macro has just been expanded.  main_slmp
+points to the source modification that inserts the body of the macro
+into the primary source line.  In order to more closely approximate the
+token-pasting behavior of pcc, macro-expand the text in the body of
+the macro, then make a copy of the macro-expanded version as one long
+string.
+*/
+{
+  a_boolean     save_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean     any_white_space_skipped;
+  unsigned long sequence_id;
+  a_source_line_modif_ptr
+		slmp,
+                slmp2;
+  sizeof_t      len_new;
+
+  /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
+     are dangerous, since those things can be reallocated.  Such pointers
+     must be registered by calling register_pointer_variable so that they
+     can be updated on any reallocation. */
+  char          *pos_in_aux_buffer, *pos_in_macro_buffer, *save_curr_char_loc;
+  a_pointer_registration
+                pos_in_aux_buffer_reg, pos_in_macro_buffer_reg,
+                save_curr_char_loc_reg;
+  a_pointer_registration_ptr
+                save_registered_pointers = registered_pointers;
+
+  register_pointer_variable(pos_in_aux_buffer,   pos_in_aux_buffer_reg);
+  register_pointer_variable(pos_in_macro_buffer, pos_in_macro_buffer_reg);
+  register_pointer_variable(save_curr_char_loc,  save_curr_char_loc_reg);
+
+  db_enter(4, "expand_top_level_pcc_macro");
+  /* The macro body is at main_slmp->inserted_text.  It's a single piece
+     of text because in pcc mode macro arguments are not macro-expanded
+     before being inserted into the macro body.  Tokenize the body
+     of the macro and save the text of the tokens and white-space scanned
+     in an auxiliary buffer.  At the end, copy the text in the auxiliary
+     buffer back into macro_buffer, replacing the original (now macro-expanded)
+     body of the macro. */
+  /* Fetch the tokens as pp tokens. */
+  save_fetch_pp_tokens = fetch_pp_tokens;
+  fetch_pp_tokens = TRUE;
+  save_curr_char_loc = curr_char_loc;
+  curr_char_loc = pos_in_macro_buffer = main_slmp->inserted_text;
+  delete_source_from_loc = NULL;
+  expand_macros = TRUE;
+  /* Make sure the scan will stop at the end of the macro body rather than
+     continuing into the surrounding source line. */
+  main_slmp->is_isolated_text = TRUE;
+  sequence_id = main_slmp->sequence_id;
+  pos_in_aux_buffer = aux_buffer_for_pcc_macros;
+  while (arg_get_token(&any_white_space_skipped) != tok_end_of_source) {
+    /* Make enough room in the aux. buffer for the token text. */
+    ensure_aux_buffer_for_pcc_macros_space(len_of_curr_token +
+                                           any_white_space_skipped,
+                                           pos_in_aux_buffer);
+    /* If the token was preceded by white-space, put a blank in the
+       auxiliary buffer. */
+    if (any_white_space_skipped) *pos_in_aux_buffer++ = ' ';
+    /* Copy the text of the token to the auxiliary buffer. */
+    memcpy(pos_in_aux_buffer, start_of_curr_token, (int)len_of_curr_token);
+    pos_in_aux_buffer += len_of_curr_token;
+  }  /* while */
+  /* Put a null at the end of the aux. buffer. */
+  ensure_aux_buffer_for_pcc_macros_space(1, pos_in_aux_buffer);
+  *pos_in_aux_buffer++ = '\0';
+  /* Restore the flags that were changed before the scan. */
+  main_slmp->is_isolated_text = FALSE;
+  fetch_pp_tokens = save_fetch_pp_tokens;
+  curr_char_loc = save_curr_char_loc;
+  /* The body of the top-level macro has been expanded.  macro_buffer
+     contains the expansion represented by source line modifications,
+     and aux_buffer_for_pcc_macros contains the expansion in raw-text form. */
+  /* See if there are any source line modifications made since the one
+     to insert the macro body.  If so, some macro expansion was done;
+     we free the entries and go on to do the copy.  If not, no macro
+     expansion was done, and the old and new strings should be the same. */
+  if (sequence_id != sequence_id_for_source_line_modifs) {
+    /* There was at least one internal macro expansion, so the aux. buffer
+       will be copied into macro_buffer. */
+    /* Remove the source modifications for the internal macro expansion.
+       We don't need the information in them, since we have the full text
+       we want in the aux. buffer. */
+    for (slmp = source_line_modif_list; slmp != NULL;) {
+         slmp2 = slmp;
+         slmp = slmp->next;
+      if (slmp2->sequence_id > sequence_id) {
+        rem_source_line_modif(slmp2);
+        free_source_line_modif(&slmp2);
+      }  /* if */
+    }  /* for */
+    /* The new text can be copied onto the old, since the old text and
+       everything following it is no longer necessary.  However, since the
+       new text may be longer than the old, we have to make sure we have
+       enough room. */
+    next_avail_in_macro_buffer = pos_in_macro_buffer;
+    len_new = pos_in_aux_buffer - aux_buffer_for_pcc_macros;
+    ensure_macro_buffer_space(len_new);
+    /* Copy the new text over the old text.  This will copy up to and
+       including the final null. */
+    memcpy(pos_in_macro_buffer, aux_buffer_for_pcc_macros, (int)len_new);
+    /* Reset the next available position in macro_buffer to just after
+       the new text. */
+    next_avail_in_macro_buffer += len_new;
+    /* The end position for the inserted text needs to be updated as well. */
+    main_slmp->end_inserted_text = next_avail_in_macro_buffer-1;
+  }  /* if */
+  /* Drop any local pointer registrations. */
+  registered_pointers = save_registered_pointers;
+  db_exit();
+}  /* expand_top_level_pcc_macro */
+
+
+/*
+Add an entry to the list of a_macro_arg entries in use.
+*/
+#define add_to_macro_arg_list(map)                                    \
+{ if (macro_arg_list == NULL) {                                       \
+    macro_arg_list = map;                                             \
+  } else {                                                            \
+    end_of_macro_arg_list->next = map;                                \
+  }  /* if */                                                         \
+  end_of_macro_arg_list = map;                                        \
+}  /* add_to_macro_arg_list */
+
+
+/*
+Add an a_macro_arg entry to the end of the current list of argument values.
+The first ARG_VALUES_SIZE arguments are indexed in arg_values.  All entries
+are linked together, so the later ones can be found, albeit slowly.
+*/
+#define add_to_arg_values(map)                                        \
+{ if (param_num < ARG_VALUES_SIZE) arg_values[param_num] = map;       \
+  param_num++;                                                        \
+  add_to_macro_arg_list(map);                                         \
+}  /* add_to_arg_values */
+
+
+/*
+Fetch the pointer to the a_macro_arg entry for argument "number" (first
+is 1), and return it in map.  For the first ARG_VALUES_SIZE entries,
+that's an easy look-up in arg_values.  After that, a linear search is needed.
+*/
+#define get_arg_value(number, map)                                    \
+{ if (number <= ARG_VALUES_SIZE) {                                    \
+    map = arg_values[number-1];                                       \
+  } else {                                                            \
+    sizeof_t n = ARG_VALUES_SIZE;                                     \
+    map = arg_values[ARG_VALUES_SIZE-1];                              \
+    do { n++; map = map->next; } while (n < number);                  \
+  }  /* if */                                                         \
+}  /* get_arg_value */ 
+
+
+static free_macro_arg_entries(a_macro_arg_ptr prev_end_of_macro_arg_list)
+/*
+Free the macro arg entries following "prev_end_of_macro_list" in the
+global list of macro args.  Note that it must be possible to call this
+routine more than once with the same pointer; the second call should do
+nothing.
+*/
+{
+  a_macro_arg_ptr map, next_map;
+
+  end_of_macro_arg_list = prev_end_of_macro_arg_list;
+  if (end_of_macro_arg_list == NULL) {
+    /* Free everything on the list. */
+    map = macro_arg_list;
+    macro_arg_list = NULL;
+  } else {
+    /* Free everything following the given entry; clip the list off at that
+       point, so it does not point to the released entries. */
+    map = end_of_macro_arg_list->next;
+    end_of_macro_arg_list->next = NULL;
+  }  /* if */
+  while (map != NULL) {
+    next_map = map->next;
+    free_macro_arg(&map);
+    map = next_map;
+  }  /* while */
+}  /* free_macro_arg_entries */
+
+
+a_token_kind macro_invocation(a_symbol_ptr  macro_symbol,
+                              a_boolean     *rescan)
+/*
+An identifier that is a macro has just been scanned.  Replace the macro call
+with its expansion, then return either with *rescan == TRUE to indicate
+that the replacement test should be re-tokenized, or with *rescan == FALSE
+and return value indicating a token value for the current token (the latter
+case is used when the result of an expansion is a known token; the other
+associated global variables will also have been set).
+*/
+{
+  a_macro_def_ptr mdp;
+  sizeof_t	  repl_text_len;
+  a_token_kind	  ctoken = tok_error;
+  a_boolean	  got_proper_closing_token = FALSE;
+  a_boolean	  special_repl_text = FALSE;
+  a_macro_arg_ptr special_macro_arg = NULL;
+  sizeof_t        sect_len, rts_number;
+  a_repl_text_seq_kind
+		  rts_kind;
+  a_boolean       any_white_space_skipped;
+  a_macro_param_ptr
+		  param_list,
+		  pp;
+  unsigned long	  paren_count;
+  a_boolean       paren_found;
+  a_boolean	  not_done;
+  int		  param_num = 0;
+  a_boolean       save_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean       save_expand_macros = expand_macros;
+  a_boolean       save_exp_header_name;
+  int             recursion_depth;
+  a_source_line_modif_ptr
+		  slmp,
+                  slmp2,
+                  end_modif_list;
+  unsigned long   sequence_id;
+  a_boolean       need_end_of_token_marker;
+  a_boolean       is_macro_call = TRUE;  /* Assume. */
+  a_source_position
+                  start_pos;
+  a_macro_arg_ptr map, prev_end_of_macro_arg_list = end_of_macro_arg_list;
+#define ARG_VALUES_SIZE 50
+			/* For parameter values in the normal range, the
+			   arg_values array provides quick look-up.  For
+			   parameters beyond that, a slow linear search
+			   in used. */
+  a_macro_arg_ptr arg_values[ARG_VALUES_SIZE];
+
+  /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
+     are dangerous, since those things can be reallocated.  Such pointers
+     must be registered by calling register_pointer_variable so that they
+     can be updated on any reallocation. */
+  char		  *src_loc, *text_loc, *rescan_loc, *repl_text,
+                  *save_delete_source_from_loc;
+  a_pointer_registration
+                  src_loc_reg, text_loc_reg, rescan_loc_reg, repl_text_reg,
+                  save_delete_source_from_loc_reg;
+			/* repl_text points to the macro replacement string,
+			   which is safe, but for special macros like __FILE__,
+			   it will point to the raw_text of
+			   special_macro_arg. */
+  /* The following are safe: */
+  char            *temp_ptr;
+			/* Used in climbing through the source line
+			   modifications that enclose the macro invocation,
+			   to determine inertness or pcc mode recursion.
+			   Nothing is reallocated during that process. */
+  char            *rtp;
+			/* Points to a macro replacement string, which is
+			   not in the reallocated areas. */
+  static char     *empty_string = "";
+			/* Obviously safe. */
+  a_pointer_registration_ptr
+                  save_registered_pointers = registered_pointers;
+
+  register_pointer_variable(src_loc,    src_loc_reg);
+  register_pointer_variable(text_loc,   text_loc_reg);
+  register_pointer_variable(rescan_loc, rescan_loc_reg);
+  register_pointer_variable(repl_text,  repl_text_reg);
+  register_pointer_variable(save_delete_source_from_loc,
+                                        save_delete_source_from_loc_reg);
+
+  /* See standard, 3.8.3 (Macro Replacement). */
+  db_enter(4, "macro_invocation");
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "About to expand invocation of macro %s:\n",
+                     macro_symbol->header->identifier);
+  }  /* if */
+#endif /* DEBUG */
+  copy_source_position(pos_curr_token, start_pos);
+  /* If possible, clear the macro buffer (a buffer where characters of
+     expansions are put).  This is tricky in that we can't clear the
+     macro buffer while there are expanded macro calls earlier in the
+     current line, since those expansions refer to things in the macro
+     buffer and may yet have to be written as preprocessed output. */
+  /* If none of the source line modifications have inserted text
+     in the macro buffer (e.g., there are none, or they're all deleted
+     comments), the buffer can be cleared. */
+  for (slmp = source_line_modif_list; slmp != NULL; slmp = slmp->next) {
+    /* A modification that has its inserted text in the inserted_chars
+       buffer in the line modification entry does not depend on
+       macro_buffer.  Comments are one example of such a modification. */
+    if (slmp->inserted_text != slmp->inserted_chars) {
+      goto end_scan_for_macro_modifs;
+    }  /* if */
+  }  /* for */
+  /* No source line modifications from macros. */
+  next_avail_in_macro_buffer = macro_buffer;
+end_scan_for_macro_modifs:;
+  /* Normal case is that the macro expansion is rescanned after this routine
+     exits. */
+  *rescan = TRUE;
+#if CHECKING
+  rescan_loc = NULL;  /* To catch error cases. */
+#endif /* CHECKING */
+  /* Get a pointer to the macro definition structure. */
+  mdp = macro_symbol->variant.macro_def;
+  param_list = mdp->param_list;
+  repl_text = mdp->repl_text;
+  /* See if this occurrence of the macro name resulted from an expansion
+     of the macro.  If so, it is just treated as an identifier (i.e., the
+     macro is disabled within its own expansion).  We ascertain this by
+     seeing whether or not the macro name appears inside text that came
+     from a macro expansion. */
+  temp_ptr = start_of_curr_token;
+  recursion_depth = 0;
+  while (!within_curr_source_line(temp_ptr)) {
+    /* This location is within a macro expansion. */
+    /* Find the source modification that contains this location, and
+       see if it's associated with the macro we are about to expand.  If
+       so, the macro name is inert and should be left alone. */
+    slmp = assoc_source_line_modif(temp_ptr);
+    if (slmp->assoc_macro == mdp) {
+      if (C_dialect == C_dialect_pcc) {
+        /* In pcc mode, arguments to macros are not macro-expanded before
+           being put into the macro expansion, which means that the macro
+           name can legitimately appear within its own expansion.  The
+           identifier is not inert here, but count the depth of calls
+           to check for potential recursion.  Note that this test will
+           generate an error on some extreme cases that don't actually
+           involve recursion, like
+
+             #define x(a) a
+             x(x(x(x(x(x(x(x(x(x(x(x  ... etc ... (1))))))))))))
+        */
+        if (++recursion_depth < MAX_PCC_RECURSIVE_MACRO_DEPTH) {
+          goto keep_testing;
+        }  /* if */
+        error(ec_macro_recursion);
+      }  /* if */
+#if DEBUG
+      if (debug_level >= 4) {
+        fprintf(f_debug, "Macro is inert, left as identifier.\n");
+      }  /* if */
+#endif /* DEBUG */
+      ctoken = tok_identifier;
+      *rescan = FALSE;
+      is_macro_call = FALSE;
+      goto return_point;
+    }  /* if */
+keep_testing:;
+    /* Repeat this test for each macro expansion that contains the
+       current macro expansion.  We work outward to the outermost macro
+       expansion that contains the location we started with, and stop
+       when we reach the outer source line. */
+    temp_ptr = loc_of_insert(slmp);
+  }  /* while */
+  /* The macro name is not inert. */
+  /* Set a flag to cause deletion of the text of the macro invocation.
+     This is a global flag so that if we go to a new line during skipping
+     of white space, the appropriate part of the current line will be
+     deleted (skip_white_space checks the flag). */
+  delete_source_from_loc = start_of_curr_token;
+  if (mdp->object_like) {
+    /* "Object-like" macro (has no arguments).  Or, a special predefined
+       macro, which might have arguments. */
+    got_proper_closing_token = TRUE;
+    /* A NULL replacement text pointer indicates one of the special predefined
+       macros that must be handled by code. */
+    if (repl_text == NULL) {
+      /* Special case: see which one (defined, __LINE__, or __FILE__). */
+      /* Use a special a_macro_arg entry as the expansion text buffer.
+         Put it on the list of macro args so it can be found if the
+         buffers are resized. */
+      special_macro_arg = alloc_macro_arg();
+      add_to_macro_arg_list(special_macro_arg);
+      special_repl_text = TRUE;
+      repl_text = special_macro_arg->raw_text;
+      if (macro_symbol == line_macro_symbol) {
+        /* __LINE__.  Make and return the string for a decimal integer
+           indicating the current line number. */
+        /* We assume we don't need to call ensure_arg_raw_text_space. */
+        (void)sprintf(repl_text, "%lu", curr_ise->line_number);
+      } else if (macro_symbol == file_macro_symbol) {
+        /* __FILE__.  Make and return a string for a string literal 
+          indicating the current file name.  "+3" in the following is
+          for the two quotes and the null. */
+        ensure_arg_raw_text_space(strlen(curr_ise->file_name)+3,
+                                  special_macro_arg);
+        (void)sprintf(repl_text, "\"%s\"", curr_ise->file_name);
+      } else if (macro_symbol == defined_macro_symbol) {
+        /* "defined".  This is not, strictly speaking, a macro -- it's
+           an operator allowed only in #if expressions.  However, it is
+           most easily handled as a pseudo-macro. */
+        is_macro_call = FALSE;
+        ctoken = scan_defined_operator(&got_proper_closing_token);
+        *rescan = FALSE;
+        /* Whether we end up with the original identifier or a constant,
+           we have a token to return and do not need to rescan. */
+        /* If the substitution was not done, go return the current token. */
+        if (ctoken != tok_int_constant) goto return_point;
+        /* Otherwise, replace the defined operator and its operand with
+           an integer constant. */
+        /* We assume we don't need to call ensure_arg_raw_text_space. */
+        (void)sprintf(repl_text, "%ldL",
+				 const_for_curr_token.variant.integer_value);
+#if CHECKING
+      } else {
+        internal_error("macro_invocation: unknown special predefined macro");
+#endif /* DEBUG */
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Function-like macro.  Look for a "(".  If the left parenthesis is
+       not found, return the original identifier as simply an identifier. */
+    check_for_following_parenthesis(&paren_found, /*allow_id=*/FALSE);
+    if (!paren_found) {
+#if DEBUG
+      if (debug_level >= 3) {
+        fprintf(f_debug, 
+            "Potential macro not followed by \"(\", left as identifier.\n");
+      }  /* if */
+#endif /* DEBUG */
+      ctoken = tok_identifier;
+      *rescan = FALSE;
+      is_macro_call = FALSE;
+      goto return_point;
+    } else {
+      /* "(" was found, so this is a macro call.  Scan the argument values
+         and save them in the parameter list blocks (in both raw and
+         macro-expanded form). */
+      fetch_pp_tokens = TRUE;
+      expand_macros = FALSE;
+      /* Header names should only be recognized at the top level in #include
+         directives, not in macro invocations therein. */
+      save_exp_header_name = exp_header_name;
+      exp_header_name = FALSE;
+      /* Get the "(" as a token, and delete its characters. */
+      (void)arg_get_token(&any_white_space_skipped);
+      add_stop_token(tok_rparen);
+      /* Get another token to prime the loop. */
+      (void)arg_get_token(&any_white_space_skipped);
+      pp = param_list;
+      /* Check for empty argument list. */
+      if (curr_token != tok_rparen || pp != NULL) {
+        add_stop_token(tok_comma);
+        do {
+          /* Scan one argument value.  The argument value ends with a
+             comma or right parenthesis that is not inside parentheses.
+             Note that expand_macros is FALSE, and therefore the argument
+             is being scanned in raw form (important, so we are not fooled
+             by macros expanding into "," or ")").  Note also that the
+             characters of each token (and any white space preceding it)
+             are deleted as the token is scanned.  Also, white space at
+             the beginning and end of the argument is ignored. */
+          if (pp == NULL) {
+            /* Too many arguments. */
+            remove_stop_token(tok_comma);
+            syntax_error(ec_too_many_macro_args);
+            goto end_all_args_scan;
+          }  /* if */
+          map = alloc_macro_arg();
+          add_to_arg_values(map);
+          paren_count = 0;
+          /* Ignore initial white space. */
+          any_white_space_skipped = FALSE;
+          need_end_of_token_marker = FALSE;
+          while (curr_token != tok_newline &&
+                 curr_token != tok_end_of_source &&
+                 ((curr_token != tok_comma && curr_token != tok_rparen) ||
+                  paren_count != 0)) {
+            /* Track nesting of parentheses. */
+            if (curr_token == tok_lparen) {
+              paren_count++;
+            } else if (curr_token == tok_rparen) {
+              if (paren_count > 0) paren_count--;
+            }  /* if */
+            /* Put the characters of the token, a preceding end-of-token
+	       marker if necessary, and a preceding blank if
+               there was preceding white space, into the buffer. */
+            ensure_arg_raw_text_space(len_of_curr_token +
+                                      any_white_space_skipped +
+                                      need_end_of_token_marker, map);
+            if (need_end_of_token_marker) {
+              map->raw_text[(map->raw_len)++] = END_OF_TOKEN_MARKER;
+              need_end_of_token_marker = FALSE;
+            }  /* if */
+            if (any_white_space_skipped) {
+              map->raw_text[(map->raw_len)++] = ' ';
+            }  /* if */
+            memcpy(&(map->raw_text[map->raw_len]), start_of_curr_token,
+                   (int)len_of_curr_token);
+            map->raw_len += len_of_curr_token;
+            /* Suppress end-of-token markers in pcc mode. */
+            if (C_dialect != C_dialect_pcc) need_end_of_token_marker = TRUE;
+            /* Generate a warning on an invalid token. */
+            if (curr_token == tok_error) {
+              warning(ec_bad_token);
+            }  /* if */
+            (void)arg_get_token(&any_white_space_skipped);
+          }  /* while */
+          /* Place terminating null. */
+          ensure_arg_raw_text_space(1, map);
+          map->raw_text[map->raw_len] = '\0';
+#if DEBUG
+          if (debug_level >= 4) {
+            fprintf(f_debug, "raw argument %s: \"", pp->name);
+            print_markered_text(map->raw_text, map->raw_len, FALSE);
+            fputs("\"\n", f_debug);
+          }  /* if */
+#endif /* DEBUG */
+          /* Generate a warning on an empty macro argument, since that
+             is "undefined" behavior according to the standard.  Do not
+             generate the warning if the argument was ended because of
+             the end of source or of a preprocessing directive. */
+          if (map->raw_len == 0 &&
+              (curr_token != tok_end_of_source && curr_token != tok_newline)) {
+            warning(ec_empty_macro_argument);
+          }  /* if */
+          /* The raw form of the argument has been scanned.  Now scan it
+             again with macro expansion.  We do that by temporarily
+             placing a source modification that inserts the raw text,
+             and then fetching tokens from there.  */
+          /* In pcc mode, this is not necessary, since all arguments
+             are scanned only in raw form. */
+          if (C_dialect == C_dialect_pcc) goto end_arg_expansion;
+          /* On the expansion, the scanning is limited to the raw text just
+             inserted.  This implements the requirement of 3.8.3.1 that
+             arguments be "macro replaced as if they formed the rest of
+             the source file".  Because of the is_isolated_text flag in
+             the source_modification, we will get a tok_end_of_source
+             back from get_token when the end of the text is reached. */
+          slmp = add_source_line_modif(start_of_curr_token, 1,
+                                       map->raw_text,
+                                       map->raw_text+map->raw_len);
+          slmp->is_isolated_text = TRUE;
+          curr_char_loc = map->raw_text;
+          expand_macros = TRUE;
+          /* Suspend deletion of the characters of the macro invocation.  We
+             don't need to delete the characters of the raw argument during
+             rescan, and we need to save the current delete position for
+             later use. */
+          save_delete_source_from_loc = delete_source_from_loc;
+          delete_source_from_loc = NULL;
+          (void)arg_get_token(&any_white_space_skipped);
+          any_white_space_skipped = FALSE;  /* Should be FALSE already. */
+          /* Note that the tok_end_of_source here would be returned by
+             arg_get_token; it's not actually the end of source. */
+          while (curr_token != tok_end_of_source) {
+            /* We don't have to do anything except call get_token
+               repeatedly; if there are any macro invocations, source
+               modifications will be applied to the raw text. */
+            (void)arg_get_token(&any_white_space_skipped);
+          }  /* while */
+#if DEBUG
+          if (debug_level >= 4) {
+            fprintf(f_debug, "expanded argument %s: \"", pp->name);
+            /* Note that we are printing the "raw" text here, but whatever
+               source modifications there are for macro expansions will
+               be printed too.  This debug printing must be done at this
+               point, before the changes are removed below. */
+            print_markered_text(map->raw_text, (sizeof_t)-1, FALSE);
+            fputs("\"\n", f_debug);
+          }  /* if */
+#endif /* DEBUG */
+          /* Remove the temporary source line modification that put the raw
+             argument text back into the source line. */
+          sequence_id = slmp->sequence_id;
+          curr_char_loc = loc_of_insert(slmp);
+          rem_source_line_modif(slmp);
+          free_source_line_modif(&slmp);
+          /* The macro expansions, if any, were done by applying source
+             modifications to the raw text.  Remove those (thus restoring
+             the original raw text), make a list of them, and save that
+             list in modif_list for this argument.  That list will be used
+	     later when the expanded form is required in the macro expansion,
+	     to generate appropriate modifications to a copy of the raw
+	     text. */
+          map->modif_list = NULL;
+          end_modif_list = NULL;
+          for (slmp = source_line_modif_list; slmp != NULL;) {
+            slmp2 = slmp;
+            slmp = slmp->next;
+            if (slmp2->sequence_id > sequence_id) {
+              /* Found a modification to this argument.  Remove it, save it
+                 on the modif_list for this argument.  Entries are added
+                 at the end so that they will be in the original order.
+                 This is required by copy_modif_list. */
+              rem_source_line_modif(slmp2);
+              if (map->modif_list == NULL) {
+                map->modif_list = slmp2;
+              } else {
+                end_modif_list->next = slmp2;
+              }  /* if */
+              slmp2->next = NULL;
+              end_modif_list = slmp2;
+            }  /* if */
+          }  /* for */
+          expand_macros = FALSE;
+          /* Re-establish deletion of the characters of the macro
+             invocation. */
+          delete_source_from_loc = save_delete_source_from_loc;
+          /* Re-get the "," or ")" that is next. */
+          (void)arg_get_token(&any_white_space_skipped);
+end_arg_expansion:;
+          pp = pp->next;
+          /* Keep looping while a comma is the next token. */
+          not_done = (curr_token == tok_comma);
+          if (not_done) {
+            (void)arg_get_token(&any_white_space_skipped);
+          }  /* if */
+        } while (not_done);
+        remove_stop_token(tok_comma);
+end_all_args_scan:;
+      }  /* if */
+      /* Check that all of the formal parameters were taken. */
+      if (pp != NULL) {
+        error(ec_too_few_macro_args);
+        /* Set the rest of the parameters to null strings. */
+        do {
+          map = alloc_macro_arg();
+          add_to_arg_values(map);
+          pp = pp->next;
+        } while (pp != NULL);
+      }  /* if */
+      /* Check for closing parenthesis.  Note that if it is present, the
+         token is not deleted yet; that happens at the time of insertion
+         below. */
+      if (curr_token != tok_rparen) {
+        syntax_error(ec_exp_rparen);
+      }  /* if */
+      got_proper_closing_token = (curr_token == tok_rparen);
+      exp_header_name = save_exp_header_name;
+      remove_stop_token(tok_rparen);
+    }  /* if */
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug,
+            "Arguments scanned, about to do replacement of macro %s:\n",
+                     macro_symbol->header->identifier);
+  }  /* if */
+#endif /* DEBUG */
+  if (!got_proper_closing_token) {
+    /* Did not get proper closing token, so do not do the replacement.
+       This happened because a macro invocation is incomplete at
+       end of file, end of a preprocessing directive, or end of
+       a macro argument being macro-expanded in isolation.  Suppressing
+       the expansion avoids some difficult problems with doing the
+       replacement (problems that stem from the fact that the source
+       modification technique really only allows replacements, not
+       straight insertions). */
+    /* Delete any part of the macro invocation that is on this line. */
+    if (delete_source_from_loc != NULL &&
+        delete_source_from_loc < start_of_curr_token) {
+      (void)add_source_line_modif(delete_source_from_loc,
+                                  (sizeof_t)(start_of_curr_token -
+                                                       delete_source_from_loc),
+                                  empty_string, empty_string);
+    }  /* if */
+    *rescan = FALSE;
+    ctoken = curr_token;
+    goto return_point;
+  }  /* if */
+  /* Replace the identifier by the replacement text.  Start by determining
+     the length of the replacement string. */
+  if (special_repl_text) {
+    /* One of the special macros, like __LINE__ and  __FILE__; the text is
+       just a string. */
+    repl_text_len = strlen(repl_text);
+  } else {
+    /* Normal replacement text, with sections. */
+    repl_text_len = 0;
+    for (rtp = repl_text; *rtp != (int)rt_null;) {
+      rts_kind = (a_repl_text_seq_kind)*(rtp++);
+      /* Extract the section length or argument number. */
+      get_macro_repl_text_number(rts_number, rtp);
+      if (rts_kind == rt_text) {
+        sect_len = rts_number;
+        rtp += sect_len;
+      } else {
+        /* Other section kinds have an associated parameter number. */
+        get_arg_value(rts_number, map);
+        switch (rts_kind) {
+          case rt_raw_argument:
+            sect_len = map->raw_len;
+            break;
+          case rt_stringized_raw_argument:
+            /* Determine the length of the stringized version of the
+               argument. */
+            sect_len = stringized_arg(map, (char **)NULL);
+            break;
+          case rt_argument:
+            /* Note that the length here is without any source modifications
+               (like macro expansions); they are handled later. */
+            sect_len = map->raw_len;
+            break;
+#if CHECKING
+          default:
+            internal_error("macro_invocation: expansion section unknown");
+#endif /* CHECKING */
+        }  /* switch */
+      }  /* if */
+      repl_text_len += sect_len;
+    }  /* for */
+  }  /* if */
+  /* repl_text_len now indicates the size of the expansion.  Note that
+     in the case of an expanded argument value, the expansion may be
+     further modified by source line modifications. */
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "Expansion length is %d\n", repl_text_len);
+  }  /* if */
+#endif /* DEBUG */
+  /* Make enough room in macro_buffer for the expansion and the following
+     null. */
+  ensure_macro_buffer_space(repl_text_len+1);
+  /* Move the text into macro_buffer. */
+  rescan_loc = src_loc = next_avail_in_macro_buffer;
+  next_avail_in_macro_buffer += repl_text_len;
+  /* Store final null. */
+  *next_avail_in_macro_buffer++ = '\0';
+  if (special_repl_text) {
+    /* __LINE__,  __FILE__, or defined; the text is just a string. */
+    memcpy(src_loc, repl_text, (int)repl_text_len);
+  } else {
+    /* More complicated expansion; do it by interpreting the replacement
+       text sections. */
+    for (rtp = repl_text; *rtp != (int)rt_null;) {
+      rts_kind = (a_repl_text_seq_kind)*(rtp++);
+      /* Extract the section length or argument number. */
+      get_macro_repl_text_number(rts_number, rtp);
+      if (rts_kind == rt_text) {
+        sect_len = rts_number;
+        text_loc = rtp;
+        rtp += sect_len;
+      } else {
+        /* Other section kinds have an associated parameter number. */
+        get_arg_value(rts_number, map);
+        switch (rts_kind) {
+          case rt_raw_argument:
+            sect_len = map->raw_len;
+            text_loc = map->raw_text;
+            break;
+          case rt_stringized_raw_argument:
+            /* Generate the text of the stringized version of the argument,
+               in the right place. */
+            (void)stringized_arg(map, &src_loc);
+            goto copy_done;
+          case rt_argument:
+            /* Note that any applicable source modifications will be added
+               below. */
+            sect_len = map->raw_len;
+            text_loc = map->raw_text;
+            break;
+#if CHECKING
+          default:
+            internal_error("macro_invocation: expansion section unknown");
+#endif /* CHECKING */
+        }  /* switch */
+      }  /* if */
+      memcpy(src_loc, text_loc, (int)sect_len);
+      if (rts_kind  == rt_argument && map->modif_list != NULL) {
+        /* If this is an expanded argument value, and there are any source
+           modifications to the raw text to produce the expanded text
+           (because of macro expansion in the argument value), make
+           copies of the source modification that modify the copy of the
+           raw text.  Note that the copies of modification text can go
+           at the end of macro_buffer, because next_avail_in_macro_buffer
+           has already been adjusted to allow space for the entire
+           macro expansion.  Macro calls in argument values are a rather
+           rare case, so efficiency is not a big concern here. */
+        copy_modif_list(map, &src_loc);
+      }  /* if */
+      src_loc += sect_len;
+copy_done:;
+    }  /* for */
+  }  /* if */
+  /* Add a source modification that puts the replacement text into the
+     logical source line at the right place.  Aside from modifying the
+     source that is scanned, this also records the fact that this macro's
+     name is protected from expansion (is inert) within its own
+     expansion. */
+  /* The macro invocation finished correctly, and the
+     current token is the macro identifier (for an object-like macro)
+     or the closing parenthesis (for a function-like macro).  We can
+     delete the proper part of the macro invocation and do the
+     insertion with one modification. */
+  /* The text logically deleted here is either the entire macro invocation
+     (if it is all on one line), or the part of it on this line (if it
+     spans several lines). */
+  slmp = add_source_line_modif(delete_source_from_loc,
+                               (sizeof_t)(curr_char_loc -
+                                                       delete_source_from_loc),
+                               rescan_loc, rescan_loc+repl_text_len);
+  slmp->assoc_macro = mdp;
+  copy_source_position(start_pos, slmp->macro_invocation_position);
+  if (C_dialect == C_dialect_pcc &&
+      within_curr_source_line(delete_source_from_loc)) {
+    /* In pcc mode, in order to more closely approximate the token-pasting
+       behavior of pcc, we immediately macro-expand the text resulting from a
+       top-level macro invocation, then make a copy of the macro-expanded
+       version as one long string. */
+    /* Free any allocated macro buffers now, to make their space available
+       in the macro expansions about to be done. */
+    free_macro_arg_entries(prev_end_of_macro_arg_list);
+    expand_top_level_pcc_macro(slmp);
+  }  /* if */
+  /* If this is the first time we are expanding an object-like macro that
+     appears to expand simply to a literal constant, scan and convert
+     the constant now, and save its value. */
+  if (mdp->try_to_scan_and_save_constant_value) {
+    if (save_fetch_pp_tokens) {
+      /* The constant is not being converted, so do not scan it this
+         time, but keep the flag set and try again next time. */
+    } else {
+      /* Try to scan the constant. */
+      mdp->try_to_scan_and_save_constant_value = FALSE;
+      /* Scan using a low-level routine rather than get_token so that
+         adjacent string literals will not be concatenated and integer
+         constants in preprocessing #if expressions will not have their
+         lengths adjusted. */
+      curr_char_loc = rescan_loc;
+      /* Ignore a leading blank, possible in pcc mode (leading white
+         space is preserved). */
+      if (*curr_char_loc == ' ') curr_char_loc++;
+      start_of_curr_token = curr_char_loc;
+      mdp->constant_token_kind = ctoken =
+                               scan_literal_constant(mdp->constant_token_kind);
+      /* If the constant was converted okay, save its value. */
+      if (ctoken != tok_error) {
+        set_source_corresp(&(const_for_curr_token.source_corresp),
+                           macro_symbol);
+        mdp->constant_value = fs_constant(const_for_curr_token.kind);
+        copy_constant(&const_for_curr_token, mdp->constant_value);
+        /* If the constant is a string constant, the string text was
+           allocated at the file scope, and therefore can be used without
+           copying here.  See alloc_text_of_string_literal in il.c. */
+        mdp->is_manifest_constant = TRUE;
+        /* Put the macro constant on the list of constants in the IL, for
+           use in generating symbolic debug information. */
+        add_to_constants_list(mdp->constant_value);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (mdp->is_manifest_constant) {
+    /* This object-like macro is simply a constant.  We do not have
+       to scan the expansion.  This is a speed optimization. */
+    if (!save_fetch_pp_tokens) {
+      copy_constant(mdp->constant_value, &const_for_curr_token);
+    }  /* if */
+    ctoken = mdp->constant_token_kind;
+    *rescan = FALSE;
+    /* Concatenation of adjacent string literals and adjustment of integer
+       constant lengths in preprocessing #if expressions, if appropriate,
+       is done back in get_token. */
+  }  /* if */
+  if (!*rescan) {
+    /* Here, we have a case where we have changed the source line because
+       of a macro expansion, and we also know that the replacement text
+       is a single token.  Adjust the token bounds, since they may not
+       be correct.  len_of_curr_token is set in get_token. */
+    start_of_curr_token = rescan_loc;
+    end_of_curr_token = start_of_curr_token + repl_text_len - 1;
+  }  /* if */
+return_point:
+  /* End of macro invocation processing.  Clean up and return. */
+  if (is_macro_call) {
+    /* Record the reference to the macro for cross-reference purposes.
+       This is not done for cases where the identifier turned out not to be
+       a macro. */
+    mark_referenced(macro_symbol, &start_pos);
+  }  /* if */
+  /* Free any allocated macro buffers.  Note that this includes
+     special_macro_arg as well as any normal arguments.  Also note that
+     in pcc mode this may be the second call of free_macro_arg_entries,
+     and it will do nothing (the entries have already been freed, and
+     it can tell). */
+  free_macro_arg_entries(prev_end_of_macro_arg_list);
+  /* Drop any local pointer registrations. */
+  registered_pointers = save_registered_pointers;
+  delete_source_from_loc = NULL;
+  fetch_pp_tokens = save_fetch_pp_tokens;
+  expand_macros = save_expand_macros;
+  if (*rescan) {
+    /* For a rescan, set the current position to what is to be rescanned. */
+#if CHECKING
+    if (rescan_loc == NULL) {
+      internal_error("macro_invocation: *rescan TRUE, rescan_loc == NULL");
+    }  /* if */
+#endif /* CHECKING */
+    curr_char_loc = rescan_loc;
+  } else {
+    /* For cases where no rescan is needed, set the current position just
+       past the scanned token so that any white space will be correctly
+       picked up before the next token. */
+    curr_char_loc = end_of_curr_token+1;
+  }  /* if */
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug,
+            "Remaining source after expansion of macro %s (*rescan = %s):\n",
+            macro_symbol->header->identifier, *rescan ? "TRUE" : "FALSE");
+    print_markered_text(curr_char_loc, (sizeof_t)-1, TRUE);
+    fputc('\n', f_debug);
+    fprintf(f_debug, "macro_buffer size = %d\n",
+                     (int)(next_avail_in_macro_buffer - macro_buffer));
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return (ctoken);
+}  /* macro_invocation */
+
+
+static sizeof_t id_matches_macro_param_name(a_macro_param_ptr param_list)
+/*
+Look to see if the current token (an identifier) matches any of the macro
+parameters on the given list.  If not, return 0.  If so, return the
+parameter number (the first parameter is numbered 1).
+*/
+{
+  register a_macro_param_ptr pp;
+  register sizeof_t	     num;
+  register sizeof_t          pnum;
+
+  pnum = num = 0;
+  for (pp = param_list; pp != NULL; pp = pp->next) {
+    num++;
+    if (*start_of_curr_token == pp->name[0] &&    /* Test for speed. */
+        len_of_curr_token == strlen(pp->name) &&
+        strncmp(start_of_curr_token, pp->name, (int)len_of_curr_token) == 0) {
+      /* The identifier matches a macro parameter. */
+      pnum = num;
+      break;
+    }  /* if */
+  }  /* for */
+  return (pnum);
+}  /* id_matches_macro_param_name */
+
+
+static a_token_kind mdefn_get_token(a_macro_param_ptr param_list,
+                                    sizeof_t          *param_num,
+                                    a_boolean         *any_white_space_skipped)
+/*
+A functional analogue of get_token, which checks identifiers to see if
+they are macro parameters on the given list.  If so, *param_num is set
+to the parameter number (the first parameter is numbered 1).  Otherwise,
+*param_num is set to 0 (including when the token is not an identifier).
+Return *any_white_space_skipped == TRUE if any white space was skipped 
+before the token.  This routine is used while fetching the replacement
+text of macro definitions.  This routine also implements the cpp practice
+of finding macro arguments within the text of string literals and character
+constants (see end_of_cpp_string, start_of_white_space_in_cpp_string).
+*/
+{
+  *param_num = 0;
+  /* If we have already reached the tok_newline (probably because of
+     an error), do not get another token. */
+  if (curr_token != tok_newline) {
+    /* If we are scanning in pcc mode, scan string literals and
+       character constants as quoting characters surrounding a sequence
+       of preprocessor tokens.  This implements the cpp replacement of
+       macro parameters within strings and character constants.
+       end_of_cpp_string is non-NULL (and points at the end of the
+       string) when we are inside a cpp string. */
+    if (end_of_cpp_string != NULL) {
+      /* Inside a cpp string.  Skip the white space "manually"
+         to avoid problems with things that look like comments.  Remember
+         the start location of that white space. */
+      start_of_white_space_in_cpp_string = curr_char_loc;
+      /* Skip white space characters.  Newline ends the line (to be careful).
+         All others are allowed without error -- this is after all inside
+         a string, not in plain text of the macro definition. */
+      while (isspace(*curr_char_loc) && *curr_char_loc != '\n') {
+        curr_char_loc++;
+      }  /* while */
+      *any_white_space_skipped = (curr_char_loc !=
+                                  start_of_white_space_in_cpp_string);
+      if (*curr_char_loc == '"' || *curr_char_loc == '\'') {
+quote_process:
+        /* A quoting character within (or surrounding) a cpp string.
+           Return a special one-character token.  If this is the closing 
+	   quote of the string, reset end_of_cpp_string to NULL. */
+        curr_token = tok_cpp_quote;
+        start_of_curr_token = end_of_curr_token = curr_char_loc;
+        len_of_curr_token = 1;
+        if (curr_char_loc == end_of_cpp_string) end_of_cpp_string = NULL;
+        curr_char_loc++;
+#if DEBUG
+        if (debug_level >= 3) {
+          fprintf(f_debug, "mdefn_get_token:       cpp quote , \"%.*s\"\n",
+                           len_of_curr_token, start_of_curr_token);
+        }  /* if */
+#endif /* DEBUG */
+      } else if (*curr_char_loc == '/' && *(curr_char_loc+1) == '*') {
+        /* The sequence / * inside a string should not be interpreted as
+            a comment. */
+        curr_token = tok_divide;
+        start_of_curr_token = end_of_curr_token = curr_char_loc;
+        len_of_curr_token = 1;
+        curr_char_loc++;
+#if DEBUG
+        if (debug_level >= 3) {
+          fprintf(f_debug, "mdefn_get_token:       slash     , \"%.*s\"\n",
+                           len_of_curr_token, start_of_curr_token);
+        }  /* if */
+#endif /* DEBUG */
+      } else if (*curr_char_loc == 'L' &&
+                 (*(curr_char_loc+1) == '"' || *(curr_char_loc+1) == '\'')) {
+        /* This would look like the start of a wide string literal or
+           wide character constant, so pick up the initial "L" manually
+           as an identifier. */
+        curr_token = tok_identifier;
+        start_of_curr_token = end_of_curr_token = curr_char_loc;
+        len_of_curr_token = 1;
+        curr_char_loc++;
+#if DEBUG
+        if (debug_level >= 3) {
+          fprintf(f_debug, "mdefn_get_token:       identifier, \"%.*s\"\n",
+                           len_of_curr_token, start_of_curr_token);
+        }  /* if */
+#endif /* DEBUG */
+      } else {
+        /* Any other case within a cpp string -- get a token. */
+        (void)get_token();
+      }  /* if */
+    } else {
+      /* Not inside a cpp string -- get a token.  Explicitly skip any
+         white space preceding the token so that we can know whether or not
+	 there was any. */
+      macro_skip_white_space(*any_white_space_skipped);
+      start_of_white_space_in_cpp_string = NULL;
+      (void)get_token();
+    }  /* if */
+    /* If the token scanned is an identifier, see if it is a macro name. */
+    if (curr_token == tok_identifier) {
+      if (end_of_cpp_string != NULL &&
+          isdigit(*(start_of_curr_token-1))) {
+        /* cpp does not recognize the second part of "123abc" as matching 
+           the parameter "abc" within a string, so we special-case that. */
+      } else {
+        *param_num = id_matches_macro_param_name(param_list);
+      }  /* if */
+    } else if (C_dialect == C_dialect_pcc &&
+               end_of_cpp_string == NULL &&
+               (curr_token == tok_char_constant ||
+                curr_token == tok_string_literal) &&
+               *start_of_curr_token != 'L') {
+      /* Start of a string in cpp mode.  Remember the end location, then
+         rescan the quoting characters and insides as individual tokens.
+         The check for "L" above is to rule out wide literals, which
+         would not appear in true cpp-compatible source. */
+      end_of_cpp_string = end_of_curr_token;
+      curr_char_loc = start_of_curr_token;
+      goto quote_process;
+    }  /* if */
+#if DEBUG
+    if (debug_level >= 3) {
+      if (curr_token == tok_identifier) {
+        fprintf(f_debug, "*param_num = %d\n", *param_num);
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  return (curr_token);
+}  /* mdefn_get_token */
+
+
+/*
+Put the start of a replacement text section into the macro buffer.  It
+consists of a one-byte kind and a multi-byte number (section length or
+argument number).
+*/
+#define put_start_of_section(kind, number)                            \
+{ ensure_macro_buffer_space(1+NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER); \
+  *next_avail_in_macro_buffer++ = (char)kind;                         \
+  put_macro_repl_text_number(number, next_avail_in_macro_buffer);     \
+}  /* put_start_of_section */
+
+/*
+Similar to put_start_of_section, but for non-text sections.  Terminates
+any text section underway.
+*/
+#define put_start_of_non_text_section(kind, number)                   \
+{ curr_text_section = NULL;                                           \
+  put_start_of_section(kind, number);                                 \
+}  /* put_start_of_non_text_section */
+
+
+static void put_raw_text(char     *str,
+                         sizeof_t length,
+                         char     **curr_text_section)
+/*
+Put the given raw-text string into the macro buffer.
+next_avail_in_macro_buffer is the current output position.
+*curr_text_section points to the first byte of the current
+text section, if there is one, or is NULL otherwise.
+*/
+{
+  char     *rtp;
+  sizeof_t sect_len;
+
+  if (*curr_text_section == NULL) {
+    /* There is no current text section.  Start a new text section. */
+    *curr_text_section = next_avail_in_macro_buffer;
+    /* The length is specified as zero; it will be incremented below. */
+    put_start_of_section(rt_text, 0);
+  }  /* if */
+  ensure_macro_buffer_space(length);
+  memcpy(next_avail_in_macro_buffer, str, (int)length);
+  next_avail_in_macro_buffer += length;
+  /* Increment number of characters in current text section. */
+  rtp = *curr_text_section+1;
+  get_macro_repl_text_number(sect_len, rtp);
+  sect_len += length;
+  rtp = *curr_text_section+1;
+  put_macro_repl_text_number(sect_len, rtp);
+}  /* put_raw_text */
+
+
+/*
+Put a raw-text string (part of a macro definition)into the macro
+buffer.  The character will be added to the end of the current text 
+section, if there is one, or a new text section will be begun if necessary.
+*/
+#define put_text_to_macro_buffer(str, length)                         \
+{ put_raw_text(str, length, &curr_text_section); }
+
+
+void proc_define(void)
+/*
+Scan and process a #define directive.
+*/
+{
+  sizeof_t	  repl_text_len;
+  char		  *repl_text;
+  a_macro_def_ptr mdp;
+  a_symbol_ptr	  assoc_symbol;
+  a_boolean       any_white_space_skipped;
+  sizeof_t	  param_num;
+  sizeof_t	  save_param_num;
+  a_macro_param_ptr
+		  pp,
+		  pp2,
+		  last_param,
+		  param_list;
+  a_boolean	  object_like;
+  a_boolean	  redefinition = FALSE;
+  a_repl_text_seq_kind
+		  rts_kind;
+  sizeof_t        rts_number;
+  a_source_position
+                  start_pos;
+  a_boolean	  try_to_scan_and_save_constant_value = FALSE;
+  a_token_kind    constant_token_kind = tok_error;
+  a_boolean       need_end_of_token_marker;
+  static char     str_end_of_token_marker[1] = { END_OF_TOKEN_MARKER };
+#if DEBUG
+  char            *temp_ptr;
+#endif /* DEBUG */
+
+  /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
+     are dangerous, since those things can be reallocated.  Such pointers
+     must be registered by calling register_pointer_variable so that they
+     can be updated on any reallocation. */
+  char		  *curr_text_section;
+  a_pointer_registration
+                  curr_text_section_reg;
+  a_pointer_registration_ptr
+		  save_registered_pointers = registered_pointers;
+
+  register_pointer_variable(curr_text_section, curr_text_section_reg);
+
+  db_enter(3, "proc_define");
+  (void)get_token();
+  copy_source_position(pos_curr_token, start_pos);
+  if (curr_token != tok_identifier) {
+    /* Expected an identifier. */
+    error(ec_exp_identifier);
+    some_error_in_curr_directive = TRUE;
+  } else {
+    /* Look to see if there is a macro with this name. */
+    assoc_symbol = find_symbol(start_of_curr_token, len_of_curr_token,
+                               &locator_for_curr_id);
+    /* find_defined_macro cannot be used because if we have "#define defined"
+       we want to give an error, not ignore it. */
+    get_symbol_of_kind((a_symbol_kind)sk_macro, assoc_symbol);
+    if (assoc_symbol == NULL) {
+      /* No such macro, so #define can be done. */
+    } else if (assoc_symbol->decl_position.seq    == 0 &&
+               assoc_symbol->decl_position.column == SP_COL_UNKNOWN) {
+      /* The macro is predefined, and therefore cannot be redefined. */
+      error(ec_cannot_redef_predef_macro);
+      set_to_error_locator(locator_for_curr_id);
+      assoc_symbol = NULL;
+    } else {
+      /* Macro can be redefined, but only if the new definition matches
+         the old.  Check is done later. */
+      redefinition = TRUE;
+    }  /* if */
+    if (assoc_symbol == NULL) {
+      /* Enter the macro symbol. */
+      copy_source_position(pos_curr_token,
+                           locator_for_curr_id.source_position);
+      assoc_symbol = enter_symbol((a_symbol_kind)sk_macro,
+                                  &locator_for_curr_id,
+                                  DEPTH_OF_FILE_SCOPE,
+                                  /*symbol_to_re_enter=*/(a_symbol_ptr)NULL,
+                                  /*suppress_error=*/TRUE);
+    }  /* if */
+    param_list = last_param = NULL;
+    /* See if this definition has a parameter list. */
+    /* Note that the test here is not done on a token, because there can
+       be no white space between the identifier and the "(". */
+    if (*curr_char_loc != '(') {
+      /* Object-like macro definition (no parameters). */
+      object_like = TRUE;
+    } else {
+      /* Function-like.  Scan parameter list. */
+      object_like = FALSE;
+      /* Get, then advance past, the "(". */
+      (void)get_token();
+      (void)get_token();
+      add_stop_token(tok_rparen);
+      param_num = 0;
+      /* Test for empty parameter list. */
+      if (curr_token != tok_rparen) {
+        /* Not empty. */
+        add_stop_token(tok_comma);
+        do {
+          /* Scan one parameter identifier, build an entry for it. */
+          if (curr_token != tok_identifier) {
+            (void)required_token(tok_identifier, ec_exp_identifier);
+          } else if (id_matches_macro_param_name(param_list)) {
+            /* Duplicate parameter name. */
+            error(ec_duplicate_macro_param_name);
+            (void)get_token();
+          } else {
+            /* Add the parameter to the list. */
+            param_num++;
+            pp = alloc_macro_param();
+            pp->name = alloc_fe((sizeof_t)(len_of_curr_token+1));
+#if DEBUG
+            param_name_string_space += len_of_curr_token+1;
+#endif /* DEBUG */
+            memcpy(pp->name, start_of_curr_token, (int)len_of_curr_token);
+            pp->name[len_of_curr_token] = '\0';
+            if (param_list == NULL) {
+              param_list = pp;
+            } else {
+              /* Link the last entry to this new entry. */
+              last_param->next = pp;
+            }  /* if */
+            last_param = pp;
+#if DEBUG
+            if (debug_level >= 3) {
+              fprintf(f_debug, "macro parameter %d: %s\n",
+                               param_num, pp->name);
+            }  /* if */
+#endif /* DEBUG */
+            (void)get_token();
+          }  /* if */
+        } while (loop_token(tok_comma));
+        remove_stop_token(tok_comma);
+      }  /* if */
+      /* Check for closing parenthesis.  required_token is not used because
+         the get_token must be done in a special way, via mdefn_get_token. */
+      if (curr_token != tok_rparen) {
+        error(ec_exp_rparen);
+      }  /* if */
+      remove_stop_token(tok_rparen);
+    }  /* if */
+    /* Scan the replacement-list as tokens, and place in the buffer; then
+       allocate space for the text, and build the a_macro_def entry. */
+    next_avail_in_macro_buffer = macro_buffer;
+    /* Not inside a cpp string. */
+    end_of_cpp_string = NULL;
+    /* Last section in replacement text is not raw text. */
+    curr_text_section = NULL;
+    /* Get first token of the replacement text. */
+    (void)mdefn_get_token(param_list, &param_num, &any_white_space_skipped);
+    /* Ignore leading white space.  See standard, 3.8.3, semantics.  In
+       pcc mode, keep the white space. */
+    if (C_dialect != C_dialect_pcc) any_white_space_skipped = FALSE;
+    need_end_of_token_marker = FALSE;
+    /* If the definition of the macro is simply a literal constant,
+       and the macro is object-like, set a flag indicating that the
+       literal constant value should be saved and reused when the macro
+       is first expanded.  This is to speed up expansion of the macro.
+       Note that the literal constant cannot actually be scanned and
+       converted in this routine, because that might yield errors;
+       therefore, we wait until the macro is actually expanded. */
+    if (object_like && (curr_token == tok_pp_number ||
+                        curr_token == tok_float_constant ||
+                        curr_token == tok_char_constant ||
+                        curr_token == tok_string_literal)) {
+      constant_token_kind = curr_token;
+      try_to_scan_and_save_constant_value = TRUE;
+      /* More checking coming in the loop. */
+    }  /* if */
+    while (curr_token != tok_newline) {
+      if (curr_token == tok_paste) {
+        /* "##".  Can be preceded and/or followed by a parameter, but
+           need not be.  Cannot be first or last in the replacement text.
+           See standard, 3.8.3.3.  If the "##" was preceded by a
+           parameter, the parameter has already been handled correctly,
+           so that need not be checked for here. */
+        /* Any pending end-of-token marker is suppressed. */
+        need_end_of_token_marker = FALSE;
+        if (next_avail_in_macro_buffer == macro_buffer) {
+          /* Output buffer is empty, so this is the first token.  Error. */
+          error(ec_paste_cannot_be_first);
+          (void)mdefn_get_token(param_list, &param_num,
+                                &any_white_space_skipped);
+        } else if (mdefn_get_token(param_list, &param_num,
+                                   &any_white_space_skipped) == tok_newline) {
+          error(ec_paste_cannot_be_last);
+        } else if (param_num != 0) {
+          /* If the token following the "##" is a parameter, put it out
+             as a raw-text substitution.  Otherwise, just let the next
+             token be processed on the next iteration of the loop.
+             The "##" itself does not appear in the replacement text
+             string. */
+          put_start_of_non_text_section(rt_raw_argument, param_num);
+          need_end_of_token_marker = TRUE;
+          (void)mdefn_get_token(param_list, &param_num,
+                                &any_white_space_skipped);
+        } else {
+          /* Anything other than a parameter.  Delete any white space
+             preceding it. */
+          any_white_space_skipped = FALSE;
+        }  /* if */
+      } else {
+        if (need_end_of_token_marker) {
+          /* Follow the previous token with an end-of-token marker, so that
+             when it is tokenized later, it will always be done in the
+             same way it is now.  This is important, for example, in
+
+             #define x(a) ..##a
+
+             x(.) should yield three "." tokens, not the single token "...".
+             The markers are also helpful when illegal tokens are present.
+             For example, the malformed string literal token in
+
+             #define y() "abc
+
+             should still be an error in
+
+             y()"
+
+             in pcc compatibility mode, the token separators are not put
+             out. */
+          if (C_dialect != C_dialect_pcc) {
+            put_text_to_macro_buffer(str_end_of_token_marker, 1);
+          }  /* if */
+          need_end_of_token_marker = FALSE;
+        }  /* if */
+        /* Token is not "##", and not newline.  Put out a raw-text
+           blank if the token was preceded by any white space. */
+        if (any_white_space_skipped) {
+          /* If we are inside a cpp string, put the original white space
+             characters (rather than the standardized blank) into the
+             raw text.  We don't want to drop blanks and the like inside
+             character strings. */
+          if (start_of_white_space_in_cpp_string == NULL) {
+            /* Not inside a cpp string. */
+            put_text_to_macro_buffer(" ", 1);
+          } else {
+            /* Inside a cpp string. */
+            put_text_to_macro_buffer(start_of_white_space_in_cpp_string,
+                                     (sizeof_t)(start_of_curr_token -
+                                          start_of_white_space_in_cpp_string));
+          }  /* if */
+          any_white_space_skipped = FALSE;
+        }  /* if */
+        if (curr_token == tok_sharp) {
+          /* "#" -- Must be followed by a parameter name.  Note that this is
+             not allowed in an object-like macro.  See standard, 3.8.3.2. */
+          (void)mdefn_get_token(param_list, &param_num,
+                                &any_white_space_skipped);
+          if (object_like) {
+            error(ec_bad_sharp_in_object_like_macro);
+          } else if (param_num == 0) {
+            error(ec_exp_macro_param);
+          } else {
+            put_start_of_non_text_section(rt_stringized_raw_argument,
+                                          param_num);
+            need_end_of_token_marker = TRUE;
+            (void)mdefn_get_token(param_list, &param_num,
+                                  &any_white_space_skipped);
+          }  /* if */
+        } else if (param_num != 0) {
+          /* This token is a parameter of the macro.  Put it out as
+             an expansion of the parameter unless "##" is next, in which
+             case put it out as the raw value of the argument. */
+          /* In pcc mode, always use the raw form of the argument.  Expansion
+             is done on rescan of the macro body. */
+          /* Save information on current token because mdefn_get_token will
+             change it. */
+          save_param_num = param_num;
+          if (mdefn_get_token(param_list, &param_num,
+                              &any_white_space_skipped) == tok_paste ||
+              C_dialect == C_dialect_pcc) {
+            put_start_of_non_text_section(rt_raw_argument, save_param_num);
+          } else {
+            /* Not "##", so put expanded version of argument into string. */
+            put_start_of_non_text_section(rt_argument, save_param_num);
+            need_end_of_token_marker = TRUE;
+          }  /* if */
+        } else {
+          /* Any other tokens -- not special, just put into macro buffer
+             as raw text. */
+          put_text_to_macro_buffer(start_of_curr_token, len_of_curr_token);
+          /* Request an end-of_token marker after this token.  This will be
+             put out later unless the next thing is "##" or the end of the
+             replacement text. */
+          need_end_of_token_marker = TRUE;
+          /* Generate a warning on an invalid token.  Suppress this warning if
+             inside a string because of looking for parameter names; the
+             things inside the string aren't expected to be legal tokens. */
+          if (curr_token == tok_error && end_of_cpp_string == NULL) {
+            warning(ec_bad_token);
+          }  /* if */
+          (void)mdefn_get_token(param_list, &param_num,
+                                &any_white_space_skipped);
+          /* If the expansion looks so far like just a literal constant,
+             a newline should be next; otherwise, the expansion is
+             something more complicated and the special case does not
+             apply. */
+          if (try_to_scan_and_save_constant_value &&
+              curr_token != tok_newline) {
+            try_to_scan_and_save_constant_value = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* while */
+    /* Store final null.  We've ensured that there is room for this. */
+    *next_avail_in_macro_buffer = '\0';
+    /* Not inside a cpp string.  Could still be set if there is an 
+       unclosed string. */
+    end_of_cpp_string = NULL;
+#if DEBUG
+    if (debug_level >= 3) {
+      fprintf(f_debug, "Definition of macro %s:\n",
+                       assoc_symbol->header->identifier);
+      if (object_like) {
+        fprintf(f_debug, "object-like\n");
+      } else {
+        fprintf(f_debug, "function-like, parameter list:\n");
+        for (pp = param_list, param_num = 1; pp != NULL;
+             pp = pp->next, param_num++) {
+          fprintf (f_debug, "  (%d) %s\n", param_num, pp->name);
+        }  /* for */
+      }  /* if */
+      fprintf(f_debug, "replacement text:\n");
+      for (temp_ptr = macro_buffer; *temp_ptr != (int)rt_null;) {
+        rts_kind = (a_repl_text_seq_kind)*(temp_ptr++);
+        /* Extract the section length or argument number. */
+        get_macro_repl_text_number(rts_number, temp_ptr);
+        switch (rts_kind) {
+          case rt_text:
+            fputs("  raw text: \"", f_debug);
+            print_markered_text(temp_ptr, rts_number, FALSE);
+            fputs("\"\n", f_debug);
+            temp_ptr += rts_number;
+            break;
+          case rt_raw_argument:
+            fprintf(f_debug, "  raw argument %lu\n",
+                             (unsigned long)rts_number);
+            break;
+          case rt_stringized_raw_argument:
+            fprintf(f_debug, "  stringized raw argument %lu\n",
+                             (unsigned long)rts_number);
+            break;
+          case rt_argument:
+            fprintf(f_debug, "  expanded argument %lu\n",
+                             (unsigned long)rts_number);
+            break;
+#if CHECKING
+          default:
+            internal_error("proc_define: bad text section kind in macro def");
+#endif /* CHECKING */
+        }  /* switch */
+      }  /* for */
+      fprintf(f_debug, "  end\n");
+      if (try_to_scan_and_save_constant_value) {
+        fprintf(f_debug, "try_to_scan_and_save_constant_value = TRUE\n");
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
+    mdp = NULL;
+    if (redefinition) {
+      /* This is a redefinition of a previous macro.  Check that the
+         redefinition is benign (see standard, 3.8.3, constraints).
+         Both definitions have to be object-like or function-like,
+         and the replacement text and parameter list have to have
+         the same spelling after white space is standardized. */
+      mdp = assoc_symbol->variant.macro_def;
+      if (mdp->object_like == object_like &&
+          memcmp(mdp->repl_text, macro_buffer,
+                 (int)(next_avail_in_macro_buffer - macro_buffer)) == 0) {
+        /* Check parameter lists to make sure they match. */
+        for (pp = param_list, pp2 = mdp->param_list;
+             pp != NULL && pp2 != NULL;
+             pp = pp->next, pp2 = pp2->next) {
+          if (strcmp(pp->name, pp2->name) != 0) goto redef_error;
+        }  /* for */
+        if (pp == NULL && pp2 == NULL) goto def_done;
+      }  /* if */
+redef_error:
+      /* Bad redefinition.  Keep the new definition, give a warning. */
+      pos_warning(ec_bad_macro_redef, &start_pos);
+    }  /* if */
+    /* Allocate space for the text, and copy it. */
+    repl_text_len = next_avail_in_macro_buffer - macro_buffer;
+    repl_text = alloc_fe((sizeof_t)(repl_text_len+1));
+#if DEBUG
+    macro_definition_space += repl_text_len+1;
+#endif /* DEBUG */
+    memcpy(repl_text, macro_buffer, (int)repl_text_len);
+    repl_text[repl_text_len] = '\0';
+    /* Allocate and fill the macro definition block. */
+    if (mdp == NULL) mdp = alloc_macro_def();
+    mdp->object_like    = object_like;
+    mdp->try_to_scan_and_save_constant_value
+                        = try_to_scan_and_save_constant_value;
+    mdp->param_list     = param_list;
+    mdp->repl_text      = repl_text;
+    mdp->constant_token_kind
+			= constant_token_kind;
+    /* Put the macro def block pointer into the symbol entry. */
+    assoc_symbol->variant.macro_def = mdp;
+def_done:;
+  }  /* if */
+  /* Drop any local pointer registrations. */
+  registered_pointers = save_registered_pointers;
+  db_exit();
+  return;
+}  /* proc_define */
+
+
+#if DEBUG
+unsigned long show_macro_space_used(void)
+/*
+Display and return the amount of space used for various macro tables.
+*/
+{
+  unsigned long num, size, total, grand_total = 0;
+
+  fprintf(f_debug, "\nMacro table use:\n");
+  fprintf(f_debug, "%25s %8s %8s %8s\n", "Table", "Number", "Each", "Total");
+
+#define write_one(name, counter, type)                                \
+{ num = counter; size = sizeof(type); total = num*size;               \
+  fprintf(f_debug, "%25s %8lu %8lu %8lu\n", name, num, size, total);  \
+  grand_total += total;                                               \
+}  /* write_one */
+
+/* Write one line for an item allocated in general storage. */
+#define write_one_general(name, counter, type)                        \
+{ num = counter; size = sizeof(type); total = num*size;               \
+  fprintf(f_debug, "%25s %8lu %8lu %8lu (gen. storage)\n", name, num, \
+                   size, total);                                      \
+  grand_total += total;                                               \
+}  /* write_one_general */
+
+  write_one("macro param", num_macro_params_allocated, a_macro_param);
+  write_one("macro def", num_macro_defs_allocated, a_macro_def);
+  write_one_general("macro arg", num_macro_args_allocated, a_macro_arg);
+  write_one_general("Macro arg text", macro_arg_raw_text_space, char);
+  write_one("Param name strings", param_name_string_space, char);
+  write_one("Macro definition text", macro_definition_space, char);
+
+  total = after_end_of_macro_buffer - macro_buffer;
+  fprintf(f_debug, "%25s %8s %8s %8lu (gen. storage)\n", "macro_buffer",
+                   "", "", total);
+  grand_total += total;
+  if (C_dialect == C_dialect_pcc) {
+    total = after_end_of_aux_buffer_for_pcc_macros - aux_buffer_for_pcc_macros;
+    fprintf(f_debug, "%25s %8s %8s %8lu (gen. storage)\n", "Aux pcc buffer",
+                     "", "", total);
+    grand_total += total;
+  }  /* if */
+
+  fprintf(f_debug, "%25s %8s %8s %8lu\n", "Total", "", "", grand_total);
+
+  return (grand_total);
+}  /* show_macro_space_used */
+#endif /* DEBUG */
+
+
+void macro_proc_init(void)
+/*
+Initialize static variables related to macro processing.  This is done
+as a subroutine (rather than relying on static initialization) so that it
+can be redone to compile more than one source file in a single invocation
+of the front end.
+The name of this routine is "macro_proc_init" rather than "macro_init"
+to avoid an 8-character external name uniqueness conflict with
+"macro_invocation".
+*/
+{
+  /* Static variables in macro.c: */
+  /* avail_macro_args is not per-file and should not be cleared. */
+  macro_arg_list = NULL;
+  end_of_macro_arg_list = NULL;
+  registered_pointers = NULL;
+#if DEBUG
+  num_macro_params_allocated    = 0;
+  num_macro_defs_allocated      = 0;
+  /* num_macro_args_allocated is not per-file and should not be cleared. */
+  /* macro_arg_raw_text_space is not per-file and should not be cleared. */
+  param_name_string_space       = 0;
+  macro_definition_space        = 0;
+#endif /* DEBUG */
+  end_of_cpp_string = NULL;
+  /* Do the initial allocation for macro_buffer the first time this
+     routine is called.  Since the space is allocated in general storage,
+     it does not need to be reallocated for each source file.  For the same
+     reason, after_end_of_macro_buffer should not be reset. */
+  if (after_end_of_macro_buffer == NULL) {
+    /* First time through.  Do initial allocation for the macro buffer.
+       The space will be reallocated (larger) if necessary, but the size
+       here should be big enough for the expected cases. */
+    /* Allocate one more byte than required, so that a pointer past the end
+       will not have the same address as a pointer to the next object in
+       memory. */
+    macro_buffer = alloc_general(
+                                (sizeof_t)(MACRO_BUFFER_INITIAL_ALLOCATION+1));
+    after_end_of_macro_buffer = macro_buffer + MACRO_BUFFER_INITIAL_ALLOCATION;
+    if (C_dialect == C_dialect_pcc) {
+      /* Allocate the auxiliary buffer for pcc mode.  It is used to construct
+         the full text of a first-level macro expansion so that the token
+         pasting can match pcc's. */
+      /* Allocate one more byte than required, so that a pointer past the end
+         will not have the same address as a pointer to the next object in
+         memory. */
+      aux_buffer_for_pcc_macros = alloc_general(
+                   (sizeof_t)(AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION+1));
+      after_end_of_aux_buffer_for_pcc_macros = aux_buffer_for_pcc_macros +
+                                  AUX_BUFFER_FOR_PCC_MACROS_INITIAL_ALLOCATION;
+    }  /* if */
+  }  /* if */
+}  /* macro_proc_init */
+
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C Front End                            - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright (C) 1988, 1989 Edison Design Group Inc.              [_]          *
+*                                                                             *
+******************************************************************************/

@@ -517,28 +517,23 @@ take_first_entry:
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
   if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_identifier) {
-    /* For an identifier, restore the locator and symbol list pointer. */
+    /* For an identifier, restore the locator. */
     /* Note that set_to_error_locator uses error_position as the
        position, which is correct (error_position == pos_curr_token). */
     set_to_error_locator(locator_for_curr_id);
     locator_for_curr_id.symbol_header = ctp->variant.identifier_header;
-    symbol_list_for_curr_id = symbol_list_from_locator(locator_for_curr_id);
   } else if (ctp->extra_info_kind ==
                                (a_token_extra_info_kind)teik_specific_symbol) {
-    /* For a specific symbol, restore the locator and clear the symbol
-       list pointer. */
+    /* For a specific symbol, restore the locator. */
     make_locator_for_symbol(ctp->variant.specific_symbol,
                             &locator_for_curr_id);
     locator_for_curr_id.source_position = pos_curr_token;
-    symbol_list_for_curr_id = NULL;
   } else if (ctp->extra_info_kind ==
                                 (a_token_extra_info_kind)teik_qualified_name) {
-    /* For a qualified name identifier, restore the locator and clear the
-       symbol list pointer. */
+    /* For a qualified name identifier, restore the locator. */
     make_locator_for_qualified_name_symbol(ctp->variant.specific_symbol,
                                            &locator_for_curr_id);
     locator_for_curr_id.source_position = pos_curr_token;
-    symbol_list_for_curr_id = NULL;
   } else if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_constant) {
     /* For a literal constant, restore const_for_curr_token. */
     copy_constant(ctp->variant.constant, &const_for_curr_token);
@@ -3610,12 +3605,10 @@ start_of_token_scan:  /* Restart here after scanning white space. */
       if ((fetch_pp_tokens || in_preprocessing_directive) && !expand_macros) {
         /* Raw preprocessing tokens wanted, so do not look up the
            identifier. */
-        symbol_list_for_curr_id = NULL;
       } else {
         /* Look up the identifier in the symbol table. */
-        assoc_symbol = symbol_list_for_curr_id = 
-                  find_symbol(start_of_curr_token,
-                              (sizeof_t)((end_of_curr_token -
+        assoc_symbol = find_symbol(start_of_curr_token,
+                                   (sizeof_t)((end_of_curr_token -
                                                      start_of_curr_token + 1)),
                               &locator_for_curr_id);
         /* See if the identifier is a macro or keyword.  "Macro" should
@@ -4258,8 +4251,6 @@ set to NULL and return FALSE.
                                      /*symbol_to_re_enter=*/(a_symbol_ptr)NULL,
                                      /*suppress_error=*/TRUE);
           }  /* if */
-          /* Clear the symbol list to be neat. */
-          symbol_list_for_curr_id = NULL;
           locator_for_curr_id.is_qualified_name = is_qualified_name = TRUE;
           error_position = start_position;
           /* Since we're returning a pseudo-token, set pos_curr_token.
