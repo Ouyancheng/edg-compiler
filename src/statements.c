@@ -1598,7 +1598,7 @@ start of a sequence of declarations.
       }  /* for */
       sp->source_sequence_entry = ssep;
 #if DEBUG
-      if (debug_level >= 4) {
+      if (debug_level >= 4 || db_flag_is_set("dump_decl_stmt")) {
         fputs("ss list starting at prev_ssep:\n", f_debug);
         db_source_sequence_list(prev_ssep);
         fprintf(f_debug, "decl statement points at:%s",
