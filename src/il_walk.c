@@ -322,10 +322,6 @@ definition of the class is needed, and not just the declaration.
       type->source_corresp.needed = FALSE;
       walk_tree_and_set_needed((char *)type, iek_type);
     }  /* if */
-    /* If this is a nested class, set definition_needed on the parent too. */
-    if (type->source_corresp.is_class_member) {
-      set_class_definition_needed(type->source_corresp.parent.class_type);
-    }  /* if */
   }  /* if */
 }  /* set_class_definition_needed */
 
@@ -397,6 +393,15 @@ as needed.
              needed. */
           prune = TRUE;
         }  /* if */
+      }  /* if */
+      if (prune && scp->is_class_member) {
+        /* When the subtree is not going to be walked now and the entity is
+           a class member, mark the parent as needed anyway.  This is done
+           in the normal processing, but we're suppressing that by not walking
+           the subtree. */
+        a_type_ptr parent_class = scp->parent.class_type;
+        walk_tree_and_set_needed((char *)parent_class, iek_type);
+        set_class_definition_needed(parent_class);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -541,11 +546,6 @@ declaration.
       clear_keep_in_il_to_allow_subtree_walk((char *)type, iek_type);
       walk_tree_and_set_keep_in_il((char *)type, iek_type);
     }  /* if */
-    /* If this is a nested class, set keep_definition_in_il on the parent
-       too. */
-    if (type->source_corresp.is_class_member) {
-      set_class_keep_definition_in_il(type->source_corresp.parent.class_type);
-    }  /* if */
   }  /* if */
 }  /* set_class_keep_definition_in_il */
 
@@ -660,6 +660,20 @@ to be kept.
         /* Don't walk the subtree of a class if its definition is not
            marked to be kept in the IL. */
         prune = TRUE;
+      }  /* if */
+    }  /* if */
+    if (prune) {
+      /* When the subtree is not going to be walked now and the entity is
+         a class member, mark the parent as needed anyway.  This is done
+         in the normal processing, but we're suppressing that by not walking
+         the subtree. */
+      a_source_correspondence *scp =
+                            source_corresp_for_il_entry(entry_ptr, entry_kind);
+      check_assertion(scp != NULL);
+      if (scp->is_class_member) {
+        a_type_ptr parent_class = scp->parent.class_type;
+        walk_tree_and_set_keep_in_il((char *)parent_class, iek_type);
+        set_class_keep_definition_in_il(parent_class);
       }  /* if */
     }  /* if */
   }  /* if */
