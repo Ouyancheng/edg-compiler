@@ -2377,25 +2377,8 @@ entry.
   gen_member_access_specifier(using_decl->access);
   entry_kind = (an_il_entry_kind)using_decl->entity.kind;
   /* Get the source correspondence entry for the entity. */
-  switch (entry_kind) {
-    case iek_field:
-      scp = &((a_field_ptr)using_decl->entity.ptr)->source_corresp;
-      break;
-    case iek_variable:
-      scp = &((a_variable_ptr)using_decl->entity.ptr)->source_corresp;
-      break;
-    case iek_routine:
-      scp = &((a_routine_ptr)using_decl->entity.ptr)->source_corresp;
-      break;
-    case iek_type:
-      scp = &((a_type_ptr)using_decl->entity.ptr)->source_corresp;
-      break;
-    case iek_constant:
-      scp = &((a_type_ptr)using_decl->entity.ptr)->source_corresp;
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
+  scp = source_corresp_for_il_entry(using_decl->entity.ptr, entry_kind);
+  check_assertion(scp != NULL);
   /* Always put out an access declaration instead of a "using" declaration,
      for the sake of old compilers that don't accept "using" declarations.
      If the underlying compiler accepts both, they mean the same thing.
@@ -2530,6 +2513,9 @@ is the one associated with the definition of the class.
   if (ctsp != NULL &&
       ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     /* The type is an anonymous union, so suppress the name. */
+  } else if (!has_name(type) && type->autonomous_primary_tag_decl) {
+    /* The type is an unnamed autonomous tag.  This covers the nonstandard
+       anonymous union cases in C. */
   } else if (type->variant.class_struct_union.originally_unnamed &&
              has_name(type)) {
     /* The type was unnamed but got a name from a typedef, so suppress the
