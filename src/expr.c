@@ -14660,11 +14660,15 @@ see expr.h).
         } else if (curr_expr_kind_is(ek_integral_constant) ||
                    (curr_expr_kind_is(ek_template_arg) &&
                     !floating_point_template_parameters_allowed)) {
-          /* In integral constant expressions, they are allowed only as the 
-             immediate operand of a cast.  Template argument expressions are
-             usually the same as integral constant expressions. */
+          /* In integral constant expressions, floating-point literals are
+             allowed only as the immediate operand of a cast; fixed-point
+             literals are not allowed at all.  Template argument expressions
+             are usually the same as integral constant expressions. */
           float_con_allowed = FALSE;
           if ((local_options & EOPT_OPERAND_OF_CAST) &&
+#if FIXED_POINT_ALLOWED
+              curr_token != tok_fixed_point_constant &&
+#endif /* FIXED_POINT_ALLOWED */
               /* Guard against something like "int(3.0/1)". */
               token_ends_expr(next_token(), prec_level, local_options)) {
             float_con_allowed = TRUE;
