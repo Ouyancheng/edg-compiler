@@ -2363,10 +2363,10 @@ pointer to it.
     case pk_can_instantiate:
     case pk_define_type_info:
       break;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case pk_stdc:
       pp->variant.stdc.kind = (a_stdc_pragma_kind)stdc_pk_none;
       break;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CHECKING
     default:
       internal_error("alloc_pragma: bad pragma kind");
