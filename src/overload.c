@@ -5657,7 +5657,8 @@ at *err_pos if not.
 static a_boolean operand_is_temp_init(an_operand *operand)
 /*
 Return TRUE if the given operand is an expression operand for an enk_temp_init
-(which represents an expression temporary).
+(which represents an expression temporary).  Whether the enk_temp_init
+returns the value or address of the temporary is immaterial.
 */
 {
   a_boolean is_temp_init = FALSE;
@@ -6073,8 +6074,8 @@ Only used in C++.
                                     &local_conversion)) {
     /* Yes, the conversion is possible.  Do it. */
     convert_operand(source_operand, dest_type, conversion);
-    /* In some cases, the result is already in something that can be
-       considered a temporary. */
+    /* In some cases, the result is already in a temporary or something
+       that can be considered a temporary. */
     have_temp = FALSE;
     if (operand_is_temp_init(source_operand)) {
       /* The conversion routine returns its value into a temporary, so
@@ -6153,10 +6154,57 @@ limited loophole allowed in cfront compatibility mode.
 }  /* is_field_selection_lvalue_operand */
 
 
+static void adjust_top_temporary_for_binding_to_static_reference(
+                                                           an_operand *operand)
+/*
+operand is the initializer expression being bound to a static lifetime
+reference.  It has already been massaged into the right type, and a
+temporary has been generated if necessary.  If the top of the expression
+is a temporary, ensure that the temporary will have static lifetime
+so it will last as long as the reference.  This is needed for cases like
+
+  void f() {
+    static const A& r = A(1) + A(2);
+  }
+
+*/
+{
+  an_expr_node_ptr       node;
+  a_dynamic_init_ptr     dip;
+  an_object_lifetime_ptr lifetime;
+
+  if (is_expression_operand(operand)) {
+    node = operand->variant.expression;
+    /* Drop any casts on top of the expression. */
+    while (is_operation_node(node) &&
+           node->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
+      node = node->variant.operation.operands;
+    }  /* while */
+    if (node->kind == (an_expr_node_kind)enk_temp_init) {
+      dip = node->variant.init.dynamic_init;
+      lifetime = dip->lifetime;
+      /* The "lifetime != NULL" test here deals with initializations that
+         do not need a destructor. */
+      if (lifetime != NULL &&
+          (lifetime->kind != olk_global_static &&
+           lifetime->kind != olk_function_static)) {
+        /* The dynamic init for the temporary is attached to a lifetime that
+           is not static, so it must be removed and put into a static
+           lifetime. */
+        remove_from_destruction_list(dip);
+        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/TRUE,
+                                           /*scope_lifetime=*/TRUE);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* adjust_top_temporary_for_binding_to_static_reference */
+
+
 void prep_initializer_operand(an_operand    *source_operand,
                               a_type_ptr    dest_type,
                               a_conv_descr  *conversion,
                               a_boolean     initializing_return_value,
+                              a_boolean     static_lifetime,
                               a_boolean     try_user_conversions,
                               an_error_code incompatible_err)
 /*
@@ -6384,6 +6432,11 @@ found to be acceptable, and *conversion describes it.
         }  /* if */
       }  /* if */
     }  /* if */
+    if (static_lifetime) {
+      /* The reference being bound is static, so if the top thing in the
+         initializer is a temporary, make sure the temporary is also static. */
+      adjust_top_temporary_for_binding_to_static_reference(source_operand);
+    }  /* if */
   } else {
     /* Normal case (not initializing a reference). */
     prep_conversion_operand(source_operand, dest_type, conversion,
@@ -6438,6 +6491,7 @@ to be acceptable, and *conversion describes it.
     prep_initializer_operand(source_operand, formal_param->type,
                              conversion,
                              /*initializing_return_value=*/FALSE,
+                             /*static_lifetime=*/FALSE,
                              /*try_user_conversions=*/TRUE,
                              err_code);
   }  /* if */

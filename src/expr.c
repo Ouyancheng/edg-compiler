@@ -1304,7 +1304,7 @@ Scan a single expression in parentheses as an initializer value, and convert
 it to dest_type if necessary.  The current token is the token after the
 opening left parenthesis.  On return, the current token is the token following
 the closing parenthesis.  If the conversion cannot be done, issue the
-error err_code.
+error err_code.  The entity being initialized is assumed not to be static.
 */
 {
   an_expr_node_ptr expr;
@@ -1317,6 +1317,7 @@ error err_code.
   /* Convert to the required type. */
   prep_initializer_operand(&result, dest_type, (a_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
+                           /*static_lifetime=*/FALSE,
                            /*try_user_conversions=*/TRUE, err_code);
    /* Check for the required closing parenthesis. */
   check_closing_paren_after_expr_list();
@@ -8838,6 +8839,7 @@ the appropriate dynamic initialization entry and return NULL.
       prep_initializer_operand(&result, required_type,
                                (a_conv_descr_ptr)NULL,
                                /*initializing_return_value=*/TRUE,
+                               /*static_lifetime=*/FALSE,
                                /*try_user_conversions=*/TRUE,
                                err_code);
     }  /* if */
@@ -9087,6 +9089,7 @@ Return the constant in *constant.
      conversions. */
   prep_initializer_operand(&result, param_type, (a_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
+                           /*static_lifetime=*/FALSE,
                            /*try_user_conversions=*/FALSE,
                            ec_bad_nontype_template_arg);
   /* Make a constant from the operand. */
@@ -9137,6 +9140,7 @@ constant class members (an extension).
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
+                           /*static_lifetime=*/FALSE,
                            /*try_user_conversions=*/FALSE,
                            ec_bad_initializer_type);
   /* Make a constant from the operand. */
@@ -9188,6 +9192,7 @@ copy constructor elision is possible; see scan_class_initializer_expression.
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
+                           static_lifetime,
                            /*try_user_conversions=*/TRUE,
                            ec_bad_initializer_type);
   /* Return a constant or expression depending on what was scanned. */
