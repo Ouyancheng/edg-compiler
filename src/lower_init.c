@@ -4146,7 +4146,9 @@ arrays with class elements.
   a_boolean                   ovflo;
   a_routine_ptr               ctor_routine, dtor_routine, delete_routine;
   an_insert_location          insert_location;
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
   an_expr_node_ptr            delete_args = NULL;
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
 
   /* Get the array element type. */
   array_type = skip_typerefs(ndsp->type);
@@ -4187,6 +4189,7 @@ arrays with class elements.
                        "lower_array_new: placement new with null new_routine");
     lower_arg_expr_list(ndsp->arg, new_routine->type,
                         (a_param_type_ptr)NULL);
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
     if (dip != NULL && ndsp->freeing_of_storage_on_exception != NULL) {
       /* This is a placement new for which there is a corresponding placement
          delete.  Make a copy of the argument list for the new call, to
@@ -4197,6 +4200,7 @@ arrays with class elements.
       /* Note that the copy skips the first argument (the size). */
       delete_args = copy_arg_list_for_placement_delete(ndsp->arg->next);
     }  /* if */
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     size_node = ndsp->arg;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Add the size of the runtime prefix used to keep track of the array
