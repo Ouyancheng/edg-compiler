@@ -10118,7 +10118,6 @@ sequence list.
   a_source_sequence_entry_ptr     ssep;
   a_boolean                       force_alloc_in_filescope;
   a_memory_region_number          region_to_switch_back_to;
-  a_source_position               pos;
 
   if (!source_sequence_entries_disallowed) {
     /* We are in a context in which source sequence entries are being
