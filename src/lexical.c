@@ -1426,7 +1426,7 @@ an equivalent change.
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
   if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
-    /* This is a cached pptoken.  Restore the starting and ending token
+    /* This is a cached pp-token.  Restore the starting and ending token
        positions. */
     start_of_curr_token = ctp->variant.pp_token_descr.token_start;
     end_of_curr_token = ctp->variant.pp_token_descr.token_end;
@@ -1499,7 +1499,7 @@ an equivalent change.
   start_of_curr_token = end_of_curr_token = NULL;
   len_of_curr_token = 0;
   if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pp_token) {
-    /* This is a cached pptoken.  Restore the starting and ending token
+    /* This is a cached pp-token.  Restore the starting and ending token
        positions. */
     start_of_curr_token = ctp->variant.pp_token_descr.token_start;
     end_of_curr_token = ctp->variant.pp_token_descr.token_end;
