@@ -55,6 +55,36 @@ to an integral type, but not to an enum type.
 
 12/13/96 Partial specialization of class templates
 
+Partial specialization of class templates is now supported.  A
+partial specialization is a version of a class template that is to
+be used for instantiations that match the argument list of the
+partial specialization.  When an instantiation of the class is
+required, the front end selects the partial specialization that
+most closely matches the argument list.  If none of the specializations
+match, the primary template is used.  If more than one specialization
+matches, and the specializations are "unordered" relative to one
+another, then the instantiation is ambiguous.
+
+  #include <stdio.h>
+  template <class T, class U> struct A        { int i; A() : i(1) {} }; // #1
+  template <class T, class U> struct A<T*, U> { int i; A() : i(2) {} }; // #2
+  template <class T> struct A<T*, T>          { int i; A() : i(3) {} }; // #3
+
+  A<int, char> a1;  // uses #1
+  A<int*, char> a2; // uses #2
+  A<int*, int> a3;  // uses #3
+
+  int main()
+  {
+    printf("%d %d %d\n", a1.i, a2.i, a3.i);  // outputs 1 2 3
+  }
+
+A member class template may be partially specialized, but any partial
+specializations must be declared within the enclosing class.  The
+Working Paper is silent on where such partial specializations may
+be declared.  We have chosen this rule pending clarification by
+the X3J16/WG21 committee.
+
 The mangled names for partial specializations use a new "__ps__"
 prefix that introduces the first of two template argument lists
 used on the partial specialization.  The name demangler has been
