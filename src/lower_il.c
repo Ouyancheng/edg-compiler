@@ -2487,9 +2487,8 @@ FALSE.
 }  /* make_reusable_copy */
 
 
-static an_expr_node_ptr make_lvalue_reusable_copy(
-                                              an_expr_node_ptr expr,
-                                              a_boolean        vars_can_change)
+an_expr_node_ptr make_lvalue_reusable_copy(an_expr_node_ptr expr,
+                                           a_boolean        vars_can_change)
 /*
 Return a copy of the expression tree pointed to by expr.  If the expression
 has side effects, or if its value is affected by the values of variables

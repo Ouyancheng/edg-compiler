@@ -40,6 +40,7 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 static void lower_c99_dynamic_init(a_dynamic_init_ptr dip);
 static void lower_c99_constant_list(a_constant_ptr constant_list);
 static void lower_c99_statement(a_statement_ptr statement);
+static void lower_c99_cast(an_expr_node_ptr expr);
 
 /* Pointers to lowered versions of complex types, once allocated. */
 static a_type_ptr lowered_complex_float = NULL;
@@ -189,6 +190,23 @@ argument).
                           (an_insert_location *)NULL);
   return result;
 }  /* make_prototyped_runtime_call */
+
+
+static an_expr_node_ptr add_c99_lowered_cast_if_necessary(
+                                                    an_expr_node_ptr node,
+                                                    a_type_ptr       new_type)
+/*
+If the given node represents an expression of a type identical to new_type,
+return the node unchanged.  Otherwise, modify the node to add a cast on top
+of it and lower that cast.
+*/
+{
+  if (!il_identical_types(node->type, new_type)) {
+    node = add_cast(node, new_type);
+    lower_c99_cast(node);
+  }  /* if */
+  return node;
+}  /* add_c99_lowered_cast_if_necessary */
 
 
 static void lower_c99_xnegate(an_expr_node_ptr  expr)
@@ -421,51 +439,71 @@ Transform the given complex expression ("z1!=z2") into a function call
 }  /* lower_c99_xne */
 
 
+static void lower_c99_compound_assignment(an_expr_node_ptr  expr,
+                                          char              *rout_name,
+                                          a_routine_ptr     *xop_routine)
+/*
+Rewrite a compound assignment x @= y as x' = op@(x", y).  The original
+expression is passed through expr.  The name and IL entry for the called
+routine (op@) are rout_name and xop_routine, respectively.
+*/
+{
+  an_expr_node_ptr  lhs = expr->variant.operation.operands, rhs = lhs->next;
+  an_expr_node_ptr  lhs_copy, xop_call, assignment;
+  a_type_ptr        op_type = expr->variant.operation.operands->next->type;
+
+  op_type = skip_typerefs(op_type);
+  lhs_copy = make_lvalue_reusable_copy(lhs, /*vars_can_change=*/TRUE);
+  lhs_copy = add_indirection_to_node(lhs_copy);
+  lhs_copy = add_c99_lowered_cast_if_necessary(lhs_copy, op_type);
+  lhs_copy->next = rhs;
+  xop_call = make_prototyped_runtime_call(rout_name, xop_routine,
+                                          op_type, op_type, op_type,
+                                          lhs_copy);
+  xop_call = add_c99_lowered_cast_if_necessary(xop_call, expr->type);
+  lhs->next = xop_call;
+  assignment =  make_operator_node((an_expr_operator_kind)eok_sassign,
+                                   expr->type, lhs);
+  overwrite_node(expr, assignment);
+}  /* lower_c99_compound_assignment */
+
+
 static void lower_c99_xadd_assign(an_expr_node_ptr  expr)
 /*
-Transform the given complex expression ("z1 += z2") into a function call
-(compatible with C89).
+Transform the given complex expression ("z1 += z2") into a simple assignment
+and a function call (compatible with C89).
 */
 {
   a_type_ptr        op_type = expr->variant.operation.operands->next->type;
   char              *rout_name;
-  an_expr_node_ptr  xadd_assign_call;
 
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
   switch (op_type->variant.float_kind) {
     case fk_float:
-      rout_name = "__c99_complex_float_add_assign";
+      rout_name = "__c99_complex_float_add";
       break;
     case fk_double:
-      rout_name = "__c99_complex_double_add_assign";
+      rout_name = "__c99_complex_double_add";
       break;
     case fk_long_double:
-      rout_name = "__c99_complex_long_double_add_assign";
+      rout_name = "__c99_complex_long_double_add";
       break;
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xadd_assign_call = make_prototyped_runtime_call(
-                                       rout_name, &xadd_assign_routine,
-                                       op_type,
-                                       expr->variant.operation.operands->type,
-                                       op_type,
-                                       expr->variant.operation.operands);
-  xadd_assign_call = add_cast_if_necessary(xadd_assign_call, expr->type);
-  overwrite_node(expr, xadd_assign_call);
+  lower_c99_compound_assignment(expr, rout_name, &xadd_routine);
 }  /* lower_c99_xadd_assign */
 
 
 static void lower_c99_xsubtract_assign(an_expr_node_ptr  expr)
 /*
-Transform the given complex expression ("z1 -= z2") into a function call
-(compatible with C89).
+Transform the given complex expression ("z1 -= z2") into a simple assignment
+and a function call (compatible with C89).
 */
 {
   a_type_ptr        op_type = expr->variant.operation.operands->next->type;
   char              *rout_name;
-  an_expr_node_ptr  xsubtract_assign_call;
 
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
@@ -482,27 +520,18 @@ Transform the given complex expression ("z1 -= z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xsubtract_assign_call = make_prototyped_runtime_call(
-                                       rout_name, &xsubtract_assign_routine,
-                                       op_type,
-                                       expr->variant.operation.operands->type,
-                                       op_type,
-                                       expr->variant.operation.operands);
-  xsubtract_assign_call = add_cast_if_necessary(xsubtract_assign_call,
-                                                expr->type);
-  overwrite_node(expr, xsubtract_assign_call);
+  lower_c99_compound_assignment(expr, rout_name, &xsubtract_assign_routine);
 }  /* lower_c99_xsubtract_assign */
 
 
 static void lower_c99_xmultiply_assign(an_expr_node_ptr  expr)
 /*
-Transform the given complex expression ("z1 *= z2") into a function call
-(compatible with C89).
+Transform the given complex expression ("z1 *= z2") into a simple assignment
+and a function call (compatible with C89).
 */
 {
   a_type_ptr        op_type = expr->variant.operation.operands->next->type;
   char              *rout_name;
-  an_expr_node_ptr  xmultiply_assign_call;
 
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
@@ -519,27 +548,18 @@ Transform the given complex expression ("z1 *= z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xmultiply_assign_call = make_prototyped_runtime_call(
-                                       rout_name, &xmultiply_assign_routine,
-                                       op_type,
-                                       expr->variant.operation.operands->type,
-                                       op_type,
-                                       expr->variant.operation.operands);
-  xmultiply_assign_call = add_cast_if_necessary(xmultiply_assign_call,
-                                                expr->type);
-  overwrite_node(expr, xmultiply_assign_call);
+  lower_c99_compound_assignment(expr, rout_name, &xmultiply_assign_routine);
 }  /* lower_c99_xmultiply_assign */
 
 
 static void lower_c99_xdivide_assign(an_expr_node_ptr  expr)
 /*
-Transform the given complex expression ("z1 /= z2") into a function call
-(compatible with C89).
+Transform the given complex expression ("z1 /= z2") into a simple assignment
+and a function call (compatible with C89).
 */
 {
   a_type_ptr        op_type = expr->variant.operation.operands->next->type;
   char              *rout_name;
-  an_expr_node_ptr  xdivide_assign_call;
 
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
@@ -556,14 +576,7 @@ Transform the given complex expression ("z1 /= z2") into a function call
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
-  xdivide_assign_call = make_prototyped_runtime_call(
-                                       rout_name, &xdivide_assign_routine,
-                                       op_type,
-                                       expr->variant.operation.operands->type,
-                                       op_type,
-                                       expr->variant.operation.operands);
-  xdivide_assign_call = add_cast_if_necessary(xdivide_assign_call, expr->type);
-  overwrite_node(expr, xdivide_assign_call);
+  lower_c99_compound_assignment(expr, rout_name, &xdivide_assign_routine);
 }  /* lower_c99_xdivide_assign */
 
 
@@ -583,7 +596,8 @@ followed by a sign inversion ( (__I__*a)*(__I__*b) = -(a*b) ).
 
 static void lower_c99_complex_cast(an_expr_node_ptr  expr)
 /*
-Transform the given cast expression into a function call (compatible with C89).
+Transform the given complex cast expression into a function call
+(compatible with C89).
 */
 {
   an_expr_node_ptr  src = expr->variant.operation.operands, cast_call;
@@ -767,6 +781,20 @@ Transform the given cast expression into a function call (compatible with C89).
     }  /* if */
   }  /* if */
 }  /* lower_c99_complex_cast */
+
+
+static void lower_c99_cast(an_expr_node_ptr  expr)
+/*
+Transform the given cast expression into a function call (compatible with C89).
+*/
+{
+  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
+    if (is_nonreal_floating_type(expr->type) ||
+        is_nonreal_floating_type(expr->variant.operation.operands->type)) {
+      lower_c99_complex_cast(expr);
+    }  /* if */
+  }  /* if */
+}  /* lower_c99_cast */
 
 
 static void lower_c99_operator(an_expr_node_ptr  expr)

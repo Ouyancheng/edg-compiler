@@ -652,6 +652,10 @@ extern an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(
 extern an_expr_node_ptr make_reusable_copy(an_expr_node_ptr expr,
                                            a_boolean        vars_can_change);
 
+extern an_expr_node_ptr make_lvalue_reusable_copy(
+                                             an_expr_node_ptr expr,
+                                             a_boolean        vars_can_change);
+
 extern void insert_expr(an_expr_node_ptr       inserted_expr,
                         an_insert_location_ptr insert_location);
 
