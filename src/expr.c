@@ -8905,7 +8905,7 @@ Return an operand for the expression in *result.
        Just flush to the matching closing brace. */
     if (!err) {
       error(ec_statement_expression_in_function_only);
-      err = 1;
+      err = TRUE;
     }  /* if */
     flush_until_matching_token();
     /* Skip the closing brace. */
