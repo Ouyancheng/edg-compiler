@@ -2047,7 +2047,7 @@ the function.
     } else {
       tp = make_pointer_type(void_type());
     }  /* if */
-    extra_info->param_type_list = alloc_param_type(tp, /*at_file_scope=*/TRUE);
+    extra_info->param_type_list = alloc_param_type(tp);
     extra_info->prototyped = TRUE;
     set_routine_calling_method_flag(rout_type);
     /* Create the symbol and routine entry.  Note that the routine entry
