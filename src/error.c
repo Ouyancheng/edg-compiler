@@ -215,6 +215,11 @@ typedef struct a_msg_segment {
       a_byte_boolean
 		decl_pos;	/* True if the declaration position is
 				   to be generated. */
+      a_byte_boolean
+		template_args;	/* True if the template arguments are to be
+				   displayed; the pointer to the scope is in
+				   error_msg_scopes[]; for sk_function_template
+				   only. */
     } symbol;
   } variant;
 } a_msg_segment;
@@ -250,6 +255,10 @@ static a_symbol_ptr
 				/* Array of pointers to the symbols to be
 				   used for substitutions in diagnostic
 				   messages. */
+static a_scope_stack_entry_ptr
+		error_msg_scopes[MAX_ERR_SEG_KIND_PER_MSG + 1];
+				/* Array of pointers to scope stack entries
+				   to be used in diagnostic messages. */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static a_msg_segment_ptr
@@ -1953,6 +1962,9 @@ error code.
     case ec_void_param_not_allowed:
       m = "a parameter may not have void type";
       break;
+    case ec_template_function_declaration_context:
+      m = "%sinstantiation of %na %p";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
@@ -3090,6 +3102,19 @@ symbol_name:
   add_string_to_segment("\"", seg_ptr);
   seg_ptr->second_quote = seg_ptr->segment + seg_ptr->length - 1;
 
+  if (seg_ptr->variant.symbol.template_args) {
+    a_scope_stack_entry_ptr  ssep = error_msg_scopes[seg_ptr->sequence_no];
+
+    check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
+    check_assertion(ssep != NULL && ssep->template_arg_list != NULL);
+    add_string_to_segment(" based on template argument", seg_ptr);
+    if (ssep->template_arg_list->next != NULL) {
+      add_string_to_segment("s", seg_ptr);
+    }  /* if */
+    add_string_to_segment(" ", seg_ptr);
+
+    form_template_args(ssep->template_arg_list, seg_ptr);
+  }  /* if */
   /* Add the declaration position as requested. */
   if (seg_ptr->variant.symbol.decl_pos) {
     form_source_position(&sym->decl_position, error_pos, " (declared ", ")",
@@ -3108,7 +3133,7 @@ template beginning with a "%".  Accepted substitution designations are:
 
 	s[q]x		- user provided string insertion.
 	tx		- type insertion in double quotes.
-        n[f|o][d]x	- symbol name insertion in double quotes.
+        n[f|o|a][d]x	- symbol name insertion in double quotes.
         p		- insert a source position.
         %		- insert a percent sign.
 
@@ -3124,6 +3149,7 @@ modifiers:
 
 	f	- full object, complete type and object name.
 	o	- name or qualified name only.
+	a	- name or qualified name followed by template argument list
 
 Symbol name expansions may have a declaration position modifier"d" which
 requests that the declaration position of the symbol be added at the end
@@ -3178,6 +3204,7 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
           curr_segment->variant.symbol.full_type = FALSE;
           curr_segment->variant.symbol.name_only = FALSE;
           curr_segment->variant.symbol.decl_pos = FALSE;
+          curr_segment->variant.symbol.template_args = FALSE;
           msg_ptr++;
           /* Check for formatting options. */
           if (*msg_ptr == 'f') {
@@ -3187,6 +3214,12 @@ NOTE:  Symbol name insertion is not available if STANDALONE_UTILITY_PROGRAM
           } else if (*msg_ptr == 'o') {
             /* Display only the entity name. */
             curr_segment->variant.symbol.name_only = TRUE;
+            msg_ptr++;
+          } else if (*msg_ptr == 'a') {
+            /* Display the entity name along with associated template
+               arguments. */
+            curr_segment->variant.symbol.name_only = TRUE;
+            curr_segment->variant.symbol.template_args = TRUE;
             msg_ptr++;
           }  /* if */
           if (*msg_ptr == 'd') {
@@ -3963,6 +3996,7 @@ a diagnostic message.
     error_msg_positions[i] = NULL;
 #if !STANDALONE_UTILITY_PROGRAM
     error_msg_syms[i] = NULL;
+    error_msg_scopes[i] = NULL;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   }  /* for */
 }  /* init_error_params */
@@ -4581,8 +4615,12 @@ is set to point to a symbol that provides the context information and
        need additional context information. */
     sym = ssep->instance_sym;
     /* If the instance symbol is NULL use the template symbol instead. */
-    if (sym == NULL) sym = ssep->template_sym;
-    if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+    if (sym == NULL) {
+      sym = ssep->template_sym;
+      check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
+      error_code = ec_template_function_declaration_context;
+      result = TRUE;
+    } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
       result = TRUE;
       error_code = ec_implicit_static_data_member_definition;
     } else {
@@ -4782,6 +4820,7 @@ and doing any required expansions, the diagnostic is written.
           error_msg_syms[1] = sym;
 	  error_msg_strings[1] = prefix_string;
 	  error_msg_positions[1] = &ssep->source_position;
+          error_msg_scopes[1] = ssep;
           diag_message(context_error_code,
                        &error_position, severity, context_diag_kind);
         }  /* for */
