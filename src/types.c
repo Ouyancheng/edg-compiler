@@ -5193,16 +5193,11 @@ the old list.  Only callable in C++ mode.  See ARM 13.
       /* Template and nontemplate functions can always be distinguished.
          Furthermore, template arguments can presumably always be chosen
          to distinguish two template functions. */
-        distinguishable = TRUE;
-        goto distinguishable_determined;
-    }  /* if */
-    distinguishable = FALSE;
-    /* Get the old routine type. */
-    if (old_is_template) {
-      old_type = old_sym_ptr->variant.template_info->
-                                                variant.function.routine->type;
-      old_type = skip_typerefs(old_type);
+      distinguishable = TRUE;
+      goto distinguishable_determined;
     } else {
+      distinguishable = FALSE;
+    /* Get the old routine type. */
       old_type = routine_symbol_type(old_sym_ptr);
     }  /* if */
     old_extra_info = old_type->variant.routine.extra_info;
