@@ -189,27 +189,23 @@ that routine.  This routine ignores a closing brace if that is appropriate.
 }  /* check_for_matching_closing_brace */
 
 
-static a_boolean init_remaining_array_elements(
-                                          a_type_ptr          array_type,
-                                          a_targ_size_t       curr_element,
-                                          a_constant_ptr      *con_list,
-                                          a_constant_ptr      *end_of_con_list,
-                                          a_dynamic_init_ptr  *di_list,
-                                          a_dynamic_init_ptr  *end_of_di_list,
-                                          a_boolean           *incomplete_init)
+static a_boolean init_remaining_array_elements(a_type_ptr     array_type,
+                                               a_targ_size_t  curr_element,
+                                               a_constant_ptr *con_list,
+                                               a_constant_ptr *end_of_con_list,
+                                               a_boolean      *incomplete_init)
 /*
-This routine is called from get_initializer when an array whose
-elements require constructor initialization (and/or destruction by
-calling a destructor) has been only partially initialized.  The
-remaining elements of the array receive initialization by the default
-constructor.  array_type is a pointer to the type entry for the array
-object.  curr_element identifies the next element to be initialized.
-*con_list and *di_list are list of constant entries and dynamic init
-entries (respectively) that represent the initialization of the array;
-*end_of_con_list and *end_of_di_list point to the terminal entries on
-the two lists.  *incomplete_init is set to TRUE if a reference or const
-member remains uninitialized.  TRUE is returned if the remaining array
-elements are indeed initialized.  This routine is called in C++ mode only.
+This routine is called from get_initializer to deal with the case where an
+array whose elements require constructor initialization (and/or destruction
+by calling a destructor) has been only partially initialized.  The remaining
+elements of the array receive initialization by the default constructor.
+array_type is a pointer to the type entry for the array object.
+curr_element identifies the next element to be initialized.  *con_list is a
+list of constant entries that represents the initialization of the array;
+*end_of_con_list points to the terminal entry on the list.  *incomplete_init
+is set to TRUE if a reference or const member remains uninitialized.  TRUE
+is returned if the remaining array elements are indeed initialized.  This
+routine is called in C++ mode only.
 */
 {
   a_type_ptr                     element_type;
@@ -291,13 +287,6 @@ elements are indeed initialized.  This routine is called in C++ mode only.
           (*end_of_con_list)->next = cp;
         }  /* if */
         *end_of_con_list = cp;
-        /* Add the dynamic init entry to its list. */
-        if (*di_list == NULL) {
-          *di_list = dip;
-        } else {
-          (*end_of_di_list)->next = dip;
-        }  /* if */
-        *end_of_di_list = dip;
         init_done = TRUE;
       }  /* if */
     }  /* if */
@@ -353,11 +342,10 @@ of constant initializers.
 
 static a_constant_ptr get_initializer(
                     a_type_ptr          *type,
-                    a_dynamic_init_ptr  *di_list,
-                    a_dynamic_init_ptr  *end_of_di_list,
                     a_boolean           top_level,
                     a_boolean           *any_member_uninitialized,
                     a_boolean           *any_const_or_ref_member_uninitialized,
+                    a_boolean           *any_dynamic_initialization,
                     a_boolean           *nothing_taken)
 /*
 Scan a constant initializer or initializer list, and return a pointer to
@@ -467,12 +455,7 @@ ref field of a class object (or an array of same) remains uninitialized.
       init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       init_con->type = local_type;
       init_con->variant.dynamic_init = dip;
-      if (*di_list == NULL) {
-        *di_list = dip;
-      } else {
-        (*end_of_di_list)->next = dip;
-      }  /* if */
-      *end_of_di_list = dip;
+      *any_dynamic_initialization = TRUE;
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
              (is_error_type(local_type) && brace_flag)) {
@@ -616,10 +599,10 @@ ref field of a class object (or an array of same) remains uninitialized.
         }  /* if */
         add_stop_token(tok_comma);
         /* Get the initializer for this one member. */
-        member_con = get_initializer(&member_type, di_list, end_of_di_list,
-                                     /*top_level=*/FALSE,
+        member_con = get_initializer(&member_type, /*top_level=*/FALSE,
                                      any_member_uninitialized,
                                      any_const_or_ref_member_uninitialized,
+                                     any_dynamic_initialization,
                                      &local_nothing_taken);
         remove_stop_token(tok_comma);
         check_assertion(!(local_nothing_taken && is_incomplete_array));
@@ -806,10 +789,10 @@ ref field of a class object (or an array of same) remains uninitialized.
              the default constructor. */
           if (init_remaining_array_elements(
                                       local_type, curr_array_element,
-                                      &con_list, &end_of_con_list, di_list,
-                                      end_of_di_list,
+                                      &con_list, &end_of_con_list,
                                       any_const_or_ref_member_uninitialized)) {
             any_more_members = FALSE;
+            *any_dynamic_initialization = TRUE;
           }  /* if */
         }  /* if */
         /* Allocate the aggregate constant that is the value for the
@@ -850,12 +833,7 @@ ref field of a class object (or an array of same) remains uninitialized.
                        alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
         init_con->type = local_type;
         dip->variant.expression = local_di.variant.expression;
-        if (*di_list == NULL) {
-          *di_list = dip;
-        } else {
-          (*end_of_di_list)->next = dip;
-        }  /* if */
-        *end_of_di_list = dip;
+        *any_dynamic_initialization = TRUE;
         break;
 #if CHECKING
       default:
@@ -1292,7 +1270,6 @@ issuing an error on an incomplete type.
        enclosed list of values.  Except that in C++ such lists may include
        non-constants. */
     a_constant_ptr       cp;
-    a_dynamic_init_ptr   di_list = NULL, end_of_di_list = NULL;
     a_boolean            any_member_uninitialized = FALSE;
     a_boolean            any_const_or_ref_member_uninitialized = FALSE;
     a_boolean            nothing_taken;
@@ -1307,10 +1284,10 @@ issuing an error on an incomplete type.
       fputc('\n', f_debug);
     }  /* if */
 #endif /* DEBUG */
-    cp = get_initializer(&vp_type, &di_list, &end_of_di_list,
-                         /*top_level=*/TRUE, &any_member_uninitialized,
+    cp = get_initializer(&vp_type, /*top_level=*/TRUE,
+                         &any_member_uninitialized,
                          &any_const_or_ref_member_uninitialized,
-                         &nothing_taken);
+                         &initialization_is_dynamic, &nothing_taken);
     if (cp->kind == (a_constant_repr_kind)ck_error) {
       err = TRUE;
       if (is_incomplete_type(vp_type) && is_array_type(vp_type)) {
@@ -1322,9 +1299,8 @@ issuing an error on an incomplete type.
     } else {
       /* Check the constant kind. */
       check_assertion(cp->kind == (a_constant_repr_kind)ck_aggregate ||
-                      (di_list == NULL &&
+                      (!initialization_is_dynamic &&
                        cp->kind == (a_constant_repr_kind)ck_string));
-      if (di_list != NULL) initialization_is_dynamic = TRUE;
       clear_dynamic_init(&local_di,
                          (a_dynamic_init_kind)(initialization_is_dynamic ?
                                                dik_nonconstant_aggregate :
