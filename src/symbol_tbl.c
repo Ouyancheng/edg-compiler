@@ -2161,100 +2161,6 @@ them up one level.
   db_exit();
 }  /* remove_anonymous_union_member_from_inactive_symbols_list */
 
-#if RECORD_HIDDEN_NAMES_IN_IL
-
-void record_defeatable_name_hiding(a_symbol_ptr  hidden_sym,
-                                   a_boolean     tag_hidden_by_nontag,
-                                   a_scope_ptr   sp)
-/*
-hidden_sym is a symbol for an entity that is hidden by another declaration
-of the same name -- but the hiding can be "defeated" by using an
-elaborated type specifier or global qualification (preceding "::") when
-referring to the hidden name.  Create the hidden-name entity to represent
-this case and add it to the list for the current scope.
-*/
-{
-  a_hidden_name_ptr        hnp;
-  a_scope_stack_entry_ptr  ssep;
-  char                     *entity;
-  an_il_entry_kind         kind;
-
-  if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
-    switch (hidden_sym->kind) {
-      case sk_label:
-      case sk_keyword:
-      case sk_macro:
-      case sk_undefined:
-      case sk_extern_variable:
-      case sk_extern_routine:
-        /* Not in the same name space. */
-        break;
-      case sk_projection:
-        /* Ignore projection symbols. */
-        break;
-      case sk_overloaded_function:
-        /* Enter members of an overload set separately. */
-        for (hidden_sym = hidden_sym->variant.overloaded_function.symbols;
-             hidden_sym != NULL;
-             hidden_sym = hidden_sym->next) {
-          record_defeatable_name_hiding(hidden_sym, tag_hidden_by_nontag, sp);
-        }  /* for */
-        break;
-      case sk_class_template:
-      case sk_function_template:
-        /* Template support is not yet provided. */
-        break;
-      case sk_routine:
-      case sk_member_function:
-      case sk_static_data_member:
-        if ((hidden_sym->kind == (a_symbol_kind)sk_static_data_member &&
-             hidden_sym->variant.static_data_member.instance_ptr != NULL) ||
-            hidden_sym->variant.routine.instance_ptr != NULL) {
-          /* Template support is not yet provided. */
-          break;
-        }  /* if */
-      default:
-        /* The normal case.  First find the entity associated with the
-           symbol. */
-        entity = il_entry_for_symbol(hidden_sym, &kind);
-        if (entity != NULL) {
-          if (sp == NULL) {
-            /* Get pointer to current scope entry. */
-            ssep = &scope_stack[decl_scope_level];
-            /* Create the IL scope if necessary (for block scopes). */
-            sp = ensure_il_scope_exists(ssep);
-            check_assertion_str(sp != NULL,
-                               "record_defeatable_name_hiding: NULL IL scope");
-          }  /* if */
-          /* If there is already a hidden name entry for this entity in this
-             scope, reuse it. */
-          for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
-            if (hnp->entity.ptr == entity) break;
-          }  /* for */
-          if (hnp == NULL) {
-            /* No existing entry.  Allocate a new one. */
-            hnp = alloc_hidden_name();
-            hnp->entity.ptr = entity;
-            hnp->entity.kind = (a_byte_il_entry_kind)kind;
-            /* Add it to the start of the hiden_names list for the current
-               scope. */
-            hnp->next = sp->hidden_names;
-            sp->hidden_names = hnp;
-          }  /* if */
-          /* Set the appropriate flag. */
-          if (tag_hidden_by_nontag) {
-            check_assertion(kind == (an_il_entry_kind)iek_type);
-            hnp->elaborated_type_specifier_needed = TRUE;
-          } else {
-            check_assertion(in_file_scope(entity));
-            hnp->global_qualification_needed = TRUE;
-          }  /* if */
-        }  /* if */
-    }  /* switch */
-  }  /* if */
-}  /* record_defeatable_name_hiding */
-
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 a_boolean symbols_may_coexist_in_curr_scope(a_symbol_ptr  old_sym,
                                             a_symbol_ptr  new_sym,
@@ -2306,12 +2212,6 @@ this is not allowed, an error will be issued by the caller.
       /* The new one is not a type symbol or a class template name.  It
          will be placed at the front of the list automatically. */
       err = FALSE;
-#if RECORD_HIDDEN_NAMES_IN_IL
-      /* The current declaration hides a tag declaration in the current
-         scope. */
-      record_defeatable_name_hiding(old_sym, /*tag_hidden_by_nontag=*/TRUE,
-                                    (a_scope_ptr)NULL);
-#endif /* RECORD_HIDDEN_NAMES_IN_IL */
     }  /* if */
   } else if ((cfront_2_1_mode || C_dialect == C_dialect_pcc) &&
              old_sym->kind == (a_symbol_kind)sk_variable &&
@@ -4919,6 +4819,8 @@ this one.
            not have access. */
         /* have_access = FALSE;  -- already set. */
       } else {
+        /* This code really is needed, for obscure cases involving member
+           access due to protected derivations. */
         proj_sym = sym;
         sym = fundamental_symbol_of(sym);
         have_access = have_access_across_derivations(sym, proj_sym);
