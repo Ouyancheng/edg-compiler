@@ -188,16 +188,13 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
       break;
     case enk_typeid:
       if (node->variant.typeid_info.expr != NULL) {
-        a_type_ptr typeid_type;
         has_side_effects = node_has_side_effects(
                                             node->variant.typeid_info.expr,
                                             &suppress);
         /* A typeid applied to an expression that is a pointer to a
            polymorphic class type can throw an exception if the pointer is
            NULL. */
-        typeid_type = node->variant.typeid_info.type;
-        if (is_pointer_type(typeid_type) &&
-            is_polymorphic_class_type(type_pointed_to(typeid_type))) {
+        if (is_polymorphic_class_type(node->variant.typeid_info.type)) {
           has_side_effects = TRUE;
         }  /* if */
       }  /* if */
@@ -3677,10 +3674,10 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     internal_error("scan_typeid_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
-  /* typeid is valid only after the type_info type has been declared in a
+  /* typeid is valid only after the type_info type has been defined in a
      header file. */
-  if (type_of_type_info == NULL) {
-    error(ec_typeid_needs_typeinfo);
+  if (is_incomplete_type(type_of_type_info)) {
+    warning(ec_typeid_needs_typeinfo);
   }  /* if */
   /* Save the position of the typeid keyword. */
   start_position = pos_curr_token;
@@ -3695,44 +3692,56 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
                        /*single_type_required=*/TRUE)) {
     /* Scan a type name. */
     type_name(&typeid_type);
-    /* Instantiate the type if it is a template class. */
-    check_for_uninstantiated_template_class(typeid_type);
-    /* The type must be complete or void. */
-    if (is_incomplete_type(typeid_type) && !is_void_type(typeid_type)) {
-      error(ec_incomplete_type_not_allowed);
-    }  /* if */
   } else {
     /* Scan an expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-    /* Convert array --> pointer, etc.  This also checks for incomplete in
-       the lvalue --> rvalue conversion. */
-    do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-    expr = make_node_from_operand(&operand);
     typeid_type = operand.type;
+    /* *p and p[expr] yielding polymorphic class objects are special cases
+       that use runtime typeid determination. */
+    if (is_an_lvalue(&operand) &&
+        is_expression_operand(&operand) &&
+        is_polymorphic_class_type(typeid_type)) {
+      expr = operand.variant.expression;
+      if (is_variable_node(expr)) {
+        /* The expression is, effectively, *variable. */
+      } else if (is_operation_node(expr) &&
+                 expr->variant.operation.kind ==
+                                      (an_expr_operator_kind)eok_padd_subsc &&
+                 is_variable_node(expr->variant.operation.operands)) {
+        /* The expression is, effectively, p[expr]. */
+      } else {
+        /* Anything else.  Not handled as a special case. */
+        expr = NULL;
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Type qualifiers on the type are ignored [expr.typeid]. */
+  /* The two calls here make sure typedefs are removed and qualifiers under
+     arrays are removed. */
+  typeid_type = make_unqualified_type(typeid_type);
   typeid_type = skip_typerefs(typeid_type);
+  /* Instantiate the type if it is a template class. */
+  check_for_uninstantiated_template_class(typeid_type);
+  /* The type must be complete or void. */
+  if (is_incomplete_type(typeid_type) && !is_void_type(typeid_type)) {
+    error(ec_incomplete_type_not_allowed);
+    if (expr != NULL) expr = error_node();
+  }  /* if */
   /* Check for and pass over the right parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
-  if (type_of_type_info == NULL) {
-    /* type_info is not defined, so the result is an error operand. */
-    make_error_operand(result);
-  } else {
-    /* Create a typeid expression node. */
-    typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
-    typeid_node->variant.typeid_info.expr = expr;
-    typeid_node->variant.typeid_info.type = typeid_type;
-    /* The result is a reference to type_info, which means a pointer to
-       type_info as an lvalue address. */
-    typeid_node->type = make_pointer_type(type_of_type_info);
-    make_expression_operand(typeid_node, type_of_type_info, result);
-    result->state = (an_operand_state)os_lvalue;
-  }  /* if */
+  /* Create a typeid expression node. */
+  typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
+  typeid_node->variant.typeid_info.expr = expr;
+  typeid_node->variant.typeid_info.type = typeid_type;
+  /* The result is a reference to type_info, which means a pointer to
+     type_info as an lvalue address. */
+  typeid_node->type = make_pointer_type(type_of_type_info);
+  make_expression_operand(typeid_node, type_of_type_info, result);
+  result->state = (an_operand_state)os_lvalue;
   /* Set the error position to the starting position. */
   error_position = start_position;
   result->position = start_position;
-
   db_exit();
 }  /* scan_typeid_operator */
 
