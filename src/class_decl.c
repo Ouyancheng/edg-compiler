@@ -1906,29 +1906,25 @@ the pointer_base_class for both V1 and V2 is C.
 */
 {
   a_derivation_step_ptr  dsp;
+  a_base_class_ptr       bcp;
 
   /* The root of the path is virtual, there are no qualifying base classes. */
   if (!path->base_class->is_virtual) {
     /* Traverse the path till the end is reached or until a virtual base is
-       next.  In either case, the base class at that point is the one we
-       want. */
+       next.  In either case, the base class at that point is probably the
+       one we want. */
     for (dsp = path;; dsp = dsp->next) {
       if (dsp->next == NULL || dsp->next->base_class->is_virtual) {
-#if CHECKING
-        /* Consistency check. */
-        a_base_class_ptr  bcp = base_classes_of(dsp->base_class->type);
-        for (; bcp != NULL; bcp = bcp->next) {
-          if (bcp->type == base_class->type && bcp->is_virtual) {
-            if (bcp->pointer_base_class != NULL) {
-              internal_error("set_pointer_base_class: mismatch");
-            }  /* if */
-            break;
-          } else if (bcp->next == NULL) {
-            internal_error("set_pointer_base_class: missing base class");
-          }  /* if */
-        }  /* for */
-#endif /* CHECKING */
-        base_class->pointer_base_class = dsp->base_class;
+        /* dsp->base_class is the one we want if it itself contains a pointer
+           to the data section for the virtual base class in question.  But
+           if its pointer is embedded in some other base class, we don't want
+           it after all.  In such a case we'll encounter that base class
+           later in processing and use it then. */
+        bcp = corresponding_base_class(base_class, (a_type_ptr)NULL,
+                                       dsp->base_class->type);
+        if (bcp->pointer_base_class == NULL) {
+          base_class->pointer_base_class = dsp->base_class;
+        }  /* if */
         break;
       }  /* if */
     }  /* for */
