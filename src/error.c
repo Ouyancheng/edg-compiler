@@ -1080,10 +1080,8 @@ declaration position to eliminate redundant file names in a diagnostic.
       routine = fund_sym->variant.template_info->variant.function.routine;
       type = routine->type;
       /* Function templates can differ only by return type, so include the
-         return type when displaying one, except if the message explicitly
-         requests that the name only be included. */
-      force_return_type = !seg_ptr->variant.symbol.name_only;
-      force_function_params = force_return_type;
+         return type when also displaying the parameter types. */
+      force_return_type = seg_ptr->variant.symbol.force_function_params;
 symbol_name:
       /* Add the entity kind if not specified as name only or full type for
          a declaration-like entity. */
@@ -1105,38 +1103,17 @@ symbol_name:
           return_type_needed = FALSE;
         }  /* if */
       }  /* if */
-      /* Put out the first part of the type if needed, but not for
-         constructors, destructors, and conversion functions (the return type
-         is not listed for those). */
-      if (type != NULL &&
-          (seg_ptr->variant.symbol.full_type || force_return_type) &&
-          (routine == NULL || return_type_needed)) {
-        form_type_first_part_simple(type,
-                                    /*under_lhs_declarator=*/FALSE,
-                                    /*need_trailing_space=*/TRUE,
-                                    &octl);
-      }  /* if */
-      /* Put out the name, including the class qualifier if any.  For
-         class members and ambiguous symbols always use the original
-         symbol.  Otherwise, use the fundamental symbol. */
+      /* Determine the symbol to be displayed.  For class members and
+         ambiguous symbols always use the original symbol.  Otherwise, use
+         the fundamental symbol. */
       { a_boolean	use_orig_sym;
-        /* If a template symbol is being displayed, use the normal
-           form_symbol_name routine.  If a template symbol is not
-           being displayed, use a special routine that displays the
-           corresponding prototype template in place of the actual
-           parent class. */
         use_orig_sym = sym->is_class_member || sym->ambiguous;
         if (corresp_template_sym == NULL) {
           sym_to_display = use_orig_sym ? sym : fund_sym;
-          form_symbol_name_for_error(sym_to_display, seg_ptr);
         } else {
           sym_to_display = corresp_template_sym;
-          form_symbol_name(sym_to_display, &octl);
         }  /* if */
       }
-      /* Put out the second part of the type if needed.  Don't put it
-         out in name-only mode.  Do put it out in full-type mode, or
-         if function parameters should be listed. */
       if (routine != NULL) {
         if (seg_ptr->variant.symbol.force_function_params) {
           /* "%np" was specified for this fill-in. */
@@ -1160,6 +1137,31 @@ symbol_name:
           force_function_params = TRUE;
         }  /* if */
       }  /* if */
+      /* Put out the first part of the type if needed, but not for
+         constructors, destructors, and conversion functions (the return type
+         is not listed for those). */
+      if (type != NULL &&
+          (seg_ptr->variant.symbol.full_type || force_return_type) &&
+          (routine == NULL || return_type_needed)) {
+        form_type_first_part_simple(type,
+                                    /*under_lhs_declarator=*/FALSE,
+                                    /*need_trailing_space=*/TRUE,
+                                    &octl);
+      }  /* if */
+      /* Put out the name, including the class qualifier if any.
+         If a template symbol is being displayed, use the normal
+         form_symbol_name routine.  If a template symbol is not
+         being displayed, use a special routine that displays the
+         corresponding prototype template in place of the actual
+         parent class. */
+      if (corresp_template_sym == NULL) {
+        form_symbol_name_for_error(sym_to_display, seg_ptr);
+      } else {
+        form_symbol_name(sym_to_display, &octl);
+      }  /* if */
+      /* Put out the second part of the type if needed.  Don't put it
+         out in name-only mode.  Do put it out in full-type mode, or
+         if function parameters should be listed. */
       if (type != NULL &&
           !seg_ptr->variant.symbol.name_only &&
           (seg_ptr->variant.symbol.full_type || force_function_params) ) {
