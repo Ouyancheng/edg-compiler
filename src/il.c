@@ -4053,9 +4053,13 @@ nonidentical.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   }  /* if */
   /* If strict identity is required, the types must be pointer-identical.
-     Otherwise, it is sufficient that they be identical. */
+     Otherwise, it is sufficient that they be compatible (don't use the
+     types_are_compatible or types_are_redecl_compatible macros because we
+     don't want errors to be considered compatible with everything, but we
+     do need a[] and a[3] to be considered compatible). */
   if (strictly_identical ? same_entities(cp1_type, cp2_type) :
-                           identical_types(cp1_type, cp2_type)) {
+                           f_types_are_redecl_compatible(cp1_type, cp2_type,
+                                                         TCF_REDECLARATION)) {
     switch (cp1->kind) {
       case ck_error:
         /* No further field to check. */
