@@ -2431,6 +2431,17 @@ The C-generating and C++-generating back ends can handle compound literals
  #error -- compound literal enabling not allowed
 #endif /* !COMPOUND_LITERAL_ENABLING_POSSIBLE && ... */
 
+/*
+This switch controls whether a post-pass is done after IL lowering
+to ensure that the types list is in order, in the sense that the
+C-generating back end can generate compilable code from it.  The
+fixup is needed sometimes when secondary translation units are
+involved.
+*/
+#ifndef ENSURE_LOWERED_TYPE_LIST_ORDERING
+#define ENSURE_LOWERED_TYPE_LIST_ORDERING BACK_END_IS_C_GEN_BE
+#endif /* ifndef ENSURE_LOWERED_TYPE_LIST_ORDERING */
+
 #if DO_IL_LOWERING
 
 /* Switches that control aspects of IL lowering: */
@@ -2463,17 +2474,6 @@ variables will be (selectively) promoted to the actual file scope.
 #ifndef PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 #define PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE BACK_END_IS_C_GEN_BE
 #endif /* ifndef PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-
-/*
-This switch controls whether a post-pass is done after IL lowering
-to ensure that the types list is in order, in the sense that the
-C-generating back end can generate compilable code from it.  The
-fixup is needed sometimes when secondary translation units are
-involved.
-*/
-#ifndef ENSURE_LOWERED_TYPE_LIST_ORDERING
-#define ENSURE_LOWERED_TYPE_LIST_ORDERING BACK_END_IS_C_GEN_BE
-#endif /* ifndef ENSURE_LOWERED_TYPE_LIST_ORDERING */
 
 /*
 This switch controls whether or not all functions and function calls will
