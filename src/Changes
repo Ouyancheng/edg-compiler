@@ -1,5 +1,11 @@
 Version 2.40
 
+9/4/98    Bug in lowering of __uuidof caused IL write/read error abort
+
+A bug in lowering of the Microsoft extension __uuidof caused
+an abort in the IL write/read processing in some exceedingly
+obscure cases.  Now fixed.
+
 9/3/98    Partial lowering of EH, pointer-to-member comparison, abort
           in lower_expr
 
