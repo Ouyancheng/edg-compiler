@@ -1386,7 +1386,7 @@ nested class.
                                          source_sequence_entries_disallowed;
           if (is_real_template_instantiation && is_friend) {
             /* Suppress the source sequence representation for the body of a
-               friend definition within a class instantation. */
+               friend definition within a class instantiation. */
             source_sequence_entries_disallowed = TRUE;
           }  /* if */
 #endif /* !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -2403,8 +2403,8 @@ corresponding entry is removed from the registry.
   /* If this routine is called with a non-NULL nonoverriding_sym, the
      declaration failed to override a base class virtual function; if so,
      add a new entry to the end of the list of "override failures".  But
-     if nonoverriding_sym is NULL, the is a successful override, in which
-     case the override count should be bumped. */
+     if nonoverriding_sym is NULL, then this is a successful override, in
+     which case the override count should be bumped. */
   if (nonoverriding_sym != NULL) {
     a_symbol_list_entry_ptr  new_slep, slep;
 
@@ -4898,12 +4898,8 @@ of the function, and again overloading is a possibility.
           /* The storage class of a function has to be extern or static. */
           pos_warning(ec_bad_function_storage_class,
                       &decl_info->decl_start_pos);
-          storage_class = (a_storage_class)sc_extern;
+          storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
-      }  /* if */
-      if (func_info->is_inline && !extern_inline_allowed) {
-        /* Treat any inline function as static. */
-        storage_class = (a_storage_class)sc_static;
       }  /* if */
       decl_routine(locator, storage_class, function_type, func_info,
                    declarator_ssep, srk_flags, &decl_info->decl_modifiers,
@@ -11194,7 +11190,7 @@ next_declaration:
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   /* Clear the modified the ss-list instantiation insert point for the scope
      to which the class being defined belongs.  This has to be done before
-     the call to pop_template_instantation_scope -- otherwise, the
+     the call to pop_template_instantiation_scope -- otherwise, the
      insert point is wrong for the class body.  Note also that, at this
      point, the depth of the innermost namespace scope will not be on the top
      of the stack if an extra instantiation scope was pushed. */

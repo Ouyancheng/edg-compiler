@@ -1123,89 +1123,11 @@ parameter, which elsewhere is confirmed to have type size_t (new) or void*
 }  /* is_single_param_operator_new_or_delete */
 
 
-static a_scope_depth compute_friend_effective_decl_level(a_scope_depth depth)
-/*
-The "effective declaration level" of a friend function declaration is 
-usually the innermost non-class scope.  Starting from the specified scope
-depth, find and return the depth of the containing non-class scope.
-*/
-{
-  a_scope_kind  kind;
-
-  db_enter(4, "compute_friend_effective_decl_level");
-  kind = scope_stack[depth].kind;
-  while (kind == (a_scope_kind)sck_class_struct_union ||
-         kind == (a_scope_kind)sck_class_reactivation) {
-    depth--;
-    kind = scope_stack[depth].kind;
-    if (kind == (a_scope_kind)sck_template_instantiation) {
-      if (scope_stack[depth].in_prototype_instantiation) {
-        /* During prototype instantiation, use the instantiation scope
-           as the effective declaration scope. */
-      } else {
-        depth = depth_innermost_namespace_scope;
-      }  /* if */
-      break;
-    } else if (kind == (a_scope_kind)sck_template_declaration) {
-      /* Must be an error of some sort. */
-      depth = depth_innermost_namespace_scope;
-      break;
-    }  /* if */
-  }  /* while */
-  db_exit();
-  return depth;
-}  /* compute_friend_effective_decl_level */
-
-
-static a_scope_depth compute_effective_decl_level(
-                                               a_boolean        is_function,
-                                               a_storage_class  storage_class,
-                                               a_boolean        is_friend_decl)
-/*
-A name is being declared, and the "effective declaration level" identifies
-the scope into which the newly declared symbol will be entered.  Usually
-this is exactly the same as the current declaration scope, as indicated by
-decl_scope_level.  This routine checks for some special cases and returns
-the appropriate scope depth.
-*/
-{
-  a_scope_depth  depth;
-  db_enter(4, "compute_effective_decl_level");
-
-  /* The normal case is that the effective declaration level is the same
-     as decl_scope_level (which in turn is usually the same as
-     depth_scope_stack). */
-  depth = decl_scope_level;
-  if (C_mode()) {
-    if (C_dialect == C_dialect_pcc &&
-        (is_function || storage_class == (a_storage_class)sc_extern)) {
-      /* In pcc mode, functions and extern variables are always effectively
-         declared at the file scope level. */
-      depth = DEPTH_OF_FILE_SCOPE;
-    } else if (is_function && storage_class == (a_storage_class)sc_static) {
-      /* In C mode, as extension, "static" is accepted on function declarations
-         at function scope.  Such declarations are promoted to file scope. */
-      depth = DEPTH_OF_FILE_SCOPE;
-    }  /* if */
-  } else if (is_friend_decl) {
-    /* Make the appropriate adjustment for a friend declaration. */
-    depth = compute_friend_effective_decl_level(depth);
-#if 0
-  /* ????? */
-  } else if (is_single_param_operator_new(locator, type)) {
-    /* Default global operator new must always be entered at file scope. */
-    depth = DEPTH_OF_FILE_SCOPE;
-    is_default_global_operator_new = TRUE;
-#endif /* if 0 */
-  }  /* if */
-  db_exit();
-  return depth;
-}  /* compute_effective_decl_level */
-
-
 typedef struct an_id_linkage_block {
   a_symbol_locator
 		*locator;
+			/* Locator associated with the current variable,
+			   routine, or function template declaration. */
   a_symbol_ptr	linked_symbol;
 			/* A symbol apparently representing a prior
 			   declaration of the entity currently being
@@ -1227,7 +1149,7 @@ typedef struct an_id_linkage_block {
 			   scope (used to determine linkage); otherwise
 			   NULL. */
   a_symbol_ptr	overload_symbol;
-			/* A symbol reprsenting the overload set to which
+			/* A symbol representing the overload set to which
 			   the current declaration already belongs or will
 			   belong.  Specifically, if linked_symbol or
 			   homonym_symbol is non-NULL and is an overload-set
@@ -1239,23 +1161,63 @@ typedef struct an_id_linkage_block {
 			   with function declarations.) */
   a_scope_depth
 		effective_decl_level;
+			/* The effective scope depth of the declaration.  It
+			   is usually the same as decl_scope_depth, except
+			   in the case of friend declarations and certain
+			   template declarations. */
   a_storage_class
 		storage_class;
+			/* On entry to id_linkage, the storage class
+			   explicitly specified in the declaration.  May be
+			   replaced in id_linkage by a setting corresponding
+			   to the linkage. */
   a_func_info_block
 		*func_info;
+			/* Pointer to a func_info block for the declaration.
+			   NULL for variable declarations. */
   a_type_ptr	type;
+			/* The type with which the entity was declared. */
   a_byte_boolean
 		is_friend_decl;
+			/* TRUE when the declaration is a friend
+			   declaration. */
   a_byte_boolean
 		is_function_template;
+			/* TRUE when the declaration is a function template
+			   declaration. */
   a_byte_boolean
 		is_definition;
+			/* TRUE when the declaration is a definition. */
+  a_byte_boolean
+		is_block_extern_decl;
+			/* TRUE when the declaration is a block extern
+			   declaration (a declaration within a function of
+			   an entity with linkage outside the function). */
+  a_byte_boolean
+		is_local_class_friend_decl;
+			/* TRUE when is_friend_decl is TRUE and the class in
+			   which the declaration appears is a local class. */
+  a_byte_boolean
+		within_unnamed_namespace;
+			/* TRUE when the declaration appears within an
+			   unnamed namespace. */
+  a_byte_boolean
+		extern_C_name_linkage_specified;
+			/* TRUE when the declaration appears within the
+			   context of an extern "C" linkage specification. */
   a_byte_boolean
 		namespace_reactivated;
+			/* TRUE if a namespace reactivation scope was
+			   pushed during linkage processing; it must be
+			   popped by the caller. */
   a_template_param_ptr
 		templ_param_list;
+			/* When is_function_template is TRUE, a pointer to
+			   the associated template parameter list. */
   an_id_linkage_kind
 		linkage;
+			/* The linkage (none, internal, external) computed
+			   for the current declaration. */
 } an_id_linkage_block;
 
 
@@ -1275,10 +1237,128 @@ static void clear_id_linkage_block(an_id_linkage_block *idlbp)
   idlbp->is_friend_decl = FALSE;
   idlbp->is_function_template = FALSE;
   idlbp->is_definition = FALSE;
+  idlbp->is_block_extern_decl = FALSE;
+  idlbp->is_local_class_friend_decl = FALSE;
+  idlbp->within_unnamed_namespace = FALSE;
+  idlbp->extern_C_name_linkage_specified = FALSE;
   idlbp->namespace_reactivated = FALSE;
   idlbp->templ_param_list = NULL;
   idlbp->linkage = idl_none;
 }  /* clear_id_linkage_block */
+
+
+static void compute_effective_decl_level(an_id_linkage_block  *idlbp,
+                                         a_scope_depth        depth)
+/*
+A name is being declared, and the "effective declaration level" identifies
+the scope into which the newly declared symbol will be entered.  Usually
+this is exactly the same as the current declaration scope, as indicated by
+decl_scope_level.  This routine checks for some special cases and returns
+the appropriate scope depth.  (The normal case is that the effective
+declaration level is the same as decl_scope_level, which in turn is usually
+the same as depth_scope_stack).
+*/
+{
+  db_enter(4, "compute_effective_decl_level");
+  if (C_mode()) {
+    if (idlbp->is_block_extern_decl) {
+      if (C_dialect == C_dialect_pcc &&
+          idlbp->storage_class == (a_storage_class)sc_extern) {
+        /* In pcc mode, functions and extern variables are always effectively
+           declared at the file scope level. */
+        depth = DEPTH_OF_FILE_SCOPE;
+      } else if (idlbp->func_info != NULL &&
+                 idlbp->storage_class == (a_storage_class)sc_static) {
+        /* In C mode, as extension, "static" is accepted on function
+           declarations at function scope.  Such declarations are promoted
+           to file scope. */
+        depth = DEPTH_OF_FILE_SCOPE;
+      }  /* if */
+    }  /* if */
+  } else if (idlbp->is_friend_decl) {
+    /* Make the appropriate adjustment for a friend declaration.  The
+       The "effective declaration level" of a friend function declaration is 
+       usually the innermost non-class scope.  Starting from the specified
+       scope depth, find the depth of the containing non-class scope. */
+    a_scope_kind  kind = scope_stack[depth].kind;
+    while (kind == (a_scope_kind)sck_class_struct_union ||
+           kind == (a_scope_kind)sck_class_reactivation) {
+      depth--;
+      kind = scope_stack[depth].kind;
+      if (kind == (a_scope_kind)sck_template_instantiation) {
+        if (scope_stack[depth].in_prototype_instantiation) {
+          /* During prototype instantiation, use the instantiation scope
+             as the effective declaration scope. */
+        } else {
+          depth = depth_innermost_namespace_scope;
+        }  /* if */
+        break;
+      } else if (kind == (a_scope_kind)sck_template_declaration) {
+        /* Must be an error of some sort. */
+        depth = depth_innermost_namespace_scope;
+        break;
+      }  /* if */
+    }  /* while */
+  }  /* if */
+  idlbp->effective_decl_level = depth;
+  db_exit();
+}  /* compute_effective_decl_level */
+
+
+static void set_linkage_environment(an_id_linkage_block  *idlbp,
+                                    a_scope_depth        orig_decl_level)
+/*
+Set values in the indicated id-linkage block to reflect the environment of
+the current declaration.  orig_decl_level is usually the current scope,
+except in the case of function-template declarations (for which a template
+declaration scope will have been pushed).
+*/
+{
+  if (scope_stack[orig_decl_level].kind ==
+                           (a_scope_kind)sck_class_struct_union) {
+    /* This must be a friend declaration. */
+    check_assertion(!C_mode());
+    idlbp->is_friend_decl = TRUE;
+  }  /* if */
+  /* The effective declaration level is usually the current scope -- but not
+     always (e.g., friend declarations). */
+  compute_effective_decl_level(idlbp, orig_decl_level);
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    /* A declaration inside a function. */
+    if (idlbp->func_info != NULL ||
+        idlbp->storage_class == (a_storage_class)sc_extern) {
+      /* It's a function declaration or a variable declaration on which
+         "extern" appeared explicitly. */
+      idlbp->is_block_extern_decl = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!C_mode()) {
+    a_scope_depth  depth;
+
+    /* Record whether this is a friend declaration inside a local class. */
+    if (idlbp->is_friend_decl &&
+        idlbp->effective_decl_level != depth_innermost_namespace_scope) {
+      idlbp->is_local_class_friend_decl = TRUE;
+    }  /* if */
+    /* Record whether this declaration appears within the scope of an
+       unnamed namespace. */
+    if (idlbp->is_block_extern_decl ||
+        idlbp->is_local_class_friend_decl) {
+      depth = depth_innermost_namespace_scope;
+    } else {
+      depth = idlbp->effective_decl_level;
+    }  /* if */
+    if (scope_stack[depth].within_unnamed_namespace) {
+      idlbp->within_unnamed_namespace = TRUE;
+    }  /* if */
+    /* Record whether this declaration appears within the context of an
+       extern "C" linkage specification. */
+    if (scope_stack[decl_scope_level].default_name_linkage ==
+                                       (a_name_linkage_kind)nlk_external) {
+      idlbp->extern_C_name_linkage_specified = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* set_linkage_environment */
 
 
 static void find_linked_symbol(an_id_linkage_block *idlbp)
@@ -1376,15 +1456,12 @@ called by id_linkage.
       other_decl = NULL;
     }  /* if */
   } else {
-    if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
-        (idlbp->is_friend_decl &&
-         idlbp->effective_decl_level != depth_innermost_namespace_scope)) {
+    if (idlbp->is_block_extern_decl || idlbp->is_local_class_friend_decl) {
       /* This is either a block-extern declaration of a function or variable
          or (what amounts to the same thing) a friend declaration within a
          local class.  Find the visible declaration of the same name. */
       (void)normal_id_lookup(locator, IDL_LINKAGE_LOOKUP);
       other_decl = locator->specific_symbol;
-      is_block_extern_decl = TRUE;
     } else {
       /* Not a context in which lookup in enclosing scopes is meaningful.
          Just check for a prior declaration in the current scope. */
@@ -1635,7 +1712,8 @@ called by id_linkage.
     } else if (is_namespace_member_def) {
       idlbp->linked_symbol = other_decl;
     }  /* if */
-    if (other_decl != NULL && is_block_extern_decl &&
+    if (other_decl != NULL &&
+        (idlbp->is_block_extern_decl || idlbp->is_local_class_friend_decl) &&
         other_decl->decl_scope != scope_stack[depth_scope_stack].number) {
       idlbp->prior_decl_in_enclosing_scope = other_decl;
     }  /* if */
@@ -1660,28 +1738,17 @@ done:
 
 static void id_linkage(an_id_linkage_block  *idlbp)
 /*
-An identifier (specified by *locator) of type "type" and storage class
-"storage class" is about to be declared at the current scope level.
-If templ_param_list is not NULL, the entity is a function template
-with the specified template parameter list.  Determine its linkage
-(see 3.1.2.2), and return it.  The linkage determines how this
-declaration interacts with other (possibly tentative) declarations of
-the same identifier.  Return in *linked_symbol a pointer to any linked
-symbol (an identifier with the same name in the same scope, if the new
-identifier has linkage).  This routine should not be called for
-function parameters (they have no linkage); it will correctly handle
-typedefs.  In C++, when the type is a function type and a previously
-declared function in the same scope has a different type, we have a
-candidate for function overloading; the *linked_symbol in this case
-will be NULL, but we return in *overload_symbol a pointer to the
-symbol that will be involved in overloading.
+Determine the linkage (internal, external, or none) of the current variable,
+routine, or function template declaration.  Find previous declarations with
+the same name that may affect the linkage.  Return the information in the
+specified id-linkage block.
 */
 {
   a_boolean          is_object, is_function;
   a_boolean          at_file_or_namespace_scope;
   a_symbol_ptr       prior_decl;
   a_storage_class    local_storage_class = idlbp->storage_class;
-  a_boolean	     is_template_instance;
+  a_boolean	     is_template_instance = FALSE;
 
   db_enter(3, "id_linkage");
   check_assertion(local_storage_class != (a_storage_class)sc_typedef);
@@ -1689,21 +1756,8 @@ symbol that will be involved in overloading.
                   !idlbp->locator->specific_symbol->is_class_member);
   /* Is this type an object or function, and is it going to be declared
      at file scope? */
-  is_function = is_function_type(idlbp->type);
+  is_function = idlbp->func_info != NULL;
   is_object = !is_function;
-  if (!C_mode() && is_function &&
-      idlbp->effective_decl_level != decl_scope_level) {
-    a_scope_depth  depth = decl_scope_level;
-    if (scope_stack[depth].kind == (a_scope_kind)sck_template_declaration) {
-      idlbp->is_function_template = TRUE;
-      depth--;
-    }  /* if */
-    if (scope_stack[depth].kind == (a_scope_kind)sck_class_struct_union) {
-      idlbp->is_friend_decl = TRUE;
-    }  /* if */
-  }  /* if */
-  at_file_or_namespace_scope =
-             (idlbp->effective_decl_level == depth_innermost_namespace_scope);
   if (is_error_locator(*idlbp->locator)) {
     /* Symbol is compiler-generated as a result of an error, so there are
        no other declarations of the same symbol. */
@@ -1714,175 +1768,133 @@ symbol that will be involved in overloading.
                                      (a_scope_kind)sck_func_prototype) {
     /* Function parameters have no linkage. */
   } else {
+    /* Set default linkage, based on the environment of the current
+       declaration but without taking into account the prior declaration. */
+    if (idlbp->effective_decl_level != depth_innermost_namespace_scope &&
+        !idlbp->is_block_extern_decl &&
+        !idlbp->is_local_class_friend_decl) {
+      /* A declaration of a local variable. */
+      idlbp->linkage = idl_none;
+    } else if (idlbp->storage_class == (a_storage_class)sc_static) {
+      /* A declaration a non-local entity with "static" storage class. */
+      idlbp->linkage = idl_internal;
+    } else if (is_function && !extern_inline_allowed &&
+               idlbp->func_info->is_inline) {
+      /* An inline function. */
+      idlbp->linkage = idl_internal;
+    } else if (idlbp->within_unnamed_namespace &&
+               !idlbp->extern_C_name_linkage_specified) {
+      idlbp->linkage = idl_internal;
+    } else {
+      idlbp->linkage = idl_external;
+    }  /* if */
+    /* Find a previously declared entity with the same name and to which
+       this declaration is linked. */
     find_linked_symbol(idlbp);
     prior_decl = idlbp->linked_symbol;
     if (prior_decl == NULL) {
+      /* Special case for block extern declarations. */
       prior_decl = idlbp->prior_decl_in_enclosing_scope;
     }  /* if */
-determine_linkage:
-    /* Determine the linkage. */
-    is_template_instance = (is_function && prior_decl != NULL &&
-                            is_function_symbol(prior_decl) &&
-                            prior_decl->variant.routine.instance_ptr != NULL);
-    /* A name specified with a template-id should not get here. */
-    check_assertion(!idlbp->locator->is_template_id);
-    if (is_template_instance && !idlbp->is_definition &&
-        !prior_decl->variant.routine.ptr->defined) {
-      /* A specific declaration of function template instance for which
-         a specific definition has not been seen.  The storage class of this
-         declaration must agree with the storage class of the template. */
-      a_storage_class	templ_storage_class;
-      a_boolean		templ_is_inline;
-      templ_storage_class = prior_decl->variant.routine.ptr->storage_class;
-      templ_is_inline = prior_decl->variant.routine.ptr->is_inline;
-      if (((templ_storage_class != (a_storage_class)sc_static) &&
-           (local_storage_class == (a_storage_class)sc_static))) {
-        /* The template was not static but the new declaration is.  Issue
-           a warning. */
-        pos_sy_warning(ec_template_and_instance_linkage_conflict,
-                       &idlbp->locator->source_position, prior_decl);
-      } else if (idlbp->func_info->is_inline && !templ_is_inline) {
-        /* The specific declaration is inline but the template is not.
-           Issue a diagnostic because the inline specifier here will be
-           disregarded. */
-        pos_sy_warning(ec_incompatible_inline_specifier_on_specific_decl,
-                       &idlbp->locator->source_position, prior_decl);
-      }  /* if */
-      if (!microsoft_mode) {
-        idlbp->func_info->is_inline = templ_is_inline;
-        local_storage_class = templ_storage_class;
-      }  /* if */
-    }  /* if */
-    if (!at_file_or_namespace_scope && !is_template_instance &&
-        local_storage_class != (a_storage_class)sc_extern) {
-      /* A non-file-scope object without extern storage class has no
-         linkage.  In C++ a non-file-scope function may be declared --
-         a friend function defined inline within a local class; it too
-         is given no linkage. */
-      check_assertion(!is_function ||
-                      (idlbp->is_friend_decl &&
-                       local_storage_class == (a_storage_class)sc_static));
-      idlbp->linkage = idl_none;
-    } else if (at_file_or_namespace_scope &&
-               local_storage_class == (a_storage_class)sc_static) {
-      /* An object or function at file scope with static storage class
-         has internal linkage. */
-      idlbp->linkage = idl_internal;
-      /* File scope objects with internal linkage must have static storage
-         class.  Sometimes an adjustment must be made on the storage class
-         passed in, e.g.,
-           static int i; extern int i;
-         or
-           static void f(); void f() { }
-         The variable and function acquire static storage class from the prior
-         declarations. */
-      idlbp->storage_class = (a_storage_class)sc_static;
-    } else if (!C_mode() && is_object && prior_decl != NULL &&
-               prior_decl->kind != (a_symbol_kind)sk_variable) {
-      /* The current declaration is a variable and the declaration it links
-         to is a function. */
-      if (local_storage_class == (a_storage_class)sc_static ||
-          (scope_stack[depth_innermost_namespace_scope].
-                                        within_unnamed_namespace &&
-           scope_stack[decl_scope_level].default_name_linkage !=
-                                        (a_name_linkage_kind)nlk_external)) {
-        /* Either "static" was explicit or this is a declaration within an
-           unnamed namespace without an extern "C" linkage specifier. */
-        idlbp->linkage = idl_internal;
-      } else {
-        idlbp->linkage = idl_external;
-      }  /* if */
-    } else if (local_storage_class == (a_storage_class)sc_extern ||
-               (is_function &&
-                local_storage_class == (a_storage_class)sc_unspecified)) {
-      /* An object or function with extern storage class, or a function
-         with no storage class, has the same linkage as any visible
-         declaration of this identifier with file scope.  If there is
-         no visible declaration, the identifier has external linkage (or
-         internal linkage if declaration is inside an unnamed namespace). */
-      if (prior_decl != NULL &&
-          prior_decl->decl_scope ==
-                  scope_stack[depth_innermost_namespace_scope].number) {
-        /* There is a declaration with file scope that is visible from
-           here.  Set the flags to describe this identifier, and go
-           retry the determination of the linkage. */
-        at_file_or_namespace_scope = TRUE;
-        switch (prior_decl->kind) {
-          case sk_routine:
-            if (is_template_instance && idlbp->is_definition) {
-              /* The linkage of a specific definition is not inherited
-                 from the template. */
-            } else {
-              local_storage_class = prior_decl->variant.routine.ptr->
-                                                                storage_class;
-            }  /* if */
-            is_function = TRUE;
-            break;
-          case sk_variable:
-            local_storage_class = prior_decl->variant.variable.ptr->
-                                                                storage_class;
-            is_function = FALSE;
-            break;
-          case sk_function_template:
-            local_storage_class = prior_decl->variant.template_info->
-                                      variant.function.routine->storage_class;
-            is_function = TRUE;
-            break;
-          case sk_overloaded_function:
-            is_function = TRUE;
-            break;
-#if CHECKING
-          default:
-            internal_error("id_linkage: bad kind for prior_decl");
-#endif /* CHECKING */
-        }  /* switch */
-        is_object = !is_function;
-        /* If we check again for visible identifiers, there can be no
-           other visible identifier with the same name. */
-        prior_decl = NULL;
-        goto determine_linkage;
-      }  /* if */
-      /* No visible declaration found, so the linkage is usually external. */
-      if (scope_stack[depth_innermost_namespace_scope].
-                                        within_unnamed_namespace &&
-          scope_stack[decl_scope_level].default_name_linkage !=
-                                        (a_name_linkage_kind)nlk_external) {
-        /* This is a declaration within an unnamed namespace without an
-           extern "C" linkage specifier. */
-        idlbp->linkage = idl_internal;
-        idlbp->storage_class = (a_storage_class)sc_static;
-      } else {
-        idlbp->linkage = idl_external;
-      }  /* if */
-    } else if (is_object && at_file_or_namespace_scope &&
-               local_storage_class == (a_storage_class)sc_unspecified) {
-      /* An object at file scope or namespace scope with no storage class
-         usually has external linkage. */
-      if (!scope_stack[depth_innermost_namespace_scope].
-                                        within_unnamed_namespace) {
-        idlbp->linkage = idl_external;
-      } else {
-        /* The declaration is within the scope of an unnamed namespace, so
-           give the entity internal linkage. */
-        idlbp->linkage = idl_internal;
-        idlbp->storage_class = (a_storage_class)sc_static;
-      }  /* if */
-    } else if (is_template_instance) {
-      /* A template instance whose storage class has been specified or else
-         inferred from the template. */
-      idlbp->storage_class = local_storage_class;
-      idlbp->linkage = (local_storage_class == (a_storage_class)sc_static) ?
-                                              idl_internal : idl_external;
 #if ASM_FUNCTION_ALLOWED
-    } else if (local_storage_class == (a_storage_class)sc_asm) {
+    if (local_storage_class == (a_storage_class)sc_asm) {
       /* An asm function has internal linkage. */
       idlbp->linkage = idl_internal;
+      prior_decl = NULL;
 #endif /* ASM_FUNCTION_ALLOWED */
-#if CHECKING
+    if (prior_decl != NULL &&
+        is_object == (prior_decl->kind == (a_symbol_kind)sk_variable)) {
+      /* The current declaration matches the prior declaration, so the latter
+         can used to determine the linkage of the former. */
     } else {
-      /* There should not be any other cases. */
-      internal_error("id_linkage: could not determine identifier linkage");
+      /* Ignore the previous declaration. */
+      prior_decl = NULL;
+    }  /* if */
+    if (prior_decl != NULL) {
+      if ((prior_decl->kind == (a_symbol_kind)sk_routine ||
+           prior_decl->kind == (a_symbol_kind)sk_member_function) &&
+          prior_decl->variant.routine.instance_ptr != NULL) {
+        is_template_instance = TRUE;
+      }  /* if */
+      if (is_template_instance) {
+        if (!idlbp->is_definition &&
+            !prior_decl->variant.routine.ptr->defined) {
+          /* A specific declaration of function template instance for which
+             a specific definition has not been seen.  The storage class of
+             this declaration must agree with the storage class of the
+             template. */
+          a_storage_class  templ_storage_class;
+          a_boolean        templ_is_inline;
+
+          templ_storage_class = prior_decl->variant.routine.ptr->storage_class;
+          templ_is_inline = prior_decl->variant.routine.ptr->is_inline;
+          if (((templ_storage_class != (a_storage_class)sc_static) &&
+               (local_storage_class == (a_storage_class)sc_static))) {
+            /* The template was not static but the new declaration is.  Issue
+               a warning, since the explicitly specified storage class will
+               be ignored. */
+            pos_sy_warning(ec_template_and_instance_linkage_conflict,
+                           &idlbp->locator->source_position, prior_decl);
+          } else if (idlbp->func_info->is_inline && !templ_is_inline) {
+            /* The specific declaration is inline but the template is not.
+               Issue a diagnostic because the inline specifier here will be
+               disregarded. */
+            pos_sy_warning(ec_incompatible_inline_specifier_on_specific_decl,
+                           &idlbp->locator->source_position, prior_decl);
+          }  /* if */
+          if (!microsoft_mode) {
+            idlbp->func_info->is_inline = templ_is_inline;
+            local_storage_class = templ_storage_class;
+          }  /* if */
+        }  /* if */
+        idlbp->storage_class = local_storage_class;
+        if (local_storage_class == (a_storage_class)sc_static) {
+          idlbp->linkage = idl_internal;
+        } else if (!extern_inline_allowed && idlbp->func_info->is_inline) {
+          idlbp->linkage = idl_internal;
+        } else {
+          idlbp->linkage = idl_external;
+        }  /* if */
+      } else {
+        if (local_storage_class == (a_storage_class)sc_extern ||
+            (is_function &&
+             local_storage_class == (a_storage_class)sc_unspecified)) {
+          /* An object or function with extern storage class, or a function
+             with no storage class, has the same linkage as any visible
+             declaration of this identifier with file scope. */
+          if (prior_decl != NULL &&
+              prior_decl->decl_scope ==
+                    scope_stack[depth_innermost_namespace_scope].number) {
+            /* There is a declaration with file scope that is visible from
+               here.  Set the flags to describe this identifier, and go
+               retry the determination of the linkage. */
+            switch (prior_decl->kind) {
+              case sk_routine:
+                local_storage_class = prior_decl->variant.routine.ptr->
+                                                               storage_class;
+                break;
+              case sk_variable:
+                local_storage_class = prior_decl->variant.variable.ptr->
+                                                                storage_class;
+                break;
+              case sk_function_template:
+                local_storage_class = prior_decl->variant.template_info->
+                                      variant.function.routine->storage_class;
+                break;
+#if CHECKING
+              case sk_overloaded_function:
+              default:
+                internal_error("id_linkage: bad kind for prior_decl");
 #endif /* CHECKING */
+            }  /* switch */
+            if (local_storage_class == (a_storage_class)sc_static) {
+              /* An entity initially declared "static" is now being declared
+                 without "static".  But it still has internal linkage. */
+              idlbp->linkage = idl_internal;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -1901,8 +1913,21 @@ determine_linkage:
     putc('\n', f_debug);
   }  /* if */
 #endif /* DEBUG */
-  if (idlbp->linkage == idl_none) idlbp->linked_symbol = NULL;
-
+  if (idlbp->linkage == idl_none) {
+    /* If there's no linkage, be sure the linked_symbol is NULL. */
+    idlbp->linked_symbol = NULL;
+  } else {
+    /* Set the storage class to fit the linkage. */
+    if (idlbp->linkage == idl_internal) {
+      idlbp->storage_class = (a_storage_class)sc_static;
+    } else if (idlbp->linkage == idl_external) {
+      if (idlbp->is_definition) {
+        idlbp->storage_class = (a_storage_class)sc_unspecified;
+      } else {
+        idlbp->storage_class = (a_storage_class)sc_extern;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   db_exit();
 }  /* id_linkage */
 
@@ -3395,9 +3420,6 @@ cross-reference output describing this declaration.
   *old_type = NULL;
   check_assertion(storage_class != (a_storage_class)sc_typedef);
   if (srk_flags & SRK_DEFINITION) is_variable_def = TRUE;
-  effective_decl_level =
-            compute_effective_decl_level(/*is_function=*/FALSE, storage_class,
-                                         /*is_friend_decl=*/FALSE);
   if (locator->is_template_id && !is_error_locator(*locator)) {
     /* An explicit template argument list is not allowed.  It could have
        sneaked past prior checking (during declarator processing) in Microsoft
@@ -3409,9 +3431,9 @@ cross-reference output describing this declaration.
   clear_id_linkage_block(&idlb);
   idlb.locator = locator;
   idlb.type = type_ptr;
-  idlb.effective_decl_level = effective_decl_level;
   idlb.is_definition = is_variable_def;
   idlb.storage_class = storage_class;
+  set_linkage_environment(&idlb, decl_scope_level);
   if (!C_mode() && locator->specific_symbol != NULL &&
       qualifier_namespace_ptr(*locator) != NULL) {
     /* This identifier is a namespace-qualified name that was previously
@@ -3968,10 +3990,6 @@ on for use in generating cross-reference output describing this declaration.
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  effective_decl_level = compute_effective_decl_level(/*is_function=*/TRUE,
-                                                      storage_class,
-                                                      is_friend_decl);
-  clear_id_linkage_block(&idlb);
   if (C_dialect == C_dialect_cplusplus) {
     an_error_severity  severity = es_error;
 
@@ -3979,7 +3997,6 @@ on for use in generating cross-reference output describing this declaration.
       check_assertion_str(storage_class == (a_storage_class)sc_unspecified ||
                           storage_class == (a_storage_class)sc_static,
                           "decl_routine: bad storage class for inline");
-      storage_class = (a_storage_class)sc_static;
     }  /* if */
     /* If this is an overloaded operator, check for errors in the
        argument list. */
@@ -3998,6 +4015,15 @@ on for use in generating cross-reference output describing this declaration.
       invalid_scope_for_new_or_delete = TRUE;
     }  /* if */
   }  /* if */
+  clear_id_linkage_block(&idlb);
+  idlb.locator = locator;
+  idlb.storage_class = storage_class;
+  idlb.type = type_ptr;
+  idlb.func_info = func_info;
+  idlb.is_definition = is_function_def;
+  set_linkage_environment(&idlb, decl_scope_level);
+  check_assertion(idlb.is_friend_decl == ((srk_flags & SRK_FRIEND) != 0));
+  is_friend_decl = idlb.is_friend_decl;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     if (locator->is_template_id && locator->specific_symbol == NULL) {
@@ -4023,13 +4049,6 @@ on for use in generating cross-reference output describing this declaration.
     linked_symbol = NULL;
     sym = *symbol_ptr;
   } else {
-    idlb.locator = locator;
-    idlb.storage_class = storage_class;
-    idlb.type = type_ptr;
-    idlb.func_info = func_info;
-    idlb.effective_decl_level = effective_decl_level;
-    idlb.is_definition = is_function_def;
-    idlb.is_friend_decl = is_friend_decl;
     if (!C_mode() && locator->specific_symbol != NULL &&
         (qualifier_namespace_ptr(*locator) != NULL ||
          locator->is_file_scope_qualified_name ||
@@ -4863,9 +4882,8 @@ is not a template declaration scope.
   an_id_linkage_block      idlb;
 
   db_enter(3, "decl_function_template");
-  clear_id_linkage_block(&idlb);
-  templ_param_list = templ_decl_info->parameters;
-  idlb.templ_param_list = templ_param_list;
+  check_assertion(scope_stack[depth_scope_stack].kind ==
+                                (a_scope_kind)sck_template_declaration);
   if (func_info->is_inline && !extern_inline_allowed) {
     storage_class = (a_storage_class)sc_static;
   } else if (scope_stack[depth_innermost_namespace_scope].
@@ -4875,20 +4893,17 @@ is not a template declaration scope.
     /* Default. */
     storage_class = (a_storage_class)sc_extern;
   }  /* if */
+  clear_id_linkage_block(&idlb);
+  idlb.templ_param_list = templ_decl_info->parameters;
   idlb.storage_class = storage_class;
-  check_assertion(scope_stack[depth_scope_stack].kind ==
-                                (a_scope_kind)sck_template_declaration);
-  /* Compute the effective declaration level.  If this is a friend,
-     the proper adjustment will be made. */
-  idlb.effective_decl_level =
-              compute_friend_effective_decl_level(orig_decl_level);
-  idlb.is_friend_decl = idlb.effective_decl_level != orig_decl_level;
+  idlb.func_info = func_info;
+  idlb.is_function_template = TRUE;
+  idlb.type = type_ptr;
+  idlb.locator = locator;
+  set_linkage_environment(&idlb, orig_decl_level);
   if (idlb.is_friend_decl && !friend_injection_enabled) {
     set_invisible = TRUE;
   }  /* if */
-  idlb.func_info = func_info;
-  idlb.type = type_ptr;
-  idlb.locator = locator;
   if (locator->is_qualified_name && locator->is_class_member &&
       locator->specific_symbol != NULL) {
     a_type_ptr		parent_class;
@@ -4914,7 +4929,7 @@ is not a template declaration scope.
     } else {
       /* Look for a member function symbol of this type in the symbol table.
          It is an error if it is  not already there. */
-      sym = member_function_redecl_sym(sym, type_ptr, templ_param_list);
+      sym = member_function_redecl_sym(sym, type_ptr, idlb.templ_param_list);
       if (sym != NULL) {
         if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* This is the symbol for a member template function.  Use
@@ -5065,7 +5080,7 @@ is not a template declaration scope.
       check_default_args(type_ptr);
       if (homonym_symbol != NULL &&
           !overload_distinguishable(homonym_symbol, type_ptr,
-                                    templ_param_list, &error_code)) {
+                                    idlb.templ_param_list, &error_code)) {
         /* The previous declaration and the current one are not "overload
            distinguishable" for a reason given by the error code returned. */
         pos_error(error_code, &locator->source_position);
@@ -5259,7 +5274,8 @@ is not a template declaration scope.
       if (rout_sym->kind == (a_symbol_kind)sk_routine) {
         /* Determine whether rout_sym is a specialization of the function
            template represented by sym. */
-        record_predeclared_template_function(sym, rout_sym, templ_param_list);
+        record_predeclared_template_function(sym, rout_sym,
+                                             idlb.templ_param_list);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -5321,7 +5337,7 @@ is not a template declaration scope.
           a_symbol_ptr        dummy;
 
           if (is_match_for_function_template(sym, tp, &templ_arg_list, &dummy,
-                                             templ_param_list,
+                                             idlb.templ_param_list,
                                              (a_template_arg_ptr)NULL,
                                              /*is_decl_context=*/TRUE)) {
             sym_error(ec_template_instance_already_used,
@@ -8942,10 +8958,6 @@ continue_with_declaration:
           /* Not a function declaration. */
           pos_error(ec_inline_and_nonfunction, &decl_start_pos);
         } else {
-          if (!extern_inline_allowed) {
-            /* Set the storage class to sc_static. */
-            local_storage_class = (a_storage_class)sc_static;
-          }  /* if */
           func_info.is_inline = TRUE;
         }  /* if */
       }  /* if */
@@ -9125,11 +9137,6 @@ continue_with_declaration:
                                &decl_pos_block.storage_class_pos);
               }  /* if */
             }  /* if */
-          }  /* if */
-          /* Make a function with no body (yet?) have a storage class of
-             extern (for external linkage) or static (for internal linkage). */
-          if (local_storage_class != (a_storage_class)sc_static) {
-            local_storage_class = (a_storage_class)sc_extern;
           }  /* if */
         } else {
           if (is_static_data_member) {

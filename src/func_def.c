@@ -1646,9 +1646,6 @@ associated with the function is returned.
   /* Force the storage class of a function with a body to unspecified
      (meaning external) or either static or inline (meaning internal);
      i.e., change extern to unspecified. */
-  if (storage_class == (a_storage_class)sc_extern) {
-    storage_class = (a_storage_class)sc_unspecified;
-  }  /* if */
   /* Create the symbol entry and routine entry for the routine. */
   if (locator->specific_symbol != NULL &&
       locator->specific_symbol->is_class_member) {
