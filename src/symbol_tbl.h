@@ -981,6 +981,16 @@ extern an_extern_type_fixup_ptr alloc_etype_fixup(void);
    (sym)->kind == (a_symbol_kind)sk_member_function ||                \
    (sym)->kind == (a_symbol_kind)sk_overloaded_function)
 
+/* Return TRUE if a symbol is a constructor symbol. */
+#define is_constructor_symbol(sym)                                    \
+  (((sym)->kind == (a_symbol_kind)sk_member_function &&               \
+    (sym)->variant.routine->special_kind ==                           \
+                        (a_special_function_kind)sfk_constructor) ||  \
+   ((sym)->kind == (a_symbol_kind)sk_overloaded_function &&           \
+    (sym)->variant.overloaded_function.symbols->                      \
+                                variant.routine->special_kind ==      \
+                        (a_special_function_kind)sfk_constructor))
+
 /*
 Extract the type from a type symbol (one for which is_type_symbol is TRUE).
 */
