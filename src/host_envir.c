@@ -1957,6 +1957,10 @@ Close the mapped input file and the associated map object.
 }  /* close_mapped_input_file */
 
 
+#if !USE_FIXED_ADDRESS_FOR_MMAP
+/*ARGSUSED*/ /* <-- Because "curr_size" is only used when
+                    USE_FIXED_ADDRESS_FOR_MMAP is TRUE. */
+#endif /* !USE_FIXED_ADDRESS_FOR_MMAP */
 a_void_ptr map_file_region(sizeof_t	curr_size,
 		           sizeof_t	incremental_size,
 			   long		file_offset)
@@ -2105,6 +2109,10 @@ incremental_size must be a multiple of the page size.
 }  /* get_page_size */
 
 
+#if !USE_FIXED_ADDRESS_FOR_MMAP
+/*ARGSUSED*/ /* <-- Because "curr_size" is only used when
+                    USE_FIXED_ADDRESS_FOR_MMAP is TRUE. */
+#endif /* !USE_FIXED_ADDRESS_FOR_MMAP */
 a_void_ptr map_file_region(sizeof_t	curr_size,
 		           sizeof_t	incremental_size,
 			   long		file_offset)
