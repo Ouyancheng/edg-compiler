@@ -2327,6 +2327,12 @@ that do normal id lookup processing.
       break;
     }  /* if */
   }  /* for */
+#if DEBUG
+    if (debug_level >= 5 || db_flag_is_set("scope_stack_lookup")) {
+      fprintf(f_debug, "Scope stack lookup returning ");
+      db_symbol(sym, "", 0);
+    }  /* if */
+#endif /* DEBUG */
   return sym;
 }  /* scope_stack_lookup */
 
