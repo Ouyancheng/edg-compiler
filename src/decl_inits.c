@@ -1200,7 +1200,7 @@ otherwise TRUE is returned and *subscript is set to the scanned value.
     } break;
     default: {
       unexpected_condition_str(
-                         "array intialization designator: bad constant kind");
+                        "array initialization designator: bad constant kind");
     }
   }  /* switch */
   return all_OK;
@@ -1317,7 +1317,7 @@ returned, else FALSE.
       found_field_designator = FALSE;
       *field = NULL;
       unexpected_condition_str(
-                          "field intialization designator: non-field member");
+                         "field initialization designator: non-field member");
     } else { /* We seem to have a valid field designator. */
       *field = member_sym->variant.field.ptr;
     }  /* if */
