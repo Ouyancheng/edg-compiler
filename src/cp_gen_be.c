@@ -5584,6 +5584,14 @@ exception-handling "try" block.
   a_handler_ptr handler;
 
   write_tok_str("try ");
+  if (innermost_function_scope->assoc_block == statement &&
+      innermost_function_scope->variant.routine.ptr->special_kind ==
+                                    (a_special_function_kind)sfk_constructor) {
+    /* For a constructor function-try-block, put out the ctor-initializers
+       here. */
+    gen_ctor_initializers(
+                  innermost_function_scope->variant.routine.constructor_inits);
+  }  /* if */
   gen_statement(statement->variant.try_block->statement);
   /* Put out each handler ("catch" clause). */
   for (handler = statement->variant.try_block->handlers;
@@ -7475,8 +7483,12 @@ TRUE if the declaration following this one is such a continuation.
       gen_old_style_parameter_decls();
     }  /* if */
     write_space();
-    if (rout->special_kind == (a_special_function_kind)sfk_constructor) {
-      /* For a constructor, put out the ctor-initializers. */
+    if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
+        scope->assoc_block->kind != (a_statement_kind)stmk_try_block) {
+      /* For a constructor, put out the ctor-initializers.  Don't do
+         this if the constructor has a function-try-block (in that case,
+         the ctor-initializers will be processed when putting out the
+         try block). */
       gen_ctor_initializers(scope->variant.routine.constructor_inits);
     }  /* if */
     /* Generate the body of the function. */
