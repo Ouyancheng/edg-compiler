@@ -5170,7 +5170,8 @@ Do one-time initialization of static variables declared in lower_init.c.
 are handled in il_lower_init.)
 */
 {
-  /* Save variables from that are needed for precompiled headers */
+  /* Save variables from lower_init.c that are needed for precompiled
+     headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(cleanup_actions_for_local_static_variables),
