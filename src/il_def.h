@@ -88,9 +88,7 @@ typedef struct a_variable_remapping_for_inlining
 #endif /* MINIMAL_INLINING */
 typedef struct a_template_decl *a_template_decl_ptr;
 typedef struct a_template *a_template_ptr;
-#if MICROSOFT_EXTENSIONS_ALLOWED
 typedef struct an_ms_attribute *an_ms_attribute_ptr;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
 typedef struct a_destructible_entity_descr
                              a_destructible_entity_descr_dummy_typedef;
