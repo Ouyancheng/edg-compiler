@@ -1,5 +1,19 @@
 Version 2.30
 
+7/25/95  Bit-field allocation bug
+
+A bug has been fixed in computing the size and alignment of a bit-field
+container when TARG_BIT_FIELD_CONTAINER_SIZE is configured to zero.  Here
+is an example of the effect of the fix:
+
+  struct S {
+    char c;
+    int flags:10;
+  } s;
+
+Assuming default settings for integer sizes and alignments, the size of s
+is now 4 (not 3, as before) and its alignment is 4 (not 1).
+
 7/24/95  Memory region problem with IL lowering default_version_of_routine
 
 The routine default_version_of_routine in IL lowering takes a function
