@@ -1548,8 +1548,10 @@ the scope being pushed.
   a_scope_stack_entry_ptr ssep;
   a_scope_ptr             sp = NULL;
   a_boolean               reactivate_template_params = FALSE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean               already_in_nonspecialized_instantiation_context =
                                     is_nonspecialized_instantiation_context();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "push_scope_full");
   if (depth_scope_stack+1 == (int)size_scope_stack) {
