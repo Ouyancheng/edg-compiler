@@ -5907,12 +5907,14 @@ block.
     /* Namespace definition. */
     if (required_token(tok_lbrace, ec_exp_lbrace)) {
       if (ns_sym == NULL) {
-        /* Original definition. */
-        original_def = TRUE;
         /* Create a namespace symbol. */
         ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,
                               depth_scope_stack,
                               /*suppress_redecl_error=*/TRUE);
+      }  /* if */
+      if (ns_sym->variant.namespace_info.ptr == NULL) {
+        /* Original definition. */
+        original_def = TRUE;
         /* Allocate the namespace entry. */
         nsp = alloc_namespace(/*is_alias=*/FALSE);
         set_source_corresp(&nsp->source_corresp, ns_sym);
