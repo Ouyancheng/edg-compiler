@@ -1318,7 +1318,8 @@ exit:
      processing is more or less tracking whether a constant could
      be an integral constant expression, even when it is scanned
      in other modes. */
-  if (is_integral_type(new_type) && is_arithmetic_type(constant_type)) {
+  if (is_integral_or_enum_type(new_type) &&
+      is_arithmetic_or_enum_type(constant_type)) {
     /* Arithmetic --> integral.  Okay. */
   } else if (C_mode() &&
              is_void_star_type(new_type) &&
