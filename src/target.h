@@ -137,8 +137,11 @@ integers than the host.
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 
 /*
-There is a host integer that is large enough to hold all target integers,
+There is a host integer type that is large enough to hold all target integers,
 so the integer representation is just some host integral type.
+This type must be unsigned; a_signed_integer_value is the signed version.
+Note that the types are allowed to be the unsigned and signed versions
+of "long long" if the host allows them.
 */
 typedef unsigned long an_integer_value;
 typedef long a_signed_integer_value;
@@ -150,7 +153,7 @@ typedef long a_signed_integer_value;
 /* The printf formatting specifier to be used to print the integer type. */
 #define PRINTF_FORMAT_FOR_SIGNED_INTEGER_VALUE   "%ld"  /* long */
 #define PRINTF_FORMAT_FOR_UNSIGNED_INTEGER_VALUE "%lu"  /* unsigned long */
-#define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE "%lx"	/* hexadecimal */
+#define PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE      "%lx"  /* hexadecimal */
 
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
@@ -192,7 +195,7 @@ typedef unsigned long a_host_large_unsigned;
 typedef struct an_integer_value {
   an_int_value_part part[INT_VALUE_PARTS_PER_INTEGER_VALUE];
 } an_integer_value;
-#define BITS_IN_AN_INTEGER_VALUE (BITS_IN_INT_VALUE_PART *		\
+#define BITS_IN_AN_INTEGER_VALUE (BITS_IN_INT_VALUE_PART *	      \
 				  INT_VALUE_PARTS_PER_INTEGER_VALUE)
 
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
