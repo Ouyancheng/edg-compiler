@@ -1825,7 +1825,9 @@ evaluated (but not checked to see if the match is good enough).
          overload_distinguishable. */
       /* An indefinite function cannot be made to match anything. */
       if (is_indefinite_function_operand(&arg_operand->operand)) goto done;
-      arg_match->param_type = param_type = ptp->type;
+      /* arg_match->param_type is left NULL because subsequence checking does
+         not apply for template cases. */
+      param_type = ptp->type;
       arg_type = arg_operand->operand.type;
       type_qualifiers_added = FALSE;
       if (is_reference_type(param_type)) {
