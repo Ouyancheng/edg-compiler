@@ -743,6 +743,9 @@ way described by octl.
 
 #ifdef CFE
 
+#if !UPC_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* upc_block_size is only used when UPC extensions are allowed. */
+#endif /* !UPC_EXTENSIONS_ALLOWED */
 void form_type_qualifier(
                      a_type_qualifier_set                  qualifiers,
                      a_upc_block_size                      upc_block_size,
@@ -1931,7 +1934,7 @@ precedence confusion.  Do the output in the way described by octl.
   }  /* if */
   if (minus_1_trick) octl->output_str("-1");
   output_optional_close_paren(need_negative_close_paren, octl);
-#if UP_EXTENSIONS_ALLOWED
+#if UPC_EXTENSIONS_ALLOWED
   if (constant->kind == (a_constant_repr_kind)ck_upc_threads) {
     octl->output_str("*THREADS");
   }  /* if */

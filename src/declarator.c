@@ -641,7 +641,7 @@ property fields).
             error(ec_function_returning_shared);
             err = TRUE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-         } else if (is_reference_type(new_type_ptr)) {
+          } else if (is_reference_type(new_type_ptr)) {
             /* A diagnostic will already have been issued. */
           } else {
             /* Type qualifiers on a function return type are meaningless.

@@ -247,7 +247,7 @@ typedef enum /*a_token_kind*/ {
   tok_upc_blocksizeof,
   tok_upc_localsizeof,
   tok_upc_elemsizeof,
-#endif UPC_EXTENSIONS_ALLOWED
+#endif /* UPC_EXTENSIONS_ALLOWED */
   /* Token used to indicate keywords that are not yet implemented. */
   tok_unimplemented,
   /* Error token. */

@@ -233,7 +233,31 @@ extern int fileno(FILE *);
 /*lint -esym(765, db_sym_list)*/
 /*lint -esym(714, db_sym_list)*/
 #endif /* DEBUG */
-
+#if !UPC_EXTENSIONS_ALLOWED
+/*lint -esym(769,ec_unrecognized_upc_pragma)*/
+/*lint -esym(769,ec_mismatched_shared_block_size)*/
+/*lint -esym(769,ec_ambiguous_block_size_spec)*/
+/*lint -esym(769,ec_shared_block_size_must_be_positive)*/
+/*lint -esym(769,ec_multiple_block_sizes)*/
+/*lint -esym(769,ec_nonshared_strict_relaxed)*/
+/*lint -esym(769,ec_threads_constant_not_allowed)*/
+/*lint -esym(769,ec_shared_block_size_too_large)*/
+/*lint -esym(769,ec_function_returning_shared)*/
+/*lint -esym(769,ec_nonshared_threads_dim)*/
+/*lint -esym(769,ec_shared_nonthreads_dim)*/
+/*lint -esym(769,ec_shared_inside_struct)*/
+/*lint -esym(769,ec_shared_parameter)*/
+/*lint -esym(769,ec_threads_dimension_requires_definite_block_size)*/
+/*lint -esym(769,ec_bad_shared_storage_class)*/
+/*lint -esym(769,ec_nonshared_blocksizeof)*/
+/*lint -esym(769,ec_nested_upc_forall)*/
+/*lint -esym(769,ec_exit_forall)*/
+/*lint -esym(769,ec_unexpected_upc_shared_specifier)*/
+/*lint -esym(769,ec_bad_affinity)*/
+/*lint -esym(769,ec_shared_affinity_type)*/
+/*lint -esym(769,ec_upc_shared_void_comparison)*/
+/*lint -esym(769,ec_cl_upc_requires_ansi_c_dialect)*/
+#endif /* !UPC_EXTENSIONS_ALLOWED */
 
 /******************************************************************************
 *                                                             \  ___  /       *

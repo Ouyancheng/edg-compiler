@@ -4461,11 +4461,13 @@ qualifier.  This routine also scans the enclosing brackets.  E.g.,
   return block_size;
 }  /* scan_upc_block_size */
 
-#endif UPC_EXTENSIONS_ALLOWED
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
-#if !GNU_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- attributes is not used in that case. */
-#endif /* !GNU_EXTENSIONS_ALLOWED */
+#if !GNU_EXTENSIONS_ALLOWED || !UPC_EXTENSIONS_ALLOWED
+/*ARGSUSED*/ /* <-- attributes is only used when GNU extension are allowed.
+                    upc_block_size is only used when UPC extensions are
+                    allowed. */
+#endif /* !GNU_EXTENSIONS_ALLOWED || !UPC_EXTENSIONS_ALLOWED */
 a_boolean decl_specifiers(a_decl_flag_set            input_flags,
                           a_decl_flag_set            *output_flags,
                           a_storage_class            *storage_class,

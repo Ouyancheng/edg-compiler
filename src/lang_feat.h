@@ -1070,7 +1070,7 @@ EXTERN a_boolean
 #endif /* VAR_INITIALIZERS */
 			                  ;
 			/* TRUE if UPC extensions are to be accepted. */
-#endif UPC_EXTENSIONS_ALLOWED
+#endif /* UPC_EXTENSIONS_ALLOWED */
 
 /*
 Flag that is TRUE if support for bool can be enabled.
