@@ -1,5 +1,19 @@
 Version 2.46
 
+4/26/01  Internal error when recording instantiations of members of class
+         templates in source sequence lists (Microsoft mode)
+
+When TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the front end
+used to abort in Microsoft mode if a member of a class template was 
+instantiated for multiple template argument combinations.  E.g.:
+
+  template<typename T> struct S { void f(int); };
+  template<typename T> void S<T>::f(int) {}
+  template void S<char>::f(int);
+  template void S<long>::f(int);  // Triggers internal error in Microsoft mode
+
+This is now fixed.
+
 4/25/01  Extra cross-reference lines when argument-dependent lookup enabled
 
 When argument-dependent lookup is enabled, a call of a non-overloaded
