@@ -29,6 +29,9 @@ Set the test version flags to FALSE for demo versions.
 #ifdef __linux__
 #define LINUX_TEST_VERSION 0
 #endif /* ifdef __linux__ */
+#ifndef DEBUG
+#define DEBUG 0
+#endif /* ifndef DEBUG */
 #endif /* ifdef DEMO_VERSION */
 
 #define ENABLE_TRANS_UNIT_TEST_MODE 1
