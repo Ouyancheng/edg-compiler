@@ -1720,28 +1720,23 @@ the proper insert location.
                in most cases, this is an error, but in C++, one is allowed to
                define a tag name and a non-type name in the same scope (see ARM
                3.2, 3.1c, and 7.1.3).  In cfront and pcc modes a variable is
-  	     allowed to hide a function parameter. */
+               allowed to hide a function parameter. */
             if (!symbols_may_coexist_in_curr_scope(old_sym_ptr, sym_ptr,
                                                    &insert_after,
                                                    suppress_error)) {
               /* Error, this identifier has already been declared. */
               if (!suppress_error) {
-  	      /* Note that we pass the identifier string to the error routine
-                 rather than using the standard symbol name fill-in. 
-                 This is done because the variable pointer may not have been
-  		 filled in at the time the symbol is entered. */
-                if (sym_ptr->kind == (a_symbol_kind)sk_parameter &&
-                    old_sym_ptr->kind == (a_symbol_kind)sk_parameter) {
-                  pos_error(ec_dupl_param_name, &sym_ptr->decl_position);
-                } else {
-                  pos_st_error((is_type_symbol(sym_ptr) &&
-                                is_type_symbol(old_sym_ptr) &&
-                                C_dialect == C_dialect_cplusplus) ?
-                                               ec_bad_type_name_redeclaration :
-                                               ec_id_already_declared,
-                               &(sym_ptr->decl_position),
-                               sym_ptr->header->identifier);
-                }  /* if */
+                /* Note that we pass the identifier string to the error routine
+                   rather than using the standard symbol name fill-in. 
+                   This is done because the variable pointer may not have been
+                   filled in at the time the symbol is entered. */
+                pos_st_error((is_type_symbol(sym_ptr) &&
+                              is_type_symbol(old_sym_ptr) &&
+                              C_dialect == C_dialect_cplusplus) ?
+                                             ec_bad_type_name_redeclaration :
+                                             ec_id_already_declared,
+                             &(sym_ptr->decl_position),
+                             sym_ptr->header->identifier);
               }  /* if */
             }  /* if */
             /* Go ahead and enter the symbol anyway.  Both symbols will be
@@ -6920,11 +6915,10 @@ void add_to_param_id_list(a_symbol_locator      *locator,
                           a_func_info_block_ptr func_info,
                           a_param_id_ptr        *last_param_id)
 /*
-Create a new param_id entry and an sk_parameter symbol to go with it.  If
-func_info is non-null (the normal case) add the indicated identifier to
-its parameter id list.  If there is a parameter id list, *last_param_id
-points to the last entry on it.  type_ptr and storage_class are the type
-and storage class for the parameter.
+Create a new param_id entry and an sk_parameter symbol to go with it,
+and add the former to the parameter id list pointed to by func_info;
+*last_param_id points to the last entry on it.  type_ptr and
+storage_class are the type and storage class for the parameter.
 */
 {
   a_param_id_ptr  new_param_id;
@@ -6936,11 +6930,9 @@ and storage class for the parameter.
      an error.  Create a param_id entry if this is a prototype parameter
      list, but not otherwise. */
   if (!is_error_locator(*locator)) {
-    if (func_info != NULL) {
-      if (param_id_on_list(locator, func_info->param_id_list) != NULL) {
-        error(ec_dupl_param_name);
-        set_to_error_locator(*locator);
-      } /* if */
+    if (param_id_on_list(locator, func_info->param_id_list) != NULL) {
+      error(ec_dupl_param_name);
+      set_to_error_locator(*locator);
     } /* if */
   } else if (is_prototype_param_decl) {
     /* Assume that if an error locator is passed in and this is a prototype
@@ -6980,15 +6972,13 @@ and storage class for the parameter.
     }  /* if */
     new_param_id->symbol = sym;
     if (sym != NULL) sym->variant.param_id = new_param_id;
-    if (func_info != NULL) {
-      /* Put this entry on the end of the list of param ids. */
-      if (func_info->param_id_list == NULL) {
-        func_info->param_id_list = new_param_id;
-      } else {
-        (*last_param_id)->next = new_param_id;
-      }  /* if */
-      (*last_param_id) = new_param_id;
+    /* Put this entry on the end of the list of param ids. */
+    if (func_info->param_id_list == NULL) {
+      func_info->param_id_list = new_param_id;
+    } else {
+      (*last_param_id)->next = new_param_id;
     }  /* if */
+    (*last_param_id) = new_param_id;
   }  /* if */
 }  /* add_to_param_id_list */
 
