@@ -1,5 +1,19 @@
 Version 2.32
 
+2/21/96   Bug in same_type_with_added_qualifiers
+
+same_type_with_added_qualifiers, the routine used to compare types in
+cases where qualification conversions are allowed, failed to check that
+the underlying class was the same for pointers to members.  As a
+consequence, cases like the following were allowed through:
+
+  struct A {};
+  struct B {};
+  main () {
+    int B::*pmb = 0;
+    (void)const_cast<int A::*>(pmb);  // Should get error
+  }
+
 2/21/96   C++ qualification conversion on pointers is nonstandard in C
 
 C++ allows conversion of one pointer type to another with cv-qualifiers

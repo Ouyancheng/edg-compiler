@@ -2688,7 +2688,9 @@ can be NULL if the caller does not need this flag returned.
         dest_type = type_pointed_to(dest_type);
 	source_type = type_pointed_to(source_type);
       } else if (is_ptr_to_member_type(dest_type) &&
-		 is_ptr_to_member_type(source_type)) {
+                 is_ptr_to_member_type(source_type) &&
+                 types_are_compatible(pm_class_type(dest_type),
+                                      pm_class_type(source_type))) {
         /* Continue at the next level for pointers to members. */
 	dest_type = pm_member_type(dest_type);
 	source_type = pm_member_type(source_type);
