@@ -44,6 +44,7 @@ NEED_IL_DISPLAY and a call of il_display should be added in the front end.
 #include "const_ints.h"
 #include "lang_feat.h"
 #include "types.h"
+#include "il_to_str.h"
 
 #if STANDALONE_IL_DISPLAY
 
@@ -67,6 +68,11 @@ static a_boolean
 			/* TRUE if displaying the file-scope memory region,
 			   FALSE if displaying a function scope memory
 			   region. */
+
+static an_il_to_str_output_control_block
+		octl;	/* Output control block for interface to il_to_str
+			   routines. */
+
 
 /* Declaration required because of mutual recursion. */
 static void disp_ptr(char             *ptr_name,
@@ -116,373 +122,14 @@ Display the NULL-terminated string at string_ptr.
 }  /* disp_null_term_string */
 
 
-static void disp_int_kind_name(an_integer_kind kind)
+static void put_str_to_stdout(char *str)
 /*
-Print the name of an integer type.
+Output the indicated string to stdout.  This is used as an output routine
+when using the il_to_str routines.
 */
 {
-  char *s;
-
-  switch (kind) {
-    case ik_char:           s = "char";             break;
-    case ik_signed_char:    s = "signed char";      break;
-    case ik_unsigned_char:  s = "unsigned char";    break;
-    case ik_short:          s = "short";            break;
-    case ik_unsigned_short: s = "unsigned short";   break;
-    case ik_int:            s = "int";              break;
-    case ik_unsigned_int:   s = "unsigned int";     break;
-    case ik_long:           s = "long";             break;
-    case ik_unsigned_long:  s = "unsigned long";    break;
-#if LONG_LONG_ALLOWED
-    case ik_long_long:      s = "long long";        break;
-    case ik_unsigned_long_long:
-                            s = "unsigned long long";
-                                                    break;
-#endif /* LONG_LONG_ALLOWED */
-    default:                s = "**BAD INT KIND**";
-  }  /* switch */
-  (void)printf(s);
-}  /* disp_int_kind_name */
-
-
-static void disp_float_kind_name(a_float_kind kind)
-/*
-Print the name of a float type.
-*/
-{
-  char *s;
-
-  switch (kind) {
-    case fk_float:       s = "float";             break;
-    case fk_double:      s = "double";            break;
-    case fk_long_double: s = "long double";       break;
-    default:             s = "**BAD FLOAT KIND**";
-  }  /* switch */
-  (void)printf(s);
-}  /* disp_float_kind_name */
-
-#ifdef CFE
-
-static void disp_type_qualifier(a_type_ptr type)
-/*
-Print the type qualifier for the top type of the given type (i.e., just
-the first level).  The type must be a tk_typeref containing a type
-qualifier.
-*/
-{
-  a_boolean previous_qualifier = FALSE;
-
-  check_assertion_str(type->kind == (a_type_kind)tk_typeref,
-                      "disp_type_qualifier: bad type kind");
-  if (type->variant.typeref.is_const) {
-    (void)printf("const");
-    previous_qualifier = TRUE;
-  }  /* if */
-  if (type->variant.typeref.is_volatile) {
-    if (previous_qualifier) (void)printf(" ");
-    (void)printf("volatile");
-  }  /* if */
-}  /* disp_type_qualifier */
-
-#endif /* ifdef CFE */
-#ifdef FFE
-
-static void disp_bound(a_bound_info_entry_ptr biptr)
-/*
-Print the indicated dimension bound information entry.
-*/
-{
-  switch (biptr->kind) {
-    case bk_error:
-      (void)printf("<err>");
-      break;
-    case bk_constant:
-      (void)printf("%ld", biptr->variant.constant_bound);
-      break;
-    case bk_adjustable:
-      (void)printf("<adj>");
-      break;
-    case bk_assumed:
-      (void)printf("*");
-      break;
-    case bk_unknown_adjustable:
-      (void)printf("<unk adj>");
-      break;
-    default:
-      (void)printf("**BAD BOUND KIND**");
-  }  /* switch */
-}  /* disp_bound */
-
-#endif /* ifdef FFE */
-
-static void disp_type_specifier(a_type_ptr type)
-/*
-Print out the type specifier.
-*/
-{
-  switch (type->kind) {
-    case tk_error:
-      (void)printf("<error type>");
-      break;
-    case tk_unknown:
-      (void)printf("<unknown type>");
-      break;
-    case tk_void:
-      (void)printf("void");
-      break;
-    case tk_integer:
-#ifdef CFE
-      if (type->variant.integer.enum_type) {
-        (void)printf("enum");
-        goto do_tag_name;
-      }  /* if */
-      if (type->variant.integer.explicitly_signed) {
-        (void)printf("signed ");
-      }  /* if */
-#endif /* ifdef CFE */
-#ifdef FFE
-      if (type->variant.integer.logical_type) {
-        (void)printf("logical ");
-      }  /* if */
-#endif /* ifdef FFE */
-      disp_int_kind_name(type->variant.integer.int_kind);
-      break;
-    case tk_float:
-      disp_float_kind_name(type->variant.float_kind);
-      break;
-#ifdef CFE
-    case tk_class:
-      (void)printf("class");
-      goto do_tag_name;
-    case tk_struct:
-     (void) printf("struct");
-      goto do_tag_name;
-    case tk_union:
-      (void)printf("union");
-do_tag_name:
-      if (type->source_corresp.name != NULL) {
-        (void)printf(" %s", type->source_corresp.name);
-      }  /* if */
-      break;
-    case tk_typeref:
-      if (is_immediate_type_qualifier(type)) {
-        /* The top type is a type qualifier.  Output it and move on to the
-           underlying type. */
-        disp_type_qualifier(type);
-        (void)printf(" ");
-        disp_type_specifier(type->variant.typeref.type);
-      } else if (type->source_corresp.name == NULL) {
-        /* This is an internally generated typeref, so just output the
-           underlying type. */
-        disp_type_specifier(type->variant.typeref.type);
-      } else {
-        /* A typedef; output its name. */
-        (void)printf("%s", type->source_corresp.name);
-      }  /* if */
-      break;
-#endif /* ifdef CFE */
-#ifdef FFE
-    case tk_fcharacter:
-      if (type->variant.fcharacter.star_star) {
-        (void)printf("character*(*)");
-      } else {
-        (void)printf("character*%lu", type->variant.fcharacter.length);
-      }  /* if */
-      break;
-    case tk_hollerith:
-      (void)printf("hollerith*%lu", type->variant.hollerith_length);
-      break;
-    case tk_farray:
-      disp_type_specifier(type->variant.farray.element_type);
-      (void)printf(" array(");
-      for (i = 0; i < type->variant.farray.number_of_dimensions; i++) {
-        a_bound_info_entry_ptr bound_info = type->variant.farray.bound_info;
-        if (i > 0) (void)printf(", ");
-        disp_bound(&bound_info[i]);
-        (void)printf(":");
-        disp_bound(&bound_info[i+type->variant.farray.number_of_dimensions]);
-      }  /* for */
-      (void)printf(")");
-      break;
-    case tk_complex:
-      disp_float_kind_name(type->variant.float_kind);
-      (void)printf(" complex");
-      break;
-    case tk_stmt_label:
-      (void)printf("stmt label");
-      break;
-    case tk_format:
-      (void)printf("format");
-      break;
-    case tk_association:
-      (void)printf("association of size %lu", type->size);
-      break;
-    case tk_unspec_routine:
-      (void)printf("unspecified routine");
-      break;
-    case tk_blockdata:
-      (void)printf("blockdata");
-      break;
-#endif /* ifdef FFE */
-    case tk_template_param:
-      /* Front end only. */
-    default:
-      /* Note that certain type kinds are handled by disp_type_first_part
-         and disp_type_second_part and shouldn't get here. */
-      (void)printf("**BAD TYPE SPECIFIER KIND**");
-  }  /* switch */
-}  /* disp_type_specifier */
-
-#ifdef CFE
-
-static void disp_pointer_type_qualifiers(a_type_ptr qual_type,
-                                         a_type_ptr type)
-/*
-Generate type qualifiers, if any, to follow a pointer "*", reference "&",
-or pointer-to-member "name::*".  qual_type is the full pointer type,
-and type is the unqualified version of that type (e.g., the tk_pointer
-entry).
-*/
-{
-  for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
-    /* Put out a type qualifier. */
-    disp_type_qualifier(qual_type);
-    (void)printf(" ");
-  }  /* for */
-}  /* disp_pointer_type_qualifiers */
-
-#endif /* ifdef CFE */
-
-static void disp_type_first_part(a_type_ptr type,
-                                 a_boolean  under_lhs_declarator,
-                                 a_boolean  need_trailing_space)
-/*
-For the indicated type, output the specifiers and the part of the declarator
-that precedes the name.  If under_lhs_declarator is TRUE, this type is
-directly under a type that uses a left-side declarator, e.g., a pointer type.
-(That's used to control use of parentheses around parts of the declarator.)
-If need_trailing_space is TRUE, put a space at the end of the specifiers
-part (needed if the declarator part is not empty, because it contains a
-name or a derived type).
-*/
-{
-  a_type_kind kind;
-  a_type_ptr  qual_type;
-
-  qual_type = type;
-#ifdef CFE
-  /* Remove type qualifiers but not typedefs. */
-  while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
-#endif /* ifdef CFE */
-  kind = type->kind;
-  if (kind == (a_type_kind)tk_pointer) {
-    /* Pointer or reference type. */
-    disp_type_first_part(type->variant.pointer.type,
-                         /*under_lhs_declarator=*/TRUE,
-                         /*need_trailing_space=*/TRUE);
-    /* Output "*" or "&" for pointer or reference. */
-#ifdef CFE
-    if (type->variant.pointer.is_reference) {
-      (void)printf("&");
-    } else {
-#endif /* ifdef CFE */
-      (void)printf("*");
-#ifdef CFE
-    }  /* if */
-    /* Output the type qualifiers on the pointer, if any. */
-    disp_pointer_type_qualifiers(qual_type, type);
-#endif /* ifdef CFE */
-#ifdef CFE
-  } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
-    /* Pointer-to-member type. */
-    a_type_ptr tptr = type->variant.ptr_to_member.class_of_which_a_member;
-    disp_type_first_part(type->variant.ptr_to_member.type,
-                         /*under_lhs_declarator=*/TRUE,
-                         /*need_trailing_space=*/TRUE);
-    if (tptr->source_corresp.name != NULL) {
-      (void)printf("%s", tptr->source_corresp.name);
-    }  /* if */
-    (void)printf("::*");
-    /* Output the type qualifiers on the pointer, if any. */
-    disp_pointer_type_qualifiers(qual_type, type);
-#endif /* ifdef CFE */
-  } else if (type->kind == (a_type_kind)tk_routine) {
-    disp_type_first_part(type->variant.routine.return_type,
-                         /*under_lhs_declarator=*/FALSE,
-                         /*need_trailing_space=*/TRUE);
-    /* This is a right-side declarator, so if it's under a left-side declarator
-       parentheses are needed. */
-    if (under_lhs_declarator) (void)printf("(");
-#ifdef CFE
-  } else if (kind == (a_type_kind)tk_array) {
-    disp_type_first_part(type->variant.array.element_type,
-                         /*under_lhs_declarator=*/FALSE,
-                         /*need_trailing_space=*/TRUE);
-    /* This is a right-side declarator, so if it's under a left-side declarator
-       parentheses are needed. */
-    if (under_lhs_declarator) (void)printf("(");
-#endif /* ifdef CFE */
-  } else {
-    /* No declarator part to process.  Handle the specifier type. */
-    disp_type_specifier(qual_type);
-    if (need_trailing_space) (void)printf(" ");
-  }  /* if */
-}  /* disp_type_first_part */
-
-
-static void disp_type_second_part(a_type_ptr type,
-                                  a_boolean  under_lhs_declarator)
-/*
-Output the second part of a type reference, the part of the declarator
-that follows the name.  If under_lhs_declarator is TRUE, this type is
-directly under a type that uses a left-side declarator, e.g., a pointer type.
-(That's used to control use of parentheses around parts of the declarator.)
-*/
-{
-  a_type_kind kind;
-
-#ifdef CFE
-  /* Remove type qualifiers but not typedefs. */
-  while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
-#endif /* ifdef CFE */
-  kind = type->kind;
-  if (kind == (a_type_kind)tk_pointer) {
-    /* Pointer or reference type. */
-    disp_type_second_part(type->variant.pointer.type,
-                          /*under_lhs_declarator=*/TRUE);
-#ifdef CFE
-  } else if (type->kind == (a_type_kind)tk_ptr_to_member) {
-    /* Pointer-to-member type. */
-    disp_type_second_part(type->variant.ptr_to_member.type,
-                          /*under_lhs_declarator=*/TRUE);
-#endif /* ifdef CFE */
-  } else if (type->kind == (a_type_kind)tk_routine) {
-    /* Function type. */
-    /* This is a right-side declarator, so if it's under a left-side declarator
-       parentheses are needed. */
-    if (under_lhs_declarator) (void)printf(")");
-    /* No detailed information on parameter types is provided, since this
-       is just a summary. */
-    (void)printf("()");
-    disp_type_second_part(type->variant.routine.return_type,
-                          /*under_lhs_declarator=*/FALSE);
-#ifdef CFE
-  } else if (type->kind == (a_type_kind)tk_array) {
-    /* Array type. */
-    /* This is a right-side declarator, so if it's under a left-side declarator
-       parentheses are needed. */
-    if (under_lhs_declarator) (void)printf(")");
-    if (type->variant.array.variant.number_of_elements == 0) {
-      (void)printf("[]");
-    } else {
-      (void)printf("[%lu]", (unsigned long)type->variant.array.
-                                                   variant.number_of_elements);
-    }  /* if */
-    disp_type_second_part(type->variant.array.element_type,
-                          /*under_lhs_declarator=*/FALSE);
-#endif /* ifdef CFE */
-  }  /* if */
-}  /* disp_type_second_part */
+  fputs(str, stdout);
+}  /* put_str_to_stdout */
 
 
 static void summarize_type(a_type *tp)
@@ -490,9 +137,7 @@ static void summarize_type(a_type *tp)
 Print a short version of the type at *tp.
 */
 {
-  disp_type_first_part(tp, /*under_lhs_declarator=*/FALSE,
-                       /*need_trailing_space=*/FALSE);
-  disp_type_second_part(tp, /*under_lhs_declarator=*/FALSE);
+  form_type(tp, &octl);
 }  /* summarize_type */
 
 
@@ -501,122 +146,7 @@ static void summarize_constant(a_constant *cp)
 Print a short version of the constant at *cp.
 */
 {
-  a_source_correspondence *scp;
-  a_type_ptr              con_type = cp->type;
-  a_float_kind            fkind;
-
-  /* Be careful -- some constants have no type. */
-  if (con_type == NULL) {
-    if (cp->kind != (a_constant_repr_kind)ck_aggregate
-        && cp->kind != (a_constant_repr_kind)ck_init_repeat
-#ifdef FFE
-        && cp->kind != (a_constant_repr_kind)ck_init_position
-#endif /* ifdef FFE */
-                                                           ) {
-      (void)printf("**BAD CONSTANT TYPE**");
-    }  /* if */
-  } else {
-    if (cp->implicit_cast ||
-        cp->kind == (a_constant_repr_kind)ck_integer ||
-#ifdef FFE
-        cp->kind == (a_constant_repr_kind)ck_complex ||
-#endif /* ifdef FFE */
-        cp->kind == (a_constant_repr_kind)ck_float) {
-      /* Print the type for integers, floats, and complex, or if there
-         is an implicit cast. */
-      (void)printf("(");
-      summarize_type(con_type);
-      (void)printf(")");
-    }  /* if */
-    con_type = skip_typerefs(con_type);
-  }  /* if */
-  switch (cp->kind) {
-    case ck_error:
-      (void)printf("<error constant>");
-      break;
-    case ck_integer:
-      write_integer_constant(stdout, cp);
-      break;
-    case ck_float:
-      fkind = con_type->variant.float_kind;
-      (void)printf("%s", fp_to_string(fkind, &cp->variant.float_value));
-      break;
-#ifdef FFE
-    case ck_complex:
-      fkind = con_type->variant.float_kind;
-      (void)printf("(%s, %s)",
-                   fp_to_string(fkind, &cp->variant.complex_value->real),
-                   fp_to_string(fkind, &cp->variant.complex_value->imag));
-      break;
-#endif /* ifdef FFE */
-    case ck_string:
-      disp_string(cp->variant.string.value,
-                  (sizeof_t)cp->variant.string.length);
-      break;
-#ifdef CFE
-    case ck_address:
-      (void)printf("addr of ");
-      switch (cp->variant.address.kind) {
-        case abk_routine:
-          (void)printf("routine");
-          scp = &cp->variant.address.variant.routine->source_corresp;
-          goto entity_name;
-        case abk_variable:
-          (void)printf("variable");
-          scp = &cp->variant.address.variant.variable->source_corresp;
-entity_name:
-          if (scp->name != NULL) (void)printf(" %s", scp->name);
-          break;
-        case abk_constant:
-          summarize_constant(cp->variant.address.variant.constant);
-          break;
-        default:
-          (void)printf("**BAD ADDRESS CONSTANT KIND**");
-      }  /* switch */
-      if (cp->variant.address.offset != 0) {
-        (void)printf(" + byte offset %ld", cp->variant.address.offset);
-      }  /* if */
-      break;
-    case ck_ptr_to_member:
-      scp = NULL;
-      if (cp->variant.ptr_to_member.is_function_ptr) {
-        a_routine_ptr rp = cp->variant.ptr_to_member.variant.routine;
-        if (rp != NULL) scp = &rp->source_corresp;
-      } else {
-        a_field_ptr fp = cp->variant.ptr_to_member.variant.field;
-        if (fp != NULL) scp = &fp->source_corresp;
-      }  /* if */
-      if (scp == NULL) {
-        (void)printf("0");
-      } else {
-        (void)printf("&");
-        if (scp->class_of_which_a_member->source_corresp.name != NULL) {
-          (void)printf("%s::",
-                       scp->class_of_which_a_member->source_corresp.name);
-        }  /* if */
-        if (scp->name != NULL) (void)printf("%s", scp->name);
-      }  /* if */
-      break;
-    case ck_dynamic_init:
-       (void)printf("dynamic initialization");
-      break;
-#endif /* ifdef CFE */
-    case ck_aggregate:
-      (void)printf("aggregate");
-      break;
-    case ck_init_repeat:
-      (void)printf("init repeat");
-      break;
-#ifdef FFE
-    case ck_init_position:
-      (void)printf("init position");
-      break;
-#endif /* ifdef FFE */
-    case ck_template_param:
-      /* Front end only. */
-    default:
-      (void)printf("**BAD CONSTANT KIND**");
-  }  /* switch */
+  form_constant(cp, &octl);
 }  /* summarize_constant */
 
 
@@ -1017,13 +547,16 @@ Display the indicated constant entry.
       fkind = skip_typerefs(ptr->type)->variant.float_kind;
       (void)printf("%s\n", fp_to_string(fkind, &ptr->variant.float_value));
       break;
-    case ck_aggregate:
-      (void)printf("ck_aggregate\n");
-      disp_ptr("first_constant", (char *)ptr->variant.aggregate.first_constant,
-               iek_constant);
-      disp_ptr("last_constant", (char *)ptr->variant.aggregate.last_constant,
-               iek_constant);
+#ifdef FFE
+    case ck_complex:
+      (void)printf("ck_complex\n");
+      disp_name("complex_value");
+      fkind = ptr->type->variant.float_kind;
+      (void)printf("(%s, %s)\n",
+                       fp_to_string(fkind, &ptr->variant.complex_value->real),
+                       fp_to_string(fkind, &ptr->variant.complex_value->imag));
       break;
+#endif /* ifdef FFE */
 #ifdef CFE
     case ck_address:
       (void)printf("ck_address\n");
@@ -1072,6 +605,17 @@ Display the indicated constant entry.
                iek_dynamic_init);
       break;
 #endif /* ifdef CFE */
+    case ck_aggregate:
+      (void)printf("ck_aggregate\n");
+      disp_ptr("first_constant", (char *)ptr->variant.aggregate.first_constant,
+               iek_constant);
+      disp_ptr("last_constant", (char *)ptr->variant.aggregate.last_constant,
+               iek_constant);
+      break;
+#ifdef CFE
+    /*case ck_template_param:*/
+      /* Front end only. */
+#endif /* CFE */
     case ck_init_repeat:
       (void)printf("ck_init_repeat\n");
       disp_ptr("constant", (char *)ptr->variant.init_repeat.constant,
@@ -1079,23 +623,15 @@ Display the indicated constant entry.
       disp_unsigned_long("count", ptr->variant.init_repeat.count);
       break;
 #ifdef FFE
-    case ck_complex:
-      (void)printf("ck_complex\n");
-      disp_name("complex_value");
-      fkind = ptr->type->variant.float_kind;
-      (void)printf("(%s, %s)\n",
-                       fp_to_string(fkind, &ptr->variant.complex_value->real),
-                       fp_to_string(fkind, &ptr->variant.complex_value->imag));
-      break;
     case ck_init_position:
       (void)printf("ck_init_position\n");
       disp_long("offset", ptr->variant.init_position.offset);
       disp_unsigned_long("segment_size",
                          ptr->variant.init_position.segment_size);
       break;
-#endif /* ifdef FFE */
-    case ck_template_param:
+    /*case ck_hex_octal:*/
       /* Front end only. */
+#endif /* ifdef FFE */
     default:
       printf("**BAD CONSTANT KIND**\n");
   }  /* switch */
@@ -1315,8 +851,7 @@ Display the indicated type entry.
     case tk_integer:
       (void)printf("tk_integer\n");
       disp_name("int_kind");
-      disp_int_kind_name(ptr->variant.integer.int_kind);
-      (void)printf("\n");
+      (void)printf("%s\n", int_kind_name(ptr->variant.integer.int_kind));
 #ifdef FFE
       disp_boolean("logical_type",
                    (a_boolean)ptr->variant.integer.logical_type);
@@ -1346,8 +881,7 @@ Display the indicated type entry.
 do_float_complex:
 #endif /* ifdef FFE */
       disp_name("float_kind");
-      disp_float_kind_name(ptr->variant.float_kind);
-      (void)printf("\n");
+      (void)printf("%s\n", float_kind_name(ptr->variant.float_kind));
       break;
     case tk_pointer:
       (void)printf("tk_pointer\n");
@@ -3708,7 +3242,11 @@ where file.cil specifies the IL file.  Output is to stdout.
   (void)printf(
           "Display of IL file \"%s\", produced by the compilation of \"%s\"\n",
           file_name, primary_source_file_name);
-  /* Display it. */
+  /* Set up for use of the il_to_str routines. */
+  clear_il_to_str_output_control_block(&octl);
+  octl.output_str = put_str_to_stdout;
+  octl.gen_pcc_code = il_header.pcc_compatibility_mode;
+  /* Display the file scope IL. */
   disp_file_scope_il();
   /* Read and display the IL for each function scope. */
   for (region_number = FILE_SCOPE_REGION_NUMBER+1;
