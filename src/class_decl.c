@@ -9577,7 +9577,7 @@ emitted for the position indicated by the given locator.
   if (flags != 0) {
     an_error_severity  severity;
     an_error_code      err_code;
-    if ((flags & ~(DM_NORETURN | DM_NOINLINE)) == 0) {
+    if ((flags & ~(a_decl_modifier)(DM_NORETURN | DM_NOINLINE)) == 0) {
       /* Microsoft compilers silently ignore the noreturn and noinline
          __declspec specifiers.  We issue a warning. */
       severity = es_warning;
