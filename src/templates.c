@@ -4499,7 +4499,7 @@ instantiation.
     /* Get the namespace that is currently being defined. */
     curr_nsp = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
     nsp = parent_namespace_for_symbol(sym);
-    if (nsp == curr_nsp && nsp != NULL) {
+    if (!locator.is_class_member && nsp == curr_nsp && nsp != NULL) {
       /* The namespace is the same as the one currently being defined.
          This is an error. */
       pos_error(ec_qualifier_in_namespace_member_decl,
