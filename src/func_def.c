@@ -971,7 +971,8 @@ on a prior declaration.
       if (!cssp->has_copy_constructor_for_const_object ||
           cssp->construction_by_bitwise_copy_allowed) {
         a_type_qualifier_set  qualifiers;
-        if (is_copy_constructor(rp, class_type, &qualifiers)) {
+        if (is_copy_constructor(rp, class_type, &qualifiers,
+                                /*is_declarative_context=*/FALSE)) {
           /* This is a copy constructor.  Note that the presence of a user-
              defined copy constructor means that construction by bitwise
              copying is not done. */

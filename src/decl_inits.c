@@ -2013,7 +2013,8 @@ initialized.  These are addressed in the course of the processing.
   ctsp = class_type->variant.class_struct_union.extra_info;
   is_generated_cctor = !user_defined &&
                        is_copy_constructor(ctor_rout, class_type,
-                                           &required_qualifiers);
+                                           &required_qualifiers,
+                                           /*is_declarative_context=*/TRUE);
   /* The first step is to construct three lists of constructor initializer
      entries, one for virtual base classes that have constructors, one for
      nonvirtual direct base classes that have constructors, and one for

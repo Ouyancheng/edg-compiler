@@ -5104,12 +5104,15 @@ TRUE if this is a constructor declaration rather than a constructor reference.
 
 a_boolean is_copy_constructor(a_routine_ptr         ctor_rout,
                               a_type_ptr            class_of_which_a_member,
-                              a_type_qualifier_set  *qualifiers)
+                              a_type_qualifier_set  *qualifiers,
+                              a_boolean             is_declarative_context)
 /*
 Return TRUE if ctor_rout points to a copy constructor routine entry for
 class_of_which_a_member; if it does, also set and return *qualifiers to
 indicate the type qualifiers on the copy constructor's first parameter --
 this will show what restrictions are placed on the object being copied.
+is_declarative_context is TRUE if this is a constructor declaration rather
+than a constructor reference.
 */
 {
   a_param_type_ptr  ptp;
@@ -5131,10 +5134,28 @@ this will show what restrictions are placed on the object being copied.
       (ptp->next == NULL || ptp->next->has_default_arg)) {
     tp = type_pointed_to(ptp->type);
     if (skip_typerefs(tp) == class_of_which_a_member) {
-      /* It is a copy constructor. */
+      /* It is probably a copy constructor. */
       is_cctor = TRUE;
-      /* See if the object being copied is qualified. */
-      *qualifiers = get_top_level_type_qualifiers(tp);
+      if (!is_declarative_context) {
+        /* If this is a call context, be sure the default argument has already
+           been scanned.  Here's a case where this makes a difference:
+             struct X {
+               static X xx;
+               X(const X&, int i = (throw xx, 1)) { }
+             };
+           In even more obscure cases, there may be more that one parameter
+           to examine. */
+        for (; ptp != NULL;ptp = ptp->next) {
+          if (ptp->default_arg_expr == NULL) {
+            is_cctor = FALSE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      if (is_cctor) {
+        /* See if the object being copied is qualified. */
+        *qualifiers = get_top_level_type_qualifiers(tp);
+      }  /* if */
     }  /* if */
   }  /* if */
   return is_cctor;

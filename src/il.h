@@ -253,7 +253,8 @@ extern a_boolean is_default_constructor(a_routine_ptr  ctor_rout,
 extern a_boolean is_copy_constructor(
                                 a_routine_ptr         ctor_rout,
                                 a_type_ptr            class_of_which_a_member,
-                                a_type_qualifier_set  *qualifiers);
+                                a_type_qualifier_set  *qualifiers,
+                                a_boolean             is_declarative_context);
 
 extern void switch_il_region(a_memory_region_number region_number);
 

@@ -4328,7 +4328,8 @@ special function kind (e.g., constructor, destructor), if any.
       }  /* if */
       /* Determine if this is a copy constructor.  If so, set the class symbol
          supplement flags appropriately. */
-      if (is_copy_constructor(rtn, class_type, &qualifiers)) {
+      if (is_copy_constructor(rtn, class_type, &qualifiers,
+                              /*is_declarative_context=*/TRUE)) {
         cssp->has_copy_constructor = TRUE;
         cssp->has_copy_constructor_for_const_object |= 
                                                ((qualifiers & TQ_CONST) != 0);

@@ -3963,7 +3963,8 @@ routine is only used in C++ mode.
        constructor that can copy a const object and another that cannot. */
     for (; sym != NULL; sym = (is_overloaded_function ? sym->next : NULL)) {
       if (is_copy_constructor(sym->variant.routine.ptr,
-                              sym->parent.class_type, &qualifiers)) {
+                              sym->parent.class_type, &qualifiers,
+                              /*is_declarative_context=*/FALSE)) {
         if ((required_qualifiers & qualifiers) != required_qualifiers) {
           /* A copy constructor was found that cannot copy the sort of object
              that we need to be able to copy. Keep looking for a suitable copy
