@@ -1636,8 +1636,33 @@ funcs_not_identical:;
         case tk_template_param:
           /* Template parameter types are considered to be identical if
              their positions in the template parameter list are the same. */
-          identical = (type_1->variant.template_param.list_position ==
-                                type_2->variant.template_param.list_position);
+          if (type_1->variant.template_param.kind ==
+                                    type_2->variant.template_param.kind) {
+            switch (type_1->variant.template_param.kind) {
+              case tptk_param:
+                identical = (type_1->variant.template_param.list_position ==
+                             type_2->variant.template_param.list_position);
+                break;
+              case tptk_member:
+                check_assertion(type_1->source_corresp.name != NULL &&
+                                type_2->source_corresp.name != NULL);
+                if (strcmp(type_1->source_corresp.name,
+                           type_2->source_corresp.name) == 0) {
+                  identical = (identical_types(type_1->source_corresp.
+                                                    class_of_which_a_member,
+                                               type_2->source_corresp.
+                                                    class_of_which_a_member));
+                }  /* if */
+                break;
+              case tptk_type_of_member_constant:
+                /* Should never happen. */
+                break;
+#if CHECKING
+              default:
+                internal_error("f_identical_types: bad templ param type kind");
+#endif /* CHECKING */
+            }  /* switch */
+          }  /* if */
           break;
 #if CHECKING
         default:
@@ -1932,8 +1957,7 @@ initial test for exact pointer equality.
         case tk_template_param:
           /* Template parameter types are considered to be compatible if
              their positions in the template parameter list are the same. */
-          compat = (type_1->variant.template_param.list_position ==
-                                type_2->variant.template_param.list_position);
+          compat = f_identical_types(type_1, type_2, /*il_identical=*/FALSE);
           break;
 #if CHECKING
         default:
