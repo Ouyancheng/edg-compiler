@@ -5094,6 +5094,18 @@ typedef struct a_macro {
 
 #endif /* RECORD_MACROS_IN_IL */
 
+
+enum an_object_lifetime_kind_tag {
+  olk_global_static,	/* Lifetime of file-scope global variables. */
+  olk_local,		/* Lifetime of automatic variables tied to a scope
+			   or subscope. */
+  olk_function_static,	/* Lifetime of function-local static variables. */
+  olk_expr_temporary,	/* Lifetime of expression temporaries. */
+  olk_constructor_init	/* Lifetime of a constructor initialization. */
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte an_object_lifetime_kind;
+
 typedef struct an_object_lifetime {
   /* Represents the lifetime of an object (temporary or variable), which
      might be the same as a scope, or some subregion of a scope. */
@@ -5140,6 +5152,10 @@ typedef struct an_object_lifetime {
   a_tagged_pointer
 		entity;	/* Entity with which this object lifetime is
 			   associated.  See list of possible kinds above. */
+  an_object_lifetime_kind
+		kind;
+			/* The kind of lifetime this object lifetime entry
+			   represents. */
   a_dynamic_init_ptr
 		destructions;
 			/* A linked list of dynamic init entries (using
@@ -5151,8 +5167,8 @@ typedef struct an_object_lifetime {
   an_object_lifetime_ptr
 		parent_lifetime;
 			/* The object lifetime that is the nearest enclosing
-			   lifetime around this one, or NULL if this is the
-			   lifetime for the file scope. */
+			   lifetime around this one, or NULL if kind is
+			   olk_global_static or olk_function_static. */
   a_dynamic_init_ptr
 		parent_destruction_sublist;
 			/* Pointer to an entry in the parent lifetime's
@@ -5163,10 +5179,8 @@ typedef struct an_object_lifetime {
 		child_lifetime;
 			/* If this object lifetime has object lifetimes under
 			   it, this is the first on a list linked by the
-			   "next" field.  NULL otherwise.  However: since the
-			   topmost file-scope object lifetime cannot point to a
-			   function-scope object lifetime, such entries are
-			   not placed on the list. */
+			   "next" field.  NULL otherwise, including when kind
+			   is olk_global_static or olk_function_static. */
   an_object_lifetime_ptr
 		next;
 			/* The next object lifetime on a list of sibling
@@ -5296,6 +5310,12 @@ typedef struct a_scope {
 			/* If non-NULL, points to an object lifetime for
 			   the entities created on the constructor_inits
 			   list. */
+      an_object_lifetime_ptr
+		lifetime_of_local_static_vars;
+			/* If non-NULL, points to an object lifetime for
+			   the local static variables declared within the
+			   routine, whether in this scope or a block scope
+			   contained withing it. */
       a_variable_ptr
                 this_param_variable;
 			/* If the scope is for a C++ nonstatic member
