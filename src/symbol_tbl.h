@@ -174,6 +174,14 @@ typedef struct a_symbol_locator {
 			   is TRUE this points to the type of the qualifier,
 			   which may not actually be a class type (e.g.,
 			   for int::~int this will point to the type "int"). */
+  a_template_arg_ptr
+		template_arg_list;
+			/* When a function template symbol, or an overloaded
+			   function symbol is followed by a template argument
+			   list, this points to the argument list that was
+			   specified.  Typically, the reference cannot be
+			   coalesced to a pointer to a template instance
+			   until the function type is known. */
   union {
     /* When both is_operator_name and is_conversion_name are FALSE, both
        variants are undefined. */
