@@ -696,10 +696,12 @@ a type identical to base_class_type.  It must be found.
 
 
 /*
-Macro to test for a zero-length bit field.
+Macro to test for a zero-length field.  This includes zero-length bit fields
+and (where allowed) incomplete array fields.
 */
-#define field_is_zero_length_bit_field(field)                         \
-  ((field)->is_bit_field && (field)->bit_size == 0)
+#define field_has_zero_length(field)                         \
+  ((field)->is_bit_field ? (field)->bit_size == 0 :          \
+                           skip_typerefs((field)->type)->size == 0)
 
 
 static void add_field(char          *field_name,
@@ -730,10 +732,10 @@ offset for the field.  The field allocated is not a bit field.
        prev_field = next_field, next_field = next_field->next) {
 #if CHECKING
     /* Check for fields with the same offset, but watch out for zero-length
-       bit fields. */
+       fields. */
     if (next_field->offset == field_offset &&
         next_field->offset_bit_remainder == 0 &&
-        !field_is_zero_length_bit_field(next_field)) {
+        !field_has_zero_length(next_field)) {
 #if DEBUG
       db_abbreviated_type(struct_type);
       fprintf(f_debug, ", offset = %lu, new field = %s, old field = ",
@@ -1697,11 +1699,11 @@ class type.
       internal_error("field_at_offset: field not found");
     }  /* if */
 #endif /* CHECKING */
-    /* Don't pick a zero-length bit field as the answer.  The field
+    /* Don't pick a zero-length field as the answer.  The field
        following it is probably what's wanted. */
     if (field_ptr->offset == byte_offset &&
         field_ptr->offset_bit_remainder == 0 &&
-        !field_is_zero_length_bit_field(field_ptr)) break;
+        !field_has_zero_length(field_ptr)) break;
   }  /* for */
   return field_ptr;
 }  /* field_at_offset */
