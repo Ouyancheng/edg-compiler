@@ -19171,7 +19171,6 @@ Initializations for template.
   avail_partial_order_candidates = NULL;
   deferred_instantiations_in_process = FALSE;
   num_total_pending_instantiations = 0;
-  primary_il_may_reference_other_trans_units = FALSE;
   master_instantiations_list = NULL;
   master_instantiations_tail = NULL;
 #if DEBUG

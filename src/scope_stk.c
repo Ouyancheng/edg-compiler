@@ -4975,7 +4975,7 @@ End a name scope by popping an entry off the scope stack.
     discard_function_body = function_body_should_be_discarded(curr_routine);
 #if DO_IL_LOWERING
     if (is_primary_translation_unit &&
-        primary_il_may_reference_other_trans_units &&
+        secondary_translation_unit_seen() &&
         !discard_function_body && il_lowering_needed()) {
       /* Don't lower template instantiations in the primary translation unit
          if there are exported templates, because we want to eliminate

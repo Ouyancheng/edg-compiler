@@ -3026,42 +3026,40 @@ the copying of secondary translation unit IL to the primary IL, and
 before lowering and needed flag marking of the primary IL.
 */
 {
+  a_boolean              first_pass = TRUE;
   a_memory_region_number n;
 
   db_enter(1,
            "rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary");
   check_assertion(is_primary_translation_unit);
-  if (primary_il_may_reference_other_trans_units) {
-    a_boolean first_pass = TRUE;
-    /* Do two passes so that the il_walk_flag returns to its original value. */
-    for (;;) {
-      a_remap_function_ptr remap_func = NULL;
-      if (first_pass) remap_func = remap_secondary_pointer_for_rewrite;
-      walk_file_scope_il((an_entry_process_function_ptr)NULL,
-                         (a_string_entry_process_function_ptr)NULL,
-                         remap_func,
-                         remap_func,
-                         rewrite_secondary_termination_test,
-                         /*clear_fe_pointers=*/FALSE);
-      /* Loop through the memory regions looking for functions in the
-         primary IL, and process them too. */
-      for (n = FILE_SCOPE_REGION_NUMBER + 1;
-           n <= highest_used_region_number;
-           n++) {
-        if (mem_region_is_primary_func_scope(n)) {
-          walk_routine_scope_il(n,
-                                (an_entry_process_function_ptr)NULL,
-                                (a_string_entry_process_function_ptr)NULL,
-                                remap_func,
-                                remap_func,
-                                rewrite_secondary_termination_test,
-                                /*clear_fe_pointers=*/FALSE);
-        }  /* if */
-      }  /* for */
-      if (!first_pass) break;
-      first_pass = FALSE;
+  /* Do two passes so that the il_walk_flag returns to its original value. */
+  for (;;) {
+    a_remap_function_ptr remap_func = NULL;
+    if (first_pass) remap_func = remap_secondary_pointer_for_rewrite;
+    walk_file_scope_il((an_entry_process_function_ptr)NULL,
+                       (a_string_entry_process_function_ptr)NULL,
+                       remap_func,
+                       remap_func,
+                       rewrite_secondary_termination_test,
+                       /*clear_fe_pointers=*/FALSE);
+    /* Loop through the memory regions looking for functions in the
+       primary IL, and process them too. */
+    for (n = FILE_SCOPE_REGION_NUMBER + 1;
+         n <= highest_used_region_number;
+         n++) {
+      if (mem_region_is_primary_func_scope(n)) {
+        walk_routine_scope_il(n,
+                              (an_entry_process_function_ptr)NULL,
+                              (a_string_entry_process_function_ptr)NULL,
+                              remap_func,
+                              remap_func,
+                              rewrite_secondary_termination_test,
+                              /*clear_fe_pointers=*/FALSE);
+      }  /* if */
     }  /* for */
-  }  /* if */
+    if (!first_pass) break;
+    first_pass = FALSE;
+  }  /* for */
   db_exit();
 }  /* rewrite_secondary_trans_unit_IL_entity_pointers_used_in_primary */
 

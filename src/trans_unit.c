@@ -492,13 +492,6 @@ Return TRUE if a translation unit was pushed, FALSE if not.
     if (push_needed) {
       push_translation_unit_stack(tup);
     }  /* if */
-    if (curr_translation_unit == translation_units &&
-        secondary_trans_units_on_stack > 0) {
-      /* If we are in the primary translation unit, and if there are secondary
-         translation units on the stack, set a flag that indicates that the
-         primary IL may contain references to other translation units. */
-      primary_il_may_reference_other_trans_units = TRUE;
-    }  /* if */
   }  /* if */
   return push_needed;
 }  /* push_translation_unit_if_needed */
