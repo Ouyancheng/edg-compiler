@@ -1841,6 +1841,10 @@ typedef struct a_dynamic_init {
 			   stored into the temporary.  Note that this case
 			   is eliminated by IL lowering and therefore will
 			   never be seen in lowered code. */
+  a_bit_field	is_reused_value:1;
+			/* TRUE if this initialization's value is reused
+			   elsewhere in the current expression via an
+			   enk_reuse_value node. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
@@ -1930,6 +1934,12 @@ typedef struct a_dynamic_init {
 			   The master entry handles destruction etc.  This is
 			   used for the optimization of a "?" operator
 			   returning a class rvalue. */
+  a_dynamic_init_ptr
+		last_copied_to;
+			/* When copy_dynamic_init copies this entry, it sets
+			   this pointer to the address of the copy.  Used to
+			   fix pointers in other parts of the copy.  Front end
+			   only. */
 } a_dynamic_init;
 
 
@@ -7862,6 +7872,10 @@ enum an_expr_node_kind_tag {
 #if GNU_EXTENSIONS_ALLOWED
   enk_statement,	/* GNU statement expression, ({...}). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  enk_reuse_value,	/* Reuse a value computed elsewhere in the current
+			   expression tree.  Used for cases where a single
+			   expression is used twice but evaluated only once.
+			   Eliminated by IL lowering. */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   enk_lowered_eh_construct,
 			/* Used to represent a partially-lowered exception
@@ -8855,6 +8869,11 @@ typedef struct an_expr_node {
 		statement;
 			/* Enclosed compound statement. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    /* When kind == enk_reuse_value: */
+    a_dynamic_init_ptr
+		reused_value_init;
+			/* The dynamic initialization that creates the value
+			   to be reused. */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     /* When kind == enk_lowered_eh_construct: */
     struct {

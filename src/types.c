@@ -2583,6 +2583,9 @@ base class casts and virtual function calls.
     case enk_runtime_sizeof:
       complete_object_type = node->type;
       break;
+    case enk_reuse_value:
+      complete_object_type = node->type;
+      break;
     case enk_throw:
     case enk_field:
     case enk_condition:

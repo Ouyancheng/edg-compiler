@@ -2776,6 +2776,8 @@ as specified in the control block.
       traverse_statement(expr->variant.statement, tblock);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    case enk_reuse_value:
+      break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     case enk_lowered_eh_construct:
       break;
