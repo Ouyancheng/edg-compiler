@@ -11,6 +11,9 @@
 
 float_pt.c -- Routines that manipulate internal floating-point quantities.
 
+The versions in this file are for prototyping only, and should be replaced
+for a production version.
+
 */
 
 #include "basics.h"
@@ -60,11 +63,16 @@ be kept, but the value is checked to see that it will fit in the indicated
 type.
 */
 {
-  /* This is a simplistic version, which would probably be replaced by
+  double temp;
+
+  /* This is a simplistic version, which should probably be replaced by
      something "real" for a given implementation. */
   /* Convert the number. */
   errno = 0;
-  *(double *)float_value = atof(str);
+  temp = atof(str);
+  /* Use memcpy to copy the value since float_value might not be correctly
+     aligned. */
+  memcpy((char *)float_value, (char *)&temp, sizeof(double));
   *err = (errno != 0);
   /* Check that it will fit in the specified float kind. */
   if (!*err) fp_check_fit(kind, float_value, err);
@@ -78,8 +86,12 @@ variable, and return a pointer to that null-terminated string.
 */
 {
   static char str[30];
+  double      temp;
 
-  (void)sprintf(str, "%.15e", *(double *)float_value);
+  /* Use memcpy to copy the value since float_value might not be correctly
+     aligned. */
+  memcpy((char *)&temp, (char *)float_value, sizeof(double));
+  (void)sprintf(str, "%.15e", temp);
   return (str);
 }  /* fp_to_string */
 
@@ -93,8 +105,13 @@ Convert long_value to a floating-point value of kind "kind" in *float_value.
 Return *err TRUE if there is some error.
 */
 {
+  double temp;
+
   *err = FALSE;
-  *(double *)float_value = (double)long_value;
+  temp = (double)long_value;
+  /* Use memcpy to copy the value since float_value might not be correctly
+     aligned. */
+  memcpy((char *)float_value, (char *)&temp, sizeof(double));
   /* Check that it will fit in the specified float kind. */
   if (!*err) fp_check_fit(kind, float_value, err);
 }  /* fp_long_to_float */
@@ -110,8 +127,13 @@ Convert unsigned_long_value to a floating-point value of kind "kind" in
 *float_value.  Return *err TRUE if there is some error.
 */
 {
+  double temp;
+
   *err = FALSE;
-  *(double *)float_value = (double)unsigned_long_value;
+  temp = (double)unsigned_long_value;
+  /* Use memcpy to copy the value since float_value might not be correctly
+     aligned. */
+  memcpy((char *)float_value, (char *)&temp, sizeof(double));
   /* Check that it will fit in the specified float kind. */
   if (!*err) fp_check_fit(kind, float_value, err);
 }  /* fp_unsigned_long_to_float */
@@ -125,9 +147,12 @@ Convert float_value to a long value in long_value.  Return *err TRUE if there
 is some error.
 */
 {
-  double temp = *(double *)float_value;
+  double temp;
 
   *err = FALSE;
+  /* Use memcpy to copy the value since float_value might not be correctly
+     aligned. */
+  memcpy((char *)&temp, (char *)float_value, sizeof(double));
   if (temp > (double)(LONG_MAX) || temp < (double)LONG_MIN) {
     /* Floating value is too big or too small. */
     *err = TRUE;
@@ -145,9 +170,12 @@ Convert float_value to an unsigned long value in unsigned_long_value.
 Return *err TRUE if there is some error.
 */
 {
-  double temp = *(double *)float_value;
+  double temp;
 
   *err = FALSE;
+  /* Use memcpy to copy the value since float_value might not be correctly
+     aligned. */
+  memcpy((char *)&temp, (char *)float_value, sizeof(double));
   if (temp > (double)(ULONG_MAX) || temp < (double)0) {
     /* Floating value is too big or too small. */
     *err = TRUE;
@@ -163,7 +191,12 @@ Return TRUE if the constant (a float constant) is a floating zero of
 any precision.
 o*/
 {
-  return(*(double *)float_value == 0.0);
+  double temp;
+
+  /* Use memcpy to copy the value since float_value might not be correctly
+     aligned. */
+  memcpy((char *)&temp, (char *)float_value, sizeof(double));
+  return (temp == 0.0);
 }  /* fp_is_zero_constant */
 
 
@@ -178,8 +211,15 @@ result.  The result has kind "kind".  If there is any error, set *err
 to TRUE.
 */
 {
+  double tempr, temp1, temp2;
+
   *err = FALSE;
-  *(double *)result = *(double *)value_1 + *(double *)value_2;
+  /* Use memcpy to copy the values since the float values might not be
+     correctly aligned. */
+  memcpy((char *)&temp1, (char *)value_1, sizeof(double));
+  memcpy((char *)&temp2, (char *)value_2, sizeof(double));
+  tempr = temp1 + temp2;
+  memcpy((char *)result, (char *)&tempr, sizeof(double));
   if (!*err) fp_check_fit(kind, result, err);
 }  /* fp_add */
 
@@ -195,8 +235,15 @@ result.  The result has kind "kind".  If there is any error, set *err
 to TRUE.
 */
 {
+  double tempr, temp1, temp2;
+
   *err = FALSE;
-  *(double *)result = *(double *)value_1 - *(double *)value_2;
+  /* Use memcpy to copy the values since the float values might not be
+     correctly aligned. */
+  memcpy((char *)&temp1, (char *)value_1, sizeof(double));
+  memcpy((char *)&temp2, (char *)value_2, sizeof(double));
+  tempr = temp1 - temp2;
+  memcpy((char *)result, (char *)&tempr, sizeof(double));
   if (!*err) fp_check_fit(kind, result, err);
 }  /* fp_subtract */
 
@@ -212,8 +259,15 @@ result.  The result has kind "kind".  If there is any error, set *err
 to TRUE.
 */
 {
+  double tempr, temp1, temp2;
+
   *err = FALSE;
-  *(double *)result = *(double *)value_1 * *(double *)value_2;
+  /* Use memcpy to copy the values since the float values might not be
+     correctly aligned. */
+  memcpy((char *)&temp1, (char *)value_1, sizeof(double));
+  memcpy((char *)&temp2, (char *)value_2, sizeof(double));
+  tempr = temp1 * temp2;
+  memcpy((char *)result, (char *)&tempr, sizeof(double));
   if (!*err) fp_check_fit(kind, result, err);
 }  /* fp_multiply */
 
@@ -229,13 +283,20 @@ result.  The result has kind "kind".  If there is any error, set *err
 to TRUE.
 */
 {
+  double tempr, temp1, temp2;
+
   *err = FALSE;
-  if (fp_is_zero_constant(value_2)) {
+  /* Use memcpy to copy the values since the float values might not be
+     correctly aligned. */
+  memcpy((char *)&temp1, (char *)value_1, sizeof(double));
+  memcpy((char *)&temp2, (char *)value_2, sizeof(double));
+  if (temp2 == 0.0) {
     /* Division by zero.  This is also checked by the caller for a specific
        error message. */
     *err = TRUE;
   } else {
-    *(double *)result = *(double *)value_1 / *(double *)value_2;
+    tempr = temp1 / temp2;
+    memcpy((char *)result, (char *)&tempr, sizeof(double));
   }  /* if */
   if (!*err) fp_check_fit(kind, result, err);
 }  /* fp_divide */
@@ -253,12 +314,17 @@ values:
        value_1 < value_2  -1
 */
 {
-  int cmp;
+  int    cmp;
+  double temp1, temp2;
 
+  /* Use memcpy to copy the values since the float values might not be
+     correctly aligned. */
+  memcpy((char *)&temp1, (char *)value_1, sizeof(double));
+  memcpy((char *)&temp2, (char *)value_2, sizeof(double));
   *unordered = FALSE;
-  if (*(double *)value_1 > *(double *)value_2) {
+  if (temp1 > temp2) {
     cmp = 1;
-  } else if (*(double *)value_1 < *(double *)value_2) {
+  } else if (temp1 < temp2) {
     cmp = -1;
   } else {
     cmp = 0;
