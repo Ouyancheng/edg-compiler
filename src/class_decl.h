@@ -36,13 +36,6 @@ extern a_boolean scan_class_definition(
                                    a_scope_depth  effective_decl_level,
                                    a_boolean      is_local_class);
 
-extern a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
-                                 a_boolean  is_friend_decl,
-                                 a_boolean  is_ref_within_new_expr,
-                                 a_type_ptr *type_ptr,
-                                 a_boolean  *declares_something,
-                                 a_boolean  *defines_something);
-
 extern void check_anonymous_union_symbols(a_type_ptr     class_type,
                                           a_field_ptr    assoc_field_object,
                                           a_variable_ptr assoc_var_object);
@@ -55,15 +48,11 @@ extern void set_class_assoc_operator_new_routine(a_type_ptr class_type);
 extern void set_class_assoc_operator_delete_routine(a_type_ptr class_type);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 
-extern void reference_to_implicitly_invoked_function
-                                    (a_symbol_ptr       sym,
-                                     a_source_position  *pos,
-                                     a_type_ptr         class_of_object,
-                                     a_boolean          honor_virtual,
-                                     a_boolean          evaluated,
-                                     a_boolean          suppress_access_check);
-
-extern void force_definition_of_compiler_generated_routine(a_routine_ptr rp);
+extern a_boolean is_assignment_operator_for_copy(
+                                              a_symbol_ptr  sym,
+                                              a_boolean     *is_ref_arg,
+                                              a_boolean     *accepts_const,
+                                              a_boolean     *accepts_volatile);
 
 extern a_symbol_ptr member_function_redecl_sym(a_symbol_ptr  sym,
                                                a_type_ptr    type);
@@ -78,8 +67,6 @@ extern a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
                                  a_derivation_step_ptr  dsp2);
 
 extern void check_class_linkage(void);
-
-extern void generate_required_virtual_destructor_bodies(a_type_ptr types_list);
 
 extern void class_decl_init(void);
 
