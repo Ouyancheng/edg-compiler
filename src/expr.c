@@ -687,6 +687,7 @@ static a_type_ptr next_printf_scanf_arg_type(
                                           a_boolean           is_scanf,
                                           char                **fmt_string_ptr,
                                           a_printf_scan_state *pss_ptr,
+                                          a_source_position   *err_pos,
                                           a_boolean           *indirect,
                                           a_boolean           *weakly_typed)
 /*
@@ -696,7 +697,7 @@ Return NULL if no further arguments are needed.  is_scanf is TRUE for
 scanf/FALSE for printf; *fmt_string_ptr points to the current position 
 in the format string (it will be updated); and *pss_ptr is maintained
 to handle resuming the scan after a "*" field width or precision.
-If there is an error in the format string, issue a warning and set
+If there is an error in the format string, issue a warning at *err_pos and set
 *fmt_string_ptr to NULL.  *indirect is returned TRUE if the type returned
 has an added pointer level relative to the type indicated in the formatting
 string, e.g., for scanf.  *weakly_typed is returned TRUE if the formatting
@@ -820,9 +821,9 @@ after_precision:;
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_long_long);
           if (strict_ansi_mode) {
-            diagnostic((int)strict_ansi_error_severity < (int)es_warning ?
-                         strict_ansi_error_severity : es_warning,
-                       ec_nonstd_printf_format_string);
+            pos_diagnostic((int)strict_ansi_error_severity < (int)es_warning ?
+                             strict_ansi_error_severity : es_warning,
+                           ec_nonstd_printf_format_string, err_pos);
           }  /* if */
 #endif /* LONG_LONG_ALLOWED */
         } else if (h_size && is_scanf) {
@@ -849,9 +850,9 @@ after_precision:;
         } else if (ll_size) {
           required_type = integer_type((an_integer_kind)ik_unsigned_long_long);
           if (strict_ansi_mode) {
-            diagnostic((int)strict_ansi_error_severity < (int)es_warning ?
-                         strict_ansi_error_severity : es_warning,
-                       ec_nonstd_printf_format_string);
+            pos_diagnostic((int)strict_ansi_error_severity < (int)es_warning ?
+                             strict_ansi_error_severity : es_warning,
+                           ec_nonstd_printf_format_string, err_pos);
           }  /* if */
 #endif /* LONG_LONG_ALLOWED */
         } else if (h_size && is_scanf) {
@@ -928,7 +929,7 @@ after_precision:;
       default:
 default_case:;
         /* Unknown formatting character.  Give warning and abandon checking. */
-        warning(ec_bad_printf_format_string);
+        pos_warning(ec_bad_printf_format_string, err_pos);
         required_type = NULL;
         fmt_string = NULL;
         goto end_of_scan;
@@ -965,8 +966,9 @@ format string (they are updated on return).
 
   /* Find the next formatting specifier in the string. */
   required_type = next_printf_scanf_arg_type(is_scanf, fmt_string_ptr,
-                                             pss_ptr, &indirect,
-                                             &weakly_typed);
+                                             pss_ptr,
+                                             &argument_operand->position,
+                                             &indirect, &weakly_typed);
   /* If *fmt_string_ptr was set to NULL there was an error in the format
      string. */
   if (*fmt_string_ptr != NULL) {
@@ -1031,6 +1033,343 @@ mismatch:
 }  /* check_printf_scanf_arg */
 
 
+/*
+Block of information used to check correspondence of a sequence of call
+arguments against a sequence of function parameters.
+*/
+typedef struct an_arg_check_block {
+  a_routine_ptr	routine;
+			/* The routine being called, if known.  NULL otherwise,
+			   e.g., for a call through a function pointer. */
+  a_boolean	have_param_info;
+			/* TRUE if we have information on the remaining
+			   parameters.  Can be FALSE because
+			     (a) The called function has a bad type;
+			     (b) The called function has an old-style
+			         parameter list and no body (hence no
+			         parameter declarations);
+			     (c) We're in the ellipsis section of a prototyped
+			         function call (including a printf/scanf-type
+			         routine);
+			     (d) We're in the varargs section of an old-style
+			         function call;
+			     (e) We're scanning extra arguments after issuing
+			         an error about there being too many arguments;
+			         or
+			     (f) We're scanning the arguments for an
+			         overloaded function call. */
+  a_param_type_ptr
+		curr_param_type;
+			/* The current parameter type entry, if there is one;
+			   NULL otherwise. */
+  a_boolean	prototyped;
+			/* TRUE if the function is prototyped. */
+  a_boolean	has_ellipsis;
+			/* TRUE if the function has an ellipsis. */
+  a_pragma_kind	arg_list_kind;
+			/* The kind of any pragma that applies to the
+			   parameter list. */
+  int		varargs_count;
+			/* The argument count for the varargs lint comment. */
+  int		arg_ctr;
+			/* The current argument number. */
+  an_expr_node_ptr
+		argument_head;
+			/* The head of the list of argument expressions
+			   collected so far. */
+  an_expr_node_ptr
+		argument_tail;
+			/* The tail of the list of argument expressions
+			   collected so far. */
+  char		*fmt_string;
+			/* When checking a printf- or scanf-like function,
+			   points to the format string.  NULL otherwise. */
+  a_printf_scan_state
+		pss;
+			/* Current state for printf/scanf argument checking. */
+  a_source_position
+		closing_paren_position;
+			/* Source position of the closing parenthesis of
+			   the call. */
+} an_arg_check_block;
+
+
+static void start_call_argument_processing(a_type_ptr         function_type,
+                                           a_routine_ptr      routine,
+                                           an_arg_check_block *arg_block)
+/*
+Initialize for the process of checking a sequence of argument expressions
+against the corresponding function parameters.  *arg_block is a status
+block, which is initialized to appropriate values.  function_type is the
+type of the function being called, or NULL if the type is not known (e.g.,
+for an overloaded function).  routine is the routine being called, if known,
+or NULL otherwise (e.g., for a call through a pointer to function).
+*/
+{
+  /* Initialize the control block. */
+  arg_block->routine = routine;
+  arg_block->have_param_info = FALSE;
+  arg_block->curr_param_type = NULL;
+  arg_block->prototyped = FALSE;
+  arg_block->has_ellipsis = FALSE;
+  arg_block->arg_list_kind = (a_pragma_kind)pk_none;
+  arg_block->varargs_count = NOT_LINT_VARARGS;
+  arg_block->arg_ctr = 0;
+  arg_block->argument_head = NULL;
+  arg_block->argument_tail = NULL;
+  arg_block->fmt_string = NULL;
+  arg_block->pss = pss_new_specifier;
+  arg_block->closing_paren_position = null_source_position;
+  if (function_type != NULL) {
+    /* The function type is known, so set the block to match it. */
+    a_routine_type_supplement_ptr extra_info;
+
+    /* Get information on the parameters of the function. */
+    function_type = skip_typerefs(function_type);
+#if CHECKING
+    if (function_type->kind != (a_type_kind)tk_routine) {
+      internal_error("scan_call_arguments: bad function type");
+    }  /* if */
+#endif /* CHECKING */
+    extra_info = function_type->variant.routine.extra_info;
+    arg_block->curr_param_type = extra_info->param_type_list;
+    arg_block->prototyped = extra_info->prototyped;
+    arg_block->has_ellipsis = extra_info->has_ellipsis;
+    arg_block->have_param_info =
+                  (arg_block->prototyped || extra_info->assoc_routine != NULL);
+    arg_block->arg_list_kind = extra_info->arg_pragma;
+    arg_block->varargs_count = extra_info->lint_varargs_count;
+  }  /* if */
+}  /* start_call_argument_processing */
+
+
+static void process_call_argument(an_operand         *argument_operand,
+                                  an_arg_check_block *arg_block)
+/*
+Check the argument expression indicated by argument_operand against the
+corresponding parameter.  If it is compatible, convert it if necessary and
+add the expression to the list of argument expressions attached to
+*arg_block; otherwise, issue an error.  *arg_block contains information
+about the current parameter, and is updated at the end of the call to
+describe the next parameter.
+*/
+{
+  an_expr_node_ptr curr_node;
+  a_boolean        do_default_promotion;
+
+  /* Count the arguments. */
+  arg_block->arg_ctr++;
+  /* Check for too many arguments and determine whether or not the default
+     argument promotions apply to this argument. */
+  do_default_promotion = TRUE;
+  if (!arg_block->have_param_info) {
+    /* We have no information on parameter types. */
+  } else if (arg_block->prototyped) {
+    /* Prototyped parameter list. */
+    if (arg_block->curr_param_type != NULL) {
+      do_default_promotion = FALSE;
+    } else {
+      /* No more formal arguments in the list. */
+      if (!arg_block->has_ellipsis) {
+        /* No ellipsis, so error: extra actual argument. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode && C_mode()) {
+          /* MSVC++ 4.2 allows extra arguments with just a warning in
+             C mode. */
+          pos_warning(ec_too_many_arguments, &argument_operand->position);
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          pos_error(ec_too_many_arguments, &argument_operand->position);
+        }  /* if */
+      }  /* if */
+      arg_block->have_param_info = FALSE;
+    }  /* if */
+  } else {
+    /* Old-style parameter list, for a function with a body (i.e., we know
+       the argument types). */
+    if (arg_block->curr_param_type == NULL) {
+      /* No more formal arguments in the list. */
+      if (arg_block->varargs_count == NOT_LINT_VARARGS) {
+        /* A lint-style varargs comment does not apply, so warning:
+           extra actual argument. */
+        pos_warning(ec_too_many_arguments, &argument_operand->position);
+        arg_block->have_param_info = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Do the argument conversion or promotion. */
+  if (do_default_promotion) {
+    /* Either an ellipsis was encountered or this is an old-style argument
+       list; do the default argument promotion. */
+    arg_default_promote_operand(argument_operand);
+    /* If this is an old-style call and we have the list of types as
+       defined by the function body, check the promoted type of the
+       actual against the formal. */
+    if (arg_block->have_param_info &&
+        !arg_block->prototyped &&
+        arg_block->curr_param_type != NULL) {
+      /* Compare the type of the promoted actual with the promoted formal
+         without qualifiers. */
+      if (!is_error_type(arg_block->curr_param_type->type)) {
+        a_type_ptr formal_type = default_argument_promotion(
+                              skip_typerefs(arg_block->curr_param_type->type));
+        if (!types_are_compatible(formal_type, argument_operand->type)) {
+          if (interchangeable_types(formal_type, argument_operand->type)) {
+            /* Types are interchangeable but not compatible (e.g.,
+               unsigned int vs. int). */
+            pos_remark(ec_old_style_incompatible_param,
+                       &argument_operand->position);
+#if TARG_NULL_IS_ALL_BITS_ZERO
+          } else if (!strict_ansi_mode &&
+                     is_pointer_type(formal_type) &&
+                     is_integral_or_enum_type(argument_operand->type) &&
+                     op_is_zero_constant(argument_operand) &&
+                     skip_typerefs(formal_type)->size ==
+                                 skip_typerefs(argument_operand->type)->size) {
+            /* An uncast zero can be passed for a pointer parameter if
+               the architecture uses all zero bits for a NULL pointer. */
+            pos_remark(ec_old_style_incompatible_param,
+                       &argument_operand->position);
+#endif /* TARG_NULL_IS_ALL_BITS_ZERO */
+          } else {
+            /* Types are outright incompatible. */
+            pos_warning(ec_old_style_incompatible_param,
+                        &argument_operand->position);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    } else if (arg_block->fmt_string != NULL) {
+      /* Check a printf or scanf argument type against the corresponding
+         formatting specifier in the format string. */
+      check_printf_scanf_arg(argument_operand,
+                             (arg_block->arg_list_kind ==
+                                                 (a_pragma_kind)pk_scanf_args),
+                             &arg_block->fmt_string, &arg_block->pss);
+    }  /* if */
+  } else {
+    /* Parameter is prototyped. */
+    /* Check the argument for compatibility against the parameter,
+       casting it if necessary.  Also convert from lvalue to rvalue
+       when appropriate. */
+    prep_argument_operand(argument_operand, arg_block->curr_param_type,
+                          (a_conv_descr_ptr)NULL, ec_incompatible_param);
+  }  /* if */
+  /* Link the new argument into the list of arguments. */
+  curr_node = make_node_from_operand(argument_operand);
+  if (arg_block->argument_head == NULL) {
+    arg_block->argument_head = curr_node;
+  } else {
+    arg_block->argument_tail->next = curr_node;
+  }  /* if */
+  arg_block->argument_tail = curr_node;
+  if (arg_block->curr_param_type != NULL) {
+    /* Advance to the next parameter type entry in preparation for the
+       next call of this routine. */
+    arg_block->curr_param_type = arg_block->curr_param_type->next;
+  }  /* if */
+  /* If this is a call to a function with a printf- or scanf-style
+     argument list and the ellipsis is next, the current argument is
+     the format string.  See if it is constant; if so, we will be
+     able to check the rest of the arguments against the format string
+     as we scan them. */
+  if ((arg_block->arg_list_kind == (a_pragma_kind)pk_printf_args ||
+       arg_block->arg_list_kind == (a_pragma_kind)pk_scanf_args) &&
+      arg_block->have_param_info && arg_block->curr_param_type == NULL) {
+    /* See if the format string is a constant (actually, the address
+       of a constant string). */
+    if (curr_node->kind == (an_expr_node_kind)enk_constant) {
+      /* The node is a constant. */
+      a_constant_ptr con_ptr = curr_node->variant.constant;
+      if (con_ptr->kind == (a_constant_repr_kind)ck_address &&
+          con_ptr->variant.address.kind == (an_address_base_kind)abk_constant){
+        /* The constant is a pointer to a constant.  We know the
+           type is right because we passed the prototyped parameter
+           type test above. */
+        con_ptr = con_ptr->variant.address.variant.constant;
+        if (con_ptr->kind == (a_constant_repr_kind)ck_string &&
+            char_int_kind_from_string_type(con_ptr->type) ==
+                                                         plain_char_int_kind) {
+          /* The constant pointed to is a string (and not a wide string).
+             Check that it is null-terminated. */
+          arg_block->fmt_string = con_ptr->variant.string.value;
+          arg_block->pss = pss_new_specifier;
+          if (arg_block->fmt_string[con_ptr->variant.string.length-1] != '\0'){
+            /* String is not null-terminated. */
+            arg_block->fmt_string = NULL;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* process_call_argument */
+
+
+static void process_end_of_call_arguments(an_arg_check_block *arg_block)
+/*
+A sequence of argument expressions has been processed through
+process_call_argument, and *arg_block has been set accordingly.
+We have now run out of argument expressions.  Do end-of-argument
+list checking (e.g., for the presence of too few arguments).
+*/
+{
+  /* Check for additional parameters not accounted for in the call. */
+  if (!arg_block->have_param_info) {
+    /* We don't have parameter information (anymore?), so we can't check. */
+  } else if (arg_block->prototyped) {
+    /* Prototyped parameter list. */
+    if (arg_block->curr_param_type != NULL) {
+      /* Not enough arguments? */
+      /* If there is a default argument value, or several, use them. */
+      if (arg_block->curr_param_type->default_arg_expr != NULL ||
+          arg_block->curr_param_type->has_unevaluated_template_default) {
+        an_expr_node_ptr curr_node =
+                     copy_default_arg_expr_list(
+                         arg_block->routine,
+                         arg_block->curr_param_type,
+                         (a_boolean)expr_stack->inside_conditional_expression);
+        if (arg_block->argument_head == NULL) {
+          arg_block->argument_head = curr_node;
+        } else {
+          arg_block->argument_tail->next = curr_node;
+        }  /* if */
+        arg_block->argument_tail = curr_node;
+      } else {
+        /* No default arguments. */
+        /* Error: too few actual arguments. */
+        pos_error(ec_too_few_arguments, &arg_block->closing_paren_position);
+      }  /* if */
+      /* Suppress the end-of-printf check below. */
+      arg_block->fmt_string = NULL;
+    }  /* if */
+  } else {
+    /* Old-style parameter list. */
+    if ((arg_block->varargs_count == NOT_LINT_VARARGS &&
+         arg_block->curr_param_type != NULL) ||
+        arg_block->arg_ctr < arg_block->varargs_count) {
+      /* Warning: too few actual arguments. */
+      pos_warning(ec_too_few_arguments, &arg_block->closing_paren_position);
+    }  /* if */
+  }  /* if */
+  if (arg_block->fmt_string != NULL) {
+    /* For a printf- or scanf-like function, check that all the formatting
+       specifiers were used. */
+    a_boolean indirect, weakly_typed;
+    if (next_printf_scanf_arg_type((arg_block->arg_list_kind ==
+                                                 (a_pragma_kind)pk_scanf_args),
+                                   &arg_block->fmt_string,
+                                   &arg_block->pss,
+                                   &arg_block->closing_paren_position,
+                                   &indirect, &weakly_typed) != NULL) {
+      /* There are no more arguments, but the format string has more
+         formatting specifiers. */
+      pos_warning(ec_too_few_printf_args, &arg_block->closing_paren_position);
+    }  /* if */
+  }  /* if */
+}  /* process_end_of_call_arguments */
+
+
 static void scan_call_arguments(a_type_ptr         function_type,
                                 a_routine_ptr	   routine,
                                 a_boolean          already_after_left_paren,
@@ -1053,60 +1392,21 @@ if the specific function being called is not known, e.g., when
 overloaded_function_case is TRUE or when calling through a pointer.
 */
 {
-  a_param_type_ptr    curr_param_type;
-  a_boolean           prototyped;
-  a_boolean           has_ellipsis;
-  a_boolean           have_param_info;
-  a_pragma_kind       arg_list_kind;
-  int                 varargs_count;
-  int                 arg_ctr;
-  an_operand          argument_operand;
-  an_expr_node_ptr    argument_head;
-  an_expr_node_ptr    argument_tail;
-  an_expr_node_ptr    curr_node;
-  a_boolean           do_default_promotion, indirect;
-  a_type_ptr          formal_type;
-  a_boolean           is_scanf = FALSE;  /* Initialized to make lint happy. */
-  a_constant_ptr      con_ptr;
-  char                *fmt_string = NULL;
-  a_printf_scan_state pss;
-  an_arg_operand_ptr  end_arg_operand_list, arg_operand;
+  an_operand         argument_operand;
+  an_arg_operand_ptr end_arg_operand_list, arg_operand;
+  an_arg_check_block arg_block;
 
   db_enter(4, "scan_call_arguments");
   if (overloaded_function_case) {
+    /* Overloaded function.  We don't know anything about the type of
+       function being called. */
+    function_type = NULL;
     /* Start with an empty list of argument operands. */
     *arg_operand_list = NULL;
     end_arg_operand_list = NULL;
-    function_type = NULL;
   }  /* if */
-  if (function_type != NULL) {
-    a_routine_type_supplement_ptr extra_info;
-
-    /* Get information on the parameters of the function. */
-    function_type = skip_typerefs(function_type);
-#if CHECKING
-    if (function_type->kind != (a_type_kind)tk_routine) {
-      internal_error("scan_call_arguments: bad function type");
-    }  /* if */
-#endif /* CHECKING */
-    extra_info = function_type->variant.routine.extra_info;
-    curr_param_type = extra_info->param_type_list;
-    prototyped = extra_info->prototyped;
-    has_ellipsis = extra_info->has_ellipsis;
-    have_param_info = (prototyped || extra_info->assoc_routine != NULL);
-    arg_list_kind = extra_info->arg_pragma;
-    /* Get the varargs count. */
-    varargs_count = extra_info->lint_varargs_count;
-  } else {
-    /* Overloaded function, or bad function operand.  We have no information
-       on parameters. */
-    curr_param_type = NULL;
-    prototyped = FALSE;
-    has_ellipsis = FALSE;
-    have_param_info = FALSE;
-    arg_list_kind = (a_pragma_kind)pk_none;
-    varargs_count = NOT_LINT_VARARGS;
-  }  /* if */
+  /* Set the block used for checking argument types. */
+  start_call_argument_processing(function_type, routine, &arg_block);
 
   if (!already_after_left_paren) {
     /* Get past the opening parenthesis. */
@@ -1115,9 +1415,6 @@ overloaded_function_case is TRUE or when calling through a pointer.
   /* Add ")" as a stop token. */
   add_matching_stop_token(tok_rparen);
 
-  /* Count the arguments in case varargs is used. */
-  arg_ctr = 0;
-  argument_head = argument_tail = NULL;
   /* Check for an empty argument list. */
   if (curr_token != tok_rparen) {
     add_stop_token(tok_comma);
@@ -1129,58 +1426,6 @@ overloaded_function_case is TRUE or when calling through a pointer.
       /* Scan an argument expression.  Note that it is not converted to an
          rvalue yet. */
       scan_expr(&argument_operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-      arg_ctr++;
-      /* Check for too many arguments and determine whether or not the
-         default argument promotions apply to this argument. */
-      do_default_promotion = TRUE;
-      if (!have_param_info) {
-        /* We have no information on parameter types, because
-             (a) The called function has a bad type;
-             (b) The called function has an old-style parameter list and no
-                 body (hence no parameter declarations);
-             (c) We're in the ellipsis section of a prototyped function call
-                 (including a printf/scanf-type routine);
-             (d) We're in the varargs section of an old-style function call;
-             (e) We're scanning extra arguments after issuing an error about
-                 there being too many arguments; or
-             (f) We're scanning the arguments for an overloaded function call.
-        */
-      } else if (prototyped) {
-        /* Prototyped parameter list. */
-        if (curr_param_type != NULL) {
-          do_default_promotion = FALSE;
-        } else {
-	  /* No more formal arguments in the list. */
-          if (!has_ellipsis) {
-            /* No ellipsis, so error: extra actual argument. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_mode && C_mode()) {
-              /* MSVC++ 4.2 allows extra arguments with just a warning in
-                 C mode. */
-              warning(ec_too_many_arguments);
-            } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            /* Do not insert code here. */
-            {
-              error(ec_too_many_arguments);
-            }  /* if */
-          }  /* if */
-          have_param_info = FALSE;
-        }  /* if */
-      } else {
-        /* Old-style parameter list, for a function with a body (i.e., we
-           know the argument types). */
-	if (curr_param_type == NULL) {
-	  /* No more formal arguments in the list. */
-	  if (varargs_count == NOT_LINT_VARARGS) {
-	    /* A lint-style varargs comment does not apply, so warning:
-               extra actual argument.*/
-            warning(ec_too_many_arguments);
-            have_param_info = FALSE;
-	  }  /* if */
-	}  /* if */
-      }  /* if */
-
       if (overloaded_function_case) {
         /* For the overloaded function case, we do not know yet what the
            parameter type is, so save it as is.  The lvalue to rvalue
@@ -1196,165 +1441,20 @@ overloaded_function_case is TRUE or when calling through a pointer.
         }  /* if */
         end_arg_operand_list = arg_operand;
       } else {
-        /* Do the argument conversion or promotion. */
-        if (do_default_promotion) {
-	  /* Either an ellipsis was encountered or this is an old-style
-             argument list; do the default argument promotion. */
-          arg_default_promote_operand(&argument_operand);
-	  /* If this is an old-style call and we have the list of types as
-	     defined by the function body, check the promoted type of the
-             actual against the formal. */
-	  if (have_param_info && !prototyped && curr_param_type != NULL) {
-	    /* Compare the type of the promoted actual with the promoted formal
-	       without qualifiers. */
-	    if (!is_error_type(curr_param_type->type)) {
-              formal_type = default_argument_promotion(
-                                         skip_typerefs(curr_param_type->type));
-              if (!types_are_compatible(formal_type, argument_operand.type)) {
-                if (interchangeable_types(formal_type,
-                                          argument_operand.type)) {
-                  /* Types are interchangeable but not compatible (e.g.,
-                     unsigned int vs. int). */
-                  remark(ec_old_style_incompatible_param);
-#if TARG_NULL_IS_ALL_BITS_ZERO
-                } else if (!strict_ansi_mode &&
-                           is_pointer_type(formal_type) &&
-                           is_integral_or_enum_type(argument_operand.type) &&
-                           op_is_zero_constant(&argument_operand) &&
-                           skip_typerefs(formal_type)->size ==
-                                  skip_typerefs(argument_operand.type)->size) {
-                  /* An uncast zero can be passed for a pointer parameter if
-                     the architecture uses all zero bits for a NULL pointer. */
-                  remark(ec_old_style_incompatible_param);
-#endif /* TARG_NULL_IS_ALL_BITS_ZERO */
-                } else {
-                  /* Types are outright incompatible. */
-                  warning(ec_old_style_incompatible_param);
-                }  /* if */
-	      }  /* if */
-	    }  /* if */
-          } else if (fmt_string != NULL) {
-            /* Check a printf or scanf argument type against the corresponding
-               formatting specifier in the format string. */
-            check_printf_scanf_arg(&argument_operand, is_scanf,
-                                   &fmt_string, &pss);
-	  }  /* if */
-        } else {
-	  /* Parameter is prototyped. */
-          /* Check the argument for compatibility against the parameter,
-             casting it if necessary.  Also convert from lvalue to rvalue
-             when appropriate. */
-          prep_argument_operand(&argument_operand, curr_param_type,
-                                (a_conv_descr_ptr)NULL,
-                                ec_incompatible_param);
-        }  /* if */
-        /* Link the new argument into the list of arguments. */
-        curr_node = make_node_from_operand(&argument_operand);
-        if (argument_head == NULL) {
-          argument_head = curr_node;
-        } else {
-          argument_tail->next = curr_node;
-        }  /* if */
-        argument_tail = curr_node;
-        argument_tail->next = NULL;
+        /* Check the argument type against the parameter type and convert
+           if necessary.  Add it to the list of argument expressions. */
+        process_call_argument(&argument_operand, &arg_block);
       }  /* if */
-
-      if (curr_param_type != NULL) {
-	/* Get the next parameter type entry. */
-        curr_param_type = curr_param_type->next;
-      }  /* if */
-
-      /* If this is a call to a function with a printf- or scanf-style
-         argument list and the ellipsis is next, the current argument is
-         the format string.  See if it is constant; if so, we will be
-         able to check the rest of the arguments against the format string
-         as we scan them. */
-      if ((arg_list_kind == (a_pragma_kind)pk_printf_args ||
-           arg_list_kind == (a_pragma_kind)pk_scanf_args) &&
-          have_param_info && curr_param_type == NULL) {
-        /* See if the format string is a constant (actually, the address
-           of a constant string). */
-        if (curr_node != NULL) {
-          if (curr_node->kind == (an_expr_node_kind)enk_constant) {
-            /* The node is a constant. */
-            con_ptr = curr_node->variant.constant;
-            if (con_ptr->kind == (a_constant_repr_kind)ck_address &&
-                con_ptr->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant) {
-              /* The constant is a pointer to a constant.  We know the
-                 type is right because we passed the prototyped parameter
-                 type test above. */
-              con_ptr = con_ptr->variant.address.variant.constant;
-              if (con_ptr->kind == (a_constant_repr_kind)ck_string &&
-                  char_int_kind_from_string_type(con_ptr->type) ==
-                                                         plain_char_int_kind) {
-                /* The constant pointed to is a string (and not a wide string).
-                   Check that it is null-terminated. */
-                fmt_string = con_ptr->variant.string.value;
-                is_scanf = (arg_list_kind == (a_pragma_kind)pk_scanf_args);
-                pss = pss_new_specifier;
-                if (fmt_string[con_ptr->variant.string.length-1] != '\0') {
-                  /* String is not null-terminated. */
-                  fmt_string = NULL;
-                }  /* if */
-              }  /* if */
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }  /* if */
-
     } while (loop_token(tok_comma));
     remove_stop_token(tok_comma);
   }  /* if */
-
+  /* End of argument list. */
   set_err_pos_to_curr_token();
-  /* Check for additional parameters not accounted for in the call. */
-  if (!have_param_info) {
-    /* We don't have parameter information (anymore?), so we can't check. */
-  } else if (prototyped) {
-    /* Prototyped parameter list. */
-    if (curr_param_type != NULL) {
-      /* Not enough arguments? */
-      /* If there is a default argument value, or several, use them. */
-      if (curr_param_type->default_arg_expr != NULL ||
-          curr_param_type->has_unevaluated_template_default) {
-        curr_node = copy_default_arg_expr_list(
-                         routine, curr_param_type,
-                         (a_boolean)expr_stack->inside_conditional_expression);
-        if (argument_head == NULL) {
-          argument_head = curr_node;
-        } else {
-          argument_tail->next = curr_node;
-        }  /* if */
-        /* Note that argument_tail is not updated to the true end of list. */
-      } else {
-        /* No default arguments. */
-        /* Error: too few actual arguments. */
-        error(ec_too_few_arguments);
-      }  /* if */
-      /* Suppress the end-of-printf check below. */
-      fmt_string = NULL;
-    }  /* if */
-  } else {
-    /* Old-style parameter list. */
-    if ((varargs_count == NOT_LINT_VARARGS && curr_param_type != NULL) ||
-        arg_ctr < varargs_count) {
-      /* Warning: too few actual arguments. */
-      warning(ec_too_few_arguments);
-    }  /* if */
+  arg_block.closing_paren_position = pos_curr_token;
+  if (!overloaded_function_case) {
+    /* Do processing for the end of the argument list. */
+    process_end_of_call_arguments(&arg_block);
   }  /* if */
-  if (fmt_string != NULL) {
-    /* For a printf- or scanf-like function, check that all the formatting
-       specifiers were used. */
-    a_boolean weakly_typed;
-    if (next_printf_scanf_arg_type(is_scanf, &fmt_string, &pss,
-                                   &indirect, &weakly_typed) != NULL) {
-      /* There are no more arguments, but the format string has more
-         formatting specifiers. */
-      warning(ec_too_few_printf_args);
-    }  /* if */
-  }  /* if */
-
   /* Check for the closing paren. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_pos_curr_token;
@@ -1362,7 +1462,7 @@ overloaded_function_case is TRUE or when calling through a pointer.
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
   /* Return argument list pointer to caller. */
-  *p_argument_list = argument_head;
+  *p_argument_list = arg_block.argument_head;
   db_exit();
 }  /* scan_call_arguments */
 
