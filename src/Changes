@@ -11,7 +11,8 @@ not accept "void".  We've decided we need not reach that far back.
 tk_array type entries have a new flag, is_variable_size_array, on the
 basis of which the element count is specified either by a literal value
 (as before) or a new field, element_count_expr, a pointer to an expression 
-node.  This is used for array types based on template parameters.
+node.  This is used for array types based on template parameters.  (Note
+that this is an IL change that will affect back-end code.)
 
 6/7/93 Template parameter constant representation
 
