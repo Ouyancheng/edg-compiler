@@ -3864,8 +3864,7 @@ prototype instantiation is considered as a potential match.
     if (class_type->variant.class_struct_union.is_nonreal_class) {
       class_type->size = 1;
       class_type->alignment = 1;
-      if (prototype_instantiations_in_il &&
-          scope_stack[depth_scope_stack].in_prototype_instantiation) {
+      if (prototype_instantiations_in_il) {
         add_to_types_list(class_type, NO_SCOPE_DEPTH);
       }  /* if */
     } else if (sym != prototype_sym) {
@@ -11016,7 +11015,7 @@ set, and its source sequence entry, if any, has been put out.)
             break;
           case templk_static_data_member:
             il_template_entry->prototype_instantiation.variable =
-              NULL;  /* FIXME */
+                                     sym->variant.static_data_member.variable;
             break;
           default:
             unexpected_condition_str(
