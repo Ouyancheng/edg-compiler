@@ -5213,7 +5213,6 @@ class/struct/union is actually defined.
   a_type_ptr              bottom_derived_type;
   a_boolean               unnamed_field;
   a_boolean               tag_resolution = FALSE;
-  a_boolean               prototype_tag_resolution = FALSE;
   a_boolean               first_declarator;
   a_boolean               is_first_field;
   a_func_info_block       func_info;
@@ -5300,19 +5299,6 @@ class/struct/union is actually defined.
         if (is_incomplete_type(tag_sym->variant.class_struct_union.type)) {
           /* Resolution of a previous incomplete declaration. */
           tag_resolution = TRUE;
-          if (C_dialect != C_dialect_cplusplus) {
-            /* If the tag was declared in a prototype scope and is now being
-               resolved within the function, as in
-                 int f(struct f p) {struct f{int a;};  ... }
-               we must switch into the file scope for the duration of the
-               definition.  (In C++ a tag declarated in a prototype scope
-               refers to a file scope type, so this check is not relevant.) */
-            if (scope_stack[decl_scope_level].kind ==
-                                             (a_scope_kind)sck_function &&
-                in_file_scope(tag_sym->variant.class_struct_union.type)) {
-              prototype_tag_resolution = TRUE;
-            }  /* if */
-          }  /* if */
         } else {
           /* Redeclaration of a tag that has already been defined.  Set
              tag_sym to NULL and let enter_symbol issue an error. */
@@ -6010,9 +5996,13 @@ next_declaration:
     /* Adding the type to the current scope's types list is done after
        reaching the closing brace to get the IL types list in the right
        order. */
-    if (prototype_tag_resolution) {
-      /* Tags that were declared in a prototype scope were added to the types
-         list at the end of the prototype scope, so do not add them again. */
+    if (C_dialect != C_dialect_cplusplus &&
+        tag_sym->reentered_from_prototype_scope) {
+      /* If the tag was declared in a prototype scope and is now being resolved
+         within the function, as in
+           int f(struct f p) {struct f{int a;};  ... }
+         we may assume the type entry has already been entered on the types
+         list. */
     } else {
       /* Add the class type to the list for the current scope.  Note that
          incomplete structs/unions are not added to the type list (this code
