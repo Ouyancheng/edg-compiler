@@ -1,6 +1,3 @@
-
-Version 2.06, May 22, 1992
-
 5/28/92  Fixed bugs in processing main() declarations.
 
 Overloading of main() is no longer possible.  Static and inline
@@ -39,6 +36,9 @@ We now issue warnings on classes with
    - one or more virtual functions but no virtual destructor
    - operator new() but no operator delete() and vice versa
    - all private constructors and friend declarations
+
+-------------------------------------------------------------------------------
+Version 2.06, May 22, 1992
 
 5/21/92  Fixed bug with virtual destructors.
 
