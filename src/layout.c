@@ -1375,6 +1375,42 @@ done:
 
 #if IA64_ABI
 
+static a_targ_size_t offset_after_base(a_base_class_ptr  bcp)
+/*
+Return the offset after the last byte covered by the given base class (excluding
+virtual bases, but including the optimized bytes of an empty base class).
+*/
+{
+  a_type_ptr     bctp = skip_typerefs(bcp->type);
+  a_targ_size_t  next_byte;
+
+  if (bctp->variant.class_struct_union.any_virtual_base_classes) {
+    next_byte = bcp->offset + bctp->variant.class_struct_union.extra_info
+                                  ->size_without_virtual_base_classes;
+  } else {
+    /* This includes empty base classes (whose size without virtual base
+       classes is zero). */
+    next_byte = bcp->offset + bctp->size;
+  }  /* if */
+  return next_byte;
+}  /* offset_after_base */
+
+
+static void update_curr_base_extent(a_layout_block_ptr  lob,
+                                    a_base_class_ptr    bcp)
+/*
+If the given base class extends beyond any previous base class, record the
+new extent.  This is used to accelerate the layout process.
+*/
+{
+  a_targ_size_t  next_byte = offset_after_base(bcp);
+
+  if (next_byte > lob->curr_base_extent+1) {
+    lob->curr_base_extent = next_byte-1;
+  }  /* if */
+}  /* update_curr_base_extent */
+
+
 static a_type_ptr type_for_gnu_conflicts(a_type_ptr  type)
 /*
 Early GNU implementations of the IA-64 ABI treat arrays in a special way
@@ -1885,11 +1921,10 @@ bit field in a trailing bit field container of one of its bases.
     a_base_class_ptr  bcp = base_classes_of(class_type);
     a_field_ptr       trailing_field = NULL;
     for (; bcp != NULL; bcp = bcp->next) {
-      a_type_ptr  bctp = skip_typerefs(bcp->type);
-      if (bcp->offset+bctp->variant.class_struct_union.extra_info
-                          ->size_without_virtual_base_classes ==
-                                                  lob->curr_base_extent + 1) {
+      if (bcp->offset_is_set &&
+          offset_after_base(bcp) == lob->curr_base_extent+1) {
         /* A trailing base class: See if it has a trailing bit field. */
+        a_type_ptr  bctp = skip_typerefs(bcp->type);
         a_targ_size_t  offset = bcp->offset;
         a_field_ptr    candidate = trailing_nonclass_field(bctp, &offset);
         if (candidate != NULL &&
@@ -1900,7 +1935,7 @@ bit field in a trailing bit field container of one of its bases.
       }  /* if */
     }  /* for */
     if (trailing_field != NULL && trailing_field->is_bit_field &&
-        (lob->curr_base_extent - trailing_field->is_bit_field) * targ_char_bit
+        (lob->curr_base_extent - trailing_field->offset + 1) * targ_char_bit
                        > trailing_field->offset_bit_remainder + fp->bit_size) {
       /* There is room to stuff fp in the bit padding of a preceding bit
          field. */
@@ -2506,32 +2541,6 @@ Lay out the nonvirtual direct base class bcp.
 #endif /* IA64_ABI */
 }  /* set_offset_for_nonvirtual_base_class */
 
-#if IA64_ABI
-
-static void update_curr_base_extent(a_layout_block_ptr  lob,
-                                    a_base_class_ptr    bcp)
-/*
-If the given base class extends beyond any previous base class, record the
-new extent.  This is used to accelerate the layout process.
-*/
-{
-  a_type_ptr     bctp = skip_typerefs(bcp->type);
-  a_targ_size_t  next_byte;
-
-  if (bctp->variant.class_struct_union.any_virtual_base_classes) {
-    next_byte = bcp->offset + bctp->variant.class_struct_union.extra_info
-                                  ->size_without_virtual_base_classes;
-  } else {
-    /* This includes empty base classes (whose size without virtual base
-       classes is zero). */
-    next_byte = bcp->offset + bctp->size;
-  }  /* if */
-  if (next_byte > lob->curr_base_extent+1) {
-    lob->curr_base_extent = next_byte-1;
-  }  /* if */
-}  /* update_curr_base_extent */
-
-#endif /* IA64_ABI */
 
 static void set_offsets_for_nonvirtual_base_classes(a_layout_block_ptr  lob)
 /*
