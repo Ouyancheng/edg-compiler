@@ -4557,6 +4557,102 @@ length returned the second time will be correct).
   *required_buffer_size = dctl->output_id_len + 1; /* +1 for final null. */
 }  /* decode_identifier */
 
+
+/*
+Result status codes used by __cxa_demangle.
+*/
+#define CXA_DEMANGLE_SUCCESS		0
+#define CXA_DEMANGLE_ALLOC_FAILURE	-1
+#define CXA_DEMANGLE_INVALID_NAME	-2
+#define CXA_DEMANGLE_INVALID_ARGUMENTS	-3
+
+
+EXTERN_C char *__cxa_demangle(char		*mangled_name,
+			      char		*user_buffer,
+			      true_size_t	*user_buffer_size,
+			      int		*status)
+/*
+Demangling library interface specified by the IA-64 ABI. "mangled_name"
+is the name to be demangled.  "user_buffer" is the buffer into which the
+demangled name should be placed.  "user_buffer_size" is the size of
+"user_buffer".  If "user_buffer" is NULL or is too small, it is reallocated
+and "user_buffer_size" is set to the new size.
+*/
+{
+#define TEMP_BUFFER_SIZE 256
+  int		result_status = CXA_DEMANGLE_SUCCESS;
+  char		temp_buffer[TEMP_BUFFER_SIZE];
+  char		*buf_to_use = NULL;
+
+  if (user_buffer != NULL && user_buffer_size == NULL) {
+    /* A buffer was provided but its size is not specified. */
+    result_status = CXA_DEMANGLE_INVALID_ARGUMENTS;
+  } else {
+    /* Demangle the name. */
+    a_boolean	temp_buffer_used = FALSE;
+    sizeof_t	buf_size;
+    a_boolean	err;
+    a_boolean	buffer_overflow_err;
+    sizeof_t	required_buffer_size;
+    /* If no buffer was provided by the caller, try using temp_buffer. */
+    if (user_buffer == NULL) {
+      buf_to_use = temp_buffer;
+      temp_buffer_used = TRUE;
+      buf_size = TEMP_BUFFER_SIZE;
+    } else {
+      buf_to_use = user_buffer;
+      buf_size = *user_buffer_size;
+    }  /* if */
+    do {
+      decode_identifier(mangled_name, buf_to_use, buf_size, &err,
+                        &buffer_overflow_err, &required_buffer_size);
+      if (buffer_overflow_err) {
+        /* The buffer was too small.  Allocate a new buffer. */
+        if (temp_buffer_used) {
+          /* We previously used a local buffer.  Allocate a new one. */
+          buf_to_use = malloc((true_size_t)required_buffer_size);
+          temp_buffer_used = FALSE;
+        } else {
+          /* We are using a user-buffer.  Reallocate that buffer. */
+          buf_to_use = realloc(buf_to_use, (true_size_t)required_buffer_size);
+          buf_size = required_buffer_size;
+          /* Update the size parameter passed in. */
+          if (user_buffer_size != NULL) {
+            *user_buffer_size = required_buffer_size;
+          }  /* if */
+        }  /* if */
+        if (buf_to_use == NULL) {
+          /* The allocation failed. */
+          result_status = CXA_DEMANGLE_ALLOC_FAILURE;
+        }  /* if */
+      } else if (err) {
+        /* A name decoding error occurred. */
+        result_status = CXA_DEMANGLE_INVALID_NAME;
+      }  /* if */
+      /* Continue looping until decode_identifier succeeds.  If an error
+         was detected, terminate the loop. */
+    } while (err && result_status == CXA_DEMANGLE_SUCCESS);
+    if (result_status == CXA_DEMANGLE_SUCCESS && temp_buffer_used) {
+      /* The temporary buffer was used.  Copy the result to a dynamically
+         allocated buffer. */
+      true_size_t	size;
+      size = strlen(temp_buffer) + 1;
+      buf_to_use = malloc(size);
+      if (buf_to_use == NULL) {
+        result_status = CXA_DEMANGLE_ALLOC_FAILURE;
+      } else {
+        (void)strcpy(buf_to_use, temp_buffer);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Return the status to the caller. */
+  if (status != NULL) *status = result_status;
+  /* Return NULL if there was an error. */
+  if (result_status != CXA_DEMANGLE_SUCCESS) buf_to_use = NULL;
+  return buf_to_use;
+#undef TEMP_BUFFER_SIZE
+}  /* __cxa_demangle */
+
 #endif /* !IA64_ABI */
 
 /******************************************************************************

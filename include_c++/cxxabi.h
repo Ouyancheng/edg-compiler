@@ -145,6 +145,13 @@ namespace __cxxabiv1 {
     /* Exception-handling support. */
     void __cxa_bad_cast();
     void __cxa_bad_typeid();
+
+    /* Demangling interface. */
+    char *__cxa_demangle(const char* mangled_name,
+                         char        *buf,
+                         size_t      *n,
+                         int         *status);
+
   }  /* extern "C" */
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 }  /* namespace __cxxabiv1 */
