@@ -305,11 +305,8 @@ address taken, and if not issue an error.
                var->is_parameter || var->is_handler_param) {
       /* On register variables and parameters, taking the address of
          the variable may mean the variable needs to be forced to
-         memory, so the address-taken reference should be recorded now
-         (it matters even if it would later get changed to some other
-         kind of reference).  This ensures that the address_taken
-         flag is set. */
-      record_reference(rep);
+         memory, so set the address_taken flag now. */
+      var->address_taken = TRUE;
     }  /* if */
   }  /* if */
 }  /* f_check_address_taken_ref */
