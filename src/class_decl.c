@@ -3727,7 +3727,9 @@ the current class (class_type).
   a_class_list_entry_ptr      clep;
   a_class_type_supplement_ptr ctsp;
 
-  if ((symbol_supplement_for_class(class_type))->is_nonreal_class) {
+  if (is_error_type(friend_class_type)) {
+    /* Ignore it. */
+  } else if ((symbol_supplement_for_class(class_type))->is_nonreal_class) {
     /* friend declarations are not processed during prototype instantiation
        -- they're meaningless until a real instantiation is done. */
   } else {
