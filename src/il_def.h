@@ -1660,11 +1660,12 @@ typedef struct a_type {
                         /* Type of the elements of the array type. */
       a_byte_boolean
 		is_variable_size_array;
-			/* TRUE is the array size depends on the evaluation of
+			/* TRUE if the array size depends on the evaluation of
 			   an expression, either at compile time (in the case
-			   of an array bound defined in terms of a
-			   parameter constant) or at compile time (for a
-			   new with a nonconstant first bound). */
+			   of an array bound defined in terms of a template
+			   parameter constant) or at run time (for a new with
+			   a nonconstant first bound).  This field will never
+			   be TRUE in the IL passed to the back end. */
       union {
         /* When is_variable_size_array is FALSE: */
         a_targ_size_t
@@ -1675,7 +1676,8 @@ typedef struct a_type {
 	an_expr_node_ptr
 		element_count_expr;
 			/* An expression representing the number of elements
-			   in the array. */
+			   in the array.  This field is used in front-end
+			   processing only. */
       } variant;
     } array;
     /* When kind == tk_class, tk_struct, or tk_union: */
