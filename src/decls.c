@@ -5945,25 +5945,37 @@ caution when modifying this routine.
             /* Pop out to the containing scope -- file scope, function scope,
                or block scope.  *effective_decl_level will already have been
                initialized to decl_scope_level. */
-            a_scope_kind	kind;
-            while (kind = scope_stack[*effective_decl_level].kind,
-                   kind == (a_scope_kind)sck_class_struct_union ||
-                   kind == (a_scope_kind)sck_func_prototype ||
-                   kind == (a_scope_kind)sck_template_declaration) {
-              (*effective_decl_level)--;
-            }  /* while */
-            if (kind == (a_scope_kind)sck_template_instantiation) {
-              /* We hit a template instantiation scope.  If the
-                 instantiation scope is for a real instantiation then
-                 set effective_decl_level to file scope.  If it is a
-                 prototype or nonreal instantiation then leave
-                 effective_decl_level pointing at the instantiation scope. */
-              a_symbol_ptr instance_sym;
-              instance_sym = scope_stack[*effective_decl_level].instance_sym;
-              if (instance_sym == NULL || is_real_class_symbol(instance_sym)) {
-                *effective_decl_level = DEPTH_OF_FILE_SCOPE;
+            a_boolean     done = FALSE;
+            a_symbol_ptr  instance_sym;
+
+            do {
+              switch (scope_stack[*effective_decl_level].kind) {
+                case sck_template_instantiation:
+                  /* We hit a template instantiation scope.  If the
+                     instantiation scope is for a real instantiation then
+                     set effective_decl_level to file scope.  If it is a
+                     prototype or nonreal instantiation then leave
+                     effective_decl_level pointing at the instantiation
+                     scope.  The problem is that a class declared in a
+                     prototype instantiation may not be a real type, but we
+                     don't know yet.  We want to avoid contaminating the name
+                     space, etc., so it gets declared in the instantiation
+                     scope. */
+                  instance_sym =
+                             scope_stack[*effective_decl_level].instance_sym;
+                  if (instance_sym == NULL ||
+                      is_real_class_symbol(instance_sym)) {
+                    *effective_decl_level = DEPTH_OF_FILE_SCOPE;
+                  }  /* if */
+                case sck_file:
+                case sck_function:
+                case sck_block:
+                  done = TRUE;
+                  break;
+                default:
+                  (*effective_decl_level)--;
               }  /* if */
-            }  /* if */
+            } while (!done);
           }  /* if */
         }  /* if */
       }  /* if */
