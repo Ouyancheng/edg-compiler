@@ -7462,7 +7462,12 @@ associated reference entry, or is NULL if none is needed.
     if (routine == il_header.main_routine) {
       /* In C++, "main" cannot be called and cannot have its address
          taken (ARM 3.4). */
-      pos_error(ec_bad_use_of_main, position);
+      if (microsoft_mode || gpp_mode) {
+        /* MSVC++ (up to 8.0 at least) and g++ (up to 3.4 at least) allow
+           this. */
+      } else {
+        pos_error(ec_bad_use_of_main, position);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Set up an address-of-function constant. */

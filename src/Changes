@@ -1,5 +1,10 @@
 Version 3.6
 
+3/14/06  Microsoft and GNU C++ compatibility: calling main
+
+Microsoft and GNU C++ modes now allow main to be called and have
+its address taken.
+
 3/11/05  Microsoft C compatibility: Integer variable redeclarations
 
 In Microsoft C mode, the front end already accepted redeclaring an integer
