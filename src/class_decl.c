@@ -5961,6 +5961,7 @@ Scan the body of a class definition, including the base classes list.
   a_boolean                       is_nonreal_instantiation = FALSE;
   a_boolean                       error_on_def_in_return_type_already_issued;
   an_override_registry_entry_ptr  override_registry = NULL;
+  a_stop_token_array              save_stop_token_array;
 
   db_enter(3, "scan_class_definition");
   /* Set a flag to indicate whether we scanning a class template declaration
@@ -5988,6 +5989,9 @@ Scan the body of a class definition, including the base classes list.
      virtual base classes, virtual functions, or base classes or fields
      for which bitwise copy is not allowed. */
   cssp->assignment_by_bitwise_copy_allowed = TRUE;
+  /* Save the current stop token state, and reinitialize it. */
+  copy_stop_tokens(stop_token_array, save_stop_token_array);
+  clear_stop_tokens();
   if (curr_token == tok_colon && C_dialect == C_dialect_cplusplus) {
     /* Scan the list of base specifiers. */
     add_stop_token(tok_lbrace);
@@ -7366,6 +7370,8 @@ next_declaration:
       curr_routine_fixup = saved_routine_fixup;
     }  /* if */
   }  /* if */
+  /* Restore the stop token state. */
+  copy_stop_tokens(save_stop_token_array, stop_token_array);
 
   db_exit();
   return !err;
