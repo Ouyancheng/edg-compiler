@@ -2707,7 +2707,13 @@ Returns TRUE if there is an error in the specifiers.
         } else if (is_inline && curr_token != tok_static) {
           error(ec_bad_storage_class_with_inline);
           err = TRUE;
-        } else if (is_friend_decl) {
+        } else if (is_friend_decl
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                   /* In Microsoft-compatibility mode a friend function can
+                      be declared "static". */
+                   && (!microsoft_mode || curr_token != tok_static)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                   ) {
           error(ec_storage_class_in_friend_decl);
           err = TRUE;
         } else if (curr_token == tok_mutable) {
@@ -2974,7 +2980,14 @@ Returns TRUE if there is an error in the specifiers.
 	  *output_flags |= DSO_FRIEND;
           is_friend_decl = TRUE;
           if (num_specifiers != 0) {
-            if (*storage_class != (a_storage_class)sc_unspecified) {
+            if (*storage_class != (a_storage_class)sc_unspecified
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                /* In Microsoft-compatibility mode a friend function can be
+                   declared "static". */
+                && (!microsoft_mode ||
+                    *storage_class == (a_storage_class)sc_static)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                 ) {
               error(ec_storage_class_in_friend_decl);
               err = TRUE;
               *storage_class = (a_storage_class)sc_unspecified;

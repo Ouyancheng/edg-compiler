@@ -3972,11 +3972,11 @@ a friend declaration.  This is used for template instantiations.
 }  /* update_friend_function_info */
 
 
-static a_symbol_ptr decl_friend_function(a_symbol_locator      *locator,
-                                         a_type_ptr            class_type,
-                                         a_type_ptr            function_type,
-                                         a_func_info_block_ptr func_info,
-                                         a_decl_modifier       decl_modifiers)
+static a_symbol_ptr decl_friend_function(a_symbol_locator       *locator,
+                                         a_type_ptr             class_type,
+                                         a_type_ptr             function_type,
+                                         a_func_info_block_ptr  func_info,
+                                         a_member_decl_info_ptr decl_info)
 /*
 Do processing for declaring a function (identified by *locator and with
 a type of function_type) friend of the current class (class_type).  Getting
@@ -4065,14 +4065,19 @@ of the function, and again overloading is a possibility.
           set_to_named_error_locator(*locator);
         }  /* if */          
       }  /* if */
-      if (func_info->is_inline) {
+      if (func_info->is_inline
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          || (microsoft_mode &&
+              decl_info->storage_class == (a_storage_class)sc_static)
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                                     ) {
         storage_class = (a_storage_class)sc_static;
       } else {
         storage_class = (a_storage_class)sc_extern;
       }  /* if */
       decl_routine(locator, storage_class, function_type, func_info,
-                   declarator_ssep, srk_flags, decl_modifiers, &sym,
-                   &linkage, &old_type, &ext_sym);
+                   declarator_ssep, srk_flags, decl_info->decl_modifiers,
+                   &sym, &linkage, &old_type, &ext_sym);
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
       if (func_info->is_definition &&
@@ -8857,7 +8862,7 @@ following the member declaration.
       if (friend_specified) {
         /* Process a friend function declaration. */
         rout_sym = decl_friend_function(&locator, class_type, local_type,
-                                        &func_info, decl_info.decl_modifiers);
+                                        &func_info, &decl_info);
       } else if (is_member_template_rescan) {
         *member_template_instance_type = local_type;
         remove_stop_token(tok_comma);
