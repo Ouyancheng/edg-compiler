@@ -152,11 +152,6 @@ a case like
 This routine is only used for pointer subtraction, so this bug only
 came up in unusual cases like the above.
 
-12/9/92  enum types in cfront compatibility mode
-
-In cfront compatibility mode, enum types are now treated just like
-integer types for purposes of type compatibility checking.
-
 12/9/92  Inexact match on nontype template arguments
 
 In non-strict mode, in a reference to a class template, the argument

@@ -1597,7 +1597,7 @@ do the initial test for exact pointer equality.
           compat = TRUE;
           break;
         case tk_integer:
-          if (C_dialect == C_dialect_cplusplus && !cfront_compatibility_mode &&
+          if (C_dialect == C_dialect_cplusplus &&
               (type_1->variant.integer.enum_type ||
                type_2->variant.integer.enum_type)) {
             /* In C++, each enum type is a distinct type and is not compatible
