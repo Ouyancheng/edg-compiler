@@ -1229,6 +1229,10 @@ typedef struct a_scope_stack_entry {
 			   instantiation is for a function template, contains
 			   a pointer to the function instantiation entry
 			   associated with this instantiation. */
+  a_source_position
+		source_position;
+			/* The source position when the scope was pushed
+			   onto the stack. */
 } a_scope_stack_entry;
 
 EXTERN a_scope_stack_entry_ptr

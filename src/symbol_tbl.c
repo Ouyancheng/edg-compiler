@@ -4958,6 +4958,7 @@ must be NULL in other cases.
   ssep->template_sym             = NULL;
   ssep->template_arg_list        = NULL;
   ssep->assoc_instantiation      = assoc_instantiation;
+  ssep->source_position          = pos_curr_token;
   /* Put the associated type (if any) into the IL scope (if any). */
   /* Note that the corresponding routine case was handled by the
      new_il_region call. */
