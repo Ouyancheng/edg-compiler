@@ -1,5 +1,11 @@
 Version 3.4
 
+12/9/03  Missing exception specification on uncaught_exception
+
+A change in the TC1 version of the standard added an exception specification
+to uncaught_exception.  Our header files and runtime have been updated
+to include the exception specification.
+
 10/2/03  dynamic_cast did not handle certain downcasts properly
 
 The runtime did not properly implement certain downcasts.  Formerly, these

@@ -1,8 +1,15 @@
+Version 3.4
+
+12/9/03  Missing exception specification on uncaught_exception
+
+A change in the TC1 version of the standard added an exception specification
+to uncaught_exception.  Our header files and runtime have been updated
+to include the exception specification.
+-------------------------------------------------------------------------------
 Version 3.3, July 31, 2003
 
 No changes.
 
--------------------------------------------------------------------------------
 Version 3.2, May 12, 2003
 
 No changes.
