@@ -5197,7 +5197,8 @@ expression node.
                          kind == (an_object_lifetime_kind)olk_function_static);
     new_dip->lifetime = NULL;
     new_dip->next_in_destruction_list = NULL;
-    record_end_of_lifetime_destruction(new_dip, static_lifetime);
+    record_end_of_lifetime_destruction(new_dip, static_lifetime,
+                                       /*block_lifetime=*/FALSE);
   }  /* if */
   return new_dip;
 }  /* copy_dynamic_init */
@@ -7360,13 +7361,16 @@ indicated object lifetime entry.
 
 
 void record_end_of_lifetime_destruction(a_dynamic_init_ptr  dip,
-                                        a_boolean           static_lifetime)
+                                        a_boolean           static_lifetime,
+                                        a_boolean           block_lifetime)
 /*
 If the dynamic init entry pointed to by dip has a destructor associated with
 it, add the entry to the destructors list for the appropriate object
 lifetime.  If static_lifetime is TRUE, the object in question has static
 storage duration -- it persists till the end of program execution (i.e., till
-final object clean up).
+final object clean up).  If block_lifetime is TRUE, use the innermost
+olk_block or olk_block_after_label object lifetime (i.e., skip the current
+object lifetime if it is an expr-temporary lifetime).
 */
 {
   an_object_lifetime_ptr  olp;
@@ -7392,6 +7396,9 @@ final object clean up).
            belongs to the lifetime of the file scope itself. */
         olp = scope_stack[DEPTH_OF_FILE_SCOPE].curr_scope_object_lifetime;
       }  /* if */
+    } else if (block_lifetime) {
+      /* Skip an expr-temporary lifetime, if any. */
+      olp = innermost_block_object_lifetime(curr_object_lifetime);
     } else {
       /* The default case is to use whatever is on top of the object lifetime
          stack. */

@@ -3789,7 +3789,8 @@ requires a later destruction, put it into the current object lifetime.
     a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
     /* Put the destruction (if any) on the list for the current object
        lifetime. */
-    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE);
+    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                       /*block_lifetime=*/FALSE);
     /* If the lifetime happens to turn out to be static (e.g., when
        long lifetime temps are enabled), mark the temp init as requiring
        a static temporary. */

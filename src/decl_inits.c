@@ -270,7 +270,8 @@ routine is called in C++ mode only.
            that will not be "on top" when gen_dynamic_initalizer is called,
            record the destruction, if needed, with the appropriate
            object-lifetime entry. */
-        record_end_of_lifetime_destruction(dip, static_lifetime);
+        record_end_of_lifetime_destruction(dip, static_lifetime,
+                                           /*block_lifetime=*/TRUE);
         /* Now create the constant entry that will point to the new dynamic
            init entry. */
         cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
@@ -497,7 +498,8 @@ ref field of a class object (or an array of same) remains uninitialized.
          that will not be "on top" when gen_dynamic_initalizer is called,
          record the destruction, if needed, with the appropriate
          object-lifetime entry. */
-      record_end_of_lifetime_destruction(dip, static_lifetime);
+      record_end_of_lifetime_destruction(dip, static_lifetime,
+                                         /*block_lifetime=*/TRUE);
     }  /* if */
   } else if (is_aggregate_or_union_type(local_type) ||
              (is_error_type(local_type) && brace_flag)) {
@@ -879,7 +881,8 @@ ref field of a class object (or an array of same) remains uninitialized.
          that will not be "on top" when gen_dynamic_initalizer is called,
          record the destruction, if needed, with the appropriate
          object-lifetime entry. */
-      record_end_of_lifetime_destruction(dip, static_lifetime);
+      record_end_of_lifetime_destruction(dip, static_lifetime,
+                                         /*block_lifetime=*/TRUE);
     }  /* if */
     /* If there was an initial opening brace, check for and skip the
        closing brace now.  Check also for an extra comma (required in C++
@@ -1142,7 +1145,8 @@ unreachable code).
   dip->variable = vp;
   /* If needed, record the dynamic init entry on the destructions list of the
      appropriate object-lifetime entry. */
-  record_end_of_lifetime_destruction(dip, static_lifetime);
+  record_end_of_lifetime_destruction(dip, static_lifetime,
+                                     /*block_lifetime=*/TRUE);
   if (!at_file_scope) {
     /* Build the initialization statement and add it to the statement block.
        This must be done after record_end_of_lifetime_destruction is called. */
@@ -1706,7 +1710,8 @@ the default constructor (if one exists) is called.
              object-lifetime entry. */
           record_end_of_lifetime_destruction(init_dip,
                                              has_static_storage_duration(
-                                                          var->storage_class));
+                                                          var->storage_class),
+                                             /*block_lifetime=*/TRUE);
           /* Copy the dynamic init entry. */
           dip = init_dip;
           /* Create a new one to represent a nonconstant aggregate
@@ -2581,7 +2586,8 @@ scan_paren:
         }  /* if */
         /* Now, in case a destructor was found, record the need for a
            destruction in the context of the current lifetime. */
-        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE);
+        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                           /*block_lifetime=*/TRUE);
       }  /* if */
       if (array_type != NULL &&
           dip->kind == (a_dynamic_init_kind)dik_constructor) {
@@ -2738,7 +2744,8 @@ though neither constructors nor initialization is involved here.)
           if (exceptions_enabled) {
             /* Create a destruction entry and associate it with the
                appropriate object-lifetime entry. */
-            record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE);
+            record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                               /*block_lifetime=*/TRUE);
           }  /* if */
           /* Attach the new dynamic init entry to the constructor
              initializer. */
@@ -2792,7 +2799,8 @@ though neither constructors nor initialization is involved here.)
           if (exceptions_enabled) {
             /* Create a destruction entry and associate it with the
                appropriate object-lifetime entry. */
-            record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE);
+            record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                               /*block_lifetime=*/TRUE);
           }  /* if */
           if (array_type != NULL) {
             a_targ_size_t count;
