@@ -3073,7 +3073,9 @@ are not checked.
                Avoid setting a correspondence in that case. */
             f_report_bad_trans_unit_corresp((char*)var,
                                             &corresp_sym->decl_position);
-            set_no_trans_unit_corresp(iek_variable, var);
+            if (trans_unit_corresp_of(var) == NULL) {
+              set_no_trans_unit_corresp(iek_variable, var);
+            }  /* if */
           } else {
             set_trans_unit_corresp(iek_variable, var, corresp_var);
           }  /* if */
