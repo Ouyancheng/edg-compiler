@@ -2207,6 +2207,32 @@ of befriending classes given by befriending_list.
 }  /* on_befriending_list */
 
 
+static a_boolean have_member_access_from_class_scope(
+                                            a_type_ptr              class_type,
+                                            a_scope_stack_entry_ptr ssep)
+/*
+We have member access privilege to the class indicated by the scope stack
+entry pointed to by ssep.  Return TRUE if that fact means that we have
+member access privilege to class_type.
+*/
+{
+  a_boolean  have_member_privilege = FALSE;
+  a_type_ptr scope_class = ssep->assoc_type;
+
+  if (scope_class == class_type) {
+    /* We are inside class_type. */
+    have_member_privilege = TRUE;
+  } else if (on_befriending_list(scope_class->variant.
+                                            class_struct_union.extra_info->
+                                                           befriending_classes,
+                                 class_type)) {
+    /* We are inside a class that is a friend of class_type. */
+    have_member_privilege = TRUE;
+  }  /* if */
+  return have_member_privilege;
+}  /* have_member_access_from_class_scope */
+
+
 a_boolean have_member_access_privilege(a_type_ptr class_type)
 /*
 Return TRUE if we currently have member access privilege to the class
@@ -2216,54 +2242,58 @@ indicated by class_type.
   a_boolean               have_member_privilege = FALSE;
   a_scope_stack_entry_ptr ssep;
   a_routine_ptr           scope_routine;
-  a_type_ptr              scope_class;
-  a_boolean               function_case = FALSE;
 
+  /* This routine looks a lot like have_protected_member_access_privilege. */
   if (depth_of_innermost_scope_that_affects_access_control != NO_SCOPE_DEPTH) {
     /* There are scopes on the scope stack that affect access control.
-       Look at each one and see if it confers member access to class_type. */
+       Look at the innermost such scope. */
     ssep = &scope_stack[depth_of_innermost_scope_that_affects_access_control];
     if (ssep->kind == (a_scope_kind)sck_function) {
-      /* A function -- see if class_type is on its befriending list. */
-      function_case = TRUE;
+      /* A function.  See if class_type is on its befriending list. */
       scope_routine = ssep->il_scope->variant.routine.ptr;
       if (on_befriending_list(scope_routine->befriending_classes,
                               class_type)) {
         /* We are inside a function that is a friend of class_type. */
         have_member_privilege = TRUE;
-        goto done;
+      } else if ((--ssep)->kind == (a_scope_kind)sck_class_reactivation) {
+        /* There is a class reactivation outside the function scope, so
+           the function is a member function and we should check for access
+           granted that way. */
+        /* Note that there will always be a scope stack entry under the
+           function. */
+        if (have_member_access_from_class_scope(class_type, ssep)) {
+          have_member_privilege = TRUE;
+        }  /* if */
       }  /* if */
-      /* If there is a class reactivation below the function scope, the
-         scope is a member function and we should check the class. */
-      ssep--;
-      /* Note that there will always be a scope stack entry under the
-         function. */
-      if (ssep->kind != (a_scope_kind)sck_class_reactivation) goto done;
+    } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+      /* A class.  Check for access granted by being a member of the
+         class. */
+      if (have_member_access_from_class_scope(class_type, ssep)) {
+        have_member_privilege = TRUE;
+      } else if ((--ssep)->kind == (a_scope_kind)sck_class_struct_union) {
+        /* The class is inside another class, so check for access granted by
+           that class.  This is not in the ARM, but Bjarne Stroustrup and
+           Andy Koenig said that nested classes must have member access
+           to types (etc.) of the immediately enclosing class. */
+        /* Note that there will always be a scope stack entry under the
+           class. */
+        if (have_member_access_from_class_scope(class_type, ssep)) {
+          have_member_privilege = TRUE;
+        }  /* if */
+      }  /* if */
+    } else {
+#if CHECKING
+      if (ssep->kind != (a_scope_kind)sck_class_reactivation) {
+        internal_error("have_member_access_privilege: bad scope kind");
+      }  /* if */
+#endif /* CHECKING */
+      /* A class reactivation.  Check for access granted by being a member
+         of the class. */
+      if (have_member_access_from_class_scope(class_type, ssep)) {
+        have_member_privilege = TRUE;
+      }  /* if */
     }  /* if */
-    /* Consider any classes we are inside of. */
-    for (;ssep->kind == (a_scope_kind)sck_class_struct_union ||
-          ssep->kind == (a_scope_kind)sck_class_reactivation;
-         ssep--) {
-      /* A class -- see if class_type is the class or on its befriending
-         list. */
-      scope_class = ssep->assoc_type;
-      if (scope_class == class_type) {
-        /* We are inside class_type. */
-        have_member_privilege = TRUE;
-        goto done;
-      } else if (on_befriending_list(scope_class->variant.
-                                            class_struct_union.extra_info->
-                                                           befriending_classes,
-                                     class_type)) {
-        /* We are inside a class that is a friend of class_type. */
-        have_member_privilege = TRUE;
-        goto done;
-      }  /* if */
-      /* After a function, consider only one class reactivation. */
-      if (function_case) break;
-    }  /* for */
   }  /* if */
-done:;
   return have_member_privilege;
 }  /* have_member_access_privilege */
 
@@ -2276,7 +2306,8 @@ Return TRUE if a protected member of class_type can be accessed from
 derived_class.  We know that we have member access to derived_class but we
 do not know if class_type is a base class of derived_class or if the derivation
 between the two will allow access to a protected member.  This routine
-is used is determining access to protected members and derivations.
+is used is determining access to protected members and in the presence
+of protected derivations.
 */
 {
   a_boolean             accessible = FALSE;
@@ -2322,7 +2353,7 @@ We know that we have member access to the classes on befriending_list but we
 do not know if class_type is a base class of any of those classes or if the
 derivations between the class_type and one of those classes will allow access
 to a protected member.  This routine is used in determining access to
-protected members and derivations.
+protected members and in the presence of protected derivations.
 */
 {
   a_boolean accessible = FALSE;
@@ -2338,74 +2369,102 @@ protected members and derivations.
 }  /* have_protected_access_from_befriending_list */
 
 
+static a_boolean have_protected_access_from_class_scope(
+                                            a_type_ptr              class_type,
+                                            a_scope_stack_entry_ptr ssep)
+/*
+We have member access privilege to the class indicated by the scope stack
+entry pointed to by ssep.  Return TRUE if that fact means that we have
+access to protected members of class_type by virtue of having member
+access privilege to a derived class of class_type.  This is needed in
+determining accessibility to protected members and in the presence of
+protected derivations.
+*/
+{
+  a_boolean  have_protected_access = FALSE;
+  a_type_ptr scope_class = ssep->assoc_type;
+
+  if (have_protected_access_from_derived_class(class_type, scope_class)) {
+    /* We are in a class that is an appropriate derived class of class_type,
+       so we have access to protected members of class_type. */
+    have_protected_access = TRUE;
+  } else if (have_protected_access_from_befriending_list(scope_class->
+                    variant.class_struct_union.extra_info->befriending_classes,
+                                                                 class_type)) {
+    /* We are in a class that is a friend of an appropriate derived class
+       of class_type, so we have access to protected members of class_type. */
+    have_protected_access = TRUE;
+  }  /* if */
+  return have_protected_access;
+}  /* have_protected_access_from_class_scope */
+
+
 a_boolean have_protected_member_access_privilege(a_type_ptr class_type)
 /*
 Return TRUE if we have access to protected members of class_type by
 virtue of having member access privilege to a derived class of class_type.
 This is needed in determining accessibility to protected members and
-in the presence of a protected derivation.  See p. 214 of "The C++
-Programming Language", 2nd Edition, and 11.5 in the ARM.
+in the presence of protected derivations.  See p. 214 of "The C++
+Programming Language", 2nd Edition.
 */
 {
   a_boolean               have_protected_access = FALSE;
   a_scope_stack_entry_ptr ssep;
   a_routine_ptr           scope_routine;
-  a_type_ptr              scope_class;
-  a_boolean               function_case = FALSE;
 
   /* This routine looks a lot like have_member_access_privilege. */
   if (depth_of_innermost_scope_that_affects_access_control != NO_SCOPE_DEPTH) {
     /* There are scopes on the scope stack that affect access control.
-       Look at each one and see if it confers protected member access to
-       class_type. */
+       Look at the innermost such scope. */
     ssep = &scope_stack[depth_of_innermost_scope_that_affects_access_control];
     if (ssep->kind == (a_scope_kind)sck_function) {
-      /* A function. */
-      function_case = TRUE;
+      /* A function.  See if class_type is on its befriending list. */
       scope_routine = ssep->il_scope->variant.routine.ptr;
-      if (have_protected_access_from_befriending_list(scope_routine->
-                                                           befriending_classes,
-                                                      class_type)) {
-        /* We are in a function that is a friend of an appropriate
-           derived class of class_type, so we have access to protected
-           members of class_type. */
+      if (have_protected_access_from_befriending_list(
+                                            scope_routine->befriending_classes,
+                                            class_type)) {
+        /* We are inside a function that is a friend of class_type. */
         have_protected_access = TRUE;
-        goto done;
+      } else if ((--ssep)->kind == (a_scope_kind)sck_class_reactivation) {
+        /* There is a class reactivation outside the function scope, so
+           the function is a member function and we should check for access
+           granted that way. */
+        /* Note that there will always be a scope stack entry under the
+           function. */
+        if (have_protected_access_from_class_scope(class_type, ssep)) {
+          have_protected_access = TRUE;
+        }  /* if */
       }  /* if */
-      /* If there is a class reactivation below the function scope, the
-         scope is a member function and we should check the class. */
-      /* Note that there will always be a scope stack entry under the
-         function. */
-      ssep--;
-      if (ssep->kind != (a_scope_kind)sck_class_reactivation) goto done;
+    } else if (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+      /* A class.  Check for access granted by being a member of the
+         class. */
+      if (have_protected_access_from_class_scope(class_type, ssep)) {
+        have_protected_access = TRUE;
+      } else if ((--ssep)->kind == (a_scope_kind)sck_class_struct_union) {
+        /* The class is inside another class, so check for access granted by
+           that class.  This is not in the ARM, but Bjarne Stroustrup and
+           Andy Koenig said that nested classes must have member access
+           to types (etc.) of the immediately enclosing class. */
+        /* Note that there will always be a scope stack entry under the
+           class. */
+        if (have_protected_access_from_class_scope(class_type, ssep)) {
+          have_protected_access = TRUE;
+        }  /* if */
+      }  /* if */
+    } else {
+#if CHECKING
+      if (ssep->kind != (a_scope_kind)sck_class_reactivation) {
+        internal_error(
+                     "have_protected_member_access_privilege: bad scope kind");
+      }  /* if */
+#endif /* CHECKING */
+      /* A class reactivation.  Check for access granted by being a member
+         of the class. */
+      if (have_protected_access_from_class_scope(class_type, ssep)) {
+        have_protected_access = TRUE;
+      }  /* if */
     }  /* if */
-    /* Consider any classes we are inside of. */
-    for (;ssep->kind == (a_scope_kind)sck_class_struct_union ||
-          ssep->kind == (a_scope_kind)sck_class_reactivation;
-         ssep--) {
-      /* A class. */
-      scope_class = ssep->assoc_type;
-      if (have_protected_access_from_derived_class(class_type,
-                                                   scope_class)) {
-        /* We are in a class that is an appropriate derived class of
-           class_type, so we have access to protected members of
-           class_type. */
-        have_protected_access = TRUE;
-        goto done;
-      } else if (have_protected_access_from_befriending_list(scope_class->
-                    variant.class_struct_union.extra_info->befriending_classes,
-                                                             class_type)) {
-        /* We are in a class that is a friend of an appropriate derived
-           class of class_type, so we have access to protected members of
-           class_type. */
-        have_protected_access = TRUE;
-        goto done;
-      }  /* if */
-      /* After a function, consider only one class reactivation. */
-      if (function_case) break;
-    }  /* for */
   }  /* if */
-done:;
   return have_protected_access;
 }  /* have_protected_member_access_privilege */
 
