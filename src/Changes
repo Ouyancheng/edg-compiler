@@ -1,10 +1,16 @@
 Version 2.21
 
+12/15/93  IL change: shares_virtual_function_info added to a_base_class
+
+A new field, shares_virtual_function_info, has been added to a_base_class.
+When it is TRUE the base class and a class derived from it share the same
+virtual function info block (e.g., the same vtbl; it is used in IL
+lowering to avoid creating superfluous vtbl entries).
+
 12/15/93  Fixed bug in name mangling
 
-Having a type qualifier above an unnamed class, an unnamed enum, or
-a function type in a parameter list resulted in a truncated mangled
-name:
+Having a type qualifier above an unnamed class, an unnamed enum, or a
+function type in a parameter list resulted in a truncated mangled name:
 
   typedef const struct {} *P;
   extern void f(int, P, const char *);
