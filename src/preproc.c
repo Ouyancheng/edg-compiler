@@ -941,7 +941,7 @@ string is copied there.
   /* Allocate a block of file scope IL memory into which the string may
      be copied. */
   il_string = (char *)alloc_il(pos_in_buffer + 1);
-  (void)memcpy(il_string, pragma_string_buffer, pos_in_buffer);
+  (void)memcpy(il_string, pragma_string_buffer, size_t_arg(pos_in_buffer));
   /* Add a null terminator. */
   il_string[pos_in_buffer] = '\0';
   ppp->pragma_text = il_string;
