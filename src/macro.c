@@ -1366,14 +1366,9 @@ Add an entry to the list of a_macro_arg entries in use.
   end_of_macro_arg_list = map;                                        \
 }  /* add_to_macro_arg_list */
 
-
+/* The first ARG_VALUES_SIZE macro argument values will be stored in a random
+   access array (which should be called "arg_values"): */
 #define ARG_VALUES_SIZE 50
-			/* For parameter counts in the normal range, the
-			   arg_values array provides quick look-up.  For
-			   parameters beyond that, a slow linear search
-			   is used. */
-static a_macro_arg_ptr arg_values[ARG_VALUES_SIZE];
-
 
 /*
 Add an a_macro_arg entry to the end of the current list of argument values.
@@ -1435,6 +1430,7 @@ nothing.
 static void adjust_length_for_magic_arg(a_repl_text_seq_kind kind,
                                         char                 *rtp,
                                         sizeof_t             n_params,
+                                        a_macro_arg_ptr      *arg_values,
                                         sizeof_t             *length)
 /*
 Check if this is followed by an empty substitution of the variadic macro
@@ -1445,6 +1441,11 @@ problem:
 	#define M(fmt, args) printf(fmt , ## args)
 	void f() { M("Hello.\n"); }
 Without the "deletion effect", the macro would generate an extraneous comma.
+kind describes what kind of section preceded the "##".  rtp points to the
+replacement text sections starting at the "##".  n_params is the number of
+parameters in the macro.  arg_values is a pointer to an array of
+a_macro_arg_ptr elements: it is referred to by the get_arg_value macro and
+hence its name should not be changed.  *length is the value to be adjusted.
 */
 {
   sizeof_t arg_number;
@@ -1477,13 +1478,16 @@ Without the "deletion effect", the macro would generate an extraneous comma.
 }  /* adjust_length_for_magic_arg */
 
 
-static sizeof_t length_of_replacement_text(char *rtp,
-                                           sizeof_t n_params,
-                                           a_macro_def_ptr mdp)
+static sizeof_t length_of_replacement_text(char            *rtp,
+                                           sizeof_t        n_params,
+                                           a_macro_def_ptr mdp,
+                                           a_macro_arg_ptr *arg_values)
 /*
 Compute the length (in bytes/characters) of the replacement text described by
 the sequence of sections pointed to by rtp.  n_params is the number of macro
-parameters of the macro described by mdp.
+parameters of the macro described by mdp. arg_values is a pointer to an array
+of a_macro_arg_ptr elements: it is referred to by the get_arg_value macro and
+hence its name should not be changed.
 */
 {
   sizeof_t result = 0;
@@ -1532,7 +1536,8 @@ parameters of the macro described by mdp.
        variadic argument has a special deletion effect. */
     if (extended_variadic_macros_allowed && mdp->variadic &&
         (a_repl_text_seq_kind)*rtp == rt_paste) {
-      adjust_length_for_magic_arg(rts_kind, rtp, n_params, &sect_len);
+      adjust_length_for_magic_arg(rts_kind, rtp, n_params, arg_values,
+                                  &sect_len);
     }  /* if */
     result += sect_len;
   }  /* for */
@@ -1591,6 +1596,14 @@ associated global variables will also have been set).
   a_boolean       token_pasting_off_end;
   a_boolean       too_many_args_diag_given = FALSE;
   a_macro_arg_ptr map, prev_end_of_macro_arg_list = end_of_macro_arg_list;
+  /* The following is used by various macros.  It is therefore important to
+     maintain the name "arg_values": */
+			/* For parameter counts in the normal range, the
+			   arg_values array provides quick look-up.  For
+			   parameters beyond that, a slow linear search
+			   is used. */
+  a_macro_arg_ptr arg_values[ARG_VALUES_SIZE];
+
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -2163,7 +2176,8 @@ end_arg_expansion:;
     if (!repl_text_len_precomputed) repl_text_len = strlen(repl_text);
   } else {
     /* Normal replacement text, with sections. */
-    repl_text_len = length_of_replacement_text(repl_text, n_params, mdp);
+    repl_text_len = length_of_replacement_text(repl_text, n_params, mdp,
+                                               arg_values);
   }  /* if */
   /* repl_text_len now indicates the size of the expansion.  Note that
      in the case of an expanded argument value, the expansion may be
@@ -2234,7 +2248,8 @@ end_arg_expansion:;
          variadic argument has a special deletion effect. */
       if (extended_variadic_macros_allowed && mdp->variadic &&
           (a_repl_text_seq_kind)*rtp == rt_paste) {
-        adjust_length_for_magic_arg(rts_kind, rtp, n_params, &sect_len);
+        adjust_length_for_magic_arg(rts_kind, rtp, n_params, arg_values,
+                                    &sect_len);
       }  /* if */
       if (sect_len != 0) {
         (void)memcpy(src_loc, text_loc, size_t_arg(sect_len));
