@@ -7616,20 +7616,10 @@ explicitly specified (rather than defaulted to "int").
     scope_ptr->variant.routine.constructor_inits =
                                       ctor_initializer(routine_ptr,
                                                        /*user_defined=*/TRUE);
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-    /* Determine and remember the operator new() routine for the class. */
-    set_class_assoc_operator_new_routine(
-                          routine_ptr->source_corresp.class_of_which_a_member);
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
   } else if (routine_ptr->special_kind ==
                                    (a_special_function_kind)sfk_destructor) {
     scope_ptr->variant.routine.constructor_inits =
                                       dtor_initializer(routine_ptr);
-#if DELETE_CAN_BE_FOLDED_INTO_DTOR
-    /* Determine and remember the operator delete() routine for the class. */
-    set_class_assoc_operator_delete_routine(
-                          routine_ptr->source_corresp.class_of_which_a_member);
-#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
   }  /* if */
   /* Scan the compound statement defining the function.  The closing "}"
      is not swallowed by compound_statement, so that the pop_scope call
@@ -7781,21 +7771,11 @@ processing of function definition.
       scope->variant.routine.constructor_inits =
                                       ctor_initializer(rout_ptr,
                                                        /*user_defined=*/TRUE);
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-      /* Determine and remember the operator new() routine for the class. */
-      set_class_assoc_operator_new_routine(
-                             rout_ptr->source_corresp.class_of_which_a_member);
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
       break;
     case sfk_destructor:
       /* Record the destructors that are to be called implicitly when this
          destructor is executed. */
       scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
-#if DELETE_CAN_BE_FOLDED_INTO_DTOR
-      /* Determine and remember the operator delete() routine for the class. */
-      set_class_assoc_operator_delete_routine(
-                             rout_ptr->source_corresp.class_of_which_a_member);
-#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
       break;
     default:;
       /* No action. */

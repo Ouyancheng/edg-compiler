@@ -319,7 +319,7 @@ Instantiate the body of the template function associated with fiep.
   ptp = rtsp->param_type_list;
 #if CHECKING
   if ((pip == NULL) != (ptp == NULL)) {
-    internal_error("inline_function_definition: pip and ptp out of sync");
+    internal_error("instantiate_template_function: pip and ptp out of sync");
   }  /* if */
 #endif /* CHECKING */
   for (; pip != NULL; pip = pip->next, ptp = ptp->next) {
@@ -329,7 +329,7 @@ Instantiate the body of the template function associated with fiep.
 #if CHECKING
     if ((pip->next == NULL) != (ptp->next == NULL)) {
       internal_error(
-              "instantiate_template_function: param_id and ptp out of sync");
+                 "instantiate_template_function: pip and ptp out of sync (2)");
     }  /* if */
 #endif /* CHECKING */
   }  /* for */
@@ -346,21 +346,11 @@ Instantiate the body of the template function associated with fiep.
       scope->variant.routine.constructor_inits =
                                       ctor_initializer(rout_ptr,
                                                        /*user_defined=*/TRUE);
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
-      /* Determine and remember the operator new() routine for the class. */
-      set_class_assoc_operator_new_routine(
-                             rout_ptr->source_corresp.class_of_which_a_member);
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
       break;
     case sfk_destructor:
       /* Record the destructors that are to be called implicitly when this
          destructor is executed. */
       scope->variant.routine.constructor_inits = dtor_initializer(rout_ptr);
-#if DELETE_CAN_BE_FOLDED_INTO_DTOR
-      /* Determine and remember the operator delete() routine for the class. */
-      set_class_assoc_operator_delete_routine(
-                             rout_ptr->source_corresp.class_of_which_a_member);
-#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
       break;
     default:;
       /* No action. */
