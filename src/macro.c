@@ -1175,7 +1175,10 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
   expand_macros = save_expand_macros;
   /* If we didn't find the end of the operator, clear the flag passed
      by the caller. */
-  if (!found_end_of_operator) *got_proper_closing_token = FALSE;
+  if (!found_end_of_operator) {
+    *got_proper_closing_token = FALSE;
+    curr_token = tok_error;
+  }  /* if */
 }  /* scan_pragma_operator */
 
 
