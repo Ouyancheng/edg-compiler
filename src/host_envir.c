@@ -1863,10 +1863,10 @@ buffer.
 */
 {
 #if USE_GETCWD
+  /* The temporary buffer may not be allocated yet.  Make sure there
+     is some space allocated. */
+  ensure_temp_text_buffer_space(256);
   for (;;) {
-    /* The temporary buffer may not be allocated yet.  Make sure there
-       is some space allocated. */
-    ensure_temp_text_buffer_space(256);
     if (getcwd(temp_text_buffer, size_temp_text_buffer) == NULL) {
       if (errno == ERANGE) {
         /* We know the buffer is too small, but we don't know how much
