@@ -1619,6 +1619,91 @@ Lower a fixed-point operation expression.
   overwrite_node(expr, new_expr);
 }  /* lower_c99_fixed_point_operation */
 
+
+static void lower_c99_fixed_point_incr_decr(an_expr_node_ptr expr)
+/*
+Lower the indicated fixed-point increment or decrement operation.
+*/
+{
+  an_expr_operator_kind op = expr->variant.operation.kind;
+  an_expr_node_ptr      op1 = expr->variant.operation.operands;
+  a_boolean             is_incr, is_post_op;
+  an_expr_node_ptr      op1_for_operation, temp_init_node = NULL, op_node;
+  a_type_ptr            result_type = rvalue_type(type_pointed_to(op1->type));
+
+  switch (op) {
+    case eok_fxpost_incr:
+      is_post_op = TRUE;
+      is_incr = TRUE;
+      break;
+    case eok_fxpost_decr:
+      is_post_op = TRUE;
+      is_incr = FALSE;
+      break;
+    case eok_fxpre_incr:
+      is_post_op = FALSE;
+      is_incr = TRUE;
+      break;
+    case eok_fxpre_decr:
+      is_post_op = FALSE;
+      is_incr = FALSE;
+      break;
+    default:
+      unexpected_condition_str(
+                              "lower_c99_fixed_point_incr_decr: bad operator");
+  }  /* if */
+  /* Start by making
+       x = x + 1    or    x = x - 1
+     If x is not simple, we have instead
+       *t = *t + 1  or    *t = *t - 1
+     with "t = &x" saved in temp_init_node for later insertion.
+  */
+  /* Make a copy of op1 to be used as the left operand of the underlying
+     add/subtract.  op1 itself will be used as the left operand of the
+     assignment. */ 
+  op1_for_operation = make_lvalue_reusable_copy_full(op1,
+                                                     /*vars_can_change=*/FALSE,
+                                                     &temp_init_node);
+  op1_for_operation = add_indirection_to_node(op1_for_operation);
+  op1_for_operation->next = node_for_integer_constant((long)1,
+                                                      (an_integer_kind)ik_int);
+  op = is_incr ? (an_expr_operator_kind)eok_fxadd :
+                 (an_expr_operator_kind)eok_fxsubtract;
+  op_node = make_operator_node(op, result_type, op1_for_operation);
+  lower_c99_operator(op_node);
+  /* Assign the result to op1. */
+  op_node = make_assignment_expr(op1,
+                                 lowered_assignment_operator(result_type),
+                                 op_node);
+  /* Here, op_node is "x = x +/- 1".  For a pre-increment, that's
+     all we need. */
+  if (is_post_op && !expr->result_is_not_used) {
+    /* A post-increment or post-decrement.
+         x++
+       becomes
+         (temp = x, x = x + 1, temp)
+       If x is not simple, we have instead
+         (t = &x, temp = *t, *t = *t + 1, temp)
+    */
+    a_variable_ptr   temp = make_lowered_temporary(result_type);
+    an_expr_node_ptr temp_assign;
+    temp_assign = make_var_assignment_expr(temp,
+                                           (an_expr_operator_kind)eok_last,
+                                           make_reusable_copy(
+                                                   op1_for_operation,
+                                                   /*vars_can_change=*/FALSE));
+    op_node = make_comma_node(temp_assign, op_node);
+    op_node = make_comma_node(op_node, var_rvalue_expr(temp));
+  }  /* if */
+  if (temp_init_node != NULL) {
+    /* Add a comma expression to initialize the temporary used.  This
+       ensures that the temporary is initialized before it is used in
+       either operand. */
+    op_node = make_comma_node(temp_init_node, op_node);
+  }  /* if */
+  overwrite_node(expr, op_node);
+}  /* lower_c99_fixed_point_incr_decr */
+
 #endif /* LOWER_FIXED_POINT */
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -1942,6 +2027,14 @@ _Bool type, and VLA types.
     case eok_fxshiftr_assign:
 #if LOWER_FIXED_POINT
       rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
+#endif /* LOWER_FIXED_POINT */
+      break;
+    case eok_fxpost_incr:
+    case eok_fxpost_decr:
+    case eok_fxpre_incr:
+    case eok_fxpre_decr:
+#if LOWER_FIXED_POINT
+      lower_c99_fixed_point_incr_decr(expr);
 #endif /* LOWER_FIXED_POINT */
       break;
 #endif /* FIXED_POINT_ALLOWED */
