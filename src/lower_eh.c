@@ -1644,6 +1644,7 @@ region description entry).
   a_targ_ptrdiff_t elem_count;
   a_constant_ptr   handle_con, elem_size_con, size_con, aggr_con;
   a_type_ptr       elem_type;
+  a_type_ptr       entity_type = type_from_init_pos_descr(ipdp);
 
   /* Make the variable for the array table if it has not yet been made. */
   if (array_table_var == NULL) {
@@ -1658,24 +1659,27 @@ region description entry).
      elements. */
   /* Make the handle constant. */
   handle_con = make_handle_constant(handle);
-  /* For the element size: note that the init_pos_descr has the type of an
-     element, not of the whole array.  For non-arrays, the type is of
-     course as expected. */
-  elem_type = type_from_init_pos_descr(ipdp);
+  if (ipdp->array_element_sequence) {
+    /* The entity is a sequence of array elements.  Get the element
+       count.  -1 indicates that the runtime should look up the number of
+       elements in the array.  Note that the position given is the position
+       of the first element, not of the whole array. */
+    elem_type = entity_type;
+    elem_count = ipdp->array_element_count;
+  } else if (is_array_type(entity_type)) {
+    /* The entity is a whole array. */
+    elem_type = array_element_type(entity_type);
+    elem_count = num_array_elements(entity_type);
+  } else {
+    /* Not an array (see header comment above).  Use an element count of 0. */
+    elem_type = entity_type;
+    elem_count = 0;
+  }  /* if */
   elem_type = skip_typerefs(elem_type);
   elem_size_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_unsigned_integer_constant(elem_size_con, (unsigned long)elem_type->size,
                                 targ_size_t_int_kind);
   size_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  if (ipdp->array_element_sequence) {
-    /* The entity really is a sequence of array elements.  Get the element
-       count.  -1 indicates that the runtime should look up the number of
-       elements in the array. */
-    elem_count = ipdp->array_element_count;
-  } else {
-    /* Not an array (see header comment above).  Use an element count of 0. */
-    elem_count = 0;
-  }  /* if */
   set_integer_constant(size_con, (long)elem_count, (an_integer_kind)ik_long);
   /* Link the constants together and make an aggregate constant. */
   handle_con->next = elem_size_con;
@@ -1967,7 +1971,8 @@ aggregate constant for the region table entry.
   flags_value |= handle.flags;
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* See if we need array information on the entity. */
-  if (ipdp->array_element_sequence) {
+  if (ipdp->array_element_sequence ||
+      is_array_type(type_from_init_pos_descr(ipdp))) {
     need_array_info = TRUE;
   } else if (is_delete) {
     /* Check for the 2-argument version of delete; we need array information
