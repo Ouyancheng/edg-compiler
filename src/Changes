@@ -1,5 +1,15 @@
 Version 3.5
 
+5/25/04  Embedded C: internal error on conversion from fixed-point to float
+
+An internal error could result when converting a fixed-point value to a
+floating-point value when the type of the floating-point value was specified
+using a typedef.  Now fixed.  Note that the internal error depended on
+memory layout and consequently occurred only on some configurations.
+
+  typedef double T;
+  T x[] = {0.0r};
+
 5/20/04  Abort on unknown function bound to reference nontype template
          parameter
 
