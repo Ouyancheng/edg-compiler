@@ -1,3 +1,11 @@
+Version 2.26
+
+9/8/94  Decoding of names with leading double underscore
+
+decode.c was changed so that it can decode names that in their original
+source form begin with a double underscore, e.g., __f__Fi, which is __f(int).
+
+-------------------------------------------------------------------------------
 Version 2.24, July 8, 1994
 
 6/27/94 required_buffer_size parameter on decode_identifier
