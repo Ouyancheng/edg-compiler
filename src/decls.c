@@ -2271,6 +2271,11 @@ created; the caller must set it.
         if (*routine_ptr != NULL && !C_mode()) {
           if (func_info->is_definition &&
               (*routine_ptr)->assoc_scope != NULL_region_number) {
+            /* This error can come up when the same extern "C" function is
+               defined in two different namespaces -- e.g.,
+                 namespace N { extern "C" void f() { } }
+                 namespace M { extern "C" void f() { } }
+            */
             pos_sy_error(ec_already_defined, &locator->source_position,
                          (a_symbol_ptr)((*routine_ptr)->
                                            source_corresp.assoc_info));
@@ -3422,7 +3427,7 @@ cross-reference output describing this declaration.
         if (variable_ptr->source_corresp.name_linkage ==
                                           (a_name_linkage_kind)nlk_external) {
           depth = DEPTH_OF_FILE_SCOPE;
-        }
+        }  /* if */
         check_assertion(in_file_scope(variable_ptr));
         remove_from_variables_list(variable_ptr, depth);
         add_to_variables_list(variable_ptr, depth);
@@ -4070,7 +4075,7 @@ skip_overloading:;
       if (routine_ptr->source_corresp.name_linkage ==
                                           (a_name_linkage_kind)nlk_external) {
         scope_depth = DEPTH_OF_FILE_SCOPE;
-      };
+      }  /* if */
       remove_from_routines_list(routine_ptr, scope_depth);
       add_to_routines_list(routine_ptr, scope_depth);
       /* Put in the storage class for the definition (static or 
