@@ -8845,7 +8845,17 @@ that follows.
     } else {
       /* The symbol is not NULL. */
       sym->decl_position = id_pos;
-      if (is_definition) srk_flags |= SRK_DEFINITION;
+      if (is_definition) {
+        srk_flags |= SRK_DEFINITION;
+        if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+          srk_flags |= SRK_INITIALIZATION;
+          /* Set the IL referenced flag since, as an externally visible
+             variable, it could be referenced from another translation unit. */
+          scp->referenced = TRUE;
+        } else {
+          /* The IL referenced flag for defined functions is updated later. */
+        }  /* if */
+      }  /* if */
       /* Update cross reference info, etc. */
       record_symbol_declaration(srk_flags, sym, &locator.source_position,
                                 declarator_ssep);
