@@ -1,5 +1,21 @@
 Version 3.6
 
+12/8/04  GNU compatibility: Rendering of attribute "packed" on fields
+
+The C- and C++-generating back ends previously did not render the GNU attribute
+"packed" on field declarations, and instead relied on attribute "aligned"
+exclusively.  However, GNU compilers silently ignore a reduction in alignment
+using attribute "aligned" if attribute "packed" is omitted.  For example:
+
+  struct S {
+    char c;
+    int i __attribute__((packed, __aligned(2)));
+      // Attribute "packed" was previously not rendered in the C- and
+      // C++-generating back ends.
+  };
+
+This is now fixed.
+
 12/8/04  Linkage of local class defined in a typedef declaration
 
 The front end erroneously attribute C or C++ name linkage to local classes

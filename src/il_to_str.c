@@ -4344,6 +4344,9 @@ Do the output in the way described by octl.
       form_simple_attribute("__deprecated__", &need_leading_space, octl);
     }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
+    if (field->is_packed) {
+      form_simple_attribute("__packed__", &need_leading_space, octl);
+    }  /* if */
     if (field->alignment != 0) {
       form_unsigned_argument_attribute("__aligned__",
                                        (a_host_large_unsigned)field->alignment,
