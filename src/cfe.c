@@ -79,7 +79,7 @@ int EDG_MAIN(int argc, char *argv[])
   fe_early_init();
   /* Process the command line. */
   proc_command_line(argc, argv);
-  /* Initialize values that apply to the entire compilation in multiple
+  /* Initialize values that apply to the entire compilation if multiple
      files are allowed. */
   fe_one_time_init();
 #if COMPILE_MULTIPLE_SOURCE_FILES
