@@ -3891,9 +3891,9 @@ End a name scope by popping an entry off the scope stack.
         /* Display source sequence lists for debug purposes. */
         db_ss_list_for_scope(il_scope);
       }  /* if */
+#endif /* DEBUG */
     }  /* if */
   }  /* if */
-#endif /* DEBUG */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (ssep->first_scope != NULL) {
     /* Transfer the list of scopes nested within the current scope
