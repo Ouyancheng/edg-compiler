@@ -1,5 +1,15 @@
 Version 2.39
 
+5/29/98   Left operand of p->x evaluated even if x is a static member
+
+The left operand of a member selection "->" or "." is now evaluated
+even if the right operand is a static data member or static member
+function.  This matches the FDIS.  Previously, we did not evaluate the
+left operand, which matched the ARM.
+
+This change fixes an abort when the left operand creates a destructible
+temporary.
+
 5/27/98   Microsoft anonymous structs and generated copy assignment function
 
 The code generated for default copy assignment of a class that contains

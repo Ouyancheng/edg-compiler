@@ -2720,12 +2720,11 @@ qualified_name_check:
                                        result);
           break;
         case sk_static_data_member:
-          /* Static data member reference.  The value of the left operand is
-             discarded. */
-          discard_operand(operand_1);
+          /* Static data member reference. */
           make_lvalue_variable_operand(
                               member_sym->variant.static_data_member.variable,
                               result, rep);
+          combine_unneeded_selector_with_operand(operand_1, result);
           break;
         case sk_member_function:
           /* Member function (static or non-static). */
@@ -2760,12 +2759,12 @@ nonstatic_member_function:
             }  /* if */
           } else {
             /* Static member function.  Discard the left operand. */
-            discard_operand(operand_1);
             make_function_designator_operand(member_sym,
                                              is_qualified_name,
                                              &member_position,
                                              rep,
                                              result);
+            combine_unneeded_selector_with_operand(operand_1, result);
           }  /* if */
           break;
         case sk_overloaded_function:
@@ -2796,21 +2795,21 @@ nonstatic_member_function:
           }  /* if */
           /* All the functions are static, so the selector can be discarded
              right away. */
-          discard_operand(operand_1);
           make_indefinite_function_operand(
                               locator_for_curr_id.specific_symbol,
                               (a_boolean)locator_for_curr_id.is_qualified_name,
                               (a_boolean)locator_for_curr_id.is_template_id,
                               locator_for_curr_id.template_arg_list,
                               result);
+          combine_unneeded_selector_with_operand(operand_1, result);
           break;
         case sk_function_template:
           /* Member function template. */
           goto nonstatic_member_function;
         case sk_constant:
           /* Member constant (e.g., an enumerator). */
-          discard_operand(operand_1);
           make_sym_constant_operand(member_sym, result);
+          combine_unneeded_selector_with_operand(operand_1, result);
           break;
         case sk_type:
         case sk_class_or_struct_tag:

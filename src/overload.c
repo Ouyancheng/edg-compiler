@@ -3696,6 +3696,42 @@ checking error was detected and reported.
 }  /* overloaded_function_catch_up */
 
 
+void combine_unneeded_selector_with_operand(
+                                           an_operand *bound_function_selector,
+                                           an_operand *operand)
+/*
+*operand is a reference to a static class member, and *bound_function_selector
+is an unneeded selector for that reference.  Save it by attaching it to
+*operand (it must be evaluated, even though its type only -- and not its
+value -- is used to select the member referenced).
+*/
+{
+  an_operand       orig_operand;
+  an_expr_node_ptr selector_expr, expr;
+  an_operand_state saved_operand_state = operand->state;
+
+  if (microsoft_mode && curr_expr_kind_is(ek_integral_constant)) {
+    /* Accommodate the Microsoft extension that allows
+         struct A { enum { e1 = 1 }; } a;
+         int x[a.e1];
+       by throwing away the left operand. */
+    discard_operand(bound_function_selector);
+  } else {
+    orig_operand = *operand;
+    selector_expr = make_node_from_operand(bound_function_selector);
+    expr = make_node_from_operand(operand);
+    selector_expr->next = expr;
+    /* Make a comma node for the selector and the operand. */
+    expr = make_operator_node((an_expr_operator_kind)eok_comma,
+                              expr->type,
+                              selector_expr);
+    make_expression_operand(expr, operand->type, operand);
+    operand->state = saved_operand_state;
+    restore_operand_details(operand, &orig_operand);
+  }  /* if */
+}  /* combine_unneeded_selector_with_operand */
+
+
 static a_type_ptr underlying_selector_class(an_operand *selector)
 /*
 Extract and return the class type underlying the given selector.  If the
@@ -4035,8 +4071,9 @@ case).  call_position gives the source position of the call.
   } else {
     /* The routine does not need a selector. */
     if (*have_selector) {
-      /* Discard the selector provided. */
-      discard_operand(bound_function_selector);
+      /* Attach the unneeded selector provided to the function operand. */
+      combine_unneeded_selector_with_operand(bound_function_selector,
+                                             function_operand);
       *have_selector = FALSE;
     }  /* if */
   }  /* if */
