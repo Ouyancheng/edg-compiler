@@ -2736,6 +2736,8 @@ the indicated source correspondence.
   tup = (scp->assoc_info != NULL) ? trans_unit_for_source_corresp(scp) :
                                     curr_translation_unit;
   module_id = *tup->module_id_ptr;
+  /* The module id must have been created previously. */
+  check_assertion(module_id != NULL);
   add_str_to_mangled_name("__", mctl);
   add_str_to_mangled_name(module_id, mctl);
 }  /* end_externalized_name */

@@ -4718,6 +4718,47 @@ thrown away by the caller.
   db_exit();
 }  /* finish_function_body_processing */
 
+#if DO_IL_LOWERING
+
+static a_boolean should_delay_lowering_on_function(a_routine_ptr routine)
+/*
+The scope for the body of the indicated routine is currently being popped.
+Return TRUE if there is a reason why the lowering of the function should
+be delayed until the end of the compilation.
+*/
+{
+  a_boolean delay_lowering = FALSE;
+
+  check_assertion(!in_secondary_trans_unit(routine));
+  if (secondary_translation_unit_seen()) {
+    /* Don't lower template instantiations in the primary translation unit
+       if there are exported templates, because we want to eliminate
+       references to entities in the secondary translation unit IL first.
+       The lowering will be done later -- see
+       finish_processing_for_function_bodies. */
+    delay_lowering = TRUE;
+  } else if (!C_mode() && export_template_allowed &&
+             routine->storage_class == (a_storage_class)sc_static) {
+    /* When exported templates are allowed, a static function might be
+       externalized because it might be referenced by a template.
+       If it has local static variables, they might have to be
+       externalized too, and we can't generate the externalized name
+       now because we don't have the module id yet. */
+    delay_lowering = TRUE;
+  } else if (may_be_building_new_pch()) {
+    /* While building a precompiled header, don't lower.  This helps
+       customers who generate debug information right before lowering,
+       because without this they have to figure out a way to save their
+       debug information in the PCH file. */
+    delay_lowering = TRUE;
+  }  /* if */
+  if (delay_lowering) {
+    function_body_processing_delayed_on_some_func_in_primary_il = TRUE;
+  }  /* if */
+  return delay_lowering;
+}  /* should_delay_lowering_on_function */
+
+#endif /* DO_IL_LOWERING */
 
 static void wrap_up_symbols_with_no_scope(void)
 /*
@@ -5014,17 +5055,12 @@ End a name scope by popping an entry off the scope stack.
     /* See whether this is a function whose body should be discarded. */
     discard_function_body = function_body_should_be_discarded(curr_routine);
 #if DO_IL_LOWERING
-    if (is_primary_translation_unit &&
-        secondary_translation_unit_seen() && !trans_unit_test_mode &&
-        !discard_function_body) {
+    if (is_primary_translation_unit && !discard_function_body &&
+        should_delay_lowering_on_function(curr_routine)) {
+      /* Delay lowering of functions in some cases. */
       /* Note that il_lowering_needed() is not tested on purpose, to get
          proper error recovery behavior.  Also, it doesn't cover lowering
          needed in C99 mode. */
-      /* Don't lower template instantiations in the primary translation unit
-         if there are exported templates, because we want to eliminate
-         references to entities in the secondary translation unit IL first.
-         The lowering will be done later -- see
-         copy_secondary_trans_unit_IL_to_primary. */
     } else
 #endif /* DO_IL_LOWERING */
     {
@@ -5790,6 +5826,8 @@ are handled in scope_stk_init.)
       pch_saved_var_array_elem(avail_names_hidden_by_old_for_init),
       pch_saved_var_array_elem(name_linkage_stack),
       pch_saved_var_array_elem(avail_name_linkage_stack_entries),
+      pch_saved_var_array_elem(
+                  function_body_processing_delayed_on_some_func_in_primary_il),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -5862,6 +5900,7 @@ of the front end.
   avail_names_hidden_by_old_for_init = NULL;
   name_linkage_stack = NULL;
   avail_name_linkage_stack_entries = NULL;
+  function_body_processing_delayed_on_some_func_in_primary_il = FALSE;
 }  /* scope_stk_init */
 
 

@@ -2827,41 +2827,6 @@ therefore will not be copied.
     /* Rebuild the befriending lists. */
     rebuild_scope_befriending_lists(il_header.primary_scope);
   }  /* if */
-  /* Finish processing on function bodies moved to the primary IL,
-     including IL lowering if appropriate.  Do this also on any
-     function bodies in the primary IL whose lowering was delayed.
-     Lowering is delayed on some instantiations in the primary
-     translation unit when there are exported templates so that we
-     can rewrite any references to secondary translation unit entities
-     before the lowering is done. */
-  /* Do inline functions in a first pass to have a better chance of inlining
-     calls to them. */
-  { a_boolean inline_pass = TRUE; 
-    for (;;) {
-      a_memory_region_number n;
-      for (n = FILE_SCOPE_REGION_NUMBER + 1;
-           n <= highest_used_region_number;
-           n++) {
-        if (mem_region_table[n] == NULL) {
-          /* This memory has already been freed. */
-        } else {
-          a_scope_ptr sp = il_header.region_scope_entry[n];
-          if (sp->kind == (a_scope_kind)sck_function &&
-              sp->variant.routine.ptr->is_inline == inline_pass
-#if DO_IL_LOWERING
-              && !il_entry_prefix_of(sp).il_lowering_flag
-#endif /* DO_IL_LOWERING */
-                                                         ) {
-            check_assertion(!in_secondary_trans_unit(sp));
-            finish_function_body_processing(sp,
-                                            /*discard_function_body=*/FALSE);
-          }  /* if */
-        }  /* if */
-      }  /* for */
-      if (!inline_pass) break;
-      inline_pass = FALSE;
-    }  /* for */
-  }
   db_exit();
 }  /* copy_secondary_trans_unit_IL_to_primary */
 

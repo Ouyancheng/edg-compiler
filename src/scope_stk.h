@@ -929,6 +929,11 @@ EXTERN a_scope_depth
 			   reactivation of the scope of a class, and name
 			   lookup is more complicated. */
 
+EXTERN a_boolean
+		function_body_processing_delayed_on_some_func_in_primary_il;
+			/* TRUE if function body processing (e.g., lowering)
+			   was delayed for some function in the primary IL. */
+
 /* Begin a name scope. */
 extern a_scope_ptr push_scope(a_scope_kind       kind,
        	                      a_scope_number     scope_number_to_reuse,
@@ -962,6 +967,7 @@ extern void pop_template_instantiation_scope(void);
 
 extern void finish_function_body_processing(a_scope_ptr scope,
                                             a_boolean   discard_function_body);
+
 /* End a name scope. */
 extern void pop_scope(void);
 extern void f_push_namespace_extension_scope(a_namespace_ptr nsp,
