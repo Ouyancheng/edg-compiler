@@ -169,6 +169,7 @@ reused later.
                 IDL_MUST_BE_CLASS |					\
 		IDL_INSTANTIATION_CONTEXT |				\
                 IDL_TENTATIVE_TYPE_LOOKUP |				\
+		IDL_IS_EXPR_CONTEXT |					\
                 IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) == 0)
 
 
