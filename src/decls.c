@@ -9158,7 +9158,8 @@ definition.
   /* Determine whether a lint argsused comment immediately preceded this
      function definition. */
   ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_argsused, rout_sym,
-                                 (a_statement_ptr)NULL);
+                                 (a_statement_ptr)NULL,
+                                 /*curr_scope_only=*/FALSE);
   if (ppp != NULL) {
     /* There is a currenly active argsused comment. */
     rtsp->lint_argsused_flag = TRUE;
@@ -9170,7 +9171,8 @@ definition.
     /* Determine whether a lint varargs count comment immediately preceded this
        function definition. */
     ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_varargs_count,
-                                   rout_sym, (a_statement_ptr)NULL);
+                                   rout_sym, (a_statement_ptr)NULL,
+                                   /*curr_scope_only=*/FALSE);
     if (ppp != NULL) {
       /* There is a currenly active varargs comment. */
       rtsp->lint_varargs_count = ppp->variant.lint_varargs_count;

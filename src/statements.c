@@ -139,7 +139,8 @@ suppress warnings that might otherwise be issued later.
      extract_specific_pragmas since no IL entry is generated for lint
      notreached comments.) */
   ppp = extract_specific_pragmas((a_pragma_kind)pk_lint_notreached,
-                                 (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
+                                 (a_symbol_ptr)NULL, (a_statement_ptr)NULL,
+                                 /*curr_scope_only=*/FALSE);
   if (ppp != NULL) {
     /* There is a currenly active notreached comment. */
     curr_reachability.reachable_considering_hints = FALSE;
