@@ -10197,16 +10197,6 @@ continue_with_declaration:
         /* A typedef declaration. */
         decl_typedef(&locator, local_type_ptr, (a_type_ptr)NULL,
                      &symbol_ptr, declarator_ssep, &decl_pos_block);
-        if (microsoft_mode) {
-          /* In Microsoft mode, the typedef is processed before member function
-             bodies etc. are rescanned.  This makes e.g. the following legal:
-                typedef struct {
-                  enum { e };
-                  void f() { S::e; }
-                } S;
-          */
-          process_deferred_class_fixups_and_instantiations();
-        }  /* if */
       } else if (is_static_data_member) {
         /* A static data member definition. */
         define_static_data_member(&locator, local_storage_class,
@@ -10548,6 +10538,16 @@ continue_with_declaration:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       /* Keep scanning the list of declarators. */
     } while (loop_token(tok_comma));
+  }  /* if */
+  if (microsoft_mode) {
+    /* In Microsoft mode, the typedef is processed before member function
+       bodies etc. are rescanned.  This makes e.g. the following legal:
+          typedef struct {
+            enum { e };
+            void f() { S::e; PS p; }
+          } S, *PS;
+    */
+    process_deferred_class_fixups_and_instantiations();
   }  /* if */
 check_for_semicolon:
   /* Check for a final semicolon. */
