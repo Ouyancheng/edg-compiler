@@ -3679,6 +3679,13 @@ symbol; otherwise return the original symbol.
 #define prototype_template_if_template_symbol(sym)			\
   (is_template_symbol(sym) ? prototype_template_of(sym) : (sym))
 
+/*
+If "sym" is a class template symbol return the primary template
+symbol; otherwise return the original symbol.
+*/
+#define primary_template_if_template_symbol(sym)			\
+  (is_class_template_symbol(sym) ? primary_template_of(sym) : (sym))
+
 /* Return a pointer to the namespace associated with a namespace symbol.
    Remove any namespace aliases that may be present.  The symbol provided
    must be a namespace symbol. */

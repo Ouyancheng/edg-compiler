@@ -2105,12 +2105,16 @@ type.
     establish_trans_unit_correspondences_for_class(type);
   } else {
     a_symbol_ptr  inst = (a_symbol_ptr)type->source_corresp.assoc_info,
-                  templ_sym = primary_template_of(
-                                   inst->variant.class_struct_union.extra_info
-                                       ->class_template);
+                  templ_sym;
     a_symbol_list_entry_ptr
-                  slep = templ_sym->variant.template_info->all_instantiations;
+                  slep;
     a_type_ptr    sec = NULL;
+    a_template_symbol_supplement_ptr
+                  tssp;
+    templ_sym = template_symbol_for_class_symbol(inst);
+    templ_sym = primary_template_if_template_symbol(templ_sym);
+    tssp = template_supplement_for_symbol(templ_sym);
+    slep = tssp->all_instantiations;
     /* Look for an entry in a secondary translation unit that matches the
        given primary translation unit instantiation. */
     for (; slep != NULL; slep = slep->next) {
@@ -2407,14 +2411,18 @@ symbol supplement.
 */
 {
   a_type_ptr      class_type = type_symbol_type(inst);
-  a_symbol_ptr    templ_sym = primary_template_of(
-                                   inst->variant.class_struct_union.extra_info
-                                       ->class_template);
+  a_symbol_ptr    templ_sym;
   a_template_symbol_supplement_ptr
-                  tssp = templ_sym->variant.template_info, corresp_tssp;
-  a_template_ptr  templ = tssp->il_template_entry,
-                  corresp_templ = canonical_template_entry_of(templ);
+                  tssp,
+                  corresp_tssp;
+  a_template_ptr  templ,
+                  corresp_templ;
 
+  templ_sym = template_symbol_for_class_symbol(inst);
+  templ_sym = primary_template_if_template_symbol(templ_sym);
+  tssp = template_supplement_for_symbol(templ_sym);
+  templ = tssp->il_template_entry;
+  corresp_templ = canonical_template_entry_of(templ);
   /* Note that the call to canonical_template_entry_of may have resulted in a
      correspondence value being set already. */
   if (trans_unit_corresp_pointer_of(class_type) == NULL) {
