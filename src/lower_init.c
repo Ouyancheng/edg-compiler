@@ -2700,7 +2700,7 @@ have a "this" parameter.  If the original routine has no default arguments, no
 wrapper routine is created; the original routine is returned.
 */
 {
-  a_routine_ptr    new_routine = NULL;
+  a_routine_ptr    new_routine;
   a_type_ptr       routine_type = skip_typerefs(routine->type);
   a_type_ptr       this_param_type;
 #if CHECKING
@@ -4370,14 +4370,14 @@ location is the insert_location2 value (after the assignment statement).
 
   /* Make the static first-time-test variable in the current scope. */
 #if !IA64_ABI
-    int_kind = (an_integer_kind)ik_int;
+  int_kind = (an_integer_kind)ik_int;
 #else /* IA64_ABI */
-    /* The ABI specifies that we use a 64-bit integer type.  Try that, and
-       then fall back to "int". */
-    int_kind = int_kind_for_bit_size(64, /*is_signed=*/FALSE);
-    if (int_kind == (an_integer_kind)ik_none) {
-      int_kind = (an_integer_kind)int_kind;
-    }  /* if */
+  /* The ABI specifies that we use a 64-bit integer type.  Try that, and
+     then fall back to "int". */
+  int_kind = int_kind_for_bit_size(64, /*is_signed=*/FALSE);
+  if (int_kind == (an_integer_kind)ik_none) {
+    int_kind = (an_integer_kind)int_kind;
+  }  /* if */
 #endif /* IA64_ABI */
   int_type = integer_type(int_kind);
 #if LOWER_EXTERN_INLINE
