@@ -348,8 +348,7 @@ Free any unallocated space remaining in the indicated memory block.
                              hdr->next_avail_in_block;
   /* The criterion for "big enough" is really not for very much space.
      Even very small blocks can be reused, at a minor cost in
-     execution time for in_file_scope if the file scope region
-     gets fragmented. */
+     execution time if the file scope region gets too fragmented. */
   if (space_remaining_in_block >= sizeof(a_mem_block_header) +
                                   5*sizeof(a_constant)) {
     /* Remaining space is "big enough" that it's worth saving.  We know
