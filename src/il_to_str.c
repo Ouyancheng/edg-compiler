@@ -76,6 +76,32 @@ may be outputting partial tokens.
 }  /* set_partial_token_output_mode */
 
 
+static void form_num(long                                  num,
+                     an_il_to_str_output_control_block_ptr octl)
+/*
+Output a signed number as indicated by octl.
+*/
+{
+  char buffer[50];
+
+  (void)sprintf(buffer, "%ld", num);
+  octl->output_str(buffer);
+}  /* form_num */
+
+
+static void form_unsigned_num(unsigned long                         num,
+                              an_il_to_str_output_control_block_ptr octl)
+/*
+Output an unsigned number as indicated by octl.
+*/
+{
+  char buffer[50];
+
+  (void)sprintf(buffer, "%lu", num);
+  octl->output_str(buffer);
+}  /* form_unsigned_num */
+
+
 static void form_tag_kind(a_type_kind                           kind,
                           an_il_to_str_output_control_block_ptr octl)
 /*
@@ -317,6 +343,7 @@ way described by octl.
   octl->output_str(str);
 }  /* form_float_kind_name */
 
+#ifdef CFE
 
 static void form_type_qualifier(a_type_ptr                            type,
                                 an_il_to_str_output_control_block_ptr octl)
@@ -340,6 +367,48 @@ type qualifier.  Do the output in the way described by octl.
   }  /* if */
 }  /* form_type_qualifier */
 
+#endif /* ifdef CFE */
+#ifdef FFE
+
+static void form_bound(a_bound_info_entry_ptr               biptr,
+                      an_il_to_str_output_control_block_ptr octl)
+/*
+Output the indicated dimension bound information entry in the way indicated
+by octl.
+*/
+{
+  char *str;
+
+  switch (biptr->kind) {
+    case bk_error:
+      str = "<error>";
+      break;
+    case bk_constant:
+      form_num((long)biptr->variant.constant_bound, octl);
+      goto end_of_routine;
+    case bk_adjustable:
+      str = "<adjustable>";
+      break;
+    case bk_assumed:
+      str = "*";
+      break;
+    case bk_unknown_adjustable:
+      str = "<unknown-adjustable>";
+      break;
+    default:
+#if DEBUG
+      if (octl->debug_output) {
+        str = "**BAD-BOUND-KIND**";
+        break;
+      }  /* if */
+#endif /* DEBUG */
+      unexpected_condition_str("form_bound: bad bound kind");
+  }  /* switch */
+  octl->output_str(str);
+end_of_routine:;
+}  /* form_bound */
+
+#endif /* ifdef FFE */
 
 static void form_type_specifier(a_type_ptr                            type,
                                 an_il_to_str_output_control_block_ptr octl)
@@ -357,20 +426,31 @@ by octl.  Note that derived types should be handled above this level.
       octl->output_str("void");
       break;
     case tk_integer:
+#ifdef CFE
       if (type->variant.integer.enum_type) {
         /* Enum type, which is handled specially. */
         form_name((char *)type, iek_type, octl);
-      } else {
+      } else
+#endif /* ifdef CFE */
+      {
         /* Normal integer type. */
+#ifdef CFE
         if (type->variant.integer.explicitly_signed) {
           octl->output_str("signed ");
         }  /* if */
+#endif /* ifdef CFE */
+#ifdef FFE
+        if (type->variant.integer.logical_type) {
+          octl->output_str("logical ");
+        }  /* if */
+#endif /* ifdef FFE */
         form_int_kind_name(type->variant.integer.int_kind, octl);
       }  /* if */
       break;
     case tk_float:
       form_float_kind_name(type->variant.float_kind, octl);
       break;
+#ifdef CFE
     case tk_class:
     case tk_struct:
     case tk_union:
@@ -395,6 +475,55 @@ by octl.  Note that derived types should be handled above this level.
     case tk_template_param:
       form_name((char *)type, iek_type, octl);
       break;
+#endif /* ifdef CFE */
+#ifdef FFE
+    case tk_fcharacter:
+      octl->output_str("character*");
+      if (type->variant.fcharacter.star_star) {
+        octl->output_str("(*)");
+      } else {
+        form_unsigned_num((unsigned long)type->variant.fcharacter.length,
+                          octl);
+      }  /* if */
+      break;
+    case tk_hollerith:
+      octl->output_str("hollerith*");
+      form_unsigned_num((unsigned long)type->variant.hollerith_length, octl);
+      break;
+    case tk_farray:
+      form_type_specifier(type->variant.farray.element_type, octl);
+      octl->output_str(" array(");
+      for (i = 0; i < type->variant.farray.number_of_dimensions; i++) {
+        a_bound_info_entry_ptr bound_info = type->variant.farray.bound_info;
+        if (i > 0) octl->output_str(", ");
+        form_bound(&bound_info[i], octl);
+        octl->output_str(":");
+        form_bound(&bound_info[i+type->variant.farray.number_of_dimensions],
+                   octl);
+      }  /* for */
+      octl->output_str(")");
+      break;
+    case tk_complex:
+      form_float_kind_name(type->variant.float_kind, octl);
+      octl->output_str(" complex");
+      break;
+    case tk_stmt_label:
+      octl->output_str("<stmt-label>");
+      break;
+    case tk_format:
+      octl->output_str("<format>");
+      break;
+    case tk_association:
+      octl->output_str("association of size ");
+      form_unsigned_num((unsigned long)type->size, octl);
+      break;
+    case tk_unspec_routine:
+      octl->output_str("<unspec-routine>");
+      break;
+    case tk_blockdata:
+      octl->output_str("<blockdata>");
+      break;
+#endif /* ifdef FFE */
     case tk_unknown:
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<unknown-type>");
@@ -410,6 +539,7 @@ by octl.  Note that derived types should be handled above this level.
   }  /* switch */
 }  /* form_type_specifier */
 
+#ifdef CFE
 
 static void form_pointer_type_qualifiers(
                                a_type_ptr                            qual_type,
@@ -432,6 +562,7 @@ the way described by octl.
   if (add_const) octl->output_str("const ");
 }  /* form_pointer_type_qualifiers */
 
+#endif /* ifdef CFE */
 
 static void form_type_first_part(
                     a_type_ptr                            type,
@@ -453,9 +584,11 @@ top of the type.  Do the output in the way described by octl.
   a_type_kind kind;
   a_type_ptr  qual_type;
 
-  /* Remove type qualifiers but not typedefs. */
   qual_type = type;
+#ifdef CFE
+  /* Remove type qualifiers but not typedefs. */
   while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
+#endif /* ifdef CFE */
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
@@ -465,13 +598,18 @@ top of the type.  Do the output in the way described by octl.
                          /*add_const=*/FALSE,
                          octl);
     /* Output "*" or "&" for pointer or reference. */
+#ifdef CFE
     if (type->variant.pointer.is_reference) {
       octl->output_str("&");
     } else {
+#endif /* ifdef CFE */
       octl->output_str("*");
+#ifdef CFE
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
     form_pointer_type_qualifiers(qual_type, type, add_const, octl);
+#endif /* ifdef CFE */
+#ifdef CFE
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     form_type_first_part(type->variant.ptr_to_member.type,
@@ -485,6 +623,7 @@ top of the type.  Do the output in the way described by octl.
     octl->output_str("::*");
     /* Output the type qualifiers on the pointer, if any. */
     form_pointer_type_qualifiers(qual_type, type, add_const, octl);
+#endif /* ifdef CFE */
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     /* A qualifier on a function type shouldn't be possible without a
@@ -499,6 +638,7 @@ top of the type.  Do the output in the way described by octl.
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) octl->output_str("(");
+#ifdef CFE
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     /* A qualifier on an array type shouldn't be possible, period. */
@@ -512,6 +652,7 @@ top of the type.  Do the output in the way described by octl.
     /* This is a right-side declarator, so if it's under a left-side declarator
        parentheses are needed. */
     if (under_lhs_declarator) octl->output_str("(");
+#endif /* ifdef CFE */
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     if (add_const) octl->output_str("const ");
@@ -571,6 +712,7 @@ in the way described by octl.
     }  /* if */
   }  /* if */
   octl->output_str(")");
+#ifdef CFE
   /* Output a cv-qualifier for a member function, if there is one. */
   if (rtsp->implicit_this_param_type != NULL) {
     a_type_ptr underlying_type =
@@ -581,6 +723,7 @@ in the way described by octl.
       form_type_qualifier(underlying_type, octl);
     }  /* for */
   }  /* if */
+#endif /* ifdef CFE */
 }  /* form_function_declarator */
 
 
@@ -591,8 +734,6 @@ Output an array declarator for the indicated array type.  Do the output in
 the way described by octl.
 */
 {
-  char buffer[50];
-
   octl->output_str("[");
   if (type->variant.array.is_variable_size_array) {
     check_assertion(!octl->gen_compilable_code);
@@ -600,9 +741,9 @@ the way described by octl.
   } else if (type->variant.array.variant.number_of_elements == 0) {
     /* For unknown-bound arrays, put nothing between the []. */
   } else {
-    (void)sprintf(buffer, "%lu", (unsigned long)type->
-                                     variant.array.variant.number_of_elements);
-    octl->output_str(buffer);
+    form_unsigned_num((unsigned long)type->
+                                     variant.array.variant.number_of_elements,
+                      octl);
   }  /* if */
   octl->output_str("]");
 }  /* form_array_declarator */
@@ -622,19 +763,23 @@ Do the output in the way described by octl.
 {
   a_type_kind kind;
 
+#ifdef CFE
   /* Remove type qualifiers but not typedefs. */
   while (is_immediate_type_qualifier(type)) type = type->variant.typeref.type;
+#endif /* ifdef CFE */
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
     form_type_second_part(type->variant.pointer.type,
                           /*under_lhs_declarator=*/TRUE,
                           octl);
+#ifdef CFE
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     form_type_second_part(type->variant.ptr_to_member.type,
                           /*under_lhs_declarator=*/TRUE,
                           octl);
+#endif /* ifdef CFE */
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     /* This is a right-side declarator, so if it's under a left-side declarator
@@ -644,6 +789,7 @@ Do the output in the way described by octl.
     form_type_second_part(type->variant.routine.return_type,
                           /*under_lhs_declarator=*/FALSE,
                           octl);
+#ifdef CFE
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     /* This is a right-side declarator, so if it's under a left-side declarator
@@ -653,6 +799,7 @@ Do the output in the way described by octl.
     form_type_second_part(type->variant.array.element_type,
                           /*under_lhs_declarator=*/FALSE,
                           octl);
+#endif /* ifdef CFE */
   }  /* if */
 }  /* form_type_second_part */
 
@@ -1122,14 +1269,14 @@ initializations.  Do the output in the way described by octl.
   }  /* switch */
   if (need_ampersand) octl->output_str(")");
   if (offset != 0) {
-    char buffer[50];
     /* Add in the (signed) offset. */
     if (offset >= 0) {
-      (void)sprintf(buffer, " + %ld)", (long)offset);
+      octl->output_str(" + ");
     } else {
-      (void)sprintf(buffer, " %ld)", (long)offset);
+      /* For negative numbers, the sign on the number will be the operator. */
+      octl->output_str(" ");
     }  /* if */
-    octl->output_str(buffer);
+    form_num((long)offset, octl);
   }  /* if */
   if (need_second_ptr_cast) octl->output_str(")");
   if (need_ptr_cast) octl->output_str(")");
@@ -1298,6 +1445,18 @@ Output the indicated constant.  Do the output in the way described by octl.
       set_complete_token_output_mode(octl);
       octl->output_str(")");
       break;
+#ifdef FFE
+    case ck_complex:
+      /* Complex constant. */
+      fkind = con_type->variant.float_kind;
+      octl->output_str("(");
+      octl->output_str(fp_to_string(fkind, &cp->variant.complex_value->real),
+      octl->output_str(", ");
+      octl->output_str(fp_to_string(fkind, &cp->variant.complex_value->imag),
+      octl->output_str(")");
+      break;
+#endif /* ifdef FFE */
+#ifdef CFE
     case ck_address:
       /* Address constant. */
       form_address_constant(constant, /*do_indirection=*/FALSE, octl);
@@ -1307,34 +1466,11 @@ Output the indicated constant.  Do the output in the way described by octl.
       form_pm_constant(constant, /*minimal_casts=*/!octl->gen_compilable_code,
                        octl);
       break;
-    case ck_template_param:
-      check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<template-param");
-      switch (constant->variant.template_param.kind) {
-        case tpck_param:
-          { char buffer[50];
-            (void)sprintf(buffer, "#%lu ", (unsigned long)constant->variant.
-                                        template_param.variant.list_position);
-            octl->output_str(buffer);
-          }
-          form_name((char *)constant, iek_constant, octl);
-          break;
-        case tpck_expression:
-          octl->output_str(" (expression)");
-          break;
-        case tpck_member:
-          octl->output_str(" ");
-          form_name((char *)constant, iek_constant, octl);
-          break;
-        default:
-          octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");
-      }  /* switch */
-      octl->output_str(">");
-      break;
     case ck_dynamic_init:
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<dynamic-init-constant>");
       break;
+#endif /* ifdef CFE */
     case ck_aggregate:
       octl->output_str("{");
       { a_constant_ptr sub_con = constant->variant.aggregate.first_constant;
@@ -1350,6 +1486,40 @@ Output the indicated constant.  Do the output in the way described by octl.
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<init-repeat-constant>");
       break;
+#ifdef CFE
+    case ck_template_param:
+      check_assertion(!octl->gen_compilable_code);
+      octl->output_str("<template-param");
+      switch (constant->variant.template_param.kind) {
+        case tpck_param:
+          octl->output_str("#");
+          form_unsigned_num((unsigned long)constant->variant.
+                                          template_param.variant.list_position,
+                            octl);
+          octl->output_str(" ");
+          form_name((char *)constant, iek_constant, octl);
+          break;
+        case tpck_expression:
+          octl->output_str(" (expression)");
+          break;
+        case tpck_member:
+          octl->output_str(" ");
+          form_name((char *)constant, iek_constant, octl);
+          break;
+        default:
+          octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");
+      }  /* switch */
+      octl->output_str(">");
+      break;
+#endif /* ifdef CFE */
+#ifdef FFE
+    case ck_init_position:
+      octl->output_str("<init-position-constant>");
+      break;
+    case ck_hex_octal:
+      octl->output_str("<hex-octal-constant>");
+      break;
+#endif /* ifdef FFE */
     default:
 #if DEBUG
       if (octl->debug_output) {
