@@ -1,5 +1,18 @@
 Version 3.1
 
+11/5/02  Diagnostics on missing return statements
+
+In strict C++ mode and in non-Microsoft C99 mode, the front end used to issue
+an error when a value-returning function did not terminate with a return
+statement.  This diagnostic has now been weakened to a warning, and it is
+not issued at all if the front end knows that the end of the function cannot
+be reached.
+
+  int f1() { }  // Triggers a warning, even in strict C++ or C99 modes
+  int f2() {
+    /*NOTREACHED*/   // A hint indicating this point is never reached
+  }                  // inhibits the warning about a missing return.
+
 11/4/02  Block-extern declaration mismatch ignored in K&R/pcc mode
 
 In K&R/pcc mode, two block-extern declarations with the same name but in
