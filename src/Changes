@@ -1,5 +1,15 @@
 Version 2.46
 
+7/12/01  Flag defined_in_friend_decl incorrectly set in routine entries
+
+The field defined_in_friend_decl (see Changes entry of 2/25/96) was set
+incorrectly in some circumstances.  One of the circumstances occurred when
+TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, which causes the
+front end to transform in-class function definitions into out-of-class
+definitions.  The problem also occurred when instantiating a class template
+containing a friend declaration which was later defined outside the class
+template definition.
+
 7/12/01  Elimination of duplicate functions in overloading error message
 
 In some cases involving namespaces and using-directives, an error

@@ -1530,6 +1530,9 @@ nested class.
                it wasn't); otherwise, invalid code may be put out by the
                C++-generating back end. */
             class_type->autonomous_primary_tag_decl = TRUE;
+            /* If the routine was previously defined as part of a friend
+               declaration, that is no longer true. */
+            rp->defined_in_friend_decl = FALSE;
           }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
