@@ -1,5 +1,19 @@
 Version 2.43
 
+11/2/99  Names for conversion functions to typedef types
+
+The default name-output routine in the il_to_str routines now puts
+out the names of conversion functions by converting the return type
+rather than using the name in the routine IL entry.  This produces
+output that duplicates the spelling of the type used in the source
+code, e.g., with regards to typedef names used.  (The IL name is
+the correct type, but not necessarily spelled the same way.)
+
+This affects diagnostic output and the name as seen in customer code
+that uses the il_to_str routines.  It does not affect the output
+from the C++-generating back end, which already regenerated the name
+from the return type in all cases.
+
 11/3/99  Diagnostic for storage class on class declaration
 
 The error issued when a storage class is specified on a class declaration is
@@ -17,19 +31,6 @@ argument.  See [temp.arg.nontype] paragraph 5 in the C++ standard.
 
   template <int *p> struct A { };
   A<0> a;     // error
-
-11/2/99  Names for conversion functions for typedef types
-
-The names in symbol headers and IL entries for conversion functions
-that return a typedef-ed type now retain the typedef in all cases.
-Formerly, if a previous conversion function returned the same type
-its header was reused, even if a different typedef (or no typedef)
-was used in naming the type previously.
-
-This affects diagnostic output and the name as seen in customer code
-that uses the name from the IL entry.  It does not affect the
-C++-generating back end, which regenerates the name from the return
-type in all cases.
 
 11/1/99  New IL entry created for typedef redeclaring type in presence
 	 of using-declaration

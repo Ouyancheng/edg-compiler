@@ -208,6 +208,26 @@ is put out.
 }  /* form_template_args */
 
 
+static void form_conversion_function_name(
+                                    a_routine_ptr                         rout,
+                                    an_il_to_str_output_control_block_ptr octl)
+/*
+Generate the name of the indicated conversion function.  This is done
+by generating "operator" followed by the result type.  This may
+differ from the name as it appears in the source_corresp.name field
+in that it includes typedef names as they appeared in the original
+source.
+*/
+{
+  a_type_ptr type = rout->type;
+
+  octl->output_str("operator ");
+  type = skip_typerefs(type);
+  type = type->variant.routine.return_type;
+  form_type(type, octl);
+}  /* form_conversion_function_name */
+
+
 void form_unqualified_name(a_source_correspondence               *scp,
                            an_il_entry_kind                      entry_kind,
                            an_il_to_str_output_control_block_ptr octl)
@@ -230,6 +250,12 @@ The output includes template arguments on template classes.
     }  /* if */
 #endif /* DEBUG */
     octl->output_str(">");
+  } else if (entry_kind == iek_routine &&
+             ((a_routine_ptr)scp)->special_kind ==
+                                     (a_special_function_kind)sfk_conversion) {
+    /* For conversion functions, generate the routine name from the type
+       name, to get original typedefs. */
+    form_conversion_function_name((a_routine_ptr)scp, octl);
   } else {
     /* Output the base name. */
     octl->output_str(name);
