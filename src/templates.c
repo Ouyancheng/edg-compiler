@@ -2759,6 +2759,7 @@ of a function template.
     if (friend_specified) {
       di_flags |= DI_IS_FRIEND_DECL;
     }  /* if */
+    if (*dso_flags & DSO_CONSTRUCTOR) di_flags |= DI_IS_CONSTRUCTOR;
     if (*storage_class != (a_storage_class)sc_static &&
         !friend_specified && parent_class != NULL) {
       /* The storage class "static" was not specified and this is a member
