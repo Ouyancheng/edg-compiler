@@ -4573,6 +4573,10 @@ operator routine or do bitwise assignment.
           rp = select_assignment_operator(bcp->type, const_source_var,
                                           /*volatile_object_required=*/FALSE,
                                           err_pos, &pass_by_value);
+          if (rp == NULL) {
+            /* There was an error in looking for the assignment operator. */
+            continue;
+          }  /* if */
           /* Any assignment operator invoked by this publicly accessible
              compiler-generated assignment operator should itself be publicly
              accessible. (This is not exactly what ARM 12.8 says, but it
@@ -4638,6 +4642,10 @@ operator routine or do bitwise assignment.
             rp = select_assignment_operator(tp, const_source_var,
                                             /*volatile_object_required=*/FALSE,
                                             err_pos, &pass_by_value);
+            if (rp == NULL) {
+              /* There was an error in looking for the assignment operator. */
+              continue;
+            }  /* if */
             /* Any assignment operator invoked by this publicly accessible
                compiler-generated assignment operator should itself be publicly
                accessible. (This is not exactly what ARM 12.8 says, but it
