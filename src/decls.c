@@ -4990,6 +4990,92 @@ make_asm_entry:
 }  /* asm_declaration */
 
 
+a_variable_ptr condition_declaration(void)
+/*
+Scan a condition declaration.  Syntax:
+
+  type-specifier-seq declarator = assignment-expression
+
+Return a pointer to the variable that is declared.
+*/
+{
+  a_storage_class              storage_class;
+  a_type_ptr                   type_ptr = NULL, bottom_derived_type;
+  a_decl_flag_set              dsi_flags, dso_flags, do_flags;
+  a_type_qualifier_set         qualifiers;
+  a_decl_modifier	       decl_modifiers;
+  a_symbol_ptr                 sym;
+  a_variable_ptr               vp;
+  a_symbol_locator             locator;
+  a_source_position            decl_pos;
+  a_source_sequence_entry_ptr  declarator_ssep = NULL;
+  a_boolean                    incomplete_type_error_reported;
+
+  db_enter(3, "condition_declaration");
+  decl_pos = pos_curr_token;
+  /* Scan the declaration specifiers.  "typedef" is not allowed and may
+     not introduce a new class or enumeration. */
+  dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED |
+              DSI_STORAGE_CLASS_SPECIFIER_ALLOWED;
+              DSI_IS_CONDITION_DECL;
+  (void)decl_specifiers(dsi_flags, &dso_flags, &storage_class, &type_ptr,
+                        &qualifiers, &decl_modifiers);
+  if (dso_flags & DSO_DEFINES_SOMETHING) {
+    /* Definition of a class, struct, union, or enum type is not allowed. */
+    pos_error(ec_type_definition_not_allowed, &decl_pos);
+  } else if (!(dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+    /* Implicit int. */
+    pos_warning(ec_missing_type_specifier, &decl_pos);
+  }  /* if */
+  if (storage_class == (a_storage_class)sc_unspecified) {
+    storage_class = (a_storage_class)sc_auto;
+  }  /* if */
+  /* Scan the declarator.  It is not allowed to specify a function or an
+     array. */
+  declarator(DI_REAL_DECLARATOR_ALLOWED, &do_flags, type_ptr,
+             /*member_parent_type=*/(a_type_ptr)NULL, &locator, &type_ptr,
+             &bottom_derived_type, (a_call_conv_descr_ptr)NULL,
+             &declarator_ssep, (a_func_info_block_ptr)NULL);
+  if (is_incomplete_type(type_ptr)) {
+    /* Incomplete type is not allowed. */
+    pos_error(ec_incomplete_type_not_allowed, &decl_pos);
+    type_ptr = error_type();
+  } else if (is_function_type(type_ptr)) {
+    /* Function type is disallowed. */
+    pos_error(ec_function_type_not_allowed, &decl_pos);
+    type_ptr = error_type();
+  } else if (is_array_type(type_ptr)) {
+    /* Array type is disallowed. */
+    pos_error(ec_array_type_not_allowed, &decl_pos);
+    type_ptr = error_type();
+  }  /* if */
+  /* Enter the symbol in the current scope, which should be an sck_condition
+     scope. */
+  sym = enter_symbol((a_symbol_kind)sk_variable, &locator, decl_scope_level,
+                     /*suppress_redecl_error=*/FALSE);
+  /* Allocate the variable and bind the symbol to it. */
+  vp = make_variable(type_ptr, storage_class, /*at_file_scope=*/FALSE);
+  sym->variant.variable.ptr = vp;
+  set_source_corresp(&vp->source_corresp, sym);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  sym->variant.variable.ptr->declared_type = type_ptr;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
+                            &sym->decl_position, declarator_ssep);
+  /* The syntax for condition (see WP [stmt.select]) explicitly requires the
+     "= expr" syntax for initialization (that is, parenthesized initializers
+     are disallowed, as is implicit initialization of objects with default
+     constructors). */
+  (void)required_token(tok_assign, ec_exp_assign);
+  initializer(sym, &locator.source_position, (an_id_linkage_kind)idl_none,
+              /*parenthesized_initializer=*/FALSE, /*is_parameter=*/FALSE,
+              &incomplete_type_error_reported);
+  db_exit();
+  /* Return a pointer to the variable. */
+  return vp;
+}  /* condition_declaration */
+
+
 /*
 Local macro for the routine "declaration".  Does any remove_stop_token
 calls that have not yet been done.  Useful in ensuring that all the stop

@@ -286,6 +286,8 @@ extern void handler_declaration(a_statement_ptr     sp,
 extern an_asm_entry_ptr asm_declaration(a_boolean  asm_decl_allowed,
                                         a_boolean  is_asm_statement);
 
+extern a_variable_ptr condition_declaration(void);
+
 /* Bit vector used to pass flags into declarator and into and out of
    declaration routines.  Each bit represents a flag. */
 typedef unsigned long a_decl_flag_set;
