@@ -6120,9 +6120,9 @@ Display and return the amount of space used for various IL tables.
   db_space_used("variable", num_variables_allocated, a_variable);
   db_space_used("field", num_fields_allocated, a_field);
   db_space_used("routine", num_routines_allocated, a_routine);
-  db_space_used("throw specifications", num_throw_specifications_allocated,
+  db_space_used("throw specification", num_throw_specifications_allocated,
                 a_throw_specification);
-  db_space_used("throw spec types", num_throw_spec_types_allocated,
+  db_space_used("throw spec type", num_throw_spec_types_allocated,
                 a_throw_spec_type);
   db_space_used("asm entry", num_asm_entries_allocated, an_asm_entry);
   db_space_used("label", num_labels_allocated, a_label);
