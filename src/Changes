@@ -1,5 +1,22 @@
 Version 2.39
 
+4/5/98     Microsoft __declspec(property(...)) processing
+
+In some cases, a field selection for a field declared with the
+Microsoft extension __declspec(property(...)) was not processed
+correctly, and a spurious error was issued.
+
+  struct B {
+    __declspec(property(get=getf,put=putf)) short i;
+    short getf();
+    void putf(short p);
+  } b;
+  void f(B);
+  void f(short);
+  int main () {
+    f(b.i);  // Got spurious error
+  }
+
 3/31/98    Spurious error in declaring pointer to member function type
 
 An error is no longer issued when a pointer to member function type is

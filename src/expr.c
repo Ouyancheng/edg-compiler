@@ -3523,7 +3523,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 
   /* Scan the operand. */
   (void)get_token();
-  scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
+  scan_expr(&operand, PREC_PREFIX, EOPT_PRESERVE_PROPERTY_REF);
 
   if (err) {
     /* Operator not allowed in this kind of expression. */
@@ -7630,7 +7630,8 @@ or
     /* Parentheses do not affect the fact that the expression is the
        immediate operand of a cast, so pass down that option. */
     a_local_expr_options_set options = (local_options & EOPT_OPERAND_OF_CAST) |
-                                       EOPT_ALLOW_BOUND_FUNCTION;
+                                       EOPT_ALLOW_BOUND_FUNCTION |
+                                       EOPT_PRESERVE_PROPERTY_REF;
     /* Ordinarily, parentheses do affect whether an expression is the
        immediate operand of a "&" (because the syntax for a pointer-to-member
        requires that there be no parentheses).  However, in cfront mode
@@ -11309,6 +11310,34 @@ bad_start_of_primary:
                   local_result.variant.symbol->header->identifier);
         make_error_operand(&local_result);
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (is_property_ref_operand(&local_result)) {
+      /* If the operand is a field selection for a field declared with
+         __declspec(property(...)), change it to a call of the appropriate 
+        "get" function.  But preserve it for [], ++, --, and assignment
+        operators, where the "put" interpretation may apply. */
+      switch (curr_token) {
+        case tok_plus_plus:
+        case tok_minus_minus:
+        case tok_lbracket:
+        case tok_assign:
+        case tok_times_assign:
+        case tok_divide_assign:
+        case tok_remainder_assign:
+        case tok_plus_assign:
+        case tok_minus_assign:
+        case tok_shift_left_assign:
+        case tok_shift_right_assign:
+        case tok_and_assign:
+        case tok_excl_or_assign:
+        case tok_or_assign:
+          /* Leave as is. */
+          break;
+        default:
+          rewrite_property_field_reference(&local_result, (an_operand *)NULL);
+          break;
+      }  /* switch */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (local_result.bound_function) {
       /* Do not allow bound functions to survive unless they are about
@@ -11436,6 +11465,15 @@ bad_start_of_primary:
     str_error(ec_undefined_identifier,
               local_result.variant.symbol->header->identifier);
     make_error_operand(&local_result);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (is_property_ref_operand(&local_result)) {
+    if (!(local_options & EOPT_PRESERVE_PROPERTY_REF)) {
+      /* If the operand is a field selection for a field declared with
+         __declspec(property(...)), change it to a call of the appropriate 
+        "get" function. */
+      rewrite_property_field_reference(&local_result, (an_operand *)NULL);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* Selector_ref_entry_list will be set to the reference entry list for the
      selector object if there is one. */

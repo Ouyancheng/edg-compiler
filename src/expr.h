@@ -49,6 +49,12 @@ expr.h -- Declarations related to expression parsing.
 			   a left parenthesis preceding the current token. */
 #define EOPT_ALLOW_BOUND_FUNCTION 0x10
 			/* A C++ bound function may be returned. */
+#define EOPT_PRESERVE_PROPERTY_REF 0x20
+			/* A reference of a field defined with the Microsoft
+			   extension __declspec(property(...)) can be returned
+			   in that form, so that it has a chance to be
+			   rewritten in the "put" form.  By default, it will
+			   be rewritten to the "get" form. */
 #define EOPT_NO_OPTIONS 0
 typedef int a_local_expr_options_set;
 
