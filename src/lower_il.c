@@ -536,7 +536,7 @@ statement, and add it to the list of memo entries.
   rmp->next = return_memo_list;
   return_memo_list = rmp;
   rmp->stmt = return_stmt;
-}  /* alloc_return_memo */
+}  /* add_to_return_memo_list */
 
 
 void free_return_memo_list(a_return_memo_ptr rmp)
