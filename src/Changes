@@ -1,5 +1,19 @@
 Version 2.29
 
+4/13/95  IL CHANGE: superseded_external flag in a_variable and a_routine
+
+Because we now issue warnings instead of errors in SVR4 C compatibility
+mode for certain type-incompatible "block extern" declarations, we have
+added a new superseded_external flag for the extra variable and routine
+entries.  Here's an example:
+
+  void f() { extern float x; }
+  void g() { extern int x; }       // SVR4-mode warning on incompatible
+                                   //   redeclaration.
+
+In this case two variable entries are created for "x", with the first
+marked as "superseded".
+
 4/13/95  typeinfo structure changes
 
 The typeinfo structure has been enhanced for use with RTTI.
