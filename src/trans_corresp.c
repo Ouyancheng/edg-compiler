@@ -2529,7 +2529,7 @@ is in fact valid.
     } else {
       match = identical_types(type, corresp_type) &&
               same_exception_spec(type, corresp_type);
-      if (!match && scp->is_class_member) {
+      if (!match) {
         process_bad_trans_unit_corresp(iek_type, type);
       }  /* if */
     }  /* if */
