@@ -5821,6 +5821,10 @@ and C++ functional-notation type conversions.
           /* An overloaded function can be cast to a pointer type that
              disambiguates, but is not valid in any other kind of cast. */
           cast_overloaded_function(type_cast_to, operand);
+          if (cast_to_reference) {
+            /* The result of a cast to reference is an lvalue. */
+            conv_object_pointer_to_lvalue(operand);
+          }  /* if */
         } else if (any_cfront_mode() && operand_is_constant &&
                    operand_con->kind ==
                                       (a_constant_repr_kind)ck_ptr_to_member &&

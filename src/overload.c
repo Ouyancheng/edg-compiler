@@ -43,13 +43,14 @@ static a_boolean conversion_to_class_possible(
                             a_boolean                *ambiguous,
                             a_candidate_function_ptr *ambiguity_list);
 static a_boolean direct_reference_binding_possible(
-                                         an_operand *source_operand,
-                                         a_type_ptr source_type,
-                                         a_type_ptr dest_type,
-                                         a_boolean  *ref_to_const,
-                                         a_boolean  *ref_to_const_volatile,
-                                         a_boolean  *binding_to_rvalue_allowed,
-                                         a_boolean  *dropping_qualifiers);
+                                       an_operand   *source_operand,
+                                       a_type_ptr   source_type,
+                                       a_type_ptr   dest_type,
+                                       a_boolean    *ref_to_const,
+                                       a_boolean    *ref_to_const_volatile,
+                                       a_boolean    *binding_to_rvalue_allowed,
+                                       a_boolean    *dropping_qualifiers,
+                                       a_symbol_ptr *function_symbol);
 
 
 static void clear_conv_descr(a_conv_descr_ptr conv)
@@ -77,16 +78,17 @@ a_symbol_ptr find_addr_of_overloaded_function_match(
 /*
 ovl_sym is the symbol from an indefinite function operand representing the
 address of an overloaded function.  It is being converted to a destination type
-dest_type.  If dest_type is a pointer or pointer-to-member type that could be
-a pointer to one of the overloaded functions, return a pointer to that
-function's symbol (possibly a projection symbol); otherwise, return NULL.
-Also set *match_level to indicate whether or not any conversion is needed
-after the coercion to a specific function pointer, and set *std_conv to
-indicate any such conversion.  If more than one function matches, return
-NULL and *ambiguous TRUE.  See ARM 13.3, "Address of Overloaded Function".
+dest_type.  If dest_type is a pointer, reference, or pointer-to-member type
+that could be a pointer/reference to one of the overloaded functions, return
+a pointer to that function's symbol (possibly a projection symbol);
+otherwise, return NULL.  Also set *match_level to indicate whether or not
+any conversion is needed after the coercion to a specific function pointer
+and set *std_conv to indicate any such conversion.  If more than one function
+matches, return NULL and *ambiguous TRUE.  See ARM 13.3, "Address of
+Overloaded Function".
 */
 {
-  a_boolean        is_ptr = FALSE, is_ptr_to_member = FALSE;
+  a_boolean        is_ptr = FALSE, is_ref = FALSE, is_ptr_to_member = FALSE;
   a_boolean        sym_is_list, any_function_templates;
   a_boolean        dest_type_has_type_qualifiers = FALSE;
   a_type_ptr       routine_type, dest_class, ptr_routine_type;
@@ -102,14 +104,20 @@ NULL and *ambiguous TRUE.  See ARM 13.3, "Address of Overloaded Function".
     dest_class = NULL;
     is_ptr = TRUE;
     dest_underlying_type = type_pointed_to(dest_type);
+  } else if (is_reference_type(dest_type)) {
+    dest_class = NULL;
+    is_ref = TRUE;
+    dest_underlying_type = type_pointed_to(dest_type);
   } else if (is_ptr_to_member_type(dest_type)) {
     dest_class = pm_class_type(dest_type);
     is_ptr_to_member = TRUE;
     dest_underlying_type = pm_member_type(dest_type);
   }  /* if */
-  if (is_ptr || is_ptr_to_member) {
-    /* dest_type is a pointer or pointer-to-member type, but the underlying
-       type is not necessarily a function type. */
+  if (is_ptr || is_ref || is_ptr_to_member) {
+    /* dest_type is a pointer, reference, or pointer-to-member type.
+       The underlying type is not necessarily a function type.  (For
+       one thing, a pointer to void can be made to match any function
+       type.  Of course, that case is always ambiguous.) */
     dest_type_has_type_qualifiers = is_qualified_type(dest_underlying_type);
     dest_underlying_type = skip_typerefs(dest_underlying_type);
     reduce_projection_symbol_to_fundamental_symbol(ovl_sym);
@@ -189,12 +197,13 @@ NULL and *ambiguous TRUE.  See ARM 13.3, "Address of Overloaded Function".
         }  /* if */
       }  /* for */
     }  /* if */
-    if (number_of_matches == 0) {
+    if (number_of_matches == 0 && !is_ref) {
       /* Try matches involving an implicit conversion.  This is here
          primarily for the pointer-to-member case, but it makes sense to
          handle the normal pointer case too in case the implicit conversion
          rules change (also, it makes the error message clearer in the
-         case where dest_type is "void *"). */
+         case where dest_type is "void *").  Implicit conversions are
+         not attempted for the reference case. */
       for (proj_sym = ovl_sym;
            proj_sym != NULL;
            proj_sym = (sym_is_list ? proj_sym->next : NULL)) {
@@ -236,8 +245,6 @@ is_ambiguous:
       *ambiguous = TRUE;
       match_sym = NULL;
     }  /* if */
-  } else {
-    /* dest_type is not a pointer type, so no function can match. */
   }  /* if */
   if (match_sym != NULL) {
     /* If the pointer type we converted to has extra type qualifiers,
@@ -1056,7 +1063,8 @@ pointer transformation should be done.
                                         &ref_to_const,
                                         &ref_to_const_volatile,
                                         &binding_to_rvalue_allowed,
-                                        &dropping_qualifiers)) {
+                                        &dropping_qualifiers,
+                                        (a_symbol **)NULL)) {
     transform_needed = FALSE;
   }  /* if */
   return transform_needed;
@@ -1086,7 +1094,8 @@ pointer transformation should be done.
                                         &ref_to_const,
                                         &ref_to_const_volatile,
                                         &binding_to_rvalue_allowed,
-                                        &dropping_qualifiers)) {
+                                        &dropping_qualifiers,
+                                        (a_symbol **)NULL)) {
     transform_needed = FALSE;
   }  /* if */
   return transform_needed;
@@ -1359,16 +1368,16 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (arg_operand != NULL && is_indefinite_function_operand(arg_operand)) {
+    if (arg_operand != NULL && is_indefinite_function_operand(arg_operand) &&
+        (!param_is_reference || is_a_function_designator(arg_operand))) {
       /* The source is an indefinite function, i.e., the address of an
          overloaded function.  It can be converted to an appropriate
-         pointer (ARM 13.3) or pointer-to-member type (not mentioned in ARM,
-         but sensible).  Note that in the pointer-to-member case standard
-         conversions (to a derived class) may also be required.  Note
-         that the operand can be either a function designator or a pointer
-         to a function at this point; it doesn't matter. */
+         pointer, reference, or pointer-to-member type.  For the
+         pointer and pointer-to-member cases, the operand can be a function
+         designator or pointer to function; for the reference case it
+         must be a function designator. */
       if (find_addr_of_overloaded_function_match(arg_operand->variant.symbol,
-                                                 param_type,
+                                                 orig_param_type,
                                                  &arg_summary->match_level,
                                                  &std_conversion,
                                                  &ambiguous) != NULL ||
@@ -7750,13 +7759,14 @@ is static; otherwise, it is automatic.  This is needed for cases like
 
 
 static a_boolean direct_reference_binding_possible(
-                                         an_operand *source_operand,
-                                         a_type_ptr source_type,
-                                         a_type_ptr dest_type,
-                                         a_boolean  *ref_to_const,
-                                         a_boolean  *ref_to_const_volatile,
-                                         a_boolean  *binding_to_rvalue_allowed,
-                                         a_boolean  *dropping_qualifiers)
+                                       an_operand   *source_operand,
+                                       a_type_ptr   source_type,
+                                       a_type_ptr   dest_type,
+                                       a_boolean    *ref_to_const,
+                                       a_boolean    *ref_to_const_volatile,
+                                       a_boolean    *binding_to_rvalue_allowed,
+                                       a_boolean    *dropping_qualifiers,
+                                       a_symbol_ptr *function_symbol)
 /*
 See if it is possible to directly bind a reference of type dest_type
 to source_operand.  If so, return TRUE.  source_operand can be NULL, in
@@ -7767,6 +7777,10 @@ TRUE if the reference is to const volatile.
 bound to an rvalue.  *dropping_qualifiers is returned TRUE if the
 reference binding would drop type qualifiers (i.e., the types are such
 that the binding could be done except for the qualifiers).
+If function_symbol is non-NULL, consider also the possibility that
+the source operand is an indefinite function and the reference is
+a reference to function.  Set *function_symbol to the specific function
+selected, or NULL if that's not applicable.
 Note that this routine does not check for conversion functions that
 return lvalues to which the reference could be directly bound; see
 conversion_for_direct_reference_binding_possible.
@@ -7774,7 +7788,8 @@ conversion_for_direct_reference_binding_possible.
 {
   a_boolean  direct_binding_possible, type_is_correct_or_derived;
   a_type_ptr base_dest_type, unqual_dest_type, unqual_source_type;
-                                                              
+                                           
+  if (function_symbol != NULL) *function_symbol = NULL;                   
   if (source_operand != NULL) source_type = source_operand->type;
   base_dest_type = type_pointed_to(dest_type);
   /* The "unqual" types are the unqualified versions of the base types,
@@ -7810,6 +7825,32 @@ conversion_for_direct_reference_binding_possible.
        destination type has some extra qualifiers that are not present on
        the source type (at any level).  This is an extension. */
     type_is_correct_or_derived = TRUE;
+  } else if (function_symbol != NULL &&
+             source_operand != NULL &&
+             is_indefinite_function_operand(source_operand) &&
+             is_a_function_designator(source_operand)) {
+    /* The source is a function designator for a set of overloaded functions.
+       If there is an overloaded function with the right type, the reference
+       can be bound to it. */
+    an_arg_match_level match_level;
+    a_std_conv_descr   std_conversion;
+    a_boolean          ambiguous;
+
+    *function_symbol =
+        find_addr_of_overloaded_function_match(source_operand->variant.symbol,
+                                               dest_type,
+                                               &match_level,
+                                               &std_conversion,
+                                               &ambiguous);
+    if (ambiguous) {
+      /* More than one function matches. */
+      pos_sy_error(ec_ambiguous_ptr_to_overloaded_function,
+                   &source_operand->position,
+                   source_operand->variant.symbol);
+      conv_to_error_operand(source_operand);
+    } else if (*function_symbol != NULL) {
+      type_is_correct_or_derived = TRUE;
+    }  /* if */
   }  /* if */
   direct_binding_possible = type_is_correct_or_derived;
   /* Determine whether or not the reference is to a const type. */
@@ -7988,6 +8029,7 @@ to be acceptable, and *conversion describes it.
   a_conv_descr conv_for_direct_binding;
   a_candidate_function_ptr
                ambiguity_list = NULL;
+  a_symbol_ptr function_symbol;
 
   orig_operand = *source_operand;
   if (conversion != NULL &&
@@ -8007,7 +8049,8 @@ to be acceptable, and *conversion describes it.
                                                     &ref_to_const,
                                                     &ref_to_const_volatile,
                                                     &binding_to_rvalue_allowed,
-                                                    &dropping_qualifiers);
+                                                    &dropping_qualifiers,
+                                                    &function_symbol);
     if (!direct_binding_possible && !curr_expr_kind_is_const() &&
         is_class_struct_union_type(source_operand->type)) {
       /* It might be possible to convert the source operand to an lvalue
@@ -8039,7 +8082,9 @@ to be acceptable, and *conversion describes it.
                                                             orig_source_type));
   }  /* if */
   operand_was_rvalue = is_an_rvalue(source_operand);
-  if (direct_binding_conversion_possible) {
+  if (is_error_operand(source_operand)) {
+    /* Leave an error operand alone. */
+  } else if (direct_binding_conversion_possible) {
     /* The initial value can be converted to an lvalue of the right type
        through use of a conversion function returning a reference. */
     if (ambiguity_list != NULL) {
@@ -8091,16 +8136,37 @@ to be acceptable, and *conversion describes it.
              is_a_function_designator(source_operand)) {
     /* The initial value is a function designator of the right type;
        the initialization can be done directly. */
-    if (exceptions_enabled) {
-      /* Check compatibility of exception specifications. */
-      if (exception_spec_is_less_restrictive(source_operand->type,
-                                             base_dest_type)) {
-        pos_diagnostic(es_discretionary_error,
-                       ec_incompatible_exception_specs,
-                       &source_operand->position);
+    if (function_symbol != NULL) {
+      /* The initial value is a set of overloaded functions, out of which
+         one has been selected. */
+      /* Do whatever would have been done with the function if we had
+         known all along which function was intended.  Make an operand
+         for the specific function's address. */
+      a_boolean access_error_reported;
+
+      check_assertion(is_indefinite_function_operand(source_operand));
+      overloaded_function_catch_up(function_symbol,
+                                   source_operand->variant.symbol,
+                                   (a_boolean)
+                                             source_operand->is_qualified_name,
+                                   &orig_operand.position,
+                                   /*elided_reference=*/FALSE,
+                                   /*address_taken=*/TRUE,
+                                   source_operand,
+                                   &access_error_reported);
+    } else {
+      /* Normal case (not an indefinite function). */
+      if (exceptions_enabled) {
+        /* Check compatibility of exception specifications. */
+        if (exception_spec_is_less_restrictive(source_operand->type,
+                                               base_dest_type)) {
+          pos_diagnostic(es_discretionary_error,
+                         ec_incompatible_exception_specs,
+                         &source_operand->position);
+        }  /* if */
       }  /* if */
+      conv_function_designator_to_ptr_to_function(source_operand);
     }  /* if */
-    conv_function_designator_to_ptr_to_function(source_operand);
   } else if ((direct_binding_possible || dropping_qualifiers) &&
              is_class_struct_union_type(base_dest_type)) {
     a_boolean operand_was_temp_init;
