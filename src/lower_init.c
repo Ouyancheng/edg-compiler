@@ -162,20 +162,6 @@ its return type is return_type.
 }  /* make_runtime_routine */
 
 
-static a_statement_ptr alloc_expr_statement(an_expr_node_ptr node)
-/*
-Allocate an stmk_expr statement pointing to the indicated expression
-and return a pointer to it.
-*/
-{
-  a_statement_ptr stmt = alloc_statement((a_statement_kind)stmk_expr);
-
-  stmt->expr = node;
-  set_expr_result_not_used(node);
-  return stmt;
-}  /* alloc_expr_statement */
-
-
 static a_statement_ptr insert_expr_statement(
                                         an_expr_node_ptr       node,
                                         an_insert_location_ptr insert_location)
