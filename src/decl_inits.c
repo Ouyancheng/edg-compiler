@@ -932,6 +932,41 @@ tokens (assuming designators are enabled).
 }  /* designator_coming */ 
 
 
+static void skip_designator()
+/*
+The next couple of tokens form a designator (to be checked by caller).
+This routine discards those tokens.
+*/
+{
+  if (curr_token == tok_identifier) {
+    (void)get_token();
+    check_assertion(curr_token == tok_colon && extended_designators_allowed);
+    (void)get_token();
+  } else if (curr_token == tok_period) {
+    (void)get_token();
+    check_assertion(curr_token == tok_identifier);
+    (void)get_token();
+  } else {
+    a_constant  constant;
+    check_assertion(curr_token == tok_lbracket);
+    get_token();
+    scan_integral_constant_expression(&constant);
+    if (curr_token == tok_ellipsis) {
+      (void)get_token();
+      scan_integral_constant_expression(&constant);
+    }  /* if */
+    if (curr_token == tok_rbracket) {
+      /* Normally this condition should be TRUE, but a misformed designator
+         could have a missing right bracket. */
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+  if (curr_token == tok_assign) {
+    (void) get_token();
+  }  /*if */
+}  /* skip_designator */
+
+
 static a_boolean process_whole_object_init(
                                    an_aggregate_init_info_ptr  init_info,
                                    an_aggregate_init_context   *context,
@@ -1253,7 +1288,7 @@ found, context->repeat is set to a newly created ck_init_repeat constant.
     /* Parse the expression and evaluate it if possible: */
     all_OK = all_OK && scan_array_element_subscript(context->type, &start_el);
     if (extended_designators_allowed && curr_token == tok_ellipsis) {
-      /* We're in a designator of the for '[ 5 ... 7 ]': scan the '...' and
+      /* We're in a designator of the form '[ 5 ... 7 ]': scan the '...' and
          following integral constant expression. */
       (void)get_token();
       all_OK = all_OK && scan_array_element_subscript(context->type, &last_el);
@@ -1757,6 +1792,11 @@ this function points to a tree that includes a dynamic-init entry.
           /* Class type: get the type of the current field. */
           member_type = get_field_init_info(init_info, &context, &curr_field);
         }  /* if */
+        if (designator_coming()) {
+          error(ec_invalid_designator_kind);
+          member_type = NULL;
+          skip_designator();
+        }  /* if */
         if (member_type == NULL) {
           /* Switch to an error type to take this and all following
              initializers without error. */
@@ -1820,10 +1860,7 @@ this function points to a tree that includes a dynamic-init entry.
         /* If a designation was active, it is now consumed: */
         init_info->designation_state = ds_no_designation;
         remove_stop_token(tok_comma);
-        if (local_nothing_taken && is_incomplete_array) {
-          syntax_error(ec_exp_array_element_initializer);
-          break;
-        }  /* if */
+        check_assertion(!(local_nothing_taken && is_incomplete_array));
         /* Advance to the next member of the aggregate.  Set
            any_more_members FALSE if there are no more members. */
         if (kind == (a_type_kind)tk_error) {
@@ -1928,7 +1965,7 @@ this function points to a tree that includes a dynamic-init entry.
             took_extra_comma = any_more_initializers;
             any_more_initializers = FALSE;
           } else if (designator_coming()) {
-            /* A designator ends a non-brace-enclosed list of initializer,
+            /* A designator ends a non-brace-enclosed list of initializers,
                but if it is brace-enclosed then an upcoming designator means
                more initializers are following. */
             any_more_initializers = brace_flag;
