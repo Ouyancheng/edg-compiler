@@ -4041,7 +4041,21 @@ another template parameter.
         if (is_type_templ_arg(tap)) {
           tap->variant.type = specified_tap->variant.type;
         } else if (is_template_templ_arg(tap)) {
-          tap->variant.templ = specified_tap->variant.templ;
+          /* A template template argument can only be used if its parameter
+             list is compatibile with that of the template template
+             parameter. */
+          a_template_symbol_supplement_ptr	arg_template;
+          arg_template = template_supplement_for_template(
+                                                specified_tap->variant.templ);
+          if (equiv_template_param_lists(
+                           arg_template->cache.decl_info->parameters,
+                           tpp->variant.templ->cache.decl_info->parameters,
+                           /*issue_errors=*/FALSE, (a_source_position*)NULL)) {
+            tap->variant.templ = specified_tap->variant.templ;
+          } else {
+            arg_kind_mismatch = TRUE;
+            break;
+          }  /* if */
         } else {
           /* Convert the constant value to the type of the template
              parameter. */
