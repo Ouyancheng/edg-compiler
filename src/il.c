@@ -6786,6 +6786,58 @@ value of at_file_scope.
 }  /* add_to_pragma_list */
 
 
+a_pragma_ptr find_assoc_pragma(char          *il_entity,
+                               a_scope_ptr   curr_func_or_block_scope,
+                               a_type_ptr    class_type,
+                               a_pragma_ptr  prev_assoc_pragma)
+/*
+Return a pointer to a pragma that is bound to il_entity (an entry in the IL
+whose kind is not specified because it is not needed to find the pragma).
+The pragma will be on a list pointed to from a scope that is to be
+determined.  prev_assoc_pragma is a (possibly NULL) pointer to another
+pragma that is bound the same IL entity and has already been located.  When
+prev_assoc_pragma is non-NULL, search the remainder of the list it belongs
+to; otherwise, determine the scope whose pragma list is to be searched --
+curr_func_or_block_scope identifies the current IL scope when it is a
+function or block; class_type is non-NULL when the IL entity is a member of
+a class.  A pragma must be found if prev_assoc_pragma is NULL (i.e., if a
+pragma has not yet been found for the given IL entity).
+*/
+{
+  a_pragma_ptr  assoc_pragma;
+  a_scope_ptr   sp;
+
+  if (prev_assoc_pragma) {
+    /* A pragma has already been found that is associated il_entity.  Any
+       additional pragmas associated with the same entity will be be among
+       its successors on the same list. */
+    assoc_pragma = prev_assoc_pragma->next;
+  } else {
+    /* Determine which scope has the list that is to be searched. */
+    if (class_type != NULL) {
+      check_assertion(!C_mode());
+      /* The entity is a member of a class, so look on the pragma list for the
+         scope associated with the class. */
+      sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
+    } else if (curr_func_or_block_scope != NULL && !in_file_scope(il_entity)) {
+      /* The entity belongs to a function or block scope and was allocated
+         in the local memory region.  Check the list of the local scope. */
+      sp = curr_func_or_block_scope;
+    } else {
+      /* The pragma must be on the file scope's pragma list. */
+      sp = il_header.primary_scope;
+    }  /* if */
+    assoc_pragma = sp->pragma_list;
+  }  /* if */
+  for (; assoc_pragma != NULL; assoc_pragma = assoc_pragma->next) {
+    if (assoc_pragma->entity.ptr == il_entity) break;
+  }  /* for */
+  check_assertion_str((assoc_pragma != NULL) || (prev_assoc_pragma != NULL),
+                      "find_assoc_pragma: pragma not found");
+  return assoc_pragma;
+}  /* find_assoc_pragma */
+
+           
 a_scope_ptr alloc_scope(a_scope_kind   kind,
                         a_scope_number number,
                         a_routine_ptr  assoc_routine)

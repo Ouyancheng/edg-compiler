@@ -427,6 +427,11 @@ extern void add_to_pragma_list(a_pragma_ptr   pragma,
                                a_boolean      at_file_scope,
                                a_type_ptr     class_type);
 
+extern a_pragma_ptr find_assoc_pragma(char          *il_entity,
+                                      a_scope_ptr   curr_func_or_block_scope,
+                                      a_type_ptr    class_type,
+                                      a_pragma_ptr  prev_assoc_pragma);
+
 extern a_scope_ptr alloc_scope(a_scope_kind   kind,
                                a_scope_number number,
                                a_routine_ptr  assoc_routine);
