@@ -1179,6 +1179,12 @@ base class casts and virtual function calls.
         complete_object_type = node_complete_object_type(first_operand);
       }  /* if */
       break;
+    case enk_temp_init:
+      complete_object_type = node->variant.init.dynamic_init->variable->type;
+      break;
+    case enk_new_init:
+      /* Not easy to tell the type, and probably not worth it. */
+      break;
 #if CHECKING
     default:
       internal_error("node_complete_object_type: bad expression kind");
