@@ -1,5 +1,19 @@
 Version 2.42
 
+6/9/99   Including header files without specifying a suffix
+
+While the front end has always permitted a file name without a suffix
+to be used as a header file name, it now permits a suffix to be
+implicitly appended to such a name when searching for the include
+file.  This permits, for example, a header file to named "new.h" to be
+included with the directive "#include <new>".
+
+A new configuration parameter named DEFAULT_INCLUDE_FILE_SUFFIX_LIST
+provides the default list of suffixes to be used.  This list can be
+overridden with the --incl_suffixes command-line option.  The suffix
+list must include the null suffix if the inclusion of files without
+suffixes is still to be permitted.
+
 6/7/99   Catastrophic error when accessing misdeclared functions (C mode)
 
 In C mode, accessing a function that had previously been declared with
