@@ -3685,8 +3685,12 @@ nested name in the IA-64 ABI encoding.
 
 #endif /* IA64_ABI */
 
-static void mangled_type_name(a_type_ptr               type,
-                              a_mangling_control_block *mctl)
+#if !IA64_ABI
+/*ARGSUSED*/  /* <-- check_for_subst is only used for the IA-64 ABI. */
+#endif /* !IA64_ABI */
+static void mangled_type_name_full(a_type_ptr               type,
+                                   a_boolean                check_for_subst,
+                                   a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the type "type".
 This routine is used for named types (classes, enums, and typedefs;
@@ -3705,10 +3709,18 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   check_assertion(type->kind != (a_type_kind)tk_typeref ||
                   typeref_is_typedef(type));
 #if IA64_ABI
-  /* The caller has already checked to see if a substitution is available for
-     this entire type.  Check here to see if the type is an instantiation of a
-     template for which a substitution is available. */
-  /* Don't do this for typedefs passed from mangled_type_name. */
+#if ABI_COMPATIBILITY_VERSION >= 303
+  if (check_for_subst) {
+    /* Check whether a substitution is available for this entire type.
+       Do not do this if the caller has already done it. */
+    if (add_substitution_if_available((char *)type, iek_type, mctl)) {
+      goto done;
+    }  /* if */
+  }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION */
+  /* Check here to see if the type is an instantiation of a template for
+     which a substitution is available. */
+  /* Don't do this for typedefs passed from mangle_type_name. */
   tmpl = NULL;  
   if (is_immediate_class_type(type)) {
     tmpl = class_template_of(type);
@@ -3799,7 +3811,14 @@ and for unnamed classes and enums.  Nested types are encoded as such.
   close_ia64_nested_name(need_nested_name_close, mctl);
 #endif /* IA64_ABI */
 done:;
-}  /* mangled_type_name */
+}  /* mangled_type_name_full */
+
+/*
+Interface to mangled_type_name_full for the usual case, where the
+caller has not checked already for a substitution in IA-64 ABI mode.
+*/
+#define mangled_type_name(type, mctl) \
+  (mangled_type_name_full((type), /*check_for_subst=*/TRUE, (mctl)))
 
 
 static void mangled_class_name_internal(a_type_ptr               type,
@@ -3901,7 +3920,9 @@ Add to the mangled name the encoding for the type "type".
   /* If the type is named, use the name. */
   if (named_type != NULL) {
     /* Put out the mangled form of the name, e.g., "2AB" for "AB". */
-    mangled_type_name(named_type, mctl);
+    /* The possibility of an IA-64 ABI substitution was already checked for
+       above. */
+    mangled_type_name_full(named_type, /*check_for_subst=*/FALSE, mctl);
   } else {
     /* The type is not named, so develop a description string. */
     switch (type->kind) {
@@ -3918,7 +3939,7 @@ Add to the mangled name the encoding for the type "type".
       case tk_integer:
         if (type->variant.integer.enum_type) {
           /* Unnamed enum.  mangled_type_name will make up a name. */
-          mangled_type_name(type, mctl);
+          mangled_type_name_full(type, /*check_for_subst=*/FALSE, mctl);
           goto have_whole_mangled_name;
         }  /* if */
         if (type->variant.integer.wchar_t_type) {
@@ -4046,7 +4067,7 @@ Add to the mangled name the encoding for the type "type".
       case tk_struct:
       case tk_union:
         /* Unnamed classes.  mangled_type_name will make up a name. */
-        mangled_type_name(type, mctl);
+        mangled_type_name_full(type, /*check_for_subst=*/FALSE, mctl);
         goto have_whole_mangled_name;
       case tk_template_param:
         /* This comes up when mangling the names for template entities using
@@ -4060,7 +4081,7 @@ Add to the mangled name the encoding for the type "type".
             break;
           case tptk_member:
             /* Type selected from a template parameter type, e.g., T::x. */
-            mangled_type_name(type, mctl);
+            mangled_type_name_full(type, /*check_for_subst=*/FALSE, mctl);
             break;
           default:
             unexpected_condition_str(
