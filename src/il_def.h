@@ -5230,6 +5230,13 @@ typedef struct an_expr_node {
 			   expression pointed to by a param-type entry; one
 			   such copy is associated with each call that uses
 			   the default argument. */
+  a_bit_field	returns_lvalue_instead_of_usual_rvalue:1;
+			/* TRUE if the operation is an assignment (simple or
+			   compound), prefix ++/--, or "?" or "," operator
+			   that returns an lvalue in C++ where the C operation
+			   would return an rvalue.  FALSE otherwise, including
+			   for other operations and for these operations when
+			   they do return rvalues.  Only TRUE in C++. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */
@@ -5238,14 +5245,6 @@ typedef struct an_expr_node {
       an_expr_operator_kind
                 kind;
                         /* What kind of operation it is. */
-      a_bit_field
-		returns_lvalue_instead_of_usual_rvalue:1;
-			/* TRUE if the operation is an assignment (simple or
-			   compound), prefix ++/--, or "?" or "," operator
-			   that returns an lvalue in C++ where the C operation
-			   would return an rvalue.  FALSE otherwise, including
-			   for other operations and for these operations when
-			   they do return rvalues.  Only TRUE in C++. */
       a_bit_field
 		compiler_generated:1;
 			/* TRUE if the operation is compiler-generated rather

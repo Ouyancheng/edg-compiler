@@ -8020,7 +8020,7 @@ true answer cannot be determined, the safe answer is FALSE.
     an_expr_node_ptr      operands = expr->variant.operation.operands;
     an_expr_node_ptr      check_operand = NULL;
 
-    if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+    if (expr->returns_lvalue_instead_of_usual_rvalue) {
       /* Operations that return an lvalue. */
       if (op == (an_expr_operator_kind)eok_comma) {
         /* Continue with the second operand. */

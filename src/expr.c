@@ -3095,7 +3095,7 @@ in having type qualifiers.  This routine is called only in C++ mode.
 
   if (!is_error_operand(result)) {
     node = result->variant.expression;
-    node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+    node->returns_lvalue_instead_of_usual_rvalue = TRUE;
     node->type = make_pointer_type(result_type);
     /* Keep the reference entries from the lvalue operand. */
     result->ref_entries_list = lvalue_operand->ref_entries_list;
@@ -8589,8 +8589,7 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     if (result_is_an_lvalue) {
       result->state = (an_operand_state)os_lvalue;
       result->type = result_type;
-      result->variant.expression->variant.operation.
-                                 returns_lvalue_instead_of_usual_rvalue = TRUE;
+      result->variant.expression->returns_lvalue_instead_of_usual_rvalue= TRUE;
       result->ref_entries_list = merge_ref_lists(operand_2.ref_entries_list,
                                                  operand_3.ref_entries_list);
     }  /* if */
@@ -9197,8 +9196,8 @@ EOPT_DISALLOW_COMMA_OPERATOR).
       if (result_is_an_lvalue) {
         result->state = operand_2.state;
         result->type = result_type;
-        result->variant.expression->variant.operation.
-                                 returns_lvalue_instead_of_usual_rvalue = TRUE;
+        result->variant.expression->returns_lvalue_instead_of_usual_rvalue =
+                                                                          TRUE;
         result->ref_entries_list = operand_2.ref_entries_list;
       }  /* if */
     }  /* if */

@@ -1981,6 +1981,9 @@ Display the indicated expression node.
   if (ptr->generated_default_arg) {
     disp_boolean("generated_default_arg", TRUE);
   }  /* if */
+  if (ptr->returns_lvalue_instead_of_usual_rvalue) {
+    disp_boolean("returns_lvalue_instead_of_usual_rvalue", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:
@@ -1991,9 +1994,6 @@ Display the indicated expression node.
       disp_name("operation.kind");
       disp_expr_operator_name(ptr->variant.operation.kind);
       (void)printf("\n");
-      if (ptr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-        disp_boolean("returns_lvalue_instead_of_usual_rvalue", TRUE);
-      }  /* if */
       if (ptr->variant.operation.compiler_generated) {
         disp_boolean("compiler_generated", TRUE);
       }  /* if */

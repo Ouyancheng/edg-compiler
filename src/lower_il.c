@@ -2425,8 +2425,8 @@ will be after the expression added.
     change_node_to_operation(orig_expr, (an_expr_operator_kind)eok_comma,
                              second_operand->type, first_operand);
     if (second_operand->kind == (an_expr_operator_kind)enk_operation) {
-      orig_expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-      second_operand->variant.operation.returns_lvalue_instead_of_usual_rvalue;
+      orig_expr->returns_lvalue_instead_of_usual_rvalue =
+                        second_operand->returns_lvalue_instead_of_usual_rvalue;
     }  /* if */
   }  /* if */
 }  /* insert_expr */
@@ -5878,13 +5878,11 @@ Those operations set the lvalue to true instead of incrementing.
       expr->result_is_not_used) {
     /* Preincrement: ++x becomes (x = 1).  Also used for postincrement
        when result is not used. */
-    a_boolean returns_lvalue = expr->variant.operation.
-                                        returns_lvalue_instead_of_usual_rvalue;
+    a_boolean returns_lvalue = expr->returns_lvalue_instead_of_usual_rvalue;
     operand_node->next = one_node;
     set_node_operator(expr, (an_expr_operator_kind)eok_iassign,
                       expr->type, operand_node);
-    expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                                returns_lvalue;
+    expr->returns_lvalue_instead_of_usual_rvalue = returns_lvalue;
   } else {
     /* Postincrement: x++ becomes (temp = x, x = 1, temp). */
     an_expr_node_ptr x_lvalue_copy =
@@ -6564,7 +6562,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
     /* Look at the first operand of this operation to see if it is an
        lvalue-returning "?" or ",". */
     if (is_operation_node(child1) &&
-        child1->variant.operation.returns_lvalue_instead_of_usual_rvalue &&
+        child1->returns_lvalue_instead_of_usual_rvalue &&
         ((child_op = child1->variant.operation.kind) ==
                                          (an_expr_operator_kind)eok_question ||
          child_op == (an_expr_operator_kind)eok_comma)) {
@@ -6632,7 +6630,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       if (!is_lvalue) {
         /* The "S" above was an rvalue.  Change the result node to an
            rvalue. */
-        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+        expr->returns_lvalue_instead_of_usual_rvalue = FALSE;
         expr->type = newop1->type;
       }  /* if */
       /* Do further rewriting on the operations just inserted. */
@@ -6645,7 +6643,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       /* Restore the original expression type.  This matters when the
          operation above the "?" or "," is a cast. */
       expr->type = expr_type;
-    } else if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue&&
+    } else if (expr->returns_lvalue_instead_of_usual_rvalue &&
                (op != (an_expr_operator_kind)eok_question &&
                 op != (an_expr_operator_kind)eok_comma)) {
       an_expr_node_ptr child2 = child1->next;
@@ -6665,7 +6663,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       newop = copy_node(expr);
       /* Drop type qualifiers on the result type. */
       newop->type = f_skip_typerefs(type_pointed_to(expr->type));
-      newop->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+      newop->returns_lvalue_instead_of_usual_rvalue = FALSE;
       /* newop->result_is_not_used is cleared by copy_type, as it should be. */
       /* For assignments, see if the source expression can have side
          effects on the variables used in the destination expression. */
@@ -6682,7 +6680,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       /* Change the original node to an lvalue-returning comma node. */
       set_node_operator(expr, (an_expr_operator_kind)eok_comma,
                         expr->type, newop);
-      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+      expr->returns_lvalue_instead_of_usual_rvalue = TRUE;
     }  /* if */
   }  /* if */
 }  /* lower_operations_returning_lvalue_instead_of_usual_rvalue */
@@ -6978,8 +6976,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                   an_expr_node_ptr   new_expr, orig_expr_copy;
                   an_insert_location insert_location;
 
-                  if (expr->variant.operation.
-                                      returns_lvalue_instead_of_usual_rvalue) {
+                  if (expr->returns_lvalue_instead_of_usual_rvalue) {
                     /* The assignment returns an lvalue, i.e., the address
                        of the "this" parameter. */
                     new_expr = var_lvalue_expr(this_param_var);
@@ -6994,8 +6991,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                      be overwritten. */
                   orig_expr_copy = copy_node(expr);
                   /* The copy is not an lvalue-returning operation. */
-                  orig_expr_copy->variant.operation.
-                                returns_lvalue_instead_of_usual_rvalue = FALSE;
+                  orig_expr_copy->returns_lvalue_instead_of_usual_rvalue=FALSE;
                   orig_expr_copy->type = this_param_var->type;
                   orig_expr_copy->next = new_expr;
                   change_node_to_operation(expr,

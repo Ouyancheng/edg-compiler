@@ -1483,7 +1483,6 @@ fields to default values.
       break;
     case enk_operation:
       node->variant.operation.kind = (an_expr_operator_kind)eok_last;
-      node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       node->variant.operation.compiler_generated = FALSE;
       node->variant.operation.implicit_in_member_naming = FALSE;
 #if CHECKING
@@ -1601,6 +1600,7 @@ its kind to the indicated kind.
 #endif /* ifdef FIL */
   node->is_initialization_guard = FALSE;
   node->generated_default_arg = FALSE;
+  node->returns_lvalue_instead_of_usual_rvalue = FALSE;
 #if CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */
