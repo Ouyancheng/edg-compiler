@@ -4833,8 +4833,9 @@ class/struct/union is actually defined.
                 pos_error(ec_type_def_not_allowed_in_func_type_decl,
                           &decl_start_pos);
               } else if (!type_explicitly_specified && first_declarator &&
-                         !is_constructor && !is_destructor) {
-                warning(ec_missing_type_specifier);
+                         !is_constructor && !is_destructor &&
+                         !locator.is_conversion_name) {
+                pos_warning(ec_missing_type_specifier, &decl_start_pos);
               }  /* if */
               spec_kind = (a_special_function_kind)sfk_none;
               if (friend_specified) {
