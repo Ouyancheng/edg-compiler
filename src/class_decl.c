@@ -3075,11 +3075,57 @@ such member functions are present.
 }  /* is_valid_union_field */
 
 
+static void check_anonymous_union_symbols(a_field_ptr field_for_anon_union,
+                                          a_type_ptr  class_type)
+/*
+Do processing for an anonymous union that is declared within a class.
+The anonymous union as a whole is represented as a field of the containing
+class, and its field entry is passed is by parameter field_for_anon_union.
+The containing class is class_type.
+*/
+{
+  a_symbol_ptr                   sym, next_sym;
+  a_type_ptr                     member_type;
+  a_class_symbol_supplement_ptr  cssp;
+  an_anonymous_union_ptr         aup;
+
+  /* The symbols list for the anonymous union will be eliminated.  Its
+     field symbols are promoted to the scope of the containing class. */
+  member_type = field_for_anon_union->type;
+  cssp = symbol_supplement_for_class(member_type);
+  sym = cssp->symbols;
+  cssp->symbols = NULL;
+  /* Go through each of the symbols on the list. */
+  for (; sym != NULL; sym = next_sym) {
+    next_sym = sym->next_in_scope;
+    sym->next_in_scope = NULL;
+    /* Unlink the symbol from the inactive list. */
+    remove_from_inactive_symbols_list(sym);
+    if (sym->kind == (a_symbol_kind)sk_field) {
+      /* Update the symbol. */
+      sym->class_of_which_a_member = class_type;
+      /* Field symbols are promoted to the scope of the containing class, but
+         they will continue to point to the field entry of the anonymous
+         union.  The bridge is represented by the anonymous_union entry. */
+      aup = alloc_anonymous_union(/*is_var=*/FALSE);
+      aup->variant.field = field_for_anon_union;
+      aup->next = sym->variant.field.anonymous_union;
+      sym->variant.field.anonymous_union = aup;
+      /* Link it back into the symbol table. */
+      reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
+    } else {
+      /* Error? */
+    }  /* if */
+  }  /* for */
+}  /* check_anonymous_union_symbols */
+
+
 static void decl_nonstatic_data_member(a_symbol_locator    *locator,
                                        a_type_ptr          class_type,
                                        a_type_ptr          member_type,
                                        an_access_specifier access,
 				       a_boolean	   unnamed_field,
+				       a_boolean	   is_anonymous_union,
                                        a_targ_size_t       *p_byte_offset,
                                        int                 *p_bit_offset,
                                        a_targ_alignment    *p_alignment,
@@ -3105,7 +3151,7 @@ class, struct, or union.
   int                            local_bit_offset;
   long                           bit_field_size = 0;
   a_field_ptr		         field;
-  a_symbol_ptr		         member_sym;
+  a_symbol_ptr		         member_sym = NULL;
   a_class_symbol_supplement_ptr  cssp, member_cssp;
 
 
@@ -3135,14 +3181,16 @@ class, struct, or union.
   field->bit_size = bit_field_size;
   /* For an unnamed field, do not create the field symbol. */
   if (!unnamed_field) {
-    /* Create the field symbol. */
-    member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
-                                    depth_scope_stack,
-                                    /*suppress_redecl_error=*/FALSE);
-    member_sym->class_of_which_a_member = class_type;
-    member_sym->variant.field.ptr = field;
-    member_sym->defined = TRUE;
-    set_source_corresp(&(field->source_corresp), member_sym);
+    if (!is_anonymous_union) {
+      /* Create the field symbol. */
+      member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
+                                      depth_scope_stack,
+                                      /*suppress_redecl_error=*/FALSE);
+      member_sym->class_of_which_a_member = class_type;
+      member_sym->variant.field.ptr = field;
+      member_sym->defined = TRUE;
+      set_source_corresp(&(field->source_corresp), member_sym);
+    }  /* if */
     field->source_corresp.access = access;
     /* Add the field to the temporary list for this class/struct/union. */
     if (*end_of_list == NULL) {
@@ -3221,6 +3269,10 @@ class, struct, or union.
     cssp = symbol_supplement_for_class(class_type);
     if (cssp->constructor_required && cssp->destructor_required) {
       /* Requirement is already established.  No need to confirm it. */
+    } else if (is_anonymous_union) {
+      /* Constructor and destructor are not allowed, but other checking
+         is required. */
+      check_anonymous_union_symbols(field, class_type);
     } else {
       a_type_ptr  tp;
 
@@ -4869,6 +4921,7 @@ class/struct/union is actually defined.
   a_class_symbol_supplement_ptr
                           cssp;
   a_scope_depth           effective_decl_level = decl_scope_level;
+  a_boolean               is_anonymous_union;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -5217,6 +5270,7 @@ class/struct/union is actually defined.
         copy_source_position(pos_curr_token, decl_start_pos);
         member_type = NULL;
         member_storage_class = (a_storage_class)sc_unspecified;
+        is_anonymous_union = FALSE;
         /* First scan the declaration specifiers.  In C++ the specifiers may
            be omitted, e.g., for a function member with implicit type. */
         add_stop_token(tok_colon);
@@ -5290,6 +5344,12 @@ class/struct/union is actually defined.
                missing identifier.  Just bypass the semicolon. */
             (void)get_token();
             goto next_declaration;
+          } else if (local_defines_something &&
+                     member_type->kind == (a_type_kind)tk_union &&
+                     member_storage_class != (a_storage_class)sc_typedef &&
+                     is_unnamed_class_symbol((a_symbol_ptr)member_type->
+                                                 source_corresp.assoc_info)) {
+            is_anonymous_union = TRUE;
           }  /* if */
         }  /* if */
         /* A declarator list should be present.  Scan it. */
@@ -5310,6 +5370,9 @@ class/struct/union is actually defined.
                indicate an unnamed field.  It's a non-bit-field that forces
                padding. */
             unnamed_field = TRUE;
+            local_type = member_type;
+          } else if (is_anonymous_union) {
+            /* There is no declarator. */
             local_type = member_type;
           } else {
             /* Named member. */
@@ -5533,7 +5596,8 @@ class/struct/union is actually defined.
                 }  /* if */
               }  /* if */
               decl_nonstatic_data_member(&locator, class_type, local_type,
-                                         access, unnamed_field, &byte_offset,
+                                         access, unnamed_field,
+                                         is_anonymous_union, &byte_offset,
                                          &bit_offset, &alignment,
                                          &end_of_field_list, &any_overflow);
               is_first_field = FALSE;
