@@ -1,5 +1,20 @@
 Version 2.28
 
+2/23/95  Internal error instantiation template with uncallable conversion
+
+When a class contains a conversion operator to a base class, the operator
+will never actually be used for a conversion.  This change was made to
+the front end in version 2.21.  This change caused an internal error
+to occur if a class template includes such a conversion operator. This has
+been fixed.
+
+  class B {};
+  template <class T> struct A : public B {
+    operator B();
+  };
+  template <class T> A<T>::operator B(){}
+  A<int> a;
+
 2/23/95  Instantiation of left operand class when checking for operator
          overloading
 

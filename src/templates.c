@@ -2613,6 +2613,28 @@ and create a function instantiation entry to bind the two symbols together.
         break;
       }  /* if */
     }  /* for */
+    if (sym == NULL) {
+      /* If the conversion operator is for a derived to base conversion,
+	 the conversion operator will never be called, and so is not on the
+	 conversions list.  This will result in a match not being found in
+	 the loop above.  Go through the symbol list associated with the
+	 prototype instantiation to find the matching symbol.  This will
+	 only occur for unusable derived to base conversions (for which a
+	 warning is also issued) so the cost of the extra test should not be
+	 significant. */
+      for (sym = corresp_prototype_tag_sym->
+                               variant.class_struct_union.extra_info->symbols;
+           sym != NULL;
+	   sym = sym->next_in_scope) {
+	if (sym->kind == (a_symbol_kind)sk_member_function) {
+	  a_template_symbol_supplement_ptr	tssp;
+	  tssp = sym->variant.routine.instance_ptr->template_info;
+	  if (tssp->token_sequence_number == curr_token_sequence_number) {
+	    break;
+	  }  /* if */
+	}  /* if */
+      }  /* for */
+    }  /* if */
   } else {
     /* Get the scope in which the members of the class represented by
        corresp_prototype_tag_sym were declared. */
