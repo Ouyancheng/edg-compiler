@@ -1,5 +1,28 @@
 Version 2.24
 
+6/28/94 Support for elaborated type specifier using a typedef name
+
+There was a bug in our support for using a typedef name in an elaborated
+type specifier (a "nonstandard" feature that is available in cfront mode
+only) -- the code generated for a case like this is now correct:
+
+  typedef class A T;
+  class T *pa;                  // Allowed in cfront mode only
+
+6/28/94 Initialization of static data member of class with private dtor
+
+A spurious error is no longer issued on initializations of a static data
+member where the destructor is private.  For example:
+
+  class C {
+    C(int);
+    ~C();
+  public:
+    static C c;
+  };
+  C C::c(1);                   // Spurious error on inaccessibility of
+                               //   C::~C() is no longer issued
+
 6/27/94 jmp_buf type as array of long double, if desired
 
 Additional configuration flags have been added to targ_def.h to allow
