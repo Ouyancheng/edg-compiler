@@ -50,7 +50,7 @@ Now fixed.
 
 When compiling multiple translation units (a somewhat unusual mode) the front
 end sometimes issued a spurious correspondence error on two compatible
-definitions of a class template. This error only occurred if the template
+definitions of a class template.  This error only occurred if the template
 contains a conversion operator member and the type of the conversion operator
 was expressed in another class via a typedef.  For example:
 
