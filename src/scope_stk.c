@@ -1231,15 +1231,22 @@ to the declaration information for the template declaration scope being pushed.
          are pushing the scope for the declaration (but not the body) of a
          template function -- no source sequence entries would be involved. */
       source_sequence_entries_disallowed = TRUE;
-    } else if (assoc_type != NULL) {
-      /* We are pushing the scope for a class template instantiation. */
-      source_sequence_entries_disallowed =
-                  !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS;
+    } else if (scope_stack[DEPTH_OF_FILE_SCOPE].
+                                    source_sequence_entries_disallowed) {
+      check_assertion(source_sequence_entries_disallowed == TRUE);
     } else {
-      /* We are pushing the scope for a function template instantiation
-         or for the definition of a template static data member. */
-      source_sequence_entries_disallowed =
+      /* If they are allowed at file scope, them may be permitted for a
+         template instantiation. */
+      if (assoc_type != NULL) {
+        /* We are pushing the scope for a class template instantiation. */
+        source_sequence_entries_disallowed =
+                  !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS;
+      } else {
+        /* We are pushing the scope for a function template instantiation
+           or for the definition of a template static data member. */
+        source_sequence_entries_disallowed =
                   !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS;
+      }  /* if */
     }  /* if */
     ssep->source_sequence_entries_disallowed =
                                      source_sequence_entries_disallowed;
