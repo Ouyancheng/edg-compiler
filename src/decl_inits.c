@@ -1477,13 +1477,18 @@ scan_paren:
             add_stop_token(tok_rparen);
             if (is_error_type(init_type)) {
               flush_tokens();
-            } else if (is_scalar_type(init_type)) {
+            } else if (is_scalar_type(init_type) ||
+                       is_reference_type(init_type)) {
               /* Allocate a new dynamic init entry, setting the kind to
                  dik_none for now.  It will be adjusted after the scan. */
               dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
               scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
                                                 init_type, dip);
               new_cip->initializer = dip;
+#if CHECKING
+            } else {
+              internal_error("ctor_initializer: unexpected init type");
+#endif /* CHECKING */
             }  /* if */
             remove_stop_token(tok_rparen);
             (void)required_token(tok_rparen, ec_exp_rparen);
