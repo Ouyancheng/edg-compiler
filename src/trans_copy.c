@@ -274,10 +274,15 @@ unit to the primary translation unit, to copy the string IL entry at ptr
 correspondence pointer to point to the copy.
 */
 {
-  char *copy = alloc_primary_file_scope_il(length);
+  /* Ignore strings that are already in the primary file IL (such as
+     name strings from the symbol header). */
+  if (in_secondary_trans_unit(ptr)) {
+    char *copy = alloc_primary_file_scope_il(length);
 
-  trans_unit_corresp_pointer_of(ptr) = copy;
-  (void)memcpy(copy, ptr, length);
+    check_assertion(in_file_scope(ptr));
+    trans_unit_corresp_pointer_of(ptr) = copy;
+    (void)memcpy(copy, ptr, length);
+  }  /* if */
 }  /* copy_string_entry */
 
 
