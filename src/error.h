@@ -599,7 +599,8 @@ typedef enum /*an_error_code*/ {
   ec_tag_kind_incompatible_with_template_parameter,
   ec_template_operator_new,
   ec_bad_access_decl_ambiguous_name,
-  ec_bad_member_type_in_ptr_to_member
+  ec_bad_member_type_in_ptr_to_member,
+  ec_ellipsis_on_operator_function
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
