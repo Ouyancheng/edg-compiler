@@ -2119,9 +2119,18 @@ nonstatic data member of a class.
         (*new_type_ptr)->variant.array.variant.element_count_expr = dim_expr;
       }  /* if */
     } else {
-      a_constant_ptr  il_constant = NULL;
+      /* Not an expression or VLA bound, so either [] or a constant bound. */
+      a_constant_ptr         il_constant = NULL;
+      a_memory_region_number region_to_switch_back_to;
+
+      /* Make sure any constants are allocated in the file scope memory
+         region, because they will be pointed to by the array type, which
+         is in the file scope memory region. */
+      switch_to_file_scope_region(&region_to_switch_back_to);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (is_constant_bound) {
+        /* Save the constant for the bound, which has an attached
+           expression. */
         il_constant = alloc_shareable_constant(&constant);
         (*new_type_ptr)->variant.array.bound_constant = il_constant;
       }  /* if */
@@ -2135,9 +2144,11 @@ nonstatic data member of a class.
                                                                   il_constant;
         (*new_type_ptr)->variant.array.is_template_dependent_size_array = TRUE;
       } else {
+        /* Normal constant bound. */
         (*new_type_ptr)->variant.array.variant.number_of_elements =
                                                               num_of_elements;
       }  /* if */
+      switch_back_to_original_region(region_to_switch_back_to);
     }  /* if */
     /* The size of the array (in bytes) is updated in 
        add_to_derived_type_list. */
