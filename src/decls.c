@@ -3933,7 +3933,11 @@ was no previously-known type.  If the identifier has linkage, return in
 to NULL.  declarator_ssep (non-NULL only if source sequence entries are
 being generated) is a pointer to the empty source sequence entry already
 created for the declarator and added to the appropriate list; its kind
-and entity pointer are updated.
+and entity pointer are updated.  srk_flags contain specific information
+about the kind of declaration (whether it's a definition, a tentative
+definition (C only), an implicit declaration (C only), a friend declaration
+(C++ only), and so forth); this information is passed on for use in
+generating cross-reference output describing this declaration.
 */
 {
   a_symbol_ptr             sym = NULL;
@@ -3962,9 +3966,13 @@ and entity pointer are updated.
   is_function = is_function_type(type_ptr);
   check_assertion(is_function == (func_info != NULL));
   check_assertion(storage_class != (a_storage_class)sc_typedef);
+  check_assertion(srk_flags & SRK_DECLARATION);
   if (is_function) {
     if (func_info->is_main_function) is_main_function = TRUE;
-    if (func_info->is_definition) is_function_def = TRUE;
+    if (func_info->is_definition) {
+      is_function_def = TRUE;
+      check_assertion(srk_flags & SRK_DEFINITION);
+    }  /* if */
     if (C_dialect == C_dialect_cplusplus) {
       if (func_info->is_inline) {
         check_assertion(storage_class == (a_storage_class)sc_unspecified ||
@@ -3980,6 +3988,7 @@ and entity pointer are updated.
     if (srk_flags & SRK_DEFINITION) is_variable_def = TRUE;
   }  /* if */
   if (is_function && func_info->is_implicit_declaration) {
+    check_assertion(srk_flags & SRK_IMPLICIT);
     if (C_dialect != C_dialect_cplusplus) {
       /* For an implicit function, the identifier would not be in the process
          of being declared implicitly as a function if there were any visible
@@ -4521,17 +4530,6 @@ skip_overloading:;
   /* If cross-reference information is being issued, update the output.  If
      source sequence entries are being generated, update the declarator_ssep
      entry. */
-#if 0
-  if (is_variable_def || is_function_def || is_tentative_def) {
-    /* Also set the the defined flag in the symbol and update the source
-       position in the IL entity. */
-    record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
-                              &locator->source_position, declarator_ssep);
-  } else {
-    record_symbol_declaration(SRK_DECLARATION, sym, &locator->source_position,
-                              declarator_ssep);
-  }  /* if */
-#endif /* if 0 */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
                             declarator_ssep);
   if (!is_function && is_volatile_qualified_type(type_ptr)) {
@@ -10613,6 +10611,7 @@ continue_with_declaration:
               /* In C a file scope variable declaration with no storage class
                  or static storage class is called a tentative definition. */
               is_tentative_definition = TRUE;
+              srk_flags |= SRK_TENTATIVE_DEF | SRK_DEFINITION;
             }  /* if */
           } else {
             /* In C all local variable declarations are definitions. */
@@ -10622,7 +10621,6 @@ continue_with_declaration:
           }  /* if */
         }  /* if */
         if (is_variable_def) srk_flags |= SRK_DEFINITION;
-        if (is_tentative_definition) srk_flags |= SRK_TENTATIVE_DEF;
         decl_var_or_routine(&locator, local_storage_class, local_type_ptr,
                             (a_func_info_block *)NULL, declarator_ssep,
                             srk_flags, &symbol_ptr, &linkage, &old_type,
