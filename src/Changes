@@ -1,5 +1,12 @@
 Version 2.46
 
+2/12/02  RECORD_CONSTANT_EXPRESSIONS_IN_IL: parenthesized constants
+
+When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, an expression is now
+recorded for a constant that is parenthesized.  That gives access
+to the source start/end position for the constant itself and also for the
+parenthesized form.
+
 2/12/02  Sun compatibility: static friend function declarations
 
 In Sun mode, the front end now accepts a "static" specifier in the declaration
