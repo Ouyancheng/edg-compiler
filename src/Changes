@@ -1,5 +1,12 @@
 Version 2.28
 
+2/25/95  Improved error recovery on too many arguments to macro call
+
+The error recovery on a case like the following is now improved:
+
+  #define a(i) i
+  int i = a(1, 2, 3);  // Too many macro arguments
+
 2/24/95  #pragma weak
 
 Support for #pragma weak has been added (when PRAGMA_WEAK_ALLOWED is set).
@@ -40,6 +47,7 @@ setting the configuration flag DEFAULT_SVR4_C_MODE.  This mode may
 also be enabled or disabled on the command line using the --svr4 and
 --no_svr4 options.  A list of the features supported in this mode may
 be found in the External Interface chapter in the internals manual.
+This option applies only in C mode (i.e., not in C++ mode).
 
 2/23/95  Internal error instantiation template with uncallable conversion
 
