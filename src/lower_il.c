@@ -4524,7 +4524,7 @@ have one yet.
 #if IA64_ABI
           /* Ignore alternate entry points for constructors and
              destructors. */
-          routine->ctor_dtor_kind == cdk_none &&
+          routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none &&
 #endif /* IA64_ABI */
           /* A member function of a template class is not marked as
              inline until it is fully instantiated, so we have to call
