@@ -348,6 +348,8 @@ caution when modifying this routine.
     a_boolean  is_tag_definition = FALSE;
     a_boolean  is_vacuous_declaration = FALSE;
 
+    /* Save the symbol locator for this identifier. */
+    *locator = locator_for_curr_id;
     next_tok = next_token();
     if (next_tok == tok_lbrace ||
         (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
@@ -379,29 +381,8 @@ caution when modifying this routine.
            class A { };               // Okay -- defines ::A
          curr_scope_id_lookup will return ::A only, whereas normal_id_lookup
          will return a projection symbol that informs of the ambiguity. */
-      tag_sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_MUST_BE_TAG);
-      if (tag_sym != NULL && tag_sym->kind != tag_kind) {
-        an_error_severity  severity = (an_error_severity)es_error;
-        if (any_cfront_mode() &&
-            tag_sym->kind != (a_symbol_kind)sk_enum_tag &&
-            tag_kind != (a_symbol_kind)sk_enum_tag) {
-          /* Allow mixing of struct/class and union in cfront mode. */
-          severity = (an_error_severity)es_warning;
-        }  /* if */
-        pos_stsy_diagnostic(severity,
-                            ec_tag_kind_incompatible_with_declaration,
-                            &locator_for_curr_id.source_position,
-                            name_of_symbol_kind(tag_kind), tag_sym);
-        if (severity == (an_error_severity)es_error) {
-          tag_sym = NULL;
-          tag_err = TRUE;
-          goto done;
-        }  /* if */
-      }  /* if */
+      tag_sym = curr_scope_id_lookup(locator, IDL_MUST_BE_TAG);
     }  /* if */
-    /* Save the symbol locator for this identifier before doing the
-       get_token. */
-    *locator = locator_for_curr_id;
     if (is_tag_definition) {
       if (tag_sym != NULL) {
         /* The tag has already appeared in the current scope. */
@@ -456,10 +437,8 @@ caution when modifying this routine.
         /* This is a vacuous declaration.  Leave tag_sym set to NULL to force
            creation of a new symbol in the current scope. */
       } else {
-        /* This may be a reference to an existing tag from a containing
-           scope or a base class.  This can be ascertained by doing a full
-           lookup of the tag name (before, it was done just for the current
-           scope). */
+        /* This may be a reference to an existing tag, either from the
+           current scope or from a containing scope or a base class. */
         tag_sym = curr_tag_symbol(locator, tag_kind);
         if (tag_sym == NULL) {
           /* We will need to enter an incomplete tag that may be resolved
@@ -509,10 +488,11 @@ caution when modifying this routine.
             } while (!done);
           }  /* if */
         } else if (!C_mode() && tag_sym->kind == (a_symbol_kind)sk_type) {
-          /* A tag symbol was found from an enclosing scope.  If this is
-             a template parameter symbol, make sure the tag kind is
-             consistent with any previous declarations. */
+          /* A tag symbol was found.  If this is a template parameter symbol,
+             make sure the tag kind is consistent with any previous
+             declarations. */
           check_template_param_tag_kind(tag_sym, tag_kind, &tag_err);
+          goto done;
         }  /* if */
       }  /* if */
       if (tag_sym == NULL && tag_kind == (a_symbol_kind)sk_enum_tag) {
@@ -527,6 +507,22 @@ caution when modifying this routine.
                          &locator->source_position);
         }  /* if */
       }  
+    }  /* if */
+    if (!tag_err && tag_sym != NULL && tag_sym->kind != tag_kind) {
+      an_error_severity  severity;
+      if (any_cfront_mode() && tag_kind != (a_symbol_kind)sk_enum_tag &&
+          tag_sym->kind != (a_symbol_kind)sk_enum_tag) {
+        /* Allow mixing of struct/class and union in cfront mode. */
+        severity = (an_error_severity)es_warning;
+      } else {
+        severity = (an_error_severity)es_error;
+        tag_err = TRUE;
+      }  /* if */
+      pos_stsy_diagnostic(severity,
+                          ec_tag_kind_incompatible_with_declaration,
+                          &locator->source_position,
+                          name_of_symbol_kind(tag_kind), tag_sym);
+      if (tag_err) tag_sym = NULL;
     }  /* if */
   }  /* if */
 done:
