@@ -4274,7 +4274,7 @@ namespace_qualified_id_lookup.
       if (sym == NULL) {
         sym = new_sym;
       } else {
-        sym = add_symbol_to_lookup_set(sym, new_sym, locator,
+        sym = add_symbol_to_lookup_set(new_sym, sym, locator,
                                        /*qualified_lookup=*/TRUE,
                                        orig_ns_ptr, options,
                                        any_errors);
@@ -4500,7 +4500,7 @@ file scope.
         if (sym == NULL) {
           sym = new_sym;
         } else {
-          sym = add_symbol_to_lookup_set(sym, new_sym, locator,
+          sym = add_symbol_to_lookup_set(new_sym, sym, locator,
                                          /*qualified_lookup=*/TRUE,
                                          (a_namespace_ptr)NULL, options,
                                          &any_errors);
