@@ -3303,6 +3303,7 @@ this one is such a continuation.
                  strcmp(type->source_corresp.name, "va_list") == 0) {
         /* This is the declaration of the builtin va_list, from <stdarg.h>.
            Don't put it out -- put out an #include of the header instead. */
+        type->typedef_definition_has_been_put_out = TRUE;
         suppress_closing_punct = TRUE;
         adv_curr_source_sequence_entry();
         end_output_line_if_begun();
