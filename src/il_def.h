@@ -4626,6 +4626,15 @@ typedef struct a_scope {
 			/* If the scope is for a C++ nonstatic member
 			   function, this field points to the implicit "this"
 			   parameter.  It is NULL in all other cases. */
+      a_variable_ptr
+		return_value_variable;
+			/* If non-NULL, return value optimization is possible
+			   in this routine.  That is, the routine returns a
+			   class value via a copy constructor, and all return
+			   statements return a single nonstatic local variable,
+			   namely the variable pointed to by this field.
+			   Note that the variable is also on the local
+			   variables list of this scope. */
 #endif /* ifdef CIL */
 #ifdef FIL
       a_variable_ptr

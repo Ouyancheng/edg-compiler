@@ -801,6 +801,8 @@ the file scope, do not process it (but record an orphan in the latter case).
                       a_constructor_init_ptr, iek_constructor_init);
             walk_ptr(ptr->variant.routine.this_param_variable, a_variable_ptr,
                     iek_variable);
+            remap_ptr(ptr->variant.routine.return_value_variable,
+                      a_variable_ptr, iek_variable);
 #endif  /* ifdef CFE */
 #ifdef FFE
             walk_ptr (ptr->variant.routine.function_result_var, a_variable_ptr,

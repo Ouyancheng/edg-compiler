@@ -6626,6 +6626,7 @@ points to the associated routine if the kind is sck_function.
       sp->variant.routine.parameters          = NULL;
       sp->variant.routine.constructor_inits   = NULL;
       sp->variant.routine.this_param_variable = NULL;
+      sp->variant.routine.return_value_variable = NULL;
 #ifdef FIL
       sp->variant.routine.function_result_var = NULL;
 #endif /* ifdef FIL */
