@@ -100,7 +100,7 @@ This behavior is now emulated (with a warning) in Microsoft C++ mode with
 complementary case of a declaration in a for-initializer that follows an 
 ordinary declaration.)
 
-9/11/02  Use of translation unit information error routines
+9/11/02  Use of translation unit information in error routines
 
 The error routines test the translation unit data structure to determine
 whether a message is from a secondary translation unit.  This can cause
