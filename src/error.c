@@ -3384,7 +3384,8 @@ If the tag cannot be found return TRUE, otherwise return FALSE.
   ete_to_find.tag = tag;
   /* Look up the enumeration code in the error_info table. */
   etep_found = (an_error_tag_entry_ptr)
-                    bsearch((a_void_ptr)&ete_to_find, (a_void_ptr)error_tags,
+                    bsearch((a_const_void_ptr)&ete_to_find,
+                            (a_const_void_ptr)error_tags,
                             size_t_arg(NUMBER_OF_ERROR_TAGS),
                             sizeof(an_error_tag_entry),
                             compare_tag_info);

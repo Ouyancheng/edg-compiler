@@ -390,7 +390,8 @@ entries that refer to the same enumeration entry.
     tag_start = ptr;
     /* Look up the enumeration code in the error_info table. */
     error_info_to_find.enumerator = enumerator_start;
-    if (!bsearch((a_void_ptr)&error_info_to_find, (a_void_ptr)error_info,
+    if (!bsearch((a_const_void_ptr)&error_info_to_find,
+                 (a_const_void_ptr)error_info,
                  (sizeof_t)number_of_errors, sizeof(an_error_info),
                  compare_error_info)) {
       me_error("%s is not a valid error code", enumerator_start);
@@ -760,13 +761,13 @@ int main(int argc, char *argv[])
     me_write_error_text();
     /* Sort the error information by enumeration code so that the enumerations
        can be looked up while processing the tag file. */
-    qsort((a_void_ptr)error_info, (sizeof_t)number_of_errors,
+    qsort((a_const_void_ptr)error_info, (sizeof_t)number_of_errors,
            sizeof(an_error_info), compare_error_info);
     /* Read the data from the tag file. */
     me_read_tag_file();
     /* Sort the tag information by tag. */
-    qsort((a_void_ptr)tag_info, (sizeof_t)number_of_tags, sizeof(a_tag_info),
-          compare_tag_info);
+    qsort((a_const_void_ptr)tag_info, (sizeof_t)number_of_tags,
+          sizeof(a_tag_info), compare_tag_info);
     /* Output the number of tags to the error code file. */
     me_write_tag_table();
     fclose(codes_output_file);
