@@ -128,7 +128,8 @@ matching.
     /* Make sure the option keyword and/or letter are not already in use. */
     for (n = 0; n < option_descriptions_used; ++n) {
       odp = &option_descriptions[n];
-      if ((keyword != NULL && strcmp(keyword, odp->keyword) == 0) ||
+      if ((keyword != NULL && odp->keyword != NULL &&
+           strcmp(keyword, odp->keyword) == 0) ||
           (letter != '\0' && letter == odp->letter)) {
         unexpected_condition_str2("add_option_description:",
                                   "duplicate option keyword or letter");

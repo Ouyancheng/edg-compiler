@@ -1,5 +1,10 @@
 Version 2.30
 
+6/6/95   Command line options without keywords
+
+The command line processing routines could abort when options without
+keywords are used.  This has been fixed.
+
 6/6/95   Type conversion on constant as template parameter
 
 In some cases, conversions done for nontype parameters of templates could
