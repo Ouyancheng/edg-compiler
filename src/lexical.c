@@ -6867,6 +6867,10 @@ This routine may only be called in C++ mode.
           /* This will eventually result in the locator qualifier class type
 	     being set to the type of the vacuous destructor. */
           class_type = dtor_type;
+        } else {
+          pos_st_error(ec_not_a_type_name, &tilde_position,
+                       locator_for_curr_id.symbol_header->identifier);
+          err = TRUE;
 	}  /* if */
       } else {
 	/* A type keyword (e.g. int, long, etc.). Get the type

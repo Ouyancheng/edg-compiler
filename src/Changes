@@ -1,5 +1,19 @@
 Version 2.26
 
+9/19/94  Abort in invalid vacuous destructor call
+
+A bug has been fixed that could cause the compiler to abort during
+processing of an invalid vacuous destructor call in which the
+identifier following the tilde was either undefined or was not a
+type name.
+
+  void main() {
+    int *p;
+    p->~xxx(); 
+  }
+
+
+
 9/15/94  Return type checking for operator->()
 
 The checking that is done for the return type of an operator-> function is

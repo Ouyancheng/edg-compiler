@@ -2204,12 +2204,16 @@ bound with the function in *bound_function_selector.
          destructor. */
       is_vacuous_destructor_reference = TRUE;
       need_operand_1_type_check = FALSE;
-      /* Watch out for error cases like p->int::~float. */
-      if (is_error_locator(locator_for_curr_id)) err = TRUE;
+      /* Watch out for error cases like p->int::~float.  Also, in
+         some error cases like p->~xxx, where xxx is either undefined
+         or not a type name, class type will be NULL. */
+      dtor_type = locator_for_curr_id.qualifier_class_type;
+      if (is_error_locator(locator_for_curr_id) || dtor_type == NULL) {
+        err = TRUE;
+      }  /* if */
       if (!err) {
         /* Check that the type of the thing named on the right side
            is the same as the type of the left side, or a base class. */
-        dtor_type = locator_for_curr_id.qualifier_class_type;
         dtor_type = skip_typerefs(dtor_type);
         if (types_are_compatible(class_struct_union_type, dtor_type) ||
             (is_class_struct_union_type(dtor_type) &&
