@@ -562,6 +562,9 @@ part of a declarator is found, may_be_decl is set to FALSE.
         /* Return a pointer to the class of which a member (if any) of the
            declarator. */
         *decl_class_type = locator_for_curr_id.qualifier_class_type;
+        /* Clear the may_be_decl flag to suppress further scanning. */
+        *may_be_decl = FALSE;
+        goto done;
       }  /* if */
     }  /* if */
   }  /* if */
