@@ -170,24 +170,17 @@ Do the needed-flag processing for the current translation unit
 mark external entities and the things they reference as "needed".
 */
 {
-#if MAINTAIN_NEEDED_FLAGS
-  /* Set the "needed" flag in defined variables with external linkage --
-     both in the file scope and in each of the namespace scopes. */
-  set_needed_flags_at_end_of_file_scope(curr_translation_unit->primary_scope);
-#endif /* MAINTAIN_NEEDED_FLAGS */
 #if DO_IL_LOWERING
   /* Any statics referenced from instantiation slices in
      one-instantiation-per-object mode must be made external so that
      they can be referenced from the instantiation object files.
-     Likewise for statics referenced from exported templates. */
-#if MAINTAIN_NEEDED_FLAGS
-  end_of_file_scope_needed_flags_phase = TRUE;
-#endif /* MAINTAIN_NEEDED_FLAGS */
+     Likewise for statics referenced from exported templates.
+     This has to be done after name mangling has been done. */
   make_statics_referenced_from_instantiations_external();
-#if MAINTAIN_NEEDED_FLAGS
-  end_of_file_scope_needed_flags_phase = FALSE;
-#endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* DO_IL_LOWERING */
+#if MAINTAIN_NEEDED_FLAGS
+  set_needed_flags_at_end_of_file_scope(curr_translation_unit->primary_scope);
+#endif /* MAINTAIN_NEEDED_FLAGS */
 }  /* file_scope_il_wrapup_needed_flag_processing */
 
 
@@ -261,6 +254,14 @@ flag processing and unneeded IL removal for secondary translation units.
   }  /* if */
   for (tup = translation_units->next; tup != NULL; tup = tup->next) {
     switch_translation_unit(tup);
+#if DO_IL_LOWERING
+    if (il_lowering_needed()) {
+      /* Do name mangling for the entities in the secondary translation
+         unit.  This has to be done before the names for statics referenced
+         from templates are externalized. */
+      do_all_name_mangling();
+    }  /* if */
+#endif /* DO_IL_LOWERING */
     file_scope_il_wrapup_needed_flag_processing();
   }  /* for */
   for (tup = translation_units->next; tup != NULL; tup = tup->next) {
@@ -291,13 +292,6 @@ already been copied over.
 #if DO_IL_LOWERING
     /* Lower the file scope. */
     lower_il_memory_region(file_scope_region_number);
-#endif /* DO_IL_LOWERING */
-  } else {
-    /* A secondary translation unit. */
-#if DO_IL_LOWERING
-    if (il_lowering_needed()) {
-      do_all_name_mangling();
-    }  /* if */
 #endif /* DO_IL_LOWERING */
   }  /* if */
 
