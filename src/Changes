@@ -46,7 +46,7 @@ been replaced by two new fields: (a) class_type points to an unqualified
 representation of a member function's parent type (if any), and (b) qualifiers
 describes the qualification of the function type.
 
-8/99   Assertion failure after ill-formed default template argument
+9/8/99   Assertion failure after ill-formed default template argument
 
 In certain unusual circumstances, a template parameter with an ill-formed
 default argument would cause an assertion failure when that parameter later
