@@ -981,6 +981,9 @@ Initialize the option information table.
                          "no_g++",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_gnu_version, "gnu_version",
+                         '\0', /*value=*/FALSE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_short_enums,
                          "short_enums",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -2780,17 +2783,21 @@ order of development of this front end, and is inconsistent and strange.
 {
   int	pass;
 
+#if GNU_EXTENSIONS_ALLOWED
   /* Set the default values of gcc_mode and gpp_mode if necessary. */
-#if DEFAULT_GNU_COMPATIBILITY
   if (!option_kind_used[(int)optk_gcc_mode] &&
       !option_kind_used[(int)optk_gpp_mode]) {
-    if (C_dialect == C_dialect_cplusplus) {
-      gpp_mode = TRUE;
-    } else {
-      gcc_mode = TRUE;
+    a_boolean  enable_gnu_mode = (DEFAULT_GNU_COMPATIBILITY) ||
+                                 option_kind_used[(int)optk_gnu_version];
+    if (enable_gnu_mode) {
+      if (C_dialect == C_dialect_cplusplus) {
+        gpp_mode = TRUE;
+      } else {
+        gcc_mode = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
-#endif /* DEFAULT_GNU_COMPATIBILITY */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (C_dialect != C_dialect_ANSI) {
     /* Issue an error for specifying a language mode that is valid only
        when the dialect is ANSI C. */
@@ -3813,6 +3820,16 @@ enable_microsoft_mode:
            --svr4 for similar behavior. */
         gpp_mode = opt_value;
         C_dialect = C_dialect_cplusplus;
+        break;
+     case optk_gnu_version:
+        /* The version of the GNU compiler being emulated.  If specified
+           without one of the options --gcc, --no_gcc, --g++, or --no_g++,
+           then --gcc is implied if --c is specified, and --g++ is implied
+           otherwise. */
+        gnu_version = scan_opt_arg_number(opt_arg);
+        if (gnu_version < 30200) {
+          str_command_line_error(ec_cl_invalid_gnu_version, opt_arg);
+        }  /* if */
         break;
       case optk_short_enums:
         /* An options to specify that all enumeration types should be

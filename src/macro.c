@@ -4980,32 +4980,93 @@ Enter symbols for the C99 predefined macros.
 }  /* init_c99_predefined_macros */
 
 
+static char* expanded_gnu_version_string(void)
+/*
+Allocate and return a buffer containing a copy of GCC_VERSION_STRING with "%m"
+expanded to "gcc" or "g++" (dependening on the current mode) and "%v" expanded
+to the version of the GNU compiler being emulated.  The caller is responsible
+to deallocate the buffer using free_general.
+*/
+{
+  unsigned long  major = (unsigned long)(gnu_version/10000),
+                 minor = (unsigned long)((gnu_version%10000)/100),
+                 patch = (unsigned long)(gnu_version%100);
+  char           *version_string_pattern = GCC_VERSION_STRING,
+                 *version_string, *src, *dst;
+  a_boolean      percent_m_seen = FALSE, percent_v_seen = FALSE;
+
+  check_assertion(gnu_mode && major < 100 && minor < 100 && patch < 100);
+  version_string = (char*)alloc_general(strlen(version_string_pattern) + 50);
+  src = version_string_pattern;
+  dst = version_string;
+  for (; *src != '\0'; ++src, ++dst) {
+    if (*src == '%') {
+      if (*(src+1) == 'm') {
+        if (percent_m_seen) {
+          internal_error("too many %m in GCC_VERSION_STRING");
+        } else {
+          percent_m_seen = TRUE;
+        }  /* if */
+        ++src;
+        (void)strcpy(dst, gcc_mode ? "gcc" : "g++");
+        dst += 2;
+      } else if (*(src+1) == 'v') {
+        if (percent_v_seen) {
+          internal_error("too many %v in GCC_VERSION_STRING");
+        } else {
+          percent_v_seen = TRUE;
+        }  /* if */
+        ++src;
+        dst += sprintf(dst, "%ld.%ld", major, minor);
+        if (patch != 0) {
+          dst += sprintf(dst, ".%ld", patch);
+        }  /* if */
+        --dst;
+      } else {
+        *dst = *src;
+      }  /* if */
+    } else {
+      *dst = *src;
+    }  /* if */
+  }  /* for */
+  *dst = '\0';
+  if (version_string[0] != '"' || dst[-1] != '"') {
+    internal_error("GCC_VERSION_STRING must be quote-delimited string");
+  }  /* if */
+  return version_string;
+}  /* expanded_gnu_version_string */
+
 static void init_gnu_predefined_macros(void)
 /*
 Enter symbols for the predefined macros of GNU C and C++.
 */
 {
+  unsigned long  major = (unsigned long)(gnu_version/10000),
+                 minor = (unsigned long)((gnu_version%10000)/100),
+                 patch = (unsigned long)(gnu_version%100);
+
   /* Note that GNU C/C++ permits these macros to be redefined, so we do too. */
-  (void)enter_predef_macro(conv_unsigned_long_to_str
-                                     ((unsigned long)GCC_VERSION),
+  (void)enter_predef_macro(conv_unsigned_long_to_str(major),
                            "__GNUC__",
                            /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
   if (gpp_mode) {
     /* In GNU C++ mode (but not in GNU C mode), __GNUG__ is identical to
        __GNUC__. */
-    (void)enter_predef_macro(conv_unsigned_long_to_str
-                                       ((unsigned long)GCC_VERSION),
+    (void)enter_predef_macro(conv_unsigned_long_to_str(major),
                              "__GNUG__",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
-  (void)enter_predef_macro(conv_unsigned_long_to_str
-                                     ((unsigned long)GCC_MINOR_VERSION),
+  (void)enter_predef_macro(conv_unsigned_long_to_str(minor),
                            "__GNUC_MINOR__",
                            /*cannot_be_redefined=*/FALSE,
                            /*ref_suppresses_pch_file=*/FALSE);
-  (void)enter_predef_macro(GCC_VERSION_STRING, "__VERSION__",
+  (void)enter_predef_macro(conv_unsigned_long_to_str(patch),
+                           "__GNUC_PATCHLEVEL__",
+                           /*cannot_be_redefined=*/FALSE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  (void)enter_predef_macro(expanded_gnu_version_string(), "__VERSION__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 }  /* init_gnu_predefined_macros */

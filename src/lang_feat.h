@@ -407,26 +407,43 @@ line options --gcc, --no_gcc, --g++, and --no_g++.
 #endif /* ifndef DEFAULT_GNU_COMPATIBILITY */
 
 /*
-The value of the __GNUC__ macro in GNU mode.
+The configuration macros GCC_VERSION and GCC_MINOR_VERSION are now obsolete.
+If they were defined, the newer macro DEFAULT_GNU_VERSION should not also be
+defined and instead the older (obsolete) macros will determine the value of
+the newer macro.
 */
-#ifndef GCC_VERSION
-#define GCC_VERSION 3
-#endif /* ifndef GCC_VERSION */
+#if defined(GCC_VERSION) || defined(GCC_MINOR_VERSION)
+#if !defined(GCC_VERSION) || !defined(GCC_MINOR_VERSION)
+ #error -- GCC_VERSION cannot be defined without also defining \
+           GCC_MINOR_VERSION and vice versa
+#else /* !(!defined(GCC_VERSION) || !defined(GCC_MINOR_VERSION)) */
+#if defined(DEFAULT_GNU_VERSION)
+ #error -- DEFAULT_GNU_VERSION cannot be defined if the (now obsolete) macros \
+           GCC_VERSION and GCC_MINOR_VERSION are also defined
+#else /* !defined(DEFAULT_GNU_VERSION) */
+#define DEFAULT_GNU_VERSION ((GCC_VERSION)*10000 + (GCC_MINOR_VERSION)*100)
+#endif /* defined(DEFAULT_GNU_VERSION) */
+#endif /* !defined(GCC_VERSION) || !defined(GCC_MINOR_VERSION) */
+#endif /* defined(GCC_VERSION) || defined(GCC_MINOR_VERSION) */
 
 /*
-The value of the __GNUC_MINOR__ macro in GNU mode.
+Macro that determines which version of the GNU C/C++ compiler should be
+emulated by default.  Version x.y.z of the GNU compiler is represented by
+the value x*10000+y*100+z.
 */
-#ifndef GCC_MINOR_VERSION
-#define GCC_MINOR_VERSION 0
-#endif /* ifndef GCC_MINOR_VERSION */
+#ifndef DEFAULT_GNU_VERSION
+#define DEFAULT_GNU_VERSION 30300
+#endif /* ifndef DEFAULT_GNU_VERSION */
 
 /*
-The value of the __VERSION__ macro in GNU mode.  Note that an extra
-set of quotes is needed as this is the actual macro replacement string
-to be used.
+The value of the __VERSION__ macro in GNU mode.  Note that an extra set of
+quotes is needed as this is the actual macro replacement string to be used.
+The string can contain one occurrence of "%m" (which will be expanded to
+"gcc" or "g++" dependent on the current mode) and one occurrence of "%v"
+(which will be expanded to the version number in x.y or x.y.z format).
 */
 #ifndef GCC_VERSION_STRING
-#define GCC_VERSION_STRING "\"EDG gcc 3.0 mode\""
+#define GCC_VERSION_STRING "\"EDG %m %v mode\""
 #endif /* GCC_VERSION_STRING */
 
 /*
@@ -719,6 +736,16 @@ Convenience macro that evaluates to TRUE when either GNU C or GNU C++ mode
 is enabled.
 */
 #define gnu_mode (gcc_mode || gpp_mode)
+
+EXTERN long	gnu_version
+#if VAR_INITIALIZERS
+                               = DEFAULT_GNU_VERSION
+#endif /* VAR_INITIALIZERS */
+                                                           ;
+			/* The version of the GNU C or C++ compiler with which
+			   compatibility is desired.  GNU C/C++ version x.y.z
+			   is represented by the value x*10000+y*100+z.  (E.g.,
+			   GNU C/C++ 3.4.1 is represented by 30401.) */
 
 /*
 Global variables related to Microsoft compatibility mode are defined here
