@@ -2337,7 +2337,6 @@ is allocated, it is allocated in the file scope.
   a_type_ptr       comp_type;
   a_type_ptr       base_type_1, base_type_2;
   a_type_ptr       member_type_1, member_type_2;
-  a_boolean        add_const, add_volatile;
   a_type_ptr       comp_elem, comp_param_type, param_type;
   a_targ_size_t    num_elems;
   a_param_type_ptr list1, list2, param1, param2;
@@ -2640,13 +2639,7 @@ is allocated, it is allocated in the file scope.
          original types must have the same type qualifiers, but the
          qualifiers are not necessarily indicated by the same sequence of
          typerefs. */
-      add_const = is_const_qualified_type(type_1) &&
-                  !is_const_qualified_type(comp_type);
-      add_volatile = is_volatile_qualified_type(type_1) &&
-                     !is_volatile_qualified_type(comp_type);
-      if (add_const || add_volatile) {
-        comp_type = make_qualified_type(comp_type, add_const, add_volatile);
-      }  /* if */
+      comp_type = type_plus_qualifiers_from_second_type(comp_type, type_1);
     }  /* if */
   }  /* if */
   db_exit();
