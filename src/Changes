@@ -1,5 +1,14 @@
 Version 2.41
 
+2/17/99   Source sequence list: inline friend function of template class
+
+When CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE but
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is FALSE, the
+source sequence representation of a friend function defined inline within
+the template specialization is now treated like a member function so
+defined -- that is, the body of the inline friend function does not appear
+in the source sequence lists.
+
 2/16/99   __uuidof(T) as a template argument, where T is a template parameter
           type
 
