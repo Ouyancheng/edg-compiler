@@ -4758,6 +4758,7 @@ type in a function definition is based on a typedef).
   }  /* for */
 }  /* copy_routine_type_with_param_types */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_default_constructor(a_routine_ptr  ctor_rout)
 /*
@@ -4824,6 +4825,7 @@ constructor's first parameter is const or volatile qualified (or both).
   return is_cctor;
 }  /* is_copy_constructor */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 void set_dynamic_init_kind(a_dynamic_init_ptr  dip,
                            a_dynamic_init_kind kind)
