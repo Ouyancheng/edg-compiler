@@ -1031,7 +1031,7 @@ typedef struct a_symbol {
 			   declared after one with a lower number. */
 #if 0
 #else
-			/* For version 2.20 the assignment of declaration
+			/* For the time being the assignment of declaration
 			   sequence numbers to symbols is only incompletely
 			   implemented: except for labels, defined variables,
 			   and named types, symbols should not be assumed to
