@@ -7432,16 +7432,20 @@ NULL.
                  (sym->variant.variable.value_has_been_set &&
                   !sym->variant.variable.used)) {
         /* An unreferenced or unused variable or an unused parameter. */
-        a_boolean         suppress_warning;
-        an_error_code     error_code;
-        an_error_severity severity;
+        a_boolean           suppress_warning;
+        an_error_code       error_code;
+        an_error_severity   severity;
+        an_init_kind        init_kind;
+        an_initializer_ptr  ip;
 
         /* Check for a dynamic initialization that has side effects (such as
            a constructor call).  If such an initialization exists, issue a
            remark rather than a warning. */
-        if (var_ptr->init_kind == (an_init_kind)initk_dynamic &&
-            (dynamic_init_has_side_effects(var_ptr->initializer.dynamic,
-                                           &suppress_warning) ||
+        get_variable_initializer(var_ptr,
+                                 scope_stack[depth_scope_stack].il_scope,
+                                 &init_kind, &ip);
+        if (init_kind == (an_init_kind)initk_dynamic &&
+            (dynamic_init_has_side_effects(ip->dynamic, &suppress_warning) ||
              suppress_warning)) {
           severity = es_remark;
         } else {
