@@ -1875,6 +1875,27 @@ field storing the register.
   (void)printf("%s\n", s);
 }  /* disp_named_register */
 
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+
+static void disp_ELF_visibility_kind(an_ELF_visibility_kind  ELF_visibility)
+/*
+Display an ELF_visibility field.
+*/
+{
+  char  *str;
+
+  disp_name("ELF_visibility");
+  switch (ELF_visibility) {
+    case evk_unspecified: str = "evk_unspecified";             break;
+    case evk_hidden:      str = "evk_hidden";                  break;
+    case evk_protected:   str = "evk_protected";               break;
+    case evk_internal:    str = "evk_internal";                break;
+    default:              str = "**BAD ELF VISIBILITY KIND**";
+  }  /* switch */
+  (void)printf("%s\n", str);
+}  /* disp_ELF_visibility_kind */
+
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                 
 static void disp_variable(a_variable_ptr ptr)
@@ -2352,27 +2373,6 @@ static void disp_builtin_function_kind_name(a_builtin_function_kind kind)
   (void)printf(s);
 }  /* disp_builtin_function_kind_name */
 
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-
-static void disp_ELF_visibility_kind(an_ELF_visibility_kind  ELF_visibility)
-/*
-Display an ELF_visibility field.
-*/
-{
-  char  *str;
-
-  disp_name("ELF_visibility");
-  switch (ELF_visibility) {
-    case evk_unspecified: str = "evk_unspecified";             break;
-    case evk_hidden:      str = "evk_hidden";                  break;
-    case evk_protected:   str = "evk_protected";               break;
-    case evk_internal:    str = "evk_internal";                break;
-    default:              str = "**BAD ELF VISIBILITY KIND**";
-  }  /* switch */
-  (void)printf("%s\n", str);
-}  /* disp_ELF_visibility_kind */
-
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void disp_class_list(char                   *name,
