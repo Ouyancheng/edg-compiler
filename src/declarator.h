@@ -38,14 +38,14 @@ calling convention.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-Macro that is TRUE if the current token is one of the extension type
-qualifiers that can appear in a declarator in Microsoft mode.
+Macro that is TRUE if the current token is one of the extension memory
+attributes that can appear in a declarator in Microsoft mode.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define is_microsoft_declarator_qualifier()                           \
+#define is_microsoft_memory_attribute()                               \
   (curr_token == tok_near || curr_token == tok_far)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_microsoft_declarator_qualifier() FALSE
+#define is_microsoft_memory_attribute() FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -54,7 +54,7 @@ that can appear in a declarator in Microsoft mode.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_microsoft_declarator_keyword()                             \
-  (is_microsoft_calling_convention() || is_microsoft_declarator_qualifier())
+  (is_microsoft_calling_convention() || is_microsoft_memory_attribute())
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #define is_microsoft_declarator_keyword() FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

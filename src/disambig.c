@@ -160,7 +160,7 @@ keyword.
 */
 {
   check_assertion_str2(curr_token == tok_based,
-                       "prescan_microsoft_extended_decl_modifiers:",
+                       "prescan_based_modifier:",
                        "curr_token not tok_based");
   /* Bypass the __based token. */
   cache_curr_token(token_cache_ptr);
@@ -419,10 +419,9 @@ part of a function declarator is found, may_be_decl is set to FALSE.
   /* Skip past any cv-qualifiers associated with this function declarator. */
   while (is_type_qualifier_token(curr_token)
 #if MICROSOFT_EXTENSIONS_ALLOWED
-         || (microsoft_16_mode &&
-             (curr_token == tok_near || curr_token == tok_far))
+         || is_microsoft_memory_attribute()
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                            ) {
+                                           ) {
     cache_curr_token(token_cache_ptr);
     (void)get_token_and_coalesce_if_identifier(flags);
   }  /* while */

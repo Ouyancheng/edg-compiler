@@ -95,7 +95,9 @@ type symbol for the typedef, for use in diagnostics.
 static a_type_qualifier_set collect_type_qualifiers(void)
 /*
 Call decl_specifiers to scan one or more declarator qualifiers, and return
-a bit vector describing what was found.
+a bit vector describing what was found.  At least one qualifier must be
+present (i.e., the caller must have already checked that the current
+token is a qualifier).
 */
 {
   a_decl_flag_set       dso_flags;
@@ -1415,8 +1417,7 @@ scope is that of a class definition.
        it is applied to the type pointed to by the this param type. */
     if ((is_type_qualifier()
 #if MICROSOFT_EXTENSIONS_ALLOWED
-         || (microsoft_16_mode &&
-             (curr_token == tok_near || curr_token == tok_far))
+         || is_microsoft_memory_attribute()
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                             ) && extra_info->prototyped) {
       /* In C++ the type of certain member functions may be qualified.  Scan
@@ -1879,7 +1880,7 @@ source position.  It's permissible for the input to contain no qualifiers.
   clear_call_conv_descr(call_conv);
   *based_var = NULL;
   for (;;) {
-    if (is_type_qualifier() || is_microsoft_declarator_qualifier()) {
+    if (is_type_qualifier() || is_microsoft_memory_attribute()) {
       /* Normal qualifiers like const, and declarator-only qualifiers like
          near. */
       new_qualifiers = collect_type_qualifiers();
