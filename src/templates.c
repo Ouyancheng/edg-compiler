@@ -10304,7 +10304,8 @@ list and template argument list of a partial specialization are valid.
         a_constant_ptr	cp = tap->variant.constant;
         /* If this is a cast of a template parameter constant, use the constant
            under the cast. */
-        if (cp->variant.template_param.kind ==
+        if (cp->kind == (a_constant_repr_kind)ck_template_param &&
+            cp->variant.template_param.kind ==
                                    (a_template_param_constant_kind)tpck_cast) {
           a_constant_ptr	cp2;
           cp2 = cp->variant.template_param.variant.constant;
@@ -10313,8 +10314,8 @@ list and template argument list of a partial specialization are valid.
           }  /* if */
         }  /* if */
         if (cp->kind == (a_constant_repr_kind)ck_template_param &&
-                   cp->variant.template_param.kind !=
-                                 (a_template_param_constant_kind)tpck_param) {
+            cp->variant.template_param.kind !=
+                                  (a_template_param_constant_kind)tpck_param) {
           /* This case indicates one of two errors: Either a specialized
              parameter (e.g., an integer constant) has a dependent type, or
              the parameter involves an expression.  Determine which case it is,
