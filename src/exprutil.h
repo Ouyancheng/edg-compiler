@@ -342,7 +342,7 @@ extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 extern void cast_operand(a_type_ptr         new_type,
 		         an_operand         *operand,
                          an_expression_kind expression_kind,
-		         a_boolean          issue_type_chg_warning);
+		         a_boolean          implicit_cast);
 
 extern void base_class_cast_operand(an_operand         *operand_1,
                                     a_boolean          is_arrow_operator,
@@ -395,9 +395,10 @@ extern a_boolean still_an_lvalue(a_type_ptr type_before_cast,
 extern an_expr_operator_kind which_binary_operator(a_token_kind token,
 						   a_type_ptr   type);
 
-extern void cast_node(an_expr_node_ptr *node,
-		      a_type_ptr       type,
-		      a_boolean        issue_type_chg_warning);
+extern void cast_node(an_expr_node_ptr  *node,
+		      a_type_ptr        type,
+		      a_boolean         implicit_cast,
+                      a_source_position *err_pos);
 
 extern void integral_promote_node(an_expr_node_ptr *node);
 

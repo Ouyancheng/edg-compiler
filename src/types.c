@@ -449,24 +449,28 @@ FALSE is returned).  In C mode, FALSE is always returned.
 
   /* Check for C++ mode.  This is important because the class type supplement
      is not allocated in C mode. */
-  /* Check that both classes are complete, i.e., that their definitions have
-     been seen. */
-  if (C_dialect == C_dialect_cplusplus &&
-      derived_class->variant.class_struct_union.extra_info->
+  if (C_dialect == C_dialect_cplusplus) {
+    /* Check that both classes are complete, i.e., that their definitions have
+       been seen. */
+    derived_class = skip_typerefs(derived_class);
+    base_class = skip_typerefs(base_class);
+    if (derived_class->variant.class_struct_union.extra_info->
                                                          assoc_scope != NULL &&
-      base_class->variant.class_struct_union.extra_info->assoc_scope != NULL) {
-    /* See if the base class appears on the base class list for the derived
-       type.  The base class list contains all base classes, both direct
-       and indirect. */
-    for (bcp = derived_class->variant.class_struct_union.extra_info->
+        base_class->variant.class_struct_union.extra_info->
+                                                         assoc_scope != NULL) {
+      /* See if the base class appears on the base class list for the derived
+         type.  The base class list contains all base classes, both direct
+         and indirect. */
+      for (bcp = derived_class->variant.class_struct_union.extra_info->
                                                                   base_classes;
-         bcp != NULL;
-         bcp = bcp->next) {
-      if (bcp->type == base_class) {
-        is_base_class = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
+           bcp != NULL;
+           bcp = bcp->next) {
+        if (bcp->type == base_class) {
+          is_base_class = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   *p_base_class = bcp;
   return is_base_class;
@@ -1432,15 +1436,17 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
           }  /* if */
         }  /* if */
       } else if (C_dialect == C_dialect_cplusplus &&
-                 is_class_struct_union(unqual_source_type_pointed_to) &&
-                 is_class_struct_union(unqual_dest_type_pointed_to) &&
+                 is_class_or_struct(unqual_source_type_pointed_to) &&
+                 is_class_or_struct(unqual_dest_type_pointed_to) &&
                  is_base_class_of(unqual_source_type_pointed_to,
                                   unqual_dest_type_pointed_to,
-                                  &base_class) &&
-                 !base_class->ambiguous && !base_class->inaccessible) {
+                                  &base_class)) {
         /* In C++, a pointer to a class may be implicitly converted to a
            pointer to an accessible base class of that class provided the
-           conversion is unambiguous (ARM 4.6). */
+           conversion is unambiguous (ARM 4.6).  We leave the ambiguity
+           and accessibility check to be done when the cast is done.
+           That's not quite what the ARM says, but it's what cfront does,
+           and it makes sense. */
         okay = TRUE;
       } else if (C_dialect != C_dialect_cplusplus &&
                  !check_as_operands_not_conversion &&
@@ -1654,25 +1660,20 @@ are allowed.
     dest_type_pointed_to = pointer_referenced_type(dest_type);
     dest_type_pointed_to = skip_typerefs(dest_type_pointed_to);
     if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union(source_type_pointed_to) &&
-        is_class_struct_union(dest_type_pointed_to)) {
+        is_class_or_struct(source_type_pointed_to) &&
+        is_class_or_struct(dest_type_pointed_to)) {
       /* Pointer to class --> pointer to class. */
       /* In C++, a pointer to a class can be cast to a pointer to an
          unambiguously derived class if the base class is not
-         a virtual base class. */
+         a virtual base class.  Note that a cast in the other direction
+         (derived --> base) would have been let by above as an implicit
+         cast. */
       if (is_base_class_of(dest_type_pointed_to,
                            source_type_pointed_to,
                            &base_class)) {
-        okay = (!base_class->ambiguous && !base_class->is_virtual);
-      } else if (is_base_class_of(source_type_pointed_to,
-                                  dest_type_pointed_to,
-                                  &base_class)) {
-        /* A cast in the other direction (derived --> base) would have been
-           accepted as an implicit cast.  Since we are here, we know that
-           the implicit cast was rejected, presumably because the base class
-           is ambiguous or inaccessible.  Therefore the conversion should
-           not be allowed as an explicit conversion either. */
-        /* okay = FALSE; -- already set. */
+        /* We leave the ambiguity and accessibility check to be done when the
+           cast is done. */
+        okay = TRUE;
       } else {
         /* All other casts between pointers to classes are valid.  This
            includes cases where one or the other of the classes is not
