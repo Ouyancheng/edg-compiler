@@ -4409,7 +4409,6 @@ Generate code for the indicated statement.
         break;
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
-      gen_asm_entry(statement->variant.asm_entry);
       write_tok_str("asm(");
       gen_constant(statement->variant.asm_entry->variant.asm_string,
                    /*need_parens=*/FALSE);
