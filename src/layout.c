@@ -396,7 +396,6 @@ the top entry is removed.  curr_max_member_alignment is then set either to n
 if n is supplied or to the value associated with the last entry popped.
 */
 {
-  a_stop_token_array  save_stop_tokens_array;
   a_boolean           err = FALSE;
   a_boolean           is_push = FALSE, is_pop = FALSE;
   long                val;
@@ -405,7 +404,7 @@ if n is supplied or to the value associated with the last entry popped.
 
   db_enter(3, "pack_pragma");
   /* Save the stop token state, push a pragma scope, etc. */
-  begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
+  begin_rescan_of_pragma_tokens(ppp);
   add_stop_token(tok_rparen);
   /* Check for a left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
@@ -536,7 +535,7 @@ if n is supplied or to the value associated with the last entry popped.
   /* Check for the closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   /* Restore the stop token array, pop the pragma scope, etc. */
-  wrapup_rescan_of_pragma_tokens(/*pragma_err=*/FALSE, save_stop_tokens_array);
+  wrapup_rescan_of_pragma_tokens(/*pragma_err=*/FALSE);
   if (updated) {
     /* Issue a diagnostic on a #pragma pack that appears within an
        instantiation or inline-defined member function definition. */

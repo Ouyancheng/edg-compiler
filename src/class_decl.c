@@ -9351,7 +9351,6 @@ nested classes when their definition appears outside of the class template.
   a_scope_ptr                      scope_ptr;
   a_class_symbol_supplement_ptr    cssp;
   a_routine_fixup_ptr              saved_routine_fixup;
-  a_stop_token_array               save_stop_token_array;
   a_template_symbol_supplement_ptr class_tssp;
   a_token_sequence_number          token_number_of_closing_brace;
   a_class_def_state                class_state;
@@ -9463,9 +9462,8 @@ nested classes when their definition appears outside of the class template.
   }  /* if */
   if (curr_token == tok_lbrace) {
     /* Scan the structure or union definition. */
-    /* Save the current stop token state, and reinitialize it. */
-    copy_stop_tokens(stop_token_array, save_stop_token_array);
-    clear_stop_tokens();
+    /* Begin a new stop token state. */
+    push_stop_token_stack();
     /* Advance past the left brace. */
     (void)get_token();
     add_stop_token(tok_rbrace);
@@ -9904,7 +9902,7 @@ next_declaration:
     token_number_of_closing_brace = curr_token_sequence_number;  
     (void)required_token(tok_rbrace, ec_exp_rbrace);
     /* Restore the stop token state. */
-    copy_stop_tokens(save_stop_token_array, stop_token_array);
+    pop_stop_token_stack();
     /* If entities dependent on this class were declared before the class
        was defined, they will have been recorded on a fixup list.  Now
        go through the fixup list and complete the declarations.  (Note that

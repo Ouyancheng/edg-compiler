@@ -1353,12 +1353,11 @@ Process a cached #pragma ident directive.  The syntax is:
 where <string> is a quoted character string (not wide chars).
 */
 {
-  a_stop_token_array      save_stop_tokens_array;
   a_boolean               err = FALSE;
   a_constant_ptr          cp;
   a_memory_region_number  region_to_switch_back_to;
 
-  begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
+  begin_rescan_of_pragma_tokens(ppp);
   if (curr_token != tok_string_literal ||
       is_error_constant(&const_for_curr_token) ||
       char_int_kind_from_string_type(const_for_curr_token.type) !=
@@ -1371,7 +1370,7 @@ where <string> is a quoted character string (not wide chars).
     switch_back_to_original_region(region_to_switch_back_to);
     (void)get_token();
   }  /* if */
-  wrapup_rescan_of_pragma_tokens(err, save_stop_tokens_array);
+  wrapup_rescan_of_pragma_tokens(err);
   if (!err) {
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
     if (ppp->il_pragma_entry != NULL) {
@@ -1461,8 +1460,6 @@ The "#" of a preprocessor directive is the current character.  Scan and
 execute the preprocessor directive.
 */
 {
-  /* Place to save current value of stop token set for later restoration. */
-  a_stop_token_array 	save_stop_token_array;
   a_boolean	     	save_fetch_pp_tokens = fetch_pp_tokens;
   a_boolean	     	save_expand_macros = expand_macros;
   a_boolean          	save_do_string_literal_concatenation =
@@ -1483,10 +1480,9 @@ execute the preprocessor directive.
   fetch_pp_tokens = TRUE;
   expand_macros = FALSE;
   do_string_literal_concatenation = FALSE;
-  /* Save and clear the list of tokens that will stop flushing on error, and
+  /* Start a new stop token context that will stop flushing on error, and
      put the newline token into it. */
-  copy_stop_tokens(stop_token_array, save_stop_token_array);
-  clear_stop_tokens();
+  push_stop_token_stack();
   add_stop_token(tok_newline);
   /* Identify the keyword and go to the right processing routine. */
   dir_kind = identify_dir_keyword();
@@ -1618,8 +1614,9 @@ execute the preprocessor directive.
        encountered. */
     pch_prefix_processing_for_pp_directive(dir_kind, &start_of_dir_position);
   }  /* if */
+  remove_stop_token(tok_newline);
   /* Restore the stop token set as at entry. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
+  pop_stop_token_stack();
   in_preprocessing_directive = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;

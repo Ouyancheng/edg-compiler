@@ -1,5 +1,16 @@
 Version 2.35
 
+2/10/97 Stop tokens reset during template instantiation
+
+Error recovery during template instantiation could be affected by the
+state of the stop tokens array at the time the instantiation was done.
+This could result in poor error recovery, and in some cases error
+message loops.  To correct this problem a stack of stop token arrays
+is maintained.  The stack is pushed when a template instantiation is
+started and popped when the instantiation is complete.  This mechanism
+is used elsewhere in the front end in place of the former practice of
+saving and restoring the stop token array.
+
 2/10/97 Restrictions on scope associated with a #pragma directive
 
 If in the course of processing a #pragma directive a variable or routine

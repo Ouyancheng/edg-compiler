@@ -1187,11 +1187,38 @@ typedef a_token_set_array_element
 typedef a_token_set_array
 		a_stop_token_array;
 
-EXTERN a_stop_token_array
-		stop_token_array;
-			/* The current set of tokens that will terminate
-			   a flush on syntactic error.  A given token is
-			   in the set if stop_token_array[token] != 0; */
+/*
+A stack of stop token arrays is maintained.  The top of the stack is
+pointed to by curr_stop_token_stack_entry.  A new stop token stack
+entry is pushed when a new lexical context is entered (for example,
+when a template instantiation is done) and popped when that context
+is no longer needed and the previous context must be restored.
+*/
+typedef struct a_stop_token_stack_entry *a_stop_token_stack_entry_ptr;
+typedef struct a_stop_token_stack_entry {
+  a_stop_token_stack_entry_ptr
+		next;
+			/* Pointer to the previous stack entry (e.g., the
+			   entry that should become the current entry when
+			   this one is popped off of the stack. */
+  a_token_set_array
+		stop_tokens;
+			/* The set of tokens that will terminate a flush on
+			   syntactic error.  A given token is in the set if
+			   stop_token_array[token] != 0; */
+} a_stop_token_stack_entry;
+
+EXTERN a_stop_token_stack_entry
+		bottom_of_stop_token_stack;
+			/* The initial entry on the stop token stack.  This
+			   is the entry that is used unless a special lexical
+			   context must be started. */
+
+EXTERN a_stop_token_stack_entry_ptr
+		curr_stop_token_stack_entry;
+			/* Pointer to the current stop token stack entry.
+			   This is initialized to point to the statically
+			   allocated bottom_of_stop_token_stack entry. */
 
 /*
 Other general variables:
@@ -1456,11 +1483,9 @@ extern a_symbol_ptr coalesce_template_class_reference
 			 an_identifier_options_set options,
 			 a_boolean		   *err);
 
-extern void begin_rescan_of_pragma_tokens(struct a_pending_pragma *ppp,
-					  a_stop_token_array      stop_tokens);
+extern void begin_rescan_of_pragma_tokens(struct a_pending_pragma *ppp);
 
-extern void wrapup_rescan_of_pragma_tokens(a_boolean          error_in_pragma,
-                                           a_stop_token_array stop_tokens);
+extern void wrapup_rescan_of_pragma_tokens(a_boolean          error_in_pragma);
 
 extern a_boolean f_is_generalized_identifier_start
                      (an_identifier_options_set options,
@@ -1572,16 +1597,16 @@ extern void pop_input_stack(void);
 #define decr_token_set_array_element(array, tok) (array)[(int)(tok)]--
 
 /* Clear the set of syntax error flush stop tokens. */
-#define clear_stop_tokens() clear_token_set_array(stop_token_array)
+#define clear_stop_tokens() \
+  clear_token_set_array(curr_stop_token_stack_entry->stop_tokens)
 /* Add a token to the set of syntax error flush stop tokens. */
 #define add_stop_token(stop_token)                                    \
-  incr_token_set_array_element(stop_token_array, stop_token)
+  incr_token_set_array_element(curr_stop_token_stack_entry->stop_tokens, \
+			       stop_token)
 /* Remove a token from the set of syntax error flush stop tokens. */
 #define remove_stop_token(stop_token)                                 \
-  decr_token_set_array_element(stop_token_array, stop_token)
-/* Copy one stop token array to another. */
-#define copy_stop_tokens(from, to) \
-  memcpy((char *)(to), (char *)(from), sizeof(stop_token_array));
+  decr_token_set_array_element(curr_stop_token_stack_entry->stop_tokens, \
+			       stop_token)
 /* Flush to the token that matches an opening token (e.g., parenthesis). */
 extern void flush_until_matching_token(void);
 /* Flush tokens on error, to a token in the stop token set. */
@@ -1591,6 +1616,11 @@ extern void flush_tokens_with_stop_tokens_and_warning_flag(
 extern void flush_tokens_with_stop_tokens(a_token_set_array	stop_tokens);
 extern void flush_tokens(void);
 extern void flush_to_end_of_arg_list(void);
+extern void push_stop_token_stack(void);
+extern void pop_stop_token_stack(void);
+#if CHECKING
+void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens);
+#endif /* CHECKING */
 /* Initialize the lexical routines. */
 extern void lexical_reset(void);
 extern void lexical_one_time_init(void);

@@ -80,22 +80,8 @@ and before the back end (if any) is executed.
      remove_stop_token.)  Note that there is also a check in db_exit,
      which can be used to pin down problems that are initially
      spotted here. */
-  { int       token;
-    a_boolean any_error = FALSE;
-
-    for (token = 0; token != (int)tok_last; token++) {
-      if (stop_token_array[token] != 0) {
-        any_error = TRUE;
-#if DEBUG
-        if (debug_level != 0) {
-          fprintf(f_debug, "In fe_wrapup: stop_token_array[\"%s\"] != 0\n",
-                           token_names[token]);
-        }  /* if */
-#endif /* DEBUG */
-      }  /* if */
-    }  /* for */
-    if (any_error) internal_error("fe_wrapup: stop_token_array not all zero");
-  }
+  check_all_stop_token_entries_are_reset(
+                                   curr_stop_token_stack_entry->stop_tokens);
 #endif /* CHECKING */
 
   if (C_dialect == C_dialect_cplusplus) {

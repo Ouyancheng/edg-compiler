@@ -232,6 +232,11 @@ static a_reusable_cache_entry_ptr
                         /* The stack of reusable caches that are currently
                            active. */
 
+static a_stop_token_stack_entry_ptr
+		avail_stop_token_stack_entries;
+			/* List of stop token stack entries that have been
+			   freed and are available for reuse. */
+
 /*
 Flag that indicates whether a dollar sign was found in any identifiers.
 Used in strict ANSI mode to make sure that this diagnostic is only given
@@ -304,6 +309,7 @@ static unsigned long
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 		num_include_file_histories_allocated,
 		cached_pp_token_string_space,
+                num_stop_token_stack_entries_allocated,
 		num_reusable_cache_entries_allocated;
 #endif /* DEBUG */
 
@@ -6235,6 +6241,110 @@ concatenate_adjacent_string_literals:
 }  /* get_token */
 
 
+static a_stop_token_stack_entry_ptr alloc_stop_token_stack_entry(void)
+/*
+Allocate a new stop token stack entry, initialize it, and return a pointer
+to it.
+*/
+{
+  a_stop_token_stack_entry_ptr	stsep;
+
+  if (avail_stop_token_stack_entries != NULL) {
+    /* Reuse an existing entry. */
+    stsep = avail_stop_token_stack_entries;
+    avail_stop_token_stack_entries = avail_stop_token_stack_entries->next;
+  } else {
+    /* Allocate a new entry. */
+    stsep = (a_stop_token_stack_entry_ptr)
+                                   alloc_fe(sizeof(a_stop_token_stack_entry));
+#if DEBUG
+   num_stop_token_stack_entries_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  stsep->next = NULL;
+  memzero((char*)stsep->stop_tokens, sizeof(a_token_set_array));
+  return stsep;
+}  /* alloc_stop_token_stack_entry */
+
+
+void push_stop_token_stack(void)
+/*
+Push a new entry on the stop token entry stack.  This is used when a new
+lexical context is being processed.  A pointer to the previous entry
+is saved for use when the stack is popped.
+*/
+{
+  a_stop_token_stack_entry_ptr	stsep;
+
+  stsep = alloc_stop_token_stack_entry();
+  stsep->next = curr_stop_token_stack_entry;
+  curr_stop_token_stack_entry = stsep;
+}  /* push_stop_token_stack */
+
+
+#if CHECKING
+void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens)
+/*
+Check that the stop_token_array elements all made it back to zero.
+(Every add_stop_token is supposed to have a corresponding remove_stop_token.)
+*/
+{
+  int       token;
+  a_boolean any_error = FALSE;
+
+  for (token = 0; token != (int)tok_last; token++) {
+    if (stop_tokens[token] != 0) {
+      any_error = TRUE;
+#if DEBUG
+      if (debug_level != 0) {
+        fprintf(f_debug, "stop_tokens[\"%s\"] != 0\n", 
+                token_names[token]);
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }  /* for */
+  check_assertion_str2(!any_error, "check_all_stop_token_entries_are_reset:",
+                       "stop_token_array not all zero");
+}  /* check_all_stop_token_entries_are_reset */
+#endif /* CHECKING */
+
+
+void pop_stop_token_stack(void)
+/*
+Pop the current entry off of the stop token stack.
+*/
+{
+  a_stop_token_stack_entry_ptr	stsep;
+
+  stsep = curr_stop_token_stack_entry;
+#if CHECKING
+  /* If we are doing expensive checking, or if the debug flag for
+     "check_stop_tokens" is set, then call the routine to make sure all
+     of the stop tokens have been reset. */
+  { a_boolean	check_stop_tokens = FALSE;
+#if DEBUG
+    if (db_flag_is_set("check_stop_tokens")) check_stop_tokens = TRUE;
+#endif /* DEBUG */
+#if EXPENSIVE_CHECKING
+    check_stop_tokens = TRUE;
+#endif /* EXPENSIVE_CHECKING */
+    if (check_stop_tokens) {
+      /* Make sure that all of the array elements of the entry being popped
+         have been reset to their initial value of zero. */
+      check_all_stop_token_entries_are_reset(stsep->stop_tokens);
+    }  /* if */
+  }
+#endif /* CHECKING */
+  /* Unlink this entry from the stack. */
+  curr_stop_token_stack_entry = stsep->next;
+  /* Add the old entry to the list of available stack entries. */
+  stsep->next = avail_stop_token_stack_entries;
+  avail_stop_token_stack_entries = stsep;
+  check_assertion_str(curr_stop_token_stack_entry != NULL,
+                      "pop_stop_token_stack: too many pops");
+}  /* pop_stop_token_stack */
+
+
 void flush_until_matching_token(void)
 /*
 The current token is the opening token of a pair of matched tokens (e.g.,
@@ -6386,7 +6496,7 @@ This routine calls flush_tokens_with_stop_tokens, passing in the global
 stop_token_array.
 */
 {
-  flush_tokens_with_stop_tokens(stop_token_array);
+  flush_tokens_with_stop_tokens(curr_stop_token_stack_entry->stop_tokens);
 }  /* flush_tokens */
 
 
@@ -7081,13 +7191,16 @@ Flush tokens in an argument list.
 */
 {
   a_token_set_array_element save_comma_stop_token_count;
+  a_token_set_array_element *comma_entry_ptr;
   /* Remove comma from the stop tokens set so that we can flush to the
      end of the argument list. */
-  save_comma_stop_token_count = stop_token_array[(int)tok_comma];
-  stop_token_array[(int)tok_comma] = 0;
+  comma_entry_ptr = &(curr_stop_token_stack_entry->
+                                                 stop_tokens[(int)tok_comma]);
+  save_comma_stop_token_count = *comma_entry_ptr;
+  *comma_entry_ptr = 0;
   flush_tokens();
   /* Restore comma as a stop token (if it was one). */
-  stop_token_array[(int)tok_comma] = save_comma_stop_token_count;
+  *comma_entry_ptr = save_comma_stop_token_count;
 }  /* flush_to_end_of_arg_list */
 
 
@@ -9135,17 +9248,14 @@ instantiation file suffix list.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 
-void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp,
-				   a_stop_token_array   save_stop_token_array)
+void begin_rescan_of_pragma_tokens(a_pending_pragma_ptr ppp)
 /*
 Active the token cache containing the pragma to be scanned and push a
 pragma scope to be used while scanning the pragma tokens.
 */
 {
-  /* Save and clear the list of tokens that will stop flushing on error, and
-     put the newline token into it. */
-  copy_stop_tokens(stop_token_array, save_stop_token_array);
-  clear_stop_tokens();
+  /* Start a new stop token state. */
+  push_stop_token_stack();
   rescan_reusable_cache(&ppp->token_cache);
   /* Push a pragma scope.  This prevents names introduced by the pragma
      processing from polluting the current scope. */
@@ -9154,8 +9264,7 @@ pragma scope to be used while scanning the pragma tokens.
 }  /* begin_rescan_of_pragma_tokens */
 
 
-void wrapup_rescan_of_pragma_tokens(a_boolean	       error_in_pragma,
-				    a_stop_token_array save_stop_token_array)
+void wrapup_rescan_of_pragma_tokens(a_boolean	       error_in_pragma)
 /*
 This routine is called by pragma processing routines when they have reached
 the end of the pragma directive being scanned.  This routine fetches
@@ -9179,7 +9288,7 @@ is actived is popped here.
   /* Bypass the cache terminator. */
   (void)get_token();
   /* Restore the stop token set as at entry. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
+  pop_stop_token_stack();
   /* Pop the pragma scope. */
   pop_scope();
 }  /* wrapup_rescan_of_pragma_tokens */
@@ -9445,6 +9554,9 @@ Display and return the amount of space used for various lexical tables.
   db_space_used_lost("pending pragma entry", avail_pending_pragmas,
                      num_pending_pragmas_allocated,
                      a_pending_pragma);
+  db_space_used_lost("stop token stack entry", avail_stop_token_stack_entries,
+                     num_stop_token_stack_entries_allocated,
+                     a_stop_token_stack_entry);
   db_space_used("reusable cache pragmas",
                  num_pragmas_in_reusable_caches, a_pending_pragma);
   db_space_used("pragma kind descriptions", num_pragma_descriptions_allocated,
@@ -9642,6 +9754,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(avail_cached_constants),
       pch_saved_var_array_elem(avail_reusable_cache_entries),
       pch_saved_var_array_elem(avail_pending_pragmas),
+      pch_saved_var_array_elem(avail_stop_token_stack_entries),
       pch_saved_var_array_elem(include_file_history_list),
 #if DEBUG
       pch_saved_var_array_elem(num_orig_line_modifs_allocated),
@@ -9653,6 +9766,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(num_reusable_cache_entries_allocated),
       pch_saved_var_array_elem(num_pending_pragmas_allocated),
       pch_saved_var_array_elem(num_pragma_descriptions_allocated),
+      pch_saved_var_array_elem(num_stop_token_stack_entries_allocated),
       pch_saved_var_array_elem(num_include_file_histories_allocated),
       pch_saved_var_array_elem(cached_pp_token_string_space),
 #endif /* DEBUG */
@@ -9714,6 +9828,7 @@ of the front end.
   delete_source_from_loc = NULL;
   /* Clear the set of tokens on which to stop a flush following a
      syntax error. */
+  curr_stop_token_stack_entry = &bottom_of_stop_token_stack;
   clear_stop_tokens();
   /* Static variables in lexical.c: */
   avail_cached_tokens = NULL;
@@ -9737,6 +9852,7 @@ of the front end.
   num_cached_constants_allocated = 0;
   num_reusable_cache_entries_allocated = 0;
   num_pending_pragmas_allocated = 0;
+  num_stop_token_stack_entries_allocated = 0;
   num_pragma_descriptions_allocated = 0;
   num_include_file_histories_allocated = 0;
   cached_pp_token_string_space = 0;

@@ -1241,11 +1241,10 @@ Routine called by the "#pragma test_immediate", a pragma included
 by EDG for testing purposes.
 */
 {
-  a_stop_token_array save_stop_tokens_array;
   a_symbol_ptr       sym = NULL;
   a_boolean          err = FALSE;
 
-  begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
+  begin_rescan_of_pragma_tokens(ppp);
   if (is_generalized_identifier_start(GID_NO_OPTIONS)) {
     sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
 						     ilm_normal, &err);
@@ -1254,7 +1253,7 @@ by EDG for testing purposes.
   while (curr_token != tok_newline && curr_token != tok_end_of_source) {
     (void)get_token();
   }  /* while */
-  wrapup_rescan_of_pragma_tokens(err, save_stop_tokens_array);
+  wrapup_rescan_of_pragma_tokens(err);
   if (sym != NULL) {
     create_il_entry_for_pragma(ppp, sym, (a_statement_ptr)NULL);
   }  /* if */

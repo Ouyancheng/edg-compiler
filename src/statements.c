@@ -4995,8 +4995,9 @@ branching into it is disallowed).
   /* Clear the entry for "else" in the stop tokens set.  Without this,
      an else encountered where a statement is expected could cause an
      error recovery loop. */
-  old_else_stop_token_value = stop_token_array[(int)tok_else];
-  stop_token_array[(int)tok_else] = 0;
+  old_else_stop_token_value =
+                      curr_stop_token_stack_entry->stop_tokens[(int)tok_else];
+  curr_stop_token_stack_entry->stop_tokens[(int)tok_else] = 0;
   /* Skip over the opening brace.  Note that this is NOT an internal error
      check; when a compound statement is the body of a function, it's
      required. */
@@ -5092,7 +5093,8 @@ branching into it is disallowed).
 
   /* Restore the entry for "else" in the stop tokens set (see comment
      above). */
-  stop_token_array[(int)tok_else] = old_else_stop_token_value;
+  curr_stop_token_stack_entry->stop_tokens[(int)tok_else] =
+                                                    old_else_stop_token_value;
   /* Remember the sequence number of the current token, which is expected
      to be the closing brace. */
   set_stmt_source_position(block->variant.block.extra_info->final_position,

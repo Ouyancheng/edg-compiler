@@ -630,7 +630,6 @@ specification is handled later (see check_exception_specification).
   an_exception_specification_ptr       esp = NULL;
   an_exception_specification_type_ptr  estp, other_estp, end_of_list = NULL;
   a_source_position                    type_pos;
-  a_stop_token_array                   save_stop_token_array;
   a_boolean                            ignoring_exception_spec = FALSE;
 
   db_enter(4, "scan_exception_specification");
@@ -687,9 +686,8 @@ specification is handled later (see check_exception_specification).
        "throw int" instead of "throw (int)" might be a common mistake. */
     error(ec_exp_lparen);
   }  /* if */
-  /* Save the current stop token state, and reinitialize it. */
-  copy_stop_tokens(stop_token_array, save_stop_token_array);
-  clear_stop_tokens();
+  /* Start a new stop token state. */
+  push_stop_token_stack();
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
   add_stop_token(tok_rparen);
@@ -781,7 +779,7 @@ specification is handled later (see check_exception_specification).
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
   /* Restore the stop token state. */
-  copy_stop_tokens(save_stop_token_array, stop_token_array);
+  pop_stop_token_stack();
 done:;
   db_exit();
   return esp;
@@ -1492,13 +1490,15 @@ issue an error if a default argument expression is encountered.
   /* Check for closing right parenthesis.  We temporarily clear the stop
      token array values for tok_comma and tok_assign, in order to flush past
      either to the right paren. */
-  { a_token_set_array_element t1 = (int)stop_token_array[(int)tok_comma],
-                              t2 = (int)stop_token_array[(int)tok_assign];
-    stop_token_array[(int)tok_comma] = 0;
-    stop_token_array[(int)tok_assign] = 0;
+  { a_token_set_array_element t1;
+    a_token_set_array_element t2;
+    t1 = curr_stop_token_stack_entry->stop_tokens[(int)tok_comma];
+    t2 = curr_stop_token_stack_entry->stop_tokens[(int)tok_assign];
+    curr_stop_token_stack_entry->stop_tokens[(int)tok_comma] = 0;
+    curr_stop_token_stack_entry->stop_tokens[(int)tok_assign] = 0;
     (void)required_token(tok_rparen, ec_exp_rparen);
-    stop_token_array[(int)tok_comma] = t1;
-    stop_token_array[(int)tok_assign] = t2;
+    curr_stop_token_stack_entry->stop_tokens[(int)tok_comma] = t1;
+    curr_stop_token_stack_entry->stop_tokens[(int)tok_assign] = t2;
   }
   remove_stop_token(tok_rparen);
 #if MICROSOFT_EXTENSIONS_ALLOWED

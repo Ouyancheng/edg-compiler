@@ -10593,7 +10593,6 @@ assumed if the return type is omitted.
   a_template_instantiation_mode
 			saved_instantiation_mode = instantiation_mode;
   a_pragma_kind		pragma_kind;
-  a_stop_token_array	save_stop_tokens_array;
 
   /* The instantiation mode is set to "none" while the pragma processing is
      performed to ensure that no other instantiations are implicitly
@@ -10612,7 +10611,7 @@ assumed if the return type is omitted.
              pragma_kind != (a_pragma_kind)pk_do_not_instantiate) {
     unexpected_condition();
   }  /* if */
-  begin_rescan_of_pragma_tokens(ppp, save_stop_tokens_array);
+  begin_rescan_of_pragma_tokens(ppp);
   begin_deferral_of_access_checks();
   start_pos = pos_curr_token;
   if (is_generalized_identifier_start(GID_NO_OPTIONS) &&
@@ -10675,7 +10674,7 @@ assumed if the return type is omitted.
   discard_deferred_access_checks();
   end_deferral_of_access_checks();
   /* Stop rescanning tokens from the pragma token cache. */
-  wrapup_rescan_of_pragma_tokens(err, save_stop_tokens_array);
+  wrapup_rescan_of_pragma_tokens(err);
   instantiation_mode = saved_instantiation_mode;
 }  /* instantiation_pragma */
 

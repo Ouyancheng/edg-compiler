@@ -2089,6 +2089,8 @@ scopes.
     ssep->saved_innermost_scope_that_affects_access =
                                     saved_innermost_scope_that_affects_access;
   }
+  /* Start a new stop token context for the instantiation. */
+  push_stop_token_stack();
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
     fprintf(f_debug, "Pushed instantiation scope for: ");
@@ -2120,6 +2122,8 @@ push_template_instantiation_scope.
   check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
                        "pop_template_instantiation_scope:",
                        "invalid orig_depth");
+  /* Restore the original stop token context. */
+  pop_stop_token_stack();
   /* Pop scopes until the depth of the scope stack is equal to orig_depth,
      which is the depth before any of the instantiation context scopes were
      pushed. */

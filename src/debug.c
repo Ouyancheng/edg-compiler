@@ -352,10 +352,12 @@ what was done in the stack entry.
      The values in stop_token_array are supposed to be the same on
      exit from a routine as they were on entry. */
   stack_ptr->stop_token_checksum = 0;
-  if (debug_level > 0) {
+  if (debug_level > 0 && curr_stop_token_stack_entry != NULL) {
     register int i;
+    a_token_set_array_element	*stop_token_ptr;
+    stop_token_ptr = curr_stop_token_stack_entry->stop_tokens;
     for (i = 0; i <= (int)tok_last; i++) {
-      stack_ptr->stop_token_checksum += stop_token_array[i];
+      stack_ptr->stop_token_checksum += *stop_token_ptr++;
     }  /* for */
   }  /* if */
 #endif /* STOP_TOKEN_CHECKSUM_TEST_NEEDED */
@@ -436,11 +438,13 @@ was printed on entry.  Remove the entry from the stack.
   debug_level = stack_ptr->old_debug_level;
 #if STOP_TOKEN_CHECKSUM_TEST_NEEDED
   /* Check the stop_token_array checksum if one was computed on entry. */
-  if (debug_level > 0) {
+  if (debug_level > 0 && curr_stop_token_stack_entry != NULL) {
     register int      i;
     register unsigned test_checksum = 0;
+    a_token_set_array_element	*stop_token_ptr;
+    stop_token_ptr = curr_stop_token_stack_entry->stop_tokens;
     for (i = 0; i <= (int)tok_last; i++) {
-      test_checksum += stop_token_array[i];
+      test_checksum += *stop_token_ptr++;
     }  /* for */
     if (test_checksum != stack_ptr->stop_token_checksum) {
       fprintf(f_debug,

@@ -1247,13 +1247,16 @@ unexpected expressions more gracefully.
 */
 {
   a_token_set_array_element save_comma_stop_token_count;
+  a_token_set_array_element *comma_entry_ptr;
 
   /* Remove comma from the stop tokens set. */
-  save_comma_stop_token_count = stop_token_array[(int)tok_comma];
-  stop_token_array[(int)tok_comma] = 0;
+  comma_entry_ptr = &(curr_stop_token_stack_entry->
+                                                stop_tokens[(int)tok_comma]);
+  save_comma_stop_token_count = *comma_entry_ptr;
+  *comma_entry_ptr = 0;
   (void)required_token(tok_rparen, ec_exp_rparen);
   /* Restore comma as a stop token (if it was one). */
-  stop_token_array[(int)tok_comma] = save_comma_stop_token_count;
+  *comma_entry_ptr = save_comma_stop_token_count;
 }  /* check_closing_paren_after_expr_list */
 
 

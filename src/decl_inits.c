@@ -289,8 +289,6 @@ Companion to check_for_opening_brace.  flag should be the flag returned by
 that routine.  This routine ignores a closing brace if that is appropriate.
 */
 {
-  a_stop_token_array save_stop_token_array;
-
   /* Note:  db_enter/db_exit CANNOT be called, because this routine
      exits with the stop tokens set different than on entry. */
   if (flag) {
@@ -301,11 +299,9 @@ that routine.  This routine ignores a closing brace if that is appropriate.
       /* Error, the brace is not there.  Change the stop tokens set to
          just skip to a right brace (flush_tokens has some other "hard"
          tokens wired in), then record an error and flush tokens. */
-      copy_stop_tokens(stop_token_array, save_stop_token_array);
-      clear_stop_tokens();
+      push_stop_token_stack();
       (void)required_token(tok_rbrace, ec_exp_rbrace);
-      /* Restore the stop token set as at entry. */
-      copy_stop_tokens(save_stop_token_array, stop_token_array);
+      pop_stop_token_stack();
     }  /* if */
     remove_stop_token(tok_rbrace);
   }  /* if */
