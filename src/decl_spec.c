@@ -787,7 +787,7 @@ used for diagnostics.
             default:
               invalid_modifier = TRUE;
               break;
-          }  /* switch */
+          }  /* switch */ /*lint !e790 */
           /* If this modifier is invalid, reset the bit in the new
              modifiers. */
           if (invalid_modifier || invalid_redecl) {
