@@ -321,7 +321,7 @@ are accepted.
 */
 {
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
-                             (char*)NULL, MSAT_NONE);
+                             (char*)NULL, MSAT_ANY);
   /* Save a pointer to the special "unrecognized" attribute kind. */
   unrecognized_attribute = curr_attribute_descr;
   /* [aggregatable] */
@@ -362,7 +362,7 @@ are accepted.
                           NULL);
   /* [export] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
-			     "export", MSAT_STANDALONE);
+			     "export", MSAT_ANY_TYPE);
   /* [id] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "id", MSAT_METHOD);
@@ -435,8 +435,8 @@ are accepted.
                           "name_res", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "help_res", /*is_unnamed=*/FALSE, NULL);
-  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
-                          "countertype", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "countertype_string", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "defscale", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
@@ -563,6 +563,19 @@ are accepted.
   /* [edg_test_2] */
   make_attribute_description((an_ms_attribute_kind)msak_edg_test,
 			     "edg_test_2", MSAT_STANDALONE);
+  /* [edg_test_3] */
+  make_attribute_description((an_ms_attribute_kind)msak_edg_test,
+			     "edg_test_3", MSAT_ANY);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
+                          "arg1", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_boolean,
+                          "arg2", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
+                          "arg3", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
+                          "arg4", /*is_unnamed=*/FALSE, NULL);
+  add_attribute_parameter((an_ms_attribute_arg_kind)msaak_enumeration,
+                          "arg5", /*is_unnamed=*/FALSE, "a,b,c,aa,bb,cc");
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 }  /* init_attribute_kinds */
 
@@ -1305,7 +1318,7 @@ The attributes must apply to the entity kind specified by "target".
   /* Check whether the attributes have the appropriate target. */
   for (msap = *attributes; msap != NULL; msap = msap->next) {
     if ((msap->kind_descr->target & target) == 0 &&
-        msap->kind_descr->target != MSAT_NONE) {
+        msap->kind_descr->target != MSAT_ANY) {
        if (msap->kind_descr->target == MSAT_STANDALONE) {
          pos_st_error(ec_invalid_use_of_standalone_ms_attr, &msap->position,
                       msap->name);
@@ -1354,7 +1367,7 @@ specified by "attributes" contains only standalone attributes.
 
   for (msap = *attributes; msap != NULL; msap = msap->next) {
     if (msap->kind_descr->target != MSAT_STANDALONE &&
-        msap->kind_descr->target != MSAT_NONE) {
+        msap->kind_descr->target != MSAT_ANY) {
        pos_st_error(ec_invalid_use_of_ms_attr, &msap->position, msap->name);
     }  /* if */
   }  /* for */

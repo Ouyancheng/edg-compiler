@@ -53,6 +53,9 @@ applies.
 			/* Applies to an enum. */
 #define MSAT_ARRAY		0x800
 			/* Applies to an array. */
+#define MSAT_ANY_TYPE	(MSAT_CLASS | MSAT_STRUCT | MSAT_UNION | \
+                         MSAT_TYPEDEF | MSAT_ENUM)
+			/* Applies to any type. */
 #define MSAT_ANY		0x1000
 			/* Can be used with any target or as a standalone
 			   attribute. */
