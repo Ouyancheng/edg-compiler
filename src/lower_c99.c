@@ -861,15 +861,23 @@ Transform the given expression to remove certain C99-specific constructs.
     /* Turn the imaginary constant into a real floating point constant. */
     lower_c99_constant(expr->variant.constant);
   } else if (is_complex_type(expr->type)) {
-    /* Replace this node by a reference to a new static variable initialized
+    /* Replace this node by a reference to a static variable initialized
        with an aggregate representing the constant complex value. */
-    a_variable_ptr  tmp = make_temporary_in_scope(
-                                   expr->type,
-                                   scope_stack[DEPTH_OF_FILE_SCOPE].il_scope,
-                                   /*force_static=*/FALSE);
-    tmp->init_kind = (an_init_kind)initk_static;
-    tmp->initializer.constant = expr->variant.constant;
-    lower_c99_constant(tmp->initializer.constant);
+    a_variable_ptr  tmp;
+    a_constant_ptr  constant = expr->variant.constant;
+    if (constant->source_corresp.assoc_info == NULL) {
+      /* No static variable was created for this constant yet. */
+      tmp = make_temporary_in_scope(expr->type,
+                                    scope_stack[DEPTH_OF_FILE_SCOPE].il_scope,
+                                    /*force_static=*/FALSE);
+      tmp->init_kind = (an_init_kind)initk_static;
+      tmp->initializer.constant = constant;
+      lower_c99_constant(tmp->initializer.constant);
+      constant->source_corresp.assoc_info = (char*)tmp;
+    } else {
+      /* Reuse the previously created temporary. */
+      tmp = (a_variable_ptr)constant->source_corresp.assoc_info;
+    }  /* if */
     overwrite_node(expr, var_rvalue_expr(tmp));
   }  /* if */
 }  /* lower_c99_constant_expr */
