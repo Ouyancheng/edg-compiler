@@ -7045,17 +7045,11 @@ explicitly specified (rather than defaulted to "int").
   a_routine_ptr      routine_ptr;
   a_scope_ptr        scope_ptr;
   a_param_id_ptr     param_id;
-  a_param_type_ptr   old_style_param_types, end_old_style_param_types;
   an_id_linkage_kind linkage;
   a_type_ptr         return_type, old_type, unqualified_rout_type;
   a_routine_type_supplement_ptr
                      extra_info;
-  a_memory_region_number
-                     function_memory_region;
   a_boolean          prototyped;
-  a_boolean          linked_redecl_error;
-  a_param_type_ptr   comp_param_type_list;
-  a_boolean          comp_prototyped;
   a_boolean	     is_member_function_def = FALSE;
   a_param_type_ptr   ptp;
 
@@ -7127,7 +7121,6 @@ explicitly specified (rather than defaulted to "int").
          parameter declarations.  It is important for the routine type to
          include all the parameter information in order to do overloading
          involving both prototyped and old-style functions. */
-      old_style_param_types = end_old_style_param_types = NULL;
       /* Push the name scope for the parameter declarations. */
       scope_ptr = push_scope((a_scope_kind)sck_func_prototype,
                              func_info->scope_number,
@@ -7136,6 +7129,9 @@ explicitly specified (rather than defaulted to "int").
       if (func_info->param_id_list == NULL) {
         /* No parameters to declare. */
       } else {
+        a_param_type_ptr   old_style_param_types = NULL;
+        a_param_type_ptr   end_old_style_param_types = NULL;
+
         in_old_style_param_decl_list = TRUE;
 #if CHECKING
         if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER) {
@@ -7208,7 +7204,7 @@ explicitly specified (rather than defaulted to "int").
                          (a_function_instantiation_entry_ptr)NULL);
   /* Associate the scope to the routine entry and the routine entry to its
      type entry. */
-  routine_ptr->assoc_scope = function_memory_region = curr_il_region_number;
+  routine_ptr->assoc_scope = curr_il_region_number;
   extra_info->assoc_routine = routine_ptr;
   if (is_member_function_def) {
     a_type_ptr	rtp = skip_typerefs(old_type);
@@ -7275,7 +7271,7 @@ explicitly specified (rather than defaulted to "int").
     if (prototyped && func_info->any_prototype_names_omitted) {
       /* New-style (function prototype) for which at least one of the param
          names was omitted in the prototype.  In C this is not valid on a
-         a function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
+         function definition; in C++ it's okay (see ARM 8.2.5, 8.3). */
       if (C_dialect != C_dialect_cplusplus) {
         error(ec_all_proto_params_must_be_named);
       }  /* if */
