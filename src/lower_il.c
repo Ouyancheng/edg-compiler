@@ -6791,6 +6791,11 @@ to the statement; otherwise, it is NULL.
        side, attached to insert_location2. */
     set_expr_creation_insert_location(&insert_location2);
     begin_object_lifetime(lifetime, &insert_location2);
+    if (is_qualified_type(expr->type)) {
+      /* Remove cv-qualifiers from the types of class rvalues.  In C++, such
+         rvalues retain their type qualifiers, but in C they do not. */
+      expr->type = make_unqualified_type(expr->type);
+    }  /* if */
   }  /* if */
 
   /* Lower the subexpression. */
