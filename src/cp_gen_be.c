@@ -94,6 +94,15 @@ static a_column_number
 			/* A value of 0 for the column indicates that nothing
 			   has been written, i.e., a line has not been
 			   begun yet. */
+static a_boolean
+		output_position_is_pending;
+			/* TRUE if desired_output_position has been set to
+			   an output position but nothing has been output
+			   yet so the output stream has not been adjusted
+			   yet. */
+static a_source_position
+		desired_output_position;
+			/* See comment above. */
 
 static a_source_sequence_entry_ptr
 		file_scope_source_sequence_entry,
@@ -103,9 +112,9 @@ static a_source_sequence_entry_ptr
 			   scope, the current function scope, and the
 			   current class scope. */
 
-static a_boolean
+static unsigned long
 		type_declaration_cannot_be_emitted_now;
-			/* TRUE if we are in a context where a type declaration
+			/* > 0 if we are in a context where a type declaration
 			   cannot be emitted (e.g., a function declarator,
 			   a struct in C mode). */
 
@@ -136,11 +145,12 @@ those containing source correspondence information.)
 
 
 /* Needed because of forward references: */
-static void gen_type(a_type_ptr              type,
-                     a_source_correspondence *scp);
 static void gen_lvalue(an_expr_node_ptr node);
 static void gen_statement(a_statement_ptr statement);
 static void gen_file_scope_entity(a_source_sequence_entry_ptr ssep);
+static void gen_declaration_using_type(a_type_ptr                   type,
+                                       a_source_correspondence      *scp,
+                                       a_src_seq_secondary_decl_ptr sec_decl);
 static void gen_type_decl(a_type_ptr                   type,
                           a_src_seq_secondary_decl_ptr sec_decl);
 static void gen_variable_decl(a_variable_ptr               var,
@@ -666,19 +676,18 @@ file.
 }  /* write_line_directive */
 
 
-static void set_output_position(a_source_position *pos)
+static void adjust_output_position(void)
 /*
-Position the output file properly for output of something at the indicated
-position.  This may mean beginning a new line, putting out a #line directive,
-etc.
+A previous call of set_output_position has recorded a desired output position.
+Now, we are about to actually output some characters, so adjust the output
+file to the proper location, which may involve a #line directive, etc.
 */
 {
-  a_seq_number      seq = pos->seq;
+  a_seq_number      seq = desired_output_position.seq;
   a_boolean         line_directive_needed = FALSE;
   a_source_file_ptr new_output_file;
 
-  /* Record the position for use in internal errors. */
-  error_position = *pos;
+  output_position_is_pending = FALSE;
   /* Do nothing for unknown positions. */
   if (seq != 0) {
     /* Find the file in which this sequence number lies. */
@@ -726,14 +735,33 @@ etc.
       }  /* while */
     }  /* if */
   }  /* if */
+}  /* adjust_output_position */
+
+
+static void set_output_position(a_source_position *pos)
+/*
+Position the output file properly for output of something at the indicated
+position.  This may mean beginning a new line, putting out a #line directive,
+etc.  This routine actually just records the desired position; the
+adjustment will be done when the next character of output is written.
+*/
+{
+  desired_output_position = *pos;
+  output_position_is_pending = TRUE;
+  /* Record the position for use in internal errors. */
+  error_position = desired_output_position;
 }  /* set_output_position */
 
 
 static void write_ch(char ch)
 /*
-Write the indicated character to the output file.
+Write the indicated character to the output file.  It is not necessarily a
+complete token.
 */
 {
+  /* Adjust the output position if a set_output_position call is pending. */
+  if (output_position_is_pending) adjust_output_position();
+  /* Start the current line if we have not started it yet. */
   if (curr_output_column == 0) curr_output_column = 1;
   fputc(ch, f_C_output);
   /* Keep track of the current column number on output. */
@@ -753,6 +781,9 @@ Write the indicated string to the output file.  It is not necessarily a
 complete token.
 */
 {
+  /* Adjust the output position if a set_output_position call is pending. */
+  if (output_position_is_pending) adjust_output_position();
+  /* Start the current line if we have not started it yet. */
   if (curr_output_column == 0) curr_output_column = 1;
   fputs(str, f_C_output);
   /* Keep track of the current column number on output. */
@@ -767,6 +798,10 @@ several), which means a long line could be broken before or after it.
 */
 {
   sizeof_t len = strlen(str);
+
+  /* Adjust the output position if a set_output_position call is pending. */
+  if (output_position_is_pending) adjust_output_position();
+  /* Start the current line if we have not started it yet. */
   if (curr_output_column == 0) curr_output_column = 1;
   if (curr_output_column + len - 1 > max_output_line_size) {
     /* This token will not fit on the current line, so start a new line.
@@ -783,7 +818,7 @@ several), which means a long line could be broken before or after it.
 static void write_num(long num)
 /*
 Write the indicated signed number to the output file.  The number is assumed
-to be a full token.
+to be a complete token.
 */
 {
   char buffer[50];
@@ -795,7 +830,7 @@ to be a full token.
 static void write_unsigned_num(unsigned long num)
 /*
 Write the indicated unsigned number to the output file.  The number is assumed
-to be a full token.
+to be a complete token.
 */
 {
   char buffer[50];
@@ -1332,7 +1367,9 @@ Output the definition of the indicated typedef.
   /* set_output_position has already been called for the type. */
   type->definition_put_out = TRUE;
   write_tok_str("typedef ");
-  gen_type(type->variant.typeref.type, &type->source_corresp);
+  gen_declaration_using_type(type->variant.typeref.type,
+                             &type->source_corresp,
+                             (a_src_seq_secondary_decl_ptr)NULL);
 }  /* gen_typedef_definition */
 
 
@@ -1348,8 +1385,7 @@ Output the definition of the indicated enum type.
                       type->variant.integer.enum_type,
                       "gen_enum_definition: not an enum type");
   type->definition_put_out = TRUE;
-  /* set_output_position has already been called for the enum type itself
-     if that's appropriate. */
+  set_output_position(&type->source_corresp.decl_position);
   /* Generate "enum <name>". */
   write_tok_str("enum ");
   /* (Note that a name will be generated for an unnamed enum.  That's
@@ -1404,6 +1440,7 @@ Return a string that describes the tag kind for the indicated type, i.e.,
 }  /* tag_kind */
 
 
+/*ARGSUSED*/  /* <-- Temporary until routine implemented fully. */
 static void gen_unnamed_bit_fields(a_field_ptr field,
                                    a_field_ptr prev_field,
                                    a_field_ptr field_list)
@@ -1437,7 +1474,8 @@ be put out (they don't have sequence entries).
   gen_unnamed_bit_fields(field, prev_field, field_list);
   set_output_position(&field->source_corresp.decl_position);
   /* Generate the field type and name. */
-  gen_type(field->type, &field->source_corresp);
+  gen_declaration_using_type(field->type, &field->source_corresp,
+                             (a_src_seq_secondary_decl_ptr)NULL);
   if (field->bit_size != 0) {
     /* A bit field.  Put out the size. */
     write_tok_str(":");
@@ -1458,8 +1496,7 @@ Output the definition of the indicated class type.
   a_source_sequence_entry_ptr ssep;
 
   type->definition_put_out = TRUE;
-  /* set_output_position has already been called for the class type itself
-     it that's appropriate. */
+  set_output_position(&type->source_corresp.decl_position);
   write_tok_str(tag_kind(type->kind));
   write_space();
   /* (Note that a name will be generated for an unnamed class.) */
@@ -1475,8 +1512,6 @@ Output the definition of the indicated class type.
     /* Save class_scope_source_sequence_entry for later restoration. */
     a_source_sequence_entry_ptr saved_class_scope_source_sequence_entry =
                                              class_scope_source_sequence_entry;
-    a_boolean saved_type_declaration_cannot_be_emitted_now =
-                                        type_declaration_cannot_be_emitted_now;
     write_tok_str(" { ");
     if (scope != NULL) {
       /* C++ -- the class has a scope. */
@@ -1499,7 +1534,7 @@ Output the definition of the indicated class type.
       }  /* if */
       /* While we're inside the struct, types must be emitted when used,
          not in freestanding declarations. */
-      type_declaration_cannot_be_emitted_now = TRUE;
+      type_declaration_cannot_be_emitted_now++;
     }  /* if */
     /* Go through the source sequence list and generate the members of the
        class. */
@@ -1557,8 +1592,7 @@ Output the definition of the indicated class type.
     gen_unnamed_bit_fields((a_field_ptr)NULL, prev_field, field_list);
     /* Restore the previous value of class_scope_source_sequence_entry. */
     class_scope_source_sequence_entry= saved_class_scope_source_sequence_entry;
-    type_declaration_cannot_be_emitted_now =
-                                  saved_type_declaration_cannot_be_emitted_now;
+    if (scope == NULL) type_declaration_cannot_be_emitted_now--;
     write_tok_str("}");
   }  /* if */
 }  /* gen_class_definition */
@@ -1767,8 +1801,6 @@ is non-NULL, in which case that is the function scope.
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
   a_param_type_ptr              param;
   a_variable_ptr                param_var;
-  a_boolean                     saved_type_declaration_cannot_be_emitted_now =
-                                        type_declaration_cannot_be_emitted_now;
 
   if (scope != NULL) param_var = scope->variant.routine.parameters;
   write_tok_str("(");
@@ -1791,7 +1823,7 @@ is non-NULL, in which case that is the function scope.
     /* Prototyped list. */
     /* Within the declarator, types must be put out as they are referenced,
        and not in freestanding declarations. */
-    type_declaration_cannot_be_emitted_now = TRUE;
+    type_declaration_cannot_be_emitted_now++;
     param = rtsp->param_type_list;
     if (param == NULL) {
       /* The first argument is NULL, so this is a "void" parameter list.
@@ -1807,18 +1839,26 @@ is non-NULL, in which case that is the function scope.
              name from the parameter variable.  Note that the type in the
              variable might be slightly different than (though, of course,
              compatible with) the type in the param_type entry. */
-          gen_type(param_var->type, &param_var->source_corresp);
+          /* Watch out for unnamed parameters in C++. */
+          gen_declaration_using_type(param_var->type,
+                                     has_name(param_var) ?
+                                             &param_var->source_corresp : NULL,
+                                     (a_src_seq_secondary_decl_ptr)NULL);
           /* Advance past the source source entry for the parameter
              declaration. */
 #if 0
           /* Check for prototype scope entries. */
 #endif /* 0 */
-          check_for_and_take_func_source_seq_entry(
+          if (has_name(param_var)) {
+            check_for_and_take_func_source_seq_entry(
                               param_var->source_corresp.source_sequence_entry);
+          }  /* if */
           param_var = param_var->next;
         } else {
           /* This is just a declaration, so put out the type and no name. */
-          gen_type(param->type, (a_source_correspondence *)NULL);
+          gen_declaration_using_type(param->type,
+                                     (a_source_correspondence *)NULL,
+                                     (a_src_seq_secondary_decl_ptr)NULL);
         }  /* if */
         param = param->next;
         if (param == NULL) break;
@@ -1833,6 +1873,7 @@ is non-NULL, in which case that is the function scope.
       if (rtsp->param_type_list != NULL) write_tok_str(", ");
       write_tok_str("...");
     }  /* if */
+    type_declaration_cannot_be_emitted_now--;
   }  /* if */
   write_tok_str(")");
   /* Output a cv-qualifier for a member function, if there is one. */
@@ -1845,8 +1886,6 @@ is non-NULL, in which case that is the function scope.
       gen_type_qualifier(underlying_type);
     }  /* for */
   }  /* if */
-  type_declaration_cannot_be_emitted_now =
-                                  saved_type_declaration_cannot_be_emitted_now;
 }  /* gen_function_declarator */
 
 
@@ -1922,6 +1961,40 @@ NULL if there is no name.
   /* Write the second part of the declarator. */
   gen_type_second_part(type, /*need_paren=*/FALSE);
 }  /* gen_type */
+
+
+static void gen_declaration_using_type(a_type_ptr                   type,
+                                       a_source_correspondence      *scp,
+                                       a_src_seq_secondary_decl_ptr sec_decl)
+/*
+Output a declaration built around a type.  The argument scp is the source
+correspondence entry for the entity being declared, or NULL if there is
+no name.  If sec_decl is non-NULL, this declaration is a secondary declaration
+of the entity, and sec_decl points to information about the secondary
+declaration.
+*/
+{
+  /* Write the specifiers and the first part of the declarator. */
+  gen_type_first_part(type, /*need_paren=*/FALSE,
+                      /*need_trailing_space=*/(scp != NULL));
+  /* Write the name if there is one. */
+  if (scp != NULL) {
+    /* Set the source position for the name. */
+    if (sec_decl != NULL) {
+      /* For a secondary declaration, get the position from the secondary
+         declaration source sequence entry. */
+      set_output_position(&sec_decl->decl_position);
+    } else {
+      /* For the primary declaration, use the position in the entity's
+         source correspondence entry. */
+      set_output_position(&scp->decl_position);
+    }  /* if */
+    /* Write the name. */
+    gen_name(scp);
+  }  /* if */
+  /* Write the second part of the declarator. */
+  gen_type_second_part(type, /*need_paren=*/FALSE);
+}  /* gen_declaration_using_type */
 
 
 static void gen_field_reference(an_expr_node_ptr node)
@@ -3117,7 +3190,7 @@ a secondary declaration is wanted, and sec_decl points to an entry giving
 information about the secondary declaration.
 */
 {
-  a_boolean is_definition = (sec_decl == NULL);
+  a_boolean       is_definition = (sec_decl == NULL);
   a_storage_class storage_class;
                              
   /* Position the output file to the declaration position. */
@@ -3136,7 +3209,7 @@ information about the secondary declaration.
   }  /* if */
   gen_storage_class(storage_class);
   /* Output the variable name and its type. */
-  gen_type(var->type, &var->source_corresp);
+  gen_declaration_using_type(var->type, &var->source_corresp, sec_decl);
   /* Output the initializer, if any, but only if this is a definition. */
   if (is_definition) gen_initializer(var);
   /* Finish the declaration. */
@@ -3167,7 +3240,8 @@ the parameters to be declared.
         /* Output the parameter declaration. */
         write_space();
         set_output_position(&var->source_corresp.decl_position);
-        gen_type(var->type, &var->source_corresp);
+        gen_declaration_using_type(var->type, &var->source_corresp,
+                                   (a_src_seq_secondary_decl_ptr)NULL);
         write_tok_str(";");
         /* Continue with the next source sequence entry. */
         continue;
@@ -3292,7 +3366,7 @@ information about the secondary declaration.
   /* Output the routine name and its type. */
   if (!is_definition) {
     /* A declaration of the routine. */
-    gen_type(rout->type, &rout->source_corresp);
+    gen_declaration_using_type(rout->type, &rout->source_corresp, sec_decl);
     /* Finish the declaration. */
     write_tok_str(";");
   } else {
@@ -3494,10 +3568,11 @@ Initialize for the C++/C-generating back end.
   curr_output_line = 0;
   curr_output_seq_number = 0;
   curr_output_column = 0;  /* Special value meaning there is no output line. */
+  output_position_is_pending = FALSE;
   file_scope_source_sequence_entry = NULL;
   func_scope_source_sequence_entry = NULL;
   class_scope_source_sequence_entry = NULL;
-  type_declaration_cannot_be_emitted_now = FALSE;
+  type_declaration_cannot_be_emitted_now = 0;
   curr_function_scope = NULL;
   curr_scope_within_function = NULL;
   curr_switch_statement = NULL;
