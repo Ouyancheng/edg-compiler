@@ -518,10 +518,11 @@ if n is supplied or to the value associated with the last entry popped.
     val = value_of_integer_constant(&const_for_curr_token, &err);
     if (err ||
         !check_pack_alignment_value(val, &curr_max_member_alignment)) {
-      error(ec_bad_pack_alignment);
+      diagnostic(microsoft_mode ? es_warning : es_error,
+                 ec_bad_pack_alignment);
       /* Reset the current pack alignment value to zero, which means: use the
          default pack alignment that was specified on the command line. */
-      curr_max_member_alignment = 0;
+      if (!microsoft_mode) { curr_max_member_alignment = 0; }
     } else {
       updated = TRUE;
     }  /* if */

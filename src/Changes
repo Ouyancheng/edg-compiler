@@ -1,5 +1,10 @@
 Version 2.45
 
+9/14/00  Microsoft compatibility: warning only on invalid #pragma pack values
+
+In Microsoft mode, #pragma pack (n) directives with an invalid value (e.g.,
+zero) are ignored with a warning.  In other modes this remains an error.
+
 9/12/00  Additional source position information for class template
          prototype instantiations
 
