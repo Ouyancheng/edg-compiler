@@ -7033,6 +7033,9 @@ return a pointer to it in *symbol_ptr.
           /* Note that in non-cfront mode this is done only for types that
              actually do have linkage. */
           tp->source_corresp.name = locator->symbol_header->identifier;
+          if (!is_class_or_enum && !any_cfront_mode()) {
+            tp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
+          }  /* if */
         }  /* if */
       }  /* if */
       /* Recompute the name linkage. */

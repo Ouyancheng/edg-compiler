@@ -1,5 +1,15 @@
 Version 2.46
 
+2/12/02  Function declarations involving types with no linkage
+
+The front end now more consistently diagnoses function declarations that
+involve types with no linkage.  Previously, cases involving typedefs of
+unnamed const-qualified types were not diagnosed in configurations where
+CFRONT_OBJECT_CODE_COMPATIBILITY is TRUE.
+
+  typedef const enum { e1 } E;
+  void func(E *e) {}  // Error in strict mode; warning in default mode.
+
 2/9/02   Order of classes on routine befriending_classes list in IL
 
 Since some time in 1995, the befriending_classes list of a routine in
