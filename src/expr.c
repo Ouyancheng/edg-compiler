@@ -848,6 +848,7 @@ variable.
                            /*initializing_variable=*/FALSE,
                            /*static_lifetime=*/FALSE,
                            /*is_copy_initialization=*/FALSE,
+                           /*nontype_template_arg=*/FALSE,
                            err_code);
   /* Check for the required closing parenthesis. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -11794,6 +11795,7 @@ required_type will be void if the expression should have void type
                                /*initializing_variable=*/FALSE,
                                /*static_lifetime=*/FALSE,
                                /*is_copy_initialization=*/TRUE,
+                               /*nontype_template_arg=*/FALSE,
                                err_code);
       expression = make_node_from_operand(&result);
     }  /* if */
@@ -12022,6 +12024,7 @@ for the converted result in *constant.  Do various error checks.
                              /*initializing_variable=*/FALSE,
                              /*static_lifetime=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
+                             /*nontype_template_arg=*/TRUE,
                              ec_bad_nontype_template_arg);
     /* Make a constant from the operand. */
     extract_constant_from_operand(operand, constant);
@@ -12240,6 +12243,7 @@ copy-initialization ("="-form).
                            /*initializing_variable=*/TRUE,  /* Arbitrary. */
                            /*static_lifetime=*/FALSE,
                            /*is_copy_initialization=*/TRUE,
+                           /*nontype_template_arg=*/FALSE,
                            ec_bad_initializer_type);
   /* Make a constant from the operand. */
   extract_constant_from_operand(&result, constant);
@@ -12285,6 +12289,7 @@ nonstandard class member constants.  Assumes copy-initialization
                            /*initializing_variable=*/TRUE,  /* Arbitrary. */
                            /*static_lifetime=*/FALSE,
                            /*is_copy_initialization=*/TRUE,
+                           /*nontype_template_arg=*/FALSE,
                            ec_bad_initializer_type);
   /* Make a constant from the operand. */
   extract_constant_from_operand(&result, constant);
@@ -12356,6 +12361,7 @@ and scan_aggregate_class_initializer_expression.
                            /*initializing_variable=*/TRUE,
                            static_lifetime,
                            is_copy_initialization,
+                           /*nontype_template_arg=*/FALSE,
                            ec_bad_initializer_type);
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
@@ -12603,6 +12609,7 @@ a thrown exception) if that is appropriate.
                                /*initializing_variable=*/TRUE,
                                static_lifetime,
                                /*is_copy_initialization=*/TRUE,
+                               /*nontype_template_arg=*/FALSE,
                                ec_bad_initializer_type);
       switch (result.kind) {
         case ok_error:

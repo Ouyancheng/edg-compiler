@@ -30,6 +30,7 @@ static void prep_conversion_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,
                                     a_conv_descr      *conversion,
                                     a_boolean         is_copy_initialization,
+                                    a_boolean         nontype_template_arg,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos);
 static a_boolean operand_is_temp_init(an_operand *operand);
@@ -7224,6 +7225,7 @@ Adjust the operand type to match the type requirement.
         prep_conversion_operand(operand, specific_type,
                                 &arg_match->conversion,
                                 /*is_copy_initialization=*/TRUE,
+                                /*nontype_template_arg=*/FALSE,
                                 ec_no_error,
                                 &operand->position);
       }  /* if */
@@ -8753,20 +8755,46 @@ type before any rewriting, for use in error messages.
 }  /* conversion_usable_or_possible */
 
 
+static a_boolean conversion_allowed_for_nontype_template_argument(
+                                                      a_conv_descr *conversion)
+/*
+Return TRUE unless the indicated conversion contains something that
+is not allowed in a conversion for a nontype template argument, e.g.,
+a conversion of 0 to a pointer type.
+*/
+{
+  a_boolean allowed = TRUE;
+
+  if (conversion->std.pointer_normalization_needed) {
+    /* Conversion of 0 to a pointer type, or of a pointer to object type
+       to void *, is not allowed on a nontype template argument. */
+    allowed = FALSE;
+  } else if (conversion->std.cast_base_class != NULL) {
+    /* Derived-to-base pointer conversions and base-to-derived
+       pointer-to-member conversions are not allowed on a nontype
+       template argument. */
+    allowed = FALSE;
+  }  /* if */
+  return allowed;
+}  /* conversion_allowed_for_nontype_template_argument */
+
+
 static void prep_conversion_operand(an_operand        *source_operand,
                                     a_type_ptr        dest_type,
                                     a_conv_descr      *conversion,
                                     a_boolean         is_copy_initialization,
+                                    a_boolean         nontype_template_arg,
                                     an_error_code     incompatible_err,
                                     a_source_position *err_pos)
 /*
 Convert source_operand to dest_type if that is possible.  If not, issue
 incompatible_err at *err_pos.  If is_copy_initialization is TRUE, this
 is copy-initialization ("="-form); otherwise, it's direct-initialization
-("()"-form).  source_operand may be an rvalue or an lvalue.  On
-return, it will always be an rvalue.  If conversion is non-NULL, the
-conversion has previously been found to be acceptable, and *conversion
-describes it.  dest_type must not be a reference type.
+("()"-form).  If nontype_template_arg is TRUE, this is a nontype template
+argument.  source_operand may be an rvalue or an lvalue.  On return, it
+will always be an rvalue.  If conversion is non-NULL, the conversion has
+previously been found to be acceptable, and *conversion describes it.
+dest_type must not be a reference type.
 */
 {
   a_conv_descr local_conversion;
@@ -8784,6 +8812,12 @@ describes it.  dest_type must not be a reference type.
                                     incompatible_err, err_pos,
                                     &conversion,
                                     &local_conversion)) {
+    /* Some conversions are not allowed on a nontype template argument. */
+    if (nontype_template_arg &&
+        !conversion_allowed_for_nontype_template_argument(conversion)) {
+      pos_ty2_diagnostic(es_discretionary_error, incompatible_err, err_pos,
+                         source_operand->type, dest_type);
+    }  /* if */
     /* The types are compatible.  Do the conversion. */
     /* Force the result to be an rvalue. */
     conversion->result_is_an_lvalue = FALSE;
@@ -9771,6 +9805,14 @@ to be acceptable, and *conversion describes it.
       } else {
         error_in_operand(ec_null_reference, source_operand);
       }  /* if */
+    } else if (curr_expr_kind_is(ek_template_arg) &&
+               is_class_struct_union_type(base_dest_type) &&
+               find_base_class_of(orig_source_type, base_dest_type) != NULL) {
+      /* A derived-base binding is not allowed in a nontype template
+         argument. */
+      pos_ty2_diagnostic(es_discretionary_error, incompatible_err,
+                         &source_operand->position, orig_source_type,
+                         dest_type);
     }  /* if */
     /* Cast the operand to the result type. */
     cast_operand(result_ptr_type, source_operand, /*check_cast_access=*/TRUE,
@@ -10014,6 +10056,7 @@ void prep_initializer_operand(an_operand    *source_operand,
                               a_boolean     initializing_variable,
                               a_boolean     static_lifetime,
                               a_boolean     is_copy_initialization,
+                              a_boolean     nontype_template_arg,
                               an_error_code incompatible_err)
 /*
 Check the operand for initializer compatibility against the type supplied.
@@ -10024,8 +10067,9 @@ to return a value in a return statement.  initializing_variable is
 TRUE if this initialization is for a variable.  In that case,
 static_lifetime is TRUE if the variable is static.  is_copy_initialization
 is TRUE if this is copy-initialization ("="-form); otherwise, it is
-direct-initialization ("()"-form).  If the operand and type are
-incompatible, the error incompatible_err is issued.  This routine is
+direct-initialization ("()"-form).  nontype_template_arg is TRUE if
+the operand is a nontype template argument.  If the operand and type
+are incompatible, the error incompatible_err is issued.  This routine is
 used for initialization, function call arguments, and return
 expressions, i.e., for "="-type initializations.  It is not used when
 copy constructor elision is possible; see
@@ -10057,6 +10101,7 @@ initializer has previously been found to be acceptable, and
     /* Normal case (not initializing a reference). */
     prep_conversion_operand(source_operand, dest_type, conversion,
                             is_copy_initialization,
+                            nontype_template_arg,
                             incompatible_err,
                             &source_operand->position);
   }  /* if */
@@ -10133,6 +10178,7 @@ to be acceptable, and *conversion describes it.
                              /*initializing_variable=*/FALSE,
                              /*static_lifetime=*/FALSE,
                              /*is_copy_initialization=*/TRUE,
+                             /*nontype_template_arg=*/FALSE,
                              err_code);
   }  /* if */
 }  /* prep_argument_operand */
@@ -10196,6 +10242,7 @@ cases where bitwise copying applies.
     prep_conversion_operand(source_operand, dest_type,
                             (a_conv_descr_ptr)NULL,
                             /*is_copy_initialization=*/TRUE,
+                            /*nontype_template_arg=*/FALSE,
                             incompatible_err, err_pos);
   }  /* if */
 }  /* prep_assignment_operand */
@@ -10216,6 +10263,13 @@ if so.
                             /*try_user_conversions=*/FALSE,
                             &arg_summary);
   compatible = (arg_summary.match_level != aml_none);
+  if (compatible) {
+    /* Some conversions are not allowed on a nontype template argument. */
+    if (!conversion_allowed_for_nontype_template_argument(
+                                                    &arg_summary.conversion)) {
+      compatible = FALSE;
+    }  /* if */
+  }  /* if */
   return compatible;
 }  /* nontype_template_arg_conversion_possible */
 

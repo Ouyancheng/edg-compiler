@@ -1,5 +1,14 @@
 Version 2.43
 
+11/2/99  Pointer conversions not allowed on nontype template argument
+
+Inplicit null pointer conversions, related-class conversions, and
+conversions to "void *" are no longer allowed on a nontype template
+argument.  See [temp.arg.nontype] paragraph 5 in the C++ standard.
+
+  template <int *p> struct A { };
+  A<0> a;     // error
+
 11/2/99  Names for conversion functions for typedef types
 
 The names in symbol headers and IL entries for conversion functions
