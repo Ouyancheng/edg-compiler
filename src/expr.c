@@ -1706,7 +1706,7 @@ Syntax:
       a_routine_ptr rp =
                      operand->variant.constant.variant.address.variant.routine;
       if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-          rp->variant.opname_kind == onk_function_call) {
+          rp->variant.opname_kind == (an_opname_kind)onk_function_call) {
         /* The original "function" was a class object with an operator()
            member, and the resulting call is to an operator() (as opposed to
            using a conversion operator to a function pointer): mark the call
