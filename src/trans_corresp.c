@@ -3252,7 +3252,9 @@ are not checked.
              routine = skip_generated_routine(routine->next),
              corresp_routine = skip_generated_routine(corresp_routine->next)) {
           if (routine->compiler_generated ==
-                                         corresp_routine->compiler_generated) {
+                                         corresp_routine->compiler_generated &&
+              routine->is_template_function ==
+                                       corresp_routine->is_template_function) {
             set_trans_unit_corresp(iek_routine, routine, corresp_routine);
           } else {
             /* Do not set up a correspondence in this case because it could
@@ -3262,8 +3264,9 @@ are not checked.
             if (trans_unit_corresp_of(routine) == NULL ||
                 (a_routine_ptr)canonical_il_entry_of(routine) != routine) {
               set_no_trans_unit_corresp(iek_routine, routine);
-            } else if (trans_unit_corresp_of(routine) == NULL ||
-                       (a_routine_ptr)canonical_il_entry_of(corresp_routine) !=
+            }  /* if */
+            if (trans_unit_corresp_of(corresp_routine) == NULL ||
+                (a_routine_ptr)canonical_il_entry_of(corresp_routine) !=
                                                              corresp_routine) {
               set_no_trans_unit_corresp(iek_routine, corresp_routine);
             }  /* if */
