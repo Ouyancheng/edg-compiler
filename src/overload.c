@@ -7737,7 +7737,7 @@ If conversion is non-NULL, the initializer has previously been found
 to be acceptable, and *conversion describes it.
 */
 {
-  a_type_ptr orig_dest_type = dest_type;
+  a_type_ptr orig_dest_type = dest_type, result_ptr_type;
   a_type_ptr orig_source_type = source_operand->type;
   an_operand orig_operand;
   a_type_ptr base_dest_type;
@@ -7758,6 +7758,18 @@ to be acceptable, and *conversion describes it.
                                                     &binding_to_rvalue_allowed,
                                                     &dropping_qualifiers);
   base_dest_type = type_pointed_to(dest_type);
+  /* Use a pointer type instead of a reference type on the destination. */
+  if (!bitwise_assignment_param) {
+    result_ptr_type = make_pointer_type(base_dest_type);
+  } else {
+    /* For the bitwise assignment case, the reference type is
+       reference-to-const, but it's fabricated.  There's no real need to
+       add "const" in the cases where the original object is bound to,
+       so use the dest type with the original object cv-qualifiers. */
+    result_ptr_type = make_pointer_type(
+                            make_identically_qualified_type(base_dest_type,
+                                                            orig_source_type));
+  }  /* if */
   operand_was_rvalue = is_an_rvalue(source_operand);
   if (direct_binding_possible && is_an_lvalue(source_operand)) {
     /* The initial value is an lvalue of the right type; the initialization
@@ -7784,11 +7796,8 @@ to be acceptable, and *conversion describes it.
         error_in_operand(ec_null_reference, source_operand);
       }  /* if */
     }  /* if */
-    /* Use a pointer type instead of a reference type on the
-       destination. */
-    dest_type = make_pointer_type(base_dest_type);
     /* Cast the operand to the result type. */
-    cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
+    cast_operand(result_ptr_type, source_operand, /*check_cast_access=*/TRUE,
                  /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE);
   } else if (direct_binding_possible &&
              is_a_function_designator(source_operand)) {
@@ -7824,10 +7833,7 @@ to be acceptable, and *conversion describes it.
     }  /* if */
     /* Convert the operand to a pointer to the class object. */
     conv_class_operand_to_object_pointer(source_operand);
-    /* Use a pointer type instead of a reference type on the
-       destination. */
-    dest_type = make_pointer_type(base_dest_type);
-    cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
+    cast_operand(result_ptr_type, source_operand, /*check_cast_access=*/TRUE,
                  /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE);
     if (dropping_qualifiers) {
       /* Type qualifiers were dropped on this binding. */
@@ -8117,9 +8123,6 @@ and type are incompatible, issue the error incompatible_err at position
 cases where bitwise copying applies.
 */
 {
-  a_boolean  cast_optimization_done = FALSE;
-  a_type_ptr ptr_dest_type;
-
   if (!C_mode() && is_class_struct_union_type(dest_type)) {
     a_type_ptr class_type = skip_typerefs(dest_type), param_type;
     /* C++ assignment of a class. */
@@ -8140,30 +8143,6 @@ cases where bitwise copying applies.
                                        /*try_user_conversions=*/TRUE,
                                        /*bitwise_assignment_param=*/TRUE,
                                        incompatible_err);
-    /* Adjust the cv-qualifiers ("const" was added by the reference type). */
-    ptr_dest_type = make_pointer_type(dest_type);
-    if (is_expression_operand(source_operand)) {
-      an_expr_node_ptr expr = source_operand->variant.expression;
-      if (is_operation_node(expr) &&
-          expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
-        a_type_ptr cast_source_type = expr->variant.operation.operands->type;
-        if (il_identical_types(ptr_dest_type, cast_source_type)) {
-          /* The top node in the expression is a cast that casts from the
-             desired type to a differently-qualified version of that pointer
-             type.  Just remove the cast. */
-          cast_optimization_done = TRUE;
-          expr = expr->variant.operation.operands;
-          source_operand->variant.expression = expr;
-          source_operand->type = expr->type;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    if (!cast_optimization_done) {
-      cast_operand(ptr_dest_type, source_operand,
-                   /*check_cast_access=*/TRUE,
-                   /*is_implicit_cast=*/TRUE,
-                   /*is_reinterpret_cast=*/FALSE);
-    }  /* if */
     /* Turn the pointer produced for the reference binding back into an
        rvalue for a class object. */
     conv_object_pointer_to_lvalue(source_operand);
