@@ -11144,20 +11144,6 @@ instantiation.
     /* Free the existing original set of default arguments. */
     free_def_arg_expr_fixup(curr_default_args);
     curr_default_args = proto_tssp->variant.function.def_arg_expr_list;
-  } else {
-    /* We are using the newly specified default arguments.  Do a prototype
-       instantiation of the new defaults.  For declarations within classes
-       this is done in class fixup processing. */
-    if (nonclass_prototype_instantiations &&
-        decl_state->class_declared_in == NULL) {
-      /* Record the declaration sequence number for the default argument.
-         This is done here because the value for the containing declaration
-         has not been set yet. */
-      decl_state->decl_info->decl_seq = ++decl_seq_counter;
-      default_arg_prototype_instantiation(template_sym,
-                                          curr_default_args,
-					  decl_state->prototype_scope_symbols);
-    }  /* if */
   }  /* if */
   /* Link the default argument list from the template supplement
      onto the end of the list of current default arguments.  The
@@ -11172,6 +11158,21 @@ instantiation.
     daefp->next = tssp->variant.function.def_arg_expr_list;
     tssp->variant.function.def_arg_expr_list = curr_default_args;
   } /* if */
+  if (proto_sym != NULL) {
+    /* We are using the newly specified default arguments.  Do a prototype
+       instantiation of the new defaults.  For declarations within classes
+       this is done in class fixup processing. */
+    if (nonclass_prototype_instantiations &&
+        decl_state->class_declared_in == NULL) {
+      /* Record the declaration sequence number for the default argument.
+         This is done here because the value for the containing declaration
+         has not been set yet. */
+      decl_state->decl_info->decl_seq = ++decl_seq_counter;
+      default_arg_prototype_instantiation(template_sym,
+                                          curr_default_args,
+					  decl_state->prototype_scope_symbols);
+    }  /* if */
+  }  /* if */
 }  /* update_function_template_default_args */
 
 
