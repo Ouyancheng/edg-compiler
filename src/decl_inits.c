@@ -1081,9 +1081,13 @@ the default constructor (if one exists) is called.
 #endif /* if 0 */
         }  /* if */
         if ((rp = select_default_constructor(tp, err_pos)) != NULL) {
+          a_param_type_ptr  ptp = (skip_typerefs(rp->type))->
+                                   variant.routine.extra_info->param_type_list;
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
           local_di.variant.constructor.routine = rp;
-          local_di.variant.constructor.args = NULL;
+          /* A user defined default constructor may have default args that
+             should be incorporated into the constructor call. */
+          local_di.variant.constructor.args = copy_default_arg_expr_list(ptp);
           local_di.destructor = select_destructor(tp);
           if (var_type != tp) {
             /* The variable for which initialization is done is an array, so
