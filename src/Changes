@@ -625,9 +625,9 @@ be reached.
     /*NOTREACHED*/   // A hint indicating this point is never reached
   }                  // inhibits the warning about a missing return.
 
-[12/20/02] Also, the C- and C++-generating back ends no longer
-put out a "return;" for the implied return, to avoid getting
-a hard error if the target compiler is a C99 compiler.
+[12/20/02] Also, the C-generating back end no longer puts out a 
+"return;" for the implied return, to avoid getting a hard error if 
+the target compiler is a C99 compiler.
 
 11/4/02  GNU C++ compatibility: Predefined macro _GNU_SOURCE on Linux
 
