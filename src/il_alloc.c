@@ -482,6 +482,7 @@ associated variant fields to default values.
   cp->expr           = NULL;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   cp->implicit_cast  = FALSE;
+  cp->is_reinterpret_cast = FALSE;
   cp->non_arithmetic = FALSE;
   cp->is_simple_zero = FALSE;
 #if DO_IL_LOWERING || BACK_END_IS_C_GEN_BE

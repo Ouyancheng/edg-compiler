@@ -1604,7 +1604,14 @@ typedef struct a_constant {
                            the representation has been cast to the type
                            indicated above and it's not a "natural" fit.
                            Used for integer constants cast to pointer types
-                           and one pointer type cast to another. */
+                           and one pointer type cast to another.  Note that,
+                           despite the name, this cast is not necessarily
+                           implicit in the source; it might be an explicit
+                           cast. */
+  a_bit_field	is_reinterpret_cast:1;
+			/* If this is TRUE, implicit_cast will also be
+			   TRUE, and the cast was a reinterpret_cast in
+			   the source code.  Only TRUE in C++. */
   a_bit_field	non_arithmetic:1;
                         /* This constant should not be considered to be
                            arithmetic; it's probably a bit mask of some kind.
