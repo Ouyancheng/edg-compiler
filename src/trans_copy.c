@@ -546,6 +546,9 @@ and remap the pointers in the copy.
         update_namespace_pointers_block(scope);
       }  /* if */
     }  /* if */
+  } else if (kind == iek_scope) {
+    a_scope_ptr scope = (a_scope_ptr)copy;
+    scope->scope_orphaned_list_header_generated = FALSE;
   }  /* if */
 }  /* copy_entry */
 
