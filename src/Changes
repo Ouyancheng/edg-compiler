@@ -10,45 +10,45 @@ element type now works properly.
 
 4/25/94  targ_def.h and target.h -- target configuration
 
-The contents of target.h have been moved into a new file named targ_def.h,
-and target.h now contains declarations of global configuration variables
-initialized with values declared in targ_def.h.  Most of these variables
-are new, and replace #define values to control processing throughout the
-compiler; they are initialized by those #define values (which are
-upper-case versions of the same name).  For instance, targ_little_endian is
+The contents of target.h have been moved into a new file, targ_def.h, and
+target.h now contains declarations of global configuration variables that
+are initialized with values declared in targ_def.h.  Most of the variables
+are new, replacing #define values to control processing throughout the
+compiler; they are initialized by those #define values (which are upper-
+case versions of the same name).  For instance, targ_little_endian is
 initialized by TARG_LITTLE_ENDIAN and all references to the latter have
-been replaced by references to the former.  Here is the set of configuration
-variables:
+been replaced by references to the former.  Here is the list of
+configuration variables:
 
- targ_little_endian
- targ_char_bit
- targ_host_string_char_bit
- targ_has_signed_chars
- targ_char_constant_first_char_most_significant
- targ_wchar_t_int_kind and targ_sizeof_wchar_t
- targ_sizeof_short and targ_alignof_short
- targ_sizeof_int and targ_alignof_int
- targ_sizeof_long and targ_alignof_long
- targ_sizeof_long_long and targ_alignof_long_long
- targ_max_bit_field_size
- targ_bit_field_container_size
- targ_plain_int_bit_field_is_unsigned
- targ_enum_bit_fields_are_always_unsigned
- targ_zero_width_bit_field_alignment
- targ_sizeof_pointer and targ_alignof_pointer
- targ_ptrdiff_t_max, targ_ptrdiff_t_min, and targ_ptrdiff_t_int_kind
- targ_size_t_max and targ_size_t_int_kind
- targ_sizeof_float and targ_alignof_float
- targ_sizeof_double and targ_alignof_double
- targ_sizeof_long_double and targ_alignof_long_double
- targ_sizeof_ptr_to_data_member and targ_alignof_ptr_to_data_member
- targ_sizeof_ptr_to_member_function and targ_alignof_ptr_to_member_function
- targ_sizeof_virtual_function_info and targ_alignof_virtual_function_info
- targ_enum_types_can_be_smaller_than_int
- targ_right_shift_is_arithmetic
- targ_minimum_struct_alignment
- targ_jmp_buf_num_elements
- targ_jmp_buf_element_int_kind
+  targ_little_endian
+  targ_char_bit
+  targ_host_string_char_bit
+  targ_has_signed_chars
+  targ_char_constant_first_char_most_significant
+  targ_wchar_t_int_kind and targ_sizeof_wchar_t
+  targ_sizeof_short and targ_alignof_short
+  targ_sizeof_int and targ_alignof_int
+  targ_sizeof_long and targ_alignof_long
+  targ_sizeof_long_long and targ_alignof_long_long
+  targ_max_bit_field_size
+  targ_bit_field_container_size
+  targ_plain_int_bit_field_is_unsigned
+  targ_enum_bit_fields_are_always_unsigned
+  targ_zero_width_bit_field_alignment
+  targ_sizeof_pointer and targ_alignof_pointer
+  targ_ptrdiff_t_max, targ_ptrdiff_t_min, and targ_ptrdiff_t_int_kind
+  targ_size_t_max and targ_size_t_int_kind
+  targ_sizeof_float and targ_alignof_float
+  targ_sizeof_double and targ_alignof_double
+  targ_sizeof_long_double and targ_alignof_long_double
+  targ_sizeof_ptr_to_data_member and targ_alignof_ptr_to_data_member
+  targ_sizeof_ptr_to_member_function and targ_alignof_ptr_to_member_function
+  targ_sizeof_virtual_function_info and targ_alignof_virtual_function_info
+  targ_enum_types_can_be_smaller_than_int
+  targ_right_shift_is_arithmetic
+  targ_minimum_struct_alignment
+  targ_jmp_buf_num_elements
+  targ_jmp_buf_element_int_kind
 
 This change enables implementations to permit users to reconfigure the
 target characteristics when they invoke the compiler.  There was already
