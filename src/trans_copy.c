@@ -763,6 +763,9 @@ unit to the primary one.
           *primary_type = *corresp_type;
         }  /* if */
       }  /* for */
+      if (pointers_block != NULL) {
+        pointers_block->last_type = last_type;
+      }  /* if */
     }  /* if */
     if (scope->variables != NULL) {
       a_variable_ptr variable, last_variable;
@@ -815,6 +818,9 @@ unit to the primary one.
         }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
       }  /* for */
+      if (pointers_block != NULL) {
+        pointers_block->last_variable = last_variable;
+      }  /* if */
     }  /* if */
     if (scope->dynamic_inits != NULL) {
       /* Add the dynamic initializations of "scope" to the end of the
@@ -884,6 +890,9 @@ unit to the primary one.
           *any_moved_function_bodies = TRUE;
         }  /* if */
       }  /* for */
+      if (pointers_block != NULL) {
+        pointers_block->last_routine = last_routine;
+      }  /* if */
     }  /* if */
     if (scope->templates != NULL) {
       a_template_ptr templ, last_templ;
@@ -911,6 +920,9 @@ unit to the primary one.
         corresp_templ->next = NULL;
         last_templ = corresp_templ;
       }  /* for */
+      if (pointers_block != NULL) {
+        pointers_block->last_template = last_templ;
+      }  /* if */
     }  /* if */
     if (scope->namespaces != NULL) {
       a_namespace_ptr nsp, last_nsp;
@@ -943,6 +955,9 @@ unit to the primary one.
                                  any_moved_function_bodies);
         }  /* if */
       }  /* for */
+      if (pointers_block != NULL) {
+        pointers_block->last_namespace = last_nsp;
+      }  /* if */
     }  /* if */
     /* Merge the object lifetime from "scope" into that from
        "primary_scope". */
