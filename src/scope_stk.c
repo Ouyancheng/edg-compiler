@@ -1512,10 +1512,10 @@ to the namespace and class that must be reactivated.
     parent_type = NULL;
     parent_namespace = sp->variant.assoc_namespace;
   }  /* if */
-  if (instance_sym == NULL ||
-      (!template_sym->is_class_member && 
-       template_sym->kind == (a_symbol_kind)sk_function_template)) {
-    /* When there is no specific instance being instantiated, that indicates
+  if (instance_sym == NULL) {
+    /* Use the parent information determined above.
+
+       When there is no specific instance being instantiated, that indicates
        that we are instantiating something like a template parameter type
        that depends on another template parameter, or a default template
        argument whose type depends on a template parameter.  This is also
@@ -1524,14 +1524,20 @@ to the namespace and class that must be reactivated.
        is not the case when scanning the default function arguments
        though.  In such cases, the parent information is determined by the
        scope that contained the template declaration based on which the
-       current instantiation is being done.
-
-       When generating an instance of a function template (that is not a
-       member template) that was defined in some other class scope, we need
-       to create the context of that class scope in order to do the 
-       instantiation. */
+       current instantiation is being done. */
     *p_tp = parent_type;
     *p_nsp = parent_namespace;
+  } else if (!template_sym->is_class_member && 
+             template_sym->kind == (a_symbol_kind)sk_function_template) {
+    /* When generating an instance of a function template (that is not a
+       member template) that was defined in some other class scope, we need
+       to create the context of that class scope in order to do the 
+       instantiation.  The namespace to be used is the namespace
+       of which the template is a member.  Functions cannot be defined
+       using qualified names in friend declarations, so the namespace
+       must be the same as the namespace containing the class. */
+    *p_tp = parent_type;
+    *p_nsp = parent_namespace_for_symbol(template_sym);
   } else {
     /* If we are instantiating a particular instance of a template, get
        the parent information from the template being instantiated. */
