@@ -4652,14 +4652,11 @@ C-style casts and C++ functional-notation type conversions.
                  the error message. */
               err = TRUE;
               processed = TRUE;
-              if (user_defined_conversion_possible(operand, eff_type_cast_to,
-                                                   /*is_initialization=*/TRUE,
+              (void)user_defined_conversion_possible(operand, eff_type_cast_to,
+                                                    /*is_initialization=*/TRUE,
                                                    /*need_lvalue_result=*/TRUE,
-                                                   &user_conversion,
-                                                   &failed)) {
-              } else {
-                unexpected_condition();
-              }  /* if */
+                                                     &user_conversion,
+                                                     &failed);
             }  /* if */
           }  /* if */
         } else {
