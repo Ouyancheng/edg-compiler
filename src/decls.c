@@ -1288,33 +1288,15 @@ type is legal.
                from the top of the list. */
             prev_temp_type = *derived_type;
             for (;;) {
-              tkind = prev_temp_type->kind;
-              switch (tkind) {
-                case tk_array:
-                  tp = prev_temp_type->variant.array.element_type;
-                  break;
-                case tk_pointer:
-                  tp = prev_temp_type->variant.pointer.type;
-                  break;
-                case tk_routine:
-                  tp = prev_temp_type->variant.routine.return_type;
-                  break;
-                case tk_typeref:
-                  tp = prev_temp_type->variant.typeref.type;
-                  break;
-                case tk_ptr_to_member:
-                  tp = pm_member_type(prev_temp_type);
-                  break;
-#if CHECKING
-                default:
-                  internal_error("add_to_derived_type_list: bad type in list");
-#endif /* CHECKING */
-              }  /* switch */
+              tp = underlying_type_of_derived_type(prev_temp_type);
+              check_assertion_str(tp != NULL,
+                                 "add_to_derived_type_list: bad type in list");
               if (tp == temp_type) break;
               prev_temp_type = tp;
             }  /* for */
             /* Found the previous type entry.  Keep looping. */
             temp_type = prev_temp_type;
+            tkind = temp_type->kind;
           }  /* if */
         }  /* while */
       }  /* if */
