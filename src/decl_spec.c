@@ -551,11 +551,24 @@ inheritance_kind_pos are pointers to source positions used for diagnostics.
     if (ctsp->uuid_string != NULL) {
       /* Issue an error if __declspec(uuid(...)) strings are present and
          they aren't identical. */
-      if (strcmp(ctsp->uuid_string, decl_modifiers->uuid_string) != 0) {
-        pos_diagnostic(es_discretionary_error,
-                       ec_decl_modifiers_incompatible_with_previous_decl,
-                       err_pos);
-      }  /* if */
+      /* The comparison must ignore case, e.g., hex "C" versus "c". */
+      char *p1 = ctsp->uuid_string;
+      char *p2 = decl_modifiers->uuid_string;
+      for (;;) {
+        char c1 = *p1;
+        char c2 = *p2;
+        if (isalpha((unsigned char)c1)) c1 = tolower(c1);
+        if (isalpha((unsigned char)c2)) c2 = tolower(c2);
+        if (c1 != c2) {
+          pos_diagnostic(es_discretionary_error,
+                         ec_decl_modifiers_incompatible_with_previous_decl,
+                         err_pos);
+          break;
+        }  /* if */
+        if (c1 == '\0') break;
+        p1++;
+        p2++;
+      }  /* for */
     } else {
       ctsp->uuid_string = decl_modifiers->uuid_string;
     }  /* if */
