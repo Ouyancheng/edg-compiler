@@ -3156,6 +3156,9 @@ caller is responsible for sorting that out.)
       /* Add it to the scopes list for the scope enclosing the scope indicated
          by ssep. */
       add_to_scopes_list(sp, ssep-1);
+      check_assertion(curr_object_lifetime->entity.ptr == NULL);
+      bind_object_lifetime(curr_object_lifetime, (an_il_entry_kind)iek_scope,
+                           (char *)sp, /*ctor_init=*/FALSE);
     } else if (ssep->kind == (a_scope_kind)sck_func_prototype) {
       a_type_ptr              routine_type;
 
@@ -7050,6 +7053,77 @@ to it.
 }  /* alloc_object_lifetime */
 
 
+#if DEBUG
+void db_object_lifetime(an_object_lifetime_ptr  olp)
+/*
+*/
+{
+  char                *str;
+  a_dynamic_init_ptr  dip;
+
+  if (olp == NULL) {
+    fputs("null object lifetime\n", f_debug);
+  } else {
+    fputs(il_entry_kind_names[(int)olp->entity.kind], f_debug);
+    switch (olp->entity.kind) {
+      case iek_scope:
+        {
+        a_scope_ptr  scope = (a_scope_ptr)olp->entity.ptr;
+        switch (scope->kind) {
+          case sck_file:      str = "file";     break;
+          case sck_function:  str = "function"; break;
+          case sck_block:     str = "block";    break;
+          default:            str = "???";      break;
+        }  /* switch */
+        }
+        break;
+      case iek_label:
+        str = ((a_label_ptr)olp->entity.ptr)->source_corresp.name;
+        break;
+      default:
+        str = NULL;
+    }  /* switch */
+    if (str != NULL) fprintf(f_debug, " (%s)", str);
+    str = ": ";
+    if (olp->parent_lifetime == NULL) {
+      fprintf(f_debug, "%sno parent", str);
+      str = ", ";
+    }  /* if */
+    if (olp->child_lifetime == NULL) {
+      fprintf(f_debug, "%sno children", str);
+      str = ", ";
+    }  /* if */
+    if (olp->next == NULL) {
+      fprintf(f_debug, "%sno next", str);
+      str = ", ";
+    }  /* if */
+    dip = olp->dynamic_inits;
+    fprintf(f_debug, "%sdynamic inits = %s\n", str,
+                     dip == NULL ? "<null>" : "");
+    for (; dip != NULL; dip = dip->next) {
+      db_dynamic_initializer(dip, 4);
+    }  /* if */
+  }  /* if */
+}  /* db_object_lifetime */
+
+
+void db_object_lifetime_stack(void)
+/*
+*/
+{
+  an_object_lifetime_ptr  olp = curr_object_lifetime;
+
+  fprintf(f_debug,
+          "object_lifetime_stack:%s\n", olp == NULL ? " <empty>" : "");
+  for (; olp != NULL; olp = olp->parent_lifetime) {
+    fputs("  ", f_debug);
+    db_object_lifetime(olp);
+  }  /* for */
+}  /* db_object_lifetime_stack */
+
+#endif /* DEBUG */
+
+
 static void free_object_lifetime(an_object_lifetime_ptr  olp)
 /*
 Return an object lifetime to the appropriate available list.
@@ -7058,6 +7132,7 @@ Return an object lifetime to the appropriate available list.
   an_object_lifetime_ptr  *avail_list_ptr;
   a_scope_depth           scope_depth;
 
+  db_enter(5, "free_object_lifetime");
   if (in_file_scope(olp)) {
     /* Return the entry to the file scope's available list. */
     scope_depth = DEPTH_OF_FILE_SCOPE;
@@ -7071,6 +7146,7 @@ Return an object lifetime to the appropriate available list.
   /* Link it onto the front of the available list. */
   olp->next = *avail_list_ptr;
   *avail_list_ptr = olp;
+  db_exit();
 }  /* free_object_lifetime */
 
 
@@ -7201,27 +7277,32 @@ subscope region.
 {
   an_object_lifetime_ptr   olp, parent;
 
+  db_enter(3, "push_object_lifetime");
   olp = alloc_object_lifetime();
-  /* Link the new entry into the object lifetime tree. */
-  olp->parent_lifetime = parent = curr_object_lifetime;
-  if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
-      ((a_scope_ptr)olp->entity.ptr)->kind == (a_scope_kind)sck_function) {
-    /* This is an object lifetime for a function scope; its parent pointer
-       is the file scope lifetime entry, but it's an "implicit" child of the
-       latter -- because of a memory region incompatibility, olp doesn't
-       appear explicitly on the child_lifetime list of its parent . */
-    check_assertion(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope ==
-                           (a_scope_ptr)parent->entity.ptr);
-    /* Don't add the current entry to the parent's list of children, and
-       don't update the sibling pointer. */
-  } else {
-    check_assertion(in_file_scope(olp) == in_file_scope(parent));
-    /* If the parent already has a list of children, add the new entry to
-       the front of the list. */
-    olp->next = parent->child_lifetime;
-    parent->child_lifetime = olp;
-    /* Record the current position in the dynamic inits list of the parent. */
-    olp->parent_dynamic_init = parent->dynamic_inits;
+  parent = curr_object_lifetime;
+  if (parent != NULL) {
+    /* Link the new entry into the object lifetime tree. */
+    olp->parent_lifetime = parent;
+    if (entity_kind == (a_byte_il_entry_kind)iek_scope && entity_ptr != NULL &&
+        ((a_scope_ptr)entity_ptr)->kind == (a_scope_kind)sck_function) {
+      /* This is an object lifetime for a function scope; its parent pointer
+         is the file scope lifetime entry, but it's an "implicit" child of the
+         latter -- because of a memory region incompatibility, olp doesn't
+         appear explicitly on the child_lifetime list of its parent . */
+      check_assertion(scope_stack[DEPTH_OF_FILE_SCOPE].il_scope ==
+                             (a_scope_ptr)parent->entity.ptr);
+      /* Don't add the current entry to the parent's list of children, and
+         don't update the sibling pointer. */
+    } else {
+      check_assertion(in_file_scope(olp) == in_file_scope(parent));
+      /* If the parent already has a list of children, add the new entry to
+         the front of the list. */
+      olp->next = parent->child_lifetime;
+      parent->child_lifetime = olp;
+      /* Record the current position in the dynamic inits list of the
+         parent. */
+      olp->parent_dynamic_init = parent->dynamic_inits;
+    }  /* if */
   }  /* if */
   /* Bind the object lifetime and the entity with which it is associated. */
   if (entity_ptr != NULL) {
@@ -7229,10 +7310,14 @@ subscope region.
   }  /* if */
   /* Now set the new entry to be the current object lifetime. */
   curr_object_lifetime = olp;
+#if DEBUG
+  if (debug_level >= 3) db_object_lifetime_stack();
+#endif /* DEBUG */
+  db_exit();
 }  /* push_object_lifetime */
 
 
-static a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp)
+a_boolean is_useless_object_lifetime(an_object_lifetime_ptr  olp)
 /*
 Return TRUE if the object lifetime entry pointed to by olp is "useless" --
 that is, there is no justification for its remaining in the IL.  For
@@ -7266,6 +7351,7 @@ with it.  Entries associated with scopes must also have no child entries.
       case iek_expr_node:
       case iek_label:
       case iek_block:
+      case iek_none:
         is_useless = TRUE;
         break;
 #if CHECKING
@@ -7282,6 +7368,23 @@ with it.  Entries associated with scopes must also have no child entries.
 }  /* is_useless_object_lifetime */
 
 
+void make_object_lifetime_useless(an_object_lifetime_ptr  olp)
+/*
+*/
+{
+#if CHECKING
+  if ((olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
+       ((a_scope_ptr)olp->entity.ptr)->kind != (a_scope_kind)sck_block) ||
+      olp->entity.kind == (a_byte_il_entry_kind)iek_try_supplement ||
+      olp->entity.kind == (a_byte_il_entry_kind)iek_new_delete_supplement) {
+    /* Cannot be made useless. */
+    internal_error("make_object_lifetime_useless: bad entity kind");
+  }  /* if */
+#endif /* CHECKING */
+  olp->dynamic_inits = NULL;
+}  /* make_object_lifetime_useless */
+
+
 void pop_object_lifetime(void)
 /*
 */
@@ -7289,6 +7392,13 @@ void pop_object_lifetime(void)
   a_boolean               is_implicit_child = FALSE;
   an_object_lifetime_ptr  olp, parent, child, end_of_child_list;
 
+  db_enter(3, "pop_object_lifetime");
+#if DEBUG
+  if (debug_level >= 3) {
+    fputs("curr_object_lifetime =\n  ", f_debug);
+    db_object_lifetime(curr_object_lifetime);
+  }  /* if */
+#endif /* DEBUG */
   olp = curr_object_lifetime;
   /* Pop the lifetime entry -- that is, update curr_object_lifetime to
      point to its parent entry. */
@@ -7311,17 +7421,20 @@ void pop_object_lifetime(void)
     parent = olp->parent_lifetime;
     /* Unless *olp is an "implicit child", the lifetime entry that's no
        longer needed should be the first entry on the parent's child list. */
-    check_assertion(is_implicit_child || parent->child_lifetime == olp);
-    /* Loop through all the children of olp move them up to the parent's
-       child list -- i.e., promote the children to siblings. */
-    end_of_child_list = NULL;
-    child = olp->child_lifetime;
-    for (child = olp->child_lifetime; child != NULL; child = child->next) {
-      child->parent_lifetime = parent;
-      child->parent_dynamic_init = olp->parent_dynamic_init;
-      end_of_child_list = child;
-    }  /* for */
-    if (!is_implicit_child) {
+    if (parent == NULL || is_implicit_child) {
+      /* We must be disposing of the object lifetime entry of a file or
+         function scope, so there must not be any children. */
+      check_assertion(olp->child_lifetime == NULL);
+    } else {
+      check_assertion(parent->child_lifetime == olp);
+      /* Loop through all the children of olp move them up to the parent's
+         child list -- i.e., promote the children to siblings. */
+      end_of_child_list = NULL;
+      for (child = olp->child_lifetime; child != NULL; child = child->next) {
+        child->parent_lifetime = parent;
+        child->parent_dynamic_init = olp->parent_dynamic_init;
+        end_of_child_list = child;
+      }  /* for */
       /* If there is a child list, promote it to parent. */
       if (olp->child_lifetime != NULL) {
         end_of_child_list->next = olp->next;
@@ -7335,16 +7448,29 @@ void pop_object_lifetime(void)
     olp->parent_lifetime = NULL;
     olp->child_lifetime = NULL;
     olp->next = NULL;
-    /* It should be unbound from the IL entry with which it is associated. */
-    unbind_object_lifetime(olp);
+    if (olp->entity.ptr == NULL) {
+      /* It's not been bound to any IL entry. */
+    } else {
+      /* Unbind from the IL entry with which it is associated. */
+      unbind_object_lifetime(olp);
+    }  /* if */
     /* Return the entry to its available list. */
     (void)free_object_lifetime(olp);
-  } else if (is_implicit_child) {
-    /* This is an object lifetime for a function scope that will remain
-       in the IL.  Set the global variable to assure the file scope lifetime
-       entry will be preserved. */
-    any_function_scope_lifetime_entries = TRUE;
+  } else {
+    /* Be sure an object lifetime that is being left in the IL has been
+       bound to some other IL entity. */
+    check_assertion(olp->entity.ptr != NULL);
+    if (is_implicit_child) {
+      /* This is an object lifetime for a function scope that will remain
+         in the IL.  Set the global variable to assure the file scope lifetime
+         entry will be preserved. */
+      any_function_scope_lifetime_entries = TRUE;
+    }  /* if */
   }  /* if */
+#if DEBUG
+  if (debug_level >= 3) db_object_lifetime_stack();
+#endif /* DEBUG */
+  db_exit()
 }  /* pop_object_lifetime */
 
 
