@@ -646,9 +646,9 @@ another_specifier:;
              *fmt_string == '#' || *fmt_string == '0') fmt_string++;
     }  /* if */
     /* An optional field width is next.  For printf, it can be a "*". */
-    if (isdigit(*fmt_string)) {
+    if (isdigit((unsigned char)*fmt_string)) {
       /* Decimal integer field width.  Skip over it. */
-      do {} while (isdigit(*++fmt_string));
+      do {} while (isdigit((unsigned char)*++fmt_string));
     } else if (!is_scanf && *fmt_string == '*') {
       /* "*" as field width.  The corresponding argument should be an 
          int.  Return that, and pick up next time after the field width. */
@@ -662,9 +662,9 @@ after_field_width:;
        decimal integer or "*"). */
     if (!is_scanf && *fmt_string == '.') {
       fmt_string++;
-      if (isdigit(*fmt_string)) {
+      if (isdigit((unsigned char)*fmt_string)) {
         /* Decimal integer precision.  Skip over it. */
-        do {} while (isdigit(*++fmt_string));
+        do {} while (isdigit((unsigned char)*++fmt_string));
       } else if (*fmt_string == '*') {
         /* "*" as precision.  The corresponding argument should be an 
            int.  Return that, and pick up next time after the precision. */

@@ -129,7 +129,7 @@ Print the string at string_ptr, whose length is string_length.
     putchar('"');
     for (i = 0; i < string_length; i++) {
       ch = string_ptr[i];
-      if (isprint(ch)) {
+      if (isprint((unsigned char)ch)) {
         if (ch == '"' || ch == '\\') putchar('\\');
         putchar(ch);
       } else {

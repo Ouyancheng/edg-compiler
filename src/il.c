@@ -920,7 +920,7 @@ Dump the contents of the indicated constant, for debug purposes.
       fputs("\"", f_debug);
       for (i = 0; i < cp->variant.string.length; i++) {
         c = cp->variant.string.value[i];
-        if (isprint(c)) {
+        if (isprint((unsigned char)c)) {
           (void)fputc(c, f_debug);
         } else {
           /* Print non-printable character in octal form.  Truncate

@@ -193,7 +193,7 @@ Scan an argument option as a decimal number, and return its value.
   int  digit;
 
   for (arg_ptr = optstr; *arg_ptr != '\0'; arg_ptr++) {
-    if (!isdigit(*arg_ptr)) goto number_error;
+    if (!isdigit((unsigned char)*arg_ptr)) goto number_error;
     digit = *arg_ptr - '0';
     if (result > LONG_MAX / 10) goto number_error;
     result *= 10;
