@@ -4358,10 +4358,8 @@ and record it in the class's assoc_operator_delete_routine field.
                                                     (an_opname_kind)onk_delete,
                                                     class_type);
     if (delete_function_symbol == NULL) {
-      delete_function_symbol = global_operator_new_or_delete_symbol(
-                                                    (an_opname_kind)onk_delete,
-                                                    &error_position,
-                                                    /*make_default_new=*/TRUE);
+      delete_function_symbol = 
+                           opname_function_symbol((an_opname_kind)onk_delete);
     } else {
       reduce_projection_symbol_to_fundamental_symbol(delete_function_symbol);
     }  /* if */
