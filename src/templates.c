@@ -15415,11 +15415,6 @@ the exported templates in that file.
 {
   a_translation_unit_ptr	saved_tup = curr_translation_unit;
 
-#if DEBUG
-  if (db_flag_is_set("load_tus")) {
-    fprintf(f_debug, "DBG> Loading secondary TU %s\n", etfp->source_file_name);
-  }  /* if */
-#endif /* DEBUG */
   /* Compile the specified translation unit. */
   process_translation_unit(etfp->source_file_name, /*is_primary=*/FALSE, etfp);
   /* Consider the exported template file to be in instantiation wrapup at
