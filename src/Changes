@@ -1,5 +1,19 @@
 Version 2.14
 
+1/29/93 Explicit signedness flag for bit fields
+
+The IL a_field entry now has a field bit_field_is_signed that indicates
+the signedness of the bit field.  It's necessary for enum bit fields,
+where the signedness of the enum may not match what's required for the
+bit field.  For integral non-enum bit fields, the field type (as always)
+has the same signedness as the bit field.  One other change: the ANSI C
+convention that saying "signed" explicitly forces the bit field to be
+signed has been extended to all sizes of integers, not just "int".
+That means that a bit field with a base type of "short", for example,
+which formerly was always signed, now will follow the configuration
+default.  The explicitly-signed form "signed short" will still force a
+signed bit field.
+
 1/29/93 Fixed bug in checking for qualified name with template reference
 
 A bug has been fixed that could cause a name that is both a class name
