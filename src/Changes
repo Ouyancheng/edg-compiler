@@ -1,5 +1,20 @@
 Version 2.38
 
+12/22/97  Local static array initialized to constant in extern inline function
+
+The transformation done by IL lowering in turning the initialization
+of a local static variable initialized to a constant inside an
+extern inline function into executable code (so that the variable,
+promoted to external, is a tentative definition) failed when the
+variable was an array.  Now fixed.
+
+  extern inline void f() {
+    static int i[2] = {0, 0};
+  }
+  int main () {
+    f();
+  }
+
 12/19/97  C_generating back end: inefficient code for pointer-to-member-
           function call
 

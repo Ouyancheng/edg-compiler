@@ -3687,18 +3687,9 @@ lower initialization for nonconstant aggregates.
     /* For local static variables, add a first-time flag and a test,
        but not if the initialization will be turned into a constant
        initialization. */
-    if (lsvip != NULL
-#if LOWER_EXTERN_INLINE
-        /* Add the first-time test also to local statics initialized to
-           constant values and being promoted out of extern inline
-           functions. */
-        || local_static_promoted_out_of_extern_inline
-#endif /* LOWER_EXTERN_INLINE */
-                                                     ) {
-      if (!do_simple_constant_init_opt) {
-        add_first_time_test(variable, insert_location, &block_stmt,
-                            &local_static_guard_var);
-      }  /* if */
+    if (lsvip != NULL && !do_simple_constant_init_opt) {
+      add_first_time_test(variable, insert_location, &block_stmt,
+                          &local_static_guard_var);
     }  /* if */
   }  /* if */
   if (dip->lifetime != NULL) {
@@ -3990,6 +3981,30 @@ do_assignment:;
            code and replaced with placeholder constants. */
         simple_constant_init = TRUE;
         simple_constant = dip->variant.constant;
+#if LOWER_EXTERN_INLINE
+        if (local_static_promoted_out_of_extern_inline) {
+          /* A static variable of an extern inline function initialized
+             to a constant.  The constant is the constant part of the
+             nonconstant aggregate.  Insert an assignment to set the variable
+             to the constant, preceding any generated initialization code.
+             This is done because we want the variable to be a tentative
+             definition, which means it must be uninitialized. */
+          an_expr_node_ptr init_val_node;
+          set_block_start_insert_location(block_stmt, &insert_location2);
+          entity_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
+                                              /*using_as_dest=*/TRUE);
+          check_assertion(simple_constant->kind ==
+                          (a_constant_repr_kind)ck_aggregate);
+          init_val_node = make_node_for_il_constant(simple_constant);
+          (void)insert_assignment_statement(entity_node,
+                                            (an_expr_operator_kind)eok_sassign,
+                                            init_val_node,
+                                            &insert_location2);
+          variable->init_kind = (an_init_kind)initk_none;
+          variable->initializer.constant = NULL;
+          simple_constant_init = FALSE;
+        }  /* if */
+#endif /* LOWER_EXTERN_INLINE */
       }  /* if */
       break;
     case dik_bitwise_copy:
@@ -4088,29 +4103,6 @@ do_assignment:;
         }  /* if */
         variable->init_kind = (an_init_kind)initk_static;
         variable->initializer.constant = simple_constant;
-#if LOWER_EXTERN_INLINE
-        if (local_static_promoted_out_of_extern_inline) {
-          /* A static variable of an extern inline function initialized
-             to a constant.  The constant is probably the constant part of
-             a nonconstant aggregate.  Insert an assignment to set the variable
-             to the constant, preceding any generated initialization code.
-             This is done because we want the variable to be a tentative
-             definition, which means it must be uninitialized. */
-          an_expr_node_ptr init_val_node;
-          set_block_start_insert_location(block_stmt, &insert_location2);
-          entity_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
-                                              /*using_as_dest=*/TRUE);
-          check_assertion(simple_constant->kind ==
-                          (a_constant_repr_kind)ck_aggregate);
-          init_val_node = make_node_for_il_constant(simple_constant);
-          (void)insert_assignment_statement(entity_node,
-                                            (an_expr_operator_kind)eok_sassign,
-                                            init_val_node,
-                                            &insert_location2);
-          variable->init_kind = (an_init_kind)initk_none;
-          variable->initializer.constant = NULL;
-        }  /* if */
-#endif /* LOWER_EXTERN_INLINE */
       } else {
         /* Initialization of an automatic variable to a constant.  Can be done
            by keeping the dynamic init entry. */
@@ -4175,31 +4167,47 @@ and made external) can be a tentative definition (i.e., uninitialized).
 scope is the scope in which the variable's definition appears.
 */
 {
-  an_insert_location insert_location;
-  an_init_pos_descr  ipd;
-  a_dynamic_init     dyn_init;
+  a_constant_ptr        constant;
+  an_insert_location    insert_location;
+  an_expr_operator_kind op;
+  an_expr_node_ptr      source_node;
+  a_statement_ptr       block_stmt;
+  a_variable_ptr        test_var;
 
   check_assertion(variable->storage_class == (a_storage_class)sc_unspecified &&
                   variable->init_kind == (an_init_kind)initk_static);
+  constant = variable->initializer.constant;
+  variable->init_kind = (an_init_kind)initk_none;
+  /* The general strategy is to add an assignment that copies the constant
+     value into the variable. */
+  if (constant->kind != (a_constant_repr_kind)ck_aggregate) {
+    /* For the simple, non-aggregate case, the constant can be assigned
+       directly. */
+    source_node = make_node_for_il_constant(constant);
+    op = lowered_assignment_operator(variable->type);
+  } else {
+    /* For aggregate cases, create an unnamed temporary that
+       gets the original initialization, then use an eok_bassign to
+       copy that to the initial variable.  This avoids taking the
+       address of an aggregate constant, which is not allowed in the
+       IL (except for string literals). */
+    a_variable_ptr temp_var = make_file_scope_temporary(variable->type);
+    temp_var->init_kind = (an_init_kind)initk_static;
+    temp_var->initializer.constant = variable->initializer.constant;
+    op = (an_expr_operator_kind)eok_bassign;
+    source_node = var_lvalue_expr(temp_var);
+  }  /* if */
   /* The WP [stmt.dcl] paragraph 3 says "A local object of POD type with
      static storage duration initialized with constant-expressions is
      initialized before its block is first entered."  Non-POD type
      variables can also be initialized early in some cases.
-     So we put a dynamic initialization at the start of the block in which
-     the variable is declared. */
+     So we put the assignment at the start of the block in which the
+     variable is declared. */
   set_block_start_insert_location(scope->assoc_block, &insert_location);
-  set_var_init_pos_descr(variable, &ipd);
-  /* Make up a fake dynamic initialization entry and lower it. */
-  clear_dynamic_init(&dyn_init, (a_dynamic_init_kind)dik_constant);
-  dyn_init.variable = variable;
-  dyn_init.variant.constant = variable->initializer.constant;
-  variable->init_kind = (an_init_kind)initk_dynamic;
-  variable->initializer.dynamic = &dyn_init;
-  lower_dynamic_init(&dyn_init, &ipd,
-                     (an_expr_node_ptr)NULL, (an_expr_node_ptr)NULL,
-                     (a_constructor_init_ptr)NULL, LDIO_FULL_EXPR,
-                     /*others_follow_in_aggr=*/FALSE,
-                     &insert_location, (a_boolean *)NULL);
+  /* Put a first-time test around the initialization. */
+  add_first_time_test(variable, &insert_location, &block_stmt, &test_var);
+  (void)insert_assignment_statement(var_lvalue_expr(variable), op, source_node,
+                                    &insert_location);
 }  /* lower_constant_init_of_static_in_extern_inline */
 
 #endif /* LOWER_EXTERN_INLINE */
