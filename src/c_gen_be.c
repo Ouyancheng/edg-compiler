@@ -6828,12 +6828,18 @@ if this routine has a body (dump nothing if it has no body).
   if (!has_defn && dump_defn) {
     /* The routine has no body (i.e., no definition), and we're supposed
        to dump it only if it has a definition, so do nothing. */
-#if SGIC || GNU_EXTENSIONS_ALLOWED
+#if SGIC
   } else if (has_name(rout) &&
              strncmp(rout->source_corresp.name, "__builtin_", 10) == 0) {
     /* Routines with names beginning "__builtin_" should not be declared
        or defined. */
-#endif /* SGIC || GNU_EXTENSIONS_ALLOWED */
+#endif /* SGIC */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (rout->special_kind == (a_special_function_kind)sfk_none &&
+             rout->opname_or_builtin.builtin_function_kind != 
+                                         (a_builtin_function_kind)bfk_none) {
+    /* GNU builtin functions should not be declared or defined. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
   } else if (!dump_defn && storage_class == (a_storage_class)sc_asm) {
     /* Suppress forward declaration of an asm function. */
