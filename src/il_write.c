@@ -417,12 +417,13 @@ Write the initial information to the IL file, if there is one.
   /* Verify that BITS_IN_ENTRY_NUMBER is set correctly. */
   { int num_bits = BITS_IN_ENTRY_NUMBER;
 #if CHECKING
-    if (num_bits > sizeof(an_il_entry_number)*CHAR_BIT || num_bits <= 0) {
+    if (num_bits > (int)sizeof(an_il_entry_number)*CHAR_BIT ||
+        num_bits <= 0) { /*lint !e774*/
       internal_error("start_il_file: BITS_IN_ENTRY_NUMBER is set wrong");
     }  /* if */
 #endif /* CHECKING */
     /* Compute the maximum valid entry number. */
-    if (num_bits == sizeof(an_il_entry_number)*CHAR_BIT) {
+    if (num_bits == sizeof(an_il_entry_number)*CHAR_BIT) { /*lint !e774*/
       /* The entry number field is the same size as an_il_entry_number. */
       max_entry_number = ~(an_il_entry_number)0;  /* All "1" bits. */
     } else {
@@ -636,7 +637,8 @@ its length.
   }  /* if */
   if (!is_string_entry) {
     /* Restore the original pointers. */
-    (void)memcpy(entry_ptr, entry_copy, size_t_arg(entry_length));
+    (void)memcpy(entry_ptr, entry_copy,
+                 size_t_arg(entry_length)); /*lint !e645*/
   }  /* if */
   /* Set the "entry written" flag. */
   epp->entry_written = TRUE;
@@ -745,7 +747,7 @@ Write the indicated memory region to the file f_il_output.
          array and the function array is unimportant. */
       count_array_pos = ftell(f_il_output);
       /* The first entry of the array is skipped. */
-      (void)fwrite((char *)(&entry_numbers_array[1]),
+      (void)fwrite((char *)(entry_numbers_array+1),
                    sizeof(entry_numbers_array)-sizeof(an_il_entry_number), 1,
                    f_il_output);
       /* Give the primary scope entry of the region the number 1. */
