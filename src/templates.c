@@ -6657,8 +6657,8 @@ information returned from decl_specifiers and declarator.
   }  /* if */
   /* Process a function template declaration. */
   if (decl_state->is_specialization) {
-    function_template_specialization(decl_state, locator, type, dso_flags,
-                                     start_pos, func_info);
+    sym = function_template_specialization(decl_state, locator, type,
+                                           dso_flags, start_pos, func_info);
   } else {
     decl_function_template(locator, type, func_info, &sym, storage_class,
                            decl_modifiers, decl_state->decl_info->parameters,
