@@ -8095,6 +8095,9 @@ and type are incompatible, issue the error incompatible_err at position
 cases where bitwise copying applies.
 */
 {
+  a_boolean  cast_optimization_done = FALSE;
+  a_type_ptr ptr_dest_type;
+
   if (!C_mode() && is_class_struct_union_type(dest_type)) {
     a_type_ptr class_type = skip_typerefs(dest_type), param_type;
     /* C++ assignment of a class. */
@@ -8115,6 +8118,30 @@ cases where bitwise copying applies.
                                        /*try_user_conversions=*/TRUE,
                                        /*bitwise_assignment_param=*/TRUE,
                                        incompatible_err);
+    /* Adjust the cv-qualifiers ("const" was added by the reference type). */
+    ptr_dest_type = make_pointer_type(dest_type);
+    if (is_expression_operand(source_operand)) {
+      an_expr_node_ptr expr = source_operand->variant.expression;
+      if (is_operation_node(expr) &&
+          expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
+        a_type_ptr cast_source_type = expr->variant.operation.operands->type;
+        if (il_identical_types(ptr_dest_type, cast_source_type)) {
+          /* The top node in the expression is a cast that casts from the
+             desired type to a differently-qualified version of that pointer
+             type.  Just remove the cast. */
+          cast_optimization_done = TRUE;
+          expr = expr->variant.operation.operands;
+          source_operand->variant.expression = expr;
+          source_operand->type = expr->type;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (!cast_optimization_done) {
+      cast_operand(ptr_dest_type, source_operand,
+                   /*check_cast_access=*/TRUE,
+                   /*is_implicit_cast=*/TRUE,
+                   /*is_reinterpret_cast=*/FALSE);
+    }  /* if */
     /* Turn the pointer produced for the reference binding back into an
        rvalue for a class object. */
     conv_object_pointer_to_lvalue(source_operand);
