@@ -2792,23 +2792,28 @@ symbol lookup.
     sym->next = header->other_symbols;
     header->other_symbols = sym;
   }  /* if */
-  /* See if this symbol is directly or indirectly a namespace member. */
-  nsp = qualifier_namespace_ptr(*locator);
-  if (nsp != NULL) {
-    /* This is a namespace qualified variable or routine, so the scope list
-       to which the extern symbol is added should be that of the namespace.
-       Set depth to NO_SCOPE_DEPTH to cause add_symbol_to_scope_list to use
-       the namespace's list. */
-    depth = NO_SCOPE_DEPTH;
+  if (locator->is_file_scope_qualified_name) {
+    /* "::" qualifier appears on the name -- not a namespace member. */
+    depth = DEPTH_OF_FILE_SCOPE;
   } else {
-    depth = depth_innermost_namespace_scope;
-    if (depth != DEPTH_OF_FILE_SCOPE) {
-      nsp = scope_stack[depth].il_scope->variant.assoc_namespace;
+    /* See if this symbol is directly or indirectly a namespace member. */
+    nsp = qualifier_namespace_ptr(*locator);
+    if (nsp != NULL) {
+      /* This is a namespace qualified variable or routine, so the scope list
+         to which the extern symbol is added should be that of the namespace.
+         Set depth to NO_SCOPE_DEPTH to cause add_symbol_to_scope_list to use
+         the namespace's list. */
+      depth = NO_SCOPE_DEPTH;
+    } else {
+      depth = depth_innermost_namespace_scope;
+      if (depth != DEPTH_OF_FILE_SCOPE) {
+        nsp = scope_stack[depth].il_scope->variant.assoc_namespace;
+      }  /* if */
     }  /* if */
-  }  /* if */
-  /* Set namespace membership, if required. */
-  if (nsp != NULL) {
-    set_namespace_membership(sym, (a_source_correspondence *)NULL, nsp);
+    /* Set namespace membership, if required. */
+    if (nsp != NULL) {
+      set_namespace_membership(sym, (a_source_correspondence *)NULL, nsp);
+    }  /* if */
   }  /* if */
   /* Add the symbol to the proper scope's symbol list, but do not add
      sk_extern_variable and sk_extern_routine symbols to the symbol table
@@ -3704,7 +3709,7 @@ the latter will be NULL for variables.
     }  /* if */
     /* See if there is already an external symbol with this name and belonging
        to the appropriate namespace. */
-    if (!C_mode()) {
+    if (!C_mode() && !location->is_file_scope_qualified_name) {
       nsp = qualifier_namespace_ptr(*location);
       if (nsp == NULL &&
           depth_innermost_namespace_scope != DEPTH_OF_FILE_SCOPE) {
