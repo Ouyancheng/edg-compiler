@@ -1602,48 +1602,90 @@ occurred in the substitution process, a NULL pointer is returned.
 }  /* wrapup_function_template_argument_deduction */
 
 
-static a_boolean parameter_is_more_specialized(
+static void parameter_is_more_specialized(
 				a_type_ptr		param_type1,
 				a_type_ptr		param_type2,
-				a_template_arg_ptr	*templ_arg_list,
-				a_template_param_ptr	templ_param_list)
+				a_template_arg_ptr	*templ_arg_list1,
+				a_template_arg_ptr	*templ_arg_list2,
+				a_template_param_ptr	templ_param_list1,
+				a_template_param_ptr	templ_param_list2,
+				a_boolean	        *match1,
+				a_boolean	        *match2)
 /*
-This routine is used by function_template_is_more_specialized to call
-matches_template_type for each parameter of a function template.  Before
-calling matches_template_type some transformations are done to the parameter
-types to remove things that are not relevant to the partial ordering
-comparison (such as top level references).
+This routine is used by compare_function_templates to call
+matches_template_type for each parameter of a function template.
+Before calling matches_template_type some transformations are done to
+the parameter types to remove things that are not relevant to the
+partial ordering comparison (such as top level references).
+
+match1 is set TRUE if param_type1 is more specialized than param_type2;
+Likewise for match2.
 */
 {
-  a_boolean	result;
+  a_boolean	type_1_is_reference;
+  a_boolean	type_2_is_reference;
+  a_boolean	qualifiers_dropped1 = FALSE;
+  a_boolean	qualifiers_dropped2 = FALSE;
 
   /* Remove any qualifiers that are present. */
   param_type1 = skip_typerefs(param_type1);
   param_type2 = skip_typerefs(param_type2);
   /* Remove any top level references. */
-  if (is_reference_type(param_type1)) {
+  type_1_is_reference = is_reference_type(param_type1);
+  if (type_1_is_reference) {
     param_type1 = type_pointed_to(param_type1);
   }  /* if */
-  if (is_reference_type(param_type2)) {
+  type_2_is_reference = is_reference_type(param_type2);
+  if (type_2_is_reference) {
     param_type2 = type_pointed_to(param_type2);
   }  /* if */
-  result = matches_template_type(param_type1, param_type2, templ_arg_list,
-                                 templ_param_list, MTT_NO_FLAGS);
-  return result;
+  if (type_1_is_reference || type_2_is_reference) {
+    /* If either type is a reference, remove any common qualifiers so
+       that we can determine if one of the type is more qualified than
+       the other. */
+    a_type_ptr	prev_type1;
+    a_type_ptr	prev_type2;
+    /* Remove any common type qualifiers. */
+    skip_common_type_qualifiers(&param_type1, &param_type2);
+    prev_type1 = param_type1;
+    prev_type2 = param_type2;
+    param_type1 = skip_typerefs(param_type1);
+    param_type2 = skip_typerefs(param_type2);
+    qualifiers_dropped1 = param_type1 != prev_type1;
+    qualifiers_dropped2 = param_type2 != prev_type2;
+  }  /* if */
+  /* Only check a parameter if no mismatch for that routine has been found. */
+  if (*match1) {
+    *match1 = matches_template_type(param_type1, param_type2, templ_arg_list1,
+                                    templ_param_list1, MTT_NO_FLAGS);
+  }  /* if */
+  if (*match2) {
+    *match2 = matches_template_type(param_type2, param_type1, templ_arg_list2,
+                                    templ_param_list2, MTT_NO_FLAGS);
+  }  /* if */
+  /* If both comparisons match, prefer the direction that did not involve
+     dropping qualifiers. */
+  if (*match1 && *match2) {
+    if (qualifiers_dropped1 && !qualifiers_dropped2) {
+      *match1 = FALSE;
+    } else if (qualifiers_dropped2 && !qualifiers_dropped1) {
+      *match2 = FALSE;
+    }  /* if */
+  }  /* if */
 }  /* parameter_is_more_specialized */
 
 
-static a_boolean function_template_is_more_specialized(
-				a_symbol_ptr 		templ_sym1,
-				a_symbol_ptr		templ_sym2)
+int compare_function_templates(a_symbol_ptr 		templ_sym1,
+			       a_symbol_ptr		templ_sym2)
 /*
-templ_sym1 and templ_sym2 are function template symbols.  Return TRUE if
-templ_sym1 is more specialized than templ_sym2.  This means that for
-an instance that matches both templates, templ_sym1 should be preferred
-over templ_sym2.
+templ_sym1 and templ_sym2 are function template symbols.  Return 1 if
+templ_sym1 is more specialized than templ_sym2, return -1 if templ_sym2 is
+more specialized than templ_sym1, and return 0 if they are unordered.
 */
 {
-  a_boolean				result = TRUE;
+  int					result;
+  a_boolean				match1 = TRUE;
+  a_boolean				match2 = TRUE;
   a_template_symbol_supplement_ptr	tssp1;
   a_template_symbol_supplement_ptr	tssp2;
   a_routine_ptr				rout1;
@@ -1654,10 +1696,14 @@ over templ_sym2.
   a_routine_type_supplement_ptr		rtsp2;
   a_param_type_ptr			ptp1;
   a_param_type_ptr			ptp2;
-  a_template_param_ptr			templ_param_list;
-  a_template_arg_ptr			dummy_arg_list = NULL;
+  a_template_param_ptr			templ_param_list1;
+  a_template_param_ptr			templ_param_list2;
+  a_template_arg_ptr			dummy_arg_list1 = NULL;
+  a_template_arg_ptr			dummy_arg_list2 = NULL;
   a_boolean				is_conversion_operator;
 
+  templ_sym1 = fundamental_symbol_of(templ_sym1);
+  templ_sym2 = fundamental_symbol_of(templ_sym2);
   check_assertion_str2(
                   templ_sym1->kind == (a_symbol_kind)sk_function_template &&
                   templ_sym2->kind == (a_symbol_kind)sk_function_template,
@@ -1672,15 +1718,17 @@ over templ_sym2.
   rtsp2 = rout_type2->variant.routine.extra_info;
   /* Get the parameter list to be deduced.  This is the one for the second
      template. */
-  templ_param_list = tssp2->variant.function.decl_cache.decl_info->parameters;
+  templ_param_list1 = tssp2->variant.function.decl_cache.decl_info->parameters;
+  templ_param_list2 = tssp1->variant.function.decl_cache.decl_info->parameters;
   is_conversion_operator = is_conversion_function_symbol(templ_sym1);
   if (is_conversion_operator) {
     /* For conversion templates, the processing is only done on the return
        type. */
-    result = parameter_is_more_specialized(
-                                      rout_type1->variant.routine.return_type,
-                                      rout_type2->variant.routine.return_type,
-                                      &dummy_arg_list, templ_param_list);
+    parameter_is_more_specialized(rout_type1->variant.routine.return_type,
+                                  rout_type2->variant.routine.return_type,
+                                  &dummy_arg_list1, &dummy_arg_list2,
+                                  templ_param_list1, templ_param_list2,
+                                  &match1, &match2);
   } else {
     /* For normal functions, the processing is done for each parameter, but
        not for the return type. */
@@ -1693,57 +1741,47 @@ over templ_sym2.
        the decision on the common parameters. */
     for (; ptp1 != NULL && ptp2 != NULL;
            ptp1 = ptp1->next, ptp2 = ptp2->next) {
-      if (!parameter_is_more_specialized(ptp1->type, ptp2->type,
-                                         &dummy_arg_list,
-                                         templ_param_list)) {
+      parameter_is_more_specialized(ptp1->type, ptp2->type,
+                                    &dummy_arg_list1, &dummy_arg_list2,
+                                    templ_param_list1, templ_param_list2,
+                                    &match1, &match2);
+      if (!match1 && !match2) {
         /* Stop when a mismatch is found. */
-        result = FALSE;
         break;
       }  /* if */
     }  /* for */
   }  /* if */
-  if (result) {
-    /* Each of the arguments match.  Now make sure that all arguments were
-       deduced, and that nontype arguments have the correct types. */
-    result = FALSE;
+  /* Each of the arguments match.  Now make sure that all arguments were
+     deduced, and that nontype arguments have the correct types. */
+  if (match1) {
+    /* Do the wrapup processing for the first argument list. */
+    match1 = FALSE;
     if (wrapup_function_template_argument_deduction(
-               dummy_arg_list, templ_sym2, templ_param_list) != NULL) {
-      result = TRUE;
+               dummy_arg_list1, templ_sym2, templ_param_list1) != NULL) {
+      match1 = TRUE;
+    }  /* if */
+  }  /* if */
+  if (match2) {
+    /* Do the wrapup processing for the second argument list. */
+    match2 = FALSE;
+    if (wrapup_function_template_argument_deduction(
+               dummy_arg_list2, templ_sym1, templ_param_list2) != NULL) {
+      match2 = TRUE;
     }  /* if */
   }  /* if */
   /* Free the template argument list produced by the deduction process. */
-  if (dummy_arg_list != NULL) free_template_arg_list(dummy_arg_list);
-  return result;
-}  /* function_template_is_more_specialized */
-
-
-int compare_function_templates(a_symbol_ptr 		templ_sym1,
-			       a_symbol_ptr		templ_sym2)
-/*
-templ_sym1 and templ_sym2 are function template symbols.  Return 1 if
-templ_sym1 is more specialized than templ_sym2, return -1 if templ_sym2 is
-more specialized than templ_sym1, and return 0 if they are unordered.
-*/
-{
-  a_boolean	templ1_is_more_specialized;
-  a_boolean	templ2_is_more_specialized;
-  int		result;
-
-  templ_sym1 = fundamental_symbol_of(templ_sym1);
-  templ_sym2 = fundamental_symbol_of(templ_sym2);
-  templ1_is_more_specialized =
-                 function_template_is_more_specialized(templ_sym1, templ_sym2);
-  templ2_is_more_specialized =
-                 function_template_is_more_specialized(templ_sym2, templ_sym1);
-  if (templ1_is_more_specialized && !templ2_is_more_specialized) {
+  if (dummy_arg_list1 != NULL) free_template_arg_list(dummy_arg_list1);
+  /* Free the template argument list produced by the deduction process. */
+  if (dummy_arg_list2 != NULL) free_template_arg_list(dummy_arg_list2);
+  if (match1 && !match2) {
     result = 1;
-  } else if (templ2_is_more_specialized && !templ1_is_more_specialized) {
+  } else if (match2 && !match1) {
     result = -1;
   } else {
     result = 0;
   }  /* if */
   return result;
-}  /* compare_function_templates */
+}  /* compare_function_template */
 
 
 static a_template_nesting_depth nesting_depth_of_template_param

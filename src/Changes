@@ -1,5 +1,23 @@
 Version 3.1
 
+6/20/02  Partial ordering and cv-qualified references
+
+The partial ordering rules used by the front end have been revised
+to better handle cv-qualified references.  This example was ambiguous
+with the old rules but prefers f(S<T>) with the new rules.  The language
+specification in this area is sufficiently unclear to be sure that either
+of these interpretations is the correct one.  We are working on a
+proposed clarification of the rules in the standard and will incorporate
+this change as part of the proposed rules.
+
+  template <class T> struct S { };
+  template <class T> void f(S<T>);
+  template <class T> void f(const T&);
+  int main() {
+    S<int> s;
+    f(s);
+  }
+
 6/20/02  Anonymous types in anonymous unions
 
 The C++ standard does not permit the declaration of types in anonymous
