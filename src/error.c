@@ -1877,6 +1877,9 @@ error code.
     case ec_operator_name_not_allowed:
       m = "operator name is not allowed";
       break;
+    case ec_specific_def_must_be_global:
+      m = "class template specific definition not at global scope";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

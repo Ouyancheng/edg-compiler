@@ -6951,7 +6951,18 @@ skip_tag_scan:
         } else if (is_class_definition ||
                    (curr_token == tok_semicolon && !is_friend_decl)) {
           /* We have a specific declaration of a template class. */
-          cssp->is_specific_template_def = TRUE;
+          if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
+            /* Specific definitions of template classes may only occur at
+               file scope. */
+            pos_error(ec_specific_def_must_be_global,
+                      &locator.source_position);
+            error_tag_sym = tag_sym;
+            tag_sym = NULL;
+            set_to_named_error_locator(locator);
+            err = TRUE;
+          } else {
+            cssp->is_specific_template_def = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
