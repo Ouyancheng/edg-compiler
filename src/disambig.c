@@ -944,10 +944,13 @@ types separated by commas (when single_type_required is FALSE).
                                        (a_template_param_type_kind)tptk_member;
   /* The ambiguous cases all begin a type name followed by a left
      parenthesis.   Check for this case first to quickly discard most
-     cases. */
-  if ((next_token() == tok_lparen ||
-      (is_cast(flags) && is_implicit_template_type)) &&
-      is_type_start(/*is_expr_context=*/TRUE)) {
+     cases.  If the current token is "typename" we don't have enough
+     information at this point to discard the easy cases, so we need to
+     do the full processing. */
+  if (curr_token == tok_typename ||
+      ((next_token() == tok_lparen ||
+       (is_cast(flags) && is_implicit_template_type)) &&
+       is_type_start(/*is_expr_context=*/TRUE))) {
     /* Initialize the token cache. */
     init_disambig_state(&state);
     if (curr_token == tok_identifier) {
