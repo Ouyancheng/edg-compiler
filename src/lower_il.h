@@ -503,6 +503,8 @@ extern an_expr_node_ptr make_vbptr_field_lvalue_from_var(a_variable_ptr   var,
 
 extern an_expr_node_ptr make_vptr_field_lvalue(an_expr_node_ptr node);
 
+extern an_expr_node_ptr make_any_vptr_rvalue(an_expr_node_ptr expr);
+
 extern an_expr_node_ptr make_vptr_field_lvalue_from_var(a_variable_ptr var);
 
 extern an_expr_node_ptr make_vbase_class_lvalue_from_var(

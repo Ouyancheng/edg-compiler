@@ -153,8 +153,11 @@ NULL.
     /* For a virtual function, the offset of the virtual function table
        pointer in the class of the routine is returned in *offset,
        *func == NULL. */
-    *offset = routine->source_corresp.class_of_which_a_member->
-                                        variant.class_struct_union.extra_info->
+    a_type_ptr class_type = routine->source_corresp.class_of_which_a_member;
+    check_assertion_str(class_type->variant.class_struct_union.
+                                                         any_virtual_functions,
+   "repr_for_ptr_to_member_function_constant: class has no virtual functions");
+    *offset = class_type->variant.class_struct_union.extra_info->
                                                   virtual_function_info_offset;
     *func = NULL;
   }  /* if */
@@ -242,6 +245,9 @@ static void promote_class_members(a_type_ptr  class_type,
                                   a_scope_ptr promotion_scope,
                                   a_type_ptr  *insert_pointer);
 static void lower_boolean_controlling_expr(an_expr_node_ptr expr);
+static void lower_related_class_cast(an_expr_node_ptr node,
+                                     a_boolean        is_lvalue,
+                                     a_boolean        lower_source);
 
 
 static void clear_insert_location(an_insert_location      *insert_location,
@@ -1655,6 +1661,9 @@ any better if we did know it was a complete object).
   prelower_class_type(class_type);
   ctsp = class_type->variant.class_struct_union.extra_info;
   vptr_class_type = class_type;
+  check_assertion_str(class_type->variant.class_struct_union.
+                                                         any_virtual_functions,
+                     "make_vptr_field_lvalue: class has no virtual functions");
   vptr_offset = ctsp->virtual_function_info_offset;
   vptr_bcp = ctsp->virtual_function_info_base_class;
   if (vptr_bcp != NULL) {
@@ -1687,6 +1696,63 @@ Make an lvalue for the virtual table pointer of the object pointed to by var.
   return node;
 }  /* make_vptr_field_lvalue_from_var */
 
+#if ABI_CHANGES_FOR_RTTI
+
+an_expr_node_ptr make_any_vptr_rvalue(an_expr_node_ptr expr)
+/*
+Make an expression tree for the value of the virtual function table pointer
+from the class object whose address is given by the expression expr.
+If the class does not itself have a virtual function table pointer,
+use the pointer from any base class.  This is used for typeid and
+dynamic_cast, to get a virtual function table from which information
+on the type of the complete object can be extracted.  Since all base
+class virtual function tables will indicate the same complete object
+type, it doesn't matter which is selected.
+*/
+{
+  a_type_ptr class_type = f_skip_typerefs(type_pointed_to(expr->type));
+
+  check_assertion_str(is_immediate_class_type(class_type),
+                      "make_vptr_field_lvalue: not class");
+  if (class_type->variant.class_struct_union.any_virtual_functions) {
+    /* The class has virtual functions and therefore has a virtual function
+       table pointer (possibly shared with a base class). */
+  } else {
+    /* The class has no virtual functions.  Look for a virtual function table
+       in any base class. */
+    a_base_class_ptr bcp;
+    for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+         bcp != NULL;
+         bcp = bcp->next) {
+      a_type_ptr base_class = bcp->type;
+      if (base_class->variant.class_struct_union.any_virtual_functions) {
+        /* Cast down to the base class. */
+        a_derivation_step_ptr dsp;
+        for (dsp = cast_derivation_path_of(bcp);
+             dsp != NULL;
+             dsp = dsp->next) {
+          expr = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
+                                    make_pointer_type(dsp->base_class->type),
+                                    expr);
+          expr->variant.operation.compiler_generated = TRUE;
+        }  /* for */
+        /* Convert the base class casts to C form. */
+        lower_related_class_cast(expr, /*is_lvalue=*/TRUE,
+                                 /*lower_source=*/FALSE);
+        goto found_base_class;
+      }  /* if */
+    }  /* for */
+    unexpected_condition_str(
+                    "make_any_vptr_rvalue: no base class with virtuals found");
+found_base_class:;
+  }  /* if */
+  /* Pick the virtual function pointer out of the class. */
+  expr = make_vptr_field_lvalue(expr);
+  expr = add_indirection_to_node(expr);
+  return expr;
+}  /* make_any_vptr_rvalue */
+
+#endif /* ABI_CHANGES_FOR_RTTI */
 
 static an_expr_node_ptr make_vbase_class_lvalue(
                                               an_expr_node_ptr node,
@@ -4585,6 +4651,7 @@ proper type if necessary.  If the offset is zero, return the original node.
 static void related_class_cast_step(
                                an_expr_node_ptr node,
                                a_boolean        is_lvalue,
+                               a_boolean        lower_source,
                                a_boolean        any_nonzero_offset,
                                a_type_ptr       virtual_step_class,
                                an_expr_node_ptr *null_preservation_source_node,
@@ -4604,6 +4671,7 @@ started, and *null_preservation_source_node is set to the original node
 to be tested when the null-preservation code is completed.
 *null_preservation_source_node == NULL means that no NULL-preservation code
 is required.  is_lvalue is TRUE if the node is being used as an lvalue.
+lower_source is TRUE if the underlying source expression needs to be lowered.
 This routine descends recursively through a sequence of base-class or
 derived-class casts so that the entire sequence can be treated as one
 operation.  This allows optimization of the code to preserve NULL pointer
@@ -4700,6 +4768,7 @@ more than once.
       source_node->variant.operation.kind == op) {
     related_class_cast_step(source_node,
                             is_lvalue,
+                            lower_source,
                             any_nonzero_offset,
                             virtual_step_class,
                             null_preservation_source_node,
@@ -4711,7 +4780,7 @@ more than once.
     /* The node below this one is not another cast, so we have reached the
        bottom of the sequence of casts. */
     /* Lower the source expression. */
-    lower_expr(source_node, is_lvalue);
+    if (lower_source) lower_expr(source_node, is_lvalue);
     /* The offsets for derived class casts are summed on the way back up. */
     *derived_class_cast_offset = 0;
     if (virtual_step_class != NULL) {
@@ -4829,11 +4898,13 @@ more than once.
 
 
 static void lower_related_class_cast(an_expr_node_ptr node,
-                                     a_boolean        is_lvalue)
+                                     a_boolean        is_lvalue,
+                                     a_boolean        lower_source)
 /*
 Rewrite a cast from a class to a base class or from a base class to
 a derived class.  The result of the cast is being used as an lvalue if
-is_lvalue is TRUE.
+is_lvalue is TRUE.  The source expression under any base class casts
+needs to be lowered if lower_source is TRUE.
 */
 {
   an_expr_node_ptr null_preservation_source_node;
@@ -4852,6 +4923,7 @@ is_lvalue is TRUE.
      casts into a single offset. */
   related_class_cast_step(node,
                           is_lvalue,
+                          lower_source,
                           /*any_nonzero_offset=*/FALSE,
                           /*virtual_step_class=*/(a_type_ptr)NULL,
                           &null_preservation_source_node,
@@ -5113,8 +5185,7 @@ Lower an eok_dynamic_init expression.  The subtree has already been lowered.
   src_copy = add_cast(src_copy, void_star_type());
   /* Make the vptr argument (the virtual function table pointer). */
   vptr_expr = make_reusable_copy(src, /*vars_can_change=*/FALSE);
-  vptr_expr = make_vptr_field_lvalue(vptr_expr);
-  vptr_expr = add_indirection_to_node(vptr_expr);
+  vptr_expr = make_any_vptr_rvalue(vptr_expr);
   /* Make the desired_type argument. */
   /* Note that we can test for a reference type here only because lower_type
      doesn't turn references into pointers. */
@@ -6103,7 +6174,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           op == (an_expr_operator_kind)eok_derived_class_cast) {
         /* Cast to base or derived class is rewritten.  This call also
            lowers any subtree. */
-        lower_related_class_cast(expr, is_lvalue);
+        lower_related_class_cast(expr, is_lvalue, /*lower_source=*/TRUE);
       } else if (op == (an_expr_operator_kind)eok_pm_base_class_cast ||
                  op == (an_expr_operator_kind)eok_pm_derived_class_cast) {
         /* Cast of pointer-to-member to base or derived class is rewritten.
