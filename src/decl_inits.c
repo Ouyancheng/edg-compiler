@@ -1835,6 +1835,8 @@ scan_arg_for_scan_initialization:
         } else {
           /* A valid copy constructor does exist.  Generate the dynamic init
              entry. */
+          a_param_type_ptr  ptp = (skip_typerefs(rp->type))->
+                                   variant.routine.extra_info->param_type_list;
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
           dip->variant.constructor.routine = rp;
           /* No expression node is created to represent the subobject.  The
@@ -1842,7 +1844,12 @@ scan_arg_for_scan_initialization:
              base class or field just as it will compute the address of the
              implicit "this" parameter, which is the address of the subobject
              to be initialized by the copy. */
-          dip->variant.constructor.args = NULL;
+          /* We need to copy the default arg expressions of the second and
+             subsequent parameters (if any) of the copy constructor.  The
+             first param is ignored even if it is declared to have a default
+             arg. */
+          ptp = ptp->next;
+          dip->variant.constructor.args = copy_default_arg_expr_list(ptp);
           dip->variant.constructor.is_copy_constructor_for_subobject = TRUE;
         }  /* if */
       } else {
