@@ -3772,10 +3772,14 @@ specification allow a variable-sized array as the top type.
        constructor call. */
     if (ctor_routine != NULL) {
       if (array_new) {
-        /* In the array case, the global operator new is always used, so the
-           routine is always implied.  The implementation has to know that
+        /* In the array case, a global operator new is always used, so if
+           the new routine selected is the default global operator new,
+           it can be implicit.  The implementation has to know that
            it should call the global operator new for the array case. */
-        new_routine = NULL;
+        if (function_symbol == 
+                       extract_default_operator_new_sym(operator_new_symbol)) {
+          new_routine = NULL;
+        }  /* if */
       } else {
         a_type_ptr unqual_base_new_type = skip_typerefs(base_new_type);
         set_class_assoc_operator_new_routine(unqual_base_new_type);
