@@ -27,9 +27,10 @@ IL macro entries are recorded only when RECORD_MACROS_IN_IL is TRUE.
 11/14/00 Warnings on unreferenced inlined functions
 
 The front end no longer warns about extern inline functions that are not
-referenced in a translation unit in which they are defined.  (I.e., they
-are treated like other extern functions instead of like functions with
-internal linkage.)
+referenced in a translation unit in which they are defined.  (In that respect
+they are treated like other extern functions instead of like functions with
+internal linkage.)  However, unlike other extern function definitions, they
+are not always marked as referenced.
 
 11/14/00 Microsoft mode: cv-qualifiers dropped on non-class operands of "?"
 
