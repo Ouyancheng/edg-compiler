@@ -1,5 +1,11 @@
 Version 2.14
 
+1/26/93 Reduced severity of access errors for types in cfront mode
+
+Cfront does not check the accessibility of types.  For compatibility,
+in cfront mode access errors for types have been reduced in severity
+from errors to warnings.
+
 1/25/93 Member function typedef extended to use within a class declaration
 
 The member function typedef feature that has been provided in cfront
@@ -7,7 +13,7 @@ compatibility mode has been extended to work for typedefs within
 class declarations (see 1/13/93 "Member function typedef" for more
 information about this feature).
 
-cfront treats these typedefs differently.  The first is treated as
+Cfront treats these typedefs differently.  The first is treated as
 a special "member function typedef" while the second is treated as
 a normal static member function typedef.  We now duplicate cfront's
 behavior for this case.  The behavior in normal (noncfront) mode is

@@ -1816,6 +1816,9 @@ error code.
     case ec_bad_storage_class_on_template_decl:
       m = "invalid storage class for a template declaration";
       break;
+    case ec_no_access_to_type_cfront_mode:
+      m = "%n is an inaccessible type (allowed for cfront compatibility)";
+      break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

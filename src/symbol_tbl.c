@@ -3586,7 +3586,8 @@ void issue_access_error(a_symbol_ptr       sym,
 Issue the appropriate error on the inaccessibility of sym.
 */
 {
-  an_error_code  error_code = ec_no_access_to_name;
+  an_error_code  	error_code = ec_no_access_to_name;
+  an_error_severity	error_severity = es_error;
   a_routine_ptr  rp;
 
   if (is_function_symbol(sym)) {
@@ -3602,8 +3603,15 @@ Issue the appropriate error on the inaccessibility of sym.
          rp->opname_kind == (an_opname_kind)onk_assign)) {
       error_code = ec_inaccessible_special_function;
     }  /* if */
+  } else if (is_type_symbol(sym)) {
+    if (cfront_compatibility_mode) {
+      /* In cfront mode access errors on types are only warnings.  cfront
+         doesn't check access to types at all. */
+      error_severity = es_warning;
+      error_code = ec_no_access_to_type_cfront_mode;
+    }  /* if */
   }  /* if */
-  pos_sy_error(error_code, err_pos, sym);
+  pos_sy_diagnostic(error_severity, error_code, err_pos, sym);
 }  /* issue_access_error */
 
 
