@@ -10739,120 +10739,17 @@ destructor scope, and also lower the user code.
 
 #if ONE_INSTANTIATION_PER_OBJECT
 
-static void mark_expr_list_slice_dyn_inits(an_expr_node_ptr expr);
-static void mark_slice_dyn_inits(a_dynamic_init_ptr dip);
-
-
-static void mark_constant_slice_dyn_inits(a_constant_ptr con)
+/*ARGSUSED*/  /* <-- tblock is not used. */
+static void set_dynamic_init_included_in_slice(
+                                    a_dynamic_init_ptr                  dip,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Set the included_in_slice flag in any dynamic initializations under
-the given constant.
+Called from the expression traversal routines.  Set the included_in_slice
+flag in the indicated dynamic initialization entry.
 */
 {
-  switch (con->kind) {
-    case ck_error:
-    case ck_integer:
-    case ck_string:
-    case ck_float:
-    case ck_address:
-    case ck_ptr_to_member:
-#if GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
-    case ck_stack_offset:
-#endif /* DO_IL_LOWERING && ... */
-      /* No processing. */
-      break;
-    case ck_dynamic_init:
-      mark_slice_dyn_inits(con->variant.dynamic_init);
-      break;
-    case ck_aggregate:
-      for (con = con->variant.aggregate.first_constant;
-           con != NULL;
-           con = con->next) {
-        mark_constant_slice_dyn_inits(con);
-      }  /* if */
-      break;
-    case ck_init_repeat:
-      mark_constant_slice_dyn_inits(con->variant.init_repeat.constant);
-      break;
-    case ck_template_param:
-    default:
-      unexpected_condition_str(
-                           "mark_constant_slice_dyn_inits: bad constant kind");
-  }  /* switch */
-}  /* mark_constant_slice_dyn_inits */
-
-
-static void mark_expr_slice_dyn_inits(an_expr_node_ptr expr)
-/*
-Set the included_in_slice flag in any dynamic initializations under
-the given expression.
-*/
-{
-  if (expr != NULL) {
-    switch (expr->kind) {
-      case enk_error:
-      case enk_constant:
-      case enk_variable:
-      case enk_variable_address:
-      case enk_field:
-      case enk_runtime_sizeof:
-      case enk_address_of_ellipsis:
-      case enk_routine_address:
-        /* No processing. */
-        break;
-      case enk_operation:
-        mark_expr_list_slice_dyn_inits(expr->variant.operation.operands);
-        break;
-      case enk_temp_init:
-        mark_slice_dyn_inits(expr->variant.init.dynamic_init);
-        break;
-      case enk_new_delete:
-        mark_expr_list_slice_dyn_inits(expr->variant.new_delete->arg);
-        mark_slice_dyn_inits(expr->variant.new_delete->dynamic_init);
-        mark_slice_dyn_inits(expr->variant.new_delete->
-                                              freeing_of_storage_on_exception);
-        break;
-      case enk_throw:
-        if (expr->variant.throw_info != NULL){ 
-          mark_slice_dyn_inits(expr->variant.throw_info->dynamic_init);
-        }  /* if */
-        break;
-      case enk_object_lifetime:
-        /* Note that we do go into another object lifetime, because
-           there might be dynamic inits in there that were promoted into
-           the outer lifetime. */
-        mark_expr_slice_dyn_inits(expr->variant.object_lifetime.expr);
-        break;
-      case enk_typeid:
-        mark_expr_slice_dyn_inits(expr->variant.typeid_info.expr);
-        break;
-      case enk_condition:
-#if !DO_FULL_PORTABLE_EH_LOWERING
-      case enk_lowered_eh_construct:
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-      case enk_result_of_overriding_function:
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if GNU_EXTENSIONS_ALLOWED
-      case enk_statement:  /* Used only in C mode. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-      default:
-        unexpected_condition_str("mark_expr_slice_dyn_inits: bad expr kind");
-    }  /* switch */
-  }  /* if */
-}  /* mark_expr_slice_dyn_inits */
-
-
-static void mark_expr_list_slice_dyn_inits(an_expr_node_ptr expr)
-/*
-Set the included_in_slice flag in any dynamic initializations under
-the given expression list.
-*/
-{
-  for (; expr != NULL; expr = expr->next) {
-    mark_expr_slice_dyn_inits(expr);
-  }  /* for */
-}  /* mark_expr_list_slice_dyn_inits */
+  dip->included_in_slice = TRUE;
+}  /* set_dynamic_init_included_in_slice */
 
 
 static void mark_slice_dyn_inits(a_dynamic_init_ptr dip)
@@ -10861,30 +10758,11 @@ Set the included_in_slice flag in the given dynamic initialization and
 in all dynamic initializations under it.
 */
 {
-  if (dip != NULL) {
-    dip->included_in_slice = TRUE;
-    switch (dip->kind) {
-      case dik_none:
-      case dik_zero:
-      case dik_constant:
-        /* No processing. */
-        break;
-      case dik_expression:
-      case dik_call_returning_class_via_cctor:
-        mark_expr_slice_dyn_inits(dip->variant.expression);
-        break;
-      case dik_constructor:
-        mark_expr_list_slice_dyn_inits(dip->variant.constructor.args);
-        break;
-      case dik_nonconstant_aggregate:
-        mark_constant_slice_dyn_inits(dip->variant.constant);
-        break;
-      case dik_bitwise_copy:
-      default:
-        /* Not expected. */
-        unexpected_condition_str("mark_slice_dyn_inits: bad dyn init kind");
-    }  /* switch */
-  }  /* if */
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_dynamic_init = set_dynamic_init_included_in_slice;
+  traverse_dynamic_init(dip, &tblock);
 }  /* mark_slice_dyn_inits */
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
