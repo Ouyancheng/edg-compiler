@@ -1048,7 +1048,8 @@ required.
   if (types_are_compatible(tp1, tp2)) {
     /* The types are "simply" compatible.  No further checking is required. */
     compatible = TRUE;
-  } else if (is_or_contains_template_param(tp1)) {
+  } else if (is_or_contains_template_param(tp1) ||
+             is_or_contains_template_param(tp2)) {
     /* We must be within a prototype instantiation.  The types may be
        compatible depending on the template argument in a real instantiation,
        so issue no error now. */
