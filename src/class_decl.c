@@ -523,8 +523,8 @@ not specifically allow this syntax, but it is supported by cfront.
       /* Accepting qualified member names is an extension so issue a
          diagnostic in strict ANSI mode. */
       if (strict_ansi_mode) {
-        pos_diagnostic(strict_ansi_error_severity,
-                       ec_qualifier_in_member_declaration, &error_position);
+        diagnostic(strict_ansi_error_severity,
+                   ec_qualifier_in_member_declaration);
       }  /* if */ 
     }  /* if */
   }  /* if */
@@ -5886,14 +5886,22 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             }  /* if */
             (void)get_token();
             goto next_declaration;
-          } else if (local_declares_something) {
+          }  /* if */
+          if (local_declares_something) {
             /* This is a free standing declaration of a class, struct, union,
                or enum type entry.  It will already have been recorded on the
                types list for the current class.  No need to complain about a
                missing identifier.  Just bypass the semicolon, after checking
                for some errors. */
             if (member_storage_class != (a_storage_class)sc_unspecified) {
-              pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+              if (member_storage_class == (a_storage_class)sc_typedef) {
+                /* A case like "typedef struct S { int i; };" */
+                pos_diagnostic(strict_ansi_mode ?
+                                 strict_ansi_error_severity : es_warning,
+                               ec_missing_typedef_name, &pos_curr_token);
+              } else {
+                pos_error(ec_storage_class_not_allowed, &decl_start_pos);
+              }  /* if */
             }  /* if */
             if (inline_specified) {
               pos_error(ec_inline_not_allowed, &decl_start_pos);
@@ -5903,12 +5911,46 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
             }  /* if */
             (void)get_token();
             goto next_declaration;
-          } else if (local_defines_something &&
-                     member_type->kind == (a_type_kind)tk_union &&
-                     member_storage_class != (a_storage_class)sc_typedef &&
-                     is_unnamed_class_symbol((a_symbol_ptr)member_type->
+          }  /* if */
+          if (member_storage_class == (a_storage_class)sc_typedef) {
+            /* A case like "typedef int;" or "typedef struct { int i; };" */
+            pos_diagnostic(strict_ansi_mode ?
+                             strict_ansi_error_severity : es_warning,
+                           ec_missing_typedef_name, &pos_curr_token);
+            (void)get_token();
+            goto next_declaration;
+          }  /* if */
+          if (local_defines_something) {
+            if (member_type->kind == (a_type_kind)tk_union &&
+                is_unnamed_class_symbol((a_symbol_ptr)member_type->
                                                  source_corresp.assoc_info)) {
-            is_anonymous_union = TRUE;
+              /* An anonymous union -- "union { int i, j; };" */
+              is_anonymous_union = TRUE;
+            } else {
+              /* A declaration with no declarator that defines a type but does
+                 not declare a name -- something like "struct { int i; };" or
+                 "enum {};".  */
+#if 0
+              /* Does the ARM rule out such useless constructs?  The
+                 introduction to Chapter 7 says, "A declaration introduces
+                 one or more names into a program", and when declares_something
+                 is FALSE no name was introduced. */
+              pos_diagnostic(strict_ansi_mode ?
+                               strict_ansi_error_severity : es_warning,
+                             ec_useless_decl, &decl_start_pos);
+#else
+              /* Does the ARM rule out such useless constructs?  Section
+                 9.2 para 4 explicitly allows omission of declarators with
+                 enum and class specifiers.  Just issue a warning. */
+              pos_warning (ec_useless_decl, &decl_start_pos);
+#endif /* if 0 */
+              (void)get_token();
+              goto next_declaration;
+            }  /* if */
+          } else {
+            /* A case like "int;" is explictly disallowed by language in
+               ARM 9.2.  Fall though and call declarator, which will issue
+               an expected-an-identifier syntax error. */
           }  /* if */
         }  /* if */
         /* A declarator list should be present.  Scan it. */
