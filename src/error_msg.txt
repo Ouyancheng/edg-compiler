@@ -769,6 +769,8 @@ ec_bad_const_cast;;"a const_cast can only adjust type qualifiers; it cannot chan
 ec_mutable_not_allowed;;"mutable is not allowed"
 ec_cannot_change_access;;"redeclaration of %n may not alter its access"
 ec_nonstd_printf_format_string;;"nonstandard format string conversion"
+ec_probable_inadvertent_lbracket_digraph;;"use of alternative token \"<:\" appears to be inadvertent"
+ec_probable_inadvertent_sharp_digraph;;"use of alternative token \"%%:\" appears to be inadvertent"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
