@@ -7679,21 +7679,22 @@ entry, if there is one.
     /* Find the last source sequence entry that was created. */
     ssep = scope_stack[depth_innermost_ss_list_scope].
                                                    last_source_sequence_entry;
-    check_assertion(ssep != NULL);
-    if (is_sublist_parent(ssep)) {
-      ssep = (assoc_sublist_of(ssep))->last_source_sequence_entry;
-    }  /* if */
-    if (ss_entry_ptr(ssep, a_type_ptr) == type) {
-      /* Even though this is not a definition, this source sequence entry
-         represents (at least temporarily) the primary declaration. */
-      type->autonomous_primary_tag_decl = TRUE;
-    } else if (ssep->entity.kind ==
-                         (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
-      /* The source sequence entry found is represents a secondary declaration.
-         If it refers to the same type, set the flag. */
-      sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-      if (sssdp->entity.ptr == (char *)type) {
-        sssdp->autonomous_tag_decl = TRUE;
+    if (ssep != NULL) {
+      if (is_sublist_parent(ssep)) {
+        ssep = (assoc_sublist_of(ssep))->last_source_sequence_entry;
+      }  /* if */
+      if (ss_entry_ptr(ssep, a_type_ptr) == type) {
+        /* Even though this is not a definition, this source sequence entry
+           represents (at least temporarily) the primary declaration. */
+        type->autonomous_primary_tag_decl = TRUE;
+      } else if (ssep->entity.kind ==
+                           (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
+        /* The source sequence entry found is represents a secondary
+           declaration.  If it refers to the same type, set the flag. */
+        sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+        if (sssdp->entity.ptr == (char *)type) {
+          sssdp->autonomous_tag_decl = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
