@@ -1,5 +1,15 @@
 Version 2.35
 
+2/20/97  Internal error on ill-formed conversion operator template
+
+An internal error could result if a conversion operator template
+contained "friend" in an invalid location in the declaration.
+This has been fixed.
+
+  struct A {
+    template <class T> operator friend(T);
+  };
+
 2/20/97  Incorrect handling of block extern in the presence of using-directives
 
 When looking for a previous declaration that matches a block

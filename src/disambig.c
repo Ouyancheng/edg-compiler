@@ -50,6 +50,9 @@ typedef struct a_disambig_state {
 			   disambiguation routines.  This is used to
 			   distinguish this case from the case in which
 			   a statement cache is passed in. */
+  a_boolean	friend_encountered;
+			/* TRUE if a tok_friend token was found among the
+			   decl-specifiers. */
 } a_disambig_state;
 
 
@@ -64,6 +67,7 @@ Initialize a disambiguation state block.
   dsp->may_be_decl = TRUE;
   dsp->set_decl_class_type = FALSE;
   dsp->stmt_cache_created = FALSE;
+  dsp->friend_encountered = FALSE;
 }  /* init_disambig_state */
 
 
@@ -317,8 +321,11 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_inline:
       case tok_virtual:
       case tok_explicit:
+        break;
       /* Friend and typedef. */
       case tok_friend:
+        state->friend_encountered = TRUE;
+        break;
       case tok_typedef:
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -998,11 +1005,14 @@ done:
 }  /* f_is_decl_not_expr */
 
 
-a_type_ptr prescan_and_find_declarator(a_token_cache *decl_token_cache_ptr)
+a_type_ptr prescan_and_find_declarator(a_token_cache *decl_token_cache_ptr,
+                                       a_boolean     *is_friend_decl)
 /*
 Scan the declaration that follows "template <...>" and find the
 declarator.  Record the class of which a member of the declarator.
-The caller provides a token cache containing the tokens to be scanned.
+Return in *is_friend_decl whether "friend" was among the
+decl-specifiers processed before reaching the declarator.  The caller
+provides a token cache containing the tokens to be scanned.
 Consequently, the cache built by the prescan routines is not needed
 and is discarded.  After the scan is done, any tokens remaining in the
 cache passed by the caller are flushed.
@@ -1027,6 +1037,7 @@ cache passed by the caller are flushed.
   /* Discard the cached token.  They are not needed because we were already
      scanning from a cache. */
   discard_token_cache(&state.cache);
+  *is_friend_decl = state.friend_encountered;
   wrapup_disambig_state(&state);
   return state.decl_class_type;
 }  /* prescan_and_find_declarator */

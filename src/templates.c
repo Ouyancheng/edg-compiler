@@ -179,6 +179,11 @@ typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
 typedef struct a_tmpl_decl_state {
   a_boolean	is_template_friend;
 			/* TRUE if this is a friend declaration. */
+  a_boolean	friend_state_changed;
+			/* TRUE if the declaration was originally considered
+			   to be a friend declaration by the initial prescan
+			   and was later changed to a nonfriend after doing
+			   the prescan to find the declarator. */
   a_boolean	is_member_decl;
 			/* TRUE if this declaration appeared in a class
 			   scope. */
@@ -276,6 +281,7 @@ Initialize a template declaration state block.
 */
 {
   tdsp->is_template_friend = FALSE;
+  tdsp->friend_state_changed = FALSE;
   tdsp->is_member_decl = FALSE;
   tdsp->is_specialization = FALSE;
   tdsp->is_full_specialization = FALSE;
@@ -312,6 +318,11 @@ Free the token caches that were used while processing a template declaration.
   }  /* if */
   /* Discard the token cache used to store the template parameter list. */
   discard_token_cache(&decl_state->param_list_cache);
+  /* If the friend state changed between the initial prescan and the later one,
+     an error should have been issued somewhere. */
+  check_assertion_str2(!decl_state->friend_state_changed || total_errors != 0,
+                       "wrapup_templ_decl_state:",
+                       "silent change in friend state");
 }  /* wrapup_templ_decl_state */
 
 
@@ -7845,7 +7856,8 @@ the declaration token cache.
 }  /* is_class_template_decl */
 
 
-static void prescan_nonclass_template_declaration(a_token_cache *token_cache)
+static void prescan_nonclass_template_declaration(
+                               a_tmpl_decl_state_ptr	decl_state)
 /*
 This routine is called before scanning a template declaration to determine
 whether this is the definition of a member of a class template, and if so,
@@ -7871,6 +7883,7 @@ instantiation, then you don't know what X is.
   a_type_ptr			tp;
   a_symbol_ptr			sym = NULL;
   a_scope_stack_entry_ptr	ssep;
+  a_boolean			is_friend;
 
   db_enter(4, "prescan_nonclass_template_declaration");
 
@@ -7880,7 +7893,18 @@ instantiation, then you don't know what X is.
 #endif /* 0 */  
   ssep = &scope_stack[depth_scope_stack];
   check_assertion(ssep->kind == (a_scope_kind)sck_template_declaration);
-  tp = prescan_and_find_declarator(token_cache);
+  tp = prescan_and_find_declarator(&decl_state->decl_token_cache, &is_friend);
+  if ((is_friend != decl_state->is_template_friend) &&
+      decl_state->is_member_decl) {
+    /* The initial prescan found a tok_friend, but this prescan did not
+       find it amoung the decl-specifiers of the declaration.  This can
+       occur if "friend" appears later in some invalid position.  Update
+       the flag to reflect the newly discovered state.  Note that we
+       only do this if is_member_decl is TRUE (a declaration outside of
+       a class should never be considered a friend). */
+    decl_state->is_template_friend = is_friend;
+    decl_state->friend_state_changed = TRUE;
+  }  /* if */
   if (tp != NULL) tp = skip_typerefs(tp);
   /* The following is_class_struct_union_type test is needed because in
      certain error cases the type may not be a class type. */
@@ -8074,7 +8098,7 @@ any non-empty template parameter lists that were scanned.
        parent class should be processed.  This must be done before 
        is_decl_start is called, as is_decl_start will cause the initial
        identifier (typically the return type) to be coalesced. */
-    prescan_nonclass_template_declaration(&decl_state->decl_token_cache);
+    prescan_nonclass_template_declaration(decl_state);
     if (!is_decl_start(/*expr_context=*/FALSE,
                        /*real_declarator_allowed=*/TRUE) &&
         !is_declarator_start()) {
