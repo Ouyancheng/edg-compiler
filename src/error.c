@@ -3327,36 +3327,6 @@ and then terminate the compilation.
 }  /* catastrophe */
 
 
-void pos_ty_catastrophe(an_error_code     error_code,
-                        a_source_position *error_pos,
-                        struct a_type     *type)
-/*
-Report the indicated catastrophe (with the indicated type) at the
-indicated position.
-*/
-{
-  init_error_params();
-  error_msg_types[1] = type;
-  diag_message(error_code, error_pos, es_catastrophe);
-}  /* pos_ty_catastrophe */
-
-#if !STANDALONE_UTILITY_PROGRAM
-
-void pos_sy_catastrophe(an_error_code     error_code,
-                        a_source_position *error_pos,
-                        struct a_symbol   *symbol)
-/*
-Report the indicated catastrophe (with the indicated symbol) at the
-indicated position.
-*/
-{
-  init_error_params();
-  error_msg_syms[1] = symbol;
-  diag_message(error_code, error_pos, es_catastrophe);
-}  /* pos_sy_catastrophe */
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
-
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *

@@ -539,8 +539,6 @@ extern void pos_st_warning(an_error_code     error_code,
                            char              *error_string);
 extern void pos_warning(an_error_code     error_code,
                         a_source_position *error_pos);
-extern void str_warning(an_error_code error_code,
-                        char          *error_string);
 extern void warning(an_error_code error_code);
 extern void pos_ty_warning(an_error_code     error_code,
                            a_source_position *error_pos,
@@ -588,17 +586,7 @@ extern void pos_st_catastrophe(an_error_code     error_code,
 extern void str_catastrophe(an_error_code error_code,
                             char          *error_string);
 extern void catastrophe(an_error_code error_code);
-extern void pos_ty_catastrophe(an_error_code     error_code,
-                               a_source_position *error_pos,
-                               struct a_type     *type);
-extern void type_catastrophe(an_error_code error_code,
-                             struct a_type *type);
 #if !STANDALONE_UTILITY_PROGRAM
-extern void pos_sy_catastrophe(an_error_code     error_code,
-                               a_source_position *error_pos,
-                               struct a_symbol   *symbol);
-extern void sym_catastrophe(an_error_code   error_code,
-                            struct a_symbol *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /* Report a syntax error, flush to a token in the stop set. */
