@@ -612,9 +612,6 @@ information.
   find_last_event_to_use();
   /* Reset the state information maintained by the lexical routines. */
   lexical_reset();
-  /* Clear the primary source file pointer, otherwise, push_input_stack
-     will try to use the old source file as the parent. */
-  il_header.primary_source_file = NULL;
   /* Update curr_char_loc to point to the end of the current line.  This
      will force the next token to begin on a new line. */
   building_pch_prefix = FALSE;
@@ -2049,9 +2046,6 @@ may be used.
     saved_curr_seq_number = seq_number_last_read;
     /* Update the IL header to reflect the information in the PCH file. */
     pch_fixup_part_1();
-    /* Clear the primary source file pointer, otherwise, push_input_stack
-       will try to use the old source file as the parent. */
-    il_header.primary_source_file = NULL;
   }  /* if */
   if (f_pch_input != NULL) (void)fclose(f_pch_input);
   db_exit();
