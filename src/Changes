@@ -2,10 +2,10 @@ Version 2.38
 
 1/8/97    Block generated for dependent statement in C++ mode
 
-When a dependent statement (e.g., for an if-statement) is not enclosed by
-braces, the compiler generates a block statement anyway.  With this change,
-the statement position on the generated block statement is no longer set
-and a source-sequence entry is no longer generated for it.
+In C++ mode when a dependent statement (e.g., for an if-statement) is not
+enclosed by braces, the compiler generates a block statement anyway.  With
+this change, the statement position on the generated block statement is no
+longer set and a source-sequence entry is no longer generated for it.
 
 1/7/97    cfront 2.1 mode: in a.b, cv-qualifiers on a are ignored
 
