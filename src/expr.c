@@ -3047,7 +3047,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
   an_expr_operator_kind op;
   a_source_position     start_position;
   a_type_ptr            result_type;
-  a_boolean             did_not_fold;
+  a_boolean             did_not_fold, template_constant;
   a_boolean             do_promotion, processed = FALSE;
   a_constant            result_constant;
 
@@ -3128,6 +3128,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
       } else {
         /* Other operators (not unary "+"). */
         did_not_fold = TRUE;
+        template_constant = FALSE;
         if (curr_expr_is_evaluated() && is_constant_operand(&operand)) {
           /* Fold the operation if the operand is constant.  In a nonconstant
              context, reduce any error to a warning and leave the operation
@@ -3135,10 +3136,17 @@ arithmetic type.  The operand of "~" must have integral type.  See section
           unary_operation(op, &operand.variant.constant,
                           result_type, &result_constant,
                           curr_expr_kind_is_const(),
-                          &did_not_fold, &start_position);
+                          &did_not_fold, &template_constant, &start_position);
         }  /* if */
         if (did_not_fold) {
-          if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
+          if (template_constant) {
+            /* For an expression based on a template parameter, scanned
+               during the prototype instantiation, make a ck_template_param
+               constant for the result. */
+            make_template_param_expr_constant_operand(&operand,
+                                                      (an_operand *)NULL, op,
+                                                      result_type, result);
+          } else if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
             /* A constant operation could not be folded in a constant
                expression. */
             pos_error(ec_expr_not_constant, &start_position);
@@ -6733,15 +6741,6 @@ bound_function_selector to the associated "this" pointer.
                definition of constants within a class if that extension
                were to allow non-integral constants. */
             (void)check_integral_operand(result);
-            if (sym_ptr->variant.constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param) {
-              /* If the constant is a template parameter (meaning we're in
-                 a prototype instantiation), make an error operand.  Note
-                 that this is done after the check for integral type; the
-                 nontype parameter still has to have integral type in the
-                 prototype instantiation. */
-              conv_to_error_operand(result);
-            }  /* if */
           }  /* if */
           break;
         case sk_variable:
