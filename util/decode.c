@@ -3525,6 +3525,9 @@ it is set to "" if not needed.
           str = "->*";
         } else if (ch2 == 'p') {
           str = "++";
+        } else if (ch2 == 's') {
+          str = "+";
+          *num_operands = 1;
         } else if (ch2 == 't') {
           str = "->";
         }  /* if */
