@@ -803,6 +803,10 @@ the exponent is out of range, set err to TRUE.
   int	part;
   int	bits = 0;
 
+#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  /* When long double is mapped onto double, store this value as a double. */
+  if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
   switch (kind) {
     case fk_float:
       min_exp = targ_flt_min_exp;

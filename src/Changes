@@ -1,5 +1,12 @@
 Version 3.0
 
+3/18/02  Hex floating point constants when using double as long double
+
+When USE_LONG_DOUBLE_FOR_HOST_FP_VALUE is FALSE (i.e., when using
+"double" to represent "long double") hexadecimal floating point
+values (in C99 mode) for long doubles were sometimes converted
+improperly, and some error cases were not detected.  This has been fixed.
+
 3/18/02  Predefined macros on Sparc architecture
 
 The front end now tests both the "sparc" and "__sparc" macros to determine
