@@ -237,6 +237,13 @@ example does not result in such an internal error).  This has been fixed.
     template <class T2> struct A<T2*> { };
   };
 
+9/8/00   Indication of deallocation point for variable-length arrays (VLAs)
+
+A new statement kind, stmk_vla_dealloc, has been added (IL CHANGE).
+It is generated when variable-length arrays are enabled (only in C mode,
+by default in C99 mode) and indicates the point at which the storage
+for a VLA should be deallocated.
+
 9/8/00   Abort on friend declarations with default arguments
 
 The front end used to produce invalid IL when a function is redeclared as
