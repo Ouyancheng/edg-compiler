@@ -482,6 +482,30 @@ EXTERN a_source_position
                                                             ;
 			/* NULL source position, for initialization. */
 
+typedef enum /*a_C_dialect*/ {
+  /* Possible C/C++ dialects to compile. */
+  C_dialect_ANSI,	/* ANSI C. */
+  C_dialect_pcc,	/* UNIX pcc C. */
+  C_dialect_cplusplus	/* C++. */
+} a_C_dialect;
+
+
+EXTERN a_C_dialect
+		C_dialect
+#if VAR_INITIALIZERS
+                          = C_dialect_cplusplus
+#endif /* VAR_INITIALIZERS */
+                                               ;
+			/* The C dialect to be accepted.  This is here because
+			   it's convenient to allow "back end" pieces to
+			   use C_mode(). */
+
+/*
+Returns TRUE in C mode (ANSI or pcc) and returns FALSE in C++ mode.
+*/
+#define C_mode() (C_dialect != C_dialect_cplusplus)
+
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
