@@ -1612,8 +1612,34 @@ typedef struct an_exception_specification {
 			   "throw". */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_exception_specification;
-#endif /* ifdef CIL */
 
+#if MICROSOFT_KEYWORDS_ALLOWED
+enum a_calling_convention_tag {
+/* Microsoft-specific calling convention specifiers. */
+  cc_default,		/* Default (unspecified) calling convention, which
+			   is the same as/compatible with one of the others. */
+  cc_cdecl,		/* __cdecl calling convention. */
+  cc_fastcall,		/* __fastcall calling convention. */
+  cc_stdcall,		/* __stdcall calling convention. */
+  cc_last		/* Must be last. */
+};
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+/* Define as "a_byte" to explicitly control storage size. */
+/* This type exists even if the Microsoft keywords are not allowed,
+   to permit routines that deal with types to have a predictable number of
+   parameters (they can return a calling convention via a parameter even
+   though it is never used). */
+typedef a_byte a_calling_convention;
+#if MICROSOFT_KEYWORDS_ALLOWED
+/* Display names for calling conventions. */
+EXTERN char *calling_convention_names[(int)cc_last]
+#if VAR_INITIALIZERS
+= {"<default>", "__cdecl", "__fastcall", "__stdcall"}
+#endif /* VAR_INITIALIZERS */
+;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+
+#endif /* ifdef CIL */
 
 /* Entry containing additional information about a routine type
 (segregated to keep down the size of a_type). */
@@ -1716,6 +1742,12 @@ typedef struct a_routine_type_supplement {
                         /* Indicates whether or not a #pragma implying
                            special argument-type checking (e.g., for printf)
                            applies to this function type. */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  a_calling_convention
+		calling_convention;
+			/* Calling convention for this routine (e.g.,
+			   __cdecl, __fastcall). */
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   a_type_ptr    implicit_this_param_type;
 			/* Pointer to the type of the implicit "this"
 			   parameter of C++ member functions; NULL for all
@@ -2388,11 +2420,6 @@ enum a_type_qualifier_tag {
 #if RESTRICT_ALLOWED
   tqt_restrict,		/* Restrict qualifier. */
 #endif /* RESTRICT_ALLOWED */
-#if MICROSOFT_KEYWORDS_ALLOWED
-  tqt_cdecl,		/* Microsoft __cdecl calling convention. */
-  tqt_fastcall,		/* Microsoft __fastcall calling convention. */
-  tqt_stdcall,		/* Microsoft __stdcall calling convention. */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   tqt_last		/* Must be last. */
 };
 
@@ -2409,28 +2436,6 @@ Definitions of the bits in bit sets of type a_type_qualifier_set.
 #define TQ_RESTRICT	(1 << (int)tqt_restrict)
 			/* This bit is set to represent restrict. */
 #endif /* RESTRICT_ALLOWED */
-#if MICROSOFT_KEYWORDS_ALLOWED
-#define TQ_CDECL	(1 << (int)tqt_cdecl)
-			/* This bit is set to represent __cdecl. */
-#define TQ_FASTCALL	(1 << (int)tqt_fastcall)
-			/* This bit is set to represent __fastcall. */
-#define TQ_STDCALL	(1 << (int)tqt_stdcall)
-			/* This bit is set to represent __stdcall. */
-
-#define TQ_CALLING_CONVENTION_QUALIFIERS (TQ_CDECL |			\
-					  TQ_FASTCALL |			\
-					  TQ_STDCALL)
-			/* Macro that specifies the qualifier bits used to
-			   represent calling convention information. */
-#define TQ_DEFAULT_CALLING_CONVENTION (TQ_CDECL)
-			/* Macro that specifies the default calling 
-			   convention. */
-#define TQ_ALL_MICROSOFT_QUALIFIERS      (TQ_CDECL |			\
-					  TQ_FASTCALL |			\
-					  TQ_STDCALL)
-			/* Macro that specifies all Microsoft-specific
-			   qualifier bits. */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
 
 /*
 The last type qualifier tag value is used as the number of bits required

@@ -698,6 +698,7 @@ Dump the contents of the indicated type entry, for debug purposes.
   a_field_ptr                   fp;
   a_param_type_ptr              ptp;
   a_class_type_supplement_ptr	ctsp;
+  a_routine_type_supplement_ptr rtsp;
   a_boolean	                comma_required;
 
   switch (tp->kind) {
@@ -835,21 +836,27 @@ class_struct_union:
       }
       break;
     case tk_routine:
-      fputs("function ", f_debug);
-      if (tp->variant.routine.extra_info->assoc_routine != NULL) {
-	db_name(&tp->variant.routine.extra_info->
-			    	assoc_routine->source_corresp);
+      rtsp = tp->variant.routine.extra_info;
+#if MICROSOFT_KEYWORDS_ALLOWED
+      if (rtsp->calling_convention != (a_calling_convention)cc_default) {
+        fprintf(f_debug, "%s ",
+                calling_convention_names[(int)rtsp->calling_convention]);
       }  /* if */
-      if (!tp->variant.routine.extra_info->prototyped) {
-        fputs(" old-style", f_debug);
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
+      fputs("function", f_debug);
+      if (rtsp->assoc_routine != NULL) {
+        fputs(" ", f_debug);
+	db_name(&rtsp->assoc_routine->source_corresp);
+      }  /* if */
+      if (!rtsp->prototyped) {
+        fputs(" unprototyped", f_debug);
       }  /* if */
       fputs("(", f_debug);
-      ptp = tp->variant.routine.extra_info->param_type_list;
-      if (tp->variant.routine.extra_info->implicit_this_param_type != NULL) {
+      ptp = rtsp->param_type_list;
+      if (rtsp->implicit_this_param_type != NULL) {
 	fputs("this: ", f_debug);
-        db_abbreviated_type(tp->variant.routine.extra_info->
-						implicit_this_param_type);
-        if (ptp != NULL || tp->variant.routine.extra_info->has_ellipsis) {
+        db_abbreviated_type(rtsp->implicit_this_param_type);
+        if (ptp != NULL || rtsp->has_ellipsis) {
           fputs("; ", f_debug);
         }  /* if */
       }  /* if */
@@ -884,7 +891,7 @@ class_struct_union:
 	comma_required = TRUE;
         ptp = ptp->next;
       }  /* while */
-      if (tp->variant.routine.extra_info->has_ellipsis) {
+      if (rtsp->has_ellipsis) {
 	if (comma_required) fputs(", ", f_debug);
         fputs("...", f_debug);
       }  /* if */
@@ -898,17 +905,6 @@ class_struct_union:
 #if RESTRICT_ALLOWED
         if (typeref_is_restrict_qualified(tp)) fputs("restrict ", f_debug);
 #endif /* RESTRICT_ALLOWED */
-#if MICROSOFT_KEYWORDS_ALLOWED
-        if ((tp->variant.typeref.qualifiers & TQ_CDECL) != 0) {
-          fputs("__cdecl ", f_debug);
-        }  /* if */
-        if ((tp->variant.typeref.qualifiers & TQ_FASTCALL) != 0) {
-          fputs("__fastcall ", f_debug);
-        }  /* if */
-        if ((tp->variant.typeref.qualifiers & TQ_STDCALL) != 0) {
-          fputs("__stdcall ", f_debug);
-        }  /* if */
-#endif /* MICROSOFT_KEYWORDS_ALLOWED */
       } else {
         fputs("typeref ", f_debug);
       }  /* if */
@@ -3872,6 +3868,9 @@ to default values.
       rtsp->suppress_diagnostic_on_incomplete_return_type = FALSE;
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
+#if MICROSOFT_KEYWORDS_ALLOWED
+      rtsp->calling_convention       = cc_default;
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
       rtsp->implicit_this_param_type = NULL;
       rtsp->prototype_scope          = NULL;
       rtsp->exception_specification  = NULL;
@@ -5162,9 +5161,9 @@ to it.
   vp->initialization_rewritten_as_assignment = FALSE;
 #endif /* DO_IL_LOWERING */
 #if MICROSOFT_KEYWORDS_ALLOWED
-  vp->dllimport_used = FALSE;
-  vp->dllexport_used = FALSE;
-  vp->thread_used = FALSE;
+  vp->dllimport_used              = FALSE;
+  vp->dllexport_used              = FALSE;
+  vp->thread_used                 = FALSE;
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -5514,10 +5513,10 @@ to it.  The entry is allocated in the file scope memory region.
   rp->specific_def            = FALSE;
   rp->contains_try_block      = FALSE;
 #if MICROSOFT_KEYWORDS_ALLOWED
-  rp->dllimport_used = FALSE;
-  rp->dllexport_used = FALSE;
-  rp->naked_used = FALSE;
-  rp->microsoft_inline_used = FALSE;
+  rp->dllimport_used          = FALSE;
+  rp->dllexport_used          = FALSE;
+  rp->naked_used              = FALSE;
+  rp->microsoft_inline_used   = FALSE;
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
 #if CHECKING
   rp->avoid_codecenter_warnings = 0;

@@ -713,6 +713,10 @@ Display a_routine_type_supplement.
     disp_name("arg_pragma");
     disp_pragma_kind_name(ptr->arg_pragma);
   }  /* if */
+#if MICROSOFT_KEYWORDS_ALLOWED
+  disp_name("calling_convention");
+  (void)printf("%s\n", calling_convention_names[(int)ptr->calling_convention]);
+#endif /* MICROSOFT_KEYWORDS_ALLOWED */
   if (ptr->implicit_this_param_type != NULL) {
     disp_ptr("implicit_this_param_type", (char *)ptr->implicit_this_param_type,
              iek_type);
