@@ -1,5 +1,28 @@
 Version 2.36
 
+6/16/97   IL lowering bug on placement delete processing
+
+An IL lowering bug related to placement delete caused an internal
+error on examples like the following because destructible entities
+preceding the "new" (e.g., the temporary for f() in this example)
+did not get some crucial initial processing.  Now fixed.
+
+  struct X {
+    X(int i = 0);
+    X(const X& x);
+    ~X();
+  };
+  X f();
+  struct C {
+    C() { }
+    void *operator new(size_t s, float f);
+    void operator delete(void *p, float f);
+  };
+  void g() {
+    X b(1);
+    (b = f()), new(1.2f) C();
+  }
+
 6/16/97   EH cleanup state during destruction of inner-lifetime temporaries
 
 When an initialization is performed, it is sometimes the case that

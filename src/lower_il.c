@@ -7560,11 +7560,12 @@ If any code needs to be inserted, it is inserted at *insert_location,
 and *insert_location is updated.
 */
 {
-  a_dynamic_init_ptr dip;
+  a_dynamic_init_ptr dip, dip_next;
 
   for (dip = lifetime->destructions;
        dip != NULL;
-       dip = dip->next_in_destruction_list) {
+       dip = dip_next) {
+    dip_next = dip->next_in_destruction_list;
     initial_processing_on_destructible_initialization(dip, insert_location);
   }  /* for */
 }  /* begin_object_lifetime */
