@@ -2393,6 +2393,40 @@ this is a dik_expression dynamic init entry.
 }  /* init_expr_lifetime_of */
 
 
+static a_boolean are_disjoint_members_of_union(a_field_ptr field1,
+                                               a_field_ptr field2)
+/*
+Return TRUE if the two indicated fields (ultimately, members of the
+same class) are members of the same union, or members of members of
+the same union.  Anonymous unions and structs are considered in the
+determination.
+*/
+{
+  a_boolean  are_disjoint_members = FALSE;
+  a_type_ptr class1 = field1->source_corresp.parent.class_type;
+
+  /* Work up from each field looking at the parent classes.  Find the
+     innermost class/struct/union that the fields have in common. */
+  for (;;) {
+    a_type_ptr class2 = field2->source_corresp.parent.class_type;
+    for (;;) {
+      if (class2 == class1) {
+        /* We've found the the innermost class/struct/union that the
+           fields have in common.  If it is a union, they conflict. */
+        are_disjoint_members = (class1->kind == (a_type_kind)tk_union);
+        goto end_of_routine;
+      }  /* if */
+      if (!class2->source_corresp.is_class_member) break;
+      class2 = class2->source_corresp.parent.class_type;
+    }  /* for */
+    check_assertion(class1->source_corresp.is_class_member);
+    class1 = class1->source_corresp.parent.class_type;
+  }  /* for */
+end_of_routine:
+  return are_disjoint_members;
+}  /* are_disjoint_members_of_union */
+
+
 a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
                                         a_boolean      user_defined)
 /*
@@ -2682,14 +2716,14 @@ initialized.  These are addressed in the course of the processing.
                specified. */
             for (cip = cip_list; cip != NULL; cip = cip->next) {
               if (cip->initializer != NULL) {
+                /* Note: at this point cip_list includes only fields, so we can
+                   assume new_cip->kind is cik_field. */
                 if (cip->variant.field ==
                                      member_or_base_sym->variant.field.ptr) {
                   /* Error on duplicate initialization will be issued below. */
-                } else if (is_union_type(class_type) ||
-                           (cip->variant.field->
-                                    source_corresp.parent.class_type ==
-                            member_or_base_sym->variant.field.ptr->
-                                    source_corresp.parent.class_type)) {
+                } else if (are_disjoint_members_of_union(
+                                      cip->variant.field,
+                                      member_or_base_sym->variant.field.ptr)) {
                   /* The union (or the anonymous union subobject) has already
                      been initialized. */
                   error(ec_union_already_initialized);
@@ -2700,8 +2734,8 @@ initialized.  These are addressed in the course of the processing.
           /* Check the list for a constructor init entry that refers to this
              member.  If it's there we may have a reinitialization error. */
           for (new_cip = cip_list; new_cip != NULL; new_cip = new_cip->next) {
-             /* Note: at this point cip_list includes only fields, so we can
-                assume new_cip->kind is cik_field. */
+            /* Note: at this point cip_list includes only fields, so we can
+               assume new_cip->kind is cik_field. */
             if (new_cip->variant.field ==
                                    member_or_base_sym->variant.field.ptr) {
               if (new_cip->initializer != NULL) {

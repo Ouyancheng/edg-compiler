@@ -1,5 +1,23 @@
 Version 2.37
 
+8/13/97   Microsoft compatibility: checking for multiple initializers
+          in the presence of anonymous structs
+
+The checking for multiple ctor-initializers initializing several members
+of a union (which is an error) did not work correctly in the presence
+of anonymous structs (a Microsoft extension).  Now fixed.
+
+  struct C {
+    C() : i(0), j(1) { };  // No longer gets an error
+    union {
+      struct {
+        int i;
+        int j;
+      };
+      int k;
+    };
+  };
+
 8/13/97   C++-generating back end: names of conversion functions generated
 
 In the C++-generating back end, names of conversion functions are now
