@@ -4929,8 +4929,9 @@ otherwise it is NULL.  The syntax is:
         *locator = locator_for_curr_id;
         (void)get_token();
       } else if (simplify_curr_class_qualified_name(),
-		 (locator_for_curr_id.is_destructor_name ||
-                   get_destructor_name())) {
+		 ((curr_token == tok_identifier &&
+                     locator_for_curr_id.is_destructor_name) ||
+                  get_destructor_name())) {
         /* A destructor name, like "~A".  It must have the same name as
            the class currently being defined, it must be followed by a
            left paren, and the specifiers must include no type.
@@ -4981,6 +4982,14 @@ otherwise it is NULL.  The syntax is:
         } else if (curr_token != tok_lparen) {
           /* A valid destructor name is not followed by a left parenthesis. */
           error(ec_exp_lparen);
+          if (curr_token != tok_rparen) {
+            error(ec_exp_rparen);
+          } else {
+            (void)get_token();
+          }  /* if */
+          is_destructor = FALSE;
+          complete_type = error_type();
+          set_to_error_locator(*locator);
         }  /* if */
         parenthesized_initializer_allowed = FALSE;
       } else if (get_opname()) {
