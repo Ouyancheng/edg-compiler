@@ -4278,7 +4278,7 @@ file we simply return.
           /* Push the new file onto the input stack and scan it.  There is
              no "name as written" so a NULL pointer is passed in. */
 	  if (suppress_subsequent_include_of_file(full_file_name, &fstate)) {
-	    fclose(f_source);
+	    (void)fclose(f_source);
 #if DEBUG
 	    if (debug_level >= 3) {
 	      fprintf(f_debug, "%s %s %s\n", "do_implicit_include_if_needed:",

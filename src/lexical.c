@@ -2143,7 +2143,7 @@ notation and FALSE for all other files.
   if (suppress_subsequent_include_of_file(full_file_name, &fstate)) {
     /* This file contains include guard code.  An inclusion here would
        have no effect, so it should be suppressed. */
-    fclose(input_file);
+    (void)fclose(input_file);
 #if DEBUG
     if (debug_level >= 4) {
       fprintf(f_debug,
@@ -2718,7 +2718,7 @@ at the next level down.
 	  if (suppress_subsequent_include_of_file(full_file_name, &fstate)) {
             /* This file contains include guard code.  An inclusion here would
                have no effect, so it should be suppressed. */
-	    fclose(f_source);
+	    (void)fclose(f_source);
 #if DEBUG
 	    if (debug_level >= 3) {
 	      fprintf(f_debug,
