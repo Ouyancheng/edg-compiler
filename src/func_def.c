@@ -602,11 +602,6 @@ a new symbol is created and entered in the symbol table.
   }  /* if */
   /* Create the parameter variable. */
   vp = make_param_variable(tp, param_id->storage_class);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  /* Record the type exactly as it was declared (before array-to-pointer
-     decay, etc. */
-  vp->declared_type = param_id->declared_type;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   add_to_parameters_list(vp);
   sym = param_id->symbol;
   if (sym == NULL) {
@@ -917,7 +912,7 @@ and for the instantiation of template functions.
                                                param_id->declared_type)) {
           /* The [*] syntax for VLAs is not allowed for a parameter in a
              function definition.  When parsing a function declarator the [*]
-             syntax is allowed because it is impossible to tell between a
+             syntax is allowed because it is impossible to distinguish a
              function prototype and a function definition at that point.  Now
              that the opening brace has been seen, the presence of [*] can be
              detected as an error. */
