@@ -96,6 +96,14 @@ Do any processing that is required at the end of a translation unit
   /* Pop the file scope off the scope stack. */
   pop_scope();
 
+  if (!do_preprocessing_only && any_cfront_mode()) {
+    /* Determine whether any classes defined in this file require external
+       linkage, and if so do the appropriate fixup.  No such fixup is
+       required in non-cfront mode, since the initial linkage settings
+       are already external, when appropriate. */
+    check_class_linkage();
+  }  /* if */
+
   /* If this is a secondary translation unit, establish any IL
      correspondences.  (If there were errors, the IL may be too
      damaged for reasonable results.) */
@@ -265,13 +273,6 @@ and before the back end (if any) is executed.
                        "fe_wrapup:", "bad translation unit in fe_wrapup");
 
   if (C_dialect == C_dialect_cplusplus) {
-    if (any_cfront_mode()) {
-      /* Determine whether any classes defined in this file require external
-         linkage, and if so do the appropriate fixup.  No such fixup is
-         required in non-cfront mode, since the initial linkage settings
-         are already external, when appropriate. */
-      check_class_linkage();
-    }  /* if */
     /* Go through the classes in the file scope and each namespace scope
        and generate bodies for virtual destructors, as required. */
     generate_required_virtual_destructor_bodies(il_header.primary_scope);

@@ -12769,7 +12769,6 @@ because they were used in declaring an external function or variable.
   check_assertion(any_cfront_mode());
   /* Search for classes by making a pass over all the types associated with
      the file scope. */
-  scope = il_header.primary_scope;
   for (tp = scope->types; tp != NULL; tp = tp->next) {
     if (tp->source_corresp.is_local_to_function) {
       /* Local type, possibly promoted to file scope during IL lowering of a
