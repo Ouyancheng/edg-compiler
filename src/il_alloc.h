@@ -213,6 +213,7 @@ extern a_decl_position_supplement_ptr alloc_decl_position_supplement
 #if RECORD_FORM_OF_NAME_REFERENCE
 extern a_name_qualifier_ptr alloc_name_qualifier(void);
 extern a_name_reference_ptr alloc_name_reference(void);
+extern void clear_name_reference(a_name_reference_ptr	nrp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
 #if !STANDALONE_UTILITY_PROGRAM

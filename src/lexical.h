@@ -1960,6 +1960,12 @@ extern void init_token_string(a_source_position *pos);
 extern a_name_reference_ptr make_name_reference(
 					a_symbol_locator	*locator,
 					a_source_correspondence	*scp);
+extern void make_name_reference_from_locator(
+				      a_symbol_locator		*locator,
+				      a_name_reference_ptr	nrp);
+extern a_name_reference_ptr find_allocated_name_reference(
+				a_source_correspondence		*scp,
+				a_name_reference_ptr		entry_to_copy);
 extern void db_name_qualifier(a_name_qualifier_ptr	nqp);
 extern void db_name_reference(a_name_reference_ptr	nrp);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */

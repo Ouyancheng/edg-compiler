@@ -3351,6 +3351,19 @@ to it.
 }  /* alloc_name_qualifier */
 
 
+void clear_name_reference(a_name_reference_ptr	nrp)
+/*
+Initialize the fields of a name reference entry.
+*/
+{
+  nrp->next = NULL;
+  nrp->qualifier = NULL;
+  nrp->is_global_qualified_name = FALSE;
+  nrp->is_template_id = FALSE;
+  nrp->any_super_qualifier = FALSE;
+}  /* clear_name_reference */
+
+
 a_name_reference_ptr alloc_name_reference(void)
 /*
 Allocate a name reference entry, initialize its fields, and return a pointer
@@ -3363,11 +3376,7 @@ to it.
 #if DEBUG
   num_name_references_allocated++;
 #endif /* DEBUG */
-  nrp->next = NULL;
-  nrp->qualifier = NULL;
-  nrp->is_global_qualified_name = FALSE;
-  nrp->is_template_id = FALSE;
-  nrp->any_super_qualifier = FALSE;
+  clear_name_reference(nrp);
   return nrp;
 }  /* alloc_name_reference */
 

@@ -10299,9 +10299,76 @@ done:
 }  /* make_name_qualifier */
 
 
+void make_name_reference_from_locator(a_symbol_locator		*locator,
+				      a_name_reference_ptr	nrp)
+/*
+Create a name reference entry in the location specified by "nrp" that
+describes the name specified by "locator".  If "nrp" is NULL, a new entry
+is allocated.
+*/
+{
+  if (nrp == NULL) {
+    nrp = alloc_name_reference();
+  } else {
+    clear_name_reference(nrp);
+  }  /* if */
+  nrp->qualifier = locator->name_qualifier;
+  nrp->is_global_qualified_name = locator->is_global_qualified_name;
+  nrp->is_template_id = locator->is_template_id;
+  nrp->any_super_qualifier = locator->any_super_qualifier;
+}  /* make_name_reference_from_locator */
+
+
+a_name_reference_ptr find_allocated_name_reference(
+				a_source_correspondence		*scp,
+				a_name_reference_ptr		entry_to_copy)
+/*
+Return a pointer to a name reference entry that contains the information
+in "entry_to_copy".  "scp" is the source correspondence of the IL entry
+referred to by the name.  The IL entry is currently used only to look for
+a previously created entry that can be reused.
+*/
+{
+  a_name_reference_ptr		nrp = NULL;
+
+  if (!prototype_instantiations_in_il &&
+      is_prototype_instantiation_context()) {
+    /* Don't build name reference information for prototype instantiations
+       when prototype instantiations are not being included in the IL. */
+    goto done;
+  }  /* if */
+  /* Look for a previously created name reference that matches the
+     information in the locator. */
+  for (nrp = scp->name_references; nrp != NULL; nrp = nrp->next) {
+    if (nrp->qualifier == entry_to_copy->qualifier &&
+        nrp->is_global_qualified_name ==
+                                     entry_to_copy->is_global_qualified_name &&
+        nrp->is_template_id == entry_to_copy->is_template_id &&
+        nrp->any_super_qualifier == entry_to_copy->any_super_qualifier) {
+      /* A match was found. */
+      break;
+    }  /* if */
+  }  /* for */
+  if (nrp == NULL) {
+    /* No match was found -- create a new entry. */
+    nrp = alloc_name_reference();
+    nrp->qualifier = entry_to_copy->qualifier;
+    nrp->is_global_qualified_name = entry_to_copy->is_global_qualified_name;
+    nrp->is_template_id = entry_to_copy->is_template_id;
+    nrp->any_super_qualifier = entry_to_copy->any_super_qualifier;
+    /* Put this on the list of name references pointed to by the source
+       correspondence. */
+    nrp->next = scp->name_references;
+    scp->name_references = nrp;
+  }  /* if */
+done:
+  return nrp;
+}  /* find_allocated_name_reference */
+
+
 a_name_reference_ptr make_name_reference(
 				a_symbol_locator		*locator,
-				 a_source_correspondence	*scp)
+				a_source_correspondence		*scp)
 /*
 Return a pointer to a name reference entry that describes the name
 specified by "locator".  "scp" is the source correspondence of the IL entry
@@ -10330,11 +10397,7 @@ a previously created entry that can be reused.
   }  /* for */
   if (nrp == NULL) {
     /* No match was found -- create a new entry. */
-    nrp = alloc_name_reference();
-    nrp->qualifier = locator->name_qualifier;
-    nrp->is_global_qualified_name = locator->is_global_qualified_name;
-    nrp->is_template_id = locator->is_template_id;
-    nrp->any_super_qualifier = locator->any_super_qualifier;
+    make_name_reference_from_locator(locator, (a_name_reference_ptr)NULL);
     /* Put this on the list of name references pointed to by the source
        correspondence. */
     nrp->next = scp->name_references;
