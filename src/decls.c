@@ -7586,14 +7586,16 @@ NULL.
     if (attributes != NULL) {
       /* Applying attributes could change the underlying type. */
       apply_attributes_to_typedef(attributes, tp, linkage_name);
-      /* The list of attributes was duplicated earlier: We're responsible
-         for freeing it. */
-      free_attribute_list(attributes);
     }  /* if */
     if (!tp->source_corresp.is_deprecated) {
       /* Check if a deprecated type was involved in this declaration. */
       warn_about_use_of_deprecated_type(type_ptr, &locator->source_position);
     }  /* if */
+  }  /* if */
+  if (attributes != NULL) {
+    /* The list of attributes was duplicated earlier: We're responsible
+       for freeing it. */
+    free_attribute_list(attributes);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
