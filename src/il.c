@@ -1044,6 +1044,40 @@ void db_initializer(a_variable_ptr  var,
 For the alternate IL file format, each entry's allocation must be preceded
 by an entry number, which is initialized to zero here.
 */
+#if IL_WALK_NEEDED
+/*
+Orphaned file scope IL entries need to be chained together to ensure that
+they will be visited when the IL is walked during writing, reading
+or display.  That pointer used to chain like IL entry types together
+precedes the IL entry and follows the IL entry number.
+*/
+#if DEBUG
+#define do_alloc(ptr, region_number, size)                            \
+{ ptr = alloc_in_region((region_number),                              \
+                         (sizeof_t)((size)+sizeof(an_il_entry_number)+\
+        (region_number==FILE_SCOPE_REGION_NUMBER?sizeof(char *):0))); \
+  *(an_il_entry_number *)ptr = 0;                                     \
+  num_il_entry_numbers_allocated++;                                   \
+  ptr += sizeof(an_il_entry_number);                                  \
+  if (region_number == FILE_SCOPE_REGION_NUMBER) {                    \
+    *(char **)ptr = (char *)NULL;                                     \
+    ptr += sizeof(char *);                                            \
+  }                                                                   \
+}  /* do_alloc */
+#else /* !DEBUG */
+#define do_alloc(ptr, region_number, size)                            \
+{ ptr = alloc_in_region((region_number),                              \
+                         (sizeof_t)((size)+sizeof(an_il_entry_number)+\
+        (region_number==FILE_SCOPE_REGION_NUMBER?sizeof(char *):0))); \
+  *(an_il_entry_number *)ptr = 0;                                     \
+  ptr += sizeof(an_il_entry_number);                                  \
+  if (region_number == FILE_SCOPE_REGION_NUMBER) {                    \
+    *(char **)ptr = (char *)NULL;                                     \
+    ptr += sizeof(char *);                                            \
+  }                                                                   \
+}  /* do_alloc */
+#endif /* DEBUG */
+#else /* !(IL_WALK_NEEDED */
 #if DEBUG
 #define do_alloc(ptr, region_number, size)                            \
 { ptr = alloc_in_region((region_number),                              \
@@ -1060,13 +1094,31 @@ by an entry number, which is initialized to zero here.
   ptr += sizeof(an_il_entry_number);                                  \
 }  /* do_alloc */
 #endif /* DEBUG */
+#endif /* IL_WALK_NEEDED */
 #else /* !ALTERNATE_IL_FILE_FORMAT */
 /*
 For the usual IL file format, or when no IL file is written, no extra space
 is required.
 */
+#if IL_WALK_NEEDED
+/*
+Orphaned file scope IL entries need to be chained together to ensure that
+they will be visited when the IL is walked during writing, reading or
+display.  That pointer used to chain like IL entry types together precedes
+the IL entry.
+*/
+#define do_alloc(ptr, region_number, size)                            \
+{ ptr = alloc_in_region((region_number), (sizeof_t)((size)+           \
+        (region_number==FILE_SCOPE_REGION_NUMBER?sizeof(char *):0))); \
+  if (region_number == FILE_SCOPE_REGION_NUMBER) {                    \
+    *(char **)ptr = (char *)NULL;                                     \
+    ptr += sizeof(char *);                                            \
+  }                                                                   \
+}  /* do_alloc */
+#else /* !(IL_WALK_NEEDED */
 #define do_alloc(ptr, region_number, size)                            \
   ptr = alloc_in_region((region_number), (size))
+#endif /* IL_WALK_NEEDED */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
 
