@@ -185,6 +185,45 @@ Register a variable that is specific to a given translation unit.
 }  /* f_register_trans_unit_variable */
 
 
+static void clear_scope_stack_related_information(void)
+/*
+This routine is used when saving the translation unit state.  It clears the
+depth_in_scope_stack field of any scopes on the scope stack.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+
+  for (; ssep != NULL;
+       ssep = ssep->kind == (a_scope_kind)sck_file ? NULL : ssep - 1) {
+    a_scope_ptr	scope = ssep->il_scope;
+    if (scope != NULL) {
+      scope->depth_in_scope_stack = NO_SCOPE_DEPTH;
+    }  /* if */
+  }  /* for */
+}  /* clear_scope_stack_related_information */
+
+
+static void set_scope_stack_related_information(void)
+/*
+This routine is used when restoring the translation unit state.  It sets the
+depth_in_scope_stack field of any scopes on the scope stack that have
+associated IL scopes.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+
+  for (; ssep != NULL;
+       ssep = ssep->kind == (a_scope_kind)sck_file ? NULL : ssep - 1) {
+    a_scope_ptr	scope = ssep->il_scope;
+    /* Note that if a scope is on the stack more than once, this will have
+       the effect of setting it to the outermost scope depth. */
+    if (scope != NULL) {
+      scope->depth_in_scope_stack = scope_depth_of(ssep);
+    }  /* if */
+  }  /* for */
+}  /* set_scope_stack_related_information */
+
+
 static void save_translation_unit_state(a_translation_unit_ptr	tup)
 /*
 Copy the variables for a given translation unit to the variables block
@@ -213,6 +252,8 @@ pointed to by the translation unit entry.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   tup->il_header.nontag_types_used_in_exception_or_rtti =
                               il_header.nontag_types_used_in_exception_or_rtti;
+  /* Reset the depth_in_scope stack field of any scopes on the scope stack. */
+  clear_scope_stack_related_information();
 }  /* save_translation_unit_state */
 
 
@@ -245,6 +286,9 @@ pointed to by the translation unit entry.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   il_header.nontag_types_used_in_exception_or_rtti =
                          tup->il_header.nontag_types_used_in_exception_or_rtti;
+  /* Restore the depth_in_scope stack field of any scopes on the scope
+     stack. */
+  set_scope_stack_related_information();
 }  /* restore_translation_unit_state */
 
 
