@@ -19130,9 +19130,7 @@ library does not provide instantiations).  Without the can_instantiate
 pragma the instantiator would have no way of knowing how to generate
 the instantiations needed to resolve the references from within the
 library.
-*/
-#if 0
-/*
+
 There is currently a problem caused by creating a class in
 tim_can_instantiate mode and then referencing the class later.
 
@@ -19141,16 +19139,13 @@ class in tim_none mode.  This has the undesired effect that
 any static data members or virtual functions will be flagged
 as requiring instantiations.
 */
-#endif /* 0 */
 {
   a_can_instantiate_entry_ptr	ciep;
 
   db_enter(4, "delayed_processing_of_can_instantiate_class_pragmas");
-#if 0
-  /* Temporarily disabled until we solve the problem of classes that
-     are referenced after the instantiation is done. */
-  instantiation_mode = tim_can_instantiate;
-#endif /* 0 */
+  /* The instantiation mode should really be tim_can_instantiate, but this is
+     not done because of the problem of classes that are referenced after
+     the instantiation is done. */
   ciep = can_instantiate_list;
   while (ciep != NULL) {
     a_type_ptr	class_type = ciep->class_type;
