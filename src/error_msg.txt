@@ -874,6 +874,7 @@ ec_nonstandard_destructor_reference;;"use of %n in a destructor call is nonstand
 ec_ambiguous_destructor;;"destructor reference is ambiguous -- both %n1 and %n2 could be used"
 ec_virtual_inline_never_defined;;"virtual inline %n was never defined"
 ec_unreferenced_function_param;;"%n was never referenced"
+ec_union_already_initialized;;"only one member of a union may be specified in a constructor initializer list"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
