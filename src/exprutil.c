@@ -3457,7 +3457,6 @@ to this value.
                                    &imaginary_unit->variant.float_value,
                                    &err);
     check_assertion(!err);
-    add_to_constants_list(imaginary_unit, /*at_file_scope=*/TRUE);
   }  /* if */
   make_constant_operand(imaginary_unit, result);
 }  /* make_imaginary_unit_operand */
