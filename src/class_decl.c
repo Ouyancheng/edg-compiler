@@ -4604,23 +4604,31 @@ specified by decl_scope_level.
       case sk_overloaded_function:
         /* This may be a compiler generated default assignment operator, which
            is okay.  Any user-defined member function is illegal. */
-        if (!member_function_error_already_issued) {
-          if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-            mf_sym = sym->variant.overloaded_function.symbols;
-            is_overloaded = TRUE;
-          } else {
-            mf_sym = sym;
-            is_overloaded = FALSE;
-          }  /* if */
-          for (; mf_sym != NULL;
-                 mf_sym = is_overloaded ? mf_sym->next : NULL) {
-            if (!mf_sym->variant.routine.ptr->compiler_generated) {
-              error(ec_anon_union_member_function);
-              member_function_error_already_issued = TRUE;
-              break;
-            }  /* if */
-          }  /* for */
+        if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          mf_sym = sym->variant.overloaded_function.symbols;
+          is_overloaded = TRUE;
+        } else {
+          mf_sym = sym;
+          is_overloaded = FALSE;
         }  /* if */
+        for (; mf_sym != NULL;
+               mf_sym = is_overloaded ? mf_sym->next : NULL) {
+          if (!member_function_error_already_issued &&
+              !mf_sym->variant.routine.ptr->compiler_generated) {
+            error(ec_anon_union_member_function);
+            member_function_error_already_issued = TRUE;
+          }  /* if */
+          /* Class or namespace membership information has to be set even
+             though there's an error here -- otherwise, there can be error
+             recovery problems. */
+          if (class_type != NULL) {
+            set_class_membership(mf_sym, (a_source_correspondence *)NULL,
+                                 class_type);
+          } else {
+            set_namespace_membership(sym, (a_source_correspondence *)NULL,
+                                     (a_namespace_ptr)NULL);
+          }  /* if */
+        }  /* for */
         break;
       case sk_type:
       case sk_class_or_struct_tag:
