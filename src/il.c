@@ -2761,15 +2761,19 @@ a pointer to it.
 }  /* alloc_template_arg */
 
 
-void free_template_arg(a_template_arg_ptr  tap)
+void free_template_arg_list(a_template_arg_ptr  tap)
 /*
 Return a template arg entry to the available list.
 */
 {
-  if (tap != NULL) {
+  a_template_arg_ptr  next_tap;
+
+  while (tap != NULL) {
+    next_tap = tap->next;
     tap->next = avail_template_args;
     avail_template_args = tap;
-  }  /* if */
+    tap = next_tap;
+  }  /* while */
 }  /* free_template_arg */
 
 
