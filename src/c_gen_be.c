@@ -5638,11 +5638,13 @@ parameters.
        variables without initializers. */
 #ifdef CFE
   } else if (!dump_initializers && init_con != NULL &&
-             variable->source_corresp.name_linkage ==
+             ((variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
-             strcmp(variable->source_corresp.name, "__link") == 0) {
+               strcmp(variable->source_corresp.name, "__link") == 0) ||
+              variable->source_corresp.name == NULL)) {
     /* Dump the C++ startup variable __link only once, rather than once
-       without the initializer and once with.  That allows it to be static. */
+       without the initializer and once with.  That allows it to be static.
+       Ditto for unnamed variables. */
 #endif /* ifdef CFE */
   } else {
 #ifdef FFE
