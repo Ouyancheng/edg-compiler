@@ -28,9 +28,7 @@ templates.c -- Support for C++ templates.
 #include "disambig.h"
 #include "folding.h"
 #include "trans_corresp.h"
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
 #include "lower_name.h"
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if USER_CONTROL_OF_STRUCT_PACKING
 #include "layout.h"
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -122,27 +120,6 @@ static char	*template_info_line_type_names[(int)tilt_last+1] = {
   /* tilt_last */			NULL
 };
 
-typedef struct a_template_lookup_entry *a_template_lookup_entry_ptr;
-typedef struct a_template_lookup_entry {
-  /* Structure used to represent entries in the hash table of template
-     names.  This is used to record the signatures of template definitions
-     specified in a given exported template file so that a definition
-     for an exported template can be found when an instantiation must be
-     generated. */
-  a_template_lookup_entry_ptr
-		next;
-			/* Pointer to the next template in a given hash
-			   table bucket. */
-  char		*name;
-			/* Name of the template.  This is the name read from
-			   the exported template file.  This will typically
-			   be the mangled name of the template. */
-  an_exported_template_file_ptr
-		exported_template_file;
-			/* Pointer to the entry that describes the file in
-			   which the template was defined. */
-} a_template_lookup_entry;
-
 /*
 Enumeration used to specify the kind of template information file line to
 be written.
@@ -215,26 +192,6 @@ static an_instance_lookup_entry_ptr
 			   entries associated with instantiations that hashed
 			   to a given group. */
 
-#define TEMPLATE_LOOKUP_TABLE_SIZE 599
-			/* The number of buckets in the template lookup table.
-			   This number should be prime. */
-
-static a_template_lookup_entry_ptr
-		template_lookup_table[TEMPLATE_LOOKUP_TABLE_SIZE];
-			/* Table used to find the definition of exported
-			   templates.  Each element of the array points to
-			   a list of entries for templates that hash
-			   to a given group. */
-
-#define HASH_FACTOR ((unsigned int)73)
-			/* The multiplier used in the hash algorithm that
-			   generates an index in the hash table from an
-                           identifier name string.
-			   Do not change without investigating the
-			   hash table performance that results.  Prime
-			   values are likely to work better than
-			   non-prime values. */
-
 static char	*instantiation_request_file_name;
                         /* The name of a file containing a list of names
 			   of template functions and static data members to
@@ -306,7 +263,52 @@ typedef struct a_can_instantiate_entry {
 
 
 static a_can_instantiate_entry_ptr can_instantiate_list;
+
+#if TEMPLATE_LOOKUP_NEEDED
 	
+typedef struct a_template_lookup_entry *a_template_lookup_entry_ptr;
+typedef struct a_template_lookup_entry {
+  /* Structure used to represent entries in the hash table of template
+     names.  This is used to record the signatures of template definitions
+     specified in a given exported template file so that a definition
+     for an exported template can be found when an instantiation must be
+     generated. */
+  a_template_lookup_entry_ptr
+		next;
+			/* Pointer to the next template in a given hash
+			   table bucket. */
+  char		*name;
+			/* Name of the template.  This is the name read from
+			   the exported template file.  This will typically
+			   be the mangled name of the template. */
+  an_exported_template_file_ptr
+		exported_template_file;
+			/* Pointer to the entry that describes the file in
+			   which the template was defined. */
+} a_template_lookup_entry;
+
+#define TEMPLATE_LOOKUP_TABLE_SIZE 599
+			/* The number of buckets in the template lookup table.
+			   This number should be prime. */
+
+static a_template_lookup_entry_ptr
+		template_lookup_table[TEMPLATE_LOOKUP_TABLE_SIZE];
+			/* Table used to find the definition of exported
+			   templates.  Each element of the array points to
+			   a list of entries for templates that hash
+			   to a given group. */
+
+#define HASH_FACTOR ((unsigned int)73)
+			/* The multiplier used in the hash algorithm that
+			   generates an index in the hash table from an
+                           identifier name string.
+			   Do not change without investigating the
+			   hash table performance that results.  Prime
+			   values are likely to work better than
+			   non-prime values. */
+
+#endif /* TEMPLATE_LOOKUP_NEEDED */
+
 static a_def_arg_expr_fixup_ptr	curr_default_args;
 			/* Pointer to the default argument entries for
                            the function template being scanned. */
@@ -415,10 +417,10 @@ static unsigned long
 Counters used to track memory usage.
 */
 static unsigned long
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
+#if TEMPLATE_LOOKUP_NEEDED
 		num_template_lookup_entries_allocated,
                 num_exported_template_files_allocated,
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#endif /* TEMPLATE_LOOKUP_NEEDED */
 		num_partial_order_candidates_allocated;
 #endif /* DEBUG */
 
@@ -801,6 +803,12 @@ source sequence entry.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#if TEMPLATE_LOOKUP_NEEDED
+/* Forward declaration. */
+static char *get_mangled_name_for_symbol(a_symbol_ptr	sym);
+#endif /* TEMPLATE_LOOKUP_NEEDED */
+
+
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
 
 static void generate_template_file_names(void)
@@ -884,10 +892,6 @@ Open the template information file.
     str_catastrophe(ec_cannot_open_output_file, template_info_file_name);
   }  /* if */
 }  /* open_template_info_file */
-
-
-/* Forward declaration. */
-static char *get_mangled_name_for_symbol(a_symbol_ptr	sym);
 
 
 static void write_to_template_info_file(
@@ -11653,6 +11657,7 @@ the size of arr can be computed.
   }  /* for */
 }  /* fixup_types_that_refer_to_incomplete_instantiations */
 
+#if TEMPLATE_LOOKUP_NEEDED
 
 static an_exported_template_file_ptr alloc_exported_template_file(void)
 /*
@@ -11677,10 +11682,11 @@ to it.
   return etfp;
 }  /* alloc_exported_template_file */
 
-
 /* Forward declaration. */
 static a_template_lookup_entry_ptr find_exported_template(char		*name,
 					                  a_boolean	add);
+
+#endif /* TEMPLATE_LOOKUP_NEEDED */
 
 
 static void add_to_exported_templates_list(a_symbol_ptr	sym)
@@ -11701,7 +11707,9 @@ of exported templates for this translation unit.
     exported_templates_tail->next = slep;
   }  /* if */
   exported_templates_tail = slep;
-  if (curr_translation_unit->specified_on_command_line) {
+#if TEMPLATE_LOOKUP_NEEDED
+  if (more_than_one_non_export_translation_unit &&
+      curr_translation_unit->specified_on_command_line) {
     /* If this translation unit does not have an exported template file
        entry associated with it yet, create one now.  When a file is loaded
        to define an exported template, the exported template file entry is
@@ -11725,6 +11733,7 @@ of exported templates for this translation unit.
     tlp->exported_template_file = curr_translation_unit->
                                                         exported_template_file;
   }  /* if */  
+#endif /* TEMPLATE_LOOKUP_NEEDED */
 }  /* add_to_exported_templates_list */
 
 
@@ -15213,8 +15222,30 @@ data member specified by tip.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* instantiate_entity */
 
+#if TEMPLATE_LOOKUP_NEEDED
+
+static a_template_lookup_entry_ptr alloc_template_lookup_entry(void)
+/*
+Allocate a template lookup entry, initialize it, and return a pointer
+to it.
+*/
+{
+  a_template_lookup_entry_ptr	tlp;
+
+  tlp = alloc_fe_of_type(a_template_lookup_entry);
+#if DEBUG
+  num_template_lookup_entries_allocated = 0;
+#endif /* DEBUG */
+  tlp->next = NULL;
+  tlp->name = NULL;
+  tlp->exported_template_file = NULL;
+  return tlp;
+}  /* alloc_template_lookup_entry */
+
+#endif /* TEMPLATE_LOOKUP_NEEDED */
 
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+
 static an_instance_lookup_entry_ptr alloc_instance_lookup_entry(void)
 /*
 Allocate an instance lookup entry, initialize it, and return a pointer
@@ -15420,38 +15451,6 @@ request file.
   result = read_instantiation_request_file();
   return result;
 }  /* init_auto_instantiation_information */
-
-
-static char *get_mangled_name_for_symbol(a_symbol_ptr	sym)
-/*
-Return the mangled name of the variable, routine, or template specified
-by "sym".
-*/
-{
-  char	*name;
-
-  if (sym->kind == (a_symbol_kind)sk_static_data_member) {
-    a_variable_ptr	variable;
-    variable = sym->variant.static_data_member.variable;
-    variable = (a_variable_ptr)canonical_il_entry_of(variable);
-    name = get_mangled_static_data_member_name(variable);
-  } else if (is_function_symbol(sym)) {
-    a_routine_ptr	routine;
-    routine = sym->variant.routine.ptr;
-    routine = (a_routine_ptr)canonical_il_entry_of(routine);
-    name = get_mangled_function_name(routine);
-  } else if (sym->kind == (a_symbol_kind)sk_function_template) {
-    a_routine_ptr			routine;
-    a_template_symbol_supplement_ptr	tssp;
-    tssp = sym->variant.template_info;
-    routine = tssp->variant.function.routine;
-    routine = (a_routine_ptr)canonical_il_entry_of(routine);
-    name = get_mangled_function_name(routine);
-  } else {
-    unexpected_condition_str("get_mangled_name_for_symbol: bad kind");
-  }  /* if */
-  return name;
-}  /* get_mangled_name_for_symbol */
 
 
 static char *f_get_mangled_name_of_instance(a_master_instance_ptr	mip)
@@ -15691,93 +15690,6 @@ specified by tip.
 }  /* do_automatic_instantiation_of_entity */
 
 
-static a_template_lookup_entry_ptr alloc_template_lookup_entry(void)
-/*
-Allocate a template lookup entry, initialize it, and return a pointer
-to it.
-*/
-{
-  a_template_lookup_entry_ptr	tlp;
-
-  tlp = alloc_fe_of_type(a_template_lookup_entry);
-#if DEBUG
-  num_template_lookup_entries_allocated = 0;
-#endif /* DEBUG */
-  tlp->next = NULL;
-  tlp->name = NULL;
-  tlp->exported_template_file = NULL;
-  return tlp;
-}  /* alloc_template_lookup_entry */
-
-
-static a_template_lookup_entry_ptr find_exported_template(char		*name,
-					                  a_boolean	add)
-/*
-Find an entry in the template lookup table with the specified name.
-If "add" is TRUE add the name to the list if an entry does not already
-exist.  This is used to find the definition of an exported template.
-*/
-{
-  register unsigned            hash_value = 0;
-  register unsigned char       *ptr;
-  a_template_lookup_entry_ptr  tlp    = NULL;
-  int                          bucket_number;
-  int			       length;
-
-  length = strlen(name);
-  /* Hash the symbol's identifier.  This involves taking the identifier's
-     first 3, last 3, and middle 3 characters.  Of course, if the identifier
-     has 9 or fewer characters, take the entire identifier. */
-  ptr = (unsigned char *)name;
-  if (length > 9) {
-    hash_value = *ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + *ptr;
-    ptr = (unsigned char *)name + (length >> 1) - 1;
-    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + *ptr;
-    ptr = (unsigned char *)name + length - 3;
-    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + *ptr;
-  } else {
-    register int a;
-    for (a = 0; a < length; a++) {
-      hash_value = (hash_value * HASH_FACTOR) + *ptr++;
-    }  /* for */
-  }  /* if */
-  /* Look in the symbol bucket saving the position in case this symbol needs
-     to be added. */
-  bucket_number = hash_value % TEMPLATE_LOOKUP_TABLE_SIZE;
-  if ((tlp = template_lookup_table[bucket_number]) != NULL) {
-    do {
-      if (strcmp(name, tlp->name) == 0) {
-        /* We have a match. */
-        goto symbol_found;
-      }  /* if */
-    } while ((tlp = tlp->next) != NULL);
-  }  /* if */
-
-  /* Exiting this loop indicates that the symbol does not exist in the table;
-     allocate a template lookup entry. */
-  if (add) {
-    tlp = alloc_template_lookup_entry();
-    /* Link the new header onto the front of the appropriate bucket of the
-       table. */
-    tlp->next = template_lookup_table[bucket_number];
-    template_lookup_table[bucket_number] = tlp;
-    /* Allocate space for the name (including a null terminator) and make a
-       copy of the name. */
-    tlp->name = (char *)alloc_fe((sizeof_t)length + 1);
-    strcpy(tlp->name, name);
-  }  /* if */
-
-symbol_found:
-  return tlp;
-}  /* find_exported_template */
-
-
 static FILE *open_exported_template_file_for_input(
 				char				*file_name,
 				a_directory_name_entry_ptr	dnep)
@@ -15987,6 +15899,109 @@ compilation can be looked up to find the corresponding definition.
 }  /* find_exported_template_files */
 
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+
+#if TEMPLATE_LOOKUP_NEEDED
+
+static char *get_mangled_name_for_symbol(a_symbol_ptr	sym)
+/*
+Return the mangled name of the variable, routine, or template specified
+by "sym".
+*/
+{
+  char	*name;
+
+  if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+    a_variable_ptr	variable;
+    variable = sym->variant.static_data_member.variable;
+    variable = (a_variable_ptr)canonical_il_entry_of(variable);
+    name = get_mangled_static_data_member_name(variable);
+  } else if (is_function_symbol(sym)) {
+    a_routine_ptr	routine;
+    routine = sym->variant.routine.ptr;
+    routine = (a_routine_ptr)canonical_il_entry_of(routine);
+    name = get_mangled_function_name(routine);
+  } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+    a_routine_ptr			routine;
+    a_template_symbol_supplement_ptr	tssp;
+    tssp = sym->variant.template_info;
+    routine = tssp->variant.function.routine;
+    routine = (a_routine_ptr)canonical_il_entry_of(routine);
+    name = get_mangled_function_name(routine);
+  } else {
+    unexpected_condition_str("get_mangled_name_for_symbol: bad kind");
+  }  /* if */
+  return name;
+}  /* get_mangled_name_for_symbol */
+
+
+static a_template_lookup_entry_ptr find_exported_template(char		*name,
+					                  a_boolean	add)
+/*
+Find an entry in the template lookup table with the specified name.
+If "add" is TRUE add the name to the list if an entry does not already
+exist.  This is used to find the definition of an exported template.
+*/
+{
+  register unsigned            hash_value = 0;
+  register unsigned char       *ptr;
+  a_template_lookup_entry_ptr  tlp    = NULL;
+  int                          bucket_number;
+  int			       length;
+
+  length = strlen(name);
+  /* Hash the symbol's identifier.  This involves taking the identifier's
+     first 3, last 3, and middle 3 characters.  Of course, if the identifier
+     has 9 or fewer characters, take the entire identifier. */
+  ptr = (unsigned char *)name;
+  if (length > 9) {
+    hash_value = *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr;
+    ptr = (unsigned char *)name + (length >> 1) - 1;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr;
+    ptr = (unsigned char *)name + length - 3;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + *ptr;
+  } else {
+    register int a;
+    for (a = 0; a < length; a++) {
+      hash_value = (hash_value * HASH_FACTOR) + *ptr++;
+    }  /* for */
+  }  /* if */
+  /* Look in the symbol bucket saving the position in case this symbol needs
+     to be added. */
+  bucket_number = hash_value % TEMPLATE_LOOKUP_TABLE_SIZE;
+  if ((tlp = template_lookup_table[bucket_number]) != NULL) {
+    do {
+      if (strcmp(name, tlp->name) == 0) {
+        /* We have a match. */
+        goto symbol_found;
+      }  /* if */
+    } while ((tlp = tlp->next) != NULL);
+  }  /* if */
+
+  /* Exiting this loop indicates that the symbol does not exist in the table;
+     allocate a template lookup entry. */
+  if (add) {
+    tlp = alloc_template_lookup_entry();
+    /* Link the new header onto the front of the appropriate bucket of the
+       table. */
+    tlp->next = template_lookup_table[bucket_number];
+    template_lookup_table[bucket_number] = tlp;
+    /* Allocate space for the name (including a null terminator) and make a
+       copy of the name. */
+    tlp->name = (char *)alloc_fe((sizeof_t)length + 1);
+    strcpy(tlp->name, name);
+  }  /* if */
+
+symbol_found:
+  return tlp;
+}  /* find_exported_template */
+
+#endif /* TEMPLATE_LOOKUP_NEEDED */
 
 static a_boolean exported_definition_is_available(
 						a_template_instance_ptr	tip)
@@ -18316,14 +18331,14 @@ routines is reported as part of the symbol table memory used.
   db_space_used_lost("partial spec candidates", avail_partial_order_candidates,
                      num_partial_order_candidates_allocated,
                      a_partial_order_candidate);
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
+#if TEMPLATE_LOOKUP_NEEDED
   db_space_used("template lookup entries", 
                  num_template_lookup_entries_allocated,
                  a_template_lookup_entry);
   db_space_used("exported template files", 
                  num_exported_template_files_allocated,
                  an_exported_template_file);
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#endif /* TEMPLATE_LOOKUP_NEEDED */
   return grand_total;
 }  /* db_show_template_space_used */
 #endif /* DEBUG */
@@ -18350,10 +18365,10 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(type_of_unknown_templ_param_nontype),
 #if DEBUG
       pch_saved_var_array_elem(num_partial_order_candidates_allocated),
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
+#if TEMPLATE_LOOKUP_NEEDED
       pch_saved_var_array_elem(num_template_lookup_entries_allocated),
       pch_saved_var_array_elem(num_exported_template_files_allocated),
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#endif /* TEMPLATE_LOOKUP_NEEDED */
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -18422,9 +18437,11 @@ Initializations for template.
   master_instantiations_tail = NULL;
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
+#if TEMPLATE_LOOKUP_NEEDED
   num_template_lookup_entries_allocated = 0;
   num_exported_template_files_allocated = 0;
+#endif /* TEMPLATE_LOOKUP_NEEDED */
+#if AUTOMATIC_TEMPLATE_INSTANTIATION
   any_instantiated_entities_added_to_request_file = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #endif /* DEBUG */

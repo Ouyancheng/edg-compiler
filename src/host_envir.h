@@ -1776,18 +1776,33 @@ typedef a_void_ptr a_stdio_arg;
 #endif /* defined(__cplusplus) && __defined(__SUNPRO_CC) */
 
 /*
+Determine whether the template lookup mechanism is needed.  This is
+also used as a factor in determining whether name mangling is needed.
+*/
+#if AUTOMATIC_TEMPLATE_INSTANTIATION || COMPILE_MULTIPLE_TRANSLATION_UNITS
+#define TEMPLATE_LOOKUP_NEEDED TRUE
+#else /* !(AUTOMATIC_TEMPLATE_INSTANTIATION ||
+           COMPILE_MULTIPLE_TRANSLATION_UNITS) */
+#define TEMPLATE_LOOKUP_NEEDED FALSE
+#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION ||
+          COMPILE_MULTIPLE_TRANSLATION_UNITS */
+
+
+/*
 Determine whether the module ID routines are needed.  They are needed
 if IL lowering or name mangling are used, when the C generating back end
-is not generating ANSI C, or when the automatic template instantiation
-mechanism is enabled.  The name mangling test is sufficient to cover the
-C generating back end case because name mangling is required when using
-IL lowering or the C generating back end.
+is not generating ANSI C, when the automatic template instantiation
+mechanism is enabled, or when the front end is configured to compile
+multiple translation units (because name mangling is used for export
+template support in such cases).  The name mangling test is sufficient to
+cover the C generating back end case because name mangling is required when
+using IL lowering or the C generating back end.
 */
-#if NEED_NAME_MANGLING || AUTOMATIC_TEMPLATE_INSTANTIATION
+#if NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED
 #define MODULE_ID_NEEDED TRUE
-#else /* !(NEED_NAME_MANGLING || AUTOMATIC_TEMPLATE_INSTANTIATION) */
+#else /* !(NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED) */
 #define MODULE_ID_NEEDED FALSE
-#endif /* NEED_NAME_MANGLING || AUTOMATIC_TEMPLATE_INSTANTIATION */
+#endif /* NEED_NAME_MANGLING || TEMPLATE_LOOKUP_NEEDED */
 
 #if MODULE_ID_NEEDED
 extern void change_non_id_characters(char *str);

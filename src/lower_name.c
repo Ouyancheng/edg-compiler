@@ -2575,7 +2575,7 @@ mangled without parameter encoding.
   return mangling_needed;
 }  /* function_name_mangling_needed */
 
-#if AUTOMATIC_TEMPLATE_INSTANTIATION || MICROSOFT_EXTENSIONS_ALLOWED
+#if TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED
 
 char *get_mangled_function_name(a_routine_ptr routine)
 /*
@@ -2607,7 +2607,7 @@ name in the routine entry.
   return mangled_name;
 }  /* get_mangled_function_name */
 
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void mangled_member_name(a_source_correspondence  *scp,
                                 a_boolean                is_specialization,
@@ -2680,7 +2680,7 @@ Add to the mangled name the encoding for the name of the member variable
   mangled_member_name(&variable->source_corresp, is_specialization, mctl);
 }  /* mangled_member_variable_name */
 
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
+#if TEMPLATE_LOOKUP_NEEDED
 
 char *get_mangled_static_data_member_name(a_variable_ptr variable)
 /*
@@ -2708,7 +2708,7 @@ name in the variable entry.
   return mangled_name;
 }  /* get_mangled_static_data_member_name */
 
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
+#endif /* TEMPLATE_LOOKUP_NEEDED */
 
 /* Declaration required because of forward reference: */
 static void do_scope_other_name_mangling(a_scope_ptr scope);
