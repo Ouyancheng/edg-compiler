@@ -932,8 +932,7 @@ specification is handled later (see check_exception_specification).
     estp->source_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     type_pos = pos_curr_token;
-    if (!is_decl_start(/*expr_context=*/FALSE,
-                       /*real_declarator_allowed=*/FALSE) ||
+    if (!is_decl_start(IDS_NO_OPTIONS) ||
         !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED)) {
       /* Error. */
       pos_error(ec_exp_type_specifier, &type_pos);
@@ -1124,8 +1123,7 @@ need not be addressed here.
         }  /* if */
       }  /* if */
     }  /* if */
-  } else if (is_decl_start(/*expr_context=*/FALSE,
-                           /*real_declarator_allowed=*/TRUE)) {
+  } else if (is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
     /* The parameter list starts with something that looks like the start of
        a declaration (but not a typedef identifier): for example, "int".
        This must be a prototyped parameter list. */
@@ -1525,6 +1523,7 @@ if this is the function declarator in a friend function declaration.
                                          DSI_TYPE_SPECIFIER_ALLOWED |
                                          DSI_IS_PARAMETER |
                                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
+        if (func_info == NULL) dsi_flags |= DSI_IS_ABSTRACT_DECLARATOR;
         if (gnu_mode && curr_token == tok_extension) {
           /* Ignore the GNU C __extension__ annotation. */
           (void)get_token();
@@ -4038,8 +4037,8 @@ The syntax is:
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (abstract_declarator_allowed) {
       if (curr_token == tok_rparen ||
-          is_decl_start(/*expr_context=*/FALSE,
-                        /*real_declarator_allowed=*/TRUE) ||
+          is_decl_start(IDS_REAL_DECLARATOR_ALLOWED |
+                        IDS_MS_ATTRIB_NOT_ALLOWED) ||
           curr_token == tok_ellipsis) {
         /* Function declarator rather than a nested declarator. */
         goto function_lparen;
@@ -4233,8 +4232,7 @@ The syntax is:
             if (curr_token == tok_rparen) {
               cache_curr_token(&cache);
               if (get_token() == tok_lbrace ||
-                  is_decl_start(/*expr_context=*/FALSE,
-                                /*real_declarator_allowed=*/TRUE)) {
+                  is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
                 /* This looks exactly like a function declaration with an
                    old style parameter list. */
                 is_function_decl = TRUE;

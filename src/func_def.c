@@ -1566,8 +1566,7 @@ member declaration (allowed in Microsoft mode only).
       }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
       while (curr_token == tok_identifier ||
-             is_decl_start(/*expr_context=*/FALSE,
-                           /*real_declarator_allowed=*/TRUE)) {
+             is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
         /* This declaration is checked to make sure the identifier is on the
            param_id_list. */
         declaration(/*function_definition_allowed=*/FALSE, 

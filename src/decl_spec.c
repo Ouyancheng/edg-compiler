@@ -4236,8 +4236,7 @@ is a that of a constructor.
            constructor. */
         (void)get_token();
         if (curr_token == tok_rparen || curr_token == tok_ellipsis ||
-            is_decl_start(/*expr_context=*/FALSE,
-                          /*real_declarator_allowed=*/TRUE)) {
+            is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
           /* Constructor. */
           is_constructor = TRUE;
         }  /* if */
@@ -6105,9 +6104,11 @@ Returns TRUE if there is an error in the specifiers.
         break;
       case tok_lbracket:
         if (any_decl_specifiers_seen || !microsoft_mode || C_mode() ||
-            p_ms_attributes == NULL) {
+            (input_flags & DSI_IS_ABSTRACT_DECLARATOR) != 0 ||
+             p_ms_attributes == NULL) {
           /* Microsoft attributes have to precede any specifiers.  They are
-             only recognized in Microsoft C++ mode. */
+             only recognized in Microsoft C++ mode.  Attributes are not
+             allowed on parameters of abstract declarators. */
           goto something_unexpected;
         } else {
           /* Microsoft attributes are valid here.  Append them to any

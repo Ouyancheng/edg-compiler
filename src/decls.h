@@ -56,9 +56,24 @@ the "::" at the start of a qualified name) is a type name.
 /* Test whether or not the current token is the start of a type. */
 extern a_boolean is_type_start(a_boolean is_expr_context);
 
+/*
+Flags used to specify options to is_decl_start.
+*/
+typedef int an_is_decl_start_options_set;
+
+#define IDS_NO_OPTIONS		0x0
+#define IDS_EXPR_CONTEXT	0x1
+			/* TRUE if we are in an expression context. */
+#define IDS_REAL_DECLARATOR_ALLOWED \
+				0x2
+			/* TRUE if a real declarator is allowed. */
+#define IDS_MS_ATTRIB_NOT_ALLOWED \
+				0x4
+			/* TRUE if a Microsoft attribute is not allowed in
+			   this context. */
+
 /* Test whether or not the current token is the start of a declaration. */
-extern a_boolean is_decl_start(a_boolean  expr_context,
-                               a_boolean  real_declarator_allowed);
+extern a_boolean is_decl_start(an_is_decl_start_options_set options);
 
 extern a_boolean check_member_function_typedef(a_type_ptr         tp,
                                                a_source_position  *pos);

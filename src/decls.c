@@ -218,20 +218,19 @@ expression is permitted.
 }  /* is_type_start */
 
 
-a_boolean is_decl_start(a_boolean  expr_context,
-                        a_boolean  real_declarator_allowed)
+extern a_boolean is_decl_start(an_is_decl_start_options_set options)
 /*
 Return TRUE if the current token looks like the start of a declaration,
 i.e., it is the start of a type-specifier, a type-qualifier, or a
 storage-class-specifier.  Note that this does not cover the start of
-function-definitions, since they can start with the declarator.  If
-expr_context is TRUE this test is done in a context in which an expression
-is allowed.  If real_declarator_allowed is FALSE the error recovery
-optimization is suppressed.
+function-definitions, since they can start with the declarator.  "options"
+provides information about the current context that affects the kinds
+of declarations that are permitted.
 */
 {
   a_boolean     is_start = FALSE;
   a_token_kind  next_tok;
+  a_boolean	expr_context = (options & IDS_EXPR_CONTEXT) != 0;
 
   if (is_storage_class()) {
     /* A storage-class-specifier. */
@@ -248,7 +247,8 @@ optimization is suppressed.
     is_start = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && curr_token == tok_lbracket) {
+  } else if (microsoft_mode && curr_token == tok_lbracket &&
+             (options & IDS_MS_ATTRIB_NOT_ALLOWED) == 0) {
     /* A Microsoft attribute can start a declaration. */
     is_start = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -258,7 +258,7 @@ optimization is suppressed.
        If the lexical sequence suggests that this is a declaration even
        though the current identifier is not defined (and therefore not
        recognized as a type name), call it a declaration anyway. */
-    if (!real_declarator_allowed) {
+    if ((options & IDS_REAL_DECLARATOR_ALLOWED) == 0) {
       /* With a sizeof or cast operation, real_declarator_allowed will come
          in as FALSE.  There's no point in looking ahead in such cases:
          "sizeof(x y)" isn't syntactically possible, so if x is not a
@@ -9110,8 +9110,7 @@ is present when a "=" is not there.
   if (curr_token == tok_semicolon ||
       curr_token == tok_comma     ||
       curr_token == tok_rbrace    ||
-      is_decl_start(/*expr_context=*/FALSE,
-                    /*real_declarator_allowed=*/TRUE)) {
+      is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
     /* No initializer present. */
   } else if (curr_token == tok_identifier) {
     /* Identifier -- only consider as start of an initializer if defined
@@ -9380,8 +9379,7 @@ a normal try.
       (void)get_token();
     } else {
       if (curr_token != tok_identifier &&
-          !is_decl_start(/*expr_context=*/FALSE,
-                         /*real_declarator_allowed=*/TRUE)) {
+          !is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
         add_stop_token(tok_rparen);
         syntax_error(ec_missing_exception_declaration);
         type_ptr = error_type();
@@ -11532,8 +11530,7 @@ of local variables (and types, etc.) of functions and in blocks.
   /* Scan the initial declaration specifiers (including storage class,
      type specifiers, and type qualifiers).  For a function definition,
      the specifiers can be omitted entirely. */
-  if (!is_decl_start(/*expr_context=*/FALSE,
-                     /*real_declarator_allowed=*/TRUE)) {
+  if (!is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
     if (function_definition_allowed && is_declarator_start()) {
       /* At file or namespace scope, a declarator with no decl-specifiers,
          apparently.  In C mode this could be a legal function definition.
@@ -11564,8 +11561,7 @@ of local variables (and types, etc.) of functions and in blocks.
         error(ec_exp_declaration);
         flush_until_matching_token();
         if (curr_token == tok_rbrace) (void)get_token();
-        if (is_decl_start(/*expr_context=*/FALSE,
-                          /*real_declarator_allowed=*/TRUE)) {
+        if (is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
           goto continue_with_declaration;
         }  /* if */
       } else {

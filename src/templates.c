@@ -14982,8 +14982,7 @@ any non-empty template parameter lists that were scanned.
        is_decl_start is called, as is_decl_start will cause the initial
        identifier (typically the return type) to be coalesced. */
     prescan_nonclass_template_declaration(decl_state);
-    if (!is_decl_start(/*expr_context=*/FALSE,
-                       /*real_declarator_allowed=*/TRUE) &&
+    if (!is_decl_start(IDS_REAL_DECLARATOR_ALLOWED) &&
         !is_declarator_start()) {
       /* Template parameters are declared, but the declaration is missing. */
       pos_error(ec_exp_declaration, &pos_curr_token);
@@ -20884,8 +20883,7 @@ assumed if the return type is omitted.
     }  /* if */
     /* Get the token after the identifier -- it should be a newline. */
     (void)get_token();
-  } else if (is_decl_start(/*expr_context=*/FALSE,
-                    /*real_declarator_allowed=*/TRUE) ||
+  } else if (is_decl_start(IDS_REAL_DECLARATOR_ALLOWED) ||
              is_declarator_start()) {
     /* This is a declaration-style instantiation pragma, the syntax of
        which is the same as the explicit instantiation directive.  Call

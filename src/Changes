@@ -1,5 +1,18 @@
 Version 3.5
 
+10/25/04 Microsoft compatibility: parameter attribute parsing ambiguity
+
+When parsing a function declaration in which a parameter has function
+type, there is an ambiguity between a parameter attribute and an array
+bound.  In discussions with Microsoft it was decided that this ambiguity
+would be resolved by treating a "[" as an array bound if it occurs in a
+context in which an abstract declarator is allowed, and as the start of
+an attribute in contexts where an abstract declarator is not allowed.
+The front end now implements this rule.
+
+  void f(int ([5])){}
+  void f2(int ([in] p)){}  // not allowed
+
 10/25/04 Microsoft and GNU compatibility: x.y constant when x is a reference
 
 In Microsoft and GNU C++ compatibility modes, the front end now accepts

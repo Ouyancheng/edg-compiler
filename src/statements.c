@@ -4323,8 +4323,7 @@ statement.
   sssep->for_init = TRUE;
   if ((!C_mode() && is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) ||
       (c99_mode &&
-       is_decl_start(/*expr_context=*/TRUE,
-                     /*real_declarator_allowed=*/TRUE))) {
+       is_decl_start(IDS_EXPR_CONTEXT | IDS_REAL_DECLARATOR_ALLOWED))) {
     /* Scan a declaration (C++ or C99). */
     /* In C99, a scope is pushed around all iteration and selection
        statements, so it is not necessary to push another scope here. */
@@ -6655,8 +6654,8 @@ expr_statement:
         decl_statement(marked_as_gnu_extension);
       } else if (C_mode() &&
                  (is_dependent_statement || prev_was_label) &&
-                 is_decl_start(/*expr_context=*/TRUE,
-                               /*real_declarator_allowed=*/TRUE)) {
+                 is_decl_start(IDS_EXPR_CONTEXT |
+                               IDS_REAL_DECLARATOR_ALLOWED)) {
         /* In C mode, do a special test to give a better error message
            when a declaration is used as a dependent statement, e.g.,
              if (i) int j;
@@ -6881,8 +6880,8 @@ e.g., ({ ... }).
         (void)get_token();
       }  /* if */
       if ((curr_token != tok_identifier || next_token() != tok_colon) &&
-          is_decl_start(/*expr_context=*/TRUE,
-                        /*real_declarator_allowed=*/TRUE)) {
+          is_decl_start(IDS_EXPR_CONTEXT |
+                        IDS_REAL_DECLARATOR_ALLOWED)) {
         /* Scan a declaration.  In C89, these must all be at the
            beginning of the block. */
         if (!(c99_mode || gcc_mode) && any_statements) {

@@ -702,8 +702,10 @@ part of a function declarator is found, may_be_decl is set to FALSE.
   /* Scan the function argument list. */
   while (curr_token != tok_rparen) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && curr_token == tok_lbracket) {
-      /* Skip a Microsoft parameter attribute. */
+    if (microsoft_mode && curr_token == tok_lbracket &&
+        !abstract_declarator_allowed(flags)) {
+      /* Skip a Microsoft parameter attribute.  Such attributes are not
+         allowed in contexts in which abstract declarators are permitted. */
       prescan_microsoft_attributes(state, flags);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -916,8 +918,8 @@ part of a declarator is found, may_be_decl is set to FALSE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (abstract_declarator_allowed(flags)) {
       if (curr_token == tok_rparen ||
-          is_decl_start(/*expr_context=*/FALSE,
-                        /*real_declarator_allowed=*/TRUE) ||
+          is_decl_start(IDS_MS_ATTRIB_NOT_ALLOWED |
+                        IDS_REAL_DECLARATOR_ALLOWED) ||
                         curr_token == tok_ellipsis) {
         /* Function declarator rather than a nested declarator. */
         goto function_lparen;
