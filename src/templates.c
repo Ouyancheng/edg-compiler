@@ -11784,6 +11784,28 @@ a real instantiation.
 }  /* set_or_find_prototype_friend_info */
 
 
+static a_def_arg_expr_fixup_ptr copy_def_args_and_update_decl_info(
+				a_tmpl_decl_state_ptr		decl_state,
+				a_def_arg_expr_fixup_ptr	orig_list)
+/*
+Make a copy of the default argument list specified by orig_list.  Update
+the copied entries to refer to the declaration information indicated in
+decl_state.
+*/
+{
+  a_def_arg_expr_fixup_ptr	new_list;
+  a_def_arg_expr_fixup_ptr	daefp;
+
+  /* Make a copy of the list. */
+  new_list = copy_def_arg_expr_fixup_list(orig_list);
+  /* Go through the list and update the declaration information. */
+  for (daefp = new_list; daefp != NULL; daefp = daefp->next) {
+    daefp->cache.decl_info = decl_state->decl_info;
+  }  /* for */
+  return new_list;
+}  /* copy_def_args_and_update_decl_info */
+
+
 static void update_function_template_default_args(
 			a_tmpl_decl_state_ptr			decl_state,
 			a_symbol_ptr				template_sym,
@@ -11813,7 +11835,12 @@ instantiation.
     proto_tssp = template_supplement_for_symbol(proto_sym);
     /* Free the existing original set of default arguments. */
     free_def_arg_expr_fixup(curr_default_args);
-    curr_default_args = proto_tssp->variant.function.def_arg_expr_list;
+    /* Make a copy of the default argument list for the template.  Update the
+       declaration information to reflect the current instantiation of the
+       class. */
+    curr_default_args = copy_def_args_and_update_decl_info(
+                               decl_state,
+                               proto_tssp->variant.function.def_arg_expr_list);
   }  /* if */
   /* Link the default argument list from the template supplement
      onto the end of the list of current default arguments.  The

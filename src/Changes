@@ -1,5 +1,24 @@
 Version 2.46
 
+3/2/01   Default arguments of friends of class templates
+
+Lookups during the instantiation of default argument expressions of
+friends of class templates would, in certain circumstances, incorrectly
+find names from the prototype instantiation of enclosing class instead
+of names from a real instantiation.  This could result in an internal
+error or other incorrect behavior.  This has been fixed.
+
+  template <class T, class T2> struct A {
+    static int si;
+  };
+  template <class T> class B {
+    template <class T2> friend void f(B<T>& s, T2* p, int i = A<T,T2>::si );
+  };
+  int main() {
+    B<int> b;
+    f(b, (char*)0);
+  }
+
 3/1/01   Lowering of compound literals in parameter VLA bound expressions
 
 C99 compound literals in bound expressions of variable-length-array

@@ -85,6 +85,9 @@ extern a_template_ptr delayed_scan_of_template_default_template_arg(
 
 extern void free_def_arg_expr_fixup(a_def_arg_expr_fixup_ptr  daefp);
 
+extern a_def_arg_expr_fixup_ptr copy_def_arg_expr_fixup_list(
+				a_def_arg_expr_fixup_ptr	orig_list);
+
 extern void def_arg_one_time_init(void);
 
 extern void def_arg_init(void);

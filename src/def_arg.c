@@ -79,6 +79,30 @@ entry and initialize it.
 }  /* alloc_def_arg_expr_fixup */
 
 
+a_def_arg_expr_fixup_ptr copy_def_arg_expr_fixup_list(
+				a_def_arg_expr_fixup_ptr	orig_list)
+/*
+Make a copy of the default argument fixup list specified by orig_list.
+Return a pointer to the new list.
+*/
+{
+  a_def_arg_expr_fixup_ptr	new_list = NULL;
+  a_def_arg_expr_fixup_ptr	new_tail = NULL;
+  a_def_arg_expr_fixup_ptr	daefp;
+  a_def_arg_expr_fixup_ptr	new_daefp;
+
+  for (daefp = orig_list; daefp != NULL; daefp = daefp->next) {
+    new_daefp = alloc_def_arg_expr_fixup();
+    *new_daefp = *daefp;
+    new_daefp->next = NULL;
+    if (new_list == NULL) new_list = new_daefp;
+    if (new_tail != NULL) new_tail->next = new_daefp;
+    new_tail = new_daefp;
+  }  /* for */
+  return new_list;
+}  /* copy_def_arg_expr_fixup_list */
+
+
 void free_def_arg_expr_fixup(a_def_arg_expr_fixup_ptr  daefp)
 /*
 Return a default arg expr fixup entry, and any others chained to it, to the
