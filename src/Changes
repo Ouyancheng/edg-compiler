@@ -1,5 +1,11 @@
 Version 2.20
 
+9/15/93  New symbol reference kind
+
+srk_error was added to the enumeration a_symbol_reference_kind to
+represent errors in which the kind of reference is indeterminate.  The
+corresponding cross reference output uses "E" (for error).
+
 9/26/93  Dropping type qualifiers in C mode
 
 A bug introduced a few releases back has been fixed.  Because of it,
