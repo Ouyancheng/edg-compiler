@@ -8147,12 +8147,19 @@ NULL.
       break;
   }  /* switch */
 #if CHECKING
-  if (scp != NULL && scp->is_class_member &&
-      (!sym->is_class_member ||
-       scp->parent.class_type != sym->parent.class_type) &&
-      scp->parent.class_type->variant.class_struct_union.extra_info->
-               anonymous_union_kind == (an_anonymous_union_kind)auk_none) {
-    internal_error("end_of_scope_symbol_check: bad parent class");
+  if (scp != NULL) {
+    if (sym->is_class_member == scp->is_class_member &&
+        (!sym->is_class_member ||
+         sym->parent.class_type == scp->parent.class_type)) {
+      /* Okay */
+    } else if (scp->is_class_member &&
+               scp->parent.class_type->variant.class_struct_union.extra_info->
+                 anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+      /* Okay */
+    } else {
+      unexpected_condition_str2("end_of_scope_symbol_check:",
+                                "sym/il-entry parent-class mismatch");
+    }  /* if */
   }  /* if */
 #endif /* if */
 }  /* end_of_scope_symbol_check */
