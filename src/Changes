@@ -1,5 +1,21 @@
 Version 2.38
 
+11/1/97   Builtin processing for <stdarg.h>
+
+When the front end is generating C or C++ code as output, the <stdarg.h>
+header and its unusual macros have often been a source of difficulties
+(because nonstandard language features are often used in the header).
+Now, there is a configuration option to treat the <stdarg.h> header
+as a builtin and pass the macro references unchanged to the output.
+When DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE is TRUE
+(which it is, by default, when the C-generating back end is being used
+to generate ANSI/ISO C, or when the C++-generating back end is being
+used), an #include of <stdarg.h> will not cause reading of the header
+file.  Instead, va_list, va_start, va_arg, and va_end are defined
+as builtins, scanned specially, and recorded in the IL.  The C-generating
+back end and the C++-generating back end then put them out in their
+original forms in the generated code, along with an #include of <stdarg.h>.
+
 10/30/97  Spurious error on qualified operator names with explicit
           template arguments
 
