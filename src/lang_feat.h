@@ -400,6 +400,20 @@ gcc_mode and can be overridden by the command-line options --gcc and --no_gcc.
 #endif /* DEFAULT_GCC_COMPATIBILITY */
 
 /*
+The value of the __GNUC__ macro in gcc mode.
+*/
+#ifndef GCC_VERSION
+#define GCC_VERSION 3
+#endif /* ifndef GCC_VERSION */
+
+/*
+The value of the __GNUC_MINOR__ macro in gcc mode.
+*/
+#ifndef GCC_MINOR_VERSION
+#define GCC_MINOR_VERSION 0
+#endif /* ifndef GCC_MINOR_VERSION */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.
