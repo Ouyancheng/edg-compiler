@@ -6281,7 +6281,6 @@ describe the next parameter.
   an_expr_node_ptr curr_node;
   a_boolean        do_default_promotion;
   a_boolean        arg_is_fmt_string = FALSE;
-  a_boolean        is_ellipsis = FALSE;
 
   /* Count the arguments. */
   arg_block->arg_ctr++;
@@ -6300,9 +6299,7 @@ describe the next parameter.
       do_default_promotion = FALSE;
     } else {
       /* No more formal arguments in the list. */
-      if (arg_block->has_ellipsis) {
-        is_ellipsis = TRUE;
-      } else {
+      if (!arg_block->has_ellipsis) {
         /* No ellipsis, so error: extra actual argument. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode && C_mode()) {
@@ -6335,7 +6332,8 @@ describe the next parameter.
   if (do_default_promotion) {
     /* Either an ellipsis was encountered or this is an old-style argument
        list; do the default argument promotion. */
-    arg_default_promote_operand(argument_operand, is_ellipsis);
+    arg_default_promote_operand(argument_operand,
+                                arg_block->has_ellipsis);
     /* If this is an old-style call and we have the list of types as
        defined by the function body, check the promoted type of the
        actual against the formal. */
