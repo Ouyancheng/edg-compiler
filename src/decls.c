@@ -2873,7 +2873,7 @@ the symbol and its linkage (which is always "none").
       /* Nonstatic data members (fields) cannot be defined. */
       pos_error(ec_nonstatic_member_def_not_allowed,
                 &locator->source_position);
-    } else if (sym->kind == (a_symbol_kind)sk_member_function) {
+    } else if (is_member_function_symbol(sym)) {
       /* A member function -- this is treated as a type incompatibility. */
       pos_error(ec_type_must_be_compat_with_prev_def,
                 &locator->source_position);
@@ -3586,7 +3586,7 @@ otherwise it is NULL.  The syntax is:
           if (input_flags & DI_QUALIFIED_NAME_ALLOWED) {
             a_symbol_ptr sym = locator_for_curr_id.specific_symbol;
             /* See if the name is the name of a member function. */
-            if (sym->kind == (a_symbol_kind)sk_member_function) {
+            if (is_member_function_symbol(sym)) {
               /* It is a member function.  Save information about the class
                  needed to reopen the class scope if a function declarator
                  is scanned. */
@@ -4558,8 +4558,8 @@ Returns TRUE if there is an error in the specifiers.
 	  error(ec_dupl_decl_specifier);
 	  err = TRUE;
 	} else {
-          is_friend_decl = TRUE;
 	  *output_flags |= DSO_FRIEND;
+          is_friend_decl = TRUE;
           if (get_token() == tok_identifier && next_token() == tok_semicolon) {
             /* Special case -- a friend declaration of the form "friend T;"
                which is taken to mean the same as "friend class T;" by cfront
