@@ -1942,6 +1942,12 @@ Display the indicated label.
     disp_boolean("reachable_by_fall_through",
                  (a_boolean)ptr->reachable_by_fall_through);
   }  /* if */
+  if (ptr->break_label) {
+    disp_boolean("break_label", (a_boolean)ptr->break_label);
+  }  /* if */
+  if (ptr->continue_label) {
+    disp_boolean("continue_label", (a_boolean)ptr->continue_label);
+  }  /* if */
 #ifdef FFE
   disp_boolean("used_in_assign", (a_boolean)ptr->used_in_assign);
   disp_name("kind");

@@ -2681,7 +2681,7 @@ See also 3.6.6.2.
 {
   register a_statement_ptr      sp;
   a_struct_stmt_stack_entry_ptr sssep;
-  a_label_ptr                   dest_label = NULL;
+  a_label_ptr                   dest_label;
 
   db_enter(3, "continue_statement");
   check_for_unreachable_code();
@@ -2692,7 +2692,6 @@ See also 3.6.6.2.
   if (sssep == NULL) {
     /* No appropriate structured statement was found. */
     error(ec_continue_must_be_in_loop);
-    dest_label = alloc_temp_label();
     /* Discard any pragmas that are bound to the current statement. */
     discard_curr_construct_pragmas();
   } else {
@@ -2701,6 +2700,7 @@ See also 3.6.6.2.
     if (dest_label == NULL) {
       /* The continue label has not previously been used, so generate it. */
       dest_label = sssep->continue_label = alloc_temp_label();
+      dest_label->continue_label = TRUE;
     }  /* if */
     /* Allocate the goto statement. */
     sp = add_statement((a_statement_kind)stmk_goto);
@@ -2737,7 +2737,7 @@ See also 3.6.6.3.
 {
   register a_statement_ptr      sp;
   a_struct_stmt_stack_entry_ptr sssep;
-  a_label_ptr                   dest_label = NULL;
+  a_label_ptr                   dest_label;
 
   db_enter(3, "break_statement");
   check_for_unreachable_code();
@@ -2753,7 +2753,6 @@ See also 3.6.6.3.
   if (sssep == NULL) {
     /* No appropriate structured statement was found. */
     error(ec_break_must_be_in_loop_or_switch);
-    dest_label = alloc_temp_label();
   } else {
     if (sssep->kind == ssk_switch &&
         sssep->curr_switch_clause != NULL &&
@@ -2777,6 +2776,7 @@ See also 3.6.6.3.
       if (dest_label == NULL) {
         /* The break label has not previously been used, so generate it. */
         dest_label = sssep->break_label = alloc_temp_label();
+        dest_label->break_label = TRUE;
       }  /* if */
       /* Allocate the goto statement. */
       sp = add_statement((a_statement_kind)stmk_goto);

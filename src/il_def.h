@@ -3300,11 +3300,17 @@ typedef struct a_label {
                         /* Pointer to the next label declared in the same
                            scope, NULL if this label is the last in the
                            scope. */
-  a_byte_boolean
-		reachable_by_fall_through;
+  unsigned int	reachable_by_fall_through:1;
 			/* TRUE if this label can be reached by falling
 			   through to it from the code immediately
 			   preceding. */
+  unsigned int	break_label:1;
+			/* TRUE if this is a compiler-generated label that
+			   is the target of a "break" statement. */
+  unsigned int	continue_label:1;
+			/* TRUE if this is a compiler-generated label that
+			   is the target of a "continue" statement. */
+  bitfield_to_avoid_codecenter_warnings();
 #ifdef FIL
   a_byte_boolean
                 used_in_assign;
