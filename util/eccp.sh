@@ -558,6 +558,7 @@ check_abbreviation()
 --no_rtti
 --no_special_subscript_cost
 --no_standard_includes
+--no_sun
 --no_svr4
 --no_typename
 --no_use_before_set_warnings
@@ -1022,6 +1023,7 @@ process_option()
          --base_assign_op_is_default | \
          --no_base_assign_op_is_default | \
          --sun | \
+         --no_sun | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
