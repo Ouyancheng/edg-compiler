@@ -4814,12 +4814,13 @@ at the end of the declaration.
       }  /* if */
     }  /* if */
   }  /* if */
-  gen_storage_class(storage_class);
-  /* Check for `extern "C"'. */
+  /* Check for `extern "C"'.  This applies even on a definition. */
   if (il_header.source_language == sl_Cplusplus &&
-      storage_class == (a_storage_class)sc_extern &&
       var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external) {
-    write_tok_str("\"C\" ");
+    write_tok_str("extern \"C\" ");
+  } else {
+    /* Put out the storage class determined above. */
+    gen_storage_class(storage_class);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
