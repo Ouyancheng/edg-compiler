@@ -1,5 +1,14 @@
 Version 3.4
 
+2/26/04  GNU C mode: __typeof__ ignores top-level const/volatile
+
+In GNU C mode (but not in GNU C++ mode) the front end now ignores top-level
+const and volatile qualifiers when processing a typeof operator.  For example:
+
+  void f() {
+    __typeof__(int const) i;  // Missing initializer error in GNU C++ mode;
+  }                           // i has type int in GNU C mode.
+
 2/26/04  C++-generating back end: Abort on GNU statement expressions
 
 The C++-generating back end could abort when attempting to render a

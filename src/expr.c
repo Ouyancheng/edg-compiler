@@ -4857,6 +4857,11 @@ The parentheses are required, unlike for sizeof.
     result = operand.type;
     is_type = FALSE;
   }  /* if */
+  if (gcc_mode) {
+    /* In GNU C mode (but not in GNU C++ mode) top-level cv-qualifiers are
+       ignored. */
+    result = skip_typerefs(result);
+  }  /* if */
   if (is_error_type(result)) {
     /* We'll just return the error type. */
   } else {
