@@ -2424,11 +2424,12 @@ that line type.
       } else if (strncmp(line_type, "ifn:", 4) == 0) {
         /* An instantiation file name.  Create the full path name by
            adding in the instantiation directory name.  The "extra_space"
-           variable accounts for the space needed for the "/" and the
-           trailing null terminator. */
+           variable accounts for the space needed for the "/", the "/" added
+           when add_compilation_dir is TRUE, the and the trailing null
+           terminator. */
         a_pl_object_file_ptr	pofp;
         a_boolean		add_compilation_dir = FALSE;
-        extra_space = 2;
+        extra_space = 3;
         if (!instantiation_dir_set) {
           /* If the file does not contain an instantiation directory name,
              use "Template.dir" as the default. */
