@@ -1755,8 +1755,6 @@ setting the offset field in the latter.
             db_base_class(bcp, /*show_offset=*/TRUE);
           }  /* if */
 #endif /* DEBUG */
-        } else {
-          continue;
         }  /* if */
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
       }  /* if */
