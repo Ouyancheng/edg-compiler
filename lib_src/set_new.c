@@ -14,9 +14,13 @@ default operator new() when memory cannot be allocated.
 
 */
 
+#include "basics.h"
+#include "runtime.h"
 #include "new.h"
 
 #define NULL 0
+
+extern "C" STD_NAMESPACE::__new_handler _new_handler = NULL;
 
 /*
 If the runtime should be defined in the std namespace, open
@@ -25,10 +29,6 @@ the std namespace.
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
 namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
-
-
-extern "C" __new_handler _new_handler = NULL;
-
 
 __new_handler set_new_handler(__new_handler handler)
 /*
