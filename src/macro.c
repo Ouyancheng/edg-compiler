@@ -3739,16 +3739,6 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
-    /* Define a macro that is the name of the namespace containing the
-       library.  When the runtime is in a library this is "std", otherwise
-       it is "". */
-    (void)enter_predef_macro("std", MACRO_DEFINED_TO_NAME_OF_STD_NAMESPACE,
-                             /*cannot_be_redefined=*/TRUE,
-                             /*ref_suppresses_pch_file=*/FALSE);
-#else /* !RUNTIME_USES_NAMESPACES */
-    (void)enter_predef_macro("", MACRO_DEFINED_TO_NAME_OF_STD_NAMESPACE,
-                             /*cannot_be_redefined=*/TRUE,
-                             /*ref_suppresses_pch_file=*/FALSE);
 #endif /* RUNTIME_USES_NAMESPACES */
   }  /* if */
   /* Enter a predefined macro that can be used to determine that the
