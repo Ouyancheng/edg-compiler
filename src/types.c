@@ -3009,20 +3009,6 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
             }  /* if */
           }  /* if */
         }  /* if */
-      } else if (C_dialect == C_dialect_cplusplus &&
-                 is_class_or_struct(unqual_source_type_pointed_to) &&
-                 is_class_or_struct(unqual_dest_type_pointed_to) &&
-                 (bcp = find_base_class_of(unqual_source_type_pointed_to,
-                                           unqual_dest_type_pointed_to))
-                                                                     != NULL) {
-        /* In C++, a pointer to a class may be implicitly converted to a
-           pointer to an accessible base class of that class provided the
-           conversion is unambiguous (ARM 4.6).  We leave the ambiguity
-           and accessibility check to be done when the cast is done.
-           That's not quite what the ARM says, but it's what cfront does,
-           and it makes sense. */
-        okay = TRUE;
-        std_conv->cast_base_class = bcp;
       } else if ((conversion_from_void_star_in_C =
                    (C_dialect != C_dialect_cplusplus &&
                     !check_as_operands_not_conversion &&
@@ -3047,6 +3033,18 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         if (strict_ansi_mode) {
           std_conv->warning_suggested = default_warning_code;
         }  /* if */
+      } else if (C_dialect == C_dialect_cplusplus &&
+                 is_class_or_struct(unqual_source_type_pointed_to) &&
+                 is_class_or_struct(unqual_dest_type_pointed_to) &&
+                 (bcp = find_base_class_of(unqual_source_type_pointed_to,
+                                           unqual_dest_type_pointed_to))
+                                                                     != NULL) {
+        /* In C++, a pointer to a class may be implicitly converted to a
+           pointer to an accessible base class of that class provided the
+           conversion is unambiguous (ARM 4.6).  We leave the ambiguity
+           and accessibility check to be done when the cast is done. */
+        okay = TRUE;
+        std_conv->cast_base_class = bcp;
       } else if (C_dialect == C_dialect_pcc || SVR4_C_mode) {
         /* In pcc mode and in SVR4 C compatibility mode, allow conversion
 	   between incompatible pointer types, with a warning. */
