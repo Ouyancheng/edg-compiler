@@ -1,5 +1,22 @@
 Version 3.1
 
+1/7/03  MSVC++ 7.x compatibility: non-default operator delete[] ignored,
+        non-array operator delete used instead
+
+MSVC++ 7.0 has a new slightly different behavior for ignoring
+inappropriate operator delete[] functions when processing a
+delete[] operator, which is now emulated in Microsoft mode with
+microsoft_version >= 1300.  If there are operator delete[]
+routines visible, but none of those is a default operator
+delete, they are ignored, and the non-array operator delete
+is used instead.
+
+  void operator delete[](void *, int);
+  int main() {
+    int *p = 0;
+    delete [] p;  // Uses non-array operator delete
+  }
+
 1/6/03  String literals have same address in all copies of extern inline
         functions
 

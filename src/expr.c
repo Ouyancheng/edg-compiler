@@ -6846,7 +6846,7 @@ specification allow a variable-sized array as the top type.
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode &&
-        microsoft_version > 1200 &&
+        microsoft_version >= 1300 &&
         opname_kind == (an_opname_kind)onk_array_new) {
       /* As of MSVC++ 7.0, if no array operator new[] is found, try
          looking for a non-array operator new.  Do a tentative match
@@ -7270,12 +7270,21 @@ if the selected delete routine is ambiguous.
     /* Use the global "operator delete" or "operator delete[]". */
     operator_delete_set = opname_function_symbol(opname_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode && operator_delete_set == NULL) {
-      /* In Microsoft mode, if no array delete is found, search for a
-         non-array operator delete.  Note that there is no predeclared
-         operator delete[] in Microsoft mode. */
-      opname_kind = (an_opname_kind)onk_delete;
-      operator_delete_set = opname_function_symbol(opname_kind);
+    if (microsoft_mode) {
+      a_boolean ambiguous;
+      if (operator_delete_set == NULL ||
+          (microsoft_version >= 1300 &&
+           find_default_operator_delete_sym(operator_delete_set,
+                                            &ambiguous) == NULL &&
+           !ambiguous)) {
+        /* In Microsoft mode, if no array delete is found, search for a
+           non-array operator delete.  Note that there is no predeclared
+           operator delete[] in Microsoft mode.  In MSVC++ 7.0 and
+           above, any declared operator delete[] functions are ignored if
+           they are not default operator delete[]. */
+        opname_kind = (an_opname_kind)onk_delete;
+        operator_delete_set = opname_function_symbol(opname_kind);
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
