@@ -5601,6 +5601,8 @@ wrapup:
 
     /* Since we're returning a pseudo-token, set pos_curr_token. */
     pos_curr_token = start_position;
+    /* Restore the original error position. */
+    error_position = orig_error_position;
     /* Perform error checks as specified in "options". */
     err |= check_for_generalized_identifier_errors(options, &pos_curr_token);
   }  /* if */
@@ -5665,7 +5667,7 @@ is looked up.  Returns TRUE if identifier is a qualified name.
       } else {
         an_id_lookup_options_set	idl_options;
         /* Translate the general identifier options into ID lookup options. */
-	idl_options = idl_options_for_lookup_mode[ilm];
+	idl_options = idl_options_for_lookup_mode[(int)ilm];
         /* No errors were diagnosed. */
         if (locator_for_curr_id.is_file_scope_qualified_name) {
           /* Look up the id in the file scope. */
@@ -5829,7 +5831,7 @@ is TRUE (specifically, that "::new" or "::delete" is not next).
 #endif /* CHECKING */
     /* Normal identifier -- look it up. */
     /* Translate the general identifier options into ID lookup options. */
-    idl_options = idl_options_for_lookup_mode[ilm];
+    idl_options = idl_options_for_lookup_mode[(int)ilm];
     symbol = normal_id_lookup(&locator_for_curr_id, idl_options);
     /* If this is the symbol of a class template then this must be a reference
        to a instance of the class template.  Scan the argument list and
