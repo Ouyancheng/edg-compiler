@@ -4408,8 +4408,9 @@ in C++ mode.  See ARM 13.
                         is_qualified_type(
                                    type_pointed_to(new_this_param_type)));
   do {
-    /* Namespace projection symbols are ignored. */
-    if (old_sym_ptr->kind == (a_symbol_kind)sk_namespace_projection) continue;
+    /* Projection symbols are ignored. */
+    if (old_sym_ptr->kind == (a_symbol_kind)sk_projection ||
+        old_sym_ptr->kind == (a_symbol_kind)sk_namespace_projection) continue;
     /* See if old_sym_ptr and new_type are distinguishable. */
     old_is_template = (old_sym_ptr->kind ==
                                           (a_symbol_kind)sk_function_template);
