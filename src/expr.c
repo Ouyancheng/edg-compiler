@@ -4336,6 +4336,32 @@ functional-notation type conversions.
 }  /* cast_type_pre_check */
 
 
+static void cast_operand_to_void(an_operand *operand,
+                                 a_type_ptr type_cast_to)
+/*
+Cast the indicated operand to void.  This is used for explicit casts
+to void.  type_cast_to gives the (possibly qualified) void type.
+*/
+{
+  /* For casts to void, we build an expression node that is a cast
+     to void.  This special cast to void is only used for the
+     case handled here, i.e., for an explicit cast to void.
+     Later, in simplify_void_operand, the cast will probably be
+     removed.  cast_operand is not used because we do not wish to
+     try to change the types of constants to void.  We do not call
+     simplify_void_operand here because (a) we want to keep the
+     explicit cast to void as a signal to suppress the warning
+     about an expression with no effect, and (b) we want to keep
+     a non-NULL expression pointer all the way up to avoid
+     special-case checks. */
+  make_expression_operand(make_operator_node((an_expr_operator_kind)eok_cast,
+                                             type_cast_to,
+                                             make_node_from_operand(operand)),
+                          type_cast_to,
+                          operand);
+}  /* cast_operand_to_void */
+
+
 static void do_cast(a_type_ptr         type_cast_to,
                     an_operand         *operand,
                     an_operand         *bound_function_selector,
@@ -4541,23 +4567,8 @@ type conversions.
         } else if (is_void_type(type_cast_to)) {
           /* Anything --> void, allowed. */
           conv_lvalue_to_rvalue(operand);
-          /* For casts to void, we build an expression node that is a cast
-             to void.  This special cast to void is only used for the
-             case handled here, i.e., for an explicit cast to void.
-             Later, in simplify_void_operand, the cast will probably be
-             removed.  cast_operand is not used because we do not wish to
-             try to change the types of constants to void.  We do not call
-             simplify_void_operand here because (a) we want to keep the
-             explicit cast to void as a signal to suppress the warning
-             about an expression with no effect, and (b) we want to keep
-             a non-NULL expression pointer all the way up to avoid
-             special-case checks. */
-          make_expression_operand(
-                          make_operator_node((an_expr_operator_kind)eok_cast,
-                                             type_cast_to,
-                                             make_node_from_operand(operand)),
-                          type_cast_to,
-                          operand);
+          /* Do the cast to void as an expression. */
+          cast_operand_to_void(operand, type_cast_to);
         } else if (!is_scalar_type(source_type) &&
                    !is_ptr_to_member_type(type_cast_to)) {
           /* Not casting to void or a class, and not casting to a
@@ -4847,6 +4858,12 @@ type is passed in as type_cast_to.  The result is returned in *result.
            this is an error. */
         pos_ty_error(ec_no_constructor, &lparen_pos, type_cast_to);
         make_error_operand(result);
+      } else if (curr_expr_kind_is_const()) {
+        /* This cast is inherently non-constant.  If it has not been
+           rejected for some other reason in a constant expression,
+           reject it now. */
+        pos_error(ec_expr_not_constant, &lparen_pos);
+        make_error_operand(result);
       } else if (cast_to_reference) {
         /* Disallow a cast to a reference type; this may or may not turn
            out to be allowed by the standard for C++. */
@@ -4857,7 +4874,13 @@ type is passed in as type_cast_to.  The result is returned in *result.
            of the type.  We actually use 0, because it can be cast to all
            non-class types (arithmetic, pointer, pointer to member, void). */
         make_integer_constant_operand(result, 0L);
-        cast_operand(type_cast_to, result, /*is_implicit_cast=*/FALSE);
+        if (is_void_type(type_cast_to)) {
+          /* Use an expression for the void case, because a constant cannot
+             be cast to void. */
+          cast_operand_to_void(result, type_cast_to);
+        } else {
+          cast_operand(type_cast_to, result, /*is_implicit_cast=*/FALSE);
+        }  /* if */
       }  /* if */
     } else {
       /* Non-empty parentheses. */

@@ -1,5 +1,10 @@
 Version 2.19
 
+8/15/93 function-notation cast of nothing to void
+
+The expression "void()" used to produce an internal error.  It no longer
+does.
+
 8/14/93 Copy constructors on template function calls
 
 An internal error is no longer issued for cases like the following
