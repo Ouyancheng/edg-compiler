@@ -445,6 +445,12 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE if the class has no constructors, no base
 			   classes, no private or protected members, and
 			   no virtual functions (ARM 8.4.1). */
+  unsigned int  has_operator_new:1;
+			/* TRUE if a member operator new() has been declared
+			   for this class or a class from which it derived. */
+  unsigned int  has_operator_delete:1;
+			/* TRUE if a member operator delete() has been declared
+			   for this class or a class from which it derived. */
 } a_class_symbol_supplement;
 
 
