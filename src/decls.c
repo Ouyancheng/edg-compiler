@@ -1395,7 +1395,7 @@ called by id_linkage.
   }  /* if */
   /* Clear out the specific symbol pointer of the locator.  It was set by the
      lookup routine, but it may not be valid. */
-  locator->specific_symbol = NULL;
+  clear_specific_symbol(*locator);
   /* We are only interested in variable and function declarations.  If
      something else was found, we're not interested. */
   if (other_decl != NULL) {
@@ -1460,10 +1460,14 @@ called by id_linkage.
           if (is_function_template) {
             /* No match. */
           } else {
-            tp = other_decl->variant.routine.ptr->type;
+            /* Compare the routine type of the current declaration with that
+               of the previous declaration.  other_decl may be a namespace
+               projection symbol, so fundamental_symbol_of is called. */
+            tp = fundamental_symbol_of(other_decl)->variant.routine.ptr->type;
             if (routine_types_are_compatible(tp, type, TCF_NO_FLAGS)) {
               /* Other_decl matches the current declaration.  Null out
                  *overload_symbol in case it was set. */
+              other_decl = fundamental_symbol_of(other_decl);
               *overload_symbol = NULL;
               break;
             }  /* if */
@@ -5624,8 +5628,10 @@ A sk_namespace_projection is created and added to the symbol table for the
 current scope.
 */
 {
-  a_symbol_ptr  sym, new_sym;
-  a_boolean     err = FALSE;
+  a_symbol_ptr      sym, new_sym, overload_sym = NULL;
+  a_boolean         err = FALSE;
+  a_symbol_locator  locator;
+  a_boolean         is_list = FALSE;
 
   db_enter(3, "nonmember_using_declaration");
   /* Bypass "using". */
@@ -5647,13 +5653,47 @@ current scope.
     } else {
       check_assertion(qualifier_namespace_ptr(locator_for_curr_id) != NULL ||
                       locator_for_curr_id.is_global_qualified_name);
-      new_sym = enter_symbol((a_symbol_kind)sk_namespace_projection,
-                             &locator_for_curr_id, depth_scope_stack,
-                             /*suppress_redecl_error=*/FALSE);
-      new_sym->variant.namespace_projection.fundamental_symbol = sym;
-      new_sym->variant.namespace_projection.is_explicit = TRUE;
-      set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
-                               (a_namespace_ptr)NULL);
+      if (is_function_symbol(sym)) {
+        /* The specified name represents a function (or overload set thereof)
+           so we need to create or add to an overload set in the current
+           scope, too. */
+        if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          /* Using an overload set. */
+          is_list = TRUE;
+          sym = sym->variant.overloaded_function.symbols;
+        }  /* if */
+        locator = locator_for_curr_id;
+        clear_specific_symbol(locator);
+        /* Look for a declaration of the same name in the current scope. */
+        overload_sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+        if (overload_sym != NULL && !is_function_symbol(overload_sym)) {
+          /* There is no function symbol in the current scope with which the
+             new symbol should be overloaded. */
+          overload_sym = NULL;
+        }  /* if */
+      }  /* if */
+      /* Create the new sk_namespace_projection symbol(s). */
+      for (; sym != NULL; is_list ? sym = sym->next : NULL) {
+        locator = locator_for_curr_id;
+        clear_specific_symbol(locator);
+        if (overload_sym == NULL) {
+          /* No overloading. */
+          new_sym = enter_symbol((a_symbol_kind)sk_namespace_projection,
+                                 &locator, depth_scope_stack,
+                                 /*suppress_redecl_error=*/FALSE);
+          /* If is_list is TRUE, there will be overloading on the next
+             iteration of this loop. */
+          if (is_list) overload_sym = new_sym;
+        } else {
+          /* Add a new symbol to the overload set. */
+          new_sym = enter_overloaded_symbol(
+                                (a_symbol_kind)sk_namespace_projection,
+                                 &locator, overload_sym, &overload_sym);
+        }  /* if */
+        new_sym->variant.namespace_projection.fundamental_symbol = sym;
+        set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
+                                 (a_namespace_ptr)NULL);
+      }  /* for */
     }  /* if */
     /* Bypass the identifier. */
     (void)get_token();
