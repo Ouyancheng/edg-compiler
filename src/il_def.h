@@ -3994,7 +3994,9 @@ typedef struct a_template_arg {
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == tak_type. */
-    a_type_ptr  type;   /* The type supplied as the argument. */
+    a_type_ptr  type;   /* The type supplied as the argument.  This type can
+			   be NULL in a template argument list for a nonreal
+			   class in certain cases in Microsoft mode. */
     /* When kind == tak_nontype and is_array_bound_of_unknown_type == FALSE. */
     a_constant_ptr
                 constant;
