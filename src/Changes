@@ -1,5 +1,19 @@
 Version 2.22
 
+1/27/94  Recognition of new keywords
+
+Remarks are issued when any of the new keywords that have been added
+by X3J16/WG21, but are not yet implemented in the front end, are
+encountered in a source program.  In strict mode a strict ANSI
+diagnostic is issued.  The diagnostics will be eliminated when
+support for the features that use the keywords are implemented; until
+then these strings are treated as identifiers.
+
+Diagnostics are not issued for wchar_t, bool, true, and false because
+any use of these names because most current usage of these names will
+be compatible with the new language feature, when implemented.  Issuing
+diagnostics on the use of these names would probably not be useful.
+
 1/27/94  IL change: contains_try_block flag in routine entry
 
 The IL routine entry now contains the flag contains_try_block which
