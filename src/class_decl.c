@@ -10892,6 +10892,16 @@ or implicit) controlling the declaration.
       sym = locator_for_curr_id.specific_symbol;
       if (sym != NULL && sym->is_class_member &&
           is_or_contains_template_param(sym->parent.class_type)) {
+        /* The using-declaration was for a member of a dependent class type.
+           Normally this should be a base class type, but we may also end
+           up here with the following invalid code:
+             template<typename T> struct B { typedef int I; };
+             template<typename T> struct D: B<T> {
+               using D::I;  // Error (issued later on).
+             };
+           Because of the latter possibility, we must ensure we must consider
+           the possibility of sym being a projection symbol. */
+        sym = fundamental_symbol_of(sym);
         check_assertion(is_type_template_param_symbol(sym) ||
                         is_nonreal_instance_class_symbol(sym));
       }  /* if */

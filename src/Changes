@@ -1,5 +1,17 @@
 Version 3.5
 
+7/23/04  Internal error on invalid template-dependent using-declaration
+
+Certain invalid template-dependent using-declarations caused the front end
+to abort with an internal error.  For example:
+
+  template<typename T> struct B { typedef int I; };
+  template<typename T> struct D: B<T> {
+    using typename D::I;  // Previously an internal error.
+  };                      // Now a normal error.
+
+This is now fixed.
+
 7/23/04  Useless return type qualifiers in template instantiations
 
 In nontemplate code, the front end issues a warning if the return type of
