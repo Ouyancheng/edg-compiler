@@ -895,14 +895,14 @@ routine recursively for each nested class.
 }  /* delayed_scan_fixup_for_class */
 
 
-void process_deferred_class_fixups(void)
+static void process_deferred_class_fixups(void)
 /*
 Call delayed_scan_fixup_for_class for any classes defined while another
 class definition was already pending.
 */
 {
-  a_class_fixup_ptr	cfp;
-  a_class_fixup_ptr	next_cfp;
+  a_class_fixup_ptr  cfp;
+  a_class_fixup_ptr  next_cfp;
 
   /* Clear the pointers to the start of the fixup lists so that classes
      created by the fixup process can be fixed up by a recursive call to
@@ -918,6 +918,22 @@ class definition was already pending.
     free_class_fixup(cfp);
   }  /* for */
 }  /* process_deferred_class_fixups */
+
+
+void process_deferred_class_fixups_and_instantiations(void)
+/*
+While one or more class definitions are pending, the fixup of member function
+bodies and default arguments is deferred until all class definitions have
+been complete.  Nonclass template definitions are also deferred.  When the
+count of pending class definitions is zero, all class definitions have been
+completed and any deferred class fixups and instantiations may now be done.
+*/
+{
+  if (pending_class_definitions == 0) {
+    process_deferred_class_fixups();
+    process_deferred_instantiation_requests();
+  }  /* if */
+}  /* process_deferred_class_fixups_and_instantiations */
 
 
 #if DEBUG
@@ -9660,23 +9676,6 @@ next_declaration:
   db_exit();
   return !err;
 }  /* scan_class_definition */
-
-
-void process_deferred_class_fixups_and_instantiations(void)
-/*
-While one or more class definitions are pending, the fixup of
-member function bodies and default arguments is deferred until
-all class definitions have been complete.  Nonclass template
-definitions are also deferred.  When the count of pending class
-definitions is zero, all class definitions have been completed
-and any deferred class fixups and instantiations may now be done.
-*/
-{
-  if (pending_class_definitions == 0) {
-    process_deferred_class_fixups();
-    process_deferred_instantiation_requests();
-  }  /* if */
-}  /* process_deferred_class_fixups_and_instantiations */
 
 
 /* Forward declaration for recursive call. */
