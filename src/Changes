@@ -1,5 +1,13 @@
 Version 3.2
 
+2/28/03  Emulation of GNU bugs in IA-64 object layout algorithm
+
+Some changes were made to the front end to more closely emulate the
+erroneous behavior of GNU C++ when DEFAULT_EMULATE_GNU_ABI_BUGS is TRUE.
+These relatively subtle changes are all related to the alignment of
+virtual base class subobjects (which in GNU C++ may affect the size of
+a type when used as a base class).
+
 2/27/03  GNU C mode: Ignore anonymous union field name conflicts
 
 Version 3.1 of the front end added support for nonstandard anonymous unions
