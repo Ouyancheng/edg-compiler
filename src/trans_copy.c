@@ -996,6 +996,12 @@ the lists.
       } else {
         prev_routine->next = routine->next;
       }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+      /* The routine will not be copied over, so eliminate any
+         default argument object lifetimes so they will not be copied
+         over. */
+      eliminate_default_arg_object_lifetimes(routine->type);
+#endif /* MAINTAIN_NEEDED_FLAGS */
     }  /* if */
   }  /* for */
   if (pointers_block != NULL) pointers_block->last_routine = prev_routine;
@@ -1304,6 +1310,11 @@ the secondary translation unit IL).
                                            primary_rout->suppress_inline_body :
                                            rout->suppress_inline_body;
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
+#if MAINTAIN_NEEDED_FLAGS
+  /* Eliminate any default argument object lifetimes associated with the
+     entry that is about to be overwritten. */
+  eliminate_default_arg_object_lifetimes(primary_rout->type);
+#endif /* MAINTAIN_NEEDED_FLAGS */
   *primary_rout = *rout;
   do_restores_for_overwrite(primary_rout, rout);
   /* Note that inline_instance_required etc. were previously updated in
