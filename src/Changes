@@ -1,5 +1,22 @@
 Version 3.1
 
+9/17/02  GNU C++ compatibility: Calling convention differences ignored on
+         typedef redeclarations
+
+In GNU C++ mode, the front end now accepts typedef redeclarations that include
+different calling conventions.  The calling convention of the first declaration
+is retained in the IL.  For example:
+
+  typedef void F();
+  extern "C" {
+    typedef void F();  // Accepted in GNU C++ mode; error otherwise.
+  }
+
+In addition, the cdecl and stdcall attributes are ignored on typedef
+declarations (with a warning):
+
+  typedef void (*PF)() __attribute__((stdcall));  // Attribute ignored.
+
 9/16/02  Spurious error on injected class name in elaborated type
 
 A spurious error was issued if an elaborated type specifier referred

@@ -3260,10 +3260,13 @@ for exact pointer equality.
         top_level_for_redeclaration = TRUE;
         flags &= ~TCF_REDECLARATION;
       }  /* if */
-      /* Ditto for TCF_IGNORE_CALLING_CONVENTIONS. */
+      /* Ditto for TCF_IGNORE_CALLING_CONVENTIONS.  (Except in GNU C++
+         mode.) */
       if (flags & TCF_IGNORE_CALLING_CONVENTIONS) {
         ignore_calling_conventions = TRUE;
-        flags &= ~TCF_IGNORE_CALLING_CONVENTIONS;
+        if (!gpp_mode) {
+          flags &= ~TCF_IGNORE_CALLING_CONVENTIONS;
+        }  /* if */
       }  /* if */
       switch (type_1->kind) {
         case tk_error:

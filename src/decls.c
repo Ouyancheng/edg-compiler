@@ -7063,7 +7063,18 @@ return a pointer to it in *symbol_ptr.
          the existing symbol. */
       a_boolean  types_are_identical;
       tp = type_symbol_type(sym);
-      types_are_identical = identical_types(tp, type_ptr);
+#if GNU_EXTENSIONS_ALLOWED
+      if (gpp_mode) {
+        /* GNU C++ ignores the calling convention difference (extern "C"
+           vs. extern "C++"). */
+        types_are_identical = f_types_are_compatible(
+                                 tp, type_ptr, TCF_IGNORE_CALLING_CONVENTIONS);
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        types_are_identical = identical_types(tp, type_ptr);
+      }  /* if */
       if ((types_are_identical
 #if NEAR_AND_FAR_ALLOWED
            /* When near/far qualifiers appear, they have to match what was

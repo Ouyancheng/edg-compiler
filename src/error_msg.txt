@@ -1245,9 +1245,10 @@ ec_null_char_in_header_name;;"null (zero) character in header name"
 ec_for_init_hides_declaration;;"declaration in for-initializer hides a declaration in the surrounding scope"
 ec_for_init_hidden_declaration;;"the hidden declaration is %p"
 ec_prototype_lost;;"the prototype declaration of %nfd is ignored after this unprototyped redeclaration"
-ec_attribute_ignored_on_typedef;;"attribute ignored on typedef of class or enum types"
+ec_attribute_ignored_on_class_or_enum_typedef;;"attribute ignored on typedef of class or enum types"
 ec_bad_linkage_for_redefine_extname;;"%npd must have external C linkage"
 ec_declaration_hides_for_init;;"variable declaration hides declaration in for-initializer"
+ec_attribute_ignored_on_typedef;;"attribute ignored on typedef declarations"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

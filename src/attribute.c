@@ -1572,7 +1572,8 @@ a typedef, is_typedef is TRUE.
          here will be honored. */
       if (is_typedef && (is_class_struct_union_type(tp) ||
                          is_enum_type(tp))) {
-        pos_warning(ec_attribute_ignored_on_typedef, &ap->position);
+        pos_warning(ec_attribute_ignored_on_class_or_enum_typedef,
+                    &ap->position);
       } else {
         tp->alignment = ap->variant.alignment;
         tp->alignment_set_explicitly = TRUE;
@@ -1666,7 +1667,10 @@ a typedef, is_typedef is TRUE.
       break;
 #if GNU_X86_ATTRIBUTES_ALLOWED
     case ak_cdecl:
-      { a_routine_type_supplement_ptr rtsp;
+      if (is_typedef) {
+        pos_warning(ec_attribute_ignored_on_typedef, &ap->position);
+      } else {
+         a_routine_type_supplement_ptr rtsp;
         if (is_pointer_type(tp)) {
           /* This attribute can be applied to both function types and
              pointer-to-function types. */
@@ -1686,7 +1690,10 @@ a typedef, is_typedef is TRUE.
       }
       break;
     case ak_stdcall:
-      { a_routine_type_supplement_ptr rtsp;
+      if (is_typedef) {
+        pos_warning(ec_attribute_ignored_on_typedef, &ap->position);
+      } else {
+        a_routine_type_supplement_ptr rtsp;
         if (is_pointer_type(tp)) {
           /* This attribute can be applied to both function types and
              pointer-to-function types. */
