@@ -39,8 +39,7 @@ a member template of a non-template class.  This has been fixed.
     template<class T1> friend void B::f(T1*);
   };
 
-A<int> a;
-
+  A<int> a;
 
 11/20/02  GNU compatibility: Typeof syntax ambiguities
 
