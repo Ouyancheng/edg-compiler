@@ -45,6 +45,23 @@ CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS to TRUE, a
 non-template member function or static data member was put out with
 an extra "template<>" at the beginning.  Now fixed.
 
+7/7/97    Eliminating unneeded template instances in -tused mode
+
+When source is compiled with both --remove_unneeded_entries and -tused, an
+improvement has been made in eliminating unneeded template instances from
+the IL that is passed to the back end.  Since -tused mode means an
+instantiation is triggered whenever a template instance is referenced, and
+since template instances generally have external linkage, such entities
+were not removed.  But now if (in -tused mode) a template is instantiated
+as a result of a reference that is not itself needed, the template instance
+is regarded as a candidate for elimination.  In the following, for example,
+if g is never called, then f<int> is not needed:
+
+  template <class T> T f(T t) { return t; }
+  inline int g(int i) {
+    return f(i);
+  }
+
 7/7/97    cfront compatibility: local type in block-extern declaration
 
 In cfront compatibility mode a local type is now permitted in the
