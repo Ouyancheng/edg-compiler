@@ -5692,7 +5692,10 @@ specification allow a variable-sized array as the top type.
         a_symbol_ptr   sym = opname_function_symbol(array_opname_kind);
         a_boolean      ambiguous;
 
-        if (function_symbol == find_default_operator_new_sym(sym, &ambiguous)){
+        /* In Microsoft mode, because the non-array new routine can be used
+           for an array new, the symbol can be NULL. */
+        if (sym != NULL &&
+            function_symbol == find_default_operator_new_sym(sym, &ambiguous)){
           new_routine = NULL;
         }  /* if */
       }  /* if */
