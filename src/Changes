@@ -1,5 +1,13 @@
 Version 2.36
 
+5/1/97    Microsoft compatibility: suffixes like "i32" on integral constants
+
+The front end now supports suffixes like "i32" on integral constants
+in Microsoft mode.  They indicate the size in bits of the constant,
+i.e., "15i32" is a 32-bit constant with the value 15.  The unsigned
+version is indicated by a "u", as in "15ui32".  Sizes 8, 16, 32, and
+64 are supported if integral types with those sizes exist.
+
 5/1/97    Microsoft compatibility: explicit constructor calls
 
 In Microsoft compatibility mode, explicit calls of constructors are

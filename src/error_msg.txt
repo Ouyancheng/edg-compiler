@@ -933,6 +933,7 @@ ec_multiple_inheritance_in_embedded_cplusplus;;"Embedded C++ does not support mu
 ec_cl_invalid_microsoft_version;;"invalid Microsoft version number: "
 ec_inheritance_kind_already_set;;"pointer-to-member representation has already been set for %n"
 ec_bad_constructor_type;;"%t1 cannot be used to designate constructor for %t2"
+ec_bad_suffix;;"invalid suffix on integral constant"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -5005,6 +5005,15 @@ token.
                              ec_nonstd_long_long, start_of_curr_token);
     }  /* if */
 #endif /* LONG_LONG_ALLOWED */
+    if (microsoft_mode && l_seen == 0 &&
+        (*curr_char_loc == 'i' || *curr_char_loc == 'I') &&
+        isdigit((unsigned char)curr_char_loc[1])) {
+      /* The Microsoft compiler allows a suffix like "i32" indicating a
+         32-bit integer.  "ui32" indicates an unsigned 32-bit integer. */
+      do {
+        curr_char_loc++;
+      } while (isdigit((unsigned char)(*curr_char_loc)));
+    }  /* if */
   }
   goto constant_accumulated;
 

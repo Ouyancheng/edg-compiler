@@ -47,6 +47,7 @@ Other than the zero-length pathology, the input number is guaranteed
 to be syntactically correct (except for digits 8 and 9 in octal 
 constants).  The number may have a "u" or "l" suffix, or both.
 (Or a "ll" or "ull" suffix, if long long is allowed.)
+(Or a suffix like "i32", if Microsoft extensions are enabled.)
 */
 {
   an_integer_value number, ten, digit, mask;
@@ -60,6 +61,9 @@ constants).  The number may have a "u" or "l" suffix, or both.
   char             *real_end_pos = end_of_curr_token;
   unsigned long    intdigit;
   an_integer_kind  kind;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  an_integer_kind  isuffix_kind = (an_integer_kind)ik_none;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   *err_code = ec_no_error;
   /* Locate and logically remove the suffix, if any.  The suffix is "u"
@@ -68,6 +72,55 @@ constants).  The number may have a "u" or "l" suffix, or both.
   /* "ll" means long long, "ull" means unsigned long long. */
 #endif /* LONG_LONG_ALLOWED */
   if (real_end_pos >= start_of_curr_token) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      /* The Microsoft compiler allows a suffix like "i32" indicating a
+         32-bit integer.  "ui32" indicates an unsigned 32-bit integer. */
+      /* Look for an "i" or "I" anywhere in the number. */
+      for (temp_ptr = start_of_curr_token;
+           temp_ptr <= real_end_pos;
+           temp_ptr++) {
+        if (*temp_ptr == 'i' || *temp_ptr == 'I') {
+          /* Yes, we have a suffix like "i32". */
+          /* scan_number has ensured that there is at least one digit
+             following the "i". */
+          char          *suffix_loc = temp_ptr;
+          unsigned long isuffix = 0;
+          unsigned long ndigits = 0;
+
+          real_end_pos = temp_ptr-1;
+          temp_ptr++;
+          /* Accumulate the size. */
+          do {
+            isuffix *= 10;
+            isuffix += *temp_ptr++ - '0';
+            ndigits++;
+          } while (isdigit((unsigned char)(*temp_ptr)));
+          /* Check that the size is valid. */
+          if (ndigits <= 3) {
+            if (isuffix == 8 &&
+                targ_int8_int_kind != (an_integer_kind)ik_none) {
+              isuffix_kind = targ_int8_int_kind;
+            } else if (isuffix == 16 &&
+                       targ_int16_int_kind != (an_integer_kind)ik_none) {
+              isuffix_kind = targ_int16_int_kind;
+            } else if (isuffix == 32 &&
+                       targ_int32_int_kind != (an_integer_kind)ik_none) {
+              isuffix_kind = targ_int32_int_kind;
+            } else if (isuffix == 64 &&
+                       targ_int64_int_kind != (an_integer_kind)ik_none) {
+              isuffix_kind = targ_int64_int_kind;
+            }  /* if */
+          }  /* if */
+          if (isuffix_kind == (an_integer_kind)ik_none) {
+            /* Bad size. */
+            *err_pos = suffix_loc;
+            *err_code = ec_bad_suffix;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     for (;;) {
       if (*real_end_pos == 'u' || *real_end_pos == 'U') {
         has_u_suffix = TRUE;
@@ -88,6 +141,14 @@ constants).  The number may have a "u" or "l" suffix, or both.
         break;
       }  /* if */
     }  /* for */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && isuffix_kind != (an_integer_kind)ik_none &&
+        has_u_suffix) {
+      /* The number has a suffix like "ui32".  Adjust the kind to the
+         corresponding unsigned integral kind. */
+      isuffix_kind = unsigned_int_kind_of[(int)isuffix_kind];
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 
   /* Evaluate the literal as an unsigned long. */
@@ -236,6 +297,30 @@ pcc_kind_established:
       ovflo = FALSE;
     }  /* if */
   } else if (!ovflo) {
+    /* Non-pcc-mode constant checking. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && isuffix_kind != (an_integer_kind)ik_none) {
+      /* The number has a suffix like "i32".  The kind has already been
+         determined. */
+      kind = isuffix_kind;
+      /* If necessary, truncate the constant to the size specified. */
+      if (!le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE, kind)) {
+        a_targ_size_t    size;
+        a_targ_alignment alignment;
+
+        /* The constant doesn't fit in the integer kind. */
+        /* Convert the character position into an error position. */
+        conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
+        warning(ec_integer_too_large);
+        /* Mask off any bits past the end of the integer. */
+        do_sign_extension = int_kind_is_signed[kind];
+        get_integer_size_and_alignment(kind, &size, &alignment);
+        make_integer_value_mask(&mask, (int)(size*targ_char_bit));
+        and_integer_values(&number, &mask);
+      }  /* if */
+      goto kind_established;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* ANSI C constant checking. */
 #if LONG_LONG_ALLOWED
     if (has_ll_suffix) goto ll_check;
