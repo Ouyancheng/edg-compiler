@@ -1882,12 +1882,13 @@ Output a type specifier.
 
 
 static void gen_pointer_type_qualifiers(a_type_ptr qual_type,
-                                        a_type_ptr type)
+                                        a_type_ptr type,
+                                        a_boolean  add_const)
 /*
 Generate type qualifiers, if any, to follow a pointer "*", reference "&",
 or pointer-to-member "name::*".  qual_type is the full pointer type,
 and type is the unqualified version of that type (e.g., the tk_pointer
-entry).
+entry).  If add_const is TRUE, add an extra "const".
 */
 {
   for (; qual_type != type; qual_type = qual_type->variant.typeref.type) {
@@ -1899,18 +1900,21 @@ entry).
       write_space();
     }  /* if */
   }  /* for */
+  if (add_const) write_tok_str("const ");
 }  /* gen_pointer_type_qualifiers */
 
 
 static void gen_type_first_part(a_type_ptr type,
                                 a_boolean  need_paren,
-				a_boolean  need_trailing_space)
+                                a_boolean  need_trailing_space,
+                                a_boolean  add_const)
 /*
 For the indicated type, output the specifiers and the part of the declarator
 that precedes the name.  If need_paren is TRUE, put a left parenthesis at
 the end of the first half of the declarator.  If need_trailing_space is TRUE,
 put a space at the end of the specifiers part (needed if the declarator part
-is not empty, because it contains a name or a derived type).
+is not empty, because it contains a name or a derived type).  If add_const
+is TRUE, add an extra "const" on top of the type.
 */
 {
   a_type_kind kind;
@@ -1926,7 +1930,8 @@ is not empty, because it contains a name or a derived type).
     /* Pointer or reference type. */
     gen_type_first_part(type->variant.pointer.type,
                         /*need_paren=*/TRUE,
-                        /*need_trailing_space=*/TRUE);
+                        /*need_trailing_space=*/TRUE,
+                        /*add_const=*/FALSE);
     /* Output "*" or "&" for pointer or reference. */
     if (type->variant.pointer.is_reference) {
       write_tok_ch('&');
@@ -1934,18 +1939,19 @@ is not empty, because it contains a name or a derived type).
       write_tok_ch('*');
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
-    gen_pointer_type_qualifiers(qual_type, type);
+    gen_pointer_type_qualifiers(qual_type, type, add_const);
     if (need_paren) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     gen_type_first_part(type->variant.ptr_to_member.type,
                         /*need_paren=*/TRUE,
-                        /*need_trailing_space=*/TRUE);
+                        /*need_trailing_space=*/TRUE,
+                        /*add_const=*/FALSE);
     /* Output Classname::*. */
     gen_type_name(type->variant.ptr_to_member.class_of_which_a_member);
     write_tok_str("::*");
     /* Output the type qualifiers on the pointer, if any. */
-    gen_pointer_type_qualifiers(qual_type, type);
+    gen_pointer_type_qualifiers(qual_type, type, add_const);
     if (need_paren) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
@@ -1955,7 +1961,8 @@ is not empty, because it contains a name or a derived type).
        to get around that.  They don't mean anything anyway. */
     gen_type_first_part(type->variant.routine.return_type,
                         /*need_paren=*/TRUE,
-                        /*need_trailing_space=*/TRUE);
+                        /*need_trailing_space=*/TRUE,
+                        /*add_const=*/FALSE);
     if (need_paren) write_tok_ch('(');
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
@@ -1964,10 +1971,12 @@ is not empty, because it contains a name or a derived type).
                         "gen_type_first_part: qualifier on array type");
     gen_type_first_part(type->variant.array.element_type,
                         /*need_paren=*/TRUE,
-                        /*need_trailing_space=*/TRUE);
+                        /*need_trailing_space=*/TRUE,
+                        /*add_const=*/FALSE);
     if (need_paren) write_tok_ch('(');
   } else {
     /* No declarator part to process.  Handle the specifier type. */
+    if (add_const) write_tok_str("const ");
     gen_type_specifier(qual_type);
     if (need_trailing_space) write_space();
   }  /* if */
@@ -2198,7 +2207,8 @@ NULL if there is no name.
 {
   /* Write the specifiers and the first part of the declarator. */
   gen_type_first_part(type, /*need_paren=*/FALSE,
-                      /*need_trailing_space=*/(scp != NULL));
+                      /*need_trailing_space=*/(scp != NULL),
+                      /*add_const=*/FALSE);
   /* Write the name if there is one. */
   if (scp != NULL) gen_name(scp);
   /* Write the second part of the declarator. */
@@ -2242,7 +2252,8 @@ declaration.
 {
   /* Write the specifiers and the first part of the declarator. */
   gen_type_first_part(type, /*need_paren=*/FALSE,
-                      /*need_trailing_space=*/(scp != NULL));
+                      /*need_trailing_space=*/(scp != NULL),
+                      /*add_const=*/FALSE);
   /* Write the name if there is one. */
   if (scp != NULL) {
     /* Set the source position for the name. */
@@ -2394,12 +2405,18 @@ source sequence entry is the one associated with the constant.
   adv_curr_source_sequence_entry();
   set_output_position(&constant->source_corresp.decl_position);
   gen_member_access_specifier_for_decl_of(&constant->source_corresp);
-  /* Generate the constant type and name. */
-#if 0
-  /* Add "const". */
-#endif /* 0 */
-  gen_declaration_using_type(constant->type, &constant->source_corresp,
-                             (a_src_seq_secondary_decl_ptr)NULL);
+  /* Generate the constant type and name.  The type must be generated specially
+     with an extra "const" on top, since the const is removed in the
+     constant type. */
+  gen_type_first_part(constant->type, /*need_paren=*/FALSE,
+                      /*need_trailing_space=*/TRUE,
+                      /*add_const=*/TRUE);
+  /* Set the source position for the name. */
+  set_output_position(&constant->source_corresp.decl_position);
+  /* Write the name. */
+  gen_constant_name(constant);
+  /* Write the second part of the declarator. */
+  gen_type_second_part(constant->type, /*need_paren=*/FALSE);
   write_tok_str(" = ");
   /* Generate the constant value. */
   gen_constant(constant);
@@ -2824,6 +2841,11 @@ an expression.  In effect, add an indirection to the expression.
       gen_simple_field_selection(operand_1, operand_2);
       write_tok_ch(')');
       processed = TRUE;
+    } else if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue){
+      /* An operation that returns an lvalue, e.g., an lvalue-returning
+         assignment.  Just put the expression out. */
+      gen_expr_with_parens(node);
+      processed = TRUE;
     }  /* if */
   }  /* if */
   if (!processed) {
@@ -3008,7 +3030,8 @@ Generate code for a new or delete operation.
       elem_type = unqual_type->variant.array.element_type;
       elem_size = skip_typerefs(elem_type)->size;
       gen_type_first_part(elem_type, /*need_paren=*/TRUE,
-                          /*need_trailing_space=*/TRUE);
+                          /*need_trailing_space=*/TRUE,
+                          /*add_const=*/FALSE);
       write_tok_ch('[');
       if (num_elems_can_be_found_in_size_expr(arg, elem_size,
                                               &num_elems_expr)) {
@@ -4636,7 +4659,8 @@ declaration or definition.
     if (return_type_needed) {
       /* Write the type specifiers and the first part of the declarator. */
       gen_type_first_part(rout_type, /*need_paren=*/FALSE,
-                          /*need_trailing_space=*/TRUE);
+                          /*need_trailing_space=*/TRUE,
+                          /*add_const=*/FALSE);
     }  /* if */
     /* Position the output file to the declaration position (again). */
     set_decl_position(&rout->source_corresp, sec_decl);
