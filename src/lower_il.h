@@ -42,6 +42,9 @@ extern char *alloc_lowered_name_string(sizeof_t size);
 #if DO_IL_LOWERING
 
 EXTERN a_boolean
+		il_lowering_underway;
+			/* TRUE while IL lowering is actually being done. */
+EXTERN a_boolean
 		lowering_file_scope;
 			/* TRUE if lowering the file scope's IL, FALSE if
 			   lowering a routine scope's IL. */

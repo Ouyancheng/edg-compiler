@@ -10113,6 +10113,7 @@ C++ to C, so that a C back end can handle it without change.
   /* The lowering is only needed if the source language is C++, if the
      lowering phase is to be run, and if there have been no errors. */
   if (il_lowering_needed()) {
+    il_lowering_underway = TRUE;
 #if DEBUG
     if (debug_level >= 1) {
       fprintf(f_debug, "Lowering IL in memory region %lu\n",
@@ -10192,6 +10193,7 @@ C++ to C, so that a C back end can handle it without change.
     /* Pop the file-scope context. */
     pop_context();
     initial_value_for_il_lowering_flag = !initial_value_for_il_lowering_flag;
+    il_lowering_underway = FALSE;
   }  /* if */
   curr_object_lifetime = saved_curr_object_lifetime;
   innermost_function_scope = saved_innermost_function_scope;
@@ -10396,6 +10398,7 @@ of the front end.
 */
 {
   /* Variables in lower_il.h: */
+  il_lowering_underway = FALSE;
   /* Object lifetime information is only kept if it will be needed by the
      back end.  It's only needed if exception handling is enabled. */
 #if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
