@@ -6723,12 +6723,20 @@ other operand.
 }  /* wrap_throw */
 
 
-static void rewrite_lvalue_expr_as_rvalue(an_expr_node_ptr expr)
+static void rewrite_discarded_lvalue_as_rvalue(
+                                              an_expr_node_ptr expr,
+                                              a_boolean        can_change_type)
 /*
-expr points to an expression tree for an lvalue.  Rewrite it as an rvalue that
-has the same side effects.
+expr points to an expression tree for an lvalue whose result is discarded.
+Rewrite it as an rvalue that has the same side effects.  can_change_type
+is TRUE if the type of the expression node can be changed (because the
+context doesn't care what the type is).
 */
 {
+  a_type_ptr       expr_type = expr->type;
+  a_constant       zero_con;
+  an_expr_node_ptr zero_node;
+
   /* In many cases, the expression for an lvalue could simply be treated
      as the rvalue address of the lvalue without any rewriting.  However, that
      doesn't work right for (a) bit field lvalues, and (b) register variables
@@ -6740,10 +6748,7 @@ has the same side effects.
   if (!node_has_side_effects(expr, (a_boolean *)NULL)) {
     /* No side effects, so replace the expression tree with one that casts
        zero to the right pointer type. */
-    a_constant       zero_con;
-    an_expr_node_ptr zero_node;
-
-    make_zero_of_proper_type(expr->type, &zero_con);
+    make_zero_of_proper_type(expr_type, &zero_con);
     zero_node = alloc_node_for_constant(&zero_con);
     overwrite_node(expr, zero_node);
   } else {
@@ -6763,18 +6768,46 @@ has the same side effects.
            expr->variant.operation.compiler_generated)) {
         /* These operations pass through lvalueness.  Go to the first
            operand and continue. */
-        rewrite_lvalue_expr_as_rvalue(op1);
-      } else if (op == (an_expr_operator_kind)eok_question) {
-        /* "?" operator.  Process the second and third operands. */
-        rewrite_lvalue_expr_as_rvalue(op1->next);
-        rewrite_lvalue_expr_as_rvalue(op1->next->next);
-      } else if (op == (an_expr_operator_kind)eok_comma) {
-        /* "," operator.  Process the second operand. */
-        rewrite_lvalue_expr_as_rvalue(op1->next);
+        rewrite_discarded_lvalue_as_rvalue(op1, /*can_change_type=*/FALSE);
+      } else if (expr->variant.operation.
+                                      returns_lvalue_instead_of_usual_rvalue) {
+        /* An lvalue-returning operation. */
+        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+        if (op == (an_expr_operator_kind)eok_question) {
+          /* "?" operator.  Process the second and third operands. */
+          rewrite_discarded_lvalue_as_rvalue(op1->next,
+                                             /*can_change_type=*/FALSE);
+          rewrite_discarded_lvalue_as_rvalue(op1->next->next,
+                                             /*can_change_type=*/FALSE);
+        } else if (op == (an_expr_operator_kind)eok_comma) {
+          /* "," operator.  Process the second operand. */
+          rewrite_discarded_lvalue_as_rvalue(op1->next, can_change_type);
+          /* If the type of the operand was changed, propagate that into
+             the result type of the comma expression. */
+          if (can_change_type) expr->type = expr_type = op1->next->type;
+        } else {
+          /* An lvalue-returning assignment or the like.  Changing the
+             operation not to return an lvalue turns the expression into
+             an rvalue, which makes it acceptable as C code.  However, it
+             also changes the result type, which has to be accommodated. */
+          expr->type = rvalue_type(type_pointed_to(expr_type));
+          if (!can_change_type) {
+            /* The expression type has been changed, but that's not allowed, so
+               add a comma node and a null cast to the right type to get the
+               original type back. */
+            an_expr_node_ptr expr_copy = copy_node(expr);
+
+            make_zero_of_proper_type(expr_type, &zero_con);
+            zero_node = alloc_node_for_constant(&zero_con);
+            expr_copy->next = zero_node;
+            change_node_to_operation(expr, (an_expr_operator_kind)eok_comma,
+                                     expr_type, expr_copy);
+          }  /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* rewrite_lvalue_expr_as_rvalue */
+}  /* rewrite_discarded_lvalue_as_rvalue */
 
 
 void lower_expr(an_expr_node_ptr expr,
@@ -6793,22 +6826,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     /* A void expression that was left as an lvalue in C++.  Rewrite as
        an rvalue. */
     expr->void_expression_lvalue = FALSE;
-    if (is_operation_node(expr) &&
-        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue &&
-        (op = expr->variant.operation.kind,
-         (op != (an_expr_operator_kind)eok_question &&
-          op != (an_expr_operator_kind)eok_comma))) {
-      /* An lvalue-returning assignment or the like.  Changing the operation
-         not to return an lvalue turns the expression into an rvalue, which
-         makes it acceptable as C code.  This can only be done at the
-         top level, however, because it also changes the result type
-         (it drops the "pointer to"). */
-      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
-      expr->type = rvalue_type(type_pointed_to(expr->type));
-    } else {
-      /* Other cases require more work. */
-      rewrite_lvalue_expr_as_rvalue(expr);
-    }  /* if */
+    rewrite_discarded_lvalue_as_rvalue(expr, /*can_change_type=*/TRUE);
   }  /* if */
   lower_os_type(expr->type);
   if (is_qualified_type(expr->type)) {
