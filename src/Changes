@@ -1,5 +1,20 @@
 Version 2.46
 
+5/14/01  Return without expression in non-void function in C mode gets
+         remark instead of warning when not at top level
+
+In a non-void function, a return statement that does not specify an
+expression should get a warning in C mode.  When the return statement is
+not at the top level of the function, however, a remark was issued
+instead.  Now, the diagnostic is a warning as intended.
+
+  int foo(int i) {
+    if (i != 0) { 
+      return;  /* Formerly a remark instead of a warning. */
+    }
+    return 0;
+  }
+
 5/9/01   Abort on processing "for" statement with complex embedded
          declaration
 

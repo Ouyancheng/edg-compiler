@@ -4815,8 +4815,7 @@ The return expression is also set for a return from a constructor.
              of the function did not have an explicit type specifier (omitting
              the specifier implies "int", but may have been intended to mean
              "void" in old-style C). */
-          if (!struct_stmt_stack[depth_stmt_stack].
-                                   rout_type_explicitly_specified) {
+          if (!struct_stmt_stack[0].rout_type_explicitly_specified) {
             no_returned_value_severity = es_remark;
           }  /* if */
         }  /* if */
