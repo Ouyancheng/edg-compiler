@@ -1577,6 +1577,7 @@ a pointer to the character position following what was demangled.
 */
 {
   char          *p = ptr, *origname, *pname, *end_ptr;
+  char          *final_specialization;
   a_boolean     member_function = TRUE;
   a_template_param_block
                 temp_par_info;
@@ -1586,9 +1587,16 @@ a pointer to the character position following what was demangled.
   /* Scan through the name (the first part of the mangled name) without
      generating output, to see what's beyond it.  Special processing is
      necessary for names of constructors, conversion routines, etc. */
+  /* If the name has a specialization indication in it (which can happen for
+     function names), note that fact. */
+  temp_par_info.set_final_specialization = TRUE;
   dctl->suppress_id_output++;
-  p = demangle_name(origname, (unsigned long)0, dctl);
+  p = full_demangle_name(origname, (unsigned long)0, (char *)NULL,
+                         &temp_par_info, dctl);
   dctl->suppress_id_output--;
+  final_specialization = temp_par_info.final_specialization;
+  clear_template_param_block(&temp_par_info);
+  temp_par_info.final_specialization = final_specialization;
   if (*p == '\0') {
     /* There is no mangled part of the name.  This happens for strange
        cases like
@@ -1623,9 +1631,13 @@ a pointer to the character position following what was demangled.
       /* Remember the location of the parent entity name. */
       pname = end_ptr;
       /* Scan over the class name, producing no output, and remembering the
-         position of the final specialization, if any. */
+         position of the final specialization, if any.  If we already
+         found a specialization on the function name, it's the final one
+         and we shouldn't change it. */
       dctl->suppress_id_output++;
-      temp_par_info.set_final_specialization = TRUE;
+      if (temp_par_info.final_specialization == NULL) {
+        temp_par_info.set_final_specialization = TRUE;
+      }  /* if */
       end_ptr = full_demangle_type_name(pname, /*base_name_only=*/FALSE,
                                         &temp_par_info, dctl);
       temp_par_info.set_final_specialization = FALSE;
@@ -1652,6 +1664,9 @@ a pointer to the character position following what was demangled.
       }  /* if */
       (void)full_demangle_type_name(pname, /*base_name_only=*/FALSE,
                                     &temp_par_info, dctl);
+      /* Force template parameter information out on the function even if
+         it is specialized. */
+      temp_par_info.actual_template_args_until_final_specialization = FALSE;
       write_id_str("::", dctl);
     }  /* if */
     /* Write the name of the member. */
@@ -1681,6 +1696,9 @@ a pointer to the character position following what was demangled.
         (void)full_demangle_type_name(pname, /*base_name_only=*/FALSE,
                                       &temp_par_info, dctl);
       }  /* if */
+      /* Force template parameter information out on the function even if
+         it is specialized. */
+      temp_par_info.actual_template_args_until_final_specialization = FALSE;
       /* Write the name of the member. */
       (void)full_demangle_name(origname, (unsigned long)0, pname,
                                &temp_par_info, dctl);
