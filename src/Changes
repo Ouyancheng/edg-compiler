@@ -13,8 +13,8 @@ command-line option.  In addition, the default has been increased from
 The default value is specified by DEFAULT_MAX_PENDING_INSTANTIATIONS.
 If no value is supplied for DEFAULT_MAX_PENDING_INSTANTIATIONS, and a
 definition is provided for the old configuration value, which was
-named MAX_PENDING_INSTANTIATIONS, that value is used as value of
-DEFAULT_MAX_PENDING_INSTANTIATIONS.  The default value
+named MAX_PENDING_INSTANTIATIONS, that value is used as the default
+value of DEFAULT_MAX_PENDING_INSTANTIATIONS.
 
 12/2/97   Limiting the number of simultaneous instantiations
 
