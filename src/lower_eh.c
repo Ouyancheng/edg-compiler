@@ -903,9 +903,11 @@ the runtime's definition.
 			/* TRUE if the object is an array (or requires
 			   information normally provided only for arrays). */
 #define RDF_THIS_PARAM_OFFSET	0x10
-			/* TRUE if the object is a base class of an
-			   object being constructed or destructed.  Not
-			   used in the portable scheme. */
+			/* TRUE if the object is at an address relative to
+			   the "this" parameter of the current routine, i.e.,
+			   it's a base class or member being handled in
+			   a constructor or destructor.  Not used in the
+			   portable scheme. */
 
 
 #if !DO_FULL_PORTABLE_EH_LOWERING
