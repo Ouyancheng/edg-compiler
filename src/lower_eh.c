@@ -692,12 +692,16 @@ match the runtime's definition.
 #define ETS_IS_POINTER		0x01
 			/* A pointer to an object of the type specified
 			   by typeinfo. */
-#define ETS_IS_REFERENCE	0x02
+#define ETS_POINTER_TO_CONST	0x02
+#define ETS_POINTER_TO_VOLATILE	0x04
+			/* Indication of the type qualifiers on the type
+			   pointed to, in the pointer case. */
+#define ETS_IS_REFERENCE	0x08
 			/* A reference to an object of the type specified
 			   by typeinfo. */
-#define ETS_IS_ELLIPSIS		0x04
+#define ETS_IS_ELLIPSIS		0x10
 			/* An ellipsis (for a catch clause). */
-#define ETS_LAST		0x08
+#define ETS_LAST		0x20
 			/* TRUE if this is the last type specification in
 			   the array. */
 
@@ -761,6 +765,13 @@ to a type, make the typeinfo variable for the underlying type and set
   if (is_pointer_type(typeinfo_type)) {
     typeinfo_type = type_pointed_to(typeinfo_type);
     *flags_value |= ETS_IS_POINTER;
+    /* Remember the type qualifiers on the type pointed to. */
+    if (is_const_qualified_type(typeinfo_type)) {
+      *flags_value |= ETS_POINTER_TO_CONST;
+    }  /* if */
+    if (is_volatile_qualified_type(typeinfo_type)) {
+      *flags_value |= ETS_POINTER_TO_VOLATILE;
+    }  /* if */
   }  /* if */
   /* Strip typerefs but watch out for rewritten pointers-to-members. */
   typeinfo_type = underlying_type(typeinfo_type);
