@@ -1,5 +1,14 @@
 Version 2.31
 
+1/4/96   Permit verbose mode to be turned off in the prelinker
+
+A new configuration flag has been added to edg_prelink.h called
+PL_DEFAULT_VERBOSE_MODE.  This lets you specify whether or not
+the prelinker should produce verbose output by default.  A new
+command line option has been added to the prelinker that specifies
+that verbose output should not be produced.  The new option is
+the -q (quiet) option.
+
 12/27/95 Building the utility programs with the Sun C++ compiler
 
 The changes have been made that are necessary for the utility programs

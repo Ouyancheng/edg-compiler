@@ -278,7 +278,7 @@ static char	pl_file_name_buffer[FILE_NAME_BUFFER_SIZE];
 			/* Buffer in which file_names can be manipulated. */
 
 static a_boolean
-		verbose = TRUE;
+		verbose = PL_DEFAULT_VERBOSE_MODE;
 			/* Determines whether assignment information
 			   should be displayed. */
 
@@ -2546,7 +2546,7 @@ int main(int argc, char *argv[])
   /* Process command-line options. */
   /* Suppress getopt's error on non-recognized option. */
   opterr = 0;
-#define OPTION_LIST "imnrvuB:c:d:Df:l:L:N:R:W:"
+#define OPTION_LIST "imnqrvuB:c:d:Df:l:L:N:R:W:"
   while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
     switch (optchar) {
       case 'c':
@@ -2649,6 +2649,10 @@ int main(int argc, char *argv[])
         /* Specify whether names have an extra underscore that should
            be ignored.  The option selects the opposite of the default. */
         skip_underscore_prefix = !TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED;
+        break;
+      case 'q':
+        /* "quiet" (nonverbose) mode. */
+        verbose = FALSE;
         break;
       case 'v':
         /* Verbose mode. */
