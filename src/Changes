@@ -1,5 +1,11 @@
 Version 2.20
 
+9/28/93  Interaction between automatic inclusion and -tused and -tall
+
+A bug has been fixed that would, under certain conditions, result in
+compilation errors when implicit inclusion was used with the -tused
+or -tall instantiation mode.
+
 9/15/93  New symbol reference kind
 
 srk_error was added to the enumeration a_symbol_reference_kind to
