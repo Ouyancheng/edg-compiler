@@ -2208,6 +2208,9 @@ fields to default values.
       sp->variant.vla.is_typedef_decl  = FALSE;
       sp->variant.vla.variant.variable = NULL;
       break;
+    case stmk_vla_dealloc:
+      sp->variant.vla_variable = NULL;
+      break;
 #if CHECKING
     default:
       internal_error("set_statement_kind: bad kind");

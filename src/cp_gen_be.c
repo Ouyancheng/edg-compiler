@@ -7381,6 +7381,7 @@ Generate code for the indicated statement.
       break;
     case stmk_set_vla_size:
     case stmk_vla_decl:
+    case stmk_vla_dealloc:
       /* No output. */
       break;
     default:

@@ -215,8 +215,8 @@ Merge the reachability information from "reachability" into
                                     reachability->suppress_unreachable_warning;
 }  /* merge_reachability */
 
-
 #if DEBUG
+
 static void db_cfd(a_control_flow_descr_ptr cfdp)
 /*
 Routine to display an entry of type a_control_flow_descr, for debugging
@@ -499,6 +499,7 @@ to it.
     case cfdk_init:
       cfdp->variant.init.statement = NULL;
       cfdp->variant.init.variable = NULL;
+      cfdp->variant.init.is_vla_variable = FALSE;
       break;
     case cfdk_goto:
       cfdp->variant.goto_statement.ptr = NULL;
@@ -635,6 +636,7 @@ forth, are decremented.
          interesting if there is no way to jump into the block. */
       if (parent_cfdp->variant.block.goto_count == 0 &&
           !parent_cfdp->variant.block.any_labels &&
+          !parent_cfdp->variant.block.any_vla_variables &&
           parent_cfdp->variant.block.end_of_block != NULL) {
         remove_list_of_control_flow_descrs(
                         parent_cfdp, parent_cfdp->variant.block.end_of_block);
@@ -668,7 +670,7 @@ done:;
 
 
 static a_boolean is_on_cfd_parent_list(a_control_flow_descr_ptr cfdp,
-                                   a_control_flow_descr_ptr cfdp2)
+                                       a_control_flow_descr_ptr cfdp2)
 /*
 Return TRUE if cfdp (a block entry) is on the list of parent blocks of
 cfdp2. */
@@ -789,6 +791,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
              keep this block around? */
           check_assertion(cfdp->variant.block.last_case_label == NULL)
           if (!cfdp->variant.block.any_labels &&
+              !cfdp->variant.block.any_vla_variables &&
               cfdp->variant.block.goto_count == 0) {
             /* A block with no labels and no forward gotos. */
             remove_list_of_control_flow_descrs(cfdp, cfdp->variant.
@@ -855,7 +858,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
         sp = cfdp->variant.init.statement;
         vp = cfdp->variant.init.variable;
         severity = es_none;
-        if (vp != NULL) {
+        if (vp != NULL && !cfdp->variant.init.is_vla_variable) {
           check_assertion(sp->kind == (a_statement_kind)stmk_init ||
                           (C_mode() && microsoft_mode &&
                            sp->kind == (a_statement_kind)stmk_block));
@@ -1197,6 +1200,7 @@ initializing declarations.
       }  /* if */
       if (!prev_parent->variant.block.any_labels &&
           prev_parent->variant.block.last_case_label == NULL &&
+          !prev_parent->variant.block.any_vla_variables &&
           prev_parent->variant.block.goto_count == 0) {
         /* A block with no labels and no forward gotos is being closed.  It
            can be removed from the list -- even if it has initializations,
@@ -1247,7 +1251,13 @@ initializing declarations.
         } else {
           prev_cfdp = cfdp->prev;
           if (cfdp->kind == (a_control_flow_descr_kind)cfdk_init) {
-            remove_control_flow_descr(cfdp);
+            if (cfdp->variant.init.is_vla_variable &&
+                cfdp->parent->variant.block.goto_count != 0) {
+              /* Leave it on the list, in case there is a forward goto that
+                 needs fixup. */
+            } else {
+              remove_control_flow_descr(cfdp);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* for */
@@ -1270,14 +1280,16 @@ initializing declarations.
              can simply be ignored when no forward goto has been seen. */
           if (parent->parent == NULL &&
               parent->variant.block.goto_count == 0) {
-            if (new_cfdp->variant.init.statement->kind ==
-                                      (a_statement_kind)stmk_vla_decl) {
+            if (new_cfdp->variant.init.is_vla_variable) {
               /* This is the declaration of a VLA object.  Leave it on the
                  list to signal the need for deallocation later. */
             } else {
               free_control_flow_descr(new_cfdp);
               goto done;
             }  /* if */
+          }  /* if */
+          if (new_cfdp->variant.init.is_vla_variable) {
+            parent->variant.block.any_vla_variables = TRUE;
           }  /* if */
           /* If the initializing declaration appears within the body of a
              switch statement, set a flag in the current block to say that
@@ -1369,6 +1381,9 @@ initializing declarations.
   }  /* if */
   /* Set the tail pointer to point to the new entry. */
   end_of_control_flow_descr_list = new_cfdp;
+  /* If the current entry represents a vla-decl statement, remove any
+     entries representing set-vla-size statements that belong to the same
+     declaration. */
   if (vla_enabled &&
       new_cfdp->kind == (a_control_flow_descr_kind)cfdk_init &&
       new_cfdp->variant.init.statement->kind ==
@@ -1660,6 +1675,11 @@ declarations.
   cfdp->variant.init.statement = sp;
   if (sp->kind == (a_statement_kind)stmk_init) {
     cfdp->variant.init.variable = sp->variant.dynamic_init->variable;
+  } else if (sp->kind == (a_statement_kind)stmk_vla_decl &&
+             !sp->variant.vla.is_typedef_decl &&
+             is_vla_type(sp->variant.vla.variant.variable->type)) {
+    cfdp->variant.init.variable = sp->variant.vla.variant.variable;
+    cfdp->variant.init.is_vla_variable = TRUE;
   }  /* if */
   add_to_control_flow_descr_list(cfdp);
 }  /* update_init_statement_control_flow */
@@ -1840,6 +1860,329 @@ the current function scope.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+static void add_vla_dealloc_stmts(a_control_flow_descr_ptr  start,
+                                  a_control_flow_descr_ptr  end,
+                                  a_boolean                 is_goto)
+/*
+Add a vla-dealloc statement to the statements list for each vla-decl
+statement in the current block that represents the declaration (and
+therefore allocation) of a VLA object.  The vla-decl statements are located
+by traversing the control-flow list backwards from *start to *end.  is_goto
+is TRUE if vla-dealloc statements are to be inserted in front of *start,
+which is a goto statement.  (It can be a goto statement even when is_goto
+is FALSE.)
+*/
+{
+  a_control_flow_descr_ptr  cfdp, parent, end_parent, stop_at;
+  a_statement_ptr           dealloc_stmt, insert_point = NULL;
+  a_boolean                 done = FALSE;
+
+  db_enter(4, "add_vla_dealloc_stmts");
+  check_assertion(vla_dealloc_statements_in_il);
+#if DEBUG
+  if (debug_level == 4) {
+    fputs("  start = ", f_debug);
+    db_cfd(start);
+    fputs("  end = ", f_debug);
+    if (end == NULL) {
+      fputs("NULL\n", f_debug);
+    } else {
+      db_cfd(end);
+    } /* if */
+  }  /* if */
+#endif /* DEBUG */
+  cfdp = start;
+  parent = cfdp->parent;
+  if (end == NULL) {
+    end = control_flow_descr_list;
+    end_parent = NULL;
+  } else {
+    end_parent = end->parent;
+  }  /* if */
+  /* Step through control-flow entries from "start" to "end", which means
+     stepping backwards.  As an optimization, blocks that are marked as
+     having no VLA variable declarations are bypassed. */
+  do {
+    check_assertion(parent != NULL);
+    if (!parent->variant.block.any_vla_variables) {
+#if DEBUG
+      if (debug_level == 4) {
+        fputs("  skipping block (no vla vars): ", f_debug);
+        db_cfd(parent);
+      }  /* if */
+#endif /* DEBUG */
+      if (parent == end_parent) {
+        done = TRUE;
+      } else {
+        cfdp = parent;
+        if (parent == end) done = TRUE;
+        parent = parent->parent;
+      }  /* if */
+    } else {
+      if (parent == end_parent) {
+	stop_at = end;
+      } else {
+        stop_at = parent;
+      }  /* if */
+#if DEBUG
+      if (debug_level == 4) {
+        fputs("  inner loop: first entry = ", f_debug);
+        db_cfd(cfdp);
+        fputs("  stop_at = ", f_debug);
+        db_cfd(stop_at);
+      }  /* if */
+#endif /* DEBUG */
+      /* Back up from *cfdp to *stop_at, looking for VLA variable
+         declarations. */
+      while (cfdp != stop_at) {
+        if (cfdp->kind == (a_control_flow_descr_kind)cfdk_init) {
+          if (cfdp->variant.init.is_vla_variable) {
+            /* The declaration of a VLA variable has been located.  Create a
+               new statement to represent its deallocation. */
+            if (!is_goto) {
+              /* If the deallocation point is the end of a block or a return
+                 statement, it is just added to the end of the statements
+                 list. */
+              dealloc_stmt = add_statement((a_statement_kind)stmk_vla_dealloc);
+            } else {
+              /* If the allocation point is a goto statement, the
+                 deallocation statement needs to be inserted immediately
+                 before the goto.  The trick is to turn the goto into a
+                 block statement with a single statement in its list
+                 (namely, the goto).  One or more vla-dealloc statements can
+                 then be inserted before it -- local variable insert_point
+                 is used to remember the point if multiple vla-decl
+                 statements are found. */
+              dealloc_stmt =
+                       alloc_statement((a_statement_kind)stmk_vla_dealloc);
+              if (insert_point == NULL) {
+                /* First deallocation statement required. */
+                a_statement_ptr  block_stmt, copy_of_goto_stmt;
+
+                /* Save the address of the goto statement in "block_stmt".
+                   It will become a block statement with the call of
+                   change_statement_into_block. */
+                block_stmt = start->variant.goto_statement.ptr;
+                change_statement_into_block(block_stmt, &copy_of_goto_stmt);
+                /* Reset the control flow entry pointing at the goto
+                   statement to use the new pointer. */
+                start->variant.goto_statement.ptr = copy_of_goto_stmt;
+                /* Link the deallocation statement into the block, and save
+                   it as the point after which the next deallocation
+                   statement, if any, is inserted. */
+                dealloc_stmt->next = copy_of_goto_stmt;
+                block_stmt->variant.block.statements = dealloc_stmt;
+                insert_point = dealloc_stmt;
+              } else {
+                /* There's already been at least one deallocation statement
+                   inserted in front of this goto statement. */
+                dealloc_stmt->next = insert_point->next;
+                insert_point->next = dealloc_stmt;
+              }  /* if */
+            }  /* if */
+            /* However the deallocation statement was added, bind the
+               VLA variable to it. */
+            dealloc_stmt->variant.vla_variable = cfdp->variant.init.variable;
+#if DEBUG
+            if (debug_level >= 4) {
+              fputs("  adding vla-dealloc statement for \"", f_debug);
+              db_name(&dealloc_stmt->variant.vla_variable->source_corresp);
+              fputs("\"\n", f_debug);
+            }  /* if */
+#endif /* DEBUG */
+          }  /* if */
+        } else if (cfdp->kind ==
+                          (a_control_flow_descr_kind)cfdk_end_of_block) {
+          /* Skip a nested block. */
+          cfdp = cfdp->variant.start_of_block;
+#if DEBUG
+          if (debug_level == 4) {
+            fputs("  skipping nested block: ", f_debug);
+            db_cfd(cfdp);
+          }  /* if */
+#endif /* DEBUG */
+        }  /* if */
+        cfdp = cfdp->prev;
+#if DEBUG
+        if (debug_level == 4) {
+          fputs("  inner loop: next entry = ", f_debug);
+          db_cfd(cfdp);
+        }  /* if */
+#endif /* DEBUG */
+      }  /* while */
+      /* cpfe now points to the start of a block.  Keep stepping through
+         its parent block, if appropriate. */
+      if (cfdp == end) {
+        done = TRUE;
+      } else {
+        parent = cfdp->parent;
+      }  /* if */
+    }  /* if */
+  } while (!done);
+  db_exit();
+}  /* add_vla_dealloc_stmts */
+
+
+static void add_vla_dealloc_stmts_for_block(a_control_flow_descr_ptr  cfdp)
+/*
+Add vla-dealloc statements to the end of the statements list for declarations
+of VLA objects found within the current block, between *cfdp and the beginning
+of the block to which it belongs.  This routine is typically called when
+processing the normal end of a block.
+*/
+{
+  check_assertion(end_of_control_flow_descr_list == cfdp);
+  add_vla_dealloc_stmts(cfdp, cfdp->parent, /*is_goto=*/FALSE);
+}  /* add_vla_dealloc_stmts_for_block */
+
+
+static void add_vla_dealloc_stmts_for_function(a_control_flow_descr_ptr  cfdp)
+/*
+Add vla-dealloc statements for all declarations of VLA objects in currently
+active scopes.  The active scopes are located by starting with *cfdp and
+backing up through the control flow list (via the parent pointer) to the
+outermost scope of the function.  This function is typically called when
+processing a return statement (implicit or explicit).
+*/
+{
+  check_assertion(end_of_control_flow_descr_list == cfdp);
+  add_vla_dealloc_stmts(cfdp, control_flow_descr_list, /*is_goto=*/FALSE);
+}  /* add_vla_dealloc_stmts_for_function */
+
+
+static void add_vla_dealloc_stmts_for_goto(
+                                       a_control_flow_descr_ptr  goto_cfdp,
+                                       a_control_flow_descr_ptr  label_cfdp)
+/*
+Add vla-dealloc statements needed at a goto statement.  goto_cfdp describes
+the goto, and label_cfsp describes the associated label.
+*/
+{
+  a_boolean                 forward_goto;
+  a_control_flow_descr_ptr  common_parent, outermost_noncommon_parent;
+  a_control_flow_descr_ptr  goto_parent, label_parent;
+
+  db_enter(4, "add_vla_dealloc_stmts_for_goto");
+#if DEBUG
+  if (debug_level == 4) {
+    db_cfd(goto_cfdp);
+    db_cfd(label_cfdp);
+  }  /* if */
+#endif /* DEBUG */
+  /* If the last entry on the control flow list is goto_cfdp, then the
+     label has already been defined and this is a backwards goto; otherwise
+     it's a forward goto. */
+  forward_goto = (goto_cfdp != end_of_control_flow_descr_list);
+  /* Find the common parent block (that is, the innermost block that
+     contains both the label and the goto), and the outermost noncommon
+     block, which is the block (if any) that is immediately within the
+     common parent block and that contains the label, if this is a backwards
+     goto, or the goto, if this is a forward goto.  The rationale is
+     provided below. */
+  common_parent = NULL;
+  outermost_noncommon_parent = NULL;
+  /* Step from inner scope to outer, starting with the block of the goto. */
+  for (goto_parent = goto_cfdp->parent;
+       goto_parent != NULL;
+       goto_parent = goto_parent->parent) {
+    /* Step from inner scope to outer, starting with the block of the label.
+       If this is a backwards goto, the outermost noncommon parent is reset
+       each time the inner loop is entered. */
+    if (!forward_goto) outermost_noncommon_parent = NULL;
+    for (label_parent = label_cfdp->parent;
+         label_parent != NULL;
+         label_parent = label_parent->parent) {
+      /* The first block that is common to both loops is the common parent. */
+      if (goto_parent == label_parent) {
+        common_parent = goto_parent;
+        break;
+      }  /* if */
+      if (!forward_goto) outermost_noncommon_parent = label_parent;
+    }  /* for */
+    if (common_parent != NULL) break;
+    if (forward_goto) outermost_noncommon_parent = goto_parent;
+  }  /* for */
+#if DEBUG
+  if (debug_level == 4) {
+    fputs("common_parent = ", f_debug);
+    if (common_parent == NULL) {
+      fputs("NULL\n", f_debug);
+    } else {
+      db_cfd(common_parent);
+    } /* if */
+    fputs("outermost_noncommon_parent = ", f_debug);
+    if (outermost_noncommon_parent == NULL) {
+      fputs("NULL\n", f_debug);
+    } else {
+      db_cfd(outermost_noncommon_parent);
+    } /* if */
+  }  /* if */
+#endif /* DEBUG */
+  /* There are 2 orthogonal sets of criteria for determining how to search
+     for VLAs that need to be deallocated.  There is the direction of the
+     goto (forward or backwards) and the nesting relationship: (1) the goto
+     and label are in the same scope; (2) the scope of the goto is nested
+     within the scope of the label; (3) the scope of the label is nested
+     within the scope of the goto; and (4) neither scope includes the
+     other.  The 8 situations can be pictured as follows:
+
+       forward:
+         (1)          (2)           (3)          (4)
+              |           |             |            |
+              |           ----          |            ----
+             goto            |*        goto             |*
+              |             goto        |              goto
+              |              |          ----            |
+              |           ----             |         ----
+            label         |              label       |
+                        label                        ----
+                                                        |
+                                                      label
+       backwards:
+         (1)          (2)           (3)          (4)
+              |           |             |            |
+              |           |             ----         ----
+            label       label              |            |
+              |*          |*             label        label
+              |*          ----             |            |
+              |*             |*         ----         ----
+             goto          goto         |*           |*
+                                       goto          ----
+                                                        |*
+                                                       goto
+
+     The sections marked "|*" are searched for VLA declarations for which
+     deallocation statements are inserted immediately before the goto. */
+  if (forward_goto) {
+    if (goto_cfdp->parent == common_parent) {
+      /* Forward (1) and (3): no action required. */
+    } else {
+      /* Forward (2) and (4): back up from the goto to the beginning of the
+         outermost noncommon parent. */
+      check_assertion(outermost_noncommon_parent->parent == common_parent);
+      add_vla_dealloc_stmts(goto_cfdp, outermost_noncommon_parent,
+                            /*is_goto=*/TRUE);
+    }  /* if */
+  } else {
+    if (label_cfdp->parent == common_parent) {
+      /* Backwards (1) and (2): back up from the goto to the label. */
+      add_vla_dealloc_stmts(goto_cfdp, label_cfdp, /*is_goto=*/TRUE);
+    } else {
+      /* Backwards (3) and (4): back up from the goto to the end of the
+         outermost noncommon parent. */
+      check_assertion(outermost_noncommon_parent->parent == common_parent);
+      check_assertion(outermost_noncommon_parent->
+                                  variant.block.end_of_block != NULL);
+      add_vla_dealloc_stmts(goto_cfdp,
+                            outermost_noncommon_parent->
+                              variant.block.end_of_block,
+                            /*is_goto=*/TRUE);
+    }  /* if */
+  }  /* if */
+  db_exit();
+}  /* add_vla_dealloc_stmts_for_goto */
+
+
 void set_vla_size_statement(a_vla_dimension_ptr  vdp,
                             a_source_position    *pos)
 /*
@@ -1992,14 +2335,17 @@ headed by goto_cfdp.
   a_control_flow_descr_ptr       cfdp;
 
   define_label(label);
-  if (!C_mode()) {
+  if (!C_mode() || vla_enabled) {
     /* Do special C++ processing -- it's not needed in C mode because it is
-       only used to support object lifetimes. */
+       only used to support object lifetimes.  It is needed in C for
+       variable-length arrays, however. */
     /* Create a control-flow entry to represent this label. */
     cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_label);
     cfdp->variant.label_statement = label->variant.exec_stmt;
     cfdp->source_pos = pos_curr_token;
     add_to_control_flow_descr_list(cfdp);
+  }  /* if */
+  if (!C_mode()) {
     /* Record the innermost object lifetime as the object lifetime associated
        with this label. */
     label_olp = innermost_block_object_lifetime(curr_object_lifetime);
@@ -2008,10 +2354,17 @@ headed by goto_cfdp.
        statement the common object lifetime (the one embracing both the label
        and the goto). */
     for (; goto_cfdp != NULL;
-           goto_cfdp = goto_cfdp->variant.goto_statement.prev_goto) {
+         goto_cfdp = goto_cfdp->variant.goto_statement.prev_goto) {
       goto_olp_addr = &goto_cfdp->variant.goto_statement.ptr->
                                                variant.label.lifetime;
       *goto_olp_addr = common_object_lifetime(label_olp, *goto_olp_addr);
+    }  /* for */
+  } else if (vla_enabled && vla_dealloc_statements_in_il &&
+             (label->continue_label || label->break_label)) {
+    for (; goto_cfdp != NULL;
+         goto_cfdp = goto_cfdp->variant.goto_statement.prev_goto) {
+      /* Put out vla-dealloc statements on forward gotos to this label. */
+      add_vla_dealloc_stmts_for_goto(goto_cfdp, cfdp);
     }  /* for */
   }  /* if */
 }  /* define_implicit_label */
@@ -2670,6 +3023,12 @@ the block statement.
   /* Remember whether or not the end of the block is reachable.  This
      is helpful in IL lowering. */
   block->end_of_block_reachable = curr_reachability.reachable;
+  if (vla_enabled && vla_dealloc_statements_in_il &&
+      curr_reachability.reachable) {
+    /* Put out a vla-dealloc statement for each declaration of a VLA variable
+       in the current block. */
+    add_vla_dealloc_stmts_for_block(end_of_control_flow_descr_list);
+  }  /* if */
   /* Pop the statement stack. */
   pop_stmt_stack();
   if (block_stmt_is_cfront_dependent_stmt(block_stmt)) {
@@ -3435,8 +3794,12 @@ in *goto_stmt.
          changed based on the lifetime of the continue label itself. */
       sp->variant.label.lifetime =
                          innermost_block_object_lifetime(curr_object_lifetime);
-      /* Allocate and fill in a goto entry.  This is done in C++ mode only
-         because it's only needed for object lifetime management. */
+    }  /* if */
+    if (!C_mode() || vla_enabled) {
+      /* Allocate and fill in a goto entry.  This is done in C++ mode
+         because it's needed for object lifetime management and in C mode when
+         VLA support is enabled to insert vla-dealloc statements before
+         forward gotos. */
       cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
       cfdp->source_pos = pos_curr_token;
       cfdp->variant.goto_statement.ptr = sp;
@@ -3765,11 +4128,10 @@ issue a diagnostic complaining about skipping over an initialization.
 
       sp = cfdp->variant.init.statement;
       vp = cfdp->variant.init.variable;
-      if (vp != NULL) {
+      if (vp != NULL && !cfdp->variant.init.is_vla_variable) {
         check_assertion(sp->kind == (a_statement_kind)stmk_init ||
                         (C_mode() && microsoft_mode &&
                          sp->kind == (a_statement_kind)stmk_block));
-        vp = cfdp->variant.init.variable;
         /* We only issue a diagnostic for jumping over an initialization of
            an automatic variable (see [stmt.decl], para 3). */
         if (!has_static_storage_duration(vp->storage_class)) {
@@ -3842,12 +4204,12 @@ issue a diagnostic complaining about skipping over an initialization.
 
 static void check_goto_and_label(a_control_flow_descr_ptr  label_cfdp,
                                  a_control_flow_descr_ptr  goto_cfdp,
-                                 a_boolean                 is_forwards)
+                                 a_boolean                 is_forward)
 /*
-If is_forwards is TRUE, a goto was previously recorded in goto_cfdp and now
+If is_forward is TRUE, a goto was previously recorded in goto_cfdp and now
 that the label it referenced has been encountered (represented by label_cfdp)
 we can determine whether the goto entailed jumping over an initializing
-declaration.  If is_forwards is FALSE, a label was encountered previously.
+declaration.  If is_forward is FALSE, a label was encountered previously.
 we are now at the goto, and the same determination has to be made.  This
 routine sets up the terms for scanning the control_flow_descr_list to
 diagnose the condition.
@@ -3858,19 +4220,19 @@ diagnose the condition.
   an_object_lifetime_ptr    label_olp, *goto_olp_addr;
 
   db_enter(4, "check_goto_and_label");
-  if (is_forwards && goto_cfdp->variant.goto_statement.prev_goto != NULL) {
-    /* All forwards gotos to a given label are linked together by the
+  if (is_forward && goto_cfdp->variant.goto_statement.prev_goto != NULL) {
+    /* All forward gotos to a given label are linked together by the
        prev_goto field of the control-flow-descr entries.  Follow the list
        up to process them in the order they appear in the program. */
     check_goto_and_label(label_cfdp,
                          goto_cfdp->variant.goto_statement.prev_goto,
-                         /*is_forwards=*/TRUE);
+                         /*is_forward=*/TRUE);
   }  /* if */
   start_cfdp = NULL;
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "checking %s jump from:  ",
-            is_forwards ? "forwards" : "backwards");
+            is_forward ? "forward" : "backwards");
     db_cfd_and_parents(goto_cfdp);
     fprintf(f_debug, "...and jumping to:  ");
     db_cfd_and_parents(label_cfdp);
@@ -3883,7 +4245,7 @@ diagnose the condition.
   } else if (label_cfdp->parent == goto_cfdp->parent) {
     /* Label and goto are in the same block:
 
-           goto L;             // forwards goto
+           goto L;             // forward goto
                : FFFFF         
                : FFFFF
                : FFFFF
@@ -3893,7 +4255,7 @@ diagnose the condition.
 
        In this case the region marked "FFFFF" needs to be searched for
        forward gotos, but backwards gotos are always allowed. */
-    if (is_forwards) {
+    if (is_forward) {
       /* Start looking for initializing declarations at the point immediately
          following the goto statement. */
       start_cfdp = goto_cfdp->next;
@@ -3901,7 +4263,7 @@ diagnose the condition.
   } else if (is_on_cfd_parent_list(goto_cfdp->parent, label_cfdp)) {
     /* A goto from an outer block to a label in a nested block:
 
-           goto L;             // forwards goto
+           goto L;             // forward goto
                : FFFFF
            {     FFFFF         // start of inner block
                : FFFFF BBBBB
@@ -3913,7 +4275,7 @@ diagnose the condition.
 
        The region marked "FFFFF" is searched for forward gotos, and the
        region marked "BBBBB" is searched for backward gotos. */
-    if (is_forwards) {
+    if (is_forward) {
       /* Start looking for initializing declarations at the point immediately
          following the goto statement. */
       start_cfdp = goto_cfdp->next;
@@ -3931,7 +4293,7 @@ diagnose the condition.
     /* A goto from an inner block to a label in an outer block:
 
            {                     // start of inner block
-             goto L;             // forwards goto
+             goto L;             // forward goto
            }                     // end of inner block
                : FFFFF
                : FFFFF
@@ -3944,7 +4306,7 @@ diagnose the condition.
 
        The region marked "FFFFF" is searched for forward gotos, but
        backwards gotos are always allowed. */
-    if (is_forwards) {
+    if (is_forward) {
       /* Start looking for initializing declarations at the point immediately
          following the outermost block that both contains the goto and is
          contained by the block to which the label belongs. */
@@ -3958,7 +4320,7 @@ diagnose the condition.
     /* goto from an inner block to a label in an inner block.
 
            {                     // start of inner block
-             goto L;             // forwards goto
+             goto L;             // forward goto
            }                     // end of inner block
                : FFFFF
            {     FFFFF           // start of inner block
@@ -3969,7 +4331,7 @@ diagnose the condition.
            }                     // end of inner block
 
            {                     // start of inner block
-             goto L;             // forwards goto
+             goto L;             // forward goto
            }                     // end of inner block
 
        The region marked "FFFFF" is searched for forward gotos, and the
@@ -3986,17 +4348,17 @@ diagnose the condition.
       db_cfd(common_parent);
     }  /* if */
 #endif /* DEBUG */
-    /* For forwards gotos, start looking for initializing declarations at the
+    /* For forward gotos, start looking for initializing declarations at the
        point immediately following the outermost block that both contains the
        goto and is immediately contained by the common parent.  For backwards
        gotos, start looking at the top of the outermost block that both
        contains the label and is immediately contained by the common parent. */
-    cfdp = is_forwards ? goto_cfdp->parent : label_cfdp->parent;
+    cfdp = is_forward ? goto_cfdp->parent : label_cfdp->parent;
     check_assertion(cfdp != common_parent);
     while (cfdp->parent != common_parent) {
       cfdp = cfdp->parent;
     }  /* while */
-    start_cfdp = is_forwards ?
+    start_cfdp = is_forward ?
                    cfdp->variant.block.end_of_block->next : cfdp->next;
   }  /* if */
   if (start_cfdp == NULL) {
@@ -4027,6 +4389,10 @@ diagnose the condition.
                                                       variant.label.lifetime;
     *goto_olp_addr = common_object_lifetime(label_olp, *goto_olp_addr);
 
+  }  /* if */
+  if (vla_enabled && vla_dealloc_statements_in_il) {
+    /* Put out vla-dealloc statements on the goto, if necessary. */
+    add_vla_dealloc_stmts_for_goto(goto_cfdp, label_cfdp);
   }  /* if */
   db_exit();
 }  /* check_goto_and_label */
@@ -4065,7 +4431,7 @@ condition is not recognized till the label statement is reached.
     if (goto_cfdp != NULL) {
       /* There was at least one forward goto referencing this label.  For
          each check whether it jumped over any initializing declarations. */
-      check_goto_and_label(label_cfdp, goto_cfdp, /*is_forwards=*/TRUE);
+      check_goto_and_label(label_cfdp, goto_cfdp, /*is_forward=*/TRUE);
     }  /* if */
   } else {
     /* This is a goto to the label. */
@@ -4082,7 +4448,7 @@ condition is not recognized till the label statement is reached.
          taken off again, since only forward gotos need to remain on the
          list (and then only till the label is seen). */
       label_cfdp = label_sym->variant.label.assoc_control_flow_descr;
-      check_goto_and_label(label_cfdp, goto_cfdp, /*is_forwards=*/FALSE);
+      check_goto_and_label(label_cfdp, goto_cfdp, /*is_forward=*/FALSE);
     } else {
       /* This is a forward goto -- i.e., it references a label that has not
          yet been defined.  Record information about it so that, when the
@@ -4274,8 +4640,12 @@ See also 3.6.6.3.
            changed based on the lifetime of the continue label itself. */
         sp->variant.label.lifetime =
                         innermost_block_object_lifetime(curr_object_lifetime);
-        /* Allocate and fill in a goto entry.  This is done in C++ mode only
-           because it's only needed for object lifetime management. */
+      }  /* if */
+      if (!C_mode() || vla_enabled) {
+        /* Allocate and fill in a goto entry.  This is done in C++ mode
+           because it's needed for object lifetime management and in C mode
+           when VLA support is enabled to insert vla-dealloc statements before
+           forward gotos. */
         cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
         cfdp->source_pos = pos_curr_token;
         cfdp->variant.goto_statement.ptr = sp;
@@ -4464,6 +4834,12 @@ See also 3.6.6.4.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (vla_enabled && vla_dealloc_statements_in_il &&
+      curr_reachability.reachable) {
+    /* Put out a vla-dealloc statement for each declaration of a VLA variable
+       in the currently active blocks of the function. */
+    add_vla_dealloc_stmts_for_function(end_of_control_flow_descr_list);
+  }  /* if */
   (void)get_token();
   add_stop_token(tok_semicolon);
   /* Get a pointer to the current routine entry, and its return type. */
@@ -5598,6 +5974,11 @@ branching into it is disallowed).
          have type void), and add a return with no expression. */
       an_expr_node_ptr return_expr;
 
+      if (vla_enabled && vla_dealloc_statements_in_il) {
+        /* Put out a vla-dealloc statement for each declaration of a VLA
+           variable in the currently active blocks of the function. */
+        add_vla_dealloc_stmts_for_function(end_of_control_flow_descr_list);
+      }  /* if */
       /* Make sure that a void return is acceptable here.  If this is the main
          routine, generate an implicit return value, if possible. */
       check_void_return_okay(/*is_implicit_return=*/TRUE, &return_expr);

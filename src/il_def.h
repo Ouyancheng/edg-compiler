@@ -4661,17 +4661,15 @@ typedef struct a_variable {
 			/* The type of the variable is a variably modified
 			   type, i.e., is or contains a VLA type. */
   a_bit_field	is_vla:1;
-			/* The variable is a variable length array, i.e., its
-			   type is a VLA type.  Any variable for which this
-			   flag is set will also be specified in a
-			   stmk_vla_decl statement, which indicates where in
-			   the execution stream its memory is to be allocated.
-			   This variable will also require deallocation at
-			   the end of the scope in which it was allocated
-			   and/or at a branch out of that scope; there is no
-			   statement for VLA deallocation that corresponds to
-			   stmk_vla_decl.  (Note: this flag is TRUE only
-			   if has_variably_modified_type is also TRUE.) */
+			/* The variable is a variable length array, i.e.,
+			   its type is a VLA type.  Any variable for which
+			   this flag is set will also be specified in a
+			   stmk_vla_decl statement and one or more
+			   stmk_vla_dealloc statements, which indicate where
+			   in the execution stream its memory is to be
+			   allocated and deallocated.  (Note: this flag is
+			   TRUE only if has_variably_modified_type is also
+			   TRUE.) */
 #if DO_IL_LOWERING
   a_bit_field	initialization_rewritten_as_assignment:1;
 			/* TRUE if IL lowering has rewritten some part of
@@ -6497,9 +6495,10 @@ enum a_statement_kind_tag {
   stmk_set_vla_size,	/* Set the size of a VLA type. */
   stmk_vla_decl,	/* Declaration of a variable or typedef with
 			   variably modified type.  If the variable is a VLA,
-			   allocate storage for it.  (Note: there is no
-			   corresponding deallocation statement.  See the
-			   is_vla field in a_variable.) */
+			   allocate storage for it. */
+  stmk_vla_dealloc,	/* Marks where a VLA object (a variable with a
+			   variable length array type) should be
+			   deallocated. */
 #endif /* ifdef CIL */
 #ifdef FIL
   stmk_fentry,		/* Code label for an ENTRY. */
@@ -6684,7 +6683,7 @@ typedef struct a_handler {
 			   is an ellipsis. */
   a_statement_ptr
 		statement;
-			/* Pointer to a stmk_block statement representing the
+			/* Pointer to an stmk_block statement representing the
 			   compound statement that makes up the body of the
 			   handler. */
   a_dynamic_init_ptr
@@ -7242,6 +7241,13 @@ typedef struct a_statement {
                            is allocated at this point. */
       } variant;
     } vla;
+    /* When kind == stmk_vla_dealloc: */
+    a_variable_ptr
+		vla_variable;
+		       /* Pointer to a VLA object (a variable with a
+			  variable length array type), for which memory was
+			  previously allocated (stmk_vla_decl) and is
+			  deallocated at this point. */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == stmk_fentry: */

@@ -6021,6 +6021,9 @@ Generate C for a statement.
                            /*dump_initializers=*/TRUE);
       }  /* if */
       break;
+    case stmk_vla_dealloc:
+      /* No output. */
+      break;
     default:
       unexpected_condition_str("dump_statement: bad statement kind");
   }  /* switch */
@@ -6160,6 +6163,7 @@ its subtree.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       case stmk_set_vla_size:
       case stmk_vla_decl:
+      case stmk_vla_dealloc:
         /* No subtree of statements. */
         break;
       case stmk_return:

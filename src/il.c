@@ -1721,6 +1721,7 @@ Dump a statement kind, for debug purposes.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case stmk_set_vla_size:    s = "set-vla-size";      break;
     case stmk_vla_decl:        s = "vla-decl";          break;
+    case stmk_vla_dealloc:     s = "vla-dealloc";       break;
     default:                   s = "<bad stmt kind>";   break;
   }  /* switch */
   fputs(s, f_debug);
@@ -9216,6 +9217,30 @@ Copy a statement entry from "from" to "to".
     if (scope != NULL) scope->assoc_block = to;
   }  /* if */
 }  /* copy_statement */
+
+
+void change_statement_into_block(a_statement_ptr statement,
+                                 a_statement_ptr *orig_statement)
+/*
+Turn a statement into a block by allocating a new statement, copying
+the statement to it, and changing the original statement into a block
+containing the copied statement.  *orig_statement is set to point to the
+original statement in its new location.
+*/
+{
+  a_statement_ptr stmt_copy;
+
+  /* Make a copy of the original statement. */
+  *orig_statement = stmt_copy = alloc_statement(statement->kind);
+  copy_statement(statement, stmt_copy);
+  /* Turn the statement into a block statement. */
+  set_statement_kind(statement, (a_statement_kind)stmk_block);
+  statement->variant.block.statements = stmt_copy;
+  clear_stmt_source_position(statement->position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  clear_stmt_source_position(statement->end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* change_statement_into_block */
 
 
 void add_to_pragma_list(a_pragma_ptr             pragma,

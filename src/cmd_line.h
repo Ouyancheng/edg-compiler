@@ -498,6 +498,17 @@ EXTERN a_boolean
 			   by command-line options --[no_]vla. */
 
 EXTERN a_boolean
+		vla_dealloc_statements_in_il
+#if VAR_INITIALIZERS
+                                             = VLA_DEALLOC_STATEMENTS_IN_IL
+#endif /* VAR_INITIALIZERS */
+                                                                           ;
+			/* TRUE if stmk_vla_dealloc statements should be
+			   generated to mark the points at which VLA objects
+			   pass out of scope and may be deallocated.  Always
+			   FALSE when vla_enabled is FALSE. */
+
+EXTERN a_boolean
 		operator_overloading_on_enums_enabled
 #if VAR_INITIALIZERS
                                        = DEFAULT_OPERATOR_OVERLOADING_ON_ENUMS

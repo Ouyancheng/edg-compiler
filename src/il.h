@@ -594,6 +594,9 @@ extern void add_to_labels_list(a_label_ptr label_ptr);
 extern void copy_statement(a_statement *from,
                            a_statement *to);
 
+extern void change_statement_into_block(a_statement_ptr statement,
+                                        a_statement_ptr *orig_statement);
+
 extern void set_expr_result_not_used(an_expr_node_ptr node);
 
 extern void set_node_operator(an_expr_node_ptr      node,

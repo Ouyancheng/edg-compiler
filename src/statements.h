@@ -52,8 +52,8 @@ control past an initialization.
 */
 enum a_control_flow_descr_kind_tag {
   cfdk_block,		/* Start of a block. */
-  cfdk_init,		/* Refers to an stmk_init or stmk_set_vla_size
-			   statement. */
+  cfdk_init,		/* Refers to an stmk_init, stmk_set_vla_size, or
+                           stmk_vla_decl statement. */
   cfdk_goto,		/* Refers to an stmk_goto statement. */
   cfdk_label,		/* Refers to an stmk_label statement. */
   cfdk_case_label,	/* Case label in switch statement. */
@@ -120,6 +120,13 @@ typedef struct a_control_flow_descr {
 			/* TRUE if the current block contains any label
 			   statements or any blocks with label statements. */
       a_bit_field
+		any_vla_variables:1;
+			/* TRUE if the current block contains any vla-decl
+			   statements that represent the declaration of a
+			   VLA variable (i.e., not a typedef or variable
+			   declaration involving a variably modified
+			   type). */
+      a_bit_field
 		is_switch_block:1;
 			/* TRUE if the current block represents the body
 			   of a switch statement. */
@@ -161,15 +168,21 @@ typedef struct a_control_flow_descr {
       a_statement_ptr
 		statement;
 			/* A pointer to an stmk_init, stmk_set_vla_size, or
-			   (in Microsoft C mode) an stmk_block statement.
-			   (The stmk_block statement is what's left over if
-			   a dynamic initialization is lowered in place in
-			   Microsoft C mode.) */
+			   stmk_vla_decl statement.  (In addition, in
+			   Microsoft C mode it can be an stmk_block
+			   statement, which is what's left over if a dynamic
+			   initialization is lowered in place.) */
       a_variable_ptr
 		variable;
 			/* A pointer to the variable that is dynamically
 			   initialized.  NULL when the statement pointer
 			   refers to an stmk_set_vla_size statement. */
+      a_bit_field
+		is_vla_variable;
+			/* TRUE if the statement is an stmk_vla_decl
+			   statement that represents the declaration of a
+			   VLA variable, i.e., a variable that will require
+			   allocation at runtime. */
     } init;
     /* When kind == cfdk_goto: */
     struct {

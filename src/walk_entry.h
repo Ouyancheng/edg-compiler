@@ -1518,6 +1518,9 @@ end_sizeof:;
                         iek_variable);
             }  /* if */
             break;
+          case stmk_vla_dealloc:
+            remap_ptr(ptr->variant.vla_variable, a_variable_ptr, iek_variable);
+            break;
 #endif /* ifdef CFE */
 #ifdef FFE
           case stmk_fentry:

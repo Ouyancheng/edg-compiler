@@ -9272,18 +9272,7 @@ of the block (i.e., in front of the original statement).  *orig_statement
 is set to point to the original statement in its new location.
 */
 {
-  a_statement_ptr stmt_copy;
-
-  /* Make a copy of the original statement. */
-  *orig_statement = stmt_copy = alloc_statement(statement->kind);
-  copy_statement(statement, stmt_copy);
-  /* Turn the statement into a block statement. */
-  set_statement_kind(statement, (a_statement_kind)stmk_block);
-  statement->variant.block.statements = stmt_copy;
-  clear_stmt_source_position(statement->position);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  clear_stmt_source_position(statement->end_position);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  change_statement_into_block(statement, orig_statement);
   /* Insert at the start of the added block. */
   set_block_start_insert_location(statement, insert_location);
 }  /* turn_statement_into_block */
@@ -10550,6 +10539,7 @@ Do IL lowering of the indicated statement and everything under it.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       case stmk_set_vla_size:        /* Not expected in C++. */
       case stmk_vla_decl:            /* Not expected in C++. */
+      case stmk_vla_dealloc:         /* Not expected in C++. */
       default:
         unexpected_condition_str("lower_statement: bad kind");
     }  /* switch */
