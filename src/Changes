@@ -1222,7 +1222,8 @@ done by g++.  [9/16/02] Compound literals and designated initializers.
 [9/17/02] Predefined __GNUG__ macro.  [9/24/02] Attributes following
 parenthesized initializers.  [9/24/02] Nonstandard anonymous unions.
 [9/24/02] Member typedefs are accepted in elaborated type specifiers.
-[10/9/02] Guiding declarations are disabled.
+[10/9/02] Guiding declarations are disabled. [10/16/02] String literals
+are const.
 
 8/5/02   Final name mangling not done on some promoted local static
          variables
