@@ -117,7 +117,7 @@ Lower all VLA types that were recorded by record_vla_type_for_lowering.
   a_type_list_entry_ptr  entry;
 
   /* VLAs and pointer to VLAs must be lowered to pointers to the underlying
-     element type.  To avoid ordering problem due to two type being lowered
+     element type.  To avoid ordering problems due to two types being lowered
      depending on one another, this is done in two passes.  In the first
      pass the underlying element type is brought up.  In the second pass,
      array types are turned into pointer types. */
@@ -172,7 +172,7 @@ assignment to the given expression tree (which could be NULL initially).
        computing the array length. */
     vla_dim->total_number_of_elements = make_lowered_temporary(ptrdiff_type);
     assign_ops = var_lvalue_expr(vla_dim->total_number_of_elements);
-    assign_ops->next = expr;
+    assign_ops->next = add_cast_if_necessary(expr, ptrdiff_type);
     assign_ops = make_operator_node((an_expr_operator_kind)eok_iassign,
                                     ptrdiff_type, assign_ops);
     if (*inits == NULL) {
@@ -191,9 +191,10 @@ assignment to the given expression tree (which could be NULL initially).
 static an_expr_node_ptr lower_vla_dimensions(a_type_ptr  tp)
 /*
 Create helper variables for the significant VLA components of the given type
-and set them to the appropriate values.  Specifically, the variables are to
-hold the total number or element of the associated VLA.  The computation is
-returned as a single expression (NULL if no variables needed to be created).
+and set them to the appropriate values.  Specifically, each variable is to
+hold the total number or elements of the associated VLA.  The generated
+assignments are aggregated via comma operators and returned as a single
+expression (NULL if no variables needed to be created).
 
 For example, a declaration like
 	int (*p)[n][2*n][3][4*n][5];
@@ -1471,8 +1472,10 @@ be scaled down by the number of elements in the VLAs pointed to.
 
 static void lower_runtime_sizeof(an_expr_node_ptr  expr)
 /*
-Replace the given enk_runtime_sizeof node by an expression representing the
-number of bytes of the VLA type underlying the sizeof expression.
+Lower the given given enk_runtime_sizeof node.  If VLAs are lowered, the node
+is replaced by an expression representing the number of bytes of the VLA type
+underlying the sizeof expression.  Otherwise, if the eok_runtime_sizeof node
+applies to an expression, the underlying expression is lowered.
 */
 {
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
