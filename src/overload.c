@@ -6258,6 +6258,10 @@ functions could still apply).
              covered above. */
           make_opname_locator(kind, &locator, operator_position);
           normal_sym = normal_id_lookup(&locator, IDL_SKIP_CLASS_SCOPES);
+          if (normal_sym != NULL && !is_function_symbol(normal_sym)) {
+            /* Ignore error symbols and like. */
+            normal_sym = NULL;
+          }  /* if */
           /* If the symbol found is a block extern, skip the argument-dependent
              processing.  This is not in the standard, but at the Nov. 98
              standards committee meeting there was strong sentiment for
