@@ -6136,7 +6136,9 @@ address of the temporary is returned.  This routine is only used in C++ mode.
            it's not merely an optimization) if a "real" copy constructor
            would have to be used, since in that case we would need the
            address of this rvalue to be able to call the copy constructor. */
-        { a_class_symbol_supplement_ptr cssp =
+        /* Ignore template parameter cases. */
+        if (is_class_struct_union_type(operand->type)) {
+          a_class_symbol_supplement_ptr cssp =
                                     symbol_supplement_for_class(operand->type);
           if (!cssp->construction_by_bitwise_copy_allowed) {
             /* Cases like this can come up when an implicitly-generated
@@ -6154,7 +6156,7 @@ address of the temporary is returned.  This routine is only used in C++ mode.
             conv_to_error_operand(operand);
             optimized_case = TRUE;
           }  /* if */
-        }
+        }  /* if */
       }  /* if */
     }  /* if */
     if (!optimized_case) {
