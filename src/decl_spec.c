@@ -2206,9 +2206,14 @@ to indicate whether an enumeration is actually defined.
         /* Add a pointer to the parent class in the symbol and the type. */
         set_class_membership(tag_sym, &enum_type->source_corresp,
                              class_of_which_a_member);
-      } else {
+      } else if (scope_stack[effective_decl_level].kind ==
+                                     (a_scope_kind)sck_namespace ||
+                 scope_stack[effective_decl_level].kind ==
+                                     (a_scope_kind)sck_namespace_extension) {
+        /* Set the parent namespace. */
         set_namespace_membership(tag_sym, &enum_type->source_corresp,
-                                 (a_namespace_ptr)NULL);
+                                 scope_stack[effective_decl_level].
+                                         il_scope->variant.assoc_namespace);
       }  /* if */
       if (depth_innermost_function_scope == NO_SCOPE_NUMBER &&
           !inside_local_class) {
@@ -2458,11 +2463,13 @@ to indicate whether an enumeration is actually defined.
         if (!C_mode()) {
           /* Specify membership and access. */
           if (class_of_which_a_member != NULL) {
+            /* Set the parent class. */
             set_class_membership(enum_sym, &enum_con->source_corresp,
                                  class_of_which_a_member);
-          } else {
+          } else if (tag_sym->parent.namespace_ptr != NULL) {
+            /* Set the parent namespace. */
             set_namespace_membership(enum_sym, &enum_con->source_corresp,
-                                     (a_namespace_ptr)NULL);
+                                     tag_sym->parent.namespace_ptr);
           }  /* if */
           enum_con->source_corresp.access = access;
         }  /* if */

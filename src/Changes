@@ -1,5 +1,18 @@
 Version 2.39
 
+6/16/98   Setting parent namespace on forward-declared enum type
+
+A (nonstandard) forward-declared enum type belonging to a namespace scope
+was not always handled correctly: when the namespace scope was not the
+current scope, the enum type's parent namespace pointer was not being set.
+This sometimes resulted in an internal error.  Now fixed.
+
+  namespace N {
+    class A {
+      void f(enum E);      // E is now marked as a member of namespace N
+    };
+  }
+
 6/16/98   Spurious error on friend declaration in presence of using-directive
 
 A spurious error would result when a friend declaration that refers to
