@@ -3534,7 +3534,13 @@ done_with_operation:
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
     case enk_runtime_sizeof:
       write_tok_str("sizeof(");
-      dump_type(expr->variant.sizeof_type, /*add_pointer_to=*/FALSE);
+      if (expr->variant.runtime_sizeof.expr == NULL) {
+        /* sizeof(type) for variable-length array type. */
+        dump_type(expr->variant.runtime_sizeof.type, /*add_pointer_to=*/FALSE);
+      } else {
+        /* sizeof(expr) for expr with variable-length array type. */
+        dump_lvalue(expr->variant.runtime_sizeof.expr);
+      }  /* if */
       write_tok_ch(')');
       break;
     case enk_address_of_ellipsis:
@@ -3613,6 +3619,10 @@ done_with_operation:
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */
       unexpected_condition_str("dump_expr: enk_field");
+    case enk_temp_init:   /* enk_temp_init is used in C++ only. */
+    case enk_new_delete:  /* enk_new_delete is used in C++ only. */
+    case enk_condition:   /* enk_condition is used in C++ only. */
+    case enk_typeid:      /* enk_typeid is used in C++ only. */
     default:
       unexpected_condition_str("dump_expr: bad expr node kind");
   }  /* switch */

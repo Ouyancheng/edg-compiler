@@ -2082,7 +2082,9 @@ do_variable:
       break;
     case enk_runtime_sizeof:
       (void)printf("enk_runtime_sizeof\n");
-      disp_ptr("sizeof_type", (char *)ptr->variant.sizeof_type, iek_type);
+      disp_ptr("type", (char *)ptr->variant.runtime_sizeof.type, iek_type);
+      disp_ptr("expr", (char *)ptr->variant.runtime_sizeof.expr,
+               iek_expr_node);
       break;
     case enk_address_of_ellipsis:
       (void)printf("enk_address_of_ellipsis\n");

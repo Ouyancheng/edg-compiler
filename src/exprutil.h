@@ -105,8 +105,6 @@ enum an_expression_kind_tag {
 			   3.4).  Limited use in C++. */
   /* Non-constant expression kinds: */
   ek_normal,		/* Normal expression, no restrictions. */
-  ek_vla,		/* Dimension expression of a variable length array
-			   declaration. */
   ek_sizeof		/* The operand of sizeof.  This is almost the same
 			   as a normal expression. */
 };
@@ -356,10 +354,17 @@ typedef struct an_expr_stack_entry {
   a_byte_boolean
 		is_template_arg_expression;
 			/* TRUE if the expression is an argument of a C++
-			   template reference.  This is only TRUE for the
+			   template reference.  This is TRUE only for the
 			   top level major expression for a template
 			   argument, e.g., it's not TRUE inside a sizeof
 			   inside a template argument. */
+  a_byte_boolean
+		is_vla_dimension_expression;
+			/* TRUE if the expression is the dimension of a
+			   VLA (variable-length array).  This is TRUE only
+			   for the top level major expression for a VLA
+			   dimension, e.g., it's not TRUE inside a sizeof
+			   inside a VLA dimension. */
   a_byte_boolean
 		in_cctor_elision_initializer;
 			/* TRUE if the expression is or is inside of an

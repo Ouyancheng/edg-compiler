@@ -158,7 +158,6 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
     case enk_variable_address:
     case enk_routine_address:
     case enk_field:
-    case enk_runtime_sizeof:
     case enk_address_of_ellipsis:
       /* No side effects. */
       break;
@@ -202,6 +201,13 @@ should be suppressed.  If suppress_warning == NULL, it is not set.
         if (is_polymorphic_class_type(node->variant.typeid_info.type)) {
           has_side_effects = TRUE;
         }  /* if */
+      }  /* if */
+      break;
+    case enk_runtime_sizeof:
+      if (node->variant.runtime_sizeof.expr != NULL) {
+        has_side_effects = node_has_side_effects(
+                                            node->variant.runtime_sizeof.expr,
+                                            &suppress);
       }  /* if */
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -3711,7 +3717,6 @@ Syntax:
   a_local_expr_options_set
                         local_options;
   an_expr_stack_entry   expr_stack_entry;
-  a_boolean             non_constant_sizeof_allowed = FALSE;
 
   db_enter(4, "scan_sizeof_operator");
 
@@ -3721,7 +3726,6 @@ Syntax:
     internal_error("scan_sizeof_operator: in preprocessing expr");
   }  /* if */
 #endif /* CHECKING */
-  non_constant_sizeof_allowed = vla_enabled && !curr_expr_kind_is_const();
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE);
   expr_stack_entry.evaluated = FALSE;
@@ -3833,24 +3837,30 @@ Syntax:
   } else if (is_incomplete_type(sizeof_type)) {
     pos_error(ec_incomplete_type_not_allowed, &type_position);
     sizeof_type = error_type();
-  } else if (!non_constant_sizeof_allowed && is_vla_type(sizeof_type)) {
-    /* One or more of the top array types is a VLA, but the sizeof
-       expression must be a constant. */
-    pos_error(ec_expr_not_constant, &start_position);
-    sizeof_type = error_type();
   }  /* if */
 
-  if (is_vla_type(sizeof_type)) {
-    /* One or more of the top array types is a VLA. */
-    an_expr_node_ptr node;
-
-    node = alloc_expr_node((an_expr_node_kind)enk_runtime_sizeof);
-    node->type = integer_type(targ_size_t_int_kind);
-    node->variant.sizeof_type = sizeof_type;
-    make_expression_operand(node, node->type, result);
+  if (vla_enabled && is_vla_type(sizeof_type)) {
+    /* One or more of the top array types is a variable-length array. */
+    if (curr_expr_kind_is_const()) {
+      /* Not allowed in a constant expression. */
+      pos_error(ec_expr_not_constant, &start_position);
+      make_error_operand(result);
+    } else {
+      /* Make an expression node to represent a sizeof that cannot be
+         evaluated until runtime. */
+      an_expr_node_ptr node =
+                        alloc_expr_node((an_expr_node_kind)enk_runtime_sizeof);
+      node->type = integer_type(targ_size_t_int_kind);
+      node->variant.runtime_sizeof.type = sizeof_type;
+      if (!is_type) {
+        check_assertion(is_an_lvalue(&operand));
+        node->variant.runtime_sizeof.expr = make_node_from_operand(&operand);
+      }  /* if */
+      make_expression_operand(node, node->type, result);
+    }  /* if */
   } else {
     /* The result of a sizeof is an integer indicating the size of the operand
-       in bytes, of type size_t (see 3.3.3.4 and <stddef.h>). */
+       in bytes, of type size_t (see ISO C 6.3.3.4 and <stddef.h>). */
     if (is_error_type(sizeof_type)) {
       set_error_constant(&constant);
     } else if (!C_mode() && is_or_contains_template_param(sizeof_type)) {
@@ -9814,14 +9824,14 @@ normal_function:
         case sk_parameter:
           if (expr_stack->is_default_arg_expression ||
               (!curr_expr_kind_is(ek_sizeof) &&
-               !curr_expr_kind_is(ek_vla))) {
+               !expr_stack->is_vla_dimension_expression)) {
             /* This is a parameter referenced within a C++ default argument
                expression, which is an error (ARM 8.2.6); or, any reference
                except in a sizeof or function prototype VLA dimension
                expression. */
             error_and_make_error_operand(ec_param_not_allowed, result);
             change_refs_to_error(rep);
-          } else if (curr_expr_kind_is(ek_vla)) {
+          } else if (expr_stack->is_vla_dimension_expression) {
             /* Use of a parameter in function prototype VLA dimension
                expression, e.g.:
                    void f(a, int b[a]);
@@ -9829,9 +9839,11 @@ normal_function:
                create a dummy "placeholder" variable to use in the
                expression.  Also, create a_vla_fixup for the parameter
                so that the dummy variable can be replaced with the real
-               variable for the parameter once it is created. */
-            /* Create the dummy placeholder variable with the same type
-               as the parameter. */
+               variable for the parameter once it is created.  If the
+               function prototype is part of a function declaration, not
+               definition, the VLA dimension expression is thrown away. */
+            /* Create a dummy placeholder variable with the same type
+               as the parameter, if it hasn't been created yet. */
             var_ptr = sym_ptr->variant.param_id->dummy_vla_variable;
             if (var_ptr == NULL) {
               var_ptr = alloc_variable((a_storage_class)sc_auto);
@@ -9841,9 +9853,7 @@ normal_function:
             }  /* if */
             /* Generate an expression node referring to the dummy variable. */
             make_lvalue_variable_operand(var_ptr, result, rep);
-            check_assertion(result->kind == (an_operand_kind)ok_expression);
-            check_assertion(result->variant.expression->kind ==
-                            (an_expr_node_kind)enk_variable_address);
+            check_assertion(is_expression_operand(result));
             /* Create a_vla_fixup for the parameter, initialize its
                members, and link it into the list of vla fixups for the
                current function prototype scope. */
@@ -10894,9 +10904,9 @@ Scan an array dimension that might be non-constant.  The array dimension
 must be an integral expression.  (It's also required to be non-negative, but
 the caller must check that.)  If is_vla_decl is FALSE, this function is being
 called in C++ mode for new-type-name (see 5.3.3 in the ARM); if is_vla_decl
-is TRUE it is being for array dimensions which may be VLAs.  Return either
-*is_constant TRUE and a constant value in *constant, or *is_constant FALSE
-and a pointer to the expression tree in *expression.
+is TRUE it is being called for array dimensions which may be VLAs.  Return
+either *is_constant TRUE and a constant value in *constant, or *is_constant
+FALSE and a pointer to the expression tree in *expression.
 */
 {
   an_operand          result;
@@ -10906,8 +10916,9 @@ and a pointer to the expression tree in *expression.
 
   db_enter(3, "scan_nonconstant_dimension_expression");
 
-  push_expr_stack(is_vla_decl ? ek_vla : ek_normal, &expr_stack_entry,
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE);
+  if (is_vla_decl) expr_stack_entry.is_vla_dimension_expression = TRUE;
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   /* Convert from a class type to integral if necessary. */

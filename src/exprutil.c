@@ -608,6 +608,7 @@ in a loop).
   new_entry->potentially_evaluated = TRUE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
+  new_entry->is_vla_dimension_expression = FALSE;
   new_entry->in_cctor_elision_initializer = FALSE;
   new_entry->fold_constant_addr_exprs = FALSE;
   new_entry->inside_conditional_expression = FALSE;
@@ -619,7 +620,8 @@ in a loop).
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
     /* is_template_arg_expression is not copied down, because it indicates the
-       top level in a template argument expression.
+       top level in a template argument expression.  Likewise for
+       is_vla_dimension_expression.
        in_cctor_elision_initializer is also not copied down; nested expressions
        in an elision initializer are not subject to the optimization. */
     new_entry->evaluated = expr_stack->evaluated;
@@ -831,7 +833,6 @@ if there are any temp inits (unordered or not) in the expression.
     case enk_variable_address:
     case enk_routine_address:
     case enk_field:
-    case enk_runtime_sizeof:
     case enk_address_of_ellipsis:
       /* No temp inits. */
       break;
@@ -912,6 +913,13 @@ if there are any temp inits (unordered or not) in the expression.
         any_temp_inits = examine_expr_for_unordered_temp_inits(
                                                expr->variant.typeid_info.expr,
                                                mark_all_unordered);
+      }  /* if */
+      break;
+    case enk_runtime_sizeof:
+      if (expr->variant.runtime_sizeof.expr != NULL) {
+        any_temp_inits = examine_expr_for_unordered_temp_inits(
+                                             expr->variant.runtime_sizeof.expr,
+                                             mark_all_unordered);
       }  /* if */
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -3316,8 +3324,7 @@ value is used).
                types.  We can only check the subscript if the array type
                is complete. */
             if (is_array_type(underlying_type) &&
-                !is_incomplete_type(underlying_type) &&
-                !is_vla_type(underlying_type)) {
+                !is_incomplete_type(underlying_type)) {
               array_type = skip_typerefs(underlying_type);
               /* See if the element type of the array type matches the
                  type pointed to by ptr_type. */
@@ -3330,6 +3337,9 @@ value is used).
                 if (sign_of_integer_constant(rhs_con) < 0) {
                   /* Negative subscript. */
                   valid = FALSE;
+                } else if (is_vla_type(underlying_type)) {
+                  /* Variable-length arrays cannot be checked for non-negative
+                     subscripts. */
                 } else {
                   check_assertion(!array_type->
                                        variant.array.is_variable_size_array);

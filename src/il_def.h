@@ -5421,9 +5421,16 @@ typedef struct an_expr_node {
 			   its value is the address); otherwise NULL. */
     } typeid_info;
     /* When kind == enk_runtime_sizeof: */
-    a_type_ptr  sizeof_type;
-                        /* A pointer to the type whose size is to be
-                           evaluated at runtime. */
+    struct {
+      a_type_ptr
+		type;	/* The type whose size is to be determined at
+			   runtime. */
+      an_expr_node_ptr
+		expr;	/* The expression whose size is to be determined at
+			   runtime, or NULL if the sizeof operand is a
+			   type.  This expression is an lvalue for an
+			   array. */
+    } runtime_sizeof;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
     /* When kind == enk_lowered_eh_construct: */
     struct {
