@@ -1,5 +1,26 @@
 Version 3.4
 
+3/13/04  Suboptimal operator for pointer-to-member bitwise copy
+
+IL lowering generated an eok_bassign operator for the bitwise copy
+of a pointer-to-member object in some cases, instead of the
+more efficient eok_iassign (for a pointer to data member) or
+eok_sassign (for a pointer to member function).  The better
+operator is now generated.
+
+  struct A {
+    int i;
+    void f();
+  };
+  void foo() {
+     A o;
+     try { throw &A::i; }
+     catch (int A::*p) {  }
+     try { throw &A::f; }
+     catch (void (A::*pf)()) {  }
+  }
+
+
 3/10/04  Microsoft compatibility: friends defined in class invisible, sometimes
 
 Further adventures in Microsoft compatibility: MSVC++ 7.1 has made

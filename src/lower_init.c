@@ -1385,7 +1385,8 @@ subobject.  Insert the statement at *insert_location and update
        For other types use a block copy. */
     if (is_arithmetic_or_enum_type(type) ||
         is_pointer_type(type) ||
-        is_class_struct_union_type(type)) {
+        is_class_struct_union_type(type) ||
+        is_ptr_to_member_type(type)) {
       op = lowered_assignment_operator(type);
       /* The normal assignment operators take an rvalue as the source, so
          change the node to an rvalue. */
