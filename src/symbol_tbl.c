@@ -6127,13 +6127,19 @@ from the list.
   /* Nothing needs to be done if the flag already has the new value. */
   if (fiep->instantiation_required != value) {
     fiep->instantiation_required = value;
-    if (value) {
+    /* This entry could already be on the list if it was previously
+       set to TRUE, then FALSE, and is being set TRUE again.  If
+       its next pointer is non-NULL or if the head pointer points to
+       this record, then it is on the list already. */
+    if (value && fiep->next_instantiation_required == NULL &&
+        instantiations_required_head != fiep) {
       /* Add the entry to the list. */
       if (instantiations_required_head == NULL) {
         instantiations_required_head = fiep;
         instantiations_required_tail = fiep;
       } else {
         instantiations_required_tail->next_instantiation_required = fiep;
+        instantiations_required_tail = fiep;
       }  /* if */
     }  /* if */
   }  /* if */
