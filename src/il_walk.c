@@ -2758,11 +2758,15 @@ as specified in the control block.
     case stmk_while:
       traverse_expr(statement->expr, tblock);
       if (tblock->terminate) goto end_of_routine;
-      traverse_statement(statement->variant.loop_statement, tblock);
+      if (statement->variant.loop_statement != NULL) {
+        traverse_statement(statement->variant.loop_statement, tblock);
+      }  /* if */
       break;
     case stmk_end_test_while:
-      traverse_statement(statement->variant.loop_statement, tblock);
-      if (tblock->terminate) goto end_of_routine;
+      if (statement->variant.loop_statement != NULL) {
+        traverse_statement(statement->variant.loop_statement, tblock);
+        if (tblock->terminate) goto end_of_routine;
+      }  /* if */
       traverse_expr(statement->expr, tblock);
       break;
     case stmk_goto:
@@ -2792,7 +2796,9 @@ as specified in the control block.
           traverse_expr(statement->expr, tblock);
           if (tblock->terminate) goto end_of_routine;
         }  /* if */
-        traverse_statement(statement->variant.for_loop.statement, tblock);
+        if (statement->variant.for_loop.statement != NULL) {
+          traverse_statement(statement->variant.for_loop.statement, tblock);
+        }  /* if */
         if (tblock->terminate) goto end_of_routine;
         if (flp->increment != NULL) {
           traverse_expr(flp->increment, tblock);
