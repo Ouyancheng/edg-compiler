@@ -1,5 +1,18 @@
 Version 2.28
 
+2/14/95  Binding a reference to nonconst to an rvalue
+
+Overload resolution now rejects binding a reference to nonconst to
+an rvalue.  In the ARM, this was allowed in overload resolution and
+then would get an error later if that binding was chosen as the best.
+cfront mode is unaffected.
+
+  void f(char &);
+  void f(int);
+  main () {
+    f('a');  // f(int) because f(char &) is rejected.
+  }
+
 2/14/95  Aggregate class types
 
 WP 8.5.1 says that an aggregate class has "no private or protected
