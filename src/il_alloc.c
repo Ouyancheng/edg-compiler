@@ -1001,7 +1001,7 @@ otherwise, allocate it in the current file-scope memory region.
     check_assertion(sym != NULL);
     if (sym->decl_scope == NO_SCOPE_NUMBER) {
       /* There must be some previous error. */
-      check_assertion(total_errors != NULL);
+      check_assertion(total_errors != 0);
       /* Pick an arbitrary secondary translation unit. */
       tup = translation_units->next;
     } else {
