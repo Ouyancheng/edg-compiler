@@ -1523,9 +1523,9 @@ Process the arguments on the command line that invoked the compiler.
        name can be specified by a -o option. */
     pp_file_name = ofile_name;
     pp_output_file_needed = TRUE;
-    il_file_name = NULL;
     ofile_name = NULL;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
+    il_file_name = NULL;
   } else {
     /* Establish the intermediate file name (if it is needed). */
     if (!suppress_il_file_write) {
