@@ -1,5 +1,14 @@
 Version 2.30
 
+7/5/95   Repackaging in decls.c
+
+Several repackaging changes have been made to routines in decls.c.  Most
+notably, decl_var_or_routine has been divided into decl_variable and
+decl_routine.  In addition, some code that had been in decl_var_or_routine
+was moved to create_external_symbol_for_linked_entity and to new routine
+set_name_linkage. and new routines compute_effective_decl_level and
+find_linked_symbol have been broken out of id_linkage.
+
 6/30/95  Error recovery problem with [], == and != operators
 
 In some cases, an error on a [], ==, or != operator could cause an internal
