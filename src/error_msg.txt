@@ -559,7 +559,7 @@ ec_class_template_same_name_as_templ_param;;"class template and template paramet
 ec_bad_constructor_name;;"%no cannot be used to designate constructor for %n2"
 ec_unnamed_type_in_template_arg;;"a template argument may not reference an unnamed type"
 ec_enum_type_not_allowed;;"enumerated type is not allowed"
-ec_qualified_reference_type;;"type qualifier on a reference type is meaningless"
+ec_qualified_reference_type;;"type qualifier on a reference type is not allowed"
 ec_incompatible_assignment_operands;;"a value of type %t1 cannot be assigned to an entity of type %t2"
 ec_unsigned_compare_with_negative;;"pointless comparison of unsigned integer with a negative constant"
 ec_converting_to_incomplete_class;;"cannot convert to incomplete class %t"
