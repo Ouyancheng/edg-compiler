@@ -1903,6 +1903,8 @@ Display the indicated expression node.
       disp_name("kind");
       disp_expr_operator_name(ptr->variant.operation.kind);
       (void)printf("\n");
+      disp_boolean("assignment_returns_lvalue",
+                   ptr->assignment_returns_lvalue);
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;

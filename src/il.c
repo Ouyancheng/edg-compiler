@@ -771,7 +771,7 @@ Dump the contents of the indicated constant, for debug purposes.
 
 void db_variable(a_variable_ptr var_ptr)
 /*
-Dump the contents of the indicated variable, for debug purposes.
+Dump the contents of the indicated variable for debug purposes.
 */
 {
   fputs("name = ", f_debug);
@@ -783,6 +783,9 @@ Dump the contents of the indicated variable, for debug purposes.
 
 static void db_expr_node(an_expr_node_ptr node,
 		         int              level)
+/*
+Dump the contents of the indicated expression node for debug purposes.
+*/
 {
   register an_expr_node_ptr operand;
   a_constant_ptr            const_ptr;
@@ -3652,6 +3655,7 @@ fields to default values.
       break;
     case enk_operation:
       node->variant.operation.kind = (an_expr_operator_kind)eok_last;
+      node->variant.operation.assignment_returns_lvalue = TRUE;
       node->variant.operation.operands = NULL;
       break;
     case enk_constant:

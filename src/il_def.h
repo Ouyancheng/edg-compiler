@@ -2232,6 +2232,14 @@ typedef struct an_expr_node {
       an_expr_operator_kind
                 kind;
                         /* What kind of operation it is. */
+      unsigned int
+		assignment_returns_lvalue:1;
+			/* TRUE if the operation is an assignment (simple or
+			   compound) that returns an lvalue (the address of
+			   the thing assigned to) instead of an rvalue (the
+			   value of the thing assigned to).  FALSE otherwise,
+			   including for operations that are not
+			   assignments. */
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */
