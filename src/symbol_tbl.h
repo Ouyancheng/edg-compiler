@@ -1663,14 +1663,23 @@ EXTERN a_symbol_ptr
 
 
 /*
-Enumeration indicating a kind of reference to a symbol, used in
-generating cross-reference information.
+Enumeration indicating a kind of reference to a symbol, used in generating
+cross-reference information and in tracking use-def status of variables.
+Note that "use" and "modification" apply only to objects -- i.e., to variables
+and static and nonstatic data members -- and that "address taken" applies only
+to objects and functions.
 */
 typedef enum /*a_symbol_reference_kind*/ {
   srk_declaration,	/* Declaration or definition. */
-  srk_modification,	/* Reference that changes the value of a variable. */
-  srk_address_taken,	/* Address of a variable or function taken. */
-  srk_use		/* All other kinds of references. */
+  srk_modification,	/* Reference that changes the value of an object. */
+  srk_address_taken,	/* Address of an object or function taken. */
+  srk_use,		/* Use of the value of an object. */
+  srk_use_and_modif,	/* Use and modification of the value of an object in
+			   a single operation (e.g., an increment) */
+  srk_reference		/* All other kinds of references (e.g., a reference to
+			   a class or typedef name in a declaration, to a
+			   label in a goto statement, to a routine name in a
+			   call, to a variable in a sizeof operation, etc.). */
 } a_symbol_reference_kind;
 
 extern a_symbol_ptr find_symbol(char             *identifier,
@@ -1964,8 +1973,9 @@ extern void reference_to_symbol(a_symbol_reference_kind  kind,
                                 a_source_position        *source_position,
                                 a_boolean                update_il_entry);
 
-#define mark_used(sym, err_pos)                                         \
-  reference_to_symbol(srk_use, (sym), (err_pos), /*update_il_entry=*/TRUE)
+#define mark_referenced(sym, err_pos)                                   \
+  reference_to_symbol(srk_reference, (sym), (err_pos),                  \
+                      /*update_il_entry=*/TRUE)
 
 extern void mark_variable_value_set(a_symbol_ptr  sym);
 
