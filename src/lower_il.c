@@ -6702,6 +6702,10 @@ Promote the constants on the constants list of the indicated scope
     next_constant = constant->next;
     add_to_constants_list(constant, /*at_file_scope=*/TRUE);
   }  /* for */
+  /* Clear the list of promoted constants.  Since the scope is for a class,
+     we know it cannot be on the scope stack now, and therefore we do
+     not need to update a corresponding last pointer. */
+  scope->constants = NULL;
 }  /* promote_constants */
 
 
@@ -6725,6 +6729,10 @@ Promote the static variables on the variables list of the indicated scope
     next_variable = variable->next;
     add_to_variables_list(variable, /*at_file_scope=*/TRUE);
   }  /* for */
+  /* Clear the list of promoted variables.  Since the scope is for a class,
+     we know it cannot be on the scope stack now, and therefore we do
+     not need to update a corresponding last pointer. */
+  scope->variables = NULL;
 }  /* promote_variables */
 
 
@@ -6742,6 +6750,9 @@ scope) into the file scope.
     next_routine = routine->next;
     add_to_routines_list(routine, /*at_file_scope=*/TRUE);
   }  /* for */
+  /* Clear the list of promoted routines.  Since the scope is for a class,
+     we know it cannot be on the scope stack now, and therefore we do
+     not need to update a corresponding last pointer. */
   scope->routines = NULL;
 }  /* promote_routines */
 

@@ -1,5 +1,12 @@
 Version 2.21
 
+11/17/93 Problem with non-alternate file format
+
+Because IL lowering did not clear the pointers in a class scope
+when it promoted the members out of the class, there would sometimes
+be internal errors while walking the IL tree.  The problem has been
+fixed by clearing the pointers.
+
 11/17/93 Instantiation pragmas not at global scope
 
 Using instantiation pragma at scopes other than the global scope
