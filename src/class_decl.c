@@ -5800,23 +5800,24 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
         local_defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         local_declares_something = dso_flags & DSO_DECLARES_SOMETHING;
         if (local_defines_something && !is_error_type(member_type)) {
+          a_type_ptr  tp = skip_typerefs(member_type);
+
 #if CHECKING
           if (C_dialect == C_dialect_cplusplus) {
             /* Should be a nested class, struct, union, or enum definition.
                Be sure the parent class and access were marked correctly. */
-            a_symbol_ptr sym = (a_symbol_ptr)(skip_typerefs(member_type)->
-                                                   source_corresp.assoc_info);
+            a_symbol_ptr sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
             if (sym != NULL &&
                 sym->class_of_which_a_member != class_type) {
              internal_error(
                       "scan_class_definition: bad parent type on nested type");
-            } else if (member_type->source_corresp.access != access) {
+            } else if (tp->source_corresp.access != access) {
               internal_error(
                       "scan_class_definition: bad access on nested type");
             } /* if */
           }  /* if */
 #endif /* CHECKING */
-          if (is_class_struct_union_type(member_type)) {
+          if (is_class_struct_union_type(tp)) {
             symbol_supplement_for_class(class_type)->any_nested_classes = TRUE;
           }  /* if */
           /* Mark the IL entry for the nested class or enum as referenced. */
@@ -5824,7 +5825,7 @@ a_boolean scan_class_definition(a_type_ptr    class_type,
           /* This is premature, since it isn't really referenced at this
              point. */
 #endif /* if 0 */
-          member_type->source_corresp.referenced = TRUE;
+          tp->source_corresp.referenced = TRUE;
         } /* if */
         local_no_decl_specifiers = dso_flags & DSO_NO_DECL_SPECIFIERS;
         type_explicitly_specified =
