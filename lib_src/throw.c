@@ -446,20 +446,24 @@ static void db_eh_region_descr(an_eh_region_descr_ptr  ehrdp)
 Print the contents of a region description entry.
 */
 {
-  if (ehrdp->flags) {
-    fprintf(__f_debug, "  flags: ");
-    if (ehrdp->flags & RDF_INDIRECT) fprintf(__f_debug, " indirect");
-    if (ehrdp->flags & RDF_NEW_ALLOCATION) fprintf(__f_debug, " new");
-  }  /* if */
-  fprintf(__f_debug, "  destr/delete=%p\n",
-          (void*)ehrdp->destructor_or_delete_routine);
+  if (ehrdp == NULL) {
+    fprintf(__f_debug, "  <NULL pointer>\n");
+  } else {
+    if (ehrdp->flags) {
+      fprintf(__f_debug, "  flags: ");
+      if (ehrdp->flags & RDF_INDIRECT) fprintf(__f_debug, " indirect");
+      if (ehrdp->flags & RDF_NEW_ALLOCATION) fprintf(__f_debug, " new");
+    }  /* if */
+    fprintf(__f_debug, "  destr/delete=%p\n",
+            (void*)ehrdp->destructor_or_delete_routine);
 #if 0
-  if (ehrdp->array_size != 0) {
-    fprintf(__f_debug, "  array_size=%ld\n", ehrdp->array_size);
-  }  /* if */
+    if (ehrdp->array_size != 0) {
+      fprintf(__f_debug, "  array_size=%ld\n", ehrdp->array_size);
+    }  /* if */
 #endif /* 0 */
-  fprintf(__f_debug, "  handle=%d\n", ehrdp->handle);
-  fprintf(__f_debug, "  next region=%d\n", ehrdp->index_of_next_region);
+    fprintf(__f_debug, "  handle=%d\n", ehrdp->handle);
+    fprintf(__f_debug, "  next region=%d\n", ehrdp->index_of_next_region);
+  }  /* if */
 } /* db_eh_region_descr */
 
 
@@ -648,7 +652,6 @@ requires cleanup.
     an_eh_array_supplement_ptr	ehasp = NULL;
 
     ehrdp = &ehsep->variant.function.regions[region];
-    flags = ehrdp->flags;
 #if DEBUG
     if (__debug_level >= 2) {
       fprintf(__f_debug, "Region: %d, descr address=%p\n", region,
@@ -656,6 +659,7 @@ requires cleanup.
       db_eh_region_descr(ehrdp);
     }  /* if */
 #endif /* DEBUG */
+    flags = ehrdp->flags;
     if (flags & RDF_CONDITIONAL_FLAG) {
       /* This cleanup action is conditional.  The next region entry
          contains a handle that points to the flag.  Check the flag and
