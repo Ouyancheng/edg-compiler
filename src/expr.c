@@ -30,6 +30,7 @@ expr.c -- Expression scanning routines.
 #include "decl_inits.h"
 #include "target.h"
 #include "lang_feat.h"
+#include "templates.h"
 
 /*
 The operators and their precedences are:
@@ -1966,6 +1967,8 @@ bound with the function in *bound_function_selector.
     if (!err) {
       /* Drop any qualifiers or typedefs on the class/struct/union type. */
       class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
+      /* Instantiate the underlying class if it is a template class. */
+      check_for_uninstantiated_template_class(class_struct_union_type);
       if (!is_complete_class_struct_union_type(class_struct_union_type)) {
         /* Not (a pointer to) a complete class, struct, or union. */
         err_in_operand_1 = is_arrow_operator ?
@@ -2923,6 +2926,8 @@ See section 3.3.3.2 of the standard.
          is legal, although *p is not an lvalue. */
       if (check_pointer_operand(&operand, ec_bad_indirection_operand)) {
         operand.type = type_pointed_to(operand.type);
+        /* Instantiate the underlying class if it is a template class. */
+        check_for_uninstantiated_template_class(operand.type);
         if (is_function_type(operand.type)) {
           /* This will become a function designator. */
           operand.state = (an_operand_state)os_function_designator;
@@ -3183,6 +3188,8 @@ Syntax:
   }  /* if */
 
   sizeof_type = skip_typerefs(sizeof_type);
+  /* Instantiate the underlying class if it is a template class. */
+  check_for_uninstantiated_template_class(sizeof_type);
   /* The operand of a sizeof may not have function type or incomplete type. */
   if (is_function_type(sizeof_type)) {
     pos_error(ec_sizeof_function, &type_position);
@@ -3480,6 +3487,8 @@ specification allow a variable-sized array as the top type.
   /* Scan the new-type-name or ( type-name ). */
   new_type_name(trapped_left_paren, &new_type, &new_array_dimension);
   new_type = skip_typerefs(new_type);
+  /* Instantiate the underlying class if it is a template class. */
+  check_for_uninstantiated_template_class(new_type);
   /* The operand of a new must be an object type. */
   if (!is_object_type(new_type) &&
       (!is_array_type(new_type) || new_array_dimension == NULL)) {
@@ -3831,6 +3840,8 @@ As an anachronism, allow an expression inside the [ ].
       /* See if the object needs destruction. */
       dtor_routine = NULL;
       if (is_class_struct_union_type(base_delete_type)) {
+        /* Instantiate the underlying class if it is a template class. */
+        check_for_uninstantiated_template_class(base_delete_type);
         if (is_incomplete_type(base_delete_type)) {
           /* Deleting a pointer to an incomplete class.  Give a warning,
              because we may not know how to do the right thing (like call

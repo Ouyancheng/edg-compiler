@@ -2193,9 +2193,13 @@ See section 3.1.2.5 of the standard.
     okay = FALSE;
   } else if (!check_pointer_operand(operand, err_code)) {
     okay = FALSE;
-  } else if (!is_object_type(type_pointed_to(operand->type))) {
-    error_in_operand(err_code, operand);
-    okay = FALSE;
+  } else {
+    /* Instantiate the underlying type if it is a template class. */
+    check_for_uninstantiated_template_class(operand->type);
+    if (!is_object_type(type_pointed_to(operand->type))) {
+      error_in_operand(err_code, operand);
+      okay = FALSE;
+    }  /* if */
   }  /* if */
 
   return okay;
@@ -2737,6 +2741,8 @@ void add_reference_indirection(an_operand *result)
   }  /* if */
   make_expression_operand(node, result_type, result);
   result->state = result_state;
+  /* Instantiate the underlying type if it is a template class. */
+  check_for_uninstantiated_template_class(result_type);
   /* Restore the original source position, etc. */
   restore_operand_details_incl_xref(result, &orig_result);
 }  /* add_reference_indirection */
@@ -2778,6 +2784,8 @@ not being maintained.
   }  /* if */
   result->state = (an_operand_state)os_lvalue;
   copy_source_position(pos_curr_token, result->position);
+  /* Instantiate the underlying type if it is a template class. */
+  check_for_uninstantiated_template_class(result->type);
   /* Start a list of cross-reference entries related to the operand. */
   result->xref_entries_list = xep;
   /* If the variable has a reference type, add an implicit indirection. */
@@ -2877,6 +2885,8 @@ the operand is set to "pos_curr_token".
   /* Make an operand for the node. */
   make_expression_operand(node, node->type, result);
   if (C_dialect == C_dialect_cplusplus) {
+    /* Instantiate the underlying type if it is a template class. */
+    check_for_uninstantiated_template_class(result->type);
     /* In C++, replace a const variable by its value. */
     replace_const_variable_by_its_value(result);
     /* If the variable has a reference type, add an implicit indirection. */
