@@ -1,5 +1,17 @@
 Version 3.4
 
+2/26/04  Spurious error on redeclared dependent typedef
+
+A spurious error was issued if a typedef name was redeclared with a
+template dependent type that differed from the type of the original
+declaration.  No error should be issued because the types might be the
+same during an actual instantiation.  Now fixed.
+
+  template <class T1, class T2> struct A {
+    typedef T1 X;
+    typedef T2 X;
+  };
+
 2/26/04  File returned when converting the end-of-source sequence number
 
 When converting a sequence number into a source file and line number,

@@ -7418,6 +7418,23 @@ typedef, we must make sure to propagate that to its members.
 }  /* set_linkage_for_class_members */
 
 
+static a_boolean dependent_typedef_redecl_allowed(a_type_ptr	type1,
+						  a_type_ptr	type2)
+/*
+Return TRUE if type1 and/or type2 are template dependent types that may
+end up being compatible during an actual instantiation.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (is_or_contains_template_param(type1) ||
+      is_or_contains_template_param(type2)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* dependent_typedef_redecl_allowed */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !MICROSOFT_EXTENSIONS_ALLOWED || \
     !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
@@ -7495,6 +7512,7 @@ NULL.
     /* This name already exists in the current scope.  C++ allows a
        redefinition of the typedef with the same type, and we allow that
        also in C.  See if this is a redefinition. */
+    a_boolean	dependent_typedef_redeclaration = FALSE;
     if (sym->kind == (a_symbol_kind)sk_type ||
         (C_dialect == C_dialect_cplusplus && is_type_symbol(sym))) {
       /* sym is a type name symbol from the current scope.  Issue an error
@@ -7503,7 +7521,13 @@ NULL.
       a_boolean  types_are_identical;
       tp = type_symbol_type(sym);
       types_are_identical = identical_types(tp, type_ptr);
-      if ((types_are_identical
+      if (!types_are_identical) {
+        /* If the types are not the same, see if they are dependent types
+           that could turn out to be the same. */
+        dependent_typedef_redeclaration = is_template_dependent_context() &&
+                                dependent_typedef_redecl_allowed(tp, type_ptr);
+      }  /* if */
+      if (((types_are_identical || dependent_typedef_redeclaration)
 #if NEAR_AND_FAR_ALLOWED
            /* When near/far qualifiers appear, they have to match what was
               explicitly specified. */
@@ -7539,7 +7563,8 @@ NULL.
                (clarified in TC1; see 7.1.3/2 in the 2003 standard).
                Most compilers do not enforce this (and we issue a warning
                below), but Sun compilers do. */
-            pos_error(ec_duplicate_typedef, &locator->source_position);
+            pos_error(ec_duplicate_typedef_in_class,
+                      &locator->source_position);
           } else if (tp->source_corresp.access != ssep->current_access) {
             /* Access for previous declaration does not correspond to access
                for current declaration. */
@@ -7548,7 +7573,8 @@ NULL.
             /* Stay with the access specified on the original declaration. */
           } else {
             /* Issue a warning since this is no longer standard C++. */
-            pos_warning(ec_duplicate_typedef, &locator->source_position);
+            pos_warning(ec_duplicate_typedef_in_class,
+                        &locator->source_position);
           }  /* if */
         }  /* if */
         /* In C++ we may still need an sk_type symbol, since tags and typedefs

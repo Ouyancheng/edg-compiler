@@ -1354,6 +1354,7 @@ ec_expr_not_integral_or_enum_or_fixed_point;;"expression must have integral, enu
 ec_expr_not_integral_or_fixed_point;;"expression must have integral or fixed-point type"
 ec_noreturn_function_does_return;;"function declared with \"noreturn\" does return"
 ec_asm_name_conflict;;"asm name ignored because it conflicts with a previous declaration"
+ec_duplicate_typedef_in_class;;"class member typedef may not be redeclared"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
