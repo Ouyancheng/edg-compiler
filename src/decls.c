@@ -83,17 +83,6 @@ Macro that is TRUE if the current token is the start of a type qualifier
   (curr_token == tok_const    || curr_token == tok_volatile )
 
 
-/*
-Macro that is TRUE if the current token is the start of a declarator
-(3.5.4 -- real, not abstract).
-*/
-#define is_declarator_start()                                         \
-  (curr_token == tok_identifier || curr_token == tok_star ||          \
-   curr_token == tok_lparen ||                                        \
-   (C_dialect == C_dialect_cplusplus &&                               \
-    (curr_token == tok_ampersand || curr_token == tok_operator)))
-
-
 static a_boolean is_ptr_to_member_declarator_start(void)
 /*
 Return TRUE if the current identifier token is the start of a pointer-to-
