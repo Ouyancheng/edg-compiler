@@ -1,5 +1,14 @@
 Version 2.43
 
+8/13/99  Microsoft compatibility: checking of array property types
+
+Microsoft compilers do not require any sizes to be specified for multi-
+dimensional array property types.  This behavior is now emulated.
+
+  struct S {
+    __declspec(property(put=put_a)) int a[][][];  // No longer an error
+  };
+
 8/13/99  Compilation problem when INSTANTIATION_BY_IMPLICIT_INCLUSION is 0
 
 The front end did not build properly when INSTANTIATION_BY_IMPLICIT_INCLUSION
