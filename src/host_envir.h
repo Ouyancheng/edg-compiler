@@ -366,7 +366,7 @@ should include information about comments.
 */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #ifndef COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-#define COMMENTS_IN_SOURCE_SEQUENCE_LISTS TRUE   /* You can change this. */
+#define COMMENTS_IN_SOURCE_SEQUENCE_LISTS FALSE   /* You can change this. */
 #endif /* ifndef COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 #define COMMENTS_IN_SOURCE_SEQUENCE_LISTS FALSE  /* Do not change this. */
