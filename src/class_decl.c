@@ -6289,40 +6289,35 @@ to indicate whether the class/struct/union is actually defined.
                     suppress_pure_specifier_error = TRUE;
                   }  /* if */
                 }  /* if */
-              } else if (is_constructor) {
+              } else {
+                if ((is_constructor || is_destructor) &&
+                    member_storage_class == (a_storage_class)sc_static) {
+                  /* Constructors and destructors may not be declared
+                     "static" (ARM 12.1, 12.4). */
+                  pos_error(ec_static_not_allowed, &decl_start_pos);
+                  member_storage_class = (a_storage_class)sc_unspecified;
+                }  /* if */
                 if (virtual_specified) {
-                  /* Constructors may not be declared "virtual" (ARM 12.1). */
-                  pos_error(ec_virtual_not_allowed, &decl_start_pos);
-                  virtual_specified = FALSE;
-                  suppress_pure_specifier_error = TRUE;
-                }  /* if */
-                if (member_storage_class == (a_storage_class)sc_static) {
-                  /* Constructors may not be declared "static" (ARM 12.1). */
-                  pos_error(ec_static_not_allowed, &decl_start_pos);
-                  member_storage_class = (a_storage_class)sc_unspecified;
-                }  /* if */
-              } else if (is_destructor) {
-                if (member_storage_class == (a_storage_class)sc_static) {
-                  /* Destructors may not be declared "static" (ARM 12.1). */
-                  pos_error(ec_static_not_allowed, &decl_start_pos);
-                  member_storage_class = (a_storage_class)sc_unspecified;
-                }  /* if */
-              } else if (virtual_specified) {
-                if (member_storage_class == (a_storage_class)sc_static ||
-                    (locator.is_operator_name &&
-                     (locator.variant.opname == (an_opname_kind)onk_new ||
-                      locator.variant.opname == (an_opname_kind)onk_delete))) {
-                  /* Only nonstatic member functions may be specified as
-                     virtual.  This applies to operators new and delete
-                     since they are always static (ARM 12.5). */
-                  pos_error(ec_virtual_static_not_allowed, &decl_start_pos);
-                  virtual_specified = FALSE;
-                  suppress_pure_specifier_error = TRUE;
-                } else if (is_union_type(class_type)) {
-                  /* Unions may not have virtual member functions (ARM 9.5). */
-                  pos_error(ec_virtual_not_allowed, &decl_start_pos);
-                  virtual_specified = FALSE;
-                  suppress_pure_specifier_error = TRUE;
+                  if (is_constructor || is_union_type(class_type)) {
+                    /* Constructors may not be virtual functions (ARM 12.1)
+                       and unions may not have them (ARM 9.5). */
+                    pos_error(ec_virtual_not_allowed, &decl_start_pos);
+                    virtual_specified = FALSE;
+                    suppress_pure_specifier_error = TRUE;
+                  } else if (member_storage_class ==
+                                           (a_storage_class)sc_static ||
+                             (locator.is_operator_name &&
+                              (locator.variant.opname ==
+                                               (an_opname_kind)onk_new ||
+                               locator.variant.opname ==
+                                               (an_opname_kind)onk_delete))) {
+                    /* Only nonstatic member functions may be specified as
+                       virtual.  This applies to operators new and delete
+                       since they are always static (ARM 12.5). */
+                    pos_error(ec_virtual_static_not_allowed, &decl_start_pos);
+                    virtual_specified = FALSE;
+                    suppress_pure_specifier_error = TRUE;
+                  }  /* if */
                 }  /* if */
               }  /* if */
               if (local_defines_something && first_declarator) {
