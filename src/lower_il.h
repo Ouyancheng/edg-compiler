@@ -714,6 +714,10 @@ extern a_variable_ptr make_lowered_temporary(a_type_ptr temp_type);
 
 extern a_variable_ptr make_file_scope_temporary(a_type_ptr temp_type);
 
+extern a_variable_ptr find_reusable_temporary(a_type_ptr temp_type);
+
+extern void add_to_reusable_temporaries_list(a_variable_ptr temp_var);
+
 extern a_variable_ptr make_local_temporary(a_type_ptr temp_type);
 
 extern void make_lowered_field(char          *field_name,

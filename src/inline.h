@@ -73,6 +73,14 @@ typedef struct a_variable_remapping_for_inlining {
 			/* TRUE if this remapping has been used.  That prevents
 			   certain optimizations that involve changing the
 			   remapping. */
+  a_byte_boolean
+		local_temporary_okay;
+			/* TRUE if this remapping is to a variable that
+			   could be freed as a reusable local temporary. */
+  a_byte_boolean
+		local_temporary_reused;
+			/* TRUE if this remapping reuses a previously-allocated
+			   reusable temporary variable. */
 } a_variable_remapping_for_inlining;
 
 

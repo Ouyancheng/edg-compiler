@@ -1406,30 +1406,38 @@ Return a pointer to the variable.
 }  /* make_file_scope_temporary */
 
 
-a_variable_ptr make_local_temporary(a_type_ptr temp_type)
+a_variable_ptr find_reusable_temporary(a_type_ptr temp_type)
 /*
-Make a temporary of type temp_type that is used only within the current
-full expression, and can be reused after that.
+Find an existing reusable temporary with the given type, mark it
+as in use, and return a pointer to it.  If there is no such temporary,
+return NULL.
 */
 {
-  a_variable_ptr             temp_var;
+  a_variable_ptr             temp_var = NULL;
   a_temporary_list_entry_ptr tlep;
 
-  if (curr_context->local_temporaries != NULL) {
-    /* Look for a previously-allocated temporary we can reuse. */
-    for (tlep = curr_context->local_temporaries;
-         tlep != NULL;
-         tlep = tlep->next) {
-      if (!tlep->in_use && tlep->var->type == temp_type) {
-        /* Found a temporary with the proper type that we can reuse. */
-        temp_var = tlep->var;
-        goto have_temp;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  /* Allocate a new temporary variable. */
-  temp_var = make_lowered_temporary(temp_type);
-  /* Put the variable on a list of reusable local temporaries. */
+  /* Check the list of previously-allocated temporaries. */
+  for (tlep = curr_context->local_temporaries;
+       tlep != NULL;
+       tlep = tlep->next) {
+    if (!tlep->in_use && tlep->var->type == temp_type) {
+      /* Found a temporary with the proper type that we can reuse. */
+      temp_var = tlep->var;
+      tlep->in_use = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return temp_var;
+}  /* find_reusable_temporary */
+
+
+void add_to_reusable_temporaries_list(a_variable_ptr temp_var)
+/*
+Add the indicated temporary variable to the list of reusable temporaries.
+*/
+{
+  a_temporary_list_entry_ptr tlep;
+
   if (avail_temporary_list_entries != NULL) {
     /* Reuse a freed entry. */
     tlep = avail_temporary_list_entries;
@@ -1443,10 +1451,28 @@ full expression, and can be reused after that.
 #endif /* DEBUG */
   }  /* if */
   tlep->var = temp_var;
+  tlep->in_use = TRUE;
   tlep->next = curr_context->local_temporaries;
   curr_context->local_temporaries = tlep;
-have_temp:
-  tlep->in_use = TRUE;
+}  /* add_to_reusable_temporaries_list */
+
+
+a_variable_ptr make_local_temporary(a_type_ptr temp_type)
+/*
+Make a temporary of type temp_type that is used only within the current
+full expression, and can be reused after that.
+*/
+{
+  a_variable_ptr temp_var;
+
+  /* Look for a previously-allocated temporary we can reuse. */
+  temp_var = find_reusable_temporary(temp_type);
+  if (temp_var == NULL) {
+    /* Allocate a new temporary variable. */
+    temp_var = make_lowered_temporary(temp_type);
+    /* Put the variable on a list of reusable local temporaries. */
+    add_to_reusable_temporaries_list(temp_var);
+  }  /* if */
   return temp_var;
 }  /* make_local_temporary */
   

@@ -1,11 +1,14 @@
 Version 2.39
 
-7/28/98   Improvement in inlining
+7/28/98   Improvements in inlining
 
 In the processing for minimal inlining, a parameter that is not modified
 within the function is now considered constant-valued.  That means when
 such a parameter is passed as an argument to an inline function, it
 often will not be necessary to create a temporary for it.
+
+In addition, temporaries allocated by inlining are now, where possible,
+reused, which can reduce the total number of temporaries required.
 
 7/27/98   Uses of ec_source_file_could_not_be_opened without fill-in
 
