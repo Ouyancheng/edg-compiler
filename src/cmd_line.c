@@ -560,7 +560,7 @@ processing routine to update the severity.
   /* Make a local copy of the option string.  Remove any blanks and replace
      commas with null characters.  Note that this copy is simply discarded
      after it is used. */
-  local_optarg = (char *)alloc_general(size_t_arg(strlen(optarg) + 1));
+  local_optarg = (char *)alloc_general((sizeof_t)(strlen(optarg) + 1));
   {
     char	*src = optarg;
     char	*dest = local_optarg;
