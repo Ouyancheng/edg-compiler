@@ -580,6 +580,9 @@ and indentation is the indentation desired.
           if (debug_level >= 4) put_string("has ptr for proxy");
         }  /* if */
       }
+      if (temp_type->declared_in_function_prototype) {
+        put_string("in func prototype");
+      }  /* if */
       break;
     case sk_field:
       if (sym->variant.field.ptr == NULL) {
