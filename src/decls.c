@@ -1583,6 +1583,49 @@ determine_linkage:
 }  /* id_linkage */
 
 
+static a_boolean types_are_SVR4_compatible(a_type_ptr  tp1,
+                                           a_type_ptr  tp2)
+/*
+tp1 and tp2 are types that have already been determined to be incompatible.
+However, we are in SVR4-C mode and the compatibility rules are relaxed in some
+cases.  Return TRUE if the two types are compatible by these relaxed rules.
+*/
+{
+  a_boolean   compat = FALSE;
+  a_type_ptr  ret1;
+  a_type_ptr  ret2;
+
+  check_assertion(SVR4_C_mode);
+  if (is_function_type(tp1)) {
+    /* Two function types.  In SVR4 mode if they are incompatible solely
+       because of their return types, and if the return types are "close
+       enough", then consider the routine types themselves to be
+       compatible. */
+    tp1 = skip_typerefs(tp1);
+    ret1 = tp1->variant.routine.return_type;
+    check_assertion(is_function_type(tp2));
+    tp2 = skip_typerefs(tp2);
+    ret2 = tp2->variant.routine.return_type;
+    if (!types_are_compatible(ret1, ret2) &&
+        is_integral_type(ret1) && is_integral_type(ret2) &&
+        interchangeable_types(ret1, ret2)) {
+      /* The return types are incompatible but both are integral and they are
+         interchangeable (i.e., they have the same size and alignment).  See
+         whether the two routine types are otherwise compatible. */
+      tp1->variant.routine.return_type = ret2;
+      compat = types_are_compatible(tp1, tp2);
+      /* Restore the original return type. */
+      tp1->variant.routine.return_type = ret1;
+    }  /* if */
+  } else {
+    /* Object types -- they are "compatible" if they are interchangeable. */
+    check_assertion(is_object_type(tp1) && is_object_type(tp2));
+    compat = interchangeable_types(tp1, tp2);
+  }  /* if */
+  return compat;
+}  /* types_are_SVR4_compatible */
+
+
 a_boolean reconcile_external_symbol_types(
                              a_symbol_ptr          ext_sym,
                              a_source_position_ptr position,
@@ -1619,12 +1662,10 @@ issued a similar error).  Return FALSE if there is some error.
                            C_mode() ? TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING :
                                       TCF_NO_FLAGS) :
                      !types_are_redecl_compatible(old_type, type_ptr)) {
-      okay = FALSE;
       /* The old and new types are incompatible.  Issue a warning instead of
          an error for certain cases (namely, all routine declarations and
          some variable declarations) in SVR4 C compatibility mode. */
-      if (SVR4_C_mode &&
-          (is_routine || interchangeable_types(old_type, type_ptr))) {
+      if (SVR4_C_mode && types_are_SVR4_compatible(old_type, type_ptr)) {
         severity = es_warning;
         /* Record the most recent type as the external symbol's type. */
         esdp->type = type_ptr;
@@ -1633,6 +1674,7 @@ issued a similar error).  Return FALSE if there is some error.
         /* Record an error type as the external symbol's type, to avoid
            future errors. */
         esdp->type = error_type();
+        okay = FALSE;
       }  /* if */
       /* The old and new types are incompatible.  Error. */
       if (!suppress_incompatible_error) {
@@ -2515,37 +2557,26 @@ describing this declaration.
         if (!routines_compat) {
           /* The old and new declarations are incompatible.  There is special
              handling for SVR4 C compatibility mode. */
-          if (SVR4_C_mode) {
-            /* The routine types are incompatible, but in SVR4 mode this may
-               not be an error as long as the incompatibility is only in the
+          if (SVR4_C_mode &&
+              types_are_SVR4_compatible(type_ptr, routine_ptr->type)) {
+            /* The routine types are incompatible, but in SVR4 mode this is
+               not an error as long as the incompatibility is only in the
                return type. */
-            a_type_ptr  ret1 = type_ptr->variant.routine.return_type;
-            a_type_ptr  ret2 = routine_ptr->type->variant.routine.return_type;
-
-            if (!types_are_compatible(ret1, ret2) &&
-                is_integral_type(ret1) && is_integral_type(ret2) &&
-                interchangeable_types(ret1, ret2)) {
-              /* The return types are incompatible but both are integral and
-                 they are interchangeable (i.e., they have the same size and
-                 alignment).  If the two routine types are otherwise
-                 compatible, we just issue a warning in SVR4-C mode. */
-              type_ptr->variant.routine.return_type = ret2;
-              routines_compat = types_are_compatible(routine_ptr->type,
-                                                     type_ptr);
-              /* Restore the original return type. */
-              type_ptr->variant.routine.return_type = ret1;
-            }  /* if */
+            pos_sy_warning(ec_not_compatible_with_previous_decl,
+                           &locator->source_position, linked_symbol);
+            /* There is compatibility but for the return type.  If this is the
+               definition, reset the type of the routine entry to use the new
+               type. */
+            *old_type = routine_ptr->type;
+            if (is_function_def) routine_ptr->type = type_ptr;
+          } else {
+            /* Issue an error on incompatible declarations. */
+            pos_sy_error(ec_not_compatible_with_previous_decl,
+                         &locator->source_position, linked_symbol);
+            /* Force creation of a new symbol and a new routine entry. */
+            linked_redecl_error = TRUE;
           }  /* if */
-          /* Issue a warning if this is the SVR4 special case. */
-          pos_sy_diagnostic(routines_compat ? es_warning : es_error,
-                            ec_not_compatible_with_previous_decl,
-                            &locator->source_position, linked_symbol);
           redecl_error_already_issued = TRUE;
-          /* Force creation of a new symbol and a new routine entry.  Note:
-             if only a warning was issued, the back end may have to deal with
-             having two routine entries of the same name in the IL, each
-             with its own type. */
-          linked_redecl_error = TRUE;
         } else {
           /* The declarations are compatible.  Form the composite type. */
           *old_type = routine_ptr->type;
@@ -2759,9 +2790,9 @@ skip_overloading:;
                                                  locator, is_function,
                                                  type_ptr, name_linkage,
                                                  redeclaration,
-                                                 linked_redecl_error,
+                                                 redecl_error_already_issued,
                                                  suppress_ext_sym_lookup,
-						 is_implicit_declaration,
+                                                 is_implicit_declaration,
                                                  &variable_ptr, &routine_ptr);
   }  /* if */
   if (!is_function) {
