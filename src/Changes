@@ -1,5 +1,11 @@
 Version 3.0
 
+4/02/02  Microsoft compatibility: falling off function try block handlers
+
+Normally, falling off the handler of a function try block for a constructor
+or destructor implicitly rethrows the caught exception.  In Microsoft bugs
+mode, this rethrowing does not occur.
+
 3/27/02  GNU C: typedefs with sign or size modifiers
 
 The front end now accepts the modifiers short, long, signed and unsigned

@@ -6389,10 +6389,13 @@ e.g., ({ ... }).
       /* Handler for a function try block. */
       /* Falling off the end of a handler of a function try block for a
          constructor or destructor produces an implicit rethrow; for other
-         functions it produces an implicit return (15.3 paragraph 16). */
+         functions it produces an implicit return (15.3 paragraph 16).
+         Microsoft Visual C++ 7.0 implements function try blocks, but
+         not this aspect of it. */
       a_routine_ptr  rp = current_routine_entry();
-      if (rp->special_kind == (a_special_function_kind)sfk_constructor ||
-          rp->special_kind == (a_special_function_kind)sfk_destructor) {
+      if (!microsoft_bugs &&
+          (rp->special_kind == (a_special_function_kind)sfk_constructor ||
+           rp->special_kind == (a_special_function_kind)sfk_destructor)) {
         implicit_rethrow = TRUE;
       } else {
         implicit_return = TRUE;
