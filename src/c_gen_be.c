@@ -6544,9 +6544,6 @@ if this routine has a body (dump nothing if it has no body).
 */
 {
   a_boolean       has_defn = (rout->assoc_scope != NULL_region_number
-#if INSTANTIATE_EXTERN_INLINE
-                              && !rout->suppress_inline_body
-#endif /* INSTANTIATE_EXTERN_INLINE */
 #if MAINTAIN_NEEDED_FLAGS
                               && rout->definition_needed
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -6554,6 +6551,19 @@ if this routine has a body (dump nothing if it has no body).
   a_boolean       is_definition;
   a_storage_class storage_class = rout->storage_class;
 
+  if (rout->suppress_inline_body && has_defn) {
+    /* The body is present only to be used for inlining.  This happens
+       in C++ when INSTANTIATE_EXTERN_INLINE is enabled, and in C99
+       for "inline definitions".  Don't put out the body. */
+    has_defn = FALSE;
+#if GCC_IS_C_GEN_BE_TARGET
+    /* gcc has a way of indicating a function whose definition is
+       provided only for the purpose of inlining -- "extern inline".
+       Put out the definition in that case. */
+    has_defn = TRUE;
+    storage_class = (a_storage_class)sc_extern;
+#endif /* GCC_IS_C_GEN_BE_TARGET */
+  }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (has_defn && needed_flag_bit_number != 0 &&
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
