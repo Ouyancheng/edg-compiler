@@ -1,5 +1,11 @@
 Version 3.5
 
+5/11/04  Microsoft compatibility: const_cast as lvalue cast
+
+A variant of the issue dealt with in the entry of 5/1/04: MSVC++ 7.1
+allows a const_cast of a pointer type that doesn't really change the
+type to be used as an lvalue.
+
 5/11/04  Internal error on invalid destructor reference
 
 Version 3.4 introduced an internal error on a case that previously

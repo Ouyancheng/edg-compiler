@@ -8939,15 +8939,23 @@ Syntax:
     err = TRUE;
   }  /* if */
   if (microsoft_bugs &&
-      is_enum_type(cast_type) &&
       f_identical_types(f_skip_typerefs(operand.type),
                         f_skip_typerefs(cast_type),
                         ITF_NO_FLAGS)) {
-    /* MSVC++ (6.0, 7.0, and 7.1 at least) allows a cast to an enum type
-       in a const_cast. */
-    microsoft_enum_cast_case = TRUE;
-    pos_warning(ec_enum_const_cast, &start_position);
-    if (is_an_lvalue(&operand) &&
+    a_boolean do_lvalue_check = FALSE;
+    if (is_enum_type(cast_type)) {
+      /* MSVC++ (6.0, 7.0, and 7.1 at least) allows a cast to an enum type
+         in a const_cast. */
+      microsoft_enum_cast_case = TRUE;
+      do_lvalue_check = TRUE;
+      pos_warning(ec_enum_const_cast, &start_position);
+    } else if (is_pointer_type(cast_type)) {
+      /* A cast of a pointer type to the same type with possibly modified
+         cv-qualifiers is ignored and can leave an lvalue. */
+      do_lvalue_check = TRUE;
+    }  /* if */
+    if (do_lvalue_check &&
+        is_an_lvalue(&operand) &&
         !is_bit_field_operand(&operand)) {
       /* The cast is an lvalue cast (its result is also an lvalue). */
       microsoft_lvalue_cast_case = TRUE;
