@@ -1,5 +1,31 @@
 Version 3.5
 
+8/11/04 Internal error on friend function defined in a class template
+
+When compiling multiple translation units containing a class template with a
+friend function definition, the front end sometimes aborted with an internal
+error in trans_copy.c.  For example:
+
+  // File 1:
+  template<typename T> struct S {
+    friend void ff(S const&) {}
+  };
+  S<char> a ;
+
+  // File 2:
+  template<typename T> struct S {
+    friend void ff(S const&) {}
+  };
+  template<int N> struct X {
+    void f() { S<char> a; ff(a); }
+  };
+  void g() {
+    X<128> c;
+    c.f();
+  }
+
+This is now fixed.
+
 8/6/04  Cfront-like ABI: Performance of empty base class optimization
 
 In Cfront-like ABI configurations with TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT

@@ -3814,7 +3814,9 @@ This routine is called when the definition of the given routine has been
 instantiated.  Such an event may cause routine to become the canonical entry.
 (This routine may also be called for nontemplate compiler-generated class
 members that are being defined because they're referenced from a template
-instantiation.)
+instantiation.)  "Instantiation" is considered in a broad sense for this
+routine; in particular, friend functions defined in class templates are
+considered "instantiated" when their bodies have been scanned.
 */
 {
   if (trans_unit_corresp_of(routine) != NULL) {

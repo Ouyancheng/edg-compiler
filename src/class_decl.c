@@ -1305,6 +1305,11 @@ instantiated.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Pop the reactivated class scope from the scope stack. */
   pop_class_reactivation_scope();
+  if (secondary_translation_unit_seen()) {
+    /* The fact that the function now has a definition may make it the
+       canonical entry when dealing with multiple translation units. */
+    establish_function_instantiation_corresp(rp);
+  }  /* if */
   db_exit();
 }  /* deferred_friend_function_fixup */
 
