@@ -348,6 +348,7 @@ possible.
 #endif /* EXPENSIVE_CHECKING */
 #if DEBUG
     case pk_db_opt:
+    case pk_db_name:
       break;
 #endif /* DEBUG */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
@@ -1314,6 +1315,33 @@ pragma argument as if it were a debug option specified on the command-line.
   }  /* if */
 }  /* db_opt_pragma */
 
+static void db_name_pragma(a_pending_pragma_ptr	ppp)
+/*
+The routine called when a db_name pragma is encountered.  Process the
+pragma argument as if it were a debug option specified on the command-line.
+*/
+{
+  if (!db_active) {
+    /* In order for the db_name pragma to be used a debug option must have
+       been specified on the command-line.  This is needed because
+       db_active cannot be set TRUE in the middle of a compilation. */
+    pos_error(ec_db_option_required_on_cmd_line, &ppp->pragma_position);
+  } else {
+    char	*debug_arg = ppp->pragma_text;
+    /* Skip past the debug pragma name. */
+    debug_arg = strchr(debug_arg, ' ');
+    if (debug_arg != NULL) {
+      char	*arg_copy;
+      /* Skip past the blank. */
+      debug_arg++;
+      /* Make a copy of the argument. */
+      arg_copy = alloc_general((sizeof_t)(strlen(debug_arg) + 1));
+      (void)strcpy(arg_copy, debug_arg);
+      (void)proc_debug_name_option(arg_copy);
+    }  /* if */
+  }  /* if */
+}  /* db_name_pragma */
+
 #endif /* DEBUG */
 
 #if INCLUDE_EDG_TEST_PRAGMAS
@@ -1652,6 +1680,18 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_db_opt,
                  (an_immediate_pragma_function_ptr)db_opt_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*make_text_not_tokens=*/TRUE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+                 es_error);
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_db_name,
+                 (an_immediate_pragma_function_ptr)db_name_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,

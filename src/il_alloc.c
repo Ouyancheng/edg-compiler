@@ -2569,6 +2569,7 @@ pointer to it.
 #endif /* EXPENSIVE_CHECKING */
 #if DEBUG
     case pk_db_opt:
+    case pk_db_name:
       break;
 #endif /* DEBUG */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL

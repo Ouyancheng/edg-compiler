@@ -2822,6 +2822,7 @@ enum a_pragma_kind_tag {
 #endif /* EXPENSIVE_CHECKING */
 #if DEBUG
   pk_db_opt,		/* Used to specify a debugging option string. */
+  pk_db_name,		/* Used to specify a debug entity name. */
 #endif /* DEBUG */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   pk_unrecognized,	/* This pragma kind is used for pragmas that are
@@ -2888,6 +2889,7 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #endif /* EXPENSIVE_CHECKING */
 #if DEBUG
 /* pk_db_opt */			"db_opt",
+/* pk_db_name */		"db_name",
 #endif /* DEBUG */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 /* pk_unrecognized */		"unrecognized",

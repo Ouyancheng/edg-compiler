@@ -342,13 +342,14 @@ fill a program-address-based table of cleanup states, the omission
 might be a problem.  The cleanup state instruction at the end is now
 generated in versions that have DO_FULL_PORTABLE_EH_LOWERING set to FALSE.
 
-11/12/01 db_opt pragma
+11/12/01 db_opt and db_name pragmas
 
-A pragma has been added that can be used to specify debugging options as
-pragmas within a file being compiled.  This pragma is available only
+Pragmas have been added that can be used to specify debugging options as
+pragmas within a file being compiled.  These pragmas are available only
 when the front end is compiled with DEBUG enabled.  The argument to
-the pragma is the same string that would follow the "-d" of a debug
-command-line option.
+the db_opt pragma is the same string that would follow the "-d" of a debug
+command-line option.  The argument to the db_name pragma is the same string
+that would be used as an argument to the "--db_name" command line option.
 
 A mechanism to turn off a debug flag is now provided.  If the flag name
 is preceded by a "#", a previously set debug flag is cleared.
