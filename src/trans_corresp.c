@@ -1752,14 +1752,17 @@ is in fact valid.
         a_symbol_ptr  inst = tssp->variant.class_template.instantiations;
         /* First process the prototype instantiation. */
         match = verify_type_correspondence(proto);
-        if (match) {
-          /* Only check real instantiations if the prototype instantiation
-             matched. */
-          for (; inst != NULL; inst = next_instance_sym(inst)) {
-            a_type_ptr  inst_type = type_symbol_type(inst);
+        for (; inst != NULL; inst = next_instance_sym(inst)) {
+          a_type_ptr  inst_type = type_symbol_type(inst);
+          if (match) {
+            /* Only check real instantiations if the prototype instantiation
+               matched. */
             (void)verify_type_correspondence(inst_type);
-          }  /* for */
-        }  /* if */
+          } else {
+            /* Otherwise, just clear the correspondences. */
+            clear_class_type_correspondence(inst_type, /*visited=*/TRUE);
+          }  /* if */
+        }  /* for */
       }  /* if */
     } else if (templ_sym->kind == (a_symbol_kind)sk_function_template) {
       /* A function template.  Verify the instantiations (if any). */
@@ -2696,7 +2699,8 @@ and are handled elsewhere.
        be NULL.  It will also be NULL for nonprototype templates (the
        prototype instantiation is attached to the corresponding prototype
        template). */
-    if (proto_inst != NULL) {
+    if (proto_inst != NULL && 
+        tssp->variant.class_template.prototype_instantiation != NULL) {
       a_type_ptr    class_type = tssp
                               ->variant.class_template.prototype_instantiation
                               ->variant.class_struct_union.type;
