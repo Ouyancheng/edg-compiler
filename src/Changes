@@ -1,6 +1,6 @@
 Version 3.3
 
-7/8/03   IA-64 ABI name mangling: predefined substitutions in virtual
+7/16/03  IA-64 ABI name mangling: predefined substitutions in virtual
          function table names
 
 The name mangling for the IA-64 ABI failed to use the predefined
