@@ -4788,10 +4788,7 @@ done_with_operation:
       gen_variable_name(expr->variant.variable);
       break;
     case enk_routine_address:
-      if (need_parens) write_tok_ch('(');
-      gen_ampersand(expr->variant.routine->type);
       gen_routine_name(expr->variant.routine);
-      if (need_parens) write_tok_ch(')');
       break;
     case enk_throw:
       /* Throw. */
