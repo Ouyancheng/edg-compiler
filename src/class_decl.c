@@ -686,8 +686,10 @@ current class -- see ARM 10.3).  If it is, mark the class accordingly.
 */
 {
   a_base_class_ptr                    bcp;
+  a_class_type_supplement_ptr         bctsp;
   a_routine_ptr                       rp;
   an_overriding_virtual_function_ptr  ovfp;
+  a_boolean                           override_order_matches_routine_order;
 
   db_enter(4, "check_abstract_class");
   if (class_type->variant.class_struct_union.abstract) {
@@ -698,15 +700,20 @@ current class -- see ARM 10.3).  If it is, mark the class accordingly.
        classes to look for a pure virtual function that is inherited without
        an intervening declaration that overrides it. */
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-      if (bcp->type->variant.class_struct_union.abstract) {
-        /* This base class *is* abstract.  Go through its routines and look
-           for pure virtual functions.  At the same time, make a pass over
-           the list of virtual function override entries for this class;
-           each such entry will have a primary_function pointer referring to
-           one of the routines of the base class, and the list's order is
-           the same as that of the routines. */
-        rp = bcp->type->variant.class_struct_union.extra_info->
-                                                      assoc_scope->routines;
+      if (bcp->type->variant.class_struct_union.any_pure_virtual_functions) {
+        /* This base class *is* abstract, with at least one pure virtual
+           function.  For each of the base class's pure virtual functions,
+           inspect the appropriate virtual function function override list.
+           If the pure virtual function is not overridden (i.e., if no entry
+           on the override list points to it as the primary function) then
+           mark the current class as abstract.  We can optimize the search by
+           taking advantage of the fact that, unless bcp shares its virtual
+           function info with one of its own base classes, the override entries
+           and the routine entries will be in virtual-function-number order. */
+        bctsp = bcp->type->variant.class_struct_union.extra_info;
+        rp = bctsp->assoc_scope->routines;
+        override_order_matches_routine_order =
+                            (bctsp->virtual_function_info_base_class == NULL);
         ovfp = bcp->overriding_virtual_functions;
         for (; rp != NULL; rp = rp->next) {
           if (rp->pure_virtual) {
@@ -729,6 +736,11 @@ current class -- see ARM 10.3).  If it is, mark the class accordingly.
             }  /* if */
             /* An overriding virtual function was found, so the pure
                virtual function is not inherited. */
+            if (!override_order_matches_routine_order) {
+              /* Restart the search through the overriding virtual functions
+                 list at the head of the list. */
+              ovfp = bcp->overriding_virtual_functions;
+            }  /* if */
           }  /* if */
           /* Get the next routine on the list. */
         }  /* for */
@@ -3399,6 +3411,7 @@ and it is legal for virtual member functions only.
       /* Update the routine and class type enties. */
       rout_sym->variant.routine->pure_virtual = TRUE;
       class_type->variant.class_struct_union.abstract = TRUE;
+      class_type->variant.class_struct_union.any_pure_virtual_functions = TRUE;
     }  /* if */
     /* Advance past the "0". */
     (void)get_token();
