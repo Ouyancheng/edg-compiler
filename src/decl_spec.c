@@ -3200,9 +3200,9 @@ to indicate whether an enumeration is actually defined.
 #endif /* CHECKING */
     if (enum_types_can_be_smaller_than_int 
 #if GNU_EXTENSIONS_ALLOWED
-	|| enum_type->variant.integer.packed
+        || enum_type->variant.integer.packed
 #endif /* GNU_EXTENSIONS_ALLOWED */
-	) {
+                                            ) {
       if (!min_max_set || in_range_for_integer_kind(&min_value, &max_value,
                                                     plain_char_int_kind)) {
         /* "Plain" char. */
@@ -3271,6 +3271,17 @@ to indicate whether an enumeration is actually defined.
         enum_type->variant.integer.int_kind = largest_enum_int_kind;
       }  /* if */
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+    if (gcc_mode &&
+        in_range_for_integer_kind(
+             &min_value, &max_value,
+             unsigned_int_kind_of[(int)enum_type->variant.integer.int_kind])) {
+      /* GNU C prefers an unsigned underlying type if none of the enumerator
+         constants were negative. */
+      enum_type->variant.integer.int_kind =
+                unsigned_int_kind_of[(int)enum_type->variant.integer.int_kind];
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     /* Set the type size (based on the integral type it is mapped onto). */
     set_type_size(enum_type);
     if (!C_mode()) {
