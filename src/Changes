@@ -1,5 +1,16 @@
 Version 3.4
 
+1/9/04   GNU C mode: abort on incorrect array initializer
+
+The front end aborted on certain incorrect array initializers in
+GNU C mode.  The simplest such case involves an attempt to
+initialize an array to the value of another array:
+
+  char y[3];
+  char x[] = y;  // Aborted in gcc mode
+
+Now fixed.
+
 1/9/04   NEED_NAME_MANGLING without DO_IL_LOWERING
 
 Some minor changes have been made in fe_wrapup.c to support the

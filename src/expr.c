@@ -16222,6 +16222,9 @@ nonstandard class member constants.  Assumes copy-initialization
 {
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
+  a_boolean           array_case = FALSE;
+  a_boolean           string_literal_case = FALSE;
+  a_constant_ptr      string_con = NULL;
 
   db_enter(3, "scan_constant_initializer_expression");
 
@@ -16231,44 +16234,61 @@ nonstandard class member constants.  Assumes copy-initialization
                   /*suppress_object_lifetime=*/FALSE);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-  if (is_array_type(required_type) && is_array_type(result.type)) {
-    /* If the initializer is a string literal we will need access to the
-       string constant.  In GNU modes, this could also be an initialization
-       through a compound literal of array type. */
-    a_boolean  string_literal_case = is_string_type(result.type) &&
-                                  result.kind == (an_operand_kind)ok_constant;
-    a_constant_ptr  string_con = NULL;
-    if (string_literal_case) {
-      string_con = &result.variant.constant;
-      if (is_an_lvalue(&result)) {
-        /* The operand represents a &"..." form: strip the ck_address constant
-           to recover the plain string literal. */
-        check_assertion(string_con->kind == (a_constant_repr_kind)ck_address &&
-                        string_con->variant.address.kind ==
-                                           (an_address_base_kind)abk_constant);
-        string_con = string_con->variant.address.variant.constant;
+  if (gnu_mode && is_array_type(required_type) && is_array_type(result.type)) {
+    /* In GNU modes, an array can be initialized by a compound literal
+       of array type.  The normal string literal initialization case
+       comes here as well, whereas in other modes
+       process_string_constant_initializer is called before we get
+       here.  That's to allow parenthesized string literals as
+       initializers. */
+    array_case = TRUE;
+    if (is_an_lvalue(&result)) {
+      /* See if the initializer expression is a string literal. */
+      if (is_string_type(result.type) &&
+          is_constant_operand(&result)) {
+        string_con = &result.variant.constant;
+        if (string_con->kind == (a_constant_repr_kind)ck_address &&
+            string_con->variant.address.kind ==
+                                          (an_address_base_kind)abk_constant &&
+            string_con->variant.address.offset == 0) {
+          string_con = string_con->variant.address.variant.constant;
+          if (string_con->kind == (a_constant_repr_kind)ck_string) {
+            string_literal_case = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (!string_literal_case) {
+        /* The only lvalue that is acceptable is a string literal.  If
+           we have some other kind of lvalue, do the normal processing. */
+        array_case = FALSE;
       }  /* if */
     }  /* if */
-    check_assertion(gnu_mode || is_string_type(result.type));
-    if ((string_literal_case &&
-         ((gnu_mode && !is_string_type(required_type)) ||
-          !check_string_constant_initializer(&required_type, string_con))) ||
-        (!string_literal_case &&
-         !types_are_compatible(result.type, required_type))) {
-      pos_ty2_error(ec_bad_initializer_type, &result.position,
-                    result.type, required_type);
-      conv_to_error_operand(&result);
-    }  /* if */
-    /* Make a constant from the operand. */
-    if (is_an_lvalue(&result)) {
-      /* Use the previously computed string_con. */
-      check_assertion(string_literal_case);
-      copy_constant(string_con, constant);
+  }  /* if */
+  if (array_case) {
+    if (string_literal_case) {
+      /* Check type compatibility.  Note that when the required_type is
+         an unknown-bound array, the type is updated here to the proper
+         size array and then discarded.  The caller does the adjustment
+         of the variable type later. */
+      if (!is_string_type(required_type) ||
+          !check_string_constant_initializer(&required_type, string_con)) {
+        pos_ty2_error(ec_bad_initializer_type, &result.position,
+                      result.type, required_type);
+        set_error_constant(constant);
+      } else {
+        copy_constant(string_con, constant);
+      }  /* if */
     } else {
-      /* The operand could be a constant or an error. */
+      /* Not string literal case (compound literal). */
+      if (!types_are_compatible(result.type, required_type)) {
+        pos_ty2_error(ec_bad_initializer_type, &result.position,
+                      result.type, required_type);
+        conv_to_error_operand(&result);
+      }  /* if */
       extract_constant_from_operand(&result, constant);
     }  /* if */
   } else {
+    /* Not the array special case. */
     /* Convert to the required type. */
     prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
                              (a_conv_descr_ptr)NULL,
