@@ -1,5 +1,16 @@
 Version 2.34
 
+10/17/96 Incorrect warning on nonconstant shift by address cast to integral
+
+A shift operation with a nonconstant left operand and a right operand that
+is an address constant cast to an integral type gave an inappropriate
+and confusing warning.  Now fixed.
+
+  extern char addr[];
+  int shift1(int size) {
+    return size >> (unsigned int) addr;  // No warning now
+  }
+
 10/16/96 Object lifetime on initialization of local static variable
 
 An object lifetime was sometimes generated for the initialization of a
