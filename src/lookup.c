@@ -3556,20 +3556,37 @@ is set to NULL.
     slep->next = symbol_list;
     symbol_list = slep;
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("argument_dependent_lookup")) {
+    int	i;
+    fprintf(f_debug, "argument_dependent_lookup:\n");
+    for (i = 0, slep = symbol_list; slep != NULL; slep = slep->next, i++) {
+      a_boolean		is_list;
+      a_symbol_ptr	sym = slep->symbol;
+      fprintf(f_debug, "  symbol list %d:", i);
+      db_symbol(sym, "", 2);
+      is_list = (sym->kind == (a_symbol_kind)sk_overloaded_function);
+      if (is_list) sym = sym->variant.overloaded_function.symbols;
+      for (; sym != NULL; sym = (is_list ? sym->next : NULL)) {
+        a_symbol_ptr	fund_sym;
+        if (is_list) db_symbol(sym, "", 4);
+        fund_sym = fundamental_symbol_of(sym);
+        if (sym != fund_sym) db_symbol(fund_sym, "  fund_sym:", 4);
+        if (is_list) fprintf(f_debug, "\n");
+      }  /* for */
+    }  /* for */
+    for (i = 0, tlep = class_list; tlep != NULL; tlep = tlep->next, i++) {
+      fprintf(f_debug, "class list %d: ", i);
+      db_type_name(tlep->type);
+      fprintf(f_debug, "\n");
+    }  /* for */
+  }  /* if */
+#endif /* DEBUG */
   /* Free the lists used to create the symbol list. */
   free_list_of_type_list_entries(*type_list);
   free_list_of_namespace_list_entries(namespace_list);
   free_list_of_type_list_entries(class_list);
   *type_list = NULL;
-#if DEBUG
-  if (db_flag_is_set("argument_dependent_lookup")) {
-    fprintf(f_debug, "argument_dependent_lookup:\n");
-    for (slep = symbol_list; slep != NULL; slep = slep->next) {
-      fprintf(f_debug, "  ");
-      db_symbol(slep->symbol, "", 2);
-    }  /* for */
-  }  /* if */
-#endif /* DEBUG */
   return symbol_list;
 }  /* argument_dependent_lookup */
 
