@@ -1002,6 +1002,7 @@ to the declaration information for the template declaration scope being pushed.
   ssep->class_def_state          = NULL;
   ssep->names_hidden_by_old_for_init = NULL;
   ssep->tmpl_decl_state		 = NULL;
+  ssep->pending_templ_arg_lists  = 0;
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);

@@ -1,5 +1,18 @@
 Version 2.35
 
+2/12/97 Improved diagnostic when ">>" is used to terminate two template
+        argument lists
+
+A special diagnostic is now issued when ">>" is used to close two
+template argument lists where "> >" is required.  Note that the
+special diagnostic can only be issued when the last template argument
+is a type argument.  When it is a nontype argument, the ">>" is
+considered to be a right shift operator.
+
+  template <class T> struct A {};
+  template <class T> struct B {};
+  A<B<int>> ab;
+
 2/11/97 Nontype template parameter of type "reference to function"
 
 A nontype template parameter with a type of "reference to function" was

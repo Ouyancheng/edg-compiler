@@ -7204,7 +7204,7 @@ Flush tokens in an argument list.
 
 
 static
-a_template_arg_ptr scan_nonreal_member_template_arg_list(a_boolean *any_errors)
+a_template_arg_ptr scan_nonreal_member_template_arg_list(void)
 /*
 The template is a member of a proxy or nonreal class.  This occurs
 as a result of constructs like T::A<int>.  In such cases there is
@@ -7213,9 +7213,6 @@ arguments that are scanned.
 
 For each argument, determine whether it is a type or nontype.  This is
 done using the disambiguation routines.
-
-any_errors is set to TRUE if any errors are detected by this routine.
-Its value is unchanged if no errors are detected.
 */
 {
   a_template_arg_ptr              arg_ptr;
@@ -7251,12 +7248,6 @@ Its value is unchanged if no errors are detected.
     last_arg = arg_ptr;
     remove_stop_token(tok_comma);
   } while (loop_token(tok_comma));
-  if (curr_token != tok_gt) {
-    /* We should have been at the end of the template argument list. */
-    pos_error(ec_exp_gt, &pos_curr_token);
-    flush_to_end_of_arg_list();
-    *any_errors = TRUE;
-  }  /* if */
   return arg_list;
 }  /* scan_nonreal_member_template_arg_list */
 
@@ -7545,6 +7536,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
   (void)get_token();
   /* Get token following opening angle bracket. */
   (void)get_token();
+  /* Increment the number of template argument lists that are being scanned. */
+  scope_stack[depth_scope_stack].pending_templ_arg_lists++;
   if (template_sym != NULL &&
       !template_sym->variant.template_info->is_nonreal_member) {
     /* Scan the template argument list. */
@@ -7557,7 +7550,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
        have been supplied.  This kind of scan is also done when there
        is no template symbol, which happens if an undefined symbol is
        followed by a template argument list. */
-    arg_list = scan_nonreal_member_template_arg_list(&any_errors);
+    arg_list = scan_nonreal_member_template_arg_list();
   }  /* if */
   arg_list_processed = TRUE;
   /* We should now be at the closing angle bracket.  Note that we don't
@@ -7566,9 +7559,29 @@ a routine to lookup the appropriate instance (or generate one if needed).
      found template class symbol. */
   set_err_pos_to_curr_token();
   if (curr_token != tok_gt) {
-    if (!any_errors) syntax_error(ec_exp_gt);
+    if (!any_errors) {
+      if (curr_token == tok_shift_right &&
+          scope_stack[depth_scope_stack].pending_templ_arg_lists > 1) {
+        /* Special error handling for the case when a ">>" appears where a
+           ">" was expected, and there is currently more than one template
+           argument list in the process of being scanned in the current
+           scope.  Issue a special diagnostic for this case and insert a
+           ">" into the token stream that will close the outer template
+           argument list. */
+        a_token_cache 	cache;
+        error(ec_exp_gt_not_shift_right);
+        clear_token_cache(&cache, /*reusable=*/FALSE);
+        curr_token = tok_gt;
+        cache_curr_token(&cache);
+        rescan_cached_tokens(&cache);
+      } else {
+        syntax_error(ec_exp_gt);
+      }  /* if */
+    }  /* if */
     any_errors = TRUE;
   }  /* if */
+  /* Decrement the number of template argument lists that are being scanned. */
+  scope_stack[depth_scope_stack].pending_templ_arg_lists--;
   if (!any_errors && template_sym != NULL) {
     /* Everything is OK -- find the instance that matches these arguments.
        Create a new instance if needed.  There can be two instances

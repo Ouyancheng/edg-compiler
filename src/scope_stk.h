@@ -643,6 +643,13 @@ typedef struct a_scope_stack_entry {
 			/* For template declaration scopes, points to the
 			   entry used to record information about the
 			   current template declaration. */
+  unsigned long
+		pending_templ_arg_lists;
+			/* The number of template argument lists that are
+			   currently in the process of being scanned.
+			   In other words, the number of opening "<" delimiters
+			   that have been seen without matching closing ">"
+			   delimiters. */
 } a_scope_stack_entry;
 
 /*
