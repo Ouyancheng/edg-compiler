@@ -1799,6 +1799,7 @@ Free all memory used by the compilation.  This must be called at the
 very end of processing.
 */
 {
+#if !STANDALONE_UTILITY_PROGRAM
 #if USE_MMAP_FOR_MEMORY_REGIONS
   if (mmap_initialized) {
     /* If a memory mapped temporary file was created, close it now. */
@@ -1806,6 +1807,7 @@ very end of processing.
   }  /* if */
   free_mapped_mem_blocks();
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
   free_text_buffers();
   free_general_memory(&memory_allocation_list);
   free_general_memory(&resizable_memory_allocation_list);
