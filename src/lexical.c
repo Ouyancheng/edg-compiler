@@ -4874,7 +4874,7 @@ This routine cannot be used when fetching raw preprocessing tokens.
      and fetch the next token using the slower method. */
   if (ctp != NULL && ctp->token != (a_token_kind)tok_end_of_source) {
     /* There is a cached token from which we can get then token kind. */
-    ntoken = ctp->token;
+    ntoken = (a_token_kind)ctp->token;
   } else {
     /* Put the current token into a token cache so it can be rescanned. */
     clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -4936,8 +4936,8 @@ cannot be used when fetching raw preprocessing tokens.
       ctp->next != NULL &&
       ctp->next->token != (a_token_kind)tok_end_of_source) {
     /* There is a cached token from which we can get then token kind. */
-    ntoken = ctp->token;
-    *token_2 = ctp->next->token;
+    ntoken = (a_token_kind)ctp->token;
+    *token_2 = (a_token_kind)ctp->next->token;
   } else {
     /* Put the current token into a token cache so it can be rescanned. */
     clear_token_cache(&cache, /*reusable=*/FALSE);
