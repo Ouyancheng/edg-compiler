@@ -537,7 +537,7 @@ Do the output in the way described by octl.
     /* Suppress "const" in the output of the C-generating back end. */
     if (octl->c_generating_back_end) qualifiers &= ~TQ_CONST;
 #endif /* SUPPRESS_CONST_IN_GENERATED_C */
-    output_qualifier(TQ_CONST, "const");
+    output_qualifier(TQ_CONST, "const"); /*lint !e540*/
     output_qualifier(TQ_VOLATILE, "volatile");
 #if RESTRICT_ALLOWED
 #if SUPPRESS_RESTRICT_IN_GENERATED_CODE
@@ -1420,8 +1420,8 @@ precedence confusion.  Do the output in the way described by octl.
         ikind == (an_integer_kind)ik_unsigned_long) {
       output_partial_token_str("L", octl);
 #if LONG_LONG_ALLOWED
-   } else if (ikind == (an_integer_kind)ik_long_long ||
-              ikind == (an_integer_kind)ik_unsigned_long_long) {
+    } else if (ikind == (an_integer_kind)ik_long_long ||
+               ikind == (an_integer_kind)ik_unsigned_long_long) {
       if (microsoft_mode) {
         output_partial_token_str("i64", octl);
       } else {
@@ -2407,7 +2407,9 @@ confusion.  Do the output in the way described by octl.
       } else
 #endif /* DEBUG */
       /* Do not insert code here.  This is the else of an "if". */
-      unexpected_condition_str("form_constant: constant with null type");
+      {
+        unexpected_condition_str("form_constant: constant with null type");
+      }
     }  /* if */
 #endif /* CHECKING */
   } else {
