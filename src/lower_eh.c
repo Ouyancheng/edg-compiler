@@ -203,6 +203,23 @@ all denote the same type.  type must be an externally-linked class type.
 }  /* make_id_object_var */
 
 
+static a_type_ptr array_of(a_type_ptr elem_type)
+/*
+Make an array type whose elements have type elem_type, and return a pointer
+to it.  The array is given size [0]; it's assumed that will be changed.
+It's also assumed that set_type_size will be called later (e.g., from
+finish_array_var).
+*/
+{
+  a_type_ptr array_type = alloc_type((a_type_kind)tk_array);
+
+  array_type->variant.array.variant.number_of_elements = 0; /* Initially. */
+  array_type->variant.array.element_type = elem_type;
+  /* set_type_size is not called yet. */
+  return array_type;
+}  /* array_of */
+
+
 static a_variable_ptr make_unnamed_local_array_var(a_type_ptr elem_type)
 /*
 Create an unnamed local (auto) variable whose type is an array of elem_type,
@@ -212,18 +229,20 @@ sometime later to set the size on the type.  The variable is put in the
 current function scope even if the current context is a block inside that.
 */
 {
-  a_variable_ptr var;
-  a_type_ptr     array_type;
-
-  /* Make a type that is an array of elem_type. */
-  array_type = alloc_type((a_type_kind)tk_array);
-  array_type->variant.array.variant.number_of_elements = 0; /* Initially. */
-  array_type->variant.array.element_type = elem_type;
-  /* set_type_size is not called yet. */
-  /* Make the variable.  It is unnamed and automatic. */
-  var = make_function_scope_temporary(array_type);
-  return var;
+  return make_function_scope_temporary(array_of(elem_type));
 }  /* make_unnamed_local_array_var */
+
+
+static a_variable_ptr make_unnamed_file_scope_array_var(a_type_ptr elem_type)
+/*
+Create an unnamed file-scope variable whose type is an array of elem_type,
+and return a pointer to the variable.  The array size is begun as [0] and
+will be adjusted as elements are added.  finish_array_var must be called
+sometime later to set the size on the type.
+*/
+{
+  return make_file_scope_temporary(array_of(elem_type));
+}  /* make_unnamed_file_scope_array_var */
 
 
 static a_variable_ptr make_unnamed_local_static_array_var(
@@ -238,20 +257,9 @@ put the variable in the function scope instead of the current scope
 (which might be a block scope).
 */
 {
-  a_variable_ptr var;
-  a_type_ptr     array_type;
-
-  /* The current region is already the file scope memory region when
-     this routine is called. */
-  check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
-  /* Make a type that is an array of elem_type. */
-  array_type = alloc_type((a_type_kind)tk_array);
-  array_type->variant.array.variant.number_of_elements = 0; /* Initially. */
-  array_type->variant.array.element_type = elem_type;
-  /* set_type_size is not called yet. */
   /* Make the variable.  It is unnamed and static. */
-  var = make_unnamed_local_static_variable(array_type, in_function_scope);
-  return var;
+  return make_unnamed_local_static_variable(array_of(elem_type),
+                                            in_function_scope);
 }  /* make_unnamed_local_static_array_var */
 
 
@@ -274,6 +282,7 @@ scope (which might be a block scope).
 
   /* The current region is already the file scope memory region when
      this routine is called. */
+  check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
   /* Make the variable with an array type. */
   var = make_unnamed_local_static_array_var(elem_type, in_function_scope);
   /* The initial value is an aggregate constant pointing to a list of
@@ -416,10 +425,7 @@ This is used as part of the typeinfo information.
   /* make_init_unnamed_local_static_array_var cannot be used because we
      want the variable always to be in the file scope. */
   /* Make the array type. */
-  array_type = alloc_type((a_type_kind)tk_array);
-  array_type->variant.array.variant.number_of_elements = 0; /* Initially. */
-  array_type->variant.array.element_type = make_base_class_spec_type();
-  /* set_type_size is not called yet. */
+  array_type = array_of(make_base_class_spec_type());
   /* Make the variable.  It is unnamed and static and in the file scope. */
   bc_var = make_file_scope_temporary(array_type);
   /* The initial value is an aggregate constant pointing to a list of
@@ -1210,8 +1216,17 @@ object address array to the address of the object.
      file scope memory region at this point. */
   /* Make the variable if it has not yet been made. */
   if (object_addr_table_var == NULL) {
-    /* The variable is an auto array whose elements have type "void *". */
-    object_addr_table_var = make_unnamed_local_array_var(void_star_type());
+    /* The variable is an array whose elements have type "void *". */
+    a_type_ptr elem_type = void_star_type();
+    if (processing_file_scope_init_routine) {
+      /* This table is for the file-scope initialization routine (and is
+         shared with the file-scope termination routine), so make it
+         static. */
+      object_addr_table_var = make_unnamed_file_scope_array_var(elem_type);
+    } else {
+      /* Normal case.  The variable is an auto array. */
+      object_addr_table_var = make_unnamed_local_array_var(elem_type);
+    }  /* if */
   }  /* if */
   /* Add an element to the object address table array. */
   entry_number = incr_nelems_of_array_var(object_addr_table_var);
@@ -2342,16 +2357,21 @@ Do IL lowering for an stmk_try_block statement.
 }  /* lower_try_block */
 
 
-void eh_function_lower_init(void)
+void eh_function_lower_init(a_boolean file_scope_term_routine)
 /*
 Initialize static variables needed on a per-function basis for
-IL lowering for exceptions.
+IL lowering for exceptions.  If file_scope_term_routine is TRUE, the function
+is the file-scope termination routine, for which only partial initialization
+is done (the routine acts like the second half of the file-scope initialization
+routine).
 */
 {
-  object_addr_table_var = NULL;
-  array_table_var = NULL;
-  region_table_var = NULL;
-  next_region_number = 0;
+  if (!file_scope_term_routine) {
+    object_addr_table_var = NULL;
+    array_table_var = NULL;
+    region_table_var = NULL;
+    next_region_number = 0;
+  }  /* if */
   any_try_blocks_in_function = FALSE;
   last_destructor_wrapper_cleanup_region_prev_region_constant = NULL;
   destructor_wrapper_region_set_fixup_needed = FALSE;
