@@ -13939,8 +13939,11 @@ next_declaration:
            which delayed processing for default argument declarations and
            inline member function definitions must be done.  The actual
            processing will be done when all pending class definitions have
-           been completed. */
-        add_to_class_fixup_list(class_type, is_template_instantiation);
+           been completed.  Microsoft nonreal instantiations do not have
+           fixups done on them. */
+        if (!is_microsoft_nonreal_instantiation(tag_sym)) {
+          add_to_class_fixup_list(class_type, is_template_instantiation);
+        }  /* if */
       }  /* if */
       curr_routine_fixup = saved_routine_fixup;
       if (class_type->variant.class_struct_union.is_prototype_instantiation &&
