@@ -1,5 +1,11 @@
 Version 2.24
 
+6/24/94 f().i is, once again, an rvalue
+
+Undoing a change of 5/4/93, f().i is once again an rvalue.  This had been
+changed because the standards committee seemed to be reaching consensus
+that f().i is an lvalue, but then it went the other way.
+
 6/24/94 IL CHANGE: definition_put_out removed
 
 The field definition_put_out, which was used only by the C++-generating

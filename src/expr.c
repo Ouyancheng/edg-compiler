@@ -1835,14 +1835,6 @@ The result is placed in *result.
                                                       class_struct_union_type);
     }  /* if */
     rvalue_selection = (!is_arrow_operator && is_an_rvalue(operand_1));
-    if (rvalue_selection && C_dialect == C_dialect_cplusplus &&
-        !any_cfront_mode()) {
-      /* In C++, a member selected from an rvalue is an lvalue (ARM 5.2.4).
-         If the selector is an rvalue, turn it back into an lvalue. */
-      conv_class_operand_to_object_pointer(operand_1);
-      is_arrow_operator = TRUE;
-      rvalue_selection = FALSE;
-    }  /* if */
     /* The operator is eok_value_field if the left operand is an rvalue and
        the selection was via the dot operator; otherwise it's the eok_field
        operator.  Note that in both the "lvalue . field" case and the
