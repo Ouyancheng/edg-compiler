@@ -542,9 +542,9 @@ allocated in the file scope memory region.
         offset = bcp->offset;
       }  /* if */
       offset_con = alloc_constant((a_constant_repr_kind)ck_integer);
-      set_unsigned_integer_constant_with_overflow_check(offset_con,
-                                                        (unsigned long)offset,
-                                                        TARG_DELTA_INT_KIND);
+      set_integer_constant_with_overflow_check(offset_con,
+                                               (long)offset,
+                                               TARG_DELTA_INT_KIND);
       /* Make the flags constant. */
       flags_con = alloc_constant((a_constant_repr_kind)ck_integer);
       set_unsigned_integer_constant(flags_con, flags_value,
