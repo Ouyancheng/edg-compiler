@@ -4399,8 +4399,11 @@ nonidentical.
                   /* eq = FALSE; -- already set. */
                 } else {
                   /* Compare the uuid strings. */
-                  eq = strcmp(uuid_string_of_type(uuid_type1),
-                              uuid_string_of_type(uuid_type2)) == 0;
+                  char *string1 = uuid_string_of_type(uuid_type1);
+                  char *string2 = uuid_string_of_type(uuid_type2);
+                  eq = (string1 == string2) ||
+                       (string1 != NULL && string2 != NULL &&
+                        strcmp(string1, string2) == 0);
                 }  /* if */
               }
               break;
