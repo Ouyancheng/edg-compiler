@@ -64,6 +64,7 @@ Flags to be set when using the KAI inliner.
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_LONG
 #define TARG_WCHAR_T_INT_KIND ik_unsigned_long 
 #define USE_INIT_SECTION_IN_GENERATED_C 1
+#define LONG_LONG_ALLOWED 1  /* Since gcc is used to compile output. */
 #else /* !defined(SOLARIS) */
 /* SunOS version. */
 #ifndef C_GEN_BE_GENERATES_ANSI_C
@@ -118,6 +119,7 @@ Flags to be set when using the KAI inliner.
 #define DEFAULT_REMOVE_UNNEEDED_ENTITIES 1
 #endif /* MAINTAIN_NEEDED_FLAGS */
 #endif /* ifndef DEFAULT_REMOVE_UNNEEDED_ENTITIES */
+#define ASM_FUNCTION_ALLOWED 1
 
 #endif /* !defined(OPTIMIZED_VERSION) */
 
