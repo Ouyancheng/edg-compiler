@@ -11813,7 +11813,7 @@ a_field_ptr transparent_union_conversion_possible(
                                             an_error_code    incompatible_err,
                                             a_std_conv_descr *std_conv)
 /*
-Return TRUE if it is okay to implicitly convert source_operand to any
+Return non-NULL if it is okay to implicitly convert source_operand to any
 of the fields of union_type (which must be a union).  This is the
 condition GCC uses for casting to a union and for passing a transparent
 union parameter.  If it is okay, *std_conv is set to describe the
@@ -11837,16 +11837,9 @@ issued.
                                        : (a_constant_ptr)NULL;
   for (f = union_type->variant.class_struct_union.field_list;
        f != NULL; f = f->next) {
-    /* Try every field type in turn. */
-    if (impl_conversion_possible(source_type,
-                                 source_is_constant,
-                                 source_is_string,
-                                 source_constant,
-                                 f->type,
-                                 /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                 /*suppress_extensions=*/FALSE,
-                                 incompatible_err,
-                                 std_conv)) {
+    /* Try every field type in turn.  Note that a more-or-less exact type
+       match is required, not a conversion. */
+    if (interchangeable_types(source_type, f->type)) {
       /* source_operand can be converted to the type of this member. */
       break;
     } /* if */
