@@ -5841,10 +5841,21 @@ its source correspondence entry, if any, has been put out.)
           err = TRUE;
       }  /* switch */
       if (!err) {
-	/* Give it a name, etc.  Note that the class-of-which-a-member field
-	   should not be set, since the parent class of a member function or
-	   static data member template is generally not a real class. */
+	/* Give it a name, etc. */
 	set_source_corresp(&il_template_entry->source_corresp, sym);
+        /* Set parent information in the IL entry. */
+        if (sym->is_class_member) {
+          if (!(symbol_supplement_for_class(sym->parent.class_type))->
+                                                         is_nonreal_class) {
+            set_class_membership((a_symbol_ptr)NULL,
+                                 &il_template_entry->source_corresp,
+                                 sym->parent.class_type);
+          }  /* if */
+        } else if (sym->parent.namespace_ptr != NULL) {
+          set_namespace_membership((a_symbol_ptr)NULL,
+                                   &il_template_entry->source_corresp,
+                                   sym->parent.namespace_ptr);
+        }  /* if */
 	/* Create the string that represents the template declaration. */
 	make_template_string(il_template_entry, template_param_list_cache,
 			     decl_token_cache, p_template_body_cache);
@@ -6712,6 +6723,12 @@ any non-empty template parameter lists that were scanned.
                                  &decl_state->decl_token_cache,
                                  &decl_state->param_list_cache,
                                  p_template_body_cache);
+      /* If this is a template definition or the initial declaration, update
+         the template symbol supplement to point to the IL entry . */
+      if (tssp != NULL &&
+          (decl_state->defines_something || tssp->il_template_entry == NULL)) {
+        tssp->il_template_entry = decl_state->il_template_entry;
+      }  /* if */
     }  /* if */
 #endif /* RECORD_TEMPLATES_IN_IL */
     /* The cache for the template parameter list is no longer needed. */
