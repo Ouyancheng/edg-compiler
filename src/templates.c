@@ -2497,6 +2497,78 @@ A pointer to the head of the list is returned in tcsp.
 }  /* instantiate_class_template */
 
 
+void function_prototype_instantiation(
+			a_symbol_ptr		template_sym)
+/*
+This routine is called to do a "prototype instantiation" of a function
+template or member function of a class template.
+
+This is done to detect those errors that can be diagnosed at template
+definition time and to record information about nondependent calls for
+user later during real instantiations.
+*/
+{
+  a_symbol_ptr                      rout_sym;
+  a_routine_ptr                     rout_ptr;
+  a_template_symbol_supplement_ptr  tssp;
+  a_template_cache_ptr		    tcp;
+  a_func_info_block		    *func_info_ptr;
+
+  db_enter(3, "function_prototype_instantiation");
+  tssp = template_supplement_for_symbol(template_sym);
+  rout_ptr = tssp->variant.function.routine;
+  rout_sym = (a_symbol_ptr)rout_ptr->source_corresp.assoc_info;
+  check_assertion(rout_sym != NULL);
+  func_info_ptr = func_info_for_template(tssp);
+  /* Push the template instantiation scope. */
+  tcp = cache_for_template(tssp);
+  /* For member functions that are not member templates the argument
+     list comes from the enclosing class that is reactivated by
+     push_template_instantiation_scope and the value from the routine
+     entry (which should be NULL) is not used. */
+  push_template_instantiation_scope(tcp->decl_info,
+				    (a_type_ptr)NULL, rout_ptr,
+				    rout_sym, template_sym,
+				    rout_ptr->template_arg_list,
+                                    /*push_stop_tokens=*/TRUE, PS_NO_OPTIONS);
+  /* Reactivate any pragmas that should be bound to the generated
+     instance. */
+  reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
+  /* If a lint-style "argsused" or "varargs" comment appeared, record that in
+     the function type.  That will suppress any warnings about unused
+     parameters or variable arguments.  Note that this is done before calling
+     process_curr_construct_pragmas; otherwise the pragmas we're interested
+     in would have been disposed of. */
+  record_lint_argsused_and_varargs_state(rout_sym);
+  if (!exceptions_enabled && !func_info_ptr->is_inline &&
+      func_info_ptr->throw_position.seq != 0) {
+    /* Issue a diagnostic on attempting to define a noninline function with
+       an exception specification when exception support is not enabled.
+       (No diagnostic is issued on nondefinition -- the exception
+       specification is just ignored.) */
+    pos_error(ec_no_exception_support,
+              &func_info_ptr->throw_position);
+  }  /* if */
+  /* Reactivate the tokens comprising the function body and scan them. */
+  rescan_reusable_cache(&tcp->tokens);
+  scan_function_body(rout_ptr, func_info_ptr,
+                     (SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
+                      SFB_IS_INSTANTIATION |
+                      SFB_PRAGMA_PACK_IS_LOCAL));
+  /* scan_function_body does not scan past the right brace. */
+  if (curr_token == tok_rbrace) (void)get_token();
+  /* Process any pragmas that are to be bound to this instance. */
+  process_curr_construct_pragmas(rout_sym, (a_statement_ptr)NULL);
+  /* Pop the template instantiation scope. */
+  pop_template_instantiation_scope();
+  /* In the normal case the current token should be end_of_source, which was
+     inserted to mark the end of the cached token stream. If necessary, keep
+     flushing until end-of-source is found. */
+  flush_past_token_cache_terminator();
+  db_exit();
+}  /* function_prototype_instantiation */
+
+
 static void check_for_definition_in_friend_declaration(
                             a_template_symbol_supplement_ptr tssp,
 			    a_routine_ptr                    rout_ptr)
@@ -7973,7 +8045,7 @@ sure it matches the primary template.
 }  /* add_partial_specialization */
 
 
-static a_template_arg_ptr create_prototype_arg_list(
+a_template_arg_ptr create_prototype_arg_list(
 			a_template_param_ptr	templ_param_list)
 /*
 Build the template argument list for the prototype instantiation
@@ -11584,6 +11656,12 @@ any non-empty template parameter lists that were scanned.
 		                                              prototype_type);
         }  /* if */
       }  /* if */
+    }  /* if */
+  } else if (nonclass_prototype_instantiations &&
+             is_function_or_template_symbol(sym)) {
+    /* Do the prototype instantiation of the function. */
+    if (!decl_state->decl_scope_err && decl_state->defines_something) {
+      function_prototype_instantiation(sym);
     }  /* if */
   }  /* if */
   /* Extract the bodies of any member functions, nested classes, or

@@ -2590,6 +2590,11 @@ extern a_symbol_ptr make_projection_symbol(a_symbol_ptr      progenitor_sym,
                                            a_derivation_step *path,
                                            a_boolean         ambiguous);
 
+extern a_symbol_ptr make_function_template_prototype_symbol(
+				a_symbol_ptr		template_sym,
+				a_routine_ptr		rout_ptr,
+				a_template_param_ptr	templ_param_list);
+
 extern a_symbol_ptr make_template_class_symbol(a_symbol_ptr  ct_symbol);
 
 extern

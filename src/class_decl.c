@@ -1365,6 +1365,10 @@ nested class.
              free_routine_fixup is called. */
           tssp->variant.function.func_info = rfp->func_info;
           rfp->func_info.param_id_list = NULL;
+          if (nonclass_prototype_instantiations) {
+            /* Do the prototype instantiation of the member function body. */
+            function_prototype_instantiation(sym);
+          }  /* if */
         } else {
           /* Normal case. */
           a_routine_ptr  rp = rfp->symbol->variant.routine.ptr;
@@ -6209,6 +6213,7 @@ declared member functions.
     tip->instance_sym = tip->template_sym = sym;
     tip->template_info = tssp = alloc_template_symbol_supplement(sym->kind);
     tssp->variant.function.routine = rtn;
+    rtn->is_prototype_instantiation = TRUE;
     tip->prototype_scope_symbols = func_info->prototype_scope_symbols;
   }  /* if */
   if (!is_error_locator(*locator)) {

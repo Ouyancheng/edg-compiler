@@ -850,6 +850,14 @@ Initialize the option information table.
                          "no_sun",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_dependent_name_processing,
+                         "dep_name",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_dependent_name_processing,
+                         "no_dep_name",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1279,6 +1287,9 @@ by a command line option.
     if (!option_kind_used[(int)optk_friend_injection]) {
       friend_injection_enabled = TRUE;
     }  /* if */
+    if (!option_kind_used[(int)optk_dependent_name_processing]) {
+      do_dependent_name_processing = FALSE;
+    }  /* if */
     if (!option_kind_used[(int)optk_nonstandard_using_decl]) {
       nonstandard_using_decl_allowed = FALSE;
     }  /* if */
@@ -1459,6 +1470,9 @@ setting is used, and to set various unmentioned settings as needed.
   }  /* if */
   if (option_kind_used[(int)optk_friend_injection]) {
     command_line_error(ec_cl_friend_injection_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_dependent_name_processing]) {
+    command_line_error(ec_cl_dep_name_option_only_in_cplusplus);
   }  /* if */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (option_kind_used[(int)optk_one_instantiation_per_object]) {
@@ -1777,6 +1791,11 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       /* If friend injection was not explicitly set by a command line
          option, set it now. */
       friend_injection_enabled = FALSE;
+    }  /* if */
+    if (!(option_kind_used[(int)optk_dependent_name_processing])) {
+      /* If dependent name processing was not explicitly set by a command line
+         option, set it now. */
+      do_dependent_name_processing = FALSE;
     }  /* if */
     if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
       /* If nonstandard using-decl was not explicitly set by a command line
@@ -2680,6 +2699,10 @@ enable_microsoft_mode:
         /* Enable various extensions/bugs of the Sun CC 5.0 compiler. */
         sun_mode = opt_value;
         break;
+      case optk_dependent_name_processing:
+        /* Enable dependent name processing for templates. */
+        do_dependent_name_processing = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -2728,6 +2751,14 @@ enable_microsoft_mode:
       command_line_error(ec_cl_import_only_in_microsoft);
     }  /* if */
   }  /* if */
+  /* Do nonclass prototype instantiations when dependent name processing
+     is being done. */
+#ifdef DO_NONCLASS_PROTOTYPE_INSTANTIATIONS
+  nonclass_prototype_instantiations = do_dependent_name_processing;
+#else
+  /* FIXME -- temporarily disable nonclass prototype instantiations. */
+  nonclass_prototype_instantiations = FALSE;
+#endif
   /* If no directory was specified for #import, use the current directory. */
   if (import_dir_name == NULL) {
     import_dir_name = ".";

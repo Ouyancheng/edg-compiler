@@ -1495,6 +1495,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_template_function        = FALSE;
   rp->is_specialized              = FALSE;
   rp->specialized_with_old_syntax = FALSE;
+  rp->is_prototype_instantiation  = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   rp->declared_only_as_friend     = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

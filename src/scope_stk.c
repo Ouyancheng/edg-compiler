@@ -1354,6 +1354,10 @@ the scope being pushed.
         ssep->in_prototype_instantiation =
                     instance_sym->variant.class_struct_union.extra_info->
                                                   is_prototype_instantiation;
+      } else if (instance_sym != NULL && is_function_symbol(instance_sym)) {
+        check_assertion(assoc_routine != NULL);
+        ssep->in_prototype_instantiation =
+                                     assoc_routine->is_prototype_instantiation;
       }  /* if */
     } else if (kind != (a_scope_kind)sck_file &&
                kind != (a_scope_kind)sck_namespace &&

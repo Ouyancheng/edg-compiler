@@ -360,6 +360,20 @@ lookups.  The variable can also be controlled from the command line by
 #define DEFAULT_FRIEND_INJECTION TRUE
 #endif /* DEFAULT_FRIEND_INJECTION */
 
+
+/*
+Flag that is used as the default setting for global variable
+do_dependent_name_processing.  This controls whether the 2-phase lookup
+of template names is performed as required by the standard.  It also
+controls whether prototype instantiations of function bodies and default
+arguments are done.  The variable can also be controlled from the command
+line by --[no_]dep_name.
+*/
+#ifndef DEFAULT_DEPENDENT_NAME_PROCESSING
+#define DEFAULT_DEPENDENT_NAME_PROCESSING TRUE
+#endif /* DEFAULT_DEPENDENT_NAME_PROCESSING */
+
+
 /*
 Flag that is TRUE if Sun CC 5.0 compatibility features should be allowed by
 default.  It is the default initial value of the associated global variable

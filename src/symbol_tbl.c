@@ -4072,7 +4072,6 @@ for old style parameter declarations.
 }  /* make_parameter_symbol */
 
 
-
 a_symbol_ptr make_template_class_symbol(a_symbol_ptr  ct_symbol)
 /*
 Create a symbol for an instance of a class template.  Link the symbol to
@@ -4115,6 +4114,39 @@ ct_symbol is the symbol of the class template.
   }  /* if */
   return sym;
 }  /* make_template_class_symbol */
+
+
+a_symbol_ptr make_function_template_prototype_symbol(
+				a_symbol_ptr	template_sym,
+				a_routine_ptr		rout_ptr,
+				a_template_param_ptr	templ_param_list)
+/*
+Create the symbol for the prototype instantiation of a function template.
+Return the newly created symbol.  template_sym points to the function
+template symbol.  rout_ptr points to the routine entry for the prototype
+instantiation.
+*/
+{
+  a_symbol_kind			kind;
+  a_symbol_ptr			sym;
+  a_template_instance_ptr	tip;
+
+  /* If the template is a class member make the prototype instantiation
+     a member function, otherwise make it a normal routine. */
+  kind = template_sym->is_class_member ? (a_symbol_kind)sk_member_function
+                                       : (a_symbol_kind)sk_routine;
+  sym = alloc_symbol(kind, template_sym->header, &template_sym->decl_position);
+  tip = alloc_template_instance();
+  tip->template_sym = template_sym;
+  tip->instance_sym = sym;
+  sym->variant.routine.instance_ptr = tip;
+  sym->variant.routine.ptr = rout_ptr;
+  sym->is_class_member = template_sym->is_class_member;
+  sym->parent = template_sym->parent;
+  /* Create the template argument list for the prototype routine. */
+  rout_ptr->template_arg_list = create_prototype_arg_list(templ_param_list);
+  return sym;
+}  /* make_function_template_prototype_symbol */
 
 
 a_symbol_ptr make_template_function_symbol(a_symbol_ptr       templ_sym,

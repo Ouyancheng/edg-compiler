@@ -298,6 +298,12 @@ extern void check_for_function_template_default_args(
 extern void instantiate_default_argument(a_symbol_ptr		rout_sym,
 					 a_param_type_ptr	param);
 
+extern a_template_arg_ptr create_prototype_arg_list(
+			a_template_param_ptr	templ_param_list);
+
+extern void function_prototype_instantiation(
+			a_symbol_ptr		template_sym);
+
 extern void template_directive_or_declaration(
 			a_token_kind			*final_token,
 			a_template_decl_options_set	options);

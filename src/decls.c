@@ -5732,20 +5732,27 @@ is a template specialization declaration.
      when the template is instantiated.  This routine entry will not, of
      course, have a body associated with it. */
   if (rout_ptr == NULL) {
+    a_symbol_ptr	prototype_sym;
     switch_to_file_scope_region(&region_to_switch_back_to);
     tssp->variant.function.routine = rout_ptr = alloc_routine();
     switch_back_to_original_region(region_to_switch_back_to);
     rout_ptr->type = type_ptr;
     rout_ptr->storage_class = storage_class;
     rout_ptr->is_inline = func_info->is_inline;
+    rout_ptr->is_prototype_instantiation = TRUE;
     if (locator->is_operator_name) {
       rout_ptr->special_kind = (a_special_function_kind)sfk_operator;
       rout_ptr->opname_kind = locator->variant.opname;
     }  /* if */
     check_assertion(is_error_locator(*locator) ||
                     !locator->is_conversion_name);
-    set_source_corresp(&rout_ptr->source_corresp, sym);
-    set_membership_in_source_corresp(&(rout_ptr->source_corresp), sym);
+    /* Allocate the symbol for the prototype instantiation of the
+       function template. */
+    prototype_sym = make_function_template_prototype_symbol(
+                                         sym, rout_ptr, idlb.templ_param_list);
+    set_source_corresp(&rout_ptr->source_corresp, prototype_sym);
+    set_membership_in_source_corresp(&(rout_ptr->source_corresp),
+				     prototype_sym);
     rout_ptr->source_corresp.name_linkage =
                           (storage_class == (a_storage_class)sc_extern) ?
                                 (a_name_linkage_kind)nlk_cplusplus_external :

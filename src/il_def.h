@@ -4941,6 +4941,10 @@ typedef struct a_routine {
 			/* TRUE if is_specialized is TRUE but the function
 			   was not explicitly declared with the template<>
 			   syntax. */
+  a_bit_field	is_prototype_instantiation:1;
+			/* TRUE if this routine represents the prototype
+			   instantiation of a function template or a member
+			   function of a class template. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	declared_only_as_friend:1;
 			/* TRUE if this routine has only been declared as a

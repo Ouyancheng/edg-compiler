@@ -188,6 +188,7 @@ typedef enum /*an_option_kind*/ {
   optk_compound_literals,
   optk_base_assign_op_is_default,
   optk_sun_mode,
+  optk_dependent_name_processing,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -529,6 +530,22 @@ EXTERN a_boolean
                                                                        ;
 			/* TRUE if names first declared in friend declarations
 			   are visible. */
+
+EXTERN a_boolean
+		do_dependent_name_processing
+#if VAR_INITIALIZERS
+                                        = DEFAULT_DEPENDENT_NAME_PROCESSING
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE if special processing for dependent names
+			   in templates should be done.  This also enables
+			   prototype instantiations of function bodies and
+			   default arguments. */
+
+EXTERN a_boolean
+		nonclass_prototype_instantiations;
+			/* TRUE if nonclass template declarations should
+			   have prototype instantiations performed on them. */
 
 EXTERN a_boolean
 		nonstandard_using_decl_allowed
