@@ -7577,8 +7577,10 @@ set *copy_error to TRUE.
   a_boolean      err = FALSE;
 
   check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
-                  con->variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tpck_member);
+                  (con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_member ||
+                   con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function));
   /* This occurs for member constants specified in forms such as A<T>::x.
      Do substitution on the parent type and then look up the name in the
      updated class to see what the member is. */
