@@ -813,7 +813,7 @@ typedef struct a_template_symbol_supplement {
     /* When symbol kind = sk_static_data_member_template: */
     struct {
       a_static_data_member_def_ptr
-		definition;
+		definitions;
 			/* Pointer to a list of entries specifying definitions
 			   for static data members of instantiated template
 			   classes. */
@@ -1697,6 +1697,9 @@ extern a_template_param_ptr alloc_template_param(a_symbol_ptr sym);
 extern a_function_instantiation_entry_ptr
                                      alloc_function_instantiation_entry(void);
 extern a_static_data_member_def_ptr alloc_static_data_member_def(void);
+extern void add_to_instantiations_required_list(
+                                    a_function_instantiation_entry_ptr fiep,
+                                    a_static_data_member_def_ptr       sdmdp);
 extern a_param_id_ptr alloc_param_id(void);
 extern void free_param_id(a_param_id_ptr *ppip);
 extern void free_param_id_list(a_param_id_ptr *pidlist);
