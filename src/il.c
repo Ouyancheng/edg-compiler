@@ -3814,10 +3814,12 @@ variant fields to default values.
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   pte->use_cfront_transitional_nested_type_name_mangling = FALSE;
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-#if BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   pte->definition_put_out = FALSE;
+#if BACK_END_IS_CP_GEN_BE
   pte->definition_delayed = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 #if CHECKING
   pte->avoid_codecenter_warnings = 0;
 #endif /* CHECKING */

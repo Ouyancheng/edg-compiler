@@ -2091,16 +2091,18 @@ typedef struct a_type {
                            to the file scope unless the name is already
                            used as a type name at the file scope. */
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-#if BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   unsigned int	definition_put_out:1;
 			/* Used in some cases to record whether the definition
 			   of a type has been put out by the
 			   C++/C-generating back end. */
+#if BACK_END_IS_CP_GEN_BE
   unsigned int	definition_delayed:1;
 			/* Used in some cases to indicate the definition of
 			   a type is required and should be put out at the
 			   first opportunity. */
 #endif /* BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   bitfield_to_avoid_codecenter_warnings();
 #if DO_IL_LOWERING
   a_variable_ptr
