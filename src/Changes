@@ -26,8 +26,8 @@ assertion failure in class_template_declaration.  This has been fixed.
 
 7/26/96 Error recovery on linkage specification
 
-A null-pointer failure no longer results when a translation unit is
-terminated by an ill-formed linkage specification such as the following:
+A null-pointer failure no longer results from an ill-formed linkage
+specification in which the closing '"' is omitted -- for example:
 
   extern "C int printf(char *, ...);
 
