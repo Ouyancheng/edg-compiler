@@ -953,10 +953,9 @@ followed by an assignment token, that token is also discarded.
     (void)get_token();
     check_assertion(curr_token == tok_identifier);
     (void)get_token();
-  } else {
+  } else if (curr_token == tok_lbracket) {
     /* An array element designator. */
     a_constant  constant;
-    check_assertion(curr_token == tok_lbracket);
     get_token();
     scan_integral_constant_expression(&constant);
     if (curr_token == tok_ellipsis) {
@@ -1537,6 +1536,10 @@ is set to TRUE; otherwise it is set to FALSE.
   if (designated_field == NULL) {
     /* Something went wrong while scanning the field designator. */
     member_type = NULL;
+    *designator_scanned = TRUE;
+    init_info->designation_state =
+       scan_designation_state(/* allow_colon = */extended_designators_allowed,
+                              /* assign_optional = */FALSE);
   } else {
     member_type = (*field)->type;
 #if DEBUG
@@ -1826,7 +1829,9 @@ this function points to a tree that includes a dynamic-init entry.
              we are in a state where a complete designation has been seen,
              no attempt was made to scan the upcoming designator, and it will
              be diagnosed later (as an invalid expression). */
-          error(ec_invalid_designator_kind);
+          if (kind != (a_type_kind)tk_error) {
+            error(ec_invalid_designator_kind);
+          }  /* if */
           member_type = NULL;
           skip_designator();
         }  /* if */
