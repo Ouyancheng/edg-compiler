@@ -537,7 +537,11 @@ and for the instantiation of template functions.
   a_param_type_ptr               ptp;
 
   db_enter(3, "scan_function_body");
-  class_type = rout_ptr->source_corresp.class_of_which_a_member;
+  if (rout_ptr->source_corresp.is_class_member) {
+    class_type = rout_ptr->source_corresp.parent.class_type;
+  } else {
+    class_type = NULL;
+  }  /* if */
   rout_type = skip_typerefs(rout_ptr->type);
   /* Issue an error if this is an invalid return type. */
   (void)check_function_return_type(rout_type,
@@ -801,7 +805,7 @@ on a prior declaration.
   a_type_ptr     rout_type;
 
   db_enter(3, "define_member_function");
-  class_type = locator->specific_symbol->class_of_which_a_member;
+  class_type = locator->specific_symbol->parent.class_type;
   rout_type = skip_typerefs(type_ptr);
   sym = locator->specific_symbol;
   if (!is_member_function_symbol(sym)) {
@@ -885,12 +889,11 @@ on a prior declaration.
                              DEPTH_OF_FILE_SCOPE,
                              /*suppress_redecl_error=*/TRUE);
     sym->header = hdr;
-    sym->class_of_which_a_member = class_type;
     rp = make_routine(type_ptr, (a_storage_class)sc_static,
                       /*at_file_scope=*/TRUE, /*add_to_list=*/TRUE);
     sym->variant.routine.ptr = rp;
     set_source_corresp(&(rp->source_corresp), sym);
-    rp->source_corresp.class_of_which_a_member = class_type;
+    set_class_membership(sym, &rp->source_corresp, class_type);
     if (other_rp != NULL) {
       rp->special_kind = other_rp->special_kind;
       rp->opname_kind = other_rp->opname_kind;
@@ -972,7 +975,7 @@ on a prior declaration.
       /* Unless it was originally declared "inline" a member function that
          has been called may not have the "inline" attribute here. */
       pos_sy_diagnostic(strict_ansi_mode ?
-                          stric_ansi_discretionary_error : es_warning,
+                          strict_ansi_discretionary_severity : es_warning,
                         ec_called_function_redeclared_inline,
                         &locator->source_position, sym);
     }  /* if */
@@ -1065,7 +1068,7 @@ associated with the function is returned.
   }  /* if */
   /* Create the symbol entry and routine entry for the routine. */
   if (locator->specific_symbol != NULL &&
-      locator->specific_symbol->class_of_which_a_member != NULL) {
+      locator->specific_symbol->is_class_member) {
     /* This is the definition of a member function. */
     check_assertion(prototyped);
     is_member_function_def = TRUE;
@@ -1833,7 +1836,7 @@ empty statement block.
   a_source_position              *err_pos;
 
   db_enter(4, "define_special_member_function");
-  class_type = rout_ptr->source_corresp.class_of_which_a_member;
+  class_type = rout_ptr->source_corresp.parent.class_type;
   if (symbol_supplement_for_class(class_type)->is_nonreal_class) {
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */

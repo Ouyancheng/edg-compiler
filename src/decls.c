@@ -415,7 +415,7 @@ class is made.
   a_class_symbol_supplement_ptr  cssp;
 
   rout_type = skip_typerefs(rout_ptr->type);
-  class_type = rout_ptr->source_corresp.class_of_which_a_member;
+  class_type = rout_ptr->source_corresp.parent.class_type;
   cssp = symbol_supplement_for_class(class_type);
   tp = skip_typerefs(rout_type->variant.routine.return_type);
   if (is_error_type(tp) || tp->kind == (a_type_kind)tk_template_param) {
@@ -1252,7 +1252,7 @@ will be involved in overloading.
     /* A typedef is not an object or function, and has no linkage. */
     linkage = idl_none;
   } else if ((sym = locator->specific_symbol) != NULL &&
-             sym->class_of_which_a_member != NULL) {
+             sym->is_class_member) {
     /* Static data member. */
     check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
     *linked_symbol = sym;
@@ -1317,7 +1317,7 @@ will be involved in overloading.
         if (name_space_for_symbol_kind[(int)other_decl->kind] == nsk_other) {
           /* Found one.  If it's not a variable or routine (say, if it's
              a typedef), pretend that there is no visible declaration. */
-          if (other_decl->class_of_which_a_member != NULL) {
+          if (other_decl->is_class_member) {
             /* This is a member of a class scope.  Ignore it and keep looking
                till a match in an enclosing scope is found. */
           } else if (is_default_global_operator_new &&
@@ -2434,7 +2434,7 @@ not be TRUE.
     /* The Microsoft Visual C++ compiler always uses the calling convention
        from the declaration of a member function, even if the calling
        convention on the definition is different. */
-    if (routine_ptr->source_corresp.class_of_which_a_member != NULL) {
+    if (routine_ptr->source_corresp.is_class_member) {
       skip_typerefs(routine_ptr->type)->variant.routine.extra_info->
                                   calling_convention = orig_calling_convention;
     }  /* if */
@@ -3227,7 +3227,7 @@ skip_overloading:;
   if (changed_to_inline) {
     if (routine_ptr->called) {
       pos_sy_diagnostic(strict_ansi_mode ?
-                          stric_ansi_discretionary_error : es_warning,
+                          strict_ansi_discretionary_severity : es_warning,
                         ec_called_function_redeclared_inline,
                         &locator->source_position, sym);
     }  /* if */
@@ -3770,7 +3770,7 @@ the symbol and its linkage (which is always "none").
        target of any initialization that may follow.  Create a dummy
        variable with an error type (to suppress semantic errors on the
        initialization, if any). */
-    a_type_ptr           tp = sym->class_of_which_a_member;
+    a_type_ptr           tp = sym->parent.class_type;
     a_symbol_header_ptr  hdr = locator->symbol_header;
 
     /* Record the symbol declaration, using the original symbol, even
@@ -3792,7 +3792,8 @@ the symbol and its linkage (which is always "none").
                              /*at_file_scope=*/TRUE);
     /* Make the error symbol have a class_of_which_a_member field, since
        it is expected on sk_static_data_member fields downstream. */
-    sym->class_of_which_a_member = tp;
+    sym->is_class_member = TRUE;
+    sym->parent.class_type = tp;
   }  /* if */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
@@ -3962,8 +3963,7 @@ return a pointer to it in *symbol_ptr.
   tp->variant.typeref.type = type_ptr;
   set_source_corresp(&(tp->source_corresp), sym);
   if (class_type != NULL) {
-    sym->class_of_which_a_member = class_type;
-    tp->source_corresp.class_of_which_a_member = class_type;
+    set_class_membership(sym, &tp->source_corresp, class_type);
     tp->source_corresp.access = ssep->current_access;
   }  /* if */
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
@@ -5673,7 +5673,7 @@ continue_with_declaration:
            the identifier. */
         if (C_dialect == C_dialect_cplusplus) {
           if (locator.specific_symbol == NULL ||
-              locator.specific_symbol->class_of_which_a_member == NULL) {
+              locator.specific_symbol->is_class_member) {
             /* Not a member function named "main". */
             func_info.is_main_function = is_main_function = TRUE;
             /* Perform some error checking that is specific to C++. */
@@ -5840,7 +5840,7 @@ continue_with_declaration:
           local_storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
         if (locator.specific_symbol != NULL &&
-            locator.specific_symbol->class_of_which_a_member != NULL) {
+            locator.specific_symbol->is_class_member) {
           /* This is the definition of a static member function.  No storage
              class specifier (not even "static") is permitted. */
           if (local_storage_class != (a_storage_class)sc_unspecified) {
@@ -5923,7 +5923,7 @@ continue_with_declaration:
       function_definition_allowed = FALSE;
       is_static_data_member = FALSE;
       if (locator.specific_symbol != NULL &&
-          locator.specific_symbol->class_of_which_a_member != NULL) {
+          locator.specific_symbol->is_class_member) {
         if (is_function) {
           /* A qualified name that identifies a function is allowed only when
              the function body is present. */

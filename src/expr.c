@@ -1385,7 +1385,7 @@ symbol (possibly a projection symbol).
 */
 {
   a_symbol_ptr     member_sym = member_locator->specific_symbol;
-  a_type_ptr       desired_class = member_sym->class_of_which_a_member;
+  a_type_ptr       desired_class = member_sym->parent.class_type;
   a_base_class_ptr bcp;
 
   /* This routine is similar to make_this_pointer_operand. */
@@ -1780,7 +1780,7 @@ the caller will be setting those things.
        nonstandard cases further out. */
     if (!C_mode()) {
       /* C++.  See if this is an anonymous union case. */
-      a_type_ptr field_class = field->source_corresp.class_of_which_a_member;
+      a_type_ptr field_class = field->source_corresp.parent.class_type;
       a_class_type_supplement_ptr
                  ctsp = field_class->variant.class_struct_union.extra_info;
       /* Skip this level if the field is from a standard anonymous union. */
@@ -2209,10 +2209,10 @@ bound with the function in *bound_function_selector.
             /* Make sure the name is a member of the class indicated by the
                left-hand side, or one of its base classes.  The NULL check
                is needed to catch cases like p->::x. */
-            if (projection_member_sym->class_of_which_a_member == NULL ||
+            if (!projection_member_sym->is_class_member ||
                 !is_same_class_or_base_class_thereof(class_struct_union_type,
                                                      projection_member_sym->
-                                                    class_of_which_a_member)) {
+                                                         parent.class_type)) {
               pos_ty_error(ec_name_not_member_of_class_or_base_classes,
                            &qualified_member_position,
                            class_struct_union_type);
@@ -2271,7 +2271,7 @@ bound with the function in *bound_function_selector.
             is_arrow_operator = TRUE;
           }  /* if */
           /* Cast the pointer to a pointer to the proper struct or union. */
-          orig_class_struct_union_type = member_sym->class_of_which_a_member;
+          orig_class_struct_union_type = member_sym->parent.class_type;
           class_struct_union_type =skip_typerefs(orig_class_struct_union_type);
           operand_1_is_complete_class = TRUE;
           cast_operand(make_pointer_type(class_struct_union_type),
@@ -2474,7 +2474,7 @@ nonstatic_member_function:
              possible here, since we've checked that the member symbol
              is part of the left operand class or one of its base classes. */
 #if CHECKING
-          if (member_sym->class_of_which_a_member == NULL) {
+          if (!member_sym->is_class_member) {
             internal_error(
                   "scan_field_selection_operator: overloaded func not member");
           }  /* if */
@@ -8555,7 +8555,7 @@ an sk_static_data_member symbol.
   if (inside_local_class || expr_stack->is_default_arg_expression) {
     if (sym_ptr->decl_scope == FILE_SCOPE_NUMBER) {
       /* A reference to the file scope is okay. */
-    } else if (sym_ptr->class_of_which_a_member != NULL) {
+    } else if (sym_ptr->is_class_member) {
       /* A reference to a class member is okay. */
     } else {
       /* Get the variable for the symbol. */
@@ -9752,7 +9752,7 @@ are marked as actually referenced.
          fixup list. */
       reference_to_implicitly_invoked_function(dtor_sym, &didfp->position,
                                                dtor_routine->source_corresp.
-                                                       class_of_which_a_member,
+                                                           parent.class_type,
                                                /*honor_virtual=*/FALSE,
                                                /*evaluated=*/TRUE,
                                               /*suppress_access_check=*/FALSE);
@@ -10105,11 +10105,11 @@ e.g., a local variable.
                   "constant_references_non_external_entity: bad address kind");
 #endif /* CHECKING */
     }  /* switch */
-    if (scp->class_of_which_a_member != NULL) {
+    if (scp->is_class_member) {
       /* The entity is a class member.  If the class is a local class,
          the entity is non-external.  Otherwise, the class will be forced
          to be external by this reference. */
-      a_type_ptr class_type = scp->class_of_which_a_member;
+      a_type_ptr class_type = scp->parent.class_type;
       if (class_type->source_corresp.is_local_to_function) {
         refs_non_ext = TRUE;
       } else {

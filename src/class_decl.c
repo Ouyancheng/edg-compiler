@@ -330,7 +330,8 @@ routine recursively for each nested class.
            function type. */
         sym = rfp->symbol;
         is_friend = (is_function_symbol(sym) &&
-                     sym->class_of_which_a_member != class_type);
+                     (!sym->is_class_member ||
+                      sym->parent.class_type != class_type));
         if (is_nonreal_template_instantiation) {
           /* Prototype instantiation. */
           if (sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
@@ -446,7 +447,8 @@ routine recursively for each nested class.
       next_rfp = rfp->next;
       if (rfp->function_body_token_cache.first_token != NULL) {
         sym = rfp->symbol;
-        is_friend = (sym->class_of_which_a_member != class_type);
+        is_friend = (!sym->is_class_member ||
+                     sym->parent.class_type != class_type);
         if ((is_real_template_instantiation && !is_friend) ||
             (is_nonreal_template_instantiation && is_friend)) {
           /* Discard the token cache for member functions of template
@@ -3217,7 +3219,7 @@ of the function, and again overloading is a possibility.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     declarator_ssep = func_info->declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    if (sym != NULL && sym->class_of_which_a_member != NULL &&
+    if (sym != NULL && sym->is_class_member &&
         !is_member_function_symbol(sym)) {
       /* sym represents a member of a class, but it is not a member function.
          Issue an error. */
@@ -3266,7 +3268,7 @@ of the function, and again overloading is a possibility.
         pos_sy_error(ec_bad_scope_for_definition, &pos_curr_token, sym);
       }  /* if */
     } else {
-      if (sym->class_of_which_a_member == class_type) {
+      if (sym->parent.class_type == class_type) {
         /* It's a member function of the very class that is according it
            friendship.  Issue a diagnostic. */
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
@@ -3587,13 +3589,14 @@ pointed to by cssp.
        We want to add a conversion list entry for each member of the overload
        set rather than for the overload set as a whole.  This means that a
        projection symbol will be created for each. */
-    a_type_ptr           class_type = orig_sym->class_of_which_a_member;
+    a_type_ptr           class_type;
     a_base_class_ptr     base_class;
     an_access_specifier  base_class_access;
     a_symbol_ptr         new_sym;
     a_boolean            ambiguous;
     a_boolean            access_adj;
 
+    class_type = orig_sym->parent.class_type;
     check_assertion(symbol_supplement_for_class(class_type) == cssp);
     base_class = orig_sym->variant.projection.extra_info->
                                                  fundamental_base_class;
@@ -3628,6 +3631,19 @@ pointed to by cssp.
   }  /* if */
   db_exit();
 }  /* add_to_conversion_list */
+
+
+void set_class_membership(a_symbol_ptr             sym,
+                          a_source_correspondence  *scp,
+                          a_type_ptr               class_type)
+/*
+Set the is_class_member and parent.class_type fields of the indicated
+symbol and source-correspondence entries.
+*/
+{
+  sym->is_class_member = scp->is_class_member = TRUE;
+  sym->parent.class_type = scp->parent.class_type = class_type;
+}  /* set_class_membership */
 
 
 #if !DECL_MODIFIERS_IN_USE
@@ -3703,7 +3719,6 @@ special function kind (e.g., constructor, destructor), if any.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     cannot_bind_to_curr_construct();
   } else {
-    sym->class_of_which_a_member = class_type;
     /* Create the routine entry for the member function. */
     /* The routine is allocated in the current memory region, as indicated
        by curr_il_region_number -- i.e., in the memory region of the scope in
@@ -3714,7 +3729,7 @@ special function kind (e.g., constructor, destructor), if any.
     sym->variant.routine.ptr = rtn;
     /* Set the source correspondence, including the access specifier. */
     set_source_corresp(&rtn->source_corresp, sym);
-    rtn->source_corresp.class_of_which_a_member = class_type;
+    set_class_membership(sym, &rtn->source_corresp, class_type);
     /* Member functions should have the same name linkage as the class of
        which they are members.  For now, the class will have internal or no
        linkage.  If and when its linkage is promoted to C++, the linkage of
@@ -3933,8 +3948,9 @@ and it is legal for virtual member functions only.
 
   db_enter(4, "scan_pure_specifier");
   /* A pure specifier is allowed for virtual functions only.  (Check the
-     class_of_which_a_member to exclude friend declarations.) */
-  if (rout_sym->class_of_which_a_member != class_type) {
+     parent class to exclude friend declarations.) */
+  if (!rout_sym->is_class_member ||
+      rout_sym->parent.class_type != class_type) {
     pure_specifier_allowed = FALSE;
   } else {
     pure_specifier_allowed =
@@ -4022,9 +4038,8 @@ source-sequence entry for the declarator; otherwise it is NULL.
   /* Update the symbol and the constant entry. */
   sym->variant.constant = cp;
   set_source_corresp(&(cp->source_corresp), sym);
+  set_class_membership(sym, &cp->source_corresp, class_type);
   cp->source_corresp.access = access;
-  cp->source_corresp.class_of_which_a_member =
-                          sym->class_of_which_a_member = class_type;
   record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                             &locator->source_position, ssep);
   /* Do processing required for any pragmas that are bound to the current
@@ -4068,9 +4083,8 @@ table.
                            decl_scope_level, /*suppress_redecl_error=*/FALSE);
   /* Set the source correspondence fields of the variable. */
   set_source_corresp(&var->source_corresp, sym);
-  sym->class_of_which_a_member = class_type;
   sym->variant.static_data_member.variable = var;
-  var->source_corresp.class_of_which_a_member = class_type;
+  set_class_membership(sym, &var->source_corresp, class_type);
   /* Static data members will have the same name linkage as the class of
      which they are members.  For now, the class will have internal linkage.
      If and when its linkage is promoted to C++, the linkage of the static
@@ -4187,7 +4201,7 @@ for the cfront compatibility case.
   *is_base_class_match = FALSE;
   if (is_class_struct_union_type(tp)) {
     /* The type of the first parameter is a class type. */
-    if (skip_typerefs(tp) == sym->class_of_which_a_member) {
+    if (skip_typerefs(tp) == sym->parent.class_type) {
       /* The parameter's type matches the class of which the assignment
          operator is a member. */
       found = TRUE;
@@ -4196,7 +4210,7 @@ for the cfront compatibility case.
          feature is not part of the current language.  However, many compilers
          support this use, and the ATT/USL iostream library depends on it.
          Pending resolution one way or another, we allow it in default mode. */
-      if (find_base_class_of(sym->class_of_which_a_member, tp) != NULL) {
+      if (find_base_class_of(sym->parent.class_type, tp) != NULL) {
         /* The parameter's type matches a base class of the class of which the
            assignment operator is a member. */
         found = TRUE;
@@ -4345,7 +4359,8 @@ be the last in the anonymous-union-parent chain.
     new_apo_sym = make_anonymous_parent_object_symbol((a_symbol_kind)sk_field,
                                                       &apo_sym->decl_position,
                                                       apo_sym->decl_scope);
-    new_apo_sym->class_of_which_a_member = apo_sym->class_of_which_a_member;
+    new_apo_sym->is_class_member = TRUE;
+    new_apo_sym->parent.class_type = apo_sym->parent.class_type;
     /* Set it to point to the same field. */
     new_apo_sym->variant.field.ptr = apo_sym->variant.field.ptr;
     /* If apo_sym does is not itself nested in an anonymous parent object,
@@ -4472,7 +4487,8 @@ specified by decl_scope_level.
       sym->next_in_scope = NULL;
       /* It is no longer treated as a member of the anonymous union but
          rather it will be a member of the class_type. */
-      sym->class_of_which_a_member = NULL;
+      sym->is_class_member = FALSE;
+      sym->parent.class_type = NULL;
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
     } else {
 #if DEBUG
@@ -4521,7 +4537,10 @@ specified by decl_scope_level.
           sym->variant.field.ptr = fp;
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
         }  /* if */
-        sym->class_of_which_a_member = class_type;
+        if (class_type != NULL) {
+          sym->is_class_member = TRUE;
+          sym->parent.class_type = class_type;
+        }  /* if */
         /* The members of an anonymous union within a class take on the
            access specifier of the anonymous union itself; the members
            of a variable anonymous union should be (i.e., should remain)
@@ -4590,7 +4609,10 @@ specified by decl_scope_level.
         tp = type_symbol_type(sym);
         /* Set the parent class in the symbol but not in the IL entry.  The
            symbol is promoted, but the type remains nested. */
-        sym->class_of_which_a_member = class_type;
+        if (class_type != NULL) {
+          sym->is_class_member = TRUE;
+          sym->parent.class_type = class_type;
+        }  /* if */
         /* The members of an anonymous union within a class take on the
            access specifier of the anonymous union itself; the members
            of a variable anonymous union should be (i.e., should remain)
@@ -4603,7 +4625,10 @@ specified by decl_scope_level.
         /* An enum constant. */
         /* Set the parent class in the symbol but not in the IL entry.  The
            symbol is promoted, but the type remains nested. */
-        sym->class_of_which_a_member = class_type;
+        if (class_type != NULL) {
+          sym->is_class_member = TRUE;
+          sym->parent.class_type = class_type;
+        }  /* if */
         sym->variant.constant->source_corresp.access = assoc_object_access;
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
         reenter_symbol(sym, decl_scope_level, /*suppress_error=*/FALSE);
@@ -4743,13 +4768,12 @@ Add a field of error type to the field list for the specified class type.
 
   set_to_error_locator(locator);
   fp->type = error_type();
-  fp->source_corresp.class_of_which_a_member = class_type;
   /* Create the field symbol. */
   sym = enter_local_symbol((a_symbol_kind)sk_field, &locator,
                            depth_scope_stack, /*suppress_redecl_error=*/TRUE);
-  sym->class_of_which_a_member = class_type;
   sym->variant.field.ptr = fp;
-  set_source_corresp(&(fp->source_corresp), sym);
+  set_source_corresp(&fp->source_corresp, sym);
+  set_class_membership(sym, &fp->source_corresp, class_type);
   /* Add the field to the temporary list for this class/struct/union. */
   if (*end_of_list == NULL) {
     class_type->variant.class_struct_union.field_list = fp;
@@ -5073,7 +5097,11 @@ class, struct, or union.
     /* All field entries for an unnamed fields share the same symbol.  It is
        used for easy identification. */
     field->source_corresp.assoc_info = (char *)unnamed_field_symbol();
+    /* Update the source correspondence information manually -- there's no
+       symbol. */
     field->source_corresp.decl_position = locator->source_position;
+    field->source_corresp.is_class_member = TRUE;
+    field->source_corresp.parent.class_type = class_type;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Ordinarily we create source sequence entries only for named
        entities (see sym_update_source_sequence_list, called for fields
@@ -5096,10 +5124,9 @@ class, struct, or union.
                                       /*suppress_redecl_error=*/FALSE);
       set_source_corresp(&(field->source_corresp), member_sym);
     }  /* if */
-    member_sym->class_of_which_a_member = class_type;
+    set_class_membership(member_sym, &field->source_corresp, class_type);
     member_sym->variant.field.ptr = field;
   }  /* if */
-  field->source_corresp.class_of_which_a_member = class_type;
   if (C_dialect == C_dialect_cplusplus) {
     field->source_corresp.access = access;
     field->is_mutable = is_mutable;
@@ -5765,7 +5792,7 @@ and "class_type" indicates the class in which the declaration occurs.
   a_class_type_supplement_ptr  ctsp;
   a_boolean                    is_overloaded_function;
   a_symbol_ptr                 sym;
-  a_type_ptr                   local_class_of_which_a_member;
+  a_type_ptr                   local_parent_class;
 
   db_enter(4, "access_adjustment_decl");
   if (symbol_supplement_for_class(class_type)->any_nonreal_base_classes) {
@@ -5782,28 +5809,26 @@ and "class_type" indicates the class in which the declaration occurs.
      value from the locator (if not NULL). */
   if (locator_for_curr_id.specific_symbol->kind ==
                                               (a_symbol_kind)sk_undefined) {
-    local_class_of_which_a_member = locator_for_curr_id.qualifier_class_type;
+    local_parent_class = locator_for_curr_id.qualifier_class_type;
   } else {
-    local_class_of_which_a_member = locator_for_curr_id.
-                                    specific_symbol->class_of_which_a_member;
     /* In processing a qualified name the specific_symbol field of the locator
        will have been filled in. */
-    check_assertion(curr_token == tok_identifier &&
-                    locator_for_curr_id.specific_symbol->
-                                          class_of_which_a_member != NULL);
+    check_assertion(locator_for_curr_id.specific_symbol->is_class_member);
+    local_parent_class = locator_for_curr_id.
+                                    specific_symbol->parent.class_type;
   }  /* if */
   /* Be sure the class in the qualified name is one from which the current
      class is derived. */
   ctsp = class_type->variant.class_struct_union.extra_info;
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-    if (bcp->type == local_class_of_which_a_member) break;
+    if (bcp->type == local_parent_class) break;
   }  /* for */
   if (bcp == NULL) {
     /* Qualified name must identify a member of a base class of the current
        class.  Don't issue this error if we don't know the base class.  This
        can only occur if we have an error locator in which the
        qualifier_class_type field is NULL. */
-    if (local_class_of_which_a_member != NULL) error(ec_bad_base_class);
+    if (local_parent_class != NULL) error(ec_bad_base_class);
     goto done;
   } else if (bcp->ambiguous) {
     type_error(ec_ambiguous_base_class, bcp->type);
@@ -5999,22 +6024,17 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
   a_symbol_ptr                   corresp_prototype_tag_sym = NULL;
   a_symbol_ptr                   sym, templ_sym;
   a_class_symbol_supplement_ptr  cssp;
-
+  a_type_ptr                     tp;
 
   db_enter(3, "find_corresp_prototype_tag_sym");
   if (curr_sym->variant.class_struct_union.extra_info->is_nonreal_class) {
     /* Return NULL. */
-  } else if (curr_sym->class_of_which_a_member != NULL) {
+  } else if (curr_sym->is_class_member) {
     /* curr_sym represents a nested class.  Get the corresponding prototype
        tag symbol of its parent class; then find the corresponding nested
-       class within it. */
-    a_type_ptr    tp = curr_sym->class_of_which_a_member;
-    a_symbol_ptr  parent_sym;
-
-    /* Get the prototype tag symbol of the class of which a member.  This
-       is stored in the parents class symbol supplement. */
-    parent_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
-    sym = parent_sym->variant.class_struct_union.extra_info->
+       class within it.  The prototype tag symbol of the parent class is
+       stored in the latter's class symbol supplement. */
+    sym = symbol_supplement_for_class(curr_sym->parent.class_type)->
                                                        corresp_prototype_sym;
     if (sym != NULL) {
       /* sym is the corresponding prototype tag symbol of the parent class.
@@ -6170,21 +6190,12 @@ Scan the body of a class definition, including the base classes list.
   }  /* if */
   if (curr_token == tok_lbrace) {
     /* Scan the structure or union definition. */
-    /* If this is the definition of a nested class, set the parent class
-       pointer in the tag symbol and set the access. */
-    if (!is_template_instantiation &&
-        scope_stack[decl_scope_level].kind ==
-                                (a_scope_kind)sck_class_struct_union &&
-        class_type->source_corresp.class_of_which_a_member ==
-                              scope_stack[decl_scope_level].assoc_type) {
-      a_class_symbol_supplement_ptr  parent_cssp;
-      check_assertion(tag_sym->class_of_which_a_member ==
-                              scope_stack[decl_scope_level].assoc_type);
-      parent_cssp =
-               symbol_supplement_for_class(tag_sym->class_of_which_a_member);
+    if (!is_template_instantiation && tag_sym->is_class_member) {
       /* A class nested within a nonreal class is itself nonreal and a
          class nested within a prototype instantiation is itself a prototype
          instantiation. */
+      a_class_symbol_supplement_ptr  parent_cssp;
+      parent_cssp = symbol_supplement_for_class(tag_sym->parent.class_type);
       if (parent_cssp->is_nonreal_class) {
         cssp->is_nonreal_class = is_nonreal_instantiation = TRUE;
         cssp->is_prototype_instantiation =
@@ -6198,7 +6209,7 @@ Scan the body of a class definition, including the base classes list.
     (void)get_token();
     add_stop_token(tok_rbrace);
     if (delayed_nested_class_def) {
-      push_class_reactivation_scope(tag_sym->class_of_which_a_member);
+      push_class_reactivation_scope(tag_sym->parent.class_type);
     }  /* if */
     /* Start a scope for the fields and other members.  Since the class type
        is allocated in the file scope memory region, all its members must also
@@ -6403,17 +6414,19 @@ Scan the body of a class definition, including the base classes list.
         local_defines_something = dso_flags & DSO_DEFINES_SOMETHING;
         local_declares_something = dso_flags & DSO_DECLARES_SOMETHING;
         if (local_defines_something && !is_error_type(member_type)) {
-          a_type_ptr  tp = skip_typerefs(member_type);
-
 #if CHECKING
           if (C_dialect == C_dialect_cplusplus) {
             /* Should be a nested class, struct, union, or enum definition.
                Be sure the parent class was marked correctly. */
-            a_symbol_ptr sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
-            if (sym != NULL &&
-                sym->class_of_which_a_member != class_type) {
+            a_type_ptr    tp = skip_typerefs(member_type);
+            a_symbol_ptr  sym = (a_symbol_ptr)(tp->source_corresp.assoc_info);
+
+            if (!tp->source_corresp.is_class_member ||
+                tp->source_corresp.parent.class_type != class_type ||
+                !sym->is_class_member ||
+                sym->parent.class_type != class_type) {
              internal_error(
-                      "scan_class_definition: bad parent type on nested type");
+                     "scan_class_definition: bad parent type on nested type");
             } /* if */
           }  /* if */
 #endif /* CHECKING */
@@ -7359,18 +7372,18 @@ next_declaration:
          we may assume the type entry has already been entered on the types
          list. */
     } else if (cssp->is_prototype_instantiation &&
-               tag_sym->class_of_which_a_member == NULL) {
+               !tag_sym->is_class_member) {
       /* The type entries created for a class template are not added to the
          types list. */
     } else if (scope_stack[effective_decl_level].kind ==
                                    (a_scope_kind)sck_template_declaration) {
       /* This is an error case -- a class definition within a template
          parameter declaration.  Don't try to enter the class in the IL. */
-    } else if (class_type->source_corresp.class_of_which_a_member != NULL &&
+    } else if (tag_sym->is_class_member &&
                (scope_stack[effective_decl_level].kind !=
                       (a_scope_kind)sck_class_struct_union ||
                 scope_stack[effective_decl_level].assoc_type !=
-                      class_type->source_corresp.class_of_which_a_member)) {
+                      tag_sym->parent.class_type)) {
       /* This must be a definition of an anonymous union member type that
          appears outside the scope of the anonymous union.  It's already on
          a list. */
@@ -7619,8 +7632,7 @@ next_declaration:
     if (C_dialect == C_dialect_cplusplus) {
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
-      if (tag_sym->class_of_which_a_member == NULL ||
-          delayed_nested_class_def) {
+      if (!tag_sym->is_class_member || delayed_nested_class_def) {
         /* For non-nested classes do delayed processing for default argument
            declarations and inline member function definitions. */
         delayed_scan_fixup_for_class(class_type, is_template_instantiation);
@@ -7650,7 +7662,7 @@ external.
   /* Mark the enum type externally linked. */
   type->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_cplusplus_external;
-  if (type->source_corresp.class_of_which_a_member == NULL) {
+  if (!type->source_corresp.is_class_member) {
     /* Increment the count.  This lets the caller know how many types (enum
        types and classes) were changed from internal to external linkage and
        permits an early termination of this processing.  Note that the count
@@ -7684,7 +7696,7 @@ definition and marks them external as well.
      recursion if it is self referential. */
   type->source_corresp.name_linkage =
                                  (a_name_linkage_kind)nlk_cplusplus_external;
-  if (type->source_corresp.class_of_which_a_member == NULL) {
+  if (!type->source_corresp.is_class_member) {
     /* Increment the count.  This lets the caller know how many classes
        were changed from internal to external linkage and permits an early
        termination of this processing.  Note that a count is not made of
@@ -7836,7 +7848,6 @@ external linkage, make that change.  If it contains such a type, make
 the change on the contained type.
 */
 {
-  a_type_ptr                   tp;
   a_param_type_ptr             ptp;
 
   db_enter(4, "check_type_for_linkage_change");
@@ -7850,10 +7861,10 @@ the change on the contained type.
            required) to have external linkage. */
         make_class_externally_linked(type, count);
       }  /* if */
-      tp = type->source_corresp.class_of_which_a_member; 
-      if (tp != NULL) {
+      if (type->source_corresp.is_class_member) {
         /* Nested class -- be sure parent class is also externally linked. */
-        check_type_for_linkage_change(tp, count);
+        check_type_for_linkage_change(type->source_corresp.parent.class_type,
+                                      count);
       }  /* if */
       break;
     case tk_routine:
@@ -7879,19 +7890,18 @@ the change on the contained type.
          should be handled recursively when the class type is processed.  The
          the member type is handled independently to allow for the case where
          no member of that type exists. */
-      tp = pm_class_type(type);
-      check_type_for_linkage_change(tp, count);
+      check_type_for_linkage_change(pm_class_type(type), count);
       check_type_for_linkage_change(pm_member_type(type), count);
       break;
     case tk_integer:
       /* Check for an enum type.  If it's a member of a class, its class
          should be made externally linked, too. */
       if (type->variant.integer.enum_type) {
-        tp = type->source_corresp.class_of_which_a_member;
-        if (tp != NULL) {
+        if (type->source_corresp.is_class_member) {
           /* Nested enum -- changing the parent's linkage causes the linkage
              of all its nested types to be changed. */
-          check_type_for_linkage_change(tp, count);
+          check_type_for_linkage_change(type->source_corresp.parent.class_type,
+                                        count);
         } else if (is_candidate_for_linkage_change(type)) {
           make_enum_type_externally_linked(type, count);
         }  /* if */
@@ -8079,7 +8089,6 @@ because they were used in declaring an external function or variable.
         if (vp->source_corresp.name_linkage ==
                                (a_name_linkage_kind)nlk_cplusplus_external) {
           /* This is an externally linked variable.  Check its type. */
-          check_assertion(vp->source_corresp.class_of_which_a_member == NULL);
           count = 0;
           check_type_for_linkage_change(vp->type, &count);
           /* "count" is returned as the number of internally linked classes
@@ -8099,7 +8108,6 @@ because they were used in declaring an external function or variable.
         if (rp->source_corresp.name_linkage ==
                                (a_name_linkage_kind)nlk_cplusplus_external) {
           /* This is an externally linked routine.  Check its type. */
-          check_assertion(rp->source_corresp.class_of_which_a_member == NULL);
           count = 0;
           check_type_for_linkage_change(rp->type, &count);
           /* Again, we can bail out when the number of internally linked
