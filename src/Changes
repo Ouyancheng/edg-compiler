@@ -154,7 +154,7 @@ errors were not detected.
 
 A bug was introduced in version 2.44 that could cause members of
 an enclosing class to be ignored during certains lookups in a
-template class.  This has been fixed.
+template class in Microsoft mode.  This has been fixed.
 
   template <class T> struct A {
     struct C { };
