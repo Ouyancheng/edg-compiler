@@ -1,5 +1,15 @@
 Version 3.4
 
+1/21/04  Warnings detected during command-line macro processing
+
+During command-line macro processing the front end maps all diagnostics
+into a generic "invalid macro definition" command-line error.  This had
+the surprising effect of translating an "invalid macro redefinition" warning
+into an error.  Even more surprising, the error would go away if the
+--no_warnings option was used.  To avoid these surprises, warnings and
+remarks that occur while processing command-line macro definitions are
+now suppressed.
+
 1/20/04  Space use improvement with CHECKING code with Microsoft compilers
 
 When using checking code, bit fields in data structures are generally
