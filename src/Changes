@@ -1,5 +1,14 @@
 Version 3.0
 
+5/3/02   Macro to determine whether long long is enabled
+
+The front end can now be configured to define a macro when long long is not
+enabled.  The lang_feat.h flag DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED is
+used to request that such a macro be defined.  The name of the macro is
+specified by the lang_feat.h flag MACRO_DEFINED_WHEN_LONG_LONG_IS_DISABLED.
+By default, a macro named "_NO_LONGLONG" is defined when long long is
+disabled.
+
 5/2/02   Internal error in copy_parent_type_with_substitution
 
 An internal error would occur during template argument substitution
