@@ -1534,6 +1534,10 @@ typedef struct a_scope_stack_entry {
 			   That is, the routine returns a class value via
 			   a copy constructor, and all return statements
 			   return a single local variable. */
+  unsigned int	is_prototype_instantiation_scope:1;
+			/* TRUE if kind is sck_template_instantiation and
+			   what is being instantiated is the prototype for a
+			   class template. */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
@@ -1861,6 +1865,11 @@ typedef int a_symbol_reference_kind;
 #define SRK_TENTATIVE_DEF 0x200
 			/* Or'ed with SRK_DEFINITION, a variable declaration
 			   is a tentative definition (C only). */
+#define SRK_IMPLICIT_TEMPLATE_ARG 0x400
+			/* Within a template instantiation, an implicit
+			   reference to a name involved in a template argument
+			   by means of an explicit reference to a template
+			   parameter. */
 #define SRK_ALL_REFERENCES \
   (SRK_USE | SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_ERROR)
 			/* All types of references.  Used to mask off those
