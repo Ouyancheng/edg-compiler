@@ -2753,7 +2753,7 @@ supplement.
 /* Return TRUE if the symbol represents the prototype instantiation of a
    class template. */
 #define is_prototype_instantiation_symbol(sym)				\
-  (is_template_class_symbol((sym)) &&					\
+  (is_class_struct_union_symbol(sym) &&					\
    (sym)->variant.class_struct_union.extra_info->is_prototype_instantiation)
 
 /* Return a pointer to the namespace associated with a namespace symbol.
