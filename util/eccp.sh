@@ -18,6 +18,8 @@ fi
 # Predefined preprocessing variables.
 #
 defines=${EDG_DEFAULT_DEFINES-""}
+c_defines=${EDG_DEFAULT_C_DEFINES-""}
+cpp_defines=${EDG_DEFAULT_CPP_DEFINES-""}
 EDG_CBASE=${EDG_CBASE-/edg/cpfe}
 #
 # The driver name to be used in diagnostics
@@ -1475,8 +1477,14 @@ fi
 #
 if [ $c_mode -eq 1 ] ; then
   default_include_dirs=$CINCLDIR
+  if [ "$c_defines" != "" ] ; then
+    feoptions=$c_defines" "$feoptions
+  fi
 else
   default_include_dirs=$INCLDIR
+  if [ "$cpp_defines" != "" ] ; then
+    feoptions=$cpp_defines" "$feoptions
+  fi
 fi
 default_include_dirs=${EDG_DEFAULT_INCLUDE_DIRS-$default_include_dirs}
 #
