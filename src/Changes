@@ -394,6 +394,8 @@ off (specifically, in non-cfront mode the layout of classes with
 virtual base classes is done in a more efficient and sensible way,
 and that difference provokes this problem more often).
 
+(6/11/98: tweak on generated code; an array-to-pointer decay was missing.)
+
 4/23/98   Fixed apparent inconsistency in variable-used-before-set warning
 
 For purposes of used-before-set diagnostics, a variable is no longer

@@ -5601,17 +5601,23 @@ the variable.
 
 static an_expr_node_ptr vtbl_addr_from_construction_vtbls_array(
                         a_variable_ptr                  construction_vtbls_var,
+                        a_boolean                       var_is_array,
                         a_construction_vtbl_array_index index)
 /*
 Construct an expression for an lvalue for the "index-1"-th element of the
 indicated array of special virtual function table values.  Return a pointer
-to the expression.
+to the expression.  If var_is_array is TRUE, construction_vtbls is the
+array itself; if FALSE, it is a pointer to the first element of the array.
 */
 {
   an_expr_node_ptr expr;
 
   check_assertion(construction_vtbls_var != NULL);
-  expr = var_rvalue_expr(construction_vtbls_var);
+  if (var_is_array) {
+    expr = array_var_lvalue_expr(construction_vtbls_var);
+  } else {
+    expr = var_rvalue_expr(construction_vtbls_var);
+  }  /* if */
   /* Compensate for 0-origin of array versus 1-origin of index. */
   index--;
   if (index != 0) {
@@ -5739,6 +5745,7 @@ is the "this" parameter variable for the constructor or destructor.
 
 static void pass_construction_vtbls_to_subobject_constructor(
                         a_variable_ptr                  construction_vtbls_var,
+                        a_boolean                       var_is_array,
                         a_type_ptr                      subobject_class_type,
                         a_construction_vtbl_array_index index,
                         an_init_pos_descr_ptr           ipdp,
@@ -5748,14 +5755,16 @@ Insert an assignment statement to store the address of the "index-1"-th
 element of the array of special virtual functions pointed to by
 construction_vtbls_var into the so-called transfer pointer in the
 subobject described by ipdp to pass the array to a subobject constructor
-or destructor.  The subobject class type is subobject_class_type (this is
-passed because the type of the expression produced from ipdp may have the
-type-as-subobject).
+or destructor.  If var_is_array is TRUE, construction_vtbls is the
+array itself; if FALSE, it is a pointer to the first element of the array.
+The subobject class type is subobject_class_type (this is passed because
+the type of the expression produced from ipdp may have the type-as-subobject).
 */
 {
   an_expr_node_ptr array_addr, trans_ptr_node;
 
   array_addr = vtbl_addr_from_construction_vtbls_array(construction_vtbls_var,
+                                                       var_is_array,
                                                        index);
   /* Get the address of the subobject. */
   trans_ptr_node = make_init_entity_node(ipdp, /*using_as_address=*/FALSE,
@@ -5865,6 +5874,7 @@ inserted at *insert_location, and *insert_location is updated.
           check_assertion(construction_vtbls_var != NULL);
           pass_construction_vtbls_to_subobject_constructor(
                     construction_vtbls_var,
+                    /*var_is_array=*/FALSE,
                     base_class->type,
                     base_class->base_subarray_index_in_construction_vtbl_array,
                     &ipd,
@@ -5882,6 +5892,7 @@ inserted at *insert_location, and *insert_location is updated.
                                           base_class->base_construction_vtbls);
           pass_construction_vtbls_to_subobject_constructor(
                             array_var,
+                            /*var_is_array=*/TRUE,
                             base_class->type,
                             (a_construction_vtbl_array_index)1,
                             &ipd,
@@ -6198,6 +6209,7 @@ constructor, but may instead be after an assignment to "this".
            array of construction virtual function table pointers. */
         vtbl_addr_node = vtbl_addr_from_construction_vtbls_array(
                                         construction_vtbls_var,
+                                        /*var_is_array=*/FALSE,
                                         bcp->index_in_construction_vtbl_array);
         vtbl_addr_node = add_indirection_to_node(vtbl_addr_node);
       } else
@@ -6499,6 +6511,7 @@ The statements created are inserted at *insert_location, and
           check_assertion(destruction_vtbls_var != NULL);
           pass_construction_vtbls_to_subobject_constructor(
                     destruction_vtbls_var,
+                    /*var_is_array=*/FALSE,
                     base_class->type,
                     base_class->base_subarray_index_in_construction_vtbl_array,
                     &ipd,
@@ -6516,6 +6529,7 @@ The statements created are inserted at *insert_location, and
                                           base_class->base_construction_vtbls);
           pass_construction_vtbls_to_subobject_constructor(
                             array_var,
+                            /*var_is_array=*/TRUE,
                             base_class->type,
                             (a_construction_vtbl_array_index)1,
                             &ipd,
@@ -6856,6 +6870,7 @@ destructor scope, and also lower the user code.
            array of destruction virtual function table pointers. */
         vtbl_addr_node = vtbl_addr_from_construction_vtbls_array(
                                         destruction_vtbls_var,
+                                        /*var_is_array=*/FALSE,
                                         bcp->index_in_construction_vtbl_array);
         vtbl_addr_node = add_indirection_to_node(vtbl_addr_node);
       } else
