@@ -629,7 +629,9 @@ of fields attached to struct_type.  The name pointed to by field_name is
 copied into the file-scope IL memory region.  *last_field points to the
 last field, or is NULL if there are no fields yet; it is updated on exit.
 *byte_offset gives the next available position in the structure, both on
-entry and (updated) on exit.  This routine is used for creating fields of
+entry and (updated) on exit.  If struct_type is a union, each field is
+added at offset 0, and *byte_offset is used to hold the size of the
+largest field seen so far.  This routine is used for creating fields of
 wholly-generated structs, not for adding fields to existing structs.
 It cannot create bit fields.  field_name may not be NULL.
 */
@@ -638,6 +640,7 @@ It cannot create bit fields.  field_name may not be NULL.
   a_field_ptr      field_ptr;
   a_targ_alignment alignment;
   int              bit_offset;
+  a_targ_size_t    old_byte_offset;
 
   /* Copy the name into the file-scope IL memory region. */
   name_length = strlen(field_name);
@@ -658,9 +661,18 @@ It cannot create bit fields.  field_name may not be NULL.
   /* Determine the field offset and update the offset and struct alignment. */
   alignment = struct_type->alignment;
   bit_offset = 0;
+  if (struct_type->kind == (a_type_kind)tk_union) {
+    /* For a union, each field is at offset 0. */
+    old_byte_offset = *byte_offset;
+    *byte_offset = 0;
+  }  /* if */
   (void)set_field_size_and_offset(field_ptr, byte_offset, &bit_offset,
                                   &alignment);
   struct_type->alignment = alignment;
+  if (struct_type->kind == (a_type_kind)tk_union) {
+    /* For unions, maintain the size of the largest field. */
+    if (*byte_offset < old_byte_offset) *byte_offset = old_byte_offset;
+  }  /* if */
 }  /* make_lowered_field */
 
 
@@ -753,7 +765,6 @@ static a_field_ptr
 		mptr_i_field,
 		mptr_f_field;
 
-
 static a_type_ptr make_mptr_type(void)
 /*
 Make the struct type used in pointers to member functions if it has not been
@@ -776,6 +787,7 @@ compatibility we do too.)
   if (mptr_type == NULL) {
     /* Make the __mptr struct type.  It doesn't actually have a name. */
     mptr_type = alloc_type((a_type_kind)tk_struct);
+    add_to_front_of_file_scope_types_list(mptr_type);
     byte_offset = 0;
     last_field = NULL;
     /* field: short d; (delta) */
@@ -792,7 +804,6 @@ compatibility we do too.)
                        &last_field);
     mptr_f_field = last_field;
     finish_class_type(mptr_type, &byte_offset);
-    add_to_front_of_file_scope_types_list(mptr_type);
 #if CHECKING
     if (mptr_type->size != TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION ||
         mptr_type->alignment != TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION) {
@@ -804,13 +815,13 @@ compatibility we do too.)
   return mptr_type;
 }  /* make_mptr_type */
 
+
 /*
 Pointer to the typeinfo struct type (used to represent runtime type
 information).  NULL until created.
 */
 static a_type_ptr
 		typeinfo_type;
-
 
 static a_type_ptr make_typeinfo_type(void)
 /*
@@ -831,6 +842,7 @@ if it is not made already, and return a pointer to it.  Its definition is
   if (typeinfo_type == NULL) {
     /* Make the struct type. */
     typeinfo_type = alloc_type((a_type_kind)tk_struct);
+    add_to_front_of_file_scope_types_list(typeinfo_type);
     byte_offset = 0;
     last_field = NULL;
     /* field: char *id */
@@ -845,10 +857,268 @@ if it is not made already, and return a pointer to it.  Its definition is
                        make_pointer_type(make_pointer_type(typeinfo_type)),
                        &byte_offset, typeinfo_type, &last_field);
     finish_class_type(typeinfo_type, &byte_offset);
-    add_to_front_of_file_scope_types_list(typeinfo_type);
   }  /* if */
   return typeinfo_type;
 }  /* make_typeinfo_type */
+
+
+/*
+Pointer to the jmp_buf type (used for setjmp/longjmp as part of exception
+try/throw).  NULL until created.
+*/
+static a_type_ptr
+		jmp_buf_type;
+
+static a_type_ptr make_jmp_buf_type(void)
+/*
+Make the jmp_buf type (used for setjmp/longjmp as part of exception
+try/throw) if it is not made already, and return a pointer to it.
+*/
+{
+  if (jmp_buf_type == NULL) {
+    /* jmp_buf is an array; that's part of the standard.  We assume it's
+       an array of elements of some integral type; that's not standard,
+       but it's common.  For other cases, one can pick an integral kind
+       and number of elements to give the right size and alignment. */
+    jmp_buf_type = alloc_type((a_type_kind)tk_array);
+    jmp_buf_type->variant.array.element_type =
+                                   integer_type(TARG_JMP_BUF_ELEMENT_INT_KIND);
+    jmp_buf_type->variant.array.variant.number_of_elements =
+                                                     TARG_JMP_BUF_NUM_ELEMENTS;
+    set_type_size(jmp_buf_type);
+  }  /* if */
+  return jmp_buf_type;
+}  /* make_jmp_buf_type */
+
+
+/*
+Pointer to the exception_type_specification struct type (used to represent
+a type for exception throw and catch specifications).  NULL until created.
+*/
+static a_type_ptr
+		exception_type_specification_type;
+
+static a_type_ptr make_exception_type_specification_type(void)
+/*
+Make the exception_type_specification struct type (used to represent
+a type for exception throw and catch specifications) if it is not made
+already, and return a pointer to it.  Its definition is
+
+  struct exception_type_specification {
+    typeinfo      *tinfo;
+    unsigned char flags;
+  };
+
+*/
+{
+  a_targ_size_t byte_offset;
+  a_field_ptr   last_field;
+
+  if (exception_type_specification_type == NULL) {
+    /* Make the struct type. */
+    exception_type_specification_type = alloc_type((a_type_kind)tk_struct);
+    add_to_front_of_file_scope_types_list(exception_type_specification_type);
+    byte_offset = 0;
+    last_field = NULL;
+    /* field: typeinfo *tinfo */
+    make_lowered_field("tinfo", make_pointer_type(make_typeinfo_type()),
+                       &byte_offset, exception_type_specification_type,
+                       &last_field);
+    /* field: unsigned char flags */
+    make_lowered_field("flags",
+                       integer_type((an_integer_kind)ik_unsigned_char),
+                       &byte_offset, exception_type_specification_type,
+                       &last_field);
+    finish_class_type(exception_type_specification_type, &byte_offset);
+  }  /* if */
+  return exception_type_specification_type;
+}  /* make_exception_type_specification_type */
+
+
+/*
+Pointer to the eh_region_descr struct type (used to represent a cleanup
+region for exception processing).  NULL until created.
+*/
+static a_type_ptr
+		eh_region_descr_type;
+
+static a_type_ptr make_eh_region_descr_type(void)
+/*
+Make the eh_region_descr struct type (used to represent the cleanup required
+in a particular region for exception processing) if it is not made already,
+and return a pointer to it.  Its definition is
+
+  struct eh_region_descr {
+    __vptp         dtor;    // Destructor or delete routine pointer
+    unsigned short handle;  // Index of object in object address table
+    unsigned short prev;    // Previous cleanup region
+    unsigned char  flags;   // Bit flags
+  };
+
+*/
+{
+  a_targ_size_t byte_offset;
+  a_field_ptr   last_field;
+
+  if (eh_region_descr_type == NULL) {
+    /* Make the struct type. */
+    eh_region_descr_type = alloc_type((a_type_kind)tk_struct);
+    add_to_front_of_file_scope_types_list(eh_region_descr_type);
+    byte_offset = 0;
+    last_field = NULL;
+    /* field: __vptp dtor */
+    make_lowered_field("dtor", make_vptp_type(), &byte_offset,
+                       eh_region_descr_type, &last_field);
+    /* field: unsigned short handle */
+    make_lowered_field("handle",
+                       integer_type((an_integer_kind)ik_unsigned_short),
+                       &byte_offset, eh_region_descr_type, &last_field);
+    /* field: unsigned short prev */
+    make_lowered_field("prev",
+                       integer_type((an_integer_kind)ik_unsigned_short),
+                       &byte_offset, eh_region_descr_type, &last_field);
+    /* field: unsigned char flags */
+    make_lowered_field("flags",
+                       integer_type((an_integer_kind)ik_unsigned_char),
+                       &byte_offset, eh_region_descr_type, &last_field);
+    finish_class_type(eh_region_descr_type, &byte_offset);
+  }  /* if */
+  return eh_region_descr_type;
+}  /* make_eh_region_descr_type */
+
+
+/*
+Pointer to the eh_stack_entry struct type (used to represent a stack frame
+for exception processing).  NULL until created.
+*/
+static a_type_ptr
+		eh_stack_entry_type;
+static a_field_ptr
+		ehse_next_field,
+		ehse_kind_field,
+		ehse_variant_field,
+		ehse_try_field,
+		ehse_try_setjmp_buffer_field,
+		ehse_try_catch_entries_field,
+		ehse_function_field,
+		ehse_function_regions_field,
+		ehse_function_obj_table_field,
+		ehse_function_saved_region_number_field,
+		ehse_throw_spec_field;
+
+static a_type_ptr make_eh_stack_entry_type(void)
+/*
+Make the eh_stack_entry struct type (used to represent a stack frame for
+exception processing) if it is not made already, and return a pointer to it.
+Its definition is
+
+  struct eh_stack_entry {
+    eh_stack_entry *next;  // Next stack frame
+    unsigned char  kind    // try (0), function (1), or throw (2)
+    union {
+      struct {
+        jmp_buf  setjmp_buffer; // Buffer for setjmp
+        exception_type_specification *catch_entries;  // Catch list
+      } try_block;
+      struct {
+        eh_region_descr *regions;  // Cleanup regions
+        void     **obj_table;      // Object address table
+        unsigned short saved_region_number; // Saved __eh_curr_region
+      } function;
+      exception_type_specification *throw_spec; // Throw spec list
+    } variant;
+  };
+
+*/
+{
+  a_targ_size_t byte_offset;
+  a_field_ptr   last_field;
+  a_type_ptr    try_block_struct_type, function_struct_type;
+  a_type_ptr    variant_union_type, ptr_exception_type_specification;
+
+  if (eh_stack_entry_type == NULL) {
+    /* Make the class types (without defining them) to get them on the
+       types list in the right order (they get added to the front so they
+       end up in reverse order of insertion). */
+    /* Make the eh_stack_entry struct type. */
+    eh_stack_entry_type = alloc_type((a_type_kind)tk_struct);
+    add_to_front_of_file_scope_types_list(eh_stack_entry_type);
+    /* Make the variant union type. */
+    variant_union_type = alloc_type((a_type_kind)tk_union);
+    add_to_front_of_file_scope_types_list(variant_union_type);
+    /* Make the try_block variant struct. */
+    try_block_struct_type = alloc_type((a_type_kind)tk_struct);
+    add_to_front_of_file_scope_types_list(try_block_struct_type);
+    byte_offset = 0;
+    last_field = NULL;
+    /* field: jmp_buf setjmp_buffer */
+    make_lowered_field("setjmp_buffer", make_jmp_buf_type(),
+                       &byte_offset, try_block_struct_type, &last_field);
+    ehse_try_setjmp_buffer_field = last_field;
+    /* field: exception_type_specification *catch_entries */
+    ptr_exception_type_specification =
+                   make_pointer_type(make_exception_type_specification_type());
+    make_lowered_field("catch_entries", ptr_exception_type_specification,
+                       &byte_offset, try_block_struct_type, &last_field);
+    ehse_try_catch_entries_field = last_field;
+    finish_class_type(try_block_struct_type, &byte_offset);
+    /* Make the function variant struct. */
+    function_struct_type = alloc_type((a_type_kind)tk_struct);
+    add_to_front_of_file_scope_types_list(function_struct_type);
+    byte_offset = 0;
+    last_field = NULL;
+    /* field: eh_region_descr *regions */
+    make_lowered_field("regions",
+                       make_pointer_type(make_eh_region_descr_type()),
+                       &byte_offset, function_struct_type, &last_field);
+    ehse_function_regions_field = last_field;
+    /* field: void **obj_table */
+    make_lowered_field("obj_table",
+                       make_pointer_type(void_star_type()),
+                       &byte_offset, function_struct_type, &last_field);
+    ehse_function_obj_table_field = last_field;
+    /* field: unsigned short saved_region_number */
+    make_lowered_field("saved_region_number",
+                       integer_type((an_integer_kind)ik_unsigned_short),
+                       &byte_offset, function_struct_type, &last_field);
+    ehse_function_saved_region_number_field = last_field;
+    finish_class_type(function_struct_type, &byte_offset);
+    /* Define the variant union type. */
+    byte_offset = 0;
+    last_field = NULL;
+    /* field: struct {...} try_block */
+    make_lowered_field("try_block", try_block_struct_type,
+                       &byte_offset, variant_union_type, &last_field);
+    ehse_try_field = last_field;
+    /* field: struct {...} function */
+    make_lowered_field("function", function_struct_type,
+                       &byte_offset, variant_union_type, &last_field);
+    ehse_function_field = last_field;
+    /* field: exception_type_specification *throw_spec */
+    make_lowered_field("throw_spec", ptr_exception_type_specification,
+                       &byte_offset, variant_union_type, &last_field);
+    ehse_throw_spec_field = last_field;
+    finish_class_type(variant_union_type, &byte_offset);
+    /* Define the eh_stack_entry struct type. */
+    byte_offset = 0;
+    last_field = NULL;
+    /* field: eh_stack_entry *next */
+    make_lowered_field("next", make_pointer_type(eh_stack_entry_type),
+                       &byte_offset, eh_stack_entry_type, &last_field);
+    ehse_next_field = last_field;
+    /* field: unsigned char kind */
+    make_lowered_field("kind",
+                       integer_type((an_integer_kind)ik_unsigned_char),
+                       &byte_offset, eh_stack_entry_type, &last_field);
+    ehse_kind_field = last_field;
+    /* field: union {...} variant */
+    make_lowered_field("variant", variant_union_type,
+                       &byte_offset, eh_stack_entry_type, &last_field);
+    ehse_variant_field = last_field;
+    finish_class_type(eh_stack_entry_type, &byte_offset);
+  }  /* if */
+  return eh_stack_entry_type;
+}  /* make_eh_stack_entry_type */
 
 
 static a_type_ptr underlying_pm_type(a_type_ptr type)
@@ -7461,6 +7731,10 @@ of the front end.
   vptp_type = NULL;
   mptr_type = NULL;
   typeinfo_type = NULL;
+  jmp_buf_type = NULL;
+  exception_type_specification_type = NULL;
+  eh_region_descr_type = NULL;
+  eh_stack_entry_type = NULL;
   type_promotion_insert_location = NULL;
   num_of_pending_class_typeinfo_vars = 0;
 #if DEBUG
