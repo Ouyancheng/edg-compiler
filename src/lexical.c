@@ -7324,8 +7324,15 @@ done using the disambiguation routines.
 
   do {
     /* If the current token is a ">" then exit the loop.  This should only be
-       possible on the first iteration if we have an empty argument list. */
-    if (curr_token == tok_gt) break;
+       possible on the first iteration if we have an empty argument list.
+       If it occurs elsewhere, we must have a comma followed by the closing
+       ">" of the template argument list. */
+    if (curr_token == tok_gt) {
+      if (arg_list != NULL) {
+        error(ec_expected_template_arg);
+      }  /* if */
+      break;
+    }  /* if */
     add_stop_token(tok_comma);
     /* Determine the kind of template argument. */
     is_type_param = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
