@@ -10919,6 +10919,11 @@ the IL, the template header is passed via template_decl.
                                                    &decl_info);
     if (decl_info.is_anonymous_union) {
       /* decl_nonstatic_data_member needs to be called. */
+      /* Ignore any top level cv-qualifiers in Microsoft mode. */
+      if (microsoft_mode && member_type->kind == (a_type_kind)tk_typeref &&
+          !typeref_is_typedef(member_type)) {
+        member_type = skip_typerefs(member_type);
+      }  /* if */
     } else {
       cannot_bind_to_curr_construct();
       /* Bypass the semicolon and skip to the next declaration. */
