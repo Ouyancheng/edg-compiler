@@ -5571,11 +5571,40 @@ declared member functions.
 
       tp = member_type;
       if (func_info->is_movable_member_or_friend_def) {
-        /* Remove default arguments, if any, from the type associated with
-           the secondary source-sequence entry; they will appear on the
-           source-sequence entry for the definition instead.  (If they were
-           repeated the C++-generating back end would put out invalid code.) */
-        tp = routine_type_without_default_args(tp);
+        /* A given default argument expression cannot appear both on a
+           secondary source-sequence entry and on the primary declaration. */
+        /* Remove default arguments, if any, from the type recorded as the
+           declared type on the primary declaration.  This means, in the
+           source-sequence representation the default arguments will be on
+           the declaration that appears inside the class definition and not
+           on the definition that appears outside the class definition.  For
+           example, it has the effect of making the following transformation
+           in the output of the C++-generating back end:
+             class A {
+               void f(int = 0) { }
+             };
+           becomes
+             class A {
+               void f(int = 0);
+             };
+             void A::f(int) { }
+        */
+        rtn->declared_type = routine_type_without_default_args(tp);
+        /* Note: The aforementioned transformation is often better than
+           associating the default argument with the out-of-class definition
+           (e.g., when the current function is a default constructor or when
+           it is called in the body of a member function already defined
+           within the current class).  However, if the transformation should
+           (sometimes or always) produce this:
+             class A {
+               void f(int);
+             };
+             void A::f(int = 0) { }
+           then the following can be executed instead, to remove the default
+           arguments from the type associated with the secondary
+           source-sequence entry:
+             tp = routine_type_without_default_args(tp);
+        */
       }  /* if */          
       sssdp = set_src_seq_secondary_decl_type((char *)rtn, tp,
                                               /*is_specialization=*/FALSE);
