@@ -3662,7 +3662,11 @@ process_assignment:
                 if ((int)ikind < (int)ik_int) {
                   internal_error("dump_expr: unwidened integer argument");
                 }  /* if */
-              } else if (is_floating_type(arg_type)) {
+              } else if (arg_type->kind == (a_type_kind)tk_float
+#if C99_IL_EXTENSIONS_SUPPORTED
+                         || arg_type->kind == (a_type_kind)tk_imaginary
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+                                                                       ) {
                 a_float_kind fkind = arg_type->variant.float_kind;
                 if (fkind == (a_float_kind)fk_float) {
                   internal_error("dump_expr: unwidened float argument");
