@@ -726,7 +726,7 @@ is an empty class.
           /* No action required. */
         } else {
           check_assertion(kind == (a_type_kind)tk_struct ||
-                          kind == (a_type_kind)tk_union);
+                          kind == (a_type_kind)tk_class);
           /* We have been initializing the fields of a class object, but we
              ran out of initializers before reaching the last field.  See if
              any of the remaining fields are const or ref types. */
