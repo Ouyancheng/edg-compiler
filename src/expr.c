@@ -5416,7 +5416,10 @@ this routine is called.
            that come from casting an integer constant to a pointer type,
            as in (int)(char *)1. */
         if (strict_ansi_mode) {
-          pos_diagnostic(strict_ansi_error_severity, ec_expr_not_arithmetic,
+          pos_diagnostic(strict_ansi_error_severity,
+                         enum_type_is_integral ?
+                           ec_expr_not_arithmetic :
+                           ec_expr_not_arithmetic_or_enum,
                          &operand->position);
           err = (strict_ansi_error_severity == es_error);
         }  /* if */
@@ -5424,7 +5427,9 @@ this routine is called.
         /* The destination type is integral, but the source type is not
            arithmetic. */
         if (!is_error_type(source_type)) {
-          pos_error(ec_expr_not_arithmetic, &operand->position);
+          pos_error(enum_type_is_integral ?
+                      ec_expr_not_arithmetic : ec_expr_not_arithmetic_or_enum,
+                    &operand->position);
         }  /* if */
         err = TRUE;
       }  /* if */
@@ -5434,14 +5439,19 @@ this routine is called.
       /* When the cast is the immediate operand of another cast, allow
          integer --> pointer as an extension. */
       if (strict_ansi_mode) {
-        pos_diagnostic(strict_ansi_error_severity, ec_cast_not_integral,
+        pos_diagnostic(strict_ansi_error_severity,
+                       enum_type_is_integral ?
+                         ec_cast_not_integral :
+                         ec_cast_not_integral_or_enum,
                        type_position);
         err = (strict_ansi_error_severity == es_error);
       }  /* if */
     } else {
       /* Casting to a non-integral type in an integral constant expression. */
       if (!is_error_type(dest_type)) {
-        pos_error(ec_cast_not_integral, type_position);
+        pos_error(enum_type_is_integral ?
+                    ec_cast_not_integral : ec_cast_not_integral_or_enum,
+                  type_position);
       }  /* if */
       err = TRUE;
     }  /* if */
@@ -5459,27 +5469,38 @@ this routine is called.
            that the integral type is large enough is done in
            reinterpret_cast_conversion_possible. */
         if (strict_ansi_mode) {
-          pos_diagnostic(strict_ansi_error_severity, ec_expr_not_arithmetic,
+          pos_diagnostic(strict_ansi_error_severity,
+                         enum_type_is_integral ?
+                           ec_expr_not_arithmetic :
+                           ec_expr_not_arithmetic_or_enum,
                          &operand->position);
           err = (strict_ansi_error_severity == es_error);
         }  /* if */
       } else {
         /* Non-arithmetic --> arithmetic or enum. */
         if (!is_error_type(source_type)) {
-          pos_error(ec_expr_not_arithmetic, &operand->position);
+          pos_error(enum_type_is_integral ?
+                      ec_expr_not_arithmetic : ec_expr_not_arithmetic_or_enum,
+                    &operand->position);
         }  /* if */
         err = TRUE;
       }  /* if */
     } else if (is_pointer_type(dest_type)) {
       /* Casting to pointer; source must be scalar. */
       if (!is_scalar_type(source_type)) {
-        pos_error(ec_expr_not_scalar, &operand->position);
+        pos_error(enum_type_is_integral ?
+                    ec_expr_not_scalar :
+                    ec_expr_not_arithmetic_or_enum_or_pointer,
+                  &operand->position);
         err = TRUE;
       }  /* if */
     } else {
       /* Casting to a non-scalar type in an initializer expression. */
       if (!is_error_type(dest_type)) {
-        pos_error(ec_cast_not_scalar, type_position);
+        pos_error(enum_type_is_integral ?
+                    ec_cast_not_scalar :
+                    ec_cast_not_arithmetic_or_enum_or_pointer,
+                  type_position);
       }  /* if */
       err = TRUE;
     }  /* if */
@@ -6771,7 +6792,11 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
     operand_1_is_pointer = FALSE;
     if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
-    } else if (check_pointer_operand(operand_1, ec_expr_not_scalar)) {
+    } else if (check_pointer_operand(
+                               operand_1,
+                               enum_type_is_integral ?
+                                 ec_expr_not_scalar :
+                                 ec_expr_not_arithmetic_or_enum_or_pointer)) {
       operand_1_is_pointer = TRUE;
     }  /* if */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
@@ -6822,7 +6847,9 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         }  /* if */
       } else {
         /* Pointer +- non-integral.  Error. */
-        error_in_operand(ec_expr_not_integral, &operand_2);
+        error_in_operand(enum_type_is_integral ?
+                           ec_expr_not_integral : ec_expr_not_integral_or_enum,
+                         &operand_2);
         err = TRUE;
       }  /* if */
     } else if (save_token == tok_plus &&
@@ -6855,7 +6882,10 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         both_operands_are_arithmetic = TRUE;
       } else {
         /* Arithmetic +- non-arithmetic.  Error. */
-        error_in_operand(ec_expr_not_arithmetic, &operand_2);
+        error_in_operand(enum_type_is_integral ?
+                           ec_expr_not_arithmetic :
+                           ec_expr_not_arithmetic_or_enum,
+                         &operand_2);
         err = TRUE;
       }  /* if */
     }  /* if */
@@ -7125,7 +7155,11 @@ standard.
     operand_1_is_pointer = FALSE;
     if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
-    } else if (check_pointer_operand(operand_1, ec_expr_not_scalar)) {
+    } else if (check_pointer_operand(
+                               operand_1,
+                               enum_type_is_integral ?
+                                 ec_expr_not_scalar :
+                                 ec_expr_not_arithmetic_or_enum_or_pointer)) {
       operand_1_is_pointer = TRUE;
     }  /* if */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
@@ -7270,7 +7304,11 @@ Scan the "==" and "!=" operators.  See section 3.3.9 in the standard.
       /* Okay. */
     } else if (is_ptr_to_member_type(operand_1->type)) {
       operand_1_is_ptr_to_member = TRUE;
-    } else if (check_pointer_operand(operand_1, ec_expr_not_scalar)) {
+    } else if (check_pointer_operand(
+                               operand_1,
+                               enum_type_is_integral ?
+                                 ec_expr_not_scalar :
+                                 ec_expr_not_arithmetic_or_enum_or_pointer)) {
       operand_1_is_pointer = TRUE;
     }  /* if */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
@@ -8464,8 +8502,11 @@ See section 3.3.16 of the standard.
             /* If the first operand is arithmetic or enum, the second must
                be also. */
             (void)check_arithmetic_or_enum_operand(&operand_2);
-          } else if (check_object_pointer_operand
-                                             (operand_1, ec_expr_not_scalar)) {
+          } else if (check_pointer_operand(
+                               operand_1,
+                               enum_type_is_integral ?
+                                 ec_expr_not_scalar :
+                                 ec_expr_not_arithmetic_or_enum_or_pointer)) {
             /* The first operand is a pointer, so the second one must be
                integral or enum. */
             if (check_integral_or_enum_operand(&operand_2)) {
@@ -9579,7 +9620,10 @@ see expr.h).
       if (curr_expr_kind_is(ek_pp) ||
 	  (curr_expr_kind_is(ek_integral_constant) &&
            !(local_options & EOPT_OPERAND_OF_CAST))) {
-	error_and_make_error_operand(ec_expr_not_integral, &local_result);
+	error_and_make_error_operand(enum_type_is_integral ?
+                                       ec_expr_not_integral :
+                                       ec_expr_not_integral_or_enum,
+                                     &local_result);
       }  /* if */
       (void)get_token();
       break;
@@ -9587,7 +9631,10 @@ see expr.h).
       make_string_constant_operand(&const_for_curr_token, &local_result);
       if (curr_expr_kind_is(ek_pp) ||
 	  curr_expr_kind_is(ek_integral_constant)) {
-	error_and_make_error_operand(ec_expr_not_integral, &local_result);
+	error_and_make_error_operand(enum_type_is_integral ?
+                                       ec_expr_not_integral :
+                                       ec_expr_not_integral_or_enum,
+                                     &local_result);
       }  /* if */
       (void)get_token();
       break;

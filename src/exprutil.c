@@ -3014,7 +3014,9 @@ See section 3.1.2.5 of the standard.
        issued. */
     okay = FALSE;
   } else if (!is_integral_or_enum_type(operand->type)) {
-    error_in_operand(ec_expr_not_integral, operand);
+    error_in_operand(enum_type_is_integral ?
+                       ec_expr_not_integral : ec_expr_not_integral_or_enum,
+                     operand);
     okay = FALSE;
   }  /* if */
 
@@ -3034,7 +3036,9 @@ change the operand to an error operand.  See section 3.1.2.5 of the standard.
     /* If it is an error type, an error message has already been issued. */
     okay = FALSE;
   } else if (!is_arithmetic_or_enum_type(operand->type)) {
-    error_in_operand(ec_expr_not_arithmetic, operand);
+    error_in_operand(enum_type_is_integral ?
+                       ec_expr_not_arithmetic : ec_expr_not_arithmetic_or_enum,
+                     operand);
     okay = FALSE;
   }  /* if */
 
@@ -3176,7 +3180,10 @@ See section 3.1.2.5 of the standard.
        issued. */
     okay = FALSE;
   } else if (!is_scalar_type(operand->type)) {
-    error_in_operand(ec_expr_not_scalar, operand);
+    error_in_operand(enum_type_is_integral ?
+                       ec_expr_not_scalar :
+                       ec_expr_not_arithmetic_or_enum_or_pointer,
+                     operand);
     okay = FALSE;
   }  /* if */
 

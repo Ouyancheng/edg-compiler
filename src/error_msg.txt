@@ -894,6 +894,11 @@ ec_partial_spec_param_depends_on_templ_param;;"the type of partial specializatio
 ec_partial_spec_arg_depends_on_templ_param;;"the template argument list of the partial specialization includes a nontype argument whose type depends on a template parameter"
 ec_partial_spec_after_instantiation;;"this partial specialization would have been used to instantiate %n"
 ec_partial_spec_after_instantiation_ambiguous;;"this partial specialization would have been made the instantiation of %n ambiguous"
+ec_expr_not_integral_or_enum;;"expression must have integral or enum type"
+ec_expr_not_arithmetic_or_enum;;"expression must have arithmetic or enum type"
+ec_expr_not_arithmetic_or_enum_or_pointer;;"expression must have arithmetic, enum, or pointer type"
+ec_cast_not_integral_or_enum;;"type of cast must be integral or enum"
+ec_cast_not_arithmetic_or_enum_or_pointer;;"type of cast must be arithmetic, enum, or pointer"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
