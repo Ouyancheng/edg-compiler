@@ -2746,6 +2746,47 @@ and it is legal for virtual member functions only.
 }  /* scan_pure_specifier */
 
 
+static void decl_member_constant(a_symbol_locator    *locator,
+                                 a_type_ptr          class_type,
+                                 a_type_ptr          member_type,
+                                 an_access_specifier access)
+/*
+Do processing for a member constant, including scanning the initializer
+constant and entering the name in the symbol table.  This construct is
+not supported in the ARM.  The syntax we allow is:
+
+  "const" type-specifier    constant-member-name "=" constant-expression
+                        opt
+
+where the type specifier includes no storage class.  When the type specifier
+is omitted, it defaults to "int".
+*/
+{
+  a_symbol_ptr     sym;
+  a_constant_ptr   cp;
+
+  db_enter(3, "decl_member_constant");
+  /* Enter the constant name in the symbol table. */
+  sym = enter_local_symbol((a_symbol_kind)sk_constant, locator,
+                           decl_scope_level, /*suppress_redecl_error=*/FALSE);
+  /* The current token is the "=".  Pointing to it issue a warning that is
+     is a nonstandard construct. */
+  warning(ec_nonstd_const_member);
+  /* Advance past the "=". */
+  (void)get_token();
+  /* Scan the constant expression. */
+  cp = alloc_constant((a_constant_repr_kind)ck_error);
+  scan_constant_initializer_expression(member_type, cp);
+  /* Update the symbol and the constant entry. */
+  sym->variant.constant = cp;
+  set_source_corresp(&(cp->source_corresp), sym);
+  cp->source_corresp.access = access;
+  cp->source_corresp.class_of_which_a_member =
+                          sym->class_of_which_a_member = class_type;
+  db_exit();
+}  /* decl_member_constant */
+
+
 static void decl_static_data_member(a_symbol_locator    *locator,
                                     a_type_ptr          class_type,
                                     a_type_ptr          member_type,
@@ -5807,8 +5848,7 @@ class/struct/union is actually defined.
             pos_error(ec_missing_decl_specifiers, &decl_start_pos);
             remove_stop_token(tok_comma);
             break;
-          } else if (member_storage_class == (a_storage_class)sc_typedef &&
-              !friend_specified && !virtual_specified) {
+          } else if (member_storage_class == (a_storage_class)sc_typedef) {
             a_symbol_ptr        typedef_sym_ptr;
 #if CHECKING
             if (C_dialect != C_dialect_cplusplus) {
@@ -5824,6 +5864,14 @@ class/struct/union is actually defined.
             typedef_sym_ptr->variant.type->source_corresp.access = access;
             typedef_sym_ptr->variant.type->
                           source_corresp.class_of_which_a_member = class_type;
+          } else if (curr_token == tok_assign &&
+                     is_const_qualified_type(local_type) &&
+                     !is_volatile_qualified_type(local_type) &&
+                     member_storage_class == (a_storage_class)sc_unspecified &&
+                     C_dialect == C_dialect_cplusplus) {
+            /* Provide support for the nonstandard declaration of a member
+               constant -- e.g., "const int I = 2;". */
+            decl_member_constant(&locator, class_type, local_type, access);
           } else {
             if (C_dialect == C_dialect_cplusplus) {
               if (!type_explicitly_specified && first_declarator) {
