@@ -1,5 +1,12 @@
 Version 2.22
 
+2/24/94  IL lowering handling of cast of pointer-to-member-function
+
+The code for a cast of a pointer-to-member-function to another pointer-
+to-member-function, which is a no-op after IL lowering, now preserves
+the proper destination type, which means if one calls the result of
+the cast one calls a function of the right type.
+
 2/24/94  Declarations involving incomplete class types
 
 A declaration may involve an incomplete class type -- e.g.,
