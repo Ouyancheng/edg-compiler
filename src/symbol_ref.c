@@ -999,7 +999,10 @@ created for this entity; otherwise, it is NULL.
              updated. */
         } else
 #endif /* RECORD_TEMPLATES_IN_IL */
-        scptr->decl_position = *source_position;
+        /* Do not insert code here. */
+        {
+          scptr->decl_position = *source_position;
+        }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         if (scptr->decl_pos_info == NULL) {
           scptr->decl_pos_info =

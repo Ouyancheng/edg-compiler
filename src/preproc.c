@@ -24,7 +24,6 @@ preproc.c -- Preprocessing directives.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
-#include "decls.h"
 #include "expr.h"
 #include "macro.h"
 #include "pch.h"
@@ -1149,7 +1148,7 @@ Ensure that pp_dir_string_buffer has at least size_needed bytes in it.
 If not, expand pp_dir_string_buffer by reallocating it.
 */
 #define ensure_pp_dir_string_buffer_space(size_needed)                 \
-{ if (size_pp_dir_string_buffer < size_needed) {                       \
+{ if (size_pp_dir_string_buffer < (size_needed)) {                     \
     expand_pp_dir_string_buffer((sizeof_t)(size_needed));              \
   }  /* if */                                                          \
 }  /* ensure_pp_dir_string_buffer_space */
