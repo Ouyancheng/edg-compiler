@@ -2174,27 +2174,18 @@ or not the parameter should be passed using a copy constructor.
 }  /* set_arg_transfer_method_flag */
 
 
-a_param_type_ptr alloc_param_type(a_type_ptr type,
-                                  a_boolean  at_file_scope)
+a_param_type_ptr alloc_param_type(a_type_ptr type)
 /*
-Allocate a new parameter type entry and return a pointer to it.  Set
-its fields to default values and its type to "type".  Allocate it at
-the file scope if at_file_scope == TRUE.
+Allocate a new parameter type entry and return a pointer to it.  Set its
+fields to default values and its type to "type".  It is always allocated
+at file scope.
 */
 {
   a_param_type_ptr ptp;
 
   db_enter(5, "alloc_param_type");
 
-#if 0
-  if (at_file_scope) {
-    ptp = (a_param_type_ptr)alloc_il(sizeof(a_param_type));
-  } else {
-    ptp = (a_param_type_ptr)alloc_cil(sizeof(a_param_type));
-  }  /* if */
-#else
   ptp = (a_param_type_ptr)alloc_il(sizeof(a_param_type));
-#endif /* if !0 */
 #if DEBUG
   num_param_types_allocated++;
 #endif /* DEBUG */
@@ -2239,7 +2230,7 @@ return a pointer to it.
 {
   an_overriding_virtual_function_ptr ovfp;
 
-  ovfp = (an_overriding_virtual_function_ptr)alloc_cil(
+  ovfp = (an_overriding_virtual_function_ptr)alloc_il(
                                      sizeof(an_overriding_virtual_function));
 #if DEBUG
   num_overriding_virtual_functions_allocated++;
@@ -2293,7 +2284,7 @@ pointer to it.
 {
   an_access_adjustment_ptr aap;
 
-  aap = (an_access_adjustment_ptr)alloc_cil(sizeof(an_access_adjustment));
+  aap = (an_access_adjustment_ptr)alloc_il(sizeof(an_access_adjustment));
 #if DEBUG
   num_access_adjustments_allocated++;
 #endif /* DEBUG */
@@ -2319,7 +2310,7 @@ Allocate a class-list-entry, initialize its fields, and return a pointer to it.
 {
   a_class_list_entry_ptr clep;
 
-  clep = (a_class_list_entry_ptr)alloc_cil(sizeof(a_class_list_entry));
+  clep = (a_class_list_entry_ptr)alloc_il(sizeof(a_class_list_entry));
 #if DEBUG
   num_class_list_entries_allocated++;
 #endif /* DEBUG */
@@ -2338,7 +2329,7 @@ a pointer to it.
 {
   a_class_type_supplement_ptr ctsp;
 
-  ctsp = (a_class_type_supplement_ptr)alloc_cil(
+  ctsp = (a_class_type_supplement_ptr)alloc_il(
 			      sizeof(a_class_type_supplement));
 #if DEBUG
   num_class_type_supplements_allocated++;
@@ -2409,7 +2400,7 @@ to default values.
     case tk_routine:
       pte->variant.routine.return_type = NULL;
       pte->variant.routine.extra_info = rtsp =
-           (a_routine_type_supplement_ptr)alloc_cil(
+           (a_routine_type_supplement_ptr)alloc_il(
                                            sizeof(a_routine_type_supplement));
 #if DEBUG
       num_routine_type_supplements_allocated++;
@@ -2599,6 +2590,27 @@ in_old_style_param_decl_list is TRUE.
 }  /* add_to_types_list */
 
 
+a_type_ptr alloc_unlinked_type(a_type_kind kind)
+/*
+Allocate a new type entry in the file scope memory region and return a pointer
+to it.  Set general fields, set kind to the indicated value, and set the
+associated variant fields to default values.  Do not add the type entry to the
+types list.
+*/
+{
+  a_type_ptr tp;
+
+  db_enter(5, "alloc_unlinked_type");
+  tp = (a_type_ptr)alloc_il(sizeof(a_type));
+#if DEBUG
+  num_types_allocated++;
+#endif /* DEBUG */
+  clear_type(tp, kind);
+  db_exit();
+  return (tp);
+}  /* alloc_type */
+
+
 a_type_ptr alloc_type(a_type_kind kind)
 /*
 Allocate a new type entry in the file scope memory region and return a pointer
@@ -2610,40 +2622,32 @@ types list for the file scope.
   a_type_ptr tp;
   a_memory_region_number region_to_switch_back_to;
 
-  db_enter(5, "alloc_type");
-  switch_to_file_scope_region(&region_to_switch_back_to);
-  tp = (a_type_ptr)alloc_il(sizeof(a_type));
-#if DEBUG
-  num_types_allocated++;
-#endif /* DEBUG */
-  clear_type(tp, kind);
+  tp = alloc_unlinked_type(kind);
   if (kind != (a_type_kind)tk_error) {
     add_to_types_list(tp, DEPTH_OF_FILE_SCOPE,
                       /*in_old_style_param_decl_list=*/FALSE);
   }  /* if */
-  switch_back_to_original_region(region_to_switch_back_to);
-  db_exit();
   return (tp);
 }  /* alloc_type */
 
 
 a_type_ptr alloc_named_type(a_type_kind kind)
+/*
+Allocate a new type entry in the file scope memory region and return a pointer
+to it.  Set general fields, set kind to the indicated value, and set the
+associated variant fields to default values.  The caller is responsible for
+calling add_to_types_list, since for named types it is sometimes desirable
+to delay linking them.
+*/
 {
   a_type_ptr tp;
-  a_memory_region_number region_to_switch_back_to;
 
-  db_enter(5, "alloc_unnamed_type");
-  switch_to_file_scope_region(&region_to_switch_back_to);
+  db_enter(5, "alloc_named_type");
   tp = (a_type_ptr)alloc_il(sizeof(a_type));
 #if DEBUG
   num_types_allocated++;
 #endif /* DEBUG */
   clear_type(tp, kind);
-  if (kind != (a_type_kind)tk_error) {
-    add_to_types_list(tp, DEPTH_OF_FILE_SCOPE,
-                      /*in_old_style_param_decl_list=*/FALSE);
-  }  /* if */
-  switch_back_to_original_region(region_to_switch_back_to);
   db_exit();
   return (tp);
 }  /* alloc_named_type */
@@ -2667,14 +2671,6 @@ a_type_ptr alloc_local_scope_type(a_type_kind    kind,
   db_exit();
   return (tp);
 }  /* alloc_local_scope_type */
-
-#if 0
-/* Remove this once all calls to it have been removed. */
-#endif /* if 0 */
-a_type_ptr fs_type(a_type_kind kind)
-{
-  return alloc_type(kind);
-}  /* fs_type */
 
 
 a_type_ptr integer_type(an_integer_kind kind)
@@ -3448,7 +3444,7 @@ to it.
 
   db_enter(5, "alloc_field");
 
-  fp = (a_field_ptr)alloc_cil(sizeof(a_field));
+  fp = (a_field_ptr)alloc_il(sizeof(a_field));
 #if DEBUG
   num_fields_allocated++;
 #endif /* DEBUG */
