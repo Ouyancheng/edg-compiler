@@ -1,5 +1,16 @@
 Version 2.32
 
+5/13/96 Diagnostics on old-style template specializations
+
+New global variable old_specializations_allowed has been added to control
+whether an old-style template specialization (i.e., one without the
+"template<>" syntax) is accepted.  Its default value is configured by
+DEFAULT_OLD_SPECIALIZATIONS_ALLOWED, and it may be adjusted on the command
+line by --[no_]old_specializations.  Moreover, it is set to TRUE in
+cfront-compatibility mode, and it is set to FALSE in strict ANSI mode
+(unless --old_specializations appears on the command line, in which case a
+warning/discretionary error on using a nonstandard feature is issued).
+
 5/13/96 Failure to find conversion function in template
 
 In cases like the following, the front end failed to instantiate the source
