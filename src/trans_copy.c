@@ -1914,14 +1914,20 @@ unit set to the primary translation unit.
                  merged because some of its members need to be merged. */
               goto end_of_type_list_add;
             }  /* if */
-            check_assertion(class_type_has_body(corresp_type));
           }  /* if */
           /* Copy this type and its definition, overwriting the
              existing primary type.  Move the primary IL type
              to the end of the types list so that it appears on
              the list at the point where the definition appears.
-             Class members are not moved to the end of the list. */
-          move_to_end = !is_class_scope;
+             Class members are not moved to the end of the list.
+             Also do not move to the end of the list when the
+             type being moved is a declaration (that can
+             happen when a definition in a secondary translation
+             unit is chosen as the canonical entry, and then its
+             definition is not needed anywhere and is removed by
+             the unneeded-entity removal processing). */
+          move_to_end = (!is_class_scope &&
+                         class_type_has_body(corresp_type));
           if (move_to_end) {
             /* Also remove any associated namespace placeholder, but do
                not move it to the end of the list.  There will be a
