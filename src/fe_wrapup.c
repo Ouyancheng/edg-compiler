@@ -22,6 +22,7 @@ fe_wrapup.c - End of front end processing.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+#include "fe_wrapup.h"
 #include "class_decl.h"
 #include "exprutil.h"
 #include "func_def.h"
