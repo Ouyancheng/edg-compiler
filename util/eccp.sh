@@ -547,6 +547,8 @@ do
          --no_namespaces | \
          --using_std | \
          --no_using_std | \
+         --remove_unneeded_entities | \
+         --no_remove_unneeded_entities | \
          --typename | \
          --no_typename | \
          --implicit_typename | \
