@@ -493,6 +493,13 @@ the object language would distinguish routines XXX and xxx).
 #define TARG_CASE_SENSITIVE_EXTERNAL_NAMES TRUE
 
 /*
+Flag that is TRUE if external names begin with an added underscore.
+This is used by some utility programs (e.g., edg_munch) that deal with
+names.  The front end doesn't add the underscore.
+*/
+#define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED TRUE
+
+/*
 Flag that is TRUE if class and struct fields are allocated in the same order
 as they are declared, regardless of access specification.  When it is FALSE,
 fields are grouped by access (private first, followed by protected and then
