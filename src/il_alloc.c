@@ -2634,6 +2634,9 @@ and return a pointer to it.
   sssdp->entity.kind                 = (a_byte_il_entry_kind)iek_none;
   sssdp->entity.ptr                  = NULL;
   sssdp->declared_type               = NULL;
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  sssdp->template_decl               = NULL;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   sssdp->autonomous_tag_decl         = FALSE;
   sssdp->friend_decl                 = FALSE;
   sssdp->implicit_decl               = FALSE;
