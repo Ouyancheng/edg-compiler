@@ -5657,6 +5657,7 @@ to indicate whether the class/struct/union is actually defined.
   a_boolean               is_anonymous_union;
   an_expr_node_ptr        dim_expr_ptr;
   a_boolean               class_aggregate_ruled_out = FALSE;
+  a_boolean               any_friend_decls = FALSE;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -5978,6 +5979,7 @@ to indicate whether the class/struct/union is actually defined.
         type_explicitly_specified =
                                dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER;
         friend_specified = dso_flags & DSO_FRIEND;
+        if (friend_specified) any_friend_decls = TRUE;
         virtual_specified = (dso_flags & DSO_VIRTUAL) != 0;
         inline_specified = (dso_flags & DSO_INLINE) != 0;
         is_constructor = dso_flags & DSO_CONSTRUCTOR;
@@ -6448,6 +6450,34 @@ next_declaration:
           /* Either there's no destructor or there is but it isn't virtual. */
           str_warning(ec_class_with_virtual_func_but_no_virtual_dtor,
                       class_type->source_corresp.name);
+        }  /* if */
+      }  /* if */
+      /* Issue a warning on a class with all private constructors and no
+         friend functions. */
+      if (!any_friend_decls) {
+        a_symbol_ptr  ctor_sym = cssp->constructor;
+        a_boolean     is_overloaded = FALSE;
+
+        if (ctor_sym != NULL) {
+          if (ctor_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+            is_overloaded = TRUE;
+            ctor_sym = ctor_sym->variant.overloaded_function.symbols;
+          }  /* if */
+          /* See if the class has at least one constructor with nonprivate
+             access control. */
+          for (; ctor_sym != NULL;
+               ctor_sym = is_overloaded ? ctor_sym->next : NULL) {
+            if (ctor_sym->variant.routine->source_corresp.access !=
+                                            (an_access_specifier)as_private) {
+              /* Break out of the loop with non-null ctor_sym. */
+              break;
+            }  /* if */
+          }  /* for */
+          if (ctor_sym == NULL) {
+            /* All constructors are private. */
+            str_warning(ec_no_access_to_constructors,
+                        class_type->source_corresp.name);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
