@@ -639,7 +639,7 @@ type.
 {
   a_type_ptr       new_type = new_constant->type;
   a_type_ptr       old_type = old_constant->type;
-  a_boolean        related_class_cast = FALSE, downward_cast;
+  a_boolean        related_class_cast = FALSE, baseward_cast;
   a_base_class_ptr bcp;
 
   *did_not_fold = FALSE;
@@ -668,7 +668,7 @@ type.
 ??=error conv_pointer_to_whatever: different-sized pointers not implemented.
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
   } else if (related_class_pointers(old_type, new_type,
-                                    &downward_cast, &bcp)) {
+                                    &baseward_cast, &bcp)) {
     /* In C++, a cast of a pointer to a class to a pointer to a base class
        or derived class. */
     related_class_cast = TRUE;
@@ -677,7 +677,7 @@ type.
        information in the IL. */
     if (!constant_context) {
       *did_not_fold = TRUE;
-    } else if (downward_cast) {
+    } else if (baseward_cast) {
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
       fold_base_class_cast(old_constant, bcp, new_constant, is_implicit_cast,
