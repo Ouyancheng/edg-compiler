@@ -334,7 +334,11 @@ extern a_type_ptr bool_type(void);
 extern a_type_ptr float_type(a_float_kind kind);
 
 #if C99_IL_EXTENSIONS_SUPPORTED
+extern a_boolean complex_type_used(a_float_kind kind);
+
 extern a_type_ptr complex_type(a_float_kind kind);
+
+extern a_boolean imaginary_type_used(a_float_kind kind);
 
 extern a_type_ptr imaginary_type(a_float_kind kind);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */

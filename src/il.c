@@ -5093,6 +5093,15 @@ return a pointer to it.
 
 #if C99_IL_EXTENSIONS_SUPPORTED
 
+a_boolean complex_type_used(a_float_kind kind)
+/*
+Return TRUE if the complex type of the indicated kind was used so far.
+*/
+{
+  return complex_types[kind] != NULL;
+}  /* complex_type_used */
+
+
 a_type_ptr complex_type(a_float_kind kind)
 /*
 Make or find a type entry for a complex type of the indicated kind, and
@@ -5117,6 +5126,15 @@ return a pointer to it.
   }  /* if */
   return pft;
 }  /* complex_type */
+
+
+a_boolean imaginary_type_used(a_float_kind kind)
+/*
+Return TRUE if the imaginary type of the indicated kind was used so far.
+*/
+{
+  return imaginary_types[kind] != NULL;
+}  /* imaginary_type_used */
 
 
 a_type_ptr imaginary_type(a_float_kind kind)

@@ -1199,43 +1199,47 @@ The lowered form is a typedef to one of the floating-point types.
 The lowered type is given the name indicated by "name".
 */
 {
-  a_type_ptr  im_type = imaginary_type(kind);
+  if (imaginary_type_used(kind)) {
+    a_type_ptr  im_type = imaginary_type(kind);
 
-  set_type_kind(im_type, (a_type_kind)tk_typeref);
-  im_type->variant.typeref.type = float_type(kind);
-  im_type->source_corresp.name = alloc_il(strlen(name)+1);
-  strcpy(im_type->source_corresp.name, name);
-  add_to_types_list(im_type, DEPTH_OF_FILE_SCOPE);
+    set_type_kind(im_type, (a_type_kind)tk_typeref);
+    im_type->variant.typeref.type = float_type(kind);
+    im_type->source_corresp.name = alloc_il(strlen(name)+1);
+    strcpy(im_type->source_corresp.name, name);
+    add_to_types_list(im_type, DEPTH_OF_FILE_SCOPE);
+  }  /* if */
 }  /* lower_c99_imaginary_type */
 
 
 static void lower_c99_complex_type(a_float_kind  kind,
                                    char          *name)
 /*
-Lower the C99 complex type whose precision is given by kind.
+Lower the C99 complex type whose precision is given by kind (if it was used).
 The lowered form is a typedef to a struct containing an array of
 two floating-point values of the appropriate kind.
 The lowered type is given the name indicated by "name".
 */
 {
-  a_type_ptr   cmplx_type = complex_type(kind);
-  a_type_ptr   lowered_repr = lowered_complex_type(kind);
+  if (complex_type_used(kind)) {
+    a_type_ptr   cmplx_type = complex_type(kind);
+    a_type_ptr   lowered_repr = lowered_complex_type(kind);
 
-  /* Typedef the complex type to its lowered representation. */
-  set_type_kind(cmplx_type, (a_type_kind)tk_typeref);
-  cmplx_type->source_corresp.name = alloc_il(strlen(name)+1);
-  strcpy(cmplx_type->source_corresp.name, name);
-  cmplx_type->variant.typeref.type = lowered_repr;
+    /* Typedef the complex type to its lowered representation. */
+    set_type_kind(cmplx_type, (a_type_kind)tk_typeref);
+    cmplx_type->source_corresp.name = alloc_il(strlen(name)+1);
+    strcpy(cmplx_type->source_corresp.name, name);
+    cmplx_type->variant.typeref.type = lowered_repr;
 #if MAINTAIN_NEEDED_FLAGS
-  /* Ensure it is kept in the IL. */
-  mark_as_needed((char *)lowered_repr, iek_type);
-  set_class_definition_needed_flag(lowered_repr);
-  set_class_keep_definition_in_il(lowered_repr);
-  mark_as_needed((char *)cmplx_type, iek_type);
+    /* Ensure it is kept in the IL. */
+    mark_as_needed((char *)lowered_repr, iek_type);
+    set_class_definition_needed_flag(lowered_repr);
+    set_class_keep_definition_in_il(lowered_repr);
+    mark_as_needed((char *)cmplx_type, iek_type);
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  /* Link the types into the IL (in the right order). */
-  add_to_front_of_file_scope_types_list(cmplx_type);
-  add_to_front_of_file_scope_types_list(cmplx_type->variant.typeref.type);
+    /* Link the types into the IL (in the right order). */
+    add_to_front_of_file_scope_types_list(cmplx_type);
+    add_to_front_of_file_scope_types_list(cmplx_type->variant.typeref.type);
+  }  /* if */
 }  /* lower_c99_complex_type */
 
 
