@@ -227,13 +227,6 @@ extern a_boolean f_type_has_default_constructor(a_type_ptr  tp,
                                                 a_boolean   nontrivial_only);
 
 /*
-Return TRUE if tp is a non-POD class type (or array thereof) with a default
-constructor (user-declared or implicitly-declared).
-*/
-#define type_has_default_constructor(tp)                             \
-  f_type_has_default_constructor(tp, /*user_declared_only=*/FALSE,   \
-                                 /*nontrivial_only=*/FALSE)
-/*
 Return TRUE if tp is a class type (or array thereof) with a user-declared
 default constructor.
 */

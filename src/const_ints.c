@@ -1703,7 +1703,7 @@ so no checking is done.
 
 
 #if DEBUG
-char* db_format_integer_value(an_integer_value  *value) /*lint !e528*/
+char* db_format_integer_value(an_integer_value  *value)
 /*
 Formats an integer value.  Returns a pointer to a local static
 buffer containing the formatted string.  The local buffer has 5

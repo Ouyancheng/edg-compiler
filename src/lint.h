@@ -46,6 +46,11 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,check_target_configuration)*/
 /*lint -esym(765,check_target_configuration)*/
 /*lint -esym(769,ec_cannot_build_temp_file_name)*/
+/*lint -esym(552,total_remarks)*/
+/*lint -esym(759,crc_32)*/
+/*lint -esym(765,crc_32)*/
+/*lint -esym(714,db_format_integer_value)*/
+
 /* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
    il_display: */
 /*lint -esym(769,ec_cl_back_end_requires_il_file)*/
