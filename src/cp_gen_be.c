@@ -5512,9 +5512,10 @@ TRUE, "()" is put out.
            int a[3] = {1, i+j, 3};
       */
       con = dip->variant.constant;
-      if (default_class_array_initialization(dip)) {
-        /* This is default initialization for a class array, so nothing
-           need be put out. */
+      if (parenthesized_init &&
+          default_class_array_initialization(dip)) {
+        /* This is default initialization for a whole class array,
+           so nothing need be put out. */
         break;
       }  /* if */
       /* The constant must be an aggregate and it cannot be put out as
