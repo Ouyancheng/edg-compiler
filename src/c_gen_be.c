@@ -3683,6 +3683,14 @@ done_with_operation:
         case leck_exception_started:
           write_tok_str("exception_started");
           break;
+#if !GENERATE_EH_TABLES
+        case leck_initialization_completed:
+          write_tok_str("initialization_completed");
+          write_tok_str(" = ");
+          write_unsigned_num((unsigned long)expr->variant.
+                                     lowered_eh.variant.dynamic_init);
+          break;
+#endif /* !GENERATE_EH_TABLES */
         case leck_internal_try:
           write_tok_str("internal_try(");
           dump_expr(expr->variant.lowered_eh.variant.internal_try.try_expr,

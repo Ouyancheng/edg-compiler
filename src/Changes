@@ -25,6 +25,12 @@ destructible_entity_descr built by IL lowering was not updated for the
 last-destroyed of such temporaries.  This is only significant for
 back ends that use the destructible_entity_descr built by IL lowering.
 
+IL CHANGE: Also, a new expression node, leck_initialization_completed,
+has been added, and it is generated to indicate the point where an
+initialization marked with overlaps_temps_in_inner_lifetime has
+been fully initialized.  It is generated only when GENERATE_EH_TABLES
+is FALSE.
+
 9/21/97   Abort generating exception handling tables for aggregate
 
 An abort in IL lowering, which occurred while generating exception

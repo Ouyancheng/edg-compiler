@@ -4891,6 +4891,12 @@ enum a_lowered_eh_construct_kind_tag {
 			   to copy the object has not yet been called.  Marks
 			   the point after which the exception is considered
 			   started. */
+#if !GENERATE_EH_TABLES
+  leck_initialization_completed,
+			/* Point at which an initialization that has
+			   overlaps_temps_in_inner_lifetime set to TRUE has
+			   been completed. */
+#endif /* !GENERATE_EH_TABLES */
   leck_internal_try	/* Internal "try" block, used to get cleanup code
 			   executed if an exception is thrown while executing
 			   an expression. */
@@ -5579,6 +5585,12 @@ typedef struct an_expr_node {
 		epilogue_try_block;
         /* When kind == leck_exception_caught, no variant fields. */
         /* When kind == leck_exception_started, no variant fields. */
+#if !GENERATE_EH_TABLES
+        /* When kind == leck_initialization_completed: */
+        a_dynamic_init_ptr
+		dynamic_init;
+			/* The initialization that is now completed. */
+#endif /* !GENERATE_EH_TABLES */
         /* When kind == leck_internal_try: */
         /* Note that an leck_internal_try expression has a void type,
            i.e., it does not pass through the value of the try_expr. */

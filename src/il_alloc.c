@@ -1732,6 +1732,11 @@ to kind, and set dependent variant fields to default values.
     case leck_exception_started:
       /* No variant fields. */
       break;
+#if !GENERATE_EH_TABLES
+    case leck_initialization_completed:
+      node->variant.lowered_eh.variant.dynamic_init = NULL;
+      break;
+#endif /* !GENERATE_EH_TABLES */
     case leck_internal_try:
       node->variant.lowered_eh.variant.internal_try.try_expr = NULL;
       node->variant.lowered_eh.variant.internal_try.catch_expr = NULL;

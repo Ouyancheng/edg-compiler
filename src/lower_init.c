@@ -2997,6 +2997,15 @@ Any code needed is inserted at *insert_location.
                           "add_dyn_init_cleanup: no temps");
       adjust_cleanup_state_for_inner_lifetime_temporaries(
                                      curr_context->latest_initialization, dip);
+#if !GENERATE_EH_TABLES
+      /* Insert an leck_initialization_completed node that indicates the
+         point at which the initialization has been done. */
+      { an_expr_node_ptr node = alloc_lowered_eh_construct_node(
+                   (a_lowered_eh_construct_kind)leck_initialization_completed);
+        node->variant.lowered_eh.variant.dynamic_init = dip;
+        (void)insert_expr_statement(node, insert_location);
+      }
+#endif /* !GENERATE_EH_TABLES */
       /* There's no need to emit code to set the cleanup state here: it's
          not necessary because the cleanup state will be set in a moment
          when the destruction of the last temporary begins.  If we were to

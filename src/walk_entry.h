@@ -1139,6 +1139,13 @@ do_set_proper_definition_needed_flag:
               case leck_exception_started:
                 /* No pointers. */
                 break;
+#if !GENERATE_EH_TABLES
+              case leck_initialization_completed:
+                remap_ptr_not_needed(ptr->variant.lowered_eh.variant.
+                                                                  dynamic_init,
+                                     a_dynamic_init_ptr, iek_dynamic_init);
+                break;
+#endif /* !GENERATE_EH_TABLES */
               case leck_internal_try:
                 walk_ptr(ptr->variant.lowered_eh.variant.
                                                          internal_try.try_expr,

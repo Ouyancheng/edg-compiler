@@ -2188,6 +2188,14 @@ cleanup_state_common:
         case leck_exception_started:
           (void)printf("leck_exception_started\n");
           break;
+#if !GENERATE_EH_TABLES
+        case leck_initialization_completed:
+          (void)printf("leck_initialization_completed\n");
+          disp_ptr("dynamic_init",
+                   (char *)ptr->variant.lowered_eh.variant.dynamic_init,
+                   iek_dynamic_init);
+          break;
+#endif /* !GENERATE_EH_TABLES */
         case leck_internal_try:
           (void)printf("leck_internal_try\n");
           disp_ptr("  try_expr",
