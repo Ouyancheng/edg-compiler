@@ -4718,11 +4718,6 @@ Add an indirection on top of the given node (or make a change that produces
 the same effect), and return a pointer to the new expression.
 */
 {
-  an_expr_operator_kind op;
-  a_type_ptr            new_type;
-  a_boolean             optimized_case;
-  an_expr_node_ptr      op1, op2, op3;
-
   if (is_variable_address_node(node)) {
     /* Address of variable becomes value of variable. */
     node->kind = (an_expr_node_kind)enk_variable;
@@ -4730,49 +4725,10 @@ the same effect), and return a pointer to the new expression.
   } else if (is_error_node(node)) {
     /* Error node -- leave alone. */
   } else {
-    optimized_case = FALSE;
-    new_type = type_pointed_to(node->type);
-    if (is_operation_node(node)) {
-      /* An operator node. */
-      op = node->variant.operation.kind;
-      if (op == (an_expr_operator_kind)eok_padd ||
-          op == (an_expr_operator_kind)eok_padd_subsc) {
-        /* A pointer addition; change to a subscripting operation. */
-        optimized_case = TRUE;
-        node->variant.operation.kind = (an_expr_operator_kind)eok_subscript;
-        node->type = new_type;
-      } else if (op == (an_expr_operator_kind)eok_bit_field) {
-        /* The value is the "address" of a bit-field.  Therefore, the
-           indirect version is an extract of the bit-field. */
-        optimized_case = TRUE;
-        node->variant.operation.kind =
-                                  (an_expr_operator_kind)eok_extract_bit_field;
-        node->type = new_type;
-      } else if (op == (an_expr_operator_kind)eok_question) {
-        /* "?" operator.  Add an indirection to each branch.  This is
-           particularly useful for a case like
-             &(i ? j : k)
-           (only valid in C++). */
-        optimized_case = TRUE;
-        op1 = node->variant.operation.operands;
-        op2 = op1->next;
-        op3 = op2->next;
-        op1->next = op2 = add_indirection_to_node(op2);
-        op2->next = add_indirection_to_node(op3);
-        node->type = new_type;
-      } else if (node->variant.operation.assignment_returns_lvalue) {
-        /* The operation is an assignment that returns an lvalue.
-           Change it to one that returns an rvalue. */
-        optimized_case = TRUE;
-        node->variant.operation.assignment_returns_lvalue = FALSE;
-        node->type = new_type;
-      }  /* if */
-    }  /* if */
-    if (!optimized_case) {
-      /* For other cases, add an indirection operator. */
-      node = make_operator_node((an_expr_operator_kind)eok_indirect,
-                                new_type, node);
-    }  /* if */
+    /* For other cases, add an indirection operator. */
+    node->next = NULL;
+    node = make_operator_node((an_expr_operator_kind)eok_indirect,
+                              type_pointed_to(node->type), node);
   }  /* if */
   return node;
 }  /* add_indirection_to_node */
