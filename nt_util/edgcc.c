@@ -27,6 +27,7 @@ Driver program.
 #define CPFE_COMMAND			"cpfe"
 #if __WIN32__
 #define C_COMMAND			"cl -nologo"
+#define GEN_C_OBJECT_FILE_SUFFIX	".int.obj"
 #define EXECUTABLE_FILE_SUFFIX		".exe"
 #define DEFAULT_OUTPUT_FILE_NAME	"aout"
 #define DEFAULT_EDG_BASE		"\\edg"
@@ -34,8 +35,6 @@ Driver program.
 #define LIBC_NAME			"libedg.lib"
 /*#define DEFAULT_DEFINES			"-D__cdecl=\"\" -D_M_IX86=500 -D_WIN32"*/
 #define DEFAULT_DEFINES			""
-#define INT_C_TMP_FILE			"_edgintc.c"
-#define INT_OBJ_TMP_FILE		"_edgintc.obj"
 #define LINKER_OPTIONS			"/Zi -link /debug /debugtype:both"
 #define EDG_MUNCH			"edg_munch"
 #define MUNCH_C_FILE			"munchtmp.c"
@@ -972,35 +971,16 @@ Compile a file and generate an object file.
     add_cl_argument(&cl, "-c");
     append_command_line(&cl, &c_to_obj_options);
 #if __WIN32__
-    orig_int_c_file_name = int_c_file_name;
-    /* Move the generated C file to a file name that can be compiled.  The
-       normal DOS file suffix for the intermediate C file (.ic) is can
-       not be used directly by the C compiler. */
-    rename_file(int_c_file_name, INT_C_TMP_FILE);
-    int_c_file_name = INT_C_TMP_FILE;
-    int_obj_file_name = INT_OBJ_TMP_FILE;
     /* Temporary measure - use -Dregister="" to cause register keyword to
        be ignored. */
     add_cl_argument(&cl, "-Dregister=\"\"");
     add_cl_argument(&cl, "-Dsetjmp=\"_setjmp\"");
-#else /* !__WIN32__ */
-    int_obj_file_name = derived_name(file_name, GEN_C_OBJECT_FILE_SUFFIX);
 #endif /* __WIN32__ */
+    int_obj_file_name = derived_name(file_name, GEN_C_OBJECT_FILE_SUFFIX);
     add_cl_argument(&cl, int_c_file_name);
-#if 0
-    /* Redirect the output to a temporary file. */
-    add_cl_argument(&cl, " >");
-    add_cl_argument(&cl, temp_file);
-#endif
     status = execute_command(&cl);
     if (!gflag) {
       remove_file(int_c_file_name);
-#if __WIN32__
-    } else {
-      /* We need to preserve the intermediate C file.  Change it back to
-         its original name. */
-     rename_file(int_c_file_name, orig_int_c_file_name);
-#endif /* __WIN32__ */
     }  /* if */
     if (status == 0) {
       /* Add the object file name to the list of files to be linked. */
