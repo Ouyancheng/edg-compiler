@@ -531,6 +531,7 @@ check_abbreviation()
 --no_namespaces
 --no_nonconst_ref_anachronism
 --no_nonstd_qualifier_deduction
+--no_nonstd_using_decl
 --no_old_specializations
 --no_pch_messages
 --no_preproc_only
@@ -549,6 +550,7 @@ check_abbreviation()
 --no_wrap_diagnostics
 --nonconst_ref_anachronism
 --nonstd_qualifier_deduction
+--nonstd_using_decl
 --old_c
 --old_for_init
 --old_ii_format
@@ -971,6 +973,8 @@ process_option()
          --embedded_c++ | \
          --nonstd_qualifier_deduction | \
          --no_nonstd_qualifier_deduction | \
+         --nonstd_using_decl | \
+         --no_nonstd_using_decl | \
          --one_instantiation_per_object | \
          --early_tiebreaker | \
          --late_tiebreaker | \
