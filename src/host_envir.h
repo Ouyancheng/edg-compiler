@@ -272,21 +272,30 @@ slower.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
 /*
+Flag that is TRUE if the source_corresp.needed flag in IL entries and the
+definition_needed flag in class/struct/union type entries should be
+maintained.
+*/
+#ifndef MAINTAIN_NEEDED_FLAGS
+#define MAINTAIN_NEEDED_FLAGS FALSE
+#endif /* ifndef MAINTAIN_NEEDED_FLAGS */
+
+/*
 The flag IL_WALK_NEEDED controls the compilation of the routines required
 to walk the IL.  These routines are needed if NEED_IL_DISPLAY is TRUE or
 IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE.
 */
-#if IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY
+#if IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY || MAINTAIN_NEEDED_FLAGS
 #define IL_WALK_NEEDED TRUE /* Do not change this. */
-#else /* !IL_WALK_NEEDED */
+#else /* !(IL_SHOULD_BE_WRITTEN_TO_FILE || ...) */
 #ifndef IL_WALK_NEEDED
 #define IL_WALK_NEEDED FALSE
 #endif /* ifndef IL_WALK_NEEDED */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || ... */
 
 /*
 The flag NEED_DECLARATIVE_WALK controls the compilation of some routines
-used to walk declarative entities (only), for example to generate symbolic
+used to walk (only) declarative entities, for example to generate symbolic
 debug information.
 */
 #ifndef NEED_DECLARATIVE_WALK
@@ -397,15 +406,6 @@ back end is being used.
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef GENERATE_SOURCE_SEQUENCE_LISTS */
 /* The C++/C-generating back end requires this feature. */
-
-/*
-Flag that is TRUE if the source_corresp.needed flag in IL entries and the
-definition_needed flag in class/struct/union type entries should be
-maintained.
-*/
-#ifndef MAINTAIN_NEEDED_FLAGS
-#define MAINTAIN_NEEDED_FLAGS TRUE
-#endif /* ifndef MAINTAIN_NEEDED_FLAGS */
 
 /*
 Flag that is TRUE if source sequence lists are being generated and if they
