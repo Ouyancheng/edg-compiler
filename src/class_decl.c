@@ -1379,7 +1379,7 @@ nested class.
     for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
       next_rfp = rfp->next;
       if (rfp->function_body_token_cache.first_token != NULL ||
-          rfp->is_template) {
+          (rfp->is_template && rfp->symbol->defined)) {
         sym = rfp->symbol;
 #if DEBUG
         if (debug_level >= 3) {
