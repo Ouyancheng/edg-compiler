@@ -92,6 +92,11 @@ except in secondary translation units (i.e., when export template is used).
 EXTERN a_scope_number
 		file_scope_number;
 
+EXTERN a_translation_unit_ptr
+		*trans_unit_for_scope;
+			/* A dynamically allocated array of translation
+			   unit pointers indexed by scope number. */
+
 
 typedef struct a_symbol_locator {
   /* Data structure used to store information about an identifier token.
@@ -3654,6 +3659,9 @@ extern a_symbol_ptr class_template_for_injected_template_symbol(
 							a_symbol_ptr sym);
 
 extern a_scope_number take_next_scope_number(void);
+
+extern a_boolean symbol_is_from_trans_unit(a_symbol_ptr			sym,
+					   a_translation_unit_ptr	tup);
 
 extern void symbol_tbl_one_time_init(void);
 

@@ -172,6 +172,13 @@ static a_symbol_ptr
 		error_class_template_symbol;
 			/* Pointer to a shared error class template entry. */
 
+static sizeof_t	size_of_trans_unit_for_scope;
+			/* Allocated size of the trans_unit_for_scope table. */
+
+#define TRANS_UNIT_FOR_SCOPE_INCREMENTAL_ALLOCATION 16384
+			/* Incremental allocation for the trans_unit_for_scope
+			   table. */
+
 void form_optionally_qualified_symbol_name(
 		a_symbol_ptr				sym,
 		an_il_to_str_output_control_block_ptr	octl,
@@ -9903,8 +9910,41 @@ Assign the next scope number in sequence, and return it.
     /* The number of scopes exceeds the size of the scope number field. */
     catastrophe(ec_program_too_large);
   }  /* if */
-  return next_scope_number++;
+  next_scope_number++;
+  if (next_scope_number >= size_of_trans_unit_for_scope) {
+    /* The table used to map scope numbers to translation unit pointers
+       is full.  Expand it by reallocating it. */
+    sizeof_t new_size = size_of_trans_unit_for_scope +
+                        TRANS_UNIT_FOR_SCOPE_INCREMENTAL_ALLOCATION;
+    trans_unit_for_scope = (a_translation_unit_ptr*)realloc_general(
+                      (char *)trans_unit_for_scope,
+                      (sizeof_t)(size_of_trans_unit_for_scope *
+                                 sizeof(a_translation_unit_ptr)),
+                      (sizeof_t)(new_size * sizeof(a_translation_unit_ptr)));
+    size_of_trans_unit_for_scope = new_size;
+  }  /* if */
+  /* Record the translation unit with which this scope is associated. */
+  trans_unit_for_scope[next_scope_number] = curr_translation_unit;
+  return next_scope_number;
 }  /* take_next_scope_number */
+
+
+a_boolean symbol_is_from_trans_unit(a_symbol_ptr		sym,
+				    a_translation_unit_ptr	tup)
+/*
+Return TRUE if the declaration scope of sym is from a scope associated
+with the translation unit specified by tup.
+*/
+{
+  a_scope_number	scope_number;
+  a_boolean		result = FALSE;
+
+  scope_number = sym->decl_scope;
+  if (scope_number != NO_SCOPE_NUMBER) {
+    result = trans_unit_for_scope[scope_number] == tup;
+  }  /* if */
+  return result;
+}  /* symbol_is_from_trans_unit */
 
 
 a_symbol_ptr f_class_template_for_type(a_type_ptr	type)
@@ -10175,6 +10215,8 @@ are handled in symbol_tbl_init.)
   cleared_symbol.avoid_codecenter_warnings         = FALSE;
   */
 #endif /* CHECKING */
+  size_of_trans_unit_for_scope = 0;
+  trans_unit_for_scope = NULL;
   /* Save variables from symbol_tbl.h and symbol_tbl.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {

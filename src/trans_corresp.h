@@ -92,6 +92,10 @@ extern a_type_ptr canonical_type_entry_of(a_type_ptr type);
 
 extern a_template_ptr canonical_template_entry_of(a_template_ptr templ);
 
+extern a_symbol_ptr find_corresponding_symbol_in_trans_unit(
+					a_symbol_ptr		sym_to_find,
+					a_translation_unit_ptr	tup);
+
 extern void set_trans_unit_correspondences(void);
 
 extern void record_instantiation(a_symbol_ptr                      inst,

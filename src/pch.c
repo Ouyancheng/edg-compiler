@@ -2003,6 +2003,14 @@ from the PCH file) to reflect the information loaded from the file.
   il_header.number_of_external_nonclass_template_entities =
               il_header_from_pch.number_of_external_nonclass_template_entities;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+  /* Rebuild the trans_unit_for_scope table.  This is done by calling
+     the take_next_scope_number the appropriate number of times. */
+  {
+    a_scope_number	number_of_scopes = next_scope_number;
+    for (next_scope_number = 0; next_scope_number < number_of_scopes;) {
+      (void)take_next_scope_number();
+    }  /* for */
+  }
   db_exit();
 }  /* pch_fixup_part_1 */
 

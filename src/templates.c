@@ -14606,6 +14606,9 @@ the exported templates in that file.
   /* Pop the file scope of the current translation unit. */
   pop_scope();
   process_translation_unit(etfp->source_file_name, /*is_primary=*/FALSE);
+  /* Save the translation unit pointer associated with this exported template
+     file. */
+  etfp->translation_unit = curr_translation_unit;
   /* Switch back to the previous translation unit. */
   switch_translation_unit(saved_tup);
   /* Reactivate the file scope of the original translation unit. */
@@ -14632,6 +14635,49 @@ template has not yet been loaded, load it now.
 }  /* ensure_exported_template_file_is_loaded */
 
 
+static a_template_instance_ptr find_corresponding_instance(
+						a_template_instance_ptr	tip)
+/*
+We need to instantiate the instance described by "tip".  The template
+is defined in another translation unit.  This routine finds or creates
+a partial instantiation of the instance and returns that instance to the
+caller.
+*/
+{
+  a_symbol_ptr			template_sym;
+  a_translation_unit_ptr	templ_tup;
+  a_template_instance_ptr	result_tip = NULL;
+
+  check_assertion(tip->exported_template_file != NULL);
+  templ_tup = tip->exported_template_file->translation_unit;
+  template_sym = find_corresponding_symbol_in_trans_unit(tip->template_sym,
+                                                         templ_tup);
+  if (template_sym->is_class_member) {
+    unexpected_condition_str2("find_corresponding_instance:",
+                              "members not supported yet");
+  }  /* if */
+  if (template_sym->kind == (a_symbol_kind)sk_function_template) {
+    /* Find (and create if necessary) the desired instance of the template
+       in the other translation unit.  If any explicit template arguments
+       were used in the referencing translation unit, we pass in the explicit
+       argument list flag here.  The source position is only used for errors,
+       which should not occur when called from here. */
+    a_routine_ptr	rout_ptr;
+    a_symbol_ptr	instance_sym;
+    a_template_arg_ptr	templ_arg_list;
+    rout_ptr = tip->instance_sym->variant.routine.ptr;
+    /* Make a copy of the template argument list. */
+    templ_arg_list = copy_template_arg_list(rout_ptr->template_arg_list);
+    instance_sym = find_template_function(
+                                    template_sym, &templ_arg_list,
+                                    rout_ptr->expl_template_arg_list_used,
+                                    &null_source_position);
+    result_tip = instance_sym->variant.routine.instance_ptr;
+  }  /* if */
+  return result_tip;
+}  /* find_corresponding_instance */
+
+
 static void instantiate_entity(a_template_instance_ptr tip)
 /*
 Call the appropriate routine to instantiate the function or static
@@ -14655,6 +14701,9 @@ data member specified by tip.
     /* If the template was defined in an exported template file, make sure
        that file is loaded as a translation unit. */
     ensure_exported_template_file_is_loaded(tip);
+    /* Find the corresponding template instance in the translation unit
+       containing the template definition. */
+    tip = find_corresponding_instance(tip);
   }  /* if */
   if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
     /* Static data member definition. */
