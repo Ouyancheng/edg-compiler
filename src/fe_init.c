@@ -713,6 +713,7 @@ line processing is done.
   /* Early initialization of the translation unit information.  This must
      be done before fe_one_time_init is started. */
   trans_unit_early_init();
+  types_early_init();
 }  /* fe_early_init */
 
 

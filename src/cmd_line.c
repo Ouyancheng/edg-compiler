@@ -4828,7 +4828,6 @@ variables declared in cmd_line.h.
                                  DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS;
   thread_local_storage_specifier_enabled =
                                 DEFAULT_THREAD_LOCAL_STORAGE_SPECIFIER_ENABLED;
-  enum_type_is_integral = FALSE;
 }  /* cmd_line_static_var_init */
 
 

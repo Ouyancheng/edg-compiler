@@ -8662,6 +8662,15 @@ set explicitly, issue a warning for the given position.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+void types_early_init(void)
+/*
+One time initialization that must occur early in the execution of the
+front end.  This must occur before the one-time initialization routines
+of the front end are called.
+*/
+{
+  enum_type_is_integral = FALSE ;
+}  /* types_early_init */
 
 /******************************************************************************
 *                                                             \  ___  /       *
