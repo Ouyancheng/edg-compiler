@@ -1310,13 +1310,14 @@ other entities.  (Not significant in C mode: C enumerators have no linkage.)
   if (!type->source_corresp.is_class_member && !C_mode()) {
     a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list;
     for (; enumerator != NULL; enumerator = enumerator->next) {
-      a_symbol_ptr  enum_sym = (a_symbol_ptr)enumerator
+      a_symbol_ptr            enum_sym = (a_symbol_ptr)enumerator
                                                    ->source_corresp.assoc_info,
-                    sym = corresp_symbol_list(enum_sym);
+                              sym = corresp_symbol_list(enum_sym);
+      a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(enum_sym);
       /* Look through the symbol table for any entities with linkage that may
          conflict with an enumerator. */
       for (; sym != NULL; sym = sym->next) {
-        if (sym->decl_scope != enum_sym->decl_scope &&
+        if (trans_unit_for_symbol(sym) != trans_unit &&
             may_have_correspondence(sym) &&
             same_parents(sym, enum_sym)) {
           f_report_bad_trans_unit_corresp((char*)enumerator,
@@ -2505,13 +2506,14 @@ translation unit correspondence pointer if one is found.
                             "std", 3) == 0);
     record_trans_unit_corresp(nsp, primary_std_namespace);
   } else {
-    a_symbol_ptr  sym = corresp_symbol_list(nsp_sym);
+    a_symbol_ptr            sym = corresp_symbol_list(nsp_sym);
+    a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(nsp_sym);
     if (checked_trans_unit_corresp_pointer_of(nsp) == NULL) {
       /* Mark this namespace as visited to avoid infinite recursion. */
       set_no_trans_unit_corresp(nsp);
     }  /* if */
     for (; sym != NULL; sym = sym->next) {
-      if (sym->decl_scope != nsp_sym->decl_scope &&
+      if (trans_unit_for_symbol(sym) != trans_unit &&
           same_parents(sym, nsp_sym)) {
         /* Two different declarations in the same namespace and with the same
            name: they should probably match up. */
@@ -2566,12 +2568,14 @@ entities.
   } else if (type_sym != NULL && may_have_correspondence(type_sym)) {
     a_boolean  corresp_found = FALSE;
     a_boolean  first_tag_definition = type_sym->defined && 
-               (type_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
-                type_sym->kind == (a_symbol_kind)sk_enum_tag);
+                   (type_sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
+                    type_sym->kind == (a_symbol_kind)sk_enum_tag);
+    a_translation_unit_ptr
+               trans_unit = trans_unit_for_symbol(type_sym);
     sym = corresp_symbol_list(type_sym);
     for (; sym != NULL; sym = sym->next) {
       /* Don't consider symbols in the same file. */
-      if (sym->decl_scope != type_sym->decl_scope &&
+      if (trans_unit_for_symbol(sym) != trans_unit &&
           (parent_found ? known_same_parents(sym, type_sym)
                         : same_parents(sym, type_sym))) {
         /* Two different declarations in the same namespace and with the same
@@ -3160,9 +3164,11 @@ entities.
     a_template_ptr  corresp_templ = NULL, candidate;
     a_boolean       class_template = is_class_template_symbol(templ_sym);
     a_boolean       first_definition = templ_sym->defined;
+    a_translation_unit_ptr
+                    trans_unit = trans_unit_for_symbol(templ_sym);
     sym = corresp_symbol_list(templ_sym);
     for (; sym != NULL; sym = sym->next) {
-      if (sym->decl_scope != templ_sym->decl_scope &&
+      if (trans_unit_for_symbol(sym) != trans_unit &&
           may_have_correspondence(sym) &&
           (parent_found ? known_same_parents(sym, templ_sym)
                         : same_parents(sym, templ_sym))) {
@@ -3291,9 +3297,10 @@ translation unit correspondence pointer if one is found.
   check_assertion(routine_sym != NULL);
   sym = corresp_symbol_list(routine_sym);
   if (may_have_correspondence(routine_sym)) {
+    a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(routine_sym);
     for (; sym != NULL; sym = sym->next) {
       /* Don't consider symbols in the same file. */
-      if (sym->decl_scope != routine_sym->decl_scope) {
+      if (trans_unit_for_symbol(sym) != trans_unit) {
         /* The matching symbol may be part of an overload set. */
         a_boolean  is_list = (sym->kind ==
                                         (a_symbol_kind)sk_overloaded_function);
@@ -3385,9 +3392,10 @@ translation unit correspondence pointer if one is found.
 
   if (has_name(var) &&
       var_sym != NULL && may_have_correspondence(var_sym)) {
+    a_translation_unit_ptr  trans_unit = trans_unit_for_symbol(var_sym);
     sym = corresp_symbol_list(var_sym);
     for (; sym != NULL; sym = sym->next) {
-      if (sym->decl_scope == var_sym->decl_scope ||
+      if (trans_unit_for_symbol(sym) == trans_unit ||
           !same_parents(sym, var_sym)) {
         /* Don't consider symbols in the same file or in noncorresponding
            scopes. */
