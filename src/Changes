@@ -1,5 +1,15 @@
 Version 3.0
 
+3/27/02  GNU C: typedefs with sign or size modifiers
+
+The front end now accepts the modifiers short, long, signed and unsigned
+on typedef types that are synonyms for builtin integer or floating-point
+types.
+
+  typedef int Int;
+  typedef unsigned Int UInt; /* Accept in GNU C and pcc modes; error in
+                                other modes. */
+
 3/26/02  GNU C mode: Warning only on null character in source line
 
 In GNU C mode, the front end now issues only a warning (rather than

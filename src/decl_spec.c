@@ -3709,9 +3709,9 @@ decl_specifiers.
   a_float_kind     fkind;
   a_boolean        bad_combination = FALSE;
 
-  if (C_dialect == C_dialect_pcc && basic_type == bt_typedef &&
-      (sign != sign_none || size != size_none)) {
-    /* pcc allows use of unsigned, long, and short as adjectives modifying
+  if ((C_dialect == C_dialect_pcc || gcc_mode) &&
+      basic_type == bt_typedef && (sign != sign_none || size != size_none)) {
+    /* GNU C and pcc allow unsigned, long, and short as adjectives modifying
        a typedef type.  Turn the typedef into a matching basic type,
        for the cases for which it makes sense.  For the others, an error
        will be detected below. */
@@ -3745,6 +3745,9 @@ decl_specifiers.
            make sense). */
         ikind = temp_type->variant.integer.int_kind;
         switch (ikind) {
+          case ik_char:
+            basic_type = bt_char;
+            break;
           case ik_unsigned_char:
             if (plain_char_int_kind != ikind && sign != sign_none) break;
             /* Fall into signed char case. */
