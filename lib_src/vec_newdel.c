@@ -850,7 +850,7 @@ an exception.
   }  /* if */
   if (aaehip->free_memory_on_cleanup) {
     /* Call the routine to free the memory. */
-    size_t	size = element_size * number_of_elements;
+    size_t	size = element_size * aaehip->number_of_elements;
     free_array(array_ptr, size, aaehip->prefix_size,
                aaehip->delete_routine, aaehip->is_two_arg);
   }  /* if */

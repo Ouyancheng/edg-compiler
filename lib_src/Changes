@@ -1,5 +1,11 @@
 Version 3.1
 
+12/5/02  Incorrect size passed to delete routine by EH array cleanup
+
+If an exception is throw during the creation of a dynamically allocated
+array of a class that has a two-argument operator delete[] routine, the
+size passed to the operator delete was incorrect.  This has been fixed.
+
 5/13/02  Configuration flags for use of third party standard libraries
 
 Configuration flags have been added to simplify the use of third party
