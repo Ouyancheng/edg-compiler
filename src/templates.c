@@ -20173,6 +20173,7 @@ or the specific definition flag (if instantiate is FALSE).
       tip->explicit_instantiation = TRUE;
       tip->class_explicitly_instantiated = is_class_instantiation;
       tip->explicit_instantiation_pos = *pos;
+      tip->explicit_do_not_instantiate = FALSE;
     } else if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
       instantiation_required_flag = FALSE;
       tip->explicit_instantiation = FALSE;

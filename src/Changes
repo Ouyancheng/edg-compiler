@@ -1,5 +1,22 @@
 Version 3.5
 
+9/14/04  GNU/Microsoft compatibility: explicit instantiation should override
+         "extern template"
+
+In g++ and Microsoft modes, an explicit instantiation directive now overrides
+a previous "extern template" directive, causing the entity referred to by
+the explicit instantiation directive to be instantiated.  Formerly, the
+explicit instantiation had no effect for an entity referred to by an
+earlier "extern template" directive.
+
+  template<class T> struct A { A(); };
+  template<class T> inline A<T>::A(){}
+  extern template class A<int>;
+  template class A<int>;
+  int main() {
+    A<int> f;
+  }
+ 
 9/14/04  Instantiation of inline function should cause body to be emitted
 
 When an inline function is explicitly instantiated in a configuration in
