@@ -1203,8 +1203,8 @@ typedef struct a_dynamic_init {
 
 
 enum a_template_param_constant_kind_tag {
-  /* When a constant is marked as a template parameter it may one of several
-     kinds (front end only). */
+  /* When a constant is marked as a template parameter it may have one of
+     several kinds (front end only). */
   tpck_param,		/* The template param constant represents a simple
 			   non-type template parameter, e.g., for I in the
 			   following:
