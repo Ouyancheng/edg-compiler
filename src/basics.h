@@ -493,7 +493,7 @@ the macro, so one should not follow a reference to the macro.
 */
 #if CHECKING
 #define bitfield_to_avoid_codecenter_warnings() \
-  unsigned int	avoid_codecenter_warnings:2;
+  a_bit_field	avoid_codecenter_warnings:2;
 #else /* !CHECKING */
 #define bitfield_to_avoid_codecenter_warnings()  /* nothing */
 #endif /* CHECKING */
