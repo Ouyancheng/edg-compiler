@@ -11446,6 +11446,9 @@ the IL, the template header is passed via template_decl.
             tssp->cache_segment = alloc_template_cache_segment(rout_sym, tssp);
             tssp->cache_segment->first_token_number = first_token_number;
             tssp->cache_segment->last_token_number = last_token_number;
+            /* Save a checksum of this template to be used for cross
+	       translation unit comparisons. */
+            record_cache_checksum(tssp, &body_cache);
           }  /* if */
         }  /* if */
         /* A comma-list of function definitions is not allowed. */

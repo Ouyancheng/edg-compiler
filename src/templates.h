@@ -409,6 +409,10 @@ extern void set_master_instance_information(void);
 
 extern void template_and_inline_function_wrapup(void);
 
+extern void record_cache_checksum(
+	       a_template_symbol_supplement_ptr	tssp,
+	       a_token_cache			*p_template_body_cache);
+
 extern a_boolean any_exported_templates(void);
 
 extern void add_to_inline_function_list(a_routine_ptr	rout_ptr);

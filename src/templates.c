@@ -12580,9 +12580,9 @@ Compute a hash value for the string "str".
 }  /* hash_string */
 
 
-static void record_cache_checksum(
-				a_tmpl_decl_state_ptr  decl_state,
-                                a_token_cache          *p_template_body_cache)
+void record_cache_checksum(
+		a_template_symbol_supplement_ptr	tssp,
+		a_token_cache				*p_template_body_cache)
 /*
 Compute a checksum based on the tokens of the template body cache and store
 it in the IL template entry.
@@ -12590,7 +12590,10 @@ it in the IL template entry.
 {
   /* Multiplier used to compute the cache checksum.  Should be prime. */
 #define CACHE_HASH_FACTOR ((unsigned int)73)
-  if (p_template_body_cache != NULL) {
+  /* Only do this processing if a body is present and when there could be
+     multiple translation units. */
+  if (p_template_body_cache != NULL &&
+      (export_template_allowed || more_than_one_non_export_translation_unit)) {
     unsigned long	cache_value = 0;
     a_cached_token_ptr	token;
     for (token = p_template_body_cache->first_token;
@@ -12621,8 +12624,15 @@ it in the IL template entry.
       }  /* switch */
       cache_value = (cache_value * CACHE_HASH_FACTOR) + value;
     }  /* for */
-    check_assertion(decl_state->il_template_entry != NULL);
-    decl_state->il_template_entry->cache_checksum = cache_value;
+    /* Save the checksum in the definition template entry. */
+    { a_template_ptr	templ;
+      a_template_ptr	definition_templ;
+      templ = tssp->il_template_entry;
+      check_assertion(templ != NULL);
+      definition_templ = templ->definition_template;
+      check_assertion(definition_templ != NULL);
+      definition_templ->cache_checksum = cache_value;
+    }
   }  /* if */
 #undef CACHE_HASH_FACTOR
 }  /* record_cache_checksum */
@@ -14075,7 +14085,7 @@ any non-empty template parameter lists that were scanned.
      member bodies are extracted above. */
   record_string_version_of_template(decl_state, sym, p_template_body_cache);
 #endif /* RECORD_TEMPLATE_STRINGS */
-  record_cache_checksum(decl_state, p_template_body_cache);
+  record_cache_checksum(tssp, p_template_body_cache);
   if (class_templ_cache_segments != NULL) {
     /* Remove any default arguments that may remain in the cache. */
     (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,
