@@ -8644,6 +8644,7 @@ a prior error) just do the scan.
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
   node = make_node_from_operand(&result);
+  node = add_object_lifetime_node_if_needed(node);
   if (ptp != NULL) ptp->default_arg_expr = node;
   pop_expr_stack();
 #if DEBUG
@@ -9178,9 +9179,11 @@ copy constructor elision is possible; see scan_class_initializer_expression.
     case ok_error:
       /* Some sort of error; message was already issued. */
       set_error_constant(constant);
+      discard_curr_expr_object_lifetime();
       break;
     case ok_expression:
       *expression = result.variant.expression;
+      *expression = add_object_lifetime_node_if_needed(*expression);
       *is_constant = FALSE;
       break;
     case ok_constant:
@@ -9232,6 +9235,7 @@ err_pos as the error position.
                         ec_incompatible_param);
   /* Make an expression again. */
   expr = make_node_from_operand(&operand);
+  expr = add_object_lifetime_node_if_needed(expr);
   pop_expr_stack();
   return expr;
 }  /* prep_rvalue_arg_expr */
@@ -9304,6 +9308,7 @@ re-evaluated each time around the loop.
   /* Check its type and normalize it. */
   process_boolean_controlling_expression(&result);
   expr = make_node_from_operand(&result);
+  expr = add_object_lifetime_node_if_needed(expr);
   pop_expr_stack();
 
 #if DEBUG
