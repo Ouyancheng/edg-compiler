@@ -88,22 +88,22 @@ such attributes are simply ignored.
 10/23/03 GNU asm constraints: "q" and "Q"
 
 In GNU mode (on configurations which set GNU_X86_ASM_EXTENSIONS_ALLOWED to
-TRUE) the front translated the extended "asm" operand constraints "q" and "Q"
-to the same internal representation.  This common representation was to be
-treated conservatively as "Q".  In particular, he C- and C++-generating back
-end rendered the "Q" constraint in all cases.  Now distinct representations
-are used: The existing aoc_reg_q implies the less strict constraint "q" and a
-new constraint aoc_reg_Q corresponds to "Q" (the previous meaning of
-aoc_reg_q).  For example:
+TRUE) the front end translated the extended "asm" operand constraints "q"
+and "Q" to the same internal representation.  This common representation
+was to be treated conservatively as "Q".  In particular, the C- and C++-
+generating back ends rendered the "Q" constraint in all cases.  Now distinct
+representations are used: The existing aoc_reg_q implies the less strict
+constraint "q" and a new constraint aoc_reg_Q corresponds to "Q" (the
+previous meaning of aoc_reg_q).  For example:
 
   void f() {
     int r;
-    __asm__("movl $0,%0" : "=q"(r));  // "=q" nor preserved (previously
+    __asm__("movl $0,%0" : "=q"(r));  // "=q" now preserved (previously
                                       // rendered as "Q").
     __asm__("movl $0,%0" : "=Q"(r));  // Internal representation of "=Q"
   }                                   // changed.
 
-Not that this is an IL CHANGE.
+Note that this is an IL CHANGE.
 
 10/22/03 Spurious typedef correspondence error in C mode
 
