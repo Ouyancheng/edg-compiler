@@ -25,6 +25,7 @@ the error text.
 #if __ANSIC__
 /* Get bsearch, qsort, and exit prototypes. */
 #include <stdlib.h>
+typedef sizeof_t qsort_nmemb_type;
 #else /* __ANSIC__ */
 EXTERN_C a_void_ptr bsearch(a_const_void_ptr key,
                             a_const_void_ptr base,
@@ -38,12 +39,14 @@ EXTERN_C int qsort(a_void_ptr       base,
                    int              size,
                    int(*compar)(a_const_void_ptr,
                                 a_const_void_ptr));
+typedef int qsort_nmemb_type;
 #else /* !__BSD__ */
 EXTERN_C void qsort(a_void_ptr       base,
                     sizeof_t         nmemb,
                     sizeof_t         size,
                     int(*compar)(a_const_void_ptr,
                                  a_const_void_ptr));
+typedef sizeof_t qsort_nmemb_type;
 #endif /* __BSD__ */
 
 EXTERN_C void exit(int status);
@@ -773,13 +776,13 @@ int main(int argc, char *argv[])
     me_write_error_text();
     /* Sort the error information by enumeration code so that the enumerations
        can be looked up while processing the tag file. */
-    qsort((a_void_ptr)error_info, (sizeof_t)number_of_errors,
-           sizeof(an_error_info), compare_error_info);
+    qsort((a_void_ptr)error_info, (qsort_nmemb_type)number_of_errors,
+           (qsort_nmemb_type)sizeof(an_error_info), compare_error_info);
     /* Read the data from the tag file. */
     me_read_tag_file();
     /* Sort the tag information by tag. */
-    qsort((a_void_ptr)tag_info, (sizeof_t)number_of_tags,
-          sizeof(a_tag_info), compare_tag_info);
+    qsort((a_void_ptr)tag_info, (qsort_nmemb_type)number_of_tags,
+          (qsort_nmemb_type)sizeof(a_tag_info), compare_tag_info);
     /* Output the number of tags to the error code file. */
     me_write_tag_table();
     fclose(codes_output_file);
