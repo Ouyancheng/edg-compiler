@@ -5864,14 +5864,17 @@ when exception support is enabled.
      merge the exception specifications. */
   bcp = base_classes_of(class_type);
   for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct) {
+    if (is_or_contains_template_param(bcp->type)) {
+      /* We cannot tell what dependent bases might end up throwing. */
+      throw_any = TRUE;
+    } else if (bcp->direct) {
       sym = special_function_symbol(bcp->type, sfkind, first_param,
                                     &rp->source_corresp.decl_position,
                                     &ambiguous);
       if (ambiguous) {
         /* If there's an ambiguity, assume anything might be thrown. */
         throw_any = TRUE;
-      } if (sym != NULL) {
+      } else if (sym != NULL) {
         /* Form the union of exception specifications. */
         throw_any = merge_exception_specifications(sym, rout_type);
       }  /* if */
@@ -5886,14 +5889,17 @@ when exception support is enabled.
       tp = fp->type;
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       tp = skip_typedefs(tp);
-      if (is_immediate_class_type(tp)) {
+      if (is_or_contains_template_param(tp)) {
+        /* We cannot tell what dependent fields might end up throwing. */
+        throw_any = TRUE;
+      } else if (is_immediate_class_type(tp)) {
         sym = special_function_symbol(tp, sfkind, first_param,
                                       &rp->source_corresp.decl_position,
                                       &ambiguous);
         if (ambiguous) {
           /* If there's an ambiguity, assume anything might be thrown. */
           throw_any = TRUE;
-        } if (sym != NULL) {
+        } else if (sym != NULL) {
           /* Form the union of exception specifications. */
           throw_any = merge_exception_specifications(sym, rout_type);
         }  /* if */
