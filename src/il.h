@@ -372,7 +372,7 @@ extern a_boolean complex_type_used_in_primary_IL(a_float_kind kind);
 
 extern a_type_ptr complex_type(a_float_kind kind);
 
-extern a_boolean imaginary_type_used_type_in_primary_IL(a_float_kind kind);
+extern a_boolean imaginary_type_used_in_primary_IL(a_float_kind kind);
 
 extern a_type_ptr imaginary_type(a_float_kind kind);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
