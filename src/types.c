@@ -4577,6 +4577,12 @@ exception specifications are not checked.
         okay = FALSE;
       }  /* if */
     }  /* if */
+  } else if (!C_mode() &&
+             is_bool_type(source_type) && is_enum_type(dest_type)) {
+    /* Allow bool --> enum.  [expr.static.cast] paragraphs 6 and 7
+       strictly speaking seem to disallow it, but that's probably a mistake
+       in the standard. */
+    okay = TRUE;
   }  /* if */
   return okay;
 }  /* inverse_impl_conversion_possible */

@@ -1,5 +1,11 @@
 Version 2.45
 
+12/21/00 static_cast of bool to enum type
+
+A static_cast from bool to an enum type is now allowed.  The C++ standard
+is not entirely clear on this issue (see 5.2.9p6 and 7, and 7.2p9), but
+we think it was probably intended to be allowed.
+
 12/19/00 MSVC++ compatibility: Output of long long constants in non-Microsoft
          mode
 
