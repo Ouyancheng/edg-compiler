@@ -36,6 +36,10 @@ This is the version for Linux.
 #define TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED 0
 #define IGNORE_CARRIAGE_RETURN_IN_SOURCE 1
 
+/* Settings needed in order for bit-field allocation to match gcc. */
+#define TARG_BIT_FIELD_CONTAINER_SIZE (-1)
+#define ALLOW_NON_INT_BIT_FIELD_BASE_TYPE_IN_GENERATED_C TRUE
+
 #define LONG_LONG_ALLOWED 1
 #define INTEGER_VALUE_REPR_IS_A_HOST_INTEGER 1
 #define TYPE_FOR_AN_INTEGER_VALUE unsigned long long
