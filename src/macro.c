@@ -42,7 +42,7 @@ static char	*macro_buffer;
 			/* Contains characters of macro expansions and of
 			   macro definitions.  Dynamically allocated,
 			   expanded as needed. */
-#define MACRO_BUFFER_INITIAL_ALLOCATION 100
+#define MACRO_BUFFER_INITIAL_ALLOCATION 4000
 			/* Initial allocation size for macro_buffer.  The
 			   initial allocation should be such that almost all
 			   cases can be accepted (so that the realloc is
