@@ -506,6 +506,21 @@ IL lowering is used or if automatic template instantiation is selected.
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION && !NEED_NAME_MANGLING */
 
 /*
+Flag that is TRUE if minimal inlining should be done during IL lowering.
+This is intended mostly for use with the C-generating back end, and does
+not do anything very fancy.
+*/
+#if DO_IL_LOWERING
+#ifndef MINIMAL_INLINING
+#if BACK_END_IS_C_GEN_BE
+#define MINIMAL_INLINING TRUE
+#else /* !BACK_END_IS_C_GEN_BE */
+#define MINIMAL_INLINING FALSE
+#endif /* BACK_END_IS_C_GEN_BE */
+#endif /* ifndef MINIMAL_INLINING */
+#endif /* DO_IL_LOWERING */
+
+/*
 Flag that is TRUE if unrecognized pragmas should be accepted and passed
 through to the back end using the characteristics specified by the
 pk_unrecognized pragma kind.  The pragma is converted to a character string
