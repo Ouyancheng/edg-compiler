@@ -1477,7 +1477,10 @@ subobject_type are considered in addition to direct bases.
           } else {
             field_type = field->type;
           }  /* if */
-          if (is_empty_class_type(field_type)) {
+          field_type = skip_typerefs(field_type);
+          if (is_immediate_class_type(field_type) &&
+              symbol_supplement_for_class(field_type)
+                                                 ->has_empty_class_subobject) {
             /* Loop through the elements of the array. */
             for (field_elt = 0; 
                  field_elt < num_field_array_elts; 
