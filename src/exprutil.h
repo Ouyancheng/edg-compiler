@@ -135,20 +135,20 @@ typedef struct an_operand {
 		state;
 			/* Whether the operand is an lvalue, rvalue, or a
 			   function designator. */
-  a_byte_boolean
-		bound_function;
+  unsigned int	bound_function:1;
 			/* TRUE if the operand is a bound function, i.e.,
 			   another operand is required to give the object
 			   relative to which this function is selected. */
-  a_byte_boolean
-		virtual_function;
+  unsigned int	virtual_function:1;
 			/* TRUE if the operand represents a virtual
 			   function. */
-  a_byte_boolean
-		is_qualified_name;
+  unsigned int	is_qualified_name:1;
 			/* TRUE if the operand was generated from a qualified
 			   name.  Used only when kind ==
 			   ok_indefinite_function. */
+  unsigned int	came_from_reference:1;
+			/* For an lvalue, TRUE if the lvalue came from a
+			   C++ reference. */
   a_source_position
 		position;
 			/* The source position for the operand. */

@@ -354,6 +354,7 @@ values.
   operand->bound_function = FALSE;
   operand->virtual_function = FALSE;
   operand->is_qualified_name = FALSE;
+  operand->came_from_reference = FALSE;
   operand->position.seq = 0;
   operand->position.column = SP_COL_UNKNOWN;
   operand->xref_entries_list = NULL;
@@ -479,6 +480,7 @@ position field as the error position.
   set_operand_kind(operand, (an_operand_kind)ok_error);
   operand->type = error_type();
   operand->state = (an_operand_state)os_none;
+  operand->came_from_reference = FALSE;
   /* bound_function is not cleared on purpose. */
 }  /* conv_to_error_operand */
 
@@ -2833,6 +2835,7 @@ void add_reference_indirection(an_operand *result)
   }  /* if */
   make_expression_operand(node, result_type, result);
   result->state = result_state;
+  result->came_from_reference = TRUE;
   /* Instantiate the underlying type if it is a template class. */
   check_for_uninstantiated_template_class(result_type);
   /* Restore the original source position, etc. */
@@ -3482,6 +3485,7 @@ kind expression_kind.
   }  /* if */
   /* The operand is now an rvalue. */
   operand->state = (an_operand_state)os_rvalue;
+  operand->came_from_reference = FALSE;
   if (expression_kind != (an_expression_kind)ek_not_evaluated) {
     /* Change the kind in the cross-reference entries to address-taken. */
     change_xref_kinds(operand->xref_entries_list, srk_address_taken);
@@ -4254,6 +4258,9 @@ lvalue being converted to an rvalue in a constant expression.
     /* The xref_entries_list is cleared because it should only contain
        information on lvalue addresses. */
     operand->xref_entries_list = NULL;
+    /* Clear the came-from-reference flag, as it is meaningful only for
+       lvalues. */
+    operand->came_from_reference = FALSE;
   }  /* if */
 }  /* conv_lvalue_to_rvalue */
 
@@ -4344,6 +4351,7 @@ indicates the current expression kind.
        to rvalue. */
   }  /* if */
   operand->state = (an_operand_state)os_rvalue;
+  operand->came_from_reference = FALSE;
   if (expression_kind != (an_expression_kind)ek_not_evaluated) {
     /* Change the kind in the cross-reference entries to address-taken. */
     change_xref_kinds(operand->xref_entries_list, srk_address_taken);
@@ -5012,6 +5020,7 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
           arg_operand->type = arg_type = make_pointer_type(arg_operand->type);
         }  /* if */
         arg_operand->state = (an_operand_state)os_rvalue;
+        arg_operand->came_from_reference = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
