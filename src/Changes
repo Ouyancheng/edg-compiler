@@ -1,6 +1,19 @@
 Version 2.43
 
-11/2/99  Names for conversion functions to typedef types
+11/3/99  Access check on operator delete for new folded into constructor
+
+When an exception is thrown during a "new" operation, after
+the storage is allocated but before the initialization of the storage
+is completed, the storage is freed automatically by a call of
+the appropriate operator delete routine, which must be accessible.
+
+In some configurations, the allocation of a class object is handled
+by the constructor, and the deallocation as well.  The access to
+the operator delete routine should nevertheless be checked at the
+point of the "new", even if the delete routine is not called
+directly at that point.  Formerly, this was not done.  Now fixed.
+
+11/3/99  Names for conversion functions to typedef types
 
 The default name-output routine in the il_to_str routines now puts
 out the names of conversion functions by converting the return type
