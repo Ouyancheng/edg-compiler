@@ -4181,6 +4181,7 @@ Syntax:
   a_local_expr_options_set
                         local_options;
   an_expr_stack_entry   expr_stack_entry;
+  a_boolean             template_case = FALSE;
   a_boolean             in_constant_expression = (expr_stack != NULL &&
                                                   curr_expr_kind_is_const());
   db_enter(4, "scan_sizeof_operator");
@@ -4315,7 +4316,14 @@ Syntax:
   /* The operand of a sizeof may not have function type or incomplete
      type (except in GNU C mode, where function types and void are treated
      as byte-sized). */
-  if (is_function_type(sizeof_type)) {
+  if (!C_mode() && is_template_dependent_context() &&
+      is_template_dependent_type(sizeof_type)) {
+    /* Don't test a template-dependent type.  This is important, in
+       particular, for some cases where, with implicit typename,
+       disambiguation concludes that something is a function-type
+       declaration instead of a functional-notation type conversion. */
+    template_case = TRUE;
+  } else if (is_function_type(sizeof_type)) {
     if (gcc_mode) {
       sizeof_type = integer_type((an_integer_kind)ik_char);
     } else {
@@ -4371,8 +4379,7 @@ Syntax:
     if (is_error_type(sizeof_type)) {
       set_error_constant(&constant);
     } else {
-      if (!C_mode() && is_template_dependent_context() &&
-          is_template_dependent_type(sizeof_type)) {
+      if (template_case) {
         /* For the size of a template type, use a ck_template_param. */
         clear_constant(&constant, (a_constant_repr_kind)ck_template_param);
         set_template_param_constant_kind(&constant,

@@ -1,5 +1,23 @@
 Version 2.46
 
+1/22/02  Spurious error on sizeof of template-dependent type
+
+When "implicit typename" is enabled for templates (not in strict
+mode, but typically in default mode), there are some cases where
+a construct that could be a call was seen instead as a function type
+when it appears in a sizeof in a template.  This is additionally
+confusing because the construct is properly scanned as a call in
+struct mode (in that mode, without "implicit typename", the reference
+is taken to be to a non-type because typename is not specified).
+Now fixed.
+
+  template <class T> struct ConversionHelper {
+    static T MakeT();
+  };
+  template <class T> struct Conversion {
+    enum { exists = 1 == sizeof(ConversionHelper<T>::MakeT()) };
+  };
+
 1/20/02  IL walk routines: separate remap routine for list pointers
 
 The IL walk routines (il_walk.c, walk_entry.h) have been changed so
