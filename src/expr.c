@@ -2510,9 +2510,9 @@ qualified_name_check:
        weird case.  scan_function_call checks for this construct. */
     node = make_node_from_operand(operand_1);
     rvalue_case = !is_arrow_operator && is_an_rvalue(operand_1);
-    node = make_operator_node((an_expr_operator_kind)rvalue_case ?
+    node = make_operator_node((an_expr_operator_kind)(rvalue_case ?
                                 eok_value_vacuous_destructor_call :
-                                eok_vacuous_destructor_call,
+                                eok_vacuous_destructor_call),
                               void_type(),
                               node);
     make_expression_operand(node, node->type, result);
