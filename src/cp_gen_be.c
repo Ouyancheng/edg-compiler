@@ -4722,11 +4722,17 @@ sequence entry.
 #if MICROSOFT_KEYWORDS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
   /* Microsoft-specific keywords. */
-  if (var->dllimport_used)   write_tok_str("__declspec(dllimport) ");
-  if (is_definition) {
-    if (var->dllexport_used) write_tok_str("__declspec(dllexport) ");
+  if (var->decl_modifiers & DM_DLLIMPORT) {
+    write_tok_str("__declspec(dllimport) ");
   }  /* if */
-  if(var->thread_used) write_tok_str("__declspec(thread) ");
+  if (is_definition) {
+    if (var->decl_modifiers & DM_DLLEXPORT) {
+      write_tok_str("__declspec(dllexport) ");
+    }  /* if */
+  }  /* if */
+  if (variable->decl_modifiers & DM_THREAD) {
+    write_tok_str("__declspec(thread) ");
+  }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
   /* Output the variable name and its type.  Do not put out a name for
@@ -5011,11 +5017,19 @@ declaration or definition.
 #if MICROSOFT_KEYWORDS_ALLOWED
 #if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
   /* Microsoft-specific keywords. */
-  if (rout->dllimport_used)   write_tok_str("__declspec(dllimport) ");
+  if (rout->decl_modifiers & DM_DLLIMPORT) {
+    write_tok_str("__declspec(dllimport) ");
+  }  /* if */
   if (is_definition) {
-    if (rout->dllexport_used) write_tok_str("__declspec(dllexport) ");
-    if (rout->naked_used)     write_tok_str("__declspec(naked) ");
-    if (rout->microsoft_inline_used) write_tok_str("__inline ");
+    if (rout->decl_modifiers & DM_DLLEXPORT) {
+      write_tok_str("__declspec(dllexport) ");
+    }  /* if */
+    if (rout->decl_modifiers & DM_NAKED) {
+      write_tok_str("__declspec(naked) ");
+    }  /* if */
+    if (rout->decl_modifiers & DM_MICROSOFT_INLINE) {
+      write_tok_str("__inline ");
+    }  /* if */
   }  /* if */
 #endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
