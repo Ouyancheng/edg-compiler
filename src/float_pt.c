@@ -86,17 +86,25 @@ EXTERN_C int finite(double x);
 #ifdef isnan
 #define is_NaN(x) (isnan(x))
 #else /* !defined(isnan) */
+#if __linux__
+#define is_NaN(x) (__isnan((double)(x)))
+#else /* !__linux__ */
 #define is_NaN(x) (isnan((double)(x)))
+#endif /* __linux__ */
 #endif /* ifdef isnan */
 /* C99 has the "isfinite" macro.  Linux headers do too. */
 #ifdef isfinite
 #define is_finite(x) (isfinite(x))
 #else /* !defined(isfinite) */
-#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 /* The "finite" function takes a double argument, so it doesn't work
    for long double (the conversion to double could produce an Infinity
    for a too-large value). */
+#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+#if __linux__
+#define is_finite(x) (__finite(x))
+#else /* !__linux__ */
 #define is_finite(x) (finite(x))
+#endif /* __linux__ */
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #define is_finite(x) (long_double_is_finite(x))  /* See definition below. */
 #define NEED_LONG_DOUBLE_IS_FINITE 1
