@@ -4483,8 +4483,7 @@ functions befriending_list_test and class_scope_test.
     a_scope_kind kind;
     ssep = &scope_stack[scope_depth];
     kind = ssep->kind;
-    if (kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_function_access) {
+    if (kind == (a_scope_kind)sck_function) {
       /* A function.  See if class_type is on its befriending list. */
       scope_routine = ssep->il_scope->variant.routine.ptr;
       if (befriending_list_test(scope_routine->befriending_classes,
@@ -4493,17 +4492,28 @@ functions befriending_list_test and class_scope_test.
         have_member_privilege = TRUE;
         break;
       }  /* if */
-      if (kind != (a_scope_kind)sck_function_access) {
-        /* The ARM says "Member functions of a nested class have no special
-           access to members of an enclosing class".  It's not clear that's
-           right or precise enough, but in strict mode, we'll do exactly that.
-           For a member function in a nested class, set up to skip all
-           the reactivations for the classes within which it is nested. */
-        if (strict_ansi_mode &&
-            (ssep-1)->kind == (a_scope_kind)sck_class_reactivation &&
-            (ssep-2)->kind == (a_scope_kind)sck_class_reactivation) {
-          scope_depth_to_skip = scope_depth - 2;
-        }  /* if */
+      /* The ARM says "Member functions of a nested class have no special
+         access to members of an enclosing class".  It's not clear that's
+         right or precise enough, but in strict mode, we'll do exactly that.
+         For a member function in a nested class, set up to skip all
+         the reactivations for the classes within which it is nested. */
+      if (strict_ansi_mode &&
+          (ssep-1)->kind == (a_scope_kind)sck_class_reactivation &&
+          (ssep-2)->kind == (a_scope_kind)sck_class_reactivation) {
+        scope_depth_to_skip = scope_depth - 2;
+      }  /* if */
+    } else if (kind == (a_scope_kind)sck_function_access) {
+      /* A function access scope.  Note that these are more like function
+         prototype scopes and therefore aren't considered part of the
+         body of the function (so the surrounding class reactivations
+         are not checked). */
+      /* See if class_type is on its befriending list. */
+      scope_routine = ssep->assoc_routine;
+      if (befriending_list_test(scope_routine->befriending_classes,
+                                class_type)) {
+        /* We are inside a function that is a friend of class_type. */
+        have_member_privilege = TRUE;
+        break;
       }  /* if */
     } else {
       check_assertion_str(kind == (a_scope_kind)sck_class_struct_union ||
