@@ -1,6 +1,16 @@
 Version 2.31
 
-10/12/95 Configuration flag for Linux changed from __LINUX__ to __linux__
+10/13/95  IL CHANGE: "needed" flags
+
+When MAINTAIN_NEEDED_FLAGS is configured to TRUE, the "needed" flag in
+a_source_correspondence and "definition_needed" in class/struct/union type
+entries are defined.  They are provided as an optimization aid, giving more
+precise information than the "referenced" flag about whether an entity is
+"really" needed.  An entity can end up marked as "referenced" but not
+"needed" if, for example, it is only referenced by a function that is never
+called.
+
+10/12/95  Configuration flag for Linux changed from __LINUX__ to __linux__
 
 The configuration flag used to indicate that the front end is being
 compiled on Linux has been changed to __linux__, which is automatically
