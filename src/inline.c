@@ -367,7 +367,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
         /* An auto variable whose address has not been taken is invariant
            across the call. */
         if (temp_expr->kind == (an_expr_node_kind)enk_variable) {
-          a_variable_ptr var = temp_expr->variant.variable;
+          var = temp_expr->variant.variable;
           if (!has_static_storage_duration(var->storage_class) &&
               !var->address_taken) {
             arg_is_constant = TRUE;
