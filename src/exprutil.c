@@ -7656,7 +7656,7 @@ converted to an rvalue.
       }  /* if */
     } else if (op == (an_expr_operator_kind)eok_question) {
       a_type_ptr result_type;
-      a_boolean  okay;
+      a_boolean  okay, op2_is_throw = FALSE, op3_is_throw = FALSE;
       /* "?" operator -- transform each branch independently to an address. */
       op1 = node->variant.operation.operands;
       op2 = op1->next;
@@ -7667,10 +7667,20 @@ converted to an rvalue.
                                            /*see_if_possible=*/TRUE,
                                            /*gcc_lvalue=*/FALSE,
                                            ignore_casts, (a_type_ptr *)NULL);
+        if (!op2_possible &&
+            op2->kind == (an_expr_node_kind)enk_throw) {
+          op2_is_throw = TRUE;
+          op2_possible = TRUE;
+        }  /* if */
         conv_rvalue_expr_to_object_pointer(&op3, &op3_possible,
                                            /*see_if_possible=*/TRUE,
                                            /*gcc_lvalue=*/FALSE,
                                            ignore_casts, (a_type_ptr *)NULL);
+        if (!op3_possible &&
+            op3->kind == (an_expr_node_kind)enk_throw) {
+          op3_is_throw = TRUE;
+          op3_possible = TRUE;
+        }  /* if */
         okay = (op2_possible && op3_possible);
       } else {
         /* Test whether this expression can be rewritten as an lvalue
@@ -7684,16 +7694,20 @@ converted to an rvalue.
         possible = TRUE;
         if (!see_if_possible) {
           node->variant.operation.returns_lvalue_instead_of_usual_rvalue= TRUE;
-          conv_rvalue_expr_to_object_pointer(&op2, &op2_possible,
-                                             /*see_if_possible=*/FALSE,
-                                             gcc_lvalue,
-                                             ignore_casts,
-                                             (a_type_ptr *)NULL);
-          conv_rvalue_expr_to_object_pointer(&op3, &op3_possible,
-                                             /*see_if_possible=*/FALSE,
-                                             gcc_lvalue,
-                                             ignore_casts,
-                                             (a_type_ptr *)NULL);
+          if (!op2_is_throw) {
+            conv_rvalue_expr_to_object_pointer(&op2, &op2_possible,
+                                               /*see_if_possible=*/FALSE,
+                                               gcc_lvalue,
+                                               ignore_casts,
+                                               (a_type_ptr *)NULL);
+          }  /* if */
+          if (!op3_is_throw) {
+            conv_rvalue_expr_to_object_pointer(&op3, &op3_possible,
+                                               /*see_if_possible=*/FALSE,
+                                               gcc_lvalue,
+                                               ignore_casts,
+                                               (a_type_ptr *)NULL);
+          }  /* if */
           if (gcc_lvalue) {
             /* For the gcc case, cast the operands to the right result
                type if necessary. */

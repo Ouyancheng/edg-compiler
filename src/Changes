@@ -1,5 +1,26 @@
 Version 3.1
 
+9/26/02  Abort on "?" operator with class and throw as operands
+
+An abort in conv_class_operand_to_object_pointer resulted from
+a case where a "?" operator has a class value and a throw expression
+as its second and third operands, and the overall expression is
+used in a context where the address of the class rvalue is needed,
+e.g., in calling a copy constructor.  Now fixed.
+
+  struct Foo;
+  struct Bar {
+    Bar(const Bar&);
+    Bar f(const Bar&);
+    Foo* value;
+  };
+  struct Foo {
+    virtual Bar g(const Bar&);
+  };
+  Bar Bar::f(const Bar& args) {
+    return value != 0 ? value->g(args) : throw 1;
+  }
+
 9/26/02  Microsoft compatibility: missing access error in instantiation
 
 In Microsoft mode, certain access errors were not diagnosed during
