@@ -30,6 +30,12 @@ extern void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
                                     a_dynamic_init_ptr  new_dip,
                                     a_targ_size_t       count);
 
+extern void add_dtor_for_partially_constructed_aggregate(
+                                               a_routine_ptr       dtor_rp,
+                                               a_dynamic_init_ptr  dip,
+                                               a_type_ptr          class_type,
+                                               a_source_position   *pos);
+
 extern a_boolean dynamic_init_has_side_effects(
                                         a_dynamic_init_ptr dip,
                                         a_boolean          *suppress_warning);
