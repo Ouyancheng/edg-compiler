@@ -1977,6 +1977,15 @@ compilers (e.g., __builtin_va_list).
 #endif /* GCC_IS_GENERATED_CODE_TARGET && GCC_BUILTIN_VARARGS */
 #endif /* ifndef GCC_BUILTIN_VARARGS_IN_GENERATED_CODE */
 
+/*
+Switch that is TRUE if bugs in some versions of MSVC++ regarding
+value-initialization should be emulated.  This is desirable in products
+that are trying to detect uninitialized values, but not in general.
+*/
+#ifndef DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS
+#define DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS FALSE
+#endif /* DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS */
+
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 /*
 Switch that is TRUE if the C-generating or C++-generating back end should
@@ -2002,15 +2011,6 @@ compiler release (e.g., 1300 corresponds to MSVC version 7).
 #ifndef MSVC_TARGET_VERSION_NUMBER
 #define MSVC_TARGET_VERSION_NUMBER DEFAULT_MICROSOFT_VERSION
 #endif /* MSVC_TARGET_VERSION_NUMBER */
-
-/*
-Switch that is TRUE if bugs in some versions of MSVC++ regarding
-value-initialization should be emulated.  This is desirable in products
-that are trying to detect uninitialized values, but not in general.
-*/
-#ifndef DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS
-#define DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS FALSE
-#endif /* DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS */
 
 /*
 Switch that is TRUE if the C-generating or C++-generating back end should

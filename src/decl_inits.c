@@ -4208,9 +4208,11 @@ scan_paren:
                definition is triggered (in case there are side-effects).
                Note that this is a so-called "value-initialization" case
                and hence the object must be zeroed. */
-            dip = alloc_dynamic_init(value_initialization_enabled ?
-                                                (a_dynamic_init_kind)dik_zero :
-                                                (a_dynamic_init_kind)dik_none);
+            a_dynamic_init_kind init_kind = (a_dynamic_init_kind)dik_zero;
+            if (!value_initialization_enabled) {
+              init_kind = (a_dynamic_init_kind)dik_none;
+            }  /* if */
+            dip = alloc_dynamic_init(init_kind);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
             if (new_cip != NULL) {
               new_cip->ctor_init_range.start = init_start_pos;
