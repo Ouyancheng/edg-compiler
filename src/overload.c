@@ -5727,6 +5727,7 @@ because of an error.  This routine is only used in C++ mode.
   a_boolean                     undecidable_because_of_error;
   a_boolean                     ctor_arg_conversion_set = FALSE;
   a_base_class_ptr              bcp;
+  a_type_qualifier_set          source_qualifiers;
 
   db_enter(4, "conversion_to_class_possible");
   /* Note that this routine is like a simplified version of
@@ -5742,15 +5743,21 @@ because of an error.  This routine is only used in C++ mode.
   class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   cssp = class_symbol->variant.class_struct_union.extra_info;
   source_type = source_operand->type;
+  source_qualifiers = get_type_qualifiers(source_type);
   source_type = skip_typerefs(source_type);
   /* candidate_functions will contain the list of viable functions. */
   candidate_functions = NULL;
   /* Check for a same-class bitwise copy.  The derived-class bitwise copy
-     is checked for below. */
+     is checked for below.  A bitwise copy cannot be done if the source
+     has a volatile type (the generated notional bitwise copy constructor
+     or copy assignment operator has a reference-to-const parameter and
+     cannot copy a volatile object). */
   bitwise_copy_okay = try_bitwise_copy &&
                       (is_initialization ?
                                    cssp->construction_by_bitwise_copy_allowed :
-                                   cssp->assignment_by_bitwise_copy_allowed);
+                                   cssp->assignment_by_bitwise_copy_allowed) &&
+                      !any_qualifier_in_set_missing(TQ_CONST,
+                                                    source_qualifiers);
   if (bitwise_copy_okay && identical_types(class_type, source_type)) {
     /* The source and destination types are the same class type, and a
        bitwise copy is allowed on that type.  That means there are no

@@ -1,15 +1,27 @@
 Version 2.32
 
+4/8/96  Bitwise copy of volatile-qualified object
+
+Bitwise copying of classes in C++ is an implementation technique; the
+C++ language actually defines such copies in terms of generated
+trivial copy constructors and copy assignment operators.  Those
+generated functions have a reference-to-const-class input parameter,
+which means they cannot copy volatile-qualified objects.  This has
+now been implemented (that is, such copies now get an error).
+
+  struct X {};
+  volatile X vx;
+  X x = vx;      // error: cannot copy volatile object
+
 4/6/96  Some bug fixes in bit-field allocation
 
 A new flag, TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT, has been
-added.  When it is configured TRUE, the alignment of the struct as a whole
-will be no less than the alignment implied by any zero-width bit field
-declaration.  It is configured to FALSE by default, which matches previous
-behavior.
+added.  When it is configured TRUE, the alignment of any zero-width bit
+field declaration affects the alignment for the struct as a whole.
 
-When ABI_COMPATIBILITY_VERSION >= 232 and CFRONT_OBJECT_CODE_COMPATIBILITY
-is TRUE:
+When CFRONT_OBJECT_CODE_COMPATIBILITY is TRUE, the following are now
+set (for better compatibility with cfront; these changes are suppressed
+when ABI_COMPATIBILITY_VERSION <= 231):
 
   -- TARG_ZERO_WIDTH_BIT_FIELD is now configured to TARG_SIZEOF_INT.
 
@@ -17,7 +29,8 @@ is TRUE:
      configured to TRUE.
 
 When TARG_MICROSOFT_BIT_FIELD_ALLOCATION is TRUE, additional configuration
-changes are provided:
+changes are provided (for better compatibility with the Microsoft Visual
+C++ compiler):
 
   -- TARG_ZERO_WIDTH_BIT_FIELD is now configured to -1 (which means to
      use the underlying type of the bit field declaration as the container
