@@ -3305,7 +3305,8 @@ Remove the region table entry for the clearing of the guard variable for
 a local static initialization from the cleanup list.  See
 add_local_static_guard_var_cleanup.  local_static_lifetime is the
 object lifetime that surrounds the initialization.  If any code is needed,
-it is inserted at *insert_location.
+it is inserted at *insert_location.  Called only when exceptions are
+enabled.
 */
 {
   a_dynamic_init_ptr dip = local_static_lifetime->destructions;
