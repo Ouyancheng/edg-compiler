@@ -1537,7 +1537,6 @@ we are doing IL lowering and the ABI changes for array new and delete
 aren't enabled.
 */
 #ifndef ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
-#undef ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE
 #if DO_IL_LOWERING
 #if ABI_CHANGES_FOR_ARRAY_NEW_AND_DELETE
 #define ARRAY_NEW_AND_DELETE_ENABLING_POSSIBLE TRUE
