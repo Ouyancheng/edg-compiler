@@ -2733,6 +2733,21 @@ otherwise, set *ext_sym to NULL.
     mark_declared(sym, &locator->source_position,
                   /*save_as_decl_position=*/is_function_def_with_body);
   }  /* if */
+  if (C_dialect == C_dialect_cplusplus) {
+    if (!is_function && decl_scope_level == DEPTH_OF_FILE_SCOPE &&
+        storage_class == (a_storage_class)sc_unspecified &&
+        type_or_element_type_is_const_qualified(type_ptr)) {
+      /* In C++ all const qualified objects at file scope with no explicit
+         storage class are internally linked unless previously declared to
+         be extern (ARM 7.1.1).  The storage class has been left "unspecified"
+         because till now we didn't know whether this was a redeclaration. */
+      if (variable_ptr == NULL ||
+          variable_ptr->storage_class != (a_storage_class)sc_extern) {
+        storage_class = (a_storage_class)sc_static;
+        linkage = idl_internal;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   *ext_sym = NULL;
   if (linkage != idl_none) {
     /* The symbol has external or internal linkage.  Find or create an
@@ -6965,12 +6980,6 @@ continue_with_declaration:
               /* We are not at file scope, so an unspecified storage class
                  means auto. */
               local_storage_class = (a_storage_class)sc_auto;
-            } else if (C_dialect == C_dialect_cplusplus) {
-              if (type_or_element_type_is_const_qualified(local_type_ptr)) {
-                /* In C++ all const qualified objects at file scope are
-                   internally linked  by default (ARM 7.1.1). */
-                local_storage_class = (a_storage_class)sc_static;
-              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
@@ -7002,6 +7011,11 @@ continue_with_declaration:
                             /*is_function_def_with_body=*/FALSE,
                             inline_specified, local_external_linkage,
                             &symbol_ptr, &linkage, &old_type, &ext_sym);
+        /* Fetch the storage class again, which might have been changed if
+           this is a file scope redeclaration of an extern const variable. */
+        if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
+          local_storage_class = symbol_ptr->variant.variable->storage_class;
+        }  /* if */
       }  /* if */
       /* Look for optional initializer. */
       remove_stop_token(tok_assign);
