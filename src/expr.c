@@ -1305,8 +1305,8 @@ Syntax:
       if (make_this_pointer_operand(func_sym,
                                     func_sym,
                                     &call_position,
-                                    /*check_cast_access=*/
-                                       !operand->access_control_error_reported,
+                                    (a_boolean)operand->
+                                                 access_control_error_reported,
                                     bound_function_selector)) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_position = operand->end_position;
@@ -2530,6 +2530,7 @@ qualified_name_check:
                                            member_sym, projection_member_sym,
                                            (a_boolean)locator_for_curr_id.
                                                  access_control_error_reported,
+                                           /*do_protected_member_check=*/TRUE,
                                            &member_position);
           do_field_selection_operation(operand_1, orig_class_struct_union_type,
                                        is_arrow_operator, rvalue_result,
@@ -2574,6 +2575,7 @@ nonstatic_member_function:
                                                  (a_boolean)
                                                            locator_for_curr_id.
                                                  access_control_error_reported,
+                                            /*do_protected_member_check=*/TRUE,
                                                  &member_position);
               }  /* if */
               /* Make an operand for the function with the selector bound
@@ -11985,8 +11987,7 @@ normal_function:
               if (make_this_pointer_operand(sym_ptr,
                                             projection_sym_ptr,
                                           &locator_for_curr_id.source_position,
-                                            /*check_cast_access=*/
-                                              !locator_for_curr_id.
+                                            (a_boolean)locator_for_curr_id.
                                                  access_control_error_reported,
                                             &this_pointer_operand)) {
                 /* Do the field selection relative to the "this" pointer. */
