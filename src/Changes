@@ -1,5 +1,12 @@
 Version 2.43
 
+9/13/99  __declspec(dllimport) processing could refer to freed memory
+
+Bodies of functions marked with __declspec(dllimport) are always discarded,
+but the process of discarding them occasionally referred to memory that had
+already been freed at the end of the function scope processing.  This is now
+fixed.
+
 9/10/99  Command line allows function-style macros
 
 The "-D" command-line option has been extended to allow function-style macros.
