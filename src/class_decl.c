@@ -2450,6 +2450,26 @@ constructor's first parameter is const or volatile qualified (or both).
 }  /* is_copy_constructor */
 
 
+static a_boolean is_operator_delete_symbol(a_symbol_ptr  sym)
+/*
+Return TRUE is sym is a symbol for an operator delete() function.
+*/
+{
+  a_routine_ptr  rp;
+  a_boolean      is_operator_delete;
+
+  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    is_operator_delete = FALSE;
+  } else {
+    rp = sym->variant.routine;
+    is_operator_delete =
+               (rp->special_kind == (a_special_function_kind)sfk_operator &&
+                rp->opname_kind == (an_opname_kind)onk_delete);
+  }  /* if */
+  return is_operator_delete;
+}  /* is_operator_delete_symbol */
+
+
 static a_symbol_ptr symbol_for_member_function(a_symbol_locator  *locator,
                                                a_type_ptr        type,
                                                a_symbol_ptr      *overload_sym)
@@ -2513,9 +2533,7 @@ function symbols.
          name.  The routine overload_distinguishable returns TRUE if the
          routine types are candidates for overloading; if it returns FALSE
          it also returns the error code for a diagnostic explaining why. */
-      a_routine_ptr  rp = sym->variant.routine;
-      if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-          rp->opname_kind == (an_opname_kind)onk_delete) {
+      if (is_operator_delete_symbol(sym)) {
         /* Overloading is not allowed for operator delete() (ARM 12.5). */
         pos_error(ec_delete_already_declared, &locator->source_position);
         suppress_redecl_error = TRUE;
@@ -5364,9 +5382,13 @@ class/struct/union is actually defined.
        type which has visibility outside the function scope.  So switch
        to the file scope memory region before allocating the type entry,
        and switch back after the allocation is complete. */
+#if 0
     switch_to_file_scope_region(&region_to_switch_back_to);
     class_type = alloc_type(type_kind);
     switch_back_to_original_region(region_to_switch_back_to);
+#else
+    class_type = alloc_type(type_kind);
+#endif /* if 0 */
     /* Wait to add the type to the types list; it should not be added
        until the closing brace of the full definition appears, to get the
        IL list in the right order. */
@@ -5391,13 +5413,14 @@ class/struct/union is actually defined.
         /* Switch to the function scope region before allocating the "tag
            typeref" type entry, and switch back afterwards. */
         switch_to_function_scope_region(&region_to_switch_back_to);
-        tag_typeref_type = alloc_type((a_type_kind)tk_typeref);
+        tag_typeref_type =
+                        alloc_local_scope_type((a_type_kind)tk_typeref,
+                                               effective_decl_level,
+                                               in_old_style_param_decl_list);
         switch_back_to_original_region(region_to_switch_back_to);
         tag_typeref_type->variant.typeref.type = class_type;
         tag_typeref_type->variant.typeref.is_function_scope_tag = TRUE;
         set_source_corresp(&(tag_typeref_type->source_corresp), tag_sym);
-        add_to_types_list(tag_typeref_type, effective_decl_level,
-                          in_old_style_param_decl_list);
       }  /* if */
     } else {
       /* Tagless class, struct, or union.  Create a symbol to represent it;
@@ -5731,10 +5754,12 @@ class/struct/union is actually defined.
               /* Member function. */
               a_boolean suppress_pure_specifier_error = FALSE;
 
+#if 0
               /* Add the function type to the types list of the scope for
                  the current class. */
               add_to_types_list(local_type, decl_scope_level,
                                 /*in_old_style_param_decl_list=*/FALSE);
+#endif /* if 0 */
               if (friend_specified) {
                 if (virtual_specified ||
                     member_storage_class != (a_storage_class)sc_unspecified) {
@@ -5982,6 +6007,7 @@ next_declaration:
     /* Adding the type to the current scope's types list is done after
        reaching the closing brace to get the IL types list in the right
        order. */
+#if 0
     if (prototype_tag_resolution) {
       /* Tags that were declared in a prototype scope were added to the types
          list at the end of the prototype scope, so do not add them again. */
@@ -5993,6 +6019,7 @@ next_declaration:
       add_to_types_list(class_type, DEPTH_OF_FILE_SCOPE,
                         /*in_old_style_param_decl_list=*/FALSE);
     }  /* if */
+#endif /* if 0 */
     /* Save a pointer to the list of member symbols in the tag symbol.  Note
        that there may be symbols even if there there were no declarations,
        since symbols may be inherited. */
