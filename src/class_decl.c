@@ -5144,36 +5144,38 @@ class/struct/union is actually defined.
                  curr_token == tok_protected) {
             switch (curr_token) {
               case tok_public:
-		access = (an_access_specifier)as_public;
-		break;
+                access = (an_access_specifier)as_public;
+                break;
               case tok_protected:
-		access = (an_access_specifier)as_protected;
-		break;
+                access = (an_access_specifier)as_protected;
+                break;
               case tok_private:
-		access = (an_access_specifier)as_private;
-		break;
+                access = (an_access_specifier)as_private;
+                break;
             }  /* switch */
             scope_stack[decl_scope_level].current_access = access;
             /* Advance to the colon, which is required. */
             (void)get_token();
-	    if (curr_token == tok_colon) {
-	      /* Advance past it. */
-	      (void)get_token();
-	    } else {
+            if (curr_token == tok_colon) {
+              /* Advance past it. */
+              (void)get_token();
+            } else {
               /* Calling is_member_decl_start involves calling
                  curr_type_symbol, which suppresses access and ambiguity
                  errors when looking up what may be a qualified name.  This
                  is correct in this case since we do not want to do the
                  access check until after excluding the possibility of an
                  access adjustment declaration. */
-	      if (curr_token == tok_identifier ||
+              if (curr_token == tok_identifier ||
                   is_member_decl_start()) {
-		error(ec_exp_colon);
-	      } else {
+                error(ec_exp_colon);
+              } else {
                 syntax_error(ec_exp_colon);
-	      }  /* if */
-	    }  /* if */
+              }  /* if */
+            }  /* if */
           }  /* while */
+          /* This next check catches cases like "...public: }". */
+          if (curr_token == tok_rbrace) break;
         }  /* if */
         /* Scan a member declaration. */
         add_stop_token(tok_semicolon);
@@ -5236,15 +5238,15 @@ class/struct/union is actually defined.
         is_constructor = dso_flags & DSO_CONSTRUCTOR;
         is_destructor = dso_flags & DSO_DESTRUCTOR;
         remove_stop_token(tok_colon);
-	if (dangling_type_specifier) {
-	  /* A malformed declaration was detected by decl_specifiers.  Issue
-	     errors indicating that an identifier (= a declarator) is missing,
-	     along with a semicolon.  Then branch to the bottom of the loop. */
-	  set_err_pos_to_curr_token();
-	  error(ec_exp_identifier);
-	  error(ec_exp_semicolon);
-	  goto next_declaration;
-	}  /* if */
+        if (dangling_type_specifier) {
+          /* A malformed declaration was detected by decl_specifiers.  Issue
+             errors indicating that an identifier (= a declarator) is missing,
+             along with a semicolon.  Then branch to the bottom of the loop. */
+          set_err_pos_to_curr_token();
+          error(ec_exp_identifier);
+          error(ec_exp_semicolon);
+          goto next_declaration;
+        }  /* if */
         if (curr_token == tok_semicolon && C_dialect == C_dialect_cplusplus) {
           /* There's no declarator following the declaration specifier.  This
              is okay sometimes.  When it is, skip over declarator processing
@@ -5333,7 +5335,7 @@ class/struct/union is actually defined.
             if (C_dialect != C_dialect_cplusplus) {
               error(ec_function_type_not_allowed);
               local_type = error_type();
-	    } else {
+            } else {
               /* Member function. */
               if (virtual_specified && (friend_specified ||
                        member_storage_class == (a_storage_class)sc_static)) {
@@ -5441,7 +5443,7 @@ class/struct/union is actually defined.
                   goto next_declaration;
                 }  /* if */
               }  /* if */
-	    }  /* if */
+            }  /* if */
           } else if (friend_specified) {
             pos_error(ec_bad_friend_decl, &decl_start_pos);
             remove_stop_token(tok_comma);
@@ -5466,7 +5468,7 @@ class/struct/union is actually defined.
             break;
           } else if (member_storage_class == (a_storage_class)sc_typedef &&
               !friend_specified && !virtual_specified) {
-            a_symbol_ptr	typedef_sym_ptr;
+            a_symbol_ptr        typedef_sym_ptr;
 #if CHECKING
             if (C_dialect != C_dialect_cplusplus) {
               internal_error("decl_class: typedef not expected");
