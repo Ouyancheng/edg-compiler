@@ -3975,7 +3975,12 @@ class, struct, or union.
   field->bit_size = (a_byte)bit_field_size;
   field->bit_field_is_signed = bit_field_is_signed;
   /* For an unnamed field, do not create the field symbol. */
-  if (!unnamed_field) {
+  if (unnamed_field) {
+    /* All field entries for an unnamed fields share the same symbol.  It is
+       used for easy identification.  These field entries are for front-end
+       use only and are thrown away. */
+    field->source_corresp.assoc_info = (char *)unnamed_field_symbol();
+  } else {
     if (!is_anonymous_union) {
       /* Create the field symbol. */
       member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
