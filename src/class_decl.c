@@ -11070,7 +11070,6 @@ nested classes when their definition appears outside of the class template.
           /* Check for an access adjustment declaration. */
           if (is_decl_qualified_name_start() &&
               qualifier_class_type(locator_for_curr_id) != class_type &&
-              !locator_for_curr_id.is_global_qualified_name &&
               locator_for_curr_id.is_qualified_name &&
               next_token() == tok_semicolon) {
             /* This looks syntactically like an access adjustment declaration.
