@@ -570,6 +570,7 @@ enum a_type_kind_tag {
   tk_typeref,           /* Use of a typedef, i.e., a type equivalent to
                            another type; also used to add type qualifiers
                            (const or volatile) to a type. */
+  tk_ptr_to_member,     /* Pointer-to-member (C++ only). */
 #endif /* ifdef CIL */
 #ifdef FIL
   tk_fcharacter,        /* Fortran character. */
@@ -1283,6 +1284,16 @@ typedef struct a_type {
 			   scope of the current function.  This can be true
 			   for class, struct, union, and enum types only. */
     } typeref;
+    /* When kind = tk_ptr_to_member: */
+    struct {
+      a_type_ptr
+		class_of_which_a_member;
+			/* Type of the class to which the member pointed to
+			   belongs. */
+      a_type_ptr
+		type;
+			/* Type of the member pointed to. */
+    } ptr_to_member;
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == tk_fcharacter: */

@@ -636,6 +636,13 @@ class_struct_union:
         db_type(tp->variant.typeref.type);
       }  /* if */
       break;
+    case tk_ptr_to_member:
+      fputs("ptr-to-member (", f_debug);
+      db_abbreviated_type(tp->variant.ptr_to_member.type);
+      fputs(" , of ", f_debug);
+      db_abbreviated_type(tp->variant.ptr_to_member.class_of_which_a_member);
+      fputc(')', f_debug);
+      break;
     default:
       fputs("<bad type>", f_debug);
   }  /* switch */
@@ -2362,6 +2369,9 @@ to default values.
       pte->variant.typeref.is_volatile = FALSE;
       pte->variant.typeref.is_function_scope_tag = FALSE;
       break;
+    case tk_ptr_to_member:
+      pte->variant.ptr_to_member.class_of_which_a_member = FALSE;
+      pte->variant.ptr_to_member.type                    = FALSE;
 #if CHECKING
     default:
       internal_error("alloc_type: bad type kind");
