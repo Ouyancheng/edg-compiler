@@ -1636,7 +1636,6 @@ scope is that of a class definition.
   last_param_id = NULL;
   *new_type_ptr = alloc_type((a_type_kind)tk_routine);
   extra_info = (*new_type_ptr)->variant.routine.extra_info;
-  extra_info->constructor_or_destructor = (is_constructor || is_destructor);
   /* If a pragma indicating special argument checking appeared (e.g.,
      for printf args), remember that in the function type. */
   extra_info->arg_pragma = arg_pragma;
@@ -3045,11 +3044,9 @@ not be TRUE.
          We want to preserve fields like assoc_routine and arg_pragma in
          rout_type, so we can't just do a copy_type. */
       rout_type->variant.routine.return_type =
-              comp_type->variant.routine.return_type;
+                            comp_type->variant.routine.return_type;
       rout_type->variant.routine.extra_info->prototyped =
-              comp_type->variant.routine.extra_info->prototyped;
-      rout_type->variant.routine.extra_info->constructor_or_destructor =
-              comp_type->variant.routine.extra_info->constructor_or_destructor;
+                            comp_type->variant.routine.extra_info->prototyped;
       if (rout_type->variant.routine.extra_info->param_type_list == NULL) {
         /* The entire list may just be transferred over. */
         rout_type->variant.routine.extra_info->param_type_list =

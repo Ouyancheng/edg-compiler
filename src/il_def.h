@@ -808,9 +808,6 @@ typedef struct a_routine_type_supplement {
                            to a lint-style "argsused" flag, indicating that
                            warnings on unreferenced parameters should not
                            be issued. */
-  unsigned int	constructor_or_destructor:1;
-			/* TRUE if this function declaration is for a C++
-			   constructor or destructor, FALSE otherwise. */
   a_lint_varargs_count
 	         lint_varargs_count;
                         /* If not equal to NOT_LINT_VARARGS (-1), this

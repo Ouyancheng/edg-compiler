@@ -4065,9 +4065,6 @@ routine body is generated at this time.
      object by value.  This call should be superfluous; it is included just
      to be safe, in case the rules change on when the flag needs to be set. */
   set_routine_calling_method_flag(rout_type);
-  if (sfkind != (a_special_function_kind)sfk_operator) {
-    extra_info->constructor_or_destructor = TRUE;
-  }  /* if */
   /* Create a locator for the symbol that will be created. */
   if (sfkind == (a_special_function_kind)sfk_operator) {
     make_opname_locator((an_opname_kind)onk_assign, &locator,
