@@ -8236,10 +8236,26 @@ See section 3.3.16 of the standard.
           operation_type = operand_1->type;
         } else if (save_token == tok_shift_left_assign ||
                    save_token == tok_shift_right_assign) {
-          /* These operations do integral promotions instead of the usual
-             arithmetic conversions. */
-          operation_type = operand_1->type;
-          promote_operand(&operand_2);
+          /* <<= and >>=. */
+          if (C_dialect == C_dialect_pcc) {
+            /* In K&R first edition (see appendix A, section 7.5), the shift
+               operators << and >> "perform the usual arithmetic conversions
+               on their operands, each of which must be integral.  Then the
+               right operand is converted to int; the type of the result is
+               that of the left operand."  This has the effect that a "long"
+               shift count will force the shift to be done as long. */
+            operation_type = determine_arithmetic_conversions(operand_1,
+                                                              &operand_2);
+            cast_operand(integer_type((an_integer_kind)ik_int), &operand_2,
+                         /*check_cast_access=*/TRUE,
+                         /*is_implicit_cast=*/TRUE);    
+          } else {
+            /* Not pcc mode. */
+            /* These operations do integral promotions instead of the usual
+               arithmetic conversions. */
+            operation_type = operand_1->type;
+            promote_operand(&operand_2);
+          }  /* if */
         } else {
           /* Normal case. */
           operation_type = determine_arithmetic_conversions(operand_1,
