@@ -8443,6 +8443,8 @@ Add the indicated list of vla fixup entries to the available list.
 
 a_hidden_template_name_fixup_ptr alloc_hidden_template_name_fixup(void)
 /*
+Allocate and initialize a hidden template name fixup entry and return a
+pointr to it.
 */
 {
   a_hidden_template_name_fixup_ptr  htnfp;
@@ -8451,6 +8453,9 @@ a_hidden_template_name_fixup_ptr alloc_hidden_template_name_fixup(void)
   if (avail_hidden_template_name_fixups == NULL) {
     htnfp = (a_hidden_template_name_fixup_ptr)alloc_fe(
                                     sizeof(a_hidden_template_name_fixup));
+#if DEBUG
+    num_hidden_template_name_fixups_allocated++;
+#endif /* DEBUG */
   } else {
     htnfp = avail_hidden_template_name_fixups;
   }  /* if */
@@ -8466,6 +8471,11 @@ a_hidden_template_name_fixup_ptr alloc_hidden_template_name_fixup(void)
 
 void free_selected_hidden_template_name_fixups(void)
 /*
+Go through the list of template symbols recorded as hidden by declarations
+in the current sck_function scope and remove from the associated
+hidden-template-name fixup entries all entries that refer to the current
+scope with the assoc_function_scope pointer.  The entries that are removed
+from the list are returned to an available list for reuse later.
 */
 {
   a_scope_stack_entry_ptr           ssep = &scope_stack[depth_scope_stack];
@@ -9423,7 +9433,8 @@ for space tracking purposes.
   db_space_used_lost("vla fixup", avail_vla_fixups, num_vla_fixups_allocated,
                      a_vla_fixup);
 #if RECORD_HIDDEN_NAMES_IN_IL
-  db_space_used_lost("hidden name fixup", avail_hidden_template_name_fixups,
+  db_space_used_lost("hidden templ name fixup",
+                     avail_hidden_template_name_fixups,
                      num_hidden_template_name_fixups_allocated,
                      a_hidden_template_name_fixup);
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
