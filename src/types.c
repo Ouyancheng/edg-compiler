@@ -2191,7 +2191,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_struct:
       case tk_union:
         /* Class, struct and union sizes should be set when they are declared.
-           See set_field_size_and_offset. */
+           See do_class_layout. */
       default:
         internal_error("set_type_size: bad type kind");
 #endif /* CHECKING */
