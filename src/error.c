@@ -2528,7 +2528,9 @@ additional messages in a multiple message diagnostic.
     if (severity == es_catastrophe || severity == es_command_line_error ||
         severity == es_internal_error) {
       /* Force out the last line of the raw listing file. */
+#if !STANDALONE_UTILITY_PROGRAM
       finish_raw_listing_file();
+#endif /* !STANDALONE_UTILITY_PROGRAM */
       term_compilation(severity);
     }  /* if */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM
@@ -2548,7 +2550,9 @@ additional messages in a multiple message diagnostic.
       }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
       /* Force out the last line of the raw listing file. */
+#if !STANDALONE_UTILITY_PROGRAM
       finish_raw_listing_file();
+#endif /* !STANDALONE_UTILITY_PROGRAM */
       term_compilation(es_catastrophe);
     }  /* if */
   }  /* if */
