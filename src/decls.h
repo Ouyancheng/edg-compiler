@@ -190,6 +190,10 @@ extern a_variable_ptr make_variable(a_type_ptr      type_ptr,
                                     a_storage_class storage_class,
                                     a_boolean       at_file_scope);
 
+extern a_variable_ptr make_parameter(a_param_type_ptr ptp,
+                                     a_storage_class  storage_class,
+                                     a_symbol_ptr     sym);
+
 extern a_routine_ptr make_routine(a_type_ptr      type_ptr,
                                   a_storage_class storage_class,
                                   a_boolean       at_file_scope);

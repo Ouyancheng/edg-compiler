@@ -1359,9 +1359,9 @@ in the file scope).
 }  /* make_variable */
 
 
-static a_variable_ptr make_parameter(a_param_type_ptr ptp,
-                                     a_storage_class  storage_class,
-                                     a_symbol_ptr     sym)
+a_variable_ptr make_parameter(a_param_type_ptr ptp,
+                              a_storage_class  storage_class,
+                              a_symbol_ptr     sym)
 /*
 Allocate an entry for the variable to be associated with param type entry
 *ptp, and return a pointer to it.  The variable is a function parameter.
