@@ -7362,7 +7362,7 @@ respectively.
 */
 {
   a_type_ptr  field_type = *member_type;
-  
+  a_type_ptr  class_type = class_state->class_type;
 
   /* First check whether there was a preceding field of incomplete array type
      for which an error should now be issued (in Microsoft mode only). */
@@ -7380,6 +7380,10 @@ respectively.
       decl_info->storage_class != (a_storage_class)sc_typedef) {
     pos_error(ec_function_type_not_allowed, &locator->source_position);
     field_type = error_type();
+  } else if (is_union_type(class_type) && is_reference_type(field_type)) {
+    /* Unions are not allowed to have members of reference type. */
+    pos_error(ec_ref_type_not_allowed, &decl_info->decl_start_pos);
+    field_type = error_type();
   } else if (is_abstract_class_type(field_type)) {
     /* Abstract class objects are prohibited (ARM 10.3). */
     report_abstract_class_error(ec_abstract_class_object_not_allowed,
@@ -7388,7 +7392,6 @@ respectively.
     /* The member type is incomplete.  This is usually an error, but as
        an extension allow an array of unknown size as the last member. */
     a_boolean   incomplete_okay = FALSE;
-    a_type_ptr  class_type = class_state->class_type;
 
     /* This extension is allowed only in C mode, or in Microsoft C++ mode
        if the class has no virtual base classes. */

@@ -981,6 +981,7 @@ ec_bad_va_end;;"incorrect use of va_end"
 ec_cl_pending_instantiations_option_only_in_cplusplus;;"pending instantiations option can be used only when compiling C++"
 ec_cl_invalid_import_directory;;"invalid directory for #import files: "
 ec_cl_import_only_in_microsoft;;"an import directory can be specified only in Microsoft mode"
+ec_ref_type_not_allowed;;"a reference type is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
