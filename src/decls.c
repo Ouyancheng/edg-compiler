@@ -769,12 +769,12 @@ either.
 
 a_boolean f_check_for_overload_anachronism(void)
 /*
-Check for the presence of the anachronistic keyword "overload" at the start of
-a declaration.  If it is found, pass over it and examine the tokens following.
-If a declaration is of the format "overload f;" (or "overload f, g, h;")
-just check for syntax errors and discard the entire declaration; in such
-cases return TRUE.  Otherwise, return FALSE -- declaration processing will
-continue as though "overload" had not been seen.
+Issue a diagnostic, bypass the current token, which is "overload", and check
+the tokens that follow.  If a declaration is of the format "overload f;" (or
+"overload f, g, h;") just check for syntax errors and discard the entire
+declaration; in such cases return TRUE.  Otherwise, return FALSE --
+declaration processing will continue as though "overload" had not been seen.
+(This function is only called from the macro check_for_overload_anachronism.)
 */
 {
   a_boolean     discard_declaration = FALSE;
@@ -9154,13 +9154,14 @@ of local variables (and types, etc.) of functions and in blocks.
                             is_old_style_param_decl, param_id_list);
       goto return_point;
     } else if (curr_token == tok_template) {
+      /* Do the processing required for a template declaration.  */
       symbol_ptr = template_declaration(&defines_something);
       if (symbol_ptr != NULL && defines_something &&
           (symbol_ptr->kind == (a_symbol_kind)sk_function_template ||
            symbol_ptr->kind == (a_symbol_kind)sk_member_function)) {
-        /* No trailing semicolon expected. */
+        /* No trailing semicolon expected for a function template. */
       } else {
-        /* Check for final semicolon. */
+        /* This should be a class template -- check for final semicolon. */
         (void)required_token(tok_semicolon, ec_exp_semicolon);
       }  /* if */
       goto return_point;

@@ -71,6 +71,10 @@ extern a_boolean is_decl_start(a_boolean  expr_context,
 
 extern a_boolean f_check_for_overload_anachronism(void);
 
+/*
+Return TRUE if the current token is "overload" and the declaration following
+it is just an identifier (or a comma-list of identifiers).
+*/
 #define check_for_overload_anachronism()                               \
   (curr_token == tok_overload && f_check_for_overload_anachronism())
 
