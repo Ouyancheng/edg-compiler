@@ -12246,6 +12246,7 @@ and scan_aggregate_class_initializer_expression.
 #endif /* !BACK_END_IS_CP_GEN_BE */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+#if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_bugs && C_mode() &&
       is_void_type(result.type) &&
       is_pointer_type(required_type)) {
@@ -12269,6 +12270,7 @@ and scan_aggregate_class_initializer_expression.
       }  /* if */
     }  /* if */
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Convert to the required type. */
   prep_initializer_operand(&result, required_type, (a_conv_descr_ptr)NULL,
                            /*initializing_return_value=*/FALSE,
