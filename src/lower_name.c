@@ -2479,6 +2479,24 @@ operator name mangling.
 
 #endif /* IA64_ABI */
 
+static void add_mangling_for_placeholder_expression(
+                                                a_mangling_control_block *mctl)
+/*
+Output the mangling for an expression that is a placeholder for
+something in error or skipped over.  The mangling used is a constant zero.
+*/
+{
+  a_constant zero_constant;
+
+  make_zero_of_proper_type(integer_type((an_integer_kind)ik_int),
+                           &zero_constant);
+  mangled_encoding_for_constant(&zero_constant,
+                                /*old_form=*/FALSE,
+                                /*in_dependent_expr=*/FALSE,
+                                mctl);
+}  /* add_mangling_for_placeholder_expression */
+
+
 static void mangled_encoding_for_expression(
                                     an_expr_node_ptr         expr,
                                     a_boolean                in_dependent_expr,
@@ -2588,7 +2606,15 @@ part of a template-dependent expression.
       for (operand = expr->variant.operation.operands;
            operand != NULL;
            operand = operand->next) {
-        mangled_encoding_for_expression(operand, in_dependent_expr, mctl);
+        if (expr->variant.operation.is_gnu_two_operand_question_mark &&
+            operand == expr->variant.operation.operands->next) {
+          /* Put out a dummy expression for the synthesized second operand
+             of the GNU two-operand "?".  This preserves the number of
+             operands the demangler expects. */
+          add_mangling_for_placeholder_expression(mctl);
+        } else {
+          mangled_encoding_for_expression(operand, in_dependent_expr, mctl);
+        }  /* fi */
       }  /* for */
 #if !IA64_ABI
       /* Put out the final "O". */
@@ -2629,6 +2655,9 @@ part of a template-dependent expression.
                                 mctl);
       break;
 #endif /* IA64_ABI */
+    case enk_reuse_value:  /* Not expected. */
+      unexpected_condition_str(
+                           "mangled_encoding_for_expression: enk_reuse_value");
     default:
       /* Unexpected expression kind.  These are allowed in some cases for
          expressions under sizeof in the IA-64 ABI. */
@@ -2645,14 +2674,7 @@ part of a template-dependent expression.
       /* Generate a zero constant instead of the unexpected expression.
          We expect this in cases where the mangling doesn't matter.
          See note in bad_mangled_expr_operator_name. */
-      { a_constant zero_constant;
-        make_zero_of_proper_type(integer_type((an_integer_kind)ik_int),
-                                 &zero_constant);
-        mangled_encoding_for_constant(&zero_constant,
-                                      /*old_form=*/FALSE,
-                                      /*in_dependent_expr=*/FALSE,
-                                      mctl);
-      }
+      add_mangling_for_placeholder_expression(mctl);
       break;
 #endif /* IA64_ABI */
   }  /* switch */
