@@ -1,5 +1,10 @@
 Version 3.2
 
+3/18/03  __cxa_vec_cleanup added to IA-64 runtime
+
+The __cxa_vec_cleanup routine was missing from our IA-64 runtime.  This
+has been fixed.
+
 3/6/03   __cxa_vec_ctor no longer returns a value
 
 __cxa_vec_ctor returned the pointer to the array being constructed, in

@@ -1064,6 +1064,25 @@ delete.
                        /*terminate_immediately=*/FALSE);
 }  /* __cxa_vec_delete3 */
 
+
+EXTERN_C void ABI_NAMESPACE::__cxa_vec_cleanup(
+					void             *array_ptr,
+					size_t           number_of_elements,
+					size_t           element_size,
+					a_destructor_ptr dtor)
+/*
+The entry point used to invoke the destructor on an array of objects,
+and to invoke terminate if a destructor exits with a throw.
+*/
+{
+  if (dtor != NULL) {
+    array_delete_general(array_ptr, number_of_elements, element_size,
+                         /*prefix_size=*/0, dtor, /*delete_flag=*/FALSE,
+                         (a_delete_ptr)NULL, /*is_two_arg=*/FALSE,
+                         /*terminate_immediately=*/TRUE);
+  }  /* if */
+}  /* __cxa_vec_cleanup */
+
 #endif /* defined(__EDG_IA64_ABI) */
 
 #ifndef __EDG_IA64_ABI                                     
