@@ -2383,7 +2383,9 @@ that follow user-defined conversions in the context of an initialization.
 In such cases, the source types of the standard conversions are different
 and the destination types are the same, and base class subsequence testing
 must be done backwards from the usual way.  source_type1 and source_type2
-indicate the source types in that case.
+indicate the source types in that case.  They are NULL when the conversion
+uses a template conversion function (the standard conversion after that
+is an exact match, by definition, so the source type is not needed).
 
 Note that this routine does not deal with the qualification-conversion
 ordering issues (pointer, pointer-to-member, and reference) that appear
@@ -2520,7 +2522,8 @@ in [over.ics.rank].
     } else {
       /* Initialization case: two source types, one destination type. */
       if (conv1->pointer_normalization_needed &&
-          conv2->pointer_normalization_needed) {
+          conv2->pointer_normalization_needed &&
+          source_type1 != NULL && source_type2 != NULL) {
         /* The destination type is "void *".  With hierarchy A is-base-of B,
            A* to void* is better than B* to void*. */
         if (is_pointer_type(source_type1) && is_pointer_type(source_type2)) {
@@ -2854,18 +2857,23 @@ otherwise equivalent.  This is nonstandard, but it's what some compilers
 
 static a_type_ptr candidate_return_type(a_candidate_function_ptr cfp)
 /*
-Return the return type of the indicated candidate function.
+Return the return type of the indicated candidate function.  Return NULL
+if the return type is not available (e.g., for a template).
 */
 {
   a_symbol_ptr sym = cfp->function_symbol;
-  a_type_ptr   type;
+  a_type_ptr   type = NULL;
 
-  check_assertion(sym != NULL);
-  sym = fundamental_symbol_of(sym);
-  type = routine_symbol_type(sym);
-  type = type->variant.routine.return_type;
-  type = skip_typerefs(type);
-  if (is_reference_type(type)) type = type_pointed_to(type);
+  if (sym != NULL) {
+    sym = fundamental_symbol_of(sym);
+    /* Don't process templates. */
+    if (sym->kind != (a_symbol_kind)sk_function_template) {
+      type = routine_symbol_type(sym);
+      type = type->variant.routine.return_type;
+      type = skip_typerefs(type);
+      if (is_reference_type(type)) type = type_pointed_to(type);
+    }  /* if */
+  } /* if */
   return type;
 }  /* candidate_return_type */
 
