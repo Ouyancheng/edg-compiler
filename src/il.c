@@ -2681,6 +2681,9 @@ not check that again, so it should not be called directly).
 
   check_assertion_str(in_file_scope(entry_ptr),
     "f_add_orphaned_file_scope_...: IL entry not in file scope memory region");
+  check_assertion_str(is_primary_translation_unit ==
+                      !in_secondary_trans_unit(entry_ptr),
+                 "f_add_orphaned_file_scope_il_entry: wrong translation unit");
   /* Check if this IL entry is already on the orphaned entry list. */
   last_entry_ptr = &orphaned_file_scope_il_entries[(int)entry_kind].last_entry;
   /* The following check was done by the macro that guards entry to this
