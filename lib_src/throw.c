@@ -622,7 +622,7 @@ requires cleanup.
   an_object_ptr	                *obj_addr_array;
   an_eh_region_descr_ptr	ehrdp;
   obj_addr_array = ehsep->variant.function.object_address_table;
-  for (; region== stop_at_region; region = ehrdp->index_of_previous_region) {
+  for (; region != stop_at_region; region = ehrdp->index_of_previous_region) {
     an_object_ptr	        obj_addr;
     a_conditional_flag*	        flag_addr;
     char			*temp_addr;
