@@ -6748,6 +6748,9 @@ is inserted at *insert_location.
 
 #endif /* GENERATE_EH_TABLES */
 
+#if !GENERATE_EH_TABLES
+/*ARGSUSED*/  /* <-- prologue_insert_location is not used in some versions. */
+#endif /* !GENERATE_EH_TABLES */
 static void gen_dtor_member_and_base_destructions(
                      an_insert_location              *insert_location,
                      an_insert_location              *prologue_insert_location,
