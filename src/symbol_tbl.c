@@ -2528,6 +2528,8 @@ and return a pointer to it.
       break;
     case sk_static_data_member:
       tssp->variant.static_data_member.definitions = NULL;
+      clear_template_cache(&tssp->variant.static_data_member.decl_cache,
+                          /*reusable=*/TRUE);
       break;
 #if CHECKING
     default:

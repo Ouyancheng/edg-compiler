@@ -6984,6 +6984,90 @@ is not necessarily the canonical entry for the template being declared.
 }  /* decl_function_template */
 
 
+a_boolean reconcile_static_data_member_types(
+					a_symbol_ptr		sym,
+					a_type_ptr		type_ptr,
+					a_source_position_ptr	err_pos)
+/*
+The static data member specified by "sym" is being defined outside of
+its class with the type specified by "type_ptr".  Verify that the new
+type is compatible with the previously declared type.  If "sym" was
+previously declared with an incomplete array type, update the array
+size information if necessary.  Return TRUE if an error is detected in
+the reconciliation process.
+*/
+{
+  a_variable_ptr	var;
+  a_boolean		incompatible_ptr_to_member_class_types = FALSE;
+  a_boolean		err = FALSE;
+
+  var = sym->variant.static_data_member.variable;
+  if (!types_are_redecl_compatible(type_ptr, var->type)) {
+    /* Types are not compatible. */
+    if (microsoft_bugs &&
+        f_types_are_compatible(type_ptr, var->type,
+                               TCF_REDECLARATION |
+                               TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                               TCF_IGNORE_PTR_TO_MEMBER_CLASS_TYPE)) {
+      /* The incompatibility amounts to some difference in the class type
+         specified in a pointer to member type that is part of the type of
+         the static data member.  This is allowed in Microsoft-bugs mode. */
+      pos_sy_warning(ec_not_compatible_with_previous_decl, err_pos, sym);
+      incompatible_ptr_to_member_class_types = TRUE;
+    } else {
+      pos_sy_error(ec_not_compatible_with_previous_decl, err_pos, sym);
+      err = TRUE;
+    }  /* if */
+  } else if ((is_ptr_or_ref_type(type_ptr) &&
+              is_function_type(type_pointed_to(type_ptr))) ||
+             (is_ptr_to_member_type(type_ptr) &&
+              is_function_type(pm_member_type(type_ptr)))) {
+    /* Check for mismatches in exception specifications. */
+    check_exception_specification(type_ptr, sym, err_pos,
+                                  /*is_redecl=*/TRUE);
+  }  /* if */
+  if (!err) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Since this is the defining declaration of the static data member,
+       record the type.  Note that this has to be done before composite
+       type is called -- in case there's some modification. */
+    check_assertion(var->declared_type == NULL);
+    var->declared_type = type_ptr;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (incompatible_ptr_to_member_class_types) {
+      /* Microsoft bug -- leave the static data member type (or for
+         incomplete arrays the underlying array element type) as it was
+         originally declared. */
+      if (is_array_type(var->type)) {
+        a_type_ptr     array_type, new_type;
+        check_assertion(is_array_type(type_ptr));
+        array_type = skip_typerefs(var->type);
+        if (is_incomplete_type(array_type)) {
+          /* The static data member was originally declared as an array
+             of unknown size.  Make a copy of the original type, using
+             the size from the current type.  (We have to do it this way
+             instead of calling composite_type because the two types are
+             not actually compatible.) */
+          new_type = alloc_type((a_type_kind)tk_array);
+          copy_type(array_type, new_type);
+          new_type->variant.array.variant.number_of_elements =
+                       skip_typerefs(type_ptr)->
+                              variant.array.variant.number_of_elements;
+          set_type_size(new_type);
+          /* Update the variable entry to point to the new type. */
+          var->type = new_type;
+        }  /* if */            
+      }  /* if */
+    } else {
+      /* The type of the variable should be the composite of the two
+         types. */
+      var->type = composite_type(type_ptr, var->type);
+    }  /* if */
+  }  /* if */
+  return err;
+}  /* reconcile_static_data_member_types */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL.  Similarly,
@@ -7015,7 +7099,6 @@ the symbol and its linkage (which is always "none").
   a_boolean                err = FALSE;
   a_symbol_ptr             sym;
   a_symbol_reference_kind  srk_flags;
-  a_boolean                incompatible_ptr_to_member_class_types = FALSE;
 
   db_enter(3, "define_static_data_member");
   /* This routine is called after a qualified name has been seen, but be sure
@@ -7044,70 +7127,14 @@ the symbol and its linkage (which is always "none").
          enclose the scope in which the parent class was defined. */
       sym_error(ec_bad_scope_for_definition, sym);
       err = TRUE;
-    } else if (!types_are_redecl_compatible(type_ptr, var->type)) {
-      /* Types are not compatible. */
-      if (microsoft_bugs &&
-          f_types_are_compatible(type_ptr, var->type,
-                                 TCF_REDECLARATION |
-                                 TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
-                                 TCF_IGNORE_PTR_TO_MEMBER_CLASS_TYPE)) {
-        /* The incompatibility amounts to some difference in the class type
-           specified in a pointer to member type that is part of the type of
-           the static data member.  This is allowed in Microsoft-bugs mode. */
-        pos_sy_warning(ec_not_compatible_with_previous_decl,
-                       &locator->source_position, sym);
-        incompatible_ptr_to_member_class_types = TRUE;
-      } else {
-        pos_sy_error(ec_not_compatible_with_previous_decl,
-                     &locator->source_position, sym);
-        err = TRUE;
-      }  /* if */
-    } else if ((is_ptr_or_ref_type(type_ptr) &&
-                is_function_type(type_pointed_to(type_ptr))) ||
-               (is_ptr_to_member_type(type_ptr) &&
-                is_function_type(pm_member_type(type_ptr)))) {
-      /* Check for mismatches in exception specifications. */
-      check_exception_specification(type_ptr, sym, &locator->source_position,
-                                    /*is_redecl=*/TRUE);
+    } else {
+      /* Verify that the type supplied on this declaration matches the one
+         from the class.  Some differences are allowed.  Create a composite
+         type if necessary. */
+      err = reconcile_static_data_member_types(sym, type_ptr,
+                                               &locator->source_position);
     }  /* if */
     if (!err) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* Since this is the defining declaration of the static data member,
-         record the type.  Note that this has to be done before composite
-         type is called -- in case there's some modification. */
-      check_assertion(var->declared_type == NULL);
-      var->declared_type = type_ptr;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      if (incompatible_ptr_to_member_class_types) {
-        /* Microsoft bug -- leave the static data member type (or for
-           incomplete arrays the underlying array element type) as it was
-           originally declared. */
-        if (is_array_type(var->type)) {
-          a_type_ptr     array_type, new_type;
-
-          check_assertion(is_array_type(type_ptr));
-          array_type = skip_typerefs(var->type);
-          if (is_incomplete_type(array_type)) {
-            /* The static data member was originally declared as an array
-               of unknown size.  Make a copy of the original type, using
-               the size from the current type.  (We have to do it this way
-               instead of calling composite_type because the two types are
-               not actually compatible.) */
-            new_type = alloc_type((a_type_kind)tk_array);
-            copy_type(array_type, new_type);
-            new_type->variant.array.variant.number_of_elements =
-                       skip_typerefs(type_ptr)->
-                              variant.array.variant.number_of_elements;
-            set_type_size(new_type);
-            /* Update the variable entry to point to the new type. */
-            var->type = new_type;
-          }  /* if */            
-        }  /* if */
-      } else {
-        /* The type of the variable should be the composite of the two
-           types. */
-        var->type = composite_type(type_ptr, var->type);
-      }  /* if */
       /* Ordinarily a static data member will have been given a storage class
          of sc_extern; promote it to sc_unspecified, now that the definition
          has been seen.  (In cfront mode the storage class is promoted from

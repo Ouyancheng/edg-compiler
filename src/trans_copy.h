@@ -25,6 +25,9 @@ extern void copy_secondary_trans_unit_IL_to_primary(void);
 extern
 void mark_secondary_trans_unit_IL_entities_used_from_primary_as_needed(void);
 
+extern void switch_canonical_for_deleted_definition(
+                                                 a_source_correspondence *scp);
+
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
 extern void fix_type_list_ordering_problems(void);
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */

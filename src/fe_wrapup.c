@@ -488,6 +488,9 @@ already been copied over.
        was done in part 2. */
     file_scope_il_wrapup_needed_flag_processing();
     file_scope_il_wrapup_keep_in_il_processing();
+    /* Remove the definitions of any static data members instantiated only for
+       the purpose of determining their size. */
+    remove_unneeded_static_data_member_instantiations();
 #if DO_IL_LOWERING
     if (il_lowering_needed()) {
       /* Do final name mangling, which can make names that can no longer

@@ -43,6 +43,7 @@ il.c -- Construction of intermediate language trees.
 #include "inline.h"
 #endif /* MINIMAL_INLINING */
 #endif /* DO_IL_LOWERING */
+#include "trans_copy.h"
 
 
 /*
@@ -15018,6 +15019,151 @@ eliminated, if appropriate.
 }  /* eliminate_unneeded_il_entries */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
+
+static void remove_dynamic_initialization(a_dynamic_init_ptr dip);
+
+
+static void remove_expression_dynamic_initializations(an_expr_node_ptr expr)
+/*
+The indicated expression is part of an initializer.  The initializer is
+being deleted.  Unlink any dynamic initializations associated with the
+expression, at minimum those that have lifetimes longer than the
+immediately enclosing object lifetime.
+*/
+{
+  switch (expr->kind) {
+    case enk_object_lifetime:
+      remove_expression_dynamic_initializations(
+                                           expr->variant.object_lifetime.expr);
+      break;
+    case enk_temp_init:
+      remove_dynamic_initialization(expr->variant.init.dynamic_init);
+      break;
+    case enk_operation:
+      /* This covers casts, and possibly "?" and "," operators if those are
+         ever made to pass through a temporary. */
+      { an_expr_node_ptr operand;
+        for (operand = expr->variant.operation.operands;
+             operand != NULL;
+             operand = operand->next) {
+          remove_expression_dynamic_initializations(operand);
+        }  /* for */
+      }
+      break;
+    default:
+      /* No action. */
+      break;
+  }  /* switch */
+}  /* remove_expression_dynamic_initializations */
+  
+
+static void remove_constant_initializer_dynamic_initializations(
+                                                            a_constant_ptr con)
+/*
+The indicated constant is part of an initializer.  The initializer
+is being deleted.  Unlink any dynamic initializations or object lifetimes
+associated with the constant (e.g., if it's a nonconstant aggregate).
+*/
+{
+  if (con->kind == (a_constant_repr_kind)ck_aggregate) {
+    a_constant_ptr sub_con;
+    for (sub_con = con->variant.aggregate.first_constant;
+         sub_con != NULL;
+         sub_con = sub_con->next) {
+      remove_constant_initializer_dynamic_initializations(sub_con);
+    }  /* for */
+  } else if (con->kind == (a_constant_repr_kind)ck_dynamic_init) {
+    remove_dynamic_initialization(con->variant.dynamic_init);
+  } else if (con->kind == (a_constant_repr_kind)ck_init_repeat) {
+    remove_constant_initializer_dynamic_initializations(
+                                            con->variant.init_repeat.constant);
+  }  /* if */
+}  /* remove_constant_initializer_dynamic_initializations */
+
+
+static void remove_dynamic_initialization(a_dynamic_init_ptr dip)
+/*
+Remove the indicated dynamic initialization from any initialization
+and destruction lists.  Also remove any nested object lifetimes.
+*/
+{
+  an_object_lifetime_ptr lifetime;
+
+  lifetime = init_expr_lifetime_of(dip);
+  if (lifetime != NULL) {
+    /* There is a nested object lifetime.  Eliminate it and everything in
+       it. */
+    detach_from_object_lifetime_tree(lifetime);
+    dip->init_expr_lifetime = NULL;  /* To be neat. */
+  }  /* if */
+  if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+    /* Remove any lifetimes on aggregate member initializers. */
+    remove_constant_initializer_dynamic_initializations(dip->variant.constant);
+  } else if (dip->kind == (a_dynamic_init_kind)dik_expression ||
+             dip->kind ==
+                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+    /* Scan the sub-expression in case there's an initialization of a
+       temporary whose lifetime was extended to the lifetime of the
+       surrounding context. */
+    remove_expression_dynamic_initializations(dip->variant.expression);
+  }  /* if */
+  remove_from_destruction_list(dip);
+}  /* remove_dynamic_initialization */
+
+
+void clear_variable_definition(a_variable_ptr variable)
+/*
+Eliminate the definition of the indicated variable, if any, to turn it
+into a declaration instead of a definition.  Among other things, this
+includes removing any initialization.
+*/
+{
+  if (variable->init_kind == (an_init_kind)initk_dynamic) {
+    /* Eliminate any destructions and object lifetimes associated with
+       this initialization. */
+    a_dynamic_init_ptr dip = variable->initializer.dynamic;
+    remove_dynamic_initialization(dip);
+    check_assertion(!variable->source_corresp.is_local_to_function);
+    /* Remove the dynamic initialization from the file-scope initializations
+       list. */
+    { a_dynamic_init_ptr prev_dip;
+      a_scope_ptr        sp = il_header.primary_scope;
+      a_scope_pointers_block_ptr
+                         pointers_block =
+                             &curr_translation_unit->file_scope_pointers_block;
+      if (dip == sp->dynamic_inits) {
+        /* The entry is first on the list. */
+        sp->dynamic_inits = dip->next;
+        prev_dip = NULL;
+      } else {
+        /* The entry is not the first on the list. */
+        for (prev_dip = sp->dynamic_inits;
+             ;
+             prev_dip = prev_dip->next) {
+          check_assertion_str(prev_dip != NULL,
+                              "clear_variable_definition: entry not found");
+          if (prev_dip->next == dip) break;
+        }  /* for */
+        prev_dip->next = dip->next;
+      }  /* if */
+      if (dip->next == NULL) {
+        pointers_block->last_dynamic_init = prev_dip;
+      }  /* if */
+      dip->next = NULL;  /* To be neat. */
+    }
+  }  /* if */
+  variable->init_kind = (an_init_kind)initk_none;
+  if (variable->storage_class == (a_storage_class)sc_unspecified) {
+    variable->storage_class = (a_storage_class)sc_extern;
+#if IA64_ABI && DO_IL_LOWERING
+    variable->comdat_group = NULL;
+#endif /* IA64_ABI && DO_IL_LOWERING */
+  }  /* if */
+  if (!variable->is_specialized) {
+    switch_canonical_for_deleted_definition(&variable->source_corresp);
+  }  /* if */
+}  /* clear_variable_definition */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if ONE_INSTANTIATION_PER_OBJECT

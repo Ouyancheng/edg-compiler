@@ -206,6 +206,11 @@ extern void update_decl_pos_info(a_source_correspondence  *scp,
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+extern a_boolean reconcile_static_data_member_types(
+					a_symbol_ptr		sym,
+					a_type_ptr		type_ptr,
+					a_source_position_ptr	err_pos);
+
 extern void clear_decl_pos_block(a_decl_pos_block_ptr  decl_pos_block);
 
 extern a_boolean simplify_curr_class_qualified_name(void);

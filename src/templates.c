@@ -559,9 +559,10 @@ typedef struct a_tmpl_decl_state {
 
 /* Forward declaration. */
 static void update_instantiation_required_flag(
-					a_template_instance_ptr tip,
-                                        a_boolean               value,
-					a_boolean		defer_inline);
+			a_template_instance_ptr			tip,
+			a_boolean				value,
+			a_set_instance_required_options_set	options);
+
 
 static void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp)
 /*
@@ -3948,6 +3949,13 @@ in one-instantiation-per-object mode.
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+/* Forward declaration. */
+static void rescan_static_data_member_declaration(
+				a_template_instance_ptr			tip,
+				a_symbol_ptr				sym,
+				a_template_symbol_supplement_ptr	tssp);
+
+
 static void define_template_static_data_member(a_template_instance_ptr  tip)
 /*
 Generate a definition of a static data member of a template class.  The
@@ -3963,10 +3971,6 @@ and the class instantiation will detect the runaway case.
   a_variable_ptr		    var_ptr;
 
   db_enter(3, "define_template_static_data_member");
-  var_ptr = tip->instance_sym->variant.static_data_member.variable;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  var_ptr->declared_type = var_ptr->type;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   tssp = tip->template_sym->
                  variant.static_data_member.instance_ptr->template_info;
   static_data_member_sym = tip->instance_sym;
@@ -3991,6 +3995,7 @@ and the class instantiation will detect the runaway case.
   }  /* if */
   /* If the type of the static data member is a template class, make sure
      it is instantiated. */
+  var_ptr = tip->instance_sym->variant.static_data_member.variable;
   complete_type_is_needed(var_ptr->type);
   if (instantiation_mode == tim_local) {
     /* In -tlocal mode, put out the static data member with internal
@@ -4022,6 +4027,10 @@ and the class instantiation will detect the runaway case.
                                     tip->template_sym,
                                     (a_template_arg_ptr)NULL,
                                     /*push_stop_tokens=*/TRUE, PS_NO_OPTIONS);
+  /* Rescan the declaration of the static data member.  This should result
+     in the same type as the declaration in the class, except in the case
+     where the class declared an incomplete array type. */
+  rescan_static_data_member_declaration(tip, static_data_member_sym, tssp);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
   reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -7896,18 +7905,83 @@ information.
     }  /* if */
   } else {
     remove_stop_token(tok_end_of_source);
+    if (templ_rout != NULL) {
+      /* The rescan of the declaration should have produced a routine
+         type.  If not all of the tokens were used, or if the type created
+       is not a function type, issue a diagnostic. */
+      check_for_invalid_instantiation(type, templ_rout,
+                                      (a_boolean)is_error_locator(*locator),
+                                      (a_type_ptr)NULL, tip);
+    }  /* if */
     /* In the normal case the current token should be end_of_source,
        which was inserted to mark the end of the cached token stream.
        If necessary, keep flushing until end-of-source is found. */
-    /* The rescan of the declaration should have produced a routine
-       type.  If not all of the tokens were used, or if the type created
-       is not a function type, issue a diagnostic. */
-    check_for_invalid_instantiation(type, templ_rout,
-                                    (a_boolean)is_error_locator(*locator),
-                                    (a_type_ptr)NULL, tip);
     flush_past_token_cache_terminator();
   }  /* if */
 }  /* scan_template_declaration */
+
+
+static void rescan_static_data_member_declaration(
+				a_template_instance_ptr			tip,
+				a_symbol_ptr				sym,
+				a_template_symbol_supplement_ptr	tssp)
+/*
+Rescan the declaration of the static data member.  This should result
+in the same type as the declaration in the class, except in the case
+where the class declared an incomplete array type.
+*/
+{
+  a_func_info_block		func_info;
+  a_storage_class		storage_class;
+  a_symbol_locator		locator;
+  a_decl_modifiers_block	decl_modifiers;
+  a_decl_pos_block		decl_pos_block;
+  a_type_ptr			type;
+  an_attribute_ptr		attributes = NULL;
+  a_decl_flag_set		dso_flags;
+  a_decl_flag_set		do_flags;
+
+  clear_func_info(&func_info);
+  clear_decl_pos_block(&decl_pos_block);
+  rescan_reusable_cache(&tssp->variant.static_data_member.decl_cache.tokens);
+  scan_template_declaration(/*is_initial_decl=*/FALSE,
+                            /*is_member_decl=*/FALSE, (a_type_ptr)NULL,
+                            /*decl_scope_err=*/FALSE,
+                            /*is_specialization=*/FALSE, &dso_flags,
+                            &do_flags, &locator, &type, &func_info,
+                            &storage_class, &decl_modifiers,
+                            (a_routine_ptr)NULL, tip, &attributes,
+			    &decl_pos_block);
+  (void)reconcile_static_data_member_types(sym, type,
+                                           &decl_pos_block.decl_pos);
+}  /* rescan_static_data_member_declaration */
+
+
+void remove_unneeded_static_data_member_instantiations(void)
+/*
+Static data members are sometimes instantiated simply so that their
+size can be known.  Remove any such instantiations from the IL.
+*/
+{
+  a_master_instance_ptr	mip;
+
+  for (mip = master_instantiations_list; mip != NULL; mip = mip->next) {
+    a_symbol_ptr		instance_sym;
+    instance_sym = mip->instance->instance_sym;
+    /* Only consider static data members. */
+    if (instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+      if (mip->already_instantiated && mip->instance_required_count == 0) {
+        /* The static data member has been instantiated but no instantiation
+           is needed. */
+        a_variable_ptr	vp = instance_sym->variant.static_data_member.variable;
+        vp = (a_variable_ptr)canonical_il_entry_of(vp);
+        if (vp->storage_class == (a_storage_class)sc_unspecified) {
+          clear_variable_definition(vp);
+	}  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* remove_unneeded_static_data_member_instantiations */
 
 
 static a_type_ptr scan_member_declaration(
@@ -13596,10 +13670,16 @@ returned to the caller.
     source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Save the information needed to create an instantiation based
-       on the definition of the template. */
+       on the definition of the template.  First, save the initializer
+       expression. */
     set_template_cache_info(&tssp->cache, p_token_cache,
                             decl_state->decl_info);
     mark_defined(sym, &locator->source_position);
+    /* Save the declaration portion. */
+    set_template_cache_info(&tssp->variant.static_data_member.decl_cache,
+                            &decl_state->decl_token_cache,
+                            decl_state->decl_info);
+    decl_state->decl_token_cache_used = TRUE;
     check_assertion(tssp->il_template_entry != NULL);
     if (decl_state->export_present) {
       tssp->il_template_entry->is_exported = TRUE;
@@ -16999,7 +17079,12 @@ do the instantiation now.
   var_sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
   check_assertion(var_sym != NULL);
   tip = var_sym->variant.static_data_member.instance_ptr;
-  instantiate_entity(tip);
+  /* If the entity can be instantiated, do so now.  This routine can be
+     called in the middle of a translation unit, so implicit inclusion cannot
+     be done. */
+  if (entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
+    instantiate_entity(tip);
+  }  /* if */
 }  /* complete_template_static_data_member_type_is_needed */
 
 #if TEMPLATE_LOOKUP_NEEDED

@@ -1375,6 +1375,8 @@ extern void eliminate_variable_default_arg_object_lifetimes(
 extern void eliminate_unneeded_il_entries(a_scope_ptr scope);
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+extern void clear_variable_definition(a_variable_ptr variable);
+
 extern a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp);
 
 extern a_boolean is_member_of_unnamed_namespace(a_source_correspondence *scp);

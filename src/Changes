@@ -1,5 +1,28 @@
 Version 3.4
 
+11/20/03 Using sizeof on a template static data member with an incomplete 
+         array size
+	 
+The standard is unclear about what should happen if the sizeof operator
+is applied to a template static data member with an incomplete array size.
+This construct is unusual because it requires that the static data member be
+instantiated immediately in order to determine the size of the array.  The
+front end now does such instantiations, when possible.  An instantiation
+cannot be done if there is no definition of the static data member present,
+if the definition is provided by an exported template, or if the definition
+is provided by an implicitly included file.  Even though the instantiation
+is performed, the rules for determining whether the definition of the static
+data member should be emitted in the generated code have not changed.  So,
+for example, compiling the example below will still not result in the static
+data member being emitted in the generated code.
+	 
+  extern "C" int printf(const char *, ...);
+  template <class T> struct A { static int i[]; };
+  template <class T> int A<T>::i[5];
+  int main() {
+    printf("%d\n", sizeof(A<int>::i));
+  }
+
 11/20/03 Abort in inline_function_fixup_for_class
 
 When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,

@@ -450,6 +450,8 @@ extern void set_master_instance_information(void);
 
 extern void template_and_inline_function_wrapup(void);
 
+extern void remove_unneeded_static_data_member_instantiations(void);
+
 extern void record_cache_checksum(
 	       a_template_symbol_supplement_ptr	tssp,
 	       a_token_cache			*p_template_body_cache);

@@ -2073,6 +2073,21 @@ typedef struct a_template_symbol_supplement {
 			/* Pointer to a list of entries specifying definitions
 			   for static data members of instantiated template
 			   classes. */
+      a_template_cache
+		decl_cache;
+			/* A cache of the tokens that comprise the out-of-class
+			   definition of the static data member.  This cache
+			   contains only the declaration portion of the
+			   definition.  The initializer, if any, is represented
+			   by the "cache" entry.  These tokens are rescanned
+			   later to create the variable type instances of the
+			   static data member.  The type could be different
+			   than the one declared in the containing class if the
+			   static data member is an array with no size
+			   specified in the class.  The cache begins with the
+			   first token of the declaration (the token after the
+			   closing ">" of the template parameter list) and
+			   ends with the last token of the declarator. */
     } static_data_member;
   } variant;
 } a_template_symbol_supplement;
