@@ -1385,6 +1385,25 @@ Return TRUE if and only if the given array type has a dimension of length one
 }  /* has_dimension_of_length_one */
 
 
+static a_boolean is_base_of_virtual_base(a_base_class_ptr  bcp)
+/*
+Return TRUE if the given base class is part of a virtual base class on every
+derivation path.
+*/
+{
+  a_boolean                    result = TRUE;
+  a_base_class_derivation_ptr  dp = bcp->derivation;
+
+  for (; dp != NULL; dp = dp->next) {
+    if (!dp->path->base_class->is_virtual) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* is_base_of_virtual_base */
+
+
 static a_boolean subobject_conflict(a_type_ptr    class_type,
                                     a_type_ptr    subobject_type,
                                     a_targ_size_t offset,
@@ -1449,7 +1468,9 @@ subobject_type are considered in addition to direct bases.
               subobject_conflict(class_type, bcp->type, 
                                  offset + bcp->offset,
                                  /*consider_bases=*/TRUE,
-                                 /*consider_virtual_bases=*/FALSE)) {
+                                 /*consider_virtual_bases=*/FALSE) &&
+              !(emulate_gnu_abi_bugs && !bcp->direct &&
+                is_base_of_virtual_base(bcp))) {
             result = TRUE;
             break;
           }  /* if */
@@ -1620,9 +1641,11 @@ base class of the complete object).
   if (!result) {
     a_base_class_ptr  bcp = base_classes_of(subobject_type);
     for (; bcp != NULL; bcp = bcp->next) {
-      if (bcp->offset == 0) {
+      if (bcp->offset == 0 &&
+          (bcp->direct || !is_base_of_virtual_base(bcp))) {
         /* Unlike field subobjects, only base class subobjects at offset
-           zero are considered for this kind of conflicts. */
+           zero are considered for this kind of conflicts.  Bases of virtual
+           bases aren't considered either. */
         if ((!in_field && identical_types(bcp->type, eb_type)) ||
             gnu_conflict_found(bcp->type, eb_type, in_field)) {
           result = TRUE;
