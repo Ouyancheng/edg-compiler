@@ -1931,15 +1931,19 @@ whose definition has not yet been generated, force the definition now.
 {
   a_special_function_kind  skind = rp->special_kind;
 
-  if (rp->compiler_generated && rp->assoc_scope == NULL_region_number) {
-    /* Only force a definition for constructors, destructors, and
-       operator= functions.  In particular, do not try to define operator new
-       and delete functions. */
-    if (skind == (a_special_function_kind)sfk_constructor ||
-        skind == (a_special_function_kind)sfk_destructor  ||
-        (skind == (a_special_function_kind)sfk_operator &&
-         rp->opname_kind == (an_opname_kind)onk_assign)) {
-      define_special_member_function(rp);
+  if (rp->compiler_generated) {
+    /* Check the assoc_scope pointer instead of the routine's "defined" flag
+       in case there is some sort of recursive reference. */
+    if (rp->assoc_scope == NULL_region_number) {
+      /* Only force a definition for constructors, destructors, and
+         operator= functions.  In particular, do not try to define operator
+         new and delete functions. */
+      if (skind == (a_special_function_kind)sfk_constructor ||
+          skind == (a_special_function_kind)sfk_destructor  ||
+          (skind == (a_special_function_kind)sfk_operator &&
+           rp->opname_kind == (an_opname_kind)onk_assign)) {
+        define_special_member_function(rp);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* force_definition_of_compiler_generated_routine */
@@ -1973,10 +1977,9 @@ indicated scope.
         cssp = symbol_supplement_for_class(tp);
         if (cssp->destructor != NULL) {
           rp = cssp->destructor->variant.routine.ptr;
-          if (rp->is_virtual && rp->compiler_generated &&
-              rp->assoc_scope == NULL_region_number) {
+          if (rp->is_virtual && rp->compiler_generated && !rp->defined) {
             /* The destructor for the current class is virtual and was
-               generated automatically but does not yet have a body. */
+               generated automatically but has not yet been defined. */
             if (virtual_dtor_should_be_generated_for_class(tp)) {
               /* But the body for it should be generated, e.g., because the
                  virtual function table in which its address will appear is

@@ -3588,16 +3588,16 @@ on for use in generating cross-reference output describing this declaration.
       routine_ptr = linked_symbol->variant.routine.ptr;
       check_assertion_str(routine_ptr != NULL,
                           "decl_routine: linked symbol routine is missing");
-      if (routine_ptr->assoc_scope != NULL_region_number
+      if (routine_ptr->defined
 #if ASM_FUNCTION_ALLOWED
           || routine_ptr->storage_class == (a_storage_class)sc_asm
 #endif /* ASM_FUNCTION_ALLOWED */
                                                         ) {
         old_decl_has_body = TRUE;
       } else if (sym->defined) {
-        /* In C++ the defined flag may have been set without the body having
-           been scanned and bound to the routine yet (e.g., inline friend
-           function). */
+        /* In C++ the defined flag in the symbol may have been set without
+           the body having been scanned and bound to the routine yet (e.g.,
+           inline friend function). */
         check_assertion_str(scope_stack[decl_scope_level].kind ==
                                         (a_scope_kind)sck_class_struct_union,
                             "decl_routine: defined flag is set wrong");
@@ -3745,7 +3745,7 @@ on for use in generating cross-reference output describing this declaration.
          declarations at local scope are handled separately. */
       sym = linked_symbol;
       routine_ptr = sym->variant.routine.ptr;
-      if (routine_ptr->assoc_scope != NULL_region_number) {
+      if (routine_ptr->defined) {
         old_decl_has_body = TRUE;
       } else if (sym->defined) {
         /* In C++ the defined flag may have been set without the body having
