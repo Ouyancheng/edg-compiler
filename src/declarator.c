@@ -1246,7 +1246,7 @@ see function_declarator (below) for which this is a helper function.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if ((microsoft_bugs && microsoft_version <= 1200) ||
       (microsoft_mode && microsoft_version >= 1300 && esp != NULL &&
-       !((esp->exception_specification_type_list != NULL && !esp->throw_any) ||
+       !((esp->exception_specification_type_list == NULL && !esp->throw_any) ||
          (rtsp->routine_name_linkage == (a_name_linkage_kind)nlk_external &&
           esp->throw_any)))) {
     /* Microsoft compilers used to ignore exception specifications entirely.
