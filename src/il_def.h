@@ -1414,6 +1414,10 @@ typedef struct a_dynamic_init {
 			   a call of a delete routine to free the storage
 			   allocated in a new if an exception is thrown before
 			   the storage is initialized. */
+  a_bit_field	is_array_freeing:1;
+			/* When is_freeing_of_storage_on_exception is TRUE,
+			   this is TRUE if the "new" operation is an array
+			   new. */
   a_bit_field	destruction_is_for_partially_constructed_aggregate:1;
 			/* TRUE if destructor is non-NULL, exceptions_enabled
 			   is TRUE, and this entry is associated with a member

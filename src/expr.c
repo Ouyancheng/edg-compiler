@@ -4807,13 +4807,15 @@ the position to be used for errors.
 
 
 static a_dynamic_init_ptr f_make_dyn_init_for_deletion_for_throw(
-                                                  a_routine_ptr delete_routine)
+                                                  a_routine_ptr delete_routine,
+                                                  a_boolean     array_new)
 /*
 Exceptions are enabled, and a "new" with initialization is being scanned.
 delete_routine is the operator delete to be called if an exception is
 thrown between the time that the allocation is done and the time the
-initialization is completed.  Develop a dynamic initialization entry
-that describes the deallocation and return a pointer to it.
+initialization is completed.  array_new is TRUE if the "new" is an
+array "new".  Develop a dynamic initialization entry that describes
+the deallocation and return a pointer to it.
 */
 {
   a_dynamic_init_ptr dyn_init_to_free_storage;
@@ -4829,6 +4831,7 @@ that describes the deallocation and return a pointer to it.
   dyn_init_to_free_storage->destructor = delete_routine;
   dyn_init_to_free_storage->has_temporary_lifetime = TRUE;
   dyn_init_to_free_storage->is_freeing_of_storage_on_exception = TRUE;
+  dyn_init_to_free_storage->is_array_freeing = array_new;
   record_end_of_lifetime_destruction(dyn_init_to_free_storage,
                                      /*static_lifetime=*/FALSE,
                                      /*block_lifetime=*/FALSE);
@@ -4851,7 +4854,7 @@ lifetime list in the right place).
 #define make_dyn_init_for_deletion_for_throw()                        \
 { if (delete_routine != NULL && new_routine != NULL) {                \
     dyn_init_to_free_storage =                                        \
-      f_make_dyn_init_for_deletion_for_throw(delete_routine);         \
+      f_make_dyn_init_for_deletion_for_throw(delete_routine, array_new); \
   }  /* if */                                                         \
 }  /* make_dyn_init_for_deletion_for_throw */
 
