@@ -4590,7 +4590,7 @@ where "arg" is either an error number or an error tag.
       error_number = value_of_integer_constant(&const_for_curr_token, &err);
       if (!err) {
         /* The routine will return TRUE if the number is invalid. */
-        err = set_severity_for_error_number(error_number, severity,
+        err = set_severity_for_error_number((int)error_number, severity,
                                             /*from_cmd_line=*/FALSE);
       }  /* if */
       if (err) {
