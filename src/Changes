@@ -1,5 +1,22 @@
 Version 2.32
 
+2/16/96   Default initialization in a ctor-initializer
+
+In accord with a recent change to WP 12.6.2 [class.base.init], base
+classes and nonstatic data members are now default-initialized when the
+expression-list is omitted in the mem-initializer; this also applies to
+members that are arrays.  For instance,
+
+  struct S { S(); };
+  struct X {
+    int i, ia[10];
+    S s, sa[2];
+    X() : i(), ia(), s(), sa() { };
+  };
+
+Here, the ctor-initializer of X::X() initializes X::i and each element of
+X::ia to zero and calls S::S() for X::s and each element of X::sa.
+
 2/15/96   Hidden name table and anonymous unions
 
 When names from an anonymous union are promoted into the surrounding scope
@@ -10,8 +27,7 @@ C++-generating back end to produce incorrect code for the following:
   static union {
     short x;
   };
-  void f()
-  {
+  void f() {
     union {
       short x;
     };
@@ -19,7 +35,8 @@ C++-generating back end to produce incorrect code for the following:
     ::x = 47;
   }
 
-A bug in the C++-generating back end's use of this information was also fixed.
+A bug in the C++-generating back end's use of this information was also
+fixed.
 
 2/14/96   Conflict between user-declared and predeclared class type_info
 

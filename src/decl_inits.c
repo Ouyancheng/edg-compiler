@@ -1651,7 +1651,7 @@ returned set to TRUE.
     }  /* if */
   }  /* if */
 #if DEBUG
-  if (debug_level >= 3) {
+  if (debug_level >= 3 || db_flag_is_set("dump_init")) {
     if (!var_err) {
       db_variable(vp);
       fputs(",\n", f_debug);
@@ -1707,6 +1707,10 @@ arrays are treated as one-dimensional arrays.
 }  /* repeat_nonconstant_init */
 
 
+#define array_element_count(array_type, elem_type)                      \
+  ((array_type)->size == 0 ? 1 : (array_type)->size / (elem_type)->size)
+
+
 a_boolean def_initializer(a_symbol_ptr       sym,
                           a_source_position  *err_pos)
 /*
@@ -1721,7 +1725,6 @@ the default constructor (if one exists) is called.
   a_class_symbol_supplement_ptr  cssp;
   a_dynamic_init_ptr             init_dip, orig_init_dip;
   a_routine_ptr                  ctor = NULL, dtor = NULL;
-  a_targ_size_t                  count;
   an_object_lifetime_ptr         expr_temp_lifetime = NULL;
 
   db_enter(3, "def_initializer");
@@ -1814,11 +1817,9 @@ the default constructor (if one exists) is called.
              initialization. */
           init_dip = alloc_dynamic_init(
                                (a_dynamic_init_kind)dik_nonconstant_aggregate);
-          /* Compute the repeat count. */
-          count = var_type->size / tp->size;
           /* Build the repeat construct. */
           repeat_nonconstant_init(orig_init_dip, var_type, tp, init_dip,
-                                  count);
+                                  array_element_count(var_type, tp));
         }  /* if */
         /* Allocate a dynamic init entry (a copy of local_di) and attach it
            to the variable. */
@@ -1834,7 +1835,7 @@ the default constructor (if one exists) is called.
           (void)pop_object_lifetime();
         }  /* if */
 #if DEBUG
-        if (debug_level >= 3) {
+        if (debug_level >= 3 || db_flag_is_set("dump_init")) {
           db_variable(var);
           fputs(",\n", f_debug);
           db_initializer(var, 2);
@@ -2135,6 +2136,7 @@ initialized.  These are addressed in the course of the processing.
     /* Loop through the comma-separated list of initializers. */
     do {
       new_cip = NULL;
+      array_type = NULL;
       add_stop_token(tok_comma);
       /* Unless this is an old style base class initializer, a base class
          name or a member name is expected. */
@@ -2206,12 +2208,12 @@ initialized.  These are addressed in the course of the processing.
                       &locator_for_curr_id.source_position);
           }  /* if */
           init_type = member_or_base_sym->variant.field.ptr->type;
-          /* The syntax does not provide for the initialization of arrays --
-             except character strings. */
           if (is_array_type(init_type) && !is_string_type(init_type)) {
-            sym_error(ec_cannot_initialize, member_or_base_sym);
-            init_type = error_type();
-            goto scan_paren;
+            /* Arrays can be default-initialized if the expression-list is
+               omitted. */
+            array_type = init_type;
+            init_type = skip_typerefs(
+                             underlying_array_element_type(init_type));
           }  /* if */
           /* Check the list for a constructor init entry that refers to this
              member.  If it's there we may have a reinitialization error. */
@@ -2375,31 +2377,19 @@ scan_paren:
         (void)get_token();
         copy_source_position(pos_curr_token, lparen_pos);
         if (required_token(tok_lparen, ec_exp_lparen)) {
+          if (array_type != NULL && curr_token != tok_rparen) {
+            /* Arrays can be default-initialized only if the expression-list
+               is omitted. */
+            sym_error(ec_cannot_initialize, member_or_base_sym);
+            array_type = NULL;
+            init_type = error_type();
+          }  /* if */
           if (is_class_struct_union_type(init_type)) {
             cssp = symbol_supplement_for_class(init_type);
           } else {
             cssp = NULL;
           }  /* if */
-          if (curr_token == tok_rparen &&
-              (cssp == NULL || cssp->constructor == NULL)) {
-            if (cssp != NULL) {
-              /* "class-name()" can only be a default constructor call,
-                 but only issue a warning since it's not clearly outlawed. */
-              pos_ty_warning(ec_no_constructor, &lparen_pos, init_type);
-            } else {
-              /* "field-name()" is, technically, permitted by the syntax, so
-                 we can only issue a warning. */
-              pos_warning(ec_exp_primary_expr, &pos_curr_token);
-            }  /* if */
-            /* Bypass the right paren. */
-            (void)get_token();
-            if (new_cip != NULL) {
-              /* Set the initializer field to record that an initialization
-                 (such as it is) has been attempted. */
-              new_cip->initializer = 
-                            alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-            }  /* if */
-          } else if (cssp != NULL && cssp->constructor != NULL) {
+          if (cssp != NULL && cssp->constructor != NULL) {
             /* This is either a base class or a field of class type.  In
                either case, it will be initialized by a constructor call if
                a constructor exists.  Otherwise, it will be initialized
@@ -2438,39 +2428,68 @@ scan_paren:
                  expression, remove it temporarily from the object lifetime
                  tree and restore it in the correct position later. */
               detach_from_object_lifetime_tree(init_expr_lifetime_of(dip));
+
+              if (array_type != NULL) {
+                /* We have an array of objects with constructors.  Create a
+                   dynamic init entry to handle the aggregate. */
+                check_assertion(dip->kind ==
+                                  (a_dynamic_init_kind)dik_constructor);
+                dip->is_constructor_init = TRUE;
+                ctor_dip = dip;
+                dip = alloc_dynamic_init(
+                             (a_dynamic_init_kind)dik_nonconstant_aggregate);
+                repeat_nonconstant_init(ctor_dip, array_type, init_type, dip,
+                                        array_element_count(
+                                                     array_type, init_type));
+              }  /* if */
             }  /* if */
-            dip->is_constructor_init = TRUE;
-            new_cip->initializer = dip;
           } else {
             /* A field whose initialization does not involve a constructor. */
-            add_stop_token(tok_rparen);
-            /* Allocate a new dynamic init entry, setting the kind to
-               dik_none for now.  It will be adjusted after the scan. */
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-            (void)scan_initializer_of_simple_object(
+            if (curr_token == tok_rparen) {
+              /* Bypass the right paren. */
+              (void)get_token();
+              if (cssp != NULL) {
+                /* Must be a class with no constructor. */
+                pos_ty_warning(ec_no_constructor, &lparen_pos, init_type);
+                /* Set the initializer field to record that an initialization
+                   was attempted. */
+                dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+              } else {
+                /* Non-class (scalar or array): zero initialization is
+                   required. */
+                dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
+              }  /* if */
+            } else {
+              add_stop_token(tok_rparen);
+              /* Allocate a new dynamic init entry, setting the kind to
+                 dik_none for now.  It will be adjusted after the scan. */
+              dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+              (void)scan_initializer_of_simple_object(
                                                 /*nonconst_allowed=*/TRUE,
                                                 /*static_lifetime=*/FALSE,
                                                 /*force_object_lifetime=*/TRUE,
                                                 init_type, &dip);
-            /* If the initializer produced an object lifetime for the full
-               expression, remove it temporarily from the object lifetime
-               tree and restore it in the correct position later. */
-            detach_from_object_lifetime_tree(init_expr_lifetime_of(dip));
-            dip->is_constructor_init = TRUE;
-            if (new_cip != NULL) new_cip->initializer = dip;
-            remove_stop_token(tok_rparen);
-            if (!required_token(tok_rparen, ec_exp_rparen)) {
-              /* Special code to avoid poor error recovery in cases where
-                 a comma-list appears between the parens in what is taken
-                 to be the initializer of a simple object -- e.g.,
-                     A::A(int i, int j) : x(i,j) { }
-                 If there is no constructor for x then it is interpreted as
-                 a simple object, only "i" is scanned, and an error is issued
-                 on the expected ")".  After that we want to bypass the rest
-                 of the comma-list before resuming scanning. */
-              if (curr_token == tok_comma) flush_to_end_of_arg_list();
+              /* If the initializer produced an object lifetime for the full
+                 expression, remove it temporarily from the object lifetime
+                 tree and restore it in the correct position later. */
+              detach_from_object_lifetime_tree(init_expr_lifetime_of(dip));
+              remove_stop_token(tok_rparen);
+              if (!required_token(tok_rparen, ec_exp_rparen)) {
+                /* Special code to avoid poor error recovery in cases where
+                   a comma-list appears between the parens in what is taken
+                   to be the initializer of a simple object -- e.g.,
+                       A::A(int i, int j) : x(i,j) { }
+                   If there is no constructor for x then it is interpreted
+                   as a simple object, only "i" is scanned, and an error is
+                   issued on the expected ")".  After that we want to bypass
+                   the rest of the comma-list before resuming scanning. */
+                if (curr_token == tok_comma) flush_to_end_of_arg_list();
+              }  /* if */
             }  /* if */
           }  /* if */
+          check_assertion(dip != NULL);
+          dip->is_constructor_init = TRUE;
+          if (new_cip != NULL) new_cip->initializer = dip;
         }  /* if */
       }  /* if */
       remove_stop_token(tok_comma);
@@ -2574,7 +2593,6 @@ scan_paren:
         /* This must be a special exception handling case -- the initializer
            has already been processed, and the destructor, if any, has to
            recorded. */
-        check_assertion(array_type == NULL);
         dip = cip->initializer;
       } else if (is_generated_cctor) {
         /* The constructor for the object as a whole is a generated copy
@@ -2716,7 +2734,6 @@ scan_paren:
       }  /* if */
       if (array_type != NULL &&
           dip->kind == (a_dynamic_init_kind)dik_constructor) {
-        a_targ_size_t count;
         /* We have an array of objects with constructors.  Create a dynamic
            init entry to handle the aggregate. */
         dip->is_constructor_init = TRUE;
@@ -2724,12 +2741,8 @@ scan_paren:
         dip =
            alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
         /* Build the looping constant entry. */
-        if (array_type->size == 0) {
-          count = 1;
-        } else {
-          count = array_type->size / tp->size;
-        }  /* if */
-        repeat_nonconstant_init(ctor_dip, array_type, tp, dip, count);
+        repeat_nonconstant_init(ctor_dip, array_type, tp, dip,
+                                array_element_count(array_type, tp));
       }  /* if */
       /* Attach the new dynamic init entry to the constructor initializer. */
       dip->is_constructor_init = TRUE;
@@ -2786,7 +2799,7 @@ scan_paren:
   }
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if DEBUG
-  if (debug_level >= 3) {
+  if (debug_level >= 3 || db_flag_is_set("dump_init")) {
     db_symbol((a_symbol_ptr)ctor_rout->source_corresp.assoc_info,
               "constructor: ", 2);
     for (cip = cip_list; cip != NULL; cip = cip->next) {
@@ -2931,7 +2944,6 @@ though neither constructors nor initialization is involved here.)
                                                /*block_lifetime=*/TRUE);
           }  /* if */
           if (array_type != NULL) {
-            a_targ_size_t count;
             /* We have an array of objects with destructors.  Create a dynamic
                init entry to handle the aggregate. */
             a_dynamic_init_ptr  dtor_dip = dip;
@@ -2939,12 +2951,8 @@ though neither constructors nor initialization is involved here.)
                              (a_dynamic_init_kind)dik_nonconstant_aggregate);
             dip->is_constructor_init = TRUE;
             /* Build the looping constant entry. */
-            if (array_type->size == 0) {
-              count = 1;
-            } else {
-              count = array_type->size / tp->size;
-            }  /* if */
-            repeat_nonconstant_init(dtor_dip, array_type, tp, dip, count);
+            repeat_nonconstant_init(dtor_dip, array_type, tp, dip,
+                                    array_element_count(array_type, tp));
           }  /* if */
           /* Attach the new dynamic init entry to the constructor
              initializer. */
@@ -2971,7 +2979,7 @@ though neither constructors nor initialization is involved here.)
   }
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DEBUG
-  if (debug_level >= 3) {
+  if (debug_level >= 3 || db_flag_is_set("dump_init")) {
     db_symbol((a_symbol_ptr)dtor_rout->source_corresp.assoc_info,
               "destructor: ", 2);
     for (cip = cip_list; cip != NULL; cip = cip->next) {
