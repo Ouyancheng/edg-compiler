@@ -3467,19 +3467,20 @@ members become protected and protected members are unaffected; if it is
 to the base class become inaccessible to the derived class in every case.
 (ARM 11.2).  The following table summarizes the transformations:
 
-                derivation:
-                         private        protected      public
-   symbol:            -------------------------------------------------
-         public       |  private        protected      public
-                      |
-         protected    |  private        protected      protected
-                      |
-         private      |  inaccessible   inaccessible   inaccessible
-                      |
-         inaccessible |  inaccessible   inaccessible   inaccessible
+                 derivation:
+                   inaccessible  private       protected     public
+  symbol:        ------------------------------------------------------
+    public       | inaccessible  private       protected     public
+                 |
+    protected    | inaccessible  private       protected     protected
+                 |
+    private      | inaccessible  inaccessible  inaccessible  inaccessible
+                 |
+    inaccessible | inaccessible  inaccessible  inaccessible  inaccessible
 */
 {
-  if (!is_more_accessible(sym_access, as_private)) {
+  if (deriv_access == (an_access_specifier)as_inaccessible ||
+      !is_more_accessible(sym_access, as_private)) {
     sym_access = (an_access_specifier)as_inaccessible;
   } else if (deriv_access == (an_access_specifier)as_private) {
     sym_access = (an_access_specifier)as_private;
@@ -3500,6 +3501,10 @@ to by "path".
 */
 {
   if (path != NULL) {
+    if (path->base_class->is_virtual && path->next != NULL) {
+      sym_access = access_to_end_of_path(sym_access, path->next);
+      path = path->base_class->derivation;
+    }  /* if */
     /* Not at the end of the path -- make a recursive call to find the
        projected accessibility. */
     sym_access = compute_access(access_to_end_of_path(sym_access, path->next),
