@@ -7159,7 +7159,7 @@ should act like a stack if the same entity has several fixups).
 }  /* alloc_etype_fixup */
 
 
-static a_goto_entry_ptr alloc_goto_entry(void)
+a_goto_entry_ptr alloc_goto_entry(void)
 /*
 Allocate a goto entry (or reuse one from the available list), set its fields
 to default values, and return a pointer to it.
@@ -7182,14 +7182,17 @@ to default values, and return a pointer to it.
   /* Set the entry's fields to default values. */
   gep->next = NULL;
   gep->goto_statement = NULL;
-  gep->curr_scope_init_count = 0;
+  gep->assoc_block = NULL;
+  gep->source_position.seq = 0;
+  gep->source_position.column = SP_COL_UNKNOWN;
+  gep->block_init_count = 0;
 
   db_exit();
   return gep;
 }  /* alloc_goto_entry */
 
 
-static void free_goto_entry_list(a_goto_entry_ptr  *list)
+void free_goto_entry_list(a_goto_entry_ptr  *list)
 /*
 Free the list of goto entries that is pointed to by *list and set *list to
 NULL.
@@ -7207,82 +7210,6 @@ NULL.
   /* Null out the pointer. */
   *list = NULL;
 }  /* free_goto_entry_list */
-
-
-static void check_forwards_goto(a_statement_ptr   label_statement,
-                                a_goto_entry_ptr  gep)
-/*
-*/
-{
-  db_enter(4, "check_forwards_goto");
-  db_exit();
-}  /* check_forwards_goto */
-
-
-static void check_backwards_goto(a_statement_ptr   goto_statement)
-/*
-*/
-{
-  db_enter(4, "check_backwards_goto");
-  db_exit();
-}  /* check_backwards_goto */
-
-
-void check_jump_over_initialization(a_statement_ptr  sp)
-/*
-*/
-{
-  a_label_ptr       label;
-  a_symbol_ptr      label_sym;
-  a_goto_entry_ptr  gep, end_of_list;
-
-  check_assertion (sp->kind == (a_statement_kind)stmk_label ||
-                   sp->kind == (a_statement_kind)stmk_goto);
-  label = sp->variant.label;
-  label_sym = (a_symbol_ptr)label->source_corresp.assoc_info;
-  if (sp->kind == (a_statement_kind)stmk_label) {
-    /* This is the definition of the label. */
-    gep = label_sym->variant.label.variant.goto_list;
-    if (gep != NULL) {
-      /* There was at least one forward goto referencing this label.  For
-         each check whether it jumped over any initializing declarations. */
-      do {
-        check_forwards_goto(sp, gep);
-        gep = gep->next;
-      } while (gep != NULL);
-      /* Free the list of goto entries for reuse. */
-      free_goto_entry_list(&label_sym->variant.label.variant.goto_list);
-    }  /* if */
-    /* Record the number initializing declarations seen so far in the current
-       scope.  It is used in checking backwards gotos. */
-    label_sym->variant.label.variant.curr_scope_init_count =
-                                   scope_stack[decl_scope_level].init_count;
-  } else {
-    if (label_sym->defined) {
-      /* This is a backwards goto -- i.e., it references a label that has
-         already been defined.  Check whether it jumps over any initializing
-         declarations. */
-      check_backwards_goto(sp);
-    } else {
-      /* This is a forwards goto -- i.e., it references a label that has not
-         yet been defined.  Record information about it so that, when the
-         label definition is reached, a check can made whether it involves
-         jumping over any initializing declarations. */
-      /* Allocate and fill in a goto entry. */
-      gep = alloc_goto_entry();
-      gep->goto_statement = sp;
-      gep->curr_scope_init_count = scope_stack[decl_scope_level].init_count;
-      /* Add it to the end of the goto-entry list of the label symbol. */
-      if (label_sym->variant.label.variant.goto_list == NULL) {
-        label_sym->variant.label.variant.goto_list = gep;
-      } else {
-        end_of_list = label_sym->variant.label.variant.goto_list;
-        while (end_of_list->next != NULL) end_of_list = end_of_list->next;
-        end_of_list->next = gep;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* check_jump_over_initialization */
 
 
 a_param_id_ptr alloc_param_id(void)
