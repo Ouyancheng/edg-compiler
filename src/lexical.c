@@ -878,10 +878,12 @@ a template argument list or is just a less-than sign.
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Always stop the flush on end of source. */
     if (curr_token == tok_end_of_source) break;
     /* None of the conditions was satisfied, so keep going. */
     if (!coalesce_ids) cache_curr_token(cache);
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (curr_token == tok_asm && microsoft_mode) {
       /* This is the start of a __asm block.  Switch into pp-token mode.
          This must be done after the __asm is cached but before the token
