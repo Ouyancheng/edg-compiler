@@ -916,7 +916,7 @@ of a floating point value.  Exponent is the effective exponent to
 be used (the combination of an explicit exponent and the implied
 exponent based on the position of the decimal point).  kind specifies
 the type of floating point value being used.  any_digits is TRUE if
-there were any non-zero digits specified (i.e., it is FALSE is the
+there were any non-zero digits specified (i.e., it is FALSE if the
 value is zero).
 
 Store the value into "float_value".  The value stored is of the kind
