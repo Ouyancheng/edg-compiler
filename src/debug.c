@@ -32,7 +32,7 @@ debug.c -- Debug routines.
 /* Get atoi definition. */
 #include <stdlib.h>
 #else /* !__ANSIC__ */
-extern int atoi(char *);
+EXTERN_C int atoi(char *);
 #endif /* __ANSIC__ */
 
 /*
