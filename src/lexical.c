@@ -4393,8 +4393,7 @@ only in C++ mode.
       make_specific_symbol_error_locator(&locator_for_curr_id);
     } else {
       /* Convert the locator to a locator for the operator. */
-      make_opname_locator(token, opname, &locator_for_curr_id,
-                          &start_position);
+      make_opname_locator(opname, &locator_for_curr_id, &start_position);
     }  /* if */
     curr_token = tok_identifier;
     pos_curr_token = error_position = start_position;

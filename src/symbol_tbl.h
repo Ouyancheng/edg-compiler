@@ -1049,8 +1049,7 @@ extern void tildize_locator(a_symbol_locator *locator);
 extern void change_class_locator_into_constructor_locator(
                                                     a_symbol_locator *locator);
 
-extern void make_opname_locator(a_token_kind      token,
-                                an_opname_kind    opname,
+extern void make_opname_locator(an_opname_kind    opname,
                                 a_symbol_locator  *locator,
                                 a_source_position *pos);
 

@@ -1845,18 +1845,18 @@ used in C++ mode.
 }  /* change_class_locator_into_constructor_locator */
 
 
-void make_opname_locator(a_token_kind       token,
-                         an_opname_kind     opname,
+void make_opname_locator(an_opname_kind     opname,
                          a_symbol_locator   *locator,
                          a_source_position  *pos)
 /*
-Make a locator for the operator name associated with token.  This is
+Make a locator for the operator name associated with opname.  This is
 used for C++ constructs like "operator+".  Use pos as the source position.
 */
 {
   a_symbol_header_ptr *table_entry = &opname_symbol_table[opname];
   a_symbol_header_ptr hdr_ptr;
   char                *opstr, *str;
+  a_boolean           blank_needed;
   sizeof_t            opname_length;
 #define OPERATOR_LEN 8 /* Length of "operator" */
 
@@ -1867,18 +1867,16 @@ used for C++ constructs like "operator+".  Use pos as the source position.
     *table_entry = hdr_ptr = alloc_symbol_header();
     /* Give the header the name "operatorX" where "X" is the string for the
        operator. */
-    switch (opname) {
-      case onk_function_call:  opstr = "()";          break;
-      case onk_subscript:      opstr = "[]";          break;
-      case onk_new:            opstr = " new";        break;
-      case onk_delete:         opstr = " delete";     break;
-      default:                 opstr = token_names[(int)token];
-    }  /* switch */
-    opname_length = OPERATOR_LEN + strlen(opstr);
+    opstr = opname_names[(int)opname];
+    /* For "new" and "delete", a blank is needed between the "operator"
+       and the opname. */
+    blank_needed = (isalpha(opstr[1]) != 0);
+    opname_length = OPERATOR_LEN + strlen(opstr) + blank_needed;
     hdr_ptr->identifier_length = opname_length;
     hdr_ptr->identifier = str = alloc_il((sizeof_t)(opname_length + 1));
     (void)memcpy(str, "operator", OPERATOR_LEN);
-    (void)strcpy(str+OPERATOR_LEN, opstr);
+    if (blank_needed) str[OPERATOR_LEN] = ' ';
+    (void)strcpy(str+OPERATOR_LEN+blank_needed, opstr);
 #if DEBUG
     symbol_name_string_space += opname_length+1;
 #endif /* DEBUG */
@@ -2006,9 +2004,7 @@ the compiler-generated flag should be cleared.
      create the symbol header. */
   pos.seq = 0;
   pos.column = SP_COL_UNKNOWN;
-  make_opname_locator((opname == (an_opname_kind)onk_new) ? tok_new :
-                                                            tok_delete,
-                      opname, &locator, &pos);
+  make_opname_locator(opname, &locator, &pos);
   /* Create a routine type. */
   rout_type = alloc_type((a_type_kind)tk_routine);
   extra_info = rout_type->variant.routine.extra_info;

@@ -4573,7 +4573,7 @@ routine body is generated at this time.
   }  /* if */
   /* Create a locator for the symbol that will be created. */
   if (sfkind == (a_special_function_kind)sfk_operator) {
-    make_opname_locator(tok_assign, (an_opname_kind)onk_assign, &locator,
+    make_opname_locator((an_opname_kind)onk_assign, &locator,
                         &class_type->source_corresp.decl_position);
   } else {
     make_locator_for_symbol(
