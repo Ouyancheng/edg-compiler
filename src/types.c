@@ -2582,11 +2582,11 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
            "unsigned char *" --> "char *". */
         okay = TRUE;
         *warning_suggested = default_warning_code;
-      } else if (!suppress_extensions &&
+      } else if (C_mode() && !suppress_extensions &&
                  is_function(unqual_dest_type_pointed_to) &&
                  is_function(unqual_source_type_pointed_to)) {
-        /* Allow conversion between incompatible pointers to functions,
-           as an extension, with a warning. */
+        /* In C, allow conversion between incompatible pointers to
+           functions, as an extension, with a warning. */
         okay = TRUE;
         *warning_suggested = default_warning_code;
       }  /* if */
