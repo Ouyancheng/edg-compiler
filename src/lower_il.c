@@ -5207,8 +5207,9 @@ being made.
   }  /* if */
   /* Add vcall offsets for bcp. */
   for (rout = ctsp->assoc_scope->routines; rout != NULL; rout = rout->next) {
-    /* Skip non-virtual functions. */
-    if (!rout->is_virtual) continue;
+    /* Skip non-virtual functions and alternate entry points. */
+    if (!rout->is_virtual ||
+        rout->ctor_dtor_kind != (a_ctor_or_dtor_kind)cdk_none) continue;
     /* Find the routine and base class in which this function is overridden.
        If the function was not overridden, then we can use bcp as the
        overrider; start with that assumption. */
