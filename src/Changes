@@ -2,10 +2,10 @@ Version 2.42
 
 3/26/99  Microsoft compatibility: bit-field allocation
 
-If TARG_MICROSOFT_BIT_FIELD_ALLOCATION is configured to TRUE and
-TARG_BIT_FIELD_CONTAINER_SIZE to -1, when one compiled with --pack=1
-or --pack=2, the size of the struct was computed incorrectly when the
-last field was a bit field.  Here's an example:
+With TARG_MICROSOFT_BIT_FIELD_ALLOCATION configured to TRUE and
+TARG_BIT_FIELD_CONTAINER_SIZE to -1 and with command line option
+--pack=1 or --pack=2, the size of a struct was computed incorrectly
+when the last field was a bit field.  Here's an example:
 
   struct C { int a; int b:1; int c; int d:1; };
   struct E { unsigned char a; unsigned int b:1; };
