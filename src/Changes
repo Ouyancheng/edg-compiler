@@ -41,9 +41,9 @@ for the input
 
 9/28/00  Preprocessor output: separate stringized token when necessary
 
-Previously, preprocessor did not always properly separate a stringized token
-from preceding text.  This could result in preprocessor output not being
-equivalent to the input source.  For example:
+Previously, the preprocessor did not always properly separate a stringized
+token from preceding text.  This could result in preprocessor output being
+valid code even though the input contained errors.  For example:
 
   #define M1(id) (L## #id)
   #define M2(id) (L#id)
