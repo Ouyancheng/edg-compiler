@@ -3793,6 +3793,7 @@ Syntax:
   an_operand        operand;
   a_type_ptr        cast_type, underlying_cast_type, operand_type;
   a_type_ptr        operation_type, underlying_operand_type;
+  a_type_ptr        underlying_operation_type;
   a_boolean         cast_type_okay, operand_type_okay;
   a_boolean         reference_case = FALSE, err = FALSE, baseward_cast;
   a_base_class_ptr  bcp;
@@ -3811,11 +3812,6 @@ Syntax:
   (void)get_token();
   /* Scan "< type-id > ( expression )". */
   scan_new_style_cast(&cast_type, &type_position, &operand);
-  /* The cast cannot cast away constness. */
-  if (cast_removes_qualifiers(operand.type, cast_type,
-                              /*is_const_cast=*/FALSE)) {
-    pos_st_error(ec_cannot_cast_away_const, &start_position, "dynamic_cast");
-  }  /* if */
   /* The type cast to must be a pointer or reference to a complete class type,
      or void*. */
   cast_type_okay = FALSE;
@@ -3889,27 +3885,37 @@ Syntax:
   }  /* if */
   /* The source and destination types have been checked separately.  Now see
      if they go together. */
+  /* Note that the cast has been turned into pointer form if it was a
+     reference cast. */
+  if (!err) {
+    /* The cast is not allowed to cast away constness, which really means
+       it cannot drop qualifiers.  This is a simple version of that
+       test, since only one-level pointers are involved. */
+    underlying_operand_type = type_pointed_to(operand_type);
+    underlying_operation_type = type_pointed_to(operation_type);
+    if (any_qualifier_missing(underlying_operation_type,
+                              underlying_operand_type)) {
+      pos_st_error(ec_cannot_cast_away_const, &start_position, "dynamic_cast");
+    }  /* if */
+  }  /* if */
   if (err) {
     /* Some error, previously issued. */
   } else if (same_type_with_added_qualifiers(operand_type, operation_type,
                                              /*ignore_qualifiers=*/TRUE,
                                              (a_boolean *)NULL)) {
-    /* The types are already the same except for qualifiers (and we've issued
-       an error previously on casting away const).  The result is just
-       the source cast to the destination type. */
+    /* The types are already the same except for qualifiers.  The result
+       is just the source cast to the destination type. */
     cast_operand(operation_type, &operand, /*is_implicit_cast=*/FALSE);
     copy_operand(&operand, result);
   } else if (related_class_pointers(operand_type, operation_type,
                                     &baseward_cast, &bcp) &&
              baseward_cast) {
-    /* This is a known cast from derived to base.  Again, the cases that
-       drop qualifiers have already drawn an error. */
+    /* This is a known cast from derived to base. */
     cast_operand(operation_type, &operand, /*is_implicit_cast=*/FALSE);
     copy_operand(&operand, result);
   } else {
     /* For all other cases, the dynamic cast is done at runtime.  The operand
        must have a polymorphic class type. */
-    underlying_operand_type = type_pointed_to(operand_type);
     if (!is_polymorphic_class_type(underlying_operand_type)) {
       err = TRUE;
       if (!is_error_type(underlying_operand_type)) {
