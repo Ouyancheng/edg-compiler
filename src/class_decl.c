@@ -235,7 +235,7 @@ Scan a default argument expression and link the default argument
 entry onto a list in the current routine fixup entry.
 */
 {
-  a_def_arg_expr_fixup_ptr	*list;
+  a_def_arg_expr_fixup_ptr  *list;
   if (curr_routine_fixup == NULL) {
     /* We must be within a prototype instantiation for a class template.
        Pass a NULL list pointer to indicate that we should throw away the
@@ -521,7 +521,7 @@ Report errors in virtual function declarations that result from the failure
 to redeclare a virtual function originally declared in a virtual base class.
 
 The situation we are looking for (discussed in ARM 10.10c) is of this sort:
-	class A { virtual int f(); };
+        class A { virtual int f(); };
         class B : virtual A { int f(); };
         class C : virtual A { int f(); };
         class D : B, C { };
@@ -1065,7 +1065,7 @@ typedef struct an_override_registry_entry {
 			   function that is a candidate to be overridden by a
 			   member function declaration in the current class. */
   a_base_class_ptr
-                base_class;
+		base_class;
 			/* Pointer to the base class entry in which the
 			   overridden symbol appears.  This is significant only
 			   when a base class occurs more than once in a
@@ -1968,7 +1968,7 @@ B is not complete and even though A is also a direct base class of D.
   class A { int a; };                       //      A   
   class B : public virtual A { int b; };    //     /|\  
   class C : public virtual A { int c; };    //    B | C 
-  class D : public B, public C,		    //     \|/  
+  class D : public B, public C,             //     \|/  
             public virtual A { int d; };    //      D   
   class E : public D { int e; };            //      |
                                             //      E
@@ -2538,8 +2538,8 @@ or struct definition.  The syntax is
       a_boolean gid_err;
 
       base_class_decl_pos = pos_curr_token;
-      sym = coalesce_and_lookup_generalized_identifier
-            	(GID_NO_OPTIONS, ilm_normal, &gid_err);
+      sym = coalesce_and_lookup_generalized_identifier(GID_NO_OPTIONS,
+                                                       ilm_normal, &gid_err);
       if (sym == NULL || !is_class_symbol(sym)) {
         if (sym != NULL && sym->kind == (a_symbol_kind)sk_type &&
             sym->variant.type->kind == (a_type_kind)tk_template_param) {
@@ -3644,13 +3644,13 @@ special function kind (e.g., constructor, destructor), if any.
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */
       if (cssp->constructor == NULL) {
-	cssp->constructor = sym;
+        cssp->constructor = sym;
       } else if (cssp->constructor->kind ==
-				  (a_symbol_kind)sk_overloaded_function) {
-	/* The overloaded function symbol is already registered. */
+                                  (a_symbol_kind)sk_overloaded_function) {
+        /* The overloaded function symbol is already registered. */
       } else {
-	/* The overloaded function symbol was just created. */
-	cssp->constructor = overload_sym;
+        /* The overloaded function symbol was just created. */
+        cssp->constructor = overload_sym;
       }  /* if */
       /* Determine if this is a default constructor. */
       if (is_default_constructor(rtn)) {
@@ -4173,8 +4173,8 @@ static void decl_nonstatic_data_member(a_symbol_locator    *locator,
                                        a_layout_block_ptr  lob,
                                        a_type_ptr          *member_type,
                                        an_access_specifier access,
-				       a_boolean	   unnamed_field,
-				       a_boolean	   is_anonymous_union,
+                                       a_boolean           unnamed_field,
+                                       a_boolean           is_anonymous_union,
                                        a_source_sequence_entry_ptr  ssep,
                                        a_field_ptr         *end_of_list)
 /*
@@ -4197,8 +4197,8 @@ class, struct, or union.
   unsigned int                   local_bit_offset;
   a_type_ptr                     class_type = lob->class_type;
   long                           bit_field_size = 0;
-  a_field_ptr		         field;
-  a_symbol_ptr		         member_sym = NULL;
+  a_field_ptr                    field;
+  a_symbol_ptr                   member_sym = NULL;
   a_class_symbol_supplement_ptr  cssp;
   a_boolean                      bit_field_is_signed = FALSE;
 
@@ -5163,10 +5163,10 @@ empty statement block.
 }  /* define_special_member_function */
 
 
-static a_boolean is_cfront_base_class_destructor_access_bug
-				(a_symbol_ptr	sym,
-				 a_routine_ptr	rp,
-				 a_type_ptr	class_of_object)
+static a_boolean is_cfront_base_class_destructor_access_bug(
+                                                a_symbol_ptr   sym,
+                                                a_routine_ptr  rp,
+                                                a_type_ptr     class_of_object)
 /*
 Cfront has a bug in which a private destructor in a base class can be
 called when the derived class really should not have access to it.
@@ -5174,7 +5174,7 @@ This function, which should only be called in cfront mode, detects
 the condition in which the access error should be suppressed.
 */
 {
-  a_boolean	result = FALSE;
+  a_boolean  result = FALSE;
   if (rp->special_kind == (a_special_function_kind)sfk_destructor &&
       sym->class_of_which_a_member != class_of_object &&
       class_of_object != NULL) {
@@ -5229,7 +5229,7 @@ control checking is done.
   if (!suppress_access_check) {
     /* Check for accessibility. */
     if (!have_access_to_symbol(sym)) {
-      an_error_severity	severity = es_error;
+      an_error_severity  severity = es_error;
       /* Normally an error, but in cfront mode there is a special case
          involving a private base class destructor where we issue a warning. */
       if (cfront_compatibility_mode &&
@@ -5590,7 +5590,7 @@ and "class_type" indicates the class in which the declaration occurs.
   a_class_type_supplement_ptr  ctsp;
   a_boolean                    is_overloaded_function;
   a_symbol_ptr                 sym;
-  a_type_ptr		       local_class_of_which_a_member;
+  a_type_ptr                   local_class_of_which_a_member;
 
   db_enter(4, "access_adjustment_decl");
   if (symbol_supplement_for_class(class_type)->any_nonreal_base_classes) {
@@ -5664,7 +5664,7 @@ and "class_type" indicates the class in which the declaration occurs.
     if (symbols_may_coexist_in_curr_scope(locator.specific_symbol,
                                           locator_for_curr_id.specific_symbol,
                                           &insert_sym,
-					 /*supress_error=*/FALSE)) {
+                                          /*supress_error=*/FALSE)) {
       clear_locator(&locator, &locator_for_curr_id.source_position);
       locator.symbol_header = locator_for_curr_id.symbol_header;
       (void)find_projected_symbol(class_type, &locator, /*must_be_tag=*/FALSE,
@@ -5833,8 +5833,8 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
     /* curr_sym represents a nested class.  Get the corresponding prototype
        tag symbol of its parent class; then find the corresponding nested
        class within it. */
-    a_type_ptr      tp = curr_sym->class_of_which_a_member;
-    a_symbol_ptr    parent_sym;
+    a_type_ptr    tp = curr_sym->class_of_which_a_member;
+    a_symbol_ptr  parent_sym;
 
     /* Get the prototype tag symbol of the class of which a member.  This
        is stored in the parents class symbol supplement. */
@@ -5855,7 +5855,6 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
         for (; tp != NULL; tp = tp->next) {
           sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
           if (sym != NULL && sym->kind == curr_sym->kind) {
-            a_class_symbol_supplement_ptr	cssp;
             cssp = sym->variant.class_struct_union.extra_info;
             if (cssp->prototype_token_sequence_number ==
                                                 curr_token_sequence_number) {
@@ -5875,7 +5874,6 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
         }  /* if */
         for (; sym != NULL; sym = sym->next) {
           if (sym->kind == curr_sym->kind) {
-            a_class_symbol_supplement_ptr	cssp;
             cssp = sym->variant.class_struct_union.extra_info;
             if (cssp->prototype_token_sequence_number ==
                                                 curr_token_sequence_number) {
@@ -6169,8 +6167,8 @@ Scan the body of a class definition, including the base classes list.
             goto next_declaration;
           }  /* if */
           if (is_qualified_name_start() &&
-	      locator_for_curr_id.qualifier_class_type != class_type &&
-	      !locator_for_curr_id.is_global_qualified_name &&
+              locator_for_curr_id.qualifier_class_type != class_type &&
+              !locator_for_curr_id.is_global_qualified_name &&
               locator_for_curr_id.is_qualified_name &&
               next_token() == tok_semicolon) {
             /* This looks syntactically like an access adjustment declaration.
@@ -6723,7 +6721,7 @@ Scan the body of a class definition, including the base classes list.
                      sequence number associated with this declaration so that
                      it can be used for matching purposes during real
                      instantiations. */
-                  a_template_symbol_supplement_ptr	tssp;
+                  a_template_symbol_supplement_ptr  tssp;
                   tssp = rout_sym->variant.routine.instance_ptr->template_info;
                   check_assertion(tssp != NULL);
                   tssp->token_sequence_number = curr_token_sequence_number;
@@ -7330,7 +7328,7 @@ a_boolean class_specifier(a_boolean  vacuous_decl_allowed,
                           a_boolean  is_ref_within_new_expr,
                           a_type_ptr *type_ptr,
                           a_boolean  *declares_something,
-			  a_boolean  *defines_something)
+                          a_boolean  *defines_something)
 /*
 Scan a class-specifier (3.5.2.1), which declares a struct or
 union type.  The syntax is
