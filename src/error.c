@@ -632,7 +632,7 @@ error code.
       m = "too many initializer values";
       break;
     case ec_not_compatible_with_previous_decl:
-      m = "this declaration is incompatible with previous declaration";
+      m = "declaration is incompatible with %nfd";
       break;
     case ec_already_initialized:
       m = "this variable has already been initialized";
@@ -999,7 +999,7 @@ error code.
       m = "%n is inaccessible";
       break;
     case ec_ambiguous_name:
-      m = "inheritance of %sq is ambiguous";
+      m = "%no is ambiguous";
       break;
     case ec_old_style_parameter_list:
       m = "old-style parameter list";
@@ -1157,7 +1157,7 @@ error code.
       m = "type differs from base class virtual function by return type alone";
       break;
     case ec_ambiguous_virtual_function_override:
-      m = "redefinition of virtual %n is ambiguous";
+      m = "override of virtual %n is ambiguous";
       break;
     case ec_pure_specifier_on_nonvirtual_function:
       m = "pure specifier (\"= 0\") allowed only on virtual functions";
@@ -1411,10 +1411,10 @@ error code.
       m = "%n has an operator delete() but no operator new()";
       break;
     case ec_class_with_virtual_func_but_nonvirtual_dtor:
-      m = "%n has virtual functions but destructor is nonvirtual";
+      m = "%n has virtual functions but its destructor is nonvirtual";
       break;
     case ec_no_access_to_constructors:
-      m = "there is no access to the constructors for %n";
+      m = "%n has no accessible constructors";
       break;
     case ec_nonstd_member_function_redeclaration:
       m = "redeclaring a member function is nonstandard";
