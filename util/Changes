@@ -1,5 +1,8 @@
 Version 2.29
 
+5/3/95   Mangled codes for array new (nwa) and array delete (dla) are
+	 now demangled
+
 5/2/95   Mangled code "b" is demangled as "bool"
 
 3/28/95  eccp and the order of object files and libraries passed to the linker
