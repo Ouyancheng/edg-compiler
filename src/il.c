@@ -4577,12 +4577,13 @@ static a_scope_ptr get_scope_for_list(
                                  a_source_correspondence     *scp,
                                  a_scope_pointers_block_ptr  *pointers_block)
 /*
-An IL entry that has been declared at the indicated scope and with the
+An IL entry that has been declared at the indicated scope depth and with the
 source-correspondence pointed to by scp is to be added to (or is already on)
 a list pointed to by an IL scope entry.  Return a pointer to that IL scope
 entry, along with the associated pointers-block.  When scope_level is
 NO_SCOPE_DEPTH, the scope is either the file scope or the scope associated
-with the class or namespace of which the entry is a member.
+with the class or namespace of which the entry is a member, and the
+scope need not be on the scope stack.
 */
 {
   a_scope_stack_entry_ptr  ssep;
@@ -4621,8 +4622,14 @@ with the class or namespace of which the entry is a member.
     /* Use the IL scope from the namespace. */
     sp = nsp->variant.assoc_scope;
     *pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
+  } else if (scope_level == DEPTH_OF_FILE_SCOPE &&
+             depth_scope_stack < DEPTH_OF_FILE_SCOPE) {
+    /* The file scope is not currently on the scope stack. */
+    sp = il_header.primary_scope;
+    *pointers_block = NULL;
   } else {
     /* Use the IL scope associated with scope_level. */
+    check_assertion(scope_level >= 0 && scope_level <= depth_scope_stack);
     ssep = &scope_stack[scope_level];
     sp = ensure_il_scope_exists(ssep);
     *pointers_block = assoc_pointers_block_of(ssep);
