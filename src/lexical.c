@@ -5704,10 +5704,11 @@ the kind of token.
 */
 {
   register char	ch;
-  register enum {k_decimal, k_octal, k_hex, k_fixed_point, k_float} kind;
-#if !FIXED_POINT_EXTENSIONS_ALLOWED
-    /*lint -esym(749,k_fixed_point)*/
-#endif /* !FIXED_POINT_EXTENSIONS_ALLOWED */
+  register enum {k_decimal, k_octal, k_hex,
+#if FIXED_POINT_EXTENSIONS_ALLOWED
+                 k_fixed_point,
+#endif /* FIXED_POINT_EXTENSIONS_ALLOWED */
+                 k_float} kind;
   register a_token_kind 
 		ctoken;
   a_boolean     err = FALSE;

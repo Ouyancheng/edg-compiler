@@ -2901,7 +2901,7 @@ current source position and severity or restore the previously saved settings.
        warnings should be suppressed.  This test is only done if the message
        would be issued based on the current threshold. */
     error_threshold_to_use = error_threshold;
-    if (*severity >= error_threshold) {
+    if ((int)*severity >= (int)error_threshold) {
       a_source_file_ptr	sfp;
       a_boolean		at_end_of_source;
       a_line_number	line_number;
