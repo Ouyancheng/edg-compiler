@@ -580,7 +580,9 @@ no virtual function table will be defined, either).
   a_symbol_ptr		   sym;
   a_template_instance_ptr  tip;
 
-  if (class_type->variant.class_struct_union.any_virtual_functions) {
+  check_assertion(class_type->variant.class_struct_union.is_template_class);
+  if (!class_type->variant.class_struct_union.is_specialized &&
+      class_type->variant.class_struct_union.any_virtual_functions) {
     /* Loop through the routines list and check the virtual functions. */
     rp = class_type->
            variant.class_struct_union.extra_info->assoc_scope->routines;
@@ -10407,6 +10409,9 @@ is set by update_instantiation_required_flag.
     can_instantiate = tip->already_instantiated || can_be_instantiated(tip);
 #if DEBUG
     if (debug_level >= 4) {
+      db_name(is_static_data_member ?
+                 &variable->source_corresp : &routine->source_corresp);
+      fputs(":\n", f_debug);
       fprintf(f_debug, " already_instantiated=%d\n",
               tip->already_instantiated);
       fprintf(f_debug, " instantiation_required=%d\n",
