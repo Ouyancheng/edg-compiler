@@ -358,7 +358,7 @@ Return TRUE if the given type is an imaginary floating type.
 
 a_boolean is_complex_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is an complex floating type.
+Return TRUE if the given type is a complex floating type.
 */
 {
   tp = skip_typerefs(tp);
