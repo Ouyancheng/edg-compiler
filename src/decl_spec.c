@@ -886,11 +886,14 @@ skip_tag_scan:
         if (is_class_definition ||
             (curr_token == tok_semicolon && !is_friend_decl)) {
           /* We have a specific declaration of a template class. */
-#if 0
-          if (tag_sym->decl_scope != ssep->number) {
-            /* Specific definitions of template classes may only occur at
-               file scope. */
-            pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
+          if (tag_sym->decl_scope != ssep->number &&
+              (tag_sym->parent.namespace_ptr == NULL ||
+               !namespace_is_enclosed_by_curr_scope(tag_sym))) {
+            /* Explicit specializations of class templates must appear in the
+               file or namespace scope in which the template was originally
+               declared or in a scope enclosing the original scope. */
+            pos_sy_error(ec_specific_def_must_be_global,
+                         &tag_position, tag_sym);
             error_tag_sym = tag_sym;
             tag_sym = NULL;
             set_to_named_error_locator(locator);
@@ -898,8 +901,6 @@ skip_tag_scan:
           } else {
             cssp->is_specific_template_def = TRUE;
           }  /* if */
-#endif /* if 0 */
-          cssp->is_specific_template_def = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
