@@ -813,12 +813,12 @@ a_token_kind make_pp_int_constant(long value)
 /*
 Make a constant entry with the given integer value in const_for_curr_token.
 This is being created as the value for some preprocessor operation.
-The type will be long int, since that is what the preprocessor uses.
-Return tok_int_constant.
+The type will be long int (intmax_t in C99), since that is what the
+preprocessor uses.  Return tok_int_constant.
 */
 {
   set_integer_constant(&const_for_curr_token, (a_host_large_integer)value,
-                       (an_integer_kind)ik_long);
+                       c99_mode ? targ_intmax_kind : (an_integer_kind)ik_long);
   return tok_int_constant;
 }  /* make_pp_int_constant */
 
