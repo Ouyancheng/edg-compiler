@@ -2048,6 +2048,20 @@ other.  Return
          after cfp1, so cfp1 is better. */
       cmp = 1;
     }  /* if */
+  } else if (cfp1->is_user_conversion &&
+             cfp1->conversion.std.type_qualifiers_added !=
+             cfp2->conversion.std.type_qualifiers_added) {
+    /* The fact that type qualifiers were added after a conversion
+       function can serve as a tie-breaker. */
+    if (cfp1->conversion.std.type_qualifiers_added) {
+      /* Type qualifiers were added on cfp1 and not on cfp2, so cfp2 is
+         better. */
+      cmp = -1;
+    } else {
+      /* Type qualifiers were added on cfp2 and not on cfp1, so cfp1 is
+         better. */
+      cmp = 1;
+    }  /* if */
   } else if (cfp1->is_function_template != cfp2->is_function_template) {
     /* The fact that one function is a function template and the other
        is not can serve as a tie-breaker. */
