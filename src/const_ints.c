@@ -229,7 +229,7 @@ signed1 and signed2 give the signedness of the two values.
        than op_2. */
     result = sign_1 ? -1 : 1;
   } else {
-    /* The values are have the same sign, just do a straight bit
+    /* The values have the same sign; just do a straight bit
        comparison until we find a difference. */
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
     if (*op_1 > *op_2) {
