@@ -1851,6 +1851,12 @@ segment described by seg_ptr.  The generated format is:
 
 static a_boolean is_overloaded_function(a_symbol_ptr sym)
 /*
+Run through the linked list of active and inactive symbols chained from the
+symbol header of the specified symbol looking for that symbol.  If found, the
+symbol cannot be an overloaded function.  An overloaded function will be
+represented in these lists of symbols as a symbol of sk_overloaded_function
+kind with this specific function symbol being part of the list chained from
+that overloaded function symbol entry.
 */
 {
   a_boolean	is_overloaded = TRUE;	/* Assume and try to disprove. */
@@ -1887,90 +1893,94 @@ static void form_symbol_name(a_symbol_ptr    sym,
                              msg_segment_ptr seg_ptr)
 /*
 Format the name of the symbol pointed to by "sym" in the message segment
-described by "seg_ptr".
+described by "seg_ptr".  Type information is based on the fundamental symbol
+and the name is that of "sym".
 */
 {
   a_type_ptr	type = NULL;
   a_routine_ptr	routine = NULL;	
+  a_symbol_ptr  fund_sym;	/* Pointer to the fundamental symbol of
+				   argument "sym" if it exists.  Otherwise,
+				   the value will be that of "sym". */
+  a_boolean	is_routine = FALSE;
+  a_boolean	is_constructor = FALSE;
+  a_boolean	is_destructor = FALSE;
+  a_boolean	is_overloaded = FALSE;
+  a_boolean	is_conversion = FALSE;
 
+  /* Determine the fundamental symbol of this symbol. */
+  fund_sym = fundamental_symbol_of(sym);
   add_string_to_segment("\"", seg_ptr);
-  switch (sym->kind) {
+  switch (fund_sym->kind) {
     case sk_keyword:
-      add_string_to_segment(token_names[(int)sym->variant.keyword_token],
+      add_string_to_segment(token_names[(int)fund_sym->variant.keyword_token],
                             seg_ptr);
       break;
+
     case sk_macro:
     case sk_label:
-      goto simple_symbol_name;
-
-    case sk_variable:
-      type = sym->variant.variable->type;
-      goto simple_symbol_name;
-
-    case sk_extern_variable:
-      type = sym->variant.extern_symbol_descr->type;
-      goto simple_symbol_name;
-
-    case sk_constant:
-      type = sym->variant.constant->type;
-simple_symbol_name:
-      if (seg_ptr->variant.symbol.full_type && type != NULL) {
-        form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
-        add_string_to_segment(" ", seg_ptr);
-      }  /* if */
-      if (sym->class_of_which_a_member != NULL) {
-        form_class_name(sym->class_of_which_a_member, seg_ptr);
-      }  /* if */
-      add_string_to_segment(sym->header->identifier, seg_ptr);
-      if (seg_ptr->variant.symbol.full_type && type != NULL) {
-        form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
-      }  /* if */
-      break;
-
     case sk_type:
     case sk_class_or_struct_tag:
     case sk_union_tag:
     case sk_enum_tag:
-      if (sym->class_of_which_a_member != NULL) {
-        form_class_name(sym->class_of_which_a_member, seg_ptr);
-      }  /* if */
-      add_string_to_segment(sym->header->identifier, seg_ptr);
-      break;
+      goto symbol_name;
+
+    case sk_variable:
+      type = fund_sym->variant.variable->type;
+      goto symbol_name;
+
+    case sk_extern_variable:
+      type = fund_sym->variant.extern_symbol_descr->type;
+      goto symbol_name;
+
+    case sk_constant:
+      type = fund_sym->variant.constant->type;
+      goto symbol_name;
 
     case sk_routine:
-      type = routine_symbol_type(sym);
-      routine = sym->variant.routine;
-      goto function_name;
+    case sk_member_function:
+      type = routine_symbol_type(fund_sym);
+      routine = fund_sym->variant.routine;
+      is_routine = TRUE;
+      goto symbol_name;
 
     case sk_extern_routine:
-      type = sym->variant.extern_symbol_descr->type;
-      routine = sym->variant.extern_symbol_descr->variant.routine;
-      goto function_name;
+      type = fund_sym->variant.extern_symbol_descr->type;
+      routine = fund_sym->variant.extern_symbol_descr->variant.routine;
+      is_routine = TRUE;
+      goto symbol_name;
 
     case sk_overloaded_function:
-      if (sym->class_of_which_a_member != NULL) {
-        form_class_name(sym->class_of_which_a_member, seg_ptr);
-      }  /* if */
-      add_string_to_segment(sym->header->identifier, seg_ptr);
-      if (! seg_ptr->variant.symbol.name_only) {
-        add_string_to_segment("()", seg_ptr);
-      }  /* if */
-      break;
+      is_routine = TRUE;
+      goto symbol_name;
 
-    case sk_member_function:
-      type = routine_symbol_type(sym);
-      routine = sym->variant.routine;
-function_name:
+    case sk_static_data_member:
+      type = fund_sym->variant.variable->type;
+      goto symbol_name;
+
+    case sk_field:
+      type = fund_sym->variant.field.ptr->type;
+
+symbol_name:
+      /* Check if this is a C++ constructor, destructor or conversion 
+         routine. */
+      if (routine != NULL) {
+        is_constructor = is_constructor_symbol(fund_sym);
+        is_destructor = is_destructor_symbol(fund_sym);
+        is_overloaded = is_overloaded_function(fund_sym);
+        is_conversion = routine->special_kind ==
+                          (a_special_function_kind)sfk_conversion;
+      }  /* if */
       if (seg_ptr->variant.symbol.full_type && 
           type != NULL &&
-          ! is_constructor_symbol(sym) &&
-          ! is_destructor_symbol(sym) &&
-          routine->special_kind != (a_special_function_kind)sfk_conversion) {
+          ! is_constructor &&
+          ! is_destructor &&
+          ! is_conversion ) {
         form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
         add_string_to_segment(" ", seg_ptr);
       }  /* if */
       form_class_name(sym->class_of_which_a_member, seg_ptr);
-      if (routine->special_kind == (a_special_function_kind)sfk_conversion) {
+      if (is_conversion) {
         /* This is a conversion function; form the name as "operator type". */
         add_string_to_segment("operator ", seg_ptr);
         form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
@@ -1979,53 +1989,27 @@ function_name:
         add_string_to_segment(sym->header->identifier, seg_ptr);
       }  /* if */
       if (type != NULL &&
-          (seg_ptr->variant.symbol.full_type ||
-           is_overloaded_function(sym)) ) {
+          (seg_ptr->variant.symbol.full_type || is_overloaded) ) {
         form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
-      } else if (! seg_ptr->variant.symbol.name_only) {
+      } else if (is_routine && (! seg_ptr->variant.symbol.name_only)) {
         add_string_to_segment("()", seg_ptr);
       }  /* if */
       break;
 
-    case sk_static_data_member:
-      type = sym->variant.variable->type;
-      goto class_data_member;
-
-    case sk_field:
-      type = sym->variant.field.ptr->type;
-class_data_member:
-      if (seg_ptr->variant.symbol.full_type && type != NULL) {
-        form_type_first_part(type, /*need_parens=*/FALSE, seg_ptr);
-        add_string_to_segment(" ", seg_ptr);
-      }  /* if */
-      form_class_name(sym->class_of_which_a_member, seg_ptr);
-      add_string_to_segment(sym->header->identifier, seg_ptr);
-      if (seg_ptr->variant.symbol.full_type && type != NULL) {
-        form_type_second_part(type, /*need_parens=*/FALSE, seg_ptr);
-      }  /* if */
-      break;
-
-    case sk_projection:
-      /* THIS IS JUST A TEMPORARY FIX TO AVOID THE INTERNAL ERROR - RMA. */
-      form_class_name(sym->class_of_which_a_member, seg_ptr);
-      add_string_to_segment(sym->header->identifier, seg_ptr);
-      if (is_function_symbol(fundamental_symbol_of(sym)) &&
-          !seg_ptr->variant.symbol.name_only) {
-        add_string_to_segment("()", seg_ptr);
-      }  /* if */
-      break;
-
-#if 0
-#else
 #if CHECKING
+    case sk_projection:
+      /* Cannot have a projection of a projection symbol.  This is an
+         error. */
+      internal_error("form_symbol_name: projection of projection kind");
+      break;
+
     default:
       internal_error("form_symbol_name: unsupported symbol kind");
 #endif /* CHECKING */
-#endif /* if 0 */
   }  /* switch */
   add_string_to_segment("\"", seg_ptr);
 
-  /* Add the declaration position is requested. */
+  /* Add the declaration position as requested. */
   if (seg_ptr->variant.symbol.decl_pos) {
     form_decl_position(sym, seg_ptr);
   }  /* if */
