@@ -664,18 +664,19 @@ static void initialize_member_decl_info(a_member_decl_info_ptr mdip,
 
 static
 a_boolean prescan_function_definition(a_token_sequence_number *first_tsn,
-                                      a_token_sequence_number *last_tsn)
+                                      a_token_sequence_number *last_tsn,
+				      a_boolean		      is_constructor)
 /*
 Place the tokens for a function definition (including, perhaps, the
 constructor initializer) into a token cache, to await actual processing
 at a later point.  The current token is either a left brace or, when a
 constructor initializer is present, a colon.  Return the starting
 and ending token sequence numbers of the function definition in
-*first_tsn and *last_tsn.
+*first_tsn and *last_tsn.  is_constructor is TRUE if the function being
+scanned is a constructor.
 */
 {
   a_token_cache      token_cache;
-  a_token_set_array  stop_tokens;
   a_boolean          success = FALSE;
 
   db_enter(3, "prescan_function_definition");
@@ -684,38 +685,11 @@ and ending token sequence numbers of the function definition in
      reusable here.  If it is rescanned as a nonreusable cache we
      will change it later. */ 
   clear_token_cache(&token_cache, /*reusable=*/TRUE);
-  /* Initialize a local stop token set. */
-  clear_token_set_array(stop_tokens);
-  incr_token_set_array_element(stop_tokens, tok_rbrace);
-  /* Save the token sequence number of the first token of the definition. */
-  *first_tsn = curr_token_sequence_number;
-  if (curr_token == tok_colon) {
-    /* A colon marks the start of a constructor initializer list.  Scan it,
-       stopping at the left brace, where the function body is expected to
-       start.  Just in case the function body is missing, also stop when a
-       semicolon is seen. */
-    incr_token_set_array_element(stop_tokens, tok_semicolon);
-    incr_token_set_array_element(stop_tokens, tok_lbrace);
-    cache_token_stream(&token_cache, stop_tokens);
-    decr_token_set_array_element(stop_tokens, tok_lbrace);
-    decr_token_set_array_element(stop_tokens, tok_semicolon);
-  }  /* if */
-  if (curr_token == tok_lbrace) {
-    /* The left brace marks the start of the function body.  Cache all the
-       tokens up to the right brace. */
-    cache_curr_token(&token_cache);
-    (void)get_token();
-    cache_token_stream(&token_cache, stop_tokens);
-  }  /* if */
-  if (curr_token == tok_rbrace) {
-    cache_curr_token(&token_cache);
-    success = TRUE;
-  }  /* if */
-  /* Save the token sequence number of the last token of the definition. */
-  *last_tsn = curr_token_sequence_number;
-  /* Add an end-of-source token to the end of the token cache.  This assures
-     that we won't scan past the end of the cache in the actual scan. */
-  terminate_token_cache(&token_cache);
+  /* Cache the function body, including any function try blocks and/or ctor
+     initializers. */
+  success = cache_function_body(&token_cache, is_constructor, (a_boolean*)NULL,
+                                first_tsn, last_tsn, (a_source_position*)NULL,
+                                (a_source_position*)NULL);
   if (curr_routine_fixup == NULL) {
     /* We must be within a prototype instantiation for a class template.  Just
        throw away the cached tokens.  (We do not scan the bodies of inline
@@ -10256,7 +10230,8 @@ to be returned to the caller.
            can be rescanned once the entire class definition has been
            processed. */
         if (prescan_function_definition(&first_token_number,
-                                        &last_token_number)) {
+                                        &last_token_number,
+                                        decl_info.is_constructor)) {
           /* Advance past the terminating right brace. */
           (void)get_token();
         }  /* if */

@@ -1667,6 +1667,15 @@ extern void pop_input_stack(void);
 
 extern void check_for_generation_of_pch_on_return_to_primary_file(void);
 
+extern a_boolean cache_function_body(
+				a_token_cache		*p_token_cache,
+				a_boolean		is_constructor,
+				a_boolean		*missing_end,
+				a_token_sequence_number	*first_tsn,
+				a_token_sequence_number	*last_tsn,
+				a_source_position	*start_pos,
+				a_source_position	*end_pos);
+
 /* Set the error position to the current token position. */
 #define set_err_pos_to_curr_token()                                   \
 { copy_source_position(pos_curr_token, error_position);}

@@ -10058,6 +10058,84 @@ If the entry is already on the list the new entry is ignored.
 }  /* add_to_instantiation_file_suffix_list */
 
 
+a_boolean cache_function_body(
+			a_token_cache		*p_token_cache,
+			a_boolean		is_constructor,
+			a_boolean		*missing_end,
+			a_token_sequence_number	*first_tsn,
+			a_token_sequence_number	*last_tsn,
+			a_source_position	*start_pos,
+			a_source_position	*end_pos)
+/*
+Scan the tokens of a function definition.  This can include scanning
+the tokens of ctor-initializers for a constructor definition and can
+also include scanning the tokens of a function try block.  Return TRUE
+if a complete function definition was scanned.  is_constructor is TRUE
+if the function is a constructor.  missing_end is set to TRUE if the
+ending brace of the function body is not found; it can be NULL if this
+information need not be returned.  first_tsn and last_tsn are the
+token sequence numbers of the first and last tokens of the function
+body; they can be NULL if the token sequence numbers need not be
+returned.  start_pos and end_pos are the starting and ending source
+positions of the function body; they can be NULL if the positions need
+not be returned.
+*/
+{
+  a_token_set_array  stop_tokens;
+  a_boolean	     result = FALSE;
+
+  db_enter(3, "cache_function_body");
+  if (missing_end != NULL) *missing_end = FALSE;
+  if (start_pos != NULL) *start_pos = null_source_position;
+  if (end_pos != NULL) *end_pos = null_source_position;
+  if (curr_token == tok_lbrace ||
+      (curr_token == tok_colon && is_constructor)) {
+    /* Initialize a local stop token set. */
+    clear_token_set_array(stop_tokens);
+    /* Save the token sequence number of the first token of the definition. */
+    if (first_tsn != NULL) *first_tsn = curr_token_sequence_number;
+    if (curr_token == tok_colon) {
+      /* This is a ctor-initializer list on a constructor.  Cache it. */
+      incr_token_set_array_element(stop_tokens, tok_lbrace);
+      incr_token_set_array_element(stop_tokens, tok_semicolon);
+      cache_token_stream(p_token_cache, stop_tokens);
+      decr_token_set_array_element(stop_tokens, tok_lbrace);
+      decr_token_set_array_element(stop_tokens, tok_semicolon);
+    }  /* if */
+    if (curr_token == tok_lbrace) {
+      /* This is a compound statement that is the body of the function. */
+      if (start_pos != NULL) *start_pos = pos_curr_token;
+      /* Cache the "{" and advance past it. */
+      cache_curr_token(p_token_cache);
+      (void)get_token();
+      /* Cache all tokens up to the "}" (or end-of-source). */
+      incr_token_set_array_element(stop_tokens, tok_rbrace);
+      cache_token_stream(p_token_cache, stop_tokens);
+      /* Cache the "}" and append an end-of-source token. */
+      if (curr_token == tok_rbrace) {
+        cache_curr_token(p_token_cache);
+        /* A get_token is intentionally not done -- the caller will
+           advance past the end of the template declaration. */
+        result = TRUE;
+      } else {
+        /* The end of the function body was not found.  This is usually
+           the result of a mismatched delimiter. */
+        *missing_end = TRUE;
+      }  /* if */
+     /* Save the token sequence number of the last token of the definition. */
+     if (last_tsn != NULL) *last_tsn = curr_token_sequence_number;
+      if (end_pos != NULL) *end_pos = end_pos_curr_token;
+      /* Add an end-of-source token to the end of the token cache to
+         assure that we don't scan past the end of the cache in the actual
+         scan. */
+      terminate_token_cache(p_token_cache);
+    }  /* if */
+  }  /* if */
+  db_exit();
+  return result;
+}  /* cache_function_body */
+
+
 static void add_list_of_suffixes_to_instantiation_file_suffix_list(char *list)
 /*
 Add the members of a colon separated list of file suffixes to the

@@ -8450,52 +8450,27 @@ immediately after the function declarator.  decl_pos is the position of the
 function declarator.
 */
 {
-  a_token_set_array  stop_tokens;
+  a_source_position	start_pos;
+  a_source_position	end_pos;
+  a_boolean		missing_end;
 
   db_enter(3, "cache_function_template_body");
-  if (curr_token == tok_lbrace ||
-      (curr_token == tok_colon && is_constructor)) {
+  if (cache_function_body(p_token_cache, is_constructor, &missing_end,
+                          (a_token_sequence_number*)NULL,
+                          (a_token_sequence_number*)NULL,
+                          &start_pos, &end_pos) || missing_end) {
+    /* Even a partial definition is considered to define something. */
     decl_state->defines_something = TRUE;
-    /* Initialize a local stop token set. */
-    clear_token_set_array(stop_tokens);
-    if (curr_token == tok_colon) {
-      /* This is a ctor-initializer list on a constructor.  Cache it. */
-      incr_token_set_array_element(stop_tokens, tok_lbrace);
-      incr_token_set_array_element(stop_tokens, tok_semicolon);
-      cache_token_stream(p_token_cache, stop_tokens);
-      decr_token_set_array_element(stop_tokens, tok_lbrace);
-      decr_token_set_array_element(stop_tokens, tok_semicolon);
-    }  /* if */
-    if (curr_token == tok_lbrace) {
-      /* This is a compound statement that is the body of the function. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      decl_state->definition_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      /* Cache the "{" and advance past it. */
-      cache_curr_token(p_token_cache);
-      (void)get_token();
-      /* Cache all tokens up to the "}" (or end-of-source). */
-      incr_token_set_array_element(stop_tokens, tok_rbrace);
-      cache_token_stream(p_token_cache, stop_tokens);
-      /* Cache the "}" and append an end-of-source token. */
-      if (curr_token == tok_rbrace) {
-        cache_curr_token(p_token_cache);
-        /* A get_token is intentionally not done -- the caller will
-           advance past the end of the template declaration. */
-      } else {
-        pos_error(ec_template_missing_closing_brace, decl_pos);
-      }  /* if */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      decl_state->definition_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      /* Add an end-of-source token to the end of the token cache to
-         assure that we don't scan past the end of the cache in the actual
-         scan. */
-      terminate_token_cache(p_token_cache);
-    }  /* if */
-  } else {
-    /* No body to cache. */
   }  /* if */
+  if (missing_end) {
+    /* The ending brace of the function template was not found.  This is
+       usually the result of a mismatched delimiter. */
+    pos_error(ec_template_missing_closing_brace, decl_pos);
+  }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  decl_state->definition_range.start = start_pos;
+  decl_state->definition_range.end = end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   db_exit();
 }  /* cache_function_template_body */
 
