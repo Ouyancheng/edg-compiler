@@ -3001,24 +3001,52 @@ a destructor, or a user-defined assignment operator.  Return FALSE if any
 such member functions are present.
 */
 {
-  a_boolean                      is_valid;
-  a_type_ptr                     tp = field_type;
+  a_boolean                      is_valid = TRUE;
+  a_type_ptr                     tp = skip_typerefs(field_type);
   a_class_symbol_supplement_ptr  cssp;
+  a_symbol_ptr                   sym;
+  a_boolean                      is_overloaded;
 
-  if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-  tp = skip_typerefs(tp);
-  is_valid = TRUE;
+  db_enter(4, "is_valid_union_field");
+  if (is_array_type(tp)) tp = skip_typerefs(underlying_array_element_type(tp));
   if (is_class_struct_union_type(tp)) {
     cssp = symbol_supplement_for_class(tp);
     if (cssp->constructor != NULL || cssp->destructor != NULL) {
-      pos_st_error(ec_bad_union_field, pos, tp->source_corresp.name);
       is_valid = FALSE;
-#if 0
     } else {
-      /* Check for existence of a user defined assignment operator function. */
-#endif /* if 0 */
+      /* Check for existence of a user defined assignment operator function.
+         If there is no compiler-generated assignment operator, then it must
+         be user-defined. */
+      sym = cssp->assignment_operator;
+      if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        is_overloaded = TRUE;
+        sym = sym->variant.overloaded_function.symbols;
+      } else {
+        is_overloaded = FALSE;
+      }  /* if */
+      for (; sym != NULL; sym = (is_overloaded ? sym->next : NULL)) {
+        if (sym->variant.routine->compiler_generated) break;
+      }  /* if */
+      if (sym == NULL) {
+#if CHECKING
+        /* Confirm that there is a default assignment operator. */
+        a_boolean  dummy_flag;
+        if (!assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                                 &dummy_flag)) {
+          internal_error("is_valid_union_field: missing default operator=");
+        }  /* if */
+#endif /* CHECKING */
+        /* No compiler-generated default assignment operator was found, and
+           there must be one, so it must be user-defined. */
+        is_valid = FALSE;
+      }  /* if */
+    }  /* if */
+    if (!is_valid) {
+      pos_st_error(ec_bad_union_field, pos, tp->source_corresp.name);
     }  /* if */
   }  /* if */
+
+  db_exit();
   return is_valid;
 }  /* is_valid_union_field */
 
