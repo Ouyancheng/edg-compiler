@@ -9592,7 +9592,9 @@ continue_with_declaration:
            if appropriate (e.g., if a default constructor exists). */
         if (def_initializer(symbol_ptr, &locator.source_position)) {
           /* Default initialization was successful. */
-          mark_variable_value_set(symbol_ptr);
+          if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
+            mark_variable_value_set(symbol_ptr);
+          }  /* if */
         } else if (symbol_ptr->kind == (a_symbol_kind)sk_variable) {
           /* No default initialization, so do some additional checking. */
           check_for_missing_initializer(symbol_ptr, local_type_ptr);
