@@ -1,5 +1,13 @@
 Version 2.29
 
+3/31/95  IL lowering promotion of local entities done after EH tables
+         generated
+
+The promotion of local entities out of functions is now done after
+the generation of any tables required for exception handling, so
+that it is possible, if one wishes, to promote those tables out of the
+function.
+
 3/31/95  cp_gen_be handling of default argument for parameter passed via
          copy constructor
 
