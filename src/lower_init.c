@@ -1862,6 +1862,7 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
   ipd = *ipdp;
   ipmp = &ipm;
   add_init_pos_modifier(ipmp, &ipd);
+  con_ptr = aggr_const->variant.aggregate.first_constant;
   /* Determine the type of the first element of the aggregate being
      initialized. */
   if (aggr_type->kind == (a_type_kind)tk_array) {
@@ -1877,78 +1878,80 @@ are any (genuine) constants in the aggregate, set *keep_constant to TRUE.
     /* Class, struct, or union -- get first field (nonstatic data member). */
     ipmp->curr_field = next_initializable_field(
                              aggr_type->variant.class_struct_union.field_list);
-#if CHECKING
-    if (ipmp->curr_field == NULL) {
-      internal_error("lower_dynamic_init_aggregate_constant: no fields");
+    if (ipmp->curr_field != NULL) {
+      ipmp->type = ipmp->curr_field->type;
+    } else {
+      /* It's possible for the class to have no initializable fields. */
+      check_assertion_str(con_ptr ==  NULL,
+             "lower_dynamic_init_aggregate_constant: have constant, no field");
     }  /* if */
-#endif /* CHECKING */
-    ipmp->type = ipmp->curr_field->type;
   }  /* if */
   /* Look for dynamic init constants on the list of constants. */
-  con_ptr = aggr_const->variant.aggregate.first_constant;
-  for (;;) {
-    if (con_ptr->kind == (a_constant_repr_kind)ck_dynamic_init) {
-      /* Dynamic initialization. */
-      lower_ck_dynamic_init(con_ptr, &ipd, conditional_flag_var,
-                            dtor_case, ctor_init, insert_location);
-    } else if (con_ptr->kind == (a_constant_repr_kind)ck_init_repeat) {
-      /* Repeated constant.  Must be initializing members of an array. */
+  /* Watch out for empty aggregate initializations. */
+  if (con_ptr != NULL) {
+    for (;;) {
+      if (con_ptr->kind == (a_constant_repr_kind)ck_dynamic_init) {
+        /* Dynamic initialization. */
+        lower_ck_dynamic_init(con_ptr, &ipd, conditional_flag_var,
+                              dtor_case, ctor_init, insert_location);
+      } else if (con_ptr->kind == (a_constant_repr_kind)ck_init_repeat) {
+        /* Repeated constant.  Must be initializing members of an array. */
 #if CHECKING
-      if (aggr_type->kind != (a_type_kind)tk_array) {
-        internal_error(
+        if (aggr_type->kind != (a_type_kind)tk_array) {
+          internal_error(
                  "lower_dynamic_init_aggregate_constant: repeat on non-array");
-      }  /* if */
+        }  /* if */
 #endif /* CHECKING */
-      repeated_con = con_ptr->variant.init_repeat.constant;
-      /* Repeat the constant the right number of times.  It must be a
-         ck_dynamic_init constant. */
+        repeated_con = con_ptr->variant.init_repeat.constant;
+        /* Repeat the constant the right number of times.  It must be a
+           ck_dynamic_init constant. */
 #if CHECKING
-      if (repeated_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
-        internal_error(
+        if (repeated_con->kind != (a_constant_repr_kind)ck_dynamic_init) {
+          internal_error(
     "lower_dynamic_init_aggregate_constant: repeated con not ck_dynamic_init");
-      }  /* if */
+        }  /* if */
 #endif /* CHECKING */
-      ipd.whole_array = TRUE;
-      ipd.array_element_count = con_ptr->variant.init_repeat.count;
-      lower_ck_dynamic_init(repeated_con, &ipd, conditional_flag_var,
-                            dtor_case, ctor_init, insert_location);
-    } else if (con_ptr->kind == (a_constant_repr_kind)ck_aggregate) {
-      /* Aggregate constant initializing a member of an aggregate. */
-      lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
-                                            conditional_flag_var,
-                                            dtor_case, ctor_init,
-                                            insert_location, keep_constant);
-    } else {
-      /* Normal constant. */
-      lower_constant(con_ptr);
-      *keep_constant = TRUE;
-    }  /* if */
-    /* Go on to the next constant if there is one. */
-    con_ptr = con_ptr->next;
-    if (con_ptr == NULL) break;
-    /* Find the next element type in the aggregate. */
-    if (aggr_type->kind == (a_type_kind)tk_array) {
-      /* Array -- go on to next element; element type does not change. */
-      ipmp->curr_elem++;
-    } else {
+        ipd.whole_array = TRUE;
+        ipd.array_element_count = con_ptr->variant.init_repeat.count;
+        lower_ck_dynamic_init(repeated_con, &ipd, conditional_flag_var,
+                              dtor_case, ctor_init, insert_location);
+      } else if (con_ptr->kind == (a_constant_repr_kind)ck_aggregate) {
+        /* Aggregate constant initializing a member of an aggregate. */
+        lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
+                                              conditional_flag_var,
+                                              dtor_case, ctor_init,
+                                              insert_location, keep_constant);
+      } else {
+        /* Normal constant. */
+        lower_constant(con_ptr);
+        *keep_constant = TRUE;
+      }  /* if */
+      /* Go on to the next constant if there is one. */
+      con_ptr = con_ptr->next;
+      if (con_ptr == NULL) break;
+      /* Find the next element type in the aggregate. */
+      if (aggr_type->kind == (a_type_kind)tk_array) {
+        /* Array -- go on to next element; element type does not change. */
+        ipmp->curr_elem++;
+      } else {
 #if CHECKING
-      if (!is_immediate_class_type(aggr_type)) {
-        internal_error(
+        if (!is_immediate_class_type(aggr_type)) {
+          internal_error(
                    "lower_dynamic_init_aggregate_constant: bad aggr kind (2)");
-      }  /* if */
+        }  /* if */
 #endif /* CHECKING */
-      /* Class, struct, or union -- go on to next field (nonstatic data
-         member). */
-      ipmp->curr_field = next_initializable_field(ipmp->curr_field->next);
+        /* Class or struct -- go on to next field (nonstatic data member). */
+        ipmp->curr_field = next_initializable_field(ipmp->curr_field->next);
 #if CHECKING
-      if (ipmp->curr_field == NULL) {
-        internal_error(
+        if (ipmp->curr_field == NULL) {
+          internal_error(
                    "lower_dynamic_init_aggregate_constant: not enough fields");
-      }  /* if */
+        }  /* if */
 #endif /* CHECKING */
-      ipmp->type = ipmp->curr_field->type;
-    }  /* if */
-  }  /* for */
+        ipmp->type = ipmp->curr_field->type;
+      }  /* if */
+    }  /* for */
+  }  /* if */
 }  /* lower_dynamic_init_aggregate_constant */
 
 
