@@ -763,9 +763,7 @@ The type will be long int, since that is what the preprocessor uses.
 Return tok_int_constant.
 */
 {
-  clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
-  set_value_of_integer_constant(&const_for_curr_token, value,
-                                integer_type((an_integer_kind)ik_long));
+  set_integer_constant(&const_for_curr_token, value, (an_integer_kind)ik_long);
   return tok_int_constant;
 }  /* make_pp_int_constant */
 
