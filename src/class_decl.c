@@ -5084,9 +5084,19 @@ declared member functions.
                               declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (!func_info->is_definition) {
-      (void)set_src_seq_secondary_decl_type((char *)rtn, member_type,
-                                            /*is_specialization=*/FALSE);
+      /* Since this is a non-defining entry, it is represented by a
+         secondary-decl entry in the source sequence list.  Enter the
+         current function type. */
+      a_src_seq_secondary_decl_ptr  sssdp;
+
+      sssdp = set_src_seq_secondary_decl_type((char *)rtn, member_type,
+                                              /*is_specialization=*/FALSE);
+      /* A member function declaration within a class definition is always
+         the initial declaration. */
+      sssdp->first_declaration = TRUE;
     } else {
+      /* For a definition enter the function type as the "declared_type" in
+         the routine entry itself. */
       rtn->declared_type = member_type;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
