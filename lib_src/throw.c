@@ -490,13 +490,18 @@ Print the contents of a region description entry.
       fprintf(__f_debug, "  flags: ");
       if (ehrdp->flags & RDF_INDIRECT) fprintf(__f_debug, " indirect");
       if (ehrdp->flags & RDF_NEW_ALLOCATION) fprintf(__f_debug, " new");
-#ifndef __EDG_IA64_ABI
       if (ehrdp->flags & RDF_BASE_CLASS_SUBOBJECT) {
         fprintf(__f_debug, " subobject");
-      }  /* if */
-#endif /* ifndef __EDG_IA64_ABI */
-      if (ehrdp->flags & RDF_GUARD_VAR_FOR_LOCAL_STATIC) {
-        fprintf(__f_debug, " local static guard");
+        /* The SUBOBJECT_VTABLE and GUARD_VAR flags share the same bit.
+           The meaning depends on the setting of the BASE_CLASS_SUBOBJECT
+           flag. */
+        if (ehrdp->flags & RDF_SUBOBJECT_VTABLE) {
+          fprintf(__f_debug, " subobject vtable");
+        }  /* if */
+      } else {
+        if (ehrdp->flags & RDF_GUARD_VAR_FOR_LOCAL_STATIC) {
+          fprintf(__f_debug, " local static guard");
+        }  /* if */
       }  /* if */
     }  /* if */
     fprintf(__f_debug, "  destr/delete=%p\n",
@@ -659,13 +664,16 @@ requires cleanup.
     }  /* if */
 #endif /* DEBUG */
     /* Do the actual cleanup of the object. */
-    if ((flags & RDF_GUARD_VAR_FOR_LOCAL_STATIC) != 0) {
+    if ((flags & RDF_GUARD_VAR_FOR_LOCAL_STATIC) != 0 &&
+        (flags & RDF_BASE_CLASS_SUBOBJECT) == 0) {
       /* The cleanup object is the variable that is set when a local static
          variable is initialized.  When such an entry is on the cleanup list
          it means that the exception was thrown while the local static was
          being initialized.  The cleanup action is to reset the guard
          variable so that it will be initialized again the next time the
-         declaration of the local static is reached. */
+         declaration of the local static is reached.  The test of
+         RDF_BASE_CLASS_SUBOBJECT is needed because the GUARD_VAR bit
+         is shared with the SUBOBJECT_VTABLE bit. */
       flag_addr = (a_conditional_flag*)obj_addr;
       *flag_addr = 0;
     } else if (!(flags & RDF_NEW_ALLOCATION)) {
