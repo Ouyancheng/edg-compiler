@@ -14213,12 +14213,13 @@ emitted in this translation unit.
   }  /* if */
   if (!body_can_be_generated) {
     /* We can't emit the body if one can't be generated. */
-  } else if (instantiation_mode == tim_used) {
-    /* In -tused mode, emit the function if it was referenced. */
+  } else if (instantiation_mode == tim_used ||
+             instantiation_mode == tim_all) {
+    /* In -tused mode, emit the function if it was referenced.  Note that
+       -tall mode is actually treated like -tused mode with respect to
+       inline functions.  This is done to prevent the instantiation of
+       certain compiler generated functions that might result in errors. */
     result = rout_ptr->inline_instance_required;
-  } else if (instantiation_mode == tim_all) {
-    /* In -tall mode, always emit it. */
-    result = TRUE;
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   } else if (inline_function_in_request_file(rout_ptr)) {
     result = TRUE;
