@@ -1069,16 +1069,18 @@ allocated at offset bytes from the start of another (not necessarily empty)
 class type atype.  If atype corresponds to a base of the complete class in
 which etype is being allocated, atype_bcp gives that base type; otherwise,
 atype_bcp is NULL.  Return TRUE if this is not the case (i.e., there is a type
-conflict that would cause to empty subobjects of the same type to end up at
+conflict that would cause two empty subobjects of the same type to end up at
 the same address); FALSE otherwise.  If consider_virtual_bases is TRUE,
 virtual bases of atype are considered; otherwise, they are ignored.
 */
 {
   a_boolean result = FALSE;
 
-#if CHECKING
   check_assertion(is_empty_class_type(etype));
-#endif /* CHECKING */
+#if !IA64_ABI
+  /* The offset is always zero in the Cfront-like ABI. */
+  check_assertion(offset == 0);
+#endif /* !IA64_ABI */
   if (offset == 0 && same_entities(etype, atype)) {
     /* Is there a direct type conflict? */
     result = TRUE;
@@ -1139,18 +1141,18 @@ virtual bases of atype are considered; otherwise, they are ignored.
                                               ; 
          field = field->next) {
       a_type_ptr    field_type;
-      a_targ_size_t elt, num_array_elts, field_offset;
+      a_targ_size_t elt, num_array_elts = 1, field_offset;
       field_type = skip_typerefs(field->type);
+      if (is_array_type(field_type)) {
+        /* If the field has an array type, we're interested in the element
+           type of that array. */
 #if IA64_ABI
-      if (is_array_type(field_type) && 
-          !has_unknown_specified_bound(field_type)) {
-        num_array_elts = num_array_elements(field_type);
-        field_type =f_skip_typerefs(underlying_array_element_type(field_type));
-      } else 
+        /* In the IA-64 ABI, in each element of the array. */
+        if (!has_unknown_specified_bound(field_type)) {
+          num_array_elts = num_array_elements(field_type);
+        }  /* if */
 #endif /* IA64_ABI */
-      /* Do not add code here. */
-      {
-        num_array_elts = 1;
+        field_type =f_skip_typerefs(underlying_array_element_type(field_type));
       }  /* if */
       if (is_class_struct_union_type(field_type)) {
         for (elt = 0; elt < num_array_elts; ++elt) {
