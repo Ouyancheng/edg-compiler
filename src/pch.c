@@ -20,6 +20,7 @@ pch.c -- Precompiled header processing.
 #include "symbol_ref.h"
 #include "macro.h"
 #include "mem_manage.h"
+#include "mem_tables.h"
 #include "version.h"
 
 #define PCH_ID_STRING_LENGTH 128
@@ -98,6 +99,23 @@ static an_error_code
 		mismatch_reason;
 			/* An error code that specifies why a given
 			   precompiled header file could not be used. */
+
+static a_source_file_ptr
+		primary_source_file_from_pch;
+			/* The pointer to the primary source file as
+			   restored from the PCH file. */
+
+static a_seq_number
+		saved_curr_seq_number;
+			/* Saved value of curr_seq_number, used to restore
+			   the value after skipping over the part of the
+			   primary source file that was replaced by the
+			   information from the PCH. */
+
+static a_seq_number
+		saved_seq_number_last_read;
+			/* Similiar to saved_curr_seq_number, but used to
+			   save seq_number_last_read. */
 
 /*
 Macro to write a value to the PCH output file.
@@ -999,6 +1017,8 @@ header information about the memory regions such as the memory_region_table.
   for (n = 0; n < mem_regions_used; ++n) {
     write_a_memory_region(n);
   }  /* for */
+  /* Write a copy of the primary source file pointer. */
+  pch_write_value(il_header.primary_source_file);
   db_exit();
 }  /* write_memory_regions */
 
@@ -1040,6 +1060,8 @@ header information about the memory regions such as the memory_region_table.
   for (n = 0; n < mem_regions_used; ++n) {
     read_a_memory_region(n);
   }  /* for */
+  /* Read the copy of the primary source file pointer. */
+  pch_read_value(primary_source_file_from_pch);
   db_exit();
 }  /* read_memory_regions */
 
@@ -1095,8 +1117,8 @@ write out the precompiled header file.
     /* Don't save the header files if we are not currently at file scope. */
   } else if (macro_depth != 0 || pp_if_stack_depth != -1) {
     /* Nor if we are in the midst of a macro definition or a #if construct. */
-  } else if (total_errors > 0 && total_warnings > 0) {
-    /* Nor if there have been diagnostics. */
+  } else if (total_errors > 0) {
+    /* Nor if there have been errors. */
   } else if (def_external_linkage.is_explicit) {
     /* Nor if we are in the middle of a linkage specifier block. */
   } else {
@@ -1469,7 +1491,8 @@ Reload the compiler state information so that a precompiled header file
 may be used.
 */
 {
-  a_boolean	can_use_pch = TRUE;
+  a_boolean			can_use_pch = TRUE;
+  a_memory_region_number	n;
 
   if (open_pch_input_file()) {
     if (pch_is_applicable()) {
@@ -1495,6 +1518,18 @@ may be used.
     read_saved_variables();
     read_memory_regions();
   }  /* if */
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  /* We are building an IL file.  Any memory regions (other than the
+     front end and file scope) that were read from the PCH file must
+     be written to the IL file that is being created. */
+  for (n = FILE_SCOPE_REGION_NUMBER + 1;
+       n <= highest_used_region_number; ++n) {
+    done_with_memory_region(n);
+  }  /* for */
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  /* Save the sequence number as of this point. */
+  saved_seq_number_last_read = seq_number_last_read;
+  saved_curr_seq_number = curr_seq_number;
 }  /* restore_precompiled_header_information */
 
 
@@ -1526,10 +1561,35 @@ be used as part of the applicability check in subsequent compilations.
     restore_precompiled_header_information();
   } else {
     /* We can't use a PCH, see if we can create one. */
-    may_be_building_new_pch = TRUE;
+    header_stop_position_pending = TRUE;
   }  /* if */
   db_exit();
 }  /* precompiled_header_processing */
+
+
+void pch_fixup_for_curr_source_file(void)
+/*
+This routine is called when we have reached the point in the current source
+file at which we make the transition from information supplied by the PCH
+to information generated as a result of this compilation.  This routine
+updates the information restored from the PCH file so that it reflects
+the source file being compiled.
+*/
+{
+  a_source_file_ptr	sfp;
+  a_source_file_ptr	orig_sfp;
+
+  db_enter(0, "pch_fixup_for_curr_source_file");
+  building_pch_prefix = FALSE;
+  next_event_resumes_compilation = FALSE;
+  sfp = il_header.primary_source_file;
+  orig_sfp = primary_source_file_from_pch;
+  sfp->first_child_file = orig_sfp->first_child_file;
+  sfp->last_child_file = orig_sfp->last_child_file;
+  curr_seq_number = saved_curr_seq_number;
+  seq_number_last_read = saved_seq_number_last_read;
+  db_exit();
+}  /* pch_fixup_for_curr_source_file */
 
 
 void register_pch_saved_variables(a_pch_saved_variable array[])
@@ -1566,6 +1626,8 @@ Initialize variables used by the precompiled header routines.
   pch_event_list_tail = NULL;
   building_pch_prefix = FALSE;
   header_stop_source_position = null_source_position;
+  header_stop_position_pending = FALSE;
+  next_event_resumes_compilation = FALSE;
   pragma_hdrstop_found = FALSE;
   pos_of_last_event_from_pch = null_source_position;
   using_a_pch_file = FALSE;

@@ -5365,9 +5365,15 @@ In C++, however, the declaration list is optional (3.4):
                                opt
 */
 {
-  a_boolean  pch_check_pending = precompiled_header_processing_required;
-
-  if (get_token() == tok_end_of_source) {
+  (void)get_token();
+  if (next_event_resumes_compilation) {
+     /* We are done skipping the file prefix when making use of a PCH (i.e.,
+        to skip over the part of the file that is being replaced by
+        information from the PCH).  We've encountered the first token of
+        the normal compilation.  Do any fixup required. */
+    pch_fixup_for_curr_source_file();
+  }  /* if */
+  if (curr_token == tok_end_of_source) {
     /* Empty translation unit -- okay in C++ mode. */
     if (C_mode()) {
       /* A translation unit cannot be empty.  Note that this can happen not
@@ -5380,7 +5386,7 @@ In C++, however, the declaration list is optional (3.4):
     }  /* if */
   } else {
     do {
-      if (pch_check_pending && !curr_ise->is_include_file) {
+      if (header_stop_position_pending && !curr_ise->is_include_file) {
         if (curr_ise->actual_line ==
               (a_line_number)header_stop_source_position.seq &&
             pos_curr_token.column == header_stop_source_position.column) {
@@ -5390,7 +5396,7 @@ In C++, however, the declaration list is optional (3.4):
              out the IL, symbol table, etc. to a precompiled header file. */
           generate_precompiled_header();
         }  /* if */
-        pch_check_pending = FALSE;
+        header_stop_position_pending = FALSE;
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       /* For each declaration at file scope, reset the source-sequence insert

@@ -186,6 +186,14 @@ EXTERN a_source_position
 			   reached the implied header stop point. */
 
 EXTERN a_boolean
+		header_stop_position_pending;
+			/* TRUE when the actual compilation of the file
+			   has reached the header stop point.  Also TRUE
+                           if PCH processing is not being done.  This disables
+			   subsequence checking for the header stop
+			   condition. */
+
+EXTERN a_boolean
 		pragma_hdrstop_found;
 			/* TRUE is a #pragma hdrstop was encountered
 			   during the prefix prescan.  This disables
@@ -203,18 +211,25 @@ EXTERN a_source_position
 			   being used.  Used to skip past the common
 			   prefix before beginning the compilation. */
 
+EXTERN a_boolean
+		next_event_resumes_compilation;
+			/* Used when skipping the common prefix before
+			   beginning real compilation when using a PCH.
+			   This is TRUE when the next event should be
+			   processed normally. */
+
 
 /*
 Macro used to set cannot_do_pch_processing.
 */
 #define abandon_pch_processing()					\
-  cannot_do_pch_processing = TRUE
+  cannot_do_pch_processing = TRUE;
 
 /*
 Macro used to set cannot_create_pch_file.
 */
 #define suppress_creation_of_pch()					\
-  cannot_create_pch_file = TRUE
+  cannot_create_pch_file = TRUE;
 
 extern
 void add_pch_event(a_pch_event_kind	kind,
@@ -231,6 +246,8 @@ void add_command_line_pch_event(a_pch_event_kind	kind,
 extern void precompiled_header_processing(void);
 
 extern void generate_precompiled_header(void);
+
+extern void pch_fixup_for_curr_source_file(void);
 
 extern void pch_init(void);
 

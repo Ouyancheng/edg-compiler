@@ -1265,11 +1265,15 @@ begin.
   if (using_a_pch_file) {
     /* Skip to the end of this directive. */
     while (get_token() != tok_newline);
-    /* Actually, both conditions should be TRUE when a pragma hdrstop
-       is found. */
-    if (is_pragma_hdrstop ||
-        cmp_source_positions(*pos, pos_of_last_event_from_pch) == 0) {
-      building_pch_prefix = FALSE;
+    if (building_pch_prefix) {
+      if (is_pragma_hdrstop ||
+          (curr_ise->actual_line ==
+                        (a_line_number)pos_of_last_event_from_pch.seq &&
+           pos->column == pos_of_last_event_from_pch.column)) {
+        /* Actually, both conditions should be TRUE when a pragma hdrstop
+           is found. */
+        next_event_resumes_compilation = TRUE;
+      }  /* if */
     }  /* if */
   } else if (pragma_hdrstop_found) {
     /* We previously encountered a pragma hdrstop, disregard any
@@ -1316,6 +1320,10 @@ execute the preprocessor directive.
   add_stop_token(tok_newline);
   /* Identify the keyword and go to the right processing routine. */
   dir_kind = identify_dir_keyword();
+  if (next_event_resumes_compilation) {
+     /* We are done skipping the file prefix when making use of a PCH. */
+     pch_fixup_for_curr_source_file();
+  }  /* if */
   if (!building_pch_prefix) {
     switch ((int)dir_kind) {
       case ppd_not_valid:
