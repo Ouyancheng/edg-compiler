@@ -181,8 +181,8 @@ unreachable.
          (throw c, y)
        but it doesn't seem worth it. */
     set_unreachable(curr_reachability);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode) {
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode || gcc_mode) {
     if (node->kind == (an_expr_node_kind)enk_operation &&
         (node->variant.operation.kind == (an_expr_operator_kind)eok_call ||
          node->variant.operation.kind ==
@@ -191,7 +191,15 @@ unreachable.
                              (an_expr_operator_kind)eok_generic_member_call)) {
       node = node->variant.operation.operands;
       if (node->kind == (an_expr_node_kind)enk_routine_address) {
-        if (node->variant.routine->decl_modifiers & DM_NORETURN) {
+        a_boolean  routine_does_not_return = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        routine_does_not_return |=
+                   (node->variant.routine->decl_modifiers & DM_NORETURN) != 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+        routine_does_not_return |= node->variant.routine->does_not_return;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        if (routine_does_not_return) {
           /* The statement is a call of a routine that is marked as not
              returning.  Treat this like a lint notreached comment -- i.e.,
              as a hint to the compiler but not something we know for sure. */
@@ -200,7 +208,7 @@ unreachable.
         }  /* if */
       }  /* if */
     }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 }  /* check_reachability_following_expression */
 
