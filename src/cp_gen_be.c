@@ -1196,7 +1196,6 @@ implicit cast if appropriate.
       /* ... or, if we're generating K&R C and it's an unsigned constant
          (pcc doesn't support unsigned integral constants), ... */
       (il_header.pcc_compatibility_mode &&
-       constant->kind == (a_constant_repr_kind)ck_integer &&
        !(con_type->kind == (a_type_kind)tk_integer &&
          int_kind_is_signed[(int)con_type->variant.integer.int_kind]))) {
     /* ... then prefix the constant with an explicit cast. */
