@@ -1,5 +1,13 @@
 Version 2.21
 
+12/1/93  Void variable is not an lvalue
+
+The following now gets an error:
+
+  extern void v;
+  &v;  /* Error, "v" is not an lvalue. */
+
+
 12/1/93  (void *)0 cases in C mode
 
 Two bugs related to the following in C mode have been corrected:

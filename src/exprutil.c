@@ -3001,31 +3001,43 @@ reference entry, or is NULL if none is needed.
   an_expr_node_ptr node;
   a_type_ptr       variable_type = variable->type;
 
-  if (variable->storage_class == (a_storage_class)sc_register ||
-      variable->storage_class == (a_storage_class)sc_auto) {
-    /* Register variables do not have addresses, and auto variables
-       do not have constant addresses, so use a variable-address
-       expression instead of a constant.  Note that one can use
-       a variable-address expression node on a register variable,
-       but only for lvalue address notational convenience.  The actual
-       address can never be used. */
-    node = var_lvalue_expr(variable);
-    make_expression_operand(node, variable_type, result);
+  if (is_void_type(variable_type) && !is_qualified_type(variable_type)) {
+    /* If the variable has type void, make an rvalue instead of an lvalue.
+       See ANSI C 3.2.2.1.  This helps with
+         extern void x;
+         x;
+         &x;
+    */
+    make_expression_operand(var_rvalue_expr(variable), variable->type,
+                            result);
+    copy_source_position(pos_curr_token, result->position);
   } else {
-    /* Normal case; set up an address-of-variable constant. */
-    clear_operand((an_operand_kind)ok_constant, result);
-    set_variable_address_constant(variable, &result->variant.constant);
-    result->type = variable_type;
-  }  /* if */
-  result->state = (an_operand_state)os_lvalue;
-  copy_source_position(pos_curr_token, result->position);
-  /* Instantiate the underlying type if it is a template class. */
-  check_for_uninstantiated_template_class(variable_type);
-  /* Start a list of reference entries related to the operand. */
-  result->ref_entries_list = rep;
-  /* If the variable has a reference type, add an implicit indirection. */
-  if (C_dialect == C_dialect_cplusplus && is_reference_type(variable_type)) {
-    add_reference_indirection(result);
+    if (variable->storage_class == (a_storage_class)sc_register ||
+        variable->storage_class == (a_storage_class)sc_auto) {
+      /* Register variables do not have addresses, and auto variables
+         do not have constant addresses, so use a variable-address
+         expression instead of a constant.  Note that one can use
+         a variable-address expression node on a register variable,
+         but only for lvalue address notational convenience.  The actual
+         address can never be used. */
+      node = var_lvalue_expr(variable);
+      make_expression_operand(node, variable_type, result);
+    } else {
+      /* Normal case; set up an address-of-variable constant. */
+      clear_operand((an_operand_kind)ok_constant, result);
+      set_variable_address_constant(variable, &result->variant.constant);
+      result->type = variable_type;
+    }  /* if */
+    result->state = (an_operand_state)os_lvalue;
+    copy_source_position(pos_curr_token, result->position);
+    /* Instantiate the underlying type if it is a template class. */
+    check_for_uninstantiated_template_class(variable_type);
+    /* Start a list of reference entries related to the operand. */
+    result->ref_entries_list = rep;
+    /* If the variable has a reference type, add an implicit indirection. */
+    if (C_dialect == C_dialect_cplusplus && is_reference_type(variable_type)) {
+      add_reference_indirection(result);
+    }  /* if */
   }  /* if */
 }  /* make_lvalue_variable_operand */
 
