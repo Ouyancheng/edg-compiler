@@ -2484,10 +2484,9 @@ is the one associated with the definition of the class.
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
   if (ctsp != NULL &&
-      ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable &&
-      !type->source_corresp.is_local_to_function) {
-    /* For a global anonymous union, put out "static" in front of the union. */
-    write_tok_str("static ");
+      ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable) {
+    /* For an anonymous union, put out the storage class. */
+    gen_storage_class(ctsp->anonymous_union_object.storage_class);
   }  /* if */
   write_tok_str(tag_kind(type->kind));
   write_space();
