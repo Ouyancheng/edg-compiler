@@ -2431,11 +2431,13 @@ conversions.
        different. */
     need_cast = TRUE;
   } else if (!is_implicit_cast) {
-    if (is_floating_type(new_type)) {
+    if (!gpp_mode && is_floating_type(new_type)) {
       /* A do-nothing cast to a floating-point type can force the
          implementation to drop down from any increased precision of
          intermediate values to the exact precision of the type.
-         See C99 standard 6.3.1.5 and 6.3.1.8. */
+         See C99 standard 6.3.1.5 and 6.3.1.8.  g++ doesn't do this, and
+         it's important to throw away the cast so that lvalue assignments
+         are handled right. */
       need_cast = TRUE;
     } else {
       /* Do-nothing explicit casts are preserved in some configurations. */
