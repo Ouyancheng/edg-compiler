@@ -1771,6 +1771,83 @@ them up one level.
   db_exit();
 }  /* remove_anonymous_union_member_from_inactive_symbols_list */
 
+#if RECORD_HIDDEN_NAMES_IN_IL
+
+void record_defeatable_name_hiding(a_symbol_ptr  hidden_sym,
+                                   a_boolean     tag_hidden_by_nontag)
+/*
+hidden_sym is a symbol for an entity that is hidden by another declaration
+of the same name -- but the hiding can be "defeated" by using an
+elaborated type specifier or global qualification (preceding "::") when
+referring to the hidden name.  Create the hidden-name entity to represent
+this case and add it to the list for the current scope.
+*/
+{
+  a_hidden_name_ptr        hnp;
+  a_scope_stack_entry_ptr  ssep;
+  a_scope_ptr              sp;
+  char                     *entity;
+  an_il_entry_kind         kind;
+
+  switch (hidden_sym->kind) {
+    case sk_label:
+    case sk_keyword:
+    case sk_macro:
+      /* Not in the same name space. */
+      break;
+    case sk_projection:
+      /* Ignore projection symbols. */
+      break;
+    case sk_overloaded_function:
+      /* Enter members of an overload set separately. */
+      for (hidden_sym = hidden_sym->variant.overloaded_function.symbols;
+           hidden_sym != NULL;
+           hidden_sym = hidden_sym->next) {
+        record_defeatable_name_hiding(hidden_sym, tag_hidden_by_nontag);
+      }  /* for */
+      break;
+    default:
+      /* The normal case.  First find the entity associated with the symbol. */
+      entity = il_entry_for_symbol(hidden_sym, &kind);
+      if (entity != NULL) {
+        /* Get pointer to current scope entry. */
+        ssep = &scope_stack[decl_scope_level];
+        /* Create the IL scope if necessary (for block scopes). */
+        sp = ensure_il_scope_exists(ssep);
+        check_assertion_str(sp != NULL,
+                            "record_defeatable_name_hiding: NULL IL scope");
+        /* If there is already a hidden name entry for this entity in this
+           scope, reuse it. */
+        for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
+          if (hnp->entity.ptr == entity) break;
+        }  /* for */
+        if (hnp == NULL) {
+          /* No new entry.  Allocate a new one. */
+          hnp = alloc_hidden_name();
+          hnp->entity.ptr = entity;
+          hnp->entity.kind = (a_byte_il_entry_kind)kind;
+          /* Append it to the hidden_names list of the current scope. */
+          if (sp->hidden_names == NULL) {
+            sp->hidden_names = hnp;
+          } else {
+            ssep->last_hidden_name->next = hnp;
+          }  /* if */
+          ssep->last_hidden_name = hnp;
+        }  /* if */
+        /* Set the appropriate flag. */
+        if (tag_hidden_by_nontag) {
+          check_assertion(kind == (an_il_entry_kind)iek_type);
+          hnp->elaborated_type_specifier_needed = TRUE;
+        } else {
+          check_assertion(in_file_scope(entity));
+          check_assertion(decl_scope_level != DEPTH_OF_FILE_SCOPE);
+          hnp->global_qualification_needed = TRUE;
+        }  /* if */
+      }  /* if */
+  }  /* switch */
+}  /* record_defeatable_name_hiding */
+
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 
 a_boolean symbols_may_coexist_in_curr_scope(a_symbol_ptr  old_sym,
                                             a_symbol_ptr  new_sym,
@@ -1797,8 +1874,7 @@ this is not allowed, an error will be issued by the caller.
 {
   a_boolean  err = TRUE;
 
-  if (C_dialect == C_dialect_cplusplus &&
-      is_tag_symbol(fundamental_symbol_of(new_sym))) {
+  if (!C_mode() && is_tag_symbol(fundamental_symbol_of(new_sym))) {
     /* New symbol is a tag symbol. */
     a_symbol_ptr fund_old_sym = fundamental_symbol_of(old_sym);
     if (!is_type_symbol(fund_old_sym) &&
@@ -1808,8 +1884,7 @@ this is not allowed, an error will be issued by the caller.
       err = FALSE;
       if (insert_sym != NULL) *insert_sym = old_sym;
     }  /* if */
-  } else if (C_dialect == C_dialect_cplusplus &&
-             is_tag_symbol(fundamental_symbol_of(old_sym))) {
+  } else if (!C_mode() && is_tag_symbol(fundamental_symbol_of(old_sym))) {
     /* The old symbol is a tag symbol. */
     a_symbol_ptr fund_new_sym = fundamental_symbol_of(new_sym);
     if (!is_type_symbol(fund_new_sym) &&
@@ -1817,6 +1892,11 @@ this is not allowed, an error will be issued by the caller.
       /* The new one is not a type symbol or a class template name.  It
          will be placed at the front of the list automatically. */
       err = FALSE;
+#if RECORD_HIDDEN_NAMES_IN_IL
+      /* The current declaration hides a tag declaration in the current
+         scope. */
+      record_defeatable_name_hiding(old_sym, /*tag_hidden_by_nontag=*/TRUE);
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
     }  /* if */
   } else if ((cfront_compatibility_mode || C_dialect == C_dialect_pcc) &&
              old_sym->kind == (a_symbol_kind)sk_variable &&
@@ -2003,6 +2083,22 @@ the proper insert location.
       sym_ptr->next = insert_after->next;
       insert_after->next = sym_ptr;
     }  /* if */
+#if RECORD_HIDDEN_NAMES_IN_IL
+    /* If the current declaration hides a declaration at file scope, record
+       that information in the IL. */
+    if (!C_mode() && scope_depth > DEPTH_OF_FILE_SCOPE) {
+      a_scope_number  file_scope_number =
+                                   scope_stack[DEPTH_OF_FILE_SCOPE].number;
+      for (old_sym_ptr = sym_ptr->next;
+           old_sym_ptr != NULL;
+           old_sym_ptr = old_sym_ptr->next) {
+        if (old_sym_ptr->decl_scope == file_scope_number) {
+          record_defeatable_name_hiding(old_sym_ptr,
+                                        /*tag_hidden_by_nontag=*/FALSE);
+        }  /* if */
+      }  /* for */
+    }  /* if */
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
   }  /* if */
 }  /* link_symbol_into_symbol_table */
 

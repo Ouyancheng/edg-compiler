@@ -2022,6 +2022,9 @@ extern void remove_symbol(a_symbol_ptr sym_ptr);
 extern void remove_anonymous_union_member_from_inactive_symbols_list
                                                        (a_symbol_ptr sym_ptr);
 
+extern void record_defeatable_name_hiding(a_symbol_ptr  hidden_sym,
+                                          a_boolean     tag_hidden_by_nontag);
+
 extern a_boolean symbols_may_coexist_in_curr_scope
 					(a_symbol_ptr  old_sym,
                                          a_symbol_ptr  new_sym,
