@@ -5487,7 +5487,7 @@ for the scope, which means no last-pointer is being maintained (anymore).
          is a namespace member or the file scope otherwise. */
       nsp = scp->parent.namespace_ptr;
       if (nsp == NULL) {
-        check_assertion(!scp->is_local_to_function);
+        check_assertion(!scp->is_local_to_function || total_errors != 0);
         scope_level = DEPTH_OF_FILE_SCOPE;
       }  /* if */
     }  /* if */

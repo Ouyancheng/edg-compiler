@@ -1,5 +1,19 @@
 Version 3.3
 
+5/13/03  Abort in get_scope_for_list for unusual error case in strict mode
+
+In some very unusual cases, the front end aborted in strict mode with an
+internal error in get_scope_for_list.  For example:
+
+  */ (
+  namespace N {
+    class A {
+      template<class T> friend f(T, A a) { f(i, a); }
+    };
+  }
+
+This is now fixed (normal errors are issued).
+
 5/13/03  Microsoft/GNU C++ modes: Pure virtual specifier syntax
 
 Normally, pure virtual member functions are declared using the "= 0" suffix,
