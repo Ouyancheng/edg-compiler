@@ -2712,6 +2712,7 @@ be kept, FALSE if it should be deleted.
   an_object_lifetime_ptr
                      lifetime, init_expr_lifetime;
   a_context          context, static_context;
+  a_context_ptr      eff_context = curr_context;
 
   *keep_dynamic_init = FALSE;
   saved_code_pos = code_pos_for_lowering;
@@ -2751,15 +2752,20 @@ be kept, FALSE if it should be deleted.
          processing the dynamic initialization. */
       push_context(&static_context, (a_scope_ptr)NULL, lifetime);
       pushed_static_context = TRUE;
+      eff_context = curr_context;
+    } else if (curr_object_lifetime->kind ==
+                                 (an_object_lifetime_kind)olk_expr_temporary &&
+               curr_object_lifetime->parent_lifetime == lifetime) {
+      /* This is a case where a temporary has had its lifetime extended because
+         a reference was bound to it.  The temporary is in a lifetime outside
+         of the current one, and a context outside the current one. */
+      eff_context = context_for_lifetime(lifetime);
     } else {
       /* Not a local static initialization. */
       check_assertion_str(curr_object_lifetime == lifetime ||
                           (processing_file_scope_init_routine &&
                            lifetime->kind ==
-                                 (an_object_lifetime_kind)olk_global_static) ||
-                          (curr_object_lifetime->kind ==
-                                 (an_object_lifetime_kind)olk_expr_temporary &&
-                           curr_object_lifetime->parent_lifetime == lifetime),
+                                   (an_object_lifetime_kind)olk_global_static),
      "lower_dynamic_init: dynamic init has lifetime other than curr lifetime");
     }  /* if */
   }  /* if */
@@ -3007,7 +3013,7 @@ do_assignment:;
         /* Make a region table entry for the entity (and for its conditional
            flag, if it has one). */
         make_dyn_init_region_table_entry(dip,
-                                         curr_context->latest_initialization,
+                                         eff_context->latest_initialization,
                                          insert_location);
         /* Insert code to set eh_curr_region to the region number for the
            cleanup for this initialization, because we've done the
@@ -3017,7 +3023,7 @@ do_assignment:;
       /* Record this dynamic initialization as the last encountered in the
          current context (and therefore the place to start to generate
          cleanup code if we exit the lifetime after this point). */
-      curr_context->latest_initialization = dip;
+      eff_context->latest_initialization = dip;
     }  /* if */
   }  /* if */
   /* In the whole-variable cases, adjust the initialization specified in
