@@ -8917,6 +8917,14 @@ and for the instantiation of template functions.
      type entry. */
   rout_ptr->assoc_scope = curr_il_region_number;
   rtsp->assoc_routine = rout_ptr;
+  /* If a lint-style "argsused" or "varargs" comment appeared, remember that in
+     the function type.  That will suppress any warnings about unused
+     parameters or variable arguments. */
+  rtsp->lint_argsused_flag = lint_argsused_flag;
+  rtsp->lint_varargs_count = lint_varargs_count;
+  /* The lint "argsused" and "varargs" flags last only one declaration;
+     clear them before entering the function body. */
+  clear_decl_lint_and_pragma_globals();
   if (class_type != NULL && rtsp->implicit_this_param_type != NULL) {
     a_variable_ptr  vp = make_param_variable(rtsp->implicit_this_param_type,
                                              (a_storage_class)sc_auto);
@@ -9064,10 +9072,6 @@ and for the instantiation of template functions.
     /* Pop the class symbol reactivation scope. */
     pop_class_reactivation_scope();
   }  /* if */  
-  /* The lint "argsused" and "varargs" flags are only applicable until
-     the end of a function declaration. */
-  lint_argsused_flag = FALSE;
-  lint_varargs_count = NOT_LINT_VARARGS;
   /* Check for the closing "}", not done in compound_statement.  Note that
      required_token is not called; if compound_statement returned on
      anything other than a right brace, it's because we should start parsing
@@ -9249,11 +9253,6 @@ specified (rather than defaulted to "int").
     /* This is "main", so remember the location of its routine entry. */
     il_header.main_routine = routine_ptr;
   }  /* if */
-  /* If a lint-style "argsused" or "varargs" comment appeared, remember that in
-     the function type.  That will suppress any warnings about unused
-     parameters or variable arguments. */
-  extra_info->lint_argsused_flag = lint_argsused_flag;
-  extra_info->lint_varargs_count = lint_varargs_count;
   /* Scan the function body. */
   flags = SFB_NO_FLAGS;
   if (!has_explicit_type_specifier) {
@@ -10698,6 +10697,9 @@ continue_with_declaration:
       /* Keep scanning the list of declarators. */
     } while (loop_token(tok_comma));
   }  /* if */
+  /* The lint "argsused" and "varargs" flags last only one declaration;
+     clear them before consuming the semicolon. */
+  clear_decl_lint_and_pragma_globals();
   /* Check for final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
 
