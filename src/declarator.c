@@ -609,7 +609,7 @@ property fields).
           promote_float_to_double(new_type_ptr);
         }  /* if */
         if (is_qualified_type(new_type_ptr)) {
-          /* Qualifier on on return type. */
+          /* Qualifier on return type. */
           if (!C_mode() &&
               (is_class_struct_union_type(new_type_ptr) ||
                is_template_param_type(new_type_ptr))) {
