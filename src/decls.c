@@ -9256,7 +9256,8 @@ instruction's operands.
     (void)get_token();
     if (gnu_mode && is_type_qualifier_token(curr_token)) {
       /* Scan a volatile and/or const qualifier.  The const qualifier is
-         ignored with a warning.  Other type qualifiers elicit an error. */
+         ignored with a warning.  Type qualifiers other than volatile and
+         const elicit an error. */
       a_source_position     cv_pos;
       a_decl_pos_block      ext_cv_pos;
       a_upc_block_size      block_size = 0;
