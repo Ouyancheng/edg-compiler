@@ -1232,8 +1232,7 @@ invalid attributes.
       case ak_alias:
         if (check_variable_not_local(vp, ap, /*allow_local_static=*/FALSE)) {
           add_alias_fixup((a_symbol_ptr)vp->source_corresp.assoc_info,
-                          /*alias_name=*/NULL,
-                          ap->variant.alias, &ap->position);
+                          (char*)NULL, ap->variant.alias, &ap->position);
         }  /* if */
         break;
       case ak_nocommon:
@@ -1395,7 +1394,7 @@ messages about any invalid attributes.
           rp->is_inline = FALSE;
         }  /* if */
         add_alias_fixup((a_symbol_ptr)rp->source_corresp.assoc_info,
-                        /*alias_name=*/NULL, ap->variant.alias, &ap->position);
+                        (char*)NULL, ap->variant.alias, &ap->position);
         break;
       case ak_malloc:
         /* GCC does not issue any diagnostics if the routine does not
