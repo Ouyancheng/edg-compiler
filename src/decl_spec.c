@@ -1922,6 +1922,7 @@ otherwise a diagnostic is issued.  The type is returned in *type_ptr.
       a_symbol_ptr	sym = locator_for_curr_id.specific_symbol;
       a_symbol_ptr	fund_sym;
       check_assertion(sym != NULL);
+      check_ambiguity_and_verify_access(&locator_for_curr_id);
       fund_sym = fundamental_symbol_of(sym);
       if (!is_type_symbol(fund_sym)) {
         /* The symbol is not a type name. */
