@@ -7835,7 +7835,7 @@ next_declaration:
       }  /* if */
       if (override_registry != NULL) {
         /* Check each entry in the override registry for conditions that
-           would warrant a warning.  There are two case: when the overridden
+           would warrant a warning.  There are two cases: when the overridden
            function is an overload set in a base class and one or more virtual
            functions was overridden by a declaration in the current class and
            one or more was not overridden; though allowed, this could produce
@@ -7902,6 +7902,15 @@ next_declaration:
       placeholder->variant.typeref.is_placeholder_for_nested_class_def = TRUE;
       class_type->variant.class_struct_union.
                                 nested_class_defined_outside_of_parent = TRUE;
+      if (scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_namespace) {
+        /* This class is being defined in a namespace scope instead of the file
+           scope.  Make the placeholder a member of the namespace. */
+        a_namespace_ptr nsp = scope_stack[depth_scope_stack].il_scope->
+                                                       variant.assoc_namespace;
+        set_namespace_membership((a_symbol_ptr)NULL,
+                                 &placeholder->source_corresp,
+                                 nsp);
+      }  /* if */
       add_to_types_list(placeholder, depth_scope_stack);
     }  /* if */
     remove_stop_token(tok_rbrace);
