@@ -2139,6 +2139,9 @@ otherwise implicitly enabled Microsoft mode.
 }  /* exclude_microsoft_mode */
 
 
+#if !SUN_EXTENSIONS_ALLOWED
+/* ARGSUSED */ /* The parameter is only used when Sun extensions are allowed */
+#endif /* !SUN_EXTENSIONS_ALLOWED */
 static void exclude_sun_mode(an_error_code  error_code)
 /*
 Sun mode is incompatible with other settings.  Either issue the given
