@@ -3643,7 +3643,6 @@ its parameters?).
       case tk_error:
       case tk_void:
       case tk_float:
-      case tk_template_param:
       case tk_unknown:
         /* Leaf nodes -- no further traversal required. */
         break;
@@ -3735,6 +3734,18 @@ check_enclosing_classes:
         status = traverse_type_tree(tp, func, flags);
         if (!status) {
           tp = type_ptr->variant.ptr_to_member.type;
+          status = traverse_type_tree(tp, func, flags);
+        }  /* if */
+        break;
+      case tk_template_param:
+        /* "Member" template params (e.g., T::X) should have a pointer to a
+           parent class. */
+        tp = type_ptr->source_corresp.class_of_which_a_member;
+        check_assertion((tp != NULL) ==
+                        (type_ptr->variant.template_param.kind ==
+                                     (a_template_param_type_kind)tptk_member));
+        if (tp != NULL) {
+          tp = symbol_supplement_for_class(tp)->template_param_for_proxy_class;
           status = traverse_type_tree(tp, func, flags);
         }  /* if */
         break;
