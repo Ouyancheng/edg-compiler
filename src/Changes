@@ -1,5 +1,20 @@
 Version 2.34
 
+10/9/96 Initializing a char array with a string literal
+
+An error is no longer issued when a field of type array-of-char is
+initialized in a ctor-initializer with a string literal:
+
+  struct S {
+    char x[3];
+    S() : x("ab") { }        // Spurious error eliminated
+  };
+
+In a related change, a string literal is now accepted in a direct
+initialization as well:
+
+  char x[3]("ab");           // Same as char x[3] = "ab"
+
 10/8/96 IL lowering: small improvement in code on return statement
 
 The code for a return in a function with destructible objects, where
