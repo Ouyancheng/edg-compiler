@@ -2699,7 +2699,11 @@ Do the multiplication operation on all types of float.
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  set_constant_kind(result, (a_constant_repr_kind)ck_float);
+  set_constant_kind(result,
+                    ((constant_1->kind == (a_constant_repr_kind)ck_imaginary)!=
+                     (constant_2->kind == (a_constant_repr_kind)ck_imaginary))?
+                                           (a_constant_repr_kind)ck_imaginary :
+                                           (a_constant_repr_kind)ck_float);
   fp_multiply(float_kind,
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
@@ -2738,7 +2742,11 @@ Do the division operation on all types of float.
     *err_code = ec_divide_by_zero;
     *err_severity = es_error;
   } else {
-    set_constant_kind(result, (a_constant_repr_kind)ck_float);
+    set_constant_kind(result,
+                    ((constant_1->kind == (a_constant_repr_kind)ck_imaginary)!=
+                     (constant_2->kind == (a_constant_repr_kind)ck_imaginary))?
+                                           (a_constant_repr_kind)ck_imaginary :
+                                           (a_constant_repr_kind)ck_float);
     fp_divide(float_kind,
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
