@@ -4993,7 +4993,7 @@ return without setting *optimized_case to TRUE.
       /* Check that the offset is within the string. */
       a_targ_ptrdiff_t offset = con->variant.address.offset;
       if (offset >= 0 &&
-          offset < string_constant->variant.string.length) {
+          (a_targ_size_t)offset < string_constant->variant.string.length) {
         /* The address is a valid address of a character in the string.
            Build an operand for the character from the string. */
         an_integer_kind ikind = char_type->variant.integer.int_kind;
