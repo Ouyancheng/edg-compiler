@@ -2734,7 +2734,8 @@ to FALSE if the entity being declared is not initializable.
 /*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in Microsoft
                      mode. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
-void r_declarator(a_decl_flag_set             input_flags,
+static void r_declarator(
+		  a_decl_flag_set             input_flags,
                   a_decl_flag_set             *output_flags,
                   a_type_ptr                  specifiers_type,
                   a_type_ptr                  member_parent_type,
