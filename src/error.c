@@ -900,6 +900,9 @@ error code.
     case ec_bad_friend_decl:
       m = "invalid friend declaration";
       break;
+    case ec_value_returned_in_constructor:
+      m = "a constructor or destructor may not return a value";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
