@@ -1242,6 +1242,16 @@ typedef struct a_template_instance {
 			   sk_member_function, pointer to the routine's type
 			   as it actually appears in the source program (i.e.,
 			   before parameter type adjustments). */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  a_src_seq_secondary_decl_ptr
+		partial_instantiation;
+			/* A secondary-decl entry representing the partial
+			   instantiation of a function template that is
+			   dependent on a class that is currently being
+			   defined.  As long as this pointer is non-NULL,
+			   the source sequence list has not yet been
+			   updated. */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_template_instance;
 

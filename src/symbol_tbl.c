@@ -8632,6 +8632,9 @@ Allocate a new function instantiation entry and return a pointer to it.
   tip->explicit_instantiation_pos  = null_source_position;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   tip->declared_type               = NULL;
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  tip->partial_instantiation       = NULL;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   db_exit();
   return tip;
