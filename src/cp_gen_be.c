@@ -3246,6 +3246,7 @@ this one is such a continuation.
   a_type_kind                  kind;
   a_boolean                    is_definition = FALSE, friend_decl;
   a_boolean                    is_specialization;
+  a_boolean                    suppress_closing_punct = FALSE;
 
   *another_decl_in_comma_list = FALSE;
   /* Deal with the primary/secondary declaration difference. */
@@ -3296,6 +3297,18 @@ this one is such a continuation.
         adv_curr_source_sequence_entry();
         write_tok_str("friend ");
         gen_type_name(type);
+      } else if (type->source_corresp.decl_position.seq == 0 &&
+                 type->source_corresp.name != NULL &&
+                 strcmp(type->source_corresp.name, "va_list") == 0) {
+        /* This is the declaration of the builtin va_list, from <stdarg.h>.
+           Don't put it out -- put out an #include of the header instead. */
+        suppress_closing_punct = TRUE;
+        adv_curr_source_sequence_entry();
+        end_output_line_if_begun();
+        disable_line_wrapping();
+        write_str("#include <stdarg.h>");
+        enable_line_wrapping();
+        end_output_line();
       } else {
         /* A typedef definition. */
         gen_typedef_definition(type, sec_decl, suppress_specifiers,
@@ -3327,7 +3340,9 @@ this one is such a continuation.
       /* A class type definition. */
       gen_class_definition(type);
     }  /* if */
-    write_end_of_declaration_punctuation(*another_decl_in_comma_list);
+    if (!suppress_closing_punct) {
+      write_end_of_declaration_punctuation(*another_decl_in_comma_list);
+    }  /* if */
   }  /* if */
 }  /* gen_type_decl */
 
@@ -4653,6 +4668,28 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             }  /* if */
           }
           write_tok_str("()");
+          goto done_with_operation;
+        case eok_va_start:
+          /* <stdarg.h> va_start macro, treated as a builtin operator. */
+          write_tok_str("va_start(");
+          gen_lvalue(operand_1);
+          write_tok_ch(',');
+          gen_lvalue(operand_2);
+          write_tok_ch(')');
+          goto done_with_operation;
+        case eok_va_arg:
+          /* <stdarg.h> va_arg macro, treated as a builtin operator. */
+          write_tok_str("va_arg(");
+          gen_lvalue(operand_1);
+          write_tok_ch(',');
+          gen_type(expr->type);
+          write_tok_ch(')');
+          goto done_with_operation;
+        case eok_va_end:
+          /* <stdarg.h> va_end macro, treated as a builtin operator. */
+          write_tok_str("va_end(");
+          gen_lvalue(operand_1);
+          write_tok_ch(')');
           goto done_with_operation;
         default:
           unexpected_condition_str("gen_expr: bad expression operator");
