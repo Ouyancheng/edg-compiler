@@ -1,5 +1,19 @@
 Version 2.21
 
+12/9/93  Expression temporaries destroyed at labels
+
+Temporaries generated in expressions are now destroyed at labels.
+This avoids the eventuality of destroying the temporaries at the
+end of the scope in cases where they were never constructed.
+
+  struct A {A(); ~A();};
+  void m() {
+    goto lab2;
+    lab1: A();
+          // Temporary for A() is destroyed here
+    lab2:;
+  }
+
 12/9/93  Implicit conversions on expressions inside []
 
 Implicit conversions are now considered for the second operand of

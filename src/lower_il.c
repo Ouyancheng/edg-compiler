@@ -6376,6 +6376,38 @@ end_context_loop:
 }  /* gen_goto_cleanup_actions */
 
 
+static void gen_label_cleanup_actions(a_statement_ptr *label_statement)
+/*
+Generate any cleanup actions required preceding the indicated label
+statement.
+*/
+{
+  a_cleanup_action_ptr cap, next_cap;
+  a_boolean            first = TRUE;
+  a_statement_ptr      statement = *label_statement;
+  an_insert_location   insert_location;
+
+  /* Go through the list of cleanup actions, find the ones for temporaries,
+     and process/remove them. */
+  for (cap = curr_context->cleanup_actions; cap != NULL; cap = next_cap) {
+    next_cap = cap->next;
+    if (cap->kind == cak_destruction &&
+        cap->variant.object.is_expr_temporary) {
+      /* Found an entry.  If this is the first one, make an insert location
+         by rewriting the label as a block. */
+      if (first) {
+        first = FALSE;
+        turn_branch_into_block(statement, &insert_location, label_statement);
+      }  /* if */
+      /* Generate the cleanup action. */
+      gen_one_cleanup_action(cap, &insert_location);
+      /* Remove this entry from the list. */
+      remove_cleanup_action(cap);
+    }  /* if */
+  }  /* for */
+}  /* gen_label_cleanup_actions */
+
+
 static void pop_block_scope_context(a_statement_ptr last_statement)
 /*
 The current context is a context for a block statement.  Generate any
@@ -6446,6 +6478,13 @@ Do IL lowering of the indicated statement and everything under it.
         gen_goto_cleanup_actions(statement);
         break;
       case stmk_label:
+        /* Destroy any expression temporaries whose cleanup is pending.
+           Note that this may change the value of "statement", but "statement"
+           will still point to the label statement. */
+        /* If the statement were a dependent statement, changing the pointer
+           would cause problems later in this routine. */
+        check_assertion(!statement->dependent_statement);
+        gen_label_cleanup_actions(&statement);
         /* Put a marker in the cleanup action list indicating where
            the label occurs.  This is needed when generating destructor
            calls on gotos backward in a block. */
