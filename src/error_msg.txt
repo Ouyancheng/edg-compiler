@@ -94,7 +94,7 @@ REMOVED;ec_expr_not_integral_or_pointer;;"expression must have integral or point
 ec_expr_not_pointer;;"expression must have pointer type"
 ec_cannot_undef_predef_macro;;"#undef may not be used on this predefined name"
 ec_cannot_redef_predef_macro;;"this predefined name may not be redefined"
-ec_bad_macro_redef;;"macro redefined differently"
+ec_bad_macro_redef;;"incompatible redefinition of macro %nod"
 REMOVED;ec_mixed_function_object_pointers;;"cast between pointer-to-object and pointer-to-function"
 ec_duplicate_macro_param_name;;"duplicate macro parameter name"
 ec_paste_cannot_be_first;;"\"##\" may not be first in a macro definition"

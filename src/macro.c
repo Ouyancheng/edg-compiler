@@ -3033,10 +3033,10 @@ Scan and process a #define directive.
 redef_error:
       /* Bad redefinition.  Keep the new definition, give a warning. */
       if (strict_ansi_mode) {
-        pos_diagnostic(strict_ansi_error_severity, ec_bad_macro_redef,
-                       &start_pos);
+        pos_sy_diagnostic(strict_ansi_error_severity, ec_bad_macro_redef,
+                       &start_pos, assoc_symbol);
       } else {
-        pos_warning(ec_bad_macro_redef, &start_pos);
+        pos_sy_warning(ec_bad_macro_redef, &start_pos, assoc_symbol);
       }  /* if */
     }  /* if */
     /* Allocate space for the text, and copy it. */

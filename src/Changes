@@ -1,5 +1,10 @@
 Version 2.35
 
+2/3/97  On macro redefinition diagnostic, position of previous definition
+
+The diagnostic issued when a macro is redefined in an incompatible way
+now gives the position of the previous definition.
+
 2/3/97  Improved error recovery after an unexpected template argument list
 
 When an identifier is followed by a "<" in a context in which a less-than
