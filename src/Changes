@@ -1,3 +1,34 @@
+1/4/93 Elaborated type specifier involving template parameter name
+
+An elaborated type specifier involving a template parameter name is
+interpreted as though the template arg where directly present in the
+source construct.  (In other words, the relationship between template
+param and template arg is understood in terms of a macro-substitution
+model rather than a typedef model.)  For example, in the following:
+
+  struct A { /* ... */ };
+  struct B { /* ... */ };
+  template <class T> class C {
+    friend class T;
+    class T m;
+  };
+  C<A> x;
+  C<B> y;
+  C<int> z;
+
+when C<A> is instantiated, struct A is becomes a friend of C<A>, and
+C<A>.m is of type A; similarly, struct B is a friend of C<B>, and C<B>.m
+is of type B.  However, an error is issued on the instantiation of C<int>,
+since "class int" is not legal.
+
+An alternative interpretation would have been to inject a class T at file
+scope; that single class would have been friend to C<A>, C<B>, and C<int>,
+and the types of C<A>.m, C<B>.m, and C<int>.m would all be the same.
+
+The language definition currently offers no guidance for deciding between
+the alternatives.  Cfront issues an error for using a template parameter
+name in an elaborated type specifier.
+
 Version 2.13
 
 12/22/92 Bug in && and || operator processing
