@@ -1,5 +1,28 @@
 Version 2.46
 
+1/16/01  Keeping instance-required flag on decider virtual function in
+         unreferenced class
+
+In some strange cases where, after IL lowering, the definition of a
+template class is not needed even though an object of the class type is
+constructed, the instance-required flag on the decider function
+of the class (the first non-inline virtual function, the presence of
+whose definition is used to decide whether to put out the virtual
+function table definition) was incorrectly cleared, resulting in
+an unresolved external at link time in versions with
+INSTANTIATE_EXTERN_INLINE set to FALSE.
+
+  struct Foo {
+    virtual ~Foo () {}
+  };
+  template <class T> struct Bar : public Foo {
+    virtual void decider();     // Decider function
+  };
+  template <class T> void Bar<T>::decider() {}
+  int main() {
+    new Bar<int>();  // Object constructed but not used
+  }
+
 1/16/01  Default configuration of VLA_DEALLOC_STATEMENTS_IN_IL
 
 VLA_DEALLOC_STATEMENTS_IN_IL is now TRUE by default (it used to be FALSE)

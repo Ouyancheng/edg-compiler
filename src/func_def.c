@@ -29,6 +29,7 @@ func_def.c -- Processing for function definitions (both user supplied and
 #include "exprutil.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
+#include "il_walk.h"
 #endif /* DO_IL_LOWERING */
 #include "statements.h"
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -166,6 +167,13 @@ on the override_list.
         sym = (a_symbol_ptr)rp->source_corresp.assoc_info;
         /* Set the instantiation_required flag for the virtual function. */
         set_instance_required(sym, /*value=*/TRUE, /*defer_inline=*/TRUE);
+#if DO_IL_LOWERING
+        /* Force the class definition to be kept, because if it is removed the
+           virtual function table variable will be detached, and later the
+           instance-required flag will be cleared on the virtual functions of
+           the class because there is no virtual function table. */
+        set_class_keep_definition_in_il(class_type);
+#endif /* DO_IL_LOWERING */
       }  /* if */
 next_function:;
     }  /* for */
