@@ -1,5 +1,16 @@
 Version 3.2
 
+3/21/03  Remark no longer issued for unused template parameter
+
+Formerly, a remark was issued if a template parameter was not used
+in the signature of the function template.  This proved an annoyance as
+such usage is fairly common, so the remark has been removed.  A warning
+is still issued for constructors and conversion operators as unused
+template parameters render such functions uncallable.  An error is
+still issued when distinct_template_signatures is FALSE.
+
+  template <class T> void f();
+
 3/21/03  Microsoft compatibility: __declspec and other modifiers allowed
          in invalid locations
 

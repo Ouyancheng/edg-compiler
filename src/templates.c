@@ -13203,7 +13203,7 @@ done here.
     if (is_conversion_operator || is_constructor) {
       severity = es_warning;
     } else {
-      severity = es_remark;
+      severity = es_none;
     }  /* if */
   } else {
     /* All templates must use their template parameters in the function
@@ -13236,8 +13236,10 @@ done here.
       a_template_symbol_supplement_ptr	tssp;
       tssp = template_supplement_for_symbol(sym);
       tssp->variant.function.template_param_not_in_function_type = TRUE;
-      pos_sy2_diagnostic(severity, ec_not_used_in_template_function_params,
-                         &param_sym->decl_position, param_sym, sym);
+      if (severity != es_none) {
+        pos_sy2_diagnostic(severity, ec_not_used_in_template_function_params,
+                           &param_sym->decl_position, param_sym, sym);
+      }  /* if */
     } /* if */
   } /* for */
 }  /* check_function_template_param_usage */
