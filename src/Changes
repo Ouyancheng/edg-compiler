@@ -1,5 +1,7 @@
 Version 2.37
 
+10/18/97  IL version number changed to 2.29
+
 10/17/97  Using offsetof on non-POD classes with usual idiom for offsetof
 
 The usual definition for offsetof is something like
