@@ -398,6 +398,13 @@ extern void issue_warning_from_arg_match_summary(
                                             an_arg_match_summary_ptr amsp,
                                             a_source_position        *err_pos);
 
+extern void determine_arg_match_level(
+                               an_operand           *arg_operand,
+                               a_type_ptr           arg_type,
+                               a_type_ptr           param_type,
+                               a_boolean            try_user_conversions,
+                               an_arg_match_summary *arg_summary);
+
 extern void selector_match_with_this_param(
                                an_operand           *bound_function_selector,
                                a_boolean            selector_is_object_pointer,

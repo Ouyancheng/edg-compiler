@@ -4841,12 +4841,11 @@ the conversion function.
 }  /* set_arg_summary_for_user_conversion */
 
 
-static void determine_arg_match_level(
-                                     an_operand           *arg_operand,
-                                     a_type_ptr           arg_type,
-                                     a_type_ptr           param_type,
-                                     a_boolean            try_user_conversions,
-                                     an_arg_match_summary *arg_summary)
+void determine_arg_match_level(an_operand           *arg_operand,
+                               a_type_ptr           arg_type,
+                               a_type_ptr           param_type,
+                               a_boolean            try_user_conversions,
+                               an_arg_match_summary *arg_summary)
 /*
 Determine how well an actual argument matches a formal parameter with type
 param_type.  The actual argument is usually given by arg_operand, but
