@@ -1463,7 +1463,7 @@ member_check_ambiguity_verify_access_and_return_error_descr.
 */
 #define member_check_ambiguity_and_verify_access(locator)		\
   member_check_ambiguity_verify_access_and_return_error_descr		\
-			(locator, /*an_access_error_descr_ptr=*/NULL);
+			(locator, (an_access_error_descr_ptr*)NULL);
 
 
 /*
