@@ -663,6 +663,12 @@ extern void db_statement_list(a_statement_ptr  sp,
 
 extern void db_scope(a_scope_ptr sp);
 
+extern void db_scope_type_list(a_scope_ptr scope,
+                               int         indent);
+
+extern void db_type_lists(a_scope_ptr scope,
+                          int         indent);
+
 extern void db_destruction(a_dynamic_init_ptr  dip);
 
 extern void db_object_lifetime_name(an_object_lifetime_ptr  olp);

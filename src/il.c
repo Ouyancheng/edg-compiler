@@ -850,6 +850,15 @@ class_struct_union:
           db_name(&tp->source_corresp);
           fputs("\" ", f_debug);
         }  /* if */
+        if (tp->variant.typeref.is_placeholder_for_class_instantiation) {
+          fputs("class-inst-PH ", f_debug);
+        }  /* if */
+        if (tp->variant.typeref.is_placeholder_for_namespace_type) {
+          fputs("namespace-type-PH ", f_debug);
+        }  /* if */
+        if (tp->variant.typeref.is_placeholder_for_nested_class_def) {
+          fputs("nested-class-def-PH ", f_debug);
+        }  /* if */
       }  /* if */
       db_abbreviated_type(tp->variant.typeref.type);
       break;
@@ -7471,8 +7480,6 @@ olk_block_after_label.
   return olp;
 }  /* innermost_block_object_lifetime */
 
-
-
 #if DEBUG
 
 void db_scope(a_scope_ptr sp)
@@ -7500,6 +7507,61 @@ Write out a scope entry for debugging purposes.
     }  /* if */
   }  /* if */
 }  /* db_scope */
+
+
+void db_scope_type_list(a_scope_ptr scope,
+                        int         indent)
+/*
+Write out the type list for a scope, for debugging purposes.  indent is the
+indentation level.
+*/
+{
+  a_type_ptr type;
+  int        n;
+
+  for (n = 0; n < indent; n++) fputc(' ', f_debug);
+  (void)fprintf(f_debug, "Type list for ");
+  db_scope(scope);
+  (void)fprintf(f_debug, ":\n");
+  for (type = scope->types; type != NULL; type = type->next) {
+    for (n = 0; n < indent; n++) fputc(' ', f_debug);
+    db_abbreviated_type(type);
+    (void)fprintf(f_debug, "\n");
+  }  /* for */
+}  /* db_scope_type_list */
+
+
+void db_type_lists(a_scope_ptr scope,
+                   int         indent)
+/*
+Dump the type lists for the indicate scope and its subscopes, for debug
+purposes.  indent indicates the indentation level.
+*/
+{
+  a_type_ptr      type;
+  a_namespace_ptr nsp;
+  a_scope_ptr     bscope;
+
+  db_scope_type_list(scope, indent);
+  indent += 2;
+  for (type = scope->types; type != NULL; type = type->next) {
+    if (is_immediate_class_type(type)) {
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+        db_type_lists(ctsp->assoc_scope, indent);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      db_type_lists(nsp->variant.assoc_scope, indent);
+    }  /* if */
+  }  /* for */
+  for (bscope = scope->scopes; bscope != NULL; bscope = bscope->next) {
+    db_type_lists(bscope, indent);
+  }  /* for */
+}  /* db_type_lists */
 
 #endif /* DEBUG */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

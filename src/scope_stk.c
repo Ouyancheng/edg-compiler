@@ -2811,6 +2811,11 @@ End a name scope by popping an entry off the scope stack.
   }  /* for */
   if (!old_region_still_needed) {
     /* The old memory region is no longer needed. */
+#if DEBUG
+    if (db_flag_is_set("dump_type_lists")) {
+      db_type_lists(il_scope, 0);
+    }  /* if */
+#endif /* DEBUG */
 #if DO_IL_LOWERING
     /* Do IL lowering (change the C++ IL into C IL). */
     lower_il_memory_region(old_memory_region_number);
