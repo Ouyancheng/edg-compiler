@@ -130,8 +130,15 @@ typedef struct a_cleanup_action {
 		next;	/* Next entry on a list of cleanup actions, NULL
 			   if last.  The entries are in order from latest
 			   back to first, i.e., in the order in which the
-			   cleanup actions must be done, but in reverse
-			   order of addition to the list. */
+			   cleanup actions must be done on block exit, but in
+			   reverse order of addition to the list. */
+  a_cleanup_action_ptr
+		next_exception_cleanup;
+			/* For cleanup actions that apply on exception cleanup,
+			   the next entry in exception cleanup order.
+			   The entries are in order from latest back to
+			   first, and the last in a context will point to
+			   a cleanup action in a surrounding context. */
   a_byte_boolean
 		applies_on_block_exit;
 			/* TRUE if the indicated cleanup must be done on exit
@@ -140,6 +147,10 @@ typedef struct a_cleanup_action {
 		applies_on_exception_cleanup;
 			/* TRUE if the indicated cleanup must be done on
 			   cleanup for a thrown exception. */
+  a_byte_boolean
+		constructor_wrapper_cleanup;
+			/* TRUE if the indicated cleanup is related to
+			   constructor wrapper code. */
   a_byte_boolean
 		destructor_wrapper_cleanup;
 			/* TRUE if the indicated cleanup is a destruction
@@ -150,11 +161,10 @@ typedef struct a_cleanup_action {
 			/* Destructible object region number for exception
 			   handling. */
   a_constant_ptr
-		prev_cleanup_region_constant;
+		region_table_entry;
 			/* For actions with an associated exception cleanup
-			   region, this points to the constant for the
-			   "previous region" pointer in the region entry,
-			   so it can be relinked if necessary. */
+			   region, this points to the aggregate constant that
+			   defines the region table entry. */
   a_cleanup_action_kind
 		kind;	/* Kind of entry. */
   union {
@@ -317,6 +327,13 @@ typedef struct a_context {
   a_cleanup_action_ptr
 		cleanup_actions;
 			/* Cleanup actions required on exit from the scope. */
+  a_cleanup_action_ptr
+		exception_cleanup_actions;
+			/* Cleanup actions required for exception cleanup (the
+			   same actions, mostly, but possibly in a different
+			   order).  If there are no exception cleanup actions
+			   in the context, may point to one in a surrounding
+			   context. */
   a_statement_ptr
 		latest_label_statement_processed;
 			/* The stmk_label statement most recently processed
