@@ -200,7 +200,7 @@ itself recursively to process classes nested within this class.
            occurs for compiler generated routines and under some error
            conditions.  Simply skip this routine. */
         update_instantiation_required_flag
-                                 (tip, sym->variant.routine.ptr->is_virtual);
+                      (tip, (a_boolean)(sym->variant.routine.ptr->is_virtual));
       }  /* if */
       rout = rout->next;
     }  /* while */
