@@ -3260,9 +3260,10 @@ well.
 }  /* empty_statement */
 
 
-static add_goto_to_continue_label(a_struct_stmt_stack_entry_ptr sssep,
-                                  a_boolean                     is_leave,
-                                  a_statement_ptr               *goto_stmt)
+static void add_goto_to_continue_label(
+                                      a_struct_stmt_stack_entry_ptr sssep,
+                                      a_boolean                     is_leave,
+                                      a_statement_ptr               *goto_stmt)
 /*
 Generate a goto to the "continue" label for the indicated structured
 statement.  Generate the label if it has not been generated yet.
