@@ -1,5 +1,21 @@
 Version 2.32
 
+2/6/96    using a derived class name to access a member of a template
+          parameter dependent base class
+
+It is supposed to be possible to access a member of a base class
+through use of a qualified name that uses the name of the derived class.
+This did not work when accessing a member that is to be supplied in
+a template parameter dependent base class.  This has been fixed.
+
+  template <class T> struct B {
+    typedef int I;
+  };
+  template <class T> struct D : public B<T> {
+    typename D<T>::I i;  // Formerly, gave a spurious error on this line
+  };
+
+
 2/6/96    "abc"[2] as nonstandard constant expression
 
 An expression that extracts a character from a constant string, e.g.,

@@ -1811,13 +1811,15 @@ otherwise a diagnostic is issued.  The type is returned in *type_ptr.
       }  /* if */
     } else {
       a_symbol_ptr	sym = locator_for_curr_id.specific_symbol;
+      a_symbol_ptr	fund_sym;
       check_assertion(sym != NULL);
-      if (!is_type_symbol(sym)) {
+      fund_sym = fundamental_symbol_of(sym);
+      if (!is_type_symbol(fund_sym)) {
         /* The symbol is not a type name. */
         sym_error(ec_sym_not_a_type_name, sym);
       } else {
-        mark_referenced(sym, &locator_for_curr_id.source_position);
-        tp = type_symbol_type(sym);
+        mark_referenced(fund_sym, &locator_for_curr_id.source_position);
+        tp = type_symbol_type(fund_sym);
       }  /* if */
     }  /* if */
     /* Bypass the identifier token. */

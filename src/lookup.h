@@ -142,6 +142,12 @@ extern a_symbol_list_entry_ptr nonmember_operator_function_lookup(
                                  a_type_ptr	type_1,
                                  a_type_ptr     type_2);
 
+extern
+a_symbol_ptr create_proxy_or_nonreal_class_member
+					(a_type_ptr	          class_type,
+					 an_id_lookup_options_set options,
+					 a_symbol_locator         *locator);
+
 extern void lookup_one_time_init(void);
 
 extern void lookup_init(void);

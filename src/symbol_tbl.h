@@ -1713,6 +1713,15 @@ typedef struct a_symbol {
 			   modified by an using-declaration anywhere on the
 			   derivation path between the fundamental symbol and
 			   the current projection. */
+      a_bit_field
+		fund_sym_is_nonreal_member:1;
+			/* TRUE if the fundamental symbol is a member of
+			   a nonreal or proxy class.  Such members are
+			   created as a result of a class-qualified
+			   lookup of a member in the prototype instantiation
+			   of a derived class, when the lookup fails to find
+			   a member in the derived class or any of the real
+		 	   base classes. */
     } projection;
     /* When kind = sk_overloaded_function: */
     struct {
@@ -1953,13 +1962,15 @@ extern a_symbol_ptr find_symbol(char             *identifier,
 			        sizeof_t         identifier_length,
 				a_symbol_locator *location);
 
-extern a_boolean find_projected_symbol(a_type_ptr        class_ptr,
-                                       a_symbol_locator  *locator,
-                                       a_boolean         must_be_tag,
-                                       a_boolean         must_be_type_name,
-                                       a_boolean         add_to_active_list,
-                                       a_symbol_ptr      insert_sym,
-                                       a_symbol_ptr      *projected_symbol);
+extern
+a_boolean find_projected_symbol(a_type_ptr               class_ptr,
+                                a_symbol_locator         *locator,
+                                an_id_lookup_options_set options,
+                                a_boolean                tentative_type_lookup,
+                                a_boolean                add_to_active_list,
+                                a_symbol_ptr             insert_sym,
+                                a_symbol_ptr             *projected_symbol,
+                                a_boolean		 can_create_nonreal);
 
 extern void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
                                     a_symbol_locator *location);

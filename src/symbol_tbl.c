@@ -1640,6 +1640,7 @@ state.
         sym_ptr->variant.projection.access    = (an_access_specifier)as_public;
         sym_ptr->variant.projection.is_using_decl = FALSE;
         sym_ptr->variant.projection.any_intervening_using_decl = FALSE;
+        sym_ptr->variant.projection.fund_sym_is_nonreal_member = FALSE;
       }
       break;
     case sk_overloaded_function:
@@ -6210,13 +6211,53 @@ represents a using declaration or is or the projection of symbol that does.
 }  /* find_progenitor_symbol */
 
 
+static
+a_symbol_ptr create_nonreal_progenitor_symbol
+					(a_type_ptr	          class_type,
+					 an_id_lookup_options_set options,
+					 a_symbol_locator         *locator,
+                                         a_derivation_step_ptr	  *path)
+/*
+Find a nonreal base class of class_type, create a member of that nonreal
+base class, and return the symbol to the caller.  Create a derivation step
+entry that points to the class in which the nonreal member is created.
+*/
+{
+  a_symbol_ptr		sym;
+  a_base_class_ptr	bcp = base_classes_of(class_type);
+  a_base_class_ptr	nonreal_bcp = NULL;
+
+  /* Loop through the base classes to find a nonreal base.  A direct
+     nonreal base is found, if possible.  Otherwise, the first indirect
+     nonreal base is used. */
+  for (; bcp != NULL; bcp = bcp->next) {
+    a_type_ptr		base_type = bcp->type;
+    a_class_symbol_supplement_ptr	cssp;
+    cssp = symbol_supplement_for_class(base_type);
+    if (cssp->is_nonreal_class) {
+      if (bcp->direct) {
+        nonreal_bcp = bcp;
+        break;
+      }  /* if */
+      if (nonreal_bcp != NULL) nonreal_bcp = bcp;
+    }  /* if */
+  }  /* for */
+  sym = create_proxy_or_nonreal_class_member(nonreal_bcp->type, options,
+                                             locator);
+  *path = make_derivation_step(nonreal_bcp, (a_derivation_step_ptr)NULL);
+  return sym;
+}  /* create_nonreal_progenitor_symbol */
+
+
+
 a_boolean find_projected_symbol(a_type_ptr               class_ptr,
                                 a_symbol_locator         *locator,
                                 an_id_lookup_options_set options,
                                 a_boolean                tentative_type_lookup,
                                 a_boolean                add_to_active_list,
                                 a_symbol_ptr             insert_sym,
-                                a_symbol_ptr             *projected_symbol)
+                                a_symbol_ptr             *projected_symbol,
+                                a_boolean		 can_create_nonreal)
 /*
 Given class_ptr, which identifies a class (or struct or union) type, search
 its base classes for a symbol that projects the name specified in *locator
@@ -6236,16 +6277,24 @@ the symbol returned by find_progenitor_symbol is a type.  Note that
 symbol that fails the lookup options test does not hide symbols from
 deeper base classes, while a symbol that is not a type does hide
 symbols from deeper base classes that may be types.
+
+can_create_nonreal is TRUE if, when looking for a projected symbol in a
+class with a nonreal base, that a member of the nonreal base should be
+created if a projected symbol cannot be found in any of the real bases.
 */
 {
-  a_derivation_step_ptr        path = NULL;
-  a_symbol_ptr                 progenitor_sym, new_sym = NULL;
-  an_access_specifier          access;
-  a_boolean                    ambiguous = FALSE, found;
-  a_scope_stack_entry_ptr      ssep;
-  a_scope_pointers_block_ptr   pointers_block;
-  a_symbol_ptr                 class_sym;
-  a_boolean                    any_using_decl = FALSE;
+  a_derivation_step_ptr		path = NULL;
+  a_symbol_ptr			progenitor_sym;
+  a_symbol_ptr			new_sym = NULL;
+  an_access_specifier		access;
+  a_boolean			ambiguous = FALSE;
+  a_boolean			found;
+  a_scope_stack_entry_ptr	ssep;
+  a_scope_pointers_block_ptr	pointers_block;
+  a_symbol_ptr			class_sym;
+  a_class_symbol_supplement_ptr	cssp;
+  a_boolean			any_using_decl = FALSE;
+  a_boolean		        fund_sym_is_nonreal_member = FALSE;
 
   db_enter(4, "find_projected_symbol");
 #if DEBUG
@@ -6256,6 +6305,7 @@ symbols from deeper base classes that may be types.
   }  /* if */
 #endif /* DEBUG */
   class_sym = (a_symbol_ptr)class_ptr->source_corresp.assoc_info;
+  cssp = class_sym->variant.class_struct_union.extra_info;
   if (locator->symbol_header == class_sym->header &&
       class_sym->
         variant.class_struct_union.extra_info->class_template == NULL) {
@@ -6270,6 +6320,19 @@ symbols from deeper base classes that may be types.
     progenitor_sym = find_progenitor_symbol(class_ptr, locator, options,
                                             &path, &access, &ambiguous,
                                             &any_using_decl);
+  }  /* if */
+  if (progenitor_sym == NULL && can_create_nonreal &&
+      cssp->any_nonreal_base_classes) {
+    /* The symbol was not found in the class or in any of its "real"
+       base classes.  This class has nonreal base classes, so we will
+       assume that the name being looked up is a member of one of the
+       nonreal base classes. */
+    a_symbol_ptr	sym;
+    sym = create_nonreal_progenitor_symbol(class_ptr, options, locator, &path);
+    /* Assume that the the member is publicly accessible. */
+    access = as_public;
+    progenitor_sym = sym;
+    fund_sym_is_nonreal_member = TRUE;
   }  /* if */
   if (progenitor_sym == NULL) {
     /* Indicate that no symbol was found and return a NULL pointer. */
@@ -6291,6 +6354,8 @@ symbols from deeper base classes that may be types.
          declarations on any inheritance path linking the current class to
          the fundamental symbol. */
       new_sym->variant.projection.any_intervening_using_decl = any_using_decl;
+      new_sym->variant.projection.fund_sym_is_nonreal_member =
+                                                   fund_sym_is_nonreal_member;
       free_derivation_step(path);
       /* Add the symbol to the symbol table. */
       if (add_to_active_list) {

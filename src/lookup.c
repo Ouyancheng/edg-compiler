@@ -491,7 +491,7 @@ macro returns FALSE then the noreal class member must not be a type.
    (implicit_typename_enabled && (options & IDL_TENTATIVE_TYPE_LOOKUP)))
 
 
-static a_symbol_ptr add_member_to_proxy_or_nonreal_class
+a_symbol_ptr create_proxy_or_nonreal_class_member
 					(a_type_ptr	          class_type,
 					 an_id_lookup_options_set options,
 					 a_symbol_locator         *locator)
@@ -500,10 +500,13 @@ This routine is called by class_qualified_id_lookup when the name
 being looked up is not found in the proxy class associated with a
 template parameter type or in a class that is a nonreal instantiation.
 We don't know anything about the name that is being looked up except
-whether or not it is a type (based on the is_type parameter).  If
-is_type is TRUE we create a member of class_type that is a
-tk_template_param.  If is_type is FALSE we create a member of
-class_type that is a ck_template_param.
+whether or not it is a type (inferred from the lookup options).  If
+the name is a type, we create a member of class_type that is a
+tk_template_param; otherwise, we create a member of class_type that is
+a ck_template_param.
+
+The member that is created is not added to the inactive list by this
+routine.
 */
 {
   a_symbol_kind                 kind;
@@ -513,7 +516,7 @@ class_type that is a ck_template_param.
   a_boolean                     is_type;
   a_source_correspondence       *scp;
 
-  db_enter(4, "add_member_to_proxy_or_nonreal_class");
+  db_enter(4, "create_proxy_or_nonreal_class_member");
   /* Determine whether the member to be created is a type or not.  The
      symbol is created as a type if the lookup is a "must be class or
      namespace", "must be tag" or "typename lookup".  In addition,
@@ -555,15 +558,31 @@ class_type that is a ck_template_param.
   }  /* if */
   set_source_corresp_with_scope_depth(scp, sym, depth);
   set_class_membership(sym, scp, class_type);
-  /* Add the symbol to the inactive list. */
-  add_symbol_to_inactive_list(sym);
 #if DEBUG
   if (debug_level >= 4) {
-    fprintf(f_debug, "Adding: ");
+    fprintf(f_debug, "Created: ");
     db_symbol(sym, "", 0);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
+  return sym;
+}  /* create_proxy_or_nonreal_class_member */
+
+
+static a_symbol_ptr add_member_to_proxy_or_nonreal_class
+					(a_type_ptr	          class_type,
+					 an_id_lookup_options_set options,
+					 a_symbol_locator         *locator)
+/*
+Creates a proxy or nonreal class member of class_type.  Adds the newly
+created symbol to the inactive list and returns it to the caller.
+*/
+{
+  a_symbol_ptr	sym;
+
+  sym = create_proxy_or_nonreal_class_member(class_type, options, locator);
+  /* Add the symbol to the inactive list. */
+  add_symbol_to_inactive_list(sym);
   return sym;
 }  /* add_member_to_proxy_or_nonreal_class */
 
@@ -1417,7 +1436,8 @@ that do normal id lookup processing.
                             lookup_state->options,
                             lookup_state->tentative_type_lookup,
                             lookup_state->add_to_active_list,
-                            lookup_state->insert_sym, &sym)) {
+                            lookup_state->insert_sym, &sym,
+                            /*can_create_nonreal=*/FALSE)) {
     if (sym == NULL) {
       /* A symbol was found in a base class, but it was not returned
          (presumably because must_be_type_name was not satisfied).
@@ -1910,10 +1930,14 @@ C and C++.
              In these cases it is impossible to know, at the time that
              prototype instantiation is done, which names will be in the
              classes used in the real instantiations.  Any name is accepted
-             as a member of the class. */
-          sym = add_member_to_proxy_or_nonreal_class
-                                      (lookup_state.class_with_nonreal_base,
-                                       options, locator);
+             as a member of the class.  When class_qualified_id_lookup is
+             used to lookup a name in a class with nonreal base classes,
+             it will add a projection symbol to one of the nonreal bases
+             if the name is not found.  In other words, this call is used
+             to create the nonreal member. */
+          sym = class_qualified_id_lookup(locator,
+                                          lookup_state.class_with_nonreal_base,
+                                          options);
         }  /* if */
       }  /* if */
       if (sym == NULL && C_dialect == C_dialect_ANSI && !strict_ansi_mode &&
@@ -2145,6 +2169,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   a_symbol_ptr insert_sym;
   a_boolean    add_to_active_list;
   a_boolean    is_proxy_or_nonreal_class_lookup = FALSE;
+  a_boolean    any_nonreal_base_classes = FALSE;
 
 /* Local macro that tests whether or not a symbol is acceptable. */
 #define is_acceptable_symbol(sym)                                     \
@@ -2189,6 +2214,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                              extra_info->assoc_scope == NULL) {
       is_proxy_or_nonreal_class_lookup = TRUE;
     }  /* if */
+    any_nonreal_base_classes = cssp->any_nonreal_base_classes;
   }  /* if */
   if ((sym = locator->specific_symbol) != NULL) {
     /* There is an existing specific symbol. */
@@ -2202,11 +2228,23 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
          sym != NULL;
          sym = sym->next) {
       if (is_acceptable_symbol(sym)) {
+        a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
         /* Found an acceptable symbol. */
         if (is_proxy_or_nonreal_class_lookup && !implicit_typename_enabled &&
             is_type_symbol(sym) != nonreal_member_must_be_type(options)) {
           /* The nonreal class member found is a type when a nontype is
-             expected or vice-versa.  Ignore this symbol. */
+             expected or vice-versa.  Ignore this symbol when not using
+             implicit-typename. */
+        } else if (any_nonreal_base_classes &&
+                   !implicit_typename_enabled &&
+                   sym->kind == (a_symbol_kind)sk_projection &&
+                   sym->variant.projection.fund_sym_is_nonreal_member &&
+                   is_type_symbol(fund_sym) !=
+                                       nonreal_member_must_be_type(options)) {
+          /* The symbol is a projection symbol in derived class that points
+             to a nonreal member of a base class.  Ignore this symbol
+             when not using implicit-typename, if it is a type when a nontype
+             is expected or vice-versa. */
         } else {
           /* If the symbol is a tag symbol, there's the possibility that
              there is a non-type symbol in the same scope later in the list
@@ -2241,8 +2279,21 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
            sym != NULL;
            sym = sym->next) {
         if (is_acceptable_symbol(sym)) {
-          /* Found an acceptable symbol. */
-          goto end_lookup;
+          a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
+          if (any_nonreal_base_classes &&
+              !implicit_typename_enabled &&
+              sym->kind == (a_symbol_kind)sk_projection &&
+              sym->variant.projection.fund_sym_is_nonreal_member &&
+              is_type_symbol(fund_sym) !=
+                                       nonreal_member_must_be_type(options)) {
+          /* The symbol is a projection symbol in derived class that points
+             to a nonreal member of a base class.  Ignore this symbol
+             when not using implicit-typename, if it is a type when a nontype
+             is expected or vice-versa. */
+          } else {
+            /* Found an acceptable symbol. */
+            goto end_lookup;
+          }  /* if */
         }  /* if */
       }  /* for */
       /* Look to see if the name is the name of a constructor or destructor
@@ -2276,7 +2327,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                                  &insert_sym);
       (void)find_projected_symbol(class_type, locator, options,
                                   /*tentative_type_lookup=*/FALSE,
-                                  add_to_active_list, insert_sym, &sym);
+                                  add_to_active_list, insert_sym, &sym,
+                                  /*can_create_nonreal=*/TRUE);
     }  /* if */
 end_lookup:
     locator->specific_symbol = sym;
