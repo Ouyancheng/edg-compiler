@@ -6415,7 +6415,7 @@ specifier is restored.
     while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
       declaration(function_definition_allowed, is_old_style_param_decl,
                   /*is_top_level_declaration=*/FALSE, param_id_list,
-                  /*linkage_spec_range_ptr=*/&null_source_range);
+                  (a_source_range *)NULL);
     }  /* while */
     /* Restore the default linkage to the value it had before the declaration
        (or declaration list) was processed.  Note that this must be done
@@ -7351,8 +7351,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
         declaration(/*function_definition_allowed=*/TRUE,
                     /*is_old_style_param_decl=*/FALSE,
                     /*is_top_level_declaration=*/FALSE,
-                    (a_param_id_ptr)NULL,
-                    /*linkage_spec_range_ptr=*/&null_source_range);
+                    (a_param_id_ptr)NULL, (a_source_range *)NULL);
       }  /* while */
       remove_stop_token(tok_rbrace);
       /* Process pragmas associated with the closing brace before the current
@@ -7898,6 +7897,14 @@ alternatively scan a function-definition (3.7.1).  With that flag TRUE, this
 routine also corresponds to an external-declaration (3.7).  param_id_list
 is non-NULL if this declaration is for an old-style function parameter; in 
 that case, the identifier declared must be on the list.
+is_top_level_declaration is TRUE when a declaration appears at file scope
+and is not part of any other declarative structure; it is used for
+precompiled-header processing.  linkage_spec_range_ptr is non-NULL when this
+declaration includes an explicit linkage specification, but is otherwise
+NULL, even when it is part of a block of declarations governed by a linkage
+specification (i.e., it is non-NULL for `extern "C" void f()' and NULL for
+`extern "C" { void f() }'); when it is non-NULL, it indicates the source
+range of the linkage specifier.
 
 Syntax:
 
@@ -7971,7 +7978,8 @@ of local variables (and types, etc.) of functions and in blocks.
 
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
-  if (linkage_spec_range_ptr->start.seq != 0) {
+  if (linkage_spec_range_ptr != NULL) {
+    /* The caller has already scanned the linkage specifier. */
     is_linkage_spec_decl = TRUE;
     restore_name_linkage = TRUE;
   }  /* if */
@@ -8173,6 +8181,9 @@ continue_with_declaration:
     restore_name_linkage = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   } else if (is_linkage_spec_decl) {
+    /* Adjust the specifiers-range to reflect the fact that there is a
+       linkage specification (which was scanned not by decl_specifiers but
+       by the caller). */
     decl_pos_block.specifiers_range.start = linkage_spec_range_ptr->start;
     if (dso_flags & DSO_NO_DECL_SPECIFIERS) {
       decl_pos_block.specifiers_range.end = linkage_spec_range_ptr->end;
@@ -9113,8 +9124,7 @@ Scan a block-level declaration.
   declaration(/*function_definition_allowed=*/FALSE,
               /*is_old_style_param_decl=*/FALSE,
               /*is_top_level_declaration=*/FALSE,
-              (a_param_id_ptr)NULL,
-              /*linkage_spec_range_ptr=*/&null_source_range);
+              (a_param_id_ptr)NULL, (a_source_range *)NULL);
 }  /* local_declaration */
 
 
@@ -9171,8 +9181,7 @@ In C++, however, the declaration list is optional (3.4):
       declaration(/*function_definition_allowed=*/TRUE,
                   /*is_old_style_param_decl=*/FALSE,
                   /*is_top_level_declaration=*/TRUE,
-                  (a_param_id_ptr)NULL,
-                  /*linkage_spec_range_ptr=*/&null_source_range);
+                  (a_param_id_ptr)NULL, (a_source_range *)NULL);
     } /* for */
   }  /* if */
   check_assertion_str2(!header_stop_position_pending, "translation_unit:",
@@ -9199,8 +9208,7 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
     declaration(/*function_definition_allowed=*/TRUE,
                 /*is_old_style_param_decl=*/FALSE,
                 /*is_top_level_declaration=*/FALSE,
-                (a_param_id_ptr)NULL,
-                /*linkage_spec_range_ptr=*/&null_source_range);
+                (a_param_id_ptr)NULL, (a_source_range *)NULL);
   }  /* if */
 }  /* scan_implicitly_included_template_definition_file */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */

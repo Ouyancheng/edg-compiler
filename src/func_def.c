@@ -1507,8 +1507,7 @@ associated with the function is returned.
         declaration(/*function_definition_allowed=*/FALSE, 
                     /*is_old_style_param_decl=*/TRUE,
                     /*is_top_level_declaration=*/FALSE, 
-                    func_info->param_id_list,
-                    /*linkage_spec_range_ptr=*/&null_source_range);
+                    func_info->param_id_list, (a_source_range *)NULL);
       }  /* while */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       terminate_param_source_sequence_sublist(func_info, ss_entry_start_prev);
