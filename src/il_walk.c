@@ -594,11 +594,12 @@ references.
 
     check_assertion_str(!rout->is_trivial_default_constructor,
                         "mark_as_needed: trivial default ctor");
-    /* For an externally-linked function, mark the body as needed too, on
-       the presumption that it will be referenced from other translation
-       units.  The caller could reasonably be expected to do this, but
-       doing it here reduces the possibility of error. */
-    if (rout->storage_class == (a_storage_class)sc_unspecified) {
+    /* For an externally-linked non-inline function, mark the body as needed
+       too, on the presumption that it will be referenced from other
+       translation units.  The caller could reasonably be expected to do
+       this, but doing it here reduces the possibility of error. */
+    if (rout->storage_class == (a_storage_class)sc_unspecified &&
+        !rout->is_inline) {
       set_routine_definition_needed(rout);
     }  /* if */
   }  /* if */
