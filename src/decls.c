@@ -3094,7 +3094,7 @@ otherwise, set *ext_sym to NULL.
                     linkage;
   a_source_correspondence
                     *source_corresp_ptr;
-  a_scope_depth     effective_decl_level;
+  a_scope_depth     effective_decl_level = decl_scope_level;
 
   db_enter(3, "decl_var_or_routine");
 #if CHECKING
