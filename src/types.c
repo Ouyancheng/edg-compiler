@@ -1818,6 +1818,10 @@ conversions have been turned into pointer conversions by the time they
 get here.
 
 See also 3.3.16.1 in the ANSI C standard (simple assignment).
+
+Note that the set of conversions handled here is not the full set allowed
+in assignments (for example, struct --> same struct is not handled here).
+See conversion_possible.
 */
 {
   a_boolean      okay = FALSE;
@@ -1898,10 +1902,6 @@ See also 3.3.16.1 in the ANSI C standard (simple assignment).
                                    suppress_extensions,
                                    default_warning_code,
                                    warning_suggested);
-  } else if (is_class_struct_union(dest_type)) {
-    /* A complete class, struct, or union can be converted to a compatible
-       class, struct, or union type. */
-    okay = types_are_compatible(dest_type, source_type);
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
     okay = TRUE;
