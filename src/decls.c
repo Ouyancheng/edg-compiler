@@ -1146,30 +1146,6 @@ functions) simply return NULL.
 }  /* make_param_variable */
 
 
-a_variable_ptr make_parameter(a_type_ptr       type,
-                              a_storage_class  storage_class,
-                              a_symbol_ptr     sym)
-/*
-Allocate a parameter variable with the specified type and storage class
-and return a pointer to it.  The parameter is linked to/from its associated
-symbol sym.
-*/
-{
-  a_variable_ptr vp;
-
-  vp = make_param_variable(type, storage_class);
-  /* sym will be NULL when the parameter is unnamed. */
-  if (sym != NULL) {
-    sym->variant.variable.ptr = vp;
-    set_source_corresp(&(vp->source_corresp), sym);
-    mark_defined(sym, &sym->decl_position);
-    mark_variable_value_set(sym);
-  }  /* if */
-  add_to_parameters_list(vp);
-  return(vp);
-}  /* make_parameter */
-
-
 a_symbol_ptr enter_local_symbol(a_symbol_kind    kind,
                                 a_symbol_locator *locator,
                                 a_scope_depth    scope_level,
