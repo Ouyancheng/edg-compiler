@@ -7146,6 +7146,7 @@ that follows.
        should follow. */
     add_stop_token(tok_semicolon);
     clear_func_info(&func_info);
+    func_info.is_inline = ((dso_flags & DSO_INLINE) != 0);
     declarator((DI_REAL_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED |
                 DI_OPERATOR_NAME_ALLOWED | DI_IS_SPECIALIZATION |
                 DI_PARENTHESIZED_INITIALIZER_ALLOWED),
