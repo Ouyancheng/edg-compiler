@@ -4935,15 +4935,24 @@ Create a new temporary label and return a pointer to it.  Also create a
 statement for the label and insert it at *insert_location.
 */
 {
-  a_label_ptr     temp_label = alloc_label();
-  a_statement_ptr label_stmt;
+  a_label_ptr            temp_label = alloc_label();
+  a_statement_ptr        label_stmt;
+  an_object_lifetime_ptr lifetime;
 
   label_stmt = alloc_statement((a_statement_kind)stmk_label);
   label_stmt->variant.label.ptr = temp_label;
   temp_label->variant.exec_stmt = label_stmt;
   temp_label->source_corresp.referenced = TRUE;
   add_to_labels_list(temp_label);
-  label_stmt->variant.label.lifetime = curr_context->lifetime;
+  /* The label should get the current object lifetime.  However, if the
+     current object lifetime is the global static lifetime, the current
+     function has no object lifetimes, and the lifetime for the label should
+     be NULL. */
+  lifetime = curr_context->lifetime;
+  if (lifetime != NULL && lifetime == il_header.primary_scope->lifetime) {
+    lifetime = NULL;
+  }  /* if */
+  label_stmt->variant.label.lifetime = lifetime;
   insert_statement(label_stmt, insert_location);
   return temp_label;
 }  /* insert_temp_label */
