@@ -708,7 +708,7 @@ do
     gen_c_obj_name=$basefile.$$""$gen_o_suffix
     feoptions=$feoptions" "--gen_c_file_name=$gen_c_file_name
   fi
-  command=${CPFE}" "$EDG_CPFE_DEFAULT_OPTIONS" "$feoptions" "$cfile
+  command=${CPFE}" "$feoptions" "$EDG_CPFE_DEFAULT_OPTIONS" "$cfile
   if [ $driver_debug -ne 0 ] ; then
     echo $command
   fi
