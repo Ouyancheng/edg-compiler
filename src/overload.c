@@ -2191,11 +2191,6 @@ in [over.ics.rank].
        preferable. */
     if (bcp_1 == bcp_2) {
       /* The same cast in both cases, so the two are equally good. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode && init_conv_after_udc) {
-      /* MSVC++ 4.2 and 5.0 do not consider the base-class tiebreaker in
-         initializing contexts. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (conv1->reversed_cast != !init_conv_after_udc) {
       /* Normal case: derived --> base pointer cast.  Here, with a hierarchy
          A is-base-of B is-base-of C, we are looking for C* to B* is better
