@@ -3979,7 +3979,7 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   /* typeid is valid only after the type_info type has been defined in a
      header file. */
   if (!err && is_incomplete_type(type_of_type_info)) {
-    warning(ec_typeid_needs_typeinfo);
+    error(ec_typeid_needs_typeinfo);
   }  /* if */
   /* Advance past typeid. */
   (void)get_token();

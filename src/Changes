@@ -1,5 +1,11 @@
 Version 2.36
 
+5/19/97   Error rather than warning on typeid before inclusion of <typeinfo>
+
+The WP was recently changed so that it is an error to use the typeid
+operator before <typeinfo> has been included, so the warning
+heretofore issued for this situation has been changed to an error.
+
 5/19/97   No lvalue-to-rvalue conversion on void expressions in C++
 
 In accordance with a recent decision of the standards committee,
