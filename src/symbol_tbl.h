@@ -1175,9 +1175,15 @@ typedef struct an_extern_symbol_descr {
     /* When symbol kind == sk_extern_variable: */
     a_variable_ptr
 		variable;
-    /* When symbol kind == sk_extern_routine: */
-    a_routine_ptr
-		routine;
+    struct {
+      /* When symbol kind == sk_extern_routine: */
+      a_routine_ptr
+		ptr;
+      a_byte_boolean
+                is_implicit_declaration;
+                        /* TRUE if this external routine has only been
+			   declared implicitly. */
+    } routine;
   } variant;
 } an_extern_symbol_descr;
 

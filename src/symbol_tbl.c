@@ -1451,6 +1451,7 @@ state.
         sym_ptr->variant.extern_symbol_descr = esdp;
         esdp->type = NULL;
         esdp->variant.variable = NULL;  /* Clears routine too. */
+	esdp->variant.routine.is_implicit_declaration = FALSE;
       }
       break;
     case sk_projection:
@@ -5889,7 +5890,7 @@ This routine is only used in SVR4 C compatibility mode.
   check_assertion(C_dialect == C_dialect_ANSI);
   /* Enter the symbol in the symbol table.  decl_var_or_routine expects
      this to be done by the caller for implicitly declared routines. */
-  sym = enter_symbol(sk_routine, locator, depth_scope_stack,
+  sym = enter_symbol((a_symbol_kind)sk_routine, locator, depth_scope_stack,
 		     /*suppress_error=*/FALSE);
   /* Create a local declaration of the external routine.  Use the
      type from the sk_extern_routine symbol. */
@@ -5983,17 +5984,24 @@ such pointer is found, NULL is returned.
   a_symbol_locator  new_locator;
   a_symbol_ptr      sym = NULL;;
 
-  sym = find_external_symbol(locator, nlk_external, (a_type_ptr)NULL,
-			     &new_locator);
+  sym = find_external_symbol(locator, (a_name_linkage_kind)nlk_external,
+			     (a_type_ptr)NULL, &new_locator);
   if (sym != NULL) {
-    sym_warning(ec_using_out_of_scope_declaration, sym);
     if (sym->kind == (a_symbol_kind)sk_extern_routine) {
-      sym = enter_sym_for_out_of_scope_routine(sym, locator);
+      if (sym->variant.extern_symbol_descr->
+                                  variant.routine.is_implicit_declaration) {
+        /* Don't redeclare a previous symbol if it was implicitly
+	   declared. */
+	sym = NULL;
+      } else {
+	sym = enter_sym_for_out_of_scope_routine(sym, locator);
+      }  /* if */
     } else if (sym->kind == (a_symbol_kind)sk_extern_variable) {
       sym = enter_sym_for_out_of_scope_variable(sym, locator);
     } else {
       unexpected_condition();
     }  /* if */
+    if (sym != NULL) sym_warning(ec_using_out_of_scope_declaration, sym);
   }  /* if */
   return sym;
 }  /* find_svr4_out_of_scope_declaration */

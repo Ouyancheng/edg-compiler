@@ -1655,6 +1655,7 @@ issued a similar error).  Return FALSE if there is some error.
   a_boolean                  okay = TRUE;
   a_boolean                  is_routine =
                            (ext_sym->kind == (a_symbol_kind)sk_extern_routine);
+  an_error_severity          severity;
 
   esdp = ext_sym->variant.extern_symbol_descr;
   old_type = esdp->type;
@@ -1668,15 +1669,22 @@ issued a similar error).  Return FALSE if there is some error.
                            C_mode() ? TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING :
                                       TCF_NO_FLAGS) :
                      !types_are_compatible(old_type, type_ptr)) {
+      /* The old and new types are incompatible.  Allow certain cases
+         in SVR4 C compatibility mode. */
+      if (SVR4_C_mode && interchangeable_types(old_type, type_ptr)) {
+        severity = es_warning;
+      } else {
+        severity = es_error;
+        okay = FALSE;
+      }  /* if */
       /* The old and new types are incompatible.  Error. */
       if (!suppress_incompatible_error) {
-        pos_sy_error(ec_decl_incompatible_with_previous_use,
-                     position, ext_sym);
+        pos_sy_diagnostic(severity, ec_decl_incompatible_with_previous_use,
+			  position, ext_sym);
       }  /* if */
-      okay = FALSE;
       /* Record an error type as the external symbol's type, to avoid
-         future errors. */
-      esdp->type = error_type();
+	 future errors. */
+      if (!okay) esdp->type = error_type();
     } else {
       /* The old and new types are compatible.  Form the composite of
          those types, and save that as the type of the external symbol. */
@@ -1695,6 +1703,7 @@ static a_symbol_ptr create_external_symbol_for_linked_entity(
                               a_boolean            redeclaration,
                               a_boolean            suppress_incompatible_error,
                               a_boolean            suppress_ext_sym_lookup,
+			      a_boolean            is_implicit_declaration,
                               a_variable_ptr       *variable_ptr,
                               a_routine_ptr        *routine_ptr)
 /*
@@ -1750,7 +1759,7 @@ created; the caller must set it.
       if (ext_sym->kind == (a_symbol_kind)sk_extern_variable) {
         old_name = esdp->variant.variable->source_corresp.name;
       } else {
-        old_name = esdp->variant.routine->source_corresp.name;
+        old_name = esdp->variant.routine.ptr->source_corresp.name;
       }  /* if */
       check_assertion(old_name != NULL);
       new_name = locator->symbol_header->identifier;
@@ -1782,6 +1791,14 @@ created; the caller must set it.
                                                &locator->source_position,
                                                type_ptr,
                                                suppress_incompatible_error);
+        if (ext_sym_kind == (a_symbol_kind)sk_extern_routine) {
+	  /* If this declaration is not the result of an implicit declaration,
+	     clear the is_implicit_declaration flag in the external
+	     symbol entry. */
+	  if (!is_implicit_declaration) {
+	    esdp->variant.routine.is_implicit_declaration = FALSE;
+	  }  /* if */
+	}  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1792,6 +1809,9 @@ created; the caller must set it.
                            /*suppress_error=*/TRUE);
     esdp = ext_sym->variant.extern_symbol_descr;
     esdp->type = type_ptr;
+    if (ext_sym_kind == (a_symbol_kind)sk_extern_routine) {
+      esdp->variant.routine.is_implicit_declaration = is_implicit_declaration;
+    }  /* if */
     /* The pointer to the variable or routine IL entry is filled in later,
        by the caller of this routine. */
   }  /* if */
@@ -1814,7 +1834,8 @@ created; the caller must set it.
     } else {
       /* The entity being declared is a routine. */
       if (*routine_ptr == NULL) {
-        *routine_ptr = ext_sym->variant.extern_symbol_descr->variant.routine;
+        *routine_ptr =
+                    ext_sym->variant.extern_symbol_descr->variant.routine.ptr;
         if (*routine_ptr != NULL) {
           /* There is a routine entry we can reuse. */
           use_existing_il_entry = TRUE;
@@ -2534,9 +2555,11 @@ describing this declaration.
           }  /* if */
         }  /* if */
         if (!routines_compat) {
-          /* The old and new declarations are incompatible. */
-          pos_sy_error(ec_not_compatible_with_previous_decl,
-                       &locator->source_position, linked_symbol);
+          /* The old and new declarations are incompatible.  In SVR4
+	     C compatibility mode, only issue a warning. */
+          pos_sy_diagnostic(SVR4_C_mode ? es_warning : es_error,
+			    ec_not_compatible_with_previous_decl,
+			    &locator->source_position, linked_symbol);
           redecl_error_already_issued = TRUE;
           if (!old_decl_has_body) {
             routine_ptr->type = type_ptr;
@@ -2742,6 +2765,7 @@ skip_overloading:;
     /* Determine the name linkage that should be used in looking up an
        existing external symbol entry. */
     a_name_linkage_kind  name_linkage;
+    a_boolean            is_implicit_declaration;
 
     if (linkage == idl_internal) {
       name_linkage = (a_name_linkage_kind)nlk_internal;
@@ -2750,12 +2774,15 @@ skip_overloading:;
     } else {
       name_linkage = def_external_linkage.kind;
     }  /* if */
+    is_implicit_declaration = (is_function &&
+			       func_info->is_implicit_declaration);
     *ext_sym = create_external_symbol_for_linked_entity(
                                                  locator, is_function,
                                                  type_ptr, name_linkage,
                                                  redeclaration,
                                                  linked_redecl_error,
                                                  suppress_ext_sym_lookup,
+						 is_implicit_declaration,
                                                  &variable_ptr, &routine_ptr);
   }  /* if */
   if (!is_function) {
@@ -2942,7 +2969,8 @@ skip_overloading:;
     sym->variant.routine.ptr = routine_ptr;
     if (*ext_sym != NULL) {
       /* Link the external symbol to the IL routine entry. */
-      (*ext_sym)->variant.extern_symbol_descr->variant.routine = routine_ptr;
+      (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr =
+                                                                 routine_ptr;
     }  /* if */
     if (any_deferred_access_checks()) {
       /* Now that we know which function has been declared, recheck any
