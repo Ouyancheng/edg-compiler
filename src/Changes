@@ -45,8 +45,6 @@ For information on using "export" with libraries, and more
 general information, see the External Interface chapter of the
 internal documentation.
 
-"export" cannot be used with the C++-generating back end.
-
 "export" requires dependent name lookup, which means it is
 unlikely that "export" can simply be added to existing code
 if the code is not modern template code (using typename, etc.).
