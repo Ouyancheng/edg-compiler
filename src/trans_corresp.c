@@ -3132,6 +3132,10 @@ are not checked.
                trans_unit_corresp_of(corresp_routine) == NULL) &&
               !routine->source_corresp.is_class_member &&
               !corresp_routine->source_corresp.is_class_member &&
+              may_have_correspondence(
+                           (a_symbol_ptr)routine->source_corresp.assoc_info) &&
+              may_have_correspondence(
+                   (a_symbol_ptr)corresp_routine->source_corresp.assoc_info) &&
               routine->source_corresp.parent.namespace_ptr ==
                         corresp_routine->source_corresp.parent.namespace_ptr &&
               (param_types_are_compatible(
