@@ -5332,14 +5332,15 @@ error with that, set *err TRUE as well.
              the error message. */
           *err = TRUE;
           *processed = TRUE;
-          (void)user_defined_conversion_possible(operand, eff_type_cast_to,
-                                                 /*is_initialization=*/TRUE,
-                                                 /*is_explicit_cast=*/TRUE,
-                                                 /*need_lvalue_result=*/TRUE,
+          (void)user_defined_conversion_possible(
+                                            operand, eff_type_cast_to,
+                                            /*is_initialization=*/TRUE,
+                                            /*is_copy_initialization=*/FALSE,
+                                            /*need_lvalue_result=*/TRUE,
                                             /*consider_convs_to_derived=*/TRUE,
-                                                 &conversion,
-                                                 (a_conv_descr *)NULL,
-                                                 &failed);
+                                            &conversion,
+                                            (a_conv_descr *)NULL,
+                                            &failed);
         }  /* if */
       }  /* if */
     } else {
@@ -5351,7 +5352,7 @@ error with that, set *err TRUE as well.
           !is_template_param_type(type_cast_to)) {
         if (user_defined_conversion_possible(operand, type_cast_to,
                                              /*is_initialization=*/TRUE,
-                                             /*is_explicit_cast=*/TRUE,
+                                             /*is_copy_initialization=*/FALSE,
                                              /*need_lvalue_result=*/FALSE,
                                            /*consider_convs_to_derived=*/FALSE,
                                              &conversion,
@@ -10330,6 +10331,7 @@ or nonconstant; on return, *is_constant is set accordingly, and the result
 is returned either in *expression or in *constant.  Note that the
 required_type may not be an array type.  This routine is not used when
 copy constructor elision is possible; see scan_class_initializer_expression.
+This routine does copy-initialization ("="-form initialization).
 */
 {
   an_operand          result;
@@ -10448,9 +10450,9 @@ cases:
   A y[3] = {1, 2, 3}; // A::A(int) three times
   A z = x;            // A::A(const A&)
 
-As indicated, this is initialization with the "=" semantics.
-The dynamic initialization entry will also indicate a destructor if
-appropriate.
+As indicated, this is initialization with the "=" semantics
+(copy-initialization). The dynamic initialization entry will also
+indicate a destructor if appropriate.
 */
 {
   an_operand          result;
@@ -10494,6 +10496,7 @@ This routine is used for constructs like
 
   A a(1, 2, 3);
 
+In other words, this is direct-initialization of a class object.
 object_class_type indicates the class type of the full object being
 initialized.  It is the same as class_type, or a derived type thereof.
 An object lifetime is forced around the initialization if

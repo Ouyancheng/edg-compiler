@@ -37,8 +37,8 @@ static a_boolean conversion_to_class_possible(
                             an_operand               *source_operand,
                             a_type_ptr               dest_type,
                             a_boolean                is_initialization,
+                            a_boolean                is_copy_initialization,
                             a_boolean                try_bitwise_copy,
-                            a_boolean                is_explicit_cast,
                             a_boolean                consider_convs_to_derived,
                             a_conv_descr             *conversion,
                             a_conv_descr             *ctor_arg_conversion,
@@ -993,8 +993,8 @@ arg_match->match_level to aml_none.
     a_boolean ambiguous;
     if (conversion_to_class_possible(arg_operand, param_type,
                                      /*is_initialization=*/TRUE,
+                                     /*is_copy_initialization=*/TRUE,
                                      /*try_bitwise_copy=*/TRUE,
-                                     /*is_explicit_cast=*/FALSE,
                                      /*consider_convs_to_derived=*/FALSE,
                                      &arg_match->conversion,
                                      (a_conv_descr *)NULL,
@@ -1427,8 +1427,8 @@ is TRUE.
            trouble of rejecting them above. */
         (conversion_to_class_possible(orig_arg_operand, param_type,
                                       /*is_initialization=*/TRUE,
+                                      /*is_copy_initialization=*/TRUE,
                                       /*try_bitwise_copy=*/FALSE,
-                                      /*is_explicit_cast=*/FALSE,
                                       param_is_reference,
                                       &conversion, (a_conv_descr *)NULL,
                                       &ambiguous,
@@ -1612,8 +1612,8 @@ static void try_overloaded_function_match(
                  a_boolean                have_selector,
                  an_operand               *bound_function_selector,
                  a_boolean                selector_is_object_pointer,
-                 a_boolean                user_conversion_case,
-                 a_boolean                try_user_conversions,
+                 a_boolean                ctor_conversion_case,
+                 a_boolean                effects_copy_initialization,
                  a_candidate_function_ptr *candidate_functions,
                  a_boolean                *matched_except_for_missing_selector)
 /*
@@ -1627,18 +1627,20 @@ otherwise.  Any viable functions are added to the candidate_functions
 list along with information on the level of argument matches.  If a
 match would have been found except for the absence of a selector, set
 *matched_except_for_missing_selector TRUE; that allows a different
-error message.  If user_conversion_case is TRUE, this analysis is
+error message.  If ctor_conversion_case is TRUE, this analysis is
 being done as part of resolving an implicit or explicit conversion
 to a class type: the functions are constructors, have_selector is FALSE
 (sic; the "this" parameter is not matched up); the "conversion" field
-is set in any candidate function entries created.  try_user_conversions
-is TRUE to indicate that user-defined conversions should be tried on
-argument matches.
+is set in any candidate function entries created.  effects_copy_initialization
+is TRUE if this call is the user-defined conversion in a copy-initialization;
+user-defined conversions are not tried on argument matches, and constructors
+that are marked "explicit" are ignored.
 */
 {
   a_boolean                overloaded_function_case;
   a_symbol_ptr             function_symbol, proj_function_symbol;
   a_type_ptr               routine_type;
+  a_routine_ptr            rout;
   a_routine_type_supplement_ptr
                            rtsp;
   a_param_type_ptr         param;
@@ -1669,20 +1671,19 @@ argument matches.
   function_symbol = fundamental_symbol_of(proj_function_symbol);
   /* If we have no selector, see if any one of the functions requires one.
      If so, we will look to see if an implicit "this->" can be generated.
-     Don't do this for the conversion case (the "this" parameter of the
+     Don't do this for the constructor case (the "this" parameter of the
      constructor is not used in the match). */
-  if (!user_conversion_case && !have_selector) {
+  if (!ctor_conversion_case && !have_selector) {
     a_boolean some_function_needs_selector = FALSE;
     /* Check the first or only function to see whether or not it requires
        a selector. */
     if (function_symbol->kind == (a_symbol_kind)sk_function_template) {
       /* Template -- might be a member function template. */
-      routine_type = function_symbol->variant.template_info->
-                                                variant.function.routine->type;
-      routine_type = skip_typerefs(routine_type);      
+      rout = function_symbol->variant.template_info->variant.function.routine;
     } else {
-      routine_type = routine_symbol_type(function_symbol);
+      rout = function_symbol->variant.routine.ptr;
     }  /* if */
+    routine_type = skip_typerefs(rout->type);      
     if (routine_type_is_nonstatic_member_function(routine_type)) {
       some_function_needs_selector = TRUE;
     }  /* if */
@@ -1726,13 +1727,18 @@ argument matches.
                                           (a_symbol_kind)sk_function_template);
     if (function_template_case) {
       /* The symbol is a function template. */
-      routine_type = function_symbol->variant.template_info->
-                                                variant.function.routine->type;
-      routine_type = skip_typerefs(routine_type);      
+      rout = function_symbol->variant.template_info->variant.function.routine;
     } else {
       /* The symbol is not a function template (i.e., it's a normal
          function). */
-      routine_type = routine_symbol_type(function_symbol);
+      rout = function_symbol->variant.routine.ptr;
+    }  /* if */
+    routine_type = skip_typerefs(rout->type);
+    rtsp = routine_type->variant.routine.extra_info;
+    arg_match_list = end_arg_match_list = NULL;
+    if (effects_copy_initialization && rout->is_explicit_constructor) {
+      /* Constructors marked "explicit" are to be ignored. */
+      goto reject_function;
     }  /* if */
     /* Do a quick pass through the lists to eliminate a function with an
        obviously wrong number of parameters quickly.  This is not just a
@@ -1740,8 +1746,6 @@ argument matches.
        that look like
          struct A { A(A, xxx, yyy); }
        which look viable as copy constructors on the first argument. */
-    arg_match_list = end_arg_match_list = NULL;
-    rtsp = routine_type->variant.routine.extra_info;
     param = rtsp->param_type_list;
     for (arg_operand = arg_operand_list;
          arg_operand != NULL;
@@ -1817,7 +1821,8 @@ argument matches.
           /* Compare their types. */
           determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
                                     param->type,
-                                    try_user_conversions,
+                                    /*try_user_conversions=*/
+                                                  !effects_copy_initialization,
                                     /*is_match_for_this_param=*/FALSE,
                                     arg_match);
           /* If no match is possible, go on to the next function. */
@@ -1837,7 +1842,7 @@ argument matches.
        templates do. */
     /* Do not process the "this" parameter for constructors in a conversion
        case. */
-    if (!user_conversion_case) {
+    if (!ctor_conversion_case) {
       function_is_nonstatic_member_function =
                        routine_type_is_nonstatic_member_function(routine_type);
       if (have_selector) {
@@ -1926,9 +1931,9 @@ argument matches.
       add_function_to_candidate_functions_list(proj_function_symbol,
                                                arg_match_list,
                                                candidate_functions);
-      if (user_conversion_case) {
-        /* If we are analyzing a user-defined conversion routine to resolve
-           an implicit or explicit conversion, set "conversion" appropriately.
+      if (ctor_conversion_case) {
+        /* If we are analyzing a constructor to resolve an implicit or
+           explicit conversion, set "conversion" appropriately.
            Note that this cannot happen for the template case. */
         a_candidate_function_ptr candidate = *candidate_functions;
         candidate->is_user_conversion = TRUE;
@@ -3122,8 +3127,8 @@ only in C++ mode.
                                 have_selector,
                                 bound_function_selector,
                                 /*selector_is_object_pointer=*/TRUE,
-                                /*user_conversion_case=*/FALSE,
-                                /*try_user_conversions=*/TRUE,
+                                /*ctor_conversion_case=*/FALSE,
+                                /*effects_copy_initialization=*/FALSE,
                                 &candidate_functions,
                                 &matched_except_for_missing_selector);
   /* The candidate_functions list now contains all the viable functions.
@@ -5332,8 +5337,8 @@ functions could still apply).
                                          /*have_selector=*/TRUE,
                                          operand_1,
                                          /*selector_is_object_pointer=*/FALSE,
-                                         /*user_conversion_case=*/FALSE,
-                                         /*try_user_conversions=*/TRUE,
+                                         /*ctor_conversion_case=*/FALSE,
+                                         /*effects_copy_initialization=*/FALSE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
             }  /* if */
@@ -5370,8 +5375,8 @@ functions could still apply).
                                          /*have_selector=*/FALSE,
                                          (an_operand *)NULL,
                                          /*selector_is_object_pointer=*/TRUE,
-                                         /*user_conversion_case=*/FALSE,
-                                         /*try_user_conversions=*/TRUE,
+                                         /*ctor_conversion_case=*/FALSE,
+                                         /*effects_copy_initialization=*/FALSE,
                                          &candidate_functions,
                                          &matched_except_for_missing_selector);
             }  /* if */
@@ -5610,8 +5615,8 @@ static a_boolean conversion_to_class_possible(
                             an_operand               *source_operand,
                             a_type_ptr               dest_type,
                             a_boolean                is_initialization,
+                            a_boolean                is_copy_initialization,
                             a_boolean                try_bitwise_copy,
-                            a_boolean                is_explicit_cast,
                             a_boolean                consider_convs_to_derived,
                             a_conv_descr             *conversion,
                             a_conv_descr             *ctor_arg_conversion,
@@ -5622,11 +5627,13 @@ If source_operand can be converted to the class type dest_type (via a
 constructor, conversion function, or bitwise copy) set *conversion
 to describe the conversion and return TRUE.  Otherwise, return FALSE.
 If is_initialization is TRUE, this conversion is for an initialization;
-otherwise, it's for an assignment.  The result is always an rvalue.
-Bitwise copies are considered if try_bitwise_copy is TRUE.
-If is_explicit_cast is TRUE, this conversion is an explicit cast;
-allow user-defined conversions on constructor arguments.
-If consider_convs_to_derived is TRUE, also consider conversions to
+otherwise, it's for an assignment.  If is_copy_initialization is TRUE,
+the initialization is copy-initialization ("="-form initialization);
+if FALSE, it's direct-initialization ("()"-form initialization).
+User-defined conversions on constructor arguments are considered only
+for direct-initialization.  The result is always an rvalue.  Bitwise
+copies are considered if try_bitwise_copy is TRUE.  If
+consider_convs_to_derived is TRUE, also consider conversions to
 derived classes of dest_type.  If ctor_arg_conversion is non-NULL,
 return a description of the conversion to be done on the constructor
 argument in *ctor_arg_conversion.  If more than one function matches,
@@ -5694,8 +5701,9 @@ because of an error.  This routine is only used in C++ mode.
                                     /*have_selector=*/FALSE, /* sic */
                                     (an_operand *)NULL,
                                     /*selector_is_object_pointer=*/FALSE,
-                                    /*user_conversion_case=*/TRUE,
-                                    /*try_user_conversions=*/is_explicit_cast,
+                                    /*ctor_conversion_case=*/TRUE,
+                                    /*effects_copy_initialization=*/
+                                                        is_copy_initialization,
                                     &candidate_functions,
                                     &matched_except_for_missing_selector);
     }  /* if */
@@ -5704,11 +5712,20 @@ because of an error.  This routine is only used in C++ mode.
       /* There is at least one conversion function that converts some other
          class into the desired class, and the source type is a class.
          See if there is a conversion function that does the job. */
-      try_conversion_function_match(source_operand, dest_type,
-                                    (a_builtin_type_kind_set)BTK_NONE,
-                                    /*need_lvalue_result=*/FALSE,
-                                    consider_convs_to_derived,
-                                    &candidate_functions);
+      bcp = NULL;
+      if (is_copy_initialization && 
+          (identical_types(source_type, class_type) ||
+           find_base_class_of(source_type, class_type) != NULL)) {
+        /* In copy-initialization, if the source type is the same as the
+           destination type, or a derived class thereof, only constructors
+           are supposed to be used.  WP [dcl.init]. */
+      } else {
+        try_conversion_function_match(source_operand, dest_type,
+                                      (a_builtin_type_kind_set)BTK_NONE,
+                                      /*need_lvalue_result=*/FALSE,
+                                      consider_convs_to_derived,
+                                      &candidate_functions);
+      }  /* if */
     }  /* if */
     /* If no functions are viable, check for the possibility of a bitwise
        copy from a derived class to a base class. */
@@ -5955,7 +5972,7 @@ a_boolean user_defined_conversion_possible(
                                         an_operand   *source_operand,
                                         a_type_ptr   dest_type,
                                         a_boolean    is_initialization,
-                                        a_boolean    is_explicit_cast,
+                                        a_boolean    is_copy_initialization,
                                         a_boolean    need_lvalue_result,
                                         a_boolean    consider_convs_to_derived,
                                         a_conv_descr *conversion,
@@ -5971,18 +5988,21 @@ a user-defined conversion is the only hope of converting the source
 operand to the destination type (i.e., one or the other has a class
 type), and no conversion was found, issue an error, change
 source_operand to an error operand, set *failed to TRUE, and return
-FALSE.  If is_explicit_cast is TRUE, the conversion is an explicit
-cast; allow user-defined conversions on constructor arguments.
+FALSE.  If is_copy_initialization is TRUE, this is copy-initialization
+("="-form initialization); if FALSE, it's direct-initialization
+("()"-form initialization).  User-defined conversions on constructor
+arguments are considered only for direct-initialization.
 need_lvalue_result is TRUE if the result is required to be an lvalue;
-otherwise, the result can be an lvalue or an rvalue.
-If consider_convs_to_derived is TRUE, also consider conversions to
+otherwise, the result can be an lvalue or an rvalue.  If
+consider_convs_to_derived is TRUE, also consider conversions to
 derived classes of dest_type.  If ctor_arg_conversion is non-NULL,
 return a description of the conversion to be done on the constructor
 argument in *ctor_arg_conversion.  Note that this routine should only
-be called when the conversion must be done, not when we're just wondering
-if it can be done, because it issues errors.  See 12.3 in the ARM.  This
-routine is only called in C++ mode.  The destination type must not be
-a reference type (the caller should have rewritten that case).
+be called when the conversion must be done, not when we're just
+wondering if it can be done, because it issues errors.  See 12.3 in
+the ARM.  This routine is only called in C++ mode.  The destination
+type must not be a reference type (the caller should have rewritten
+that case).
 */
 {
   a_boolean                okay = FALSE, ambiguous;
@@ -6006,8 +6026,8 @@ a reference type (the caller should have rewritten that case).
        be picked up below. */
     if (conversion_to_class_possible(source_operand, dest_type,
                                      is_initialization,
+                                     is_copy_initialization,
                                      /*try_bitwise_copy=*/TRUE,
-                                     is_explicit_cast,
                                      consider_convs_to_derived,
                                      conversion, ctor_arg_conversion,
                                      &ambiguous, &ambiguity_list)) {
@@ -6126,17 +6146,19 @@ destination type, implicitly, in an initialization (is_initialization ==
 TRUE) or assignment (is_initialization == FALSE).  If so, set
 *conversion to describe the conversion, and return TRUE.  If not, issue
 the error incompatible_err at the position err_pos, change the operand
-to an error operand, and return FALSE.  Try user-defined conversions
-only if try_user_conversions is TRUE.  The result of the conversion
-must be an lvalue if need_lvalue_result is TRUE.
-If consider_convs_to_derived is TRUE, also consider conversions to
+to an error operand, and return FALSE.  This is copy-initialization
+("="-form initialization).  Try user-defined conversions only if
+try_user_conversions is TRUE.  The result of the conversion must be
+an lvalue if need_lvalue_result is TRUE.  If
+consider_convs_to_derived is TRUE, also consider conversions to
 derived classes of dest_type.  See 3.3.16.1 in the ANSI C standard
 and 12.3 in the ARM.  Note that this routine should only be called
-when the conversion must be done, not when we're just wondering if
-it can be done, because it does operand transformations on source_operand
-and issues errors.  The destination type must not be a reference type
-(the caller should have rewritten that case).  orig_dest_type is the
-original destination type (not rewritten) for use in error messages.
+when the conversion must be done, not when we're just wondering if it
+can be done, because it does operand transformations on
+source_operand and issues errors.  The destination type must not be a
+reference type (the caller should have rewritten that case).
+orig_dest_type is the original destination type (not rewritten) for
+use in error messages.
 */
 {
   a_boolean          okay = FALSE, failed = FALSE, ambiguous;
@@ -6154,7 +6176,7 @@ original destination type (not rewritten) for use in error messages.
   if (C_dialect == C_dialect_cplusplus && try_user_conversions &&
       user_defined_conversion_possible(source_operand, dest_type,
                                        is_initialization,
-                                       /*is_explicit_cast=*/FALSE,
+                                       /*is_copy_initialization=*/TRUE,
                                        need_lvalue_result,
                                        consider_convs_to_derived,
                                        conversion, (a_conv_descr *)NULL,
@@ -6576,7 +6598,7 @@ try_user_conversions is TRUE.  The result of the conversion must be
 an lvalue if need_lvalue_result is TRUE.  If consider_convs_to_derived
 is TRUE, also consider conversions to derived classes of dest_type.  
 orig_dest_type is the destination type before any rewriting, for use
-in error messages.
+in error messages.  The conversion is considered to be copy-initialization.
 */
 {
   a_boolean possible;
@@ -6610,11 +6632,12 @@ static void prep_conversion_operand(an_operand        *source_operand,
 Convert source_operand to dest_type if that is possible.  If not, issue
 incompatible_err at *err_pos.  This routine is used for initialization
 (is_initialization == TRUE) and assignment (is_initialization == FALSE).
-source_operand may be an rvalue or an lvalue.  On return, it will
-always be an rvalue.  If conversion is non-NULL, the conversion
-has previously been found to be acceptable, and *conversion describes
-it.  dest_type must not be a reference type.  Try user-defined
-conversions only if try_user_conversions is TRUE. 
+When it's used for initialization, the initialization is
+copy-initialization ("="-form).  source_operand may be an rvalue or an
+lvalue.  On return, it will always be an rvalue.  If conversion is
+non-NULL, the conversion has previously been found to be acceptable,
+and *conversion describes it.  dest_type must not be a reference type.
+Try user-defined conversions only if try_user_conversions is TRUE. 
 */
 {
   a_conv_descr local_conversion;
@@ -6987,7 +7010,7 @@ initialization entry in *dip (or NULL for an error).  err_code is the error
 code to be used in case of error.  source_operand may be changed by this
 routine.  This routine is used in both C and C++ mode, but it exists to
 do copy constructor elision in C++ mode.  This is an initialization with
-the "=" semantics.
+the "=" semantics (copy-initialization).
 */
 {
   a_conv_descr conversion;
@@ -7121,7 +7144,7 @@ derived classes of dest_type.  If conversion is non-NULL, the conversion
 is already known to be possible, and *conversion describes it.  This
 routine is used to convert the initial value in a reference initialization
 to a temporary that the reference will point to.  dest_type must not be a
-reference type.  Only used in C++.
+reference type.  Only used in C++.  This is copy-initialization.
 */
 {
   a_conv_descr  local_conversion;
