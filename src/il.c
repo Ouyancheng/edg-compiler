@@ -11100,34 +11100,36 @@ eliminate_unneeded_scope_orphaned_list_entries).
 void detach_from_object_lifetime_tree(an_object_lifetime_ptr  olp)
 /*
 Unlink the object lifetime entry pointed to by olp from the child-lifetime
-list of its parent.
+list of its parent.  If olp is NULL, do nothing.
 */
 {
-  an_object_lifetime_ptr  parent, child, prev_child;
+  if (olp != NULL) {
+    an_object_lifetime_ptr  parent, child, prev_child;
 
-  parent = olp->parent_lifetime;
-  /* This doesn't support removing function object lifetimes. */
-  check_assertion(parent != NULL);
-  prev_child = NULL;
-  child = parent->child_lifetime;
-  while (child != olp) {
-    check_assertion(child != NULL);
-    prev_child = child;
-    child = child->next;
-  }  /* while */
-  if (prev_child == NULL) {
-    parent->child_lifetime = olp->next;
-  } else {
-    prev_child->next = olp->next;
-  }  /* if */
-  olp->parent_lifetime = NULL;
+    parent = olp->parent_lifetime;
+    /* This doesn't support removing function object lifetimes. */
+    check_assertion(parent != NULL);
+    prev_child = NULL;
+    child = parent->child_lifetime;
+    while (child != olp) {
+      check_assertion(child != NULL);
+      prev_child = child;
+      child = child->next;
+    }  /* while */
+    if (prev_child == NULL) {
+      parent->child_lifetime = olp->next;
+    } else {
+      prev_child->next = olp->next;
+    }  /* if */
+    olp->parent_lifetime = NULL;
 #if DEBUG
-  if (debug_level >= 4) {
-    fputs("lifetime unlinked:\n", f_debug);
-    db_object_lifetime(olp);
-    db_object_lifetime(parent);
-  }  /* if */
+    if (debug_level >= 4) {
+      fputs("lifetime unlinked:\n", f_debug);
+      db_object_lifetime(olp);
+      db_object_lifetime(parent);
+    }  /* if */
 #endif /* DEBUG */
+  }  /* if */
 }  /* detach_from_object_lifetime_tree */
 
 #if MAINTAIN_NEEDED_FLAGS
