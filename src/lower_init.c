@@ -5730,7 +5730,7 @@ have already had their designated initializers lowered.
         /* Non-aggregate constant. */
         if (earlier_con != NULL) {
           /* con overwrites an earlier initialization at the same location,
-             given by earlier_con. The following call will combine the two
+             given by earlier_con.  The following call will combine the two
              initializers into *con. */
           combine_initializer_constants(earlier_con, con);
         }  /* if */
