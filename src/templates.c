@@ -7483,7 +7483,8 @@ returned to the caller.
      The initializer may be of the form "= ...;" or "(...);".
      Anything else will not get cached and an error will be generated
      on this declaration. */
-  if (curr_token == tok_assign || has_parenthesized_initializer) {
+  if (curr_token != tok_end_of_source &&
+      (curr_token == tok_assign || has_parenthesized_initializer)) {
     a_token_sequence_number	split_location;
     a_token_set_array		stop_tokens;
     p_token_cache = &local_token_cache;

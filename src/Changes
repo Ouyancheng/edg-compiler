@@ -1,5 +1,17 @@
 Version 2.36
 
+4/14/97   Internal error on end-of-source in template static data
+          member perenthesized intiailizer
+
+An internal error would occur if an end-of-source immediately followed
+the opening perenthsis of a template static data member definition.
+This has been fixed.
+
+  template <class T> struct A {
+    static int i;
+  };
+  template < class T > int A < T >::i (
+
 4/14/97   Internal error while issuing variable-used-before-set warning
 
 An internal error is no longer issued on the following, in which a default
