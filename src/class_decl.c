@@ -9510,7 +9510,6 @@ class_type.  Set *updated if a projection symbol is created.
              a conversion to the type specified by the conversion defined in
              the base class.  Ignore it. */
           break;
-#if CHECKING
         } else if (is_template_list) {
           a_type_ptr  tp1, tp2;
           sym = fundamental_symbol_of(slep->symbol);
@@ -9521,10 +9520,14 @@ class_type.  Set *updated if a projection symbol is created.
           check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
           tp2 = sym->variant.template_info->variant.function.
                                routine->type->variant.routine.return_type;
-          check_assertion_str2(!identical_types(tp1, tp2),
-                               "check_base_class_conversion_list: types are",
-                               "identical but symbol headers do not match");
-#endif /* if CHECKING */
+          if (f_identical_types(tp1, tp2, ITF_IGNORE_NESTING_DEPTH)) {
+            /* The base conversion template converts to the same type as
+               the current class.  Ignore it.  Nesting depths are ignored
+               for this comparison because "operator T()" and "operator X()"
+               should be considered identical even if one is more deeply
+               nested than the other. */
+            break;
+          }  /* if */
         }  /* if */
       }  /* for */
       if (slep == NULL) {

@@ -355,6 +355,11 @@ typedef unsigned int an_itf_flag_set;
 			   the corresponding component of the second type
 			   (only applies to enum and struct/union types). */
 
+#define ITF_IGNORE_NESTING_DEPTH 0x08
+			/* TRUE if the nesting depths of template parameters
+			   should be ignored for purposes of this
+			   comparison. */
+
 #define identical_types(t1, t2) \
   ((t1) == (t2) || f_identical_types((t1), (t2), ITF_NO_FLAGS))
 #define il_identical_types(t1, t2) \

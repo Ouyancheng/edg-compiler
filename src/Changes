@@ -1,5 +1,24 @@
 Version 2.46
 
+12/13/01 Spurious conversion template ambiguity
+
+A derived class conversion template should hide a base class conversion
+template when both templates convert to the same type.  This hiding did
+not work properly when the templates involved had different template
+nesting depths (i.e., when the number of template parameter lists
+that are visible differed).  This would result in a spurious ambiguity
+and is now fixed.
+
+  template <class X> struct A {
+    template <class T> operator T();  // template nesting depth of 2
+  };
+  struct B : public A<int> {
+    template <class T> operator T();  // template nesting depth of 1
+  };
+  int main() {
+    int *i = B();
+  }
+
 12/12/01 Incorrect IL after lowering of file-scope initialization
 
 In some cases involving IL lowering of an initialized global-scope

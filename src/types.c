@@ -2666,8 +2666,9 @@ for more information.
                 tptsp_2 = type_2->variant.template_param.extra_info;
                 identical = (tptsp_1->coordinates.position ==
                              tptsp_2->coordinates.position) &&
-                            equiv_nesting_depths(tptsp_1->coordinates.depth,
-                                                 tptsp_2->coordinates.depth);
+                          (equiv_nesting_depths(tptsp_1->coordinates.depth,
+                                                tptsp_2->coordinates.depth) ||
+                           (flags & ITF_IGNORE_NESTING_DEPTH) != 0);
                 break;
               case tptk_member:
                 /* Members types are the same if their names are the same
