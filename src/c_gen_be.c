@@ -2255,10 +2255,6 @@ of an assignment).  It's also used for a normal "*" for indirection.
     /* Address of variable: just write the variable name. */
     dump_variable_name(node->variant.variable);
     processed = TRUE;
-  } else if (kind == (an_expr_node_kind)enk_routine_address) {
-    /* Address of routine: just write the routine name. */
-    dump_routine_name(node->variant.routine);
-    processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_operation) {
     an_expr_operator_kind op = node->variant.operation.kind;
     an_expr_node_ptr      operand_1 = node->variant.operation.operands;
@@ -2534,6 +2530,33 @@ Return TRUE if the indicated expression is a zero constant.
 }  /* expr_is_zero_constant */
 
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
+
+
+static void dump_routine_address(an_expr_node_ptr expr)
+/*
+Generate code for an enk_routine_address expression node, i.e., the address
+of a routine.
+*/
+{
+  a_routine_ptr rout = expr->variant.routine;
+  a_type_ptr    rout_type = rout->type;
+  a_type_ptr    expr_rout_type = type_pointed_to(expr->type);
+  a_boolean     need_parens = FALSE;
+
+  if (skip_typerefs(expr_rout_type) != skip_typerefs(rout_type)) {
+    /* The type of the routine and the type in the call are different.
+       This is probably because the call was generated and then
+       the routine type was updated by a redeclaration.  Use a cast to
+       be sure to get the required type at this point. */
+    write_tok_ch('(');
+    need_parens = TRUE;
+    dump_cast(expr->type);
+  }  /* if */
+  dump_ampersand(rout_type);
+  dump_routine_name(rout);
+  if (need_parens) write_tok_ch(')');
+}  /* dump_routine_address */
+
 
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
@@ -2997,7 +3020,7 @@ process_assignment:
         case eok_call:
           /* N operand operator. */
           /* Put out the function to call. */
-          dump_lvalue(operand_1);
+          dump_expr_with_parens(operand_1);
           write_tok_ch('(');
 #if CHECKING
           /* Keep track of parameter types to check for arguments to old-style
@@ -3093,10 +3116,7 @@ done_with_operation:
       dump_variable_name(expr->variant.variable);
       break;
     case enk_routine_address:
-      if (need_parens) m_write_tok_ch('(');
-      dump_ampersand(expr->variant.routine->type);
-      dump_routine_name(expr->variant.routine);
-      if (need_parens) m_write_tok_ch(')');
+      dump_routine_address(expr);
       break;
 #if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
     case enk_object_lifetime:
@@ -5576,7 +5596,7 @@ Initialize for the C-generating back end.
 #if STANDALONE_C_GEN_BE
 main(int argc, char *argv[])
 /*
-Simple "back end" the generates C.  This version is for use as a
+Simple "back end" that generates C.  This version is for use as a
 separate program which gets an IL file from the front end.  This program
 is invoked by
 
@@ -5637,8 +5657,8 @@ from the primary source file name in the IL information.
 
 void back_end(void)
 /*
-Simple "back end" for use in place of a real back end for testing.  This 
-version is for use as a subroutine called in the same program as the front end.
+Simple "back end" that generates C.  This version is for use as a
+subroutine called in the same program as the front end.
 */
 {
   /* Initialize. */
