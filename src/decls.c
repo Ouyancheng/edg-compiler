@@ -10143,7 +10143,8 @@ continue_with_declaration:
         set_err_pos_to_curr_token();
         diagnostic(severity, ec_missing_typedef_name);
       } else if (!declares_something) {
-        if (defines_something &&
+        if ((defines_something || is_class_struct_union_type(type_ptr) ||
+             is_enum_type(type_ptr)) &&
             (storage_class != (a_storage_class)sc_unspecified ||
              is_qualified_type(type_ptr))) {
           /* If defines_something is TRUE and declares something is FALSE we
@@ -10151,6 +10152,12 @@ continue_with_declaration:
              name and also without the name of an object but with a storage
              class or qualifier -- e.g., "extern struct { int i; };".  Tell
              the user an object name is missing. */
+          /* A similar case is a reference to a tag that has already been
+             declared -- e.g.,
+               class A { ... };
+               const class A;
+             The presence of the qualifier means there has to be a declarator,
+             so we complain about its being missing. */
           set_err_pos_to_curr_token();
           diagnostic(C_dialect == C_dialect_cplusplus ? es_error : es_warning,
                      ec_missing_object_name);
