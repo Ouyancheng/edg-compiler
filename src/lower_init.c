@@ -2798,7 +2798,7 @@ destructors in the IA-64 ABI.
 {
   a_routine_ptr    new_routine = NULL;
   a_routine_list_entry_ptr 
-                   rlep = NULL;
+                   rlep;
 
   check_assertion(routine->special_kind ==
                                   (a_special_function_kind)sfk_constructor ||
@@ -2841,7 +2841,9 @@ destructors in the IA-64 ABI.
                                   routine_type->variant.routine.return_type,
                                   this_param_type);
     new_routine->is_inline = routine->is_inline;
+#if INSTANTIATE_EXTERN_INLINE
     new_routine->inline_instance_required = routine->inline_instance_required;
+#endif /* INSTANTIATE_EXTERN_INLINE */
     new_routine->source_corresp.is_class_member = TRUE;
     new_routine->source_corresp.parent.class_type =
                                      routine->source_corresp.parent.class_type;
@@ -2897,6 +2899,7 @@ destructors in the IA-64 ABI.
   }  /* if */
   /* Define the routine if appropriate. */
   if (routine->assoc_scope != NULL_region_number &&
+      !routine->suppress_inline_body &&
       define_now) {
     if (routine->storage_class == (a_storage_class)sc_extern) {
       routine->storage_class = (a_storage_class)sc_unspecified;
