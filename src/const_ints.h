@@ -23,14 +23,6 @@ const_ints.h -- Declarations related to manipulation of target integer
 #endif /* ifndef IL_H */
 
 
-/*
-Arrays containing the minimum and maximum values for each integer kind.
-*/
-EXTERN an_integer_value
-		min_integer_value_of_kind[(int)ik_last],
-		max_integer_value_of_kind[(int)ik_last];
-
-
 extern void set_integer_value(an_integer_value *intval,
                               long             value);
 
