@@ -1,5 +1,20 @@
 Version 2.11
 
+10/15/92  Bug on constructor with ellipsis-only parameter list
+
+A bug in the following was fixed:
+
+  struct A {A(...){}};
+
+  void main() {A a(1);}
+
+Formerly, this caused an internal error.
+
+10/14/92  Overload resolution for function templates
+
+Overload resolution is now done for function templates when they appear
+in function calls and in contexts requiring a pointer to a function.
+
 10/13/92  Fixed bug in overload_distinguishable
 
 There was a bug in overload_distinguishable that caused the loop to end
