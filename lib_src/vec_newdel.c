@@ -55,10 +55,6 @@ EXTERN_C void _array_pointer_not_from_vec_new();
                                   to one of the vector handling routines. */
 
 
-EXTERN_C void	*__nw__FUi(size_t);	/* Mangled name for simple
-					   operator new(). */
-EXTERN_C void	__dl__FPv(void *);	/* Mangled name for operator delete. */
-
 /*
 Increment a void* pointer by a given value.
 */
@@ -148,7 +144,7 @@ elements should be used in a production runtime system.
       }  /* if */
     }  /* if */
     array_size = number_of_elements * element_size;
-    array_ptr = (void *)__nw__FUi(array_size);
+    array_ptr = operator new(array_size);
     if (array_ptr == NULL) {
       goto error_exit;
     }  /* if */
@@ -256,7 +252,7 @@ an exception.
   }  /* for */
   if (ehsep->variant.vec_new_del.free_memory_on_cleanup) {
     /* Call the delete routine to free the memory. */
-    __dl__FPv(ehsep->variant.vec_new_del.array_ptr);
+    operator delete(ehsep->variant.vec_new_del.array_ptr);
   }  /* if */
 }  /* __cleanup_vec_new_or_delete */
 #endif /* EXCEPTION_HANDLING */
@@ -358,7 +354,7 @@ must be -1 for that case.
 
     /* Delete the array, if requested. */
     if (delete_flag) {
-      __dl__FPv(array_ptr);
+      operator delete(array_ptr);
       if (info_ptr != NULL) {
         /* Add the vec_info record to the free list. */
         info_ptr->next = _free_vec_info;
