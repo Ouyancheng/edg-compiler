@@ -1,5 +1,11 @@
 Version 2.32
 
+3/22/96   const function call anachronism accepted in Microsoft mode
+
+The anachronism of calling a non-const member function for a const
+object is now accepted as an anachronism in Microsoft mode.  (It was
+formerly accepted only in cfront 2.1 mode.)
+
 3/21/96   Bug in checking bit-field size
 
 A bug has been fixed in checking the size specified in a bit-field
