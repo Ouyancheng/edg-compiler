@@ -225,6 +225,9 @@ extern void db_variable(a_variable_ptr var_ptr);
 
 extern void db_expression(an_expr_node_ptr node);
 
+extern void db_dynamic_initializer(a_dynamic_init_ptr  dip,
+                                   int                 level);
+
 extern void db_initializer(a_variable_ptr  var_ptr,
                            int             level);
 

@@ -860,8 +860,8 @@ static void db_nonconstant_aggregate(a_constant_ptr  con,
 }  /* db_nonconstant_aggregate */
 
 
-static void db_dynamic_initializer(a_dynamic_init_ptr  dip,
-                                   int                 level)
+void db_dynamic_initializer(a_dynamic_init_ptr  dip,
+                            int                 level)
 {
   int a;
 
