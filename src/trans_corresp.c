@@ -3178,7 +3178,8 @@ given type.
           /* The master instance is found using the canonical entry.  We are
              creating a new canonical entry, so we must make sure its master
              instance pointer is set for the class members. */
-          set_master_instance_for_new_canonical_class(canon, type);
+          set_master_instance_for_new_canonical_class(
+                                (a_type_ptr)canonical_il_entry_of(type), type);
         }  /* if */
       }  /* if */
     }  /* if */
