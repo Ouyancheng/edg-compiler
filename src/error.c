@@ -1451,11 +1451,11 @@ error code.
     case ec_anon_union_storage_class:
       m = "global anonymous union must be declared static";
       break;
-    case ec_missing_initializer_on_field:
-      m = "no initializer provided for %n";
+    case ec_missing_initializer_on_fields:
+      m = "no initializer provided for:";
       break;
-    case ec_cannot_initialize_field:
-      m = "implicitly generated constructor for class %t cannot initialize %n";
+    case ec_cannot_initialize_fields:
+      m = "implicitly generated constructor for class %t cannot initialize:";
       break;
     case ec_no_ctor_but_const_or_ref_member:
       m = "%n defines no constructor to initialize the following:";
@@ -5106,6 +5106,19 @@ and then terminate the compilation.
 
 /* The following routines are used to construct multiple message
    diagnostics with various fill-ins. */
+
+void pos_start_error(an_error_code     error_code,
+                     a_source_position *error_pos)
+/*
+Begin a multiple message error with the specified error code and source
+position.
+*/
+{
+  init_error_params();
+  diag_message(error_code, error_pos, es_error, dck_primary);
+}  /* pos_start_error */
+
+
 
 void pos_st_start_error(an_error_code     error_code,
                         a_source_position *error_pos,
