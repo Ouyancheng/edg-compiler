@@ -5349,49 +5349,53 @@ using *pos as the error position.
   db_enter(4, "check_for_conflicts_with_using_decls");
   /* The first symbol on the overload list is the current declaration. */
   decl_sym = overload_sym->variant.overloaded_function.symbols;
-  if (decl_sym->is_class_member) {
-    /* It's a member function; we're looking for sk_projection symbols. */
-    using_sym_kind = (a_symbol_kind)sk_projection;
+  if (decl_sym->kind == (a_symbol_kind)sk_function_template) {
+    /* Ignore function templates. */
   } else {
-    /* It's a nonmember function; we're looking for sk_namespace_projection
-       symbols. */
-    using_sym_kind = (a_symbol_kind)sk_namespace_projection;
-  }  /* if */
-  /* Keep track of the previous symbol in the overload list, to enable
-     removing a symbol from the list. */
-  prev_in_overload_set = decl_sym;
-  for (sym = decl_sym->next; sym != NULL; sym = prev_in_overload_set->next) {
-    if (sym->kind == using_sym_kind) {
-      /* Found a projection symbol.  Get the fundamental symbol so the types
-         can be compared. */
-      using_sym = fundamental_symbol_of(sym);
-      /* Check for a conflict between the type of the newly declared function
-         symbol (decl_sym) and the type of the symbol previously introduced
-         by a using declaration (using_sym). */
-      if (using_sym->kind == (a_symbol_kind)sk_function_template) {
-        /* Ignore function template symbols in the overload set. */
-      } else if (types_of_decl_and_using_decl_conflict(decl_sym,
-                                                       using_sym, &err)) {
-        /* Unless using_sym is a member function being hidden and/or
-           overridden by decl_sym, an error is issued. */
-        if (err) {
-          pos_sy2_error(ec_conflicts_with_using_decl, pos, decl_sym,
-                        using_sym);
-        }  /* if */
-        /* Remove the symbol from the overload list by skipping around it. */
-        prev_in_overload_set->next = sym->next;
-        if (decl_sym->is_class_member) {
-          /* Remove the class-member-using-decl entry associated with sym. */
-          mark_class_member_using_decl_as_hidden(decl_sym->parent.class_type,
-                                                 using_sym);
-        }  /* if */
-        /* Continue through the overload list -- there may be more than
-           one projection symbol with which decl_sym conflicts. */
-        continue;
-      }  /* if */
+    if (decl_sym->is_class_member) {
+      /* It's a member function; we're looking for sk_projection symbols. */
+      using_sym_kind = (a_symbol_kind)sk_projection;
+    } else {
+      /* It's a nonmember function; we're looking for sk_namespace_projection
+         symbols. */
+      using_sym_kind = (a_symbol_kind)sk_namespace_projection;
     }  /* if */
-    prev_in_overload_set = sym;
-  }  /* for */
+    /* Keep track of the previous symbol in the overload list, to enable
+       removing a symbol from the list. */
+    prev_in_overload_set = decl_sym;
+    for (sym = decl_sym->next; sym != NULL; sym = prev_in_overload_set->next) {
+      if (sym->kind == using_sym_kind) {
+        /* Found a projection symbol.  Get the fundamental symbol so the types
+           can be compared. */
+        using_sym = fundamental_symbol_of(sym);
+        /* Check for a conflict between the type of the newly declared function
+           symbol (decl_sym) and the type of the symbol previously introduced
+           by a using declaration (using_sym). */
+        if (using_sym->kind == (a_symbol_kind)sk_function_template) {
+          /* Ignore function template symbols in the overload set. */
+        } else if (types_of_decl_and_using_decl_conflict(decl_sym,
+                                                         using_sym, &err)) {
+          /* Unless using_sym is a member function being hidden and/or
+             overridden by decl_sym, an error is issued. */
+          if (err) {
+            pos_sy2_error(ec_conflicts_with_using_decl, pos, decl_sym,
+                          using_sym);
+          }  /* if */
+          /* Remove the symbol from the overload list by skipping around it. */
+          prev_in_overload_set->next = sym->next;
+          if (decl_sym->is_class_member) {
+            /* Remove the class-member-using-decl entry associated with sym. */
+            mark_class_member_using_decl_as_hidden(decl_sym->parent.class_type,
+                                                   using_sym);
+          }  /* if */
+          /* Continue through the overload list -- there may be more than
+             one projection symbol with which decl_sym conflicts. */
+          continue;
+        }  /* if */
+      }  /* if */
+      prev_in_overload_set = sym;
+    }  /* for */
+  }  /* if */
   db_exit();
 }  /* check_for_conflicts_with_using_decls */
 
