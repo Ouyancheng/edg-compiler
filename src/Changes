@@ -5,7 +5,7 @@ Version 2.45
 A "\n" appearing in the file name specified in a #line directive is now
 correctly passed to the output files and to the expansion of __FILE__
 as "\n" rather than as a newline character.  Formerly, a use of
-__FILE__ in such a case cause produce an internal error.
+__FILE__ in such a case could produce an internal error.
 
 12/14/00 Spaces in macro-expanded file name in #include
 
