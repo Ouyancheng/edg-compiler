@@ -2704,8 +2704,8 @@ See also 3.6.4.2.
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_stop_token(tok_rparen);
   /* The body of a switch is not reachable until a case or default label
-     appears.  However, set_unreachable is not called until after the
-     condition declaration, if any, is scanned. */
+     appears.  Note that set_unreachable should not be called until after
+     the condition declaration, if any, is scanned. */
   set_unreachable(curr_reachability);
   /* Scan the dependent statement. */
   dependent_statement();
