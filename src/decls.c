@@ -3566,10 +3566,9 @@ cross-reference output describing this declaration.
           check_assertion(total_errors > 0);
         } else {
           /* Memory for this variable will also have to be allocated.  Mark
-             the variable as a variable length array. */
+             the variable as a variable length array that requires allocation
+             as well as deallocation upon exit from the current scope. */
           variable_ptr->is_vla = TRUE;
-          /* Also indicate that the VLA variable needs to be deallocated. */
-          variable_ptr->vla_requires_deallocation = TRUE;
         }  /* if */
       }  /* if */
     } /* if */

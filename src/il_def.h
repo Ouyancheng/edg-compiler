@@ -4027,16 +4027,16 @@ typedef struct a_variable {
 			   type, i.e., is or contains a VLA type. */
   a_bit_field	is_vla:1;
 			/* The variable is a variable length array, i.e., its
-			   type is a VLA type.  (Note: this flag is TRUE only
+			   type is a VLA type.  Any variable for which this
+			   flag is set will also be specified in a
+			   stmk_vla_decl statement, which indicates when in
+			   execution stream its memory should be allocated.
+			   This variable will also require deallocation at
+			   the end of the scope in which the VLA was allocated
+			   and/or at a branch out of that scope; there is no
+			   statement for VLA deallocation that corresponds to
+			   stmk_vla_decl.  (Note: this flag is TRUE only
 			   if has_variably_modified_type is also TRUE.) */
-  a_bit_field	vla_requires_deallocation:1;
-			/* TRUE if is_vla is TRUE and this variable requires
-			   deallocation.  Deallocation should occur at the end
-			   of the scope in which the VLA was allocated and/or
-			   at a return statement.  (There is no statement
-			   for VLA deallocation that corresponds to
-			   stmk_alloc_vla_variable, which is generated for
-			   allocation of VLA variables.) */
 #if DO_IL_LOWERING
   a_bit_field	initialization_rewritten_as_assignment:1;
 			/* TRUE if IL lowering has rewritten some part of

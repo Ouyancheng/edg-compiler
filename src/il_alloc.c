@@ -1228,7 +1228,6 @@ to it.
   vp->superseded_external         = FALSE;
   vp->has_variably_modified_type  = FALSE;
   vp->is_vla                      = FALSE;
-  vp->vla_requires_deallocation   = FALSE;
 #if DO_IL_LOWERING
   vp->initialization_rewritten_as_assignment = FALSE;
 #if MINIMAL_INLINING

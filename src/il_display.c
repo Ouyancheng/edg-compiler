@@ -1270,8 +1270,9 @@ Display the indicated variable.
   if (ptr->superseded_external) {
     disp_boolean("superseded_external", TRUE);
   }  /* if */
-  if (ptr->vla_requires_deallocation) {
-    disp_boolean("vla_requires_deallocation", TRUE);
+  if (ptr->has_variably_modified_type) {
+    disp_boolean("has_variably_modified_type", TRUE);
+    disp_boolean("is_vla", ptr->is_vla);
   }  /* if */
 #if DECL_MODIFIERS_IN_USE
   disp_decl_modifiers(ptr->decl_modifiers);
