@@ -3584,6 +3584,7 @@ on for use in generating cross-reference output describing this declaration.
            in the linked symbol. */
         suppress_ext_sym_lookup = TRUE;
         mark_symbol_to_suppress_warnings(linked_symbol);
+        set_to_named_error_locator(*locator);
       } else {
         /* Check that the routine types are compatible. */
         a_boolean routines_compat = FALSE;
