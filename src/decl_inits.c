@@ -1176,7 +1176,7 @@ initialized.  These are addressed in the course of the processing.
       /* If the virtual base class or direct base class has a constructor, a
          dynamic init entry will be required.  Create the constructor init
          entry now; the dynamic init will be added later. */
-      if (cssp->constructor == NULL || is_cctor) {
+      if (cssp->constructor != NULL || is_cctor) {
         cip = alloc_ctor_init(bcp->is_virtual ?
                               (a_constructor_init_kind)cik_virtual_base_class :
                               (a_constructor_init_kind)cik_direct_base_class);
