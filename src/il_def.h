@@ -2031,6 +2031,7 @@ enum a_type_kind_tag {
                         /* Also, Fortran main programs, subroutines and
                            statement functions. */
 #endif /* ifdef FIL */
+#ifdef CIL
   tk_array,             /* Array. */
   tk_class,             /* Class. */
   tk_struct,            /* Struct. */
@@ -2043,6 +2044,7 @@ enum a_type_kind_tag {
 			   declaration (C++ front end only, except when
 			   prototype instantiations are passed to a
 			   back end). */
+#endif /* ifdef CIL */
 #ifdef FIL
   /* Fortran-only types. */
   tk_fcharacter,        /* Fortran character. */
@@ -5804,7 +5806,8 @@ enum an_expr_operator_kind_tag {
   eok_xsubtract_assign, /* Complex subtract assign operator. */
   eok_xmultiply_assign, /* Complex multiply assign operator. */
   eok_xdivide_assign,   /* Complex divide assign operator. */
-  eok_jmultiply,        /* Imaginary multiplication */
+  eok_jmultiply,        /* Imaginary multiplication.  Imaginary times
+                           imaginary gives a real result. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef FIL
   eok_complex,          /* Join two real operands, produce a complex as the
