@@ -6753,7 +6753,7 @@ The current function source sequence entry is for that switch clause.
         con = last->next;
       }  /* if */
       write_tok_str(": ");
-    }  /* for */
+    }  /* while */
   }  /* if */
 }  /* gen_case_label */
 
@@ -7576,7 +7576,7 @@ switch statement.
 
 static void gen_local_label_declarations(void)
 /*
-Generate the local label declarations (a GNU C extension) of the given scope
+Generate the local label declarations (a GNU C extension) of the current scope
 (if any).
 */
 {
