@@ -8444,7 +8444,7 @@ Add the indicated list of vla fixup entries to the available list.
 a_hidden_template_name_fixup_ptr alloc_hidden_template_name_fixup(void)
 /*
 Allocate and initialize a hidden template name fixup entry and return a
-pointr to it.
+pointer to it.
 */
 {
   a_hidden_template_name_fixup_ptr  htnfp;
