@@ -2418,11 +2418,16 @@ user-defined conversions.
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
             if (!(curr_expr_kind_is(ek_pp) ||
                   curr_expr_kind_is(ek_template_arg))) {
-              /* Record the constant's expression. */
+              /* Record the constant's expression (inhibit normal diagnostics
+                 during that process, since they were already issued). */
+              an_error_severity  saved_error_threshold = error_threshold;
+
+              error_threshold = es_catastrophe;
               local_constant.expr = make_node_from_operand(operand);
               add_cast_to_node(&local_constant.expr, new_type,
                                check_cast_access, is_implicit_cast,
                                is_reinterpret_cast, &operand->position);
+              error_threshold = saved_error_threshold;
             }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
             make_constant_operand(&local_constant, operand);
