@@ -253,6 +253,7 @@ typedef enum /*a_token_kind*/ {
   tok_symbolic_link_scope,
   tok_hidden_link_scope,
 #endif /* SUN_EXTENSIONS_ALLOWED */
+  tok_thread,
 #if UPC_EXTENSIONS_ALLOWED
   /* Recognized in UPC mode only. */
   tok_upc_strict,
@@ -335,6 +336,7 @@ EXTERN char	*token_names[(int)tok_last+1]
 #if SUN_EXTENSIONS_ALLOWED
    "__global", "__symbolic", "__hidden",
 #endif /* SUN_EXTENSIONS_ALLOWED */
+   "__thread",
 #if UPC_EXTENSIONS_ALLOWED
    "strict", "relaxed", "shared", "upc_forall", "upc_barrier", "upc_notify",
    "upc_wait", "upc_fence", "THREADS", "MYTHREAD", "upc_blocksizeof",
@@ -748,6 +750,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_symbolic_link_scope */
    (an_opname_kind)onk_none,          /* tok_hidden_link_scope */
 #endif /* SUN_EXTENSIONS_ALLOWED */
+   (an_opname_kind)onk_none,          /* tok_thread */
 #if UPC_EXTENSIONS_ALLOWED
    (an_opname_kind)onk_none,          /* tok_upc_strict */
    (an_opname_kind)onk_none,          /* tok_upc_relaxed */

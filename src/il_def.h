@@ -3641,7 +3641,11 @@ enum a_decl_modifier_tag {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   dmt_dllimport,
   dmt_dllexport,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   dmt_thread,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   dmt_naked,
   dmt_microsoft_inline,
   dmt_forceinline,
@@ -3668,7 +3672,11 @@ EXTERN char *decl_modifier_names[(int)dmt_last + 1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* dmt_dllimport */		"dllimport",
   /* dmt_dllexport */		"dllexport",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   /* dmt_thread */		"thread",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
+#if MICROSOFT_EXTENSIONS_ALLOWED
   /* dmt_naked */		"naked",
   /* dmt_microsoft_inline */	"__inline",
   /* dmt_forceinline */		"__forceinline",
@@ -3702,9 +3710,13 @@ about variables and routines.
 #define DM_DLLEXPORT	(1 << (int)dmt_dllexport)
 			/* TRUE if the declaration includes the
 			   Microsoft __declspec(dllexport) specifier. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
 #define DM_THREAD	(1 << (int)dmt_thread)
-			/* TRUE if the declaration includes the
-			   Microsoft __declspec(thread) specifier. */
+			/* TRUE if the declaration includes the __thread or
+			   __declspec(thread) specifier. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #define DM_NAKED	(1 << (int)dmt_naked)
 			/* TRUE if the declaration includes the
 			   Microsoft __declspec(naked) specifier. */

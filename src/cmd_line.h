@@ -234,6 +234,9 @@ typedef enum /*an_option_kind*/ {
   optk_named_registers,
 #endif /* NAMED_REGISTERS_ALLOWED */
   optk_embedded_c,
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  optk_thread_local_storage,
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1705,6 +1708,16 @@ EXTERN a_boolean
 			   value-initialization should be emulated.  This
 			   is desirable in products that are trying to
 			   detect uninitialized values, but not in general. */
+
+EXTERN a_boolean
+		thread_local_storage_specifier_enabled
+#if VAR_INITIALIZERS
+			= FALSE
+#endif /* VAR_INITIALIZERS */
+			       ;
+			/* TRUE if the "__thread" specifier should be accepted
+			   to indicate that a variable should reside in thread-
+			   local storage. */
 
 
 /* Process the command line arguments. */

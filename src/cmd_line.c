@@ -1068,6 +1068,14 @@ Initialize the option information table.
   add_config_dependent_option_description(
                optk_embedded_c, "no_embedded_c", '\0', /*value=*/FALSE,
                /*arg_required=*/FALSE, pchek_command_line, EMBEDDED_C_ALLOWED);
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  add_option_description(optk_thread_local_storage, "thread_local_storage",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_thread_local_storage, "no_thread_local_storage",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 }  /* initialize_option_descriptions */
 
 
@@ -2553,6 +2561,12 @@ checked again here.)
        option, turn it on now. */
     extern_inline_allowed = TRUE;
   }  /* if */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  if (!(option_kind_used[(int)optk_thread_local_storage])) {
+    /* Support for "__thread" is turned on by default in Sun mode. */
+    thread_local_storage_specifier_enabled = TRUE;
+  }  /* if */
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   /* The Sun compiler suffers from the same problem as the Microsoft
      compiler with respect to making template parameters visible in
      specializations. */
@@ -3986,6 +4000,11 @@ enable_microsoft_mode:
         C_dialect = C_dialect_ANSI;
         break;
 #endif /* EMBEDDED_C_ALLOWED */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+      case optk_thread_local_storage:
+        thread_local_storage_specifier_enabled = opt_value;
+        break;
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

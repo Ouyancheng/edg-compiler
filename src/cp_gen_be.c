@@ -10318,6 +10318,15 @@ declaration following this one is such a continuation.
       gen_microsoft_align_declspec(var->alignment);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if DECL_MODIFIERS_IN_USE
+    if (!microsoft_dialect_is_generated_code_target &&
+        (variable->decl_modifiers & DM_THREAD)) {
+      /* Non-Microsoft dialects usually include a "__thread" keyword to
+         indicate thread-local storage.  (The Microsoft syntax will have
+         been emitted by the call to gen_microsoft_decl_modifiers.) */
+      write_tok_str("__thread ");
+    }  /* if */
+#endif /* DECL_MODIFIERS_IN_USE */
   }  /* if */
   /* An unqualified name is used in the declarator if this is a declaration
      rather than a definition.  Specializations are an exception, and

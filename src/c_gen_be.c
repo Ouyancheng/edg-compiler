@@ -6262,6 +6262,15 @@ parameters.
         dump_microsoft_align_declspec(variable->alignment);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if DECL_MODIFIERS_IN_USE
+      if (!microsoft_dialect_is_generated_code_target &&
+          (variable->decl_modifiers & DM_THREAD)) {
+        /* Non-Microsoft dialects usually include a "__thread" keyword to
+           indicate thread-local storage.  (The Microsoft syntax will have
+           been emitted by the call to dump_microsoft_decl_modifiers.) */
+        write_tok_str("__thread ");
+      }  /* if */
+#endif /* DECL_MODIFIERS_IN_USE */
 #if C_GEN_BE_GENERATES_ANSI_C
       underlying_var_type = var_type;
       if (is_array_type(var_type)) {

@@ -5338,6 +5338,29 @@ check_missing_declarator_in_member_declaration.
   return result;
 }  /* unelaborated_cfront_friend_class */
 
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+
+static void scan_thread_local_storage_specifier(
+                                       a_decl_flag_set         input_flags,
+                                       a_decl_modifiers_block  *decl_modifiers)
+/*
+The current token ("__thread") indicates thread-local storage.  Update
+decl_modifiers to reflect the specifier if appropriate.  Issue an error if
+there are several such specifiers on the current declaration or if the
+specifiers appear on a parameter declaration.  input_flags is the flag set
+passed to the call to decl_specifiers.
+*/
+{
+  if (input_flags & DSI_IS_PARAMETER) {
+    error(ec_cannot_use_thread_local_storage);
+  } else if (decl_modifiers->flags & DM_THREAD) {
+    error(ec_multiple_thread_local_storage_specifiers);
+  } else {
+    decl_modifiers->flags |= DM_THREAD;
+  }  /* if */
+}  /* scan_thread_local_storage_specifier */
+
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
 
 static void scan_link_scope_specifier(a_decl_flag_set         input_flags,
@@ -6145,6 +6168,13 @@ Returns TRUE if there is an error in the specifiers.
                           p_ms_attributes, decl_pos_block, &storage_class_pos,
                           &decl_specifiers_seen, register_id, &err);
         goto no_get_token;
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+      case tok_thread:
+        /* A storage specifier allowed in certain modes (can be combined with
+           "extern" or "static". */
+        scan_thread_local_storage_specifier(input_flags, decl_modifiers);
+        break;
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #if ASM_FUNCTION_ALLOWED
       case tok_asm:
         /* Specifier indicating an asm function declaration.  It is

@@ -750,6 +750,20 @@ verification that the attributes are used in appropriate locations is done.
 #endif /* ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING */
 
 /*
+Flag that is TRUE if a "__thread" specifier (to indicate that a variable should
+be stored in thread-local storage) should be supported.
+*/
+#ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+#define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED FALSE
+#endif /* ifndef THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+
+#if !DECL_MODIFIERS_IN_USE && THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+ #error -- THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED requires \
+           DECL_MODIFIERS_IN_USE
+#endif /* !DECL_MODIFIERS_IN_USE && THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+
+
+/*
 The global variable sun_mode is defined here (rather than in cmd_line.h) so
 that it can be available to standalone utilities.
 */

@@ -560,6 +560,9 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_hidden_link_scope, "__hidden");
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
+  if (thread_local_storage_specifier_enabled) {
+    enter_keyword((a_token_kind)tok_thread, "__thread");
+  }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
     enter_keyword((a_token_kind)tok_upc_shared,      "shared");

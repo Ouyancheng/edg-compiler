@@ -49,6 +49,13 @@ specifier.  Includes an "||" at the beginning.
 #define or_is_microsoft_storage_class() /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+#define or_is_thread_local_storage_specifier() ||                     \
+  (curr_token == tok_thread)
+#else /* !THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+#define or_is_thread_local_storage_specifier() /* Nothing */
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
+
 /*
 Macro that is TRUE if the current token is the start of a storage class
 specifier (3.5.1).
@@ -57,6 +64,7 @@ specifier (3.5.1).
   (curr_token == tok_typedef  || curr_token == tok_extern   ||        \
    curr_token == tok_static   || curr_token == tok_auto     ||        \
    curr_token == tok_register || curr_token == tok_mutable            \
+   or_is_thread_local_storage_specifier()                             \
    or_is_microsoft_storage_class())
 
 /*
@@ -3242,6 +3250,14 @@ diagnostics.
           case dmt_noinline:
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+          case dmt_thread:
+            /* The "thread" specifier can only be applied to variables with
+               a static lifetime. */
+            pos_error(ec_cannot_use_thread_local_storage, position);
+            new_modifiers->flags &= (~modifier_value);
+            break;
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
           case dmt_global_link_scope:
           case dmt_symbolic_link_scope:
@@ -3344,13 +3360,6 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
               invalid_redecl = TRUE;
             }  /* if */
             break;
-          case dmt_thread:
-            if (!has_static_storage_duration(variable->storage_class)) {
-              /* The "thread" specifier can only be applied to variables with
-                 a static lifetime. */
-              invalid_modifier = TRUE;
-            }  /* if */
-            break;
           case dmt_selectany:
             /* The effect of "selectany" depends on the initializer (if any).
                More checks will therefore be needed after any initializers
@@ -3366,6 +3375,16 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
             }  /* if */
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+          case dmt_thread:
+            if (!has_static_storage_duration(variable->storage_class)) {
+              /* The "thread" specifier can only be applied to variables with
+                 a static lifetime. */
+              pos_error(ec_cannot_use_thread_local_storage, position);
+              new_modifiers->flags &= (~modifier_value);
+            }  /* if */
+            break;
+#endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
           case dmt_global_link_scope:
           case dmt_symbolic_link_scope:
@@ -3437,7 +3456,7 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
   if ((variable->decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT)) &&
       (variable->decl_modifiers & DM_THREAD)) {
     pos_error(ec_dll_thread_conflict, position);
-    variable->decl_modifiers &= ~DM_THREAD;
+    variable->decl_modifiers &= ~(a_decl_modifier)DM_THREAD;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (any_invalid_redecl) {
@@ -7841,6 +7860,38 @@ end up being compatible during an actual instantiation.
   return result;
 }  /* dependent_typedef_redecl_allowed */
 
+#if DECL_MODIFIERS_IN_USE
+
+static void diagnose_decl_modifiers_on_type_declaration(
+                                    a_decl_modifiers_block_ptr  decl_modifiers,
+                                    a_source_position           *pos)
+/*
+At least one invalid extended declaration modifier appeared on a type
+declaration.  Issue a diagnostic.
+*/
+{
+  a_decl_modifier  flags = decl_modifiers->flags;
+  
+#if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
+  if (flags & DM_THREAD) {
+    pos_error(ec_cannot_use_thread_local_storage, pos);
+    flags &= ~(a_decl_modifier)DM_THREAD;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
+#if SUN_EXTENSIONS_ALLOWED
+  if (flags & DM_ANY_SUN_LINK_SCOPE) {
+    pos_diagnostic(es_discretionary_error, ec_invalid_link_scope, pos);
+    flags &= ~(a_decl_modifier)DM_ANY_SUN_LINK_SCOPE;
+  }  /* if */
+#endif /* SUN_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && flags != 0) {
+    pos_diagnostic(es_discretionary_error, ec_declspec_invalid, pos);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+}  /* diagnose_decl_modifiers_on_type_declaration */
+
+#endif /* DECL_MODIFIERS_IN_USE */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || !MICROSOFT_EXTENSIONS_ALLOWED || \
     !GNU_EXTENSIONS_ALLOWED
@@ -11778,16 +11829,17 @@ continue_with_declaration:
                                   is_linkage_spec_decl,
                                   &decl_start_pos, err);
   }  /* if */
-#if SUN_EXTENSIONS_ALLOWED
+#if DECL_MODIFIERS_IN_USE
   if (declarator_omitted ||
       declared_storage_class == (a_storage_class)sc_typedef) {
-    if (decl_modifiers.flags & DM_ANY_SUN_LINK_SCOPE) {
-      /* Link scope specifiers can only appear on function and variable
-         declarations. */
-      error(ec_invalid_link_scope);
+    /* A class type or typedef declaration: Diagnose invalid extended
+       declaration modifiers. */
+    if (decl_modifiers.flags != 0) {
+      diagnose_decl_modifiers_on_type_declaration(&decl_modifiers,
+                                                  &decl_start_pos);
     }  /* if */
   }  /* if */
-#endif /* SUN_EXTENSIONS_ALLOWED */
+#endif /* DECL_MODIFIERS_IN_USE */
   /* The declaration can end at this point (";" is next). */
   if (!decl_specifiers_omitted && declarator_omitted) {
     if (curr_token != tok_semicolon) {
