@@ -9329,15 +9329,19 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       if (is_integral_or_enum_type(operand_2.type)) {
         /* Pointer +- integral/enum. */
         /* The first operand must be a pointer to an object. */
+        if (gcc_mode && (is_void_type(type_pointed_to(operand_1->type)) ||
+                         is_function_type(type_pointed_to(operand_1->type)))) {
+        } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
-        /* Pointer to incomplete array is also allowed. */
-        (void)check_object_or_incomp_array_pointer_operand(operand_1,
+          /* Pointer to incomplete array is also allowed. */
+          (void)check_object_or_incomp_array_pointer_operand(operand_1,
                                                  ec_expr_not_pointer_to_object,
-                                                           &operand_2);
+                                                             &operand_2);
 #else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
-        (void)check_object_pointer_operand(operand_1,
-                                           ec_expr_not_pointer_to_object);
+          (void)check_object_pointer_operand(operand_1,
+                                             ec_expr_not_pointer_to_object);
 #endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
+        }  /* if */
         /* The result type is the same as the pointer type in operand 1. */
         result_type = operation_type = operand_1->type;
       } else if (save_token == tok_minus && is_pointer_type(operand_2.type)) {
@@ -9370,14 +9374,19 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         } else {
           err = TRUE;
         }  /* if */
-        /* Check that the types pointed to are complete. */
-        if (!err &&
-            /* Note use of "&" rather than "&&" to ensure that both tests
-               are done even if the first detects an error. */
-            (check_object_pointer_operand(
-                                 operand_1, ec_expr_not_pointer_to_object) &
-             check_object_pointer_operand(
-                                 &operand_2, ec_expr_not_pointer_to_object))) {
+        /* Check that the types pointed to are complete (except perhaps in GNU
+           C mode: void and function types are acceptable). */
+        if (err) {
+          /* An error message was already issued. */
+        } else if ((gcc_mode &&
+                    (is_void_type(type_pointed_to(operand_1->type)) ||
+                     is_function_type(type_pointed_to(operand_1->type)))) ||
+                   (check_object_pointer_operand(
+                                operand_1, ec_expr_not_pointer_to_object) &
+                    check_object_pointer_operand(
+                                &operand_2, ec_expr_not_pointer_to_object))) {
+          /* Note use of "&" rather than "&&" to ensure that both tests
+             are done even if the first detects an error. */
           result_type = integer_type(targ_ptrdiff_t_int_kind);
         } else {
           /* An error message was already issued. */

@@ -3383,10 +3383,15 @@ detected, or *err_code == ec_no_error if everything went fine.
     size = 1;
   } else {
     /* Get the size of the thing pointed to. */
-    size = f_skip_typerefs(type_pointed_to(constant_1->type))->size;
-#if CHECKING
-    if (size == 0) internal_error("do_padd: size is zero");
-#endif /* CHECKING */
+    a_type_ptr  object_type =
+                           f_skip_typerefs(type_pointed_to(constant_1->type));
+    if (gcc_mode && (is_void_type(object_type) ||
+                     is_function_type(object_type))) {
+      size = 1;
+    } else {
+      size = object_type->size;
+    }  /* if */
+    check_assertion_str(size != 0, "do_padd: size is zero");
   }  /* if */
   /* Multiply the increment constant by the size. */
   set_unsigned_integer_value(&op2, size);
@@ -3488,14 +3493,18 @@ if everything went fine.
       /* Divide the difference by the size of the objects pointed to.
          The caller has already checked that the type pointed to is
          not incomplete, so the size is not zero. */
+      a_targ_size_t  object_size;
       object_type = type_pointed_to(constant_1->type);
       object_type = skip_typerefs(object_type);
-#if CHECKING
-      if (object_type->size == 0) {
-        internal_error("do_pdiff: size of object pointed to is zero");
+      if (gcc_mode && (is_void_type(object_type) ||
+                       is_function_type(object_type))) {
+        object_size = 1;
+      } else {
+        object_size = object_type->size;
       }  /* if */
-#endif /* CHECKING */
-      set_unsigned_integer_value(&size_intval, object_type->size);
+      check_assertion_str(object_size != 0,
+                          "do_pdiff: size of object pointed to is zero");
+      set_unsigned_integer_value(&size_intval, object_size);
       /* Note that we treat &difference as signed here even if it was unsigned
          above, since the difference is defined to be signed. */
       divide_integer_values(&difference, &size_intval,
