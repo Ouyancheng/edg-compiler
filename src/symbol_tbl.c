@@ -1951,6 +1951,29 @@ in the conversion header list; if there is none, a new one is created.
 }  /* make_type_conversion_locator */
 
 
+a_symbol_ptr extract_default_operator_new_sym(a_symbol_ptr sym)
+/*
+Given the symbol for the global operator new() (which may be overloaded),
+find the default new() and return a pointer to its symbol, or NULL if
+it is not found.
+*/
+{
+  a_boolean        is_overloaded;
+  a_param_type_ptr ptp;
+
+  is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
+  if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
+  for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+    /* Look for a symbol for a function with just one parameter.
+       Default arguments are not allowed and need not be checked for. */
+    ptp = sym->variant.routine->type->variant.routine.extra_info->
+                                                               param_type_list;
+    if (ptp != NULL && ptp->next == NULL) break;
+  }  /* for */
+  return sym;
+}  /* extract_default_operator_new_sym */
+
+
 a_symbol_ptr global_operator_new_or_delete_symbol(
                                         an_opname_kind     opname,
                                         a_source_position  *pos,
@@ -1980,21 +2003,14 @@ the function.
      This will also create the symbol header if necessary. */
   token = (opname == (an_opname_kind)onk_new) ? tok_new : tok_delete;
   make_opname_locator(token, opname, &locator, pos);
-  /* Look up the symbol at file scope.  If a symbol was found in the lookup,
-    that's what we want to return.  If none was found, we will create a
-    default global operator new or delete and return that.  Even if we found
-    a symbol we may need to create a default global operator new. */
+  /* Look up the symbol at file scope.  If a symbol is found in the lookup,
+     that's what we want to return.  If none is found, we will create a
+     default global operator new or delete and return that.  Even if we found
+     a symbol we may need to create a default global operator new. */
   sym = return_sym = file_scope_id_lookup(&locator, IDL_NO_OPTIONS);
   if (make_default_new && sym != NULL) {
     /* We need to create the default new unless it's already there. */
-    a_boolean is_overloaded = (sym->kind ==
-                                     (a_symbol_kind)sk_overloaded_function);
-    if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
-    for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
-      /* Look for a symbol for a function with just one parameter. */
-      extra_info = sym->variant.routine->type-> variant.routine.extra_info;
-      if (extra_info->param_type_list->next == NULL) break;
-    }  /* for */
+    sym = extract_default_operator_new_sym(sym);
     /* If sym is NULL then no default new exists already. */
   }  /* if */
   /* If none was found, create one. */

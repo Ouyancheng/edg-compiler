@@ -4236,11 +4236,29 @@ and record it in the class's assoc_operator_new_routine field.
     new_function_symbol = opname_member_function_symbol(
                                                        (an_opname_kind)onk_new,
                                                        class_type);
+    if (new_function_symbol != NULL) {
+      /* There is a class-specific operator new() (or several).  See if
+         there is a default (one-argument) version.  If not, use the global
+         operator new(). */
+      new_function_symbol =
+                         extract_default_operator_new_sym(new_function_symbol);
+    }  /* if */
     if (new_function_symbol == NULL) {
+      /* Look for a global operator new(). */
       new_function_symbol = global_operator_new_or_delete_symbol(
                                                     (an_opname_kind)onk_new,
                                                     &error_position,
                                                     /*make_default_new=*/TRUE);
+      /* "new" can be overloaded; find the default (one-argument) version
+         of the routine if so.  Since we requested creation of the default
+         version if it didn't exist, we must find something here. */
+      new_function_symbol =
+                         extract_default_operator_new_sym(new_function_symbol);
+#if CHECKING
+      if (new_function_symbol == NULL) {
+        internal_error("set_class_assoc_operator_new_routine: rout not found");
+      }  /* if */
+#endif /* CHECKING */
     }  /* if */
     ctsp->assoc_operator_new_routine = new_function_symbol->variant.routine;
   }  /* if */
