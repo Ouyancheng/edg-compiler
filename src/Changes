@@ -1,5 +1,37 @@
 Version 3.3
 
+7/28/03  Nested classes have access to surrounding classes
+
+Core issue 45 changed a rule in the ARM that said that nested
+classes have no special access to members of the containing class.
+The front end now implements that resolution, which means the
+following example gets no error:
+
+  class C {  // Entire body is private
+    static int i;
+    struct Parent {
+        Parent() { }
+    };
+    struct Derived : Parent {
+        Derived() { i = 0; // No access error now }
+    };
+    
+    Derived d;
+  };
+  int C::i;
+  int main() {
+    C c;
+    return 0;
+  }
+
+Core issue 45 has DR status but is not in TC1, so strictly speaking
+the current C++ standard does not allow this.  However, the standards
+committee has made it clear that this test case should be accepted,
+so we're making the change at this time.
+
+The error on the above was formerly issued only in strict mode;
+in all other modes the example was already accepted without error.
+
 7/28/03  static_cast of pointer to member of derived class to private base
 
 According to core issue 54, a static_cast from a pointer to member of

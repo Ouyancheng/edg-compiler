@@ -7233,7 +7233,6 @@ functions befriending_list_test and class_scope_test.
   a_scope_stack_entry_ptr ssep;
   a_routine_ptr           scope_routine;
   a_scope_depth           scope_depth;
-  a_boolean               skipping_to_function = FALSE;
 
   /* Consider each scope on the scope stack that affects access control.
      They are linked together on a list. */
@@ -7258,33 +7257,18 @@ functions befriending_list_test and class_scope_test.
         have_member_privilege = TRUE;
         break;
       }  /* if */
-      /* Terminate the skip of enclosing classes of nested functions now that
-         a function scope has been found. */
-      skipping_to_function = FALSE;
     } else if (kind == (a_scope_kind)sck_template_instantiation) {
       /* Nothing required for template instantiation scopes. */
     } else {
       check_assertion_str(kind == (a_scope_kind)sck_class_struct_union ||
                           kind == (a_scope_kind)sck_class_reactivation,
                    "have_particular_member_access_privilege: bad stack entry");
-      /* A class or class reactivation. */
-      if (skipping_to_function) {
-        /* We're skipping class scopes until we get to a function.  The
-           class scopes being skipped are parent classes of a nested class. */
-      } else {
-        /* Check for access granted by being a member of the class. */
-        if (class_scope_test(class_type, ssep)) {
-          /* We are inside a class that gives us member access. */
-          have_member_privilege = TRUE;
-          break;
-        }  /* if */
-        /* Continue through the scope stack.  However, skip classes within
-           which the current one is nested, because nested classes have no
-           special access to the members of the enclosing classes.  In
-           non-strict mode, allow access as an extension. */
-        if (strict_ansi_mode) {
-          skipping_to_function = TRUE;
-        }  /* if */
+      /* A class or class reactivation.  Check for access granted by
+         being a member of the class. */
+      if (class_scope_test(class_type, ssep)) {
+        /* We are inside a class that gives us member access. */
+        have_member_privilege = TRUE;
+        break;
       }  /* if */
     }  /* if */
   }  /* for */
