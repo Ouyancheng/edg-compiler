@@ -9228,7 +9228,11 @@ continue_with_declaration:
              parameters, a body should have been present. */
           if (!skip_typerefs(local_type_ptr)->
                                   variant.routine.extra_info->prototyped) {
-            error(ec_param_id_list_needs_function_def);
+            if (microsoft_mode && C_mode()) {
+              /* No diagnostic in Microsoft C mode. */
+            } else {
+              error(ec_param_id_list_needs_function_def);
+            }  /* if */
           }  /* if */
           /* Update xref info on param ids. */
           record_param_id_list_declarations(&func_info);

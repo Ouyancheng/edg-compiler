@@ -1671,7 +1671,11 @@ issue an error if a default argument expression is encountered.
     if (!is_top_level_declarator) {
       /* This type of parameter list is not valid in abstract declarators
          and non-top-level function declarators. */
-      error(ec_param_id_list_needs_function_def);
+      if (microsoft_mode && C_mode()) {
+        /* No diagnostic in Microsoft C mode. */
+      } else {
+        error(ec_param_id_list_needs_function_def);
+      }  /* if */
     } else if (C_dialect == C_dialect_cplusplus) {
       /* This type of parameter list is an anachronism in C++. */
       diagnostic(anachronism_error_severity, ec_old_style_parameter_list);

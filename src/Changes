@@ -1,5 +1,14 @@
 Version 2.41
 
+3/2/99   Microsoft C compatibility: relax restrictions on use of old-style
+         function parameter lists
+
+In Microsoft C mode old-style parameter lists are not restricted to
+function definitions.  For example:
+
+  void f(a, b);                  // Okay in Microsoft C mode
+  typedef void (*fp)(a, b);      // Okay in Microsoft C mode
+
 3/2/99   Microsoft C compatibility: signedness difference in variable
          redeclaration
 
