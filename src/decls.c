@@ -5434,7 +5434,8 @@ be part of an overload set, it may have been previously declared (but not
 defined), and it may be an out-of-line definition of a member function of a
 class template.  orig_decl_level is the nearest enclosing scope that
 is not a template declaration scope.  is_specialization is TRUE if this
-is a template specialization declaration.
+is a template specialization declaration.  If prototype instantiations are
+recorded in the IL, the template header is passed via template_decl.
 */
 {
   a_symbol_ptr                      sym = NULL;

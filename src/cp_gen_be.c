@@ -6140,6 +6140,9 @@ recorded with this particular header.
 {
   a_template_parameter_ptr  param = tdp->param_list;
 
+  if (tdp->parent != NULL) {
+    gen_template_header(tdp->parent);
+  }  /* if */
   set_output_position(&tdp->template_pos);
   write_tok_str("template<");
   for (; param != NULL; param = param->next) {
@@ -6592,7 +6595,8 @@ Generate code for a block statement ("{ ... }").
   if (need_context_pop) pop_name_context();
   /* See if there's an end-of-construct entry for the block (compiler-generated
      blocks don't have one).  If so, advance past it. */
-  if (ss_entry_kind(curr_source_sequence_entry) ==
+  if (curr_source_sequence_entry != NULL &&
+      ss_entry_kind(curr_source_sequence_entry) ==
                                                 iek_src_seq_end_of_construct) {
     a_src_seq_end_of_construct_ptr ssecp = 
                                   ss_entry_ptr(curr_source_sequence_entry,

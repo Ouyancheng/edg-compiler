@@ -50,6 +50,9 @@ void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
 extern a_symbol_ptr class_member_template_declaration(
                                      a_type_ptr            class_type,
                                      a_template_param_ptr  templ_param_list,
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+                                     a_template_decl_ptr   template_decl,
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                                      a_decl_pos_block_ptr  decl_pos_block_ptr);
 
 extern a_type_ptr rescan_member_template_declaration(

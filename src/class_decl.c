@@ -10287,6 +10287,9 @@ static a_symbol_ptr class_member_declaration(
                       a_boolean                *skip_semicolon_check,
                       a_type_ptr               *member_template_instance_type,
                       a_template_instance_ptr  instance,
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+                      a_template_decl_ptr      template_decl,
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                       a_decl_pos_block_ptr     decl_pos_block_ptr)
 /*
 Scan a member declaration appearing inside a class definition.  class_type
@@ -10296,7 +10299,8 @@ returned TRUE if the caller should suppress the check for a semicolon
 following the member declaration.  templ_param_list is non-NULL for
 function template declarations.  decl_pos_block_ptr is non-NULL when then
 extra source position information collected during this declaration needs
-to be returned to the caller.
+to be returned to the caller.  If prototype instantiations are recorded in
+the IL, the template header is passed via template_decl.  
 */
 {
   a_source_position    decl_start_pos;
@@ -10722,6 +10726,33 @@ to be returned to the caller.
           tssp = rout_sym->variant.template_info;
           tssp->variant.function.routine->is_explicit_constructor = TRUE;
         }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+        if (prototype_instantiations_in_il &&
+            func_info.declarator_ssep != NULL) {
+          /* Record member templates of prototype instantiations.  (For real
+             instantiations, func_info.declarator_ssep will be NULL. */
+          a_routine_ptr  rout_ptr = rout_sym->variant.template_info
+                                         ->variant.function.routine;
+          a_symbol_reference_kind  srk_flags = SRK_DECLARATION;
+          if (func_info.is_definition) srk_flags |= SRK_DEFINITION;
+          record_symbol_declaration(srk_flags,
+                                    (a_symbol_ptr)rout_ptr->
+                                                    source_corresp.assoc_info,
+                                    &locator.source_position,
+                                    func_info.declarator_ssep);
+          if (ss_entry_kind(func_info.declarator_ssep) ==
+                                                 iek_src_seq_secondary_decl) {
+            a_src_seq_secondary_decl_ptr sssdp =
+                                   ss_entry_ptr(func_info.declarator_ssep,
+                                                a_src_seq_secondary_decl_ptr);
+            sssdp->declared_type = func_info.declared_type;
+            sssdp->template_decl = template_decl;
+          } else {
+            set_routine_declared_type(rout_ptr, func_info.declared_type);
+            rout_ptr->template_decl = template_decl;
+          }  /* if */
+        }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
         remove_stop_token(tok_comma);
         goto next_declaration;
       } else {
@@ -11065,6 +11096,9 @@ next_declaration:;
 a_symbol_ptr class_member_template_declaration(
                                      a_type_ptr            class_type,
                                      a_template_param_ptr  templ_param_list,
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+                                     a_template_decl_ptr   template_decl,
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                                      a_decl_pos_block_ptr  decl_pos_block_ptr)
 /*
 Scan a template function declaration that appears inside a class (or class
@@ -11090,6 +11124,9 @@ is the template parameter list for the function template.
                                  /*is_member_template=*/TRUE,
                                  templ_param_list, &skip_semicolon_check,
                                  &dummy_type, (a_template_instance_ptr)NULL,
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+                                 template_decl,
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                                  decl_pos_block_ptr);
   if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
   if (sym == NULL) {
@@ -11134,6 +11171,9 @@ instance record associated with this instantiation.
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
                                  &member_template_instance_type, instance,
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+                                 /*template_decl=*/NULL,
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                                  (a_decl_pos_block *)NULL);
   curr_routine_fixup = saved_routine_fixup;
   db_exit();
@@ -11787,6 +11827,9 @@ nested classes when their definition appears outside of the class template.
                                        &skip_semicolon_check,
                                        &dummy_type,
                                        (a_template_instance_ptr)NULL,
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+                                       /*template_decl=*/NULL,
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
                                        (a_decl_pos_block *)NULL);
         if (!skip_semicolon_check) {
           /* Check for and ignore the semicolon following the member
