@@ -1776,7 +1776,7 @@ should be set to TRUE.
 
 #if UPC_EXTENSIONS_ALLOWED
 
-static void check_for_return_in_upc_forall(void)
+static void check_for_return_in_upc_forall(a_source_position  *stmt_pos)
 /*
 We're about to create a return statement.  Issue a warning if it is a reachable
 statement within a upc_forall construct.  (The UPC specification indicates that
@@ -1785,7 +1785,7 @@ this leads to undefined behavior when executed.)
 {
   if (upc_mode && curr_reachability.reachable_considering_hints &&
       innermost_forall_loop != NULL) {
-    warning(ec_exit_forall);
+    pos_warning(ec_exit_forall, stmt_pos);
   }  /* if */
 }  /* check_for_return_in_upc_forall */
 
@@ -1822,9 +1822,9 @@ the current statement sequence.
                   stmt_pos->seq != 0 ? stmt_pos
                                      : &pos_curr_token);
       rtp->variant.routine.extra_info->does_not_return = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-      check_for_return_in_upc_forall();
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    check_for_return_in_upc_forall(stmt_pos);
   }  /* if */
 
   /* Allocate the statement entry. */
