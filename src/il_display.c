@@ -1257,6 +1257,11 @@ Display the indicated type entry.
   /* Do not print out ptr->typeinfo_var, which is used only during IL
      lowering. */
 #endif /* DO_IL_LOWERING */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (ptr->autonomous_primary_tag_decl) {
+    disp_boolean("autonomous_primary_tag_decl", TRUE);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   disp_name("kind");
   switch (ptr->kind) {
     case tk_error:
@@ -3139,6 +3144,9 @@ Display the indicated source sequence secondary declaration entry.
                      (unsigned long)sssdp->decl_position.column);
   disp_ptr("entity", (char *)sssdp->entity.ptr,
            (an_il_entry_kind)sssdp->entity.kind);
+  if (sssdp->autonomous_tag_decl) {
+    disp_boolean("autonomous_tag_decl", TRUE);
+  }  /* if */
 }  /* disp_src_seq_secondary_decl */
 
 
