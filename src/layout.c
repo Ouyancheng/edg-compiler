@@ -2219,7 +2219,7 @@ for handling virtual bases and functions.
                            is_array_type(fp->type) &&
                            is_incomplete_type(fp->type),
                            "do_class_layout: unexpected field in zero-size",
-                           "struct (microsoft C mode)");
+                           "struct (Microsoft C mode)");
 #endif /* CHECKING */
       /* Something like this:
            struct S { T t[]; };           // sizeof(S) == sizeof(int)

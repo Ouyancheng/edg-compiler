@@ -803,7 +803,7 @@ EXTERN a_boolean
 			   "const B&" should be viewed as a copy assignment
 			   operator when B is a base class of A. (Whatever its
 			   initial value, this variable will always be FALSE
-			   in strict-ANSI and microsoft-compatibility modes
+			   in strict-ANSI and Microsoft-compatibility modes
 			   and always TRUE in cfront-compatibility mode.) */
 
 EXTERN a_boolean

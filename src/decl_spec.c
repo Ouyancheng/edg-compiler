@@ -2521,7 +2521,7 @@ typedef long a_decl_specifiers_set;
 			/* A storage class has been scanned. */
 #define DS_TYPE_QUALIFIER (a_decl_specifiers_set)(0x2)
 			/* A type qualifier (including "restrict" and the
-			   microsoft type qualifiers "near" and "far") has
+			   Microsoft type qualifiers "near" and "far") has
 			   been scanned. */
 #define DS_TYPE (a_decl_specifiers_set)(0x4)
 			/* A basic type or a size or "signed" or "unsigned"

@@ -6381,7 +6381,7 @@ also set the is_nonstd_anonymous_union flag in the member-decl-info block.
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   } else if (!allow_nonstandard_anonymous_unions) {
     /* This compilation is not configured to support this extension -- e.g.,
-       this is not microsoft mode. */
+       this is not Microsoft mode. */
   } else if (!is_class_struct_union_type(member_type)) {
     /* Not a pseudo-anonymous-union -- it's not a class, struct,
        or union type. */
@@ -6793,7 +6793,7 @@ respectively.
           }  /* if */
         } else if (!class_state->is_first_field || microsoft_mode) {
           /* struct/class: an incomplete array is allowed only as the last
-             field, and except in microsoft mode it can't be the first field.
+             field, and except in Microsoft mode it can't be the first field.
              Issue an error later if there turns out to be another field.
              This can't be determined by looking at the next token in C++
              mode, since any member (other than a field) could legitimately
