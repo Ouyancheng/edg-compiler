@@ -20,6 +20,7 @@ templates.c -- Support for C++ templates.
 #include "error.h"
 #include "il.h"
 #include "lexical.h"
+#include "statements.h"
 #include "symbol_tbl.h"
 #include "types.h"
 
@@ -109,19 +110,117 @@ able to if the template itself has not yet been defined.
 }  /* instantiate_template_class */
 
 
-void instantiate_template_function(a_routine_ptr   rout,
-                                   a_token_cache   *p_token_cache,
-                                   a_scope_number  scope_number)
+void instantiate_template_function(a_function_instantiation_entry_ptr  fiep)
 /*
 */
 {
+  a_symbol_ptr                      rout_sym;
+  a_routine_ptr                     rout_ptr;
+  a_scope_ptr                       scope;
+  a_type_ptr                        rout_type;
+  a_routine_type_supplement_ptr     rtsp;
+  a_template_symbol_supplement_ptr  tssp;
+  a_param_id_ptr                    pip;
+  a_param_type_ptr                  ptp;
+
   db_enter(3, "instantiate_template_function");
+  rout_sym = fiep->routine_sym;
+  rout_ptr = rout_sym->variant.routine.ptr;
+  rout_type = rout_ptr->type;
+  rtsp = rout_type->variant.routine.extra_info;
+  tssp = fiep->template_sym->variant.template.extra_info;
+  rescan_reusable_cache(&tssp->body_token_cache);
+  (void)push_scope((a_scope_kind)sck_template_instantiation,
+                  tssp->declaration_scope, (a_type_ptr)NULL, rout_ptr, fiep);
+
 #if 0
-  rescan_reusable_cache(p_token_cache);
-  void(push_scope((a_scope_kind)sck_template_instantiation, scope_number,
-                  (a_type_ptr)NULL, rout,
-                  (a_function_instantiation_entry_ptr)NULL);
-  template_function_definition(...);
+
+  /* Call set_routine_calling_method_flag and set_arg_transfer_method_flag??
+     This has already been done -- should it be done again? */
+
+  /* Check return type -- is it complete?  Is it an uninstantiated class? */
+
+#endif /* if 0 */
+
+  /* Push the name scope for the routine body. */
+  scope = push_scope((a_scope_kind)sck_function, NO_SCOPE_NUMBER,
+                     (a_type_ptr)NULL, rout_ptr,
+                     (a_function_instantiation_entry_ptr)NULL);
+  /* Associate the scope to the routine entry and the routine entry to its
+     type entry. */
+  rout_ptr->assoc_scope = curr_il_region_number;
+  rtsp->assoc_routine = rout_ptr;
+
+#if 0
+  if (tssp->func_info.prototype_scope_symbols != NULL) {
+    reactivate_prototype_scope_symbols(
+                    tssp->variant.function.func_info.prototype_scope_symbols);
+  }  /* if */
+#endif /* if 0 */
+
+  /* If appropriate, set the return value pointer variable in the scope
+     entry.  This is a pointer to an implicit parameter specifying the
+     storage provided by the caller into which to copy a class object that
+     is returned by value. */
+  make_return_value_pointer_variable(rout_type, scope);
+
+  pip = tssp->variant.function.func_info.param_id_list;
+  ptp = rtsp->param_type_list;
+#if CHECKING
+  if ((pip == NULL) != (ptp == NULL)) {
+    internal_error("inline_function_definition: pip and ptp out of sync");
+  }  /* if */
+#endif /* CHECKING */
+  for (; pip != NULL; pip = pip->next, ptp = ptp->next) {
+    /* Declare each parameter identifier to have the associated type
+       from the parameter type list. */
+    decl_parameter(pip, ptp, /*template_instantiation=*/TRUE);
+#if CHECKING
+    if ((pip->next == NULL) != (ptp->next == NULL)) {
+      internal_error(
+                   "inline_function_definition: param_id and ptp out of sync");
+    }  /* if */
+#endif /* CHECKING */
+  }  /* for */
+
+  /* Set the assoc_param_type field in each of the parameter variables. */
+  fixup_parameters(scope->variant.routine.parameters, rtsp->param_type_list);
+
+#if CHECKING
+  if (rout_ptr->special_kind == (a_special_function_kind)sfk_constructor ||
+      rout_ptr->special_kind == (a_special_function_kind)sfk_destructor) {
+    internal_error("instantiate_template_function: ctor/dtor not expected");
+  }  /* if */
+#endif /* CHECKING */
+
+#if 0
+  /* A call to new_struct_stmt_stack should not be required. */
+#endif /* if 0 */
+
+  scope->assoc_block = compound_statement(/*at_function_level=*/TRUE,
+                                          /*explicit_return_type=*/TRUE);
+
+  /* Pop the function scope. */
+  pop_scope();
+
+#if 0
+  /* The lint "argsused" and "varargs" flags are only applicable until
+     the end of a function declaration. */
+  lint_argsused_flag = FALSE;
+  lint_varargs_count = NOT_LINT_VARARGS;
+#endif /* if 0 */
+
+  /* Check for the closing "}", not done in compound_statement.  Note that
+     required_token is not called; if compound_statement returned on
+     anything other than a right brace, it's because we should start parsing
+     on this token. */
+  if (curr_token != tok_rbrace) {
+    pos_error(ec_exp_rbrace, &pos_curr_token);
+  } else {
+    (void)get_token();
+  }  /* if */
+
+  /* Pop the template instantiation scope. */
   pop_scope();
   /* In the normal case the current token should be end_of_source, which was
      inserted to mark the end of the cached token stream. If necessary, keep
@@ -129,7 +228,6 @@ void instantiate_template_function(a_routine_ptr   rout,
   while (curr_token != tok_end_of_source) (void)get_token();
   /* Advance past the end-of-source token. */
   (void)get_token();
-#endif /* if 0 */
   db_exit();
 }  /* instantiate_template_function */
 
