@@ -4535,7 +4535,7 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
        qualifiers above the reference type, but that's okay; they don't really
        mean anything ("int &const a" is meaningless). */
     param_type = type_pointed_to(param_type);
-    if (type_qualifiers_match(arg_type, param_type)) {
+    if (type_qualifiers_match(param_type, arg_type)) {
       /* The qualifiers are the same: okay. */
     } else if (any_qualifier_missing(param_type, arg_type)) {
       /* There are some type qualifiers on the argument type that do not
@@ -4601,15 +4601,28 @@ only if try_user_conversions is TRUE; it must be FALSE if arg_type is non-NULL.
     /* The parameter type is a pointer.  Check for the
        "T* --> (qualified T)*" case. */
     if (is_pointer_type(arg_type)) {
+      /* arg_type and param_type are pointer types. */
       a_type_ptr arg_type_pointed_to = type_pointed_to(arg_type);
       a_type_ptr param_type_pointed_to = type_pointed_to(param_type);
-      if (any_qualifier_missing(arg_type_pointed_to, param_type_pointed_to)) {
-        /* arg_type and param_type are pointer types, and param_type has
-           some type qualifier that arg_type does not.  Check to see if
-           the types pointed to are the same.  This has to be checked here
-           because we don't want to actually construct the pointer to the
-           unqualified pointer type to allow the check to be done in the
-           usual place below. */
+      if (type_qualifiers_match(param_type_pointed_to, arg_type_pointed_to) ||
+          any_qualifier_missing(param_type_pointed_to, arg_type_pointed_to)) {
+        /* The qualifiers are the same, or there are some qualifiers dropped
+           (the latter case is an error, caught later).  Neither of those
+           cases is the "T* --> (qualified T)*" case.  Note that we didn't
+           check whether or not the underlying types are the same, but that
+           doesn't matter as far as ruling out these cases. */
+      } else {
+        /* param_type has a proper superset of the type qualifiers that
+           arg_type has.  Check to see if the types pointed to are the same.
+           This has to be checked here because we don't want to actually
+           construct the pointer to the unqualified pointer type to allow
+           the check to be done in the usual place below.  (It's not that
+           we don't want to construct the type because it's a waste or
+           because it's inefficient; it's that we don't want to change
+           param_type, because we need it qualified for the standard
+           conversion and user-defined conversion checks below.  This
+           trivial conversion is checked for separately here, but it's
+           folded in with the standard conversions in the checks below.) */
         arg_type_pointed_to = skip_typerefs(arg_type_pointed_to);
         param_type_pointed_to = skip_typerefs(param_type_pointed_to);
         if (types_are_compatible(arg_type_pointed_to,
