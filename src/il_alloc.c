@@ -3940,7 +3940,7 @@ initializations that are done for each compilation.
   num_templates_allocated                = 0;
 #if RECORD_FORM_OF_NAME_REFERENCE
   num_name_references_allocated          = 0;
-  num_name_qualifiers_allocated           = 0;
+  num_name_qualifiers_allocated          = 0;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
