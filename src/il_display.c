@@ -1871,6 +1871,13 @@ Display the indicated routine.
   if (ptr->expl_template_arg_list_used) {
     disp_boolean("expl_template_arg_list_used", TRUE);
   }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+  if (ptr->surrounding_name_linkage_state != (a_name_linkage_kind)nlk_none) {
+    disp_name_linkage("surrounding_name_linkage_state",
+                      (a_name_linkage_kind)ptr->
+                                              surrounding_name_linkage_state);
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is
@@ -3774,6 +3781,13 @@ Display the indicated class type supplement entry.
     disp_type_qualifiers(ptr->qualifiers);
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if BACK_END_IS_CP_GEN_BE
+  if (ptr->surrounding_name_linkage_state != (a_name_linkage_kind)nlk_none) {
+    disp_name_linkage("surrounding_name_linkage_state",
+                      (a_name_linkage_kind)ptr->
+                                              surrounding_name_linkage_state);
+  }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     disp_name("anonymous_union_kind");
     switch (ptr->anonymous_union_kind) {
