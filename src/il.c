@@ -2818,7 +2818,7 @@ lookup table.
     }  /* if */
   }  /* for */
   /* Construct a special lookup entry whose "first" value holds the sequence
-     number we are looking fore. */
+     number we are looking for. */
   snle_to_find.first = seq_number;
   /* Use bsearch to find the entry that contains the sequence number that we
      are looking for. */
