@@ -694,9 +694,9 @@ EXTERN a_boolean
 EXTERN a_boolean
 		remove_unneeded_entities
 #if VAR_INITIALIZERS
-                            = DEFAULT_REMOVE_UNNEEDED_ENTRIES
+                            = DEFAULT_REMOVE_UNNEEDED_ENTITIES
 #endif /* VAR_INITIALIZERS */
-                                                             ;
+                                                              ;
 			/* When TRUE unneeded entities may be pruned from the
 			   IL tree; otherwise, pruning is suppressed even if
 			   entities are determined to be unneeded. Always
