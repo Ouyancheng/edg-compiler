@@ -916,8 +916,8 @@ Now, cfront mode only updates the value of flags that have not
 been explicitly set.
 
 For example, the command "edgcpfe --bool --cfront_3.0" did not enable
-the bool keyword (because it disabled in cfront mode).  But now the
-bool keyword is enabled by this command.
+the bool keyword (because bool is disabled by default in cfront mode).
+But now the bool keyword is enabled by this command.
 
 5/5/00   File name sometimes omitted from error context output
 
