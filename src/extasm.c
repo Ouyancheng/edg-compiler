@@ -150,7 +150,7 @@ typedef struct a_named_register_list_entry {
 			/* Register description. */
 } a_named_register_list_entry;
 
-/* Previously allocated entries available for reused. */
+/* Previously allocated entries available for reuse. */
 static a_named_register_list_entry_ptr avail_named_register_list_entries;
 
 static a_named_register_list_entry_ptr alloc_named_register_list_entry(void)
@@ -186,7 +186,7 @@ Return an entry of a list of named register entries to the available pool.
 
 
 /*ARGSUSED*/
-static a_boolean validate_expr_for_constraint(an_expr_node_ptr expr,
+static a_boolean validate_expr_for_constraint(an_expr_node_ptr          expr,
                                               an_asm_operand_constraint cstrt)
 /*
 Verify that expr can legitimately be used as an asm operand with
@@ -214,21 +214,21 @@ error, and set operand to "error placemarker" values.
   char                       errletter[2];
 
   if (cstring == NULL || expr == NULL) {
-    /* Syntactically invalid - an error has already been issued.
+    /* Syntactically invalid -- an error has already been issued.
        N.B. We do not bail out if expr is an error node, because it's
        still possible and useful to validate the constraint string. */
     goto error_return;
   }  /* if */
   errletter[1] = '\0';
-  /* compute modifiers */
+  /* Compute modifiers. */
   modifiers = (an_asm_operand_modifier)aom_invalid;
-  for(p = cstring; *p; p++) {
-    switch(*p) {
-      /* modifiers valid in asm() */
+  for (p = cstring; *p != '\0'; p++) {
+    switch (*p) {
+      /* Modifiers valid in asm() */
       case '=': modifiers |= (an_asm_operand_modifier)aom_output; break;
       case '+': modifiers |= (an_asm_operand_modifier)aom_modify; break;
       case '&': modifiers |= (an_asm_operand_modifier)aom_earlyclobber; break;
-      /* modifiers ignored in asm() */
+      /* Modifiers ignored in asm(): */
       case '%':  case '*':  case '#':  case '?':  case '!':
         errletter[0] = *p;
         pos_st_warning(ec_asm_modifier_ignored, &operand->position, errletter);
@@ -245,7 +245,7 @@ done_with_modifiers:
   /* The next thing in the string should be a constraint letter. */
   constraint = (an_asm_operand_constraint)aoc_invalid;
   switch (*p) {
-    /* machine independent constraints - misc */
+    /* Machine independent constraints - miscellaneous. */
     case 'X': constraint = (an_asm_operand_constraint)aoc_any;     break;
     case 'g': constraint = (an_asm_operand_constraint)aoc_general; break;
     case '0': constraint = (an_asm_operand_constraint)aoc_match_0; break;
@@ -258,16 +258,16 @@ done_with_modifiers:
     case '7': constraint = (an_asm_operand_constraint)aoc_match_7; break;
     case '8': constraint = (an_asm_operand_constraint)aoc_match_8; break;
     case '9': constraint = (an_asm_operand_constraint)aoc_match_9; break;
-    /* registers */
+    /* Registers */
     case 'r': constraint = (an_asm_operand_constraint)aoc_reg_integer; break;
     case 'f': constraint = (an_asm_operand_constraint)aoc_reg_float;   break;
-    /* memory */
+    /* Memory */
     case 'm': constraint = (an_asm_operand_constraint)aoc_mem_any;       break;
     case 'o': constraint = (an_asm_operand_constraint)aoc_mem_offset;    break;
     case 'V': constraint = (an_asm_operand_constraint)aoc_mem_nonoffset; break;
     case '<': constraint = (an_asm_operand_constraint)aoc_mem_autoinc;   break;
     case '>': constraint = (an_asm_operand_constraint)aoc_mem_autodec;   break;
-    /* immediates */
+    /* Immediates */
     case 'i': constraint = (an_asm_operand_constraint)aoc_imm_int;    break;
     case 'n': constraint = (an_asm_operand_constraint)aoc_imm_number; break;
     case 's': constraint = (an_asm_operand_constraint)aoc_imm_symbol; break;
@@ -290,7 +290,7 @@ done_with_modifiers:
     case 'x': constraint = (an_asm_operand_constraint)aoc_reg_sse;       break;
     case 'Y': constraint = (an_asm_operand_constraint)aoc_reg_sse2;      break;
     case 'y': constraint = (an_asm_operand_constraint)aoc_reg_mmx;       break;
-    /* immediates */
+    /* Immediates */
     case 'I': constraint = (an_asm_operand_constraint)aoc_imm_short_shift;
                                                                          break;
     case 'J': constraint = (an_asm_operand_constraint)aoc_imm_long_shift;
@@ -343,13 +343,13 @@ error_return:
 /*
 Machine-specific tables used by validate_operands_and_clobbers.
 */
-struct single_register_constraint {
+typedef struct single_register_constraint {
   /* Structure to hold a constraint-to-register mapping. */
   an_asm_operand_constraint  cons;
   a_named_register           reg;
-};
+} single_register_constraint;
 
-static struct single_register_constraint single_register_constraints[] = {
+static single_register_constraint single_register_constraints[] = {
 #if TARG_IS_X86
   { (an_asm_operand_constraint)aoc_reg_a, (a_named_register)anr_a },
   { (an_asm_operand_constraint)aoc_reg_b, (a_named_register)anr_b },
@@ -395,8 +395,8 @@ even if they are invalid.
   int              i, j;
   a_named_register r;
 
-  memset(regs_clobbered, 0, sizeof regs_clobbered);
-  memset(regs_used, 0, sizeof regs_used);
+  memzero(regs_clobbered, sizeof regs_clobbered);
+  memzero(regs_used, sizeof regs_used);
   for (i = 0; i < num_operands; i++) {
     for (j = 0;
          single_register_constraints[j].cons != (a_named_register)anr_last;
@@ -456,11 +456,13 @@ pointed to by OPERAND.  The syntax is
     syntax_error(ec_exp_string_literal);
   } else {
     constraint_string = const_for_curr_token.variant.string.value;
-    /* advance past string literal */
+    /* Advance past string literal. */
     (void)get_token();
     if (required_token(tok_lparen, ec_exp_lparen)) {
+      add_stop_token(tok_rparen);
       expr = scan_asm_operand_expression(output);
       (void)required_token(tok_rparen, ec_exp_rparen);
+      remove_stop_token(tok_rparen);
     }  /* if */
   }  /* if */
   process_asm_operand(operand, expr, constraint_string, output);
@@ -501,7 +503,7 @@ colons, which will be tokenized as a single tok_colon_colon (in C++).
   if (curr_token == tok_colon_colon) {
     output = FALSE;
   }  /* if */
-  /* skip initial : or :: */
+  /* Skip initial : or ::. */
   (void)get_token();
   /* If the output list is empty, we'll be at another colon. */
   if (output && curr_token == tok_colon) {
