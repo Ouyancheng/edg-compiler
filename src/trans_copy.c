@@ -2611,7 +2611,20 @@ as needed and prune the walk.
 
   if (in_secondary_trans_unit(ptr)) {
 #if MAINTAIN_NEEDED_FLAGS
-    if (mark_secondary_first_pass) mark_as_needed(ptr, kind);
+    if (mark_secondary_first_pass) {
+      mark_as_needed(ptr, kind);
+      /* If the entity is a class type with a definition, mark its definition
+         as needed as well.  We don't actually know whether it is needed,
+         so we assume it is. */
+      if (kind == iek_type) {
+        a_type_ptr type = (a_type_ptr)ptr;
+        if (is_immediate_class_type(type) &&
+            class_type_has_body(type)) {
+          set_class_keep_definition_in_il(type);
+          set_class_definition_needed(type);
+        }  /* if */
+      }  /* if */
+    }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
     prune = TRUE;
   } else if (il_entry_prefix_of(ptr).il_walk_flag ==

@@ -398,7 +398,6 @@ cases (anonymous unions containing types).
 /* "needed" flag section: */
 /* Declarations needed because of forward references: */
 static void set_routine_definition_needed(a_routine_ptr rout);
-static void set_class_definition_needed(a_type_ptr type);
 static void set_routine_keep_definition_in_il(a_routine_ptr rout);
 
 /* Generate walk_tree_and_set_needed from the walk_entry.h source. */
@@ -570,7 +569,7 @@ body of the function when the routine "defined" flag gets set after some
 }  /* remark_routine_definition_needed */
 
 
-static void set_class_definition_needed(a_type_ptr type)
+void set_class_definition_needed(a_type_ptr type)
 /*
 Set the definition_needed flag on the indicated class type.  This means the
 definition of the class is needed, and not just the declaration.
