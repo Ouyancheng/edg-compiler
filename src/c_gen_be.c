@@ -74,12 +74,6 @@ instead of K&R C.
             SCOPE_ORPHANED_LIST_PROCESSING_NEEDED TRUE
 #endif /* !SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 
-/*
-If SUPPRESS_CONST is TRUE, "const" will not be put out when generating ANSI C.
-*/
-#ifndef SUPPRESS_CONST
-#define SUPPRESS_CONST TRUE
-#endif /* ifndef SUPPRESS_CONST */
 
 /*
 See if the target is the Sun cc compiler, which has some bugs we know
@@ -1698,9 +1692,9 @@ of "const" in ANSI C mode.
                       "dump_type_qualifier: bad type kind");
   if (type->variant.typeref.is_const) {
 #if C_GEN_BE_GENERATES_ANSI_C
-#if SUPPRESS_CONST
+#if SUPPRESS_CONST_IN_GENERATED_C
     suppress_const = TRUE;  /* Suppress const always. */
-#endif /* SUPPRESS_CONST */
+#endif /* SUPPRESS_CONST_IN_GENERATED_C */
     if (suppress_const) start_comment();
     write_tok_str("const");
     if (suppress_const) end_comment();

@@ -639,6 +639,15 @@ instead of K&R C.
 #endif /* C_GEN_BE_GENERATES_ANSI_C */
 #endif /* BACK_END_IS_C_GEN_BE */
 
+/*
+If SUPPRESS_CONST_IN_GENERATED_C is TRUE, "const" will not be put out when
+the C-generating back end generates ANSI C.  (const is never put out when
+generating K&R C.)
+*/
+#ifndef SUPPRESS_CONST_IN_GENERATED_C
+#define SUPPRESS_CONST_IN_GENERATED_C FALSE
+#endif /* ifndef SUPPRESS_CONST_IN_GENERATED_C */
+
 #if DO_IL_LOWERING
 
 /* Switches that control aspects of IL lowering: */
