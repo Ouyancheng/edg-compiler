@@ -1456,13 +1456,14 @@ Rescan the default arguments of a function template.
 }  /* delayed_scan_for_function_template_default_args */
 
 
-void scan_template_declaration(a_boolean	 is_initial_decl,
-			       a_decl_flag_set   *dso_flags,
-			       a_decl_flag_set   *do_flags,
-                               a_symbol_locator  *locator,
-                               a_type_ptr        *type,
-                               a_func_info_block *func_info,
-			       a_storage_class   *storage_class)
+static void scan_template_declaration(a_boolean         is_initial_decl,
+                                      a_boolean         nonglobal_decl_err,
+                                      a_decl_flag_set   *dso_flags,
+                                      a_decl_flag_set   *do_flags,
+                                      a_symbol_locator  *locator,
+                                      a_type_ptr        *type,
+                                      a_func_info_block *func_info,
+                                      a_storage_class   *storage_class)
 /*
 Calls decl_specifiers and declarator to scan a template declaration of
 a function or static data member.  is_initial_decl is TRUE if this
@@ -1486,6 +1487,15 @@ of a function template.
   if (is_initial_decl) {
     dsi_flags |= DSI_IS_TEMPLATE_DECLARATION;
     di_flags |= DI_IS_TEMPLATE_DECLARATION;
+    if (nonglobal_decl_err) {
+      /* If this declaration does not appear at file scope, then it might
+         be inside a class definition -- in which case set another flag to
+         avoid error recovery problems. */
+      if (scope_stack[decl_scope_level-1].kind ==
+                                     (a_scope_kind)sck_class_struct_union) {
+        dsi_flags |= DSI_IS_MEMBER_DECLARATION;
+      }  /* if */
+    }  /* if */
     /* An end-of-source marker is not present when the initial declaration
        is scanned. */
     add_stop_token(tok_lbrace);
@@ -1503,6 +1513,11 @@ of a function template.
     declarator(di_flags, do_flags, *type, (a_type_ptr)NULL, locator, type,
                &bottom_derived_type, func_info);
     func_info->is_inline = ((*dso_flags & DSO_INLINE) != 0);
+    if (nonglobal_decl_err) {
+      /* An error has already been issued on a template declaration that
+         is not at file scope. */
+      set_to_named_error_locator(*locator);
+    }  /* if */
   }  /* if */
   if (is_initial_decl) {
     /* An end-of-source marker is not present when the initial declaration
@@ -1588,9 +1603,10 @@ templ_sym).
     saved_pos_curr_token = pos_curr_token;
     saved_error_position = error_position;
     rescan_reusable_cache(&tssp->variant.function.decl_token_cache);
-    scan_template_declaration(/*is_initial_decl=*/FALSE, &dso_flags, &do_flags,
-                              &locator, &rout_type, &func_info,
-                              &storage_class);
+    scan_template_declaration(/*is_initial_decl=*/FALSE,
+                              /*nonglobal_decl_err=*/FALSE,
+                              &dso_flags, &do_flags, &locator,
+                              &rout_type, &func_info, &storage_class);
     error_position = saved_error_position;
     pos_curr_token = saved_pos_curr_token;
     /* Pop the template instantiation scope. */
@@ -2478,6 +2494,7 @@ Make sure that any default arguments are at the end of the parameter list.
 
 static a_boolean class_template_declaration(
                                     a_template_param_ptr templ_params,
+                                    a_boolean            nonglobal_decl_err,
                                     a_symbol_ptr         *p_sym_ptr,
                                     a_boolean            *resolution,
                                     a_type_ptr           *new_type,
@@ -2561,6 +2578,12 @@ that make up the declaration and do a prototype instantiation.
       if (locator.is_qualified_name) {
         error(ec_qualified_name_not_allowed);
         set_to_error_locator(locator);
+        sym = NULL;
+      }  /* if */
+      if (nonglobal_decl_err) {
+        /* An error has already been issued on a template declaration that
+           is not at file scope. */
+        set_to_named_error_locator(locator);
         sym = NULL;
       }  /* if */
     }  /* if */
@@ -3173,6 +3196,7 @@ entry is pushed on the scope stack.
   a_def_arg_expr_fixup_ptr	    saved_curr_default_args;
   a_token_cache 		    decl_token_cache;
   a_boolean		            decl_token_cache_used = FALSE;
+  a_boolean                         nonglobal_decl_err = FALSE;
 
   db_enter(3, "template_declaration");
 #if CHECKING
@@ -3186,6 +3210,7 @@ entry is pushed on the scope stack.
   if (decl_scope_level != DEPTH_OF_FILE_SCOPE) {
     /* template declarations may appear at file scope only (ARM 14.1). */
     error(ec_nonglobal_template_declaration);
+    nonglobal_decl_err = TRUE;
   }  /* if */
   (void)push_scope((a_scope_kind)sck_template_declaration, NO_SCOPE_NUMBER,
                    (a_type_ptr)NULL, (a_routine_ptr)NULL, (a_symbol_ptr)NULL,
@@ -3206,8 +3231,9 @@ entry is pushed on the scope stack.
   cache_template_declaration(&decl_token_cache);
   /* See if it is a class template declaration.  If it is, scan the tokens
      of the definition (if any) and cache them away of later reference. */
-  if (class_template_declaration(template_param_list, &sym, &tag_resolution,
-                                 &prototype_type, defines_something)) {
+  if (class_template_declaration(template_param_list, nonglobal_decl_err,
+                                 &sym, &tag_resolution, &prototype_type,
+                                 defines_something)) {
     /* The declaration was successfully scanned as a class template
        declaration. */
   } else if (is_decl_start(/*expr_context=*/FALSE,
@@ -3224,8 +3250,9 @@ entry is pushed on the scope stack.
     a_storage_class    storage_class;
 
     /* Scan the decl. specifiers and the declaration. */
-    scan_template_declaration(/*is_initial_decl=*/TRUE, &dso_flags, &do_flags,
-                              &locator, &type, &func_info, &storage_class);
+    scan_template_declaration(/*is_initial_decl=*/TRUE, nonglobal_decl_err,
+                              &dso_flags, &do_flags, &locator, &type,
+                              &func_info, &storage_class);
     has_parenthesized_initializer = 
                              (do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
     if (!is_function_type(type) && 
