@@ -759,6 +759,11 @@ type.
         !identical_types(new_constant->type, new_type)) {
       implicit_cast(new_constant, new_type);
     }  /* if */
+  } else if (vla_enabled && is_variably_modified_type(new_type)) {
+    /* A cast to a type involving a variable length array (VLA) cannot be
+       rendered as an implicit cast (the constant entry doesn't preserve
+       the cast history).  Do not fold it. */
+    *did_not_fold = TRUE;
   }  /* if */
   /* Do the cast (by calling implicit_cast) unless there was an error or
      the cast has already been handled. */
