@@ -5004,20 +5004,16 @@ to deallocate the buffer using free_general.
   for (; *src != '\0'; ++src, ++dst) {
     if (*src == '%') {
       if (*(src+1) == 'm') {
-        if (percent_m_seen) {
-          internal_error("too many %m in GCC_VERSION_STRING");
-        } else {
-          percent_m_seen = TRUE;
-        }  /* if */
+        check_assertion_str(!percent_m_seen,
+                            "too many %m in GCC_VERSION_STRING");
+        percent_m_seen = TRUE;
         ++src;
         (void)strcpy(dst, gcc_mode ? "gcc" : "g++");
         dst += 2;
       } else if (*(src+1) == 'v') {
-        if (percent_v_seen) {
-          internal_error("too many %v in GCC_VERSION_STRING");
-        } else {
-          percent_v_seen = TRUE;
-        }  /* if */
+        check_assertion_str(!percent_v_seen,
+                            "too many %v in GCC_VERSION_STRING");
+        percent_v_seen = TRUE;
         ++src;
         (void)sprintf(dst, "%ld.%ld", major_num, minor_num);
         while (*dst != '\0') ++dst;
@@ -5034,9 +5030,8 @@ to deallocate the buffer using free_general.
     }  /* if */
   }  /* for */
   *dst = '\0';
-  if (version_string[0] != '"' || dst[-1] != '"') {
-    internal_error("GCC_VERSION_STRING must be quote-delimited string");
-  }  /* if */
+  check_assertion_str(version_string[0] == '"' && dst[-1] == '"',
+                      "GCC_VERSION_STRING must be quote-delimited string");
   return version_string;
 }  /* expanded_gnu_version_string */
 
