@@ -249,6 +249,24 @@ typedef struct an_argument_summary {
 } an_argument_summary;
 
 
+/*
+Bit flags used in calling do_operand_transformations, to suppress
+some of the transformations.
+*/
+#define TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION 0x1
+			/* Functions should not be converted implicitly to
+			   pointer-to-function. */
+#define TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION 0x2
+			/* Arrays should not be converted implicitly to
+			   pointer-to-first-element-of-the-array. */
+#define TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION 0x4
+			/* Suppress conversion of an lvalue to an rvalue */
+#define TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION 0x8
+			/* Suppress the check for indefinite functions. */
+#define TOPT_NO_OPTIONS 0
+typedef int a_transformation_options_set;
+
+
 /* Copy an operand. */
 #define copy_operand(from, to) (*(to) = *(from))
 
@@ -427,6 +445,11 @@ extern void conv_function_designator_to_ptr_to_function(
                                            an_operand         *operand,
                                            an_expression_kind expression_kind);
 
+extern void do_operand_transformations(
+                                an_operand                   *operand,
+                                a_transformation_options_set options,
+                                an_expression_kind           expression_kind);
+
 extern a_type_ptr get_logical_result_type(an_expression_kind expression_kind,
 				          an_operand         *operand_1,
 				          an_operand         *operand_2);
@@ -468,8 +491,6 @@ extern void set_operand_kind(an_operand      *operand,
 
 extern void error_in_operand(an_error_code error_code,
 		             an_operand    *operand);
-
-extern void error_on_indefinite_function(an_operand *operand);
 
 extern a_boolean check_modifiable_lvalue_operand(an_operand *operand);
 
