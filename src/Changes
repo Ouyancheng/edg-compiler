@@ -1,5 +1,15 @@
 Version 3.2
 
+2/5/03   GNU C mode: Initialization of array of structs of size zero
+
+In GNU C, it is possible for a complete struct to have size zero.  The
+front end used to issue a spurious error when attempting to initialize
+such an array in GNU C mode.  For example:
+
+  struct S {} s[] = { 1 };  // Now accepted in GNU C mode.
+
+This is now fixed.
+
 2/5/03   Microsoft compatibility: disambiguation
 
 The MSVC++ 7.1 compiler fixes some disambiguation bugs that we emulated.

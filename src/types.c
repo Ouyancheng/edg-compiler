@@ -142,11 +142,7 @@ predicates.
 #else /* GNU_EXTENSIONS_ALLOWED */
 #define is_incomplete(tp)                                               \
    ((tp)->size == 0 && !is_function(tp) &&                              \
-    !(is_array(tp) && tp->variant.array.bound_is_zero) &&               \
-    !(gcc_mode &&                                                       \
-      (tp->kind == (a_type_kind)tk_struct ||                            \
-       tp->kind == (a_type_kind)tk_union) &&                            \
-      tp->variant.class_struct_union.is_empty_class))
+    !(gnu_mode && is_gnu_type_of_size_zero(tp)))
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /* Macro that is TRUE if two type kinds are the same, or are the same except
@@ -247,6 +243,36 @@ Return TRUE if the given type is a function type (3.1.2.5).
   return(is_function(tp));
 }  /* is_function_type */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static a_boolean is_gnu_type_of_size_zero(a_type_ptr  tp)
+/*
+The given type has its size field set to zero.  In GNU C and C++, this may
+still be a complete type (whose size is really zero).  Return TRUE in that
+case.
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(tp->size == 0 && tp->kind != (a_type_kind)tk_typeref);
+  while (is_array(tp)) {
+    if (tp->variant.array.bound_is_zero) {
+      result = TRUE;
+      break;
+    } else {
+      tp = skip_typerefs(tp->variant.array.element_type);
+    }  /* if */
+  }  /* while */
+  if (gcc_mode &&
+      (tp->kind == (a_type_kind)tk_struct ||
+       tp->kind == (a_type_kind)tk_union) &&
+      tp->variant.class_struct_union.is_empty_class) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_gnu_type_of_size_zero */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_boolean is_incomplete_type(a_type_ptr tp)
 /*
