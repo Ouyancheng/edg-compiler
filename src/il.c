@@ -149,11 +149,6 @@ static unsigned long
 		num_used_shareable_constant_buckets,
 		num_searches_for_shareable_constants,
 		num_compares_for_shareable_constants;
-
-static a_boolean
-		no_null_name_addr;
-			/* Set to suppress output of the address of unnamed
-			   entities in db_name. */
 #endif /* DEBUG */
 
 /*
@@ -295,10 +290,7 @@ Dump the name from a source correspondence (if any).
     if (name != NULL) {
       fputs(name, f_debug);
     } else {
-      fputs("<NULL>", f_debug);
-      if (!no_null_name_addr) {
-        fprintf(f_debug, "@%lx", (unsigned long)sc);
-      }  /* if */
+      fprintf(f_debug, "<NULL>@%lx", (unsigned long)sc);
     }  /* if */
   }  /* if */
 }  /* db_name */
@@ -10822,8 +10814,6 @@ in il_init.)
     internal_error(
             "il_one_time_init: incorrect initialization of db_operator_names");
   }  /* if */
-  /* Suppress output of address in db_name for entities with no name. */
-  no_null_name_addr = db_flag_is_set("no_null_name_addr");
 #endif /* DEBUG */
   /* Variable in il_def.h: */
   /* Check that the table of linkage kind names is correctly initialized. */
@@ -10898,7 +10888,6 @@ in il_init.)
       pch_saved_var_array_elem(num_shareable_constants),
       pch_saved_var_array_elem(num_used_shareable_constant_buckets),
       pch_saved_var_array_elem(num_based_type_fixups_allocated),
-      pch_saved_var_array_elem(no_null_name_addr),
 #endif /* DEBUG */
       pch_saved_var_array_terminating_elem()
     };
