@@ -5448,11 +5448,11 @@ in a number of ways, e.g., if the source operand is an lvalue.
         expr = create_expr_temporary(dest_type, /*result_is_addr=*/FALSE,
                                      /*is_explicit_cast=*/!is_implicit_cast,
                                      /*suppress_abstract_test=*/FALSE,
-                                     &orig_operand.position);
-        dip = expr->variant.init.dynamic_init;
+                                     (a_dynamic_init_kind)dik_constructor,
+                                     &orig_operand.position,
+                                     &dip);
         /* A dik_constructor with a NULL constructor is used for generic
            construction. */
-        set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
         dip->variant.constructor.ptr = NULL;
         dip->variant.constructor.args = opexpr;
       }  /* if */
@@ -6438,31 +6438,31 @@ is TRUE if this node represents an explicit cast.
 
 
 an_expr_node_ptr create_expr_temporary(
-                                      a_type_ptr        temp_type,
-                                      a_boolean         result_is_addr,
-                                      a_boolean         is_explicit_cast,
-                                      a_boolean         suppress_abstract_test,
-                                      a_source_position *position)
+                                    a_type_ptr          temp_type,
+                                    a_boolean           result_is_addr,
+                                    a_boolean           is_explicit_cast,
+                                    a_boolean           suppress_abstract_test,
+                                    a_dynamic_init_kind init_kind,
+                                    a_source_position   *position,
+                                    a_dynamic_init_ptr  *dip)
 /*
 Create an enk_temp_init node and return a pointer to it.  The implied
 temporary has type temp_type.  A dynamic initialization entry indicating
-no initialization (but indicating destruction if appropriate) is attached
-under the enk_temp_init node.  The value of the enk_temp_init is the address
-(rather than the value) of the temporary if result_is_addr is TRUE.
-is_explicit_cast is TRUE if this node represents an explicit cast.
-An error is issued if the temporary has an abstract class type unless
-suppress_abstract_test is TRUE.  *position is the position of the reference.
-Only used in C++.
+init_kind initialization (and destruction if appropriate) is attached
+under the enk_temp_init node, and a pointer to it is returned in *dip.
+The value of the enk_temp_init is the address (rather than the value) of
+the temporary if result_is_addr is TRUE.  is_explicit_cast is TRUE if
+this node represents an explicit cast.  An error is issued if the
+temporary has an abstract class type unless suppress_abstract_test is
+TRUE.  *position is the position of the reference.  Used only in C++.
 */
 {
-  a_dynamic_init_ptr dip;
-  an_expr_node_ptr   temp_init_node;
+  an_expr_node_ptr temp_init_node;
 
   /* Allocate the dynamic initialization entry. */
-  dip = alloc_dtor_dynamic_init((a_dynamic_init_kind)dik_none, temp_type,
-                                position);
+  *dip = alloc_dtor_dynamic_init(init_kind, temp_type, position);
   /* Make an enk_temp_init node that points at the dynamic init entry. */
-  temp_init_node = alloc_temp_init_node(temp_type, dip, result_is_addr,
+  temp_init_node = alloc_temp_init_node(temp_type, *dip, result_is_addr,
                                         is_explicit_cast);
   if (!suppress_abstract_test && !result_is_addr && !microsoft_bugs &&
       is_abstract_class_type(temp_type)) {
@@ -6608,10 +6608,10 @@ an explicit or implicit conversion (e.g., a conversion function call).
                                            /*result_is_addr=*/FALSE,
                                            /*is_explicit_cast=*/FALSE,
                                            /*suppress_abstract_test=*/TRUE,
-                                           err_pos);
-    dip = temp_init_node->variant.init.dynamic_init;
-    set_dynamic_init_kind(dip,
-                      (a_dynamic_init_kind)dik_call_returning_class_via_cctor);
+                                           (a_dynamic_init_kind)
+                                            dik_call_returning_class_via_cctor,
+                                           err_pos,
+                                           &dip);
     dip->variant.expression = call_node;
     call_node = temp_init_node;
   }  /* if */

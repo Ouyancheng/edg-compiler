@@ -10039,10 +10039,10 @@ the source position.
                                          result_is_addr,
                                          is_explicit_cast,
                                          /*suppress_abstract_test=*/FALSE,
-                                         position);
-  dip = temp_init_node->variant.init.dynamic_init;
+                                         (a_dynamic_init_kind)dik_constructor,
+                                         position,
+                                         &dip);
   /* Use a dik_constructor to call the constructor routine. */
-  set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constructor);
   dip->variant.constructor.ptr = ctor_routine;
   dip->variant.constructor.args = arg_expr_list;
   dip->variant.constructor.value_initialization = is_value_init;
@@ -10070,10 +10070,10 @@ an explicit cast.
                                          result_is_addr,
                                          is_explicit_cast,
                                          /*suppress_abstract_test=*/FALSE,
-                                         &operand->position);
-  dip = temp_init_node->variant.init.dynamic_init;
+                                         (a_dynamic_init_kind)dik_expression,
+                                         &operand->position,
+                                         &dip);
   conv_lvalue_to_rvalue(operand);
-  set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_expression);
   dip->variant.expression = make_node_from_operand(operand);
   /* Make an operand for the overall expression. */
   make_expression_operand(temp_init_node, temp_init_node->type, operand);
