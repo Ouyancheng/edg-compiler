@@ -6736,81 +6736,83 @@ caller.
     }  /* if */
   } else {
     /* Namespace definition. */
-    if (required_token(tok_lbrace, ec_exp_lbrace)) {
-      if (ns_sym == NULL) {
-        if (locator.symbol_header == symbol_for_namespace_std->header &&
-            depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
-          /* This is the initial explicit declaration of namespace "std".
-             Reuse the predeclared symbol. */
-          ns_sym = symbol_for_namespace_std;
-          enter_symbol_for_namespace_std(&locator);
-          srk_flags |= SRK_DEFINITION;
-        } else {
-          /* Create a namespace symbol. */
-          ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,
-                                depth_scope_stack,
-                                /*suppress_redecl_error=*/TRUE);
-        }  /* if */
-      }  /* if */
-      if (ns_sym->variant.namespace_info.ptr == NULL) {
-        /* Original definition -- allocate the namespace entry. */
-        nsp = alloc_namespace(/*is_alias=*/FALSE);
-        set_source_corresp(&nsp->source_corresp, ns_sym);
-        if (is_unnamed_namespace) nsp->source_corresp.name = NULL;
-        set_namespace_membership(ns_sym, &nsp->source_corresp,
-                                 (a_namespace_ptr)NULL);
-        ns_sym->variant.namespace_info.ptr = nsp;
-        /* Set a flag indicating that this namespace is itself an unnamed
-           namespace or is enclosed by an unnamed namespace. */
-        if (is_unnamed_namespace ||
-            (ns_sym->parent.namespace_ptr != NULL &&
-             symbol_supplement_for_namespace(ns_sym->parent.namespace_ptr)->
-                                                  within_unnamed_namespace)) {
-          ns_sym->variant.namespace_info.extra_info->
-                                             within_unnamed_namespace = TRUE;
-        }  /* if */
-        add_to_namespaces_list(nsp);
-        /* Do processing required for any pragmas bound to the current
-           declaration. */
-        process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
-        /* Push a scope for the scanning the namespace body. */
-        (void)push_namespace_scope((a_scope_kind)sck_namespace, nsp);
-        nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
-        if (is_unnamed_namespace) {
-          /* The model for the initial definition of an unnamed namespace
-               namespace { ... }
-             is this:
-               namespace UNIQUE { }
-               using namespace UNIQUE;
-               namespace UNIQUE { ... }
-             This enables this sort of code to work:
-               namespace {
-                 int i;
-                 int j = ::i;       // lookup rules find UNIQUE::i
-               }
-             The model is implemented by immediately popping the
-             original definition of the unnamed namespace, inserting the
-             implicit using directive, and then reopening the namespace as
-             as an extension. */
-          pop_scope();
-          /* Do an implicit "using" directive of the unnamed namespace. */
-          make_using_directive(nsp, &pos_curr_token);
-          (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
-                                     nsp);
-        }  /* if */
+    if (ns_sym == NULL) {
+      if (locator.symbol_header == symbol_for_namespace_std->header &&
+          depth_scope_stack == DEPTH_OF_FILE_SCOPE) {
+        /* This is the initial explicit declaration of namespace "std".
+           Reuse the predeclared symbol. */
+        ns_sym = symbol_for_namespace_std;
+        enter_symbol_for_namespace_std(&locator);
         srk_flags |= SRK_DEFINITION;
       } else {
-        /* Do processing required for any pragmas bound to the current
-           declaration. */
-        process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
-        /* An extension of the original definition of this namespace -- push
-           a scope for the scanning the namespace body. */
-        nsp = ns_sym->variant.namespace_info.ptr;
-        (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
-                                   skip_namespace_aliases(nsp));
+        /* Create a namespace symbol. */
+        ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &locator,
+                              depth_scope_stack,
+                              /*suppress_redecl_error=*/TRUE);
       }  /* if */
-      record_symbol_declaration(srk_flags, ns_sym, &locator.source_position,
-                                namespace_ssep);
+    }  /* if */
+    if (ns_sym->variant.namespace_info.ptr == NULL) {
+      /* Original definition -- allocate the namespace entry. */
+      nsp = alloc_namespace(/*is_alias=*/FALSE);
+      set_source_corresp(&nsp->source_corresp, ns_sym);
+      if (is_unnamed_namespace) nsp->source_corresp.name = NULL;
+      set_namespace_membership(ns_sym, &nsp->source_corresp,
+                               (a_namespace_ptr)NULL);
+      ns_sym->variant.namespace_info.ptr = nsp;
+      /* Set a flag indicating that this namespace is itself an unnamed
+         namespace or is enclosed by an unnamed namespace. */
+      if (is_unnamed_namespace ||
+          (ns_sym->parent.namespace_ptr != NULL &&
+           symbol_supplement_for_namespace(ns_sym->parent.namespace_ptr)->
+                                                within_unnamed_namespace)) {
+        ns_sym->variant.namespace_info.extra_info->
+                                           within_unnamed_namespace = TRUE;
+      }  /* if */
+      add_to_namespaces_list(nsp);
+      /* Do processing required for any pragmas bound to the current
+         declaration. */
+      process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
+      /* Push a scope for the scanning the namespace body. */
+      (void)push_namespace_scope((a_scope_kind)sck_namespace, nsp);
+      nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
+      if (is_unnamed_namespace) {
+        /* The model for the initial definition of an unnamed namespace
+             namespace { ... }
+           is this:
+             namespace UNIQUE { }
+             using namespace UNIQUE;
+             namespace UNIQUE { ... }
+           This enables this sort of code to work:
+             namespace {
+               int i;
+               int j = ::i;       // lookup rules find UNIQUE::i
+             }
+           The model is implemented by immediately popping the
+           original definition of the unnamed namespace, inserting the
+           implicit using directive, and then reopening the namespace as
+           as an extension. */
+        pop_scope();
+        /* Do an implicit "using" directive of the unnamed namespace. */
+        make_using_directive(nsp, &pos_curr_token);
+        (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                                   nsp);
+      }  /* if */
+      srk_flags |= SRK_DEFINITION;
+    } else {
+      /* Do processing required for any pragmas bound to the current
+         declaration. */
+      process_curr_construct_pragmas(ns_sym, (a_statement_ptr)NULL);
+      /* An extension of the original definition of this namespace -- push
+         a scope for the scanning the namespace body. */
+      nsp = ns_sym->variant.namespace_info.ptr;
+      (void)push_namespace_scope((a_scope_kind)sck_namespace_extension,
+                                 skip_namespace_aliases(nsp));
+    }  /* if */
+    record_symbol_declaration(srk_flags, ns_sym, &locator.source_position,
+                              namespace_ssep);
+    if (!required_token(tok_lbrace, ec_exp_lbrace)) {
+      discard_curr_construct_pragmas();
+    } else {
       /* Scan the namespace body. */
       add_stop_token(tok_rbrace);
       while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
@@ -6827,29 +6829,27 @@ caller.
                     /*is_old_style_param_decl=*/FALSE,
                     /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
       }  /* while */
+      remove_stop_token(tok_rbrace);
       /* Process pragmas associated with the closing brace before the current
          scope is popped and before add_end_of_construct_source_sequence_entry
          is called. */
       process_curr_token_pragmas();
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* Add a source sequence entry marking the end of the namespace
-         definition. */
-      add_end_of_construct_source_sequence_entry(
+    /* Add a source sequence entry marking the end of the namespace
+       definition. */
+    add_end_of_construct_source_sequence_entry(
                                         (char *)nsp,
                                         (a_byte_il_entry_kind)iek_namespace);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      if (required_token_no_advance(tok_rbrace, ec_exp_rbrace)) {
-        /* Closing right brace was found. */
-        cannot_bind_to_curr_construct();
-      } else {
-        discard_curr_construct_pragmas();
-      }  /* if */
-      remove_stop_token(tok_rbrace);
-      /* Pop the namespace or namespace-extension scope. */
-      pop_scope();
+    if (required_token_no_advance(tok_rbrace, ec_exp_rbrace)) {
+      /* Closing right brace was found. */
+      cannot_bind_to_curr_construct();
     } else {
       discard_curr_construct_pragmas();
     }  /* if */
+    /* Pop the namespace or namespace-extension scope. */
+    pop_scope();
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* If (because of an error) an empty source-sequence entry was left in the
