@@ -8622,12 +8622,15 @@ are handled in symbol_tbl_init.)
   cleared_locator.is_destructor_name              = FALSE;
   cleared_locator.is_semivisible_nested_type      = FALSE;
   cleared_locator.access_control_error_reported   = FALSE;
+  cleared_locator.has_been_coalesced              = FALSE;
   cleared_locator.is_vacuous_destructor_reference = FALSE;
   cleared_locator.is_nonclass_destructor          = FALSE;
   cleared_locator.is_error                        = FALSE;
   cleared_locator.do_not_clear_specific_symbol    = FALSE;
   cleared_locator.is_template_id                  = FALSE;
   cleared_locator.specific_symbol                 = NULL;
+  cleared_locator.qualifier_class_type            = NULL;
+  cleared_locator.access_errors                   = NULL;
   cleared_locator.variant.conversion_result_type  = NULL;
 
   /* Static variables in symbol_tbl.c: */
