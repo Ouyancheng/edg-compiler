@@ -476,7 +476,11 @@ typedef enum /*an_error_code*/ {
   ec_qualifier_dropped_in_ref_init,
   ec_bad_nonconst_ref_init,
   ec_delete_of_function_pointer,
-  ec_bad_conversion_function_decl
+  ec_bad_conversion_function_decl,
+  ec_nonglobal_template_declaration,
+  ec_exp_lt,
+  ec_exp_gt,
+  ec_missing_template_param
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

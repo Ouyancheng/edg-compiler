@@ -1650,6 +1650,18 @@ error code.
     case ec_bad_conversion_function_decl:
       m = "conversion function must be a nonstatic member function";
       break;
+    case ec_nonglobal_template_declaration:
+      m = "nonglobal template declaration is not allowed";
+      break;
+    case ec_exp_lt:
+      m = "expected a \"<\"";
+      break;
+    case ec_exp_gt:
+      m = "expected a \">\"";
+      break;
+    case ec_missing_template_param:
+      m = "template parameter declaration is missing";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
