@@ -3520,7 +3520,8 @@ reference entry, or is NULL if none is needed.
 a_constant_ptr var_constant_value(a_variable_ptr var)
 /*
 If the variable var has a constant initial value, return a pointer to it;
-otherwise, return NULL.
+otherwise, return NULL.  A variable with an aggregate initial value is
+considered to have no initial value.
 */
 {
   a_constant_ptr con_val = NULL;
@@ -3529,6 +3530,8 @@ otherwise, return NULL.
   if (C_dialect == C_dialect_cplusplus &&
       is_const_variable(var) &&
       !is_volatile_qualified_type(var->type)) {
+    /* Note that we do not deal with the initk_function_local case here,
+       since that is used only for aggregate and dynamic values. */
     if (var->init_kind == (an_init_kind)initk_static) {
       /* The variable has a constant initial value. */
       con_val = var->initializer.constant;
