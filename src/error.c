@@ -1878,7 +1878,7 @@ Add a string representing a constant value to a string being formed.
 #define LOCAL_BUFFER_LEN 30
   char                     buffer[LOCAL_BUFFER_LEN], *p_char;
   a_source_correspondence  *scp;
-  int                      i;
+  int                      i, count;
   a_float_kind             fkind;
 
   switch (cp->kind) {
@@ -1890,8 +1890,15 @@ Add a string representing a constant value to a string being formed.
       /* Opening quote. */
       buffer[0] = '"';
       i = 1;
-      for (p_char = cp->variant.string.value; *p_char != 0; ++p_char) {
-        if (*p_char == '"') {
+      /* Use the indicated character count to cycle through the string
+         constant, since there may be embedded NULLs. */
+      count = cp->variant.string.length;
+      for (p_char = cp->variant.string.value; count-- >= 0; ++p_char) {
+        if (count == 0 && *p_char == 0) {
+          /* This is the terminating NULL in the string -- we don't want to
+             display it. */
+          break;
+        } else if (*p_char == '"') {
           buffer[i++] = '\\';
           buffer[i++] = '"';
         } else if (isprint(*p_char)) {
@@ -1925,7 +1932,7 @@ Add a string representing a constant value to a string being formed.
           }  /* if */
         }  /* if */
         /* We'll only put out part of the string if it's too long. */
-        if (i > LOCAL_BUFFER_LEN-10) {
+        if (i > LOCAL_BUFFER_LEN-10 && count > 3) {
           sprintf(&buffer[i], "...");
           i += 3;
           break;
