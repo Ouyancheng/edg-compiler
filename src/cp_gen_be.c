@@ -2164,8 +2164,8 @@ entry.
   a_class_member_using_decl_ptr using_decl =
                                    ss_entry_ptr(curr_source_sequence_entry,
                                                 a_class_member_using_decl_ptr);
-  a_source_correspondence  *scp = NULL;
-  an_il_entry_kind         entry_kind;
+  a_source_correspondence       *scp = NULL;
+  an_il_entry_kind              entry_kind;
 
   /* Advance past the source sequence entry for the adjustment. */
   adv_curr_source_sequence_entry();
@@ -2193,6 +2193,9 @@ entry.
       unexpected_condition();
   }  /* switch */
   /* Write the access declaration, which is just a qualified name. */
+#if 0
+  /* This should be changed to sometimes put out a "using". */
+#endif /* 0 */
   gen_qualified_name(scp, entry_kind);
   write_tok_ch(';');
   write_space();
@@ -2200,16 +2203,26 @@ entry.
      a source sequence entry for each function in the set.  If that is the
      case here, advance over the other entries. */
   if (entry_kind == (an_il_entry_kind)iek_routine) {
+    a_routine_ptr using_routine = (a_routine_ptr)using_decl->entity.ptr;
     while (curr_source_sequence_entry != NULL &&
            ss_entry_kind(curr_source_sequence_entry) ==
-                                            iek_class_member_using_decl) {
+                                                 iek_class_member_using_decl) {
       a_class_member_using_decl_ptr  extra_using_decl;
+      a_routine_ptr                  extra_using_routine;
       extra_using_decl = ss_entry_ptr(curr_source_sequence_entry,
                                       a_class_member_using_decl_ptr);
-      /* Keep going on using declarations for routines with the same name. */
-      if ((an_il_entry_kind)extra_using_decl->entity.kind != iek_routine ||
-          ((a_routine_ptr)extra_using_decl->entity.ptr)->source_corresp.name !=
-                  ((a_routine_ptr)using_decl->entity.ptr)->source_corresp.name) break;
+      /* Keep going on using declarations for routines with the same name
+         and the same class. */
+      if ((an_il_entry_kind)extra_using_decl->entity.kind != iek_routine) {
+        break;
+      }  /* if */
+      extra_using_routine = (a_routine_ptr)extra_using_decl->entity.ptr;
+      if (extra_using_routine->source_corresp.name !=
+                using_routine->source_corresp.name ||
+          extra_using_routine->source_corresp.parent.class_type !=
+                using_routine->source_corresp.parent.class_type) {
+        break;
+      }  /* if */
       /* Advance past the source sequence entry for the using declaration. */
       adv_curr_source_sequence_entry();
     }  /* while */  
