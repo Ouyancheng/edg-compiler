@@ -2705,7 +2705,7 @@ aggregate, set *keep_constant to TRUE.
            lower nonconstant initializers.  (However, the repeated constant
            will be actually constant.) */
 #if DO_C99_IL_LOWERING
-        if (c99_mode) {
+        if (c99_mode || gcc_mode) {
           lower_c99_constant(repeated_con);
         } else
 #endif /* DO_C99_IL_LOWERING */
@@ -2745,7 +2745,7 @@ aggregate, set *keep_constant to TRUE.
       /* Normal constant. */
       if (C_mode()) {
 #if DO_C99_IL_LOWERING
-        if (c99_mode) {
+        if (c99_mode || gcc_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
           lower_c99_constant(con_ptr);
         }  /* if */
@@ -4090,7 +4090,7 @@ C99 mode for the same reason.
       /* Assign a constant to the entity to be initialized. */
       if (C_mode()) {
 #if DO_C99_IL_LOWERING
-        if (c99_mode) {
+        if (c99_mode || gcc_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
           lower_c99_constant(dip->variant.constant);
         }  /* if */
@@ -4114,7 +4114,7 @@ C99 mode for the same reason.
       source_node = dip->variant.expression;
       if (C_mode()) {
 #if DO_C99_IL_LOWERING
-        if (c99_mode) {
+        if (c99_mode || gcc_mode) {
           /* When lowering C99 code, use the C99 lowering routines. */
           if (options & LDIO_FULL_EXPR) {
             lower_c99_full_expr(source_node);
