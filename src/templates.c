@@ -5251,6 +5251,38 @@ type based on the template argument list and the template parameter list
 }  /* make_template_function */
 
 
+static void update_template_arg_usage_info(a_symbol_ptr		rout_sym,
+					   a_template_arg_ptr	templ_arg_list)
+/*
+Go through the template argument list specified by templ_arg_list and update
+the corresponding template argument list entry in the template argument
+list associated with rout_sym to indicate whether any of the arguments
+in templ_arg_list were explicitly specified.  Update the flag in the
+routine entry associated with rout_sym if any explicitly specified template
+argument was found.
+*/
+{
+  a_template_arg_ptr	rout_tap;
+  a_template_arg_ptr	new_tap;
+  a_routine_ptr		rout;
+  rout = rout_sym->variant.routine.ptr;
+  rout_tap = rout->template_arg_list;
+  for (new_tap = templ_arg_list; new_tap != NULL;
+       rout_tap = rout_tap->next, new_tap = new_tap->next) {
+    if (new_tap->explicitly_specified) {
+      rout_tap->explicitly_specified = TRUE;
+    }  /* if */
+  }  /* for */
+  if (rout->template_arg_list->explicitly_specified) {
+    /* If any of the templates arguments were explicitly specified, set
+       the flag in the routine entry.  We only need to check the first flag
+       because the explicit arguments are always specified starting with
+       the first argument. */
+   rout->expl_template_arg_list_used = TRUE;
+  }  /* if */
+}  /* update_template_arg_usage_info */
+
+
 a_boolean is_match_for_function_template(
 				a_symbol_ptr		templ_sym,
 				a_type_ptr		curr_type,
@@ -5453,6 +5485,9 @@ non-NULL if an explicitly specified template argument list was provided.
       sym = make_template_function(templ_sym, templ_arg_list);
     }  /* if */
   }  /* if */
+  /* Update the flags that indicate whether any explicitly specified template
+     arguments were used. */
+  update_template_arg_usage_info(sym, templ_arg_list);
   db_exit();
   return sym;
 }  /* matching_template_function */
@@ -5973,30 +6008,9 @@ structure.
   } else {
     sym = tip->instance_sym;
   }  /* if */
-  {
-    /* Update the explicitly_specified flags in the template argument
-       list associated with the routine.  If any reference to the template
-       explicitly specifies an argument, the flag in the argument associated
-       with the routine should be set. */
-    a_template_arg_ptr	rout_tap;
-    a_template_arg_ptr	new_tap;
-    a_routine_ptr	rout;
-    rout = sym->variant.routine.ptr;
-    rout_tap = rout->template_arg_list;
-    for (new_tap = *new_list; new_tap != NULL;
-         rout_tap = rout_tap->next, new_tap = new_tap->next) {
-      if (new_tap->explicitly_specified) {
-        rout_tap->explicitly_specified = TRUE;
-      }  /* if */
-    }  /* for */
-    if (rout->template_arg_list->explicitly_specified) {
-      /* If any of the templates arguments were explicitly specified, set
-         the flag in the routine entry.  We only need to check the first flag
-         because the explicit arguments are always specified starting with
-         the first argument. */
-       rout->expl_template_arg_list_used = TRUE;
-    }  /* if */
-  }
+  /* Update the flags that indicate whether any explicitly specified template
+     arguments were used. */
+  update_template_arg_usage_info(sym, *new_list);
   if (tip != NULL) {
     /* We are reusing a template function that already exists, so *new_list
        will not be used.  Return it to the available list for reuse. */
