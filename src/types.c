@@ -2870,7 +2870,7 @@ a type appears inside a function, and is needed globally for type checking
 (like for compatibility of externals).  This routine only copies the parts
 of the type that are not already in the file scope.  In the limiting case,
 if the type is already completely in the file scope, the original pointer
-is returned.
+is returned.  If old_type == NULL, return NULL.
 */
 {
   a_type_ptr              new_type;
@@ -2880,9 +2880,14 @@ is returned.
   a_based_type_kind       based_type_kind;
   a_boolean               is_const, is_volatile;
 
-  /* See if the type entry is already at the file scope, and does not need
-     to be copied. */
-  if (in_file_scope((char *)old_type)) {
+  if (old_type == NULL) {
+    /* NULL is left alone.  This happens when copying partial type trees,
+       ones where the bottom type has not yet been attached (as happens
+       while processing declarators). */
+    new_type = NULL;
+  } else if (in_file_scope((char *)old_type)) {
+    /* If the type entry is already at the file scope, it does not need
+       to be copied. */
     new_type = old_type;
   } else {
     /* See if there is already a file-scope copy of the type. */
