@@ -3861,6 +3861,19 @@ or struct definition.  The syntax is
       }  /* if */
       (void)get_token();
     }  /* for */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (depth_innermost_ss_list_scope == DEPTH_OF_FILE_SCOPE &&
+        cssp->class_template == NULL) {
+      /* Clear the instantiation insert point to assure that any
+         instantiations triggered by the base specifier will appear right
+         after the entry for the current class.  The order will be fixed up
+         later. */
+      scope_stack[DEPTH_OF_FILE_SCOPE].
+                     ss_list_instantiation_insert_point = NULL;
+    }  /* if */
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Test for identifier or "::" next. */
     if (!is_decl_qualified_name_start()) {
       syntax_error(ec_exp_identifier);
@@ -4270,15 +4283,64 @@ skip_base_class:
        representing it will end up in the wrong place -- after the entry for
        the derived class instead of before it.  Move them to precede the
        entry for the class. */
-    a_source_sequence_entry_ptr  ssep, prev, last;
-    ssep = type_ptr->source_corresp.source_sequence_entry;
+    a_source_sequence_entry_ptr  ssep = type_ptr->source_corresp.
+                                                   source_sequence_entry;
     if (ssep != NULL && ssep->next != NULL) {
-      /* Unlink the source sequence entry for the derived class. */
+      a_source_sequence_entry_ptr   new_ssep = NULL, prev, last;
+
+      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+        if (bcp->direct &&
+            template_args_involve_specific_class_type(bcp->type, type_ptr)) {
+          /* At least one of the base classes is a specialization that
+             depends on the current class (the one for which the base
+             classes are being specified).  When the entries for base class
+             instantiations are moved in front of the start of the current
+             class's definition, a nondefining declaration of the current
+             class will be needed in front of the instantiation.  Therefore,
+             remove the source sequence entry for the current class type
+             from the list and replace it with a secondary-decl entry. */
+          a_src_seq_secondary_decl_ptr  sssdp;
+
+          check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
+          sssdp = alloc_src_seq_secondary_decl();
+          sssdp->decl_position = type_ptr->source_corresp.decl_position;
+          sssdp->entity.ptr = (char *)type_ptr;
+          sssdp->entity.kind = (a_byte_il_entry_kind)iek_type;
+          sssdp->declared_type = type_ptr;
+          sssdp->autonomous_tag_decl = TRUE;
+          if (type_ptr->variant.class_struct_union.is_template_class) {
+#if BACK_END_IS_CP_GEN_BE
+            sssdp->specialized_with_new_syntax =
+                            !old_specializations_for_generated_instances;
+#else /* !BACK_END_IS_CP_GEN_BE */
+            sssdp->specialized_with_new_syntax = TRUE;
+#endif /* BACK_END_IS_CP_GEN_BE */
+          }  /* if */
+          new_ssep = alloc_source_sequence_entry();
+          new_ssep->entity.kind =
+                        (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+          new_ssep->entity.ptr = (char *)sssdp;
+          break;
+        }  /* if */
+      }  /* for */
+      /* Unlink the source sequence entry for the current class and
+         replace it in the list with the new entry, if there is one. */
+      check_assertion(ssep->prev != NULL);
       prev = ssep->prev;
-      check_assertion(prev != NULL);
-      prev->next = ssep->next;
-      ssep->next->prev = prev;
-      /* Reattach it to the end of the list. */
+      if (new_ssep != NULL) {
+        prev->next = new_ssep;
+        new_ssep->prev = prev;
+        ssep->next->prev = new_ssep;
+        new_ssep->next = ssep->next;
+      } else {
+        prev->next = ssep->next;
+        ssep->next->prev = prev;
+      }  /* if */
+      /* The source sequence entry associated with the definition of the
+         current class is moved to the end of the source sequence list, so
+         that it follows all entries representing instantiations that its
+         base specifiers depend on. */
+      check_assertion(depth_innermost_ss_list_scope == DEPTH_OF_FILE_SCOPE);
       last = scope_stack[DEPTH_OF_FILE_SCOPE].last_source_sequence_entry;
       last->next = ssep;
       ssep->prev = last;

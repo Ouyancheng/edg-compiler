@@ -579,6 +579,9 @@ extern a_boolean type_contains_specific_template_param_constant(
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 extern a_boolean is_or_contains_member_of_uncompleted_class(a_type_ptr  tp);
+extern a_boolean template_args_involve_specific_class_type(
+                                                    a_type_ptr  tp,
+                                                    a_type_ptr  class_type);
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 

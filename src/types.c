@@ -5475,6 +5475,28 @@ completed.
   return found;
 }  /* ttt_is_uncompleted_class_type */
 
+/* A pointer to the specific class type to be found by
+   ttt_is_specific_class_type. */
+static a_type_ptr
+		specific_class_type;
+
+static a_boolean ttt_is_specific_class_type
+                                        (a_type_ptr  type_ptr,
+                                         a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It returns TRUE if the type specified by type_ptr
+is the same as the type pointed to by specified_class_type.
+*/
+{
+  a_boolean  found = FALSE;
+
+  if (type_ptr == specific_class_type) {
+    *force_end_of_traversal = found = TRUE;
+  }  /* if */
+  return found;
+}  /* ttt_is_specific_class_type */
+    
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
@@ -5999,6 +6021,40 @@ of a class whose definition has begun but has not yet been completed.
   tp = skip_typerefs(tp);
   return (traverse_type_tree(tp, ttt_is_uncompleted_class_type, ttt_flags));
 }  /* is_or_contains_member_of_uncompleted_class */
+
+
+a_boolean template_args_involve_specific_class_type(a_type_ptr  tp,
+                                                    a_type_ptr  class_type)
+/*
+If tp is a template class, return TRUE if its template args depend on
+class_type; otherwise, return FALSE.
+*/
+{
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_SKIP_TYPEDEFS |
+                                               TTT_TEMPLATE_ARGS |
+                                               TTT_PARAM_TYPES |
+                                               TTT_RETURN_TYPE);
+  a_boolean                       result = FALSE;
+  a_template_arg_ptr              tap;
+
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp) &&
+      tp->variant.class_struct_union.is_template_class) {
+    specific_class_type = class_type;
+    for (tap = tp->variant.class_struct_union.extra_info->template_arg_list;
+         tap != NULL;
+         tap = tap->next) {
+      if (tap->is_type) {
+        result = traverse_type_tree(tap->variant.type,
+                                    ttt_is_specific_class_type, ttt_flags);
+        if (result) break;
+      } else {
+        /* Ignore constant template args. */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* template_args_involve_specific_class_type */
 
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
