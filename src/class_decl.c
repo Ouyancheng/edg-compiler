@@ -5316,32 +5316,31 @@ and "class_type" indicates the class in which the declaration occurs.
       goto done;
     }  /* if */
   }  /* if */
-  /* Find the immediate progenitor of projection_into_curr_class.  If the
-     symbol originally specified in the source is a member of an indirect
-     base class, look for its projection in a direct base class. */
-  if (bcp->direct) {
-    immediate_progenitor_sym = locator_for_curr_id.specific_symbol;
-  } else {
-    /* Use the first base class on the derivation path. */
+  /* If the projection of the unqualified name into the current class is
+     ambiguous, issue an error -- an ambiguity cannot be resolved by an
+     an access declaration. */
+  check_assertion(projection_into_curr_class != NULL);
+  if (projection_into_curr_class->variant.projection.ambiguous) {
 #if 0
-    /* Is the following loop correct?  Not likely. */
+    /* Note that the ARM does not require this error, though cfront does
+       something similar and it *seems* appropriate. */
 #endif /* if 0 */
-    do {
-      bcp = preferred_derivation_of(bcp)->path->base_class;
-    } while (!bcp->direct);
-    clear_locator(&locator, &locator_for_curr_id.source_position);
-    locator.symbol_header = locator_for_curr_id.symbol_header;
-    (void)class_qualified_id_lookup(&locator, bcp->type, IDL_NO_OPTIONS);
-    immediate_progenitor_sym = locator.specific_symbol;
+    str_error(ec_bad_access_decl_ambiguous_name,
+              projection_into_curr_class->header->identifier);
+    goto done;
   }  /* if */
-  /* The projection in the current class and the progenitor from the immediate
-     base class must refer to the same object.  This might not happen if
-     the qualified name tried to "jump over" a redeclaration in the immediate
-     base class. */
-  if (fundamental_symbol_of(immediate_progenitor_sym) !=
-                      fundamental_symbol_of(projection_into_curr_class)) {
-    str_error(ec_not_equivalent_to_inherited_member,
-              immediate_progenitor_sym->header->identifier);
+  /* The projection of the unqualified name in the current class and the
+     qualified names as originally declared must refer to the same object.
+     This might not happen if the qualified name tried to "jump over" a
+     redeclaration in the immediate base class. */
+  if (fundamental_symbol_of(locator_for_curr_id.specific_symbol) !=
+       fundamental_symbol_of(projection_into_curr_class)) {
+#if 0
+    /* Again, this error is not required (but it should be, we think). */
+#endif /* if 0 */
+    pos_sy2_error(ec_bad_access_decl_name_is_hidden, &error_position,
+                  locator_for_curr_id.specific_symbol,
+                  fundamental_symbol_of(projection_into_curr_class));
     goto done;
   }  /* if */
   /* From here on out errors are treated differently -- in spite of the error
@@ -5353,6 +5352,22 @@ and "class_type" indicates the class in which the declaration occurs.
     error(ec_access_adjustment_in_private_section);
   } else {
     sym = fundamental_symbol_of(projection_into_curr_class);
+    /* Find the immediate progenitor of projection_into_curr_class.  If the
+       symbol originally specified in the source is a member of an indirect
+       base class, look for its projection in a direct base class. */
+    if (bcp->direct) {
+      immediate_progenitor_sym = locator_for_curr_id.specific_symbol;
+    } else {
+      /* Use the first base class on the derivation path.  Use the preferred
+         derivation, since that will give the best access possible. */
+      do {
+        bcp = preferred_derivation_of(bcp)->path->base_class;
+      } while (!bcp->direct);
+      clear_locator(&locator, &locator_for_curr_id.source_position);
+      locator.symbol_header = locator_for_curr_id.symbol_header;
+      (void)class_qualified_id_lookup(&locator, bcp->type, IDL_NO_OPTIONS);
+      immediate_progenitor_sym = locator.specific_symbol;
+    }  /* if */
     if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
       /* Check for uniform access on overloaded functions (requirement
          inferred from ARM 11.3, bottom of p. 246). */
