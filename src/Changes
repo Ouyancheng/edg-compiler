@@ -1,5 +1,19 @@
 Version 2.41
 
+1/5/98    Scope of forward-declared enum types
+
+When forward declarations of enum types are permitted (e.g., in Microsoft
+compatibility mode), such a declaration appearing inside a class definition
+was sometimes treated as a member of the class itself when it should have
+been marked as a member of the innermost containing nonclass scope.  This
+bug caused an internal error in some implementations; see also Changes entry
+for 6/16/98.  Now fixed.  Example:
+
+  struct S {
+    enum E *p;       // forward declaration of ::E (not S::E)
+  };
+  enum E { x };      // forward declaration resolved
+
 12/19/98  Class member using-declaration with "typename"
 
 Support is now provided for class member using-declarations of the form

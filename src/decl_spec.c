@@ -2252,7 +2252,13 @@ to indicate whether an enumeration is actually defined.
           tag_sym = NULL;
           set_to_error_locator(locator);
         }  /* if */
-      }  /* if */ 
+      }  /* if */
+    } else if (tag_sym == NULL && class_of_which_a_member &&
+               effective_decl_level != decl_scope_level) {
+      /* This is a (non-standard) forward declaration of a nonclass that
+         appears inside a class definition. */
+      class_of_which_a_member = NULL;
+      access = (an_access_specifier)as_public;
     } else if (is_error_locator(locator) && curr_token != tok_lbrace) {
       /* There was an error is looking up the tag, and this is not a
          definition.  For error recovery, return an error type. */
