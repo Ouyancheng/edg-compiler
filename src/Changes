@@ -1,5 +1,20 @@
 Version 2.32
 
+6/1/96  Destruction of partially-constructed aggregates on exception
+
+Arrays and aggregate classes can be initialized piecewise using the "{}"
+form of initialization.  When that is done, if an exception is thrown
+while the aggregate is partially constructed, the members or array elements
+already constructed must be destroyed.  This is now done.  The new
+flag destruction_is_for_partially_constructed_aggregate is set in
+dynamic initialization entries that describe partial initializations
+that must be undone if an exception is thrown before the complete variable
+initialization is completed.
+
+Note that for arrays this problem was only present when some members
+are initialized individually, not when the entire array is given
+default initialization.
+
 5/31/96 Windows-NT portability issues
 
 The code in host_envir.c that reads directory entries has been changed
