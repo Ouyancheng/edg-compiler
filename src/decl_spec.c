@@ -2161,6 +2161,7 @@ process_class_specifier:
             err = TRUE;
             basic_type = bt_typedef;
             *type_ptr = error_type();
+            reference_to_invalid_name(&locator_for_curr_id);
             break;
           }  /* if */
         } else if (num_specifiers == 0 &&
@@ -2217,6 +2218,7 @@ process_class_specifier:
               }  /* if */
               basic_type = bt_typedef;
               *type_ptr = error_type();
+              reference_to_invalid_name(&locator_for_curr_id);
               break;
             }  /* if */
           }  /* if */

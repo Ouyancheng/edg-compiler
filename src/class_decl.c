@@ -2548,6 +2548,7 @@ or struct definition.  The syntax is
           cssp->any_nonreal_base_classes = TRUE;
         } else {
           error(ec_not_a_class_or_struct_name);
+          reference_to_invalid_name(&locator_for_curr_id);
         }  /* if */
         goto skip_base_class;
       } else if (locator_for_curr_id.is_semivisible_nested_type) {
