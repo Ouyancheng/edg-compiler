@@ -1693,7 +1693,6 @@ Syntax:
          point (other than for error cases) are const/non-const differences. */
       selector_match_with_this_param(bound_function_selector,
                                      /*selector_is_object_pointer=*/TRUE,
-                                     /*conversion_function_case=*/FALSE,
                                      routine,
                                      implicit_this_param_type_of(routine_type),
                                      &this_match_summary);

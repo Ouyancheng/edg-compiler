@@ -320,7 +320,6 @@ extern a_symbol_ptr find_addr_of_overloaded_function_match(
 extern void selector_match_with_this_param(
                                an_operand           *bound_function_selector,
                                a_boolean            selector_is_object_pointer,
-                               a_boolean            conversion_function_case,
                                a_routine_ptr        rout,
                                a_type_ptr           this_param_type,
                                an_arg_match_summary *arg_summary);

@@ -1,5 +1,26 @@
 Version 2.33
 
+9/18/96 Overload resolution tiebreaker as applied to inherited conversion
+        function
+
+Overload resolution now correctly treats an inherited conversion function
+as a member of the derived class when looking for tiebreakers on the
+"this" parameter.
+
+  struct A {
+    A();
+    operator const void* () const;
+  };
+  struct B : public A {
+    B();
+    operator void* ();
+  };
+  extern B b;
+  void f(void) {
+    int s;
+    s = b ? 0 : 1;  // No longer ambiguous
+  }
+
 9/17/96 Microsoft compatibility: cases requiring __cdecl calling convention
 
 In Microsoft-compatibility mode a routine that takes a variable number of

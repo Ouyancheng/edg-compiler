@@ -1559,7 +1559,6 @@ have_level:;
 void selector_match_with_this_param(
                                an_operand           *bound_function_selector,
                                a_boolean            selector_is_object_pointer,
-                               a_boolean            conversion_function_case,
                                a_routine_ptr        rout,
                                a_type_ptr           this_param_type,
                                an_arg_match_summary *this_match_summary)
@@ -1575,13 +1574,11 @@ calling a constructor or destructor, so that those can be treated as a
 special case: constructors and destructors can be called for const- and
 volatile-qualified objects even though they themselves are not (and
 cannot be) const- or volatile-qualified.  bound_function_selector is
-not used in that case, and can be NULL.  If conversion_function_case
-is TRUE, the underlying type of the selector is assumed to be the proper
-class or a derived class thereof (except for error cases).
+not used in that case, and can be NULL.
 */
 {
   a_type_ptr selector_type, this_param_base_type;
-  a_type_ptr this_param_class_type, const_this_param_base_type;
+  a_type_ptr const_this_param_base_type;
   a_type_ptr ptr_selector_type, const_this_param_type;
 
   db_enter(4, "selector_match_with_this_param");
@@ -1600,28 +1597,11 @@ class or a derived class thereof (except for error cases).
     }  /* if */
 #endif /* CHECKING */
     this_param_base_type = type_pointed_to(this_param_type);
-    this_param_class_type = skip_typerefs(this_param_base_type);
     /* Determine the effective selector type. */
     selector_type = bound_function_selector->type;
     if (!m_is_error_type(selector_type)) {
       if (selector_is_object_pointer) {
         selector_type = type_pointed_to(selector_type);
-      }  /* if */
-      /* For conversion functions projected into a derived class,
-         the base class cast has not been done yet (and cannot be, since we
-         are just investigating whether or not the function is appropriate).
-         However, the cast to the base class is not supposed to be counted
-         as a standard conversion in the overload resolution "cost", because
-         the reference can be thought of as being to the projection of the
-         function into the derived class.  Change the selector type to the
-         properly-qualified version of the proper base class (the class of
-         the function), thus in effect doing any required base class cast.
-         The underlying class of the selector must already be the base
-         class or a derived class, or the function would not have been
-         found. */
-      if (conversion_function_case) {
-        selector_type = make_identically_qualified_type(this_param_class_type,
-                                                        selector_type);
       }  /* if */
     }  /* if */
     ptr_selector_type = make_pointer_type(selector_type);
@@ -1662,6 +1642,33 @@ class or a derived class thereof (except for error cases).
   }  /* if */
   db_exit();
 }  /* selector_match_with_this_param */
+
+
+static a_type_ptr this_param_type_for_overload_res(
+                                             a_type_ptr   routine_type,
+                                             a_symbol_ptr proj_function_symbol)
+/*
+Return the effective "this" parameter type that should be used in
+overload resolution for the function with the indicated type and
+symbol (possibly a projection symbol).  For conversion functions and
+functions imported via a using-declaration, the effective "this"
+parameter type is based on the derived class indicated by the
+projection symbol.
+*/
+{
+  a_type_ptr this_param_type = implicit_this_param_type_of(routine_type);
+
+  if (proj_function_symbol->kind == (a_symbol_kind)sk_projection) {
+    /* Make a pointer to the class of the projection, qualified like the
+       actual "this" parameter type. */
+    a_type_ptr underlying_type = proj_function_symbol->parent.class_type;
+    a_type_ptr model_underlying_type = type_pointed_to(this_param_type);
+    underlying_type = make_identically_qualified_type(underlying_type,
+                                                      model_underlying_type);
+    this_param_type = make_pointer_type(underlying_type);
+  }  /* if */
+  return this_param_type;
+}  /* this_param_type_for_overload_res */
 
 
 static void try_overloaded_function_match(
@@ -1919,20 +1926,12 @@ that are marked "explicit" are ignored.
           this_match->is_match_for_this_param = TRUE;
         } else {
           /* The function requires a selector, and we have one. */
-          /* Determine the "this" parameter type.  When namespaces are involved
-             in classes, the parameter type is taken to be the class in
-             which the "using" occurs. */
-          a_type_ptr this_param_type = rtsp->implicit_this_param_type;
-          if (proj_function_symbol->kind == (a_symbol_kind)sk_projection) {
-            /* Make a pointer to the class of the "using" declaration,
-               qualified like the actual "this" parameter type. */
-            a_type_ptr underlying_type =
-                                       proj_function_symbol->parent.class_type;
-            a_type_ptr model_underlying_type= type_pointed_to(this_param_type);
-            underlying_type = make_identically_qualified_type(
-                                       underlying_type, model_underlying_type);
-            this_param_type = make_pointer_type(underlying_type);
-          }  /* if */
+          /* Determine the effective "this" parameter type.  When namespaces
+             are involved in classes, the parameter type is taken to be the
+             class in which the "using" occurs. */
+          a_type_ptr this_param_type =
+                        this_param_type_for_overload_res(routine_type,
+                                                         proj_function_symbol);
           if (implicit_selector_type != NULL) {
             /* The selector is an implicit "this->".  See how well it
                matches.  It might not match at all. */
@@ -1956,7 +1955,6 @@ that are marked "explicit" are ignored.
                type. */
             selector_match_with_this_param(bound_function_selector,
                                            selector_is_object_pointer,
-                                           /*conversion_function_case=*/FALSE,
                                            rout, this_param_type, this_match);
             /* Set the "next" pointer again, because it is cleared by
                selector_match_with_this_param. */
@@ -4397,12 +4395,14 @@ This routine is only used in C++ mode.
           However, we must also see whether or not it can be called for this
           argument (i.e., are the type qualifiers okay), and how good the
           match is. */
+      a_type_ptr eff_this_param_type =
+                           this_param_type_for_overload_res(conv_routine_type,
+                                                            conversion_symbol);
       conversion_routine = base_conversion_symbol->variant.routine.ptr;
       selector_match_with_this_param(source_operand,
                                      /*selector_is_object_pointer=*/FALSE,
-                                     /*conversion_function_case=*/TRUE,
                                      conversion_routine,
-                                implicit_this_param_type_of(conv_routine_type),
+                                     eff_this_param_type,
                                      &this_match);
       /* Ignore this function if it cannot be called for this argument. */
       if (this_match.match_level != aml_none) {
@@ -4456,11 +4456,13 @@ This routine is only used in C++ mode.
         /* See whether or not this conversion function can be called for this
            argument (i.e., are the type qualifiers okay), and how good the
            match is. */
+        a_type_ptr eff_this_param_type =
+                           this_param_type_for_overload_res(conv_routine_type,
+                                                            conversion_symbol);
         selector_match_with_this_param(source_operand,
                                        /*selector_is_object_pointer=*/FALSE,
-                                       /*conversion_function_case=*/TRUE,
                                        conversion_routine,
-                                implicit_this_param_type_of(conv_routine_type),
+                                       eff_this_param_type,
                                        &this_match);
         /* Ignore this function if it cannot be called for this argument. */
         if (this_match.match_level != aml_none) {
