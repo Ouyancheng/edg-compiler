@@ -6127,7 +6127,7 @@ table.
     /* Find the base (in the most derived class) corresponding to the subobject
        whose vtable is being made. */
     if (ctor_bcp != NULL && bcp != NULL) {
-      derived_bcp = corresponding_base_class(bcp, ctor_bcp);
+      derived_bcp = corresp_base_class(bcp, ctor_bcp);
     } else if (ctor_bcp != NULL) {
       derived_bcp = ctor_bcp;
     } else {
