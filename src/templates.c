@@ -4419,7 +4419,7 @@ template entities.
       specific_def = tip->instance_sym->defined;
       template_def = tip->template_sym->defined;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      if (!template_def && implicit_inclusion_ok &&
+      if (!template_def && !specific_def && implicit_inclusion_ok &&
           implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
@@ -4444,7 +4444,7 @@ template entities.
       }  /* if */
       template_def = tssp->token_cache.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-      if (!template_def && implicit_inclusion_ok &&
+      if (!template_def && !specific_def && implicit_inclusion_ok &&
           implicit_template_inclusion_mode) {
         /* If a template definition is not present, attempt to include a
            source file that will provide the definition.  Then check
@@ -4846,7 +4846,7 @@ instantiation of a given template instance.
     specific_def = tip->instance_sym->defined;
     template_def = tip->template_sym->defined;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (!template_def && implicit_template_inclusion_mode) {
+    if (!template_def && !specific_def && implicit_template_inclusion_mode) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
@@ -4862,7 +4862,7 @@ instantiation of a given template instance.
     specific_def = tip->specific_def;
     template_def = tssp->token_cache.first_token != NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
-    if (!template_def && implicit_template_inclusion_mode) {
+    if (!template_def && !specific_def && implicit_template_inclusion_mode) {
       /* If a template definition is not present, attempt to include a
          source file that will provide the definition.  Then check
          again to see if a template definition is present. */
