@@ -139,52 +139,6 @@ In the latter case, issues an error.
 }  /* name_to_register */
 
 
-typedef struct a_named_register_list_entry *a_named_register_list_entry_ptr;
-typedef struct a_named_register_list_entry {
-  /* Helper structure to accumulate a list of registers. */
-  a_named_register_list_entry_ptr
-		next;
-			/* Pointer to the next entry (if any). */
-  a_named_register
-		reg;
-			/* Register description. */
-} a_named_register_list_entry;
-
-/* Previously allocated entries available for reuse. */
-static a_named_register_list_entry_ptr avail_named_register_list_entries;
-
-static a_named_register_list_entry_ptr alloc_named_register_list_entry(void)
-/*
-Allocate an entry of a list of named register entries.
-*/
-{
-  a_named_register_list_entry_ptr  result;
-
-  if (avail_named_register_list_entries != NULL) {
-    /* Reuse a previously allocated entry. */
-    result = avail_named_register_list_entries;
-    avail_named_register_list_entries =
-                                      avail_named_register_list_entries->next;
-  } else {
-    /* Allocate memory for a new entry. */
-    result = (a_named_register_list_entry_ptr)alloc_fe(
-                                         sizeof(a_named_register_list_entry));
-  }  /* if */
-  return result;
-}  /* alloc_named_register_list_entry */
-
-
-static void free_named_register_list_entry(a_named_register_list_entry_ptr  p)
-/*
-Return an entry of a list of named register entries to the available pool.
-*/
-{
-  p->next = avail_named_register_list_entries;
-  avail_named_register_list_entries = p;
-  p->reg = (a_named_register)anr_last;
-}  /* free_named_register_list_entry */
-
-
 /*ARGSUSED*/
 static a_boolean validate_expr_for_constraint(an_expr_node_ptr          expr,
                                               an_asm_operand_constraint cstrt)
@@ -372,10 +326,8 @@ static a_named_register fixed_registers[] = {
 };
 
 
-void validate_operands_and_clobbers(an_asm_operand_ptr  operands,
-                                    int                 num_operands,
-                                    a_named_register    *clobbers,
-                                    int                 num_clobbers)
+void validate_operands_and_clobbers(an_asm_operand_ptr        operands,
+                                    a_named_register_list_ptr clobbers)
 /*
 Validate the operands and clobbers lists.  The machine-independent
 portion of this code simply checks that no duplicates appear in the
@@ -390,22 +342,24 @@ Note that this function never modifies the operands or clobbers lists,
 even if they are invalid.
 */
 {
-  a_byte           regs_clobbered[(int)anr_last];
-  a_byte           regs_used[(int)anr_last];
-  int              i, j;
-  a_named_register r;
+  a_byte                    regs_clobbered[(int)anr_last];
+  a_byte                    regs_used[(int)anr_last];
+  an_asm_operand_ptr        operand;
+  a_named_register_list_ptr clobber;
+  int                       i;
+  a_named_register          r;
 
   memzero((char*)regs_clobbered, sizeof regs_clobbered);
   memzero((char*)regs_used, sizeof regs_used);
-  for (i = 0; i < num_operands; i++) {
-    for (j = 0;
-         single_register_constraints[j].cons != (a_named_register)anr_last;
-         j++) {
-      if (operands[i].constraint == single_register_constraints[j].cons) {
-        r = single_register_constraints[j].reg;
+  for (operand = operands; operand != NULL; operand = operand->next) {
+    for (i = 0;
+         single_register_constraints[i].cons != (a_named_register)anr_last;
+         i++) {
+      if (operands->constraint == single_register_constraints[i].cons) {
+        r = single_register_constraints[i].reg;
         /* Test used == 1 so the error is issued once per register. */
-        if (regs_used[(int)r] == 1) {
-          pos_st_error(ec_register_used_twice, &operands[i].position,
+        if (r != (a_named_register)anr_invalid && regs_used[(int)r] == 1) {
+          pos_st_error(ec_register_used_twice, &operands->position,
                        named_register_names[(int)r]);
         }  /* if */
         regs_used[(int)r]++;
@@ -413,13 +367,14 @@ even if they are invalid.
       }  /* if */
     }  /* for */
   }  /* for */
-  for (i = 0; i < num_clobbers; i++) {
-    r = clobbers[i];
+  for (clobber = clobbers; clobber != NULL; clobber = clobber->next) {
+    r = clobber->reg;
     /* Test used and not clobbered so the error is issued once per register. */
     if (regs_used[(int)r] && !regs_clobbered[(int)r]) {
       str_error(ec_register_used_and_clobbered, named_register_names[(int)r]);
     /* Test clobbered == 1 so the error is issued once per register. */
-    } else if (regs_clobbered[(int)r] == 1) {
+    } else if (r != (a_named_register)anr_invalid &&
+               regs_clobbered[(int)r] == 1) {
       str_error(ec_register_clobbered_twice, named_register_names[(int)r]);
     }  /* if */
     regs_clobbered[(int)r]++;
@@ -473,14 +428,13 @@ pointed to by OPERAND.  The syntax is
 }  /* asm_operand */
 
 
-int asm_operands_spec(an_asm_operand_ptr *p_operands)
+an_asm_operand_ptr asm_operands_spec(void)
 /*
 Parse and validate a list of asm-statement operands.  This handles
-both input and output operands.  The list is written into *p_operands
-and the number of operands is returned.  On entry, curr_token is the
-leading colon of the operands specification; on exit, it is the leading
-colon of the clobbers specification, or the close parenthesis if there
-are no clobbers.
+both input and output operands.  The list is written into *p_operands.
+On entry, curr_token is the leading colon of the operands
+specification; on exit, it is the leading colon of the clobbers
+specification, or the close parenthesis if there are no clobbers.
 
 The syntax is
 
@@ -488,14 +442,12 @@ The syntax is
    [: [operand [, operand...]]]  // inputs
 
 Since both operand lists can be empty, we must cope with two adjacent
-colons, which will be tokenized as a single tok_colon_colon (in C++).
-*/
+colons, which will be tokenized as a single tok_colon_colon (in C++).  */
 {
-  an_asm_operand     operands[10];
-  an_asm_operand     overflow;
-  an_asm_operand_ptr result = NULL;
   int                n = 0;
   a_boolean          output = TRUE;
+  an_asm_operand_ptr operands = NULL;
+  an_asm_operand_ptr *p_operands = &operands;
 
   db_enter(3, "asm_operands_spec");
   check_assertion(curr_token == tok_colon || curr_token == tok_colon_colon);
@@ -512,14 +464,12 @@ colons, which will be tokenized as a single tok_colon_colon (in C++).
   }  /* if */
   while (curr_token == tok_string_literal) {
     /* There is a hard limit of ten operands per assembly instruction. */
-    if (n >= 10) {
-      if (n == 10) {
-        error(ec_too_many_asm_operands);
-      }  /* if */
-      asm_operand(&overflow, output);
-    } else {
-      asm_operand(&operands[n], output);
+    if (n == 10) {
+      error(ec_too_many_asm_operands);
     }  /* if */
+    *p_operands = alloc_asm_operand();
+    asm_operand(*p_operands, output);
+    p_operands = &(*p_operands)->next;
     n++;
     /* Next must be a comma, colon, or right paren. */
     if (curr_token == tok_colon) {
@@ -541,29 +491,16 @@ colons, which will be tokenized as a single tok_colon_colon (in C++).
       }  /* if */
     }  /* if */
   }  /* while */
-  /* Copy to IL pool and return. */
-  if (n > 10) {
-    n = 10;
-  }  /* if */
-  if (n > 0) {
-    result = (an_asm_operand_ptr)
-      alloc_in_region(curr_il_region_number,
-                      (sizeof_t)(n * sizeof(an_asm_operand)));
-    (void)memcpy((char*)result, (char*)operands,
-                 size_t_arg(n * sizeof(an_asm_operand)));  /*lint !e645*/
-  }  /* if */
-  *p_operands = result;
   db_exit();
-  return n;
+  return operands;
 }  /* asm_operands_spec */
 
 
-int asm_clobbers_spec(a_named_register **p_clobbers)
+a_named_register_list_ptr asm_clobbers_spec(void)
 /*
 Parse and validate a list of asm-statement clobbers.  This also checks
 the clobber list for semantic consistency with the operands list, if
-any.  Returns the number of clobbers, places the list of clobbers into
-*p_clobbers.
+any.  Returns the list of registers clobbered.
 
 The syntax is
 
@@ -572,10 +509,9 @@ The syntax is
 */
 {
   /* There is no hard limit on the number of clobbers. */
-  a_named_register                 *clobbers = NULL;
-  a_named_register                 reg;
-  int                              n = 0, nparsed = 0;
-  a_named_register_list_entry_ptr  first_reg = NULL, last_reg = NULL;
+  a_named_register           reg;
+  int                        nparsed = 0;
+  a_named_register_list_ptr  first_reg = NULL, last_reg = NULL;
 
   db_enter(3, "asm_clobbers_spec");
   if (curr_token == tok_colon || curr_token == tok_colon_colon) {
@@ -586,12 +522,11 @@ The syntax is
       if (reg != (a_named_register)anr_invalid) {
         /* Add this register to our list. */
         if (first_reg == NULL) {
-          first_reg = last_reg = alloc_named_register_list_entry();
+          first_reg = last_reg = alloc_named_register_list();
         } else {
-          last_reg->next = alloc_named_register_list_entry();
+          last_reg->next = alloc_named_register_list();
         }  /* if */
         last_reg->reg = reg;
-        ++n;
       }  /* if */
       /* advance past string */
       (void)get_token();
@@ -613,22 +548,8 @@ The syntax is
       error(ec_empty_clobbers_list);
     }  /* if */
   }  /* if */
-  /* Copy to IL pool and return. */
-  if (n > 0) {
-    int i;
-    clobbers = (a_named_register *)
-         alloc_in_region(curr_il_region_number,
-                         (sizeof_t)(n * sizeof(a_named_register)));
-    for (i = 0; i < n; ++i) {
-      a_named_register_list_entry_ptr  to_free = first_reg;
-      clobbers[i] = first_reg->reg;
-      first_reg = first_reg->next;
-      free_named_register_list_entry(to_free);
-    }  /* for */
-  }  /* if */
-  *p_clobbers = clobbers;
   db_exit();
-  return n;
+  return first_reg;
 }  /* asm_clobbers_spec */
 
 
@@ -686,7 +607,6 @@ extended asm statements.
      precompiled headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(avail_named_register_list_entries),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);

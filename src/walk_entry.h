@@ -2432,8 +2432,23 @@ after_entry_from_class:
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, an_asm_entry_ptr, iek_asm_entry);
         walk_ptr(ptr->asm_string, a_constant_ptr, iek_constant);
+#if GNU_EXTENSIONS_ALLOWED
+        walk_list(ptr->operands, an_asm_operand_ptr, iek_asm_operand);
+        walk_list(ptr->clobbers, a_named_register_list_ptr, 
+                  iek_named_register_list);
+#endif /* GNU_EXTENSIONS_ALLOWED */
       }
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case iek_asm_operand:
+      {
+        an_asm_operand_ptr ptr = (an_asm_operand_ptr)entry_ptr;
+        walk_ptr(ptr->expression, an_expr_node_ptr, iek_expr_node);
+      }
+      break;
+    case iek_named_register_list:
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case iek_template_arg:
       {
         a_template_arg_ptr ptr = (a_template_arg_ptr)entry_ptr;

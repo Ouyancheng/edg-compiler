@@ -8476,15 +8476,13 @@ the compiler how to map C/C++ variables into and out of the assembly
 instruction's operands.
 */
 {
-  a_constant          asm_string;
-  an_asm_entry_ptr    ap = NULL;
-  a_source_position   asm_pos;
+  a_constant                asm_string;
+  an_asm_entry_ptr          ap = NULL;
+  a_source_position         asm_pos;
 #if GNU_EXTENSIONS_ALLOWED
-  a_boolean           is_volatile = FALSE;
-  an_asm_operand_ptr  operands = NULL;
-  a_named_register    *clobbers = NULL;
-  int                 num_operands = 0;
-  int                 num_clobbers = 0;
+  a_boolean                 is_volatile = FALSE;
+  an_asm_operand_ptr        operands = NULL;
+  a_named_register_list_ptr clobbers = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
   db_enter(3, "asm_declaration");
@@ -8536,14 +8534,13 @@ instruction's operands.
     /* Check for operands spec. */
     if (gcc_mode && is_asm_statement) {
       if (curr_token == tok_colon || curr_token == tok_colon_colon) {
-        num_operands = asm_operands_spec(&operands);
-        num_clobbers = asm_clobbers_spec(&clobbers);
-        validate_operands_and_clobbers(operands, num_operands,
-                                       clobbers, num_clobbers);
+        operands = asm_operands_spec();
+        clobbers = asm_clobbers_spec();
+        validate_operands_and_clobbers(operands, clobbers);
       }  /* if */
       /* An asm() with no outputs is automatically volatile. */
-      if (num_operands == 0 ||
-          !(operands[0].modifiers & (an_asm_operand_modifier)aom_output)) {
+      if (operands == NULL ||
+          !(operands->modifiers & (an_asm_operand_modifier)aom_output)) {
         is_volatile = TRUE;
       }  /* if */
     } else {
@@ -8572,8 +8569,6 @@ instruction's operands.
     ap->is_volatile = is_volatile;
     ap->operands = operands;
     ap->clobbers = clobbers;
-    ap->num_operands = num_operands;
-    ap->num_clobbers = num_clobbers;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (!is_asm_statement) {
       /* Add the asm entry to the list for the current scope.  This is only

@@ -1826,8 +1826,6 @@ to it.
   ap->next = NULL;
   ap->asm_string = NULL;
 #if GNU_EXTENSIONS_ALLOWED
-  ap->num_operands = 0;
-  ap->num_clobbers = 0;
   ap->is_volatile = 0;
   ap->operands = NULL;
   ap->clobbers = NULL;
@@ -1850,6 +1848,28 @@ Allocate space for an asm function body and return a pointer to it.
 }  /* alloc_asm_function_body */
 
 #endif /* ASM_SUPPORT_NEEDED */
+
+#if GNU_EXTENSIONS_ALLOWED
+
+an_asm_operand_ptr alloc_asm_operand(void)
+/*
+Allocate space for an asm operand and return a pointer to it.
+*/
+{
+  return (an_asm_operand_ptr)alloc_cil(sizeof(an_asm_operand));
+}  /* alloc_asm_operand */
+
+
+a_named_register_list_ptr alloc_named_register_list(void)
+/*
+Allocate space for an a named register list and return a pointer to
+it.
+*/
+{
+  return (a_named_register_list_ptr)alloc_cil(sizeof(a_named_register_list));
+}  /* alloc_asm_operand */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 a_label_ptr alloc_label(void)
 /*

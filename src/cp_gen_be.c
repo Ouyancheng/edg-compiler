@@ -7748,48 +7748,44 @@ static void gen_asm_operands(an_asm_entry_ptr aep)
 Generate the GNU C operand descriptions for the given asm entry.
 */
 {
-  int                i;
   a_boolean          output = TRUE;
-  an_asm_operand_ptr a;
+  an_asm_operand_ptr aop;
 
   /* Check for the case of no operands at all, or just no outputs. */
-  if (aep->num_operands == 0 ||
-      !(aep->operands[0].modifiers & (an_asm_operand_modifier)aom_output)) {
+  if (aep->operands == NULL ||
+      !(aep->operands->modifiers & (an_asm_operand_modifier)aom_output)) {
     output = FALSE;
     write_tok_str(" :");
   }  /* if */
-  for (i = 0; i < aep->num_operands; i++) {
-    a = &aep->operands[i];
+  for (aop = aep->operands; aop != NULL; aop = aop->next) {
     write_tok_ch(' ');
     m_write_ch('"');
-    if (a->modifiers & (an_asm_operand_modifier)aom_output) {
-      if (a->modifiers & (an_asm_operand_modifier)aom_input) {
+    if (aop->modifiers & (an_asm_operand_modifier)aom_output) {
+      if (aop->modifiers & (an_asm_operand_modifier)aom_input) {
         m_write_ch('+');
       } else {
         m_write_ch('=');
       }  /* if */
     }  /* if */
-    if (a->modifiers & (an_asm_operand_modifier)aom_earlyclobber) {
+    if (aop->modifiers & (an_asm_operand_modifier)aom_earlyclobber) {
       m_write_ch('&');
     }  /* if */
-    m_write_ch(asm_operand_constraint_letters[a->constraint]);
+    m_write_ch(asm_operand_constraint_letters[aop->constraint]);
     m_write_ch('"');
     write_tok_str(" (");
-    if (a->modifiers & (an_asm_operand_modifier)aom_output) {
-      gen_lvalue(a->expression);
+    if (aop->modifiers & (an_asm_operand_modifier)aom_output) {
+      gen_lvalue(aop->expression);
     } else {
-      gen_expression(a->expression);
+      gen_expression(aop->expression);
     }  /* if */
     m_write_ch(')');
     /* If this is the last output, but not the last entry, write a
        colon.  Else if this is not the last operand, write a comma. */
-    if (output && 
-        i < aep->num_operands - 1 &&
-        !(aep->operands[i+1].modifiers &
-                                       (an_asm_operand_modifier)aom_output)) {
+    if (output && aop->next != NULL &&
+        !(aop->next->modifiers & (an_asm_operand_modifier)aom_output)) {
       write_tok_str(" :");
       output = FALSE;
-    } else if (i < aep->num_operands - 1) {
+    } else if (aop->next != NULL) {
       m_write_ch(',');
     }  /* if */
   }  /* for */
@@ -7801,20 +7797,20 @@ static void gen_asm_clobbers(an_asm_entry_ptr aep)
 Generate the GNU C clobber specifications for the given asm entry.
 */
 {
-  int i;
+  a_named_register_list_ptr nrlp;
 
   /* GCC does not want to see empty clobbers lists. */
-  if (aep->num_clobbers > 0) {
+  if (aep->clobbers != NULL) {
     write_tok_str(" :");
-    for (i = 0; i < aep->num_clobbers; i++) {
+    for (nrlp = aep->clobbers; nrlp != NULL; nrlp = nrlp->next) {
       /* Permit line breaking here. */
       write_tok_ch(' ');
       /* Register names are assumed not to have any characters that need
          to be escaped in string constants. */
       m_write_ch('"');
-      m_write_str(named_register_names[aep->clobbers[i]]);
+      m_write_str(named_register_names[nrlp->reg]);
       m_write_ch('"');
-      if (i < aep->num_clobbers - 1) {
+      if (nrlp->next != NULL) {
         m_write_ch(',');
       }  /* if */
     }  /* for */
@@ -8085,15 +8081,15 @@ statement unless suppress_trailing_space is TRUE.
         an_asm_entry_ptr asm_entry = statement->variant.asm_entry;
         write_tok_str("asm");
 #if GNU_EXTENSIONS_ALLOWED
-        if (asm_entry->is_volatile &&
-            (asm_entry->num_operands > 0 || asm_entry->num_clobbers > 0)) {
+        if (asm_entry->is_volatile && 
+            (asm_entry->operands != NULL || asm_entry->clobbers != NULL)) {
           write_tok_str(" volatile");
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         write_tok_ch('(');
         gen_constant(asm_entry->asm_string, /*need_parens=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
-        if (asm_entry->num_operands > 0 || asm_entry->num_clobbers > 0 || 
+        if (asm_entry->operands != NULL || asm_entry->clobbers != NULL || 
             !asm_entry->is_volatile) {
           write_tok_str(" :");
           gen_asm_operands(asm_entry);

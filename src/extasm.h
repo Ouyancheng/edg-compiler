@@ -22,14 +22,12 @@ extasm.h -- Declarations related to extasm.c (having to do with
 
 extern a_named_register name_to_register(char  *name);
 
-extern int asm_operands_spec(an_asm_operand_ptr *p_operands);
+extern an_asm_operand_ptr asm_operands_spec(void);
 
-extern int asm_clobbers_spec(a_named_register **p_clobbers);
+extern a_named_register_list_ptr asm_clobbers_spec(void);
 
-extern void validate_operands_and_clobbers(an_asm_operand_ptr operands,
-                                           int num_operands,
-                                           a_named_register *clobbers,
-                                           int num_clobbers);
+extern void validate_operands_and_clobbers(an_asm_operand_ptr        operands,
+                                           a_named_register_list_ptr clobbers);
 
 extern void extasm_one_time_init(void);
 

@@ -4643,16 +4643,61 @@ do_base_class:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_constructor_init */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void disp_asm_operand(an_asm_operand_ptr ptr)
+/*
+Display the indicated asm operand.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_asm_operand);
+  if (ptr->modifiers & aom_output) {
+    disp_boolean("aom_output", TRUE);
+  }  /* if */
+  if (ptr->modifiers & aom_input) {
+    disp_boolean("aom_input", TRUE);
+  }  /* if */
+  if (ptr->modifiers & aom_earlyclobber) {
+    disp_boolean("aom_earlyclobber", TRUE);
+  }  /* if */
+  if (ptr->modifiers & aom_commutative) {
+    disp_boolean("aom_commutative", TRUE);
+  }  /* if */
+  if (ptr->modifiers & aom_ignore_next) {
+    disp_boolean("aom_ignore_next", TRUE);
+  }  /* if */
+  if (ptr->modifiers & aom_ignore_till_comma) {
+    disp_boolean("aom_ignore_till_comma", TRUE);
+  }  /* if */
+  if (ptr->modifiers & aom_poor_choice) {
+    disp_boolean("aom_poor_choice", TRUE);
+  }  /* if */
+  if (ptr->modifiers & aom_bad_choice) {
+    disp_boolean("aom_bad_choice", TRUE);
+  }  /* if */
+  printf("constraint: %c\n",
+         asm_operand_constraint_letters[ptr->constraint]);
+  disp_ptr("expr", (char *)ptr->expression, iek_expr_node);
+} /* disp_asm_operand */
+
+
+static void disp_named_register_list(a_named_register_list_ptr ptr)
+/*
+Display the indicated named register list.
+*/
+{
+  disp_ptr("next", (char *)ptr->next, iek_named_register_list);
+  disp_name("reg");
+  (void)printf("%s\n", named_register_names[ptr->reg]);
+}  /* disp_named_register_list */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void disp_asm_entry(an_asm_entry_ptr ptr)
 /*
 Display the indicated asm entry.
 */
 {
-#if GNU_EXTENSIONS_ALLOWED
-  int i;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-
   disp_source_corresp(&ptr->source_corresp, /*is_enumerator=*/FALSE);
   disp_ptr("next", (char *)ptr->next, iek_asm_entry);
   disp_ptr("asm_string", (char *)ptr->asm_string, iek_constant);
@@ -4660,40 +4705,8 @@ Display the indicated asm entry.
   if (ptr->is_volatile) {
     disp_boolean("is_volatile", TRUE);
   }  /* if */
-  for (i = 0; i < ptr->num_operands; i++) {
-    printf("operand %d:\n", i);
-    if (ptr->operands[i].modifiers & aom_output) {
-      disp_boolean("aom_output", TRUE);
-    }  /* if */
-    if (ptr->operands[i].modifiers & aom_input) {
-      disp_boolean("aom_input", TRUE);
-    }  /* if */
-    if (ptr->operands[i].modifiers & aom_earlyclobber) {
-      disp_boolean("aom_earlyclobber", TRUE);
-    }  /* if */
-    if (ptr->operands[i].modifiers & aom_commutative) {
-      disp_boolean("aom_commutative", TRUE);
-    }  /* if */
-    if (ptr->operands[i].modifiers & aom_ignore_next) {
-      disp_boolean("aom_ignore_next", TRUE);
-    }  /* if */
-    if (ptr->operands[i].modifiers & aom_ignore_till_comma) {
-      disp_boolean("aom_ignore_till_comma", TRUE);
-    }  /* if */
-    if (ptr->operands[i].modifiers & aom_poor_choice) {
-      disp_boolean("aom_poor_choice", TRUE);
-    }  /* if */
-    if (ptr->operands[i].modifiers & aom_bad_choice) {
-      disp_boolean("aom_bad_choice", TRUE);
-    }  /* if */
-    printf("constraint: %c\n",
-           asm_operand_constraint_letters[ptr->operands[i].constraint]);
-    disp_ptr("expr", (char *)ptr->operands[i].expression, iek_expr_node);
-  }  /* for */
-  (void)printf("clobbers:");
-  for (i = 0; i < ptr->num_clobbers; i++) {
-    printf(" %s", named_register_names[ptr->clobbers[i]]);
-  }  /* for */
+  disp_ptr("operands", (char *)ptr->operands, iek_asm_operand);
+  disp_ptr("clobbers", (char *)ptr->clobbers, iek_named_register_list);
   putchar('\n');
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* disp_asm_entry */
@@ -5020,6 +5033,14 @@ This routine is called during IL walking.
         case iek_asm_entry:
           disp_asm_entry((an_asm_entry_ptr)entry_ptr);
           break;
+#if GNU_EXTENSIONS_ALLOWED
+        case iek_asm_operand:
+          disp_asm_operand((an_asm_operand_ptr)entry_ptr);
+          break;
+        case iek_named_register_list:
+          disp_named_register_list((a_named_register_list_ptr)entry_ptr);
+          break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         case iek_source_sequence_entry:
           disp_source_sequence_entry((a_source_sequence_entry_ptr)entry_ptr);

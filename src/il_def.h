@@ -424,6 +424,11 @@ typedef enum /*an_il_entry_kind*/ {
 			/* a_template_param_type_supplement */
   iek_constructor_init, /* a_constructor_init */
   iek_asm_entry,        /* an_asm_entry */
+#if GNU_EXTENSIONS_ALLOWED
+  iek_asm_operand,      /* an_asm_operand */
+  iek_named_register_list,
+                        /* a_named_register_list */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   iek_template_arg,     /* a_template_arg */
   iek_new_delete_supplement,
 			/* a_new_delete_supplement */
@@ -556,6 +561,10 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_template_param_type_supplement */"template_param_type_supplement",
 /* iek_constructor_init */		"constructor-init",
 /* iek_asm_entry */			"asm-entry",
+#if GNU_EXTENSIONS_ALLOWED
+/* iek_asm_operand */                   "asm-operand",
+/* iek_named_register_list */           "named-register-list",
+#endif /* GNU_EXTENSIONS_ALLOWED */
 /* iek_template_arg */			"template-arg",
 /* iek_new_delete_supplement */		"new-delete-supplement",
 /* iek_throw_supplement */		"throw-supplement",
@@ -2528,19 +2537,33 @@ enum an_asm_operand_modifier_tag {
 };
 typedef a_byte an_asm_operand_modifier;
 
-typedef struct an_asm_operand_tag {
+typedef struct an_asm_operand *an_asm_operand_ptr;
+typedef struct an_asm_operand {
+  an_asm_operand_ptr
+                next;   /* Next entry on the list, or NULL if last. */
   an_asm_operand_constraint
-                constraint;     /* Constraint on where the operand may
-                                   appear in order to make it a valid
-                                   assembly instruction. */
+                constraint;     
+                        /* Constraint on where the operand may appear
+                           in order to make it a valid assembly
+                           instruction. */
   an_asm_operand_modifier
-                modifiers;      /* Modifiers to the constraint. */
+                modifiers;      
+                        /* Modifiers to the constraint. */
   a_source_position
-                position;       /* Source position of this operand. */
+                position;       
+                        /* Source position of this operand. */
   an_expr_node_ptr
-                expression;     /* The expression constituting the operand. */
-} an_asm_operand, *an_asm_operand_ptr;
+                expression;     
+                        /* The expression constituting the operand. */
+} an_asm_operand;
 
+typedef struct a_named_register_list *a_named_register_list_ptr;
+typedef struct a_named_register_list {
+  a_named_register_list_ptr
+                next;   /* Next entry on the list, or NULL if last. */
+  a_named_register
+                reg;    /* The register itself. */
+} a_named_register_list;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
@@ -6262,21 +6285,15 @@ typedef struct an_asm_entry {
 			   also contain a sequence of lines enclosed in
 			   braces. */
 #if GNU_EXTENSIONS_ALLOWED
-  int		num_operands;
-			/* Number of operands for this asm. */
-  int		num_clobbers;
-                        /* Number of registers clobbered by this asm. */
   a_bit_field	is_volatile:1;
                         /* asm is marked volatile (not to be reordered). */
   an_asm_operand_ptr
 		operands;
-			/* Array of an_asm_operand structures.  Note that
-			   all output operands will always appear before
-			   all input operands.  */
-  a_named_register
-                *clobbers;
-                        /* Array of named register enumerators, one for
-			   each register clobbered. */
+			/* List of asm operands.  Output operands
+			   appear before input operands on this list. */
+  a_named_register_list_ptr
+                clobbers;
+                        /* List of registers clobbered. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 } an_asm_entry;
 
