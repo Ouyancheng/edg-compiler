@@ -4508,7 +4508,7 @@ typedef struct a_template_param_type_supplement {
   an_expr_node_ptr
 		expr;
 			/* The dependent expression used in a typeof
-			   specifier.  NULL if the typeof construct enclosed
+			   specifier.  NULL if the typeof construct encloses
 			   a type specification rather than an expression. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 } a_template_param_type_supplement;
