@@ -1525,26 +1525,29 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
   } else {
     /* There is no direct conflict.  There might, however, be
        a conflict with bases that are going to be allocated as part of
-       this base.  */
-    for (base_bcp = base_classes_of(base_type); 
-         base_bcp != NULL; 
-         base_bcp = base_bcp->next) {
-      disambiguator = find_disambiguator(bcp, base_bcp);
-      eff_bcp = corresponding_base_class(base_bcp, class_type, disambiguator);
-      if (bcp->primary_base_class == eff_bcp) {
-        /* The primary base is always at offset zero. */
-        if (base_subobject_conflict(eff_bcp, offset)) {
-          result = TRUE;
-          break;
+       this base.  (This code is structured to reduce the number of calls
+       to find_disambiguator, because those can be expensive.) */
+    if (bcp->primary_base_class != NULL &&
+        base_subobject_conflict(bcp->primary_base_class, offset)) {
+      /* The primary base is always at offset zero. */
+      result = TRUE;
+    } else {
+      for (base_bcp = base_classes_of(base_type); 
+           base_bcp != NULL; 
+           base_bcp = base_bcp->next) {
+        if (base_bcp->direct && !base_bcp->is_virtual) {
+          /* A direct base is at a fixed offset. */
+          disambiguator = find_disambiguator(bcp, base_bcp);
+          eff_bcp = corresponding_base_class(base_bcp, class_type,
+                                             disambiguator);
+          if (bcp->primary_base_class != eff_bcp &&
+              base_subobject_conflict(eff_bcp, offset + base_bcp->offset)) {
+            result = TRUE;
+            break;
+          }  /* if */
         }  /* if */
-      } else if (base_bcp->direct && !base_bcp->is_virtual) {
-        /* A direct base is at a fixed offset. */
-        if (base_subobject_conflict(eff_bcp, offset + base_bcp->offset)) {
-          result = TRUE;
-          break;
-        }  /* if */
-      }  /* if */
-    }  /* for */
+      }  /* for */
+    }  /* if */
   }  /* if */
   return result;
 }  /* base_subobject_conflict */
