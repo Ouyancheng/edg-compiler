@@ -1889,11 +1889,11 @@ static unsigned long
 		num_upc_pragma_stack_entries_allocated;
 #endif /* DEBUG */
 
-a_upc_pragma_stack_entry_ptr
+static a_upc_pragma_stack_entry_ptr
 		upc_coherence_stack;
 			/* Pointer to the top of the UPC pragma stack. */
 
-a_upc_pragma_stack_entry_ptr
+static a_upc_pragma_stack_entry_ptr
 		avail_upc_pragma_stack_entries;
 			/* List of stack entries freed and available
 			   for reuse. */
@@ -1971,9 +1971,10 @@ assoc_statement should be NULL).
       } else {
         char  *str2 = locator_for_curr_id.symbol_header->identifier;
         if (strcmp(str2, "save") == 0) {
-          stack_op = upc_coherence_stack_save;
+          stack_op = (a_upc_coherence_stack_operation)upc_coherence_stack_save;
         } else if (strcmp(str2, "restore") == 0) {
-          stack_op = upc_coherence_stack_restore;
+          stack_op =
+                  (a_upc_coherence_stack_operation)upc_coherence_stack_restore;
           if (upc_coherence_stack == NULL) {
             /* There is nothing to restore. */
             bad_context = TRUE;
