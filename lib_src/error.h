@@ -27,6 +27,7 @@ typedef enum /* an_error_code */ {
   ec_bad_cast,
   ec_bad_typeid,
   ec_array_not_from_vec_new,
+  ec_terminate_called_more_than_once,
   ec_last
 } an_error_code;
 

@@ -19,10 +19,16 @@ C++ functions to support exception handling.
 
 #if EXCEPTION_HANDLING
 static a_boolean
-		terminate_called = FALSE;
+		terminate_called_by_runtime = FALSE;
 			/* Set to TRUE when terminate() is called by the
 			   EH runtime.  This is used by uncaught_exception()
 			   to determine whether terminate() has been called. */
+
+static a_boolean
+		terminate_called = FALSE;
+			/* Set to TRUE when terminate() is called by the
+			   either explicitly by the user or by the EH
+			   runtime. */
 
 /*
 If the runtime should be defined in the std namespace, open
@@ -38,6 +44,9 @@ void terminate()
 The default terminate routine.
 */
 {
+  /* Detect an attempt for a terminate routine to call itself recursively. */
+  if (terminate_called) __abort_execution(ec_terminate_called_more_than_once);
+  terminate_called = TRUE;
   if (__default_terminate_routine != NULL) __default_terminate_routine();
   __abort_execution(ec_terminate_returned);
 }  /* terminate */
@@ -101,7 +110,7 @@ Return TRUE if an exception is in the process of being thrown.
   ehsep = __get_curr_eh_stack_entry();
   /* TRUE should be returned if uncaught_exception() is called after
      terminate() has been called by the implementation. */
-  result = terminate_called;
+  result = terminate_called_by_runtime;
   for (; result == FALSE && ehsep != NULL; ehsep = ehsep->next) {
     if (ehsep->kind == ehsek_throw_processing_marker) {
       /* We are processing a throw.  An exception cannot be thrown here
@@ -182,7 +191,7 @@ Used by the EH runtime when terminate needs to be called.  Ensures
 that terminate does not return.
 */
 {
-  terminate_called = TRUE;
+  terminate_called_by_runtime = TRUE;
   STD_NAMESPACE::terminate();
   /* It should not be possible to get here. */
   abort();

@@ -55,6 +55,9 @@ Return the string associated with the specified error code.
     case ec_array_not_from_vec_new:
       s = "freeing array not allocated by an array new operation";
       break;
+    case ec_terminate_called_more_than_once:
+      s = "terminate() called itself recursively";
+      break;
     default:
       unexpected_condition();
       break;
