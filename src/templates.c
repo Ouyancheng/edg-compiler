@@ -9299,7 +9299,7 @@ any non-empty template parameter lists that were scanned.
     /* Member function bodies are extracted before the template string is
        constructed when member function instantiations are included in the
        source sequence lists.  In this mode, member function bodies are
-       put out as specializations (by the C++ generating back end, and 
+       put out as specializations (by the C++ generating back end), and 
        the function bodies cannot be present in the class template body. */
     if (member_bodies_need_extraction) {
       cache_segments = extract_member_bodies(tssp, cache_segments,
