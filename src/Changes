@@ -1,5 +1,11 @@
 Version 2.21
 
+12/10/93 Leading "::" allowed in member selections
+
+A leading "::" is now allowed on the member name following a "." or
+"->" operator.  For example, "p->::A::x".  This was approved by
+X3J16/WG21 at the 3/93 meeting.
+
 12/9/93  Expression temporaries destroyed at labels
 
 Temporaries generated in expressions are now destroyed at labels.

@@ -2023,10 +2023,11 @@ bound with the function in *bound_function_selector.
     member_sym = NULL;
     /* See if the name following the operator is a C++ qualified name, as
        in "p->A::x". */
-    is_qualified_name = coalesce_and_lookup_qualified_name(
-                                               gid_flags |
-                                                 GID_DISALLOW_GLOBAL_QUALIFIER,
-                                               ilm_normal, &local_err);
+    /* Leading "::" is allowed as of the Portland X3J16/WG21 meeting;
+       cfront always allowed it. */
+    is_qualified_name = coalesce_and_lookup_qualified_name(gid_flags,
+                                                           ilm_normal,
+                                                           &local_err);
     err |= local_err;
     /* If the member is something like "A::x", member_position will give
        the position of the "x" and qualified_member_position will give the
