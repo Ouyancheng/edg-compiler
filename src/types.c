@@ -1332,13 +1332,8 @@ set, leave it alone.  Also compute and set the alignment requirement.
         }  /* switch */
         break;
       case tk_pointer:
-#if TARG_ALL_POINTERS_SAME_SIZE
-        /* All pointers are the same size. */
-        size = targ_sizeof_pointer;
-        alignment = targ_alignof_pointer;
-#else /* !TARG_ALL_POINTERS_SAME_SIZE */
-        error -- set_type_size: different-sized pointers not implemented.
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+        size = get_pointer_size_and_alignment(type_pointed_to(type_ptr),
+                                              &alignment);
         break;
       case tk_array:
         set_array_type_size(type_ptr);

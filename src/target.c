@@ -21,10 +21,42 @@ target.c -- Target configuration support
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#if CHECKING
-
 /* Header files common to all files. */
 #include "fe_common.h"
+
+#if TARG_ALL_POINTERS_SAME_SIZE
+/*ARGSUSED*/ /* Because type_pointed_to is not used. */
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+a_targ_size_t get_pointer_size_and_alignment(a_type_ptr        tp,
+                                             a_targ_alignment  *alignment)
+/*
+Set the size and alignment for a pointer type that points to the indicated
+type.  This routine should be rewritten for implementations in which
+TARG_ALL_POINTERS_SAME_SIZE may not always be TRUE.
+*/
+{
+  a_targ_size_t  size;
+
+#if TARG_ALL_POINTERS_SAME_SIZE
+  /* All pointers have the same size and alignment. */
+  size = targ_sizeof_pointer;
+  *alignment = targ_alignof_pointer;
+#else /* !TARG_ALL_POINTERS_SAME_SIZE */
+  /* This obviously needs to be customized to reflect the requirements of
+     the target environment. */
+  tp = skip_typerefs(tp);
+  switch (tp->kind) {
+    /* Fill in details here. */
+    default:
+      size = targ_sizeof_long;
+      *alignment = targ_alignof_long;
+  }  /* switch */
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+  return size;
+}  /* get_pointer_size_and_alignment */
+
+
+#if CHECKING
 
 void check_target_configuration(void)
 /*
