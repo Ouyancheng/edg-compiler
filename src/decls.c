@@ -4634,9 +4634,10 @@ Returns TRUE if there is an error in the specifiers.
               warning(ec_storage_class_not_first);
             }  /* if */
           }  /* if */
-          if (is_parameter && curr_token != tok_register) {
-            /* For parameters, the only allowed storage class specifier is
-	       "register". */
+          if (is_parameter && curr_token != tok_register &&
+              (C_dialect != C_dialect_cplusplus || curr_token != tok_auto)) {
+            /* For parameters, the only allowed storage class specifiers are
+	       "register" and (in C++ only) "auto". */
             error(ec_bad_param_storage_class);
             err = TRUE;
           } else if ((*output_flags & DSO_INLINE) &&
