@@ -731,7 +731,7 @@ declaration position to eliminate redundant file names in a diagnostic.
       goto symbol_name;
     case sk_extern_routine:
       type = fund_sym->variant.extern_symbol_descr->type;
-      routine = fund_sym->variant.extern_symbol_descr->variant.routine;
+      routine = fund_sym->variant.extern_symbol_descr->variant.routine.ptr;
       entity_kind = "function ";
       is_declaration_like = TRUE;
       goto symbol_name;
