@@ -79,9 +79,11 @@ member instantiation has access to the complete class.
   rout = ctsp->assoc_scope->routines;
   while (rout != NULL) {
     sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
-    if (!rout->compiler_generated) {
-      tip = sym->variant.routine.instance_ptr;
-      check_assertion(tip != NULL);
+    tip = sym->variant.routine.instance_ptr;
+    if (tip != NULL) {
+      /* Under certain conditions the instance pointer will be NULL.  This
+         occurs for compiler generated routines and under some error
+         conditions.  Simply skip this routine. */
       if (instantiation_mode == tim_all ||
           sym->variant.routine.ptr->is_virtual) {
         update_instantiation_required_flag(tip, /*value=*/TRUE);
@@ -101,8 +103,14 @@ member instantiation has access to the complete class.
     while (var != NULL) {
       sym = (a_symbol_ptr)var->source_corresp.assoc_info;
       tip = sym->variant.variable.instance_ptr;
-      check_assertion(tip != NULL);
-      update_instantiation_required_flag(tip, /*value=*/TRUE);
+#if 0
+      /* Are there error cases when tip can be NULL?  It is probably safer
+         to skip setting the instantiation required flag rather than
+         generate a possibly spurious internal error. */
+#endif /* 0 */
+      if (tip != NULL) {
+        update_instantiation_required_flag(tip, /*value=*/TRUE);
+      }  /* if */
       var = var->next;
     }  /* while */
   }  /* if */
@@ -1535,7 +1543,7 @@ templ_sym).
   if (templ_sym->kind == (a_symbol_kind)sk_member_function) {
 #if 0
     tssp = templ_sym->variant.routine.instance_ptr->template_info;
-#else
+#else /* 0 */
     unexpected_condition();
 #endif /* if 0 */
   } else {
