@@ -5079,9 +5079,13 @@ not an lvalue, it is left alone.
       /* Error operand -- leave it alone (but make sure it's not an lvalue
          anymore). */
       conv_to_error_operand(operand);
-    } else if (is_incomplete_type(operand_type)) {
-      /* Converting an lvalue with incomplete type to an rvalue is undefined
-         behavior (ANSI C standard, 3.2.2.1); we treat it as an error. */
+    } else if (is_incomplete_type(operand_type) &&
+               (!C_mode() || !is_void_type(operand_type))) {
+      /* Converting an lvalue with incomplete type to an rvalue is an
+         error in C++ ([conv.lval]), and undefined behavior in C (ISO C
+         6.2.2.1).  We treat it as an error in C mode except when the
+         lvalue has (possibly cv-qualified) void type.  That latter
+         qualification is needed to pass DR 106. */
       error_in_operand(ec_incomplete_type_not_allowed, operand);
     } else {
       using_lvalue(operand);

@@ -1,5 +1,13 @@
 Version 2.36
 
+5/20/97   Conversion of void lvalue to rvalue in C is no longer an error
+
+In C, converting an lvalue with an incomplete type to an rvalue has
+undefined behavior.  To date, we have treated this as an error.  However,
+to pass the test case associated with the C standards committee's
+Defect Report 106, we now allow an lvalue with void type to be converted
+to an rvalue.  It remains an error in C++.
+
 5/20/97   IL CHANGE: is_template_class field in a_type
 
 A new bit field named is_template_class has been added to the
