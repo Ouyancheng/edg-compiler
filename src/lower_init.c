@@ -48,6 +48,11 @@ static void lower_destructor_dynamic_init(
                                    an_insert_location_ptr insert_location);
 static void reset_conditional_flag_var(a_variable_ptr     conditional_flag_var,
                                        an_insert_location *insert_location);
+static a_routine_ptr helper_routine_to_zero_entity(
+                                            a_type_ptr    type,
+                                            a_boolean     have_complete_object,
+                                            a_boolean     need_array_count,
+                                            a_routine_ptr ctor_routine);
 static void insert_call_to_zero_entity(a_type_ptr         entity_type,
                                        a_boolean          have_complete_object,
                                        an_expr_node_ptr   entity_node,
@@ -1835,6 +1840,19 @@ IA-64 ABI; see comments below.
                                               new_routine,
                                               /*even_if_zero=*/TRUE);
     size_elem_node->next = padding_size_node;
+  }  /* if */
+  if (zero_storage) {
+    /* The IA-64 runtime does not have variants that zero storage,
+       not could it because of the pointer-to-data-member problem.
+       If zeroing is needed, use a wrapper routine that zeroes the
+       storage and then calls the constructor. */
+    if (ctor_routine != NULL) {
+      ctor_routine = helper_routine_to_zero_entity(
+                                            type_pointed_to(entity_type),
+                                            /*have_complete_object=*/TRUE,
+                                            /*need_array_count=*/FALSE,
+                                            ctor_routine);
+    }  /* if */
   }  /* if */
 #endif /* IA64_ABI */
   /* Build an expression for the address of the constructor. */
@@ -4766,9 +4784,10 @@ static a_routine_ptr
 
 
 static a_routine_ptr helper_routine_to_zero_entity(
-                                               a_type_ptr type,
-                                               a_boolean  have_complete_object,
-                                               a_boolean  need_array_count)
+                                            a_type_ptr    type,
+                                            a_boolean     have_complete_object,
+                                            a_boolean     need_array_count,
+                                            a_routine_ptr ctor_routine)
 /*
 Build a routine to zero-initialize an entity of the indicated type.
 This is needed in the IA-64 ABI because pointers to data members use
@@ -4777,7 +4796,8 @@ complete object; if it is FALSE, we have a base class subobject.
 If need_array_count is TRUE, the generated routine has a second
 parameter of type size_t that indicates the number of elements
 of an array to be initialized, and the routine body has a loop
-to do the initializations.
+to do the initializations.  If ctor_routine is non-NULL, it points
+to a constructor to be called after the zeroing have been done.
 */
 {
   a_routine_ptr                 rp;
@@ -4789,7 +4809,7 @@ to do the initializations.
   a_generated_routine_context   context;
   a_variable_ptr                model_var, entity_var, count_var;
   a_statement_ptr               loop_stmt, copy_stmt;
-  an_expr_node_ptr              entity_expr, copy_expr;
+  an_expr_node_ptr              entity_expr, ctor_entity_expr, copy_expr;
   
   /* Build the routine entry.  It has two parameters: a pointer to an entity
      of the indicated type and a count of the number of entities to
@@ -4828,8 +4848,18 @@ to do the initializations.
     entity_expr = make_operator_node((an_expr_operator_kind)eok_ipost_incr,
                                      pointer_type,
                                      var_lvalue_expr(entity_var));
+    if (ctor_routine != NULL) {
+      /* When a constructor has to be called after the zeroing, increment
+         the source pointer in the reference in the constructor call,
+         not in the copy. */
+      ctor_entity_expr = entity_expr;
+      entity_expr = var_rvalue_expr(entity_var);
+    }  /* if */
   } else {
     entity_expr = var_rvalue_expr(entity_var);
+    if (ctor_routine != NULL) {
+      ctor_entity_expr = var_rvalue_expr(entity_var);
+    }  /* if */
   }  /* if */
   /* Build an expression to copy the model variable to the entity to
      be initialized. */
@@ -4857,6 +4887,15 @@ normal_copy:
     copy_expr = make_assignment_expr(entity_expr, 
                                      lowered_assignment_operator(type),
                                      var_rvalue_expr(model_var));
+  }  /* if */
+  if (ctor_routine != NULL) {
+    /* Add a call of the indicated constructor after the copying/zeroing
+       code. */
+    an_expr_node_ptr ctor_call;
+    ctor_call = make_call_node(ctor_routine, ctor_entity_expr,
+                               /*honor_virtual=*/FALSE,
+                               (an_insert_location *)NULL);
+    copy_expr = make_comma_node(copy_expr, ctor_call);
   }  /* if */
   copy_stmt = alloc_expr_statement(copy_expr);
   if (need_array_count) {
@@ -4990,7 +5029,8 @@ from entity_type itself.  Insert the code for the call at *insert_location.
     if (array_case) entity_node->next = num_elem_node;
     (void)make_call_node(helper_routine_to_zero_entity(element_type,
                                                        have_complete_object,
-                                                       array_case),
+                                                       array_case,
+                                                       (a_routine_ptr)NULL),
                          entity_node, /*honor_virtual=*/FALSE,
                          insert_location);
 #endif /* IA64_ABI */
