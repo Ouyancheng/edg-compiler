@@ -1,3 +1,11 @@
+Version 2.13
+
+12/3/92  Speed optimization in IL lowering
+
+The scanning of orphaned entries in IL lowering has been improved to avoid
+very slow processing when the types lists are very large.
+
+-------------------------------------------------------------------------------
 Version 2.12, December 1, 1992
 
 12/1/92  Redeclaration of typedef in derived class bug fixed
