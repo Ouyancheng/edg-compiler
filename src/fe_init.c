@@ -246,7 +246,7 @@ given by repl_text.  repl_text == NULL implies an empty replacement string.
     /* Put the length in the header. */
     put_macro_repl_text_number(repl_text_len, rtp);
     /* Copy the text itself. */
-    (void)memcpy(rtp, repl_text, repl_text_len);
+    (void)memcpy(rtp, repl_text, size_t_arg(repl_text_len));
     rtp += repl_text_len;
   }  /* if */
   /* Put the terminating null on the string. */
