@@ -1511,8 +1511,7 @@ Syntax:
   } else {
     if (C_dialect == C_dialect_cplusplus &&
         is_class_struct_union_type(operand->type) &&
-        (member_function_symbol =
-                           opname_member_function_symbol(
+        (member_function_symbol = opname_member_function_symbol(
                                       (an_opname_kind)onk_function_call,
                                       skip_typerefs(operand->type))) != NULL) {
       /* There is a C++ function call operator function that overloads function
@@ -1521,6 +1520,22 @@ Syntax:
          becomes the operand. */
       copy_operand(operand, bound_function_selector);
       conv_class_operand_to_object_pointer(bound_function_selector);
+      /* If the member symbol is a projection symbol (i.e., it's inherited
+         into the class where it is being referenced), cast the operand
+         down to the base class in which the fundamental symbol is defined.
+         There's no access check on this part of the cast because the access
+         to the fundamental base class was checked as part of determining
+         access to the symbol. */
+      if (member_function_symbol->kind == (a_symbol_kind)sk_projection) {
+        a_base_class_ptr bcp = member_function_symbol->variant.projection.
+                                            extra_info->fundamental_base_class;
+        a_boolean        is_arrow_operator = TRUE;
+        base_class_cast_operand(bound_function_selector, bcp,
+                                &is_arrow_operator,
+                                /*check_cast_access=*/FALSE);
+      }  /* if */
+      /* We can use an indefinite function operand whether the operator()
+         function is overloaded or not. */
       make_indefinite_function_operand(member_function_symbol,
                                        /*is_qualified_name=*/FALSE, operand);
       bind_member_function_operand_to_selector(operand,
