@@ -2786,10 +2786,10 @@ the current class (class_type).
   a_class_type_supplement_ptr ctsp;
 
   ctsp = friend_class_type->variant.class_struct_union.extra_info;
-  /* Issue a warning if this is a duplicate friend declaration. */
+  /* Issue a remark if this is a duplicate friend declaration. */
   for (clep = ctsp->befriending_classes; clep != NULL; clep = clep->next) {
     if (clep->class_type == class_type) {
-      warning(ec_duplicate_friend_decl);
+      remark(ec_duplicate_friend_decl);
       break;
     }  /* if */
   }  /* for */
@@ -2998,7 +2998,7 @@ of the function, and again overloading is a possibility.
     /* Issue a warning if this is a duplicate friend declaration. */
     for (; clep != NULL; clep = clep->next) {
       if (clep->class_type == class_type) {
-        warning(ec_duplicate_friend_decl);
+        remark(ec_duplicate_friend_decl);
         break;
       }  /* if */
     }  /* for */
