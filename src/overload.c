@@ -3219,7 +3219,7 @@ be processed under an ellipsis).
 #endif /* CHECKING */
     arg = param->default_arg_expr;
     if (arg != NULL) {
-      arg = copy_expr_tree(arg);
+      arg = copy_default_arg_expr(arg);
     } else {
       /* In cases where there was an error in the declaration of a function
          template (a parameter with an default argument expression was
