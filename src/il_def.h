@@ -4046,6 +4046,9 @@ enum an_expr_operator_kind_tag {
   eok_dynamic_cast,	/* C++ dynamic_cast operation [expr.dynamic.cast].
 			   The operand is an lvalue if the result type is
 			   a reference, and an rvalue otherwise. */
+  eok_bool_cast,	/* C++ cast to bool.  Operand can be arithmetic,
+			   enum, pointer, or pointer-to-member, and result
+			   is the equivalent of "operand != 0". */
   eok_complement,       /* Integer bitwise complement ("~" operator). */
   eok_ipost_incr,       /* Integer post increment. */
   eok_ipost_decr,       /* Integer post decrement. */
@@ -6149,7 +6152,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef CIL
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
-   "lvalue cast", "dynamic cast", "~",
+   "lvalue cast", "dynamic cast", "bool cast", "~",
    "i++", "i--", "++i", "--i",
    "f++", "f--", "++f", "--f",
    "p++", "p--", "++p", "--p",
