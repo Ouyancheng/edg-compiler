@@ -86,7 +86,7 @@ static int	diagnostic_indent;
 				/* Typically all diagnostic messages will
 				   begin in the first column of a line and
 				   subsequent continuation lines would be
-				   indented.  With diagnostics involving a
+				   indented.  With diagnostics involving
 				   multiple messages or entity names, this
 				   static variable will be adjusted for the
 				   start of each additional message.  See
@@ -3002,11 +3002,12 @@ a blank line instead of the caret line.
     /* Indent both the source line and the caret line.  This is done so
        that programs (like emacs) that read the error output will ignore
        these lines. */
-    fputs("  ", stderr);
+    putcb(' ');
+    putcb(' ');
     /* Perform any additional indentation needed (based on the category
        kind) */
     for (i = 0; i < diagnostic_indent; i++) {
-      putc(' ', stderr);
+      putcb(' ');
     }  /* for */
     /* On the caret pass, if the column number is zero (unknown), skip
        writing the spaces and caret and go right to the newline. */
@@ -3104,11 +3105,12 @@ instead of the caret line.
     /* Indent both the source line and the caret line.  This is done so
        that programs (like emacs) that read the error output will ignore
        these lines. */
-    fputs("  ", stderr);
+    putcb(' ');
+    putcb(' ');
     /* Perform any additional indentation needed (based on the category
        kind) */
     for (i = 0; i < diagnostic_indent; i++) {
-      putc(' ', stderr);
+      putcb(' ');
     }  /* for */
     /* On the caret pass, if the column number is zero (unknown), skip
        writing the spaces and caret and go right to the newline. */
