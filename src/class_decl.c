@@ -275,7 +275,11 @@ routine recursively for each nested class.
           /* The template symbol supplement is needed for prototype
              instantiations. */
           sym = (a_symbol_ptr)rfp->routine->source_corresp.assoc_info;
-          tssp = sym->variant.routine.instance_ptr->template_info;
+          if (sym->kind == (a_symbol_kind)sk_member_function) {
+            tssp = sym->variant.routine.instance_ptr->template_info;
+          } else {
+            tssp = sym->variant.template_info;
+          }  /* if */
         }  /* if */
         /* Look at default argument expressions first. */
         daefp = rfp->def_arg_expr_fixup_list;
@@ -283,9 +287,8 @@ routine recursively for each nested class.
           if (is_nonreal_instantiation) {
             /* Move the default arg expr tokens onto the template supplement
                for the routine. */
-#if 0
-            /* Not yet implemented. */
-#endif /* if 0 */
+	    tssp->variant.function.def_arg_expr_list = daefp;
+	    daefp = NULL;
           } else {
             /* Real instantiation -- discard the token caches. */
             for (; daefp != NULL; daefp = daefp->next) {
