@@ -223,10 +223,6 @@ typedef struct a_candidate_function {
   a_byte_boolean
 		is_function_template;
 			/* TRUE if function_symbol is a function template. */
-  a_byte_boolean
-		expl_template_arg_list_used;
-			/* TRUE if an explicit template argument list was
-			   used (e.g., f<int>). */
   a_template_arg_ptr
 		template_arg_list;
 			/* If is_function_template is TRUE, this points to
