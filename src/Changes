@@ -1,5 +1,16 @@
 Version 2.46
 
+2/6/02   Field selections instead of casts for lowered base class accesses
+
+IL lowering has been changed slightly so that whenever possible it uses
+a field selection to get to a base class within a larger object.
+This restores the code generated prior to the addition of the
+optimization for empty base classes (see Changes entry of 8/9/99).
+After that change, and until now, a base class at offset zero
+was accessed by simply casting the pointer to the new type.  One
+customer complained that this made it more difficult to optimize
+the accesses, so we have restored the old field-selection code.
+
 2/6/02   Missing typeinfo for base class at link time
 
 In some strange cases involving a base class, none of whose member

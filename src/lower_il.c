@@ -2213,37 +2213,32 @@ pointer to the new node.
         internal_error("make_base_class_lvalue: node has wrong type");
       }  /* if */
 #endif /* CHECKING */
-      if (step_bcp->offset == 0) {
-        /* We already have a good pointer value, but the type is wrong. */
-        node = add_cast_if_necessary(node, make_pointer_type(step_bcp->type));
-      } else {
-        /* There exists a field at the right offset; usually its address will
-           do. */
-        base_field = field_at_offset_if_any(node_class_type, step_bcp->offset);
-        if (base_field == NULL || base_field->is_bit_field) {
-          /* A bit field doesn't have an address; use some pointer arithmetic
-             instead.  Do the same if there is no field at the desired address
-             (this can happen with optimized empty base classes). */
-          a_type_ptr  char_ptr_type =
-                    make_pointer_type(integer_type((an_integer_kind)ik_char));
+      /* There usually exists a field at the right offset.  There won't be
+         one in some cases involving empty base class optimizations. */
+      base_field = field_at_offset_if_any(node_class_type, step_bcp->offset);
+      if (base_field == NULL || base_field->is_bit_field) {
+        /* No appropriate field; use some pointer arithmetic instead. */
+        if (step_bcp->offset != 0) {
+          a_type_ptr char_ptr_type =
+                     make_pointer_type(integer_type((an_integer_kind)ik_char));
           node = add_cast_if_necessary(node, char_ptr_type);
           node->next = node_for_integer_constant((long)step_bcp->offset,
                                                  targ_size_t_int_kind);
           node = make_operator_node((an_expr_operator_kind)eok_padd,
                                     char_ptr_type, node);
+        }  /* if */
+        node = add_cast_if_necessary(node,
+                                     make_pointer_type(step_bcp->type));
+      } else {
+        /* Create a field selection to select the next non-virtual base
+           class. */
+        node = field_lvalue_selection_expr(node, base_field);
+        if (step_bcp->type != base_field->type) {
+          /* Presumably this is an optimized empty base class: it has no
+             associated field and instead we use the field whose offset it
+             shares. */
           node = add_cast_if_necessary(node,
                                        make_pointer_type(step_bcp->type));
-        } else {
-          /* Create a field selection to select the next non-virtual base
-             class. */
-          node = field_lvalue_selection_expr(node, base_field);
-          if (step_bcp->type != base_field->type) {
-            /* Presumably this is an optimized empty base class: it has no
-               associated field and instead we use the field whose offset it
-               shares. */
-            node = add_cast_if_necessary(node,
-                                         make_pointer_type(step_bcp->type));
-          }  /* if */
         }  /* if */
       }  /* if */
       step_class_type = derivation_bcp->type;
