@@ -529,6 +529,10 @@ Instantiate the body of the template function associated with tip.
 #endif /* DEBUG */
   rout_ptr->is_inline = tssp->variant.function.routine->is_inline;
   rout_sym->defined = TRUE;
+  /* It may be that the function was declared using a typedef.  Now that it
+     is being *defined* (i.e., given a body by the instantiation), strip off
+     the typedef. */
+  rout_ptr->type = skip_typerefs(rout_ptr->type);
   /* Set the linkage and storage class. */
   if (rout_sym->class_of_which_a_member != NULL) {
     /* Member functions are handled in check_class_linkage. */
