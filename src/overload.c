@@ -3312,7 +3312,9 @@ only in C++ mode.
       display_argument_list_types(arg_operand_list);
       end_error();
     }  /* if */
-  } else if (candidate_functions->next != NULL) {
+  } else if (candidate_functions->next != NULL ||
+             is_ambiguous_by_inheritance(
+                                       candidate_functions->function_symbol)) {
     /* More than one function applies and is a best match -- ambiguity. */
 #if DEBUG
     if (debug_level >= 4) {
@@ -5947,7 +5949,9 @@ functions could still apply).
             make_error_operand(result);
             arg_operand_list_not_used = TRUE;
           }  /* if */
-        } else if (candidate_functions->next != NULL) {
+        } else if (candidate_functions->next != NULL ||
+                   is_ambiguous_by_inheritance(
+                                       candidate_functions->function_symbol)) {
           /* More than one function applies and is a best match --
              ambiguity. */
           *processed = TRUE;
@@ -6167,7 +6171,6 @@ because of an error.  This routine is used only in C++ mode.
   a_candidate_function_ptr      candidate_functions;
   a_boolean                     matched_except_for_missing_selector = FALSE;
   a_symbol_ptr                  class_symbol, constructor_symbol;
-  a_symbol_ptr                  conversion_symbol;
   a_class_symbol_supplement_ptr cssp;
   an_arg_operand_ptr            arg_operand_list;
   a_boolean                     undecidable_because_of_error;
@@ -6290,7 +6293,9 @@ because of an error.  This routine is used only in C++ mode.
            because of error". */
       } else if (candidate_functions == NULL) {
         /* No constructor or conversion function is suitable. */
-      } else if (candidate_functions->next != NULL) {
+      } else if (candidate_functions->next != NULL ||
+                 is_ambiguous_by_inheritance(
+                                       candidate_functions->function_symbol)) {
         /* More than one constructor or conversion function matches at the same
            level.  Ambiguity. */
         *ambiguous = TRUE;
@@ -6301,27 +6306,18 @@ because of an error.  This routine is used only in C++ mode.
 #endif /* DEBUG */
       } else {
         /* Exactly one constructor or conversion function matches best. */
-        conversion_symbol = candidate_functions->function_symbol;
-        /* If the function is a conversion function that is inherited from a
-           base class, check to see if it's ambiguous by inheritance. */
-        if (is_ambiguous_by_inheritance(conversion_symbol)) {
-          *ambiguous = TRUE;
-        }  /* if */
-        if (!*ambiguous) {
-          okay = TRUE;
-          /* Return information on how the conversion is to be done. */
-          *conversion = candidate_functions->conversion;
-          /* If this is a constructor call and the caller wants it, return
-             also information on any conversion required for the argument
-             (it might involve a user-defined conversion in the explicit
-             cast case). */
-          if (ctor_arg_conversion != NULL &&
-              candidate_functions->conversion.routine->special_kind ==
+        okay = TRUE;
+        /* Return information on how the conversion is to be done. */
+        *conversion = candidate_functions->conversion;
+        /* If this is a constructor call and the caller wants it, return
+           also information on any conversion required for the argument
+           (it might involve a user-defined conversion in the explicit
+           cast case). */
+        if (ctor_arg_conversion != NULL &&
+            candidate_functions->conversion.routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
-            *ctor_arg_conversion =
-                                  candidate_functions->arg_matches->conversion;
-            ctor_arg_conversion_set = TRUE;
-          }  /* if */
+          *ctor_arg_conversion = candidate_functions->arg_matches->conversion;
+          ctor_arg_conversion_set = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -6390,7 +6386,6 @@ C++ mode.
 */
 {
   a_boolean                okay;
-  a_symbol_ptr             conversion_symbol;
   a_candidate_function_ptr candidate_functions;
   a_boolean                undecidable_because_of_error;
 
@@ -6417,7 +6412,9 @@ C++ mode.
        be returned to indicate "undecidable because of error". */
   } else if (candidate_functions == NULL) {
     /* There are no viable conversion functions. */
-  } else if (candidate_functions->next != NULL) {
+  } else if (candidate_functions->next != NULL ||
+             is_ambiguous_by_inheritance(
+                                       candidate_functions->function_symbol)) {
     /* There are several equally desirable functions. */
     *ambiguous = TRUE;
 #if DEBUG
@@ -6427,17 +6424,9 @@ C++ mode.
 #endif /* DEBUG */
   } else {
     /* There is exactly one best conversion function. */
-    conversion_symbol = candidate_functions->function_symbol;
-    /* If the function is a conversion function that is inherited from a base
-       class, check to see if it's ambiguous by inheritance. */
-    if (is_ambiguous_by_inheritance(conversion_symbol)) {
-      *ambiguous = TRUE;
-    }  /* if */
-    if (!*ambiguous) {
-      okay = TRUE;
-      /* Return information on how the conversion is to be done. */
-      *conversion = candidate_functions->conversion;
-    }  /* if */
+    okay = TRUE;
+    /* Return information on how the conversion is to be done. */
+    *conversion = candidate_functions->conversion;
   }  /* if */
   if (*ambiguous) conversion->unusable = TRUE;
   if (*ambiguous && ambiguity_list != NULL) {
