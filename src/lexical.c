@@ -10492,10 +10492,15 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
 	      /* It is OK for a tentative type lookup to fail. */
 	      okay = TRUE;
 	    } else {
-              /* Issue an alternate version of the error if we are looking
-	         for a tag symbol. */
-	      error_code = ilm == ilm_tag ? ec_name_not_tag_in_file_scope :
-					    ec_name_not_found_in_file_scope;
+              /* Issue one of several difference messages depending on the
+                 kind of symbol we are looking for. */
+              if (ilm == ilm_tag) {
+                error_code = ec_name_not_tag_in_file_scope;
+              } else if (ilm == ilm_class) {
+                error_code = ec_name_not_class_in_file_scope;
+              } else {
+                error_code = ec_name_not_found_in_file_scope;
+              }  /* if */
               pos_st_error(error_code, &identifier_pos,
                            locator_for_curr_id.symbol_header->identifier);
               okay = FALSE;
@@ -10561,12 +10566,16 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
 		} else if (is_error_locator(locator_for_curr_id)) {
 		  /* An error was previously issued. */
 		} else {
-                  /* Issue an alternate version of the error if we are looking
-		     for a tag symbol. */
+                  /* Issue one of several difference messages depending on the
+                     kind of symbol we are looking for. */
                   a_symbol_ptr  err_sym;
-	          error_code = ilm == ilm_tag ?
-                               ec_not_a_tag_member :
-                               (C_mode() ? ec_not_a_field : ec_not_a_member);
+                  if (ilm == ilm_tag) {
+                    error_code = ec_not_a_tag_member;
+                  } else if (ilm == ilm_class) {
+                    error_code = ec_not_a_member_class;
+                  } else {
+                    error_code = C_mode() ? ec_not_a_field : ec_not_a_member;
+                  }  /* if */
                   if (qualifier_is_type) {
                     err_sym = (a_symbol_ptr)qualifier_type->
                                                     source_corresp.assoc_info;

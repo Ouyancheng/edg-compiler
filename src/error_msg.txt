@@ -1065,6 +1065,8 @@ ec_bad_class_template_decl;;"invalid specifier in class template declaration"
 ec_simple_incompatible_param;;"argument is incompatible with formal parameter"
 ec_cl_dep_name_option_only_in_cplusplus;;"option \"dep_name\" can be used only when compiling C++"
 ec_op_arrow_loop;;"loop in sequence of \"operator->\" functions starting at class %t1"
+ec_not_a_member_class;;"%n has no member class %sq"
+ec_name_not_class_in_file_scope;;"the global scope has no class named %sq"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
