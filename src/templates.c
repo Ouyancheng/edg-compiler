@@ -733,7 +733,7 @@ Otherwise, do nothing.
 {
   if (is_array_type(tp)) {
     tp = underlying_array_element_type(tp);
-    if (tp == NULL && !is_incomplete_type(tp)) goto done;
+    if (tp == NULL || !is_incomplete_type(tp)) goto done;
   }  /* if */
   if (is_class_struct_union_type(tp)) f_instantiate_template_class(tp);
 done:;
