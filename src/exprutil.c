@@ -3182,7 +3182,7 @@ operand_1, operand_2, and operand_3, with result type result_type.
 static a_float_kind promoted_float_kind(a_float_kind  fkind_1,
                                         a_float_kind  fkind_2)
 /*
-fkind_1 and fkind_2 represent the precision of a floating-point types
+fkind_1 and fkind_2 represent the precision of a floating-point type
 involved in a binary operation (or fk_last if the corresponding operand
 does not have a floating-point type).  Return the precision of the
 result (i.e., the precision to which both operands should be promoted).
@@ -3258,7 +3258,8 @@ Likewise for operand_2/operand_2_type.
           type_2->kind == (a_type_kind)tk_complex) {
         /* If either operand has a complex type, the domain of the result is
            also "_Complex".  The "_Imaginary" case requires operator-specific
-           treatment, however. */
+           treatment, and is not handled here; see
+           prepare_imaginary_operation. */
         result_type = complex_type(result_fkind);
       } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -3447,7 +3448,7 @@ static a_constant_ptr  imaginary_unit = (a_constant_ptr)NULL;
 
 void make_imaginary_unit_operand(an_operand  *result)
 /*
-Create the constant __I__ such that __I__*__I__ == -1.
+Create an operand for the constant __I__ such that __I__*__I__ == -1.
 The identifier __I__ is EDG-specific (i.e., not specified by the C99
 standard).  The standard specifies macros I and _Imaginary_I that expand
 to this value.
@@ -3509,10 +3510,13 @@ void prepare_imaginary_operation(a_token_kind           op_token,
 Operations on imaginary floating-point types are a little peculiar in the
 sense that the result type is not necessarily a type to which both operands
 (operand_1 and operand_2) are promoted.  Instead, one of the operands may be
-promoted and the result type (returned through result_type) depends on the
-particular operation (represented by op_token).  This routine also determines
-the IL operator (*op) implementing the given arithmetic operation.
-*operator_position gives the operator position, for error messages.
+promoted and the result type depends on the particular operation (represented
+by op_token).  This routine is called for these unusual cases, i.e., when
+one or both operands have imaginary type and neither operand has complex
+type.  It determines the result type and returns it in *result_type.
+This routine also determines the IL operator that implements the given
+arithmetic operation and returns it in *op.  *operator_position gives
+the operator position, for error messages.
 */
 {
   a_type_ptr    type_1 = skip_typerefs(operand_1->type),
@@ -4619,84 +4623,84 @@ type is an error type, return eok_error.
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_imaginary:
       switch (token) {
-	case tok_plus:
-	  op = (an_expr_operator_kind)eok_fadd;
-	  break;
-	case tok_minus:
-	  op = (an_expr_operator_kind)eok_fsubtract;
-	  break;
+        case tok_plus:
+          op = (an_expr_operator_kind)eok_fadd;
+          break;
+        case tok_minus:
+          op = (an_expr_operator_kind)eok_fsubtract;
+          break;
         case tok_star:
           op = (an_expr_operator_kind)eok_jmultiply;
           break;
         case tok_divide:
           op = (an_expr_operator_kind)eok_fdivide;
           break;
-	case tok_eq:
-	  op = (an_expr_operator_kind)eok_feq;
-	  break;
-	case tok_ne:
-	  op = (an_expr_operator_kind)eok_fne;
-	  break;
-	case tok_assign:
-	  op = (an_expr_operator_kind)eok_fassign;
-	  break;
-	case tok_times_assign:
-	  op = (an_expr_operator_kind)eok_fmultiply_assign;
-	  break;
-	case tok_divide_assign:
-	  op = (an_expr_operator_kind)eok_fdivide_assign;
-	  break;
-	case tok_plus_assign:
-	  op = (an_expr_operator_kind)eok_fadd_assign;
-	  break;
-	case tok_minus_assign:
-	  op = (an_expr_operator_kind)eok_fsubtract_assign;
-	  break;
+        case tok_eq:
+          op = (an_expr_operator_kind)eok_feq;
+          break;
+        case tok_ne:
+          op = (an_expr_operator_kind)eok_fne;
+          break;
+        case tok_assign:
+          op = (an_expr_operator_kind)eok_fassign;
+          break;
+        case tok_times_assign:
+          op = (an_expr_operator_kind)eok_fmultiply_assign;
+          break;
+        case tok_divide_assign:
+          op = (an_expr_operator_kind)eok_fdivide_assign;
+          break;
+        case tok_plus_assign:
+          op = (an_expr_operator_kind)eok_fadd_assign;
+          break;
+        case tok_minus_assign:
+          op = (an_expr_operator_kind)eok_fsubtract_assign;
+          break;
 #if CHECKING
         default:
-	  internal_error("which_binary_operator: bad float operator");
+          internal_error("which_binary_operator: bad float operator");
 #endif /* CHECKING */
       }  /* switch */
       break;
 
     case tk_complex:
       switch (token) {
-	case tok_plus:
-	  op = (an_expr_operator_kind)eok_xadd;
-	  break;
-	case tok_minus:
-	  op = (an_expr_operator_kind)eok_xsubtract;
-	  break;
+        case tok_plus:
+          op = (an_expr_operator_kind)eok_xadd;
+          break;
+        case tok_minus:
+          op = (an_expr_operator_kind)eok_xsubtract;
+          break;
         case tok_star:
           op = (an_expr_operator_kind)eok_xmultiply;
           break;
         case tok_divide:
           op = (an_expr_operator_kind)eok_xdivide;
           break;
-	case tok_eq:
-	  op = (an_expr_operator_kind)eok_xeq;
-	  break;
-	case tok_ne:
-	  op = (an_expr_operator_kind)eok_xne;
-	  break;
-	case tok_assign:
-	  op = (an_expr_operator_kind)eok_xassign;
-	  break;
-	case tok_times_assign:
-	  op = (an_expr_operator_kind)eok_xmultiply_assign;
-	  break;
-	case tok_divide_assign:
-	  op = (an_expr_operator_kind)eok_xdivide_assign;
-	  break;
-	case tok_plus_assign:
-	  op = (an_expr_operator_kind)eok_xadd_assign;
-	  break;
-	case tok_minus_assign:
-	  op = (an_expr_operator_kind)eok_xsubtract_assign;
-	  break;
+        case tok_eq:
+          op = (an_expr_operator_kind)eok_xeq;
+          break;
+        case tok_ne:
+          op = (an_expr_operator_kind)eok_xne;
+          break;
+        case tok_assign:
+          op = (an_expr_operator_kind)eok_xassign;
+          break;
+        case tok_times_assign:
+          op = (an_expr_operator_kind)eok_xmultiply_assign;
+          break;
+        case tok_divide_assign:
+          op = (an_expr_operator_kind)eok_xdivide_assign;
+          break;
+        case tok_plus_assign:
+          op = (an_expr_operator_kind)eok_xadd_assign;
+          break;
+        case tok_minus_assign:
+          op = (an_expr_operator_kind)eok_xsubtract_assign;
+          break;
 #if CHECKING
         default:
-	  internal_error("which_binary_operator: bad float operator");
+          internal_error("which_binary_operator: bad float operator");
 #endif /* CHECKING */
       }  /* switch */
       break;
@@ -8290,6 +8294,9 @@ Initialize things related to expression scanning.
   num_ref_entries_allocated              = 0;
   num_dynamic_init_dtor_fixups_allocated = 0;
 #endif /* DEBUG */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  imaginary_unit = NULL;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
   /* Do initialization for overload.c: */
   overload_init();
