@@ -430,6 +430,7 @@ Process the indicated scope.
   walk_list(ptr->routines, a_routine_ptr, iek_routine);
 #ifdef CFE
   walk_list(ptr->scopes, a_scope_ptr, iek_scope);
+  walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
   remap_ptr(ptr->dynamic_inits, a_dynamic_init_ptr, iek_dynamic_init);
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -488,6 +489,7 @@ and the entry pointer is to an entry in the file scope, just return
         case iek_variable:
 #ifdef CFE
         case iek_field:
+        case iek_asm_entry:
 #endif /* ifdef CFE */
         case iek_routine:
         case iek_label:
@@ -631,6 +633,7 @@ and the entry pointer is to an entry in the file scope, just return
                                 s = "class type supplement";   break;
         case iek_constructor_init:
                                 s = "constructor_init";        break;
+        case iek_asm_entry:     s = "asm entry";               break;
 #endif /* ifdef CFE */
         default:                s = "<bad kind>";              break;
       }  /* switch */
@@ -917,7 +920,8 @@ and the entry pointer is to an entry in the file scope, just return
                         iek_dynamic_init);
               break;
             case stmk_asm:
-              walk_ptr(ptr->variant.asm_string, a_constant_ptr, iek_constant);
+              remap_ptr(ptr->variant.asm_entry, an_asm_entry_ptr,
+                        iek_asm_entry);
               break;
 #endif /* ifdef CFE */
 #ifdef FFE
@@ -1299,6 +1303,13 @@ and the entry pointer is to an entry in the file scope, just return
           walk_ptr(ptr->initializer, a_dynamic_init_ptr, iek_dynamic_init);
         }
         break;
+      case iek_asm_entry:
+        {
+          an_asm_entry_ptr ptr = (an_asm_entry_ptr)entry_ptr;
+          remap_next_ptr(ptr->next, an_asm_entry_ptr, iek_asm_entry);
+          walk_ptr(ptr->asm_string, a_constant_ptr, iek_constant);
+        }
+        break;
 #endif /* ifdef CIL */
 #if ORPHAN_PROCESSING_NEEDED
       case iek_orphaned_il_list:
@@ -1449,6 +1460,7 @@ of each kind.
   walk_orphan_entry_list_first(a_class_type_supplement_ptr,
                                iek_class_type_supplement);
   walk_orphan_entry_list_first(a_constructor_init_ptr, iek_constructor_init);
+  walk_orphan_entry_list_first(an_asm_entry_ptr, iek_asm_entry);
 #endif /* ifdef CFE */
 
   db_exit();
@@ -1699,6 +1711,7 @@ them through remap_function.
   remap_orphan_entry_first(iek_class_list_entry);
   remap_orphan_entry_first(iek_class_type_supplement);
   remap_orphan_entry_first(iek_constructor_init);
+  remap_orphan_entry_first(iek_asm_entry);
 #endif /* ifdef CFE */
 #endif /* ALTERNATE_IL_FILE_FORMAT */
 
@@ -1747,6 +1760,7 @@ them through remap_function.
   remap_orphan_entry_last(iek_class_list_entry);
   remap_orphan_entry_last(iek_class_type_supplement);
   remap_orphan_entry_last(iek_constructor_init);
+  remap_orphan_entry_last(iek_asm_entry);
 #endif /* ifdef CFE */
 
   /* Restore the previous value of the remap function pointer. */
@@ -1870,6 +1884,7 @@ entry kind passed as an argument.
 			    s = "class-type-supplement";   break;
     case iek_constructor_init:
                             s = "constructor-init";        break;
+    case iek_asm_entry:     s = "asm-entry";               break;
 #endif /* ifdef CFE */
 #if ORPHAN_PROCESSING_NEEDED
     case iek_orphaned_il_list:
