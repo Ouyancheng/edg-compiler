@@ -453,7 +453,7 @@ scope, or the lifetime from the parent context, will be used.
     /* Clear entries to be neat, even though they are not used. */
     context->saved_curr_object_lifetime = NULL;
 #if DO_LOWERING_OF_EXCEPTION_HANDLING
-    context->saved_curr_cleanup_region_number = NULL;
+    context->saved_curr_cleanup_region_number = null_eh_region_number;
 #endif /* DO_LOWERING_OF_EXCEPTION_HANDLING */
 #endif /* CHECKING */
   }  /* if */
