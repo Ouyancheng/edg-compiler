@@ -31,6 +31,7 @@ types.h -- Declarations related to types.c (having to do with types).
 #define skip_typerefs(tp)                                             \
   ((tp)->kind != (a_type_kind)tk_typeref ? (tp) : f_skip_typerefs(tp))
 
+#if !STANDALONE_UTILITY_PROGRAM
 /* When Microsoft extensions are enabled, we need a special routine that
    can skip typerefs over a possibly null referenced type.  When these
    extensions are not enabled, we can just use the normal skip_typerefs. */
@@ -40,6 +41,7 @@ a_type_ptr skip_typerefs_allow_null_referenced_type(a_type_ptr type_ptr);
 #else /* !MICROSOFT_KEYWORDS_ALLOWED */
 #define skip_typerefs_allow_null_referenced_type(tp) skip_typerefs(tp)
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
 /* Fast macro version of is_error_type. */
@@ -78,6 +80,7 @@ extern a_boolean is_template_class_type(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);
 extern a_type_ptr underlying_array_element_type(a_type_ptr array_type);
+extern a_type_ptr find_bottom_of_type(a_type_ptr type);
 extern a_type_ptr type_pointed_to(a_type_ptr pointer_type);
 extern a_type_ptr pm_member_type(a_type_ptr pm_type);
 extern a_type_ptr pm_class_type(a_type_ptr pm_type);
@@ -131,14 +134,6 @@ nor qualifier.
 */
 #define typeref_is_typedef(tp)                                        \
  ((tp)->source_corresp.name != NULL)
-
-/*
-Return TRUE if the type pointed to is a tk_typeref that indicates type
-qualification.
-*/
-#define is_immediate_type_qualifier(tp)                               \
-  ((tp)->kind == (a_type_kind)tk_typeref && typeref_is_qualified(tp))
-
 
 extern a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
                                                   a_boolean   top_level);

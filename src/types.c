@@ -153,7 +153,7 @@ of the macro to avoid multiple evaluations of the argument.
   return type_ptr;
 }  /* f_skip_typerefs */
 
-
+#if !STANDALONE_UTILITY_PROGRAM
 #if MICROSOFT_KEYWORDS_ALLOWED
 a_type_ptr skip_typerefs_allow_null_referenced_type(a_type_ptr type_ptr)
 /*
@@ -176,6 +176,7 @@ When the referenced type is NULL, a NULL pointer is returned.
   return type_ptr;
 }  /* skip_typerefs_allow_null_referenced_type */
 #endif /* MICROSOFT_KEYWORDS_ALLOWED */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
 a_type_ptr skip_typedefs(a_type_ptr type_ptr)
@@ -528,6 +529,21 @@ Return the underlying element type of the given array type.
   } while (is_array_type(tp));
   return tp;
 }  /* underlying_array_element_type */
+
+
+a_type_ptr find_bottom_of_type(a_type_ptr type)
+/*
+Find the bottom type of a derived type.
+*/
+{
+  for (;;) {
+    a_type_ptr	new_bottom;
+    new_bottom = underlying_type_of_derived_type(type);
+    if (new_bottom == NULL) break;
+    type = new_bottom;
+  }  /* for */
+  return type;
+}  /* find_bottom_of_type */
 
 
 a_type_ptr type_pointed_to(a_type_ptr pointer_type)
