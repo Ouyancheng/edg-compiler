@@ -2655,7 +2655,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                                     /*tentative_type_lookup=*/FALSE,
                                     /*tentative_template_lookup=*/FALSE,
                                     add_to_active_list, insert_sym, &sym,
-                                    /*can_create_nonreal=*/TRUE);
+                                    !(options &
+                                             IDL_DO_NOT_ADD_TO_NONREAL_CLASS));
         if (sym == NULL && locator->is_conversion_name &&
             cssp->conversion_template_list != NULL &&
             (options & IDL_USING_DECLARATION) == 0) {

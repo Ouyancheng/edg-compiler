@@ -1,5 +1,20 @@
 Version 2.37
 
+8/17/97   Internal error on declaration of class operator new in a class
+          template with a template-dependent base class when exceptions are
+          enabled
+
+A bug was introduced in version 2.34 that could cause an internal
+error when a template class with a template-dependent base class
+contains a declaration of an operator new routine with no matching
+operator delete.  For the internal error to occur the front end must
+be configured to support placement delete, and exceptions must be
+enabled.  Now fixed.
+
+  template <class T> class B : public T {
+    void *operator new(unsigned int size, int *p);
+  };
+
 8/15/97   Internal error when generating preprocessing output
 
 When preprocessing output is being generated, an internal error
