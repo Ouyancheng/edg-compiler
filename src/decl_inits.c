@@ -1180,33 +1180,32 @@ initialized.  These are addressed in the course of the processing.
     if (bcp->is_virtual || bcp->direct) {
       cssp = symbol_supplement_for_class(bcp->type);
       /* If the virtual base class or direct base class has a constructor, a
-         dynamic init entry will be required.  Create the constructor init
-         entry now; the dynamic init will be added later. */
-      if (cssp->constructor != NULL || is_cctor) {
-        cip = alloc_ctor_init(bcp->is_virtual ?
-                              (a_constructor_init_kind)cik_virtual_base_class :
-                              (a_constructor_init_kind)cik_direct_base_class);
-        cip->variant.base_class = bcp;
-        /* Add the constructor init to the end of the appropriate list. */
-        if (bcp->is_virtual) {
-          if (virtual_list == NULL) {
-            /* Start a new list. */
-            virtual_list = cip;
-          } else {
-            /* Add to end of list. */
-            end_of_virtual_list->next = cip;
-          }  /* if */
-          end_of_virtual_list = cip;
+         dynamic init entry will be required; otherwise it is optional.
+         Create the constructor init entry now; the dynamic init will be added
+         later. */
+      cip = alloc_ctor_init(bcp->is_virtual ?
+                            (a_constructor_init_kind)cik_virtual_base_class :
+                            (a_constructor_init_kind)cik_direct_base_class);
+      cip->variant.base_class = bcp;
+      /* Add the constructor init to the end of the appropriate list. */
+      if (bcp->is_virtual) {
+        if (virtual_list == NULL) {
+          /* Start a new list. */
+          virtual_list = cip;
         } else {
-          if (direct_list == NULL) {
-            /* Start a new list. */
-            direct_list = cip;
-          } else {
-            /* Add to end of list. */
-            end_of_direct_list->next = cip;
-          }  /* if */
-          end_of_direct_list = cip;
+          /* Add to end of list. */
+          end_of_virtual_list->next = cip;
         }  /* if */
+        end_of_virtual_list = cip;
+      } else {
+        if (direct_list == NULL) {
+          /* Start a new list. */
+          direct_list = cip;
+        } else {
+          /* Add to end of list. */
+          end_of_direct_list->next = cip;
+        }  /* if */
+        end_of_direct_list = cip;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -1292,19 +1291,6 @@ initialized.  These are addressed in the course of the processing.
             error(ec_cannot_initialize);
             init_type = error_type();
             goto scan_paren;
-          }  /* if */
-          if (is_class_struct_union_type(init_type)) {
-            cssp = symbol_supplement_for_class(init_type);
-            if (cssp->constructor == NULL) {
-              /* Error -- there is no constructor. */
-              if (init_type->source_corresp.name != NULL) {
-                str_error(ec_no_constructor, init_type->source_corresp.name);
-              } else {
-                error(ec_cannot_initialize);
-              }  /* if */
-              init_type = error_type();
-              goto scan_paren;
-            }  /* if */
           }  /* if */
           /* Check the list for a constructor init entry that refers to this
              member.  If it's there we may have a reinitialization error. */
@@ -1412,18 +1398,12 @@ initialized.  These are addressed in the course of the processing.
             init_type = error_type();
           } else {
             /* The base class was found.  Now look on the appropriate list of
-               constructor initializers.  It must be on the list if it itself
-               has a constructor; and if not, it can't be mentioned in a
-               constructor initializer list. */
+               constructor initializers. */
             new_cip = (bcp->is_virtual) ? virtual_list : direct_list;
             for (; new_cip != NULL; new_cip = new_cip->next) {
               if (new_cip->variant.base_class == bcp) break;
             }  /* for */
-            if (new_cip == NULL) {
-              /* We didn't find it on the list, so issue the error. */
-              str_error(ec_no_constructor, init_type->source_corresp.name);
-              init_type = error_type();
-            } else if (new_cip->initializer != NULL) {
+            if (new_cip->initializer != NULL) {
               error(ec_already_initialized);
               err = TRUE;
             }  /* if */
@@ -1440,14 +1420,14 @@ scan_paren:
         if (required_token(tok_lparen, ec_exp_lparen)) {
           if (is_class_struct_union_type(init_type)) {
             /* This is either a base class or a field of class type.  In
-               either case, it must be initialized by a constructor call. */ 
+               either case, it wil be initialized by a constructor call if
+               a constructor exists.  Otherwise, it will be initialized
+               like any scalar. */
             an_expr_node_ptr  arg_list;
             cssp = symbol_supplement_for_class(init_type);
             if (cssp->constructor == NULL) {
-              /* Error -- there is no constructor. */
-              str_error(ec_no_constructor, init_type->source_corresp.name);
-              err = TRUE;
-              flush_tokens();
+              /* There is no constructor. */
+              goto scan_arg_for_scan_initialization;
             } else {
               /* This is treated like an initialization of the form
                  S x (arg [, ...]), where S is a class type name.  Depending
@@ -1474,22 +1454,14 @@ scan_paren:
             }  /* if */
             new_cip->initializer = dip;
           } else {
+scan_arg_for_scan_initialization:
             add_stop_token(tok_rparen);
-            if (is_error_type(init_type)) {
-              flush_tokens();
-            } else if (is_scalar_type(init_type) ||
-                       is_reference_type(init_type)) {
-              /* Allocate a new dynamic init entry, setting the kind to
-                 dik_none for now.  It will be adjusted after the scan. */
-              dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-              scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
-                                                init_type, dip);
-              new_cip->initializer = dip;
-#if CHECKING
-            } else {
-              internal_error("ctor_initializer: unexpected init type");
-#endif /* CHECKING */
-            }  /* if */
+            /* Allocate a new dynamic init entry, setting the kind to
+               dik_none for now.  It will be adjusted after the scan. */
+            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+            scan_initializer_of_simple_object(/*nonconst_allowed=*/TRUE,
+                                              init_type, dip);
+            new_cip->initializer = dip;
             remove_stop_token(tok_rparen);
             (void)required_token(tok_rparen, ec_exp_rparen);
           }  /* if */
@@ -1511,9 +1483,8 @@ scan_paren:
     cip_list = virtual_list;
   }  /* if */
   /* Make a pass over the new list, adding default constructors where
-     appropriate.  Items on the list are all subobjects and members that
-     require constructor initialization, plus (optionally) additional items
-     for which the user specified an initial value. */
+     appropriate. */
+  prev_cip = NULL;
   for (cip = cip_list; cip != NULL; cip = cip->next) {
     if (cip->initializer == NULL) {
       /* No initializer was explicitly specified. */
@@ -1593,23 +1564,30 @@ scan_paren:
         /* No copy constructor is required.  If any constructor exists, the
            default constructor should be called. */
         if (cssp == NULL || cssp->constructor == NULL) {
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-        } else {
-          rp = select_default_constructor(
+          /* This constructor initializer entry is not really needed.  It is
+             associated with a base class without a constructor.  Unlink it
+             from the list. */
+          if (prev_cip == NULL) {
+            cip_list = cip->next;
+          } else {
+            prev_cip->next = cip->next;
+          }  /* if */
+          continue;
+        }  /* if */
+        rp = select_default_constructor(
                      (cip->kind == (a_constructor_init_kind)cik_field) ?
                          cip->variant.field->type :
                          cip->variant.base_class->type,
                      &error_position);
-          if (rp == NULL) {
-            /* Error in trying to find a default constructor. */
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-          } else {
-            /* A default constructor does exist.  Generate the dynamic init
-               entry and mark the constructor routine referenced. */
-            dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-            dip->variant.constructor.routine = rp;
-            dip->variant.constructor.args = NULL;
-          }  /* if */
+        if (rp == NULL) {
+          /* Error in trying to find a default constructor. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+        } else {
+          /* A default constructor does exist.  Generate the dynamic init
+             entry. */
+          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+          dip->variant.constructor.routine = rp;
+          dip->variant.constructor.args = NULL;
         }  /* if */
       }  /* if */
       if (array_type != NULL &&
@@ -1627,6 +1605,7 @@ scan_paren:
       /* Attach the new dynamic init entry to the constructor initializer. */
       cip->initializer = dip;
     }  /* if */
+    prev_cip = cip;
   }  /* for */
 #if DEBUG
   if (debug_level >= 3) {
