@@ -1941,7 +1941,7 @@ found in the list.
        ifhp != NULL;
        prev_ifhp = ifhp, ifhp = ifhp->next) {
     if (name_length == ifhp->name_length &&
-        strcmp(full_name, ifhp->full_name) == 0) {
+        compare_file_names(full_name, ifhp->full_name) == 0) {
       /* We've found a match. */
       found = TRUE;
       break;
@@ -2371,7 +2371,8 @@ Push the indicated file onto the input stack.
      stack for the file name we just opened. */
   times_name_appears = 0;
   for (isnum = depth_input_stack; isnum >= 0; isnum--) {
-    if (strcmp(input_stack[isnum].full_name, full_file_name) == 0) {
+    if (compare_file_names(input_stack[isnum].full_name,
+                           full_file_name) == 0) {
       /* The entry in the input stack has the same file name as the
          file we just opened.  This is okay once (it has to be), but
          if it happens several times, it probably means recursion. */
@@ -2714,7 +2715,7 @@ at the next level down.
            file found is not the same as the file we started with.  This
            could occur if the user included a .c file that contains a
            template declaration. */
-        if (strcmp(full_file_name, sfp->full_name) != 0) {
+        if (compare_file_names(full_file_name, sfp->full_name) != 0) {
 	  an_include_file_history_ptr	ifhp;
 #if DEBUG
           if (debug_level >= 3) {

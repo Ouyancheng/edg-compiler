@@ -1056,6 +1056,17 @@ extern void unmap_memory(a_void_ptr	addr,
 extern sizeof_t seek_to_page_alignment(FILE *file);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
+/*
+Define a macro that can be used to compare two file names.
+*/
+#if __MSDOS__
+/* On MS-DOS, the comparison must be case insensitive. */
+#define compare_file_names(s1, s2) strnicmp((s1), (s2), INT_MAX)
+#else /* !__MSDOS__ */
+/* On other systems, the comparison is case sensitive. */
+#define compare_file_names(s1, s2) strcmp((s1), (s2))
+#endif /* __MSDOS__ */
+
 /* Set up signal handlers. */
 extern void set_signal_handlers(void);
 /* Custom version of memcmp. */

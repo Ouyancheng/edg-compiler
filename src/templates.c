@@ -4276,7 +4276,7 @@ file we simply return.
            could occur if the user included a .c file that contains a
            template declaration.  Also make sure that this file has not
            previously been included. */
-        if (strcmp(full_file_name, sfp->full_name) != 0 &&
+        if (compare_file_names(full_file_name, sfp->full_name) != 0 &&
             !find_include_history(full_file_name, &ifhp, /*create=*/FALSE)) {
 #if DEBUG
           if (debug_level >= 3) {

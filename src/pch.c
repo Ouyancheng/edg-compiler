@@ -697,7 +697,8 @@ file currently being compiled.  If not, remove the associated file.
   } else if (!using_a_pch_file) {
      /* We're not using a PCH file, remove the old one. */
      remove = TRUE;
-  } else if (strcmp(assoc_pch_file_name, pch_input_file_name) != 0) {
+  } else if (compare_file_names(assoc_pch_file_name,
+                                pch_input_file_name) != 0) {
     /* The PCH file in use is not associated with this file -- remove the
        associated file. */
     remove = TRUE;
