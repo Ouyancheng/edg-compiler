@@ -3038,7 +3038,7 @@ is allocated, it is allocated in the file scope.
              to be the one from the non-incomplete array. */
           check_assertion(!base_type_1->variant.array.is_variable_size_array);
           check_assertion(!base_type_2->variant.array.is_variable_size_array);
-          if (base_type_1->variant.array.number_of_elements != 0) {
+          if (base_type_1->variant.array.variant.number_of_elements != 0) {
             num_elems = base_type_1->variant.array.variant.number_of_elements;
             comp_elem = composite_type(base_type_1->variant.array.element_type,
                                       base_type_2->variant.array.element_type);
