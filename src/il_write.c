@@ -437,6 +437,7 @@ Finish writing the IL file, if there is one.
 {
   a_memory_region_number end_flag = NULL_region_number;
   a_file_position        index_pos;
+  sizeof_t               index_size;
 
   if (f_il_output != NULL) {
     /* If the intermediate language is being written to a file, write the
@@ -459,10 +460,10 @@ Finish writing the IL file, if there is one.
     (void)fwrite((char *)&end_flag, sizeof(end_flag), 1, f_il_output);
     /* Write the file index table at the end of the file. */
     index_pos = ftell(f_il_output);
+    index_size = (sizeof_t)highest_used_region_number *
+                 sizeof(a_file_position);
     (void)fwrite((char *)&index_for_il_file[FILE_SCOPE_REGION_NUMBER],
-                 size_t_arg((sizeof_t)highest_used_region_number*
-                            sizeof(a_file_position)),
-                 1, f_il_output);
+                 size_t_arg(index_size), 1, f_il_output);
     /* Seek back to just after the "magic" string at the beginning of the
        file. */
     if (fseek(f_il_output,(long)LEN_IL_FILE_MAGIC_STRING,SEEK_SET) != 0) {
