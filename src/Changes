@@ -1,5 +1,10 @@
 Version 2.16
 
+4/24/93  Name mangling code put in separate file
+
+The name mangling code from lower_il.c has been broken out into a
+separate file lower_name.c.
+
 4/24/93  Bug in computing base class offsets
 
 A bug has been fixed in computing the base class offsets of deeply
