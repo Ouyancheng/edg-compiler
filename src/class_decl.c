@@ -4138,9 +4138,11 @@ table.
 }  /* decl_static_data_member */
 
 
-a_boolean is_assignment_operator_for_copy(a_symbol_ptr          sym,
-                                          a_boolean             *is_ref_arg,
-                                          a_type_qualifier_set  *qualifiers)
+a_boolean is_assignment_operator_for_copy(
+                                   a_symbol_ptr          sym,
+                                   a_boolean             *is_ref_arg,
+                                   a_type_qualifier_set  *qualifiers,
+                                   a_boolean             *is_base_class_match)
 /*
 Return TRUE if sym qualifies as an assignment operator that can copy a
 class object (ARM 12.8).  It qualifies if its first parameter has a type of
@@ -4148,7 +4150,8 @@ class object (ARM 12.8).  It qualifies if its first parameter has a type of
 (In cfront compatibility mode, sym also qualifies if the first parameter
 involves type B where B is a base class of A.)  Set *is_ref_arg to TRUE if
 the first parameter is a reference type.  Set *qualifiers based on how the
-first parameter is qualified.
+first parameter is qualified.  Return *is_base_class_match set to TRUE
+for the cfront compatibility case.
 */
 {
   a_boolean         found = FALSE;
@@ -4168,6 +4171,7 @@ first parameter is qualified.
     /* Not a reference argument. */
     *is_ref_arg = FALSE;
   }  /* if */
+  *is_base_class_match = FALSE;
   if (is_class_struct_union_type(tp)) {
     /* The type of the first parameter is a class type. */
     if (skip_typerefs(tp) == sym->class_of_which_a_member) {
@@ -4183,6 +4187,7 @@ first parameter is qualified.
         /* The parameter's type matches a base class of the class of which the
            assignment operator is a member. */
         found = TRUE;
+        *is_base_class_match = TRUE;
       }  /* if */
     }  /* if */
     if (found) {
@@ -4207,6 +4212,7 @@ TRUE if a const object can be copied.
   a_boolean             is_ref_arg;
   a_type_qualifier_set  qualifiers_accepted;
   a_boolean             found_assignment_operator_for_copy = FALSE;
+  a_boolean             is_base_class_match;
 
   db_enter(4, "assignment_operator_for_copy_exists");
   /* Set *const_okay to TRUE unless this subobject's type has a default
@@ -4220,7 +4226,8 @@ TRUE if a const object can be copied.
     for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
       qualifiers_accepted = TQ_NONE;
       if (is_assignment_operator_for_copy(sym, &is_ref_arg,
-                                          &qualifiers_accepted)) {
+                                          &qualifiers_accepted,
+                                          &is_base_class_match)) {
         /* Found an assignment operator that can serve to make a copy of the
            current class. */
         found_assignment_operator_for_copy = TRUE;
