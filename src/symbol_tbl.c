@@ -2475,7 +2475,7 @@ this is not allowed, an error will be issued by the caller.
     /* New symbol is a tag symbol. */
     a_symbol_ptr fund_old_sym = fundamental_symbol_of(old_sym);
     if (!is_type_symbol(fund_old_sym) &&
-        !is_template_symbol(fund_old_sym) &&
+        !is_class_template_symbol(fund_old_sym) &&
         !is_namespace_symbol(fund_old_sym)) {
       /* The old symbol is a non-type name.  Be sure the new symbol
          inserted into the list after the old one. */
@@ -2486,7 +2486,7 @@ this is not allowed, an error will be issued by the caller.
     /* The old symbol is a tag symbol. */
     a_symbol_ptr fund_new_sym = fundamental_symbol_of(new_sym);
     if (!is_type_symbol(fund_new_sym) &&
-        !is_template_symbol(fund_new_sym) &&
+        !is_class_template_symbol(fund_new_sym) &&
         !is_namespace_symbol(fund_new_sym)) {
       /* The new one is not a type symbol or a class template name.  It
          will be placed at the front of the list automatically. */
