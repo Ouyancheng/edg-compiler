@@ -8225,9 +8225,9 @@ continue_with_declaration:
       if (!C_mode() && var_ptr != NULL) {
         if (is_abstract_class_type(local_type_ptr)) {
           /* Abstract class objects are prohibited (ARM 10.3). */
-          report_abstract_class_object(ec_abstract_class_object_not_allowed,
-                                       local_type_ptr,
-                                       &locator.source_position);
+          report_abstract_class_error(ec_abstract_class_object_not_allowed,
+                                      local_type_ptr,
+                                      &locator.source_position);
         }  /* if */
       }  /* if */
       /* Set the error position to the start of the initializer (that is, to

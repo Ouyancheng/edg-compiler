@@ -1299,9 +1299,9 @@ located.
 }  /* report_pure_virtual_functions */
 
 
-void report_abstract_class_object(an_error_code      error_code,
-                                  a_type_ptr         class_type,
-                                  a_source_position  *error_pos)
+void report_abstract_class_error(an_error_code      error_code,
+                                 a_type_ptr         class_type,
+                                 a_source_position  *error_pos)
 /*
 Issue an error (using the message specified by error_code) on an incorrect
 use of an object of abstract class type, as indicated by class_type.
@@ -1324,7 +1324,7 @@ user in correcting the class declarations that produced the problem.
 #endif /* if */
   /* Terminate the supplementary messages. */
   end_error();
-}  /* report_abstract_class_object */
+}  /* report_abstract_class_error */
 
 
 static void insert_in_virtual_function_override_list(
@@ -5638,8 +5638,8 @@ member declaration, respectively.
     member_type = error_type();
   } else if (is_abstract_class_type(member_type)) {
     /* Abstract class objects are prohibited (ARM 10.3). */
-    report_abstract_class_object(ec_abstract_class_object_not_allowed,
-                                 member_type, &locator->source_position);
+    report_abstract_class_error(ec_abstract_class_object_not_allowed,
+                                member_type, &locator->source_position);
   }  /* if */
   if (class_state->is_local_class) {
     /* Static data members are not allowed in local classes. */
@@ -6765,8 +6765,8 @@ respectively.
     field_type = error_type();
   } else if (is_abstract_class_type(field_type)) {
     /* Abstract class objects are prohibited (ARM 10.3). */
-    report_abstract_class_object(ec_abstract_class_object_not_allowed,
-                                 field_type, &locator->source_position);
+    report_abstract_class_error(ec_abstract_class_object_not_allowed,
+                                field_type, &locator->source_position);
   } else if (is_incomplete_type(field_type)) {
     /* The member type is incomplete.  This is usually an error, but as
        an extension allow an array of unknown size as the last member. */

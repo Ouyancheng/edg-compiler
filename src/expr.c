@@ -4573,8 +4573,8 @@ specification allow a variable-sized array as the top type.
   } else if (is_abstract_class_type(new_type)) {
     /* The type is an abstract class type, so an object of the type
        cannot be allocated. */
-    report_abstract_class_object(ec_abstract_class_object_not_allowed,
-                                 new_type, &type_position);
+    report_abstract_class_error(ec_abstract_class_object_not_allowed,
+                                new_type, &type_position);
     err = TRUE;
   } else {
     /* Valid type. */
@@ -5339,8 +5339,8 @@ source position of the type.
     }  /* if */
     /* But not a cast to an abstract class. */
     if (skip_typerefs(type_cast_to)->variant.class_struct_union.abstract) {
-      report_abstract_class_object(ec_cast_to_abstract_class, type_cast_to,
-                                   &error_position);
+      report_abstract_class_error(ec_cast_to_abstract_class, type_cast_to,
+                                  &error_position);
       err = TRUE;
     }  /* if */
   } else if (is_array_type(type_cast_to)) {
@@ -8736,8 +8736,8 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
       /* Cannot throw a void expression. */
       error_in_operand(ec_void_throw, &operand);
     } else if (is_abstract_class_type(operand.type)) {
-      report_abstract_class_object(ec_abstract_class_object_not_allowed,
-                                   operand.type, &operand.position);
+      report_abstract_class_error(ec_abstract_class_object_not_allowed,
+                                  operand.type, &operand.position);
       conv_to_error_operand(&operand);
     }  /* if */
   }  /* if */
