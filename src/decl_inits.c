@@ -1232,6 +1232,7 @@ returned set to TRUE.
   a_class_symbol_supplement_ptr     cssp = NULL;
   a_boolean                         nonconstant_allowed;
   a_memory_region_number            region_to_switch_back_to;
+  an_object_lifetime_ptr            expr_temp_lifetime = NULL;
 
   db_enter(3, "initializer");
   /* There are a number of tests to determine whether the variable can take
@@ -1311,6 +1312,14 @@ returned set to TRUE.
     /* The initializer of a static data member is scanned with the original
        class reactivated. */
     push_class_reactivation_scope(symbol_ptr->class_of_which_a_member);
+  } else if (static_lifetime && vp->source_corresp.is_local_to_function &&
+             long_lifetime_temps) {
+    /* This is the initialization of a local static variable, and the user
+       has opted for long-lifetime temporaries.  Push an expr-temporary
+       lifetime to help handle the case. */
+    push_object_lifetime((an_il_entry_kind)iek_none, (char *)NULL,
+                         (an_object_lifetime_kind)olk_expr_temporary);
+    expr_temp_lifetime = curr_object_lifetime;
   }  /* if */
   /* If the initialization is invalid in some way, init_err will be set to
      TRUE.  It will be used to assure that the initialization bound to the
@@ -1504,13 +1513,6 @@ returned set to TRUE.
       vp->init_kind = (an_init_kind)initk_static;
       vp->initializer.constant = init_con;
     }  /* if */
-#if DEBUG
-    if (debug_level >= 3) {
-      db_variable(vp);
-      fputs(",\n", f_debug);
-      db_initializer(vp, 2);
-    }  /* if */
-#endif /* DEBUG */
   }  /* if */
   if (symbol_ptr->kind == (a_symbol_kind)sk_static_data_member) {
     /* The initializer of a static data member was scanned with the original
@@ -1518,7 +1520,29 @@ returned set to TRUE.
     /* Note that this call has to be after the select_destructor call in the
        preceding section of code. */
     pop_class_reactivation_scope();
+  } else if (expr_temp_lifetime != NULL) {
+    check_assertion(expr_temp_lifetime == curr_object_lifetime);
+    if (!is_useless_object_lifetime(expr_temp_lifetime)) {
+      if (init_err) {
+        mark_object_lifetime_as_useless(expr_temp_lifetime);
+      } else {
+        check_assertion(init_dip != NULL);
+        bind_object_lifetime(expr_temp_lifetime,
+                             (an_il_entry_kind)iek_dynamic_init,
+                             (char *)init_dip);
+      }  /* if */
+    }  /* if */
+    pop_object_lifetime();
   }  /* if */
+#if DEBUG
+  if (debug_level >= 3) {
+    if (!var_err) {
+      db_variable(vp);
+      fputs(",\n", f_debug);
+      db_initializer(vp, 2);
+    }  /* if */
+  }  /* if */
+#endif /* DEBUG */
   db_exit();
 }  /* initializer */
 
