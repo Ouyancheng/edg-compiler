@@ -8409,7 +8409,7 @@ continue_with_declaration:
             pos_st_diagnostic(es_discretionary_error,
                               ec_decl_modifiers_invalid_for_this_decl,
                               &locator.source_position,
-                              decl_modifier_names[dmt_selectany]);
+                              decl_modifier_names[(int)dmt_selectany]);
           } else {
             /* Error in initializer. */
           }  /* if */        
