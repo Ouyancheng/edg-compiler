@@ -1,5 +1,16 @@
 Version 2.24
 
+6/26/94 Explicit cast of pointer to too-small integer okay in C
+
+An explicit cast of a pointer to an integral type that's too small to
+contain the pointer is now allowed in C mode.  For example:
+
+  main () {
+    short k;
+    k = (short) "cc";  // Gets warning instead of error now
+  }
+
+
 6/26/94 Fixed spurious error on initialization of const field with ctor
 
 An error was incorrectly issued on not explicitly mentioning a const field

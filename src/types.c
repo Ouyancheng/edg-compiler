@@ -3105,8 +3105,10 @@ conversions (constructors and conversion functions).
        again here to avoid the warning. */
     okay = TRUE;
   } else if (is_pointer(source_type) && is_integral(dest_type) &&
-             dest_of_ptr_cast_big_enough(source_type, dest_type)) {
-    /* Pointer --> integral is okay if the integer is big enough. */
+             (C_mode() ||
+              dest_of_ptr_cast_big_enough(source_type, dest_type))) {
+    /* Pointer --> integral is okay if (a) the integer is big enough or
+       (b) it's not big enough but we're compiling C. */
     okay = TRUE;
   } else if (is_integral(source_type) && is_pointer(dest_type)) {
     /* Integral --> pointer. */
