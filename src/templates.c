@@ -4867,7 +4867,7 @@ another template parameter.
           if (tentatively_matching_template_param_lists(
                            arg_template->cache.decl_info->parameters,
                            tpp->variant.templ->cache.decl_info->parameters,
-                           tpp->variant.templ->
+                           (a_boolean)tpp->variant.templ->
                              variant.class_template.involves_template_param)) {
             tap->variant.templ = specified_tap->variant.templ;
           } else {
@@ -5005,7 +5005,8 @@ match is found.
       param_list = tssp->cache.decl_info->parameters;
       if (tentatively_matching_template_param_lists(
                  param_list_for_templ, param_list,
-                 templ_tssp->variant.class_template.involves_template_param)) {
+                 (a_boolean)templ_tssp->
+                             variant.class_template.involves_template_param)) {
         /* The actual template is tentatively compatible with the template
            template parameter.  See if it is compatible with any previously
            deduced value.  In cases where the template template parameter
