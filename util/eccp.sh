@@ -559,8 +559,10 @@ do
   fi
   if [ $keep_int_file -eq 1 ] ; then
     gen_c_file_name=$basefile.int.c
+    gen_c_obj_name=$basefile.int.o
   else
-    gen_c_file_name=$TMPDIR/$basefile.int.c
+    gen_c_file_name=$TMPDIR/$basefile.$$.int.c
+    gen_c_obj_name=$basefile.$$.int.o
     feoptions=$feoptions" "--gen_c_file_name=$gen_c_file_name
   fi
   command=${CPFE}" "$feoptions" "$cfile
@@ -642,15 +644,18 @@ do
 #       Add resulting .o file to the list of files to be linked.
 #
 	ofiles=$ofiles" "$basefile.o
-	mv $basefile.int.o $basefile.o
+	mv -f $gen_c_obj_name $basefile.o
 #
 #       Add the file to the list of .o files to be removed later.
 #
 	rofiles=$rofiles" "$basefile.o
-	if [ $keep_int_file -eq 0 ]
-	then
-          rm -f $gen_c_file_name
-	fi
+      fi
+#
+#     Remove the .int.c file.
+#
+      if [ $keep_int_file -eq 0 ]
+      then
+        rm -f $gen_c_file_name
       fi
     fi
   fi
