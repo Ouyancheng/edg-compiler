@@ -1,5 +1,28 @@
 Version 2.39
 
+7/3/98    Access checking for protected members in the presence of
+          nondirect virtual base classes
+
+The checking mandated for protected members by section 11.5 of the
+standard was not done correctly in the presence of nondirect virtual
+base classes.  Cases like the following are now fixed:
+
+  class A {
+  protected:
+    int p;
+  };
+  class B: public A {};
+  class D;
+  class C: virtual public B {
+  public:
+    D* mp;
+    void f();
+  };
+  class D: public C {};
+  void C::f() {
+    mp->p = 1;  // Got spurious error previously
+  }
+
 6/29/98   Hidden-name problem with function templates
 
 Function templates were not being handled properly by hidden-name

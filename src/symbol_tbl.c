@@ -6674,6 +6674,45 @@ This is used for the ARM 11.5 protected member access check.
 }  /* have_member_access_to_derived_class */
 
 
+static a_boolean have_member_access_to_some_class_on_derivation(
+                                                          a_base_class_ptr bcp)
+/*
+Return TRUE if we have member access to some class on the derivation of
+the base class bcp.
+*/
+{
+  a_boolean                   have_access = FALSE;
+  a_base_class_derivation_ptr bcdp;
+  a_derivation_step_ptr       dsp;
+
+  /* For each derivation (virtual base classes can have more than one): */
+  for (bcdp = bcp->derivation; bcdp != NULL; bcdp = bcdp->next) {
+    /* For each step on the derivation path, check to see if we have
+       member access to the class. */
+    for (dsp = bcdp->path; dsp != NULL; dsp = dsp->next) {
+      a_base_class_ptr base_class = dsp->base_class;
+      if (is_virtual_but_not_simple_direct_base_class(base_class)) {
+        /* Non-simple virtual base class.  Do a recursive call
+           to process the derivations of the virtual base class. */
+        if (have_member_access_to_some_class_on_derivation(base_class)) {
+          have_access = TRUE;
+          goto have_accessibility;
+        }  /* if */
+      } else {
+        /* Simple base class case. */
+        if (have_member_access_privilege(base_class->type)) {
+          /* Found a class to which we have member access. */
+          have_access = TRUE;
+          goto have_accessibility;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* for */
+have_accessibility:
+  return have_access;
+}  /* have_member_access_to_some_class_on_derivation */
+
+
 void f_check_protected_member_access(a_symbol_ptr      sym_param,
 				     a_source_position *err_pos,
                                      a_type_ptr        access_class)
@@ -6691,13 +6730,10 @@ See the macro check_protected_member_access for a convenient way to invoke
 this function.  This routine is only called for protected nonstatic members.
 */
 {
-  a_boolean                   have_access;
-  a_symbol_ptr		      sym = fundamental_symbol_of(sym_param);
-  a_type_ptr                  class_type;
-  a_type_ptr                  base_class = sym->parent.class_type;
-  a_base_class_ptr            bcp;
-  a_derivation_step_ptr       dsp;
-  a_base_class_derivation_ptr bcdp;
+  a_boolean        have_access;
+  a_symbol_ptr	   sym = fundamental_symbol_of(sym_param);
+  a_type_ptr       base_class = sym->parent.class_type;
+  a_base_class_ptr bcp;
 
   if (access_class == NULL) {
     /* Class is unknown; error. */
@@ -6726,7 +6762,6 @@ this function.  This routine is only called for protected nonstatic members.
     if (have_member_access_privilege(access_class)) {
       /* We have member access to the access_class, so we've found our
          class_type. */
-      class_type = access_class;
       have_access = TRUE;
     } else if (access_class == base_class) {
       /* The endpoints are the same class, so there is no class that meets
@@ -6742,25 +6777,9 @@ this function.  This routine is only called for protected nonstatic members.
                       "f_check_protected_member_access: base class not found");
       }  /* if */
 #endif /* CHECKING */
-      /* For each derivation (virtual base classes can have more than one): */
-      for (bcdp = bcp->derivation; bcdp != NULL; bcdp = bcdp->next) {
-        /* For each step on the derivation path, check to see if we have
-           member access to the class. */
-        for (dsp = bcdp->path; dsp != NULL; dsp = dsp->next) {
-          class_type = dsp->base_class->type;
-          if (have_member_access_privilege(class_type)) {
-            /* Found a class_type that satisfies our requirements, so we
-               have access. */
-            have_access = TRUE;
-            goto have_accessibility;
-          }  /* if */
-        }  /* for */
-      }  /* for */
-      /* We did not find a suitable class, so we do not have access. */
-      have_access = FALSE;
+      have_access = have_member_access_to_some_class_on_derivation(bcp);
     }  /* if */
   }  /* if */
-have_accessibility:
   if (!have_access) {
     /* The fact that this routine is called means that the protected
        member is accessible under the normal rules.  (If an accessibility
