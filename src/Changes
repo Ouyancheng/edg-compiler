@@ -1,5 +1,10 @@
 Version 2.28
 
+1/16/95  Default argument on declaration of operator delete()
+
+Default argument expressions are now allowed for the second parameter of
+an operator delete() declaration.
+
 1/16/95 Name mangling for "long long"
 
 The change to mangle "long long" as "L" (instead of "ll"), which was
