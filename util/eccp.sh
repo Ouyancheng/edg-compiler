@@ -38,6 +38,11 @@ MUNCH=${EDG_MUNCH_PATH-$EDG_BASE/lib/edg_munch}
 #
 EDG_PRELINK=${EDG_PRELINK_PATH-$EDG_BASE/lib/edg_prelink}
 #
+# Default library paths of C to object compiler.  Used by the prelinker
+# to find libraries specified with the -l option.
+#
+EDG_DEFAULT_LIB_PATHS=${EDG_DEFAULT_LIB_PATHS-"-L/lib -L/usr/lib"}
+#
 # Default options to the prelink command (no default value - use environment
 # variable if set)
 #
@@ -657,7 +662,8 @@ then
 #     a way to generate will cause linker errors to be issued later.
 #
       if [ $automatic_instantiation -ne 0 ] ; then
-        $EDG_PRELINK $EDG_PRELINK_DEFAULT_OPTIONS $Loptions -L$LIBDIR \
+        $EDG_PRELINK $EDG_PRELINK_DEFAULT_OPTIONS $EDG_DEFAULT_LIB_PATHS \
+		     $Loptions -L$LIBDIR \
 		     $loptions $ofiles $lfiles \
                      $instantiation_libraries
       fi
