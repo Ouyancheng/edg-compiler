@@ -6363,17 +6363,20 @@ variable, the declaration(s) are processed, and then the original linkage
 specifier is restored.
 */
 {
-  a_name_linkage_kind      kind;
-  a_boolean                err = FALSE;
+  a_name_linkage_kind  kind;
+  a_boolean            err = FALSE;
+  a_source_range       linkage_spec_range;
 
   db_enter(3, "linkage_specification");
   if (decl_scope_level != depth_innermost_namespace_scope) {
     error(ec_linkage_specifier_not_allowed);
     err = TRUE;
   }  /* if */
+  linkage_spec_range.start = pos_curr_token;
   /* Advance to the string literal. */
   (void)get_token();
   check_assertion(curr_token == tok_string_literal);
+  linkage_spec_range.end = end_pos_curr_token;
   /* ARM 7.4 specifies that the strings "C" and "C++" must be supported,
      but that implementations are permitted to add others, such as "Ada"
      or "FORTRAN".  If changes are made here to support other strings, be
@@ -6401,9 +6404,9 @@ specifier is restored.
     add_stop_token(tok_rbrace);
     /* Go through the declarations. */
     while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
-      declaration(function_definition_allowed, /*is_linkage_spec_decl=*/FALSE,
-                  is_old_style_param_decl, /*is_top_level_declaration=*/FALSE,
-                  param_id_list);
+      declaration(function_definition_allowed, is_old_style_param_decl,
+                  /*is_top_level_declaration=*/FALSE, param_id_list,
+                  /*linkage_spec_range_ptr=*/&null_source_range);
     }  /* while */
     /* Restore the default linkage to the value it had before the declaration
        (or declaration list) was processed.  Note that this must be done
@@ -6436,9 +6439,9 @@ specifier is restored.
          object defined withing an `extern "C" {...}' construct is still
          defined and not just declared," and of the example following it,
          where without the braces the variable is not defined. */
-      declaration(function_definition_allowed, /*is_linkage_spec_decl=*/TRUE,
-                  is_old_style_param_decl, is_top_level_declaration,
-                  param_id_list);
+      declaration(function_definition_allowed, is_old_style_param_decl,
+                  is_top_level_declaration, param_id_list,
+                  &linkage_spec_range);
       /* pop_name_linkage will already have been called in declaration
          (before advancing past the end of the declaration, because there
          is a dependency in precompiled header processing on the state
@@ -7345,9 +7348,10 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
                        ss_list_instantiation_insert_point = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         declaration(/*function_definition_allowed=*/TRUE,
-                    /*is_linkage_spec_decl=*/FALSE,
                     /*is_old_style_param_decl=*/FALSE,
-                    /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
+                    /*is_top_level_declaration=*/FALSE,
+                    (a_param_id_ptr)NULL,
+                    /*linkage_spec_range_ptr=*/&null_source_range);
       }  /* while */
       remove_stop_token(tok_rbrace);
       /* Process pragmas associated with the closing brace before the current
@@ -7882,11 +7886,11 @@ error cases.
 }  /* remove_all_local_stop_tokens */
 
 
-void declaration(a_boolean      function_definition_allowed,
-                 a_boolean      is_linkage_spec_decl,
-                 a_boolean      is_old_style_param_decl,
-                 a_boolean      is_top_level_declaration,
-                 a_param_id_ptr param_id_list)
+void declaration(a_boolean       function_definition_allowed,
+                 a_boolean       is_old_style_param_decl,
+                 a_boolean       is_top_level_declaration,
+                 a_param_id_ptr  param_id_list,
+                 a_source_range  *linkage_spec_range_ptr)
 /*
 Scan a declaration (standard, 3.5).  If function_definition_allowed is TRUE,
 alternatively scan a function-definition (3.7.1).  With that flag TRUE, this
@@ -7958,13 +7962,18 @@ of local variables (and types, etc.) of functions and in blocks.
   a_boolean		       access_checks_deferred = FALSE;
   a_boolean                    restrict_qualified = FALSE;
   a_token_kind                 final_token = tok_semicolon;
-  a_boolean                    restore_name_linkage = is_linkage_spec_decl;
+  a_boolean                    is_linkage_spec_decl = FALSE;
+  a_boolean                    restore_name_linkage = FALSE;
   a_decl_pos_block             decl_pos_block;
 
   db_enter(3, "declaration");
 
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, decl_start_pos);
+  if (linkage_spec_range_ptr->start.seq != 0) {
+    is_linkage_spec_decl = TRUE;
+    restore_name_linkage = TRUE;
+  }  /* if */
   if (is_linkage_spec_decl) {
     /* Called in the midst of an ``extern "C"'' declaration, so
        select_curr_construct_pragmas has already been called. */
@@ -8161,6 +8170,13 @@ continue_with_declaration:
     /* push_name_linkage was called in decl_specifiers, and the corresponding
        pop must be done before exiting this routine. */
     restore_name_linkage = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  } else if (is_linkage_spec_decl) {
+    decl_pos_block.specifiers_range.start = linkage_spec_range_ptr->start;
+    if (dso_flags & DSO_NO_DECL_SPECIFIERS) {
+      decl_pos_block.specifiers_range.end = linkage_spec_range_ptr->end;
+    }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   if (dso_flags & DSO_NO_DECL_SPECIFIERS) {
     if (is_linkage_spec_decl) {
@@ -9094,9 +9110,10 @@ Scan a block-level declaration.
 */
 {
   declaration(/*function_definition_allowed=*/FALSE,
-              /*is_linkage_spec_decl=*/FALSE,
               /*is_old_style_param_decl=*/FALSE,
-              /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
+              /*is_top_level_declaration=*/FALSE,
+              (a_param_id_ptr)NULL,
+              /*linkage_spec_range_ptr=*/&null_source_range);
 }  /* local_declaration */
 
 
@@ -9151,9 +9168,10 @@ In C++, however, the declaration list is optional (3.4):
                        ss_list_instantiation_insert_point = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       declaration(/*function_definition_allowed=*/TRUE,
-                  /*is_linkage_spec_decl=*/FALSE,
                   /*is_old_style_param_decl=*/FALSE,
-                  /*is_top_level_declaration=*/TRUE, (a_param_id_ptr)NULL);
+                  /*is_top_level_declaration=*/TRUE,
+                  (a_param_id_ptr)NULL,
+                  /*linkage_spec_range_ptr=*/&null_source_range);
     } /* for */
   }  /* if */
   check_assertion_str2(!header_stop_position_pending, "translation_unit:",
@@ -9178,9 +9196,10 @@ scanning a translation-unit, except there's no diagnostic on the empty file.
   (void)get_token();
   while (curr_token != tok_end_of_source) {
     declaration(/*function_definition_allowed=*/TRUE,
-                /*is_linkage_spec_decl=*/FALSE,
                 /*is_old_style_param_decl=*/FALSE,
-                /*is_top_level_declaration=*/FALSE, (a_param_id_ptr)NULL);
+                /*is_top_level_declaration=*/FALSE,
+                (a_param_id_ptr)NULL,
+                /*linkage_spec_range_ptr=*/&null_source_range);
   }  /* if */
 }  /* scan_implicitly_included_template_definition_file */
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */

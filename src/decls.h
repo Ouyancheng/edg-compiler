@@ -220,11 +220,11 @@ extern a_label_ptr scan_label(a_boolean is_definition);
 
 extern a_boolean scan_name_linkage_string(a_name_linkage_kind *kind);
 
-extern void declaration(a_boolean      function_definition_allowed,
-                        a_boolean      extern_implied,
-                        a_boolean      is_old_style_param_decl,
-                        a_boolean      is_top_level_declaration,
-                        a_param_id_ptr param_id_list);
+extern void declaration(a_boolean       function_definition_allowed,
+                        a_boolean       is_old_style_param_decl,
+                        a_boolean       is_top_level_declaration,
+                        a_param_id_ptr  param_id_list,
+                        a_source_range  *linkage_spec_range_ptr);
 
 extern void local_declaration(void);
 

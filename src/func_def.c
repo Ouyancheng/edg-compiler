@@ -1510,10 +1510,10 @@ associated with the function is returned.
         /* This declaration is checked to make sure the identifier is on the
            param_id_list. */
         declaration(/*function_definition_allowed=*/FALSE, 
-                    /*extern_implied=*/FALSE,
                     /*is_old_style_param_decl=*/TRUE,
                     /*is_top_level_declaration=*/FALSE, 
-                    func_info->param_id_list);
+                    func_info->param_id_list,
+                    /*linkage_spec_range_ptr=*/&null_source_range);
       }  /* while */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       terminate_param_source_sequence_sublist(func_info, ss_entry_start_prev);
