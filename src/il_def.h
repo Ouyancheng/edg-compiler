@@ -1980,9 +1980,14 @@ enum an_expr_operator_kind_tag {
                            substring (i.e., the characters themselves). */
 #endif /* ifdef FIL */
   /* The following have n operands: */
-  eok_call,             /* A call to a function or a subroutine.  The first
+  eok_call,             /* A call of a function or a subroutine.  The first
                            operand is the routine and the rest are its
-                           operands. */
+                           arguments. */
+#ifdef CIL
+  eok_virtual_call,	/* A call of a C++ virtual function.  The first operand
+			   is the routine, the second is the object, and
+			   the rest are the other arguments. */
+#endif /* ifdef CIL */
 #ifdef FIL
   eok_fsubscript,       /* Fortran subscripting operation.  The first operand
                            is the array address; the rest are the subscripts.
@@ -2987,6 +2992,9 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "(:)", "v(:)",
 #endif /* ifdef FIL */
    "call",
+#ifdef CIL
+   "virtcall",
+#endif /* ifdef CIL */
 #ifdef FIL
    "()", "v()",
 #endif /* ifdef FIL */
