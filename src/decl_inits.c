@@ -1606,7 +1606,7 @@ variable did not require dynamic initialization, if which case the lifetime
 is not needed.
 */
 {
-  a_boolean  suppress_warning = TRUE;
+  a_boolean  suppress_warning;
 
   check_assertion(local_static_lifetime == curr_object_lifetime);
   if (err || local_static_var_init == NULL ||
