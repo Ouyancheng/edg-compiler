@@ -1,5 +1,28 @@
 Version 2.36
 
+5/19/97   Missing diagnostic on const member of nested anonymous union
+
+A warning is now issued when an anonymous union has a const member and is
+nested within a class for which no constructor is explicitly declared:
+
+  struct S {
+    union {
+      const int i, j;
+    };
+  };
+
+5/19/97   Abort with const member of nested anonymous union
+
+An internal error has been fixed (along with a spurious diagnostic) in
+processing an anonymous union that has a const member and is nested inside
+another union:
+
+  union U {
+    union {
+      int const A;
+    };
+  };
+
 5/16/97   Disallow union member with copy assignment operator in cfront 3.0
           mode
 
