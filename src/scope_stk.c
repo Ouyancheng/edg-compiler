@@ -1827,11 +1827,26 @@ they should be used for the outermost instantiation scope.
       push_namespace_extension_scope(reference_nsp);
     }  /* if */
   }  /* if */
-  /* The context scope is the innermost namespace scope at this point. */
-  context_depth = depth_innermost_namespace_scope;
+  /* The context scope is the innermost namespace scope at this point,
+     except when the referencing namespace is the file scope (because
+     the file scope cannot be reactivated). */
+  if (reference_nsp != NULL) {
+    context_depth = depth_innermost_namespace_scope;
+  } else {
+    context_depth = DEPTH_OF_FILE_SCOPE;
+  }  /* if */
   /* Push the namespace(s) containing the definition of the template. */
   if (definition_nsp != NULL) {
-    common_depth = find_depth_of_common_scope(definition_nsp);
+    /* The common depth is the innermost scope that is both part of the
+       context and part of the definition scope.  The normal processing
+       for this assumes that the referencing context was pushed above,
+       which is not the case for the file scope.  When the referencing
+       context is the file scope, the common scope is also the file scope. */
+    if (reference_nsp == NULL) {
+      common_depth = DEPTH_OF_FILE_SCOPE;
+    } else {
+      common_depth = find_depth_of_common_scope(definition_nsp);
+    }  /* if */
     common_nsp = scope_stack[common_depth].assoc_namespace;
     if (common_nsp == definition_nsp) {
       if (common_depth != depth_scope_stack) {

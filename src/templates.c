@@ -1468,6 +1468,58 @@ with that partial specialization; otherwise return NULL.
 }  /* check_partial_specializations */
 
 
+static a_namespace_ptr determine_referencing_namespace(void)
+/*
+Determine the referencing namespace for a template that is to be
+instantiated.  For a template that is not instantiated because of a
+reference within another template, this is the nearest enclosing
+namespace.  For a template that is instantiated because of a reference
+within another template, this is the referencing namespace of the
+enclosing template.
+*/
+{
+  a_namespace_ptr	result = NULL;
+  a_scope_depth		depth;
+  a_symbol_ptr		instance_sym = NULL;
+
+  for (depth = depth_scope_stack; depth >= 0; depth--) {
+    a_scope_stack_entry_ptr	ssep = scope_stack_entry_for(depth);
+    /* Find a template instantiation scope with an associated instance
+       symbol.  Some scopes, such as scopes for the partial instantiation
+       of a template function, do not have instance symbols and are ignored. */
+    if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+      instance_sym = ssep->instance_sym;
+      if (instance_sym != NULL) break;
+    }  /* if */
+  }  /* for */
+  if (instance_sym == NULL) {
+    /* Either no instantiation scopes, or only instantiation scopes
+       with NULL instance symbols.  Just use the innermost namespace
+       scope. */
+    result = scope_stack[depth_innermost_namespace_scope].assoc_namespace;
+  } else if (is_class_struct_union_symbol(instance_sym)) {
+    /* The entity is a class.  Get the referencing namespace from the
+       class symbol supplement. */
+    result = instance_sym->variant.class_struct_union.extra_info->
+                                                        referencing_namespace;
+  } else {
+    /* The entity is a function or static data member.  Get the referencing
+       namespace from the template instance. */
+    a_template_instance_ptr	tip;
+    if (is_function_symbol(instance_sym)) {
+      tip = instance_sym->variant.routine.instance_ptr;
+    } else {
+      check_assertion(instance_sym->kind ==
+                                        (a_symbol_kind)sk_static_data_member);
+      tip = instance_sym->variant.static_data_member.instance_ptr;
+    }  /* if */
+    check_assertion(tip != NULL);
+    result = tip->referencing_namespace;
+  }  /* if */
+  return result;
+}  /* determine_referencing_namespace */
+
+
 void f_instantiate_template_class(a_type_ptr  class_type)
 /*
 class_type is an incomplete class type.  If it is an instance of a class
@@ -1506,8 +1558,7 @@ might not be able to if the template itself has not yet been defined.
   cssp = instance_sym->variant.class_struct_union.extra_info;
   /* Record the namespace that is the "referencing context" namespace for
      this instantiation. */
-  cssp->referencing_namespace =
-                 scope_stack[depth_innermost_namespace_scope].assoc_namespace;
+  cssp->referencing_namespace = determine_referencing_namespace();
   template_sym = template_symbol_for_class_symbol(instance_sym);
   if (template_sym == NULL) {
     /* Not a class based on a class template. */
@@ -2015,7 +2066,7 @@ A pointer to the head of the list is returned in tcsp.
   /* Record the namespace that is the "referencing context" namespace for
      this instantiation.  For the prototype instantiation this is the
      same as the namespace in which the template was defined. */
-  cssp->referencing_namespace =
+  cssp->referencing_namespace = 
                  scope_stack[depth_innermost_namespace_scope].assoc_namespace;
   (void)push_template_instantiation_scope(tssp->cache.decl_info,
 					  prototype_type,
@@ -11160,7 +11211,7 @@ defer_inline is TRUE.
   sym = tip->instance_sym;
   tssp = template_supplement_for_symbol(tip->template_sym);
 #if DEBUG
-  if (debug_level >= 5) {
+  if (debug_level >= 5 || db_flag_is_set("uirf")) {
     a_symbol_ptr sym = tip->instance_sym;
     fprintf(f_debug, "Setting instantiation_required flag to %s for ",
             value ? "TRUE" : "FALSE");
@@ -11214,8 +11265,7 @@ defer_inline is TRUE.
     tip->instantiation_required = TRUE;
     if (!flag_already_set) {
       /* Record the namespace from which this instantiation is first used. */
-      tip->referencing_namespace =
-                  scope_stack[depth_innermost_namespace_scope].assoc_namespace;
+      tip->referencing_namespace = determine_referencing_namespace();
     }  /* if */
     if (!defer_inline && is_inline_template_function(tip)) {
       if (!tip->already_instantiated &&

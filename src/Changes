@@ -1,5 +1,29 @@
 Version 2.37
 
+10/7/97   Revision to lookup of names in template instantiations
+
+The lookup rules for names referenced in template instantiations have
+been updated to more closely reflect what is in the Working Paper
+(although they still don't fully reflect the Working Paper rules).
+When a template (call it A) is instantiated because of a reference
+from another template (call it B), the "referencing namespace" for
+template A is the referencing namespace for template B.  Formerly, we
+used the definition namespace of template B as the referencing namespace
+for template A.  This could result in name lookup failures when such
+transitive instantiations are performed.
+
+Prior to this change, the lookup of f from N::h failed.
+
+  template <class T> inline void f(T){}
+  namespace N {
+    template <class T> inline void f(T,T){}
+    template <class T> inline void h(T t){ f(t); }
+    template <class T> inline void g(T t){ h(t); }
+  }
+  int main() {
+    N::g(1);
+  }
+
 10/6/97   Abort on declaration of pointer to member of type pointer to function
 
 A bug has been fixed that caused the front end to abort when scanning a
