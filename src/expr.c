@@ -6472,10 +6472,7 @@ C-style casts and C++ functional-notation type conversions.
                                                       is_simple_string_literal,
                                             operand_con, type_cast_to,
                                             ec_bad_cast, &warning_suggested)) {
-          /* Valid explicit conversion.  Issue warning on oddball cases. */
-          if (warning_suggested != ec_no_error) {
-            pos_warning(warning_suggested, start_position);
-          }  /* if */
+          /* Valid explicit conversion. */
           if (microsoft_bugs && is_an_lvalue(operand) &&
               identical_types(source_type, type_cast_to)) {
             /* In Microsoft mode, a cast of an lvalue to the same type
@@ -6499,7 +6496,10 @@ C-style casts and C++ functional-notation type conversions.
                case). */
             lvalue_cast(type_cast_to, operand);
           } else {
-            /* Not an lvalue cast. */
+            /* Not an lvalue cast.  Issue warning on oddball cases. */
+            if (warning_suggested != ec_no_error) {
+              pos_warning(warning_suggested, start_position);
+            }  /* if */
             /* Convert lvalue --> rvalue unless casting to a reference type
                (in that case, the operand has already been turned into a
                pointer; the conversion here wouldn't hurt, but it's not

@@ -6217,7 +6217,8 @@ C mode.
      changes in representation, and are not lvalue-preserving. */
   if (identical_types(type_cast_to, type_before_cast)) {
     /* Same type, operand stays an lvalue.  This applies in pcc mode,
-       SVR4 C mode, and in both C and C++ in Microsoft mode. */
+       SVR4 C mode, and in Microsoft C mode (it also applies in Microsoft
+       C++ mode, but that case doesn't get to this routine). */
     is_still_an_lvalue = TRUE;
   } else if (is_floating_type(type_before_cast) ||
              is_floating_type(type_cast_to)) {
@@ -6231,11 +6232,13 @@ C mode.
     is_still_an_lvalue = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode &&
-             is_integral_or_enum_type(type_before_cast) &&
+             (is_integral_or_enum_type(type_before_cast) ||
+              is_pointer_type(type_before_cast)) &&
              is_integral_or_enum_type(type_cast_to)) {
     /* In Microsoft C mode lvalue casts involving integral types of different
        sizes are allowed -- e.g.,
          long l; ++(char)l;   // affects only the low-order 8 bits
+       Also casts of pointer types to integral type.
     */
     is_still_an_lvalue = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
