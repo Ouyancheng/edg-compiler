@@ -140,12 +140,12 @@ the two use separate code.
     a_vla_allocation_ptr  allocation = &curr_vla_pool->allocations[alloc_idx];
     if ((char*)&alloc_idx > (char*)ptr) {
       /* The call stack grows with increasing addresses. */
-      if ((char*)allocation->vla_var < (char*)&alloc_idx) {
+      if ((char*)allocation->vla_var < (char*)ptr) {
         break;
       }  /* if */
     } else {
       /* The call stack grows with decreasing addresses. */
-      if ((char*)allocation->vla_var > (char*)&alloc_idx) {
+      if ((char*)allocation->vla_var > (char*)ptr) {
         break;
       }  /* if */
     }  /* if */
