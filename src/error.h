@@ -394,7 +394,8 @@ typedef enum /*an_error_code*/ {
   ec_too_many_args_for_operator,
   ec_too_few_args_for_operator,
   ec_no_args_with_class_type,
-  ec_default_arg_expr_not_allowed
+  ec_default_arg_expr_not_allowed,
+  ec_ambiguous_conversion_constructor
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

@@ -1009,7 +1009,7 @@ error code.
       m = "cannot overload functions distinguished by return type alone";
       break;
     case ec_no_conversion_constructor:
-      m = "expression conversion cannot be done -- no appropriate constructor";
+      m = "no appropriate constructor or conversion function exists";
       break;
     case ec_function_qualifier_not_allowed:
       m = "const or volatile qualifier on this function is not allowed";
@@ -1120,6 +1120,9 @@ error code.
       break;
     case ec_default_arg_expr_not_allowed:
       m = "default argument is not allowed";
+      break;
+    case ec_ambiguous_conversion_constructor:
+      m = "more than one constructor or conversion function applies";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
