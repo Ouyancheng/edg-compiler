@@ -35,6 +35,7 @@ NEED_IL_DISPLAY and a call of il_display should be added in the front end.
 */
 #if NEED_IL_DISPLAY
 
+#include "target.h"
 #include "il_display.h"
 #include "debug.h"
 #include "il.h"
@@ -134,7 +135,7 @@ Print the string at string_ptr, whose length is string_length.
         putchar(ch);
       } else {
         (void)printf("\\%03o",
-                     (unsigned int)(ch&((1<<TARG_HOST_STRING_CHAR_BIT)-1)));
+                     (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
       }  /* if */
     }  /* for */
     putchar('"');
