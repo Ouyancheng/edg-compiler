@@ -913,6 +913,7 @@ ec_incomplete_return_type;;"function returns incomplete type %t"
 ec_local_pragma_pack;;"effect of this \"#pragma pack\" directive is local to %n"
 ec_str_not_a_class_template;;"%s is not a class template"
 ec_friend_partial_specialization;;"a friend declaration may not declare a partial specialization"
+ec_exception_specification_ignored;;"exception specification ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
