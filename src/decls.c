@@ -4794,7 +4794,7 @@ otherwise it is NULL.  The syntax is:
   a_type_ptr      bottom_pointer_derived_type;
   a_source_position
                   declarator_pos;
-  a_boolean       is_member_function_def = FALSE;
+  a_boolean       is_member_def = FALSE;
   a_boolean       real_declarator_allowed;
   a_boolean       abstract_declarator_allowed;
   a_boolean       is_name_start;
@@ -4980,7 +4980,7 @@ otherwise it is NULL.  The syntax is:
                 /* It is a member function.  Save information about the class
                    needed to reopen the class scope if a function declarator
                    is scanned. */
-                is_member_function_def = TRUE;
+                is_member_def = TRUE;
                 parenthesized_initializer_allowed = FALSE;
                 if (is_constructor_symbol(sym)) {
                   is_constructor = TRUE;
@@ -4995,6 +4995,8 @@ otherwise it is NULL.  The syntax is:
                     complete_type = unknown_type();
                   }  /* if */
                 }  /* if */
+              } else if (sym->kind == (a_symbol_kind)sk_static_data_member) {
+                is_member_def = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */
@@ -5231,7 +5233,7 @@ otherwise it is NULL.  The syntax is:
         }  /* if */
       }  /* if */
 function_lparen:
-      if (is_member_function_def) {
+      if (is_member_def) {
         /* The parameters of member functions are scanned with the original
            class reactivated. */
         push_class_reactivation_scope(member_parent_type);
@@ -5278,10 +5280,15 @@ function_lparen:
       function_declarator(&new_type_ptr, func_info, locator,
                           member_parent_type, is_nonstatic_member_function,
                           is_constructor, is_destructor);
-      if (is_member_function_def) {
+      if (is_member_def) {
         pop_class_reactivation_scope();
       }  /* if */
     } else {
+      if (is_member_def) {
+        /* The dimensions of static data members are scanned with the original
+           class reactivated. */
+        push_class_reactivation_scope(member_parent_type);
+      }  /* if */
       /* Left bracket, indicating array declarator. */
       if (nonconstant_dimension_allowed) {
         /* In C++ a array declarator that appears in an operator new()
@@ -5292,6 +5299,9 @@ function_lparen:
       } else {
         /* The normal case. */
         array_declarator(&new_type_ptr);
+      }  /* if */
+      if (is_member_def) {
+        pop_class_reactivation_scope();
       }  /* if */
     }  /* if */
     /* Add the new type to the bottom of the existing derived type list.
