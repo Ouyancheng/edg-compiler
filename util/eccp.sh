@@ -272,7 +272,7 @@ pch_test_mode=0
 #
 # Debug option that causes nm to be run on object files
 #
-nm_on_objects=0_
+nm_on_objects=0
 #
 # The name of the instantiation information file was explicitly specified
 #
