@@ -172,7 +172,9 @@ extern a_constant_ptr alloc_shareable_constant(a_constant *cp);
 
 extern void add_to_constants_list(a_constant_ptr con_ptr);
 
-extern void add_shareable_constants_to_constants_list(void);
+extern void empty_shareable_constants_table(void);
+
+extern void empty_func_shareable_constants_table(void);
 
 extern void set_integer_constant(a_constant      *cp,
                                  long            value,

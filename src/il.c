@@ -1039,87 +1039,66 @@ void db_initializer(a_variable_ptr  var,
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+/*
+Macro to increment the entry number allocation count only if DEBUG
+is TRUE.  Used in do_alloc.
+*/
+#if DEBUG
+#define incr_num_il_entry_numbers_allocated()                         \
+  num_il_entry_numbers_allocated++
+#else /* !DEBUG */
+#define incr_num_il_entry_numbers_allocated() /* Do nothing */
+#endif /* DEBUG */
+
 #if ALTERNATE_IL_FILE_FORMAT
 /*
 For the alternate IL file format, each entry's allocation must be preceded
 by an entry number, which is initialized to zero here.
 */
-#if IL_WALK_NEEDED
-/*
-Orphaned file scope IL entries need to be chained together to ensure that
-they will be visited when the IL is walked during writing, reading
-or display.  That pointer used to chain like IL entry types together
-precedes the IL entry and follows the IL entry number.
-*/
-#if DEBUG
-#define do_alloc(ptr, region_number, size)                            \
-{ ptr = alloc_in_region((region_number),                              \
-                         (sizeof_t)((size)+sizeof(an_il_entry_number)+\
-        (region_number==FILE_SCOPE_REGION_NUMBER?sizeof(char *):0))); \
-  *(an_il_entry_number *)ptr = 0;                                     \
-  num_il_entry_numbers_allocated++;                                   \
-  ptr += sizeof(an_il_entry_number);                                  \
-  if (region_number == FILE_SCOPE_REGION_NUMBER) {                    \
-    *(char **)ptr = (char *)NULL;                                     \
-    ptr += sizeof(char *);                                            \
-  }                                                                   \
-}  /* do_alloc */
-#else /* !DEBUG */
-#define do_alloc(ptr, region_number, size)                            \
-{ ptr = alloc_in_region((region_number),                              \
-                         (sizeof_t)((size)+sizeof(an_il_entry_number)+\
-        (region_number==FILE_SCOPE_REGION_NUMBER?sizeof(char *):0))); \
-  *(an_il_entry_number *)ptr = 0;                                     \
-  ptr += sizeof(an_il_entry_number);                                  \
-  if (region_number == FILE_SCOPE_REGION_NUMBER) {                    \
-    *(char **)ptr = (char *)NULL;                                     \
-    ptr += sizeof(char *);                                            \
-  }                                                                   \
-}  /* do_alloc */
-#endif /* DEBUG */
-#else /* !(IL_WALK_NEEDED */
-#if DEBUG
 #define do_alloc(ptr, region_number, size)                            \
 { ptr = alloc_in_region((region_number),                              \
                          (sizeof_t)((size)+sizeof(an_il_entry_number))); \
   *(an_il_entry_number *)ptr = 0;                                     \
-  num_il_entry_numbers_allocated++;                                   \
+  incr_num_il_entry_numbers_allocated();                              \
   ptr += sizeof(an_il_entry_number);                                  \
 }  /* do_alloc */
-#else /* !DEBUG */
-#define do_alloc(ptr, region_number, size)                            \
-{ ptr = alloc_in_region((region_number),                              \
-                         (sizeof_t)((size)+sizeof(an_il_entry_number))); \
-  *(an_il_entry_number *)ptr = 0;                                     \
-  ptr += sizeof(an_il_entry_number);                                  \
-}  /* do_alloc */
-#endif /* DEBUG */
-#endif /* IL_WALK_NEEDED */
 #else /* !ALTERNATE_IL_FILE_FORMAT */
 /*
 For the usual IL file format, or when no IL file is written, no extra space
 is required.
 */
+#define do_alloc(ptr, region_number, size)                            \
+  ptr = alloc_in_region((region_number), (size))
+#endif /* ALTERNATE_IL_FILE_FORMAT */
+
 #if IL_WALK_NEEDED
 /*
 Orphaned file scope IL entries need to be chained together to ensure that
-they will be visited when the IL is walked during writing, reading or
-display.  That pointer used to chain like IL entry types together precedes
-the IL entry.
+they will be visited when the IL is walked during writing, reading
+or display.  That pointer used to chain like IL entry types together
+precedes the IL entry (and follows the IL entry number if there is one).
+The pointer is only needed in file-scope allocations.
 */
-#define do_alloc(ptr, region_number, size)                            \
-{ ptr = alloc_in_region((region_number), (sizeof_t)((size)+           \
-        (region_number==FILE_SCOPE_REGION_NUMBER?sizeof(char *):0))); \
-  if (region_number == FILE_SCOPE_REGION_NUMBER) {                    \
-    *(char **)ptr = (char *)NULL;                                     \
-    ptr += sizeof(char *);                                            \
-  }                                                                   \
+#define do_fs_alloc(ptr, size)                                        \
+{ do_alloc(ptr, FILE_SCOPE_REGION_NUMBER, size+sizeof(char *));       \
+  *(char **)ptr = (char *)NULL;                                       \
+  ptr += sizeof(char *);                                              \
 }  /* do_alloc */
-#else /* !(IL_WALK_NEEDED */
-#define do_alloc(ptr, region_number, size)                            \
-  ptr = alloc_in_region((region_number), (size))
+#define do_any_alloc(ptr, region_number, size)                        \
+{ if (region_number == FILE_SCOPE_REGION_NUMBER) {                    \
+    do_fs_alloc(ptr, size);                                           \
+  } else {                                                            \
+    do_alloc(ptr, region_number, size);                               \
+  }  /* if */                                                         \
+}  /* do_any_alloc */
+#else /* !IL_WALK_NEEDED */
+/* No space needed for next-orphan pointer.  Allocation in the file scope
+   is the same as allocation in any other region. */
+#define do_fs_alloc(ptr, size)                                        \
+  do_alloc(ptr, FILE_SCOPE_REGION_NUMBER, size)
+#define do_any_alloc(ptr, region_number, size)                        \
+  do_alloc(ptr, region_number, size)
 #endif /* IL_WALK_NEEDED */
-#endif /* ALTERNATE_IL_FILE_FORMAT */
 
 
 char *alloc_il(sizeof_t size)
@@ -1128,8 +1107,8 @@ Allocate and return "size" bytes of storage in the file scope memory region.
 */
 {
   char *ptr;
-  do_alloc(ptr, FILE_SCOPE_REGION_NUMBER, size);
-  return (ptr);
+  do_fs_alloc(ptr, size);
+  return ptr;
 }  /* alloc_il */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -1140,39 +1119,9 @@ Allocate and return "size" bytes of storage in the current IL memory region.
 */
 {
   char *ptr;
-  do_alloc(ptr, curr_il_region_number, size);
-  return (ptr);
-}  /* alloc_cil */
-
-
-static char *alloc_same_region_il(sizeof_t size,
-                                  char     *existing_ptr)
-/*
-Allocate and return "size" bytes of storage in the same memory region that
-existing_ptr is in.
-*/
-{
-  char                   *ptr;
-  a_memory_region_number region_number;
-
-  if (in_file_scope((char *)existing_ptr)) {
-    region_number = FILE_SCOPE_REGION_NUMBER;
-  } else {
-    /* Since the pointer is not in the file scope, assume it is in the
-       current function scope memory region.  Note that the
-       curr_il_region_number is not necessarily currently set to that
-       function scope memory region; it might be set to the file scope
-       temporarily. */
-    region_number = scope_stack[depth_scope_stack].il_memory_region;
-#if CHECKING
-    if (region_number == FILE_SCOPE_REGION_NUMBER) {
-      internal_error("alloc_same_region_il: cannot find region");
-    }  /* if */
-#endif /* CHECKING */
-  }  /* if */
-  do_alloc(ptr, region_number, size);
+  do_any_alloc(ptr, curr_il_region_number, size);
   return ptr;
-}  /* alloc_same_region_il */
+}  /* alloc_cil */
 
 
 void switch_il_region(a_memory_region_number region_number)
@@ -1902,53 +1851,55 @@ region).
 */
 {
   a_boolean has_nfs_ref = FALSE;
-  if (!in_file_scope((char *)cp->type)) {
-    /* The constant's type is in a function scope (probably because of
-       an implicit cast). */
-    has_nfs_ref = TRUE;
-  } else {
-    switch (cp->kind) {
-      case ck_error:
-      case ck_integer:
-      case ck_float:
-        /* No references. */
-        break;
-      case ck_string:
-        has_nfs_ref = !in_file_scope(cp->variant.string.value);
-        break;
-      case ck_address:
-        switch (cp->variant.address.kind) {
-          case abk_routine:
-            has_nfs_ref =
-                   !in_file_scope((char *)cp->variant.address.variant.routine);
-            break;
-          case abk_variable:
-            has_nfs_ref =
-                  !in_file_scope((char *)cp->variant.address.variant.variable);
-            break;
-          case abk_constant:
-            has_nfs_ref =
+
+  /* cp->type is always in the file scope. */
+  switch (cp->kind) {
+    case ck_error:
+    case ck_integer:
+    case ck_float:
+      /* No references. */
+      break;
+    case ck_string:
+      /* String texts are always in the file scope. */
+      break;
+    case ck_address:
+      switch (cp->variant.address.kind) {
+        case abk_routine:
+          /* Routines are always in the file scope. */
+          break;
+        case abk_variable:
+          /* Static variables are always allocated in the file scope, and
+             they are the only kind of variables whose address can be used
+             in a constant address. */
+#if CHECKING
+          if (!has_static_storage_duration(
+                        cp->variant.address.variant.variable->storage_class)) {
+            internal_error("has_non_file_scope_ref: non-static var");
+          }  /* if */
+#endif /* CHECKING */
+          break;
+        case abk_constant:
+          has_nfs_ref =
                   !in_file_scope((char *)cp->variant.address.variant.constant);
-            break;
+          break;
 #if CHECKING
-          default:
-            internal_error("has_non_file_scope_ref: bad addr constant kind");
+        default:
+          internal_error("has_non_file_scope_ref: bad addr constant kind");
 #endif /* CHECKING */
-        }  /* switch */
-        break;
-      case ck_ptr_to_member:
-        /* Class types are allocated at the file scope, so they cannot involve
-           non-file-scope references. */
-        break;
+      }  /* switch */
+      break;
+    case ck_ptr_to_member:
+      /* The class type and the object (if any) pointed to must be in the
+         file scope. */
+      break;
 #if CHECKING
-      case ck_aggregate:
-        /* Aggregates shouldn't be shared, so we don't expect them here. */
-      default:
-        internal_error("has_non_file_scope_ref: bad constant kind");
+    case ck_aggregate:
+      /* Aggregates shouldn't be shared, so we don't expect them here. */
+    default:
+      internal_error("has_non_file_scope_ref: bad constant kind");
 #endif /* CHECKING */
-    }  /* switch */
-  }  /* if */
-  return (has_nfs_ref);
+  }  /* switch */
+  return has_nfs_ref;
 }  /* has_non_file_scope_ref */
 
 
@@ -2099,6 +2050,52 @@ put it on a list of constants).
 }  /* alloc_shareable_constant */
 
 
+void empty_shareable_constants_table(void)
+/*
+Empty out the file-scope shareable constants table and liberate the
+constants therein by clearing their "next" fields.  This is called at
+the end of compilation, when the shareable constants table is no
+longer needed.  Note that the information in the table is not needed
+to produce the debug space summary for the shareable constants table --
+there are separate variables that are set already.
+*/
+{
+  a_constant_ptr        scp, next_scp;
+  a_constant_hash_value hash_value;
+
+  /* For each bucket of the hash table ... */
+  for (hash_value = 0;
+       hash_value < SIZE_SHAREABLE_CONSTANTS_TABLE;
+       hash_value++) {
+    /* For each entry on the linked list for that bucket ... */
+    for (scp = shareable_constants_table[hash_value];
+         scp != NULL;
+         scp = next_scp) {
+      next_scp = scp->next;
+      scp->next = NULL;
+    }  /* for */
+    shareable_constants_table[hash_value] = NULL;
+  }  /* for */
+}  /* empty_shareable_constants_table */
+
+
+void empty_func_shareable_constants_table(void)
+/*
+Empty out the function-scope shareable constants table (actually, it's a
+list), and liberate the constants therein by clearing their "next" fields.
+*/
+{
+  a_constant_ptr scp, next_scp;
+
+  scp = scope_stack[depth_innermost_function_scope].shareable_constants_list;
+  for (; scp != NULL; scp = next_scp) {
+    next_scp = scp->next;
+    scp->next = NULL;
+  }  /* for */
+  scope_stack[depth_innermost_function_scope].shareable_constants_list = NULL;
+}  /* empty_func_shareable_constants_table */
+
+
 void add_to_constants_list(a_constant_ptr con_ptr)
 /*
 Add the given constant to the constants list for the file scope (not the
@@ -2123,35 +2120,6 @@ end of compilation) for shareable constants.
   ssep->last_constant = con_ptr;
   con_ptr->next = NULL;
 }  /* add_to_constants_list */
-
-
-void add_shareable_constants_to_constants_list(void)
-/*
-Add the constants in the shareable constants table to the file-scope
-constants list.  This is called at the end of compilation, when the
-shareable constants table is no longer needed (the table is cleared).
-Note that the information in the table is not needed to produce the
-debug space summary for the shareable constants table -- there are
-separate variables that are set already.
-*/
-{
-  a_constant_ptr        scp, next_scp;
-  a_constant_hash_value hash_value;
-
-  /* For each bucket of the hash table ... */
-  for (hash_value = 0;
-       hash_value < SIZE_SHAREABLE_CONSTANTS_TABLE;
-       hash_value++) {
-    /* For each entry on the linked list for that bucket ... */
-    for (scp = shareable_constants_table[hash_value];
-         scp != NULL;
-         scp = next_scp) {
-      next_scp = scp->next;
-      add_to_constants_list(scp);
-    }  /* for */
-    shareable_constants_table[hash_value] = NULL;
-  }  /* for */
-}  /* add_shareable_constants_to_constants_list */
 
 
 void set_integer_constant(a_constant      *cp,
@@ -2887,11 +2855,6 @@ on the specified member and class types.
   a_type_ptr  tp;
 
   tp = alloc_type((a_type_kind)tk_ptr_to_member);
-#if CHECKING
-  if (member_type != NULL && !in_file_scope((char *)member_type)) {
-    internal_error("ptr_to_member_type: member type not in file scope");
-  }  /* if */
-#endif /* CHECKING */
   tp->variant.ptr_to_member.type = member_type;
   tp->variant.ptr_to_member.class_of_which_a_member = class_type;
   /* If member_type is NULL we are creating an incomplete type; otherwise,
@@ -2941,9 +2904,8 @@ there is already an entry of the indicated kind on the list.
 {
   a_based_type_list_member_ptr btlmp;
 
-  btlmp = (a_based_type_list_member_ptr)alloc_same_region_il(
-                                              sizeof(a_based_type_list_member),
-                                              (char *)base_type);
+  btlmp = (a_based_type_list_member_ptr)alloc_il(
+                                             sizeof(a_based_type_list_member));
 #if DEBUG
   num_based_type_list_members_allocated++;
 #endif /* DEBUG */
@@ -2970,11 +2932,6 @@ an existing entry if possible.
   ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_pointer);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
-#if CHECKING
-    if (!in_file_scope((char *)type_pointed_to)) {
-      internal_error("make_pointer_type: type pointed to not in file scope");
-    }  /* if */
-#endif /* CHECKING */
     ptr = alloc_type((a_type_kind)tk_pointer);
     ptr->variant.pointer.type = type_pointed_to;
     set_type_size(ptr);
@@ -3003,11 +2960,6 @@ an existing entry if possible.
   ptr = get_based_type(type_pointed_to, (a_based_type_kind)btk_reference);
   if (ptr == NULL) {
     /* No allocated entry, need to allocate one. */
-#if CHECKING
-    if (!in_file_scope((char *)type_pointed_to)) {
-      internal_error("make_reference_type: type pointed to not in file scope");
-    }  /* if */
-#endif /* CHECKING */
     ptr = alloc_type((a_type_kind)tk_pointer);
     ptr->variant.pointer.type = type_pointed_to;
     ptr->variant.pointer.is_reference = TRUE;
@@ -4065,6 +4017,8 @@ the same effect), and return a pointer to the new expression.
     /* Address of variable becomes value of variable. */
     node->kind = (an_expr_node_kind)enk_variable;
     node->type = node->variant.variable->type;
+  } else if (node->kind == (an_expr_node_kind)enk_error) {
+    /* Error node -- leave alone. */
   } else {
     /* For other cases, add an indirection operator. */
     node = make_operator_node((an_expr_operator_kind)eok_indirect,
