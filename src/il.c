@@ -223,23 +223,6 @@ Return a pointer to a string describing the float type indicated by kind.
 }  /* db_float_type_name */
 
 
-void db_name(a_source_correspondence *sc)
-/*
-Dump the name from a source correspondence (if any).
-*/
-{
-  if (sc->name != NULL) {
-    if (sc->class_of_which_a_member != NULL) {
-      db_name(&sc->class_of_which_a_member->source_corresp);
-      fputs("::", f_debug);
-    }  /* if */
-    fputs(sc->name, f_debug);
-  } else {
-    fputs("(null)", f_debug);
-  }  /* if */
-}  /* db_name */
-
-
 static void db_template_arg_list(a_template_arg_ptr tap)
 /*
 Dump a list of template arguments, enclosed by angle brackets.
@@ -275,6 +258,23 @@ template, dump the template arguments, too.
     if (ctsp != NULL) db_template_arg_list(ctsp->template_arg_list);
   }  /* if */
 }  /* db_type_name */
+
+
+void db_name(a_source_correspondence *sc)
+/*
+Dump the name from a source correspondence (if any).
+*/
+{
+  if (sc->name != NULL) {
+    if (sc->class_of_which_a_member != NULL) {
+      db_type_name(sc->class_of_which_a_member);
+      fputs("::", f_debug);
+    }  /* if */
+    fputs(sc->name, f_debug);
+  } else {
+    fputs("(null)", f_debug);
+  }  /* if */
+}  /* db_name */
 
 
 static void db_name_linkage(a_source_correspondence *sc)
