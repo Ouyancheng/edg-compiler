@@ -82,19 +82,6 @@ static unsigned long
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
 
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-static a_scope_orphaned_list_header_ptr
-		last_scope_orphaned_list_header;
-			/* End of list for
-			   il_header.scope_orphaned_list_headers. */
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-
-#if RECORD_MACROS_IN_IL
-static a_macro_ptr
-		last_macro;
-			/* End of list of il_header.macros. */
-#endif /* RECORD_MACROS_IN_IL */
-
 
 /*
 Data structure used to save information about the last source sequence
@@ -2744,6 +2731,8 @@ processing for add_scope_orphaned_il_lists.
                                          || sublists != NULL
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
                                                             ) {
+    a_scope_pointers_block_ptr pointers_block =
+                    assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE]);
     /* At least one of the IL pointers is not NULL; create
        a_scope_orphaned_list_header in the file scope region and add it to
        the list headed by il_header.scope_orphaned_list_headers. */
@@ -2761,9 +2750,9 @@ processing for add_scope_orphaned_il_lists.
     if (il_header.scope_orphaned_list_headers == NULL) {
       il_header.scope_orphaned_list_headers = solhp;
     } else {
-      last_scope_orphaned_list_header->next = solhp;
+      pointers_block->last_scope_orphaned_list_header->next = solhp;
     }  /* if */
-    last_scope_orphaned_list_header = solhp;
+    pointers_block->last_scope_orphaned_list_header = solhp;
   }  /* if */
   /* Process subscopes of this scope. */
   for (block_scope = scope->scopes;
@@ -11045,12 +11034,15 @@ void add_to_macros_list(a_macro_ptr  mp)
 Add the IL macro entry pointed to by mp to the list for the file scope.
 */
 {
+  a_scope_pointers_block_ptr pointers_block =
+                    assoc_pointers_block_of(&scope_stack[DEPTH_OF_FILE_SCOPE]);
+
   if (il_header.macros == NULL) {
     il_header.macros = mp;
   } else {
-    last_macro->next = mp;
+    pointers_block->last_macro->next = mp;
   }  /* if */
-  last_macro = mp;
+  pointers_block->last_macro = mp;
 }  /* add_to_macros_list */
 
 #endif /* RECORD_MACROS_IN_IL */
@@ -12364,12 +12356,6 @@ in il_init.)
 #if ORPHAN_PROCESSING_NEEDED
       pch_array_saved_var_array_elem(orphaned_file_scope_il_entries),
 #endif /* ORPHAN_PROCESSING_NEEDED */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-      pch_saved_var_array_elem(last_scope_orphaned_list_header),
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-#if RECORD_MACROS_IN_IL
-      pch_saved_var_array_elem(last_macro),
-#endif /* RECORD_MACROS_IN_IL */
       pch_saved_var_array_elem(curr_fp_contract_state),
       pch_saved_var_array_elem(curr_fenv_access_state),
       pch_saved_var_array_elem(curr_cx_limited_range_state),
@@ -12408,12 +12394,6 @@ in il_init.)
   register_trans_unit_variable(il_wchar_t_type);
   register_trans_unit_variable(il_bool_type);
   register_trans_unit_array(shareable_constants_table);
-#if RECORD_MACROS_IN_IL
-  register_trans_unit_variable(last_macro);
-#endif /* RECORD_MACROS_IN_IL */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  register_trans_unit_variable(last_scope_orphaned_list_header);
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   register_trans_unit_variable(based_type_fixup_list);
   register_trans_unit_variable(seq_cache);
   /* Global variables declared in il.h. */
@@ -12486,12 +12466,6 @@ need initialization for every (primary and secondary) translation unit.
   il_error_type = il_unknown_type = il_void_type = NULL;
   memzero((char *)shareable_constants_table,
           sizeof(shareable_constants_table));
-#if RECORD_MACROS_IN_IL
-  last_macro = NULL;
-#endif /* RECORD_MACROS_IN_IL */
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  last_scope_orphaned_list_header = NULL;
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if ORPHAN_PROCESSING_NEEDED
   /* Initialize the orphaned_file_scope_il_entries array to NULL
      pointers. */

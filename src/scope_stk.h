@@ -118,6 +118,16 @@ typedef struct a_scope_pointers_block {
 		last_template;
 			/* End of the list of template entries entered on
 			   the corresponding IL scope entry; NULL if none. */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+   a_scope_orphaned_list_header_ptr
+		last_scope_orphaned_list_header;
+			/* End of the list of orphaned list headers; NULL
+			   if none. */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+#if RECORD_MACROS_IN_IL
+   a_macro_ptr	last_macro;
+			/* End of the list of macros; NULL if none. */
+#endif /* RECORD_MACROS_IN_IL */
   a_symbol_ptr	unnamed_namespace_sym;
 			/* For sck_file and sck_namespace scopes only, pointer
 			   to the symbol representing the unnamed namespace
