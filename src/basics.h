@@ -255,9 +255,9 @@ EXTERN_C int memcmp(char *, char *, int);
 #if __BSD__
 #include <strings.h>
 /* Remap string and block functions that do not appear in BSD C. */
-EXTERN_C void bcopy(a_const_void_ptr, a_void_ptr, int);
-EXTERN_C int bcmp(a_const_void_ptr, a_const_void_ptr, int);
-EXTERN_C void bzero(a_void_ptr, int);
+EXTERN_C void bcopy(a_const_void_ptr src, a_void_ptr dest, int nbytes);
+EXTERN_C int bcmp(a_const_void_ptr src1, a_const_void_ptr src2, int nbytes);
+EXTERN_C void bzero(a_void_ptr dest, int nbytes);
 #define memcpy(dest, src, nbytes) bcopy(src, dest, nbytes)
 #define memcmp(src1, src2, nbytes) bcmp(src1, src2, nbytes)
 #define memzero(dest, nbytes) bzero(dest, nbytes)
