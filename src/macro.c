@@ -2254,7 +2254,7 @@ end_arg_expansion:;
       }  /* if */
       if (sect_len != 0) {
         (void)memcpy(src_loc, text_loc,
-                     size_t_arg(sect_len)); /*lint !e 668 */
+                     size_t_arg(sect_len)); /*lint !e668 */
       }  /* if */
       if (rts_kind == rt_argument && map->modif_list != NULL) {
         /* If this is an expanded argument value, and there are any source
