@@ -1029,7 +1029,9 @@ is in fact valid.
                                  TCF_REDECLARATION |
                                  TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
          !same_exception_spec(var->type, corresp_var->type) ||
-         var->is_specialized != corresp_var->is_specialized ||
+         ((var->init_kind == (an_init_kind)initk_none || var->is_specialized)
+           != (corresp_var->init_kind == (an_init_kind)initk_none ||
+               corresp_var->is_specialized)) ||
          var->is_member_constant != corresp_var->is_member_constant ||
          /* In-class static member initializations must be equivalent. */
          (var->is_member_constant &&
