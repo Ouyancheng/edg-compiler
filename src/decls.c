@@ -4671,6 +4671,13 @@ on for use in generating cross-reference output describing this declaration.
         a_boolean      routines_compat = TRUE;
         an_error_code  error_code = ec_not_compatible_with_previous_decl;
 
+        /* Friend functions that name an existing declaration should not
+           introduce default arguments. */
+        if (!friend_injection_enabled && is_friend_decl &&
+            func_info->any_default_args) {
+          pos_error(ec_friend_cannot_add_default_arguments,
+                    &locator->source_position);
+        }  /* if */
         /* For routines that can be overloaded, id_linkage has already
            checked that the routine types are compatible.  "main" cannot
            be overloaded, so it was not checked. */
