@@ -869,7 +869,8 @@ Print the name of the indicated variable.
 #if !C_GEN_BE_GENERATES_ANSI_C
   } else if (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
-      strcmp(variable->source_corresp.name, "__link") != 0) {
+             variable->source_corresp.name[0] == '_' /* For speed. */ &&
+             strcmp(variable->source_corresp.name, "__link") != 0) {
     /* Name is at file scope, but is not external.  Add a suffix so
        that it will not conflict with external names.  See dump_variable.
        Leave __link (used for C++ startup) alone. */
@@ -3962,6 +3963,7 @@ parameters.
   a_storage_class storage_class;
   a_constant_ptr  init_con;
   a_type_ptr      var_type = variable->type;
+  a_boolean       is_link;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_boolean       forced_static;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -3969,16 +3971,18 @@ parameters.
   /* Determine whether or not the variable has a constant initializer.
      Non-constant initializers are handled by dump_dynamic_init. */
   init_con = constant_initializer(variable);
+  /* See if this is the special __link variable generated for "patch".
+     It gets special handling. */
+  is_link = (variable->source_corresp.name[0] == '_' /* For speed. */ &&
+             variable->source_corresp.name_linkage ==
+                                           (a_name_linkage_kind)nlk_internal &&
+             strcmp(variable->source_corresp.name, "__link") == 0);
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* The variable __link and unnamed variables must be kept static even if
      they are initialized.  When generating ANSI C, variables are emitted
      as static if they are static, so it is not necessary to undo the
      transformation in some cases. */
-  forced_static = (init_con != NULL &&
-                   ((variable->source_corresp.name_linkage ==
-                                           (a_name_linkage_kind)nlk_internal &&
-                     strcmp(variable->source_corresp.name, "__link") == 0) ||
-                    !has_name(variable)));
+  forced_static = (init_con != NULL && (is_link || !has_name(variable)));
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   if (!dump_vars_without_initializers && init_con == NULL) {
     /* The variable has no initializer, and we're not supposed to dump
@@ -3988,7 +3992,10 @@ parameters.
     /* Suppress the first declaration of forced-static variables. */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   } else {
-    if (start_unreferenced_bracket(&variable->source_corresp)) {
+    /* See if the variable is unreferenced, but always put out __link
+       anyway.  Putting it out if unreferenced is necessary when this
+       front end is used to compile its own output. */
+    if (is_link || start_unreferenced_bracket(&variable->source_corresp)) {
       /* If the variable has an initializer, see if any wide string constants
          therein need to be preprocessed. */
       if (dump_initializers && init_con != NULL) {
@@ -4052,7 +4059,7 @@ parameters.
         }  /* if */
       }  /* if */
       write_tok_str(";");
-      end_unreferenced_bracket(&variable->source_corresp);
+      if (!is_link) end_unreferenced_bracket(&variable->source_corresp);
     }  /* if */
   }  /* if */
 }  /* dump_variable_decl */
