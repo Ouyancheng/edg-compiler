@@ -281,12 +281,12 @@ the file scope, do not process it (but record an orphan in the latter case).
                           iek_field);
             }  /* if */
             break;
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+#if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
           case ck_stack_offset:
             remap_ptr(ptr->variant.stack_offset.variable, a_variable_ptr,
                       iek_variable);
             break;
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* DO_IL_LOWERING && ... */
           case ck_dynamic_init:
               walk_ptr(ptr->variant.dynamic_init, a_dynamic_init_ptr,
                        iek_dynamic_init);

@@ -584,7 +584,7 @@ display_constant_value:
                  iek_field);
       }  /* if */
       break;
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+#if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
       (void)printf("ck_stack_offset\n");
       disp_ptr("variable",
@@ -593,7 +593,7 @@ display_constant_value:
       disp_unsigned_long("offset",
                          (unsigned long)ptr->variant.stack_offset.offset);
       break;
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* DO_IL_LOWERING && ... */
     case ck_dynamic_init:
       (void)printf("ck_dynamic_init\n");
       disp_ptr("dynamic_init", (char *)ptr->variant.dynamic_init,

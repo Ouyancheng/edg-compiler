@@ -2462,12 +2462,12 @@ fields to default values.
 #endif /* CHECKING */
       cp->variant.ptr_to_member.variant.field   = NULL;
       break;
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+#if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
       cp->variant.stack_offset.variable = NULL;
       cp->variant.stack_offset.offset   = 0;
       break;
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* DO_IL_LOWERING && ... */
     case ck_dynamic_init:
       cp->variant.dynamic_init = NULL;
       break;
@@ -2873,13 +2873,13 @@ bucket of the shareable_constants_table to use for the constant.
       }  /* if */
       hash_value += 250;
       break;
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+#if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
       hash_value =
                 hash_name(&cp->variant.stack_offset.variable->source_corresp) +
                 cp->variant.stack_offset.offset + 350;
       break;
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* DO_IL_LOWERING && ... */
     default:
       hash_value = (a_constant_hash_value)(200 + cp->kind);
       break;
@@ -3040,14 +3040,14 @@ nonidentical.
           }  /* if */
         }  /* if */
         break;
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+#if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
       case ck_stack_offset:
         eq = (cp1->variant.stack_offset.variable ==
               cp2->variant.stack_offset.variable &&
               cp1->variant.stack_offset.offset ==
               cp2->variant.stack_offset.offset);
         break;
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* DO_IL_LOWERING && ... */
       case ck_template_param:
         /* Note that the constant types have been compared above. */
         if (cp1->variant.template_param.kind ==
@@ -3225,11 +3225,11 @@ region).
       /* The class type and the object (if any) pointed to must be in the
          file scope. */
       break;
-#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+#if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
       /* The variable pointed to must be in the function scope. */
       break;
-#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#endif /* DO_IL_LOWERING && ... */
 #if CHECKING
     case ck_aggregate:
     case ck_template_param:
