@@ -55,7 +55,7 @@ option.
 #endif /* ifndef DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS */
 
 /*
-Flag that is TRUE to allow anachronisms to be accepted in the source
+Flag that is TRUE to allow C++ anachronisms to be accepted in the source
 language.  This is the default value for a flag that can be modified by
 a command line option.
 */
