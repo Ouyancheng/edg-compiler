@@ -3209,32 +3209,28 @@ result_is_addr flag is set correctly; this routine cannot deal with that.
 */
 {
   a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+  a_type_ptr         temp_type = expr->type;
 
-  if (dip->kind == (a_dynamic_init_kind)dik_constructor ||
-      dip->kind == (a_dynamic_init_kind)dik_zero) {
-    a_type_ptr temp_type = expr->type;
-    if (expr->variant.init.result_is_addr) {
-      temp_type = type_pointed_to(temp_type);
-    }  /* if */
-    if (!is_class_struct_union_type(temp_type)) {
-      /* Non-class.  Use an old-style cast operating on zero, e.g., "(int)0".
-         This is necessary if the type cannot be expressed as a simple
-         type name, e.g., "(int *)0". */
-      check_assertion(dip->kind == (a_dynamic_init_kind)dik_zero);
-      write_tok_ch('(');
-      gen_cast(temp_type);
-      write_tok_str("0)");
-    } else {
-      /* For a class temporary requiring a constructor, use the form
-         A(arg1, arg2, ...).  dik_zero is for cases like "A()". */
-      /* Note that parentheses are not put around this, because that would
-         make the expression look like a cast. */
-      gen_type(temp_type);
-      gen_dynamic_init(dip,
-                       (a_type_ptr)NULL, /* Not a reference, not needed. */
-                       /*parenthesized_init=*/TRUE,
-                       /*force_parens=*/TRUE);
-    }  /* if */
+  if (expr->variant.init.result_is_addr) {
+    temp_type = type_pointed_to(temp_type);
+  }  /* if */
+  if (is_class_struct_union_type(temp_type)) {
+    /* For a class temporary requiring a constructor, use the form
+       A(arg1, arg2, ...).  dik_zero or dik_none will produce "A()". */
+    /* Note that parentheses are not put around this, because that would
+       make the expression look like a cast. */
+    gen_type(temp_type);
+    gen_dynamic_init(dip,
+                     (a_type_ptr)NULL, /* Not a reference, not needed. */
+                     /*parenthesized_init=*/TRUE,
+                     /*force_parens=*/TRUE);
+  } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+    /* Non-class initialized to zero.  Use an old-style cast operating on
+       zero, e.g., "(int)0".  This is necessary if the type cannot be
+       expressed as a simple type name, e.g., "(int *)0". */
+    write_tok_ch('(');
+    gen_cast(temp_type);
+    write_tok_str("0)");
   } else {
     /* Other cases -- just put out the value. */
     gen_dynamic_init(dip,
@@ -5664,7 +5660,8 @@ is a condition variable if is_condition is TRUE.
          Otherwise.  Conditions allow only the "=" form. */
       if (!is_condition &&
           (dip->kind == (a_dynamic_init_kind)dik_constructor ||
-           dip->kind == (a_dynamic_init_kind)dik_zero)) {
+           dip->kind == (a_dynamic_init_kind)dik_zero ||
+           dip->kind == (a_dynamic_init_kind)dik_none)) {
         parenthesized_init = TRUE;
       } else {
         write_tok_str(" = ");
