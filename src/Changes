@@ -1,5 +1,10 @@
 Version 2.30
 
+6/22/95  Minimal inlining: inlining of return using copy constructor
+
+inline.c now allows inlining of calls of functions that return their values
+via a copy constructor.
+
 6/21/95  C++-generating back end: Pointers to members within member functions
 
 Pointers to members must always have the form of a qualified name, e.g.,

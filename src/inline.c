@@ -791,6 +791,7 @@ If not, *failed is set.
     /* No statement to copy. */
   } else if (statement->has_associated_pragma) {
     /* Can't inline a statement with an associated pragma. */
+    goto cannot_inline_ever;
   } else {
     stmt_expr = statement->expr;
     if (stmt_expr != NULL) stmt_expr = copy_expr_tree(stmt_expr);
@@ -852,15 +853,25 @@ If not, *failed is set.
             if (stmt_expr != NULL) {
               insert_expr(stmt_expr, insert_location);
             } else {
-              a_type_ptr routine_return_type = f_skip_typerefs(
+              /* No expression is being returned. */
+              a_type_ptr routine_type = f_skip_typerefs(
                                                   routine_scope_being_inlined->
-                                                   variant.routine.ptr->type)->
+                                                   variant.routine.ptr->type);
+              if (routine_type->variant.routine.extra_info->
+                                                     value_returned_by_cctor) {
+                /* The routine returns its value via a copy constructor, so
+                   don't check for the return type matching the type of the
+                   expression -- the return value is passed via an added
+                   parameter. */
+              } else {
+                a_type_ptr routine_return_type = routine_type->
                                                    variant.routine.return_type;
-              if (!is_void_type(routine_return_type)) {
-                /* The return statement returns nothing and the function
-                   expects a return value, so this function cannot be
-                   inlined. */
-                goto cannot_inline_ever;
+                if (!is_void_type(routine_return_type)) {
+                  /* The return statement returns nothing and the function
+                     expects a return value, so this function cannot be
+                     inlined. */
+                  goto cannot_inline_ever;
+                }  /* if */
               }  /* if */
             }  /* if */
           } else {
