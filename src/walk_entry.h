@@ -379,6 +379,7 @@ necessary.
 #include "lower_il.h"
 #else /* !(!STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING) */
 /* No lowering, so use pm_class_type for pm_class_type_possibly_lowered. */
+#undef pm_class_type_possibly_lowered
 #define pm_class_type_possibly_lowered(x) pm_class_type(x)
 #endif /* !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
 
@@ -3210,6 +3211,7 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef walk_source_corresp
 #undef walk_unmangled_name
 #undef conditionally_clear_fe_pointer
+#undef pm_class_type_possibly_lowered
 #undef report_bad_init_kind
 #undef walk_initializer
 #undef walk_orphan_entry_list
