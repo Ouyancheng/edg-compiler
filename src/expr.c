@@ -3291,7 +3291,7 @@ specification allow a variable-sized array as the top type.
   an_arg_operand_ptr
                     arg_operand_list, sizeof_arg_operand;
   an_expr_node_ptr  dummy;
-  a_boolean         array_new;
+  a_boolean         array_new = FALSE;
   a_targ_size_t     effective_num_of_elements;
 
   db_enter(4, "scan_new_operator");
@@ -3368,11 +3368,16 @@ specification allow a variable-sized array as the top type.
     }  /* if */
     make_error_operand(result);
     base_new_type = ptr_new_type = new_type = error_type();
+  } else if (is_illegal_abstract_class_type(new_type)) {
+    /* The type is an abstract class type or a type that contains one,
+       so an object of the type cannot be allocated. */
+    pos_error(ec_abstract_class_object_not_allowed, &type_position);
+    make_error_operand(result);
+    base_new_type = ptr_new_type = new_type = error_type();
   } else {
     /* Valid type. */
     /* Determine the type of pointer returned from "new". */
     base_new_type = new_type;
-    array_new = FALSE;
     if (is_array_type(base_new_type)) {
       /* A "new" of an array returns a pointer to the initial element.
         Note that this is only done for one level, e.g., new int [i][10]
