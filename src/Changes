@@ -1,5 +1,20 @@
 Version 3.4
 
+3/1/04   GNU C mode allowed lvalue cast of struct/union to same-sized integer
+
+GNU C mode mistakenly allowed an lvalue cast of an object of
+struct or union type to a same-sized integer type.  gcc does
+not allow such casts.  They now get an error.
+
+  void ff(int);
+  int main() {
+    static union ui {int a;} ui ;
+    ff((int)ui);
+    return 0;
+  }
+
+This problem was introduced in version 3.2.
+
 2/26/04  GNU C mode: __typeof__ ignores top-level const/volatile
 
 In GNU C mode (but not in GNU C++ mode) the front end now ignores top-level

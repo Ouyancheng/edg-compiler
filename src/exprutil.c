@@ -9455,7 +9455,11 @@ C mode.
   /* The result stays an lvalue if the result type size is the same as the
      source type size.  However, casts involving floats require actual
      changes in representation, and are not lvalue-preserving. */
-  if (identical_types(type_cast_to, type_before_cast)) {
+  if (!is_scalar_type(type_before_cast) ||
+      !is_scalar_type(type_cast_to)) {
+    /* Rule out casts from/to structs. */
+    /* is_still_an_lvalue = FALSE; -- already set. */
+  } else if (identical_types(type_cast_to, type_before_cast)) {
     /* Same type, operand stays an lvalue.  This applies in pcc mode,
        SVR4 C mode, and in Microsoft C mode (it also applies in Microsoft
        C++ mode, but that case doesn't get to this routine). */
