@@ -3337,12 +3337,13 @@ in one-instantiation-per-object mode.
   if (one_instantiation_per_object &&
       is_primary_translation_unit &&
       routine->storage_class == (a_storage_class)sc_unspecified &&
-      !is_member_of_unnamed_namespace(&routine->source_corresp) &&
       !routine->is_prototype_instantiation &&
       ((routine->is_template_function &&
         !routine->is_specialized) ||
        (instantiate_extern_inline &&
-        routine->is_inline))) {
+        routine->is_inline)) &&
+      !is_member_of_unnamed_namespace(&routine->source_corresp) &&
+      !is_or_contains_unnamed_namespace_type(routine->type)) {
     check_assertion(!in_secondary_trans_unit(routine));
     /* Get a "needed bit number" for the routine if it doesn't have one
        already. */
