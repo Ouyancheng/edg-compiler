@@ -1886,7 +1886,7 @@ examine_children:
     }  /* if */
     /* Save information about the file in which this sequence number was found
        so that subsequent lines may be found more quickly. */
-    line_offset = -curr_file->first_seq_number + 
+    line_offset = -(long)(curr_file->first_seq_number) + 
                             curr_file->first_line_number - lines_in_children;
     /* Save information about this conversion so that subsequent conversions
        can be done more quickly. */
