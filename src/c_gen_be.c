@@ -3400,10 +3400,10 @@ process_assignment:
         if (pointer_comparison) write_tok_str(pointer_comparison_cast);
         dump_expr_with_parens(operand_2);
       }  /* if */
-#if CHECKING
+#if CHECKING && !STANDALONE_UTILITY_PROGRAM
       /* Check number of operands. */
       if (is_unary) {
-#endif /* CHECKING */
+#endif /* CHECKING && !STANDALONE_UTILITY_PROGRAM */
 done_with_unary_operation:;
 #if CHECKING && !STANDALONE_UTILITY_PROGRAM
         if (operand_2 != NULL) {
