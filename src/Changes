@@ -1,5 +1,15 @@
 Version 3.2
 
+3/12/03  GNU C++ mode: friend declaration of undeclared template
+
+In g++ mode, a friend declaration in which the function name is a
+template-id of an undeclared template is now accepted when the declaration
+appears within a class template.
+
+  template <class T> struct A {
+    friend void f<>(A<T>);
+  };
+
 3/12/03  Incorrect code for C99 _Bool decrement
 
 IL lowering generated incorrect code for prefix or postfix decrement

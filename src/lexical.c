@@ -9567,12 +9567,12 @@ a routine to lookup the appropriate instance (or generate one if needed).
       pos_sy_error(ec_unexpected_template_arg_list, &start_position,
                    template_sym);
       template_sym = NULL;
-    } else if (sun_mode && template_sym != NULL &&
+    } else if ((sun_mode || gpp_mode) && template_sym != NULL &&
                scope_stack[depth_scope_stack].in_prototype_instantiation &&
                !is_type_symbol(template_sym) &&
                !is_error_symbol && !is_expr_context && !lt_permitted_context) {
       /* A nontype symbol (probably from a nonreal base) during a prototype
-         instantiation in Sun mode.  Ignore this error. */
+         instantiation in g++ or Sun mode.  Ignore this error. */
       template_sym = NULL;
     } else if (!is_error_symbol &&
                !lt_permitted_context && !is_expr_context) {
@@ -9598,11 +9598,12 @@ a routine to lookup the appropriate instance (or generate one if needed).
         } else if (is_error_locator(locator_for_curr_id)) {
           /* An error locator.  Don't issue a diagnostic for this case. */
         } else {
-          if (sun_mode &&
+          if ((sun_mode || gpp_mode) &&
               scope_stack[depth_scope_stack].in_prototype_instantiation &&
               !is_expr_context && !lt_permitted_context) {
-            /* The Sun compiler does not do prototype instantiations, so
-               suppress this error in Sun mode. */
+            /* Such references are allowed in prototype instantiation contexts
+               by the g++ and Sun compilers, so suppress this error in
+               g++ and Sun modes. */
           } else {
             pos_st_error(ec_not_a_template, &start_position,
                          locator_for_curr_id.symbol_header->identifier);
@@ -9806,10 +9807,10 @@ a routine to lookup the appropriate instance (or generate one if needed).
         new_sym = orig_ctor_symbol;
       }  /* if */  
     }  /* if */
-  } else if (sun_mode && !any_errors && !is_expr_context &&
+  } else if ((sun_mode || gpp_mode) && !any_errors && !is_expr_context &&
              scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    /* In Sun mode it is possible to refer to undeclared templates.  We get
-       here for example with 
+    /* In g++ and Sun modes it is possible to refer to undeclared templates.
+       We get here for example with 
              template<class T> struct S { friend void f<>(); };  */
   } else {
     /* Free any allocated template arguments. */
