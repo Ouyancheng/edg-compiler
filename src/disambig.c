@@ -27,6 +27,57 @@ disambig.c -- Disambiguation of C++ declarations and expressions.
 /* Additional header files. */
 #include "disambig.h"
 
+typedef struct a_disambig_state *a_disambig_state_ptr;
+typedef struct a_disambig_state {
+  a_token_cache	cache;
+			/* Cache containing tokens that were scanned as
+			   part of the disambiguation process. */
+  a_token_cache	stmt_cache;
+			/* Cache containing the remainder of the statement
+			   that is being disambiguated. */
+  a_type_ptr	decl_class_type;
+			/* In certain modes, this is set to the class type
+			   of the declarator that is found. */
+  a_boolean	may_be_decl;
+			/* TRUE while the statement being scanned could still
+			   be a declaration. */
+  a_boolean	set_decl_class_type;
+			/* TRUE if the decl_class_type field should be set,
+			   and scanning stopped once the declarator is
+                           found. */
+  a_boolean	stmt_cache_created;
+			/* TRUE if a statement cache was created by the
+			   disambiguation routines.  This is used to
+			   distinguish this case from the case in which
+			   a statement cache is passed in. */
+} a_disambig_state;
+
+
+static void init_disambig_state(a_disambig_state_ptr dsp)
+/*
+Initialize a disambiguation state block.
+*/
+{
+  clear_token_cache(&dsp->cache, /*reusable=*/FALSE);
+  clear_token_cache(&dsp->stmt_cache, /*reusable=*/TRUE);
+  dsp->decl_class_type = NULL;
+  dsp->may_be_decl = TRUE;
+  dsp->set_decl_class_type = FALSE;
+  dsp->stmt_cache_created = FALSE;
+}  /* init_disambig_state */
+
+
+static void wrapup_disambig_state(a_disambig_state_ptr dsp)
+/*
+If a statement cache was created, discard it now.
+*/
+{
+  if (dsp->stmt_cache.first_token != NULL && dsp->stmt_cache_created) {
+    discard_token_cache(&dsp->stmt_cache);
+  }  /* if */
+}  /* wrapup_disambig_state */
+
+
 /*
 Macro that is TRUE if the current token (which must be an identifier or
 the "::" at the start of a qualified name) is a type name.
@@ -67,8 +118,21 @@ Macro that returns GID_USE_PROTOTYPE_NOT_NONREAL if is_template_decl is TRUE.
 
 
 
-static void cache_tokens_until(a_token_cache	*token_cache_ptr,
-			       a_token_kind	stop_token)
+static void cache_rest_of_statement(a_disambig_state_ptr state)
+/*
+Make sure that the remainder of the current statement has been cached
+so that it can be used by cache_token_stream_coalesce_identifiers.
+*/
+{
+  if (state->stmt_cache.first_token == NULL) {
+    cache_rest_of_declaration(&state->stmt_cache, /*stop_on_colon=*/FALSE);
+    state->stmt_cache_created = TRUE;
+  }  /* if */
+}  /* cache_rest_of_statement */
+
+
+static void cache_tokens_until(a_disambig_state_ptr	state,
+			       a_token_kind		stop_token)
 /*
 Wrapper for cache_token_stream that saves and restores the stop tokens
 array.  Cache tokens until the specified token is found.
@@ -76,13 +140,16 @@ array.  Cache tokens until the specified token is found.
 {
   a_token_set_array  stop_token_array;
 
+  /* Make sure this statement is in a token cache. */
+  cache_rest_of_statement(state);
   clear_token_set_array(stop_token_array);
   incr_token_set_array_element(stop_token_array, stop_token);
-  cache_token_stream(token_cache_ptr, stop_token_array);
+  cache_token_stream_coalesce_identifiers(&state->cache, stop_token_array,
+                                          &state->stmt_cache);
 }  /* cache_tokens_until */
 
 
-static void prescan_initializer(a_token_cache	*token_cache_ptr)
+static void prescan_initializer(a_disambig_state_ptr	state)
 /*
 Cache the tokens that comprise an initializer of the form
 "= initializer-clause".
@@ -90,11 +157,14 @@ Cache the tokens that comprise an initializer of the form
 {
   a_token_set_array  stop_token_array;
 
+  /* Make sure this statement is in a token cache. */
+  cache_rest_of_statement(state);
   clear_token_set_array(stop_token_array);
   incr_token_set_array_element(stop_token_array, tok_comma);
   incr_token_set_array_element(stop_token_array, tok_semicolon);
   incr_token_set_array_element(stop_token_array, tok_rparen);
-  cache_token_stream(token_cache_ptr, stop_token_array);
+  cache_token_stream_coalesce_identifiers(&state->cache, stop_token_array,
+                                          &state->stmt_cache);
 }  /* prescan_initializer */
 
 
@@ -116,8 +186,8 @@ scanned are coalesced prior to analysis.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static
 void prescan_microsoft_extended_decl_modifiers
-                                         (a_token_cache       *token_cache_ptr,
-                                          a_disambig_flag_set flags)
+                                         (a_disambig_state_ptr       state,
+                                          a_disambig_flag_set	     flags)
 /*
 Prescan the Microsoft __declspec specifier:
 
@@ -131,25 +201,25 @@ keyword.
                        "prescan_microsoft_extended_decl_modifiers:",
                        "curr_token not tok_declspec");
   /* Bypass the __declspec token. */
-  cache_curr_token(token_cache_ptr);
+  cache_curr_token(&state->cache);
   (void)get_token();
   if (curr_token == tok_lparen) {
-    cache_curr_token(token_cache_ptr);
+    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
     while (curr_token == tok_identifier) {
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     }  /* while */
     if (curr_token == tok_rparen) {
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
   }  /* if */
 }  /* prescan_microsoft_extended_decl_modifiers */
 
 
-static void prescan_based_modifier(a_token_cache       *token_cache_ptr,
-                                   a_disambig_flag_set flags)
+static void prescan_based_modifier(a_disambig_state_ptr       state,
+                                   a_disambig_flag_set 	      flags)
 /*
 Prescan the Microsoft __based modifier:
 
@@ -163,19 +233,19 @@ keyword.
                        "prescan_based_modifier:",
                        "curr_token not tok_based");
   /* Bypass the __based token. */
-  cache_curr_token(token_cache_ptr);
+  cache_curr_token(&state->cache);
   (void)get_token();
   if (curr_token == tok_lparen) {
-    cache_curr_token(token_cache_ptr);
+    cache_curr_token(&state->cache);
     /* Get the next token, which should be an identifier. */
     get_token_and_coalesce_if_identifier(flags);
     if (curr_token == tok_identifier) {
       /* Get the next token, which should be a right paren. */
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       if (curr_token == tok_rparen) {
         /* Bypass the right paren. */
-        cache_curr_token(token_cache_ptr);
+        cache_curr_token(&state->cache);
         get_token_and_coalesce_if_identifier(flags);
       }  /* if */
     }  /* if */
@@ -218,9 +288,8 @@ definition.  The locator must refer to a qualified name.
 }  /* is_ctor_or_dtor */
 
 
-static void prescan_decl_specifiers(a_token_cache       *token_cache_ptr,
-                                    a_disambig_flag_set flags,
-                                    a_boolean           *may_be_decl)
+static void prescan_decl_specifiers(a_disambig_state_ptr       state,
+                                    a_disambig_flag_set        flags)
 /*
 Scan and cache the tokens that comprise a list of decl_specifiers.
 */
@@ -252,7 +321,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_declspec:
-        prescan_microsoft_extended_decl_modifiers(token_cache_ptr, flags);
+        prescan_microsoft_extended_decl_modifiers(state, flags);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Type specifier - identifier that may be a simple type name.
@@ -327,7 +396,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
            for them to do so because types can't be defined in parameter
            lists, and other contexts that are involved in disambiguation.
            We assume this is an elaborated type specifier */
-        cache_curr_token(token_cache_ptr);
+        cache_curr_token(&state->cache);
         get_token_and_coalesce_if_identifier(flags);
         if (type_specifier_seen) {
           /* We've already seen a type specifier, this is probably an
@@ -357,31 +426,28 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
     if (!is_decl_specifier_token) break;
     any_decl_specifiers = TRUE;
     /* Cache this token and get the next one. */
-    cache_curr_token(token_cache_ptr);
+    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
   }  /* for */
   if (!any_decl_specifiers && !is_ctor_or_dtor_name) {
     /* A declaration must have at least one decl-specifier, or this must be
        a constructor or destructor.  This requirement is waived for namespace
        scope declarations. */
-    *may_be_decl = is_template_decl(flags);
+    state->may_be_decl = is_template_decl(flags);
   }  /* if */
   return;
 }  /* prescan_decl_specifiers */
 
 
 /* Forward declaration. */
-static void prescan_declaration(a_token_cache       *token_cache_ptr,
-                                a_disambig_flag_set flags,
-			        a_boolean           is_top_level,
-                                a_boolean           *may_be_decl,
-                                a_type_ptr          *decl_class_type);
+static void prescan_declaration(a_disambig_state_ptr       state,
+                                a_disambig_flag_set 	   flags,
+			        a_boolean            	   is_top_level);
 
 
 static void prescan_function_declarator
-                              (a_token_cache        *token_cache_ptr,
-			       a_disambig_flag_set  flags,
-                               a_boolean            *may_be_decl)
+                              (a_disambig_state_ptr        state,
+			       a_disambig_flag_set  	   flags)
 /*
 Scan and cache the tokens that comprise a function declarator.  This routine
 is used by the disambiguation routines.  If a construct that cannot be
@@ -392,31 +458,30 @@ part of a function declarator is found, may_be_decl is set to FALSE.
   while (curr_token != tok_rparen) {
     if (curr_token == tok_ellipsis) {
       /* Advance past the ellipsis. */
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     } else {
       /* A parameter declaration.  Scan the declaration. */
-      prescan_declaration(token_cache_ptr,
+      prescan_declaration(state,
 			  (DFS_ABSTRACT_DECLARATOR_ALLOWED |
                            DFS_REAL_DECLARATOR_ALLOWED),
-                          /*is_top_level=*/FALSE,
-                          may_be_decl, (a_type_ptr*)NULL);
-      if (!*may_be_decl) goto done;
+                          /*is_top_level=*/FALSE);
+      if (!state->may_be_decl) goto done;
     }  /* if */
     if (curr_token == tok_comma) {
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     } else if (curr_token != tok_rparen && curr_token != tok_ellipsis) {
       /* After scanning a parameter declaration we should be at a comma,
          the closing right parenthesis, or an ellipsis that follows an
          argument without an intervening comma.  If not, we conclude that this
          isn't really a declaration. */
-     *may_be_decl = FALSE;
+     state->may_be_decl = FALSE;
      goto done;
     }  /* if */
   }  /* while */
   /* Cache and bypass the right parenthesis. */
-  cache_curr_token(token_cache_ptr);
+  cache_curr_token(&state->cache);
   get_token_and_coalesce_if_identifier(flags);
   /* Skip past any cv-qualifiers associated with this function declarator. */
   while (is_type_qualifier_token(curr_token)
@@ -424,7 +489,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
          || is_microsoft_memory_attribute()
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                            ) {
-    cache_curr_token(token_cache_ptr);
+    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
   }  /* while */
   /* Cache the tokens associated with the optional throw specification.
@@ -432,21 +497,21 @@ part of a function declarator is found, may_be_decl is set to FALSE.
      throw declaration. */
   if (curr_token == tok_throw) {
     /* Advance past the throw keyword. */
-    cache_curr_token(token_cache_ptr);
+    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
     if (curr_token != tok_lparen) {
       /* A throw specification must follow the throw keyword in a function
          declarator. */
-      *may_be_decl = FALSE;
+      state->may_be_decl = FALSE;
       goto done;
     }  /* if */
     /* Advance past the left parenthesis. */
-    cache_curr_token(token_cache_ptr);
+    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
-    cache_tokens_until(token_cache_ptr, tok_rparen);
+    cache_tokens_until(state, tok_rparen);
     if (curr_token == tok_rparen) {
       /* Cache the right parenthesis. */
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     }  /* if */
   }  /* if */
@@ -455,12 +520,10 @@ done:
 }  /* prescan_function_declarator */
 
 
-static void prescan_declarator(a_token_cache       *token_cache_ptr,
-			       a_disambig_flag_set flags,
-			       a_boolean           paren_initializer_allowed,
-			       a_boolean           is_top_level,
-                               a_boolean           *may_be_decl,
-                               a_type_ptr          *decl_class_type)
+static void prescan_declarator(a_disambig_state_ptr state,
+			       a_disambig_flag_set  flags,
+			       a_boolean            paren_initializer_allowed,
+			       a_boolean            is_top_level)
 /*
 Scan and cache the tokens that comprise a declarator.  This routine
 is used by the disambiguation routines.  If a construct that cannot be
@@ -481,25 +544,25 @@ part of a declarator is found, may_be_decl is set to FALSE.
   for (;;) {
     if (curr_token == tok_star || curr_token == tok_ampersand) {
       /* Cache and bypass the "*" or "&". */
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       pointer_operator_seen = TRUE;
     } else if (is_type_qualifier_token(curr_token)) {
       /* Cache and bypass any cv-qualifiers. */
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     } else if (curr_token == tok_ptr_to_member) {
       /* Cache and bypass any pointer to member operators. */
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (is_microsoft_declarator_keyword()) {
       /* Keywords allowed in declarators in Microsoft mode, e.g., __cdecl. */
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
     } else if (curr_token == tok_based) {
       /* Microsoft __based modifier. */
-      prescan_based_modifier(token_cache_ptr, flags);
+      prescan_based_modifier(state, flags);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       /* No more ptr-operators. */
@@ -513,7 +576,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
        declarator the next token must be a "*", "(", or "[", whereas in the
        function case it is ")", "...", or a declaration specifier. */
     a_boolean	treat_as_expr = FALSE;
-    cache_curr_token(token_cache_ptr);
+    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
     if (any_cfront_mode() && is_top_level && !is_template_decl(flags)) {
       /* Cfront handles declarations like
@@ -561,7 +624,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
         }  /* if */
       }  /* if */
       if (treat_as_expr) {
-        *may_be_decl = FALSE;
+        state->may_be_decl = FALSE;
         goto done;
       }  /* if */
     }  /* if */
@@ -575,16 +638,16 @@ part of a declarator is found, may_be_decl is set to FALSE.
       }  /* if */
     }  /* if */
     /* Get the nested declarator. */
-    prescan_declarator(token_cache_ptr, flags,
+    prescan_declarator(state, flags,
                        /*paren_initializer_allowed=*/FALSE,
-                       /*is_top_level=*/FALSE, may_be_decl, decl_class_type);
-    if (!*may_be_decl) goto done;
+                       /*is_top_level=*/FALSE);
+    if (!state->may_be_decl) goto done;
     /* The nested declarator must be followed by a ")". */
     if (curr_token != tok_rparen) {
-      *may_be_decl = FALSE;
+      state->may_be_decl = FALSE;
       goto done;
     }  /* if */
-    cache_curr_token(token_cache_ptr);
+    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
   } else {
     /* An identifier is expected next, but is omitted in the 
@@ -601,17 +664,17 @@ part of a declarator is found, may_be_decl is set to FALSE.
       /* Identifier is omitted in an abstract declarator. */
     } else if (!is_name_start) {
       /* Real (non-abstract) declarator.  An identifier must be found here. */
-      *may_be_decl = FALSE;
+      state->may_be_decl = FALSE;
       goto done;
     } else {
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
-      if (decl_class_type != NULL) {
+      if (state->set_decl_class_type) {
         /* Return a pointer to the class of which a member (if any) of the
            declarator. */
-        *decl_class_type = qualifier_class_type(locator_for_curr_id);
+        state->decl_class_type = qualifier_class_type(locator_for_curr_id);
         /* Clear the may_be_decl flag to suppress further scanning. */
-        *may_be_decl = FALSE;
+        state->may_be_decl = FALSE;
         goto done;
       }  /* if */
     }  /* if */
@@ -625,7 +688,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
       /* Appears to be a function declarator.  But be sure it's not the
          start of a parenthesized initializer. */
       /* Advance past the left parenthesis. */
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       if (curr_token != tok_rparen && curr_token != tok_ellipsis) {
         /* See if the think inside the parenthesis looks like an
@@ -636,10 +699,10 @@ part of a declarator is found, may_be_decl is set to FALSE.
           /* Function_declarator should not be called, scan the tokens that
              comprise the parenthesized initializer and exit the loop. */
           paren_initializer_seen = TRUE;
-          cache_tokens_until(token_cache_ptr, tok_rparen);
+          cache_tokens_until(state, tok_rparen);
           if (curr_token == tok_rparen) {
             /* Cache the right parenthesis. */
-            cache_curr_token(token_cache_ptr);
+            cache_curr_token(&state->cache);
             get_token_and_coalesce_if_identifier(flags);
           }  /* if */
           break;
@@ -648,17 +711,17 @@ part of a declarator is found, may_be_decl is set to FALSE.
 function_lparen:
       /* For function types as the top type, fetch the extra function info
          as well.  For non-top types, do not. */
-      prescan_function_declarator(token_cache_ptr, flags, may_be_decl);
+      prescan_function_declarator(state, flags);
     } else {
       /* Left bracket, indicating array declarator. */
       check_assertion(curr_token == tok_lbracket);
       /* Advance past the left bracket. */
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
-      cache_tokens_until(token_cache_ptr, tok_rbracket);
+      cache_tokens_until(state, tok_rbracket);
       /* Bypass and cache the "]". */
       if (curr_token == tok_rbracket) {
-        cache_curr_token(token_cache_ptr);
+        cache_curr_token(&state->cache);
         get_token_and_coalesce_if_identifier(flags);
       }  /* if */
     }  /* if */
@@ -669,23 +732,21 @@ function_lparen:
        tokens that comprise the initializer and leave curr_token
        as the token following the initializer (usually a comma or
        a semicolon). */
-    prescan_initializer(token_cache_ptr);
+    prescan_initializer(state);
   } else {
     /* A condition is required to have an "=" style initialization.
        If the initialization is missing, don't consider this to be
        a condition.  This causes things like "int(i)" to be treated as
        expressions, not conditions. */
-    if (is_top_level && is_condition(flags)) *may_be_decl = FALSE;
+    if (is_top_level && is_condition(flags)) state->may_be_decl = FALSE;
   }  /* if */
 done:;
 }  /* prescan_declarator */
 
 
-static void prescan_declaration(a_token_cache       *token_cache_ptr,
-                                a_disambig_flag_set flags,
-			        a_boolean           is_top_level,
-                                a_boolean           *may_be_decl,
-                                a_type_ptr          *decl_class_type)
+static void prescan_declaration(a_disambig_state_ptr state,
+                                a_disambig_flag_set  flags,
+			        a_boolean            is_top_level)
 /*
 Scan a sequence of tokens and cache them for rescanning later.  The purpose
 of this prescan is to help determine whether this is a declaration or an
@@ -703,8 +764,8 @@ evidence to the contrary.
                                         gid_flags_for_template(flags));
   for (;;) {
     /* Scan the decl specifiers. */
-    prescan_decl_specifiers(token_cache_ptr, flags, may_be_decl);
-    if (!*may_be_decl) goto done;
+    prescan_decl_specifiers(state, flags);
+    if (!state->may_be_decl) goto done;
     for (;;) {
       /* Parenthesized initializers are only allowed in contexts
          in which only real declarators are allowed, but not in
@@ -712,18 +773,17 @@ evidence to the contrary.
       a_boolean	paren_initializer_allowed;
       paren_initializer_allowed = !abstract_declarator_allowed(flags) &&
                                   !is_condition(flags);
-      prescan_declarator(token_cache_ptr, flags,
+      prescan_declarator(state, flags,
                          paren_initializer_allowed,
-			 is_top_level && is_first_declarator, may_be_decl,
-                         decl_class_type);
-      if (!*may_be_decl) goto done;
+			 is_top_level && is_first_declarator);
+      if (!state->may_be_decl) goto done;
       /* If we are not processing real declarators, or if we are processing
          a condition, don't look for additional declarators. */
       if (abstract_declarator_allowed(flags) ||
           is_condition(flags) ||
           curr_token != tok_comma) break;
       /* Advance past the comma then scan the next declarator. */
-      cache_curr_token(token_cache_ptr);
+      cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       is_first_declarator = FALSE;
     }  /* for */
@@ -731,7 +791,7 @@ evidence to the contrary.
     if ((!real_declarator_allowed(flags) &&
          single_type_required(flags)) || curr_token != tok_comma) break;
     /* Advance past the comma then scan the next declaration. */
-    cache_curr_token(token_cache_ptr);
+    cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
   }  /* for */
 done:
@@ -805,9 +865,9 @@ types separated by commas (when single_type_required is FALSE).
 
 */
 {
-  a_token_cache       token_cache;
-  a_boolean           may_be_decl = TRUE;
   a_boolean	      prev_do_not_clear_specific_symbol;
+  a_disambig_state    state;
+  a_boolean	      result = TRUE;
 
   db_enter(3, "f_is_decl_not_expr");
   /* The ambiguous cases all begin a type name followed by a left
@@ -815,7 +875,7 @@ types separated by commas (when single_type_required is FALSE).
      cases. */
   if (next_token() == tok_lparen && is_type_start()) {
     /* Initialize the token cache. */
-    clear_token_cache(&token_cache, /*reusable=*/FALSE);
+    init_disambig_state(&state);
     if (curr_token == tok_identifier) {
       /* The prescanning process clears the specific symbol field of the
          locator to prevent the prescanning process from biasing
@@ -828,9 +888,8 @@ types separated by commas (when single_type_required is FALSE).
     /* Scan forward as far as required to determine whether this is a
        declaration.  Each token that is encountered is cached away, so
        that they can be restored for the actual scan. */
-    prescan_declaration(&token_cache, flags, /*is_top_level=*/TRUE,
-                        &may_be_decl, (a_type_ptr*)NULL);
-    if (!may_be_decl) goto done;
+    prescan_declaration(&state, flags, /*is_top_level=*/TRUE);
+    if (!state.may_be_decl) goto done;
     /* We should now be at either a comma separating two declarators or at
        the semicolon at the end of the declaration.  If not, assume that this
        is really an expression. */
@@ -838,48 +897,50 @@ types separated by commas (when single_type_required is FALSE).
       if (abstract_declarator_allowed(flags)) {
         /* We are scanning a parameter list, we should be at the closing
            right parenthesis. */
-        if (curr_token != tok_rparen) may_be_decl = FALSE;
+        if (curr_token != tok_rparen) state.may_be_decl = FALSE;
       } else {
         /* We are scanning a real declaration, we should be at the end of
            the statement now. */
         if (is_condition(flags) && !condition_is_for_stmt(flags)) {
           /* Condition statements (except in for statements) must end
              with a right parenthesis. */
-          if (curr_token != tok_rparen) may_be_decl = FALSE;
+          if (curr_token != tok_rparen) state.may_be_decl = FALSE;
         } else {
           /* All other declarations must end in a semicolon. */
-          if (curr_token != tok_semicolon) may_be_decl = FALSE;
+          if (curr_token != tok_semicolon) state.may_be_decl = FALSE;
         }  /* if */
       }  /* if */
     } else {
       /* Otherwise, if we are scanning one or more types.  We should be
          at the right parenthesis. */
-      if (curr_token != tok_rparen) may_be_decl = FALSE;
-      if (may_be_decl && is_cast(flags)) {
+      if (curr_token != tok_rparen) state.may_be_decl = FALSE;
+      if (state.may_be_decl && is_cast(flags)) {
         /* If we are in a cast context, look at what follows the right
            parenthesis to see if it is something that could follow a cast.
            This is to prevent (A()) from being interpreted as an invalid
            cast. */
-        cache_curr_token(&token_cache);
+        cache_curr_token(&state.cache);
         (void)get_token();
         /* If the thing after the right parenthesis is not the start of
            an expression, then this is not a cast -- so indicate that this
            is not a declaration. */
-        if (!is_expr_start_token(curr_token)) may_be_decl = FALSE;
+        if (!is_expr_start_token(curr_token)) state.may_be_decl = FALSE;
       }  /* if */
     }  /* if */
 done:
     /* Restore the tokens. */
-    rescan_cached_tokens(&token_cache);
+    rescan_cached_tokens(&state.cache);
     if (curr_token == tok_identifier) {
       /* Restore the saved value of the do_not_clear_specific_symbol
          flag. */
       locator_for_curr_id.do_not_clear_specific_symbol =
                                             prev_do_not_clear_specific_symbol;
     }  /* if */
+    result = state.may_be_decl;
+    wrapup_disambig_state(&state);
   }  /* if */
   db_exit();
-  return may_be_decl;
+  return result;
 }  /* f_is_decl_not_expr */
 
 
@@ -893,25 +954,27 @@ and is discarded.  After the scan is done, any tokens remaining in the
 cache passed by the caller are flushed.
 */
 {
-  a_token_cache       token_cache;
-  a_boolean           may_be_decl = TRUE;
-  a_type_ptr	      decl_class_type = NULL;
+  a_disambig_state    state;
 
-  /* Initialize the token cache. */
-  clear_token_cache(&token_cache, /*reusable=*/FALSE);
+  /* Initialize the disambiguation state block. */
+  init_disambig_state(&state);
+  /* Copy the declaration cache passed in into the statement cache used
+     by the disambiguation routines. */
+  state.stmt_cache = *decl_token_cache_ptr;
+  state.set_decl_class_type = TRUE;
   rescan_reusable_cache(decl_token_cache_ptr);
-  prescan_declaration(&token_cache,
+  prescan_declaration(&state,
                       DFS_REAL_DECLARATOR_ALLOWED | DFS_IS_TEMPLATE_DECL,
-                     /*is_top_level=*/TRUE,
-                      &may_be_decl, &decl_class_type);
+                     /*is_top_level=*/TRUE);
   /* Flush and remaining tokens from the reusable cache. */
   while (curr_token != tok_end_of_source) (void)get_token();
   /* Skip past the tok_end_of_source. */
   (void)get_token();
   /* Discard the cached token.  They are not needed because we were already
      scanning from a cache. */
-  discard_token_cache(&token_cache);
-  return decl_class_type;
+  discard_token_cache(&state.cache);
+  wrapup_disambig_state(&state);
+  return state.decl_class_type;
 }  /* prescan_and_find_declarator */
 
 
