@@ -112,7 +112,7 @@ Wide character constant type (wchar_t, see stddef.h and stdlib.h):
 (These are allowed to be nonconstant, e.g., plain_char_int_kind for
 TARG_WCHAR_T_INT_KIND.)
 */
-#define TARG_WCHAR_T_INT_KIND ik_unsigned_short
+#define TARG_WCHAR_T_INT_KIND ((an_integer_kind)ik_unsigned_short)
 #define TARG_SIZEOF_WCHAR_T TARG_SIZEOF_SHORT
 
 /*
@@ -322,9 +322,9 @@ typedef long a_targ_ptrdiff_t;  /* Must be host "long". */
 /* Pick a typical representation for ptrdiff_t: the smaller of int or long
    that can hold a pointer value. */
 #if TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT
-#define TARG_PTRDIFF_T_INT_KIND ik_int
+#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_int)
 #else /* TARG_SIZEOF_POINTER > TARG_SIZEOF_INT */
-#define TARG_PTRDIFF_T_INT_KIND ik_long
+#define TARG_PTRDIFF_T_INT_KIND ((an_integer_kind)ik_long)
 #endif /* TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT */
 
 /* size_t, used for size of arrays, offsets in fields, type of sizeof, etc.
@@ -339,9 +339,9 @@ typedef unsigned long a_targ_size_t;  /* Must be host "unsigned long". */
 /* Pick a typical representation for size_t: the smaller of unsigned int or
    unsigned long that can hold a pointer value. */
 #if TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT
-#define TARG_SIZE_T_INT_KIND ik_unsigned_int
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_int)
 #else /* TARG_SIZEOF_POINTER > TARG_SIZEOF_INT */
-#define TARG_SIZE_T_INT_KIND ik_unsigned_long
+#define TARG_SIZE_T_INT_KIND ((an_integer_kind)ik_unsigned_long)
 #endif /* TARG_SIZEOF_POINTER <= TARG_SIZEOF_INT */
 
 /* Specification of a target alignment requirement.  1 means no alignment
