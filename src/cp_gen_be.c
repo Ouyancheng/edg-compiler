@@ -3347,7 +3347,8 @@ is the one associated with the definition of the class.
 #ifdef PARSED_TEMPLATES_IN_IL
     gen_class_decl_name(type);
 #else /* !PARSED_TEMPLATES_IN_IL */
-    gen_name(&type->source_corresp, iek_type, options, (a_boolean *)NULL);
+    gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
+             (a_boolean *)NULL);
     write_space();
 #endif /* PARSED_TEMPLATES_IN_IL */
   }  /* if */
