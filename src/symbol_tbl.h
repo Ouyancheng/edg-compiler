@@ -511,7 +511,7 @@ typedef struct a_template_symbol_supplement {
     /* When kind = sk_class_template. */
     struct {
       a_symbol_ptr
-                class_instantiations;
+                instantiations;
                         /* Pointer to a list of symbols describing template
                            classes that have been instantiated from this
                            class template. */

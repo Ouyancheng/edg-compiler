@@ -835,8 +835,8 @@ state.
         /* Initialize fields in the template symbol supplement. */
         tssp->parameters = NULL;
         if (sym_kind == sk_class_template) {
-          tssp->variant.class.class_instantiations = NULL;
-          tssp->variant.class.is_union             = FALSE;
+          tssp->variant.class.instantiations = NULL;
+          tssp->variant.class.is_union       = FALSE;
         } else {
           tssp->variant.function_instantiations = NULL;
         }  /* if */
@@ -5327,6 +5327,14 @@ an instance of the class template.
     pos_sy_error(ec_expected_template_arg_list, &start_pos, template_symbol);
     goto error_exit;
   }  /* if */
+  /* Get token following opening angle bracket. */
+  (void)get_token();
+  /* Scan a comma separated list of arguments.  The arguments can be
+     type names, constant expressions, or addresses of objects or functions
+     with external linkage, or of static class members (WP 14.2).  It
+     is not necessary to distinguish between the type and constant case
+     because we can use the type of the formal parameter to make this
+     selection. */
   
 error_exit:
 
