@@ -6061,6 +6061,9 @@ an instance of the class template.
     /* Everything is OK -- find the instance that matches these arguments.
        Create a new instance if needed. */
     new_sym = find_template_class(template_symbol, &arg_list, &start_pos);
+  } else {
+    /* Free any allocated template arguments. */
+    if (arg_list != NULL) free_template_arg_list(arg_list);
   }  /* if */
   /* When we return to the caller the current identifier should be an 
      identifier and the locator should point to the template class that we
