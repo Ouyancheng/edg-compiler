@@ -1825,7 +1825,17 @@ this function points to a tree that includes a dynamic-init entry.
           /* A designator was present and has been processed.  If initializers
              were being discarded because we ran out of array elements, we can
              now start recording the initializers again (GNU C mode). */
-          discard_initializers = FALSE;
+          if (discard_initializers && !is_error_type(context.type)) {
+            discard_initializers = FALSE;
+            kind = skip_typerefs(context.type)->kind;
+            /* member_type had been set to an error type.  For struct
+               initializers, it is reset in every iteration of the loop,
+               but for arrays we need to restore it here. */
+            if (kind == (a_type_kind)tk_array) {
+              member_type =
+                      skip_typerefs(context.type)->variant.array.element_type;
+            }  /* if */
+          }  /* if */
         } else {
           /* No designator. */
           if (!any_more_members) {
