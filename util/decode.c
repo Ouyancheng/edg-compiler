@@ -2133,6 +2133,12 @@ is set to the size of buffer required to do the demangling.
       write_id_str(" in ", dctl);
       end_ptr = demangle_vtbl_class_name(end_ptr, dctl);
     }  /* if */
+    if (start_of_id_is("__", end_ptr)) {
+      /* Further derived class. */
+      end_ptr += 2;
+      write_id_str(" in ", dctl);
+      end_ptr = demangle_vtbl_class_name(end_ptr, dctl);
+    }  /* if */
   } else if (start_of_id_is("__CBI__", id)) {
     write_id_str("can-be-instantiated flag for ", dctl);
     end_ptr = demangle_identifier(id+7, dctl);

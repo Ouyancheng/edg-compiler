@@ -1,5 +1,12 @@
 Version 2.39
 
+4/25/98  Demangling of virtual function table names with three parts
+
+The name demangler now demangles virtual function tables that name three
+classes, as in "virtual function table for A in B in C".  Such names are
+used for virtual function tables generated for use during subobject
+destruction or construction in the presence of virtual base classes.
+
 3/25/98  Output file option must be included in the instantiation command line
          in eccp
 
