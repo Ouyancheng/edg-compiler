@@ -2143,6 +2143,24 @@ file is created and restored when a PCH file is used.
 }  /* register_pch_saved_variables */
 
 
+#if DEBUG
+unsigned long db_show_pch_space_used(unsigned long grand_total)
+/*
+Show space used by the PCH routines.  This is called by
+the symbol table space used routine.  The space used by the PCH
+routines is reported as part of the symbol table memory used.
+*/
+{
+  unsigned long	num;
+  unsigned long	size;
+  unsigned long	total;
+
+  db_space_used("PCH events", num_pch_events_allocated, a_pch_event);
+  return grand_total;
+}  /* db_show_template_space_used */
+#endif /* DEBUG */
+
+
 void pch_init(void)
 /*
 Initialize variables used by the precompiled header routines.

@@ -280,6 +280,10 @@ extern void pch_fixup_part_2(void);
 
 extern void pch_init(void);
 
+#if DEBUG
+extern unsigned long db_show_pch_space_used(unsigned long grand_total);
+#endif /* DEBUG */
+
 /*
 Macro that returns TRUE if the line number indicated by the current input
 stack entry and the column number from the supplied source position

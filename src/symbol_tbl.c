@@ -8425,6 +8425,7 @@ for space tracking purposes.
   db_space_used_lost("active using directives", avail_active_using_directives,
                      num_active_using_directives_allocated,
                      an_active_using_directive);
+  grand_total = db_show_pch_space_used(grand_total);
   grand_total = db_show_template_space_used(grand_total);
   grand_total = db_show_routine_fixups_used(grand_total);
   grand_total = db_show_class_fixups_used(grand_total);
