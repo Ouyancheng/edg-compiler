@@ -4800,8 +4800,8 @@ a pointer to it in *symbol_ptr.
      scope. */
   sym->variant.type = tp = alloc_type((a_type_kind)tk_typeref);
   tp->variant.typeref.type = type_ptr;
-  mark_defined(sym, &locator->source_position);
   set_source_corresp(&(tp->source_corresp), sym);
+  mark_defined(sym, &locator->source_position);
   add_to_types_list(tp, decl_scope_level);
 
 return_point:
