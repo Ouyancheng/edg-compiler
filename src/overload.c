@@ -4840,7 +4840,10 @@ as its first operand.
           /* cfront 2.1 is confused and allows pointers to members on this
              case (they get rejected if chosen). */
           operand_type_pattern = "AA;=PP;=MM";
-        } else if (operator_overloading_on_enums_enabled && !microsoft_mode) {
+        } else if (microsoft_bugs) {
+          /* Microsoft considers only arithmetic types, not pointers. */
+          operand_type_pattern = "AA";
+        } else if (operator_overloading_on_enums_enabled) {
           operand_type_pattern = "AA;=PP;=EE";
         } else {
           operand_type_pattern = "AA;=PP";

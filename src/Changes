@@ -1,5 +1,24 @@
 Version 2.40
 
+11/29/98  Microsoft mode: user-defined conversions on relational operators
+
+The MSVC++ compiler does not look for user-defined conversions to pointer
+types for the built-in operators >, <, >=, and <=.  In Microsoft bugs mode,
+we now do the same.
+
+  struct S {
+    S(const char *);
+    operator char *();
+    int operator>(const S&);
+  };
+  int main() {
+    char *p = "String";
+    S x(p);
+    if (x > p) {} // Resolves to S::operator>, not built-in, in Microsoft
+                  // bugs mode
+    return 0;
+  }
+
 11/28/98  User-defined conversions on operands of ->*
 
 User-defined conversions are now considered on the operands of the
