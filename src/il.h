@@ -77,6 +77,8 @@ extern a_type_ptr void_type(void);
 
 extern a_type_ptr make_pointer_type(a_type_ptr type_pointed_to);
 
+extern a_type_ptr make_reference_type(a_type_ptr type_pointed_to);
+
 extern void switch_il_region(a_memory_region_number region_number);
 
 extern void new_il_region(void);

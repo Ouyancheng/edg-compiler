@@ -1968,6 +1968,27 @@ an existing entry if possible.
 }  /* make_pointer_type */
 
 
+a_type_ptr make_reference_type(a_type_ptr type_pointed_to)
+/*
+Allocate a reference type record and initialize it.
+*/
+{
+  register a_type_ptr ptr;
+
+  /* If the entry is a reference to a file-scope type, make sure it gets
+     allocated in the file-scope memory region. */
+  if (in_file_scope((char *)type_pointed_to)) {
+    ptr = fs_type((a_type_kind)tk_reference);
+  } else {
+    ptr = alloc_type((a_type_kind)tk_reference);
+  }  /* if */
+  ptr->variant.pointer_type_pointed_to = type_pointed_to;
+  set_type_size(ptr);
+
+  return (ptr);
+}  /* make_reference_type */
+
+
 void copy_type(a_type_ptr from,
                a_type_ptr to)
 /*
