@@ -8783,6 +8783,16 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
       make_error_operand(result);
       if (rep != NULL) change_ref_kinds(rep, SRK_ERROR);
     } else {
+      if (warning_on_for_init_difference) {
+        /* Unless it is a qualified-name reference, if sym_ptr is visible with
+           new-style for-init declaration scoping but would be hidden using
+           the old (cfront compatible) rules, a warning is appropriate. */
+        if (sym_ptr->hidden_by_old_for_init &&
+            !locator_for_curr_id.is_qualified_name) {
+          report_hidden_by_old_for_init(sym_ptr,
+                                        &locator_for_curr_id.source_position);
+        }  /* if */
+      }  /* if */
       projection_sym_ptr = locator_for_curr_id.specific_symbol;
       /* What kind of symbol is it? */
       switch (sym_ptr->kind) {
