@@ -2638,6 +2638,9 @@ translation unit correspondence pointer if one is found.
           /* Record the correspondence. */
           set_trans_unit_corresp(iek_namespace,
                                  nsp, sym->variant.namespace_info.ptr);
+          if (!in_secondary_trans_unit(nsp)) {
+            trans_unit_corresp_of(nsp)->canonical = (char*)nsp;
+          }  /* if */
         } else {
           /* An error since the conflicting entity has external linkage. */
           f_report_bad_trans_unit_corresp((char*)nsp, &sym->decl_position);
@@ -2702,7 +2705,8 @@ entities.
           a_type_ptr  corresp_type = type_symbol_type(sym);
           set_trans_unit_corresp(iek_type, type, corresp_type);
           if(type_has_definition(type)) {
-            if (!type_has_definition((a_type*)canonical_il_entry_of(type))) {
+            if (!type_has_definition((a_type*)canonical_il_entry_of(type)) ||
+                !in_secondary_trans_unit(type)) {
               /* This new entry should be considered the canonical type. */
               trans_unit_corresp_of(type)->canonical = (char*)type;
             }  /* if */
@@ -3552,6 +3556,20 @@ translation unit correspondence pointer if one is found.
     a_variable_ptr  corresp_var = corresp_var_sym->variant.variable.ptr;
     /* Record the correspondence. */
     set_trans_unit_corresp(iek_variable, var, corresp_var);
+    /* Prefer definitions for the canonical entry, especially if there is an
+       initializer.  Definitions in the primary translation unit are even
+       better. */
+    if (var->storage_class == (a_storage_class)sc_unspecified) {
+      a_variable_ptr  canon = (a_variable_ptr)canonical_il_entry_of(var);
+      if (canon->storage_class != (a_storage_class)sc_unspecified ||
+          (var->init_kind != (an_init_kind)initk_none &&
+           canon->init_kind == (an_init_kind)initk_none) ||
+          (!in_secondary_trans_unit(var) &&
+           (var->init_kind == (an_init_kind)initk_none) ==
+                            (canon->init_kind == (an_init_kind)initk_none))) {
+        trans_unit_corresp_of(var)->canonical = (char*)var;
+      }  /* if */
+    }  /* if */
     /* If the variable has an anonymous type, assume it matches
        that of the corresponding entity. */
     if (!has_correspondence(var->type) &&
