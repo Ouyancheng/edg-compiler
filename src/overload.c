@@ -3590,29 +3590,6 @@ the former has additional type qualifiers.
 }  /* candidate_return_type_same_with_added_qualifiers */
 
 
-static a_boolean candidate_is_conversion(a_candidate_function_ptr cfp)
-/*
-Return TRUE if the indicated candidate function is a non-template conversion
-function.
-*/
-{
-  a_boolean    is_conv = FALSE;
-  a_symbol_ptr sym = cfp->function_symbol;
-
-  if (sym != NULL) {
-    sym = fundamental_symbol_of(sym);
-    /* Don't process templates. */
-    if (sym->kind == (a_symbol_kind)sk_member_function) {
-      a_routine_ptr rout = sym->variant.routine.ptr;
-      if (rout->special_kind == (a_special_function_kind)sfk_conversion) {
-        is_conv = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_conv;
-}  /* candidate_is_conversion */
-
-
 static int compare_candidate_functions(a_candidate_function_ptr cfp1,
                                        a_candidate_function_ptr cfp2)
 /*
@@ -3641,20 +3618,6 @@ other.  Return
       (cmp = compare_late_tiebreakers(cfp1, cfp2)) != 0) {
     /* There is something about one argument list that makes it better
        than the other. */
-  } else if (microsoft_bugs &&
-             cfp1->is_user_conversion &&
-             !candidate_is_conversion(cfp1) &&
-             candidate_is_conversion(cfp2)) {
-    /* Microsoft picks a constructor over a conversion function to do
-       a conversion. */
-    cmp = 1;
-  } else if (microsoft_bugs &&
-             cfp1->is_user_conversion &&
-             candidate_is_conversion(cfp1) &&
-             !candidate_is_conversion(cfp2)) {
-    /* Microsoft picks a constructor over a conversion function to do
-       a conversion. */
-    cmp = -1;
   } else if (cfp1->is_user_conversion &&
              (cmp = compare_standard_conversions(&cfp1->conversion.std,
                                                  &cfp2->conversion.std,
