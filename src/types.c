@@ -569,6 +569,37 @@ Return TRUE if the given type is a class type with virtual functions
 }  /* is_polymorphic_class_type */
 
 
+a_boolean is_empty_class_type(a_type_ptr type)
+/*
+Returns TRUE if the type passed as argument is a class type with no nonstatic
+data members, no virtual functions or virtual bases, and no nonempty bases.
+Otherwise, FALSE is returned.
+*/
+{
+  a_boolean result = TRUE;
+
+  type = skip_typerefs(type);
+  if (!is_class_struct_union(type)) {
+    result = FALSE;
+  } else if (type->variant.class_struct_union.field_list != NULL ||
+             type->variant.class_struct_union.any_virtual_base_classes ||
+             type->variant.class_struct_union.any_virtual_functions) {
+    result = FALSE;
+  } else {
+    /* Also check that every base class is similarly empty: */
+    a_base_class_ptr bcp;
+
+    for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
+      if (!is_empty_class_type(bcp->type)) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* is_empty_class_type */
+
+
 a_type_ptr array_element_type(a_type_ptr array_type)
 /*
 Return the element type of the given array type.

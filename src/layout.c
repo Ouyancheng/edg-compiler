@@ -59,7 +59,10 @@ B.  Layout options
        (Such base class data sections are referred to as "incomplete
        subobjects" because the space reserved for them does not include
        space for their own virtual base classes.  All virtual base classes,
-       direct and indirect, appear at the end of layout.)
+       direct and indirect, appear at the end of layout.)  If the empty base
+       class optimization is enabled (targ_optimize_empty_base_class_layout),
+       then empty bases are allocated in a separate pass after the nonempty
+       bases (see set_offsets_for_empty_nonvirtual_base_classes).
 
     2. Nonstatic data members, in declaration order.
 
@@ -144,6 +147,7 @@ B.  Layout options
 #include "pch.h"
 #include "pragma.h"
 #endif /*USER_CONTROL_OF_STRUCT_PACKING */
+
 
 /* Data structure to track some information about the layout of a class
    as it is being constructed. */
@@ -1138,6 +1142,12 @@ layout block used to track the layout of the current class.
   /* Traverse the list of base classes. */
   for (bcp = base_classes_of(lob->class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && !bcp->is_virtual) {
+      if (targ_optimize_empty_base_class_layout &&
+          bcp->type->variant.class_struct_union.field_list == NULL &&
+          is_empty_class_type(bcp->type)) {
+        /* Empty bases will be allocated later. */
+        continue;
+      }  /* if */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
       /* When cfront compatibility is required, space for a complete
          subobject (i.e., including space for it virtual base classes)
@@ -1169,6 +1179,222 @@ layout block used to track the layout of the current class.
   }  /* for */
   db_exit();
 }  /* set_offsets_for_nonvirtual_base_classes */
+
+
+static a_base_class_ptr next_empty_nonvirtual_direct_base(a_base_class_ptr
+                                                                         ebcp)
+/*
+Return the given base class if it is empty; otherwise the next empty
+nonvirtual direct base or NULL if there is none such.
+*/
+{
+  for (; ebcp != NULL; ebcp = ebcp->next) {
+    if (ebcp->direct && !ebcp->is_virtual &&
+        ebcp->type->variant.class_struct_union.field_list == NULL &&
+        is_empty_class_type(ebcp->type)) {
+      break;
+    }  /* if */
+  }  /* for */
+  return ebcp;
+}  /* next_empty_nonvirtual_direct_base */
+
+
+static a_base_class_ptr next_nonempty_nonvirtual_direct_base(a_base_class_ptr
+                                                                         nbcp)
+/*
+Return the given base class if it is nonempty; otherwise the next nonempty
+nonvirtual direct base or NULL if there is none such.
+*/
+{
+  for (; nbcp != NULL; nbcp = nbcp->next) {
+    if (nbcp->direct && !nbcp->is_virtual &&
+        !(nbcp->type->variant.class_struct_union.field_list == NULL &&
+          is_empty_class_type(nbcp->type))) {
+      break;
+    }  /* if */
+  }  /* for */
+  return nbcp;
+}  /* next_nonempty_nonvirtual_direct_base */
+
+
+static a_field_ptr first_allocated_field(a_type_ptr class_type)
+/*
+Return the first field of a given class to be allocated.  By default this is
+the first declared field; if TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE is
+defined to be FALSE however, it is the first field with the most access (i.e.,
+public is preferred over protected, which is preferred over private).
+*/
+{
+#if TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE
+  return class_type->variant.class_struct_union.field_list;
+#else /* !TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+      /* Public fields are allocated first, then the protected ones and finally
+       the private ones; so fetch the first allocated one. */
+    an_access_specifier access = (an_access_specifier)as_inaccessible;
+    a_field_ptr         field =
+                            class_type->variant.class_struct_union.field_list;
+    a_field_ptr         result = field;
+    while (field) {
+      if (field->source_corresp.access == (an_access_specifier)as_public) {
+        break;
+      } else if (field->source_corresp.access < access) {
+        access = field->source_corresp.access;
+        result = field;
+      }  /* if */
+      field = field->next;
+    }  /* while */
+#endif /* TARG_FIELD_ALLOC_SEQUENCE_EQUALS_DECL_SEQUENCE */
+}  /* first_allocated_field */
+
+
+static a_boolean empty_base_conflict(a_type_ptr etype, a_type_ptr atype)
+/*
+Determine whether a subobject of type etype (an empty class type) can be
+allocated at the same offset as another (not necessarily empty) class type
+atype.  Return TRUE is this is not the case (i.e., there is a type conflict
+that would cause to empty subobjects of the same type to end up at the same
+address); FALSE otherwise.
+*/
+{
+  a_boolean result = FALSE;
+
+#if CHECKING
+  check_assertion(is_empty_class_type(etype));
+#endif /* CHECKING */
+  if (etype == atype) {
+    /* Is there a direct type conflict? */
+    result = TRUE;
+  } else {
+    /* Is there a type conflict with any of the bases of the empty base (they
+       are by definition also empty)? */
+    a_base_class_ptr bcp = base_classes_of(etype);
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (bcp->type == atype) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  /* Apply these tests recursively to any base and field of atype that was
+     allocated at offset zero. */
+  if (!result) {
+    a_base_class_ptr bcp = base_classes_of(atype);
+    for (; bcp != NULL; bcp = bcp->next) {
+      if (bcp->offset == 0 && empty_base_conflict(etype, bcp->type)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (!result) {
+    a_field_ptr field = atype->variant.class_struct_union.field_list;
+    for (; field != NULL; field = field->next) {
+      a_type_ptr field_type = skip_typerefs(field->type);
+
+      if (field->offset == 0 && is_class_struct_union_type(field_type) &&
+          empty_base_conflict(etype, field_type)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* empty_base_conflict */
+
+
+static void set_offsets_for_empty_nonvirtual_base_classes(
+                                                      a_layout_block_ptr  lob)
+/*
+This routine is called if the empty base optimization is enabled.  If so, the
+empty base subobject were not yet allocated in the class layout and this
+runs an extra pass to allocate them at the same location as other bases or
+(when that is not possible) just after the last already allocated base.
+Most of the work consists in avoiding situations where two empty subobjects
+would end up at the same address (this would be two base subobjects or a base
+subobject and the first allocated field).  The layout state lob is updated if
+necessary.
+*/
+{
+  a_type_ptr       class_type = lob->class_type;
+  /* nbcp points to the next nonempty base class; ebcp to the next empty base
+     class. */
+  a_base_class_ptr nbcp = next_nonempty_nonvirtual_direct_base(
+                                                 base_classes_of(class_type));
+  a_base_class_ptr ebcp = next_empty_nonvirtual_direct_base(
+                                                 base_classes_of(class_type));
+  a_boolean conflict;
+
+  while (ebcp != NULL) {
+    conflict = FALSE;
+    /* First tentatively allocate the empty base ignoring conflicts. */
+    if (nbcp != NULL) {
+      ebcp->offset = nbcp->offset;
+    } else {
+      ebcp->offset = lob->byte_offset;
+    }
+    /* Next, verify if this offset causes a conflict with another empty
+       subobject that has a common empty type at that location. */
+    if (nbcp != NULL && empty_base_conflict(ebcp->type, nbcp->type)) {
+      /* A conflict with a nonempty base subobject. */
+      conflict = TRUE;
+    } else {
+      /* Check for conflicts with previously allocated empty bases. */
+      a_base_class_ptr prior_ebcp = next_empty_nonvirtual_direct_base(
+                                                 base_classes_of(class_type));
+      while (prior_ebcp && prior_ebcp != ebcp) {
+        if (prior_ebcp->offset == ebcp->offset &&
+            empty_base_conflict(ebcp->type, prior_ebcp->type)) {
+          conflict = TRUE;
+          break;
+        }  /* if */
+        prior_ebcp = next_empty_nonvirtual_direct_base(prior_ebcp->next);
+      }  /* while */
+    }  /* if */
+    /* If there was no conflict, move to the next empty base; otherwise,
+       try to find another slot where the empty base could be allocated. */
+    if (!conflict) {
+      ebcp = next_empty_nonvirtual_direct_base(ebcp->next);
+    } else {
+      if (nbcp != NULL) {
+        nbcp = next_nonempty_nonvirtual_direct_base(nbcp->next);
+      } else {
+        /* We were already at the end of the list of nonempty bases.  So the
+           conflict was with a previously allocated empty base. Move to the
+           next byte. */
+        ++lob->byte_offset;
+      }  /* if */
+    }  /* if */
+  }  /* while */
+  /* Finally, check if we created a conflict with the first field. */
+  if (nbcp != NULL) {
+    /* There are nonempty bases left after the last empty base, so there
+       cannot be a conflict with the fields (since they are allocated after
+       the nonempty base). */
+  } else {
+    a_field_ptr field = first_allocated_field(class_type);
+    if (field) {
+      a_type_ptr field_type = skip_typerefs(field->type);
+      if (field && is_class_struct_union_type(field_type)) {
+        ebcp = next_empty_nonvirtual_direct_base(base_classes_of(class_type));
+        while (ebcp) {
+          if (ebcp->offset == lob->byte_offset &&
+              empty_base_conflict(ebcp->type, field_type)) {
+            ++lob->byte_offset;
+            break;
+          }  /* if */
+          ebcp = next_empty_nonvirtual_direct_base(ebcp->next);
+        }  /* while */
+      }  /* if */
+    } else {
+      /* We cannot end the layout with a zero-sized empty base because
+         otherwise we might end up conflicting with an adjacent object. */
+      if (!class_type->variant.class_struct_union.any_virtual_base_classes &&
+          !class_type->variant.class_struct_union.any_virtual_functions) {
+        ++lob->byte_offset;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* set_offsets_for_empty_nonvirtual_base_classes */
 
 
 static void set_offsets_for_fields(a_layout_block_ptr  lob)
@@ -1589,6 +1815,9 @@ is not shared (i.e., where the pointer from a base class is not used).
   db_enter(4, "set_virtual_base_class_pointer_offsets");
 
   if (lob->class_type->variant.class_struct_union.any_virtual_base_classes) {
+    /* Since we are going to allocate pointers, any active empty base can be
+       deactivated (i.e., there is no danger that a subsequent subobject will
+       be allocated at the same location. */
     bcp = base_classes_of(lob->class_type);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     /* In cfront compatibility mode we go through the base classes list
@@ -1897,9 +2126,6 @@ Reserve space at the end of the class object for virtual base classes.
         }  /* if */
       }  /* if */
       lob->bit_offset = 0;
-    } else if (lob->byte_offset == 0) {
-      /* An empty class must occupy at least one byte of memory. */
-      lob->byte_offset = 1;
     }  /* if */
     ctsp->size_without_virtual_base_classes = lob->byte_offset;
     ctsp->alignment_without_virtual_base_classes = lob->alignment;
@@ -2266,6 +2492,9 @@ for handling virtual bases and functions.
        which are located at the start of the object.  (Virtual base classes
        appear at the end.) */
     set_offsets_for_nonvirtual_base_classes(&lob);
+    if (targ_optimize_empty_base_class_layout) {
+      set_offsets_for_empty_nonvirtual_base_classes(&lob);
+    }  /* if */
   }  /* if */
   /* Set offsets for nonstatic data members (fields) declared for the current
      class. */
@@ -2281,6 +2510,9 @@ for handling virtual bases and functions.
     /* Finally, allocate space for the virtual base class data sections
        themselves. */
     set_virtual_base_class_offsets(&lob);
+    /* If the last things allocated was an empty base class, add a padding
+       byte to ensure that that base will not overlap with a subobject of
+       the same type in an adjacent object. */
   }  /* if */
   /* Adjust the total size of the class to be consistent with the
      overall alignment required for the class. */

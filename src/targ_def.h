@@ -1165,6 +1165,14 @@ to targ_size_t_max.
 #endif /* ifndef TARG_MAX_BASE_CLASS_OFFSET */
 
 /*
+A flag that is TRUE if the layout mechanism should attempt to allocate empty
+base classes at the same offset as other subobjects.
+*/
+#ifndef TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT
+#define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT 0
+#endif /* ifndef TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT */
+
+/*
 When a class with a copy constructor is passed to an ellipsis, does the
 copy constructor get called?  If this is TRUE, what is passed as the argument
 is the address of a temporary into which the class object has been copied.
