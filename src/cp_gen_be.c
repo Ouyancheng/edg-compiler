@@ -7494,7 +7494,7 @@ Generate code for the indicated statement.
       break;
     case stmk_asm:
       /* asm statement. */
-      if (microsoft_mode) {
+      if (microsoft_mode || msvc_is_generated_code_target) {
         /* If generating code for processing by the Microsoft compiler the
            form "__asm("...")" is not accepted.  Use "__asm ..." instead. */
         write_tok_str("__asm ");

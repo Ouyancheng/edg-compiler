@@ -1,5 +1,12 @@
 Version 2.46
 
+5/25/01  Generation of __asm instead of asm(...) when MSVC is generated
+         code target
+
+When MSVC_IS_GENERATED_CODE_TARGET is TRUE, the C- and C++-generating
+back ends now put out asm statements in the Microsoft __asm form.
+Formerly, this was done only when running in Microsoft mode.
+
 5/21/01  Abort on C99 designated initializer on string and aggregate that
          doubly initialize same character
 

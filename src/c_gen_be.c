@@ -5405,7 +5405,7 @@ Generate C for an asm statement or declaration.
   dump_decl_associated_pragmas(&aep->source_corresp);
   set_output_position(&aep->source_corresp.decl_position);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode) {
+  if (microsoft_mode || msvc_is_generated_code_target) {
     /* If generating code for processing by the Microsoft compiler the
        form "__asm("...")" is not accepted.  Use "__asm { ... }" instead. */
     /* Note that there is an "is_asm_block" flag that indicates whether
