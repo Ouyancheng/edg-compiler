@@ -1,5 +1,28 @@
 Version 3.5
 
+10/13/04 Microsoft compatibility: Implicit calling conventions
+
+In Microsoft mode, the default calling convention is normally "__cdecl"
+(determined by the global variable default_calling_convention).  However,
+the global entry point functions "WinMain" and "wWinMain" are treated by
+Microsoft compilers as having "__stdcall" calling convention by default.
+The front end now emulates this behavior by recording the "__stdcall"
+convention in the IL entry of "WinMain" and "wWinMain", unless a calling
+convention was specified explicitly in the source.
+
+  void WinMain();              // "Default calling convention" is "__stdcall".
+  void __stdcall WinMain() {}  // Previously a redeclaration error; now
+                               // accepted.
+
+In addition, a change was made to record any calling convention explicitly
+specified on the standard "main" entry point.  Previously, calling convention
+specifiers were silently ignored and replaced by "__cdecl" in all cases.
+For example:
+
+  int __stdcall main() {  // Previously treated as "int __cdecl main() ...".
+    return 0;
+  }
+
 10/13/04 GNU compatibility: undefining predefined macros
 
 The GNU compilers allow a predefined macro to be undefined.  We now allow
@@ -70,17 +93,6 @@ available in GNU modes).  For example:
   void f() {}  // Should displace definition in File 1; not an error.
 
 This is now fixed.
-
-10/11/04 Microsoft compatibility: Default WinMain calling convention
-
-In Microsoft mode, the default calling convention is normally "__cdecl".
-However, the global entry point functions "WinMain" and "wWinMain" are
-treated by Microsoft compilers as having "__stdcall" calling convention
-by default.  The front end now emulates this behavior.
-
-  void WinMain();              // "Default calling convention" is "__stdcall".
-  void __stdcall WinMain() {}  // Previously a redeclaration error; now
-                               // accepted.
 
 10/11/04 Embedded C: specifying the largest possible _Accum values
 
