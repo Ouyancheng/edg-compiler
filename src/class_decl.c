@@ -12478,7 +12478,7 @@ definition and marks them external as well.
            was defined in the current translation unit. */
         rp->source_corresp.name_linkage =
                  (a_name_linkage_kind)nlk_cplusplus_external;
-        if (!rp->defined) {
+        if (rp->assoc_scope == NULL_region_number) {
           /* Not defined. */
           rp->storage_class = (a_storage_class)sc_extern;
         } else {

@@ -455,8 +455,8 @@ definition of the routine is needed, and not just the declaration.
 #endif /* DEBUG */
     /* If the definition is present, walk it.  set_routine_defined and
        remark_routine_definition_needed take care of calling this again
-       later when defined gets set if it is not set now. */
-    if (rout->defined) {
+       later when the routine is defined if it has no body now. */
+    if (rout->assoc_scope != NULL_region_number) {
       a_scope_ptr            saved_innermost_function_scope;
       a_memory_region_number saved_curr_il_region_number=curr_il_region_number;
       a_scope_ptr scope;
@@ -1043,8 +1043,9 @@ declaration.
     }  /* if */
 #endif /* DEBUG */
     /* If the definition is present, walk it.  set_routine_defined takes
-       care of calling this again later when defined gets set. */
-    if (rout->defined) {
+       care of calling this again later when the routine is defined
+       if it is not defined now. */
+    if (rout->assoc_scope != NULL_region_number) {
       a_scope_ptr saved_innermost_function_scope;
       a_scope_ptr scope;
       check_assertion_str(mem_region_table[rout->assoc_scope] != NULL,
