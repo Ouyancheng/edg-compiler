@@ -1973,7 +1973,7 @@ scopes.
   a_symbol_ptr			enclosing_instance_sym;
   a_type_ptr			enclosing_assoc_type;
   a_routine_ptr			enclosing_assoc_routine;
-  a_boolean			is_nested_prototype_instantiation = FALSE;
+  a_boolean			nested_in_prototype_instantiation = FALSE;
 
   /* Clear the flag that indicates that we are in a local class so that any
      scopes pushed by this routine will not be indicated as being within
@@ -2013,19 +2013,21 @@ scopes.
     enclosing_assoc_type = assoc_type;
     enclosing_assoc_routine = assoc_routine;
   }  /* if */
-  /* See if this is a nested prototype instantiation.  A nested prototype
-     instantiation is the prototype instantiation of a member template
-     that is defined inside of the enclosing template.  In such cases
+  /* See if this is an instantiation scope  nested with a prototype
+     instantiation.  This could be the prototype instantiation of a
+     member template that is defined inside of the enclosing template.  It
+     could also be a partial instantiation of a member function template in a
+     prototype instantiation (this can occur when a Microsoft mode in-class
+     specialization of a member class template is declared).  In such cases
      the prototype instantiation of the enclosing template is still in
-     progress.  When processing a nested prototype instantiation we simply
-     push a new template instantiation scope onto the existing context and
-     flag it as a nested instantiation. */
+     progress.  When processing an instantiation  nested within a prototype
+     instantiation we simply push a new template instantiation scope onto
+     the existing context and flag it as a nested instantiation. */
   if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
-    if (instance_sym != NULL &&
-        is_class_struct_union_symbol(instance_sym)) {
-      is_nested_prototype_instantiation = 
-                    instance_sym->variant.class_struct_union.extra_info->
-                                                  is_prototype_instantiation;
+    if (template_sym->is_class_member &&
+        template_sym->parent.class_type ==
+          scope_stack[depth_innermost_instantiation_scope].assoc_type) {
+      nested_in_prototype_instantiation = TRUE;
     }  /* if */
   }  /* if */
 #if CHECKING
@@ -2033,7 +2035,7 @@ scopes.
      instantiation scope is in progress. */
   pushing_template_instantiation_scope = TRUE;
 #endif /* CHECKING */
-  if (!is_nested_prototype_instantiation) {
+  if (!nested_in_prototype_instantiation) {
     /* Because a template instantiation introduces a new context for
        name lookup purposes, we need to clear the active using list
        flags for any namespaces for which it is currently set. */
@@ -2064,7 +2066,7 @@ scopes.
                           assoc_routine, (a_namespace_ptr)NULL, instance_sym,
                           template_sym, template_arg_list, decl_info);
   }  /* if */
-  if (!is_nested_prototype_instantiation) {
+  if (!nested_in_prototype_instantiation) {
     a_scope_stack_entry_ptr	ssep;
     /* Update the scope stack entries that have been pushed so that the
        special instantiation context lookups can be done correctly. */
@@ -2103,7 +2105,7 @@ scopes.
   if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
     fprintf(f_debug, "Pushed instantiation scope for: ");
     db_symbol(instance_sym, "", 0);
-    if (!is_nested_prototype_instantiation) {
+    if (!nested_in_prototype_instantiation) {
       fprintf(f_debug, "context_depth=%0d, common_depth=%0d\n", context_depth,
               common_depth);
     }  /* if */

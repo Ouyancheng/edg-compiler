@@ -2539,6 +2539,7 @@ to FALSE if the entity being declared is not initializable.
   an_identifier_options_set options;
   a_symbol_ptr              sym;
   a_namespace_ptr           nsp;
+  a_boolean		    is_in_class_specialization = FALSE;
 
   db_enter(3, "scan_real_declarator_id");
   declarator_pos = pos_curr_token;
@@ -2578,6 +2579,11 @@ to FALSE if the entity being declared is not initializable.
     if (input_flags & DI_IS_SPECIALIZATION) {
       options |= GID_IS_TEMPLATE_SPECIALIZATION;
     }  /* if */
+  }  /* if */
+  if (*p_member_parent_type != NULL && (input_flags & DI_IS_SPECIALIZATION)) {
+    /* When a member parent type is provided and the specialization flag is
+       set, this must be a Microsoft mode in-class specialization. */
+    is_in_class_specialization = TRUE;
   }  /* if */
   if (is_generalized_identifier_start(GID_DTOR_RECOGNIZED) &&
       (!locator_for_curr_id.is_destructor_name ||
@@ -2797,6 +2803,9 @@ to FALSE if the entity being declared is not initializable.
     if (*p_member_parent_type != NULL) {
       if (locator->specific_symbol != NULL) {
         /* This must be a redeclaration. */
+      } else if (is_in_class_specialization) {
+        /* A specialization declared within the class.  Suppress the following
+           test for this case.  It is a kind of redeclaration. */
       } else if (!(input_flags & DI_NONSTATIC_MEMBER) &&
                  !is_new_operator(locator->variant.opname) &&
                  !is_delete_operator(locator->variant.opname)) {
@@ -2826,10 +2835,13 @@ to FALSE if the entity being declared is not initializable.
       }  /* if */
     }  /* if */
   } else if (locator->is_conversion_name) {
-    /* A conversion function must be a nonstatic member function. */
+    /* A conversion function must be a nonstatic member function.  Allow
+       a Microsoft in-class specialization as this should be treated
+       as a redeclaration. */
     if (*p_member_parent_type == NULL ||
         (locator->specific_symbol == NULL &&
-         !(input_flags & DI_NONSTATIC_MEMBER))) {
+         !(input_flags & DI_NONSTATIC_MEMBER) &&
+         !is_in_class_specialization)) {
       pos_error(ec_bad_conversion_function_decl,
                 &locator->source_position);
       set_to_error_locator(*locator);
