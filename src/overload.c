@@ -869,13 +869,13 @@ resolution problem.
 
 
 static void display_argument_list_types(
-                                   an_operand         *bound_function_selector,
+                                   a_type_ptr         object_type,
                                    an_arg_operand_ptr arg_operand_list)
 /*
 Output a diagnostic line that displays the types of the arguments in
 arg_operand_list, as part of producing a diagnostic for an overload
-resolution problem.  bound_function_selector is the selector object,
-if there is one, or NULL otherwise; output a line giving its type if
+resolution problem.  object_type is the selector object type,
+if there is one, or NULL otherwise; output a line giving the type if
 it is provided.  The start_error or equivalent has already been done.
 This routine does not call end_error.
 */
@@ -897,8 +897,8 @@ This routine does not call end_error.
     put_ch_to_temp_text_buffer('\0');
     str_add_diag_info(ec_argument_list_types_add_on, temp_text_buffer);
   }  /* if */
-  if (bound_function_selector != NULL) {
-    display_object_type(bound_function_selector->type);
+  if (object_type != NULL) {
+    display_object_type(object_type);
   }  /* if */
 }  /* display_argument_list_types */
 
@@ -1157,7 +1157,11 @@ next_function:;
   if (arg_operand_list != NULL) {
     /* Display the operand types. */
     if (kind == (an_opname_kind)onk_none) {
-      display_argument_list_types(bound_function_selector, arg_operand_list);
+      a_type_ptr object_type = NULL;
+      if (bound_function_selector != NULL) {
+        object_type = bound_function_selector->type;
+      }  /* if */
+      display_argument_list_types(object_type, arg_operand_list);
     } else {
       check_assertion(bound_function_selector == NULL);
       display_operand_types(arg_operand_list, kind);
@@ -2284,7 +2288,8 @@ static void determine_function_viability(
                  a_boolean                dependent_call,
                  a_boolean                known_to_be_visible,
                  a_candidate_function_ptr *candidate_functions,
-                 a_boolean                *matched_except_for_missing_selector)
+                 a_boolean                *matched_except_for_missing_selector,
+                 a_boolean                *matched_except_for_selector)
 /*
 Determine whether a function is viable in overload resolution, which
 means whether it has the right number of parameters of the right types.
@@ -2305,10 +2310,12 @@ selector, if applicable, or is NULL otherwise.  Any viable functions
 are added to the candidate_functions list along with information on
 the level of argument matches.  If a match would have been found
 except for the absence of a selector, set
-*matched_except_for_missing_selector TRUE; that allows a different
-error message.  If ctor_conversion_case is TRUE, this analysis is
-being done as part of resolving an implicit or explicit conversion to
-a class type: the functions are constructors, have_selector is FALSE
+*matched_except_for_missing_selector TRUE, and if a match would have
+been found except for a mismatch on the selector, set
+*matched_except_for_selector TRUE; those allow different error
+messages.  If ctor_conversion_case is TRUE, this analysis is being
+done as part of resolving an implicit or explicit conversion to a
+class type: the functions are constructors, have_selector is FALSE
 (sic; the "this" parameter is not matched up); the "conversion" field
 is set in any candidate function entries created.
 effects_copy_initialization is TRUE if this call is the user-defined
@@ -2583,6 +2590,8 @@ is known to be visible and the visibility check should be suppressed.
               /* "this" and the member function are in unrelated classes,
                  so it's as if no selector appears. */
               *matched_except_for_missing_selector = TRUE;
+            } else {
+              *matched_except_for_selector = TRUE;
             }  /* if */
             goto reject_function;
           }  /* if */
@@ -2596,7 +2605,10 @@ is known to be visible and the visibility check should be suppressed.
           /* Set the "next" pointer again, because it is cleared by
              selector_match_with_this_param. */
           this_match->next = this_match_next;
-          if (this_match->match_level == aml_none) goto reject_function;
+          if (this_match->match_level == aml_none) {
+            *matched_except_for_selector = TRUE;
+            goto reject_function;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
@@ -2655,6 +2667,23 @@ end_of_routine:;
 }  /* determine_function_viability */
 
 
+static a_type_ptr make_implicit_selector_type(void)
+/*
+If an implicit "this" is available in the current context, return its type.
+Otherwise, return NULL.
+*/
+{
+  a_type_ptr     implicit_selector_type = NULL;
+  a_variable_ptr this_var;
+
+  if (variable_this_exists(&this_var)) {
+    /* An implicit selector can be generated. */
+    implicit_selector_type= make_pointer_type(type_pointed_to(this_var->type));
+  }  /* if */
+  return implicit_selector_type;
+}  /* make_implicit_selector_type */
+
+
 static void try_overloaded_function_match(
                  a_symbol_ptr             overloaded_function_symbol,
                  a_boolean                is_template_id,
@@ -2670,7 +2699,8 @@ static void try_overloaded_function_match(
                  a_boolean                dependent_call,
                  a_boolean                known_to_be_visible,
                  a_candidate_function_ptr *candidate_functions,
-                 a_boolean                *matched_except_for_missing_selector)
+                 a_boolean                *matched_except_for_missing_selector,
+                 a_boolean                *matched_except_for_selector)
 /*
 Find out how well the functions described by overloaded_function_symbol
 match the argument list given by arg_operand_list and the selector given
@@ -2685,8 +2715,10 @@ selector_is_object_pointer is TRUE, an object otherwise.  Any viable
 functions are added to the candidate_functions list along with
 information on the level of argument matches.  If a match would have
 been found except for the absence of a selector, set
-*matched_except_for_missing_selector TRUE; that allows a different
-error message.  If ctor_conversion_case is TRUE, this analysis is
+*matched_except_for_missing_selector TRUE, and if a match would have
+been found except for a mismatch on the selector, set
+*matched_except_for_selector TRUE; those allow different
+error messages.  If ctor_conversion_case is TRUE, this analysis is
 being done as part of resolving an implicit or explicit conversion
 to a class type: the functions are constructors, have_selector is FALSE
 (sic; the "this" parameter is not matched up); the "conversion" field
@@ -2751,12 +2783,8 @@ is known to be visible and the visibility check should be suppressed.
     if (some_function_needs_selector) {
       /* We need a selector and we don't have one.  See if a selector
          can be generated from the "this" pointer of the current function. */
-      a_variable_ptr this_var;
-      if (variable_this_exists(&this_var)) {
-        /* An implicit selector can be generated. */
+      if ((implicit_selector_type = make_implicit_selector_type()) != NULL) {
         have_selector = TRUE;
-        implicit_selector_type =
-                            make_pointer_type(type_pointed_to(this_var->type));
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2791,7 +2819,8 @@ is known to be visible and the visibility check should be suppressed.
                                  dependent_call,
                                  known_to_be_visible,
                                  candidate_functions,
-                                 matched_except_for_missing_selector);
+                                 matched_except_for_missing_selector,
+                                 matched_except_for_selector);
   }  /* for */
 }  /* try_overloaded_function_match */
 
@@ -2812,7 +2841,8 @@ are viable functions, FALSE if not.  Issues no errors.
 {
   a_boolean                possible;
   a_candidate_function_ptr candidate_functions = NULL;
-  a_boolean                matched_except_for_missing_selector;
+  a_boolean                matched_except_for_missing_selector = FALSE;
+  a_boolean                matched_except_for_selector = FALSE;
 
   try_overloaded_function_match(overloaded_function_symbol,
                                 is_template_id,
@@ -2828,7 +2858,8 @@ are viable functions, FALSE if not.  Issues no errors.
                                 /*dependent_call=*/FALSE,
                                 /*known_to_be_visible=*/FALSE,
                                 &candidate_functions,
-                                &matched_except_for_missing_selector);
+                                &matched_except_for_missing_selector,
+                                &matched_except_for_selector);
   possible = (candidate_functions != NULL);
   free_candidate_function_list(candidate_functions);
   return possible;
@@ -2852,7 +2883,8 @@ arguments of the call (given by arg_operand_list).
   a_symbol_ptr            surrogate_function_conv_sym;
   a_symbol_ptr            base_surrogate_function_conv_sym;
   a_type_ptr              class_type, conversion_type, routine_type;
-  a_boolean               matched_except_for_missing_selector;
+  a_boolean               matched_except_for_missing_selector = FALSE;
+  a_boolean               matched_except_for_selector = FALSE;
 
   class_type = type_pointed_to(ptr_class_object->type);
   check_assertion(is_class_struct_union_type(class_type));
@@ -2918,7 +2950,8 @@ arguments of the call (given by arg_operand_list).
                                        /*dependent_call=*/FALSE,
                                        /*known_to_be_visible=*/FALSE,
                                        candidate_functions,
-                                       &matched_except_for_missing_selector);
+                                       &matched_except_for_missing_selector,
+                                       &matched_except_for_selector);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -4100,6 +4133,7 @@ and return NULL.  This routine is called only in C++ mode.
   a_candidate_function_ptr candidate_functions;
   a_symbol_ptr             function_symbol;
   a_boolean                matched_except_for_missing_selector = FALSE;
+  a_boolean                matched_except_for_selector = FALSE;
   a_boolean                undecidable_because_of_error, ambiguous;
   a_boolean                sym_is_undefined = FALSE;
   a_boolean                some_function_tried = FALSE;
@@ -4249,7 +4283,8 @@ in_instantiation:
                                     dependent_call,
                                     known_to_be_visible,
                                     &candidate_functions,
-                                    &matched_except_for_missing_selector);
+                                    &matched_except_for_missing_selector,
+                                    &matched_except_for_selector);
       some_function_tried = TRUE;
     } else {
       /* Do argument-dependent lookup, which may add additional functions
@@ -4322,7 +4357,8 @@ in_instantiation:
                                       dependent_call,
                                       /*known_to_be_visible=*/FALSE,
                                       &candidate_functions,
-                                      &matched_except_for_missing_selector);
+                                      &matched_except_for_missing_selector,
+                                      &matched_except_for_selector);
         some_function_tried = TRUE;
       }  /* for */
       free_list_of_symbol_list_entries(symbol_list);
@@ -4368,9 +4404,20 @@ in_instantiation:
       pos_error(ec_bad_call_of_class_object, call_position);
     } else {
       /* Normal case. */
+      a_type_ptr object_type = NULL;
+      if (bound_function_selector != NULL) {
+        object_type = bound_function_selector->type;
+      }  /* if */
+      if (matched_except_for_selector) {
+        /* At least one of the functions would have matched except for the
+           selector expression, so issue a different error message.
+           This is likely due to a cv-qualifier difference. */
+        err_none_applies = ec_no_matching_function_due_to_selector;
+        if (object_type == NULL) object_type = make_implicit_selector_type();
+      }  /* if */
       pos_sy_start_error(err_none_applies, call_position,
                          overloaded_function_symbol);
-      display_argument_list_types(bound_function_selector, arg_operand_list);
+      display_argument_list_types(object_type, arg_operand_list);
       end_error();
     }  /* if */
   } else if (ambiguous) {
@@ -8147,6 +8194,7 @@ such cases (where operator overloading might apply, but we can't tell).
   a_candidate_function_ptr candidate_functions;
   an_arg_match_summary_ptr arg_match;
   a_boolean                matched_except_for_missing_selector = FALSE;
+  a_boolean                matched_except_for_selector = FALSE;
   a_boolean                member_is_best_match, have_selector;
   an_expr_node_ptr         arg;
   a_type_ptr               routine_type;
@@ -8271,7 +8319,8 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*dependent_call=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
                                          &candidate_functions,
-                                         &matched_except_for_missing_selector);
+                                         &matched_except_for_missing_selector,
+                                         &matched_except_for_selector);
             goto select_best_function;
           }  /* if */
         }  /* if */
@@ -8308,7 +8357,8 @@ such cases (where operator overloading might apply, but we can't tell).
                                          dependent_call,
                                          /*known_to_be_visible=*/TRUE,
                                          &candidate_functions,
-                                         &matched_except_for_missing_selector);
+                                         &matched_except_for_missing_selector,
+                                         &matched_except_for_selector);
           }  /* if */
         }  /* if */
         /* Find any non-member function for the operator. */
@@ -8379,7 +8429,8 @@ such cases (where operator overloading might apply, but we can't tell).
                                          dependent_call,
                                          /*known_to_be_visible=*/FALSE,
                                          &candidate_functions,
-                                         &matched_except_for_missing_selector);
+                                         &matched_except_for_missing_selector,
+                                         &matched_except_for_selector);
             }  /* if */
           }  /* for */
           free_list_of_symbol_list_entries(symbol_list);
@@ -8690,6 +8741,7 @@ because of an error.  This routine is used only in C++ mode.
   a_type_ptr                    class_type, source_type;
   a_candidate_function_ptr      candidate_functions;
   a_boolean                     matched_except_for_missing_selector = FALSE;
+  a_boolean                     matched_except_for_selector = FALSE;
   a_boolean                     source_is_class, type_is_same;
   a_boolean                     type_is_same_or_derived;
   a_boolean                     adjusted_is_copy_initialization =
@@ -8785,7 +8837,8 @@ because of an error.  This routine is used only in C++ mode.
                                     /*dependent_call=*/FALSE,
                                     /*known_to_be_visible=*/FALSE,
                                     &candidate_functions,
-                                    &matched_except_for_missing_selector);
+                                    &matched_except_for_missing_selector,
+                                    &matched_except_for_selector);
     }  /* if */
     /* Determine whether conversion functions should be tried. */
     try_conversion_functions = FALSE;
