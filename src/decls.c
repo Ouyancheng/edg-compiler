@@ -5103,6 +5103,9 @@ declaration.
             if (SVR4_C_mode) {
               pos_sy_warning(ec_not_compatible_with_previous_decl,
                              &locator->source_position, linked_symbol);
+            } else {
+              pos_sy_warning(ec_prototype_lost,
+                             &locator->source_position, linked_symbol);
             }  /* if */
             *old_type = routine_ptr->type;
             /* If this is the definition, reset the type of the routine entry
