@@ -3755,7 +3755,7 @@ based constants are handled by converting them to integer constants, and
 then converting the result back to being THREADS-based if appropriate.
 */
 {
-  a_constant  tmp, tmp_1, tmp_2;
+  a_constant  tmp;
 
   check_assertion(upc_dynamic_threads());
   if (constant_1->kind == (a_constant_repr_kind)ck_upc_threads &&
