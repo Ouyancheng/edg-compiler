@@ -2527,20 +2527,20 @@ diagnostics.  is_redecl is TRUE if this is a redeclaration.
   }  /* for */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (new_modifiers->allocate_segname != NULL) {
-    if (variable->storage_class != (a_storage_class)sc_extern &&
-        variable->storage_class != (a_storage_class)sc_static &&
-        variable->storage_class != (a_storage_class)sc_unspecified) {
+    /* __declspec(allocate(...)) has been specified. */
+    if (!has_static_storage_duration(variable->storage_class)) {
       /* Only allowed for variables with static storage duration. */
       pos_error(ec_declspec_allocate_not_allowed, position);
     } else if (variable->allocate_segname != NULL) {
       if (strcmp(variable->allocate_segname,
-          new_modifiers->allocate_segname) == 0) {
+                 new_modifiers->allocate_segname) == 0) {
         /* Redeclaration of same segment name. */
       } else {
         /* Error. */
         any_invalid_redecl = TRUE;
       }  /* if */
     } else {
+      /* Copy the declared data segment name to the variable. */
       variable->allocate_segname = new_modifiers->allocate_segname;
     }  /* if */
   }  /* if */
