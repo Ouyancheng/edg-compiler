@@ -210,6 +210,8 @@ typedef enum /*an_argument_match_level*/ {
   aml_std_conversion,	/* Match with standard conversions. */
   aml_user_conversion,	/* Match with user-defined conversions. */
   aml_ellipsis,		/* Match with ellipsis. */
+  aml_const_anachronism,/* Match of "this" parameter ignoring "const" on
+			   actual argument (anachronism). */
   aml_error,		/* Match with error type (not in ARM). */
   aml_none		/* No match.  Must be last (highest value). */
 } an_argument_match_level;
@@ -327,6 +329,9 @@ extern void change_xref_kinds(an_xref_entry_ptr       xref_list,
                               a_symbol_reference_kind kind);
 
 extern an_argument_summary_ptr alloc_argument_summary(void);
+
+extern void issue_warning_from_argument_summary(
+                                          an_argument_summary_ptr arg_summary);
 
 extern void selector_match_with_this_param(
                                 an_operand          *bound_function_selector,
