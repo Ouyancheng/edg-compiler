@@ -1,5 +1,10 @@
 Version 2.17
 
+5/15/93 Improved error on invalid use of a template argument list
+
+A more specific error is now issued when a template argument list
+follows a type name that is not a class template name.
+
 5/13/93 Warning on nonstandard preprocessing directives
 
 A warning/error is now issued in -a/-A mode for #assert, #unassert,
