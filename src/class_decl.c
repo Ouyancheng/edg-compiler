@@ -1437,6 +1437,10 @@ nested class.
           defer_routine_fixup_until_use(rfp);
           /* Set rfp to NULL to prevent it from being freed below. */
           rfp = NULL;
+        } else if (is_real_template_instantiation &&
+                   rfp->is_template && is_friend) {
+          /* A friend template in a real instantiation.   Ignore this.
+             The friend from the prototype instantiation will be used. */
         } else if (rfp->is_template) {
           /* A function template declared in a class scope. */
           if (nonclass_prototype_instantiations) {
