@@ -288,8 +288,7 @@ static void gen_variable_decl(void);
 static void gen_routine_decl(void);
 static void gen_secondary_decl(void);
 static void gen_statement_list(a_statement_ptr stmt_list,
-                               a_boolean       top_statement_of_switch,
-                               a_statement_ptr *last_statement);
+                               a_boolean       top_statement_of_switch);
 static void gen_cast(a_type_ptr type);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens);
@@ -3704,7 +3703,7 @@ Generate the case label and code for a switch clause.  The current function
 source sequence entry points to the switch clause.
 */
 {
-  a_statement_ptr stmt, last_statement;
+  a_statement_ptr stmt;
   a_boolean       need_break;
 
   /* Generate the case label and advance past the source sequence entry. */
@@ -3719,21 +3718,9 @@ source sequence entry points to the switch clause.
     stmt = stmt->next;
   }  /* if */
   /* Generate the statements. */
-  gen_statement_list(stmt, /*top_statement_of_switch=*/FALSE,
-                     &last_statement);
+  gen_statement_list(stmt, /*top_statement_of_switch=*/FALSE);
   /* See if we need a "break" at the end of the clause. */
-  need_break = TRUE;
-  if (last_statement != NULL) {
-    /* This is the last statement in this clause; check for a goto
-       which indicates a branch out this case.  This branch results
-       from either an explicit goto or falling through to the next
-       case label.  If a goto is present, a break is not needed. */
-    if (last_statement->kind == (a_statement_kind)stmk_goto ||
-        last_statement->kind == (a_statement_kind)stmk_return) {
-      need_break = FALSE;
-    }  /* if */
-  }  /* for */
-  if (need_break) {
+  if (scp->implied_break_at_end) {
     set_output_position_for_stmt(&scp->break_position);
     write_tok_str("break;");
   }  /* if */
@@ -3972,20 +3959,17 @@ for #undef.
 #endif /* RECORD_MACROS_IN_IL */
 
 static void gen_statement_list(a_statement_ptr stmt_list,
-                               a_boolean       top_statement_of_switch,
-                               a_statement_ptr *last_statement)
+                               a_boolean       top_statement_of_switch)
 /*
 Generate code for the indicated list of statements.  If top_statement_of_switch
 is TRUE, this sequence is the top-level sequence of the indicated
-switch statement.  Set *last_statement to point to the last statement
-on the list, or NULL if the list is empty.
+switch statement.
 */
 {
   a_statement_ptr     statement;
   a_switch_clause_ptr scp;
   a_boolean           statement_processed;
 
-  *last_statement = NULL;
   /* Go through the statement list. */
   statement = stmt_list;
   /* An extra half iteration is done: the first part of the loop is executed
@@ -4050,8 +4034,6 @@ on the list, or NULL if the list is empty.
     if (statement == NULL) break;
     /* Generate the statement. */
     if (!statement_processed) gen_statement(statement);
-    /* Remember the last statement in the statement list. */
-    if (statement->next == NULL) *last_statement = statement;
   }  /* for */
 }  /* gen_statement_list */
 
@@ -4061,7 +4043,6 @@ static void gen_block_statement(a_statement_ptr statement)
 Generate code for a block statement ("{ ... }").
 */
 {
-  a_statement_ptr last_statement;
   a_block_ptr     block = statement->variant.block.extra_info;
   a_scope_ptr     scope;
   a_boolean       top_statement_of_switch;
@@ -4080,7 +4061,7 @@ Generate code for a block statement ("{ ... }").
   push_name_context(scope);
   /* Generate the statements inside the block. */
   gen_statement_list(statement->variant.block.statements,
-                     top_statement_of_switch, &last_statement);
+                     top_statement_of_switch);
   /* End of the scope defined by the block. */
   pop_name_context();
   /* See if there's an end-of-construct entry for the block (compiler-generated
