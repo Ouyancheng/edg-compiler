@@ -3768,7 +3768,7 @@ fields, and add it to the file-scope types list.
 
 static a_namespace_ptr namespace_parent_of(a_source_correspondence *scp)
 /*
-If the IL entry for which *scp is the source corresondence is directly or
+If the IL entry for which *scp is the source correspondence is directly or
 indirectly a namespace member, return a pointer to the namespace.  Otherwise
 return NULL.
 */
@@ -3831,7 +3831,7 @@ entirely.
 
 static a_boolean add_placeholders_for_class_instantiation(a_type_ptr  type_ptr)
 /*
-When an instantiation occurrs in the midst of a class definition, the
+When an instantiation occurs in the midst of a class definition, the
 instantiation may be dependent upon nested types from the class.  The
 instantiation is put out on the file scope types list, but the types upon
 which it is possibly dependent have been recorded on the class scope types
