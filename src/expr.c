@@ -3418,6 +3418,7 @@ specification allow a variable-sized array as the top type.
   a_source_position start_position, new_position, type_position;
   a_source_position placement_position;
   a_type_ptr        new_type, base_new_type, element_type, ptr_new_type;
+  a_type_ptr        unqual_new_type;
   an_expr_node_ptr  new_array_dimension, sizeof_node, function_node;
   an_operand        sizeof_operand, function_operand;
   a_boolean         use_global_new = FALSE;
@@ -3495,7 +3496,7 @@ specification allow a variable-sized array as the top type.
   copy_source_position(pos_curr_token, type_position);
   /* Scan the new-type-name or ( type-name ). */
   new_type_name(trapped_left_paren, &new_type, &new_array_dimension);
-  new_type = skip_typerefs(new_type);
+  unqual_new_type = skip_typerefs(new_type);
   /* Instantiate the type if it is a template class. */
   check_for_uninstantiated_template_class(new_type);
   /* The operand of a new must be an object type. */
@@ -3510,13 +3511,13 @@ specification allow a variable-sized array as the top type.
       pos_error(ec_type_must_be_object_type, &type_position);
     }  /* if */
     make_error_operand(result);
-    base_new_type = ptr_new_type = new_type = error_type();
+    base_new_type = ptr_new_type = new_type = unqual_new_type = error_type();
   } else if (is_illegal_abstract_class_type(new_type)) {
     /* The type is an abstract class type or a type that contains one,
        so an object of the type cannot be allocated. */
     pos_error(ec_abstract_class_object_not_allowed, &type_position);
     make_error_operand(result);
-    base_new_type = ptr_new_type = new_type = error_type();
+    base_new_type = ptr_new_type = new_type = unqual_new_type = error_type();
   } else {
     /* Valid type. */
     /* Determine the type of pointer returned from "new". */
@@ -3540,8 +3541,7 @@ specification allow a variable-sized array as the top type.
       cast_node(&new_array_dimension,
                 integer_type((an_integer_kind)TARG_SIZE_T_INT_KIND),
                 /*is_implicit_cast=*/TRUE, &error_position);
-      element_type = array_element_type(new_type);
-      element_type = skip_typerefs(element_type);
+      element_type = skip_typerefs(base_new_type);
       if (element_type->size == 1) {
         /* If the element size is 1, skip the multiplication. */
         sizeof_node = new_array_dimension;
@@ -3560,7 +3560,8 @@ specification allow a variable-sized array as the top type.
          time, as in
            new char[17]
       */
-      set_integer_constant(&sizeof_constant, (long)new_type->size,
+      set_integer_constant(&sizeof_constant,
+                           (long)unqual_new_type->size,
                            (an_integer_kind)TARG_SIZE_T_INT_KIND);
       make_constant_operand(&sizeof_constant, &sizeof_operand);
     }  /* if */
@@ -3580,7 +3581,7 @@ specification allow a variable-sized array as the top type.
     if (is_class_struct_union_type(new_type) && !use_global_new) {
       operator_new_symbol = opname_member_function_symbol(
                                                        (an_opname_kind)onk_new,
-                                                       new_type);
+                                                       unqual_new_type);
     }  /* if */
     if (operator_new_symbol == NULL) {
       /* Use the global operator "new". */
@@ -3617,10 +3618,10 @@ specification allow a variable-sized array as the top type.
       cast_operand(ptr_new_type, result, expression_kind,
                    /*is_implicit_cast=*/TRUE);
 #if ASSIGNMENT_TO_THIS_ALLOWED
-      if (is_class_struct_union_type(new_type)) {
+      if (is_class_struct_union_type(unqual_new_type)) {
         /* Determine and remember the default operator new() routine for
            the class. */
-        set_class_assoc_operator_new_routine(skip_typerefs(new_type));
+        set_class_assoc_operator_new_routine(unqual_new_type);
       }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
     }  /* if */
@@ -3634,7 +3635,8 @@ specification allow a variable-sized array as the top type.
       /* Variable-length array; count is deferred to runtime. */
       effective_num_of_elements = 0;
     } else {
-      effective_num_of_elements = new_type->variant.array.number_of_elements;
+      effective_num_of_elements =
+                             unqual_new_type->variant.array.number_of_elements;
     }  /* if */
     while (is_array_type(base_new_type)) {
       /* For multi-dimensional arrays: even though only one level of array is
@@ -3693,7 +3695,8 @@ specification allow a variable-sized array as the top type.
       if (array_new) {
         /* No initializer may be specified for an array type. */
         error(ec_initializer_not_allowed_on_array_new);
-        ptr_new_type = new_type = base_new_type = error_type();
+        base_new_type = ptr_new_type = new_type = unqual_new_type =
+                                                                  error_type();
       }  /* if */
       if (curr_token != tok_rparen) {
         /* The new-initializer is not empty.  Scan it. */
