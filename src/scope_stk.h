@@ -258,6 +258,12 @@ typedef struct a_scope_stack_entry {
 			/* TRUE if, when pushing a class and template
 			   reactivation scope, a template instantiation
 			   scope was pushed. */
+  a_bit_field	stop_token_stack_pushed:1;
+			/* TRUE if, when pushing a template instantiation
+			   scope, a new stop token stack entry was pushed.
+			   This flag is set in the last scope pushed by
+			   push_template_instantiation_scope, which is
+			   not necessarily a template instantiation scope. */
   a_bit_field /* a_name_linkage_kind */
 		default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* The default language linkage (e.g., extern "C++" or
@@ -817,13 +823,14 @@ extern a_scope_ptr push_for_init_scope(void);
 extern a_scope_ptr push_namespace_scope(a_scope_kind    kind,
                                         a_namespace_ptr assoc_namespace);
 
-extern void push_template_instantiation_scope
-                           (a_template_decl_info_ptr decl_info,
+extern void push_template_instantiation_scope(
+                            a_template_decl_info_ptr decl_info,
                             a_type_ptr               assoc_type,
                             a_routine_ptr            assoc_routine,
                             a_symbol_ptr             instance_sym,
                             a_symbol_ptr             template_sym,
-                            a_template_arg_ptr       template_arg_list);
+                            a_template_arg_ptr       template_arg_list,
+			    a_boolean		     push_stop_tokens);
 
 extern void pop_template_instantiation_scope(void);
 

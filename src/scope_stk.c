@@ -1119,6 +1119,7 @@ to the declaration information for the template declaration scope being pushed.
   ssep->namespace_pushed         = FALSE;
   ssep->exclude_from_context_output = FALSE;
   ssep->instantiation_scope_pushed = FALSE;
+  ssep->stop_token_stack_pushed  = FALSE;
   ssep->reactivated_class_being_defined = FALSE;
   ssep->is_for_init_block        = FALSE;
   ssep->explicitly_declared_namespace_extension = FALSE;
@@ -2105,16 +2106,18 @@ The following fixups need to be performed:
 }  /* fixup_instantiation_scopes */
 
 
-void push_template_instantiation_scope
-                           (a_template_decl_info_ptr decl_info,
+void push_template_instantiation_scope(
+                            a_template_decl_info_ptr decl_info,
                             a_type_ptr               assoc_type,
                             a_routine_ptr            assoc_routine,
                             a_symbol_ptr             instance_sym,
                             a_symbol_ptr             template_sym,
-                            a_template_arg_ptr       template_arg_list)
+                            a_template_arg_ptr       template_arg_list,
+			    a_boolean		     push_stop_tokens)
 /*
 Interface to push_scope_full that is used for template instantiation
-scopes.
+scopes.  If push_stop_tokens is TRUE, a new stop token stack entry
+is pushed here, and popped when the instantiation scope is popped.
 */
 {
   a_namespace_ptr		parent_nsp;
@@ -2259,9 +2262,12 @@ scopes.
        variable after the instantiation scopes have been popped. */
     ssep->saved_innermost_scope_that_affects_access =
                                     saved_innermost_scope_that_affects_access;
+    if (push_stop_tokens) {
+      /* Start a new stop token context for the instantiation. */
+      push_stop_token_stack();
+      ssep->stop_token_stack_pushed = TRUE;
+   }  /* if */
   }
-  /* Start a new stop token context for the instantiation. */
-  push_stop_token_stack();
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("instantiation_scope")) {
     fprintf(f_debug, "Pushed instantiation scope for: ");
@@ -2293,8 +2299,10 @@ push_template_instantiation_scope.
   check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
                        "pop_template_instantiation_scope:",
                        "invalid orig_depth");
-  /* Restore the original stop token context. */
-  pop_stop_token_stack();
+  if (scope_stack[depth_scope_stack].stop_token_stack_pushed) {
+    /* Restore the original stop token context. */
+    pop_stop_token_stack();
+  }  /* if */
   /* Pop scopes until the depth of the scope stack is equal to orig_depth,
      which is the depth before any of the instantiation context scopes were
      pushed. */
@@ -4565,7 +4573,8 @@ points to the partial specialization).
   decl_info = cache_for_template(tssp)->decl_info;
   push_template_instantiation_scope(decl_info, class_type,
                                     (a_routine_ptr)NULL, class_sym,
-                                    template_sym, template_arg_list);
+                                    template_sym, template_arg_list,
+				    /*push_stop_token_stack=*/FALSE);
 }  /* push_instantiation_scope_for_class */
 
 
