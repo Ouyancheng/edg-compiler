@@ -140,11 +140,16 @@ variable emulate_gnu_abi_bugs.
 The GNU C++ version whose IA-64 ABI bugs should be emulated.  This is the
 initial value of the global variable gnu_abi_bugs_version.  The number is
 of the form MMmmss which corresponds to GNU C++ version MM.mm.ss. For example,
-GNU C++ version 3.3 is 30300 and version 3.2.2 is 30202.
+GNU C++ version 3.3 is 30300 and version 3.2.2 is 30202.  The configured
+value should never be less than 30200.
 */
 #ifndef DEFAULT_GNU_ABI_BUGS_VERSION
 #define DEFAULT_GNU_ABI_BUGS_VERSION 30200
 #endif /* ifndef DEFAULT_GNU_ABI_BUGS_VERSION */
+
+#if DEFAULT_GNU_ABI_BUGS_VERSION < 30200
+ #error -- DEFAULT_GNU_ABI_BUGS_VERSION must be at least 30200
+#endif /* DEFAULT_GNU_ABI_BUGS_VERSION < 30200 */
 
 /*
 Certain C99 features require IL constructs not otherwise present.
