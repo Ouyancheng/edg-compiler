@@ -1,5 +1,18 @@
 Version 3.6
 
+3/1/05   Collision of mangled names for unnamed class or enum
+
+In some cases the mangled names generated for unnamed class or enum
+types that are local to a class collided, i.e., two different types
+ended up with the same mangled name.  Now fixed.
+
+  int gi;
+  struct Cls {
+    enum { e1 } m_e1;
+    enum { e2 = 10 };
+  } cls;
+  void func() { gi = cls.e2; }
+
 2/26/05  C++-generating back end: Microsoft compatibility in casts to a nested
          class type
 

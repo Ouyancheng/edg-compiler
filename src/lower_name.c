@@ -5606,6 +5606,17 @@ is what mangled_type_name generates, plus a prefix.
   a_mangling_control_block mctl;
 
   error_position = type->source_corresp.decl_position;
+  if (!has_name(type) &&
+      !type->source_corresp.name_has_been_mangled) {
+    /* Give an unnamed class or enum a name.  This must be done early because
+       in some cases it suppresses the need for a parent qualifier
+       (name_has_been_mangled is set to TRUE). */
+    if (is_immediate_class_type(type)) {
+      give_unnamed_class_a_name(type);
+    } else if (is_immediate_enum_type(type)) {
+      give_unnamed_enum_a_name(type);
+    }  /* if */
+  }  /* if */
   /* do_type_name_mangling gets called twice, once from template processing
      and once from lowering itself.  Do nothing for names that have already
      been mangled on the previous call. */
