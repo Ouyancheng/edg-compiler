@@ -8691,6 +8691,7 @@ template argument substitution.
     case eok_xor:
     case eok_land:
     case eok_lor:
+    case eok_question:
       is_foldable = TRUE;
       break;
     default:
