@@ -2039,6 +2039,31 @@ il_to_str routines.
   dump_function_declarator_with_scope(type, (a_scope_ptr)NULL);
 }  /* dump_function_declarator */
 
+#if CHECKING
+
+static void validate_type(a_type_ptr type)
+/*
+Do any desirable consistency checks on the indicated type.
+*/
+{
+  type = f_skip_typerefs(type);
+  if (is_array_type(type)) {
+    /* Check that the size of an array type is the element size times
+       the number of elements. */
+    a_targ_size_t size = type->size;
+    if (size != 0) {
+      a_targ_size_t elem_size= f_skip_typerefs(array_element_type(type))->size;
+      check_assertion(!type->variant.array.is_variable_size_array &&
+                      !type->variant.array.is_template_dependent_size_array);
+      check_assertion_str(
+            elem_size * type->variant.array.variant.number_of_elements == size,
+            "validate_type: incorrect array size");
+    }  /* if */
+  }  /* if */
+}  /* validate_type */
+
+#endif /* CHECKING */
+
 
 static void dump_general_declaration_using_type(
                                       a_type_ptr              type,
@@ -2064,6 +2089,9 @@ top-level "const" in ANSI C mode.
 {
   a_form_type_options_set options = FTO_NO_OPTIONS;
 
+#if CHECKING
+  validate_type(type);
+#endif /* CHECKING */
   if (suppress_const) options = FTO_SUPPRESS_CONST;
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
@@ -2116,6 +2144,9 @@ Output a reference to a type.  If add_pointer_to is TRUE, add an extra
 "pointer to" on top of the type.
 */
 {
+#if CHECKING
+  validate_type(type);
+#endif /* CHECKING */
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part_simple(type, /*under_lhs_declarator=*/add_pointer_to,
                               /*need_trailing_space=*/FALSE, &octl);
