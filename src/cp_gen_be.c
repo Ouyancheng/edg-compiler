@@ -3236,6 +3236,67 @@ class that is a template, and one for the entity itself if it is a template.
 }  /* gen_template_specialization_header */
 
 
+static void establish_replacement_typedef(a_type_ptr type,
+                                          a_boolean  set)
+/*
+Put out a generated typedef for the indicated type, and set a flag in the
+class to indicate that the typedef should be used in place of references
+to the type.  If set is FALSE, reset the flag without putting out the
+typedef.
+*/
+{
+  if (set) {
+    if (!type->replace_by_generated_typedef) {
+      type->replace_by_generated_typedef = TRUE;
+      write_tok_str("typedef ");
+      gen_name(&type->source_corresp,
+               iek_type, /*force_qualified_name=*/FALSE);
+      write_space();
+      gen_temp_name((char *)type);
+      write_tok_str("; ");
+    }  /* if */
+  } else {
+    type->replace_by_generated_typedef = FALSE;
+  }  /* if */
+}  /* establish_replacement_typedef */
+
+
+static a_boolean gen_typedefs_for_template_classes_in_specialization_arg_list(
+                                          a_template_arg_ptr template_arg_list,
+                                          a_boolean          set)
+/*
+Examine the indicated template argument list (for a template specialization
+declaration) and put out typedefs for certain template class types referenced
+in the arguments.  Set a flag in the class type entries for those to
+indicate that references to the classes should be replaced by references
+to the typedefs.  This is used to circumvent a bug in Microsoft VC++.
+If any typedefs are set up, return TRUE.  If set is FALSE, reset the
+flags on the classes found on an earlier call.
+*/
+{
+  a_boolean          any_found = FALSE;
+  a_template_arg_ptr arg;
+
+  for (arg = template_arg_list; arg != NULL; arg = arg->next) {
+    if (arg->is_type) {
+      a_type_ptr type = arg->variant.type;
+      if (type->source_corresp.is_class_member) {
+        a_type_ptr type_class = type->source_corresp.parent.class_type;
+        if (type_class->variant.class_struct_union.extra_info->
+                                                   template_arg_list != NULL) {
+          any_found = TRUE;
+          /* Found a template class name used in a particular way in
+             a template argument.  Generate a typedef and use it in place
+             of the template class name. */
+          establish_replacement_typedef(type_class, set);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return any_found;
+}  /* gen_typedefs_for_template_classes_in_specialization_arg_list */
+
+
 static void gen_type_decl(a_boolean suppress_specifiers,
                           a_boolean *another_decl_in_comma_list)
 /*
@@ -3254,6 +3315,8 @@ this one is such a continuation.
   a_boolean                    is_definition = FALSE, friend_decl;
   a_boolean                    is_specialization;
   a_boolean                    suppress_closing_punct = FALSE;
+  a_boolean                    need_to_unset_typedefs = FALSE;
+  a_template_arg_ptr           template_arg_list = NULL;
 
   *another_decl_in_comma_list = FALSE;
   /* Deal with the primary/secondary declaration difference. */
@@ -3293,10 +3356,21 @@ this one is such a continuation.
        mode for the member. */
     gen_member_access_specifier_for_decl_of(&type->source_corresp);
     if (is_specialization) {
-      /* For a specialization, put out "template<>" at the beginning. */
+      /* A specialization. */
+      template_arg_list = type->variant.class_struct_union.
+                                                 extra_info->template_arg_list;
+      if (microsoft_mode) {
+        /* Avoid a bug in the Microsoft VC++ 5.0 compiler on uses of
+           template class arguments in a specialization argument list. */
+        if (gen_typedefs_for_template_classes_in_specialization_arg_list(
+                                                             template_arg_list,
+                                                             /*set=*/TRUE)) {
+          need_to_unset_typedefs = TRUE;
+        }  /* if */
+      }  /* if */
+      /* Put out "template<>" at the beginning. */
       gen_template_specialization_header(&type->source_corresp,
-                                         type->variant.class_struct_union.
-                                                extra_info->template_arg_list);
+                                         template_arg_list);
     }  /* if */
     if (kind == (a_type_kind)tk_typeref) {
       /* Handle the nonstandard "friend typedef-name". */
@@ -3358,6 +3432,11 @@ this one is such a continuation.
                           "gen_type_decl: bad type on list");
       /* A class type definition. */
       gen_class_definition(type);
+    }  /* if */
+    if (need_to_unset_typedefs) {
+      (void)gen_typedefs_for_template_classes_in_specialization_arg_list(
+                                                             template_arg_list,
+                                                             /*set=*/FALSE);
     }  /* if */
     if (!suppress_closing_punct) {
       write_end_of_declaration_punctuation(*another_decl_in_comma_list);
@@ -6628,22 +6707,10 @@ flags on the classes found on an earlier call.
             if (rout_class->variant.class_struct_union.extra_info->
                                                    template_arg_list != NULL) {
               any_found = TRUE;
-              if (set) {
-                /* Found a template class name used in a particular way in
-                   a default argument expression.  Generate a typedef and
-                   use it in place of the template class name. */
-                if (!rout_class->replace_by_generated_typedef) {
-                  rout_class->replace_by_generated_typedef = TRUE;
-                  write_tok_str("typedef ");
-                  gen_name(&rout_class->source_corresp,
-                           iek_type, /*force_qualified_name=*/FALSE);
-                  write_space();
-                  gen_temp_name((char *)rout_class);
-                  write_tok_str("; ");
-                }  /* if */
-              } else {
-                rout_class->replace_by_generated_typedef = FALSE;
-              }  /* if */
+              /* Found a template class name used in a particular way in
+                 a default argument expression.  Generate a typedef and
+                 use it in place of the template class name. */
+              establish_replacement_typedef(rout_class, set);
             }  /* if */
           }  /* if */
         }  /* if */

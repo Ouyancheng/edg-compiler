@@ -14,7 +14,8 @@ something like
 
   typedef x<char> __T12345; virtual int f(int = __T12345::eof());
 
-which does not provoke the abort from MSVC++ 5.0.
+which does not provoke the abort from MSVC++ 5.0.  A similar change has been
+made for template class references in specialization argument lists.
 
 7/21/98   IL lowering: no null test for base-class cast under cast
           used as lvalue
