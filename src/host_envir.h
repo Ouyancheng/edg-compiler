@@ -276,6 +276,15 @@ IL_SHOULD_BE_WRITTEN_TO_FILE is TRUE.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || NEED_IL_DISPLAY */
 
 /*
+The flag NEED_DECLARATIVE_WALK controls the compilation of some routines
+used to walk declarative entities (only), for example to generate symbolic
+debug information.
+*/
+#ifndef NEED_DECLARATIVE_WALK
+#define NEED_DECLARATIVE_WALK FALSE
+#endif /* ifndef NEED_DECLARATIVE_WALK */
+
+/*
 If the IL is written to a file, this defines the suffix to be used in
 generating the default file name.
 */

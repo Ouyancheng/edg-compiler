@@ -223,7 +223,8 @@ enum a_name_linkage_kind_tag {
 typedef a_byte a_name_linkage_kind;
 
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS || ORPHAN_PROCESSING_NEEDED
+#if GENERATE_SOURCE_SEQUENCE_LISTS || ORPHAN_PROCESSING_NEEDED || \
+    NEED_DECLARATIVE_WALK
 /*
 List of all IL entry kinds:
 */
@@ -408,7 +409,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* VAR_INITIALIZERS */
 ;
 #endif /* NEED_IL_DISPLAY || DEBUG */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || ORPHAN_PROCESSING_NEEDED */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || ORPHAN_PROCESSING_NEEDED || ... */
 
 /*
 A range of source text, starting at one source position and ending at another.
