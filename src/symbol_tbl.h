@@ -1255,6 +1255,13 @@ typedef struct a_template_instance {
 			   sk_member_function, pointer to the routine's type
 			   as it actually appears in the source program (i.e.,
 			   before parameter type adjustments). */
+  a_type_ptr	declared_type_for_default_arg_fixup;
+			/* Same as declared_type, but only when the declared
+			   type is a candidate for default argument fixup.
+			   (It will not be, for instance, when no source
+			   sequence entry is generated to record the declared
+			   type.)  NULL when default arg fixup is not
+			   appropriate. */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		partial_instantiation;

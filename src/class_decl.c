@@ -10118,7 +10118,9 @@ to be returned to the caller.
                entry, since default arg fixup depends on it. */
             if (rout_sym->variant.routine.instance_ptr != NULL) {
               a_type_ptr  declared_type = func_info.declared_type;
-
+              
+              rout_sym->variant.routine.instance_ptr->
+                         declared_type_for_default_arg_fixup = declared_type;
               if (declared_type == NULL) {
                 declared_type = form_declared_type(local_type, &func_info);
               }  /* if */
