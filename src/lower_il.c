@@ -819,6 +819,7 @@ offset for the field.  The field allocated is not a bit field.
   field_ptr->source_corresp.name = field_name;
   field_ptr->type = field_type;
   field_ptr->offset = field_offset;
+  field_ptr->compiler_generated = TRUE;
   set_class_membership((a_symbol_ptr)NULL, &field_ptr->source_corresp,
                        struct_type);
   /* Find the spot at which to insert the field. */
@@ -983,6 +984,7 @@ It cannot create bit fields.  field_name may not be NULL.
   field_ptr = alloc_field();
   field_ptr->source_corresp.name = field_name;
   field_ptr->type = field_type;
+  field_ptr->compiler_generated = TRUE;
   set_class_membership((a_symbol_ptr)NULL, &field_ptr->source_corresp,
                        struct_type);
   /* Add the field to the end of the struct field list. */

@@ -5954,6 +5954,10 @@ typedef struct a_field {
 			/* TRUE if the "mutable" specifier appeared on the
 			   declaration of this nonstatic data member (C++
 			   only). */
+  a_bit_field	compiler_generated:1;
+			/* TRUE for fields that are created by the compiler
+			   and have not been declared in the source,
+			   e.g., the virtual function table pointer. */
   bitfield_to_avoid_codecenter_warnings()
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   a_constant_ptr

@@ -1,5 +1,11 @@
 Version 3.1
 
+11/12/02 Compiler-generated fields marked as such
+
+A "compiler_generated" flag was added to field entries.  It is set for
+fields that are not explicitly declared in the source (e.g., __vptr fields,
+anonymous union parent objects, ...).
+
 11/11/02 Stricter diagnostics for void parameter types
 
 The front end used to issue a warning when a function parameter list

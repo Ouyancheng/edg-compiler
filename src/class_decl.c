@@ -4360,7 +4360,9 @@ as defined in the IA64 ABI.
     for (fp = type->variant.class_struct_union.field_list;
          fp != NULL;
          fp = fp->next) {
-      if (!fp->is_bit_field || fp->bit_size != 0) {
+      if ((!fp->is_bit_field || fp->bit_size != 0) &&
+          !(fp->compiler_generated &&
+            strcmp(fp->source_corresp.name, "__vptr") == 0)) {
         nearly_empty = FALSE;
         break;
       }  /* if */
@@ -7977,6 +7979,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
     if (assoc_object_sym->kind == (a_symbol_kind)sk_field) {
       ctsp->anonymous_union_kind = (an_anonymous_union_kind)auk_field;
       ctsp->anonymous_union_field = assoc_object_sym->variant.field.ptr;
+      ctsp->anonymous_union_field->compiler_generated = TRUE;
     } else {
       /* Save the storage class, which is used by the C++ generating back
          end.  The variable pointer cannot be stored in the class type
