@@ -730,13 +730,16 @@ static void scan_call_arguments(a_type_ptr         function_type,
                                 a_boolean          already_after_left_paren,
                                 an_expr_node_ptr   *p_argument_list,
                                 a_boolean          overloaded_function_case,
+                                a_boolean          unknown_dependent_function,
                                 an_arg_operand_ptr *arg_operand_list,
                                 a_source_position  *closing_paren_position)
 /*
 Scan the arguments of a function call and return a list of argument
 expressions in *p_argument_list.  The type of the function being called is
 given by function_type; function_type is NULL if the type is not known,
-or for an overloaded function case.  The current token at the time of
+or for an overloaded function case.  unknown_dependent_function is TRUE
+if the function to be called is not known because it is specified by
+a template-dependent expression.  The current token at the time of
 call is the opening "(" of the argument list, unless already_after_left_paren
 is TRUE, in which case it is the token following the left parenthesis (but
 the add_stop_token call has not been done).  On return, the current token
@@ -765,8 +768,9 @@ the source position of the closing parenthesis of the call.
   }  /* if */
   /* Set the block used for checking argument types. */
   start_call_argument_processing(function_type, routine, &arg_block);
-  if (!overloaded_function_case && function_type == NULL) {
+  if (unknown_dependent_function) {
     /* The function to be called is unknown because it's template-dependent. */
+    check_assertion(!overloaded_function_case && function_type == NULL);
     arg_block.unknown_dependent_function = TRUE;
   } /* if */
 
@@ -848,6 +852,7 @@ On return, the current token is the one following the closing parenthesis.
   scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                       /*already_after_left_paren=*/TRUE,
                       &arg_list, /*overloaded_function_case=*/FALSE,
+                      /*unknown_dependent_function=*/TRUE,
                       (an_arg_operand_ptr *)NULL, (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
@@ -993,6 +998,7 @@ is after the closing parenthesis of the argument list.
   scan_call_arguments(routine_type, routine,
                       /*already_after_left_paren=*/TRUE,
                       arg_expr_list, overloaded_function_case,
+                      /*unknown_dependent_function=*/FALSE,
                       &arg_operand_list, (a_source_position *)NULL);
   error_position = start_position;
 
@@ -1159,6 +1165,7 @@ Syntax:
          instantiation cannot be resolved. */
       routine_type = NULL;
       prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+      unknown_dependent_function = TRUE;
     } else {
       /* If the class is a template class make sure it is instantiated so its
          operator() functions are visible. */
@@ -1277,6 +1284,7 @@ Syntax:
       /* A call in a prototype instantiation. */
       routine_type = NULL;
       prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+      unknown_dependent_function = TRUE;
     } else {
       /* Normal function, or call using pointer-to-member-function. */
       /* Convert to rvalue.  This conversion is needed particularly for the
@@ -1308,8 +1316,8 @@ Syntax:
   /* Scan the arguments of the call. */
   scan_call_arguments(routine_type, routine,
                       already_after_left_paren, &argument_list,
-                      overloaded_function_case, &arg_operand_list,
-                      &closing_paren_position);
+                      overloaded_function_case, unknown_dependent_function,
+                      &arg_operand_list, &closing_paren_position);
   error_position = call_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
@@ -5344,6 +5352,7 @@ specification allow a variable-sized array as the top type.
         scan_call_arguments((a_type_ptr)NULL, (a_routine_ptr)NULL,
                             /*already_after_left_paren=*/TRUE,
                             &dummy, /*overloaded_function_case=*/TRUE,
+                            /*unknown_dependent_function=*/FALSE,
                             &arg_operand_list, (a_source_position *)NULL);
       }  /* if */
     }  /* if */
