@@ -8897,11 +8897,11 @@ enum type -- i.e., it will be followed by zero or more entries and then by an
 end-of-construct entry that points back to the same type to which ssep points.
 If retain_first is FALSE, remove all the entries from the source sequence
 list; if retain_first is TRUE, leave the first in the list and remove the
-others.  Note: this is not a general purpose routine but is rather part of the
-processing that prunes the IL based on how the needed, definition_needed, and
-keep_in_il flags are set on various entries.  Among other things, it assumes
-the list to which the entries belong is the file-scope source sequence list.
-It also may do fix up on entries it removes.
+others.  Note: this is not a general purpose routine but is rather part of
+the processing that prunes the IL based on settings of the keep_in_il and
+keep_definition_in_il flags.  Among other things, it assumes the list to
+which the entries belong is the file-scope source sequence list.  It also
+may do fix up on entities pointed to by source-sequence entries it removes.
 */
 {
   a_type_ptr                   type_ptr = (a_type_ptr)ssep->entity.ptr;
@@ -9290,7 +9290,7 @@ entry into one representing a nondefining declaration.
 static void eliminate_unneeded_class_definitions(a_type_ptr  class_type)
 /*
 This routine is part of the processing that prunes the IL based on how the
-needed, definition_needed, and keep_in_il flags are set on various entries.
+keep_in_il and keep_definition_in_il flags are set on various entries.
 class_type specifies a class which is to be kept in the IL but whose
 definition (if there is one) may not need to be retained.  If the definition
 is not needed, transform this entry to represent a non-defining declaration
@@ -9318,7 +9318,7 @@ of the class.
   /* Now do the transformation of the class itself, if appropriate.  Note
      that we check the class size rather than the assoc_scope, since in C
      mode there is no assoc_scope even when the class has a definition. */
-  if (!class_type->variant.class_struct_union.definition_needed &&
+  if (!class_type->variant.class_struct_union.keep_definition_in_il &&
       class_type->size > 0) {
     turn_class_definition_into_declaration(class_type);
   }  /* if */
