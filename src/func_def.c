@@ -321,9 +321,7 @@ being taken.
   a_routine_type_supplement_ptr  rtsp;
 
   rout_type = skip_typerefs(rout_type);
-  /* Any type qualifiers on the return type are dropped because rvalues
-     do not have qualified types. */
-  return_type = skip_typerefs(rout_type->variant.routine.return_type);
+  return_type = rout_type->variant.routine.return_type;
   /* If return_type is an uninstantiated template class, force its
      instantiation. */
   complete_type_is_needed(return_type);
