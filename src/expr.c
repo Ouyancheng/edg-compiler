@@ -13461,7 +13461,12 @@ FALSE and a pointer to the expression tree in *expression.
                   /*suppress_object_lifetime=*/FALSE);
   if (is_vla_decl) expr_stack_entry.is_vla_dimension_expression = TRUE;
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  if (c99_mode) {
+    /* In C99 the expression is an assignment_expression. */
+    scan_expr(&result, PREC_COMMA, EOPT_DISALLOW_COMMA_OPERATOR);
+  } else {
+    scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  }  /* if */
   /* Convert from a class type to integral if necessary. */
   if (C_dialect == C_dialect_cplusplus &&
       is_class_struct_union_type(result.type)) {
