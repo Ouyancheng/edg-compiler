@@ -480,6 +480,10 @@ type, for use in typeinfo implementation constants.
   string_con = alloc_shareable_constant(&constant);
   /* Generate a constant for the address of the string. */
   set_constant_address_constant(string_con, &constant);
+  /* Do the array->pointer decay. */
+  implicit_cast(&constant,
+                make_pointer_type(
+                          array_element_type(type_pointed_to(constant.type))));
   addr_con = alloc_shareable_constant(&constant);
   return addr_con;
 }  /* make_typeinfo_name_constant */
