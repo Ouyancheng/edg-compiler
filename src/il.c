@@ -67,6 +67,7 @@ static unsigned long
 		num_class_type_supplements_allocated,
                 num_access_adjustments_allocated,
                 num_class_list_entries_allocated,
+                num_routine_list_entries_allocated,
                 num_overriding_virtual_functions_allocated,
                 num_derivation_steps_allocated,
                 num_base_classes_allocated,
@@ -2979,6 +2980,25 @@ Allocate a class-list-entry, initialize its fields, and return a pointer to it.
 }  /* alloc_list_entry_for_class */
 
 
+a_routine_list_entry_ptr alloc_list_entry_for_routine(void)
+/*
+Allocate a routine-list-entry, initialize its fields, and return a pointer
+to it.
+*/
+{
+  a_routine_list_entry_ptr rlep;
+
+  rlep = (a_routine_list_entry_ptr)alloc_il(sizeof(a_routine_list_entry));
+#if DEBUG
+  num_routine_list_entries_allocated++;
+#endif /* DEBUG */
+  rlep->next  = NULL;
+  rlep->routine = NULL;
+
+  return rlep;
+}  /* alloc_list_entry_for_routine */
+
+
 static a_class_type_supplement_ptr alloc_class_type_supplement(void)
 /*
 Allocate a class-type-supplement entry, initialize its fields, and return
@@ -3002,6 +3022,8 @@ a pointer to it.
   ctsp->anonymous_union_field             = NULL;
   ctsp->access_adjustments                = NULL;
   ctsp->befriending_classes               = NULL;
+  ctsp->friend_routines                   = NULL;
+  ctsp->friend_classes                    = NULL;
   ctsp->assoc_scope                       = NULL;
   ctsp->template_arg_list                 = NULL;
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
@@ -5772,6 +5794,8 @@ Display and return the amount of space used for various IL tables.
                 an_access_adjustment);
   db_space_used("class list entry", num_class_list_entries_allocated,
                 a_class_list_entry);
+  db_space_used("routine list entry", num_routine_list_entries_allocated,
+                a_routine_list_entry);
   db_space_used("overriding virtual func",
                 num_overriding_virtual_functions_allocated,
                 an_overriding_virtual_function_ptr);
@@ -5926,6 +5950,7 @@ of the front end.
   num_class_type_supplements_allocated   = 0;
   num_access_adjustments_allocated       = 0;
   num_class_list_entries_allocated       = 0;
+  num_routine_list_entries_allocated     = 0;
   num_derivation_steps_allocated         = 0;
   num_base_classes_allocated             = 0;
   num_template_args_allocated            = 0;
