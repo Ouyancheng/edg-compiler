@@ -1450,7 +1450,8 @@ will be involved in overloading.
     }  /* if */
 determine_linkage:
     /* Determine the linkage. */
-    is_template_instance = (other_decl != NULL && is_function &&
+    is_template_instance = (is_function && other_decl != NULL &&
+                            is_function_symbol(other_decl) &&
                             other_decl->variant.routine.instance_ptr != NULL);
     if (is_template_instance && !func_info->is_definition &&
         !other_decl->variant.routine.instance_ptr->specific_def) {
