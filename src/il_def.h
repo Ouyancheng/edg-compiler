@@ -3883,6 +3883,11 @@ typedef struct a_label {
                            definition is found. */
 #endif /* ifdef FIL */
   } variant;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  unsigned long	num_microsoft_trys_inside_of;
+			/* Number of Microsoft try-finally or try-except
+			   statements that the label is inside of. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 } a_label;
 
 #if GENERATE_EH_TABLES

@@ -1623,6 +1623,12 @@ do_exec_stmt:
 #else /* !defined(FFE) */
   disp_ptr("exec_stmt", (char *)ptr->variant.exec_stmt, iek_statement);
 #endif /* ifdef FFE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->num_microsoft_trys_inside_of != 0) {
+    disp_unsigned_long("num_microsoft_trys_inside_of",
+                       (unsigned long)ptr->num_microsoft_trys_inside_of);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* disp_label */
 
 

@@ -6115,6 +6115,9 @@ to it.
   lp->kind = (a_label_kind)lk_executable;
   lp->used_in_assign = FALSE;
 #endif /* ifdef FIL */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  lp->num_microsoft_trys_inside_of = 0;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_exit();
   return lp;
