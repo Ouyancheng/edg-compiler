@@ -1107,11 +1107,12 @@ Print the name of the indicated variable.
   } else if (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&
              !is_magic_name(variable->source_corresp.name)) {
-    /* Name is at file scope, but is not external.  Add a suffix so
+    /* Name is at file scope, but is not external.  Add a prefix/suffix so
        that it will not conflict with external names.  See dump_variable_decl.
        Leave some special names alone. */
-    ensure_enough_room_on_line(strlen(variable->source_corresp.name) + 2 +
+    ensure_enough_room_on_line(strlen(variable->source_corresp.name) + 9 +
                                strlen(module_id));
+    m_write_str("__STV__");
     m_write_str(variable->source_corresp.name);
     m_write_ch('_');
     m_write_ch('_');

@@ -1,5 +1,12 @@
 Version 2.37
 
+9/28/97   __STV__ form mangled name for externalized static variables
+
+Static variables made external are now given a mangled name with a
+__STV__ prefix.  This is used in the C-generating back end when
+generating pcc C, and now for static variables referenced from
+instantiations when the one-instantiation- per-object option is used.
+
 9/25/97   Redundant secondary-decl source sequence entry for class template
           instantiation
 
