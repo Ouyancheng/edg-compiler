@@ -11,7 +11,32 @@ type).  Here's an example:
   FC S::* pmf;             // Error in now issued
 
 This fixes an abort that occurred when attempting to call a function via
-the pointer-to-member object.
+the pointer-to-member object.  This is a temporary fix -- eventually this
+usage will be supported.
+
+6/19/96 Object lifetime for constructor default arguments evaluated during
+        subobject initialization
+
+In ctor-initializer lists and aggregate initializers, it would sometimes
+happen that an object lifetime was not being created for a temporary
+produced in the evaluation of a default argument on a constructor for a
+subobject.  This resulted in an abort in IL lowering.  It is now fixed.
+Here's an example:
+
+  struct C {
+    C(int);
+    ~C();
+    operator int();
+  };
+  struct A {
+    A(int = C(1));
+    ~A();
+  };
+  struct B {
+    A a[10];
+    B(const B&) {}    // Calls A::A() for each element of a -- during
+  };                  //   evaluation of the default argument, C::~C() is
+                      //   now associated with the proper object lifetime
 
 6/19/96 Determination of which copy constructor was elided for strict-mode
         check now considers whether copy constructor can copy rvalue
