@@ -6530,6 +6530,7 @@ continue_with_declaration:
       make_anonymous_union_variable(type_ptr, storage_class);
     } else {
       if (storage_class == (a_storage_class)sc_typedef) {
+        /* A case like "typedef int;" or "typedef struct { int i; };" */
         set_err_pos_to_curr_token();
         if (C_dialect == C_dialect_cplusplus) {
           error(ec_missing_typedef_name);
@@ -6540,6 +6541,11 @@ continue_with_declaration:
         if (defines_something &&
             (storage_class != (a_storage_class)sc_unspecified ||
              is_qualified_type(type_ptr))) {
+          /* If defines_something is TRUE and declares something is FALSE we
+             have a class, struct, union, or enum declaration without a tag
+             name and also without the name of an object but with a storage
+             class or qualifier -- e.g., "extern struct { int i; };".  Tell
+             the user an object name is missing. */
           set_err_pos_to_curr_token();
           if (C_dialect == C_dialect_cplusplus) {
             error(ec_missing_object_name);
@@ -6561,7 +6567,7 @@ continue_with_declaration:
       } else {
         /* Since declares_something is TRUE, this must be a class, struct,
            union, or enum declaration.  A storage class or qualifier is not
-           allowed. */
+           allowed, nor is "inline". */
         if (storage_class != (a_storage_class)sc_unspecified) {
           if (C_dialect == C_dialect_cplusplus) {
             error(ec_storage_class_not_allowed);
@@ -6575,6 +6581,9 @@ continue_with_declaration:
           } else {
             warning(ec_const_volatile_not_allowed);
           }  /* if */
+        }  /* if */
+        if (inline_specified) {
+          error(ec_inline_and_nonfunction);
         }  /* if */
       }  /* if */
     }  /* if */
