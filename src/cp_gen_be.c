@@ -1895,28 +1895,6 @@ declaration.
 }  /* gen_declaration_using_type */
 
 
-static void gen_typedef_definition(a_type_ptr type)
-/*
-Output the definition of the indicated typedef (without a trailing ";").
-The current source sequence entry is the one associated with the definition
-of the typedef.
-*/
-{
-  type->definition_put_out = TRUE;
-  /* Advance past the source sequence entry for the typedef itself. */
-  /* This does not use check_for_and_take_source_seq_entry on purpose,
-     because in C++ there can be more than one definition of the typedef
-     and this routine is called for each one. */
-  adv_curr_source_sequence_entry();
-  /* Position the output file to the declaration position. */
-  set_output_position(&type->source_corresp.decl_position);
-  write_tok_str("typedef ");
-  gen_declaration_using_type(type->variant.typeref.type,
-                             &type->source_corresp,
-                             (a_src_seq_secondary_decl_ptr)NULL);
-}  /* gen_typedef_definition */
-
-
 static void gen_enum_definition(a_type_ptr type)
 /*
 Output the definition of the indicated enum type.  This is in the form of
@@ -2115,6 +2093,29 @@ entry if sec_decl is non-NULL.
 }  /* set_decl_position */
 
 
+static void gen_typedef_definition(a_type_ptr                   type,
+                                   a_src_seq_secondary_decl_ptr sec_decl)
+/*
+Output the definition of the indicated typedef (without a trailing ";").
+The current source sequence entry is the one associated with the definition
+of the typedef.  If it is a secondary declaration (C++ only), sec_decl
+is non-NULL and points to the secondary declaration entry.
+*/
+{
+  type->definition_put_out = TRUE;
+  /* Advance past the source sequence entry for the typedef itself. */
+  /* This does not use check_for_and_take_source_seq_entry on purpose,
+     because in C++ there can be more than one definition of the typedef
+     and this routine is called for each one. */
+  adv_curr_source_sequence_entry();
+  /* Position the output file to the declaration position. */
+  set_decl_position(&type->source_corresp, sec_decl);
+  write_tok_str("typedef ");
+  gen_declaration_using_type(type->variant.typeref.type,
+                             &type->source_corresp, sec_decl);
+}  /* gen_typedef_definition */
+
+
 static void gen_type_decl(void)
 /*
 Generate a declaration or definition of the type indicated by the current
@@ -2151,7 +2152,7 @@ source sequence entry.
   } else {
     if (kind == (a_type_kind)tk_typeref) {
       /* A typedef definition. */
-      gen_typedef_definition(type);
+      gen_typedef_definition(type, sec_decl);
     } else if (!is_definition) {
       /* For a secondary declaration, or a primary declaration of a type
          that is never defined, generate a reference to the type instead
