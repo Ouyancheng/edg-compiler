@@ -179,7 +179,7 @@ static void unimplemented(void)
 #define type_pointed_to(tp) (skip_typerefs(tp)->variant.pointer.type)
 #define is_pointer_type(tp) \
 	(skip_typerefs(tp)->kind == (a_type_kind)tk_pointer)
-#define is_integer_type(tp) \
+#define is_integral_type(tp) \
 	(skip_typerefs(tp)->kind == (a_type_kind)tk_integer)
 /* Macro to strip tk_typeref entries from a type. */
 #define skip_typerefs(tp)                                             \
@@ -212,16 +212,25 @@ that ordinarily this routine should not be called directly; use the macro
 
 static a_boolean is_enum_constant(a_constant_ptr con)
 /*
-Return TRUE if the indicated constant is an enum constant.
+Return TRUE if the indicated constant is an enum constant, i.e., it is
+a constant that appears on the constant list of an enum type.
 */
 {
   a_boolean is_enum = FALSE;
 
-  if (con->kind == (a_constant_repr_kind)ck_integer &&
-      con->type->kind == (a_type_kind)tk_integer &&
-      con->type->variant.integer.enum_type &&
-      has_name(con)) {
-    is_enum = TRUE;
+  if (con->kind == (a_constant_repr_kind)ck_integer && has_name(con)) {
+    /* The constant is a named integral (or enum) type. */
+    a_type_ptr con_type = con->type;
+    if (con_type->kind == (a_type_kind)tk_integer) {
+      /* In C, enumerators have "int" type (but an affiliated type that
+         is the enumeration); in C++, enumerators have the enum type. */
+      if (il_header.source_language == sl_C ?
+          (!con_type->variant.integer.enum_type &&
+           con_type->variant.integer.enum_info.affiliated_type != NULL) :
+          con_type->variant.integer.enum_type) {
+        is_enum = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return is_enum;
 }  /* is_enum_constant */
@@ -828,7 +837,7 @@ is given by scp.  Generate a name if the entity is unnamed.
                   (unsigned long)unique_id_for_il_pointer(scp));
     write_tok_str(buffer);
   }  /* if */
-}  /* gen_allowing_unnamed_name */
+}  /* gen_name_allowing_unnamed */
 
 
 static void gen_constant_name(a_constant_ptr con)
@@ -845,7 +854,9 @@ static void gen_type_name(a_type_ptr type)
 Output the name of the indicated type.
 */
 {
-  gen_name(&type->source_corresp);
+  /* Unnamed enums and classes are emitted with compiler-generated names, so
+     in some cases the type may be unnamed.  That's okay. */
+  gen_name_allowing_unnamed(&type->source_corresp);
 }  /* gen_type_name */
 
 
@@ -921,9 +932,13 @@ Output the indicated constant.
   /* Watch out for constants (like aggregates) that have no type. */
   if (orig_type != NULL) {
     con_type = skip_typerefs(orig_type);
-    if (constant->implicit_cast) {
-      /* If the constant is implicitly cast to another type, put out the
-         requisite cast. */
+    if (constant->implicit_cast ||
+        (il_header.source_language == sl_C &&
+         con_type->kind == (a_type_kind)tk_integer &&
+         con_type->variant.integer.enum_type)) {
+      /* If the constant is implicitly cast to another type, or if it's
+         an integer value or enumerator constant cast to an enum type in
+         C mode, put out the requisite cast. */
       write_tok_str("(");
       gen_cast(orig_type);
       need_cast_close_paren = TRUE;
@@ -1036,7 +1051,7 @@ Output the indicated constant.
       ptr_implicit_cast_case = FALSE;
       if (constant->implicit_cast) {
         if (is_pointer_type(con_type) ||
-            (is_integer_type(con_type) &&
+            (is_integral_type(con_type) &&
                                       con_type->size >= TARG_SIZEOF_POINTER)) {
           /* Okay. */
         } else {
@@ -1336,11 +1351,11 @@ Output the definition of the indicated enum type.
   /* set_output_position has already been called for the enum type itself
      if that's appropriate. */
   /* Generate "enum <name>". */
-  write_tok_str("enum");
-  if (has_name(type)) {
-    write_space();
-    gen_type_name(type);
-  }  /* if */
+  write_tok_str("enum ");
+  /* (Note that a name will be generated for an unnamed enum.  That's
+     necessary in C mode to allow the necessary casts of enumerator
+     constants, and it's not a bad thing in general.) */
+  gen_type_name(type);
   enum_con = type->variant.integer.enum_info.constant_list;
   if (enum_con != NULL) {
     write_tok_str(" {");
@@ -1446,10 +1461,9 @@ Output the definition of the indicated class type.
   /* set_output_position has already been called for the class type itself
      it that's appropriate. */
   write_tok_str(tag_kind(type->kind));
-  if (has_name(type)) {
-    write_space();
-    gen_type_name(type);
-  }  /* if */
+  write_space();
+  /* (Note that a name will be generated for an unnamed class.) */
+  gen_type_name(type);
   /* See if this class is defined.  In C mode, there is no class type
      supplement, so check for the presence of fields. */
   field_list = type->variant.class_struct_union.field_list;
@@ -1484,7 +1498,7 @@ Output the definition of the indicated class type.
         class_scope_source_sequence_entry = NULL;
       }  /* if */
       /* While we're inside the struct, types must be emitted when used,
-         not in free-standing declarations. */
+         not in freestanding declarations. */
       type_declaration_cannot_be_emitted_now = TRUE;
     }  /* if */
     /* Go through the source sequence list and generate the members of the
@@ -1556,11 +1570,12 @@ Generate a reference to the indicated type, which is a class, struct, union,
 or enum.
 */
 {
-  if (!has_name(type) || type->definition_delayed) {
-    /* For an unnamed type, put out a full definition (we cannot refer
-       to the type by name).  This is presumably the only reference to
-       the type, so that's fine.  Also put out the definition if it
-       is needed and was delayed because we're inside a struct in C mode. */
+  if (type->definition_delayed ||
+      (!has_name(type) && !type->definition_put_out)) {
+    /* Put out the definition if it is needed and was delayed because we're
+       in a context where we can't put out a freestanding declaration.
+       Also put it out if it has not been put out yet and the type is
+       unnamed. */
     type->definition_delayed = FALSE;
     if (type->kind == (a_type_kind)tk_integer) {
       gen_enum_definition(type);
@@ -1568,7 +1583,8 @@ or enum.
       gen_class_definition(type);
     }  /* if */
   } else {
-    /* The type has a name, so it can be referred to by that name. */
+    /* Put out a reference to the tag by name.  Note that unnamed tags will
+       have been given compiler-generated names so they can be referred to. */
     write_tok_str(tag_kind(type->kind));
     write_space();
     gen_type_name(type);
@@ -1774,7 +1790,7 @@ is non-NULL, in which case that is the function scope.
   } else {
     /* Prototyped list. */
     /* Within the declarator, types must be put out as they are referenced,
-       and not in free-standing declarations. */
+       and not in freestanding declarations. */
     type_declaration_cannot_be_emitted_now = TRUE;
     param = rtsp->param_type_list;
     if (param == NULL) {
