@@ -423,16 +423,12 @@ scope, or the lifetime from the parent context, will be used.
   a_context_ptr parent_context = curr_context;
   a_boolean     new_lifetime;
 
-  if (parent_context == NULL) {
-    /* Remember the file scope context if this is the first push_context. */
-    file_scope_context = context;
-  } else {
-    parent_context->lifetime = curr_object_lifetime;
-    if (scope == NULL) scope = parent_context->scope;
-  }  /* if */
   curr_context = context;
   /* Set the fields. */
   context->parent = parent_context;
+  /* For the scope, use (1) the parameter passed in, or (2) the scope from
+     the parent context. */
+  if (scope == NULL) scope = parent_context->scope;
   context->scope = scope;
   /* For the lifetime, use (1) the parameter passed in, (2) the lifetime from
      the scope, or (3) the lifetime from the parent context. */
@@ -441,13 +437,20 @@ scope, or the lifetime from the parent context, will be used.
   if (lifetime == NULL && parent_context != NULL) {
     lifetime = parent_context->lifetime;
   }  /* if */
-  curr_object_lifetime = context->lifetime = lifetime;
+  context->lifetime = lifetime;
   context->new_lifetime = new_lifetime;
+  /* If this context begins a new object lifetime, set curr_object_lifetime.
+     Also save the old value for restoration by pop_context. */
+  if (new_lifetime) {
+    if (parent_context != NULL) {
+      parent_context->lifetime = curr_object_lifetime;
+    }  /* if */
+    curr_object_lifetime = lifetime;
+  }  /* if */
   /* The destructions list starts at NULL for a new object lifetime, or is
      inherited from the parent if there is no new object lifetime. */
-  if (new_lifetime) {
-    context->destructions = NULL;
-  } else if (parent_context != NULL) {
+  context->destructions = NULL;
+  if (!new_lifetime && parent_context != NULL) {
     context->destructions = parent_context->destructions;
   }  /* if */
   context->successor_lifetime_at_statement = NULL;
@@ -460,14 +463,24 @@ void pop_context(void)
 Pop an entry off the context stack.
 */
 {
-  /* Pop to the surrounding context. */
-  curr_context = curr_context->parent;
-  /* Restore the current object lifetime of the parent. */
-  if (curr_context != NULL) {
-    curr_object_lifetime = curr_context->lifetime;
+  a_context_ptr parent_context = curr_context->parent;
+
+  if (curr_context->new_lifetime) {
+    /* This context has its own object lifetime, so curr_object_lifetime
+       is reset on returning to the parent. */
+    if (parent_context != NULL) {
+      curr_object_lifetime = parent_context->lifetime;
+    } else {
+      curr_object_lifetime = NULL;
+    }  /* if */
   } else {
-    curr_object_lifetime = NULL;
+    /* This context does not have its own object lifetime, so the
+       destructions pointer is propagated up to the parent (it's
+       lifetime-related). */
+    parent_context->destructions = curr_context->destructions;
   }  /* if */
+  /* Pop to the surrounding context. */
+  curr_context = parent_context;
 }  /* pop_context */
 
 
@@ -8117,6 +8130,7 @@ C++ to C, so that a C back end can handle it without change.
        context above the function context. */
     push_context(&context, il_header.primary_scope,
                  (an_object_lifetime_ptr)NULL);
+    file_scope_context = curr_context;
     /* Create definitions for virtual function tables.  This must be done
        early when virtual function information is still available. */
     define_scope_virtual_function_tables(scope);
