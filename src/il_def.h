@@ -6310,6 +6310,11 @@ typedef struct a_microsoft_try_supplement {
   a_statement_ptr
 		cleanup_statement;
 			/* The statement to be executed on cleanup. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		except_or_finally_position;
+			/* Source position of the __except or __finally token. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_microsoft_try_supplement;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

@@ -3180,6 +3180,10 @@ statement.  Its form is
   /* Define the "continue" label, if it is needed.  This is the target of
      __leave statements. */
   define_continue_label();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  /* The current token should be "__except" or "__finally": */
+  sp->variant.microsoft_try->except_or_finally_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (curr_token == tok_except) {
     /* __except ( expression ) form. */
     (void)get_token();

@@ -1895,11 +1895,20 @@ the dump (this one counts as the first).
                             indent+2, "", how_deep-1);
           for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
           if (sp->variant.microsoft_try->except_expr != NULL) {
-            fprintf(f_debug, "__except\n");
+            fprintf(f_debug, "__except");
             db_expression(sp->variant.microsoft_try->except_expr);
           } else {
-            fprintf(f_debug, "__finally\n");
+            fprintf(f_debug, "__finally");
           }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT
+          if (sp->variant.microsoft_try->except_or_finally_position.seq != 0) {
+            fprintf(f_debug, ", at %lu/%lu",
+                    sp->variant.microsoft_try->except_or_finally_position.seq,
+                    (unsigned long)sp->variant.microsoft_try->
+                                           except_or_finally_position.column);
+          }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL && FULL_SOURCE_POS_IN_IL_STATEMENT */
+          fputc('\n', f_debug);
           db_statement_list(sp->variant.microsoft_try->cleanup_statement,
                             indent+2, "", how_deep-1);
           break;

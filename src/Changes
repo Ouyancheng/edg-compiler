@@ -1,5 +1,11 @@
 Version 2.42
 
+7/6/99  Extra source positions for "__except" and "__finally" tokens
+
+In Microsoft mode, when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the source
+positions associated with the "__except" and "__finally" tokens are now
+recorded in a_microsoft_try_supplement (field except_or_finally_position).
+
 7/2/99  Diagnosing missing initializers for empty const POD objects
 
 By default, the front end used to warn about missing initializers on unnamed

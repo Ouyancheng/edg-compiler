@@ -2527,6 +2527,10 @@ or try-except statement supplement.
   disp_ptr("guarded_statement", (char *)ptr->guarded_statement, iek_statement);
   disp_ptr("except_expr", (char *)ptr->except_expr, iek_expr_node);
   disp_ptr("cleanup_statement", (char *)ptr->cleanup_statement, iek_statement);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_stmt_source_position("except_or_finally_position",
+                            ptr->except_or_finally_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_microsoft_try_supplement */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
