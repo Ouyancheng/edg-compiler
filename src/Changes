@@ -11,8 +11,6 @@ typedef struct B {
   A template;
 } T;
 
-
-
 2/14/94  Missing error on redefinition of hidden tag name
 
 An error is now diagnosed for this incorrect usage:
