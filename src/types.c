@@ -3673,6 +3673,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                    is_void(unqual_source_type_pointed_to)) {
           /* cfront 2.1 allows conversion of a pointer to qualified void
              (e.g., "const void *") to "void *". */
+        } else if (microsoft_mode && C_mode()) {
+          /* Microsoft C mode allows dropping qualifiers. */
+          std_conv->warning_suggested = default_warning_code;
         } else {
           /* Qualifiers are being dropped. */
           okay = FALSE;
