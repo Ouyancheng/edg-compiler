@@ -4351,27 +4351,11 @@ from decl_specifiers only.
       }  /* if */
     }  /* if */
     if (!C_mode() && *qualifiers != TQ_NONE) {
-      /* Type qualifiers are not allowed on function types (unless they
-         occur through typedef or template parameter substitutions. */
+      /* Type qualifiers occurring on function types through typedef or
+         template parameter substitutions are ignored. */
       if (is_function_type(*type_ptr) ||
           (is_array_type(*type_ptr) &&
            is_function_type(underlying_array_element_type(*type_ptr)))) {
-        if ((*type_ptr)->kind != (a_type_kind)tk_typeref ||
-            !typeref_is_typedef(*type_ptr)) {
-          /* Put out a remark instead of an error in Microsoft and cfront
-             compatibility modes -- but don't add the qualifiers. */
-          if (microsoft_mode || any_cfront_mode()) {
-            severity = es_remark;
-          } else {
-            severity = es_discretionary_error;
-            /* Note that err is not set for this discretionary error.  That's
-               because it might actually end up as a warning.  Besides, since
-               the qualifiers are ignored, there are no side-effects in the
-               IL, etc. */
-          }  /* if */
-          pos_diagnostic(severity, ec_cv_qualified_function_type,
-                         qualifier_pos);
-        }  /* if */
         *qualifiers = TQ_NONE;
       }  /* if */
     }  /* if */
