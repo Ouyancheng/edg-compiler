@@ -856,6 +856,7 @@ to default values.
       pte->variant.class_struct_union.
                  nested_class_defined_outside_of_parent = FALSE;
       pte->variant.class_struct_union.originally_unnamed = FALSE;
+      pte->variant.class_struct_union.is_specialization = FALSE;
 #if MAINTAIN_NEEDED_FLAGS
       pte->variant.class_struct_union.definition_needed = FALSE;
       pte->variant.class_struct_union.keep_definition_in_il = FALSE;

@@ -977,8 +977,8 @@ do_struct_union:
                                       nested_class_defined_outside_of_parent) {
         disp_boolean("nested_class_defined_outside_of_parent", TRUE);
       }  /* if */
-      if (ptr->variant.class_struct_union.originally_unnamed) {
-        disp_boolean("originally_unnamed", TRUE);
+      if (ptr->variant.class_struct_union.is_specialization) {
+        disp_boolean("is_specialization", TRUE);
       }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
       disp_boolean("definition_needed",

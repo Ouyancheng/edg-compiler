@@ -3197,6 +3197,11 @@ typedef struct a_type {
 			   C++ may be TRUE even when the source-corresp name
 			   pointer is non-NULL, since a name may be acquired
 			   from a typedef name (ARM 7.1.3). */
+      a_bit_field
+		is_specialization:1;
+			/* TRUE if this is a template class that was defined
+			   as a specialization (i.e., if it has been
+			   explicitly defined with the template<> syntax). */
 #if MAINTAIN_NEEDED_FLAGS
       a_bit_field
 		definition_needed:1;
