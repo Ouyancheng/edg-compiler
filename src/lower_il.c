@@ -1704,7 +1704,8 @@ Make an lvalue for the virtual table pointer of the object pointed to by var.
 
 #if ABI_CHANGES_FOR_RTTI
 
-an_expr_node_ptr make_any_vptr_rvalue(an_expr_node_ptr expr)
+an_expr_node_ptr make_any_vptr_rvalue(an_expr_node_ptr expr,
+                                      an_expr_node_ptr *other_expr)
 /*
 Make an expression tree for the value of the virtual function table pointer
 from the class object whose address is given by the expression expr.
@@ -1713,7 +1714,11 @@ use the pointer from any base class.  This is used for typeid and
 dynamic_cast, to get a virtual function table from which information
 on the type of the complete object can be extracted.  Since all base
 class virtual function tables will indicate the same complete object
-type, it doesn't matter which is selected.
+type, it doesn't matter which is selected.  If other_expr is non-NULL,
+it points to another copy of expr (e.g., via make_reusable_copy), and
+casts are added to that copy to make it point to the base class whose
+virtual function table pointer address is returned; *other_expr is
+set to point to the updated expression.
 */
 {
   a_type_ptr class_type = f_skip_typerefs(type_pointed_to(expr->type));
@@ -1741,10 +1746,23 @@ type, it doesn't matter which is selected.
                                     make_pointer_type(dsp->base_class->type),
                                     expr);
           expr->variant.operation.compiler_generated = TRUE;
+          if (other_expr != NULL) {
+            /* Do the same thing to *other_expr. */
+            *other_expr =
+                 make_operator_node((an_expr_operator_kind)eok_base_class_cast,
+                                    make_pointer_type(dsp->base_class->type),
+                                    *other_expr);
+            (*other_expr)->variant.operation.compiler_generated = TRUE;
+          }  /* if */
         }  /* for */
         /* Convert the base class casts to C form. */
         lower_related_class_cast(expr, /*is_lvalue=*/TRUE,
                                  /*lower_source=*/FALSE);
+        if (other_expr != NULL) {
+          /* Do the same thing to *other_expr. */
+          lower_related_class_cast(*other_expr, /*is_lvalue=*/TRUE,
+                                   /*lower_source=*/FALSE);
+        }  /* if */
         goto found_base_class;
       }  /* if */
     }  /* for */
@@ -5209,10 +5227,13 @@ Lower an eok_dynamic_init expression.  The subtree has already been lowered.
      typeinfo for the desired class, or NULL for a dynamic cast to "void *". */
   /* Make the src argument for the call. */
   src_copy = make_reusable_copy(src, /*vars_can_change=*/FALSE);
-  src_copy = add_cast(src_copy, void_star_type());
   /* Make the vptr argument (the virtual function table pointer). */
   vptr_expr = make_reusable_copy(src, /*vars_can_change=*/FALSE);
-  vptr_expr = make_any_vptr_rvalue(vptr_expr);
+  /* src_copy is passed in so it can be cast to a base class if necessary. */
+  vptr_expr = make_any_vptr_rvalue(vptr_expr, &src_copy);
+  /* Cast the src argument to a base class (after any casts to base class
+     have been applied). */
+  src_copy = add_cast(src_copy, void_star_type());
   /* Make the desired_type argument. */
   /* Note that we can test for a reference type here only because lower_type
      doesn't turn references into pointers. */

@@ -1154,7 +1154,7 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
                                       typeid_expr);
     /* Make code to get the virtual function table pointer. */
     vptr_expr = make_reusable_copy(typeid_expr, /*vars_can_change=*/FALSE);
-    vptr_expr = make_any_vptr_rvalue(vptr_expr);
+    vptr_expr = make_any_vptr_rvalue(vptr_expr, (an_expr_node_ptr *)NULL);
     /* Make a NULL pointer constant of the vptr type. */
     make_zero_of_proper_type(vptr_expr->type, &null_constant);
     null_constant_node = alloc_node_for_constant(&null_constant);
