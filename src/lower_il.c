@@ -12431,7 +12431,10 @@ files can reference it.
   char     buffer[50];
 
   name = scp->name;
-  check_assertion(scp->name_has_been_mangled || is_variable || name == NULL);
+  check_assertion(scp->name_has_been_mangled || name == NULL ||
+                  (is_variable &&
+                   !scp->is_class_member &&
+                   scp->parent.namespace_ptr == NULL));
   /* The generated name has the form
        __STV__name__module_id  (variable)
        __STF__name__module_id  (function)
@@ -12502,11 +12505,6 @@ the needed-flag walk for the file scope.
              just ignore the flag. */
           rout->source_corresp.static_used_by_instantiation = FALSE;
         } else {
-          if (!rout->source_corresp.name_has_been_mangled) {
-            /* When this function is called out of trans_copy.c, the
-               name has not been mangled yet. */
-            mangle_function_name(rout);
-          }  /* if */
           externalize_source_correspondence(&rout->source_corresp,
                                             /*is_variable=*/FALSE);
           rout->storage_class = (a_storage_class)sc_unspecified;

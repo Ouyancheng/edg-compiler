@@ -2891,7 +2891,7 @@ Mangle the name of the indicated function, if necessary.
 }  /* mangle_function_name */
 
 
-static void mangle_member_variable_name(a_variable_ptr variable)
+void mangle_member_variable_name(a_variable_ptr variable)
 /*
 Mangle the name of the indicated static data member or namespace member
 variable.

@@ -803,6 +803,10 @@ the lists.
                external declaration and copied over. */
             /* The name must be processed now because we want to use
                the module id from the secondary translation unit. */
+            if (variable->source_corresp.is_class_member ||
+                variable->source_corresp.parent.namespace_ptr != NULL) {
+              mangle_member_variable_name(variable);
+            }  /* if */
             externalize_source_correspondence(&variable->source_corresp,
                                               /*is_variable=*/TRUE);
             variable->storage_class = (a_storage_class)sc_extern;

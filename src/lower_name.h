@@ -74,6 +74,8 @@ extern char *mangled_id_object_name(a_type_ptr type);
 
 extern void mangle_function_name(a_routine_ptr routine);
 
+extern void mangle_member_variable_name(a_variable_ptr variable);
+
 #if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE || LOWER_EXTERN_INLINE
 extern void mangle_promoted_entity_name(a_source_correspondence *scp,
