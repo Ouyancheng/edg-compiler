@@ -752,13 +752,6 @@ sequence entries.
       sublist_parent_source_sequence_entry = curr_source_sequence_entry;
       curr_source_sequence_entry = sssp->source_sequence_list;
       /* Keep looping. */
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-    } else if (ss_entry_kind(curr_source_sequence_entry) == iek_comment) {
-      /* Ignore comments. */
-      /* Advance to the next entry. */
-      curr_source_sequence_entry = curr_source_sequence_entry->next;
-      /* Keep looping. */
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Something else (a significant entry; stop looping). */
       break;
@@ -792,10 +785,7 @@ process_preprocessing_directives.
 #if RECORD_MACROS_IN_IL
           || ss_entry_kind(curr_source_sequence_entry) == iek_macro
 #endif /* RECORD_MACROS_IN_IL */
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-          || ss_entry_kind(curr_source_sequence_entry) == iek_comment
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
-                                               )) {
+                                                                   )) {
     adv_curr_source_sequence_entry();
   }  /* while */
 }  /* advance_past_preprocessing_directives */

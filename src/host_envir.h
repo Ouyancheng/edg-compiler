@@ -708,19 +708,6 @@ back end is being used.
 
 /*
 Flag that is TRUE if source sequence lists are being generated and if they
-should include information about comments.
-Note: As of August, 1998, this is not yet implemented.
-*/
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#ifndef COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-#define COMMENTS_IN_SOURCE_SEQUENCE_LISTS FALSE   /* You can change this. */
-#endif /* ifndef COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
-#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-#define COMMENTS_IN_SOURCE_SEQUENCE_LISTS FALSE  /* Do not change this. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-
-/*
-Flag that is TRUE if source sequence lists are being generated and if they
 should include (member and nonmember) function template instantiations and
 static data member template instantiations.
 */

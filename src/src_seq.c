@@ -68,9 +68,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         db_statement_kind((a_statement_kind)sp->kind);
       }  /* if */
       if (sp->kind == (a_statement_kind)stmk_expr) db_expr_summary(sp->expr);
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-    } else if (kind == (an_il_entry_kind)iek_comment) {
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
     } else if (kind == (an_il_entry_kind)iek_pragma) {
       a_pragma_ptr  pp = (a_pragma_ptr)ssep->entity.ptr;
 
@@ -710,9 +707,6 @@ entry that has already been created and linked in for this entity.
                       "source sequence entries not allowed in current scope");
   if (curr_il_region_number != FILE_SCOPE_REGION_NUMBER &&
       kind != iek_statement && kind != iek_switch_clause &&
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-      kind != iek_comment &&
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
       in_file_scope(entity_ptr)) {
     /* The entity is in the file scope, but the current memory region is
        a function-scope memory region.  We'll need to change memory regions

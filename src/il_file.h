@@ -133,9 +133,6 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_src_seq_secondary_decl),
   sizeof(a_src_seq_end_of_construct),
   sizeof(a_src_seq_sublist),
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-  sizeof(a_comment),
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
   sizeof(an_instantiation_directive),
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED

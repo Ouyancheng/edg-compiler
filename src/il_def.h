@@ -421,9 +421,6 @@ typedef enum /*an_il_entry_kind*/ {
   iek_src_seq_end_of_construct,
 			/* a_src_seq_end_of_construct */
   iek_src_seq_sublist,	/* a_src_seq_sublist */
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-  iek_comment,		/* a_comment */
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
   iek_instantiation_directive,
 			/* an_instantiation_directive */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -543,9 +540,6 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_src_seq_secondary_decl */	"src-seq-secondary-decl",
 /* iek_src_seq_end_of_construct */	"src-seq-end-of-construct",
 /* iek_src_seq_sublist */		"src-seq-sublist",
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-/* iek_comment */			"comment",
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 /* iek_instantiation_directive */	"instantiation-directive",
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
@@ -834,21 +828,6 @@ typedef struct a_src_seq_sublist {
 			   that are pointed to by this entry. */
 } a_src_seq_sublist;
 
-
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-/*
-Entry describing a comment.  Only the starting and ending source positions
-are specified, for reasons of economy.  If the text of the comment is needed,
-the source file can be examined.
-*/
-typedef struct a_comment *a_comment_ptr;
-typedef struct a_comment {
-  a_source_range
-		source_range;
-			/* Starting and ending source positions of the
-			   comment. */
-} a_comment;
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
 /*
 Entry describing a template instantiation directive.

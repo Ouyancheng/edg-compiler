@@ -2314,11 +2314,6 @@ after_entry_from_class:
       }
       break;
 #endif /* !KEEP_IN_IL_WALK */
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-    case iek_comment:
-      /* No pointers. */
-      break;
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
     case iek_instantiation_directive:
       {
         an_instantiation_directive_ptr ptr =

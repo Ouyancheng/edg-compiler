@@ -92,10 +92,6 @@ static unsigned long
 		num_src_seq_end_of_constructs_allocated,
 		num_src_seq_sublists_allocated,
 		num_instantiation_directives_allocated;
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-static unsigned long
-		num_comments_allocated;
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
 static unsigned long
@@ -2542,25 +2538,6 @@ a pointer to it.
   return sssp;
 }  /* alloc_src_seq_sublist */
 
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-
-a_comment_ptr alloc_comment(void)
-/*
-Allocate a comment entry, initialize its fields, and return a pointer to it.
-*/
-{
-  a_comment_ptr  cp;
-
-  cp = (a_comment_ptr)alloc_cil(sizeof(a_comment));
-#if DEBUG
-  num_comments_allocated++;
-#endif /* DEBUG */
-  cp->source_range = null_source_range;
-
-  return cp;
-}  /* alloc_comment */
-
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
 an_instantiation_directive_ptr alloc_instantiation_directive(void)
 /*
@@ -2806,9 +2783,6 @@ Display and return the amount of space used for various IL tables.
                 a_src_seq_end_of_construct);
   db_space_used("src-seq sublist", num_src_seq_sublists_allocated,
                 a_src_seq_sublist);
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-  db_space_used("comment", num_comments_allocated, a_comment);
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
   db_space_used("instantiation_directive",
                 num_instantiation_directives_allocated,
                 an_instantiation_directive);
@@ -2979,9 +2953,6 @@ in il_init.)
       pch_saved_var_array_elem(num_src_seq_secondary_decls_allocated),
       pch_saved_var_array_elem(num_src_seq_end_of_constructs_allocated),
       pch_saved_var_array_elem(num_src_seq_sublists_allocated),
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-      pch_saved_var_array_elem(num_comments_allocated),
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
       pch_saved_var_array_elem(num_instantiation_directives_allocated),
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED
@@ -3090,9 +3061,6 @@ of the front end.
   num_src_seq_end_of_constructs_allocated
                                          = 0;
   num_src_seq_sublists_allocated         = 0;
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-  num_comments_allocated                 = 0;
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
   num_instantiation_directives_allocated = 0;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ORPHAN_PROCESSING_NEEDED

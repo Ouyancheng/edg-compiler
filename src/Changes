@@ -1,5 +1,11 @@
 Version 2.43
 
+8/24/99  Unimplemented data structure for comments removed from IL
+
+The IL definition contained a data structure intended to represent
+comments.  This feature was never implemented.  To avoid confusion,
+we have removed the data structure.
+
 8/23/99  Diagnostics for corrupted PCH files
 
 Formerly, the front end would issue an internal error if a file I/O

@@ -3830,18 +3830,6 @@ Display the indicated source sequence sublist header.
            iek_source_sequence_entry);
 }  /* disp_src_seq_sublist */
 
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-
-static void disp_comment(a_comment_ptr cp)
-/*
-Display the indicated comment entry.
-*/
-{
-  disp_source_position("source_range.start", &cp->source_range.start);
-  disp_source_position("source_range.end", &cp->source_range.end);
-}  /* disp_comment */
-
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
 
 static void disp_instantiation_directive(an_instantiation_directive_ptr  idp)
 /*
@@ -4084,11 +4072,6 @@ This routine is called during IL walking.
         case iek_src_seq_sublist:
           disp_src_seq_sublist((a_src_seq_sublist_ptr)entry_ptr);
           break;
-#if COMMENTS_IN_SOURCE_SEQUENCE_LISTS
-        case iek_comment:
-          disp_comment((a_comment_ptr)entry_ptr);
-          break;
-#endif /* COMMENTS_IN_SOURCE_SEQUENCE_LISTS */
         case iek_instantiation_directive:
           disp_instantiation_directive(
                                    (an_instantiation_directive_ptr)entry_ptr);
