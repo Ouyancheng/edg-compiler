@@ -2345,12 +2345,14 @@ or enum.
     write_space();
     if (type->first_declaration_pending) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
+#if !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE
       if (il_header.source_language == sl_Cplusplus &&
           type->kind != (a_type_kind)tk_enum) {
         /* On the first declaration put out declaration modifiers that apply
            to the class as a whole. */
         gen_microsoft_class_decl_modifiers(type);
       }  /* if */
+#endif /* !SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* The initial declaration of a tag cannot use a qualified name. */
       gen_unqualified_name(&type->source_corresp, iek_type);

@@ -1,5 +1,14 @@
 Version 2.44
 
+5/2/00   C++-generating back end compilation problem when
+         SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE is TRUE
+
+A minor problem has been corrected in the C++-generating back end.
+Formerly, when cp_gen_be.c was compiled with MICROSOFT_EXTENSIONS_ALLOWED
+TRUE but SUPPRESS_MICROSOFT_KEYWORDS_IN_GENERATED_CODE FALSE, there
+was an unresolved reference to gen_microsoft_class_decl_modifiers at
+link time.
+
 5/2/00   IL lowering: clearing default argument expressions in declared_type
 
 IL lowering now clears the default argument expressions on the parameter
