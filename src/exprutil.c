@@ -7109,6 +7109,12 @@ subtree, some of which will no longer have array type.
     }  /* if */
     expr->type = make_pointer_type(expr->type);
     expr->variant.operation.kind = (an_expr_operator_kind)eok_field;
+  } else if (is_operation_node(expr) &&
+             expr->variant.operation.kind ==
+                                         (an_expr_operator_kind)eok_indirect) {
+    /* In cases like X().arr, where arr is a member of a base class of the
+       class of X, the top operator is an indirection.  Remove it. */
+    expr = expr->variant.operation.operands;
   } else {
     /* We should have worked our way up to a class rvalue, because the only
        way to produce an array rvalue is to select one out of a class

@@ -1,5 +1,22 @@
 Version 2.45
 
+9/1/00   Abort on array rvalue selected from base class of class rvalue
+
+The front end no longers aborts on passing an array rvalue as
+an argument, when the array rvalue is produced by creating a class
+rvalue and selecting an array member of a base class of that value.
+
+  struct B {
+    char arr[10];  
+  };
+  struct D : public B {
+    D(const char*);
+  };
+  D f();
+  int main() {
+    D d(f().arr);  // Formerly, aborted in exprutil.c
+  }
+
 9/1/00   Microsoft compatibility: standard conversion after different
          user-defined conversions
 
