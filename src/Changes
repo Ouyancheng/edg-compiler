@@ -1,5 +1,21 @@
 Version 2.35
 
+1/20/97 Cfront compatibility: uninitialized const objects
+
+Two errors on uninitialized const objects were eliminated in cfront mode:
+First, cases involving an empty class:
+
+  struct A { };
+  struct B : A { };
+  const B b;                   // Okay in cfront mode
+
+Second, cases involving new expressions with no initializer:
+
+  struct A { virtual void f(); int i; };
+  main() {
+    (void)new const A;         // Okay in cfront mode
+  }
+
 1/20/97 Internal error on default template argument with ? : operator
 
 An internal error would occur when processing a template declaration
