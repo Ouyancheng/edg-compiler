@@ -4285,12 +4285,24 @@ class template.
            is inferred from the ARM prohibition against overloading
            operator delete. */
         a_routine_ptr  rp = homonym_symbol->variant.routine.ptr;
-        if (rp->special_kind == (a_special_function_kind)sfk_operator &&
-            rp->opname_kind == (an_opname_kind)onk_delete) {
-          /* Overloading is not allowed for operator delete() (ARM 12.5). */
-          pos_error(ec_template_operator_delete, &locator->source_position);
-          set_to_error_locator(*locator);
-          homonym_symbol = NULL;
+        if (rp->special_kind == (a_special_function_kind)sfk_operator) {
+          if (rp->opname_kind == (an_opname_kind)onk_delete) {
+            /* Overloading is not allowed for operator delete() (ARM 12.5). */
+            pos_error(ec_template_operator_delete, &locator->source_position);
+            set_to_error_locator(*locator);
+            homonym_symbol = NULL;
+          } else if (rp->opname_kind == (an_opname_kind)onk_new) {
+            a_param_type_ptr  ptp = rp->type->variant.routine.extra_info->
+                                                             param_type_list;
+            if (ptp->next == NULL) {
+            /* Overloading should not be allowed on the single-argument
+               version of operator new(size_t), though it is not expressly
+               prohibited.  At least one C++ test suite expects an error. */
+              pos_error(ec_template_operator_new, &locator->source_position);
+              set_to_error_locator(*locator);
+              homonym_symbol == NULL;
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
       if (homonym_symbol != NULL) {
