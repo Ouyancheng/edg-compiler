@@ -431,6 +431,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_asm_entry,        /* an_asm_entry */
 #if GNU_EXTENSIONS_ALLOWED
   iek_asm_operand,      /* an_asm_operand */
+  iek_asm_operand_constraint,
+                        /* an_asm_operand_constraint */
   iek_named_register_list,
                         /* a_named_register_list */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -568,6 +570,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_asm_entry */			"asm-entry",
 #if GNU_EXTENSIONS_ALLOWED
 /* iek_asm_operand */                   "asm-operand",
+/* iek_asm_operand_constraint */        "asm-operand-constraint",
 /* iek_named_register_list */           "named-register-list",
 #endif /* GNU_EXTENSIONS_ALLOWED */
 /* iek_template_arg */			"template-arg",
@@ -9626,6 +9629,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_asm_entry),
 #if GNU_EXTENSIONS_ALLOWED
   sizeof(an_asm_operand),
+  sizeof(an_asm_operand_constraint),
   sizeof(a_named_register_list),
 #endif /* GNU_EXTENSIONS_ALLOWED */
   sizeof(a_template_arg),

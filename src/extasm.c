@@ -373,7 +373,7 @@ done_with_modifiers:
     }  /* switch */
     /* Create a new constraint and add it to the list.  */
     if (ck != (an_asm_operand_constraint_kind)aoc_invalid) {
-      *constraint = alloc_asm_constraint(ck);
+      *constraint = alloc_asm_operand_constraint(ck);
       constraint = &(*constraint)->next;
     }  /* if */
   }  /* for */

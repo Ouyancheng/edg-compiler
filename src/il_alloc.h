@@ -111,7 +111,7 @@ extern char *alloc_asm_function_body(sizeof_t  len);
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GNU_EXTENSIONS_ALLOWED
-extern an_asm_operand_constraint_ptr alloc_asm_constraint(
+extern an_asm_operand_constraint_ptr alloc_asm_operand_constraint(
                                             an_asm_operand_constraint_kind ck);
 
 extern an_asm_operand_ptr alloc_asm_operand(void);
