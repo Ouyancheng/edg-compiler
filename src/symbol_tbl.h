@@ -318,10 +318,6 @@ typedef struct a_class_symbol_supplement {
 			   there is only one constructor defined for the class)
 			   or an sk_overloaded_function symbol (when there are
 			   more than one); NULL if there is none. */
-  a_symbol_ptr	destructor;
-			/* Pointer to an sk_member_function symbol that
-			   identifies the destructor for this class; NULL if
-			   there is none. */
   a_symbol_ptr	default_constructor;
 			/* Pointer to an sk_member_function symbol that
 			   identifies the default constructor for this class
@@ -332,6 +328,10 @@ typedef struct a_class_symbol_supplement {
 			   identifies the copy constructor for this class
 			   (i.e., the constructor that can be called with a
 			   single argument of the type of the class);  NULL if
+			   there is none. */
+  a_symbol_ptr	destructor;
+			/* Pointer to an sk_member_function symbol that
+			   identifies the destructor for this class; NULL if
 			   there is none. */
   unsigned int	any_nonpublic_members:1;
 			/* TRUE if the class contains any members declared
