@@ -6259,6 +6259,8 @@ void record_named_register_storage_class(a_variable_ptr       var,
 Record the given named-register storage class id in the given variable.  If it
 conflicts with a different construct or a previous declaration, issue an error
 at the given position.  If we're processing redeclaration, is_redecl is TRUE.
+Also check that the type of the variable is appropriate for the named register
+and issue an error if not.
 */
 {
   if (is_redecl) {
@@ -6293,6 +6295,11 @@ at the given position.  If we're processing redeclaration, is_redecl is TRUE.
   if (register_id != 0) {
     if (named_register_variables[register_id] != NULL) {
       pos_error(ec_register_in_use, pos);
+    } else if (is_array_type(var->type)) {
+      pos_error(ec_no_named_register_for_array, pos);
+    } else if (named_register_storage_classes[register_id].size <
+                                             skip_typerefs(var->type)->size) {
+      pos_error(ec_register_too_small, pos);
     } else {
       var->asm_name_is_valid = FALSE;
       var->named_register_storage_class = TRUE;

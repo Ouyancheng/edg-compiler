@@ -1388,6 +1388,8 @@ ec_bad_macro_mode_name;;"invalid macro mode name %sq"
 ec_bad_predef_macro_redef;;"incompatible redefinition of predefined macro %sq"
 ec_missing_named_register_storage_class;;"missing named-register storage class in redeclaration"
 ec_previous_decl_at;;"(the previous declaration is %p)"
+ec_register_too_small;;"named register is too small for the type of the variable"
+ec_no_named_register_for_array;;"arrays cannot be declared with named-register storage class"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
