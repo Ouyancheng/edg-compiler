@@ -9113,27 +9113,8 @@ and for the instantiation of template functions.
   db_exit();
 }  /* scan_function_body */
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
 
-static void pragma_update_source_sequence_list(a_pragma_kind      kind,
-                                               a_source_position  *pos)
-/*
-*/
-{
-  a_pragma_ptr   pp;
-
-  pp = alloc_pragma(kind);
-  check_assertion(in_file_scope(pp));
-  pp->decl_position = *pos,
-  add_to_pragma_list(pp, DEPTH_OF_FILE_SCOPE);
-  f_update_source_sequence_list((char *)pp, (an_il_entry_kind)iek_pragma,
-                                &pp->decl_position,
-                                (a_source_sequence_entry_ptr)NULL);
-}  /* pragma_update_source_sequence_list */
-
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-
-void set_lint_argsused_and_varargs_state(a_type_ptr  rout_type)
+void record_lint_argsused_and_varargs_state(a_type_ptr  rout_type)
 /*
 Set fields in the routine type to reflect the current argsused and varargs
 state, as indicated by a comment immediately preceding the current function
@@ -9152,17 +9133,19 @@ definition.
     if (kind == (a_pragma_kind)pk_lint_argsused) {
       rout_type->variant.routine.extra_info->lint_argsused_flag = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      pragma_update_source_sequence_list(kind, &ppp->id_position);
+      (void)add_pragma_to_il(ppp, (an_il_entry_kind)iek_none, (char *)NULL,
+                             /*at_file_scope=*/FALSE);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (kind == (a_pragma_kind)pk_lint_varargs_count) {
       rout_type->variant.routine.extra_info->lint_varargs_count =
                                             ppp->variant.lint_varargs_count;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      pragma_update_source_sequence_list(kind, &ppp->id_position);
+      (void)add_pragma_to_il(ppp, (an_il_entry_kind)iek_none, (char *)NULL,
+                             /*at_file_scope=*/FALSE);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* for */
-}  /* set_lint_argsused_and_varargs_state */
+}  /* record_lint_argsused_and_varargs_state */
 
 
 static void function_definition(a_symbol_locator   *locator,
@@ -9330,7 +9313,7 @@ specified (rather than defaulted to "int").
   /* If a lint-style "argsused" or "varargs" comment appeared, record that in
      the function type.  That will suppress any warnings about unused
      parameters or variable arguments. */
-  set_lint_argsused_and_varargs_state(routine_ptr->type);
+  record_lint_argsused_and_varargs_state(routine_ptr->type);
   if (!is_member_function_def &&
       storage_class == (a_storage_class)sc_unspecified &&
       routine_ptr->source_corresp.name != NULL &&
@@ -9932,10 +9915,7 @@ of local variables (and types, etc.) of functions and in blocks.
   }  /* if */
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry so they can be examined and acted upon in subsequent processing. */
-  select_pragmas_bound_to_curr_decl_or_stmt(
-                               /*decl_allowed=*/TRUE,
-                               /*stmt_allowed=*/!function_definition_allowed,
-                               /*merge_with_existing_list=*/FALSE);
+  select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/TRUE);
   add_stop_token(tok_semicolon);
   need_semicolon_remove_stop_token = TRUE;
   if (curr_token == tok_asm) {
@@ -10792,6 +10772,7 @@ continue_with_declaration:
   (void)required_token(tok_semicolon, ec_exp_semicolon);
 
 return_point:
+  wrapup_pragmas_bound_to_curr_decl_or_stmt();
   /* Do necessary remove_stop_tokens.  Even when there is no error, this
      does the remove_stop_token for tok_semicolon. */
   remove_all_local_stop_tokens();

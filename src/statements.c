@@ -133,7 +133,6 @@ otherwise be issued later.
 { if (lint_notreached_flag) {                                         \
     curr_reachability.reachable_considering_hints = FALSE;            \
     curr_reachability.suppress_unreachable_warning = TRUE;            \
-    clear_stmt_lint_and_pragma_globals();                             \
   }  /* if */                                                         \
 }  /* check_lint_notreached_flag */
 
@@ -3212,10 +3211,7 @@ only).
 
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry so they can be examined and acted upon in subsequent processing. */
-  select_pragmas_bound_to_curr_decl_or_stmt(
-                                       /*decl_allowed=*/FALSE,
-                                       /*stmt_allowed=*/TRUE,
-                                       /*merge_with_existing_list=*/FALSE);
+  select_pragmas_bound_to_curr_decl_or_stmt(/*is_decl=*/FALSE);
 rescan_statement:
   get_another_statement = FALSE;
   /* If a lint-style "notreached" comment was detected, suppress the
@@ -3365,13 +3361,7 @@ expr_statement:
       break;
   }  /* switch */
   /* Loop if we just got a label and not an actual statement. */
-  if (get_another_statement) {
-    select_pragmas_bound_to_curr_decl_or_stmt(
-                                       /*decl_allowed=*/FALSE,
-                                       /*stmt_allowed=*/TRUE,
-                                       /*merge_with_existing_list=*/TRUE);
-    goto rescan_statement;
-  }  /* if */
+  if (get_another_statement) goto rescan_statement;
 
   db_exit();
   return !is_declaration;
@@ -3413,7 +3403,6 @@ branching into it is disallowed).
   if (at_function_level) {
     /* Block for a function. */
     set_reachable(curr_reachability);
-    clear_stmt_lint_and_pragma_globals();
     control_flow_descr_list = end_of_control_flow_descr_list = NULL;
     block = alloc_statement((a_statement_kind)stmk_block);
     set_stmt_source_position(block->position, pos_curr_token);
