@@ -128,12 +128,12 @@ EXTERN a_boolean
 			   prevent complete successful scanning of the
 			   directive, not something like the directive
 			   appearing out of sequence. */
-EXTERN int	pp_if_stack_depth;
+EXTERN long	pp_if_stack_depth;
 			/* Stack of currently active #if, #ifdef, and
 			   #ifndef directives.  pp_if_stack_depth
 			   is the index of the currently active entry.
 			   pp_if_stack_depth == -1 for an empty stack. */
-EXTERN int	base_pp_if_stack_depth;
+EXTERN long	base_pp_if_stack_depth;
 			/* The value of pp_if_stack_depth at entry to
 			   the current file; important because in ANSI C,
 			   each #if must be closed within the file in

@@ -462,7 +462,7 @@ typedef struct an_input_stack_entry {
 			   for the #line information and assoc_actual_il_file
 			   stays as it was (pointing to the entry for the
 			   file actually being read). */
-  int		base_pp_if_stack_depth;
+  long		base_pp_if_stack_depth;
 			/* The value of pp_if_stack_depth (see preproc.c)
 			   at entry to this file.  Needed because ANSI C
 			   requires that each #if be closed in the same
