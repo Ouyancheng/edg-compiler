@@ -578,6 +578,31 @@ it and remapping pointers.
 
 
 static void copy_function_bodies_from_secondary_to_primary_IL(
+                                                            a_scope_ptr scope);
+
+
+static void copy_type_list_function_bodies_from_secondary_to_primary_IL(
+                                                          a_type_ptr type_list)
+/*
+Copy the bodies of any functions that are members of types on the indicated
+list to the primary translation unit IL.
+*/
+{
+  a_type_ptr type;
+
+  for (type = type_list; type != NULL; type = type->next) {
+    if (is_immediate_class_type(type)) {
+      a_scope_ptr class_scope =
+                      type->variant.class_struct_union.extra_info->assoc_scope;
+      if (class_scope != NULL) {
+        copy_function_bodies_from_secondary_to_primary_IL(class_scope);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* copy_type_list_function_bodies_from_secondary_to_primary_IL */
+
+
+static void copy_function_bodies_from_secondary_to_primary_IL(
                                                              a_scope_ptr scope)
 /*
 Copy the bodies of any functions in the indicated scope (a file,
@@ -585,33 +610,20 @@ namespace, class, function, or block scope in a secondary translation unit)
 to the primary translation unit IL.
 */
 {
-  a_routine_ptr   routine;
-  a_type_ptr      type;
-  a_namespace_ptr nsp;
-  a_scope_ptr     sub_scope;
+  a_routine_ptr                    routine;
+  a_namespace_ptr                  nsp;
+  a_scope_ptr                      sub_scope;
+  a_scope_orphaned_list_header_ptr solhp;
 
   for (routine = scope->routines; routine != NULL; routine = routine->next) {
     if (routine->assoc_scope != NULL_region_number) {
       /* Move the routine body to the primary IL. */
-      a_scope_ptr rout_scope =
-                            il_header.region_scope_entry[routine->assoc_scope];
-      check_assertion_str(rout_scope != NULL,
-            "copy_function_bodies_from_secondary_to_primary_IL: body missing");
-      /* Handle local classes (and their member functions). */
-      copy_function_bodies_from_secondary_to_primary_IL(rout_scope);
+      /* Local types are handled by visiting the orphan lists later. */
       move_routine_body_to_primary(routine);
     }  /* if */
   }  /* for */
   if (!C_mode()) {
-    for (type = scope->types; type != NULL; type = type->next) {
-      if (is_immediate_class_type(type)) {
-        a_scope_ptr class_scope =
-                      type->variant.class_struct_union.extra_info->assoc_scope;
-        if (class_scope != NULL) {
-          copy_function_bodies_from_secondary_to_primary_IL(class_scope);
-        }  /* if */
-      }  /* if */
-    }  /* for */
+    copy_type_list_function_bodies_from_secondary_to_primary_IL(scope->types);
   }  /* if */
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
     if (!nsp->is_namespace_alias) {
@@ -624,6 +636,20 @@ to the primary translation unit IL.
        sub_scope = sub_scope->next) {
     copy_function_bodies_from_secondary_to_primary_IL(sub_scope);
   }  /* for */
+  if (!C_mode() && scope->kind == (a_scope_kind)sck_file) {
+    /* Visit orphan lists to get member functions of local types. */
+    /* Note that using the orphan lists is better than going from the
+       scopes of functions as they are hit, because when unneeded entities
+       are not removed there are cases where a function's body is deleted
+       because it need not be copied and yet a member function of a local
+       class of that removed function survives in the IL. */
+    for (solhp = il_header.scope_orphaned_list_headers;
+         solhp != NULL;
+         solhp = solhp->next) {
+      copy_type_list_function_bodies_from_secondary_to_primary_IL(
+                                                        solhp->orphaned_types);
+    }  /* for */
+  }  /* if */
 }  /* copy_function_bodies_from_secondary_to_primary_IL */
 
 
