@@ -740,7 +740,7 @@ Find the base class under new_class that is the same as the base class
 indicated by base_class, and return a pointer to it.  The base class must
 be found.  There may be more than one base class that matches; in that
 case, disambiguator (if non-null) may used to decide which to use -- it is
-also a base class of new_class, and it's presence on the derivation list
+also a base class of new_class, and its presence on the derivation list
 serves to confirm the match.
 */
 {
