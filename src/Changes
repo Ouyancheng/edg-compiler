@@ -45,36 +45,6 @@ TRUE).  On long output lines, that prevents generation of #line directives
 in the middle of the macro calls.  Standard C does not allow use of
 preprocessing directives in the middle of macro calls.
 
-12/12/00 Names from using-directives not found in some cases
-
-A bug in the way in which the using-directive state is saved and restored
-in the presence of template instantiations was introduced in version 2.44
-causing lookup errors under certain conditions when using-directives are
-used.  This has been fixed.
-  
-  namespace N { 
-    template < class T > struct A { 
-      int * f ( unsigned int n , void * = 0 ) { return 0;} 
-    }; 
-    template < class A , class T > 
-    struct AB { 
-      typedef T * D; 
-      A aa; 
-      AB ( const A & a ) throw ( ) : aa ( a ) {; } 
-    }; 
-  } 
-  namespace N { 
-    template < class T , class T2 = A < T > > struct B { 
-      typedef AB < T2 , T > C; 
-      typedef typename C :: D E; 
-    }; 
-  } 
-  int main ( ) { 
-    using namespace N; 
-    typedef B < int > :: E E; 
-    B < int > b1;
-  } 
-
 12/8/00  Old-style casts misclassified as reinterpret_casts
 
 Some old-style casts, those that correspond to a const_cast or to
