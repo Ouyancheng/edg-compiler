@@ -3808,6 +3808,7 @@ empty statement block.
       if (rtsp->param_type_list != NULL) {
         a_variable_ptr  vp = alloc_variable();
         vp->type = rtsp->param_type_list->type;
+        vp->assoc_param_type = rtsp->param_type_list;
         vp->storage_class = (a_storage_class)sc_auto;
         vp->is_parameter = TRUE;
         scope->variant.routine.parameters = vp;
