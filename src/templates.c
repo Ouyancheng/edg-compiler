@@ -8816,7 +8816,7 @@ that follows.
   a_decl_flag_set               do_flags, dso_flags, di_flags;
   a_type_qualifier_set          qualifiers;
   a_decl_modifiers_block        decl_modifiers;
-  a_source_sequence_entry_ptr   declarator_ssep;
+  a_source_sequence_entry_ptr   declarator_ssep = NULL;
   a_symbol_ptr		        sym;
   a_func_info_block             func_info;
   a_boolean			keep_func_info = FALSE;
