@@ -15297,13 +15297,19 @@ file we simply return.
             }  /* if */
 #endif /* DEBUG */
 	  } else {
+            a_boolean	save_in_instantiation_wrapup = in_instantiation_wrapup;
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
                              is_system_include, /*is_preinclude=*/FALSE,
 		             /*preinclude_macros=*/FALSE,
                              /*is_implicit_include=*/TRUE,
                              dir_entry, ifhp);
+            /* Clear the in_instantiation_wrapup flag while processing the
+               implicitly included file.  This suppresses on-the-fly
+               instantiations until the file has been completed. */
+            in_instantiation_wrapup = FALSE;
             scan_implicitly_included_template_definition_file();
+            in_instantiation_wrapup = save_in_instantiation_wrapup;
             if (in_instantiation_wrapup) {
               /* Set a flag if this implicit inclusion was done during
                  instantiation wrapup.  The presence of additional code

@@ -1,5 +1,22 @@
 Version 3.1
 
+9/11/02  Abort when using implicit inclusion
+
+Version 3.0 introduced a problem that could cause an abort when processing
+implicitly included files when guiding declarations are enabled.  This
+has been fixed.
+
+  t.c:
+  #include "ex.h"
+  void f(int);
+  A<int> a;
+
+  ex.h:
+  template <class T> struct A { void f(); };
+
+  ex.c:
+  template <class T> void f(T){}
+
 9/11/02  Microsoft compatibility: __if_exists problems
 
 Two problems with the processing of Microsoft __if_exists directives have
