@@ -1911,7 +1911,7 @@ Output a reference to a type.  If add_pointer_to is TRUE, add an extra
 }  /* dump_type */
 
 
-static void dump_typedef(a_type_ptr type)
+static void dump_typedef_decl(a_type_ptr type)
 /*
 Print a typedef declaration.
 */
@@ -1924,7 +1924,7 @@ Print a typedef declaration.
     write_tok_str(";");
     end_unreferenced_bracket(&type->source_corresp);
   }  /* if */
-}  /* dump_typedef */
+}  /* dump_typedef_decl */
 
 
 static void dump_enum_definition(a_type_ptr type)
@@ -2150,7 +2150,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
         /* Ignore placeholder typerefs for template types. */
       } else {
         /* Output typedefs only on the second pass. */
-        if (pass == 2) dump_typedef(type);
+        if (pass == 2) dump_typedef_decl(type);
       }  /* if */
       break;
     default:
@@ -4811,6 +4811,15 @@ if this routine has a body (dump nothing if it has no body).
     /* Unreferenced routine. */
   } else {
     is_definition = (rout->assoc_scope != NULL_region_number && dump_defn);
+    if (!is_definition) {
+      a_routine_type_supplement_ptr rtsp =
+                         skip_typerefs(rout->type)->variant.routine.extra_info;
+      if (rtsp->prototype_scope != NULL) {
+        /* If there are types declared in the prototype scope, dump them out
+           as file-scope types before the routine declaration. */
+        dump_scope_types(rtsp->prototype_scope);
+      }  /* if */
+    }  /* if */
     /* Dump the routine interface. */
     set_output_position(&rout->source_corresp.decl_position);
     /* Output the storage class. */
