@@ -1674,30 +1674,41 @@ and arguments of old-style calls.
   } else if (type_1->kind == (a_type_kind)tk_integer) {
     /* Look for two integral types that differ only in signedness, or
        two character types. */
-    /* Since types_are_compatible was called above, we only have to look
-       for cases where the kinds don't match, and we don't have to consider
-       the PCC_SAME_REPR_INTS_INTERCHANGEABLE_IN_IL cases. */
-    ikind1 = type_1->variant.integer.int_kind;
-    ikind2 = type_2->variant.integer.int_kind;
-    if (ikind1 == (an_integer_kind)ik_signed_char ||
-        ikind1 == (an_integer_kind)ik_unsigned_char ||
-        ikind1 == (an_integer_kind)ik_char) {
-      interch = (ikind2 == (an_integer_kind)ik_signed_char ||
-                 ikind2 == (an_integer_kind)ik_unsigned_char ||
-                 ikind2 == (an_integer_kind)ik_char);
-    } else if ((ikind1 == (an_integer_kind)ik_short &&
-                ikind2 == (an_integer_kind)ik_unsigned_short) ||
-               (ikind1 == (an_integer_kind)ik_unsigned_short &&
-                ikind2 == (an_integer_kind)ik_short) ||
-               (ikind1 == (an_integer_kind)ik_int &&
-                ikind2 == (an_integer_kind)ik_unsigned_int) ||
-               (ikind1 == (an_integer_kind)ik_unsigned_int &&
-                ikind2 == (an_integer_kind)ik_int) ||
-               (ikind1 == (an_integer_kind)ik_long &&
-                ikind2 == (an_integer_kind)ik_unsigned_long) ||
-               (ikind1 == (an_integer_kind)ik_unsigned_long &&
-                ikind2 == (an_integer_kind)ik_long)) {
-      interch = TRUE;
+    if (strict_ansi_mode) {
+      /* In strict ANSI mode (C or C++), two integral types are interchangeable
+         if they're the same type with signedness ignored. */
+      /* Reduce the integral kinds to canonical (signedness-free) versions. */
+      ikind1 = type_1->variant.integer.int_kind;
+      if (ikind1 == (an_integer_kind)ik_signed_char ||
+          ikind1 == (an_integer_kind)ik_unsigned_char) {
+        ikind1 = (an_integer_kind)ik_char;
+      } else if (ikind1 == (an_integer_kind)ik_unsigned_short) {
+        ikind1 = (an_integer_kind)ik_short;
+      } else if (ikind1 == (an_integer_kind)ik_unsigned_int) {
+        ikind1 = (an_integer_kind)ik_int;
+      } else if (ikind1 == (an_integer_kind)ik_unsigned_long) {
+        ikind1 = (an_integer_kind)ik_long;
+      }  /* if */
+      ikind2 = type_2->variant.integer.int_kind;
+      if (ikind2 == (an_integer_kind)ik_signed_char ||
+          ikind2 == (an_integer_kind)ik_unsigned_char) {
+        ikind2 = (an_integer_kind)ik_char;
+      } else if (ikind2 == (an_integer_kind)ik_unsigned_short) {
+        ikind2 = (an_integer_kind)ik_short;
+      } else if (ikind2 == (an_integer_kind)ik_unsigned_int) {
+        ikind2 = (an_integer_kind)ik_int;
+      } else if (ikind2 == (an_integer_kind)ik_unsigned_long) {
+        ikind2 = (an_integer_kind)ik_long;
+      }  /* if */
+      /* If the underlying kinds are the same, the types are
+         interchangeable. */
+      if (ikind1 == ikind2) interch = TRUE;
+    } else {
+      /* When not in strict ANSI mode, consider any integral types that
+         have the same size and alignment to be interchangeable.  Typically,
+         this makes int and long interchangeable. */
+      if (type_1->size == type_2->size &&
+          type_1->alignment == type_2->alignment) interch = TRUE;
     }  /* if */
   } else if (type_1->kind == (a_type_kind)tk_pointer &&
              !type_1->variant.pointer.is_reference &&
