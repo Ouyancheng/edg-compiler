@@ -796,7 +796,7 @@ have_il_file:;
 
 void fe_one_time_init(void)
 /*
-Do intialization that does not have to be redone with each translation
+Do initialization that does not have to be redone with each translation
 unit, in case multiple source files are allowed.
 */
 {

@@ -2000,7 +2000,7 @@ done:;
 static a_source_sequence_entry_ptr init_param_source_sequence_sublist(void)
 /*
 Return a pointer to a source sequence entry that will be the predecessor of
-any entries generated for a function prototoype scope.
+any entries generated for a function prototype scope.
 */
 {
   a_source_sequence_entry_ptr  ssep;

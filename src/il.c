@@ -4728,7 +4728,7 @@ type in a function definition is based on a typedef).
   old_ptp = from_type->variant.routine.extra_info->param_type_list;
   prev_new_ptp = NULL;
   for (; old_ptp != NULL; old_ptp = old_ptp->next) {
-    /* Pass a NULL source position to make_param_type to avoid inapproriate
+    /* Pass a NULL source position to make_param_type to avoid inappropriate
        diagnostics on a type that doesn't correspond directly to a source
        construct. */
     new_ptp = make_param_type(old_ptp->type, &null_source_position);
@@ -7215,7 +7215,7 @@ this entity.
         }  /* if */
 #endif /* DEBUG */
       } else {
-        /* new_ssep was not merged into an existiting sublist, so make one
+        /* new_ssep was not merged into an existing sublist, so make one
            for it and turn old_ssep into its sublist parent. */
         sublist = alloc_src_seq_sublist();
         sublist->source_sequence_list = new_ssep;

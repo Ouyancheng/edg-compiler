@@ -3400,7 +3400,7 @@ is allocated, it is allocated in the file scope.
                   param_type = composite_type(param1->type, param2->type);
                 }  /* if */
                 /* Pass a NULL source position to make_param_type to avoid
-                   inapproriate diagnostics on a type that doesn't correspond
+                   inappropriate diagnostics on a type that doesn't correspond
                    directly to a source construct. */
                 comp_param = make_param_type(param_type,
                                              &null_source_position);
@@ -4373,7 +4373,7 @@ make_new_type:
       new_type->variant.routine.extra_info->implicit_this_param_type =
                                                      new_this_param_type;
       /* Pass a NULL source position to make_param_type and to
-         set_routine_calling_method to avoid inapproriate diagnostics on
+         set_routine_calling_method to avoid inappropriate diagnostics on
          a type that doesn't correspond directly to a source construct. */
       dummy_decl_pos.seq = 0;
       dummy_decl_pos.column = SP_COL_UNKNOWN;

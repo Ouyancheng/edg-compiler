@@ -7883,9 +7883,10 @@ secondary status.
                 /* The current declaration is the primary declaration of a
                    class or enum (its definition, namely) and the previous
                    declaration, originally listed as the primary declaration,
-                   is being demoted to a secondary declaration.  The "automous
-                   tag decl" flag gets moved to the secondary declaration
-                   entry, and the flag in the type entry is cleared. */
+                   is being demoted to a secondary declaration.  The
+                   "autonomous tag decl" setting is transferred to the
+                   secondary declaration entry, and the flag in the type
+                   entry is cleared. */
                 sssdp->autonomous_tag_decl = TRUE;
                 tp->autonomous_primary_tag_decl = FALSE;
               }  /* if */

@@ -816,7 +816,7 @@ new_bcp is the base class being created in new_class.
               ovfp_from_new_list->base_class = new_ovfp_base_class;
               /* If there are any other entries on the list that are
                  similarly dominated by the new override, they should be
-                 removed from the list.  Otherwise spurious amiguity errors
+                 removed from the list.  Otherwise spurious ambiguity errors
                  would be issued. */
               prev_ovfp = ovfp_from_new_list;
               ovfp = ovfp_from_new_list->next;
@@ -5774,7 +5774,7 @@ Scan the body of a class definition, including the base classes list.
     }  /* if */
   }  /* if */
   if (curr_token == tok_lbrace) {
-    /* Scan the structure or union defintion. */
+    /* Scan the structure or union definition. */
     /* If this is the definition of a nested class, set the parent class
        pointer in the tag symbol and set the access. */
     if (!is_template_instantiation &&

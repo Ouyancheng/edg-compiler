@@ -559,7 +559,7 @@ aligned according to container_alignment.
 #if LONG_LONG_ALLOWED
       } else if (container_size == targ_sizeof_long_long) {
        container_alignment = targ_alignof_long_long;
-#endif
+#endif /* LONG_LONG_ALLOWED */
       } else {
         internal_error(
              "align_offsets_for_bit_field: bad targ_bit_field_container_size");
@@ -869,7 +869,7 @@ will already have been done.
           internal_error(
                  "set_offsets_for_remaining_fields: field already allocated");
         }  /* if */
-#endif
+#endif /* CHECKING */
         /* This field has the access specification for which allocation is
            now being done.  Note that the code that follows is based on
            decl_nonstatic_data_member. */
@@ -998,7 +998,7 @@ static a_boolean is_best_derivation(a_base_class_ptr  bcp,
 /*
 Return TRUE if bcp is a direct base class (meaning derived_bcp is NULL) or if
 the base class in class_type that corresponds to derived_bcp is on a
-derivation path of the base classin class_type that corresponds to bcp.
+derivation path of the base class in class_type that corresponds to bcp.
 */
 {
   a_boolean                 is_best_path;
@@ -1466,7 +1466,7 @@ base class of class_type, and allocate space for the latter.
               /  \       V2 is embedded in Y (a complete subobject), and
              V2   V3     V3, being a direct base class, is not embedded.
               |   /      Should V1 be embedded in V2 or V3?  The current
-           X  Y  /       procecessing assures that it is embedded in V2-in-Y.
+           X  Y  /       processing assures that it is embedded in V2-in-Y.
             \ | /        (What does cfront do?  CC3 aborts on this example.)
               D
      One reason for doing it at this point is to assure that virtual base
@@ -1583,7 +1583,7 @@ Reserve space at the end of the class object for virtual base classes.
        order in which cfront puts them out is emulated. */
     cfc_set_virtual_base_class_offsets(lob, (a_base_class_ptr)NULL,
                                        /*use_decl_order=*/FALSE);
-#else
+#else /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
     /* In normal layout mode all virtual base classes have space reserved at
        this point in the layout.  The order in which they are put out is
        the order of their appearance in the base classes list, which
