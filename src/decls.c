@@ -5784,39 +5784,6 @@ recorded in the IL, the template header is passed via template_decl.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (!is_error_locator(*locator)) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-    a_boolean  saved_sses_disallowed;
-    if (!prototype_instantiations_in_il || is_template_symbol(sym)) {
-      /* Prevent the generation of a source sequence entry for the a_template
-         entry: we already did so elsewhere or we are generating prototype
-         instantiations and hence do not want to record a_template entries. */
-      saved_sses_disallowed = source_sequence_entries_disallowed;
-      source_sequence_entries_disallowed = TRUE;
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
-    if (func_info->is_definition) {
-      if (sym->defined) {
-        pos_sy_error(ec_already_defined, &locator->source_position, sym);
-      } /* if */
-      mark_defined(sym, &locator->source_position);
-    } else {
-      mark_declared(sym, &locator->source_position);
-      if (sym->is_class_member && !idlb.is_friend_decl && !is_specialization) {
-        /* A non-defining declaration of a member function is not
-           allowed. */
-        pos_sy_error(ec_member_function_redecl_outside_class,
-                     &locator->source_position, sym);
-      } /* if */
-    } /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
-    if (!prototype_instantiations_in_il || is_template_symbol(sym)) {
-      /* Restore the previous state wrt. the generation of source sequence
-         entries. */
-      source_sequence_entries_disallowed = saved_sses_disallowed;
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
-  } /* if */
   /* A routine entry is created for the function template, but it is not
      entered in the IL.  It is a convenient place to keep track of prototype
      information: type, storage class, etc.  These values may be reused
@@ -5868,6 +5835,39 @@ recorded in the IL, the template header is passed via template_decl.
 #endif /* DECL_MODIFIERS_IN_USE */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+  if (!is_error_locator(*locator)) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+    a_boolean  saved_sses_disallowed;
+    if (!prototype_instantiations_in_il || is_template_symbol(sym)) {
+      /* Prevent the generation of a source sequence entry for the a_template
+         entry: we already did so elsewhere or we are generating prototype
+         instantiations and hence do not want to record a_template entries. */
+      saved_sses_disallowed = source_sequence_entries_disallowed;
+      source_sequence_entries_disallowed = TRUE;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
+    if (func_info->is_definition) {
+      if (sym->defined) {
+        pos_sy_error(ec_already_defined, &locator->source_position, sym);
+      } /* if */
+      mark_defined(sym, &locator->source_position);
+    } else {
+      mark_declared(sym, &locator->source_position);
+      if (sym->is_class_member && !idlb.is_friend_decl && !is_specialization) {
+        /* A non-defining declaration of a member function is not
+           allowed. */
+        pos_sy_error(ec_member_function_redecl_outside_class,
+                     &locator->source_position, sym);
+      } /* if */
+    } /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (!prototype_instantiations_in_il || is_template_symbol(sym)) {
+      /* Restore the previous state wrt. the generation of source sequence
+         entries. */
+      source_sequence_entries_disallowed = saved_sses_disallowed;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && PROTOTYPE_INSTANTIATIONS_IN_IL */
+  } /* if */
   if (prototype_instantiations_in_il) {
     a_source_sequence_entry_ptr  ssep;
     check_assertion(nonclass_prototype_instantiations);

@@ -1,5 +1,18 @@
 Version 2.44
 
+6/23/00  Declaration position in diagnostic of exception specification
+         mismatch for function template redeclaration
+
+When a function template was first declared and then defined with a different
+exception specification, the front end used to refer to the first declaration
+as if it appeared at the position of the latter definition.
+
+  template<class T> void f() throw(int); // Line 1
+  template<class T> void f() {}          // Line 2
+
+In the above example, the mismatch would mention the "previous function
+template (declared at line 2)"; it now correctly says "line 1".
+
 6/23/00  Local static variable with constant initial value,
          when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE
 
