@@ -5927,6 +5927,14 @@ otherwise it is NULL.  The syntax is:
     } else {
       parenthesized_initializer_allowed = FALSE;
     }  /* if */
+    if (local_do_flags & DO_PTR_TO_MEMBER_TYPEDEF) {
+      *output_flags |= DO_PTR_TO_MEMBER_TYPEDEF;
+      is_ptr_to_member_typedef = TRUE;
+       /* Force function_declarator to add an implicit-this-param pointer
+          to the routine type. */
+       check_assertion(locator->qualifier_class_type != NULL);
+       member_parent_type = locator->qualifier_class_type;
+    }  /* if */
     /* A nonconstant dimension, if allowed at all, is allowed only on the
        topmost type (an interpretation of the language specification in ARM
        5.3.3).  Set the flag to FALSE for subsequent processing. */
@@ -5989,8 +5997,7 @@ otherwise it is NULL.  The syntax is:
           /* Provide support for an exploitable cfront bug. */
           if (locator_for_curr_id.is_qualified_name &&
               locator_for_curr_id.qualifier_class_type != NULL &&
-              input_flags & DI_IS_TYPEDEF_DECLARATION &&
-              next_token() == tok_lparen) {
+              input_flags & DI_IS_TYPEDEF_DECLARATION) {
             /* We have a typedef declaration involving what appears to be a
                qualified name, but cfront interprets it as a kind of member
                routine type, e.g.,
@@ -6005,13 +6012,15 @@ otherwise it is NULL.  The syntax is:
             /* Force function_declarator to add an implicit-this-param pointer
                to the routine type. */
             member_parent_type = locator_for_curr_id.qualifier_class_type;
+            *output_flags |= DO_PTR_TO_MEMBER_TYPEDEF;
             is_ptr_to_member_typedef = TRUE;
-            /* Toss out the qualifier. */
-            locator_for_curr_id.qualifier_class_type = NULL;
+            /* Clear the is_qualified_name flag in the locator, but keep the
+               qualifer_class_type around, in case this is a recursive
+               declarator call and the function_declarator is called at
+               another level. */
             locator_for_curr_id.is_qualified_name = FALSE;
-            /* Issue a warning. */
-            pos_warning(ec_ptr_to_member_typedef,
-                        &locator_for_curr_id.source_position);
+            /* Note that the diagnostic on this nonstandard construct is
+               issued by the caller. */
           }  /* if */
         }  /* if */
         if (C_dialect == C_dialect_cplusplus && !is_friend_decl) {
@@ -10433,6 +10442,15 @@ continue_with_declaration:
                in C++ (ARM 3.4). */
             func_info.is_main_function = is_main_function = TRUE;
           }  /* if */
+        }  /* if */
+      } else if (storage_class == (a_storage_class)sc_typedef &&
+                 (do_flags & DO_PTR_TO_MEMBER_TYPEDEF)) {
+        if (is_function_type(local_type_ptr)) {
+          /* Issue a warning. */
+          pos_warning(ec_ptr_to_member_typedef, &locator.source_position);
+        } else {
+          pos_error(ec_qualified_name_not_allowed, &locator.source_position);
+          set_to_error_locator(locator);
         }  /* if */
       }  /* if */
       has_parenthesized_initializer = do_flags & DO_PARENTHESIZED_INITIALIZER;
