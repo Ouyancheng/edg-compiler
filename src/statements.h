@@ -282,8 +282,11 @@ typedef struct a_struct_stmt_stack_entry {
 			   has been done and the curr_block_object_lifetime
 			   pointer has been reset. */
   a_bit_field	is_statement_expr:1;
-			/* TRUE if the statement is a GNU C statement
+			/* TRUE if the statement is a GNU statement
 			   expression, ({ ... }). */
+  a_bit_field	inside_statement_expr:1;
+			/* TRUE if the statement is or is inside of a
+			   GNU statement expression. */
   a_statement_ptr
 		statement;
 			/* The associated IL statement.  Indirectly,

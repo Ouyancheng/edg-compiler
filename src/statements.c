@@ -801,6 +801,45 @@ return TRUE.
 }  /* check_for_branch_into_goto_protected_block */
 
 
+static a_boolean check_for_branch_out_of_goto_protected_block(
+                                      a_control_flow_descr_ptr  label_cfdp,
+                                      a_control_flow_descr_ptr  goto_cfdp)
+/*
+Check for an attempt to branch out of a block when that is not allowed.
+This comes up for GNU statement expressions.  label_cfdp points to a
+label entry and goto_cfdp to a goto entry.  If an error is found, issue
+the diagnostic and return TRUE.
+*/
+{
+  a_boolean                 err = FALSE;
+  a_control_flow_descr_ptr  cfdp;
+
+  db_enter(4, "check_for_branch_out_of_goto_protected_block");
+  cfdp = goto_cfdp->parent;
+  if (cfdp->variant.block.is_within_goto_protected_block) {
+    /* The goto is inside a statement that cannot be branched into.
+       That's a superset of the cases we want to look at, so look to
+       see if we're inside a statement expression. */
+    while (!cfdp->variant.block.is_statement_expr) {
+      cfdp = cfdp->parent;
+      if (cfdp == NULL) break;
+    }  /* while */
+    if (cfdp != NULL) {
+      if (is_on_cfd_parent_list(cfdp, label_cfdp)) {
+        /* This is a goto within a single statement expression, which is
+           allowed. */
+      } else {
+        /* It's a branch out of a statement expression. */
+        pos_error(ec_branch_out_of_statement_expr, &goto_cfdp->source_pos);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  db_exit();
+  return err;
+}  /* check_for_branch_out_of_goto_protected_block */
+
+
 static void report_switch_past_init(a_control_flow_descr_ptr  block,
                                     an_error_severity         *prev_severity)
 /*
@@ -2639,6 +2678,10 @@ statement is the top block of a GNU statement expression ({ ... }).
   sssep->label_invalidates_curr_block_object_lifetime
                               = FALSE;
   sssep->is_statement_expr    = is_statement_expr;
+  sssep->inside_statement_expr= is_statement_expr;
+  if (depth_stmt_stack > 0 && (sssep-1)->inside_statement_expr) {
+    sssep->inside_statement_expr = TRUE;
+  }  /* if */
   sssep->statement            = sp;
   sssep->curr_switch_clause   = NULL;
   sssep->discarded_case_label_constants
@@ -3952,6 +3995,29 @@ well.
 }  /* empty_statement */
 
 
+static void check_for_leaving_statement_expr(
+                                      a_struct_stmt_stack_entry_ptr dest_sssep)
+/*
+A transfer of control is being made from the current position to the
+structured statement indicated by dest_sssep.  If the transfer exits a
+GNU statement expression, issue an error at pos_curr_token.  sssep
+is NULL to indicate a return; it's non-null for the other cases
+(break, continue, __leave).
+*/
+{
+  if (gnu_mode && struct_stmt_stack[depth_stmt_stack].inside_statement_expr) {
+    a_scope_depth depth, dest_depth = 0;
+    if (dest_sssep != NULL) dest_depth = dest_sssep - struct_stmt_stack;
+    for (depth = depth_scope_stack; depth > dest_depth; depth--) {
+      if (struct_stmt_stack[depth].is_statement_expr) {
+        pos_error(ec_branch_out_of_statement_expr, &pos_curr_token);
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* check_for_leaving_statement_expr */
+
+
 static void add_goto_to_continue_label(
                                       a_struct_stmt_stack_entry_ptr sssep,
                                       a_boolean                     is_leave,
@@ -3974,6 +4040,7 @@ in *goto_stmt.
     empty_statement();
     sp = NULL;
   } else {
+    check_for_leaving_statement_expr(sssep);
     dest_label = sssep->continue_label;
     if (dest_label == NULL) {
       /* The continue label has not previously been used, so generate it. */
@@ -4550,6 +4617,10 @@ diagnose the condition.
     /* Ignore the jump-over-initialization errors -- this is an illegal
        branch into a catch clause or try block.  (The diagnostic has
        already been issued.) */
+  } else if (check_for_branch_out_of_goto_protected_block(label_cfdp,
+                                                          goto_cfdp)) {
+    /* An illegal branch out of a protected block, e.g., a GNU
+       statement expression.  (The diagnostic has already been issued.) */
   } else if (label_cfdp->parent == goto_cfdp->parent) {
     /* Label and goto are in the same block:
 
@@ -4951,6 +5022,7 @@ See also 3.6.6.3.
     /* No appropriate structured statement was found. */
     error(ec_break_must_be_in_loop_or_switch);
   } else {
+    check_for_leaving_statement_expr(sssep);
     if (sssep->kind == ssk_switch &&
         sssep->curr_switch_clause != NULL &&
         sssep->curr_switch_clause ==
@@ -5192,6 +5264,7 @@ See also 3.6.6.4.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  check_for_leaving_statement_expr((a_struct_stmt_stack_entry_ptr)NULL);
   if (vla_enabled && vla_dealloc_statements_in_il &&
       curr_reachability.reachable) {
     /* Put out a vla-dealloc statement for each declaration of a VLA variable
