@@ -2249,14 +2249,21 @@ indicated scope.
         cssp = symbol_supplement_for_class(tp);
         if (cssp->destructor != NULL) {
           rp = cssp->destructor->variant.routine.ptr;
-          if (rp->is_virtual && rp->compiler_generated && !rp->defined) {
-            /* The destructor for the current class is virtual and was
-               generated automatically but has not yet been defined. */
-            if (virtual_dtor_should_be_generated_for_class(tp)) {
+          if (rp->compiler_generated && !rp->defined) {
+            /* The destructor for the current class was generated
+               automatically but has not yet been defined. */
+            if (rp->is_virtual &&
+                virtual_dtor_should_be_generated_for_class(tp)) {
               /* But the body for it should be generated, e.g., because the
                  virtual function table in which its address will appear is
                  being generated. */
               define_special_member_function(rp);
+#if DO_IL_LOWERING
+            } else if (external_typeinfo_will_be_defined_for_class(tp)) {
+              /* Generate the body of the destructor because its address
+                 will be put into an external typeinfo variable. */
+              define_special_member_function(rp);
+#endif /* DO_IL_LOWERING */
             }  /* if */
           }  /* if */
         }  /* if */

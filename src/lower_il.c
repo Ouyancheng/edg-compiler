@@ -3405,6 +3405,44 @@ that are not defined in this translation unit.
 }  /* inline_virtual_function_definitions_needed */
 
 
+a_boolean external_typeinfo_will_be_defined_for_class(a_type_ptr class_type)
+/*
+Return TRUE if an external typeinfo variable will be defined for the
+indicated class in this translation unit because of some requirement
+imposed by IL lowering.  Note that this routine should only be called
+very late in the compilation.
+*/
+{
+  a_boolean     needed = FALSE, force_static;
+  a_routine_ptr first_virtual;
+  a_boolean     saved_il_lowering_underway;
+
+  if (il_lowering_needed()) {
+    saved_il_lowering_underway = il_lowering_underway;
+    il_lowering_underway = TRUE;
+    /* Force generation of the virtual function table variable (if any) for the
+       class. */
+    prelower_class_type(class_type);
+    /* See if the class has a virtual function table. */
+    if (class_type->variant.class_struct_union.extra_info->
+                                          virtual_function_table_var != NULL) {
+      /* See if the virtual function table will be defined in this
+         compilation. */
+      if (virtual_function_table_should_be_defined_here(class_type,
+                                                        &force_static,
+                                                        &first_virtual) &&
+          !force_static) {
+        /* The virtual function table will be defined in this translation unit
+           and will be external. */
+        needed = TRUE;
+      }  /* if */
+    }  /* if */
+    il_lowering_underway = saved_il_lowering_underway;
+  }  /* if */
+  return needed;
+}  /* external_typeinfo_will_be_defined_for_class */
+
+
 /*
 Pointer to routine entry for the runtime routine __pure_virtual_called,
 a pointer to which is placed in virtual function table slots for
