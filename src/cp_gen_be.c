@@ -3283,9 +3283,16 @@ this one is such a continuation.
                                                 extra_info->template_arg_list);
     }  /* if */
     if (kind == (a_type_kind)tk_typeref) {
-      /* A typedef definition. */
-      gen_typedef_definition(type, sec_decl, suppress_specifiers,
-                             another_decl_in_comma_list);
+      /* Handle the nonstandard "friend typedef-name". */
+      if (friend_decl) {
+        adv_curr_source_sequence_entry();
+        write_tok_str("friend ");
+        gen_type_name(type);
+      } else {
+        /* A typedef definition. */
+        gen_typedef_definition(type, sec_decl, suppress_specifiers,
+                               another_decl_in_comma_list);
+      }  /* if */
 #if CHECKING
     } else if (suppress_specifiers) {
       internal_error("gen_type_decl: suppress_specifiers for non-typedef");
