@@ -95,6 +95,15 @@ typedef struct a_struct_stmt_stack_entry {
 			   the structured statement (or under extra_block,
 			   if that is non-NULL).  NULL if there are
 			   no dependent statements. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_statement_ptr
+		curr_decl_statement;
+			/* When kind == ssk_compound, pointer to the current
+			   stmk_decl statement, if any, governing a series of
+			   declarations; when a statement that is not a
+			   declaration is reached, this pointer is cleared; it
+			   is reset once a new declaration is encountered. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_label_ptr	break_label,
 		continue_label;
 			/* Labels to be branched to for a break or
