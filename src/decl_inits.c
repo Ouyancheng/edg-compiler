@@ -1759,7 +1759,7 @@ returned set to TRUE.
     if (symbol_ptr->parent.namespace_ptr != NULL) {
       push_namespace_reactivation_scope(symbol_ptr->parent.namespace_ptr);
     }  /* if */
-    if (!C_mode() && static_lifetime &&
+    if (exceptions_enabled && static_lifetime &&
         depth_innermost_function_scope != NO_SCOPE_DEPTH) {
       /* This is the initialization of a local static variable.  Push
          a block lifetime around the entire initialization. */
@@ -2122,7 +2122,7 @@ the default constructor (if one exists) is called.
            its parent class reactivated. */
         push_class_reactivation_scope(sym->parent.class_type);
       } else {
-        if (!C_mode() && static_lifetime &&
+        if (exceptions_enabled && static_lifetime &&
             depth_innermost_function_scope != NO_SCOPE_DEPTH) {
           /* This is the initialization of a local static variable.  Push
              a block lifetime around the entire initialization. */

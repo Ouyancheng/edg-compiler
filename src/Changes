@@ -14,6 +14,10 @@ side effects.  For example:
     static S b = a;             // No object lifetime needed
   }
 
+In a related change, it is now only when exceptions are enabled that an
+object lifetime is created for a local static variable initialization,
+even when there are potential side effects from the initialization.
+
 10/15/96 Delete allowed after placement new of array
 
 The WP was recently changed to say that memory allocated through
