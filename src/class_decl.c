@@ -5814,12 +5814,11 @@ declared member functions.
   a_routine_type_supplement_ptr rtsp;
 
   db_enter(3, "decl_member_function");
+  rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
   /* Check if we are attempting to declare a static member function through a
      qualified function type typedef. E.g.,
        typedef void f() const; struct S { static F f(); }           */
   if (decl_info->storage_class == (a_storage_class)sc_static) {
-    a_routine_type_supplement_ptr  rtsp =
-                       skip_typerefs(member_type)->variant.routine.extra_info;
     if (member_type->kind == (a_type_kind)tk_typeref &&
         typeref_is_typedef(member_type) &&
         rtsp->qualifiers != TQ_NONE) {
@@ -5873,7 +5872,6 @@ declared member functions.
   rtn->source_corresp.access = class_state->access;
   /* The routine name linkage on the function type is also required to be
      C++ no matter what the name linkage of the routine turns out to be. */
-  rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
   rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
   /* Member functions should have the same name linkage as the class of
      which they are members.  (In cfront mode that may mean internal
