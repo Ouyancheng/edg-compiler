@@ -1367,6 +1367,7 @@ There is an implied argument for the VTT.
   an_expr_node_ptr implied_arg_node;
   a_type_ptr       class_type;
   a_constant       null_constant;
+  a_boolean        needs_implied_arg_list;
 #if !IA64_ABI
   a_type_ptr       subobject_type;
   a_base_class_ptr bcp;
@@ -1376,7 +1377,8 @@ There is an implied argument for the VTT.
   /* Get the class type. */
   class_type = ctor_routine->source_corresp.parent.class_type;
   prelower_class_type(class_type);
-  if (ctor_needs_implied_arg_list(ctor_routine)) { /*lint !e506*/
+  needs_implied_arg_list = ctor_needs_implied_arg_list(ctor_routine);
+  if (needs_implied_arg_list) {
 #if !IA64_ABI
     /* The class has at least one virtual base class. */
     for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
@@ -10548,6 +10550,7 @@ Add a definition to the indicated function, which is an entry/wrapper
 used to call an overriding virtual function that has a covariant
 return type, or a thunk in the IA-64 ABI.  The body is a return of
 an enk_result_of_overriding_function cast to the proper base class.
+The overriding function must have a definition in the current compilation.
 */
 {
   a_scope_ptr            scope;
@@ -10595,14 +10598,17 @@ an enk_result_of_overriding_function cast to the proper base class.
     last_param_var = param_var;
     param_var->next = NULL;
   }  /* for */
-  /* Make an expression that is an enk_result_of_overriding_function cast
-     to the right base class pointer. */
   overriding_function = routine->overriding_function_for_covariant_return_type;
   overridden_function = routine->overridden_function_for_covariant_return_type;
   overriding_return_type = skip_typerefs(overriding_function->type)->
                                                    variant.routine.return_type;
   overridden_return_type = skip_typerefs(overridden_function->type)->
                                                    variant.routine.return_type;
+  /* The overriding function must have a definition in this compilation. */
+  check_assertion(overriding_function->assoc_scope != NULL_region_number &&
+                  !overriding_function->suppress_inline_body);
+  /* Make an expression that is an enk_result_of_overriding_function cast
+     to the right base class pointer. */
   expr = alloc_expr_node((an_expr_node_kind)enk_result_of_overriding_function);
   expr->type = overriding_return_type;
 #if IA64_ABI
@@ -10631,6 +10637,9 @@ an enk_result_of_overriding_function cast to the proper base class.
                   return_stmt->kind == (a_statement_kind)stmk_return);
   return_stmt->expr = expr;
 #if IA64_ABI
+  if (overriding_function->use_comdat) {
+    put_routine_into_comdat_group(routine);
+  }  /* if */
   /* If necessary, adjust the "this" pointer.  Do this after handling the
      return statement because the logic above assumes that the return
      statement is the first thing in the block. */

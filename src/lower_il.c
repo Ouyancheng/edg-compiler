@@ -5103,9 +5103,6 @@ yet.
   entry_routine->source_corresp.name_linkage = 
                               overriding_function->source_corresp.name_linkage;
   entry_routine->is_inline = overriding_function->is_inline;
-#if IA64_ABI
-  entry_routine->use_comdat = overriding_function->use_comdat;
-#endif /* IA64_ABI */
 #if ONE_INSTANTIATION_PER_OBJECT
   /* Use the needed bit number from the overriding function.  This is needed
      when instantiating inline functions. */
@@ -7444,7 +7441,15 @@ routine's mangled name.
     for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
          rlep != NULL;
          rlep = rlep->next) {
-      rlep->routine->use_comdat = TRUE;
+      a_routine_ptr trout, arout = rlep->routine;
+      arout->use_comdat = TRUE;
+      /* Also mark any thunks that follow the alternate entry point. */
+      for (trout = arout->next;
+           trout != NULL &&
+             trout->overriding_function_for_covariant_return_type == arout;
+           trout = trout->next) {
+        trout->use_comdat = TRUE;
+      }  /* for */
     }  /* for */
   }  /* if */
 }  /* put_routine_into_comdat_group */
@@ -7522,7 +7527,7 @@ not include the function scope memory region, if any.
           !overriding_function->suppress_inline_body &&
           overriding_function->assoc_scope != NULL_region_number) {
         /* Add a definition for an entry/wrapper to handle covariant
-           return types, if the primary routine is defined. */
+           return types, if the overriding routine is defined. */
         add_body_for_covariant_return_type_entry_routine(routine);
       }  /* if */
     }  /* if */
