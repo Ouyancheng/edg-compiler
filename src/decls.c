@@ -3616,7 +3616,8 @@ static void define_static_data_member(a_symbol_locator   *locator,
                                       a_storage_class	 storage_class,
 				      a_type_ptr	 type_ptr,
 				      a_symbol_ptr       *symbol_ptr,
-                                      an_id_linkage_kind *linkage_ptr)
+                                      an_id_linkage_kind *linkage_ptr,
+                                      a_source_position  *decl_start_pos)
 /*
 Enter the definition of a static data member.  *locator gives the symbol
 locator (and thus its name and its declaration position).  storage_class and
@@ -3654,8 +3655,10 @@ the symbol and its linkage (which is always "none").
       pos_sy_error(ec_already_defined, &locator->source_position, sym);
       err = TRUE;
     } else if (!types_are_compatible(type_ptr, var->type)) {
-      pos_sy_error(ec_not_compatible_with_previous_decl,
-                   &locator->source_position, sym);
+      pos_sy_error(ec_not_compatible_with_previous_decl, decl_start_pos, sym);
+      err = TRUE;
+    } else if (is_incomplete_type(type_ptr)) {
+      pos_error(ec_incomplete_type_not_allowed, decl_start_pos);
       err = TRUE;
     } else {
       /* The type of the variable should be the composite of the two types. */
@@ -3675,8 +3678,7 @@ the symbol and its linkage (which is always "none").
                 &locator->source_position);
     } else if (is_member_function_symbol(sym)) {
       /* A member function -- this is treated as a type incompatibility. */
-      pos_sy_error(ec_not_compatible_with_previous_decl,
-                   &locator->source_position, sym);
+      pos_sy_error(ec_not_compatible_with_previous_decl, decl_start_pos, sym);
     } else if (sym->kind == (a_symbol_kind)sk_projection) {
       /* A member of a base class. */
       pos_error(ec_inherited_member_not_allowed, &locator->source_position);
@@ -8059,7 +8061,8 @@ continue_with_declaration:
         decl_typedef(&locator, local_type_ptr, &symbol_ptr);
       } else if (is_static_data_member) {
         define_static_data_member(&locator, local_storage_class,
-				  local_type_ptr, &symbol_ptr, &linkage);
+				  local_type_ptr, &symbol_ptr, &linkage,
+                                  &decl_start_pos);
       } else {
         if (is_parameter) {
           /* We are in an old-style param declaration but a name was found
