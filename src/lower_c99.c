@@ -3323,6 +3323,7 @@ Do C99 lowering for all entities in and under the given scope.
         lower_c99_vla_dimension(vla_dim);
       }  /* if */
     }  /* for */
+    insert_temp_init_statements(scope->assoc_block);
 #if MINIMAL_INLINING
     if (inlining_enabled && scope->variant.routine.ptr->is_inline) {
       /* For an inline routine, set the inlinable flag now that the body has
