@@ -1318,7 +1318,9 @@ where <string> is a quoted character string (not wide chars).
   wrapup_rescan_of_pragma_tokens(err, save_stop_tokens_array);
   if (!err) {
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
-    ppp->il_pragma_entry->variant.ident_string = cp;
+    if (ppp->il_pragma_entry != NULL) {
+      ppp->il_pragma_entry->variant.ident_string = cp;
+    }  /* if */
   }  /* if */
 }  /* ident_pragma */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
