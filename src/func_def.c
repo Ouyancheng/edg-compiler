@@ -1831,6 +1831,10 @@ empty statement block.
     /* Associate the scope to the routine entry and the routine entry to its
        type entry. */
     rout_ptr->assoc_scope = curr_il_region_number;
+    /* If this is an "extern inline" function, change its storage class. */
+    if (rout_ptr->storage_class == (a_storage_class)sc_extern) {
+      rout_ptr->storage_class = (a_storage_class)sc_unspecified;
+    }  /* if */
     rtsp = skip_typerefs(rout_ptr->type)->variant.routine.extra_info;
     rtsp->assoc_routine = rout_ptr;
     if (rtsp->implicit_this_param_type != NULL) {
