@@ -426,7 +426,7 @@ that an insertion will be made.
         other_op = first_op;
       }  /* if */
       if (con != NULL) {
-        /* The is "y != 0" or "0 != y".  Do the transformation on y. */
+        /* This is "y != 0" or "0 != y".  Do the transformation on y. */
         node = other_op;
         node_type = node->type;
       }  /* if */

@@ -2375,7 +2375,7 @@ them up one level.
   sym_ptr->next = NULL;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   if (cfront_2_1_mode) {
-    /* If the is a type symbol that has previously been designated as the
+    /* If this is a type symbol that has previously been designated as the
        symbol receiving special transitional nested type name mangling, then
        reset that flag now that it has been promoted to another scope.  The
        flag will be restored, if appropriate, when this symbol is popped
