@@ -2480,7 +2480,9 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     exceptions_enabled = TRUE;
   }  /* if */
   /* Enable recognition of digraphs. */
-  alternative_tokens_allowed = TRUE;
+  if (!(option_kind_used[(int)optk_alternative_tokens])) {
+    alternative_tokens_allowed = TRUE;
+  }  /* if */
   /* GNU C++ doesn't look unqualified names up in dependent base classes. */
   gpp_dependent_base_class_lookup = TRUE;
   /* We will presumably want to pick std::type_info from the GNU headers.
@@ -2490,7 +2492,9 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   if (!option_kind_used[(int)optk_guiding_decls]) {
     guiding_decls_allowed = FALSE;
   }  /* if */
-  string_literals_are_const = TRUE;
+  if (!(option_kind_used[(int)optk_const_string_literals])) {
+    string_literals_are_const = TRUE;
+  }  /* if */
   c_and_cpp_function_types_are_distinct = FALSE;
 }  /* check_and_set_gpp_mode_options */
 
