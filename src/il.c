@@ -85,6 +85,8 @@ static unsigned long
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
 
+static unsigned long
+		num_invalid_placeholders_in_file_scope;
 
 /*
 Data structure used to save information about the last source sequence
@@ -6437,6 +6439,45 @@ rather than determined directly.
 }  /* add_to_types_list */
 
 
+void eliminate_invalid_placeholder_in_file_scope(a_scope_ptr  file_scope)
+/*
+Calls to move_to_end_of_types_list may have invalidated placeholder typerefs
+in the given file scope.  Traverse the scope's type list and remove such
+placeholder typerefs.  (Doing it in a separate pass can improve performance
+by amortizing the traversal over multiple deletions.)
+*/
+{
+  a_type_ptr  tp = file_scope->types, prev_tp = NULL;
+
+  while (num_invalid_placeholders_in_file_scope > 0) {
+    check_assertion(tp != NULL);
+    if (tp->kind == (a_type_kind)tk_typeref &&
+        tp->variant.typeref.is_placeholder_for_namespace_type) {
+      /* A placeholder typeref. */
+      a_type_ptr  ref_tp = tp->variant.typeref.type;
+      if (ref_tp->first_placeholder_invalid) {
+        /* The placeholder was no longer valid: Delete it (by linking
+           around the type entry). */
+        if (prev_tp == NULL) {
+          file_scope->types = tp->next;
+        } else {
+          prev_tp->next = tp->next;
+        }  /* if */
+        /* We deleted the invalid placeholder: Adjust the book-
+           keeping information as appropriate. */ 
+        --num_invalid_placeholders_in_file_scope;
+        ref_tp->first_placeholder_invalid = FALSE;
+      } else {
+        prev_tp = tp;
+      }  /* if */
+    } else {
+      prev_tp = tp;
+    }  /* if */
+    tp = tp->next;
+  }  /* while */
+}  /* eliminate_invalid_placeholder_in_file_scope */
+
+
 void move_to_end_of_types_list(a_type_ptr     type_ptr,
                                a_scope_depth  scope_level,
                                a_boolean      delete_placeholder)
@@ -6527,27 +6568,53 @@ removed from the list.
             is_assoc_namespace_type_placeholder(tp, type_ptr)) {
           /* The placeholder entry is already the last entry. */
         } else {
-          /* Scan the list until a match is found. */
-          prev_tp = NULL;
-          for (tp = file_scope->types;; tp = tp->next) {
-            check_assertion(tp != NULL);
-            if (is_assoc_namespace_type_placeholder(tp, type_ptr)) {
-              break;
+          if (!type_ptr->first_placeholder_invalid) {
+            type_ptr->first_placeholder_invalid = TRUE;
+            ++num_invalid_placeholders_in_file_scope;
+            if (!delete_placeholder) {
+              add_placeholder_for_namespace_type(type_ptr);
             }  /* if */
-            prev_tp = tp;
-          }  /* for */
-          /* Link around the entry that was found. */
-          if (prev_tp == NULL) {
-            file_scope->types = tp->next;
           } else {
-            prev_tp->next = tp->next;
+            /* Scan the list until a match is found. */
+            prev_tp = NULL;
+            for (tp = file_scope->types;; tp = tp->next) {
+              check_assertion(tp != NULL);
+              if (tp->kind == (a_type_kind)tk_typeref &&
+                  tp->variant.typeref.is_placeholder_for_namespace_type) {
+                /* A placeholder typeref. */
+                a_type_ptr  ref_tp = tp->variant.typeref.type;
+                if (ref_tp->first_placeholder_invalid) {
+                  /* The placeholder was no longer valid: Delete it (by linking
+                     around the type entry). */
+                  if (prev_tp == NULL) {
+                    file_scope->types = tp->next;
+                  } else {
+                    prev_tp->next = tp->next;
+                  }  /* if */
+                  if (ref_tp == type_ptr) {
+                    /* There is another placeholder for type_ptr, but we don't
+                       need to find it at this time.  Instead, we treat it as
+                       "invalid" by leaving the first_placeholder_invalid flag
+                       to TRUE. */
+                    break;
+                  } else {
+                    /* We deleted the invalid placeholder: Adjust the book-
+                       keeping information as appropriate. */ 
+                    --num_invalid_placeholders_in_file_scope;
+                    ref_tp->first_placeholder_invalid = FALSE;
+                  }  /* if */
+                }  /* if */
+              }  /* if */
+              prev_tp = tp;
+            }  /* for */
+            /* Link around the entry that was found. */
+            if (!delete_placeholder) {
+              /* Reenter it onto the end of the list. */
+              pointers_block->last_type->next = tp;
+              pointers_block->last_type = tp;
+            }  /* if */
+            tp->next = NULL;
           }  /* if */
-          if (!delete_placeholder) {
-            /* Reenter it onto the end of the list. */
-            pointers_block->last_type->next = tp;
-            pointers_block->last_type = tp;
-          }  /* if */
-          tp->next = NULL;
 #if DEBUG
           if (db_flag_is_set("dump_type_lists")) {
             fprintf(f_debug, "%s: \n", delete_placeholder ?
@@ -16181,6 +16248,7 @@ in il_init.)
       pch_saved_var_array_elem(curr_upc_access_method),
       pch_saved_var_array_elem(max_upc_block_size),
 #endif /* UPC_EXTENSIONS_ALLOWED */
+      pch_saved_var_array_elem(num_invalid_placeholders_in_file_scope),
 #if DEBUG
       pch_saved_var_array_elem(num_searches_for_shareable_constants),
       pch_saved_var_array_elem(num_compares_for_shareable_constants),
@@ -16247,6 +16315,7 @@ in il_init.)
 #if UPC_EXTENSIONS_ALLOWED
   register_trans_unit_variable(curr_upc_access_method);
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  register_trans_unit_variable(num_invalid_placeholders_in_file_scope);
 
   il_alloc_one_time_init();
 }  /* il_one_time_init */
@@ -16328,6 +16397,7 @@ need initialization for every (primary and secondary) translation unit.
   memzero((char *)orphaned_file_scope_il_entries,
           sizeof(orphaned_file_scope_il_entries));
 #endif /* ORPHAN_PROCESSING_NEEDED */
+  num_invalid_placeholders_in_file_scope = 0;
   il_reset();
   il_alloc_trans_unit_init();
 }  /* il_trans_unit_init */

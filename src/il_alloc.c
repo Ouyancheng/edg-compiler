@@ -1544,6 +1544,7 @@ variant fields to default values.
   }  /* if */
   pte->used_in_exception_or_rtti = FALSE;
   pte->declared_in_function_prototype = FALSE;
+  pte->first_placeholder_invalid = FALSE;
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   pte->use_cfront_transitional_nested_type_name_mangling = FALSE;
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */

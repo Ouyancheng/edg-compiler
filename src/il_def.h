@@ -5006,6 +5006,14 @@ typedef struct a_type {
   a_bit_field	declared_in_function_prototype:1;
 			/* TRUE if this is a local type declared or defined
 			   within a function prototype scope (C mode only). */
+  a_bit_field	first_placeholder_invalid:1;
+			/* TRUE if the first placeholder typeref for this
+			   type is no longer valid (because a new one was
+			   created later on the types list).  This flag is
+			   used only to optimize the process of moving
+			   placeholder typerefs.  The flag is eventually
+			   reset to FALSE when the invalid placeholder is
+			   deleted. */
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   a_bit_field	use_cfront_transitional_nested_type_name_mangling:1;
                         /* TRUE if this type should be treated as a

@@ -1,5 +1,11 @@
 Version 3.5
 
+8/4/04   Performance improvement in handling of type lists
+
+Some changes were made to accelerate the routine move_to_end_of_types_list
+with respect to moving the placeholder typeref associated with namespace
+types.  (See also Changes entry of 10/30/02.)
+
 8/4/04   Missing operators in is_operator_returning_bool
 
 The function is_operator_returning_bool in il.c was missing the

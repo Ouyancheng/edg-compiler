@@ -445,6 +445,8 @@ static void file_scope_il_wrapup_part_2(void)
 Do more wrapup processing on a translation unit.  A single call of
 this routine handles all translation units.  "Part 2" does needed
 flag processing and unneeded IL removal for secondary translation units.
+It also handles the elimination of invalid placeholders in secondary
+translation units.
 */
 {
 #if MAINTAIN_NEEDED_FLAGS
@@ -473,11 +475,14 @@ flag processing and unneeded IL removal for secondary translation units.
     switch_translation_unit(tup);
     file_scope_il_wrapup_keep_in_il_processing();
   }  /* for */
+#endif /* MAINTAIN_NEEDED_FLAGS */
   for (tup = translation_units->next; tup != NULL; tup = tup->next) {
     switch_translation_unit(tup);
+#if MAINTAIN_NEEDED_FLAGS
     file_scope_il_wrapup_remove_unneeded_il();
-  }  /* for */
 #endif /* MAINTAIN_NEEDED_FLAGS */
+    eliminate_invalid_placeholder_in_file_scope(tup->primary_scope);
+  }  /* for */
 }  /* file_scope_il_wrapup_part_2 */
 
 
@@ -494,6 +499,13 @@ already been copied over.
 */
 {
   if (is_primary_translation_unit) {
+    /* Eliminate invalid placeholders in the primary file scope.  This was
+       done in part 2 for secondary translation units, but for the primary
+       translation unit it must be delayed until part 2 because the process of
+       copying type entries from secondary translation units to the primary
+       translation unit can invalidate some placeholders in the latter. */
+    eliminate_invalid_placeholder_in_file_scope(
+                                            translation_units->primary_scope);
 #if DO_IL_LOWERING
     /* Lower the file scope. */
     lower_il_memory_region(file_scope_region_number);
@@ -541,7 +553,7 @@ already been copied over.
     }  /* if */
 #endif /* MANGLE_ALL_NAMES */
     /* Do removal of unneeded IL entities for the primary translation
-       unit.  That was done for secondary translation units in part 3. */
+       unit.  That was done for secondary translation units in part 2. */
     file_scope_il_wrapup_remove_unneeded_il();
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
     if (total_errors == 0 && !trans_unit_test_mode &&
