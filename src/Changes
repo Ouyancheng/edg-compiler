@@ -1,12 +1,25 @@
 Version 2.30
 
+8/7/95   Bug in access checking with indirect virtual base classes
+
+A small bug with access checking in the presence of indirect virtual
+base classes has been corrected.
+
+  class X { public: int i; }; 
+  class A : public X { }; 
+  class B : virtual private A { }; 
+  class C : virtual private A, public B { friend class D; };
+  class D : private C {
+    void f() { i = 1; };  // Should be accessible, got error previously
+  }; 
+
 8/4/95   Relaxation of restrictions on access-declarations
 
-Access-declarations (see WP 11.3) are now implemented identically to base
-class member using-declarations.  This means fewer restrictions on the use
-of access-declarations -- programs previously ill-formed are now permitted
--- but the behavior of previously well-formed programs should not be
-affected.  For instance:
+Access-declarations (see WP [class.access.decl]) are now implemented
+identically to base class member using-declarations.  This means fewer
+restrictions on the use of access-declarations -- programs previously
+ill-formed are now permitted -- but the behavior of previously well-formed
+programs should not be affected.  For instance:
 
   class A {
   public:
@@ -441,7 +454,7 @@ been replaced by is_class_member and variant field parent.class_type.
 6/5/95   Redeclaring a function "inline" after it has been called
 
 It used to be an error in all modes when an apparently noninline function
-was called and then redeclared "inline" (see WP 7.1.2 para 3).  Now we
+was called and then redeclared "inline" (see WP [dcl.fct.spec]).  Now we
 issue a warning by default and a discretionary error in -A mode.
 
 6/4/95   C++-generating back end: extern "C" on definitions
@@ -688,7 +701,7 @@ object of a derived class.
 
 No longer is an error issued on branching past dynamic initializations
 of static local variables -- it is not justified by the wording in
-WP 6.7 para 3, where only automatic variables are mentioned.
+WP [stmt.dcl], where only automatic variables are mentioned.
 
 5/18/95  Problem with no-exception-lowering in IL lowering
 
