@@ -2774,9 +2774,13 @@ scan_paren:
         /* When exceptions are enabled, the constructor has to be able to
            delete the storage allocated if an exception is thrown, so it
            needs the delete routine too. */
-        set_class_assoc_operator_delete_routine(class_type);
+        set_class_assoc_operator_delete_routine(class_type,
+                                                (a_routine_ptr)NULL);
         delete_routine = ctsp->assoc_operator_delete_routine;
-        mark_routine_referenced(delete_routine);
+        if (delete_routine != NULL) {
+          mark_routine_referenced(delete_routine);
+          delete_routine->called = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }
@@ -2958,7 +2962,7 @@ though neither constructors nor initialization is involved here.)
        class.  This is done here because we are working out the "wrapper"
        code that will be required, and the "delete" routine will be called from
        the wrapper. */
-    set_class_assoc_operator_delete_routine(class_type);
+    set_class_assoc_operator_delete_routine(class_type, dtor_rout);
     delete_routine = ctsp->assoc_operator_delete_routine;
     if (delete_routine != NULL) {
       mark_routine_referenced(delete_routine);

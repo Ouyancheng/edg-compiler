@@ -4977,7 +4977,8 @@ As an anachronism, allow an expression inside the [ ].
           a_type_ptr unqual_base_delete_type = skip_typerefs(base_delete_type);
           /* Determine and remember the default operator delete() routine for
              the class. */
-          set_class_assoc_operator_delete_routine(unqual_base_delete_type);
+          set_class_assoc_operator_delete_routine(unqual_base_delete_type,
+                                                  (a_routine_ptr)NULL);
           /* If the delete routine we are using is the default for the class,
              and the class has a destructor, we can fold the delete into the
              destructor call. */

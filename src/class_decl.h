@@ -54,11 +54,12 @@ extern void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
                                           a_boolean     is_nonstd);
 
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
-extern void set_class_assoc_operator_new_routine(a_type_ptr class_type);
+extern void set_class_assoc_operator_new_routine(a_type_ptr     class_type);
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
-extern void set_class_assoc_operator_delete_routine(a_type_ptr class_type);
+extern void set_class_assoc_operator_delete_routine(a_type_ptr     class_type,
+                                                    a_routine_ptr  rout);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 
 extern a_boolean is_assignment_operator_for_copy(
