@@ -767,6 +767,11 @@ attribute, set *kind to ak_last.
         *kind = (an_attribute_kind)ak_last;
       }  /* if */
       break;
+    case ak_init_priority:
+      if (gcc_mode) {
+        *kind = (an_attribute_kind)ak_last;
+      }  /* if */
+      break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     case ak_visibility:
       if (gnu_visibility_attribute_enabled) break;
