@@ -316,155 +316,158 @@ function-definitions, since they can start with the declarator.
 
 /* Forward declaration because of indirect recursion involving the following
    prescan_xxx routines. */
-static a_boolean prescan_declaration(a_token_cache *token_cache_ptr,
-                                     a_boolean    abstract_declarator_allowed);
+static void prescan_declaration(a_token_cache  *token_cache_ptr,
+                                a_boolean      abstract_declarator_allowed,
+                                a_boolean      real_declarator_allowed,
+                                a_boolean      *may_be_decl,
+                                a_boolean      *may_be_expr);
 
-static a_boolean prescan_arg_decl_list(a_token_cache  *token_cache_ptr)
+static void prescan_declarator(a_token_cache  *token_cache_ptr,
+                               a_boolean      abstract_declarator_allowed,
+                               a_boolean      real_declarator_allowed,
+                               a_boolean      *may_be_decl,
+                               a_boolean      *may_be_expr)
 {
-  a_boolean is_arg_decl;
-
-  if (curr_token == tok_rparen) {
-    is_arg_decl = TRUE;
-  } else {
-    if (is_decl_start()) {
-      is_arg_decl = prescan_declaration(token_cache_ptr,
-                                        /*abstract_declarator_allowed=*/TRUE);
-    } else {
-      is_arg_decl = is_overload_specifier();
-    }  /* if */
-    if (is_arg_decl) {
-      add_stop_token(tok_rparen);
-      cache_token_stream(token_cache_ptr);
-      remove_stop_token(tok_rparen);
-    }  /* if */
-  }  /* if */
-  return is_arg_decl;
-}  /* prescan_arg_decl_list */
-
-
-static a_boolean prescan_ptr_operator(a_token_cache  *token_cache_ptr)
-{
-  a_boolean  ptr_operator_found = FALSE;
-
+  db_enter(4, "prescan_declarator");
   for (;;) {
     if (curr_token == tok_star || curr_token == tok_ampersand) {
       cache_curr_token(token_cache_ptr);
       (void)get_token();
-      ptr_operator_found = TRUE;
       /* Keep looping. */
     } else if (is_qualified_name_start() &&
                is_ptr_to_member_declarator_start()) {
-      /* Cache the entire ptr_to_member construct. */
-      if (curr_token == tok_colon_colon) {
-        cache_curr_token(token_cache_ptr);
-        (void)get_token();
-      }  /* if */
-      while (curr_token == tok_identifier) {
-        cache_curr_token(token_cache_ptr);
-        /* Advance to the "::" and cache it, too. */
-        (void)get_token();
-        cache_curr_token(token_cache_ptr);
-        /* Advance to the next token, either another identifier or "*". */
-        (void)get_token();
-      }  /* while */
-      /* Cache the "*" and advance past it. */
-      cache_curr_token(token_cache_ptr);
-      (void)get_token();
-      ptr_operator_found = TRUE;
-      /* Keep looping. */
+      *may_be_expr = FALSE;
+      goto done;
     } else {
       break;
     }  /* for */
-    while (curr_token == tok_const || curr_token == tok_volatile) {
-      cache_curr_token(token_cache_ptr);
-      (void)get_token();
-    }  /* while */
   }  /* for */
-  return ptr_operator_found;
-}  /* prescan_ptr_operator */
-
-
-static a_boolean prescan_abstract_declarator(a_token_cache  *token_cache_ptr)
-{
-  a_boolean  is_abstract_declarator = TRUE;
-
-#if CHECKING
-  if (!is_abstract_declarator_start()) {
-    internal_error("prescan_abstract_declarator: bad start token");
-  }  /* if */
-#endif /* CHECKING */
-  if (curr_token == tok_rparen) {
-    /* The token sequence "( )" could be an empty abstract declarator. */
-  } else {
-    if (prescan_ptr_operator(token_cache_ptr) && curr_token == tok_rparen) {
-      cache_curr_token(token_cache_ptr);
-      (void)get_token();
-    }  /* if */
-    if (curr_token == tok_lparen) {
-      cache_curr_token(token_cache_ptr);
-      (void)get_token();
-      if (!is_abstract_declarator_start()) goto func_param_decl;
-      if (!prescan_abstract_declarator(token_cache_ptr)) {
-        is_abstract_declarator = FALSE;
+  if (curr_token == tok_lparen) {
+    cache_curr_token(token_cache_ptr);
+    (void)get_token();
+    if (abstract_declarator_allowed) {
+      if (curr_token == tok_rparen || is_decl_start()) {
+        goto function_lparen;
+      } else if (curr_token == tok_ellipsis) {
+        *may_be_expr = FALSE;
         goto done;
       }  /* if */
-      add_stop_token(tok_rparen);
-      cache_token_stream(token_cache_ptr);
-      remove_stop_token(tok_rparen);
-      if (curr_token == tok_rparen) {
-        cache_curr_token(token_cache_ptr);
-        (void)get_token();
-      }  /* if */
     }  /* if */
-    while (curr_token != tok_rparen) {
-      if (curr_token == tok_lparen) {
+    prescan_declarator(token_cache_ptr, abstract_declarator_allowed,
+                       real_declarator_allowed, may_be_decl, may_be_expr);
+    if (!*may_be_expr || !*may_be_decl) goto done;
+    if (curr_token != tok_rparen) {
+      may_be_decl = FALSE;
+      goto done;
+    }  /* if */
+  } else {
+    if (is_qualified_name_start() ||
+        curr_token == tok_operator || curr_token == tok_compl) {
+      if (!real_declarator_allowed) {
+        *may_be_decl = FALSE;
+        goto done;
+      }  /* if */
+      if (curr_token == tok_compl) {
         cache_curr_token(token_cache_ptr);
         (void)get_token();
-func_param_decl:
-        if (!prescan_arg_decl_list(token_cache_ptr)) {
-          is_abstract_declarator = FALSE;
-          goto done;
-        }  /* if */
-        if (curr_token == tok_rparen) {
-          cache_curr_token(token_cache_ptr);
-          (void)get_token();
-          while (curr_token == tok_const || curr_token == tok_volatile) {
+        if (curr_token != tok_identifier) goto done;
+        cache_curr_token(token_cache_ptr);
+        (void)get_token();
+        if (curr_token != tok_lparen) goto done;
+      } else {
+        if (is_qualified_name_start()) {
+          if (curr_token == tok_colon_colon) {
+            cache_curr_token(token_cache_ptr);
+            (void)get_token();
+          }  /* if */
+          while (curr_token == tok_identifier &&
+                 next_token() == tok_colon_colon) {
+            cache_curr_token(token_cache_ptr);
+            (void)get_token();
             cache_curr_token(token_cache_ptr);
             (void)get_token();
           }  /* while */
         }  /* if */
-      } else if (curr_token == tok_lbracket) {
-        /* This is definitely a declarator. */
-        add_stop_token(tok_rbracket);
-        cache_token_stream(token_cache_ptr);
-        remove_stop_token(tok_rbracket);
-        if (curr_token == tok_rbracket) {
+        if (curr_token == tok_identifier) {
           cache_curr_token(token_cache_ptr);
           (void)get_token();
+        } else if (curr_token == tok_operator) {
+          cache_curr_token(token_cache_ptr);
+          (void)get_token();
+          if (curr_token == tok_lparen || curr_token == tok_lbracket) {
+            cache_curr_token(token_cache_ptr);
+            (void)get_token();
+          }  /* if */
+          cache_curr_token(token_cache_ptr);
+          (void)get_token();
+          if (curr_token != tok_lparen) goto done;
         }  /* if */
-        goto done;
-      } else {
-        is_abstract_declarator = FALSE;
-        break;
       }  /* if */
-    }  /* for */
+    } else {
+      *may_be_decl = FALSE;
+      goto done;
+    }  /* if */
   }  /* if */
-done:
-  return is_abstract_declarator;
-}  /* prescan_abstract_declarator */
+  for (;;) {
+    if (curr_token == tok_lbracket) {
+      add_stop_token(tok_rbracket);
+      cache_token_stream(token_cache_ptr);
+      remove_stop_token(tok_rbracket);
+      if (curr_token == tok_rbracket) {
+        cache_curr_token(token_cache_ptr);
+        (void)get_token();
+      }  /* if */
+    } else if (curr_token == tok_lparen) {
+      cache_curr_token(token_cache_ptr);
+      (void)get_token();
+function_lparen:
+      while (curr_token != tok_rparen) {
+        if (!is_decl_start) {
+          *may_be_decl = FALSE;
+          goto done;
+        } else {
+          prescan_declaration(token_cache_ptr,
+                              /*abstract_declarator_allowed=*/TRUE,
+                              /*real_declarator_allowed=*/TRUE,
+                              may_be_decl, may_be_expr);
+          if (!*may_be_decl || !*may_be_expr) goto done;
+        }  /* if */
+        if (curr_token == tok_comma) {
+          cache_curr_token(token_cache_ptr);
+          (void)get_token();
+        } else if (curr_token != tok_rparen) {
+          *may_be_decl = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+      if (curr_token == tok_rparen) {
+        cache_curr_token(token_cache_ptr);
+        (void)get_token();
+        while (curr_token == tok_const || curr_token == tok_volatile) {
+          cache_curr_token(token_cache_ptr);
+          (void)get_token();
+        }  /* while */
+      }  /* if */
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
+done:;
+  db_exit();
+}  /* prescan_declarator */
 
 
-static a_boolean prescan_declaration(a_token_cache *token_cache_ptr,
-                                     a_boolean     abstract_declarator_allowed)
+static void prescan_declaration(a_token_cache  *token_cache_ptr,
+                                a_boolean      abstract_declarator_allowed,
+                                a_boolean      real_declarator_allowed,
+                                a_boolean      *may_be_decl,
+                                a_boolean      *may_be_expr)
 /*
 Assuming that we are in the midst of a declaration, we scan ahead to find
 evidence to the contrary.  Return TRUE if there is no clear indication that
 this is something other than a declaration; otherwise return FALSE.
 */
 {
-  a_boolean  is_decl = TRUE;
-  a_boolean  may_be_constructor = FALSE;
-
   db_enter(3, "prescan_declaration");
   if (next_token() == tok_lparen &&
       ((curr_token == tok_identifier && curr_id_is_type_name()) ||
@@ -473,15 +476,8 @@ this is something other than a declaration; otherwise return FALSE.
         curr_token == tok_long || curr_token == tok_float ||
         curr_token == tok_double || curr_token == tok_signed ||
         curr_token == tok_unsigned)) {
-    /* Disambiguation is required. */
-    if (curr_token == tok_identifier) {
-      a_symbol_ptr sym = locator_for_curr_id.specific_symbol;
-      if (sym->kind == (a_symbol_kind)sk_class_or_struct_tag ||
-          sym->kind == (a_symbol_kind)sk_union_tag) {
-        /* Assume a constructor may exist for this type. */
-        may_be_constructor = TRUE;
-      }  /* if */
-    }  /* if */
+    /* Disambiguation is required.  This could be a cast expression or a
+       constructor call. */
     /* Cache the current token.  Then advance past the left paren and cache
        it, too. */
     cache_curr_token(token_cache_ptr);
@@ -489,87 +485,79 @@ this is something other than a declaration; otherwise return FALSE.
     cache_curr_token(token_cache_ptr);
     /* Advance to the first token within the parentheses. */
     (void)get_token();
-    if (abstract_declarator_allowed && is_abstract_declarator_start()) {
-      if (!prescan_abstract_declarator(token_cache_ptr)) {
-        /* It can't be an abstract declarator, so it must be treated as an
-           expression. */
-        is_decl = FALSE;
-      } else {
-        /* It looks like an abstract declarator, so the whole thing is a
-           declarator. */
-      }  /* if */
-    } else if (may_be_constructor && !is_ptr_to_member_declarator_start() &&
-               (curr_token == tok_rparen ||
-                !is_decl_start() ||
-                (curr_token == tok_identifier && !curr_id_is_type_name()) ||
-                !prescan_declaration(token_cache_ptr,
-                                     /*abstract_declarator_allowed=*/FALSE))) {
-      is_decl = FALSE;
+    if (curr_token == tok_rparen) {
+      *may_be_decl = FALSE;
     } else {
-      /* Cache all tokens up to the corresponding right paren.  (Note that
-         tok_rparen is the only thing in the stop token array.) */
-      cache_token_stream(token_cache_ptr);
-      if (curr_token == tok_rparen) {
-        cache_curr_token(token_cache_ptr);
-        (void)get_token();
-        switch (curr_token) {
-          case tok_assign:
-          case tok_lparen:
-          case tok_const:
-          case tok_volatile:
-          case tok_lbracket:
-          case tok_comma:
-          case tok_semicolon:
-            /* It's a declaration. */
-            break;
-          case tok_period:
-          case tok_arrow:
-          case tok_plus_plus:
-          case tok_minus_minus:
-          case tok_ampersand:
-          case tok_star:
-          case tok_plus:
-          case tok_minus:
-          case tok_divide:
-          case tok_remainder:
-          case tok_shift_left:
-          case tok_shift_right:
-          case tok_lt:
-          case tok_gt:
-          case tok_le:
-          case tok_ge:
-          case tok_eq:
-          case tok_ne:
-          case tok_excl_or:
-          case tok_or:
-          case tok_and_and:
-          case tok_or_or:
-          case tok_quest_mark:
-          case tok_times_assign:
-          case tok_divide_assign:
-          case tok_remainder_assign:
-          case tok_plus_assign:
-          case tok_minus_assign:
-          case tok_shift_left_assign:
-          case tok_shift_right_assign:
-          case tok_and_assign:
-          case tok_excl_or_assign:
-          case tok_or_assign:
-          case tok_period_star:
-          case tok_arrow_star:
-            /* It's an expression. */
-            is_decl = FALSE;
-            break;
-          default:;
-            /* What's not obviously a declaration or an expression is
-               probably a syntax error.  Let the error be reported in
-               declaration processing. */
-        }  /* switch */
+      prescan_declarator(token_cache_ptr, abstract_declarator_allowed,
+                         real_declarator_allowed, may_be_decl, may_be_expr);
+      if (*may_be_decl && *may_be_expr) {
+        /* Cache all tokens up to the corresponding right paren.  (Note that
+           tok_rparen is the only thing in the stop token array.) */
+        if (curr_token != tok_rparen) cache_token_stream(token_cache_ptr);
+        if (curr_token == tok_rparen) {
+          cache_curr_token(token_cache_ptr);
+          (void)get_token();
+          switch (curr_token) {
+            case tok_assign:
+            case tok_lparen:
+            case tok_const:
+            case tok_volatile:
+            case tok_lbracket:
+            case tok_comma:
+            case tok_semicolon:
+              /* It's a declaration. */
+              break;
+            case tok_period:
+            case tok_arrow:
+            case tok_plus_plus:
+            case tok_minus_minus:
+            case tok_ampersand:
+            case tok_star:
+            case tok_plus:
+            case tok_minus:
+            case tok_divide:
+            case tok_remainder:
+            case tok_shift_left:
+            case tok_shift_right:
+            case tok_lt:
+            case tok_gt:
+            case tok_le:
+            case tok_ge:
+            case tok_eq:
+            case tok_ne:
+            case tok_excl_or:
+            case tok_or:
+            case tok_and_and:
+            case tok_or_or:
+            case tok_quest_mark:
+            case tok_times_assign:
+            case tok_divide_assign:
+            case tok_remainder_assign:
+            case tok_plus_assign:
+            case tok_minus_assign:
+            case tok_shift_left_assign:
+            case tok_shift_right_assign:
+            case tok_and_assign:
+            case tok_excl_or_assign:
+            case tok_or_assign:
+            case tok_period_star:
+            case tok_arrow_star:
+              /* It's an expression. */
+              *may_be_decl = FALSE;
+              break;
+            default:;
+              /* What's not obviously a declaration or an expression is
+                 probably a syntax error.  Let the error be reported in
+                 declaration processing. */
+              *may_be_expr = FALSE;
+          }  /* switch */
+        }  /* if */
       }  /* if */
     }  /* if */
+  } else {
+    *may_be_expr = FALSE;
   }  /* if */
   db_exit();
-  return is_decl;
 }  /* prescan_declaration */
 
 
@@ -594,7 +582,8 @@ for a pointer to class A.
 {
   a_token_cache       token_cache;
   a_stop_token_array  save_stop_token_array;
-  a_boolean           is_decl;
+  a_boolean           may_be_decl = TRUE;
+  a_boolean           may_be_expr = TRUE;
 
   db_enter(3, "f_is_decl_not_expr");
   /* Save the current stop token state, and reinitialize it. */
@@ -606,13 +595,15 @@ for a pointer to class A.
   /* Scan forward as far as required to determine whether this is a
      declaration.  Each token that is encountered is cached away, so that
      that they can be restored for the actual scan. */
-  is_decl = prescan_declaration(&token_cache, abstract_declarator_allowed);
+  prescan_declaration(&token_cache, abstract_declarator_allowed,
+                      /*real_declarator_allowed=*/!abstract_declarator_allowed,
+                      &may_be_decl, &may_be_expr);
   /* Restore the tokens. */
   rescan_cached_tokens(&token_cache);
   /* Restore the stop token state. */
   copy_stop_tokens(save_stop_token_array, stop_token_array);
   db_exit();
-  return is_decl;
+  return may_be_decl;
 }  /* f_is_decl_not_expr */
 
 
