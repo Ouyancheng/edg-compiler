@@ -1801,7 +1801,10 @@ the secondary translation unit IL).
   do_saves_for_overwrite(primary_type, a_type_ptr);
   if (is_class) {
     primary_ctsp = primary_type->variant.class_struct_union.extra_info;
-    saved_befriending_classes = primary_ctsp->befriending_classes;
+    /* Watch out for C mode. */
+    if (primary_ctsp != NULL) {
+      saved_befriending_classes = primary_ctsp->befriending_classes;
+    }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
     saved_definition_needed =
                     primary_type->variant.class_struct_union.definition_needed;
@@ -1811,7 +1814,9 @@ the secondary translation unit IL).
   do_restores_for_overwrite(primary_type, type);
   if (is_class) {
     primary_ctsp = primary_type->variant.class_struct_union.extra_info;
-    primary_ctsp->befriending_classes = saved_befriending_classes;
+    if (primary_ctsp != NULL) {
+      primary_ctsp->befriending_classes = saved_befriending_classes;
+    }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
     primary_type->variant.class_struct_union.definition_needed =
                                                        saved_definition_needed;
