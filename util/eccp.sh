@@ -358,6 +358,7 @@ trans_unit_test_mode=0
 # expected name.
 compile_as_secondary=0
 dummy_primary_file_name=
+remove_dummy_primary=0
 #
 # Indicates that multiple files should be compiled as translation units
 # of a single compilation
@@ -1563,7 +1564,6 @@ fi
 # dummy file to be used as the primary file.
 #
 if [ $compile_as_secondary -ne 0 ] ; then
-  remove_dummy_primary=0
   if [ "$EDG_DUMMY_PRIMARY_FILE" = "" ] ; then
     dummy_primary_file_name=$TMPDIR/dp$$
     echo "extern int dummy_primary_filexxx;" >$dummy_primary_file_name
