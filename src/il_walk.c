@@ -553,37 +553,57 @@ is being kept, and all entries should be marked to be kept.
 */
 {
   a_source_sequence_entry_ptr ssep;
+  a_boolean                   need_another_pass;
 
-  for (ssep = sslist; ssep != NULL; ssep = ssep->next) {
-    char             *entry_ptr;
-    an_il_entry_kind entry_kind;
-    a_boolean        keep_in_il;
-    if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
-      /* This is a secondary declaration. */
-      a_src_seq_secondary_decl_ptr sec_decl =
-                              ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-      entry_ptr = sec_decl->entity.ptr;
-      entry_kind = sec_decl->entity.kind;
-    } else {
-      /* This is a primary declaration. */
-      entry_ptr = ssep->entity.ptr;
-      entry_kind = ssep->entity.kind;
-    }  /* if */
-    if (function_local) {
-      /* Keep all function-local source sequence entries. */
-      keep_in_il = TRUE;
-    } else {
-      /* See if the associated IL entity is marked with keep_in_il. */
-      keep_in_il = il_entry_prefix_of(entry_ptr).keep_in_il;
-    }  /* if */
-    /* Mark the source sequence entry the right way (and the secondary
-       declaration entry too, if there is one). */
-    /* Don't follow source sequence sublists. */
-    if (keep_in_il &&
-        entry_kind != iek_src_seq_sublist) {
-      walk_ptr(ssep, a_source_sequence_entry, iek_source_sequence_entry);
-    }  /* if */
-  }  /* for */
+  /* The whole process can get repeated if some processing in the loop ends up
+     marking something that might be earlier on the list. */
+  do {
+    need_another_pass = FALSE;
+    for (ssep = sslist; ssep != NULL; ssep = ssep->next) {
+      char                         *entry_ptr;
+      a_src_seq_secondary_decl_ptr sec_decl;
+      a_boolean                    keep_in_il;
+      if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+        /* This is a secondary declaration. */
+        sec_decl = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+        entry_ptr = sec_decl->entity.ptr;
+      } else {
+        /* This is a primary declaration. */
+        sec_decl = NULL;
+        entry_ptr = ssep->entity.ptr;
+      }  /* if */
+      if (function_local) {
+        /* Keep all function-local source sequence entries. */
+        keep_in_il = TRUE;
+      } else {
+        /* See if the associated IL entity is marked with keep_in_il. */
+        keep_in_il = il_entry_prefix_of(entry_ptr).keep_in_il;
+      }  /* if */
+      /* Mark the source sequence entry the right way (and the secondary
+         declaration entry too, if there is one). */
+      if (keep_in_il) {
+        il_entry_prefix_of(ssep).keep_in_il = TRUE;
+        if (sec_decl != NULL) {
+          a_type_ptr decl_type = sec_decl->declared_type;
+          il_entry_prefix_of(sec_decl).keep_in_il = TRUE;
+          if (decl_type != NULL) {
+            /* Mark the declared_type of the secondary declaration as needed
+               if it's not already marked as needed.  This will require
+               sweeping the source sequence list entries again, because there
+               may be several source sequence entries pointing to this type. */
+            if (!il_entry_prefix_of(decl_type).keep_in_il) {
+              walk_ptr(decl_type, a_type_ptr, iek_type);
+              /* When scanning a function list we don't need another pass if
+                 the type is in the function list because we mark all entities
+                 as needed, and if it is in the file scope we haven't yet
+                 walked that list. */
+              if (!function_local) need_another_pass = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  } while (need_another_pass);
 }  /* set_keep_in_il_on_sslist */
 
 
