@@ -769,12 +769,15 @@ e.g., in generated C code.
     enter_keyword((a_token_kind)tok_va_end,   "va_end");
     /* Enter do-nothing macros for the three keywords, so that test suites
        that test that the header defined the macros will be happy. */
-    enter_predef_macro("va_start", "va_start", /*cannot_be_redefined=*/FALSE,
-                       /*ref_suppresses_pch_file=*/FALSE);
-    enter_predef_macro("va_arg", "va_arg", /*cannot_be_redefined=*/FALSE,
-                       /*ref_suppresses_pch_file=*/FALSE);
-    enter_predef_macro("va_end", "va_end", /*cannot_be_redefined=*/FALSE,
-                       /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("va_start", "va_start",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("va_arg", "va_arg",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    (void)enter_predef_macro("va_end", "va_end",
+                             /*cannot_be_redefined=*/FALSE,
+                             /*ref_suppresses_pch_file=*/FALSE);
     /* Declare va_list as a type of "void *". */
     declare_builtin_va_list_type();
     if (generate_pp_output) {
