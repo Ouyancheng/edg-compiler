@@ -5345,9 +5345,22 @@ return a pointer to it in *symbol_ptr.
                                     &locator->source_position,
                                     declarator_ssep);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-          (void)set_src_seq_secondary_decl_type((char *)sym->variant.type,
-                                                type_ptr,
-                                                /*is_specialization=*/FALSE);
+          { a_src_seq_secondary_decl_ptr  sssdp;
+
+            sssdp = set_src_seq_secondary_decl_type(
+                                              (char *)sym->variant.type,
+                                              type_ptr,
+                                              /*is_specialization=*/FALSE);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+            if (sssdp != NULL) {
+              /* Update source range information in the secondary-decl
+                 entry. */
+              sssdp->decl_pos_info = make_decl_pos_supplement(
+                                                      in_file_scope(sssdp),
+                                                      decl_pos_block);
+            }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+          }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           goto return_point;
         } else {
