@@ -5128,10 +5128,8 @@ lists of declarations, as in for-init statements.
     if (var->decl_modifiers & DM_DLLIMPORT) {
       write_tok_str("__declspec(dllimport) ");
     }  /* if */
-    if (is_definition) {
-      if (var->decl_modifiers & DM_DLLEXPORT) {
-        write_tok_str("__declspec(dllexport) ");
-      }  /* if */
+    if (var->decl_modifiers & DM_DLLEXPORT) {
+      write_tok_str("__declspec(dllexport) ");
     }  /* if */
     if (var->decl_modifiers & DM_THREAD) {
       write_tok_str("__declspec(thread) ");
@@ -5443,10 +5441,10 @@ declaration or definition.
   if (rout->decl_modifiers & DM_DLLIMPORT) {
     write_tok_str("__declspec(dllimport) ");
   }  /* if */
+  if (rout->decl_modifiers & DM_DLLEXPORT) {
+    write_tok_str("__declspec(dllexport) ");
+  }  /* if */
   if (is_definition) {
-    if (rout->decl_modifiers & DM_DLLEXPORT) {
-      write_tok_str("__declspec(dllexport) ");
-    }  /* if */
     if (rout->decl_modifiers & DM_NAKED) {
       write_tok_str("__declspec(naked) ");
     }  /* if */
