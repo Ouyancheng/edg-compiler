@@ -284,12 +284,15 @@ in *new_constant, with type as indicated therein.  Return *err_code and
 static void conv_float_to_integer(a_constant        *old_constant,
 			          a_constant        *new_constant,
 			          an_error_code     *err_code,
-				  an_error_severity *err_severity)
+				  an_error_severity *err_severity,
+                                  a_boolean         *depends_on_rounding_mode)
 /*
 Convert a float of some kind (in *old_constant) to an integer constant
 in *new_constant, with type as indicated therein.  Return *err_code and
 *err_severity set to indicate any error/warning detected, or
-*err_code == ec_no_error if everything went fine.
+*err_code == ec_no_error if everything went fine.  *depends_on_rounding_mode
+is returned TRUE if the result has been determined but might be different
+depending on the rounding mode.
 */
 {
   long             int_value;
@@ -306,13 +309,15 @@ in *new_constant, with type as indicated therein.  Return *err_code and
   if (is_signed) {
     /* Destination is a signed integer. */
     fp_to_long(float_kind,
-               &old_constant->variant.float_value, &int_value, &err);
+               &old_constant->variant.float_value, &int_value, &err,
+               depends_on_rounding_mode);
     if (!err) set_integer_value(&result_value, int_value);
   } else {
     /* Destination is an unsigned integer. */
     fp_to_unsigned_long(float_kind,
                         &old_constant->variant.float_value,
-                        &unsigned_int_value, &err);
+                        &unsigned_int_value, &err,
+                        depends_on_rounding_mode);
     if (!err) set_unsigned_integer_value(&result_value, unsigned_int_value);
   }  /* if */
 #if AN_INTEGER_VALUE_IS_LARGER_THAN_HOST_LONG
@@ -338,12 +343,15 @@ in *new_constant, with type as indicated therein.  Return *err_code and
 static void conv_float_to_float(a_constant        *old_constant,
 			        a_constant        *new_constant,
 			        an_error_code     *err_code,
-				an_error_severity *err_severity)
+				an_error_severity *err_severity,
+                                a_boolean         *depends_on_rounding_mode)
 /*
 Convert a float of some kind (in *old_constant) to a float constant
 in *new_constant, with type as indicated therein.  Return *err_code and
 *err_severity set to indicate any error/warning detected, or
-*err_code == ec_no_error if everything went fine.
+*err_code == ec_no_error if everything went fine.  *depends_on_rounding_mode
+is returned TRUE if the result has been determined but might be different
+depending on the rounding mode.
 */
 {
   a_boolean    err;
@@ -358,7 +366,7 @@ in *new_constant, with type as indicated therein.  Return *err_code and
   set_constant_kind(new_constant, (a_constant_repr_kind)ck_float);
   fp_change_kind(&old_constant->variant.float_value, old_kind,
                  &new_constant->variant.float_value, float_kind,
-                 &err);
+                 &err, depends_on_rounding_mode);
   if (err) {
     *err_code = ec_float_to_float_conversion;
     *err_severity = es_error;
@@ -937,6 +945,7 @@ cannot be done.
   a_constant        new_constant;
   an_error_code     err_code;
   an_error_severity err_severity;
+  a_boolean         depends_on_rounding_mode = FALSE;
 
   db_enter(5, "type_change_constant");
   *did_not_fold = FALSE;
@@ -1022,12 +1031,14 @@ cannot be done.
         case tk_integer:
           /* Converting float to integer. */
           conv_float_to_integer(constant, &new_constant,
-                                &err_code, &err_severity);
+                                &err_code, &err_severity,
+                                &depends_on_rounding_mode);
           break;
         case tk_float:
           /* Converting float to float. */
           conv_float_to_float(constant, &new_constant,
-                              &err_code, &err_severity);
+                              &err_code, &err_severity,
+                              &depends_on_rounding_mode);
           break;
 #if CHECKING
         default:
@@ -1087,6 +1098,12 @@ exit:
     /* There was an error or warning. */
     issue_folding_diagnostic(err_code, err_severity, constant_context,
                              did_not_fold, err_pos, &new_constant);
+    if (err_severity == es_error) depends_on_rounding_mode = FALSE;
+  }  /* if */
+  if (depends_on_rounding_mode && !constant_context) {
+    /* In a non-constant context, leave an operation to be done at runtime
+       if its result depends on the floating-point rounding mode. */
+    *did_not_fold = TRUE;
   }  /* if */
   /* Return the new constant value. */
   copy_constant(&new_constant, constant);
@@ -1866,7 +1883,8 @@ static void do_fadd(a_constant        *constant_1,
 		    a_constant        *constant_2,
 		    a_constant        *result,
 		    an_error_code     *err_code,
-		    an_error_severity *err_severity)
+		    an_error_severity *err_severity,
+                    a_boolean         *depends_on_rounding_mode)
 /*
 Do the addition operation on all types of float.
 */
@@ -1882,7 +1900,8 @@ Do the addition operation on all types of float.
   fp_add(float_kind,
          &constant_1->variant.float_value,
          &constant_2->variant.float_value,
-         &result->variant.float_value, &err);
+         &result->variant.float_value, &err,
+         depends_on_rounding_mode);
   if (err) {
     *err_code = ec_bad_float_operation_result;
     *err_severity = es_error;
@@ -1898,7 +1917,8 @@ static void do_fsubtract(a_constant        *constant_1,
 		         a_constant        *constant_2,
 		         a_constant        *result,
 		         an_error_code     *err_code,
-			 an_error_severity *err_severity)
+			 an_error_severity *err_severity,
+                         a_boolean         *depends_on_rounding_mode)
 /*
 Do the subtraction operation on all types of float.
 */
@@ -1914,7 +1934,8 @@ Do the subtraction operation on all types of float.
   fp_subtract(float_kind,
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
-              &result->variant.float_value, &err);
+              &result->variant.float_value, &err,
+              depends_on_rounding_mode);
   if (err) {
     *err_code = ec_bad_float_operation_result;
     *err_severity = es_error;
@@ -1930,7 +1951,8 @@ static void do_fmultiply(a_constant        *constant_1,
 		         a_constant        *constant_2,
 		         a_constant        *result,
 		         an_error_code     *err_code,
-			 an_error_severity *err_severity)
+			 an_error_severity *err_severity,
+                         a_boolean         *depends_on_rounding_mode)
 /*
 Do the multiplication operation on all types of float.
 */
@@ -1946,7 +1968,8 @@ Do the multiplication operation on all types of float.
   fp_multiply(float_kind,
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
-              &result->variant.float_value, &err);
+              &result->variant.float_value, &err,
+              depends_on_rounding_mode);
   if (err) {
     *err_code = ec_bad_float_operation_result;
     *err_severity = es_error;
@@ -1962,7 +1985,8 @@ static void do_fdivide(a_constant        *constant_1,
 		       a_constant        *constant_2,
 		       a_constant        *result,
 		       an_error_code     *err_code,
-		       an_error_severity *err_severity)
+		       an_error_severity *err_severity,
+                       a_boolean         *depends_on_rounding_mode)
 /*
 Do the division operation on all types of float.
 */
@@ -1983,7 +2007,8 @@ Do the division operation on all types of float.
     fp_divide(float_kind,
               &constant_1->variant.float_value,
               &constant_2->variant.float_value,
-              &result->variant.float_value, &err);
+              &result->variant.float_value, &err,
+              depends_on_rounding_mode);
     if (err) {
       *err_code = ec_bad_float_operation_result;
       *err_severity = es_error;
@@ -2409,6 +2434,8 @@ reason.  *err_pos is used as the position for any diagnostics issued.
 {
   an_error_code     err_code;
   an_error_severity err_severity;
+  a_boolean         depends_on_rounding_mode = FALSE;
+
 
   db_enter(5, "binary_operation");
 
@@ -2523,18 +2550,20 @@ reason.  *err_pos is used as the position for any diagnostics issued.
           do_lor(constant_1, constant_2, result);
           break;
         case eok_fadd:
-          do_fadd(constant_1, constant_2, result, &err_code, &err_severity);
+          do_fadd(constant_1, constant_2, result, &err_code, &err_severity,
+                  &depends_on_rounding_mode);
           break;
         case eok_fsubtract:
           do_fsubtract(constant_1, constant_2, result, &err_code,
-                       &err_severity);
+                       &err_severity, &depends_on_rounding_mode);
           break;
         case eok_fmultiply:
           do_fmultiply(constant_1, constant_2, result, &err_code,
-                       &err_severity);
+                       &err_severity, &depends_on_rounding_mode);
           break;
         case eok_fdivide:
-          do_fdivide(constant_1, constant_2, result, &err_code, &err_severity);
+          do_fdivide(constant_1, constant_2, result, &err_code, &err_severity,
+                     &depends_on_rounding_mode);
           break;
         case eok_feq:
         case eok_fne:
@@ -2577,6 +2606,12 @@ reason.  *err_pos is used as the position for any diagnostics issued.
       /* There was an error or warning. */
       issue_folding_diagnostic(err_code, err_severity, constant_context,
                                did_not_fold, err_pos, result);
+      if (err_severity == es_error) depends_on_rounding_mode = FALSE;
+    }  /* if */
+    if (depends_on_rounding_mode && !constant_context) {
+      /* In a non-constant context, leave an operation to be done at runtime
+         if its result depends on the floating-point rounding mode. */
+      *did_not_fold = TRUE;
     }  /* if */
   }  /* if */
 

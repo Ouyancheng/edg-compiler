@@ -1,5 +1,15 @@
 Version 2.16
 
+4/6/93  Rounding mode hooks for IEEE floating point
+
+The floating-point folding routines have been given a parameter
+"depends_on_rounding_mode" which can be used by the routine to return
+an indication that the result of the operation depends on the rounding
+mode.  This is used to suppress the folding of such operations in
+non-constant contexts.  The standard routines supplied by EDG do
+not ever set the flag; it's just a hook provided for those who have
+their own IEEE floating-point emulation library.
+
 4/6/93  Error during nested instantiation
 
 A bug has been fixed that could cause spurious errors, and possibly

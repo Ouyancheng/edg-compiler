@@ -117,10 +117,13 @@ void fp_change_kind(an_internal_float_value *old_value,
                     a_float_kind            old_kind,
                     an_internal_float_value *new_value,
                     a_float_kind            new_kind,
-                    a_boolean               *err)
+                    a_boolean               *err,
+                    a_boolean               *depends_on_rounding_mode)
 /*
 Move *old_value to *new_value, changing the float kind from old_kind to
-new_kind.  If there is an error, return *err TRUE.
+new_kind.  If there is an error, return *err TRUE.  If the result
+depends on the rounding mode, *depends_on_rounding_mode is returned TRUE
+(*new_value is set anyway).
 */
 {
   double temp;
@@ -131,6 +134,7 @@ new_kind.  If there is an error, return *err TRUE.
      conversion.  If a conversion is required, we can assume the value
      is a floating-point constant. */
   *err = FALSE;
+  *depends_on_rounding_mode = FALSE;
   if (old_kind != new_kind) {
     /* There is a change of size.  Fetch the old, convert, store the new. */
     temp = fetch_double(old_kind, old_value);
@@ -248,15 +252,18 @@ Convert unsigned_long_value to a floating-point value of kind "kind" in
 void fp_to_long(a_float_kind            kind,
                 an_internal_float_value *float_value,
                 long                    *long_value,
-                a_boolean               *err)
+                a_boolean               *err,
+                a_boolean               *depends_on_rounding_mode)
 /*
 Convert float_value to a long value in long_value.  Return *err TRUE if there
-is some error.
+is some error.  If the result depends on the rounding mode,
+*depends_on_rounding_mode is returned TRUE (*long_value is set anyway).
 */
 {
   double temp;
 
   *err = FALSE;
+  *depends_on_rounding_mode = FALSE;
   temp = fetch_double(kind, float_value);
   if (temp > (double)(LONG_MAX) || temp < (double)LONG_MIN) {
     /* Floating value is too big or too small. */
@@ -271,15 +278,19 @@ is some error.
 void fp_to_unsigned_long(a_float_kind            kind,
                          an_internal_float_value *float_value,
                          unsigned long           *unsigned_long_value,
-                         a_boolean               *err)
+                         a_boolean               *err,
+                         a_boolean               *depends_on_rounding_mode)
 /*
 Convert float_value to an unsigned long value in unsigned_long_value.
-Return *err TRUE if there is some error.
+Return *err TRUE if there is some error.  If the result depends on the
+rounding mode, *depends_on_rounding_mode is returned TRUE
+(*unsigned_long_value is set anyway).
 */
 {
   double temp;
 
   *err = FALSE;
+  *depends_on_rounding_mode = FALSE;
   temp = fetch_double(kind, float_value);
   if (temp > (double)(ULONG_MAX) || temp < (double)0) {
     /* Floating value is too big or too small. */
@@ -371,16 +382,19 @@ void fp_add(a_float_kind            kind,
             an_internal_float_value *value_1,
             an_internal_float_value *value_2,
             an_internal_float_value *result,
-            a_boolean               *err)
+            a_boolean               *err,
+            a_boolean               *depends_on_rounding_mode)
 /*
 Add the floating-point values value_1 and value_2 and put the result in
 result.  The result has kind "kind".  If there is any error, set *err
-to TRUE.
+to TRUE.  If the result depends on the rounding mode,
+*depends_on_rounding_mode is returned TRUE (*result is set anyway).
 */
 {
   double tempr, temp1, temp2;
 
   *err = FALSE;
+  *depends_on_rounding_mode = FALSE;
   temp1 = fetch_double(kind, value_1);
   temp2 = fetch_double(kind, value_2);
   tempr = temp1 + temp2;
@@ -392,16 +406,19 @@ void fp_subtract(a_float_kind            kind,
                  an_internal_float_value *value_1,
                  an_internal_float_value *value_2,
                  an_internal_float_value *result,
-                 a_boolean               *err)
+                 a_boolean               *err,
+                 a_boolean               *depends_on_rounding_mode)
 /*
 Subtract the floating-point values value_1 and value_2 and put the result in
 result.  The result has kind "kind".  If there is any error, set *err
-to TRUE.
+to TRUE.  If the result depends on the rounding mode,
+*depends_on_rounding_mode is returned TRUE (*result is set anyway).
 */
 {
   double tempr, temp1, temp2;
 
   *err = FALSE;
+  *depends_on_rounding_mode = FALSE;
   temp1 = fetch_double(kind, value_1);
   temp2 = fetch_double(kind, value_2);
   tempr = temp1 - temp2;
@@ -433,16 +450,19 @@ void fp_multiply(a_float_kind            kind,
                  an_internal_float_value *value_1,
                  an_internal_float_value *value_2,
                  an_internal_float_value *result,
-                 a_boolean               *err)
+                 a_boolean               *err,
+                 a_boolean               *depends_on_rounding_mode)
 /*
 Multiply the floating-point values value_1 and value_2 and put the result in
 result.  The result has kind "kind".  If there is any error, set *err
-to TRUE.
+to TRUE.  If the result depends on the rounding mode,
+*depends_on_rounding_mode is returned TRUE (*result is set anyway).
 */
 {
   double tempr, temp1, temp2;
 
   *err = FALSE;
+  *depends_on_rounding_mode = FALSE;
   temp1 = fetch_double(kind, value_1);
   temp2 = fetch_double(kind, value_2);
   tempr = temp1 * temp2;
@@ -454,16 +474,19 @@ void fp_divide(a_float_kind            kind,
                an_internal_float_value *value_1,
                an_internal_float_value *value_2,
                an_internal_float_value *result,
-               a_boolean               *err)
+               a_boolean               *err,
+               a_boolean               *depends_on_rounding_mode)
 /*
 Divide the floating-point values value_1 and value_2 and put the result in
 result.  The result has kind "kind".  If there is any error, set *err
-to TRUE.
+to TRUE.  If the result depends on the rounding mode,
+*depends_on_rounding_mode is returned TRUE (*result is set anyway).
 */
 {
   double tempr, temp1, temp2;
 
   *err = FALSE;
+  *depends_on_rounding_mode = FALSE;
   temp1 = fetch_double(kind, value_1);
   temp2 = fetch_double(kind, value_2);
   if (temp2 == 0.0) {
