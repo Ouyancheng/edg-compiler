@@ -210,9 +210,7 @@ of it and lower that cast.
 
 
 static char* select_name_from_float_kind(a_float_kind  fkind,
-                                         char          *float_name,
-                                         char          *double_name,
-                                         char          *long_double_name)
+                                         char          *names[3])
 /*
 Return one of the three given strings depending on the given floating-point
 precision.
@@ -222,19 +220,25 @@ precision.
 
   switch (fkind) {
     case fk_float:
-      result = float_name;
+      result = names[0];
       break;
     case fk_double:
-      result = double_name;
+      result = names[1];
       break;
     case fk_long_double:
-      result = long_double_name;
+      result = names[2];
       break;
     default:
       unexpected_condition_str("invalid floating-point kind");
   }  /* switch */
   return result;
 }  /* select_name_from_float_kind */
+
+
+/* Names of the complex negate runtime routines. */
+static char *xnegate_routine_name[3] = {"__c99_complex_float_negate",
+                                        "__c99_complex_double_negate",
+                                        "__c99_complex_long_double_negate"};
 
 
 static void lower_c99_xnegate(an_expr_node_ptr  expr)
@@ -250,16 +254,19 @@ with C89).
 
   check_assertion(is_complex_type(return_type));
   fkind = return_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(fkind,
-                                          "__c99_complex_float_negate",
-                                          "__c99_complex_double_negate",
-                                          "__c99_complex_long_double_negate");
+  rout_name = select_name_from_float_kind(fkind, xnegate_routine_name);
   xnegate_call = make_prototyped_runtime_call(
                                 rout_name, &xnegate_routine[(int)fkind],
                                 return_type, return_type, /*param2_type=*/NULL,
                                 expr->variant.operation.operands);
   overwrite_node(expr, xnegate_call);
 }  /* lower_c99_xnegate */
+
+
+/* Names of the complex add runtime routines. */
+static char *xadd_routine_name[3] = {"__c99_complex_float_add",
+                                     "__c99_complex_double_add",
+                                     "__c99_complex_long_double_add"};
 
 
 static void lower_c99_xadd(an_expr_node_ptr  expr)
@@ -275,16 +282,20 @@ Transform the given complex expression ("z1+z2") into a function call
 
   check_assertion(is_complex_type(return_type));
   fkind = return_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(fkind,
-                                          "__c99_complex_float_add",
-                                          "__c99_complex_double_add",
-                                          "__c99_complex_long_double_add");
+  rout_name = select_name_from_float_kind(fkind, xadd_routine_name);
   xadd_call = make_prototyped_runtime_call(
                                         rout_name, &xadd_routine[(int)fkind],
                                         return_type, return_type, return_type,
                                         expr->variant.operation.operands);
   overwrite_node(expr, xadd_call);
 }  /* lower_c99_xadd */
+
+
+/* Names of the complex subtract runtime routines. */
+static char *xsubtract_routine_name[3] = {
+                                         "__c99_complex_float_subtract",
+                                         "__c99_complex_double_subtract",
+                                         "__c99_complex_long_double_subtract"};
 
 
 static void lower_c99_xsubtract(an_expr_node_ptr  expr)
@@ -300,17 +311,20 @@ Transform the given complex expression ("z1-z2") into a function call
 
   check_assertion(is_complex_type(return_type));
   fkind = return_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(
-                                        fkind,
-                                        "__c99_complex_float_subtract",
-                                        "__c99_complex_double_subtract",
-                                        "__c99_complex_long_double_subtract");
+  rout_name = select_name_from_float_kind(fkind, xsubtract_routine_name);
   xsubtract_call = make_prototyped_runtime_call(
                                      rout_name, &xsubtract_routine[(int)fkind],
                                      return_type, return_type, return_type,
                                      expr->variant.operation.operands);
   overwrite_node(expr, xsubtract_call);
 }  /* lower_c99_xsubtract */
+
+
+/* Names of the complex multiply runtime routines. */
+static char *xmultiply_routine_name[3] = {
+                                         "__c99_complex_float_multiply",
+                                         "__c99_complex_double_multiply",
+                                         "__c99_complex_long_double_multiply"};
 
 
 static void lower_c99_xmultiply(an_expr_node_ptr  expr)
@@ -326,17 +340,20 @@ Transform the given complex expression ("z1*z2") into a function call
 
   check_assertion(is_complex_type(return_type));
   fkind = return_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(
-                                        fkind,
-                                        "__c99_complex_float_multiply",
-                                        "__c99_complex_double_multiply",
-                                        "__c99_complex_long_double_multiply");
+  rout_name = select_name_from_float_kind(fkind, xmultiply_routine_name);
   xmultiply_call = make_prototyped_runtime_call(
                                      rout_name, &xmultiply_routine[(int)fkind],
                                      return_type, return_type, return_type,
                                      expr->variant.operation.operands);
   overwrite_node(expr, xmultiply_call);
 }  /* lower_c99_xmultiply */
+
+
+/* Names of the complex divide runtime routines. */
+static char *xdivide_routine_name[3] = {
+                                        "__c99_complex_float_divide",
+                                        "__c99_complex_double_divide",
+                                        "__c99_complex_long_double_divide"};
 
 
 static void lower_c99_xdivide(an_expr_node_ptr  expr)
@@ -352,17 +369,19 @@ Transform the given complex expression ("z1/z2") into a function call
 
   check_assertion(is_complex_type(return_type));
   fkind = return_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(
-                                        fkind,
-                                        "__c99_complex_float_multiply",
-                                        "__c99_complex_double_multiply",
-                                        "__c99_complex_long_double_multiply");
+  rout_name = select_name_from_float_kind(fkind, xdivide_routine_name);
   xdivide_call = make_prototyped_runtime_call(
                                        rout_name, &xdivide_routine[(int)fkind],
                                        return_type, return_type, return_type,
                                        expr->variant.operation.operands);
   overwrite_node(expr, xdivide_call);
 }  /* lower_c99_xdivide */
+
+
+/* Names of the complex == runtime routines. */
+static char *xeq_routine_name[3] = {"__c99_complex_float_eq",
+                                    "__c99_complex_double_eq",
+                                    "__c99_complex_long_double_eq"};
 
 
 static void lower_c99_xeq(an_expr_node_ptr  expr)
@@ -380,15 +399,18 @@ Transform the given complex expression ("z1==z2") into a function call
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
   fkind = op_type->variant.float_kind;
-  rout_name = select_name_from_float_kind( fkind,
-                                          "__c99_complex_float_eq",
-                                          "__c99_complex_double_eq",
-                                          "__c99_complex_long_double_eq");
+  rout_name = select_name_from_float_kind(fkind, xeq_routine_name);
   xeq_call = make_prototyped_runtime_call(rout_name, &xeq_routine[(int)fkind],
                                           return_type, op_type, op_type,
                                           expr->variant.operation.operands);
   overwrite_node(expr, xeq_call);
 }  /* lower_c99_xeq */
+
+
+/* Names of the complex != runtime routines. */
+static char *xne_routine_name[3] = {"__c99_complex_float_ne",
+                                    "__c99_complex_double_ne",
+                                    "__c99_complex_long_double_ne"};
 
 
 static void lower_c99_xne(an_expr_node_ptr  expr)
@@ -406,10 +428,7 @@ Transform the given complex expression ("z1!=z2") into a function call
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
   fkind = op_type->variant.float_kind;
-  rout_name = select_name_from_float_kind( fkind,
-                                          "__c99_complex_float_ne",
-                                          "__c99_complex_double_ne",
-                                          "__c99_complex_long_double_ne");
+  rout_name = select_name_from_float_kind(fkind, xne_routine_name);
   xne_call = make_prototyped_runtime_call(rout_name, &xne_routine[(int)fkind],
                                           return_type, op_type, op_type,
                                           expr->variant.operation.operands);
@@ -490,10 +509,7 @@ and a function call (compatible with C89).
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
   fkind = op_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(fkind,
-                                          "__c99_complex_float_add",
-                                          "__c99_complex_double_add",
-                                          "__c99_complex_long_double_add");
+  rout_name = select_name_from_float_kind(fkind, xadd_routine_name);
   lower_c99_compound_assignment(expr, rout_name, &xadd_routine[(int)fkind]);
 }  /* lower_c99_xadd_assign */
 
@@ -511,11 +527,7 @@ and a function call (compatible with C89).
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
   fkind = op_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(
-                                        fkind,
-                                        "__c99_complex_float_subtract",
-                                        "__c99_complex_double_subtract",
-                                        "__c99_complex_long_double_subtract");
+  rout_name = select_name_from_float_kind(fkind, xsubtract_routine_name);
   lower_c99_compound_assignment(expr, rout_name,
                                 &xsubtract_routine[(int)fkind]);
 }  /* lower_c99_xsubtract_assign */
@@ -534,11 +546,7 @@ and a function call (compatible with C89).
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
   fkind = op_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(
-                                        fkind,
-                                        "__c99_complex_float_multiply",
-                                        "__c99_complex_double_multiply",
-                                        "__c99_complex_long_double_multiply");
+  rout_name = select_name_from_float_kind(fkind, xmultiply_routine_name);
   lower_c99_compound_assignment(expr, rout_name,
                                 &xmultiply_routine[(int)fkind]);
 }  /* lower_c99_xmultiply_assign */
@@ -557,10 +565,7 @@ and a function call (compatible with C89).
   op_type = skip_typerefs(op_type);
   check_assertion(is_complex_type(op_type));
   fkind = op_type->variant.float_kind;
-  rout_name = select_name_from_float_kind(fkind,
-                                          "__c99_complex_float_divide",
-                                          "__c99_complex_double_divide",
-                                          "__c99_complex_long_double_divide");
+  rout_name = select_name_from_float_kind(fkind, xdivide_routine_name);
   lower_c99_compound_assignment(expr, rout_name, &xdivide_routine[(int)fkind]);
 }  /* lower_c99_xdivide_assign */
 
