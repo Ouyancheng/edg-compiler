@@ -6706,6 +6706,11 @@ Do IL lowering of the indicated statement and everything under it.
       case stmk_try_block:
         lower_try_block(statement);
         break;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      case stmk_decl:
+        /* Statement that marks the location of declarations.  Ignored here. */
+        break;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if CHECKING
       default:
         internal_error("lower_statement: bad kind");

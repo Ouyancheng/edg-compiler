@@ -3081,6 +3081,11 @@ Generate code for the indicated statement.
       /* asm statement. */
       unimplemented();
       break;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    case stmk_decl:
+      /* Statement that marks the location of declarations.  Ignored here. */
+      break;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     default:
       unexpected_condition_str("gen_statement: bad statement kind");
   }  /* switch */

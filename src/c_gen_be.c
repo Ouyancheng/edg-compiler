@@ -7269,6 +7269,9 @@ Generate C for a statement.
       && statement->kind != (a_statement_kind)stmk_for
       && statement->kind != (a_statement_kind)stmk_init
       && statement->kind != (a_statement_kind)stmk_asm
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      && statement->kind != (a_statement_kind)stmk_decl
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CFE */
                                                        ) {
     startline(seq_number_from_stmt_source_position(statement->position));
@@ -7504,6 +7507,11 @@ Generate C for a statement.
       /* asm statement. */
       dump_asm_entry(statement->variant.asm_entry);
       break;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    case stmk_decl:
+      /* Statement that marks the location of declarations.  Ignored here. */
+      break;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CFE */
 #ifdef FFE
     case stmk_fentry:
@@ -8111,6 +8119,9 @@ its subtree.
       case stmk_return:
 #ifdef CFE
       case stmk_asm:
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      case stmk_decl:
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* ifdef CFE */
 #ifdef FFE
       case stmk_iarith_if:
