@@ -5258,8 +5258,8 @@ static a_boolean ttt_is_or_contains_vla_with_unspecified_bound(
                                        a_type_ptr  type_ptr,
                                        a_boolean   *force_end_of_traversal)
 /*
-Return TRUE if type_ptr is a pointer or reference to an array of unknown
-bound.
+Return TRUE if type_ptr is a variable length array type with an unspecified
+bound (i.e., one declared with "[*]").
 */
 {
   a_boolean   found = FALSE;
@@ -5272,6 +5272,26 @@ bound.
   }  /* if */
   return found;
 }  /* ttt_is_or_contains_vla_with_unspecified_bound */
+
+
+static a_boolean ttt_is_variably_modified_type(
+                                       a_type_ptr  type_ptr,
+                                       a_boolean   *force_end_of_traversal)
+/*
+Return TRUE if type_ptr is a VLA or a typedef type that has been marked as
+referring to a variably modified type.
+*/
+{
+  a_boolean  found = FALSE;
+
+  if ((is_array(type_ptr) && array_is_vla(type_ptr)) ||
+      (type_ptr->kind == (a_type_kind)tk_typeref &&
+       type_ptr->variant.typeref.has_variably_modified_type)) {
+    *force_end_of_traversal = found = TRUE;
+  }  /* if */
+  return found;
+}  /* ttt_is_variably_modified_type */    
+
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -5666,7 +5686,6 @@ unspecified bound (i.e., declared with [*]).
 */
 {
   a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE |
-                                              TTT_PARAM_TYPES |
                                               TTT_SKIP_TYPEREFS);
   a_boolean                       result = FALSE;
 
@@ -5677,6 +5696,23 @@ unspecified bound (i.e., declared with [*]).
   }  /* if */
   return result;
 }  /* is_or_contains_vla_type_with_unspecified_bound */
+
+
+a_boolean is_variably_modified_type(a_type_ptr  tp)
+/*
+Return TRUE if tp is a "variably modified type", which includes VLA types,
+pointers to VLA types, arrays whose element types are variably modified, and
+typedefs referring to variably modified types.
+*/
+{
+  a_type_tree_traversal_flag_set  tt_flags = (TTT_RETURN_TYPE);
+  a_boolean                       result = FALSE;
+
+  if (vla_enabled) {
+    result = traverse_type_tree(tp, ttt_is_variably_modified_type, tt_flags);
+  }  /* if */
+  return result;
+}  /* is_variably_modified_type */
 
 
 /* Type of service function called by traverse_and_modify_type_tree to return
