@@ -236,6 +236,39 @@ this case and add it to the list for the current scope.
           for (hnp = sp->hidden_names; hnp != NULL; hnp = hnp->next) {
             if (hnp->entity.ptr == entity) break;
           }  /* for */
+#if DEBUG
+          if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
+            if (hnp == NULL ||
+                ((tag_hidden_by_nontag &&
+                  !hnp->elaborated_type_specifier_needed) ||
+                 (global_hidden_by_nonglobal &&
+                  !hnp->global_qualification_needed))) {
+              fprintf(f_debug, "%s hidden name entry for ",
+                      hnp == NULL ? "Adding" : "Mpdifying");
+              if (kind == (an_il_entry_kind)iek_type) {
+                db_type_name((a_type_ptr)entity);
+              } else {
+                a_source_correspondence  *scp;
+                if ((scp = source_corresp_for_il_entry(entity,
+                                                       kind)) != NULL) {
+                  db_name(scp);
+                } else {
+                  fprintf(f_debug, "???");
+                }  /* if */
+              }  /* if */
+              fprintf(f_debug, " in ");
+              db_scope(sp);
+              if (tag_hidden_by_nontag) fprintf(f_debug, ", use class-key");
+              if (global_hidden_by_nonglobal) fprintf(f_debug, ", use \"::\"");
+              fprintf(f_debug, "\n");
+              if (kind == (an_il_entry_kind)iek_routine) {
+                fprintf(f_debug, "  type = ");
+                db_type(((a_routine_ptr)entity)->type);
+                fprintf(f_debug, "\n");
+              }  /* if */
+            }  /* if */
+          }  /* if */
+#endif /* DEBUG */
           if (hnp == NULL) {
             /* No existing entry.  Allocate a new one. */
             hnp = alloc_hidden_name();
@@ -255,17 +288,6 @@ this case and add it to the list for the current scope.
             check_assertion(in_file_scope(entity));
             hnp->global_qualification_needed = TRUE;
           }  /* if */
-#if DEBUG
-          if (debug_level >= 4 || db_flag_is_set("dump_hidden")) {
-            fprintf(f_debug, "Hidden name entry for ");
-            db_name(source_corresp_for_il_entry(entity, kind));
-            fprintf(f_debug, " in ");
-            db_scope(sp);
-            if (tag_hidden_by_nontag) fprintf(f_debug, ", use class-key");
-            if (global_hidden_by_nonglobal) fprintf(f_debug, ", use \"::\"");
-            fprintf(f_debug, "\n");
-          }  /* if */
-#endif /* DEBUG */
         }  /* if */
     }  /* switch */
   }  /* if */
