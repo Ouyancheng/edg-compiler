@@ -1917,7 +1917,8 @@ the secondary translation unit IL).
 #if IA64_ABI
   if (primary_rout->special_kind == (a_special_function_kind)sfk_constructor ||
       primary_rout->special_kind == (a_special_function_kind)sfk_destructor) {
-    saved_alternate_entry_points= primary_rout->variant.alternate_entry_points;
+    saved_alternate_entry_points =
+                        primary_rout->variant.ctor_dtor.alternate_entry_points;
   }  /* if */
 #endif /* IA64_ABI */
   transfer_routine_flags(primary_rout, rout);
@@ -1935,7 +1936,8 @@ the secondary translation unit IL).
 #if IA64_ABI
   if (primary_rout->special_kind == (a_special_function_kind)sfk_constructor ||
       primary_rout->special_kind == (a_special_function_kind)sfk_destructor) {
-    primary_rout->variant.alternate_entry_points= saved_alternate_entry_points;
+    primary_rout->variant.ctor_dtor.alternate_entry_points =
+                                                  saved_alternate_entry_points;
   }  /* if */
 #endif /* IA64_ABI */
   establish_as_canonical(&primary_rout->source_corresp);

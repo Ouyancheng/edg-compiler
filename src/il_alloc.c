@@ -1919,7 +1919,9 @@ value.  Also clear related variant fields to default values.
     case sfk_constructor:
     case sfk_destructor:
 #if IA64_ABI && DO_IL_LOWERING
-      rp->variant.alternate_entry_points = (a_routine_list_entry_ptr)NULL;
+      rp->variant.ctor_dtor.alternate_entry_points = 
+                                                (a_routine_list_entry_ptr)NULL;
+      rp->variant.ctor_dtor.base_name_offset = 0;
 #endif /* IA64_ABI && DO_IL_LOWERING */
       break;
     default:

@@ -3577,7 +3577,7 @@ in one-instantiation-per-object mode.
       if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
           routine->special_kind == (a_special_function_kind)sfk_destructor) {
         a_routine_list_entry_ptr rlep;
-        for (rlep = routine->variant.alternate_entry_points;
+        for (rlep = routine->variant.ctor_dtor.alternate_entry_points;
              rlep != NULL;
              rlep = rlep->next) {
           rlep->routine->instantiation_needed_bit_number = 
