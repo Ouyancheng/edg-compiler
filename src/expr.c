@@ -27,8 +27,6 @@ expr.c -- Expression scanning routines.
 /* Additional header files. */
 #include "decl_inits.h"
 #include "disambig.h"
-#include "pragma.h"
-#include "preproc.h"
 #include "decl_spec.h"
 
 
@@ -36,6 +34,15 @@ expr.c -- Expression scanning routines.
 static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
                                      a_boolean  *cast_to_func_ptr);
+static void scan_expr_full(an_operand              *result,
+                           an_operand              *bound_function_selector,
+                           int                      prec_level,
+                           a_local_expr_options_set local_options);
+/* Interface to scan_expr_full for the simple case where a bound function
+   cannot be returned. */
+#define scan_expr(result, prec_level, local_options)                  \
+  scan_expr_full((result), (an_operand *)NULL, (prec_level),          \
+                 (local_options))
 
 
 static a_boolean operation_has_side_effects(an_expr_node_ptr node,
@@ -103,8 +110,8 @@ should be suppressed.
          unqualified version of the type. */
       operand_type = node->variant.operation.operands->type;
       if (is_pointer_type(operand_type)) {
-        has_side_effects =
-                     is_volatile_qualified_type(type_pointed_to(operand_type));
+        a_type_ptr underlying_type = type_pointed_to(operand_type);
+        has_side_effects = is_volatile_qualified_type(underlying_type);
       }  /* if */
       break;
     case eok_vacuous_destructor_call:
@@ -3191,11 +3198,12 @@ the result is placed in *result, and *processed is set to TRUE.
 }  /* prepare_property_ref_incr_decr */
 
 
-void process_property_ref_incr_decr(a_boolean         is_increment,
-                                    a_source_position *operator_position,
-                                    an_operand        *operand,
-                                    an_operand        *operand_clone,
-                                    an_operand        *result)
+static void process_property_ref_incr_decr(
+                                          a_boolean         is_increment,
+                                          a_source_position *operator_position,
+                                          an_operand        *operand,
+                                          an_operand        *operand_clone,
+                                          an_operand        *result)
 /*
 Generate the IL operation for an increment or decrement operation on a
 reference to a field declared with the Microsoft C++ extension
@@ -10954,10 +10962,10 @@ These cases are handled here by coalescing two tokens.
 }  /* check_for_pcc_compound_assignment_operator */
 
 
-void scan_expr_full(an_operand               *result,
-                    an_operand               *bound_function_selector,
-                    int                      prec_level,
-                    a_local_expr_options_set local_options)
+static void scan_expr_full(an_operand               *result,
+                           an_operand               *bound_function_selector,
+                           int                      prec_level,
+                           a_local_expr_options_set local_options)
 /*
 Scan an expression and return it in *result.  If the expression is for
 a bound function in C++, also set *bound_function_selector to indicate the
@@ -11198,10 +11206,8 @@ handle_trapped_left_paren:
          conversion (ARM 5.2.3).  In C, they're a syntax error. */
       if (C_dialect != C_dialect_cplusplus) goto bad_start_of_primary;
       {
-        a_type_ptr        cast_type;
-        a_source_position start_position;
+        a_type_ptr cast_type;
 
-        start_position = pos_curr_token;
         if (curr_token == tok_typename) {
           /* "typename X::Y" is an allowed form of type. */
           typename_specifier(&cast_type, (a_decl_pos_block_ptr)NULL);

@@ -22,7 +22,6 @@ folding.c -- Folding routines.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#include "expr.h"
 #include "folding.h"
 
 /*
@@ -2543,7 +2542,7 @@ detected, or *err_code == ec_no_error if everything went fine.
     size = 1;
   } else {
     /* Get the size of the thing pointed to. */
-    size = skip_typerefs(type_pointed_to(constant_1->type))->size;
+    size = f_skip_typerefs(type_pointed_to(constant_1->type))->size;
 #if CHECKING
     if (size == 0) internal_error("do_padd: size is zero");
 #endif /* CHECKING */

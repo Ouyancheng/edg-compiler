@@ -60,22 +60,6 @@ extern void check_closing_paren_after_expr_list(void);
 
 a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type);
 
-/* scan_expr and scan_expr_full are only intended to be called from within
-   the expression-scanning routines, including new expression-handling
-   files added by customers.  Note the use of "struct an_operand"
-   here to avoid exposing the definition of an_operand to the front end
-   at large. */
-typedef struct an_operand an_operand_dummy_typedef;
-extern void scan_expr_full(struct an_operand        *result,
-                           struct an_operand        *bound_function_selector,
-                           int                      prec_level,
-                           a_local_expr_options_set local_options);
-/* Interface to scan_expr_full for the simple case where a bound function
-   cannot be returned. */
-#define scan_expr(result, prec_level, local_options)                  \
-  scan_expr_full((result), (an_operand *)NULL, (prec_level),          \
-                 (local_options))
-
 extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
 
 extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop);
