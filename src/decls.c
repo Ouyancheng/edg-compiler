@@ -7706,8 +7706,13 @@ destructor_name:
            this is an error. */
 something_unexpected:
         if (num_specifiers == 0) {
-          syntax_error(ec_exp_type_specifier);
+          if (is_abstract_or_real_declarator_start()) {
+            error(ec_exp_type_specifier);
+          } else {
+            syntax_error(ec_exp_type_specifier);
+          }  /* if */
           err = TRUE;
+          basic_type = bt_error;
         }  /* if */
         goto exit_loop;
     }  /* switch */
