@@ -1,5 +1,16 @@
 Version 2.32
 
+2/19/96   Output of address constants in il_to_str
+
+The routine form_address_constant in il_to_str.c has been reworked to do
+a fancier job of putting out the source form of address constants.
+This was motivated originally by some C++-generating back end bugs.
+As it happens, another change -- suppressing the folding of constant
+addressing operations in initializers for entities with static lifetime --
+is a better way of dealing with most of those problems, so that has been
+done.  But the form_address_constant changes produce nicer-looking output,
+so they've been left in.
+
 2/16/96   Default initialization in a ctor-initializer
 
 In accord with a recent change to WP 12.6.2 [class.base.init], base
