@@ -40,6 +40,16 @@ Prelink utility for template instantiation.
 extern "C" int system(const char *);
 #endif /* defined(__SUNPRO_CC) && __BSD__ */
 
+/*
+The type of the pointer passed to realloc.  This is usually void* on ANSI
+compilers and char* on pcc compilers.  Sun C++ uses char* for some reason
+though.
+*/
+#if defined(__cplusplus) && defined(__SUNPRO_CC) && __BSD__
+typedef char *a_realloc_arg;
+#else /* !(defined(__cplusplus) && __defined(__SUNPRO_CC) && __BSD__) */
+typedef a_void_ptr a_realloc_arg;
+#endif /* defined(__cplusplus) && __defined(__SUNPRO_CC) && __BSD__ */
 
 /*
 The getopt.h include file will provide either the declarations needed
