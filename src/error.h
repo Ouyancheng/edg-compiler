@@ -312,7 +312,8 @@ typedef enum /*an_error_code*/ {
   ec_dupl_base_class_name,
   ec_bad_base_class,
   ec_no_access_to_name,
-  ec_ambiguous_name
+  ec_ambiguous_name,
+  ec_old_style_parameter_list
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 

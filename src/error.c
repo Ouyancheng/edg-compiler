@@ -496,7 +496,11 @@ error code.
       m = "a file-scope declaration may not have this storage class";
       break;
     case ec_typedef_cannot_be_param_name:
-      m = "a typedef name cannot be redeclared as a parameter";
+      if (C_dialect == C_dialect_cplusplus) {
+        m = "a type name may not be redeclared as a parameter";
+      } else {
+        m = "a typedef name may not be redeclared as a parameter";
+      }  /* if */
       break;
     case ec_non_zero_int_conv_to_pointer:
       m = "conversion of non-zero integer to pointer";
@@ -801,7 +805,7 @@ error code.
       m = "a nonstatic member reference must be relative to a specific object";
       break;
     case ec_nonstatic_member_def_not_allowed:
-      m = "a nonstatic data member cannot be defined outside its class";
+      m = "a nonstatic data member may not be defined outside its class";
       break;
     case ec_redefinition_not_allowed:
       m = "redefinition of this object is not allowed";
@@ -865,6 +869,9 @@ error code.
       break;
     case ec_ambiguous_name:
       m = "name is ambiguous";
+      break;
+    case ec_old_style_parameter_list:
+      m = "old-style parameter list";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
@@ -949,7 +956,7 @@ a blank line instead of the caret line.
     fputs("  ", stderr);
     /* On the caret pass, if the column number is zero (unknown), skip
        writing the spaces and caret and go right to the newline. */
-    if (!pass_for_caret || source_pos->column != 0) {
+    if (!pass_for_caret || source_pos->column != SP_COL_UNKNOWN) {
       loc_in_line = line_start;
       curr_column = 1;
       for (olmp = line_olmp; /*Exited by goto*/; olmp = olmp->next) {
