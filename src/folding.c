@@ -810,7 +810,8 @@ Convert an integer constant to a pointer constant of type as specified by
 "new_constant".
 */
 {
-  a_type_ptr new_type = new_constant->type;
+  a_type_ptr       new_type = new_constant->type;
+  an_integer_value mask;
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
@@ -825,6 +826,15 @@ Convert an integer constant to a pointer constant of type as specified by
      pointer type. */
   copy_constant(old_constant, new_constant);
   implicit_cast(new_constant, new_type);
+  /* Mask the integer down to the size of pointer. */
+#if CHECKING
+  if (new_constant->kind != (a_constant_repr_kind)ck_integer) {
+    internal_error("conv_integer_to_pointer: not integer constant");
+  }  /* if */
+#endif /* CHECKING */
+  make_integer_value_mask(&mask,
+                          (int)skip_typerefs(new_type)->size*TARG_CHAR_BIT);
+  and_integer_values(&new_constant->variant.integer_value, &mask);
 }  /* conv_integer_to_pointer */
 
 
