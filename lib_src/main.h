@@ -61,7 +61,7 @@ extern func_ptr _dtors[];
 typedef int a_boolean;
 
 /* Set to TRUE to enable debugging code. */
-#define DEBUG FALSE
+#define DEBUG TRUE
 
 #endif /* MAIN_H */
 

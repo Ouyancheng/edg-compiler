@@ -20,10 +20,6 @@ static_init.c -- called by _main to handle calling of static constructors
 #include "main.h"
 #include "config.h"
 
-#if DEBUG
-#include <stdio.h>
-#endif /* DEBUG */
-
 
 /*
 Indicates whether the executable is set up to use the "patch" method
@@ -114,10 +110,6 @@ call the static initializer functions.
      is linked into the executable. */
   
   use_patch_info = (__head != NULL);
-#if DEBUG
-  fprintf(stderr, "Using patch=%d\n", use_patch_info);
-#endif /* DEBUG */
-
   if (use_patch_info) {
     /* Walk through the linked list of constructor/destructor function
        pointers and call each initialization (constructor) function.
