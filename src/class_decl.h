@@ -111,6 +111,9 @@ extern a_symbol_ptr member_function_redecl_sym(
                                 a_type_ptr    		type,
 				a_template_param_ptr	templ_param_list);
 
+extern a_base_class_ptr find_disambiguator(a_base_class_ptr  bcp1,
+                                           a_base_class_ptr  bcp2);
+
 extern a_derivation_step_ptr make_derivation_step(
                                             a_base_class       *base_class,
                                             a_derivation_step  *existing_step);

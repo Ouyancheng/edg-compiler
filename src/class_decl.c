@@ -1961,19 +1961,19 @@ entry for the class associated with the overridden function.
 }  /* return_types_are_override_compatible */
 
 
-static a_base_class_ptr find_disambiguator(a_type_ptr        class_type,
-                                           a_base_class_ptr  bcp1,
-                                           a_base_class_ptr  bcp2)
+a_base_class_ptr find_disambiguator(a_base_class_ptr  bcp1,
+                                    a_base_class_ptr  bcp2)
 /*
-bcp2 is a base class of bcp1->type, and bcp1 is a base class of class_type.
-We need to find a base class of class_type that can serve as disambiguator
-for computing the base class of class_type to which bcp2 corresponds.
+bcp1 is a base class and bcp2 is a base class of bcp1->type.  We need to
+find a base class of bcp1->derived_class that can serve as disambiguator for
+computing the base class of bcp1->derived_class to which bcp2 corresponds.
 Usually bcp1 itself can serve as disambiguator, but if bcp2 is ambiguous,
 more work needs to be done.
 */
 {
   a_base_class_ptr       disambiguator;
   a_derivation_step_ptr  step;
+  a_type_ptr             class_type = bcp1->derived_class;
 
   if (bcp2->is_virtual) {
     /* No disambiguator is required for virtual base classes. */
@@ -2024,7 +2024,7 @@ TRUE.
       /* bcp is the base class of base_class->type with which the latter
          shares its virtual function info.  Find out what the corresponding
          base class of class_type is. */
-      disambiguator = find_disambiguator(class_type, base_class, bcp);
+      disambiguator = find_disambiguator(base_class, bcp);
       /* bcp now points to a base class of base_class; change it to point
          to the corresponding base class of class_type. */
       bcp = corresponding_base_class(bcp, class_type, disambiguator);
@@ -3293,7 +3293,7 @@ the base class.
       } else {
         /* bcp now points to a base class of base_class; change it to point
            to the corresponding base class of class_type. */
-        disambiguator = find_disambiguator(class_type, base_class, bcp);
+        disambiguator = find_disambiguator(base_class, bcp);
         bcp = corresponding_base_class(bcp, class_type, disambiguator);
       }  /* if */
       /* Set the flag. */
@@ -3478,7 +3478,7 @@ duplicate paths.  The copy will be a base class of new_class.
              new_direct_bcp that was not first in the depth-first
              left-to-right traversal of the latter's derivation graph. */
           /* Find the base class in new_class that corresponds to bcp. */
-          disambiguator = find_disambiguator(new_class, new_bcp, bcp);
+          disambiguator = find_disambiguator(new_bcp, bcp);
           fixup_bcp = corresponding_base_class(bcp, new_class, disambiguator);
           /* Find the derivation, which has the appropriate access. */
           do {
@@ -3965,7 +3965,7 @@ or struct definition.  The syntax is
                the corresponding base class of type_ptr.  Find a disambiguator
                in case what we are looking for is an ambiguous base class of
                type_ptr. */
-            disambiguator = find_disambiguator(type_ptr, new_direct_bcp, bcp);
+            disambiguator = find_disambiguator(new_direct_bcp, bcp);
             new_bcp = corresponding_base_class(bcp, type_ptr, disambiguator);
           } else {
             continue;
@@ -3989,7 +3989,7 @@ or struct definition.  The syntax is
                the corresponding base class of type_ptr.  Find a disambiguator
                in case what we are looking for is an ambiguous base class of
                type_ptr. */
-            disambiguator = find_disambiguator(type_ptr, new_direct_bcp, bcp);
+            disambiguator = find_disambiguator(new_direct_bcp, bcp);
             new_bcp = corresponding_base_class(bcp, type_ptr, disambiguator);
             /* Copy the virtual function override entries from bcp (which is
                on the base classes list for base_class_type) to the
@@ -4041,7 +4041,7 @@ or struct definition.  The syntax is
                the corresponding base class of type_ptr.  Find a disambiguator
                in case what we are looking for is an ambiguous base class of
                type_ptr. */
-            disambiguator = find_disambiguator(type_ptr, new_direct_bcp, bcp);
+            disambiguator = find_disambiguator(new_direct_bcp, bcp);
             ctsp->virtual_function_info_base_class =
                         corresponding_base_class(bcp, type_ptr, disambiguator);
           }  /* if */
