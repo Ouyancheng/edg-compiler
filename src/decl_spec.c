@@ -170,53 +170,6 @@ C mode.
 }  /* tag_currently_being_defined */
 
 
-#if 0
-/* Use of template parameters in elaborated type specifiers is now
-   disabled because it has been disallowed by X3J16/WG21. */
-
-static void check_template_param_tag_kind(a_symbol_ptr	   tag_sym,
-					  a_symbol_kind	   tag_kind,
-					  a_boolean        *tag_err)
-/*
-This routine is called when a template parameter has been used in an
-elaborated type specifier.  If this is the first time the parameter has
-been used in such a context, we record the tag kind in the
-template_param_type_descr.  If it is not the first time, we make sure
-that this usage is consistent with the previous usage.
-*/
-{
-  a_type_ptr				tp = tag_sym->variant.type;
-  a_type_kind				prev_tag_type_kind;
-  a_type_kind				new_tag_type_kind;
-  a_template_param_type_descr_ptr	tptdp;
-  check_assertion(tp->kind == (a_type_kind)tk_template_param);
-  if (tp->variant.template_param.descr == NULL) {
-    /* The tk_template_param type does not yet have a description
-       entry, allocate one. */
-    tp->variant.template_param.descr = alloc_template_param_type_descr();
-  }  /* if */
-  /* If this template parameter has already been used in an elaborated
-     type specifier, make sure that the current tag kind is consistent
-     with the previous use. */
-  tptdp = tp->variant.template_param.descr;
-  prev_tag_type_kind = tptdp->tag_kind;
-  new_tag_type_kind = type_kind_for_tag_kind(tag_kind);
-  if (prev_tag_type_kind == (a_type_kind)tk_unknown) {
-    /* The template parameter does not yet have a tag kind.  Assign
-       it the current tag kind. */
-    tptdp->tag_kind = new_tag_type_kind;
-  } else if (prev_tag_type_kind != new_tag_type_kind) {
-    /* Error -- the new tag kind does not match the previous use. */
-    pos_stsy_error(ec_tag_kind_incompatible_with_declaration,
-                   &locator_for_curr_id.source_position,
-                   name_of_symbol_kind(tag_kind), tag_sym);
-    *tag_err = TRUE;
-    tag_sym = NULL;
-  }  /* if */
-}  /* check_template_param_tag_kind */
-#endif /* 0 */
-
-
 static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_symbol_locator  *locator,
                                   a_boolean         check_for_vacuous_decl,
@@ -299,17 +252,12 @@ caution when modifying this routine.
         if (tag_sym->kind != tag_kind) {
           /* A qualified name is being used with a different tag kind than
              that of its declaration.  Issue an error. */
-#if 0
-          /* Use of template parameters in elaborated type specifiers is now
-             disabled because it has been disallowed by X3J16/WG21. */
           if (tag_sym->kind == (a_symbol_kind)sk_type &&
               tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {
             /* This is a template parameter during a prototype instantiation.
                Don't issue an error.  This will be checked during real
                instantiations. */
-          } else
-#endif /* 0 */
-          if (is_template_class_symbol(tag_sym) &&
+          } else if (is_template_class_symbol(tag_sym) &&
                      tag_kind != (a_symbol_kind)sk_enum_tag &&
                      tag_sym->kind != (a_symbol_kind)sk_enum_tag) {
             /* Caller will issue the diagnostic. */
@@ -580,16 +528,12 @@ caution when modifying this routine.
               }  /* if */
             } while (!done);
           }  /* if */
-#if 0
-        /* Use of template parameters in elaborated type specifiers is now
-           disabled because it has been disallowed by X3J16/WG21. */
         } else if (!C_mode() && tag_sym->kind == (a_symbol_kind)sk_type) {
-          /* A tag symbol was found.  If this is a template parameter symbol,
-             make sure the tag kind is consistent with any previous
-             declarations. */
-          check_template_param_tag_kind(tag_sym, tag_kind, &tag_err);
+          /* The tag is a template parameter type.  A diagnostic will have
+             been issued in curr_tag_symbol.  This usage is still supported
+             in the front end although the feature is no longer permitted.
+             An error will have been issued in strict mode. */
           goto done;
-#endif /* 0 */
         }  /* if */
       }  /* if */
       if (tag_sym == NULL && tag_kind == (a_symbol_kind)sk_enum_tag) {
@@ -880,9 +824,6 @@ the template.
          class template is being referenced in an elaborated type specifier. */
       if (tag_sym->kind == (a_symbol_kind)sk_type) {
 #if CHECKING
-#if 0
-        /* Use of template parameters in elaborated type specifiers is now
-           disabled because it has been disallowed by X3J16/WG21. */
         if (tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {
           /* Template param used in with a class-key -- for instance:
                template <class T> class A {
@@ -891,9 +832,7 @@ the template.
              During prototype instantiation we have to assume that T can be a
              valid class name.  Therefore "class T x" is treated as synonymous
              with "T x".  In addition, "friend class T" is also supported. */
-        } else
-#endif /* 0 */
-        if (any_cfront_mode()) {
+        } else if (any_cfront_mode()) {
           /* Cfront bug that allows this:
                typedef class A B;
                class B;
@@ -969,18 +908,13 @@ the template.
   if (tag_sym != NULL && C_dialect == C_dialect_cplusplus) {
     a_class_symbol_supplement_ptr  cssp;
 
-#if 0
-    /* Use of template parameters in elaborated type specifiers is now
-       disabled because it has been disallowed by X3J16/WG21. */
     if (tag_sym->kind == (a_symbol_kind)sk_type) {
       if (is_class_definition) {
         /* Attempting to redefine a template parameter name.  Let enter_symbol
            issue an error. */
         tag_sym = NULL;
       }  /* if */
-    } else
-#endif /* 0 */
-    if (is_class_definition && tag_sym->defined) {
+    } else if (is_class_definition && tag_sym->defined) {
       /* This class has already been defined.  If this is a template
          specialization declaration, indicate that the entity being
          specialized has already been referenced. */
@@ -1275,9 +1209,6 @@ the template.
     record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
                               (a_source_sequence_entry_ptr)NULL);
   } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
-#if 0
-    /* Use of template parameters in elaborated type specifiers is now
-       disabled because it has been disallowed by X3J16/WG21. */
     if (tag_sym->variant.type->kind == (a_type_kind)tk_template_param) {
       /* Use of template parameter name as a proxy tag name during a
          prototype instantiation. */
@@ -1285,10 +1216,6 @@ the template.
       mark_referenced(tag_sym, &locator.source_position);
       *declares_something = FALSE;
     }  /* if */
-#else /* 0 */
-    mark_referenced(tag_sym, &locator.source_position);
-    *declares_something = FALSE;
-#endif /* 0 */
   } else {
     /* Using an existing type.  Fetch the type pointer from it. */
     class_type = tag_sym->variant.class_struct_union.type;

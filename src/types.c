@@ -1899,7 +1899,7 @@ a_boolean f_identical_types(a_type_ptr      type_1,
 Return TRUE if the two types are identical.  This includes separate copies
 of identical types, as well as the case where the pointers point to the
 same type.  flags is a set of options that control the way in which certain
-type comparisions are done.  See the defintion of the ITF flags in types.h
+type comparisons are done.  See the definition of the ITF flags in types.h
 for more information.
 */
 {
@@ -2079,43 +2079,41 @@ for more information.
                must match. */
             tptdp_1 = type_1->variant.template_param.descr;
             tptdp_2 = type_2->variant.template_param.descr;
-            if (matching_template_tag_kinds(tptdp_1, tptdp_2)) {
-              switch (type_1->variant.template_param.kind) {
-                case tptk_param:
-                   /* Template parameter types are considered to be identical
-                      if their positions in the template parameter list are
-                      the same, and they are associated with template
-		      declarations of the same nesting level. */
-                  identical =
+            switch (type_1->variant.template_param.kind) {
+              case tptk_param:
+                 /* Template parameter types are considered to be identical
+                    if their positions in the template parameter list are
+                    the same, and they are associated with template
+                    declarations of the same nesting level. */
+                identical =
                       (type_1->variant.template_param.coordinates.position ==
                        type_2->variant.template_param.coordinates.position) &&
                       (type_1->variant.template_param.coordinates.depth ==
                        type_2->variant.template_param.coordinates.depth);
-                  break;
-                case tptk_member:
-                  /* Members types are the same if their names are the same
-                     and if they are members of identical types. */
-                  sym_1 = (a_symbol_ptr)type_1->source_corresp.assoc_info;
-                  sym_2 = (a_symbol_ptr)type_2->source_corresp.assoc_info;
-                  check_assertion(sym_1 != NULL && sym_2 != NULL);
-                  if (sym_1->header == sym_2->header) {
-                    /* The names are the same. */
-                    identical = (identical_types(type_1->source_corresp.
+                break;
+              case tptk_member:
+                /* Members types are the same if their names are the same
+                   and if they are members of identical types. */
+                sym_1 = (a_symbol_ptr)type_1->source_corresp.assoc_info;
+                sym_2 = (a_symbol_ptr)type_2->source_corresp.assoc_info;
+                check_assertion(sym_1 != NULL && sym_2 != NULL);
+                if (sym_1->header == sym_2->header) {
+                  /* The names are the same. */
+                  identical = (identical_types(type_1->source_corresp.
                                                           parent.class_type,
-                                                 type_2->source_corresp.
+                                               type_2->source_corresp.
                                                           parent.class_type));
-                  }  /* if */
-                  break;
-                case tptk_type_of_member_constant:
-                  /* Should never happen. */
-                  break;
+                }  /* if */
+                break;
+              case tptk_type_of_member_constant:
+                /* Should never happen. */
+                break;
 #if CHECKING
-                default:
-                  internal_error
+              default:
+                internal_error
                              ("f_identical_types: bad templ param type kind");
 #endif /* CHECKING */
-              }  /* switch */
-            }  /* if */
+            }  /* switch */
           }  /* if */
           break;
 #if CHECKING
@@ -4341,8 +4339,8 @@ is allocated, it is allocated in the file scope.
         case tk_template_param:
           /* Template parameter types.  If only one of the types points to
              a param_type_descr then it is the composite.  If both point to
-             a type descriptor, but only one includes a tag kind, then it is
-             the composite. */
+             a type descriptor, but only one includes a proxy class type,
+             then it is the composite. */
             { a_template_param_type_descr_ptr	tptdp_1;
               a_template_param_type_descr_ptr	tptdp_2;
               /* The tag kinds (if any) associated with the template parameters
@@ -4355,9 +4353,9 @@ is allocated, it is allocated in the file scope.
                 /* Only the second type as a type descr. */
                 comp_type = base_type_2;
               } else if (tptdp_2 != NULL &&
-                         (tptdp_1->tag_kind == (a_type_kind)tk_unknown &&
-                          tptdp_2->tag_kind != (a_type_kind)tk_unknown)) {
-                /* Only the second type has a tag kind. */
+                         tptdp_1->class_type == NULL &&
+                         tptdp_2->class_type != NULL) {
+                /* Only the second type has a proxy class type. */
                 comp_type = base_type_2;
               }  /* if */
             }

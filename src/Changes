@@ -1,5 +1,27 @@
 Version 2.32
 
+5/3/96  Template parameters no longer permitted in elaborated type specifiers
+
+X3J16/WG21 has disallowed the use of template parameters in elaborated type
+specifiers.  To phase in this new rule we have made a change so that
+elaborated type specifiers are no longer meaningful when comparing two
+function template declarations or in doing template parameter deduction.
+Formerly, the following example declared two overloaded functions named
+"f", one that could be called with an enum type and one that could be
+called with a class type.  Under the new rules, the program is ill-formed.
+Elaborated type specifiers used in template bodies (in a class definition
+or function body, for example) may still be used as they were previously,
+except that a warning is issued (or an error in strict mode).
+
+  template <class T> int f(enum T);
+  template <class T> int f(class T);
+  class X {} x;
+  enum E {} e;
+  int main() {
+     f(x);
+     f(e);
+  }
+
 5/2/96  Macros output by C++-generating back end
 
 The C++-generating back end has been changed so that it will output macros.

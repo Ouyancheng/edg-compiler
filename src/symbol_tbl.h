@@ -2469,16 +2469,6 @@ class/struct, union, or enum, then tk_error is returned.
       (tag_kind == (a_symbol_kind)sk_enum_tag ? tk_enum : tk_error)))
 
 
-/*
-Compare the tag kinds associated with two template_param_type_descrs.
-They match if they are the same, or if one of them is unknown.
-*/
-#define matching_template_tag_kinds(tptdp1, tptdp2)			\
-  (tptdp1 == NULL || tptdp2 == NULL ||					\
-   tptdp1->tag_kind == tptdp2->tag_kind ||				\
-   (tptdp1->tag_kind == (a_type_kind)tk_unknown ||			\
-    tptdp2->tag_kind == (a_type_kind)tk_unknown))
-
 extern a_boolean is_accessible_base_class(a_base_class_ptr bcp);
 
 extern a_boolean is_accessible_virtual_base_class(
@@ -2661,9 +2651,6 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
    (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
    (sym)->kind == (a_symbol_kind)sk_enum_tag)
 
-#if 0
-/* Use of template parameters in elaborated type specifiers is now
-   disabled because it has been disallowed by X3J16/WG21. */
 /* Return TRUE if a symbol is a tag symbol, a class template symbol,
    or a type template parameter. */
 #define is_tag_or_tag_proxy_symbol(sym)                               \
@@ -2672,14 +2659,6 @@ extern void determine_operator_lookup_namespaces(a_type_ptr	class_type);
    (sym)->kind == (a_symbol_kind)sk_enum_tag ||			      \
    (sym)->kind == (a_symbol_kind)sk_class_template ||		      \
    ((sym)->kind == (a_symbol_kind)sk_type && (sym)->is_template_param))
-#else /* 0 */
-/* Return TRUE if a symbol is a tag symbol, a class template symbol. */
-#define is_tag_or_tag_proxy_symbol(sym)                               \
-  ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||            \
-   (sym)->kind == (a_symbol_kind)sk_union_tag ||                      \
-   (sym)->kind == (a_symbol_kind)sk_enum_tag ||			      \
-   (sym)->kind == (a_symbol_kind)sk_class_template)
-#endif /* 0 */
 
 /* Return TRUE if a symbol is a type symbol.   A type symbol is
    one defined as a typedef, or, in C++, as a class, struct, union,

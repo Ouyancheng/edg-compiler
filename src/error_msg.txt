@@ -841,6 +841,7 @@ ec_explicit_specialization_not_in_namespace_scope;;"explicit specialization is n
 ec_partial_specialization_not_allowed;;"partial specialization of %n is not allowed"
 ec_entity_cannot_be_specialized;;"%nf is not an entity that can be explicitly specialized"
 ec_specialization_of_referenced_entity;;"explicit specialization of %n must precede its first use"
+ec_template_param_in_elab_type;;"template parameter %s may not be used in an elaborated type specifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

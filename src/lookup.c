@@ -2054,10 +2054,7 @@ symbol.  Otherwise, return NULL.
   if (assoc_symbol != NULL) {
     /* Make sure that the lookup was not ambiguous. */
     check_for_ambiguity(locator);
-#if 0
-    /* Use of template parameters in elaborated type specifiers is now
-       disabled because it has been disallowed by X3J16/WG21. */ 
-   if (assoc_symbol->is_template_param) {
+    if (assoc_symbol->is_template_param) {
       a_type_ptr   	tp;
       a_symbol_ptr	new_sym;
       /* We are within a template instantiation, so the name may map to a
@@ -2074,7 +2071,16 @@ symbol.  Otherwise, return NULL.
                           "curr_tag_symbol: bad symbol kind");
       tp = assoc_symbol->variant.type;
       new_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
-      if (tp->kind == (a_type_kind)tk_template_param) {
+      /* Issue a diagnostic because this usage is no longer permitted by
+         the Working Paper. */
+      pos_st_diagnostic(strict_ansi_error_severity,
+                        ec_template_param_in_elab_type, 
+                        &error_position, assoc_symbol->header->identifier);
+      if (strict_ansi_error_severity == es_error) {
+        /* An error was issued above.  Return an error locator. */
+        set_to_error_locator(*locator);
+        assoc_symbol = NULL;
+      } else if (tp->kind == (a_type_kind)tk_template_param) {
         /* A template parameter encountered during prototype instantiation.
            Simply return the original symbol. */
       } else if (new_sym != NULL && new_sym->kind == tag_kind) {
@@ -2089,17 +2095,12 @@ symbol.  Otherwise, return NULL.
         assoc_symbol = NULL;
       }  /* if */
     }  /* if */
-#endif /* 0 */
     if (assoc_symbol == NULL) {
       /* A NULL symbol resulted from an error above. */
-#if 0
-    /* Use of template parameters in elaborated type specifiers is now
-       disabled because it has been disallowed by X3J16/WG21. */
     } else if (assoc_symbol->kind == (a_symbol_kind)sk_type) {
       /* This must be a symbol for a template parameter, and we must be in
          the midst of a prototype instantiation.  Return the symbol that
          was found. */
-#endif /* 0 */
     } else if (assoc_symbol->kind != tag_kind &&
                assoc_symbol->decl_scope !=
                         scope_stack[decl_scope_level].number) {

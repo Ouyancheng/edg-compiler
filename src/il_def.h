@@ -2821,10 +2821,7 @@ typedef struct a_template_param_type_descr {
      how it is used.  For example, when a template parameter is used in a
      way requiring that it be a class (e.g., when it is used as the qualifier
      in a qualified name) this structure points to a class type that provides
-     the information inferred (e.g., names of members).  When a
-     template parameter is used in an elaborated type specifier, this
-     records the tag kind associated with the elaborated type.  (C++ front
-     end only.) */
+     the information inferred (e.g., names of members). */
   a_type_ptr	class_type;
 			/* The "proxy" class type associated with a given
                            template parameter.  This becomes useful in name
@@ -2843,14 +2840,6 @@ typedef struct a_template_param_type_descr {
 			   is will be entered as a member that can be
 			   found by subsequent lookups.  Pointer is NULL
 			   if no class use has been  encountered. */
-  a_type_kind	tag_kind;
-			/* If the template parameter was used in an elaborated
-			   type specifier, this field contains the kind of
-			   specifier that was used.  For "enum" tags, this
- 			   field contains tk_enum, which is really a synonym
-			   for tk_integer.  If the template parameter has not
-			   been used in an elaborated type specifier, this
-			   field will contain tk_unknown. */
 } a_template_param_type_descr;
 
 

@@ -630,7 +630,6 @@ and return a pointer to it.
   num_template_param_type_descrs_allocated++;
 #endif /* DEBUG */
   tptdp->class_type = NULL;
-  tptdp->tag_kind = (a_type_kind)tk_unknown;
   return tptdp;
 }  /* alloc_template_param_type_descr */
 
