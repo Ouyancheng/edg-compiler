@@ -220,26 +220,6 @@ referenced by exported templates.
 }  /* externalize_type_list_statics_for_exported_templates */
 
 
-a_boolean routine_should_be_externalized_for_exported_templates(
-                                                            a_routine_ptr rout)
-/*
-Return TRUE if the indicated routine should be externalized because it
-might be referenced from an exported template.
-*/
-{
-  a_boolean should_externalize =
-           (any_exported_templates() &&
-            rout->storage_class == (a_storage_class)sc_static
-#if ONE_INSTANTIATION_PER_OBJECT
-#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-            && !rout->source_corresp.duplicate_static_in_instantiation_slices
-#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-                                                                             );
-  return should_externalize;
-}  /* routine_should_be_externalized_for_exported_templates */
-
-
 static void externalize_statics_for_exported_templates(a_scope_ptr scope)
 /*
 Externalize all statics in the indicated scope and its subscopes as potentially

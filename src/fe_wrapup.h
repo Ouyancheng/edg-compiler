@@ -23,9 +23,6 @@ extern void fe_wrapup(void);
 
 extern void fe_wrapup_part_2(void);
 
-extern a_boolean routine_should_be_externalized_for_exported_templates(
-                                                           a_routine_ptr rout);
-
 #endif /* ifndef FE_WRAPUP_H */
 
 /******************************************************************************

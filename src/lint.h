@@ -233,10 +233,6 @@ extern int fileno(FILE *);
 /*lint -esym(765, db_sym_list)*/
 /*lint -esym(714, db_sym_list)*/
 #endif /* DEBUG */
-#if !LOWER_EXTERN_INLINE
-/*lint -esym(759, routine_should_be_externalized_for_exported_templates)*/
-/*lint -esym(765, routine_should_be_externalized_for_exported_templates)*/
-#endif /* !LOWER_EXTERN_INLINE */
 
 
 /******************************************************************************

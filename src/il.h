@@ -1240,6 +1240,11 @@ extern a_namespace_ptr f_skip_namespace_aliases(a_namespace_ptr nsp);
 
 extern a_boolean is_member_of_unnamed_namespace(a_source_correspondence *scp);
 
+#if DO_IL_LOWERING
+extern a_boolean routine_should_be_externalized_for_exported_templates(
+                                                           a_routine_ptr rout);
+#endif /* DO_IL_LOWERING */
+
 /*
 Given a namespace pointer, return a pointer to the actual namespace,
 skipping any namespace aliases that might be present.

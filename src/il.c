@@ -13939,6 +13939,28 @@ direct or indirect member of an unnamed namespace.
   return found;
 }  /* is_member_of_unnamed_namespace */
 
+#if DO_IL_LOWERING
+
+a_boolean routine_should_be_externalized_for_exported_templates(
+                                                            a_routine_ptr rout)
+/*
+Return TRUE if the indicated routine should be externalized because it
+might be referenced from an exported template.
+*/
+{
+  a_boolean should_externalize =
+           (any_exported_templates() &&
+            rout->storage_class == (a_storage_class)sc_static
+#if ONE_INSTANTIATION_PER_OBJECT
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+            && !rout->source_corresp.duplicate_static_in_instantiation_slices
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+                                                                             );
+  return should_externalize;
+}  /* routine_should_be_externalized_for_exported_templates */
+
+#endif /* DO_IL_LOWERING */
 
 #if DEBUG
 unsigned long show_il_space_used(void)
