@@ -1859,12 +1859,15 @@ system that supports chdir.
 
 a_boolean has_drive_specification(char *file_name)
 /*
-Test whether or not a file name includes a drive specification.
+Test whether or not a file name includes a drive specification.  A drive
+specification is normally something like "X:" but for UNC file names
+the prefix of "\\" is treated as a drive specification.
 */
 {
   a_boolean	result;
 
-  result = isalpha((unsigned char)(file_name)[0]) && ((file_name)[1] == ':');
+  result = isalpha((unsigned char)(file_name)[0]) && ((file_name)[1] == ':') ||
+           file_name[0] == '\\' && file_name[1] == '\\';
   return result;
 }  /* has_drive_specification */
 

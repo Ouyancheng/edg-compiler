@@ -1,5 +1,10 @@
 Version 3.0
 
+4/10/02  Internal error using UNC file names on Windows
+
+An internal error could occur when using UNC file names (e.g.,
+"\\sys\sharename\dir") on Windows.  This has been fixed.
+
 4/10/02  Internal error when using preinclude and precompiled headers
 
 An internal error would occur when using a preinclude file and
