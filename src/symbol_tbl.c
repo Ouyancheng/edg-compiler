@@ -1520,6 +1520,9 @@ and return a pointer to it.
   tssp->cache_segment = NULL;
   tssp->prototype_template = NULL;
   tssp->subordinate_templates = NULL;
+#if RECORD_TEMPLATES_IN_IL
+  tssp->il_template_entry = NULL;
+#endif /* RECORD_TEMPLATES_IN_IL */
   tssp->is_specific_definition = FALSE;
 #if CHECKING 
   tssp->avoid_codecenter_warnings = FALSE;

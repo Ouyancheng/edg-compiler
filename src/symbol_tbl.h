@@ -1215,6 +1215,16 @@ typedef struct a_template_symbol_supplement {
 			   instantiation, this points to a list of template
 			   symbols for the templates generated from this
 			   template. */
+#if RECORD_TEMPLATES_IN_IL
+  a_template_ptr
+		il_template_entry;
+			/* When  the symbol kind is sk_class_template or
+			   sk_function_template, the IL entry created to
+			   represent this template.  Points to the entry
+			   associated with the template definition, if there
+			   is one; otherwise, points to the entry associated
+			   with the first declaration. */
+#endif /* RECORD_TEMPLATES_IN_IL */
   a_bit_field
 		is_specific_definition:1;
 			/* TRUE if the template is a specific definition of
