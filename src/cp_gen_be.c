@@ -3354,18 +3354,10 @@ declaration following this one is such a continuation.
                                    &octl);
     } else {
       /* Normal typedef. */
-      /* An unqualified name is forced to avoid one on a case like
-           namespace std {
-             typedef int ptrdiff_t;
-           }
-           using std::ptrdiff_t;
-           typedef int ptrdiff_t;
-           ptrdiff_t x;
-      */
       gen_general_declaration_using_type(under_type, &type->source_corresp,
                                          iek_type, sec_decl, TQ_NONE,
                                          suppress_specifiers,
-                                         GDO_FORCE_UNQUALIFIED_NAME);
+                                         GDO_NO_OPTIONS);
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list =
