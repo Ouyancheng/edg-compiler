@@ -1369,7 +1369,7 @@ The attributes must apply to the entity kind specified by "target".
       }  /* if */
       new_tail = msap;
       /* Update the entity pointer in the attribute. */
-      msap->entity.kind = kind;
+      msap->entity.kind = (a_byte_il_entry_kind)kind;
       msap->entity.ptr = entity;
     }  /* if */
   }  /* for */
