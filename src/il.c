@@ -369,8 +369,8 @@ information, such as its address and translation unit.
       if (!in_secondary_trans_unit(next)) break;
       curr = next;
     }  /* for */
+    fprintf(f_debug, "\n");
   }  /* if */
-  fprintf(f_debug, "\n");
 }  /* db_entity_info */
 
 
