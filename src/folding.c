@@ -1156,6 +1156,9 @@ proper result (often, an error constant).
 }  /* issue_folding_diagnostic */
 
 
+#if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
+/*ARGSUSED*/ /* <-- maintain_expression is unused in that case. */
+#endif /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 void type_change_constant(a_constant        *constant,
 			  a_type_ptr        new_type,
 			  a_boolean         is_implicit_cast,
@@ -1163,6 +1166,7 @@ void type_change_constant(a_constant        *constant,
                           a_boolean         evaluated_context,
                           a_boolean         fold_constant_addr_exprs,
                           a_boolean         is_reinterpret_cast,
+                          a_boolean         maintain_expression,
                           a_boolean         *did_not_fold,
                           a_source_position *err_pos)
 /*
@@ -1179,7 +1183,9 @@ cannot be done.  fold_constant_addr_exprs is TRUE if constant address
 expressions should be folded (e.g., base class casts); if it is FALSE,
 *did_not_fold is set instead for those.  If is_reinterpret_cast is TRUE,
 this cast is a reinterpret_cast; related-class casts are treated like
-casts between unrelated classes.
+casts between unrelated classes.  If maintain_expression is TRUE,
+and RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, any expression attached
+to the constant is maintained, by adding a cast if necessary.
 */
 {
   a_type_ptr        constant_type, new_type_with_typedefs;
@@ -1406,10 +1412,25 @@ exit:
     *did_not_fold = TRUE;
   }  /* if */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  if (is_implicit_cast) {
-    /* For an implicit cast, transfer the expression from the old constant
-       to the new one. */
-    new_constant.expr = constant->expr;
+  if (maintain_expression && constant->expr != NULL &&
+      (int)err_severity < (int)es_error && !*did_not_fold) {
+    /* Transfer the source expression from the old constant to the new one,
+       adding a cast if there was a type change.  Note that the cast added
+       is always an eok_cast, so this shouldn't be used if there's the
+       possibility that a base-class cast or the like is involved. */
+    if (constant->type == new_constant.type) {
+      new_constant.expr = constant->expr;
+    } else {
+      an_expr_node_ptr cast_node =
+                            make_operator_node((an_expr_operator_kind)eok_cast,
+                                               new_constant.type,
+                                               constant->expr);
+      cast_node->variant.operation.compiler_generated = is_implicit_cast;
+      cast_node->variant.operation.is_reinterpret_cast = is_reinterpret_cast;
+      new_constant.expr = cast_node;
+    }  /* if */
+  } else {
+    new_constant.expr = NULL;
   }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   /* Return the new constant value. */

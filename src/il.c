@@ -4157,6 +4157,7 @@ for making NULL pointer constants.
                        /*evaluated_context=*/TRUE,
                        /*fold_constant_addr_exprs=*/TRUE,
                        /*is_reinterpret_cast=*/FALSE,
+                       /*maintain_expression=*/FALSE,
                        &did_not_fold, &error_position);
 }  /* make_zero_of_proper_type */
 
@@ -7306,6 +7307,7 @@ gives the source position for errors.
                            /*evaluated_context=*/TRUE,
                            /*fold_constant_addr_exprs=*/TRUE,
                            /*is_reinterpret_cast=*/FALSE,
+                           /*maintain_expression=*/FALSE,
                            &did_not_fold,
                            source_pos);
       check_assertion(!did_not_fold);
@@ -7867,6 +7869,7 @@ on a type), set *copy_error to TRUE.
                                /*evaluated_context=*/TRUE,
                                /*fold_constant_addr_exprs=*/TRUE,
                                /*is_reinterpret_cast=*/FALSE,
+                               /*maintain_expression=*/FALSE,
                                &did_not_fold,
                                source_pos);
           check_assertion(!did_not_fold);

@@ -4337,11 +4337,12 @@ list of a template function.  Returns TRUE if a match is found.
                                  /*evaluated_context=*/TRUE,
                                  /*fold_constant_addr_exprs=*/FALSE,
                                  /*is_reinterpret_cast=*/FALSE,
+                                 /*maintain_expression=*/FALSE,
                                  &did_not_fold, &error_position);
             match = !did_not_fold &&
-                     matches_template_constant(constant, &new_templ_constant,
-                                               templ_arg_list,
-                                               templ_param_list);
+                    matches_template_constant(constant, &new_templ_constant,
+                                              templ_arg_list,
+                                              templ_param_list);
           }  /* if */
         }  /* if */
       }  /* if */

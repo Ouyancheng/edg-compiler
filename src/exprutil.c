@@ -2353,6 +2353,7 @@ conversions.
                            /*evaluated_context=*/TRUE,
                            /*fold_constant_addr_exprs=*/FALSE,
                            reinterpret_semantics,
+                           /*maintain_expression=*/FALSE,
                            &did_not_fold, err_pos);
     }  /* if */
     if (did_not_fold) {
@@ -2457,6 +2458,7 @@ user-defined conversions.
                              curr_expr_is_evaluated(),
                              (a_boolean)expr_stack->fold_constant_addr_exprs,
                              reinterpret_semantics,
+                             /*maintain_expression=*/FALSE, /* Done below */
                              &did_not_fold, &operand->position);
         if (did_not_fold) {
           /* Cast of a constant did not fold. */
@@ -2486,11 +2488,10 @@ user-defined conversions.
           local_constant.is_reinterpret_cast |= is_reinterpret_cast;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
-              !is_implicit_cast) {
+              (!is_implicit_cast || operand->type != new_type)) {
             /* Record a cast expression for the constant (inhibit normal
                diagnostics during that process, since they were already
-               issued).  For the implicit cast case, type_change_constant
-               passes through the original expression. */
+               issued). */
             an_error_severity  saved_error_threshold = error_threshold;
 
             error_threshold = es_catastrophe;

@@ -2811,6 +2811,7 @@ to indicate whether an enumeration is actually defined.
                                      /*evaluated_context=*/TRUE,
                                      /*fold_constant_addr_exprs=*/TRUE,
                                      /*is_reinterpret_cast=*/FALSE,
+                                     /*maintain_expression=*/TRUE,
                                      &did_not_fold,
                                      &error_position);
                 if (strict_ansi_mode) {
