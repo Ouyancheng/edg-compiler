@@ -246,12 +246,12 @@ In C++ support for "extern inline" is now available.  This means
 -- a member function, including an inline function, now takes the linkage
    of the class of which it is a member (which is usually external).
 
-Because an extern inline function cannot be called from other translation
-units (that is, an extern inline function must be defined in every
-translation unit in which it is used), the practical impact on programs is
-small: there are a few diagnostic differences; static local variables are
-shared across translation units; and the address of an extern inline
-function will be the same throughout the program.  For example:
+Because an extern inline function must be defined in every translation
+unit in which it is used, the practical impact on programs is small:
+there are a few diagnostic differences; static local variables are
+shared across translation units; and (this part is not implemented yet)
+the address of an extern inline function will be the same throughout the
+program.  For example:
 
   class A {
     int f() {               // A::f is an "extern inline" function
