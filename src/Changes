@@ -1,5 +1,20 @@
 Version 2.46
 
+6/22/01  Nontemplate friend declaration had is_template_function set
+
+The IL entry created for a nontemplate friend function declaration in the
+prototype instantiation of a class template used to have is_template_function
+set (only significant in configurations where PROTOTYPE_INSTANTIATIONS_IN_IL
+is set).
+
+  template <class T> struct S {
+    friend void f1(T);   // Not a template function: is_template_function
+                         //    should be FALSE
+    friend void f2<>(T); // Template function: is_template_function should
+  };                     //    be TRUE
+
+This is now fixed.
+
 6/22/01  Use of template conversion function in context that requires
          different cv-qualification
 
