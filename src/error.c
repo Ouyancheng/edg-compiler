@@ -1662,8 +1662,8 @@ error code.
     case ec_missing_template_param:
       m = "template parameter declaration is missing";
       break;
-    case ec_expected_template_arg_list:
-      m = "expected an argument list for %nf";
+    case ec_missing_template_arg_list:
+      m = "argument list for %nf is missing";
       break;
       /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
