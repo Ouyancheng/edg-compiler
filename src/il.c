@@ -6592,6 +6592,12 @@ Make a copy of an expression tree and return a pointer to it.
       break;
     case enk_operation:
       /* Copy the operands of the operation. */
+#if MINIMAL_INLINING
+      /* Some short-circuited operations can be simplified while they are
+         copied if the first operand value is constant. */
+      if (currently_doing_inlining_of_function_call &&
+          copy_and_simplify_short_circuited_operation(expr_copy)) break;
+#endif /* MINIMAL_INLINING */
       expr_copy->variant.operation.operands =
                      copy_list_of_expr_trees(expr->variant.operation.operands);
       if (expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {

@@ -35,6 +35,14 @@ EXTERN a_boolean
 Entry used to record information about the remapping to be done on a variable
 while expanding an inline function call.
 */
+typedef enum /*a_variable_remapping_kind*/ {
+  vrk_none,		/* No remapping; used in entries that exist only to
+			   record the arg_expr and arg_expr_next fields. */
+  vrk_temporary,	/* Variable is remapped to a temporary variable. */
+  vrk_constant,		/* Variable is remapped to a constant. */
+  vrk_addr_variable,	/* Variable is remapped to the address of a
+			   variable. */
+} a_variable_remapping_kind;
 typedef struct a_variable_remapping_for_inlining
                                         *a_variable_remapping_for_inlining_ptr;
 typedef struct a_variable_remapping_for_inlining {
@@ -43,20 +51,18 @@ typedef struct a_variable_remapping_for_inlining {
   a_variable_ptr
 		orig_variable;
 			/* The original variable, i.e. the one being
-			   rewritten.  If NULL, this entry exists only for
-			   the arg_expr and arg_expr_next fields, below. */
-  a_byte_boolean
-		is_constant;
-			/* TRUE if the variable is remapped to a constant;
-			   FALSE if the variable is remapped to another
-			   variable. */
+			   rewritten. */
+  a_variable_remapping_kind
+		kind;
+			/* Kind of remapping. */
   union {
-    /* When is_constant is TRUE: */
-    a_constant_ptr
-		constant;
-    /* When is_constant is FALSE: */
+    /* When kind == vrk_none, no variant fields. */
+    /* When kind == vrk_temporary or vrk_addr_variable: */
     a_variable_ptr
 		variable;
+    /* When kind == vrk_constant: */
+    a_constant_ptr
+		constant;
   } variant;
   /* Information used if this remapping came from an argument.  It is needed
      to restore the "next" pointer between argument expressions if the
@@ -87,6 +93,9 @@ EXTERN unsigned long
 extern a_variable_ptr remap_var_for_inlining(a_variable_ptr var);
 
 extern void adjust_copied_expression_for_inlining(an_expr_node_ptr expr);
+
+extern a_boolean copy_and_simplify_short_circuited_operation(
+                                                        an_expr_node_ptr expr);
 
 extern void do_inlining_of_call(an_expr_node_ptr expr,
                                 a_statement_ptr  statement);

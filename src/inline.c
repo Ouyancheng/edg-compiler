@@ -54,6 +54,11 @@ static a_scope_ptr
 			/* When non-NULL, a call of the routine associated
 			   with this scope is being expanded as an inline. */
 
+static an_expr_node_ptr
+		call_being_inlined;
+			/* When non-NULL, the indicated call is being
+			   inlined. */
+
 
 static a_variable_remapping_for_inlining_ptr
                       alloc_variable_remapping_for_inlining(a_variable_ptr var)
@@ -80,8 +85,7 @@ The entry is placed on the variable_remappings_for_inlining global list.
   vrip->next = variable_remappings_for_inlining;
   variable_remappings_for_inlining = vrip;
   vrip->orig_variable = var;
-  vrip->is_constant = FALSE;
-  vrip->variant.variable = NULL;
+  vrip->kind = vrk_none;
   vrip->arg_expr = NULL;
   vrip->arg_expr_next = NULL;
   return vrip;
@@ -120,6 +124,29 @@ attributes of var to temp_var.
 }  /* transfer_variable_attributes_to_temporary */
 
 
+static a_boolean expr_is_non_null(an_expr_node_ptr expr)
+/*
+Return TRUE if the indicated expression (a constant or the address of a
+variable) does not have a null value.
+*/
+{
+  a_boolean is_non_null;
+
+  if (is_constant_node(expr)) {
+    is_non_null = !is_false_constant(expr->variant.constant);
+  } else if (is_variable_address_node(expr)) {
+    /* Consider the address of a variable non-null unless it is extern.
+       Weak linkage or similar linker tricks could make an extern have
+       address zero. */
+    is_non_null = (expr->variant.variable->storage_class !=
+                                                   (a_storage_class)sc_extern);
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return is_non_null;
+}  /* expr_is_non_null */
+
+
 static void set_up_variable_remapping_for_inlining(
                                            a_scope_ptr        scope,
                                            an_expr_node_ptr   arg_expr_list,
@@ -136,6 +163,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
   an_expr_node_ptr arg, arg_next;
   a_variable_remapping_for_inlining_ptr
                    vrip;
+  a_routine_ptr    routine = scope->variant.routine.ptr;
 #if DEBUG
   a_boolean        first = TRUE;
 #endif /* DEBUG */
@@ -162,43 +190,48 @@ The code is inserted at *insert_location, and *insert_location is updated.
       /* We don't need the parameter if it's not referenced.  However, if
          the argument has side effects, we need to evaluate it. */
       if (node_has_side_effects(arg, (a_boolean *)NULL)) {
-        insert_expr_statement(arg, insert_location);
+        (void)insert_expr_statement(arg, insert_location);
       }  /* if */
-      /* Change the entry to indicate that it does not contain a remapping. */
-      vrip->orig_variable = NULL;
     } else {
       /* The parameter is referenced, so it has to be remapped. */
-      a_boolean      arg_is_constant = FALSE;
-      a_constant_ptr con;
-      /* See if the argument value is constant. */
-      if (is_constant_node(arg)) {
-        arg_is_constant = TRUE;
-        con = arg->variant.constant;
-      } else if (is_variable_address_node(arg)) {
-        a_variable_ptr  var = arg->variant.variable;
-        a_storage_class storage_class = var->storage_class;
-        if (has_static_storage_duration(storage_class)) {
-          /* The address of a static variable is constant. */
-          a_constant constant;
-          arg_is_constant = TRUE;
-          set_variable_address_constant(var, &constant,
-                                        /*set_address_taken_flag=*/FALSE);
-          con = alloc_shareable_constant(&constant);
-        }  /* if */
-      }  /* if */
-      if (!param_var->param_value_has_been_changed &&
-          !param_var->address_taken &&
-          arg_is_constant) {
+      /* See if the argument value is constant.  The address of a variable
+         counts as a constant: even the address of an automatic variable is
+         constant for the duration of a call. */
+      a_boolean arg_is_constant = is_constant_node(arg);
+      if ((arg_is_constant || is_variable_address_node(arg)) &&
+          ((!param_var->param_value_has_been_changed &&
+            !param_var->address_taken) ||
+          (param_var->is_this_parameter &&
+           routine->special_kind == (a_special_function_kind)sfk_constructor &&
+           expr_is_non_null(arg)
+#if ASSIGNMENT_TO_THIS_ALLOWED
+           && !routine->assignment_to_this_done
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+                                               ))) {
         /* The argument is constant, and the parameter doesn't get changed
-           or have its address taken.  The constant can be used directly. */
-        vrip->is_constant = TRUE;
-        vrip->variant.constant = con;
+           or have its address taken.  The constant can be used directly.
+           For the "this" parameter of a constructor, take advantage of
+           the fact that we know how it works, so we can eliminate the
+           allocation code at the top of the routine even though there's
+           an assignment to "this" in that code when it does the allocation.
+           We can only do that if the value being assigned to "this" is
+           non-null. */
+        if (arg_is_constant) {
+          /* The parameter gets remapped to a constant. */
+          vrip->kind = vrk_constant;
+          vrip->variant.constant = arg->variant.constant;
+        } else {
+          /* The parameter gets remapped to the address of a variable. */
+          vrip->kind = vrk_addr_variable;
+          vrip->variant.variable = arg->variant.variable;
+        }  /* if */
       } else {
         /* A temporary is needed for the parameter.  It is not put into a
            scope yet because we might fail sometime later on the inlining. */
         temp_var = make_temporary_in_scope(param_var->type,
                                            (a_scope_ptr)NULL,
                                            /*force_static=*/FALSE);
+        vrip->kind = vrk_temporary;
         vrip->variant.variable = temp_var;
         transfer_variable_attributes_to_temporary(param_var, temp_var);
         /* Initialize the variable to the argument value. */
@@ -210,16 +243,17 @@ The code is inserted at *insert_location, and *insert_location is updated.
       if (debug_level >= 4) {
         /* Don't print entries that exist only to preserve the "next"
            pointer restoration information. */
-        if (vrip->orig_variable != NULL) {
+        if (vrip->kind != vrk_none) {
           if (first) {
             fprintf(f_debug, "Parameter remappings established:\n");
             first = FALSE;
           }  /* if */
           db_variable(vrip->orig_variable);
           fprintf(f_debug, " --> ");
-          if (vrip->is_constant) {
+          if (vrip->kind == vrk_constant) {
             db_constant(vrip->variant.constant);
           } else {
+            if (vrip->kind == vrk_addr_variable) fprintf(f_debug, "&");
             db_name(&vrip->variant.variable->source_corresp);
           }  /* if */
           fprintf(f_debug, "\n");
@@ -241,6 +275,7 @@ The code is inserted at *insert_location, and *insert_location is updated.
       temp_var = make_temporary_in_scope(var->type,
                                          (a_scope_ptr)NULL,
                                          /*force_static=*/FALSE);
+      vrip->kind = vrk_temporary;
       vrip->variant.variable = temp_var;
       transfer_variable_attributes_to_temporary(var, temp_var);
 #if DEBUG
@@ -273,13 +308,9 @@ calling context scope.
   for (vrip = variable_remappings_for_inlining;
        vrip != NULL;
        vrip = vrip->next) {
-    /* Ignore entries that are on the list only to allow cleanup of
-       "next" pointers. */
-    if (vrip->orig_variable != NULL) {
-      if (!vrip->is_constant) {
-        /* A temporary.  Add it to the current scope. */
-        add_temporary_to_scope(vrip->variant.variable, curr_context->scope);
-      }  /* if */
+    if (vrip->kind == vrk_temporary) {
+      /* A temporary.  Add it to the current scope. */
+      add_temporary_to_scope(vrip->variant.variable, curr_context->scope);
     }  /* if */
   }  /* for */
 }  /* finish_variable_remapping_for_inlining */
@@ -305,43 +336,25 @@ separately in assignments to parameter temporaries.)
 }  /* relink_argument_expressions_on_failure */
 
 
-static a_boolean get_var_remapping_for_inlining(a_variable_ptr var,
-                                                a_boolean      *is_constant,
-                                                a_constant_ptr *con,
-                                                a_variable_ptr *new_var)
+static a_variable_remapping_for_inlining_ptr
+                             get_var_remapping_for_inlining(a_variable_ptr var)
 /*
 See if the variable var is remapped in the current inlining operation.
-If so, return TRUE and set *is_constant == FALSE and *new_var to the
-new variable if the variable is remapped to a variable, or
-*is_constant == TRUE and *con to the constant if the variable is
-remapped to a constant.  If the variable is not remapped, return FALSE
-and set *new_var to the original variable.
+If so, return a pointer to the remapping entry.  If not, return NULL.
 */
 {
-  a_boolean                             is_remapped = FALSE;
   a_variable_remapping_for_inlining_ptr vrip;
 
-  *is_constant = FALSE;
-  *con = NULL;
-  *new_var = NULL;
   /* Look at each variable remapping on the list. */
   for (vrip = variable_remappings_for_inlining;
        vrip != NULL;
        vrip = vrip->next) {
-    if (vrip->orig_variable == var) {
+    if (vrip->kind != vrk_none && vrip->orig_variable == var) {
       /* Found the remapping. */
-      is_remapped = TRUE;
-      *is_constant = vrip->is_constant;
-      if (*is_constant) {
-        *con = vrip->variant.constant;
-      } else {
-        *new_var = vrip->variant.variable;
-      }  /* if */
       break;
     }  /* if */
   }  /* for */
-  if (!is_remapped) *new_var = var;
-  return is_remapped;
+  return vrip;
 }  /* get_var_remapping_for_inlining */
 
 
@@ -349,15 +362,22 @@ a_variable_ptr remap_var_for_inlining(a_variable_ptr var)
 /*
 See if the indicated variable is remapped in the current inlining operation.
 Return the new variable if there is a remapping, or the original variable
-if not.  An internal error is generated if the remapping is to a constant.
+if not.  An internal error is generated if the remapping is to something
+other than a temporary variable.
 */
 {
-  a_boolean      is_constant;
-  a_constant_ptr con;
-  a_variable_ptr new_var;
+  a_variable_ptr                        new_var;
+  a_variable_remapping_for_inlining_ptr vrip;
 
-  if (get_var_remapping_for_inlining(var, &is_constant, &con, &new_var)) {
-    check_assertion_str(!is_constant, "remap_var_for_inlining: is_constant");
+  vrip = get_var_remapping_for_inlining(var);
+  if (vrip != NULL) {
+    /* There is a remapping. */
+    check_assertion_str(vrip->kind == vrk_temporary,
+                        "remap_var_for_inlining: wrong kind of remap");
+    new_var = vrip->variant.variable;
+  } else {
+    /* There is no remapping, so return the original variable. */
+    new_var = var;
   }  /* if */
   return new_var;
 }  /* remap_var_for_inlining */
@@ -366,31 +386,39 @@ if not.  An internal error is generated if the remapping is to a constant.
 void adjust_copied_expression_for_inlining(an_expr_node_ptr expr)
 /*
 The indicated expression has just been created as a copy of an expression
-during inlining.  See whether it should be adjusted because of remapped
-variables.  A reference to a remapped variable will be changed to refer
-to the proper remapping, or an operation on constants (created by
-remapping a parameter to a constant at a lower level) will be folded
-to a constant.
+during inlining.  See whether it should be adjusted, e.g., because of remapped
+variables.
 */
 {
-  an_expr_node_kind kind = expr->kind;
-  a_boolean         is_constant;
-  a_constant_ptr    con;
-  a_variable_ptr    var;
+  an_expr_node_kind                     kind = expr->kind;
+  a_variable_remapping_for_inlining_ptr vrip;
+  a_constant_ptr                        con;
 
   if (kind == (an_expr_node_kind)enk_variable) {
     /* Value of a variable.  See if the variable is remapped. */
-    if (get_var_remapping_for_inlining(expr->variant.variable,
-                                       &is_constant, &con, &var)) {
-      if (is_constant) {
-        /* The variable is remapped to a constant.  Use an enk_constant
-           instead. */
-        set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
-        expr->variant.constant = con;
-      } else {
-        /* The variable is remapped to another variable. */
-        expr->variant.variable = var;
-      }  /* if */
+    vrip = get_var_remapping_for_inlining(expr->variant.variable);
+    if (vrip != NULL) {
+      /* Yes, there is some kind of remapping. */
+      switch (vrip->kind) {
+        case vrk_temporary:
+          /* The variable is remapped to a temporary variable. */
+          expr->variant.variable = vrip->variant.variable;
+          break;
+        case vrk_constant:
+          /* The variable is remapped to a constant.  Use an enk_constant
+             instead. */
+          set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
+          expr->variant.constant = vrip->variant.constant;
+          break;
+        case vrk_addr_variable:
+          /* The variable is remapped to the address of a variable. */
+          set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
+          expr->variant.variable = vrip->variant.variable;
+          break;
+        default:
+          unexpected_condition_str(
+                      "adjust_copied_expression_for_inlining: bad remap kind");
+      }  /* switch */
     }  /* if */
   } else if (kind == (an_expr_node_kind)enk_variable_address) {
     /* Address of a variable.  See if the variable is remapped. */
@@ -413,111 +441,76 @@ to a constant.
        parameter variables remapped to constants. */
     an_expr_operator_kind op = expr->variant.operation.kind;
     an_expr_node_ptr      operand = expr->variant.operation.operands;
+    an_expr_node_ptr      operand2 = operand->next;
+    a_constant_ptr        con2;
     a_constant            constant;
     a_boolean             has_constant_value = FALSE;
-    if (is_constant_node(operand)) {
+    if (is_constant_node(operand) &&
+        (operand2 == NULL || is_constant_node(operand2))) {
+      /* The operands are constant. */
+      a_boolean did_not_fold = TRUE, template_constant = FALSE;
       con = operand->variant.constant;
-      /* The first operand is constant, so it's worth checking further. */
-      if (op == (an_expr_operator_kind)eok_question) {
-        /* "?" operation.  Keep the second or third operand on the basis
-           of the value of the first operand. */
-        if (is_false_constant(con)) {
-          /* The constant is false, so keep the third operand. */
-          overwrite_node(expr, operand->next->next);
-        } else {
-          /* The constant is true, so keep the second operand. */
-          overwrite_node(expr, operand->next);
-        }  /* if */
-      } else if (op == (an_expr_operator_kind)eok_lor) {
-        /* "||" operation. */
-        if (is_false_constant(con)) {
-          /* The first operand is false, so the second operand is the value
-             of the expression. */
-          overwrite_node(expr, operand->next);
-        } else {
-          /* The first operand is true, so the overall operation has the
-             value true. */
-          overwrite_node(expr, operand);
-        }  /* if */
-      } else if (op == (an_expr_operator_kind)eok_land) {
-        /* "&&" operation. */
-        if (is_false_constant(con)) {
-          /* The first operand is false, so the overall operation has the
-             value false. */
-          overwrite_node(expr, operand);
-        } else {
-          /* The first operand is true, so the second operand is the value
-             of the expression. */
-          overwrite_node(expr, operand->next);
-        }  /* if */
-      } else {
-        /* Look for cases with one or two completely constant operands that
-           can be folded. */
-        an_expr_node_ptr operand2 = operand->next;
-        a_constant_ptr   con2;
-        if (operand2 != NULL && !is_constant_node(operand2)) {
-          /* Cannot fold -- second operand is nonconstant. */
-        } else {
-          a_boolean did_not_fold = TRUE, template_constant = FALSE;
-          if (operand2 != NULL) con2 = operand2->variant.constant;
-          /* Fold certain constant operations.  Some, like floating-point
-             operations, are not folded because cfront does not do so,
-             and because if it were done people might get different
-             results with inlining. */
-          switch (op) {
-            case eok_ieq: case eok_ine: case eok_igt:
-            case eok_ilt: case eok_ige: case eok_ile:
-            case eok_peq: case eok_pne:
-            case eok_pmeq: case eok_pmne:
-            case eok_iadd:
-            case eok_isubtract:
-            case eok_imultiply:
-            case eok_idivide:
-            case eok_remainder:
-            case eok_and:
-            case eok_or:
-            case eok_xor:
-            case eok_shiftl:
-            case eok_shiftr:
-              /* Setting evaluated_context to FALSE suppresses warnings on
-                 errors like division by zero.  Instead, did_not_fold is
-                 returned TRUE. */
-              binary_operation(op, con, con2, expr->type, &constant,
-                               /*constant_context=*/FALSE,
-                               /*evaluated_context=*/FALSE,
-                               &did_not_fold,
-                               &template_constant,
-                               &code_pos_for_lowering);
-              break;
-            case eok_inegate:
-            case eok_complement:
-            case eok_not:
-              unary_operation(op, con, expr->type, &constant,
-                              /*constant_context=*/FALSE,
-                              /*evaluated_context=*/FALSE,
-                              &did_not_fold,
-                              &template_constant,
-                              &code_pos_for_lowering);
-              break;
-            default:
-              /* Others cannot be folded. */
-              break;
-          }  /* switch */
-          check_assertion(!template_constant);
-          if (!did_not_fold) {
-            /* The expression can be folded. */
-            has_constant_value = TRUE;
-          }  /* if */
-        }  /* if */
+      if (operand2 != NULL) con2 = operand2->variant.constant;
+      /* Fold certain constant operations.  Some, like floating-point
+         operations, are not folded because cfront does not do so,
+         and because if it were done people might get different
+         results with inlining. */
+      /* See copy_and_simplify_short_circuited_operation for the
+         short-circuited operations. */
+      switch (op) {
+        case eok_ieq: case eok_ine: case eok_igt:
+        case eok_ilt: case eok_ige: case eok_ile:
+        case eok_peq: case eok_pne:
+        case eok_pmeq: case eok_pmne:
+        case eok_iadd:
+        case eok_isubtract:
+        case eok_imultiply:
+        case eok_idivide:
+        case eok_remainder:
+        case eok_and:
+        case eok_or:
+        case eok_xor:
+        case eok_shiftl:
+        case eok_shiftr:
+          /* Setting evaluated_context to FALSE suppresses warnings on
+             errors like division by zero.  Instead, did_not_fold is
+             returned TRUE. */
+          binary_operation(op, con, con2, expr->type, &constant,
+                           /*constant_context=*/FALSE,
+                           /*evaluated_context=*/FALSE,
+                           &did_not_fold,
+                           &template_constant,
+                           &code_pos_for_lowering);
+          break;
+        case eok_inegate:
+        case eok_complement:
+        case eok_not:
+          unary_operation(op, con, expr->type, &constant,
+                          /*constant_context=*/FALSE,
+                          /*evaluated_context=*/FALSE,
+                          &did_not_fold,
+                          &template_constant,
+                          &code_pos_for_lowering);
+          break;
+        default:
+          /* Others cannot be folded. */
+          break;
+      }  /* switch */
+      check_assertion(!template_constant);
+      if (!did_not_fold) {
+        /* The expression can be folded. */
+        has_constant_value = TRUE;
       }  /* if */
     } else if (op == (an_expr_operator_kind)eok_pne ||
                op == (an_expr_operator_kind)eok_peq) {
       /* A special case where we can do folding even with a nonconstant
-         operand: &auto_variable != 0 is always 1.  The "== 0" case is
+         operand: &variable != 0 is always 1.  The "== 0" case is
          always 0. */
-      if (is_variable_address_node(expr)) {
-        a_storage_class storage_class = expr->variant.variable->storage_class;
-        if (!has_static_storage_duration(storage_class)) {
+      if (is_variable_address_node(operand)) {
+        /* Don't do this trick for extern variables, because they might
+           have address zero through linker magic (e.g., weak externals). */
+        if (operand->variant.variable->storage_class !=
+                                                  (a_storage_class)sc_extern) {
           operand = operand->next;
           if (is_constant_node(operand) &&
               is_false_constant(operand->variant.constant)) {
@@ -539,6 +532,87 @@ to a constant.
     }  /* if */
   }  /* if */
 }  /* adjust_copied_expression_for_inlining */
+
+
+a_boolean copy_and_simplify_short_circuited_operation(an_expr_node_ptr expr)
+/*
+expr is a copy of an enk_operation node being made while copying an
+expression for inlining.  The node "expr" is a copy, but its subtree has
+not been copied yet.  If expr is a short-circuitable operation, do
+the rest of the copy (simplifying in the process) and return TRUE;
+otherwise, do no copying and return FALSE.
+*/
+{
+  a_boolean             processed = FALSE;
+  an_expr_operator_kind op = expr->variant.operation.kind;
+  an_expr_node_ptr      operand, operand2, operand3;
+
+  if (op == (an_expr_operator_kind)eok_question ||
+      op == (an_expr_operator_kind)eok_lor ||
+      op == (an_expr_operator_kind)eok_land) {
+    /* This is a short-circuited operation. */
+    processed = TRUE;
+    operand = expr->variant.operation.operands;
+    operand2 = operand->next;
+    operand3 = operand2->next;
+    /* Copy the first operand.  In the process, simplify to a constant if
+       possible by substituting for parameter variables. */
+    operand = copy_expr_tree(operand);
+    if (!is_constant_node(operand)) {
+      /* The first operand is not constant, so this operation cannot be
+         simplified.  Just copy the rest of the operands. */
+      operand2 = copy_expr_tree(operand2);
+      if (operand3 != NULL) operand3 = copy_expr_tree(operand3);
+      /* Link the copied operands together. */
+      expr->variant.operation.operands = operand;
+      operand->next = operand2;
+      operand2->next = operand3;
+    } else {
+      /* The first operand is constant, so the operation can be simplified. */
+      a_constant_ptr con = operand->variant.constant;
+      if (op == (an_expr_operator_kind)eok_question) {
+        /* "?" operation.  Keep the second or third operand on the basis
+           of the value of the first operand. */
+        if (is_false_constant(con)) {
+          /* The constant is false, so keep the third operand. */
+          operand3 = copy_expr_tree(operand3);
+          overwrite_node(expr, operand3);
+        } else {
+          /* The constant is true, so keep the second operand. */
+          operand2 = copy_expr_tree(operand2);
+          overwrite_node(expr, operand2);
+        }  /* if */
+      } else if (op == (an_expr_operator_kind)eok_lor) {
+        /* "||" operation. */
+        if (is_false_constant(con)) {
+          /* The first operand is false, so the second operand is the value
+             of the expression. */
+          operand2 = copy_expr_tree(operand2);
+          overwrite_node(expr, operand2);
+        } else {
+          /* The first operand is true, so the overall operation has the
+             value true. */
+          overwrite_node(expr, operand);
+        }  /* if */
+      } else if (op == (an_expr_operator_kind)eok_land) {
+        /* "&&" operation. */
+        if (is_false_constant(con)) {
+          /* The first operand is false, so the overall operation has the
+             value false. */
+          overwrite_node(expr, operand);
+        } else {
+          /* The first operand is true, so the second operand is the value
+             of the expression. */
+          operand2 = copy_expr_tree(operand2);
+          overwrite_node(expr, operand2);
+        }  /* if */
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return processed;
+}  /* copy_and_simplify_short_circuited_operation */
 
 
 static a_statement_ptr copy_inlined_statement(
@@ -638,7 +712,13 @@ If not, *failed is set.
           if (is_expr_insert_location(insert_location)) {
             /* Expression insert location. */
             if (stmt_expr != NULL) {
-              insert_expr(stmt_expr, insert_location);
+              if (call_being_inlined->result_is_not_used &&
+                  !node_has_side_effects(stmt_expr, (a_boolean *)NULL)) {
+                /* The return value of the call is not used, and the return
+                   expression has no side effects, so it's not needed. */
+              } else {
+                insert_expr(stmt_expr, insert_location);
+              }  /* if */
             } else {
               if (!is_void_type(f_skip_typerefs(
                              routine_scope_being_inlined->variant.routine.ptr->
@@ -919,6 +999,7 @@ statement).
         currently_doing_inlining_of_function_call = TRUE;
         scope = il_header.region_scope_entry[routine->assoc_scope];
         routine_scope_being_inlined = scope;
+        call_being_inlined = expr;
         /* Set the insert location.  Use a location unattached to the IL
            tree, because we may discover we can't inline the function.
            If the inlining works, we can insert the statement or expression
@@ -979,6 +1060,7 @@ statement).
            function can never be inlined. */
         routine->inlinable = inlinable;
         if (failed) issue_inlining_failure_diagnostic(routine);
+        call_being_inlined = NULL;
         routine_scope_being_inlined = NULL;
         currently_doing_inlining_of_function_call = FALSE;
 #if DEBUG
@@ -1096,6 +1178,7 @@ of the front end.
   /* Static variables in inline.c: */
   variable_remappings_for_inlining = NULL;
   routine_scope_being_inlined = NULL;
+  call_being_inlined = NULL;
 }  /* inline_init */
 
 #endif /* MINIMAL_INLINING */
