@@ -3477,8 +3477,17 @@ body.  Only called in C++ mode.
                         rp->storage_class != (a_storage_class)sc_extern)) {
               /* A referenced but undefined member function that is either
                  extern-inline or has internal linkage. */
-              pos_sy_diagnostic(microsoft_mode ? es_warning : es_error,
-                                ec_never_defined, &sym->decl_position, sym);
+              an_error_severity  severity = (an_error_severity)es_error;
+              if (microsoft_mode ||
+                  (gpp_mode && rp->is_inline &&
+                   rp->storage_class == (a_storage_class)sc_extern)) {
+                /* Microsoft compilers do not diagnose these sorts of
+                   situations.  Similarly, GNU C++ does not diagnose undefined
+                   extern inline functions even though they are used. */
+                severity = (an_error_severity)es_warning;
+              }  /* if */
+              pos_sy_diagnostic(severity, ec_never_defined,
+                                &sym->decl_position, sym);
             } else if (is_inline_virtual) {
               /* A non-local inline virtual function that is undefined and
                  unreferenced. */

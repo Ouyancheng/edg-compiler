@@ -1,5 +1,18 @@
 Version 3.3, July 31, 2003
 
+8/4/03  GNU C++ mode: Undefined extern inline functions
+
+The EDG normally issues an error when an extern inline function is referenced
+but not defined.  In GNU C++ mode we now issue a warning instead for such
+situations.  For example:
+
+  inline void f();  // Referenced but undefined: Warning in GNU mode
+                    // (error in default mode).
+  int main() { f(); }
+
+-------------------------------------------------------------------------------
+Version 3.3, August 1, 2003
+
 7/31/03  IL version number changed to 3.3
 
 7/31/03  Export template enabling
