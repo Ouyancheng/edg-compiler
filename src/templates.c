@@ -2698,6 +2698,7 @@ It is FALSE if the instantiation scope was pushed by the caller.
 
 static void scan_template_declaration(a_boolean         is_initial_decl,
                                       a_boolean         is_member_decl,
+                                      a_type_ptr	parent_class,
 				      a_boolean         invalid_decl_scope_err,
                                       a_decl_flag_set   *dso_flags,
                                       a_decl_flag_set   *do_flags,
@@ -2755,7 +2756,23 @@ of a function template.
     set_to_error_locator(*locator);
     *do_flags = 0;
   } else {
-    declarator(di_flags, do_flags, *type, (a_type_ptr)NULL, locator, type,
+    a_boolean	friend_specified = (*dso_flags & DSO_FRIEND) != 0;
+    if (friend_specified) {
+      di_flags |= DI_IS_FRIEND_DECL;
+    }  /* if */
+    if (*storage_class != (a_storage_class)sc_static &&
+        !friend_specified && parent_class != NULL) {
+      /* The storage class "static" was not specified and this is a member
+         declaration that is not a friend declaration, therefore, if this
+         is a member function declaration, it will be a nonstatic member
+         function.  This is important because when the routine type
+         is created, function_declarator needs to know whether to
+         add an implicit this-param pointer to the type. */
+      di_flags |= DI_NONSTATIC_MEMBER;
+    }  /* if */
+    declarator(di_flags, do_flags, *type,
+               !friend_specified ? parent_class : (a_type_ptr)NULL,
+               locator, type,
                &declarator_ssep, func_info);
     if (invalid_decl_scope_err) {
       /* Just to be sure a template symbol doesn't get added to a scope that
@@ -2869,6 +2886,7 @@ type based on the template argument list and the template parameter list
     a_decl_modifier	decl_modifiers;
     a_source_position   saved_pos_curr_token;
     a_source_position   saved_error_position;
+    a_type_ptr		parent_class;
 
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_template_instantiation_scope is NULL.  This is done
@@ -2889,11 +2907,18 @@ type based on the template argument list and the template parameter list
     begin_deferral_of_access_checks();
     rescan_reusable_cache(&tssp->variant.function.decl_cache.tokens);
     clear_func_info(&func_info);
+    /* Note that is_member_decl is TRUE if the declaration was found in a
+       class context, while parent_class contains a pointer to the class of
+       which the template is a member.  In other words, is_member_decl will
+       also be set for friend declarations for which parent_class is
+       either NULL, or refers to some other class. */
     is_member_decl =
          tssp->variant.function.decl_cache.decl_info->enclosing_scope->kind ==
                                           (a_scope_kind)sck_class_struct_union;
+    parent_class = templ_sym->is_class_member ? templ_sym->parent.class_type
+                                              : (a_type_ptr)NULL;
     scan_template_declaration(/*is_initial_decl=*/FALSE,
-                              is_member_decl,
+                              is_member_decl, parent_class,
 			      /*invalid_decl_scope_err=*/FALSE,
                               &dso_flags, &do_flags, &locator,
                               &rout_type, &func_info, &storage_class,
@@ -5878,7 +5903,7 @@ as the current token; otherwise, it is consumed.
       /* Scan the decl. specifiers and the declaration. */
       clear_func_info(&func_info);
       scan_template_declaration(/*is_initial_decl=*/TRUE, is_member_decl,
-                                invalid_decl_scope_err,
+                                class_declared_in, invalid_decl_scope_err,
                                 &dso_flags, &do_flags, &locator, &type,
                                 &func_info, &storage_class, &decl_modifiers);
       if (invalid_decl_scope_err) {
