@@ -4028,7 +4028,8 @@ class template.
      the proper adjustment will be made. */
   effective_decl_level =
               compute_friend_effective_decl_level(depth_scope_stack - 1);
-  if (locator->is_qualified_name && locator->specific_symbol != NULL) {
+  if (locator->is_qualified_name && locator->is_class_member &&
+      locator->specific_symbol != NULL) {
     /* Member function template. */
     sym = locator->specific_symbol;
     if (sym->kind == (a_symbol_kind)sk_projection) {
