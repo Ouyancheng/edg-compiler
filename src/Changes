@@ -1,5 +1,21 @@
 Version 2.26
 
+10/1/94  -I- command-line option
+
+The "-I-" command-line option is now supported.  It indicates the point
+in the list of -I options where <...> includes should start searching.
+That is, #include "xxx.h" searches
+
+1)  Directories on -I directives preceding the -I-, in the order specified;
+2)  Directories on -I directives following the -I-, in the order specified;
+3)  Standard system include directories, e.g., /usr/include.
+
+#include <xxx.h> will only search 2 and 3.
+
+-I- also suppresses the pushing of the directory of the primary source
+file and each include file onto the include search path, i.e., the directories
+searched are only those in the list above.  This is useful for viewpathing.
+
 10/1/94  IL lowering: constructing array when default constructor has default
          argument
 

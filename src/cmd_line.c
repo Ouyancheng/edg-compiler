@@ -665,7 +665,8 @@ Process the arguments on the command line that invoked the compiler.
   char 			        *ofile_name = NULL;
   a_boolean			cannot_open;
   a_boolean			bad_name;
-  char			        *instantiation_mode_string = NULL;
+  char				*instantiation_mode_string = NULL;
+  a_directory_name_entry_ptr	include_path_boundary = NULL;
 
   /* Set a current position indicating we are looking at the command line. */
   pos_curr_token.seq = 0;
@@ -695,6 +696,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Start with empty include file search paths.  Entries may be added
      because of command line options, and others will be added as defaults. */
   incl_search_path = end_incl_search_path = sys_incl_search_path = NULL;
+  put_dir_of_each_opened_source_file_on_incl_search_path = TRUE;
   /* Scan the command-line options. */
   while ((odp = get_option(argc, argv)) != NULL) {
     an_option_kind	kind = odp->kind;
@@ -916,11 +918,16 @@ Process the arguments on the command line that invoked the compiler.
       case optk_include_directory:
         /* Include file directory, add to list. */
         if (*optarg == '-') {
-          /* Directory name was probably omitted; next option was taken
-             as the directory name. */
-          command_line_error(ec_cl_missing_include_directory);
+          /* -I- marks the dividing line between directories for "..."
+             includes and those for <...> includes.  It also suppresses
+             pushing the directory of each source file onto the search
+             path, which is useful for viewpathing. */
+          include_path_boundary = incl_search_path;
+          put_dir_of_each_opened_source_file_on_incl_search_path = FALSE;
+        } else {
+          /* Normal -I directive. */
+          add_to_include_search_path(optarg);
         }  /* if */
-        add_to_include_search_path(optarg);
         break;
       case optk_define_macro:
         /* Define a macro symbol.  Just save the string for later
@@ -1136,11 +1143,14 @@ Process the arguments on the command line that invoked the compiler.
      The list is then any -I directories, in the order they were specified,
      and the default directories at the end. */
   add_default_include_search_path();
-  /* Set the system include search path to be the same as the user search
-     path at this point (the directory of the source file will be added to the
-     front of the user search path in a moment, making the two lists
-     different). */
-  sys_incl_search_path = incl_search_path;
+  /* If there was a -I- option, the system include search path starts at
+     the indicated point.  Otherwise, the system include search path is
+     the same as the normal search path. */
+  if (include_path_boundary != NULL) {
+    sys_incl_search_path = include_path_boundary->next;
+  } else {
+    sys_incl_search_path = incl_search_path;
+  }  /* if */
 
   /* Pick up the source file name. */
   if (optind >= argc) {
@@ -1150,22 +1160,22 @@ Process the arguments on the command line that invoked the compiler.
   /* If the name is "-", use stdin for input. */
   if (strcmp(optarg, "-") == 0) optarg = FILE_NAME_FOR_STDIN;
   primary_source_file_name = optarg;
-  /* Add the directory of the source file to the front of the include file
-     search path.  gs_directory_of returns the directory part of the
-     name allocated in general (not IL) storage. */
-  {
+  if (put_dir_of_each_opened_source_file_on_incl_search_path) {
+    /* Add the directory of the source file to the front of the include file
+       search path.  gs_directory_of returns the directory part of the
+       name allocated in general (not IL) storage. */
     /* If you change this, see the similar code in get_next_source_file. */
 #ifdef USING_PURIFY
     /* This directory name is, under certain conditions, discarded later
        in the compilation process.  Save a pointer here to prevent
-       purify from complaining about the leaked memory. */
+       Purify from complaining about the leaked memory. */
     static char	*dir_name;
 #else /* !USING_PURIFY */
     char	*dir_name;
 #endif /* USING_PURIFY */
     dir_name = gs_directory_of(primary_source_file_name);
     add_to_front_of_include_search_path(dir_name);
-  }
+  }  /* if */
 #if COMPILE_MULTIPLE_SOURCE_FILES
   /* Multiple source files can be compiled.  Save the count and argv
      position of remaining files, if any. */
@@ -1239,11 +1249,13 @@ proc_command_line handles the first file directly.
     /* There is another file. */
     argc_file_list--;
     primary_source_file_name = *(argv_file_list)++;
-    /* Update the first entry of the include file search list, the one
-       that contains the directory of the primary source file. */
-    /* If you change this, see the similar code in proc_command_line. */
-    change_primary_include_search_dir(
+    if (put_dir_of_each_opened_source_file_on_incl_search_path) {
+      /* Update the first entry of the include file search list, the one
+         that contains the directory of the primary source file. */
+      /* If you change this, see the similar code in proc_command_line. */
+      change_primary_include_search_dir(
                                     gs_directory_of(primary_source_file_name));
+    }  /* if */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     il_file_name = NULL;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */

@@ -409,9 +409,7 @@ include files to the end of the search path lists.
   add_to_include_search_path(usr_include);
 #endif /* NO_USR_INCLUDE */
 #if __VMS__
-  /* For VMS, add the current directory as a second search directory
-     after the directory containing the primary source file (or
-     the alternate first directory in pcc mode). */
+  /* For VMS, add the current directory to the search path. */
   add_to_front_of_include_search_path("");
 #endif /* __VMS__ */
 }  /* add_default_include_search_path */
@@ -432,31 +430,32 @@ general memory.
 
 void push_primary_include_search_dir(char *dir_name)
 /*
-The directory name in the primary include file search path should become
-"dir_name", as the result of pushing a new include file onto the source
-input stack.  The directory name string should be allocated in general memory.
+dir_name is the directory of a source file that has just been pushed onto
+the input stack.  Adjust the include search path as appropriate, e.g.,
+by adding the directory to the front of the search path.  dir_name must
+be allocated in general memory.
 
 Note that it is not specified within the ANSI C standard or the ARM what the
 search rules should be for nested includes.  By default, the search for
 nested includes begins in the source directory of the current input file
 (not the source directory of the primary input file).  This is the approach
-generally taken C compilers on UNIX systems.  A "stack-model" variation of
+generally taken by C compilers on UNIX systems.  A "stack-model" variation of
 this approach (as employed by Microsoft C compilers) follows from setting
-STACK_REFERENCED_INCLUDE_DIRECTORIES to TRUE.  For a default of ignoring the
-directory of the include file and starting with the directory of the primary
-input file instead, call change_primary_include_search_dir only in pcc mode;
-a similar change would be required in pop_primary_include_search_dir.
+STACK_REFERENCED_INCLUDE_DIRECTORIES to TRUE.
 */
 {
+  /* The "-I-" option disables these changes. */
+  if (put_dir_of_each_opened_source_file_on_incl_search_path) {
 #if !STACK_REFERENCED_INCLUDE_DIRECTORIES
-  /* The name in the current primary include search directory (the head of
-     list of directory name entries) is simply replaced by dir_name. */
-  change_primary_include_search_dir(dir_name);
+    /* The name in the current primary include search directory (the head of
+       list of directory name entries) is simply replaced by dir_name. */
+    change_primary_include_search_dir(dir_name);
 #else /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
-  /* The new directory becomes the primary include search directory, but the
-     current one remains in the search path. */
-  add_to_front_of_include_search_path(dir_name);
+    /* The new directory becomes the primary include search directory, but the
+       current one remains in the search path. */
+    add_to_front_of_include_search_path(dir_name);
 #endif /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
+  }  /* if */
 }  /* push_primary_include_search_dir */
 
 
@@ -467,22 +466,25 @@ The directory name in the primary include file search path should revert to
 input stack.
 */
 {
+  /* The "-I-" option disables these changes. */
+  if (put_dir_of_each_opened_source_file_on_incl_search_path) {
 #if !STACK_REFERENCED_INCLUDE_DIRECTORIES
-  /* The name in the current primary include search directory (the head of
-     list of directory name entries) is simply replaced by dir_name. */
-  change_primary_include_search_dir(dir_name);
+    /* The name in the current primary include search directory (the head of
+       list of directory name entries) is simply replaced by dir_name. */
+    change_primary_include_search_dir(dir_name);
 #else /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
-  /* The entry of the current primary include search directory is removed
-     from the search path, and the resulting primary include search directory
-     will correspond to dir_name. */
-  a_directory_name_entry_ptr  dnep;
+    /* The entry of the current primary include search directory is removed
+       from the search path, and the resulting primary include search directory
+       will correspond to dir_name. */
+    a_directory_name_entry_ptr  dnep;
 
-  dnep = incl_search_path;
-  incl_search_path = incl_search_path->next;
-  check_assertion(incl_search_path != NULL &&
-                  (strcmp(incl_search_path->dir_name,dir_name) == 0));
-  free_directory_name_entry(dnep);
+    dnep = incl_search_path;
+    incl_search_path = incl_search_path->next;
+    check_assertion(incl_search_path != NULL &&
+                    (strcmp(incl_search_path->dir_name,dir_name) == 0));
+    free_directory_name_entry(dnep);
 #endif /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
+  }  /* if */
 }  /* pop_primary_include_search_dir */
 
 

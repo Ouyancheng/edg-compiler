@@ -811,6 +811,12 @@ EXTERN a_directory_name_entry_ptr
 		sys_incl_search_path;
 			/* The name strings are in general storage. */
 
+EXTERN a_boolean
+		put_dir_of_each_opened_source_file_on_incl_search_path;
+			/* If TRUE, the directory of each source file opened
+			   is put on the include search path.  Set FALSE
+			   by the "-I-" option. */
+
 /* Static variable used by directory_of; here in the .h file so it
    can be initialized by fe_init. */
 EXTERN a_directory_name_entry_ptr
