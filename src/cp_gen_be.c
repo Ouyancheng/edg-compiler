@@ -230,10 +230,6 @@ Given that the current name context is a class, return the class type.
   (curr_name_context->assoc_scope->variant.assoc_type)
 
 
-/* Value to use to specify that no name is provided. */
-#define NO_NAME ((a_source_correspondence *)NULL)
-
-
 /*
 Macro to test a type kind to see if it is a class, struct, or union.
 */
