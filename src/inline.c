@@ -1384,7 +1384,7 @@ of the front end.
 */
 {
   /* Variables in inline.h: */
-  currently_doing_inlining_of_function_call = NULL;
+  currently_doing_inlining_of_function_call = FALSE;
   avail_variable_remappings_for_inlining = NULL;
 #if DEBUG
   num_variable_remappings_for_inlining = 0;
