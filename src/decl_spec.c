@@ -1101,9 +1101,12 @@ caution when modifying this routine.
              scope.  The problem is that a class declared in a prototype
              instantiation may not be a real type, but we don't know yet.
              We want to avoid contaminating the name space, etc., so it gets
-             declared in the instantiation scope. */
+             declared in the instantiation scope.  If the elaborated type
+             specifier is a simple identifier, it cannot be dependent and it
+             should be declared in the innermost enclosing namespace scope. */
           instance_sym = scope_stack[computed_decl_level].instance_sym;
-          if (instance_sym == NULL ||
+          if ((!locator->is_qualified_name && !locator->is_template_id) ||
+              instance_sym == NULL ||
               !is_nonreal_instance_class_symbol(instance_sym)) {
             computed_decl_level = depth_innermost_namespace_scope;
           }  /* if */

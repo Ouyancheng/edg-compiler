@@ -1,5 +1,23 @@
 Version 3.4
 
+8/26/03  Elaborated type specifiers in templates
+
+When an elaborated type specifier using a simple identifier first appears in a
+class template, it now introduces the associated type in the nearest enclosing
+namespace scope if it is not followed by either a definition of the type or a
+semicolon.  Previously, this was not done and redeclaration errors could result
+as a consequence.  In Microsoft mode, an internal error was also a possible
+consequence.  For example:
+
+  template<typename T> struct S {
+    void f(union U*);  // union U now declared in file scope
+  };
+  U *p;  // Now OK.  (Previously an error because no U was found.)
+  template<typename T> void S<T>::f(union U*) {}
+         // Now OK.  (Previously an error because this "union U" was not
+         // the same as the one declared in the class template definition.
+         // In Microsoft mode, this used to trigger an internal error.)
+
 8/22/03  MSVC++ 7.1 fixes empty-macro-argument bug
 
 The MSVC++ empty-macro-argument bug described in the entry of 4/3/97
