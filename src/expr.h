@@ -81,7 +81,9 @@ extern void check_closing_paren_after_expr_list(void);
 
 extern a_boolean is_two_argument_delete(a_routine_ptr delete_routine);
 
-extern a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type);
+extern a_boolean new_or_delete_type_requires_array_handling(
+                                                 a_type_ptr type,
+                                                 a_boolean  check_constructor);
 
 extern a_boolean is_expr_start_token(a_token_kind tok);
 

@@ -6290,14 +6290,17 @@ Return TRUE if the indicated delete routine is of the two-argument form.
 }  /* is_two_argument_delete */
 
 
-a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type)
+a_boolean new_or_delete_type_requires_array_handling(
+                                                  a_type_ptr type,
+                                                  a_boolean  check_constructor)
 /*
 type is the base type underlying an array type involved in a new or delete.
 Return TRUE if the new or delete operation requires special handling.
 Special handling means routines like __vec_new and __vec_delete must be
 called, so that constructors and destructors will be called, and so 
 that the size of the array is recorded for use at the time of the delete
-of the array pointer.
+of the array pointer.  If check_constructor is FALSE, constructors are ignored
+when determining whether or not special handling is required.
 */
 {
   a_boolean special = FALSE;
@@ -6308,7 +6311,8 @@ of the array pointer.
       type->source_corresp.assoc_info != NULL) {
     /* Classes with a constructor or destructor require special handling. */
     a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
-    if (cssp->constructor != NULL || cssp->destructor != NULL) {
+    if ((check_constructor && cssp->constructor != NULL) ||
+        cssp->destructor != NULL) {
       special = TRUE;
     } else {
       /* Classes with a two-argument array operator delete require special
@@ -6825,7 +6829,9 @@ specification allow a variable-sized array as the top type.
     if (array_new) {
       /* If a allocating an array and a runtime routine will be used, the
          "new" routine can be implicit if it is the default global new[]. */
-      if (new_or_delete_type_requires_array_handling(base_new_type)) {
+      if (new_or_delete_type_requires_array_handling(
+                                                 base_new_type,
+                                                 /*check_constructor=*/TRUE)) {
         an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
                                              (an_opname_kind)onk_array_new :
                                              (an_opname_kind)onk_new;
@@ -7420,7 +7426,9 @@ As an anachronism, allow an expression inside the [ ].
       /* If a deleting an array and a runtime routine will be used, the
          delete routine can be implicit if it is the default global
          delete. */
-      if (new_or_delete_type_requires_array_handling(base_delete_type)) {
+      if (new_or_delete_type_requires_array_handling(
+                                                 base_delete_type,
+                                                 /*check_constructor=*/TRUE)) {
         an_opname_kind array_opname_kind = array_new_and_delete_enabled ?
                                              (an_opname_kind)onk_array_delete :
                                              (an_opname_kind)onk_delete;

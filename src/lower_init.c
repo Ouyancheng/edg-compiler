@@ -5140,7 +5140,8 @@ The subtree of the node has not yet been lowered.
   }  /* if */
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
-      new_or_delete_type_requires_array_handling(base_type)) {
+      new_or_delete_type_requires_array_handling(base_type,
+                                                 /*check_construtor=*/TRUE)) {
     /* An array "new". */
     lower_array_new(expr);
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
@@ -5379,7 +5380,8 @@ The subtree of the node has not yet been lowered.
 
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (ndsp->array_delete &&
-      new_or_delete_type_requires_array_handling(base_type)) {
+      new_or_delete_type_requires_array_handling(base_type,
+                                                 /*check_constructor=*/TRUE)) {
     /* An array "delete". */
     lower_array_delete(expr);
 #if !DELETE_CAN_BE_FOLDED_INTO_DTOR
