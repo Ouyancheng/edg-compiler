@@ -1859,6 +1859,7 @@ original source line because of trigraphs and line splices.
       olmp->variant.trigraph_orig_char = ' ';  /* To be neat. */
       break;
     case olm_line_splice:
+    case olm_multiline_string_splice:
       olmp->variant.line_splice_seq_number = 0;  /* To be neat. */
       break;
 #if CHECKING
@@ -2759,17 +2760,23 @@ only be called when f_raw_listing is non-NULL.
               olmp_next->line_loc == olmp->line_loc) {
             /* Partially process the line-splice entry. */
             olmp = olmp_next;
+            loc_in_line = olmp->line_loc;
             goto partially_process_line_splice;
           }  /* if */
           /* Normal trigraph. */
           loc_in_line = olmp->line_loc + 1;
           break;
+        case olm_multiline_string_splice:
+          /* A line splice induced by a multiline string.  Skip the
+             artificial \n and don't add a trailing backslash.  */
+          loc_in_line = olmp->line_loc + 2;
+          goto partially_process_line_splice;
         case olm_line_splice:
+          loc_in_line = olmp->line_loc;
           putc('\\', f_raw_listing);
 partially_process_line_splice:
           putc('\n', f_raw_listing);
           putc(curr_raw_listing_line_code, f_raw_listing);
-          loc_in_line = olmp->line_loc;
           break;
 #if CHECKING
         default:
@@ -3986,7 +3993,8 @@ when speed is critical.
         /* This position precedes the current entry, so we now know
            which physical line adj_loc_in_line is in. */
         break;
-      } else if (olmp->kind == olm_line_splice) {
+      } else if (olmp->kind == olm_line_splice ||
+                 olmp->kind == olm_multiline_string_splice) {
         /* In the case that a line splice is followed by the end of the
            logical source line, use the position of the "\" on the current
            line as the error position.  This is useful when the last line
@@ -3995,6 +4003,9 @@ when speed is critical.
             adj_loc_in_line[1] == LE_NEWLINE) break;
         /* Keep track of the current physical line. */
         start_of_curr_phys_line = olmp->line_loc;
+        if (olmp->kind == olm_multiline_string_splice) {
+          start_of_curr_phys_line += 2;
+        }  /* if */
         seq_number              = olmp->variant.line_splice_seq_number;
         trigraph_adjustment     = 0;
       } else {
@@ -4154,7 +4165,8 @@ curr_source_line is resized.
 
 #endif /* MBC_CHECKING_NEEDED_IN_LINE_READING */
 
-a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file)
+a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
+                                   a_boolean extend_current_line)
 /*
 Read the next logical source line into curr_source_line and
 the related variables.  A "logical source line" is what results after
@@ -4185,6 +4197,10 @@ set to TRUE.
 
 The return value from this function is at_end_of_source_file ||
 after_end_of_all_source -- i.e., TRUE if no current source line was read.
+
+If extend_current_line is TRUE, read more characters onto the end of
+the current source line instead of beginning a new line.  This is used
+for the GNU C multiline string extension.
 */
 {
   int             ch;
@@ -4209,6 +4225,9 @@ after_end_of_all_source -- i.e., TRUE if no current source line was read.
   /* This routine handles translation phases 1 (trigraphs, newlines) and
      2 (line splices) from the description of translation phases in
      2.1.1.2 of the standard. */
+  /* If we are being asked to extend the current line, go straight to
+     the slow loop.  */
+  if (extend_current_line) goto entry_for_extend_current_line;
   /* If the compiler is being run just to produce preprocessing output,
      and not to compile (i.e., it's supposed to act like cpp), dump the
      previous line of input (possibly modified since being read in) to the
@@ -4392,35 +4411,40 @@ return_with_line:
                       curr_source_line + offset_to_invalid_char);
   }  /* if */
   /* Set the input character position to the start of the line. */
-  curr_char_loc = curr_source_line;
-  any_tokens_gotten_from_curr_source_line = FALSE;
+  if (!extend_current_line) {
+    curr_char_loc = curr_source_line;
+    any_tokens_gotten_from_curr_source_line = FALSE;
+  }  /* if */
 
 simple_return:
   /* The return value is TRUE on any end-of-file case. */
   return_value = at_end_of_source_file || after_end_of_all_source;
-  /* The current line should not be put out as preprocessing output
-     if there isn't a current line, if it's being skipped in an #if
-     or the like, or if it is a line after the first in a preprocessing
-     directive (that happens when there are multi-line comments in a
-     preprocessing directive).  The flag will be set later for other
-     preprocessing-related cases.  If this is a line after the first
-     in a directive being passed unchanged to preprocessing output,
-     put the line out. */
-  if (generate_pp_output) {
-    do_not_put_curr_line_in_pp_output = currently_in_pp_if_skip ||
-                                        (in_preprocessing_directive &&
-                                         !pass_pp_directive_to_output);
-    /* Maintain a separate flag for any text inserted at the beginning of
-       the line. */
-    init_do_not_put_curr_line_in_pp_output = do_not_put_curr_line_in_pp_output;
-    if (return_value) do_not_put_curr_line_in_pp_output = TRUE;
-  }  /* if */
-  if (f_raw_listing != NULL) {
-    /* If a raw listing file is being generated, save the line type:
-       "N" indicating that this is a source line, "S" if this line
-       is part of an #if-skip, or '\0' if there is no source line. */
-    curr_raw_listing_line_code = return_value ? '\0' :
+  if (!extend_current_line) {
+    /* The current line should not be put out as preprocessing output
+       if there isn't a current line, if it's being skipped in an #if
+       or the like, or if it is a line after the first in a preprocessing
+       directive (that happens when there are multi-line comments in a
+       preprocessing directive).  The flag will be set later for other
+       preprocessing-related cases.  If this is a line after the first
+       in a directive being passed unchanged to preprocessing output,
+       put the line out. */
+    if (generate_pp_output) {
+      do_not_put_curr_line_in_pp_output = currently_in_pp_if_skip ||
+                                          (in_preprocessing_directive &&
+                                           !pass_pp_directive_to_output);
+      /* Maintain a separate flag for any text inserted at the beginning of
+         the line. */
+      init_do_not_put_curr_line_in_pp_output =
+                                             do_not_put_curr_line_in_pp_output;
+      if (return_value) do_not_put_curr_line_in_pp_output = TRUE;
+    }  /* if */
+    if (f_raw_listing != NULL) {
+      /* If a raw listing file is being generated, save the line type:
+         "N" indicating that this is a source line, "S" if this line
+         is part of an #if-skip, or '\0' if there is no source line. */
+      curr_raw_listing_line_code = return_value ? '\0' :
                                          (currently_in_pp_if_skip ? 'S' : 'N');
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 1) {
@@ -4445,6 +4469,10 @@ simple_return:
               break;
             case olm_line_splice:
               fprintf(f_debug, "line splice: seq = %lu\n",
+                               olmp->variant.line_splice_seq_number);
+              break;
+            case olm_multiline_string_splice:
+              fprintf(f_debug, "multiline string splice: seq = %lu\n",
                                olmp->variant.line_splice_seq_number);
               break;
 #if CHECKING
@@ -4650,7 +4678,16 @@ entry_for_line_splice:
     }  /* if */
   }  /* if */
   goto add_newline_and_line_end_and_return;
-  
+
+entry_for_extend_current_line:
+  /* Add more characters to the current source line instead of beginning
+     a new source line. */
+  loc_in_line = curr_char_loc;
+  if (!eof_read_on_curr_input_stream &&
+      (ch = getc(curr_input_stream), !is_eof_char(ch))) goto line_loop;
+  eof_read_on_curr_input_stream = TRUE;
+  at_end_of_source_file = TRUE;
+  goto add_newline_and_line_end_and_return;
 }  /* read_logical_source_line */
 
 
@@ -4884,7 +4921,8 @@ white_space_loop:
              and we want to exit this routine.  If we are already at the
              final end of file, don't try reading again, just exit. */
           if (after_end_of_all_source ||
-              read_logical_source_line(/*do_pop_on_end_of_file=*/TRUE)) {
+              read_logical_source_line(/*do_pop_on_end_of_file=*/TRUE,
+                                       /*extend_current_line=*/FALSE)) {
             /* End of file, end the white-space skip. */
             goto end_skip;
           } /* if */
@@ -5243,7 +5281,8 @@ normal_comment:
                file in which it was opened).  If we are processing command-
                line macros, we shouldn't attempt to read another line. */
             if (curr_command_line_macro_def != NULL ||
-                read_logical_source_line(/*do_pop_on_end_of_file=*/FALSE)) {
+                read_logical_source_line(/*do_pop_on_end_of_file=*/FALSE,
+                                         /*extend_current_line=*/FALSE)) {
               /* End of file encountered, unclosed comment. */
               if (!building_pch_prefix) {
                 /* Only issue this warning during the real compilation, not
@@ -5877,8 +5916,8 @@ and normal forms (is_wide indicates which), and for header names in
 case).  curr_char_loc is just past the initial quote.  Scan to the
 matching closing quote (indicated by quoting_char), and do not be
 confused by escaped characters and multibyte character sequences.
-Set *num_chars to the number of (possibly wide) characters contained
-in the string, after escape processing.  curr_char_loc and
+Increment *num_chars by the number of (possibly wide) characters
+contained in the string, after escape processing.  curr_char_loc and
 end_of_curr_token are set to point just before the closing quote of
 the string.  The return value is TRUE if the string was not terminated
 before the end of the line, FALSE if it was.  The caller is
@@ -5975,7 +6014,7 @@ responsible for issuing error messages.
 return_point:
   end_of_curr_token = curr_char_loc;
   if (unterminated) end_of_curr_token--;
-  *num_chars = nchars;
+  *num_chars += nchars;
   return unterminated;
 }  /* accum_quoted_string */
 
@@ -6033,6 +6072,49 @@ The token can be a normal or wide character constant.
   return ctoken;
 }  /* scan_char_constant */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static a_boolean scan_multiline_string(unsigned long *num_chars,
+                                       a_boolean     is_wide)
+/*
+Process the second and subsequent lines of a multi-line string.
+Return TRUE if the string turns out to be well-formed, FALSE
+otherwise.
+*/
+{
+  an_orig_line_modif_ptr olmp;
+  a_boolean              result = FALSE;
+
+  while (curr_char_loc[0] == LE_ESCAPE &&
+         curr_char_loc[1] == LE_NEWLINE) {
+    /* Inject the characters \ n on top of the NEWLINE escape,
+       and add an entry to the orig_line_modif_list so that this
+       can be undone. */
+    olmp = add_orig_line_modif(olm_multiline_string_splice,
+                               curr_char_loc);
+    olmp->variant.line_splice_seq_number = seq_number_last_read + 1;
+    *curr_char_loc++ = '\\';
+    *curr_char_loc++ = 'n';
+    /* Read the next line of the input file, extending the current
+       logical source line. */
+    if (read_logical_source_line(/*do_pop_on_end_of_file=*/FALSE,
+                                 /*extend_current_line=*/TRUE)) {
+      /* End of file, report an error. */
+      break;
+    }  /* if */
+    /* Back up over the \n added above and resume scanning.  */
+    curr_char_loc -= 2;
+    if (!accum_quoted_string(num_chars, /*is_header_name=*/FALSE,
+                             is_wide, '"')) {
+      /* End of string, done. */
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* while */
+  return result;
+}  /* scan_multiline_string */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_token_kind scan_string_literal(void)
 /*
@@ -6040,11 +6122,11 @@ Scan a string literal token, return the token kind or tok_error.
 The token can be a normal or wide string literal.
 */
 {
-  a_token_kind  ctoken = tok_string_literal;
-  a_boolean     is_wide = FALSE;
-  unsigned long num_chars = 0;
-  an_error_code err_code;
-  char          *err_pos;
+  a_token_kind           ctoken = tok_string_literal;
+  a_boolean              is_wide = FALSE;
+  unsigned long          num_chars = 0;
+  an_error_code          err_code;
+  char                   *err_pos;
 
   if (*curr_char_loc == 'L') {
     is_wide = TRUE;
@@ -6053,7 +6135,13 @@ The token can be a normal or wide string literal.
   check_assertion(*curr_char_loc == '"');
   curr_char_loc++;
   if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                          is_wide, '"')) {
+                          is_wide, '"')
+#if GNU_EXTENSIONS_ALLOWED
+      /* GCC permits a string literal to extend over multiple lines. */
+      && (!gcc_mode || curr_command_line_macro_def != NULL ||
+          !scan_multiline_string(&num_chars, is_wide))
+#endif  /* GNU_EXTENSIONS_ALLOWED */
+                                                      ) {
     /* Error, string is unclosed. */
     /* Similar error for other strange cases of incomplete strings, which
        can come up with preprocessing. */

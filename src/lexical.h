@@ -985,7 +985,8 @@ etc.).
 
 typedef enum /*an_orig_line_modif_kind*/ {
   olm_trigraph,
-  olm_line_splice
+  olm_line_splice,
+  olm_multiline_string_splice
 } an_orig_line_modif_kind;
 
 typedef struct an_orig_line_modif {
@@ -1012,7 +1013,7 @@ typedef struct an_orig_line_modif {
 			/* The original third character of the trigraph,
 			   for example "=" in "? ? =" (extra space added
 			   so that won't actually be a trigraph). */
-    /* When kind == olm_line_splice: */
+    /* When kind == olm_line_splice or olm_multiline_string_splice: */
     a_seq_number
 		line_splice_seq_number;
 			/* The source sequence number of the line following
@@ -1584,7 +1585,8 @@ EXTERN a_byte	pp_lexical_category[CHAR_MAX-CHAR_MIN+1];
 
 
 /* Read next logical source line. */
-a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file);
+a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
+                                   a_boolean extend_current_line);
 /* Check character as nonstandard. */
 extern a_boolean is_nonstandard_character(char ch);
 /* Skip white space. */

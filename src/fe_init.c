@@ -949,7 +949,8 @@ top one in a translation unit", including a secondary translation unit.
                /*is_include_next=*/FALSE);
   }  /* if */
   /* Read the first line. */
-  (void)read_logical_source_line(TRUE);
+  (void)read_logical_source_line(/*do_pop_on_end_of_file=*/TRUE,
+                                 /*extend_current_line=*/FALSE);
 }  /* open_primary_source_file */
 
 

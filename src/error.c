@@ -1826,10 +1826,13 @@ a blank line instead of the caret line.
         internal_error("write_orig_source_line: could not find line");
       }  /* if */
 #endif /* CHECKING */
-      if (line_olmp->kind == olm_line_splice) break;
+      if (line_olmp->kind == olm_line_splice ||
+          line_olmp->kind == olm_multiline_string_splice) break;
     }  /* for */
     seq++;
     line_start = line_olmp->line_loc;
+    /* Skip the inserted \n of a multiline-string splice. */
+    if (line_olmp->kind == olm_multiline_string_splice) line_start += 2;
     line_olmp = line_olmp->next;
   }  /* while */
   /* Found the proper physical line. */
@@ -1900,6 +1903,8 @@ a blank line instead of the caret line.
             break;
           case olm_line_splice:
             put_char('\\');
+            /*FALLTHROUGH*/
+          case olm_multiline_string_splice:
             /* Exit the loop since this line splice marks the end of the
                physical line. */
             goto end_of_loop;
