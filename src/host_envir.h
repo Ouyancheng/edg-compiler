@@ -178,6 +178,39 @@ severity explicitly included in the message.
 #endif /* ifndef ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES */
 
 /*
+Is the C-generating back end being used as the back end?
+See also C_GEN_BE_GENERATES_ANSI_C et al. in targ_def.h.
+*/
+#ifndef BACK_END_IS_C_GEN_BE
+#define BACK_END_IS_C_GEN_BE TRUE  /* You can change this. */
+#endif /* ifndef BACK_END_IS_C_GEN_BE */
+
+/*
+Is the C++-generating back end being used as the back end?
+*/
+#ifndef BACK_END_IS_CP_GEN_BE
+#define BACK_END_IS_CP_GEN_BE FALSE  /* You can change this. */
+#endif /* ifndef BACK_END_IS_CP_GEN_BE */
+
+#if BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE
+ #error -- BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE cannot both be TRUE.
+#endif /* BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE */
+
+/*
+When the C-generating back end (c_gen_be) or C++/C-generating back end
+(cp_gen_be) is run, this is the suffix appended to the base of the primary
+source file to get the name of the generated C output file.
+*/
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#if __MSDOS__
+/* File names under MSDOS cannot have multiple periods. */
+#define GEN_C_FILE_SUFFIX ".ic"
+#else /* !__MSDOS__ */
+#define GEN_C_FILE_SUFFIX ".int.c"
+#endif /* if __MSDOS__ */
+#endif /* BACK_END_IS_C_GEN_BE || ... */
+
+/*
 The flag STANDALONE_IL_DISPLAY is set to TRUE when compiling the standalone
 IL display utility.  It should be set on the command line if needed;
 the code here should not be changed.
@@ -277,7 +310,11 @@ definition_needed flag in class/struct/union type entries should be
 maintained.
 */
 #ifndef MAINTAIN_NEEDED_FLAGS
-#define MAINTAIN_NEEDED_FLAGS FALSE
+#if BACK_END_IS_C_GEN_BE
+#define MAINTAIN_NEEDED_FLAGS TRUE  /* You can change this. */
+#else /* !BACK_END_IS_C_GEN_BE */
+#define MAINTAIN_NEEDED_FLAGS FALSE  /* You can change this. */
+#endif /* BACK_END_IS_C_GEN_BE */
 #endif /* ifndef MAINTAIN_NEEDED_FLAGS */
 
 /*
@@ -325,39 +362,6 @@ be used when the back end is invoked by the driver as a separate program.
    being called (not from the front end, anyway). */
 #define BACK_END_SHOULD_BE_CALLED FALSE  /* Do not change this. */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-
-/*
-Is the C-generating back end being used as the back end?
-See also C_GEN_BE_GENERATES_ANSI_C et al. in targ_def.h.
-*/
-#ifndef BACK_END_IS_C_GEN_BE
-#define BACK_END_IS_C_GEN_BE TRUE  /* You can change this. */
-#endif /* ifndef BACK_END_IS_C_GEN_BE */
-
-/*
-Is the C++-generating back end being used as the back end?
-*/
-#ifndef BACK_END_IS_CP_GEN_BE
-#define BACK_END_IS_CP_GEN_BE FALSE  /* You can change this. */
-#endif /* ifndef BACK_END_IS_CP_GEN_BE */
-
-#if BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE
- #error -- BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE cannot both be TRUE.
-#endif /* BACK_END_IS_C_GEN_BE && BACK_END_IS_CP_GEN_BE */
-
-/*
-When the C-generating back end (c_gen_be) or C++/C-generating back end
-(cp_gen_be) is run, this is the suffix appended to the base of the primary
-source file to get the name of the generated C output file.
-*/
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-#if __MSDOS__
-/* File names under MSDOS cannot have multiple periods. */
-#define GEN_C_FILE_SUFFIX ".ic"
-#else /* !__MSDOS__ */
-#define GEN_C_FILE_SUFFIX ".int.c"
-#endif /* if __MSDOS__ */
-#endif /* BACK_END_IS_C_GEN_BE || ... */
 
 /*
 Flag that is TRUE to cause the declaration scope depth to appear in the
