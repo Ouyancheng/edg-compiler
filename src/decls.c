@@ -5772,10 +5772,6 @@ skip_overloading:;
     routine_ptr->asm_name = asm_name;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (is_function_def && qualifier_namespace_ptr(*locator) != NULL) {
-    check_assertion(!is_friend_decl || locator->is_error);
-    routine_ptr->defined_outside_of_parent = TRUE;
-  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Do fixup on the source sequence entry that was just created to
      represent the current declaration.  Note that declaration_ssep is not
@@ -5789,6 +5785,10 @@ skip_overloading:;
       /* If there were any default arguments, they still need to be scanned.
          Enable the default-arg fixup processing to find the declared type. */
       func_info->declared_type = routine_ptr->declared_type;
+    }  /* if */
+    if (qualifier_namespace_ptr(*locator) != NULL) {
+      check_assertion(!is_friend_decl || locator->is_error);
+      routine_ptr->defined_outside_of_parent = TRUE;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (decl_modifiers->marked_as_gnu_extension) {
@@ -6311,9 +6311,6 @@ is a template specialization declaration.
                           (storage_class == (a_storage_class)sc_extern) ?
                                 (a_name_linkage_kind)nlk_cplusplus_external :
                                 (a_name_linkage_kind)nlk_internal;
-    /* Call a routine that manages the correspondence of entities between
-       translation units to notify it of the new instance. */
-    record_instantiation(prototype_sym, tssp);
     if (prototype_instantiations_in_il && !locator->is_error) {
       /* Normally, we let add_to_routines_list determine which scope to add
          the routine to, but for proxy members nominated in friends, that
