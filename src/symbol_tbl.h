@@ -1306,13 +1306,17 @@ typedef struct a_namespace_symbol_supplement {
 			   symbols declared in the namespace and pointers to
 			   the last entries in linked lists of IL entries
 			   entered in the associated IL scope. */
-  a_byte_boolean
-		on_active_using_list;
-			/* TRUE if this namespace appears on the active
-			   using list of one of the scopes involved in
-			   a name lookup.  This flag is set during the
-			   lookup process and is cleared at the end of
-			   the lookup. */
+  a_scope_number
+		scope_depth_at_which_using_directive_applies;
+			/* Contains the scope depth of the scope at which
+                           symbols from this namespace should be visible.
+                           This flag is set when a using directive is
+			   added to the active using list of a scope stack
+                           entry.  Contains NO_SCOPE_DEPTH if symbols from
+                           this namespace are not visible.  If a namespace
+                           is visible at more than one point, this contains
+                           the depth of the innermost scope at which it
+                           is visible. */
 } a_namespace_symbol_supplement;
 
 
@@ -1341,6 +1345,13 @@ typedef struct an_active_using_directive {
 			   alias, this field points to the namespace
 			   supplement associated with the underlying
 			   namespace. */
+  a_scope_number
+		scope_depth_at_which_using_directive_applies;
+			/* Contains the scope depth of the scope at which
+                           symbols from this namespace should be visible.
+                           This value is copied to the namespace symbol
+                           supplement when the active using list is
+			   processed. */
 } an_active_using_directive;
 
 
