@@ -2403,11 +2403,33 @@ scan_paren:
       /* If the initializer had produced an object lifetime for the full
          expression, it was temporarily removed from the object lifetime tree;
          Now that we are reconsidering the initializers in the canonical order
-         (not the order in the source), restore the object lifetime.  This
-         assures that the order of the child-lifetime list will reflect the
-         the actual order of construction. */
-      add_as_child_of_curr_object_lifetime(
-                               init_expr_lifetime_of(cip->initializer));
+         (not the order in the source), restore the object lifetime. */
+      an_object_lifetime_ptr  olp = init_expr_lifetime_of(cip->initializer);
+
+      if (olp != NULL) {
+        if (!long_lifetime_temps) {
+          /* Add the lifetime back in as a child of the current object
+             lifetime.  This assures that the order of the child-lifetime
+             list will reflect the the actual order of construction. */
+          add_as_child_of_curr_object_lifetime(olp);
+        } else {
+          /* Promote destructions associated with expression temps to the
+             function scope lifetime. */
+          if (olp->destructions != NULL) {
+            move_destruction_to_curr_object_lifetime(olp->destructions);
+            olp->destructions = NULL;
+          }  /* if */
+          if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+            /* Link around the enk_object_lifetime expression -- it's not
+               needed any longer. */
+            dip->variant.expression =
+                    dip->variant.expression->variant.object_lifetime.expr;
+          }  /* if */
+          /* Unbind the object lifetime and return it to an available list. */
+          unbind_object_lifetime(olp);
+          free_object_lifetime(olp);
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (cip->initializer == NULL ||
         cip->initializer->kind == (a_dynamic_init_kind)dik_none ||
