@@ -394,17 +394,6 @@ typedef struct a_projection_descr *a_projection_descr_ptr;
 typedef struct a_projection_descr {
   /* Description of the projection of a base class member symbol into
      a derived class.  Pointed to by an sk_projection symbol. */
-#if 0
-  a_symbol_ptr  progenitor_symbol;
-			/* The symbol from which the current symbol was
-			   projected.  This symbol may itself be a projection
-			   symbol.  For example, if C derives from B and B
-			   derives from A, and if B inherits member i from
-			   A, then C::i is a projection of B::i which in turn
-			   is a projection of A::i; within class C B::i is
-			   the progenitor symbol.  If ambiguous is TRUE, this
-			   symbol is one of several possible. */
-#endif /* if 0 */
   a_symbol_ptr  fundamental_symbol;
 			/* The fundamental base class member to which this
 			   projection symbol refers.  It will be different
@@ -926,6 +915,16 @@ Return the fundamental symbol for a given symbol.
   (((symbol)->kind == (a_symbol_kind)sk_projection) ?                 \
         (symbol)->variant.projection.extra_info->fundamental_symbol : \
         (symbol))
+
+/*
+Return TRUE if the base class indicated by the base class entry bcp
+is an accessible base class of derived_class.  bcp indicates a
+direct base class of derived_class.  A base class is accessible if it's
+public or if we have member access to the derived class.
+*/
+#define is_accessible_base_class(bcp, derived_class)                  \
+  ((bcp)->access == (an_access_specifier)as_public ||                 \
+   have_member_access_privilege(derived_class))
 
 
 extern a_symbol_ptr class_qualified_id_lookup(
