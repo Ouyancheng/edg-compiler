@@ -7380,7 +7380,9 @@ static void lower_arg_expr_list(an_expr_node_ptr expr_list,
 /*
 Do IL lowering of the indicated list of expressions and everything under it.
 The expressions are the argument list for a call.  The type of the routine
-being called is called_rout_type.
+being called is called_rout_type.  Note that if the routine requires
+control arguments like a "this" pointer, such arguments are *not* in
+expr_list.
 */
 {
   an_expr_node_ptr              expr;
@@ -9339,13 +9341,27 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         /* Lower the operands of the expression.  For calls, the lowering
            is done in a special way. */
         if (is_call) {
-          a_type_ptr rout_type;
+          a_type_ptr                    rout_type;
+          a_routine_type_supplement_ptr rtsp;
+          an_expr_node_ptr              arg_node = operand_node->next;
           if (op == (an_expr_operator_kind)eok_pm_call) {
             rout_type = pm_member_type(operand_node->type);
           } else {
             rout_type = type_pointed_to(operand_node->type);
           }  /* if */
-          lower_arg_expr_list(operand_node->next, rout_type);
+          rout_type = skip_typerefs(rout_type);
+          rtsp = rout_type->variant.routine.extra_info;
+          /* If the routine has a "this" parameter or caller-supplied
+             result location, lower them separately. */
+          if (rtsp->implicit_this_param_type != NULL) {
+            lower_normal_expr(arg_node);
+            arg_node = arg_node->next;
+          }  /* if */
+          if (rtsp->caller_provides_place_to_put_return_value) {
+            lower_normal_expr(arg_node);
+            arg_node = arg_node->next;
+          }  /* if */
+          lower_arg_expr_list(arg_node, rout_type);
         } else {
           lower_expr_list(operand_node, is_lvalue_mask,
                           is_conditional_operator);
