@@ -34,12 +34,21 @@ Macro to extract the offset value from the combined offset/flags field.
 #define get_offset(bcsp) ((bcsp)->__offset_flags >>			\
                                   abi::__base_class_type_info::__offset_shift)
 
+/*
+Macros used to test for flags from the __vmi_class_tyupe_info.
+*/
+#define diamond_shaped(flags) \
+  ((flags & abi::__vmi_class_type_info::__diamond_shaped_mask) != 0)
+#define non_diamond_repeat(flags) \
+  ((flags & abi::__vmi_class_type_info::__non_diamond_repeat_mask) != 0)
+
 
 static a_boolean derived_to_base_conversion_r(
 				void			*ptr,
 				void			**p_new_ptr,
 				a_type_info_impl_ptr	class_info,
 				a_type_info_impl_ptr	base_info,
+				unsigned int		vmi_flags,
 				a_boolean		*p_is_ambiguous,
 				a_boolean		is_accessible,
 				a_boolean		*result_is_accessible)
@@ -53,7 +62,10 @@ accessible.  result_is_accessible is set to indicate whether the base class
 that is found (if any) is accessible from the ultimately derived object.
 If the base is ambiguous,  *p_is_ambiguous i set to TRUE, and FALSE is
 returned.  If the base is unambiguous, but inaccessible, TRUE is returned but
-result_is_accessible is set to FALSE.
+result_is_accessible is set to FALSE.  vmi_flags is a bit set of flags that
+are used to optimize the base class search.  These flags are passed by
+the initial caller of this routine and are passed down when the routine
+is called recursively.
 */
 {
   a_boolean result = FALSE;
@@ -85,8 +97,8 @@ result_is_accessible is set to FALSE.
       }  /* if */
     } else if (derived_to_base_conversion_r(ptr, p_new_ptr,
                                             si_obj_info->__base_type,
-                                            base_info, p_is_ambiguous,
-                                            is_accessible,
+                                            base_info, vmi_flags,
+                                            p_is_ambiguous, is_accessible,
 					    result_is_accessible) ||
                *p_is_ambiguous) {
       if ((*p_is_ambiguous)) {
@@ -106,10 +118,11 @@ result_is_accessible is set to FALSE.
          bcsp < vmi_obj_info->__base_info + vmi_obj_info->__base_count;
          bcsp++) {
       a_boolean base_is_accessible;
+      a_boolean	is_virtual = (bcsp->__offset_flags & BCS_VIRTUAL) != 0;
       if (ptr == NULL) {
         /* Don't try to add an offset to a NULL pointer. */
         base_ptr = NULL;
-      } else if (bcsp->__offset_flags & BCS_VIRTUAL) {
+      } else if (is_virtual) {
         a_vtbl_entry_ptr vtbl, vbase_offset;
         vtbl = *((a_vtbl_entry_ptr *)ptr);
         vbase_offset = (a_vtbl_entry_ptr)(((char *)vtbl) + get_offset(bcsp));
@@ -133,10 +146,19 @@ result_is_accessible is set to FALSE.
           *result_is_accessible = base_is_accessible;
           *p_new_ptr = base_ptr;
           result = TRUE;
+          /* We can stop searching if the vmi_flags indicate that this
+             base class is known to be unique. */
+          if (*result_is_accessible) {
+            if (is_virtual ? !diamond_shaped(vmi_flags)
+                           : !non_diamond_repeat(vmi_flags)) {
+              break;
+            }  /* if */
+          }  /* if */
         }  /* if */
       } else if (derived_to_base_conversion_r(base_ptr, p_new_ptr,
                                               bcsp->__base_type,
-                                              base_info, p_is_ambiguous,
+                                              base_info, vmi_flags,
+                                              p_is_ambiguous,
                                               base_is_accessible,
                                               result_is_accessible) ||
                  *p_is_ambiguous) {
@@ -145,7 +167,15 @@ result_is_accessible is set to FALSE.
           break;
         } else {
           result = TRUE;
-        }  /* if */
+          /* We can stop searching if the vmi_flags indicate that this
+             base class is known to be unique. */
+          if (*result_is_accessible) {
+            if (is_virtual ? !diamond_shaped(vmi_flags)
+                           : !non_diamond_repeat(vmi_flags)) {
+              break;
+            }  /* if */
+          }  /* if */
+        } /* if */
       } /* if */
     }  /* for */
   }  /* if */
@@ -325,12 +355,27 @@ The access_flags string was retained for backward compatibility.
     }  /* if */
   }  /* if */
 #else /* defined(__EDG_IA64_ABI) */
-  if (derived_to_base_conversion_r(ptr, p_new_ptr, class_info, base_info,
-                                   &is_ambiguous, /*is_accessible=*/TRUE,
-                                   &result_is_accessible) &&
-      result_is_accessible) {
-    result = TRUE;
-  }  /* if */
+  {
+    int	vmi_flags;
+    /* If the type information is represented by the VMI form of type_info,
+       get the flags that are used to optimize the base class search.
+       Otherwise, use the safe value of having both flags set. */
+    if (typeid(*class_info) == typeid(abi::__vmi_class_type_info)) {
+      abi::__vmi_class_type_info *vmi_obj_info = 
+                                      (abi::__vmi_class_type_info *)class_info;
+      vmi_flags = vmi_obj_info->__flags;
+    } else {
+      vmi_flags = abi::__vmi_class_type_info::__non_diamond_repeat_mask |
+                  abi::__vmi_class_type_info::__diamond_shaped_mask;
+    }  /* if */
+    if (derived_to_base_conversion_r(ptr, p_new_ptr, class_info, base_info,
+                                     vmi_flags, &is_ambiguous,
+                                     /*is_accessible=*/TRUE,
+                                     &result_is_accessible) &&
+        result_is_accessible) {
+      result = TRUE;
+    }  /* if */
+  }
 #endif /* defined(__EDG_IA64_ABI) */
   return result;
 }  /* __derived_to_base_conversion */
