@@ -1441,7 +1441,9 @@ called by id_linkage.
               /* The other_decl template function matches the current
                  declaration. */
               linked_symbol = fund_other_decl;
+#if 0
               *overload_symbol = NULL;
+#endif /* if 0 */
               goto done;
             }  /* if */
           } else {
@@ -1465,7 +1467,9 @@ called by id_linkage.
               /* Other_decl matches the current declaration.  Null out
                  *overload_symbol in case it was set. */
               other_decl = fund_other_decl;
+#if 0
               *overload_symbol = NULL;
+#endif /* if 0 */
               break;
             }  /* if */
           }  /* if */
@@ -3851,6 +3855,7 @@ on for use in generating cross-reference output describing this declaration.
   a_boolean                is_friend_decl = (srk_flags & SRK_FRIEND) != 0;
   a_boolean                namespace_reactivated = FALSE;
   a_boolean                invalid_scope_for_new_or_delete = FALSE;
+  a_boolean                set_invisible = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                first_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3979,6 +3984,16 @@ on for use in generating cross-reference output describing this declaration.
     if (!explicit_template_reference && !template_function_specific_decl) {
       /* The new declaration must be compatible with the old. */
       redeclaration = TRUE;
+    }  /* if */
+    if (linked_symbol->overload_set_member) {
+      if (homonym_symbol != NULL) {
+        check_assertion(homonym_symbol->kind ==
+                                (a_symbol_kind)sk_overloaded_function);
+        /* overload_symbol indicates the overload set to which linked_symbol
+           belongs. */
+        overload_symbol = homonym_symbol;
+        homonym_symbol = NULL;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (redeclaration) {
@@ -4117,6 +4132,9 @@ on for use in generating cross-reference output describing this declaration.
       /* Be sure the default arguments, if any, are at the end of the
          parameters list. */
       check_default_args(type_ptr);
+      if (is_friend_decl && arg_dependent_lookup_enabled) {
+        set_invisible = TRUE;
+      }  /* if */
     }  /* if */
     if (homonym_symbol != NULL &&
         homonym_symbol->kind != (a_symbol_kind)sk_function_template) {
@@ -4282,9 +4300,22 @@ on for use in generating cross-reference output describing this declaration.
     } else if (homonym_symbol != NULL) {
       /* Overloaded function.  Create the new symbol, which will be on the
          list of functions connected to an sk_overloaded symbol. */
+      a_boolean  overload_set_is_invisible = FALSE;
+
+      if (set_invisible && homonym_symbol->is_invisible) {
+        overload_set_is_invisible = TRUE;
+      }  /* if */
       sym = enter_overloaded_symbol((a_symbol_kind)sk_routine, locator,
                                     /*is_constructor=*/FALSE,
                                     homonym_symbol, &overload_symbol);
+      if (set_invisible) {
+        sym->is_invisible = TRUE;
+        if (overload_set_is_invisible) {
+          overload_symbol->is_invisible = TRUE;
+        }  /* if */
+      } else {
+        overload_symbol->is_invisible = FALSE;
+      }  /* if */
     }  /* if */
 skip_overloading:;
   }  /* if */
@@ -4310,9 +4341,20 @@ skip_overloading:;
          symbol to the symbol table. */
       remove_symbol(sym);
     }  /* if */
-  } else if (func_info->is_implicit_declaration) {
-    /* This is an implicit declaration of a function.  The symbol has
+    /* Mark friend functions for which this is the initial declaration. */
+    if (set_invisible) sym->is_invisible = TRUE;
+  } else {
+    /* Note: if this is an implicit declaration of a function, the symbol has
        already been entered and marked as declared. */
+    /* If appropriate, clear the is_invisible flag in the linked symbol and
+       in the symbol representing its overload set. */
+    if (sym->is_invisible && !set_invisible) {
+      sym->is_invisible = FALSE;
+      if (sym->overload_set_member) {
+        check_assertion(overload_symbol != NULL);
+        overload_symbol->is_invisible = FALSE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   *ext_sym = NULL;
   if (linkage != idl_none) {
