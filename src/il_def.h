@@ -1128,6 +1128,13 @@ typedef struct a_type {
                         /* TRUE if type is volatile-qualified (i.e.,
                            if the thing pointed to can change due to outside
                            influences). */
+      unsigned int
+                is_function_scope_tag:1;
+			/* TRUE if the type reference has been placed in the
+			   file scope memory region (and on the types list for
+			   the file scope) even though it was declared in the
+			   scope of the current function.  This can be true
+			   for class, struct, union, and enum types only. */
     } typeref;
 #endif /* ifdef CIL */
 #ifdef FIL
