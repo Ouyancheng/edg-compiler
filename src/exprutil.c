@@ -1504,18 +1504,21 @@ void make_template_param_expr_constant_operand(
                                               an_operand            *result)
 /*
 Build an operand for a ck_template_param constant for the expression
-"operand_1 op operand_2" (or, if operand_2 is NULL, "op operand_1").
-The result type is "type".  Return the operand in *result.
+"operand_1 op operand_2"; or, if operand_2 is NULL, "op operand_1";
+or, if op is eok_error, simply operand_1.  The result type is "type".
+Return the operand in *result.
 */
 {
   an_expr_node_ptr node;
   a_constant       con;
 
   node = make_node_from_operand(operand_1);
-  if (operand_2 != NULL) {
-    node->next = make_node_from_operand(operand_2);
+  if (op != (an_expr_operator_kind)eok_error) {
+    if (operand_2 != NULL) {
+      node->next = make_node_from_operand(operand_2);
+    }  /* if */
+    node = make_operator_node(op, type, node);
   }  /* if */
-  node = make_operator_node(op, type, node);
   /* Build the ck_template_param constant. */
   clear_constant(&con, (a_constant_repr_kind)ck_template_param);
   set_template_param_constant_kind(&con,
