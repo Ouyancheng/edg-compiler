@@ -406,7 +406,7 @@ a similar change would be required in pop_primary_include_search_dir.
 #else /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
   /* The new directory becomes the primary include search directory, but the
      current one remains in the search path. */
-  add_to_front_of_include_search_parth(dir_name);
+  add_to_front_of_include_search_path(dir_name);
 #endif /* STACK_REFERENCED_INCLUDE_DIRECTORIES */
 }  /* push_primary_include_search_dir */
 
