@@ -36,7 +36,7 @@ symbol_tbl.c - Symbol table management routines.
    in the hash table from an identifier name string.  Do not change
    without investigating the hash table performance that results.
    Prime values are likely to work better than non-prime values. */
-#define HASH_FACTOR 73
+#define HASH_FACTOR ((unsigned int)73)
 
 /*
 Dummy symbol headers used for compiler-generated error symbols and for
@@ -1187,20 +1187,20 @@ have to set it directly.
      has 9 or fewer characters, take the entire identifier. */
   ptr = identifier;
   if (length > 9) {
-    hash_value = (int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr;
+    hash_value = (unsigned int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr;
     ptr = identifier + (length >> 1) - 1;
-    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr;
     ptr = identifier + length - 3;
-    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (int)*ptr;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
+    hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr;
   } else {
     for (a = 0; a < length; a++) {
-      hash_value = (hash_value * HASH_FACTOR) + (int)*ptr++;
+      hash_value = (hash_value * HASH_FACTOR) + (unsigned int)*ptr++;
     }  /* for */
   }  /* if */
 
