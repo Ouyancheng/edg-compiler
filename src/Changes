@@ -1,5 +1,18 @@
 Version 2.30
 
+9/10/95  C++-generating back end: output of unnamed enums
+
+The C++-generating back end now puts out unnamed enums without names.
+Formerly, it gave them generated names, which caused problems in C++
+because the generated name was used for linkage purposes by some
+compilers (e.g., cfront) in cases like
+
+  typedef enum {a, b} E;
+
+where the typedef name would have been used had the enum been unnamed.
+In C mode, unnamed enums are still given generated names so they can
+be used in casts related to prototype scopes.
+
 9/8/95   Multiple declarations mixing implicit and explicit extern "C++"
 
 We now allow this behavior (originally disallowed in the ARM):
