@@ -4993,11 +4993,73 @@ process_class_specifier:
         break;
       case QUALIFIED_NAME_START_CASE:  /* Identifier or "::". */
         /* Identifier. */
-        if (C_dialect == C_dialect_cplusplus && is_overload_specifier()) {
-          /* Special case -- the "overload" pseudo keyword.  We ignore it and
-             advance to the next token. */
-          warning(ec_overload_ignored);
-          break;
+        if (C_dialect == C_dialect_cplusplus) {
+          if (is_overload_specifier()) {
+            /* Special case -- the "overload" pseudo keyword.  We ignore it and
+               advance to the next token. */
+            warning(ec_overload_ignored);
+            break;
+          } else {
+            /* Check for a constructor declaration.  The following conditions
+               must be satisfied:  (1) we are inside a class definition;
+               (2) the current token is the name of the class being defined
+               (note that typedef names are not allowed); (3) the declaration
+               has no other specifiers besides "inline" (e.g., "const" is
+               not allowed); (4) the next token is a left parenthesis; (5)
+               the token following the left paren is a right paren or the
+               start of a formal parameter declaration. */
+            if (is_member_decl &&
+                (num_specifiers == 0 ||
+                 (num_specifiers == 1 && (*output_flags & DSO_INLINE))) &&
+                has_name_of_curr_class(&locator_for_curr_id)) {
+              /* The name is the same as that of a class being defined.  This
+                 is treated as a constructor declaration if the next two
+                 tokens are a left paren and declaration start token.  Use
+                 token caching in the look-ahead, since the tokens will have
+                 to be rescanned no matter what. */
+              a_token_cache    cache;
+              a_boolean        is_constructor = FALSE;
+
+              clear_token_cache(&cache);
+              /* Put the current token in the cache. */
+              cache_curr_token(&cache);
+              /* Advance to what may be the left paren. */
+              if (get_token() == tok_lparen) {
+                /* Cache the left parenthesis. */
+                cache_curr_token(&cache);
+                /* Advance past it.  If the next token is a right paren or
+                   the start of a parameter declaration, this must be a
+                   constructor. */
+                (void)get_token();
+                if (curr_token == tok_rparen || curr_token == tok_ellipsis ||
+                    is_decl_start()) {
+                  /* Constructor. */
+                  is_constructor = TRUE;
+                }  /* if */
+              }  /* if */
+              /* Note that rescan_cached_tokens caches the current token as
+                 well as resetting the current token state to what it was
+                 before token caching was started.  So the current token
+                 should again be the name of the class being defined. */
+              rescan_cached_tokens(&cache);
+              if (is_constructor) {
+                basic_type = bt_no_type;
+                *type_ptr = make_reference_type(
+                                  scope_stack[decl_scope_level].assoc_type);
+                *output_flags |= DSO_CONSTRUCTOR | DSO_NO_DECL_SPECIFIERS;
+                /* Turn the current locator from a "specific symbol" locator
+                   into a constructor locator. */
+                determine_curr_token_type_symbol();
+                change_class_locator_into_constructor_locator(
+                                                     &locator_for_curr_id);
+                /* Note that with a branch to exit_loop the get_token call
+                   is bypassed.  This means curr_token will still represent
+                   the constructor name (= class name) upon return to the
+                   caller. */
+                goto exit_loop;
+              }  /* if */
+            }  /* if */
+          }  /* if */
         }  /* if */
         /* The appearance of an identifier may mean that the specifiers
            are complete (the identifier is a declarator) or it may be another
@@ -5077,68 +5139,6 @@ process_class_specifier:
             /* Save the type. */
             basic_type = bt_typedef;
             *type_ptr = type_symbol_type(curr_token_type_symbol);
-            if (is_member_decl) {
-              /* Check for a constructor declaration.  The following conditions
-                 must be satisfied:  (1) we are inside a class definition;
-                 (2) the current token is the name of the class being defined
-                 (note that typedef names are not allowed); (3) the declaration
-                 has no other specifiers besides "inline" (e.g., "const" is
-                 not allowed); (4) the next token is a left parenthesis; (5)
-                 the token following the left paren is a right paren or the
-                 start of a formal parameter declaration. */
-              if ((num_specifiers == 0 ||
-                   (num_specifiers == 1 && (*output_flags & DSO_INLINE))) &&
-                  (curr_token_type_symbol->kind ==
-                                       (a_symbol_kind)sk_class_or_struct_tag ||
-                   curr_token_type_symbol->kind ==
-                                       (a_symbol_kind)sk_union_tag) &&
-                  has_name_of_curr_class(&locator_for_curr_id)) {
-                /* The name is the same as that of a class being defined.  This
-                   is treated as a constructor declaration if the next two
-                   tokens are a left paren and declaration start token.  Use
-                   token caching in the look-ahead, since the tokens will have
-                   to be rescanned no matter what. */
-                a_token_cache    cache;
-
-                clear_token_cache(&cache);
-                /* Put the current token in the cache. */
-                cache_curr_token(&cache);
-                /* Advance to what may be the left paren. */
-                if (get_token() == tok_lparen) {
-                  /* Cache the left parenthesis. */
-                  cache_curr_token(&cache);
-                  /* Advance past it.  If the next token is a right paren or
-                     the start of a parameter declaration, this must be a
-                     constructor. */
-                  (void)get_token();
-                  if (curr_token == tok_rparen || curr_token == tok_ellipsis ||
-                      is_decl_start()) {
-                    /* Constructor. */
-                    *output_flags |= DSO_CONSTRUCTOR;
-                    basic_type = bt_no_type;
-                    *type_ptr = make_reference_type(
-                                    scope_stack[decl_scope_level].assoc_type);
-                  }  /* if */
-                }  /* if */
-                /* Note that rescan_cached_tokens caches the current token as
-                   well as resetting the current token state to what it was
-                   before token caching was started.  So the current token
-                   should again be the name of the class being defined. */
-                rescan_cached_tokens(&cache);
-                if (basic_type == bt_no_type) {
-                  /* Turn the current locator from a "specific symbol" locator
-                     into a constructor locator. */
-                  change_class_locator_into_constructor_locator(
-                                                       &locator_for_curr_id);
-                  *output_flags |= DSO_NO_DECL_SPECIFIERS;
-                  /* Note that with a branch to exit_loop the get_token call
-                     is bypassed.  This means curr_token will still represent
-                     the constructor name (= class name) upon return to the
-                     caller. */
-                  goto exit_loop;
-                }  /* if */
-              }  /* if */
-            }  /* if */
           }  /* if */
           break;
         }  /* if */
