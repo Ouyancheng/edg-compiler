@@ -5841,7 +5841,7 @@ Generate code for a list of I/O items.
         if (iodp->format_kind == (an_io_format_kind)iof_list_directed) {
           /* For list-directed, output the type code at the start. */
           (void)fprintf(f_C_output, "&_con%s, ", type_code_string(elem_type));
-          /* For complex numberes, list-directed transfers both the real
+          /* For complex numbers, list-directed transfers both the real
              and imaginary parts, so no special case is needed. */
           complex_case = FALSE;
           /* Undo the division by 2 above. */
