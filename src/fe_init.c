@@ -225,6 +225,10 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_signed,    "signed");
     enter_keyword((a_token_kind)tok_volatile,  "volatile");
   }  /* if */
+  if (c99_mode) {
+    /* Enable keywords required in C99 mode. */
+    enter_keyword((a_token_kind)tok_inline, "inline");
+  }  /* if */
   /* __ALIGNOF__(type) returns the alignment requirement for a type.
      __INTADDR__(addr_expr) scans its argument as an initializer
      expression and converts it to integer.  It is used in the
@@ -232,7 +236,7 @@ Install the keywords in the symbol table.
   enter_keyword((a_token_kind)tok_alignof,   "__ALIGNOF__");
   enter_keyword((a_token_kind)tok_intaddr,   "__INTADDR__");
 #if RESTRICT_ALLOWED
-  if (restrict_recognized) {
+  if (restrict_enabled) {
     enter_keyword((a_token_kind)tok_restrict,  "restrict");
   }  /* if */
 #endif /* RESTRICT_ALLOWED */

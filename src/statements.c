@@ -4282,6 +4282,9 @@ The return expression is also set for a return from a constructor.
     if (strict_ansi_mode && !C_mode()) {
       /* In strict C++ mode, the severity may be an error. */
       no_returned_value_severity = strict_ansi_discretionary_severity;
+    } else if (c99_mode) {
+      /* In C99 mode a non-void function must return a value. */
+      no_returned_value_severity = es_error;
     }  /* if */
     if ((int)no_returned_value_severity <= (int)es_warning &&
         is_implicit_return &&
@@ -5262,10 +5265,11 @@ rescan_statement:
     default:
 expr_statement:
       /* An expression statement. */
-      if (C_dialect == C_dialect_cplusplus &&
-          (curr_token == tok_using || curr_token == tok_namespace ||
-           is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED))) {
-        /* Scan a declaration (C++ only). */
+      if ((mixed_decls_and_statements_allowed &&
+           is_decl_not_expr(DFS_REAL_DECLARATOR_ALLOWED)) ||
+          (C_dialect == C_dialect_cplusplus &&
+           (curr_token == tok_using || curr_token == tok_namespace))) {
+        /* Scan a declaration (C++ and C99 only). */
         is_declaration = TRUE;
         decl_statement();
       } else {
@@ -5392,9 +5396,9 @@ branching into it is disallowed).
 
   /* Scan the sequence of statements. */
   while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
-    if (C_dialect == C_dialect_cplusplus) {
-      /* In C++ mode, where declarations can be interspersed with executable
-         statements, statement() handles declarations, too. */
+    if (mixed_decls_and_statements_allowed) {
+      /* In C++ and C99 modes, where declarations can be interspersed with
+         executable statements, statement() handles declarations, too. */
       (void)statement();
     } else {
       /* In C mode the declarations are expected to appear first.  Note that
@@ -5426,7 +5430,7 @@ branching into it is disallowed).
     }  /* if */
   }  /* while */
 
-  if (C_dialect == C_dialect_cplusplus || !any_statements) {
+  if (mixed_decls_and_statements_allowed || !any_statements) {
     wrapup_decl_statement();
   }  /* if */
   /* Move cached #pragma declarations (if any) to the current scope stack

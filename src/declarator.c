@@ -421,7 +421,19 @@ property fields).
            of zero, which is the case for the partial array and pointer
            types. */
         temp_type = skip_typerefs(new_type_ptr);
-        if (is_object_type(temp_type) || is_pointer_type(temp_type)) {
+        if (is_object_type(temp_type)) {
+          /* Usually okay. */
+          if (flexible_array_members_allowed) {
+            /* A struct or union containing a member that is a zero-length
+               array cannot be an array element type. */
+            if (is_class_struct_union_type(temp_type) &&
+                temp_type->variant.class_struct_union.
+                                contains_flexible_array_member) {
+              error(ec_flexible_array_member_not_allowed);
+              err = TRUE;
+            }  /* if */
+          }  /* if */
+        } else if (is_pointer_type(temp_type)) {
           /* Okay. */
         } else if (temp_type->kind == (a_type_kind)tk_array &&
                    (has_unknown_specified_bound(temp_type) ||
@@ -3918,7 +3930,7 @@ function_lparen:
       a_boolean  top_level_field_decl;
 
 #if RESTRICT_ALLOWED
-      if (restrict_recognized) {
+      if (restrict_enabled) {
         /* There is no command line option suppressing recognition of
            "restrict", so we may need to handle the special syntax for
            declaring restrict-qualified arrays. */

@@ -4369,7 +4369,8 @@ or struct definition.  The syntax is
         if (is_qualified_type(base_class_type) ||
             (base_class_type = skip_typerefs(base_class_type)) == type_ptr ||
             base_class_type->kind == (a_type_kind)tk_union ||
-            bcp_cssp->last_field_is_incomplete_array) {
+            base_class_type->
+                 variant.class_struct_union.contains_flexible_array_member) {
           error(ec_bad_base_class);
           goto skip_base_class;
         } else {
@@ -8317,14 +8318,40 @@ respectively.
   a_type_ptr  class_type = class_state->class_type;
 
   /* First check whether there was a preceding field of incomplete array type
-     for which an error should now be issued (in Microsoft mode only). */
+     for which an error should now be issued. */
   if (class_state->last_field_is_incomplete_array) {
-    check_assertion(class_state->end_of_field_list != NULL &&
+    a_field_ptr  prev_field = class_state->end_of_field_list;
+
+    check_assertion(prev_field != NULL &&
                     !is_union_type(class_state->class_type));
     pos_error(ec_incomplete_type_not_allowed,
-              &class_state->end_of_field_list->source_corresp.decl_position);
-    class_state->end_of_field_list->type = error_type();
+              &prev_field->source_corresp.decl_position);
+    prev_field->type = error_type();
     class_state->last_field_is_incomplete_array = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  } else if (microsoft_mode) {
+    /* In Microsoft mode a class or struct may include a member whose type
+       contains a final field that is an unknown-size array, but only if the
+       member with such a type is the last field.  If the previous field was
+       of such a type, no error was issued, in case it was the last field;
+       issue the error now. */
+    if (!is_union_type(class_type) &&
+        class_type->variant.class_struct_union.
+                              contains_flexible_array_member) {
+      a_field_ptr  prev_field = class_state->end_of_field_list;
+
+      check_assertion(prev_field != NULL &&
+                      is_class_struct_union_type(prev_field->type) &&
+                      skip_typerefs(prev_field->type)->
+                                        variant.class_struct_union.
+                                        contains_flexible_array_member);
+      pos_error(ec_flexible_array_member_not_allowed,
+                &prev_field->source_corresp.decl_position);
+      prev_field->type = error_type();
+      class_type->variant.class_struct_union.
+                                  contains_flexible_array_member = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   /* The type specified must be complete. */
   complete_type_is_needed(field_type);
@@ -8333,12 +8360,13 @@ respectively.
     pos_error(ec_function_type_not_allowed, &locator->source_position);
     field_type = error_type();
   } else if (is_incomplete_type(field_type)) {
-    /* The member type is incomplete.  This is usually an error, but as
-       an extension allow an array of unknown size as the last member. */
+    /* The member type is incomplete.  This is not necessarily an error:
+       an array of unknown size is sometimes allowed as the last member. */
     a_boolean   incomplete_okay = FALSE;
 
-    /* This extension is allowed only in C mode, or in Microsoft C++ mode
-       if the class has no virtual base classes. */
+    /* The last member may be an incomplete array in C99 mode, as an
+       extension otherwise in C mode, and in Microsoft C++ mode as long as
+       the class has no virtual base classes. */
     if (C_mode() ||
         (microsoft_mode &&
          !class_type->variant.class_struct_union.any_virtual_base_classes)) {
@@ -8356,27 +8384,34 @@ respectively.
             incomplete_okay = TRUE;
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (!class_state->is_first_field || microsoft_mode) {
-          /* struct/class: an incomplete array is allowed only as the last
-             field, and except in Microsoft mode it can't be the first field.
-             Issue an error later if there turns out to be another field.
-             This can't be determined by looking at the next token in C++
-             mode, since any member (other than a field) could legitimately
-             follow, or even in C mode (with an "autonomous" nested struct
-             declaration). Note that fields marked as "properties" (Microsoft
-             mode), never need to be complete either: such fields behave more
-             like member functions. */
-          incomplete_okay = TRUE;
-          class_state->last_field_is_incomplete_array = TRUE;
+        } else {
+          /* The field has an incomplete array type, and it's a member of a
+             struct or class.  This can sometimes be okay -- in Microsoft
+             mode (both C and C++) and, as long as it's not the first named
+             field, in C99 mode.  As an extension, this is supported in
+             other C modes (except in strict C89 mode). */
+          if ((!class_state->is_first_field &&
+               class_state->any_named_fields) ||
+              microsoft_mode) {
+            /* A further restriction is that the incomplete array has to be
+               the last field in the struct or class.  This can't always be
+               determined simply by looking at the next token, so set a flag
+               now and issue the error later if it turns out that another
+               field follows it.  Note that fields marked as "properties"
+               (Microsoft mode) never need to be complete either: such
+               fields behave more like member functions. */
+            incomplete_okay = TRUE;
+            class_state->last_field_is_incomplete_array = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          if (microsoft_mode &&
-              (decl_info->decl_modifiers.get_property_name != NULL ||
-               decl_info->decl_modifiers.put_property_name != NULL)) {
-            /* This is a property field: no need to guard against additionally
-               appended fields. */
-            class_state->last_field_is_incomplete_array = FALSE;
-          }
+            if (microsoft_mode &&
+                (decl_info->decl_modifiers.get_property_name != NULL ||
+                 decl_info->decl_modifiers.put_property_name != NULL)) {
+              /* This is a property field: no need to guard against
+                 additionally appended fields. */
+              class_state->last_field_is_incomplete_array = FALSE;
+            }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -8398,6 +8433,35 @@ respectively.
       } else {
         pos_error(ec_incomplete_type_not_allowed, &locator->source_position);
       }  /* if */
+      field_type = error_type();
+    }  /* if */
+  } else if (flexible_array_members_allowed &&
+             is_class_struct_union_type(field_type) &&
+             skip_typerefs(field_type)->
+               variant.class_struct_union.contains_flexible_array_member) {
+    /* The member is a struct whose final member is an incomplete array or
+       else the member is a union that contains such a struct. */
+    if (class_type->kind == (a_type_kind)tk_union) {
+      /* The containing type is a union.  The member is allowed, but be sure
+         the containing class is marked, since there are restrictions on its
+         use in C99 mode. */
+      class_type->variant.class_struct_union.
+                                  contains_flexible_array_member = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode) {
+      /* In Microsoft mode the error is issued only if the struct containing
+         a flexible array member is not the last member.  Just set the flag
+         for now and do the check later. */
+      class_type->variant.class_struct_union.
+                                  contains_flexible_array_member = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else {
+      /* The containing type is a struct, and so the member type is not
+         allowed (i.e., the member may not be a struct with an incomplete
+         array type as its last field nor be a union with such a member --
+         see C99 standard, 6.7.2.1 para 2). */
+      pos_error(ec_flexible_array_member_not_allowed,
+                &locator->source_position);
       field_type = error_type();
     }  /* if */
   }  /* if */
@@ -11477,21 +11541,27 @@ bits of information that were acquired while parsing.
 
   if (class_state->last_field_is_incomplete_array) {
     /* The last field that was recorded was an incomplete array.  This is
-       permitted in C mode (as an extension) and in Microsoft C++ mode.
-       If this is strict-ANSI-C mode, issue a diagnostic.  If it is
-       Microsoft C++ mode, mark the class so it will not be used as a
-       base class. */
+       permitted in C mode (as an extension), in C99 mode, and in Microsoft
+       mode (both C and C++).  If this is strict-ANSI-C89 mode, issue a
+       diagnostic.  Otherwise, mark class_type as containing an incomplete
+       array member, since there are constraints on how it can be used.
+       (E.g., it can't be the element type of an array, and in Microsoft C++
+       mode it can't be used as a base class.) */
     check_assertion((C_mode() || microsoft_mode) &&
                     !is_union_type(class_state->class_type));
-    if (strict_ansi_mode) {
+    class_type->variant.class_struct_union.
+                                    contains_flexible_array_member = TRUE;
+    if (strict_ansi_mode && !c99_mode) {
       a_field_ptr  fp = class_state->end_of_field_list;
       pos_diagnostic(strict_ansi_error_severity,
                      ec_incomplete_type_not_allowed,
                      &fp->source_corresp.decl_position);
-      if (strict_ansi_error_severity == es_error) fp->type = error_type();
+      if (strict_ansi_error_severity == es_error) {
+        fp->type = error_type();
+        class_type->variant.class_struct_union.
+                                    contains_flexible_array_member = FALSE;
+      }  /* if */
     }  /* if */
-    /* Flag is needed only in Microsoft C++ mode. */
-    if (!C_mode()) cssp->last_field_is_incomplete_array = TRUE;
   }  /* if */    
   if (!class_state->is_nonreal_instantiation) {
     if (may_be_added_to_types_list(class_type, effective_decl_level)) {

@@ -1232,9 +1232,10 @@ When extended_designators_allowed is TRUE, we also accept:
 This routine scans a single '[' <expr> ']' (or '[' <expr> '...' <expr> ']'
 designator. Designations consisting of multiple designators are handled by
 the recursion in get_initializer.
+
 The state of this initialization is described by context. If a valid
 designator is found, *start_pos is set to the designated position. Moreover,
-if a valid extended designator of the form '[' <expr> '...' <expr> ']' if
+if a valid extended designator of the form '[' <expr> '...' <expr> ']' is
 found, context->repeat is set to a newly created ck_init_repeat constant.
 */
 {

@@ -299,11 +299,10 @@ The variable can also been controlled from the command line by --[no_]vla.
 */
 #ifndef DEFAULT_VLA_ENABLED
 #define DEFAULT_VLA_ENABLED FALSE
-#else /* ifndef DEFAULT_VLA_ENABLED */
+#endif /* ifndef DEFAULT_VLA_ENABLED */
 #if DEFAULT_VLA_ENABLED && !VLA_ALLOWED
   #error -- DEFAULT_VLA_ENABLED cannot be true unless VLA_ALLOWED is true
 #endif /* DEFAULT_VLA_ENABLED && !VLA_ALLOWED */
-#endif /* ifndef DEFAULT_VLA_ENABLED */
 
 /*
 Flag that is used as the default setting for global variable
@@ -670,17 +669,32 @@ Flag that is TRUE if "#alias" is recognized.
 Flag that is TRUE if the "restrict" keyword is allowed (in both C and C++).
 This extension implements NCEG proposal X3J11.1 92-068 ("Aliasing Control
 via Restricted Pointers" by Bill Homer of CRI), which was adapted for C++
-in proposal X3J16/92-0057 (by Mike Holly).  Briefly stated, restrict is a
-type qualifier that may be applied to pointers and references and to arrays
-that appear as function parameter types.  Its use represents a guarantee by
-the programmer that, within the scope of the pointer declaration, the
-object pointed to can be accessed only by that pointer; since any violation
-of this guarantee renders the program undefined, the compiler may rely on
-it in performing optimizations.
+in proposal X3J16/92-0057 (by Mike Holly).  It is also included in the
+C99 standard.  Briefly stated, restrict is a type qualifier that may be
+applied to pointers and references and to arrays that appear as function
+parameter types.  Its use represents a guarantee by the programmer that,
+within the scope of the pointer declaration, the object pointed to can be
+accessed only by that pointer; since any violation of this guarantee renders
+the program undefined, the compiler may rely on it in performing
+optimizations.  
 */
 #ifndef RESTRICT_ALLOWED
 #define RESTRICT_ALLOWED FALSE
 #endif /* ifndef RESTRICT_ALLOWED */
+
+/*
+Flag that is used as the default setting for global variable restrict_enabled,
+which controls the availability of the "restrict" keyword.
+The variable can also be set from the command line by --[no_]restrict.
+Moreover, restrict_enabled is always turned on by default in C99 mode.
+*/
+#ifndef DEFAULT_RESTRICT_ENABLED
+#define DEFAULT_RESTRICT_ENABLED FALSE
+#endif /* ifndef DEFAULT_RESTRICT_ENABLED */
+#if DEFAULT_RESTRICT_ENABLED && !RESTRICT_ALLOWED
+  #error -- DEFAULT_RESTRICT_ENABLED cannot be true unless \
+            RESTRICT_ALLOWED is true
+#endif /* DEFAULT_RESTRICT_ENABLED */
 
 /*
 Flag that is TRUE if, in C++ mode, wchar_t is a keyword by default.  This is

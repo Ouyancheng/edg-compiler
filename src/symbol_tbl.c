@@ -608,17 +608,12 @@ and indentation is the indentation desired.
         if (cssp->any_template_dependent_fields) {
           put_string("has dependent field");
         }  /* if */
-        if (cssp->last_field_is_incomplete_array) {
-          put_string("last field is zero-array");
-        }  /* if */
-#if 0
-        if (cssp->member_decl_scope != NO_SCOPE_NUMBER) {
-          sprintf(buffer, "member decl scope %ld", cssp->member_decl_scope);
-          put_string(buffer);
-        }  /* if */
-#endif /* if 0 */
         if (cssp->template_param_for_proxy_class != NULL) {
           if (debug_level >= 4) put_string("has ptr for proxy");
+        }  /* if */
+        if (temp_type->variant.class_struct_union.
+                                          contains_flexible_array_member) {
+          put_string("contains flexible array member");
         }  /* if */
         if (temp_type->variant.class_struct_union.any_const_member) {
           put_string("has const member");
@@ -2360,7 +2355,6 @@ state.
         cssp->any_nonstatic_data_members = FALSE;
         cssp->any_nonreal_base_classes = FALSE;
         cssp->instantiation_in_progress = FALSE;
-        cssp->last_field_is_incomplete_array = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         cssp->definition_is_first_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

@@ -4141,6 +4141,11 @@ typedef struct a_type {
 			   virtual functions, virtual base classes or bases
 			   (direct or indirect) with such things.  Computed in
 			   do_class_layout. */
+      a_bit_field
+		contains_flexible_array_member:1;
+			/* TRUE if this is a struct and the last field is an
+			   incomplete array type or if it is a union and one
+			   of its members is a struct with such a field. */
       bitfield_to_avoid_codecenter_warnings()
 #if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment

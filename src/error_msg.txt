@@ -1076,6 +1076,7 @@ ec_cl_parse_nonclass_templates_option_only_in_cplusplus;;"option \"parse_templat
 ec_cl_dep_name_requires_parse_nonclass_templates;;"option \"dep_name\" cannot be used with \"no_parse_templates\""
 ec_cl_incompatible_language_modes;;"language modes specified are incompatible"
 ec_invalid_nested_class_redecl;;"invalid redeclaration of nested class"
+ec_flexible_array_member_not_allowed;;"type containing an unknown-size array is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

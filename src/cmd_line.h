@@ -880,14 +880,14 @@ EXTERN char	*pch_dir_name /* = NULL*/;
 
 #if RESTRICT_ALLOWED
 EXTERN a_boolean
-		restrict_recognized
+		restrict_enabled
 #if VAR_INITIALIZERS
-                                    = TRUE
+                                 = DEFAULT_RESTRICT_ENABLED
 #endif /* VAR_INITIALIZERS */
-                                          ;
-			/* TRUE if the restrict token should be recognized.
-			   When this flag is FALSE, "restrict" is not entered
-			   into the symbol table. */
+                                                           ;
+			/* TRUE if support for the restricted pointers is
+			   provided, in which case "restrict" is recognized
+			   as a keyword. */
 #endif /* RESTRICT_ALLOWED */
 
 EXTERN a_boolean
@@ -1326,6 +1326,19 @@ EXTERN a_boolean
 			   (e.g., in C++, C99, and microsoft modes).  See
 			   also END_OF_LINE_COMMENTS_ALLOWED_IN_C_MODE. */
 
+EXTERN a_boolean
+		mixed_decls_and_statements_allowed /* = FALSE */;
+			/* TRUE in C++ and C99 modes, to allow interspersed
+			   declarations and executable statements within a
+			   block. */
+
+EXTERN a_boolean
+		flexible_array_members_allowed /* = FALSE */;
+			/* TRUE if the final field of a struct may be an
+			   incomplete array type.  This is part of the C99
+			   standard and is permitted as an extension in C
+			   mode.  It is also permitted in Microsoft mode
+			   (both C and C++). */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

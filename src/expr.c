@@ -1286,10 +1286,10 @@ Syntax:
         /* Implicitly declare the symbol as a function. */
         enter_undefined_symbol(func_sym);
         decl_default_function(func_sym);
-        /* Issue a low-severity diagnostic, not usually displayed.  In C++,
-           issue an error (implicit declaration of functions is not
+        /* Issue a low-severity diagnostic, not usually displayed.  In C++
+           and C99, issue an error (implicit declaration of functions is not
            allowed). */
-        if (C_dialect == C_dialect_cplusplus) {
+        if (C_dialect == C_dialect_cplusplus || c99_mode) {
           pos_st_error(ec_undefined_identifier, &operand->position,
                        func_sym->header->identifier);
         } else {

@@ -1331,6 +1331,7 @@ by a command line option.
     single_ref_qual_ovl_res_tiebreaker = microsoft_bugs;
     allow_nonconst_ref_anachronism = TRUE;
     allow_nonconst_call_anachronism = (microsoft_version < 1000);
+    flexible_array_members_allowed = TRUE;
   }  /* if */
 }  /* set_microsoft_mode_flags */
 
@@ -1469,6 +1470,12 @@ Set the various flags appropriate to C99 mode.
     vla_enabled = TRUE;
   }  /* if */
 #endif /* VLA_ALLOWED */
+#if RESTRICT_ALLOWED
+  if (!restrict_enabled && !(option_kind_used[(int)optk_restrict])) {
+    /* Support for restricted pointers is turned on by default in C99 mode. */
+    restrict_enabled = TRUE;
+  }  /* if */
+#endif /* RESTRICT_ALLOWED */
   if (!extended_designators_allowed &&
       !(option_kind_used[(int)optk_extended_designators])) {
     /* Support for extended designators is turned on by default in
@@ -1489,8 +1496,13 @@ Set the various flags appropriate to C99 mode.
 #endif /* COMPOUND_LITERAL_ENABLING_POSSIBLE */
   /* Support for alternative tokens is turned on by default in C99 mode. */
   alternative_tokens_allowed = TRUE;
-  /* C99 mode, strict or otherwise: // comments are allowed. */
+  /* In C99 mode, strict or otherwise, // comments are allowed. */
   end_of_line_comments_allowed = TRUE;
+  /* In C99 declarations and executable statements can be interspersed
+     within a block. */
+  mixed_decls_and_statements_allowed = TRUE;
+  /* The final field of a struct may be an incomplete array. */
+  flexible_array_members_allowed = TRUE;
 }  /* set_c99_mode_flags */
 
 
@@ -1540,6 +1552,8 @@ process.
   operator_overloading_on_enums_enabled = FALSE;  /* Not really needed. */
   string_literals_are_const = FALSE;
   arg_dependent_lookup_enabled = FALSE;
+  /* The final field of a struct may be an incomplete array. */
+  flexible_array_members_allowed = TRUE;
   /* Set the variable that controls whether "//" is allowed as a comment
      delimiter. */
   if (c99_mode || microsoft_mode) {
@@ -1721,6 +1735,9 @@ setting is used, and to set various unmentioned settings as needed.
   }  /* if */
   /* "//" is allowed as a comment delimiter. */
   end_of_line_comments_allowed = TRUE;
+  /* In C++ declarations and executable statements can be interspersed
+     within a block. */
+  mixed_decls_and_statements_allowed = TRUE;
 }  /* check_and_set_cplusplus_mode_options */
 
 
@@ -1876,6 +1893,18 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
       /* Long preserving rules enabled by default.  Silently disable them. */
 	long_preserving_rules = FALSE;
     }  /* if */
+  }  /* if */
+#if RESTRICT_ALLOWED
+  if (!(option_kind_used[(int)optk_restrict])) {
+    /* Support for restricted pointers is turned off by default in strict
+       mode. */
+    restrict_enabled = FALSE;
+  }  /* if */
+#endif /* RESTRICT_ALLOWED */
+  if (!c99_mode) {
+    /* In strict mode the final field of a struct may not be an incomplete
+       array, except in strict C99 mode. */
+    flexible_array_members_allowed = FALSE;
   }  /* if */
   if (C_mode()) {
     /* Set optional features to standard settings for strict C mode. */
@@ -2699,7 +2728,7 @@ Process the arguments on the command line that invoked the compiler.
 #if RESTRICT_ALLOWED
       case optk_restrict:
         /* Enables or disables recognition of the restrict token. */
-        restrict_recognized = opt_value;
+        restrict_enabled = opt_value;
         break;
 #endif /* RESTRICT_ALLOWED */
       case optk_long_lifetime_temps:
