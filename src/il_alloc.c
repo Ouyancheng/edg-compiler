@@ -3319,6 +3319,7 @@ in il_alloc_init.)
   def_source_corresp.okay_to_walk_subtree_of_local_entity = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
   def_source_corresp.copied_from_secondary_trans_unit = FALSE;
+  def_source_corresp.placed_on_list_after_copied = FALSE;
   def_source_corresp.same_name_as_external_entity_in_secondary_trans_unit =
                                                                         FALSE;
   def_source_corresp.member_of_unknown_base = FALSE;

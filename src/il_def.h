@@ -1112,6 +1112,10 @@ typedef struct a_source_correspondence {
 			   translation unit IL.  That might mean that its
 			   name conflicts with the name of another entity
 			   in the IL. */
+  a_bit_field	placed_on_list_after_copied:1;
+			/* When copied_from_secondary_trans_unit is TRUE,
+			   indicates whether the copied entry has been put
+			   on a list yet in the primary IL. */
   a_bit_field	same_name_as_external_entity_in_secondary_trans_unit:1;
 			/* TRUE if this is an entity in the primary translation
 			   unit IL that doesn't have external linkage but that
