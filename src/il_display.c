@@ -823,6 +823,15 @@ Display the indicated based type list.
 }  /* disp_based_type_list */
 
 
+static void disp_type_qualifiers(a_type_qualifier_set qualifiers)
+/*
+Display a set of type qualifiers (e.g., const, volatile).
+*/
+{
+  form_type_qualifier(qualifiers, /*need_trailing_space=*/FALSE, &octl);
+}  /* disp_type_qualifiers */
+
+
 static void disp_type(a_type_ptr ptr)
 /*
 Display the indicated type entry.
@@ -1008,21 +1017,8 @@ do_struct_union:
       } else if (ptr->variant.typeref.is_placeholder_for_nested_class_def) {
         disp_boolean("is_placeholder_for_nested_class_def", TRUE);
       } else if (ptr->variant.typeref.qualifiers != TQ_NONE) {
-        a_boolean  space_needed = FALSE;
         disp_name("qualifiers");
-        if (typeref_is_const_qualified(ptr)) {
-          (void)printf("const");
-          space_needed = TRUE;
-        }  /* if */
-        if (typeref_is_volatile_qualified(ptr)) {
-          (void)printf("%svolatile", space_needed ? " ":"");
-#if RESTRICT_ALLOWED
-          space_needed = TRUE;
-        }  /* if */
-        if (typeref_is_restrict_qualified(ptr)) {
-          (void)printf("%srestrict", space_needed ? " ":"");
-#endif /* RESTRICT_ALLOWED */
-        }  /* if */
+        disp_type_qualifiers(ptr->variant.typeref.qualifiers);
         (void)printf("\n");
       }  /* if */
       break;
@@ -3182,7 +3178,12 @@ Display the indicated class type supplement entry.
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  disp_decl_modifiers(ptr->decl_modifiers);
+  if (ptr->decl_modifiers != DM_NONE) {
+    disp_decl_modifiers(ptr->decl_modifiers);
+  }  /* if */
+  if (ptr->qualifiers != TQ_NONE) {
+    disp_type_qualifiers(ptr->qualifiers);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     disp_name("anonymous_union_kind");

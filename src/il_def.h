@@ -2597,6 +2597,10 @@ typedef struct a_class_type_supplement {
 			/* Additional declaration information representing
 			   Microsoft-style __declspec modifiers that are
 			   applied to the class as a whole. */
+  a_type_qualifier_set
+		qualifiers;
+			/* Qualifiers that apply to the class as a whole,
+			   as in "class __far A {}". */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   an_anonymous_union_kind
 		anonymous_union_kind;

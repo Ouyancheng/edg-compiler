@@ -774,6 +774,7 @@ a pointer to it.
   ctsp->virtual_function_info_base_class  = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ctsp->decl_modifiers                    = DM_NONE;
+  ctsp->qualifiers                        = TQ_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
