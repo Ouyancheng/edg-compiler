@@ -1246,6 +1246,24 @@ new fields are set properly.
       pos_error(ec_too_many_args_for_conversion, &locator->source_position);
       err = TRUE;
     }  /* if */
+    /* Check the target type of the conversion -- which is the return type
+       of rout_type. */
+    tp = skip_typerefs(rout_type->variant.routine.return_type);
+    if (is_reference_type(tp)) {
+      tp = skip_typerefs(type_pointed_to(tp));
+    }  /* if */
+    if (tp == class_type || is_void_type(tp) ||
+        (is_class_struct_union_type(tp) &&
+         find_base_class_of(class_type, tp) != NULL)) {
+      /* Conversion to the same type or to a reference to the same type
+         or to base class or to reference to base class is not allowed
+         (WP 12.3.2).  Conversion to void type is not allowed (Boston
+         X3J16). */
+      pos_ty2_error(ec_conversion_to_type_not_allowed,
+                    &locator->source_position, class_type,
+                    rout_type->variant.routine.return_type);
+      err = TRUE;
+    }  /* if */
   } else if (locator->is_operator_name) {
     /* It's an operator. */
     opname = locator->variant.opname;
@@ -5089,8 +5107,13 @@ parameter controls the restrictions imposed by the context.
             error(ec_reference_to_void);
             err = TRUE;
           }  /* if */
+#if 0
           complete_type = make_reference_type(err ? error_type() :
                                                     complete_type);
+#else
+          complete_type = err ? error_type() :
+                                make_reference_type(complete_type);
+#endif /* if 0 */
         }  /* if */
       } else {
         /* The specifiers type is not known, so the bottom-most pointer type
