@@ -1262,9 +1262,9 @@ Display the indicated based type list.
 #ifdef CFE
         case btk_qualified:      kind_str = "  qualified";               break;
         case btk_reference:      kind_str = "  reference";               break;
-        case btk_ptr_to_member:  kind_str = "  pointer to member";       break;
+        case btk_ptr_to_member:  kind_str = "  ptr_to_member";           break;
         case btk_unqualified_array_type:
-                                 kind_str = "  unqualified array type";  break;
+                                 kind_str = "  unqualified_array_type";  break;
 #endif /* ifdef CFE */
         case btk_pointer:        kind_str = "  pointer";                 break;
         default:                 kind_str = "  **BAD BASED TYPE KIND**"; break;
@@ -4601,7 +4601,7 @@ Display the indicated dynamic_init structure.
       break;
     case dik_call_returning_class_via_cctor:
       (void)printf("dik_call_returning_class_via_cctor\n");
-      disp_ptr("call returning class via cctor",
+      disp_ptr("call_returning_class_via_cctor",
                (char *)ptr->variant.expression, iek_expr_node);
       break;
     case dik_constructor:
@@ -5491,7 +5491,7 @@ Display the IL for the file scope in human-readable form.
                (a_boolean)il_header.local_vars_are_static);
 #endif /* ifdef FFE */
   /* region_scope_entry is not displayed. */
-  disp_name("source language");
+  disp_name("source_language");
   disp_source_language_name(il_header.source_language);
   (void)printf("\n");
 #ifdef CFE
