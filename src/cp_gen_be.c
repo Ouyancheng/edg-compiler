@@ -5511,17 +5511,20 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_pm_base_class_cast:
         case eok_pm_derived_class_cast:
           /* Special casts. */
-          /* Incorporate any cast steps that were implicit in an explicit
-             cast. */
-          if (!expr->variant.operation.compiler_generated) {
+          if (expr->variant.operation.compiler_generated) {
+            /* For an implicit cast, just put put the underlying operand. */
+            gen_expression(operand_1);
+          } else {
+            /* Incorporate any cast steps that were implicit in an explicit
+               cast. */
             while (is_operation_node(operand_1) &&
                    operand_1->variant.operation.
                                               implicit_step_of_explicit_cast) {
               operand_1 = operand_1->variant.operation.operands;
             }  /* while */
+            gen_cast(expr->type);
+            gen_expr_with_parens(operand_1);
           }  /* if */
-          gen_cast(expr->type);
-          gen_expr_with_parens(operand_1);
           goto done_with_operation;
         case eok_lvalue_cast:
           check_assertion(C_mode());
