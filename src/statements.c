@@ -2690,6 +2690,8 @@ See also 3.6.6.2.
     /* No appropriate structured statement was found. */
     error(ec_continue_must_be_in_loop);
     dest_label = alloc_temp_label();
+    /* Discard any pragmas that are bound to the current statement. */
+    discard_curr_construct_pragmas();
   } else {
     /* Found the loop that this continue statement should exit. */
     dest_label = sssep->continue_label;
@@ -2778,9 +2780,6 @@ See also 3.6.6.3.
       stmt_update_source_sequence_list(sp);
       /* Put the destination label into the goto. */
       sp->variant.label = dest_label;
-      /* Do processing required for any pragmas that are bound to the current
-         statement. */
-      process_curr_construct_pragmas((a_symbol_ptr)NULL, sp);
     }  /* if */
   }  /* if */
   /* Ignore the initial "break". */
