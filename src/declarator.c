@@ -2012,9 +2012,10 @@ declaration.
     extra_info->qualifiers = qualifier_err ? TQ_NONE : qualifiers;
 #if 0
     /* Should a diagnostic be issued if a throw specification appears other
-       than on a top-level declaration? */
+       than on a top-level declaration?  The standard is imprecise in this
+       area. */
     if (curr_token == tok_throw && !is_top_level_declarator) {
-      /* Error?  Warning? */
+      /* Error? */
     }  /* if */
 #endif /* if 0 */
     extra_info->exception_specification =

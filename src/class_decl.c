@@ -5790,11 +5790,6 @@ a diagnostic should be issued by the caller.
     /* They are compatible so far. */
     if (is_class_member) {
       /* No diagnostic for class members. */
-#if 0
-      /* This is based on an interpretation that WP 7.3.3 para 13 applies to
-         all member functions (as the example suggests), not only to virtual
-         functions (as the text currently indicates). */
-#endif /* if 0 */
       compat = TRUE;
     } else {
       /* Namespace-scope declarations cannot conflict in this way. */
@@ -7021,12 +7016,6 @@ in-class member function declarations.)
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#if 0
-    /* If decl-modifiers were declared for the class and/or for the
-       member, check for consistency and use the union of the two. */
-    merge_decl_modifiers(class_type, decl_info,
-                         (a_boolean)func_info->is_definition);
-#endif /* if 0 */
     update_routine_decl_modifiers(rtn, &decl_info->decl_modifiers,
                                   &locator->source_position,
                                   /*is_redecl=*/FALSE,

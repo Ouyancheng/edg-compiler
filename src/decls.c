@@ -532,9 +532,10 @@ list of GNU C attributes, if applicable.
         if (!ptr_to_unknown_bound_array_allowed_in_param_type) {
           a_boolean  is_ref = FALSE;
 #if 0
-          /* WP 8.3.5 para 3 uses "includes" -- does this cover use in a
-             template argument?  We currently assume "yes", but if the answer
-             turns out to be "no", the flags passed to traverse_type_tree by
+          /* 8.3.5 para 6 of the standard uses "includes" -- does this cover
+             use in a template argument?
+             We currently assume "yes", but if the answer turns out to
+             be "no", the flags passed to traverse_type_tree by
              is_or_contains_ptr_or_ref_to_unknown_bound_array should be
              changed. */
 #endif /* if 0 */
