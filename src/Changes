@@ -1,5 +1,21 @@
 Version 2.19
 
+8/16/93 Guard code around template static data member initializations
+
+A new flag TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE has been added
+to target.h.  When it is set to TRUE, IL lowering will place "guard"
+code around the initialization and destruction code for static data
+members of templates.  This is necessary if template instantiation
+resolution is done by instantiating everything and then having the
+(specially-modified) linker discard duplicate copies of instantiated
+routines.  Static data members are a problem in such a scheme because
+the initialization/destruction code is generated in startup/termination
+routines, and is undifferentiated from other code in those routines.
+With the guard code, a flag is used to indicate that initialization
+or destruction has already been done.  After any one instance of the
+code does initialization or destruction, all other instances will do
+nothing.
+
 8/15/93 function-notation cast of nothing to void
 
 The expression "void()" used to produce an internal error.  It no longer
