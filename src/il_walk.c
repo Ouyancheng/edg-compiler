@@ -577,19 +577,24 @@ routine modifies some entry that might be earlier on the list, set
                                  need_another_pass);
     } else {
       /* Not a sublist (normal source sequence entry). */
-      char                         *entry_ptr;
-      an_il_entry_kind             entry_kind;
-      a_src_seq_secondary_decl_ptr sec_decl;
-      a_boolean                    keep_in_il;
+      char                           *entry_ptr;
+      an_il_entry_kind               entry_kind;
+      a_src_seq_secondary_decl_ptr   sec_decl = NULL;
+      a_src_seq_end_of_construct_ptr ecp = NULL;
+      a_boolean                      keep_in_il;
 
       if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
         /* This is a secondary declaration. */
         sec_decl = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
         entry_ptr = sec_decl->entity.ptr;
         entry_kind = (an_il_entry_kind)sec_decl->entity.kind;
+      } else if (ss_entry_kind(ssep) == iek_src_seq_end_of_construct) {
+        /* This is an end-of-construct entry. */
+        ecp = ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
+        entry_ptr = ecp->entity.ptr;
+        entry_kind = ecp->entity.kind;
       } else {
         /* This is a primary declaration. */
-        sec_decl = NULL;
         entry_ptr = ssep->entity.ptr;
         entry_kind = (an_il_entry_kind)ssep->entity.kind;
       }  /* if */
@@ -604,10 +609,12 @@ routine modifies some entry that might be earlier on the list, set
         keep_in_il = il_entry_prefix_of(entry_ptr).keep_in_il;
       }  /* if */
       /* Mark the source sequence entry the right way (and the secondary
-         declaration entry too, if there is one). */
+         declaration or end-of-construct entry too, if there is one). */
       if (keep_in_il) {
         il_entry_prefix_of(ssep).keep_in_il = TRUE;
-        if (sec_decl != NULL) {
+        if (ecp != NULL) {
+          il_entry_prefix_of(ecp).keep_in_il = TRUE;
+        } else if (sec_decl != NULL) {
           a_type_ptr decl_type = sec_decl->declared_type;
           il_entry_prefix_of(sec_decl).keep_in_il = TRUE;
           if (decl_type != NULL) {
