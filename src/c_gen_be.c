@@ -75,12 +75,24 @@ about and can work around.
 */
 #ifdef sun
 #if !C_GEN_BE_GENERATES_ANSI_C
-#define suncc TRUE
+#define SUNCC TRUE
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #endif /* ifdef sun */
-#ifndef suncc
-#define suncc FALSE
-#endif /* ifndef suncc */
+#ifndef SUNCC
+#define SUNCC FALSE
+#endif /* ifndef SUNCC */
+
+/*
+See if the target is the SGI C compiler, which we know something about.
+*/
+#ifdef __sgi
+#if !GCC_IS_C_GEN_BE_TARGET
+#define SGIC TRUE
+#endif /* !GCC_IS_C_GEN_BE_TARGET */
+#endif /* ifdef __sgi */
+#ifndef SGIC
+#define SGIC FALSE
+#endif /* ifndef SGIC */
 
 /*
 Prefix for the name of the file-scope initialization routine generated
@@ -984,11 +996,11 @@ Handle unprintable characters and necessary escapes.
 */
 {
   if (isprint((unsigned char)ch)
-#if suncc
+#if SUNCC
     /* The Sun cc (4.1.2) in -O mode when outputting assembly language
        has a bug that transforms quote into accent grave.  Avoid it. */
       && ch != '\''
-#endif /* suncc */
+#endif /* SUNCC */
                  ) {
     if (ch == '"' || ch == '\'' || ch == '\\') write_ch('\\');
     write_ch(ch);
@@ -1771,7 +1783,7 @@ is non-NULL, in which case that is the function scope.
       /* This is the definition of an old-style function.  Put out the
          parameter id list. */
       dump_param_id_list(param_var);
-#if suncc
+#if SUNCC
       if (rtsp->has_ellipsis) {
         /* This takes advantage of a special feature of the Sun cc compiler
            to handle variable argument lists.  The name "__builtin_va_alist"
@@ -1784,7 +1796,7 @@ is non-NULL, in which case that is the function scope.
         if (param_var != NULL) write_tok_str(", ");
         write_tok_str("__builtin_va_alist");
       }  /* if */
-#endif /* suncc */
+#endif /* SUNCC */
     }  /* if */
   } else {
     /* Prototyped list. */
@@ -2610,9 +2622,9 @@ an lvalue.
 {
   an_expr_node_ptr      operand_1, operand_2;
   an_expr_operator_kind op;
-#if suncc
+#if SUNCC
   a_boolean             remainder_special_case = FALSE;
-#endif /* suncc */
+#endif /* SUNCC */
   char                  *opstr;
 
   operand_1 = assign_node->variant.operation.operands;
@@ -2640,7 +2652,7 @@ an lvalue.
       break;
     case eok_remainder_assign:
       opstr = "%=";
-#if suncc
+#if SUNCC
       if (operand_2->kind == (an_expr_node_kind)enk_constant &&
           operand_2->variant.constant->kind ==
                                             (a_constant_repr_kind)ck_integer &&
@@ -2649,7 +2661,7 @@ an lvalue.
            code.  Generate "i %= (0, 1)" instead, which works. */
         remainder_special_case = TRUE;
       }  /* if */
-#endif /* suncc */
+#endif /* SUNCC */
       break;
     case eok_iadd_assign:
     case eok_fadd_assign:
@@ -2685,19 +2697,19 @@ an lvalue.
   write_space();
   write_tok_str(opstr);
   write_space();
-#if suncc
+#if SUNCC
   if (remainder_special_case) {
     /* The Sun cc compiler has a bug with "i %= 1" -- It generates no
        code.  Generate "i %= (0, 1)" instead, which works. */
     write_tok_str("(0,");
   }  /* if */
-#endif /* suncc */
+#endif /* SUNCC */
   dump_expr_with_parens(operand_2);
-#if suncc
+#if SUNCC
   if (remainder_special_case) {
     write_tok_str(")");
   }  /* if */
-#endif /* suncc */
+#endif /* SUNCC */
 #if !C_GEN_BE_GENERATES_ANSI_C
   /* If the destination is a bit field, finish off the sign-extend/truncation
      call started earlier. */
@@ -4937,6 +4949,11 @@ if this routine has a body (dump nothing if it has no body).
   if (rout->assoc_scope == NULL_region_number && dump_defn) {
     /* The routine has no scope (i.e., no definition), and we're supposed
        to dump it only if it has a definition, so do nothing. */
+#if SGIC
+  } else if (strncmp(rout->source_corresp.name, "__builtin_", 10) == 0) {
+    /* Routines with names beginning "__builtin_" should not be declared
+       or defined. */
+#endif /* SGIC */
   } else if (!start_unreferenced_bracket(&rout->source_corresp)) {
     /* Unreferenced routine. */
   } else {
@@ -4950,6 +4967,18 @@ if this routine has a body (dump nothing if it has no body).
         dump_scope_types(rtsp->prototype_scope);
       }  /* if */
     }  /* if */
+#if SGIC
+    /* The SGI compiler uses a pragma to indicate "inline". */
+    { unsigned long saved_indent = indent;
+      end_output_line_if_begun();
+      indent = 0;
+      write_str("#pragma inline global (");
+      dump_routine_name(rout);
+      write_str(")");
+      end_output_line();
+      indent = saved_indent;
+    }
+#endif /* SGIC */
     /* Dump the routine interface. */
     set_output_position(&rout->source_corresp.decl_position);
     /* Output the storage class. */
