@@ -1548,41 +1548,76 @@ values, and the handling of array bounds of unknown type.
     tap = templ_arg_list;
     for (; tpp != NULL; tpp = tpp->next, tap = tap->next) {
       a_type_ptr	constant_type;
-      /* Only nontype parameters need to be processed. */
-      if (!is_nontype_templ_arg(tap)) continue;
-      if (tpp->variant.constant.type_involves_template_param) {
-        /* Rescan the tokens that make up the parameter declaration. */
-        check_assertion(rout_templ_sym != NULL);
-        constant_type = rescan_template_constant_parameter
-                                   (rout_templ_sym, tpp->param_symbol, tpp,
-                                    templ_arg_list, /*do_default_arg=*/FALSE,
-                                    (a_constant_ptr*)NULL);
-      } else {
-        constant_type = tpp->variant.constant.ptr->type;
-      }  /* if */
-      if (tap->is_array_bound_of_unknown_type) {
-        /* The constant was deduced from an array bound and does not yet
-           have a type.  Make sure the declared type is integral, then
-           create a constant of the appropriate type. */
-        if (!is_integral_type(constant_type)) {
-          match = FALSE;
+      if (is_nontype_templ_arg(tap)) {
+        /* Check whether this nontype template parameter must be rescanned
+           because of a dependence on another template argument. */
+        if (tpp->variant.constant.type_involves_template_param) {
+          /* Rescan the tokens that make up the parameter declaration. */
+          check_assertion(rout_templ_sym != NULL);
+          constant_type = rescan_template_constant_parameter
+                                     (rout_templ_sym, tpp->param_symbol, tpp,
+                                      templ_arg_list, /*do_default_arg=*/FALSE,
+                                      (a_constant_ptr*)NULL);
         } else {
-          a_constant_ptr	constant;
-          constant = fs_constant((a_constant_repr_kind)ck_integer);
-          set_unsigned_integer_constant(
+          constant_type = tpp->variant.constant.ptr->type;
+        }  /* if */
+        if (tap->is_array_bound_of_unknown_type) {
+          /* The constant was deduced from an array bound and does not yet
+             have a type.  Make sure the declared type is integral, then
+             create a constant of the appropriate type. */
+          if (!is_integral_type(constant_type)) {
+            match = FALSE;
+          } else {
+            a_constant_ptr	constant;
+            constant = fs_constant((a_constant_repr_kind)ck_integer);
+            set_unsigned_integer_constant(
                    constant, (a_host_large_unsigned)tap->variant.integer_value,
                    skip_typerefs(constant_type)->variant.integer.int_kind);
-          tap->variant.constant = constant;
-          tap->is_array_bound_of_unknown_type = FALSE;
+            tap->variant.constant = constant;
+            tap->is_array_bound_of_unknown_type = FALSE;
+          }  /* if */
+        } else {
+          /* The template argument has a deduced value with a type.  The
+             type must match the declared type.  This test is only needed if
+             the type involves a template parameter. */
+          check_assertion(tap->variant.constant != NULL);
+          if (tpp->variant.constant.type_involves_template_param) {
+            check_assertion(rout_templ_sym != NULL);
+            match = identical_types(constant_type,
+                                    tap->variant.constant->type);
+          }  /* if */
         }  /* if */
-      } else {
-        /* The template argument has a deduced value with a type.  The
-           type must match the declared type.  This test is only needed if
-           the type involves a template parameter. */
-        check_assertion(tap->variant.constant != NULL);
-        if (tpp->variant.constant.type_involves_template_param) {
-          check_assertion(rout_templ_sym != NULL);
-          match = identical_types(constant_type, tap->variant.constant->type);
+      } else if (is_template_templ_arg(tap)) {
+        /* Check whether this template template parameter must be rescanned
+           because of a dependence on another template argument. */
+        a_template_ptr		templ;
+        a_template_ptr		param_template;
+        a_template_param_ptr	param_list_for_param;
+        a_template_param_ptr	param_list_for_arg;
+        a_template_symbol_supplement_ptr
+				arg_template;
+        param_template = tpp->variant.templ->il_template_entry;
+        if (tpp->variant.templ->
+                              variant.class_template.involves_template_param) {
+          /* The template template parameter depends on another template
+             parameter (e.g., "template <class T, template <T t> class X>...").
+             Rescan the template template parameter declaration to create a
+             new parameter template. */
+          param_template = rescan_template_template_parameter(
+                                          rout_templ_sym, tpp, templ_arg_list);
+        }  /* if */
+        /* Compare the parameter list of the (potentially) rescanned template
+           template parameter with the template supplied as an argument. */
+        param_list_for_param = template_supplement_for_template(param_template)
+                                                 ->cache.decl_info->parameters;
+        arg_template = template_supplement_for_template(tap->variant.templ);
+        param_list_for_arg = arg_template->cache.decl_info->parameters;
+        if (equiv_template_param_lists(param_list_for_param,
+                                       param_list_for_arg,
+                                       /*issue_errors=*/FALSE,
+				       ETP_NO_OPTIONS,
+                                       (a_source_position*)NULL)) {
+          match = TRUE;
         }  /* if */
       }  /* if */
     }  /* for */
@@ -4879,6 +4914,36 @@ a specified parameter.
 }  /* get_template_param_by_list_pos */
 
 
+static a_boolean tentatively_matching_template_param_lists(
+					a_template_param_ptr	list1,
+					a_template_param_ptr	list2)
+/*
+Compare the two template parameter lists to see if they have the same number
+of parameters, and that the parameters are of matching kinds.  The types of
+nontype parameters, and the parameter lists of template template parameters
+are not checked at this point.
+*/
+{
+  a_template_param_ptr	tpp1;
+  a_template_param_ptr	tpp2;
+  a_boolean		result = TRUE;
+
+  for (tpp1 = list1, tpp2 = list2; tpp2 != NULL && tpp1 != NULL;
+       tpp1 = tpp1->next, tpp2 = tpp2->next) {
+    a_symbol_ptr	sym1 = tpp1->param_symbol;
+    a_symbol_ptr	sym2 = tpp2->param_symbol;
+    a_boolean		err = FALSE;
+    if (sym1->kind != sym2->kind) {
+      result = FALSE;
+      break;
+    }  /* if */
+  }  /* for */
+  /* Make sure we are at the end of both lists. */
+  if (tpp1 != NULL || tpp2 != NULL) result = FALSE;
+  return result;
+}  /* tentatively_matching_template_param_lists */
+
+
 static a_boolean matches_template_template_param(
 		a_template_ptr				templ,
 		a_template_ptr				templ_templ,
@@ -4909,13 +4974,14 @@ match is found.
     if (templ_tssp->variant.class_template.template_template_param) {
       param_list_for_templ = templ_tssp->cache.decl_info->parameters;
       param_list = tssp->cache.decl_info->parameters;
-      if (equiv_template_param_lists(param_list_for_templ, param_list,
-                                     /*issue_errors=*/FALSE,
-				     ETP_NO_OPTIONS,
-                                     (a_source_position*)NULL)) {
-        /* The actual template is compatible with the template template
-           parameter.  See if it is compatible with any previously deduced
-           value. */
+      if (tentatively_matching_template_param_lists(param_list_for_templ,
+                                                    param_list)) {
+        /* The actual template is tentatively compatible with the template
+           template parameter.  See if it is compatible with any previously
+           deduced value.  In cases where the template template parameter
+           of templ_templ depends on another template parameter, we can't
+           fully check the template parameter lists for compatibility.  This
+           check will be done later as part of the deduction wrapup process. */
         /* Get the template nesting depth as indicated by the first template
            parameter.  Any template parameters found in templ_type must be at
            the same level to participate in deduction. */
@@ -5083,35 +5149,35 @@ list of a template function.  Returns TRUE if a match is found.
           }  /* if */
         }  /* if */
       } else {
+        a_template_param_ptr tpp;
         check_assertion(tap->arg_operand == NULL);
-        if (tap->variant.constant == NULL) {
-          /* No constant has been bound to this template argument yet, so
-             just use "constant".  This counts as a match. */
-          tap->variant.constant = constant;
-          match = TRUE;
-        } else {
-          /* A constant was already bound to this template argument.  We have a
-             match if and only if the new constant is the same as the one
-             already there.  This check also makes sure that the types
-             of the constants match. */
-          match = eq_constants(constant, tap->variant.constant);
-        }  /* if */
+        /* Make sure the type of the nontype parameter is correct.  This
+           can only be done for nontype parameters that do not depend on
+           other template parameters.  This will be checked later for
+           types that do depend on template parameters. */
+        tpp = get_template_param_by_list_pos(templ_param_list, list_pos);
+        match = TRUE;
         /* Note that the type of the constant does not participate in
            type deduction.  Once all of the arguments have been deduced
            the types of the nontype parameters are compared with the
            types in the template parameter list. */
+        if (!tpp->variant.constant.type_involves_template_param) {
+          if (!identical_types(constant->type,
+                               templ_constant->type)) {
+             match = FALSE;
+          }  /* if */
+        }  /* if */
         if (match) {
-          /* Make sure the type of the nontype parameter is correct.  This
-             can only be done for nontype parameters that do not depend on
-             other template parameters.  This will be checked later for
-             types that do depend on template parameters. */
-          a_template_param_ptr tpp;
-          tpp = get_template_param_by_list_pos(templ_param_list, list_pos);
-          if (!tpp->variant.constant.type_involves_template_param) {
-            if (!identical_types(tap->variant.constant->type,
-                                 templ_constant->type)) {
-               match = FALSE;
-            }  /* if */
+          if (tap->variant.constant == NULL) {
+            /* No constant has been bound to this template argument yet, so
+               just use "constant".  This counts as a match. */
+            tap->variant.constant = constant;
+          } else {
+            /* A constant was already bound to this template argument.  We
+               have a match if and only if the new constant is the same as
+               the one already there.  This check also makes sure that the
+               types of the constants match. */
+            match = eq_constants(constant, tap->variant.constant);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -5157,6 +5223,12 @@ list of a template function.  Returns TRUE if a match is found.
                                  &did_not_fold, &error_position);
             match = !did_not_fold &&
                     matches_template_constant(constant, &new_templ_constant,
+                                              templ_arg_list,
+                                              templ_param_list);
+          } else {
+            /* The constant under the cast is a template parameter.  Attempt
+               to use that parameter for deduction. */
+            match = matches_template_constant(constant, tcp,
                                               templ_arg_list,
                                               templ_param_list);
           }  /* if */

@@ -9298,7 +9298,7 @@ err_pos is the position to be used to report any errors.
   if (sym != NULL) {
     /* If this is a template template parameter, replace the template symbol
        with the one referred to by the parameter. */
-    sym =  template_argument_if_template_template_param(sym);
+    sym = template_argument_if_template_template_param(sym);
   }  /* if */
   if (!any_errors && param_template != NULL) {
     /* Make sure this argument is compatible with the template template
@@ -9490,6 +9490,19 @@ this routine.  Its value is unchanged if no errors are detected.
        scope for that argument is still one the scope stack. */
     templ_templ_param_of_curr_decl =
                      is_template_template_param_of_current_decl(template_sym);
+#if 0
+    /* If this is a template template parameter (and not of a current
+       declaration) get the parameter list via the IL template entry.
+       This may be different from the one pointed to by the template symbol
+       for template template parameters that have template parameter lists
+       that depend on other template parameters. */
+    a_symbol_ptr			argument_sym;
+    a_template_symbol_supplement_ptr	argument_tssp;
+    argument_sym = template_sym->variant.template_info->
+                                      variant.class_template.argument_template;
+    argument_tssp = argument_sym->variant.template_info;
+    param_ptr = argument_tssp->cache.decl_info->parameters;
+#endif
   }  /* if */
   do {
     a_source_position  arg_pos;
