@@ -3117,7 +3117,11 @@ contains it among its operands.
             found = expr_tree_contains_template_param_constant(
                                 cp2->variant.template_param.variant.expr, cp);
             break;
-          default:;
+          case tpck_member:
+            break;
+          default:
+            unexpected_condition_str(
+       "expr_tree_contains_template_param_constant: bad templ param con kind");
         }  /* switch */
       }  /* if */
     }  /* if */
