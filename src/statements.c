@@ -164,18 +164,32 @@ purposes.
 
   switch (cfdp->kind) {
     case cfdk_block:
-      fprintf(f_debug, "block #%d, %slabels, %d goto%s, %sEOB",
+      fprintf(f_debug, "block #%d%s",
               cfdp->id_number,
-              cfdp->variant.block.any_labels ? "" : "no ",
-              cfdp->variant.block.goto_count,
-              cfdp->variant.block.goto_count == 1 ? "" : "s",
-              cfdp->variant.block.end_of_block == NULL ? "no " : "");
+              cfdp->variant.block.is_switch_block ?
+                      " (switch)" :
+                      cfdp->variant.block.is_switch_subblock ?
+                              " (inside switch)" : "");
+      if (cfdp->variant.block.any_labels) fprintf(f_debug, ", labels");
+      if (cfdp->variant.block.goto_count > 0) {
+        fprintf (f_debug, ", %d goto%s",
+                 cfdp->variant.block.goto_count,
+                 cfdp->variant.block.goto_count == 1 ? "" : "s");
+      }  /* if */
+      if (cfdp->variant.block.last_case_label != NULL) {
+        fprintf(f_debug, ", last case label #%d",
+                cfdp->variant.block.last_case_label->id_number);
+      }  /* if */
+      if (cfdp->variant.block.end_of_block != NULL) {
+        fprintf(f_debug, ", EOB #%d",
+                cfdp->variant.block.end_of_block->id_number);
+      }  /* if */
       break;
     case cfdk_goto:
       fprintf(f_debug, "goto %s (line %d)",
               cfdp->variant.goto_statement.ptr->
                            variant.label->source_corresp.name,
-              cfdp->variant.goto_statement.source_pos.seq);
+              cfdp->source_pos.seq);
       break;
     case cfdk_label:
       fprintf(f_debug, "%s:",
@@ -200,6 +214,10 @@ purposes.
         fprintf(f_debug, " for block #%d",
                 cfdp->variant.start_of_block->id_number);
       }  /* if */
+      break;
+
+    case cfdk_case_label:
+      fprintf(f_debug, "case label");
       break;
     default:
       fprintf(f_debug, "***UNKNOWN KIND***");
@@ -236,17 +254,17 @@ preceding and following cfdp that should be displayed.
 }  /* db_cfd_list */
 
 
-static void db_cfd_and_parents(a_control_flow_descr_ptr cdfp)
+static void db_cfd_and_parents(a_control_flow_descr_ptr cfdp)
 /*
 Routine to display an entry of type a_control_flow_descr along with its
 parent entries (i.e., the blocks which contain it), for debugging purposes.
 */
 {
-  if (cdfp != NULL) {
-    db_cfd(cdfp);
-    while ((cdfp = cdfp->parent) != NULL) {
+  if (cfdp != NULL) {
+    db_cfd(cfdp);
+    while ((cfdp = cfdp->parent) != NULL) {
       fprintf(f_debug, "  with parent: ");
-      db_cfd(cdfp);
+      db_cfd(cfdp);
     }  /* while */
   }  /* if */
 }  /* db_cfd_and_parents */
@@ -281,14 +299,26 @@ to it.
   cfdp->prev = NULL;
   cfdp->parent = NULL;
   cfdp->kind = kind;
+  cfdp->source_pos = error_position;
+#if 0
+  cfdp->source_pos.seq = 0;
+  cfdp->source_pos.seq = SP_COL_UNKNOWN;
+#endif /* if 0 */
 #if DEBUG
   cfdp->id_number = ++id_number;
 #endif /* DEBUG */
   switch (kind) {
     case cfdk_block:
       cfdp->variant.block.end_of_block = NULL;
-      cfdp->variant.block.any_labels = FALSE;
+      cfdp->variant.block.last_case_label = NULL;
       cfdp->variant.block.goto_count = 0;
+      cfdp->variant.block.any_labels = FALSE;
+      cfdp->variant.block.is_switch_block = FALSE;
+      cfdp->variant.block.is_switch_subblock = FALSE;
+      cfdp->variant.block.exposed_init_in_switch = FALSE;
+#if CHECKING
+      cfdp->variant.block.dummy = 0;
+#endif /* CHECKING */
       break;
     case cfdk_init:
       cfdp->variant.init_statement = NULL;
@@ -296,8 +326,6 @@ to it.
     case cfdk_goto:
       cfdp->variant.goto_statement.ptr = NULL;
       cfdp->variant.goto_statement.prev_goto = NULL;
-      cfdp->variant.goto_statement.source_pos.seq = 0;
-      cfdp->variant.goto_statement.source_pos.seq = SP_COL_UNKNOWN;
       break;
     case cfdk_label:
       cfdp->variant.label_statement = NULL;
@@ -305,6 +333,12 @@ to it.
     case cfdk_end_of_block:
       cfdp->variant.start_of_block = NULL;
       break;
+    case cfdk_case_label:
+      break;
+#if CHECKING
+    default:
+      internal_error("alloc_control_flow_descr: bad kind");
+#endif /* CHECKING */
   }  /* switch */
   db_exit();
   return cfdp;
@@ -437,6 +471,138 @@ forth, are decremented.
 }  /* remove_control_flow_descr */
 
 
+static void report_switch_past_init(a_control_flow_descr_ptr  block,
+                                    a_boolean                 *err)
+/*
+This routine traverses the portion of the control_flow_descr_list associated
+with "block", which is a switch block or a block contained within a switch
+block, and looks for initializing declarations that may be bypassed by a
+transfer of control to a case label.  Once the last case label in the
+block has been reached, the search stops, since any subsequent initialization
+cannot be jumped over (at least, not by the switch).  When an initialization
+is found, a diagnostic is issued (an error in C++, a warning otherwise), and
+*err is set to TRUE.
+*/
+{
+  a_control_flow_descr_ptr  cfdp, next_cfdp, parent;
+  a_variable_ptr            vp;
+  a_boolean                 done;
+
+  db_enter(4, "report_switch_past_init");
+#if DEBUG
+  if (debug_level >= 4) {
+    fprintf(f_debug, "block = ");
+    db_cfd(block);
+  }  /* if */
+#endif /* DEBUG */
+  /* Start at the first entry within the block. */
+  cfdp = block->next;
+  done = FALSE;
+  for (;;) {
+    switch (cfdp->kind) {
+      case cfdk_block:
+        /* A nested block.  If it has any case labels (either directly
+           contained or in a subblock) search for initializations. */
+        next_cfdp = cfdp->variant.block.end_of_block->next;
+        if (cfdp->variant.block.last_case_label != NULL) {
+          report_switch_past_init(cfdp, err);
+          /* All case labels will have been removed.  Is there any reason to
+             keep this block around? */
+          check_assertion(cfdp->variant.block.last_case_label == NULL)
+          if (!cfdp->variant.block.any_labels &&
+              cfdp->variant.block.goto_count == 0) {
+            /* A block with no labels and no forward gotos. */
+            remove_list_of_flow_control_descrs(cfdp, cfdp->variant.
+                                                       block.end_of_block);
+          }  /* if */
+          /* Processing the subblock may mean the current block does not
+             need to be searched any more.  For example:
+               switch (i) {
+                 case 1:
+                   {                // start of subblock
+                   int i = 0;       // diagnostic issued
+                   case 2:
+                   }                // end of subblock
+                   int j = 0;       // no diagnostic (since decl is not
+               }                    //   followed by another case label)
+             In this example, the outer block is originally marked as having
+             "case 2" as its last case label (even though it is contained
+             within a subblock), but when case 2 is found, it is removed and
+             the last_case_label fields of both the inner and outer block are
+             set to NULL. */
+          done = (block->variant.block.last_case_label == NULL);
+        }  /* if */
+        break;
+      case cfdk_case_label:
+        /* A case label. */
+        if (cfdp == block->variant.block.last_case_label) {
+          /* Moreover, the last case label in the current block.  No further
+             checking in this block is required, so done is set to TRUE. */
+          done = TRUE;
+          /* Now that the case label has been seen (it's really just serving
+             as a marker to tell us to stop searching for initializations),
+             it can be removed from the list.  Therfore the last_case_label
+             pointer in the current block should be set to to NULL, as should
+             the pointers to this case label in the parent chain. */
+          block->variant.block.last_case_label = NULL;
+          if (!block->variant.block.is_switch_block) {
+            for (parent = block->parent; ; parent = parent->parent) {
+              if (cfdp == parent->variant.block.last_case_label) {
+                parent->variant.block.last_case_label = NULL;
+                if (parent->variant.block.is_switch_block) break;
+              } else {
+                break;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+        } else {
+          /* It's not the last case label in the block, so we keep searching,
+             but the case label can still be removed. */
+          next_cfdp = cfdp->next;
+        }  /* if */
+        remove_control_flow_descr(cfdp);
+        break;
+      case cfdk_end_of_block:
+        /* End of block.  Only under rare circumstances should we get all
+           the way to the end of the block before stopping. */
+        done = TRUE;
+        break;
+      case cfdk_init:
+        /* An initialization.  Always issue a diagnostic; initializations
+           for which a diagnostic should not be issued will not be
+           found, since we stop searching the block once its last case
+           label has been seen. */
+        vp = cfdp->variant.init_statement->variant.dynamic_init->variable;
+        if (!*err) {
+          /* This is the first initializing declaration seen.  Issue the
+             header diagnostic. */
+          *err = TRUE;
+          /* We need the switch block itself for the error position. */
+          parent = cfdp->parent;
+          while (parent->variant.block.is_switch_subblock) {
+            parent = parent->parent;
+          }  /* while */
+          check_assertion(parent->variant.block.is_switch_block);
+          pos_start_diagnostic(C_dialect == C_dialect_cplusplus ?
+                                              es_error : es_warning,
+                               ec_jumping_over_init, &parent->source_pos);
+        }  /* if */
+        /* Issue the diagnostic addendum that identifies this particular
+           variable. */
+        sym_add_diag_info(ec_name_at_decl_position,
+                          (a_symbol_ptr)vp->source_corresp.assoc_info);
+        /* Fall through. */
+      default:
+        /* Advance to the next entry in the list. */
+        next_cfdp = cfdp->next;
+    }  /* switch */
+    if (done) break;
+    cfdp = next_cfdp;
+  }  /* for */
+  db_exit();
+}  /* report_switch_past_init */
+
+
 static void add_to_control_flow_descr_list(a_control_flow_descr_ptr  new_cfdp)
 /*
 Add new_cfdp to the end of control_flow_descr_list.  This typically involves
@@ -451,7 +617,7 @@ because such blocks are not relevant to detecting transfer of control past
 initializing declarations.
 */
 {
-  a_control_flow_descr_ptr  cfdp, prev_cfdp, prev_parent_cfdp, parent_cfdp;
+  a_control_flow_descr_ptr  cfdp, prev_cfdp, prev_parent, parent;
 
   db_enter(5, "add_to_control_flow_descr_list");
 #if DEBUG
@@ -464,7 +630,7 @@ initializing declarations.
     check_assertion(new_cfdp->kind == (a_control_flow_descr_kind)cfdk_block);
     control_flow_descr_list = new_cfdp;
   } else {
-    prev_parent_cfdp = end_of_control_flow_descr_list->parent;
+    prev_parent = end_of_control_flow_descr_list->parent;
     if (new_cfdp->kind == (a_control_flow_descr_kind)cfdk_end_of_block) {
       if (end_of_control_flow_descr_list->kind ==
                                    (a_control_flow_descr_kind)cfdk_block) {
@@ -472,32 +638,55 @@ initializing declarations.
         remove_control_flow_descr(end_of_control_flow_descr_list);
         free_control_flow_descr(new_cfdp);
         goto done;
-      } else if (!prev_parent_cfdp->variant.block.any_labels &&
-                 prev_parent_cfdp->variant.block.goto_count == 0) {
+      }  /* if */
+      if (!prev_parent->variant.block.any_labels &&
+          prev_parent->variant.block.last_case_label == NULL &&
+          prev_parent->variant.block.goto_count == 0) {
         /* A block with no labels and no forward gotos is being closed.  It
            can be removed from the list -- even it it has initializations,
            it can't be jumped into. */
-        remove_list_of_flow_control_descrs(prev_parent_cfdp,
+        remove_list_of_flow_control_descrs(prev_parent,
                                            end_of_control_flow_descr_list);
         free_control_flow_descr(new_cfdp);
         goto done;
       }  /* if */
+      /* No initialization remains "exposed" after the block is closed. */
+      prev_parent->variant.block.exposed_init_in_switch = FALSE;
       /* Set the association between the end-of-block and the block -- they
          each point to the other. */
-      new_cfdp->variant.start_of_block = prev_parent_cfdp;
-      prev_parent_cfdp->variant.block.end_of_block = new_cfdp;
+      new_cfdp->variant.start_of_block = prev_parent;
+      prev_parent->variant.block.end_of_block = new_cfdp;
       /* The parent of an end-of-block entry is the same as the parent of the
          block entry it's associated with. */
-      new_cfdp->parent = prev_parent_cfdp->parent;
-      /* Remove all init entries in the block that trail the last label
-         statement in the block; if there is no label statement remove *all*
-         the init entries. */
+      new_cfdp->parent = prev_parent->parent;
+      /* We have reached the end-of-block entry for a switch block.  Traverse
+         the block looking for illegal initializations -- there should be one
+         if any case labels were entered, since that occurs only if "exposed"
+         initializations exist (that is, initializations that can be jumped
+         over when the switch is executed). */
+      if (new_cfdp->variant.start_of_block->variant.block.is_switch_block &&
+          new_cfdp->variant.start_of_block->
+                                      variant.block.last_case_label != NULL) {
+        a_boolean  err = FALSE;
+
+        /* Check for and report switch-over errors.  There should be at
+           least one. */
+        report_switch_past_init(new_cfdp->variant.start_of_block, &err);
+        check_assertion(err);
+        if (err) end_error();
+      }  /* if */
+      /* Remove all init entries in the block that trail the last label or
+         case label in the block; if there is no label or case label *all*
+         the init entries will be removed. */
       for (cfdp = end_of_control_flow_descr_list;
            cfdp != new_cfdp->variant.start_of_block;
            cfdp = prev_cfdp) {
         if (cfdp->kind == (a_control_flow_descr_kind)cfdk_label ||
+            cfdp->kind == (a_control_flow_descr_kind)cfdk_case_label ||
             (cfdp->kind == (a_control_flow_descr_kind)cfdk_block &&
-             cfdp->variant.block.any_labels)) {
+             (cfdp->variant.block.any_labels ||
+              cfdp->variant.block.last_case_label != NULL))) {
+          /* A label, a case label, or a block containing one or the other. */
           break;
         } else {
           prev_cfdp = cfdp->prev;
@@ -512,42 +701,90 @@ initializing declarations.
                                    (a_control_flow_descr_kind)cfdk_block) {
         /* Immediate successors of a block entry have that block as a
            parent. */
-        parent_cfdp = end_of_control_flow_descr_list;
+        parent = end_of_control_flow_descr_list;
       } else {
         /* Immediate successors of a nonblock have the same parent as the
            entry they follow. */
-        parent_cfdp = prev_parent_cfdp;
+        parent = prev_parent;
       }  /* if */
-      new_cfdp->parent = parent_cfdp;
-      if (new_cfdp->kind == (a_control_flow_descr_kind)cfdk_init) {
-        /* Initialization entries in the outermost block (the function scope)
-           can simply be ignored when no forward goto has been seen. */
-        if (parent_cfdp->parent == NULL &&
-            parent_cfdp->variant.block.goto_count == 0) {
-          free_control_flow_descr(new_cfdp);
-          goto done;
-        }  /* if */
-      } else if (new_cfdp->kind == (a_control_flow_descr_kind)cfdk_label) {
-        /* Set the any_labels flag of the parent of a new label entry (and
-           of the parent's parent, etc.). */
-        do {
-          if (parent_cfdp->variant.block.any_labels) {
-            /* The flag will already have been set further up the parent
-               chain. */
-            break;
-          } else {
-            parent_cfdp->variant.block.any_labels = TRUE;
-            parent_cfdp = parent_cfdp->parent;
+      new_cfdp->parent = parent;
+      switch (new_cfdp->kind) {
+        case cfdk_init:
+          /* Initialization entries in the outermost block (the function scope)
+             can simply be ignored when no forward goto has been seen. */
+          if (parent->parent == NULL &&
+              parent->variant.block.goto_count == 0) {
+            free_control_flow_descr(new_cfdp);
+            goto done;
           }  /* if */
-        } while (parent_cfdp != NULL);
-      } else if (new_cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
-        /* Increment the goto_count field of the parent of a new goto entry
-           (and of the parent's parent, etc.). */
-        do {
-          ++(parent_cfdp->variant.block.goto_count);
-          parent_cfdp = parent_cfdp->parent;
-        } while (parent_cfdp != NULL);
-      }  /* if */
+          /* If the initializing declaration appears within the body of a
+             switch statement, set a flag in each block up to and including
+             that of the switch statement body to say that there is an
+             "exposed initialization" -- i.e., one that could cause an error
+             if case selection skips past it. */
+          for (cfdp = parent; cfdp != NULL; cfdp = cfdp->parent) {
+            if (cfdp->variant.block.is_switch_block) {
+              cfdp->variant.block.exposed_init_in_switch = TRUE;
+              break;
+            } else if (cfdp->variant.block.is_switch_subblock) {
+              cfdp->variant.block.exposed_init_in_switch = TRUE;
+            } else {
+              break;
+            }  /* if */
+          }  /* for */
+          break;
+        case cfdk_label:
+          /* Set the any_labels flag of the parent of a new label entry (and
+             of the parent's parent, etc.). */
+          cfdp = parent;
+          do {
+            if (cfdp->variant.block.any_labels) {
+              /* The flag will already have been set further up the parent
+                 chain. */
+              break;
+            } else {
+              cfdp->variant.block.any_labels = TRUE;
+              cfdp = cfdp->parent;
+            }  /* if */
+          } while (cfdp != NULL);
+          break;
+        case cfdk_case_label:
+          if (!parent->variant.block.exposed_init_in_switch) {
+            /* There is no initializing declaration that would be jumped over
+               to reach this case label, so don't bother putting it on the
+               list.  This is done for reasons of economy -- the more trimmed
+               the list, the easier it is to search. */
+            free_control_flow_descr(new_cfdp);
+            goto done;
+          }  /* if */
+          /* Record the fact that a case label has been entered on each of
+             the blocks on the parent chain, up to the switch block itself. */
+          for (cfdp = parent; ; cfdp = cfdp->parent) {
+            check_assertion(cfdp != NULL &&
+                            (cfdp->variant.block.is_switch_block ||
+                             cfdp->variant.block.is_switch_subblock));
+            cfdp->variant.block.exposed_init_in_switch = FALSE;
+            cfdp->variant.block.last_case_label = new_cfdp;
+            if (cfdp->variant.block.is_switch_block) break;
+          }  /* for */
+          break;
+        case cfdk_goto:
+          /* Increment the goto_count field of the parent of a new goto entry
+             (and of the parent's parent, etc.). */
+          cfdp = parent;
+          do {
+            ++(cfdp->variant.block.goto_count);
+            cfdp = cfdp->parent;
+          } while (cfdp != NULL);
+          break;
+        case cfdk_block:
+          if (parent->variant.block.is_switch_block ||
+              parent->variant.block.is_switch_subblock) {
+            new_cfdp->variant.block.is_switch_subblock = TRUE;
+            new_cfdp->variant.block.exposed_init_in_switch =
+                        parent->variant.block.exposed_init_in_switch;
+          }  /* if */
+      }  /* switch */
     }  /* if */
 #if DEBUG
     if (debug_level >= 5) {
@@ -1353,7 +1590,8 @@ The syntax is:
 See also 3.6.4.2.
 */
 {
-  a_statement_ptr sp;
+  a_statement_ptr           sp;
+  a_control_flow_descr_ptr  cfdp;
 
   db_enter(3, "switch_statement");
 
@@ -1362,6 +1600,18 @@ See also 3.6.4.2.
   sp = add_statement((a_statement_kind)stmk_switch);
   /* Push an entry on the structured statement stack. */
   push_stmt_stack(ssk_switch, sp);
+  /* Add a switch block entry to the control_flow_descr_list.  The
+     corresponding end-of-entry is added at the end of this routine.  This
+     is done even though a switch statement usually involves a compound
+     statement, which could also serve as the switch block.  It's done
+     this way to handle the unusual case as well, e.g.,
+       switch (i) if (i > 0) ++i; else { int j = i; i += j; case 0:; }
+     Also, set the source position of "switch" in the entry that's
+     created. */
+  cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_block);
+  cfdp->source_pos = pos_curr_token;
+  cfdp->variant.block.is_switch_block = TRUE;
+  add_to_control_flow_descr_list(cfdp);
   /* Ignore the initial "switch". */
 #if CHECKING
   if (curr_token != tok_switch) {
@@ -1398,6 +1648,7 @@ See also 3.6.4.2.
   remove_stop_token(tok_rparen);
   /* Scan the dependent statement. */
   dependent_statement();
+  add_to_control_flow_descr_list(alloc_control_flow_descr(cfdk_end_of_block));
   /* Pop the structured statement stack. */
   pop_stmt_stack();
 
@@ -1669,10 +1920,9 @@ either an expression statement or a declaration statement.
 }  /* for_statement */
 
 
-static a_boolean issue_diagnostic_for_jump_over_init(
-                                        a_control_flow_descr_ptr  start_cfdp,
-                                        a_control_flow_descr_ptr  end_cfdp,
-                                        a_source_position         *error_pos)
+static a_boolean report_goto_past_init(a_control_flow_descr_ptr  start_cfdp,
+                                       a_control_flow_descr_ptr  end_cfdp,
+                                       a_source_position         *error_pos)
 /*
 This routine moves from entry start_cfdp to entry end_cfdp on the
 control_flow_descr_list looking for init entries, which point to stmk_init
@@ -1685,7 +1935,7 @@ skipping over an initialization.  Return TRUE is a diagnostic is issued.
   a_variable_ptr            vp;
   a_boolean                 err = FALSE;
 
-  db_enter(4, "issue_diagnostic_for_jump_over_init");
+  db_enter(4, "report_goto_past_init");
 #if DEBUG
   if (debug_level >= 4) {
     fprintf(f_debug, "start_cfdp = ");
@@ -1695,9 +1945,7 @@ skipping over an initialization.  Return TRUE is a diagnostic is issued.
   }  /* if */
 #endif /* DEBUG */
   if (end_cfdp->parent != start_cfdp->parent) {
-    err = issue_diagnostic_for_jump_over_init(start_cfdp,
-                                              end_cfdp->parent->prev,
-                                              error_pos);
+    err = report_goto_past_init(start_cfdp, end_cfdp->parent->prev, error_pos);
     start_cfdp = end_cfdp->parent->next;
   }  /* if */
   cfdp = start_cfdp;
@@ -1712,8 +1960,7 @@ skipping over an initialization.  Return TRUE is a diagnostic is issued.
         fprintf(f_debug, "end_cfdp = ");
         db_cfd_and_parents(end_cfdp);
       }  /* if */
-      internal_error(
-        "issue_diagnostic_for_jump_over_init: start > end or parent mismatch");
+      internal_error("report_goto_past_init: start > end or parent mismatch");
     }  /* if */
 #endif /* CHECKING */
 #endif /* DEBUG */
@@ -1746,7 +1993,7 @@ skipping over an initialization.  Return TRUE is a diagnostic is issued.
   }  /* for */
   db_exit();
   return err;
-}  /* issue_diagnostic_for_jump_over_init */
+}  /* report_goto_past_init */
 
 
 static a_boolean is_on_cfd_parent_list(a_control_flow_descr_ptr cfdp,
@@ -1935,9 +2182,8 @@ diagnose the condition.
        between the starting entry, as determined above, and the entry for the
        label.  The routine will return TRUE if a diagnostic was issued, in
        which case terminate the multi-line message. */
-    if (issue_diagnostic_for_jump_over_init(
-                            start_cfdp, label_cfdp,
-                            &goto_cfdp->variant.goto_statement.source_pos)) {
+    if (report_goto_past_init(start_cfdp, label_cfdp,
+                              &goto_cfdp->source_pos)) {
       end_error();
     }  /* if */
   }  /* if */
@@ -1950,7 +2196,8 @@ diagnose the condition.
 }  /* check_goto_and_label */
 
 
-static void check_for_jump_over_initialization(a_statement_ptr  sp)
+static void check_for_jump_over_initialization(a_statement_ptr    sp,
+                                               a_source_position  *pos)
 /*
 sp is either a label statement or a goto statement.  If this is a goto
 statement and the label it references has not yet been seen (i.e., if it
@@ -1976,6 +2223,7 @@ condition is not recognized till the label statement is reached.
     label_cfdp =
             alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_label);
     label_cfdp->variant.label_statement = sp;
+    label_cfdp->source_pos = *pos;
     add_to_control_flow_descr_list(label_cfdp);
     label_sym->variant.label.assoc_control_flow_descr = label_cfdp;
     if (goto_cfdp != NULL) {
@@ -1987,8 +2235,8 @@ condition is not recognized till the label statement is reached.
     /* Allocate and fill in a goto entry. */
     goto_cfdp = alloc_control_flow_descr(
                                      (a_control_flow_descr_kind)cfdk_goto);
+    goto_cfdp->source_pos = *pos;
     goto_cfdp->variant.goto_statement.ptr = sp;
-    goto_cfdp->variant.goto_statement.source_pos = error_position;
     add_to_control_flow_descr_list(goto_cfdp);
     if (label_sym->defined) {
       /* This is a backwards goto -- i.e., it references a label that has
@@ -2026,11 +2274,13 @@ See also 3.6.6.1.
 */
 {
   register a_statement_ptr sp;
+  a_source_position        goto_pos;
 
   db_enter(3, "goto_statement");
   check_for_unreachable_code();
   /* Allocate the statement. */
   sp = add_statement((a_statement_kind)stmk_goto);
+  goto_pos = pos_curr_token;
   /* Ignore the initial "goto". */
 #if CHECKING
   if (curr_token != tok_goto) internal_error("goto_statement: expected goto");
@@ -2042,7 +2292,7 @@ See also 3.6.6.1.
   /* If this is a forward reference to a label, record information about
      the goto to allow diagnosis of jump-over-initialization errors.  If
      it is backward reference, do the checking immediately. */
-  check_for_jump_over_initialization(sp);
+  check_for_jump_over_initialization(sp, &goto_pos);
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
@@ -2460,6 +2710,9 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
     } else {
       prev_scp->next = scp;
     }  /* if */
+    /* Represent this case label by adding an entry to the
+       control_flow_descr_list. */
+    add_to_control_flow_descr_list(alloc_control_flow_descr(cfdk_case_label));
   }  /* if */
   /* Add the new value to the (new?) current switch clause.  For the
      default case, this just means setting the constant_list to NULL;
@@ -2757,7 +3010,9 @@ rescan_statement:
           define_label(label);
           /* If there have been forward gotos referencing this label, check
              whether any have jumped over initializing declarations. */
-          check_for_jump_over_initialization(label->variant.exec_stmt);
+          check_for_jump_over_initialization(label->variant.exec_stmt,
+                                             &label->
+                                                source_corresp.decl_position);
         }  /* if */
 #if CHECKING
         if (curr_token != tok_colon) {
