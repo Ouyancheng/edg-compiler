@@ -2151,10 +2151,16 @@ Copy any GNU type attributes in type dst to type src.
             dst_rtsp->calling_convention = src_rtsp->calling_convention;
           }  /* if */
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-          dst_rtsp->does_not_return = src_rtsp->does_not_return;
-          dst_rtsp->is_const = src_rtsp->is_const;
-          dst_rtsp->arg_pragma = src_rtsp->arg_pragma;
-          dst_rtsp->fmt_arg = src_rtsp->fmt_arg;
+          if (src_rtsp->does_not_return) {
+            dst_rtsp->does_not_return = TRUE;
+          }  /* if */
+          if (src_rtsp->is_const) {
+            dst_rtsp->is_const = TRUE;
+          }  /* if */
+          if (src_rtsp->arg_pragma != (a_pragma_kind)pk_none) {
+            dst_rtsp->arg_pragma = src_rtsp->arg_pragma;
+            dst_rtsp->fmt_arg = src_rtsp->fmt_arg;
+          }  /* if */
           /* Update the result since a skip_typerefs was applied to dst. */
           result = dst;
         }

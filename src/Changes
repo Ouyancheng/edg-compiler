@@ -1,5 +1,15 @@
 Version 3.4
 
+2/19/04  GNU mode: Attributes and redeclarations
+
+In GNU modes, the front end lost certain attributes specified on a declaration
+when the declared entity is redeclared without that attribute.  For example:
+
+  void f() __attribute__((noreturn));
+  __attribute__((const)) void f() {}  // "noreturn" attribute was previously
+                                      // lost.
+This is now fixed.
+
 2/19/04  Microsoft compatibility: Attributes on typedef
 
 Microsoft attributes normally precede a declaration.  For typedef
