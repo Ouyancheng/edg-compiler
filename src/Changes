@@ -1,5 +1,13 @@
 Version 3.5
 
+7/6/04   Improved diagnostic for unexpected template argument list
+
+The diagnostics issued when a template argument list is specified in
+a non-template function declaration have been improved.
+
+  template <class T> void f(T);
+  void f<int>(int i) { }
+
 7/6/04   gcc compatibility: "&" operator applied to "?" operation
 
 In gcc mode, a "&" operator is now allowed to take the address of

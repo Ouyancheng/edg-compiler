@@ -10874,7 +10874,9 @@ TRUE if an error was reported while the decl-specifiers were scanned.
     }  /* if */
     cannot_bind_to_curr_construct();
   } else if ((dso_flags & DSO_DANGLING_TYPE_SPECIFIER) ||
-             (!C_mode() && identifier_is_template_id() && !microsoft_mode)) {
+             (!C_mode() && identifier_is_template_id() &&
+             locator_for_curr_id.specific_symbol != NULL &&
+             is_type_symbol(locator_for_curr_id.specific_symbol))) {
     /* The "dangling type specifier" case -- a class, struct, union, or
        enum definition was followed by a type specifier keyword.  This is
        treated as a missing-semicolon error, since the type specifier can
