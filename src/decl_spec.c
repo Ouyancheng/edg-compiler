@@ -2636,7 +2636,7 @@ exit_loop:
              Issue a diagnostic. */
           if (is_reference_type(*type_ptr)) {
             is_const_qualified = is_volatile_qualified = FALSE;
-            pos_warning(ec_qualified_reference_type, &qualifier_pos);
+            pos_warning(ec_useless_type_qualifiers, &qualifier_pos);
           }  /* if */        
         } else {
           /* In C we check for duplicate qualifiers on a declaration, even
