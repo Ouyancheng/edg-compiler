@@ -996,7 +996,8 @@ by octl.
           /* scp is preferred over the source correspondence stored in the
              type (presumably because the template parameter name is different
              in this context). */
-          form_name(scp, iek_type, octl);
+          check_assertion(scp->name != NULL);
+          octl->output_str(scp->name);
         } else {
           form_name(&type->source_corresp, iek_type, octl);
         }  /* if */
