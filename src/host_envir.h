@@ -960,12 +960,8 @@ Include the files needed to define the types used with the stat()
 function.  A declaration of stat() is provided in case the standard
 headers to define the prototype.
 */
-#if __VMS__
-#include <stat.h>
-#else /* !__VMS__ */
 #include <sys/types.h>
 #include <sys/stat.h>
-#endif /* __VMS__ */
 /* "stat" isn't in ANSI C, but we assume it is available.  If not, this
    file must be changed.  By default, the first argument is assumed to
    be const.  If this is not the case, the preprocessor macro
@@ -975,8 +971,12 @@ headers to define the prototype.
 #ifndef __cplusplus
 #ifndef STAT_FIRST_PARAM_IS_CONST
 /* If not set otherwise, the first parameter of stat is assumed to be
-   const. */
+   const, except on VMS. */
+#if __VMS__
+#define STAT_FIRST_PARAM_IS_CONST FALSE
+#else /* !__VMS__ */
 #define STAT_FIRST_PARAM_IS_CONST TRUE
+#endif /* !__VMS__ */
 #endif /* !defined(STAT_FIRST_PARAM_IS_CONST) */
 #if STAT_FIRST_PARAM_IS_CONST
 EXTERN_C int stat(const char *path, struct stat *buf);

@@ -1,5 +1,12 @@
 Version 2.29
 
+4/3/95   Changes for VMS and Open VMS
+
+The VMS specific code has been updated to be compatible with the
+more recent versions on VMS C that more closely resemble ANSI C.
+We don't have a VMS system on which to test these changes, so please
+let us know if you experience any problems with these changes.
+
 3/31/95  Support for Microsoft bit field allocation
 
 When TARG_MICROSOFT_BIT_FIELD_ALLOCATION is configured to TRUE, bit-field

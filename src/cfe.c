@@ -63,6 +63,11 @@ int edg_main(int argc, char *argv[])
   a_timer	    be_end_time;
   a_timer	    end_time;
 
+#if DEBUG
+  /* Initiaize the file variable used for debug output.  This should be
+     done before anything else that could potentially produce debug output. */
+  f_debug = stderr;
+#endif /* DEBUG */
   /* Get the execution starting time.  Do this unconditionally because the
      timing command line option will not have been processed yet. */
   get_timer(&start_time);

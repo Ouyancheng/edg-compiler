@@ -25,13 +25,13 @@ mem_manage.c -- Memory management routines.
 #if __ANSIC__
 #include <stdlib.h>
 #else /* !__ANSIC__ */
-#if __BSD__ || __VMS__
+#if __BSD__
 extern char *malloc(unsigned size);
 extern int free(char *); /* int to match old-style definition. */
 extern char *realloc(char *ptr, unsigned size);
 #else /* __SYSV__ */
 #include <malloc.h>
-#endif /* __BSD__ || __VMS__ */
+#endif /* __BSD__ */
 #endif /* __ANSIC__ */
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE

@@ -117,12 +117,12 @@ compiler it is.  Borland, Zortech, and Microsoft are supported.
 #define __MSC__ 0
 #endif /* ifndef __MSC__ */
 
-/* VAX/VMS is not UNIX, but for purposes of this compilation is considered
-   to be System V, with needed differences controlled by the __VMS__ flag. */
+/* VAX/VMS (and Open VMS) are considered to have an ANSI compatible
+   library with needed differences controlled by the __VMS__ flag. */
 #ifdef __VMS__
 #undef __VMS__
 #define __VMS__ 1
-#define __SYSV__ 1
+#define __ANSIC__ 1
 #else /* !defined(__VMS__) */
 #define __VMS__ 0
 #endif /* ifdef __VMS__ */
@@ -234,28 +234,12 @@ EXTERN_C char *sprintf(char *, const char *, ...);
 #endif /* ifndef SEEK_SET */
 /* String and block routines: */
 #if __ANSIC__
-#include <string.h>
+#include <stdlib.h>
 #define memzero(dest, nbytes) memset(dest, 0, nbytes)
 #else /* !__ANSIC__ */
 #if __SYSV__
-#if !__VMS__
 #include <string.h>
 #include <memory.h>
-#else /* __VMS__ */
-/* VAX/VMS does not have string.h and memory.h. */
-EXTERN_C char *strcpy(char *, char *);
-EXTERN_C char *strncpy(char *, char *, int);
-EXTERN_C char *strcat(char *, char *);
-EXTERN_C char *strncat(char *, char *, int);
-EXTERN_C char *strchr(char *, int);
-EXTERN_C char *strrchr(char *, int);
-EXTERN_C int strcmp(char *, char *);
-EXTERN_C int strncmp(char *, char *, int);
-EXTERN_C int strlen(char *);
-EXTERN_C char *memcpy(char *, char *, int);
-EXTERN_C char *memset(char *, int, int);
-EXTERN_C int memcmp(char *, char *, int);
-#endif /* !__VMS__ */
 #define memzero(dest, nbytes) memset(dest, 0, nbytes)
 #else /* !__SYSV__ */
 #if __BSD__
@@ -410,11 +394,7 @@ EXTERN a_boolean
 			/* TRUE if debug_level is currently non-zero, or
 			   if there is the potential for it becoming
 			   non-zero (because there is a debug list). */
-EXTERN FILE	*f_debug
-#if VAR_INITIALIZERS
-                         = stderr
-#endif /* VAR_INITIALIZERS */
-                                 ;
+EXTERN FILE	*f_debug;
 			/* Debug output file. */
 
 extern void debug_enter(int reporting_level, char *function_name);

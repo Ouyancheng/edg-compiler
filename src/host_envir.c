@@ -1553,35 +1553,6 @@ does not know that both strings are at least as long as the indicated length.
 }  /* smemcmp */
 
 
-#if __VMS__
-/* VMS doesn't have block copy routines, so define them. */
-
-int memcmp(register char *s1, register char *s2, register true_size_t length)
-{
-  return smemcmp(s1, s2, (sizeof_t)length);
-}  /* memcmp */
-
-
-char *memcpy(register char *to,
-             register char *from,
-             register true_size_t length)
-{
-  register char *origto = to;
-  while (length--) *to++ = *from++;
-  return (origto);
-}  /* memcpy */
-
-
-char *memset(register char *ptr,
-             register int val,
-             register true_size_t length)
-{
-  while (length--) *ptr++ = val;
-} /* memset */
-
-#endif /* __VMS__ */
-
-
 static a_cpu_time get_cpu_time(void)
 /*
 Returns the amount of CPU time used by this process (and any child processes)
@@ -1885,6 +1856,29 @@ See comment above.
 }  /* get_file_name_from_dir */
 #else /* !__MSDOS__ */
 
+#if __VMS__
+/*
+VMS version.  A VMS specific version is not supplied in the standard
+distribution.
+*/
+/*ARGSUSED*/ /* <-- Because all arguments are unused in the VMS version. */
+char *get_file_name_from_dir(a_boolean	first,
+			     char	*dir_name,
+			     char	*suffix,
+			     char	*curr_dir_name)
+/*
+See comment above.
+
+A VMS specific version is not supplied.  The VMS version (but without
+automatic PCH support) can be used by getting rid of the #error directive
+below.
+*/
+{
+ #error -- a VMS specific version of get_file_name_from_dir must be supplied
+  return (char *)NULL;
+}  /* get_file_name_from_dir */
+#else /* !__VMS__ */
+
 /*
 UNIX Version.
 */
@@ -1932,6 +1926,7 @@ See comment above.
   }  /* for */
   return result;
 }  /* get_file_name_from_dir */
+#endif /* !__VMS__ */
 #endif /* __MSDOS__ */
 #endif /* __WIN32__ */
 
