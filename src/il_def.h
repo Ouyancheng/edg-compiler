@@ -3190,7 +3190,7 @@ typedef struct a_block {
 			   one or more initializing declarations (i.e.,
 			   stmk_init statements) in the portion of the
 			   statement list that precedes the statement that
-			   establishes this block. */
+			   establishes this block.  (Used only in C++.) */
 #endif /* ifdef CIL */
 } a_block;
 
