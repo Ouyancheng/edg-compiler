@@ -5956,9 +5956,9 @@ Generate C for a statement.
     default:
       unexpected_condition_str("dump_statement: bad statement kind");
   }  /* switch */
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+#if !REPRESENT_EMPTY_STATEMENTS_IN_IL
 routine_end:;
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
+#endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
 }  /* dump_statement */
 
 
