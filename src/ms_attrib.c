@@ -380,9 +380,15 @@ are accepted.
                           "interface1", /*is_unnamed=*/FALSE, NULL);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "interface2", /*is_unnamed=*/FALSE, NULL);
+  /* [defaultbind] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "defaultbind", MSAT_METHOD);
   /* [dispinterface] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "dispinterface", MSAT_INTERFACE);
+  /* [displaybind] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "displaybind", MSAT_METHOD);
   /* [dual] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "dual", MSAT_INTERFACE);
@@ -559,6 +565,15 @@ are accepted.
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, NULL);
+  /* [propget] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "propget", MSAT_METHOD);
+  /* [propput] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "propput", MSAT_METHOD);
+  /* [propputref] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "propputref", MSAT_METHOD);
   /* [provider] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "provider", MSAT_STANDALONE);
@@ -574,6 +589,9 @@ are accepted.
 			     "registration_script", MSAT_CLASS | MSAT_STRUCT);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "script", /*is_unnamed=*/FALSE, NULL);
+  /* [requestedit] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+			     "requestedit", MSAT_METHOD);
   /* [request_handler] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "request_handler", MSAT_CLASS | MSAT_STRUCT);
