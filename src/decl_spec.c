@@ -1157,6 +1157,11 @@ to indicate whether an enumeration is actually defined.
           (void)get_token();
           /* Scan the constant expression. */
           scan_integral_constant_expression(&constant);
+          if (constant.source_corresp.is_class_member) {
+            /* Clear the membership fields. */
+            constant.source_corresp.is_class_member = FALSE;
+            constant.source_corresp.parent.class_type = NULL;
+          }  /* if */
           if (is_error_constant(&constant)) {
             err = TRUE;
           } else if (constant.kind ==
