@@ -3647,7 +3647,8 @@ the former has additional type qualifiers.
   if (sym1 != NULL && sym2 != NULL) {
     a_type_ptr type1 = candidate_return_type(cfp1);
     a_type_ptr type2 = candidate_return_type(cfp2);
-    if (same_type_with_added_qualifiers(type2, type1,
+    if (type1 != NULL && type2 != NULL &&
+        same_type_with_added_qualifiers(type2, type1,
 					/*ignore_qualifiers=*/FALSE,
                                         &qualifiers_added) &&
         qualifiers_added) {

@@ -1,5 +1,30 @@
 Version 3.1
 
+6/24/02  Abort in same_type_with_added_qualifiers
+
+An abort in same_type_with_added_qualifiers has been fixed.
+It involved comparisons of template conversion functions in
+overload resolution.
+
+  class StrictType {
+    public:
+      StrictType(const char* x);
+  };
+  class ISDCPars : public StrictType {
+    public:
+      virtual operator char*();
+      template <typename A>
+      inline A CopyFromPar() {
+        return StrictType(*this);
+      }
+    private:
+      template <typename A>
+      inline operator A() {}
+  };
+  ISDCPars::operator unsigned short() {
+    return CopyFromPar<unsigned short>();
+  }
+
 6/23/02  Source positions on overloaded operator-> call
 
 The source positions on the operand for an overloaded operator->
