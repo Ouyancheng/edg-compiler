@@ -9397,7 +9397,10 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
        output. */
     sym_ptr = enter_symbol((a_symbol_kind)sk_undefined, &locator_for_curr_id,
                            decl_scope_level, /*suppress_error=*/TRUE);
-    if (curr_expr_kind_is_const()) {
+    if (is_error_locator(locator_for_curr_id)) {
+      /* An error was already issued. */
+      make_error_operand(result);
+    } else if (curr_expr_kind_is_const()) {
       /* In a constant expression, an undefined identifier is still
          flagged as "undefined" -- it makes the error message clearer. */
       str_error(ec_undefined_identifier,
