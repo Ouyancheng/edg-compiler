@@ -1,5 +1,10 @@
 Version 2.44
 
+5/31/00  C++-generating back end: output of wide character constants
+
+The C++-generating back end now correctly puts out wide character
+constants in the L'x' form.
+
 5/30/00  reinterpret_cast between pointer-to-function and pointer-to-object
          not allowed
 

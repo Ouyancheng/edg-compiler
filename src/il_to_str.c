@@ -2867,6 +2867,17 @@ confusion.  Do the output in the way described by octl.
                         octl);
         output_partial_token_str("'", octl);
         output_optional_close_paren(need_char_cast_close_paren, octl);
+      } else if (!octl->c_generating_back_end &&
+                 con_type->kind == (a_type_kind)tk_integer &&
+                 con_type->variant.integer.wchar_t_type) {
+        /* In C++, wide character constants have wchar_t type. */
+        a_boolean ovflo;
+        output_partial_token_str("L'", octl);
+        (void)form_wide_char(
+                    (unsigned long)unsigned_value_of_integer_constant(constant,
+                                                                      &ovflo),
+                    octl);
+        output_partial_token_str("'", octl);
       } else {
         /* A normal integer constant. */
         form_integer_constant(constant, suppress_cast_on_integer_constant,
