@@ -940,11 +940,12 @@ be TRUE to indicate an alternate syntax (ARM 8.4):
        constructor.  This is to catch the unusual case in which a user has
        defined a destructor but the object can be initialized without a
        constructor. */
-    if (cssp != NULL && cssp->destructor != NULL) {
-      local_di.destructor = cssp->destructor->variant.routine;
-      /* Check that the destructor is accessible and mark it referenced. */
-      reference_to_implicitly_invoked_function(cssp->destructor);
-      initialization_is_dynamic = TRUE;
+    if (cssp != NULL) {
+      a_routine_ptr  rp = select_destructor(vp_type);
+      if (rp != NULL) {
+        local_di.destructor = rp;
+        initialization_is_dynamic = TRUE;
+      }  /* if */
     }  /* if */
     if (initialization_is_dynamic || dynamic_init_required) {
       if (dynamic_init_required && !err) {
@@ -1054,17 +1055,11 @@ the default constructor (if one exists) is called.
                       "def_initializer: incomplete types not yet supported");
 #endif /* if 0 */
         }  /* if */
-        rp = select_default_constructor(tp, err_pos);
-        if (rp != NULL) {
+        if ((rp = select_default_constructor(tp, err_pos)) != NULL) {
           clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constructor);
           local_di.variant.constructor.routine = rp;
           local_di.variant.constructor.args = NULL;
-          if (cssp->destructor != NULL) {
-            /* Check that the destructor is accessible and mark it
-               referenced. */
-            reference_to_implicitly_invoked_function(cssp->destructor);
-            local_di.destructor = cssp->destructor->variant.routine;
-          }  /* if */
+          local_di.destructor = select_destructor(tp);
           if (var_type != tp) {
             ctor_dip =
                     alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
@@ -1086,15 +1081,13 @@ the default constructor (if one exists) is called.
           }  /* if */
 #endif /* DEBUG */
         }  /* if */
-      } else if (cssp->destructor != NULL) {
+      } else if ((rp = select_destructor(tp)) != NULL) {
         /* Default initialization of an object that has a destructor.  We
            generate a dik_none dynamic initialization entry for this object,
            even though it is not actually initialized, so that the existence
            of the destructor can be duly recorded. */
         clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_none);
-        local_di.destructor = cssp->destructor->variant.routine;
-        /* Check that the destructor is accessible and mark it referenced. */
-        reference_to_implicitly_invoked_function(cssp->destructor);
+        local_di.destructor = rp;
         gen_dynamic_initialization(var, &local_di);
         /* Don't set def_init_performed.  A dik_none dynamic initialization
            doesn't count as initialization. */
@@ -1692,8 +1685,8 @@ though neither constructors nor initialization is involved here.)
   a_constructor_init_ptr        cip;
   a_constructor_init_ptr        cip_list, end_of_cip_list;
   a_constructor_init_ptr        virtual_list;
+  a_routine_ptr                 rp;
   a_base_class_ptr              bcp;
-  a_class_symbol_supplement_ptr cssp;
   a_dynamic_init_ptr            dip;
 
   db_enter(3, "dtor_initializer");
@@ -1715,20 +1708,17 @@ though neither constructors nor initialization is involved here.)
        bcp != NULL;
        bcp = bcp->next) {
     if (bcp->is_virtual || bcp->direct) {
-      cssp = symbol_supplement_for_class(bcp->type);
       /* If the virtual base class or direct base class has a destructor, a
          dynamic init entry will be required.  Create the constructor init
          entry now; the dynamic init will be added later. */
-      if (cssp->destructor != NULL) {
+      if ((rp = select_destructor(bcp->type)) != NULL) {
         cip = alloc_ctor_init(bcp->is_virtual ?
                               (a_constructor_init_kind)cik_virtual_base_class :
                               (a_constructor_init_kind)cik_direct_base_class);
         cip->variant.base_class = bcp;
         /* Create a dynamic init entry. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-        dip->destructor = cssp->destructor->variant.routine;
-        /* Check that the destructor is accessible and mark it referenced. */
-        reference_to_implicitly_invoked_function(cssp->destructor);
+        dip->destructor = rp;
         /* Attach the new dynamic init entry to the constructor initializer. */
         cip->initializer = dip;
         /* Add the constructor init to the end of the appropriate list. */
@@ -1776,16 +1766,13 @@ though neither constructors nor initialization is involved here.)
         tp = skip_typerefs(tp);
       }  /* if */
       if (is_class_struct_union_type(tp)) {
-        cssp = symbol_supplement_for_class(tp);
-        if (cssp->destructor != NULL) {
+        if ((rp = select_destructor(tp)) != NULL) {
           /* Create the constructor init entry for a field. */
           cip = alloc_ctor_init((a_constructor_init_kind)cik_field);
           cip->variant.field = sym->variant.field.ptr;
           /* Create a dynamic init entry. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
-          dip->destructor = cssp->destructor->variant.routine;
-          /* Check that the destructor is accessible and mark it referenced. */
-          reference_to_implicitly_invoked_function(cssp->destructor);
+          dip->destructor = rp;
           if (array_type != NULL) {
             int  count;
             /* We have an array of objects with destructors.  Create a dynamic
