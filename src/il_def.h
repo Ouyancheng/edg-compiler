@@ -336,7 +336,6 @@ typedef struct a_dynamic_init {
 			   called. */
     } constructor;
     /* When kind == dik_aggregate: */
-    /* Used only in C++. */
     struct {
       a_constant_ptr
 		aggr_const;
@@ -349,7 +348,8 @@ typedef struct a_dynamic_init {
 			/* Pointer to a linked list of dynamic-init entries
 			   representing all non-constant initializers in the
 			   ck_aggregate "constant" list; NULL when all entries
-			   in the list represent constants. */
+			   in the list represent constants, but non-NULL in
+			   C++ only. */
     } aggregate;
   } variant;
 } a_dynamic_init;
