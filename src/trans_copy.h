@@ -32,6 +32,8 @@ extern void switch_canonical_for_deleted_definition(
 extern void fix_type_list_ordering_problems(void);
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 
+extern void trans_copy_one_time_init(void);
+
 #endif /* ifndef TRANS_COPY_H */
 
 /******************************************************************************

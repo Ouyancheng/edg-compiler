@@ -73,6 +73,7 @@ been included by the inclusion of fe_common.h.
 #include "symbol_ref.h"
 #include "sys_predef.h"
 #include "templates.h"
+#include "trans_copy.h"
 #include "trans_corresp.h"
 
 #if IL_WALK_NEEDED || MAINTAIN_NEEDED_FLAGS
@@ -762,6 +763,7 @@ after the command-line processing has been done.
   symbol_tbl_one_time_init();
   scope_stk_one_time_init();
   templates_one_time_init();
+  trans_copy_one_time_init();
   trans_unit_one_time_init();
   corresp_one_time_init();
 #if DO_IL_LOWERING

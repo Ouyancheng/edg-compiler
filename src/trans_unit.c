@@ -788,9 +788,6 @@ translation unit processing.
   translation_unit_needed_only_for_exported_templates = FALSE;
   curr_translation_unit_stack_entry = NULL;
   secondary_trans_units_on_stack = 0;
-#if DEBUG
-  num_trans_unit_corresps_allocated = 0;
-#endif /* DEBUG */
 }  /* trans_unit_init */
 
 
@@ -807,10 +804,12 @@ of the front end are called.
   is_primary_translation_unit = FALSE;
   trans_unit_file_name = NULL;
   avail_translation_unit_stack_entries = NULL;
+  avail_trans_unit_corresps = NULL;
 #if DEBUG
   num_translation_unit_stack_entries_allocated = 0;
   num_translation_units_allocated = 0;
   num_variable_registrations_allocated = 0;
+  num_trans_unit_corresps_allocated = 0;
 #endif /* DEBUG */
 #if CHECKING
   any_translation_units_allocated = FALSE;

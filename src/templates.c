@@ -12896,6 +12896,13 @@ to represent the template parameters.
 }  /* scan_template_param_list */
 
 
+static unsigned int
+		pending_nontype_param_instantiations;
+			/* The number of pending instantiations of dependent
+			   template nontype parameters.  This is used to
+			   detect infinite recursive instantiations. */
+
+
 a_type_ptr rescan_template_constant_parameter(
 		        a_symbol_ptr		template_sym,
 			a_symbol_ptr		param_sym,
@@ -12924,7 +12931,6 @@ the resulting constant is stored in the pointer pointed to by "constant".
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean				type_involves_template_param;
   a_boolean				constant_involves_template_param;
-  static unsigned int			pending_instantiations = 0;
   a_boolean				dependent_arg_list;
   a_push_scope_options_set		ps_options = PS_NO_OPTIONS;
 
@@ -12943,13 +12949,13 @@ the resulting constant is stored in the pointer pointed to by "constant".
      instantiation. */
   if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
   if (type_involves_template_param) {
-    if (pending_instantiations == max_pending_instantiations) {
+    if (pending_nontype_param_instantiations == max_pending_instantiations) {
       error(ec_recursive_inst_of_templ_default_arg);
       constant_type = error_type();
     } else {
       /* Increment the count of pending default argument instantiations.
          This is used to detect infinite recursion. */
-      ++pending_instantiations;
+      ++pending_nontype_param_instantiations;
       /* Push the template instantiation scope.  Note that the instance symbol
          passed to push_scope is NULL because we don't yet know which instance
          is being instantiated.  Also note that a class type is not being
@@ -12973,7 +12979,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
       flush_past_token_cache_terminator();
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
-      --pending_instantiations;
+      --pending_nontype_param_instantiations;
     }  /* if */
   } else {
     constant_type = param_sym->variant.constant->type;
@@ -12983,7 +12989,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
     /* Determine whether the template argument list depends on a template
        parameter type.  */
     if (constant_involves_template_param) {
-      if (pending_instantiations == max_pending_instantiations) {
+      if (pending_nontype_param_instantiations == max_pending_instantiations) {
         error(ec_recursive_inst_of_templ_default_arg);
         *constant = alloc_error_constant();
       } else {
@@ -12991,7 +12997,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
         a_source_position		arg_pos;
         /* Increment the count of pending default argument instantiations.
            This is used to detect infinite recursion. */
-        ++pending_instantiations;
+        ++pending_nontype_param_instantiations;
         /* Push the template instantiation scope.  See note above regarding
            the instance symbol and class type. */
         tcp = &param_ptr->default_arg_cache;
@@ -13015,7 +13021,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
         }  /* if */
         /* Pop the template instantiation scope. */
         pop_template_instantiation_scope();
-        --pending_instantiations;
+        --pending_nontype_param_instantiations;
       }  /* if */
     } else {
       *constant = param_ptr->default_arg.constant;
@@ -13049,6 +13055,13 @@ template template parameter.
 }  /* set_decl_state_for_template_template_rescan */
 
 
+static unsigned int
+		pending_templ_templ_param_instantiations;
+			/* The number of pending instantiations of dependent
+			   template template parameters.  This is used to
+			   detect infinite recursive instantiations. */
+
+
 a_template_ptr rescan_template_template_parameter(
 				a_symbol_ptr		template_sym,
 				a_template_param_ptr	param_ptr,
@@ -13066,7 +13079,6 @@ template parameters that depend on other template parameters.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position		saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  static unsigned int		pending_instantiations = 0;
   a_boolean			dependent_arg_list;
   a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
   a_template_ptr		new_template = NULL;
@@ -13081,7 +13093,7 @@ template parameters that depend on other template parameters.
   /* If the argument list is dependent, flag this as a nonreal
      instantiation. */
   if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
-  if (pending_instantiations == max_pending_instantiations) {
+  if (pending_templ_templ_param_instantiations == max_pending_instantiations) {
     error(ec_recursive_inst_of_templ_default_arg);
     new_template = error_class_template()->
                                       variant.template_info->il_template_entry;
@@ -13090,7 +13102,7 @@ template parameters that depend on other template parameters.
     a_template_param_ptr	new_param;
     /* Increment the count of pending default argument instantiations.
        This is used to detect infinite recursion. */
-    ++pending_instantiations;
+    ++pending_templ_templ_param_instantiations;
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_scope is NULL because we don't yet know which instance
        is being instantiated.  Also note that a class type is not being
@@ -13121,7 +13133,7 @@ template parameters that depend on other template parameters.
     flush_past_token_cache_terminator();
     /* Pop the template instantiation scope. */
     pop_template_instantiation_scope();
-    --pending_instantiations;
+    --pending_templ_templ_param_instantiations;
     new_template = new_param->variant.templ->il_template_entry;
   }  /* if */
   error_position = saved_error_position;
@@ -13131,6 +13143,13 @@ template parameters that depend on other template parameters.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   return new_template;
 }  /* rescan_template_template_parameter */
+
+
+static unsigned int
+		pending_type_param_instantiations;
+			/* The number of pending instantiations of dependent
+			   template type parameters.  This is used to
+			   detect infinite recursive instantiations. */
 
 
 a_type_ptr rescan_template_type_default_arg
@@ -13153,7 +13172,6 @@ existing type is simply used.
   a_source_position           saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_type_ptr				tp;
-  static unsigned int			pending_instantiations = 0;
   a_boolean				dependent_arg_list;
 
   /* Determine whether the template argument list depends on a template
@@ -13161,7 +13179,7 @@ existing type is simply used.
   dependent_arg_list = is_template_dependent_context() ||
                        template_arg_list_involves_template_param(arg_list);
   if (param_ptr->def_arg_involves_template_param) {
-    if (pending_instantiations == max_pending_instantiations) {
+    if (pending_type_param_instantiations == max_pending_instantiations) {
       error(ec_recursive_inst_of_templ_default_arg);
       tp = error_type();
     } else {
@@ -13169,7 +13187,7 @@ existing type is simply used.
       a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
       /* Increment the count of pending default argument instantiations.
          This is used to detect infinite recursion. */
-      ++pending_instantiations;
+      ++pending_type_param_instantiations;
       /* If the argument list is dependent, flag this as a nonreal
          instantiation. */
       if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
@@ -13199,7 +13217,7 @@ existing type is simply used.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       /* Pop the template instantiation scope. */
       pop_template_instantiation_scope();
-      --pending_instantiations;
+      --pending_type_param_instantiations;
     }  /* if */
   } else {
     tp = param_ptr->default_arg.type;
@@ -21399,6 +21417,9 @@ Initializations for template.
   num_total_pending_instantiations = 0;
   master_instantiations_list = NULL;
   master_instantiations_tail = NULL;
+  pending_nontype_param_instantiations = 0;
+  pending_templ_templ_param_instantiations = 0;
+  pending_type_param_instantiations = 0;
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
   num_tmpl_decl_states_allocated = 0;

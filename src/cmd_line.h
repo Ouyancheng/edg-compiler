@@ -1332,6 +1332,11 @@ EXTERN a_boolean
 			   to indicate that a variable should reside in thread-
 			   local storage. */
 
+EXTERN a_boolean
+		enum_type_is_integral;
+			/* TRUE if an enum type is considered an integral
+			   type.  Typically TRUE in C mode and FALSE in C++
+			   mode. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

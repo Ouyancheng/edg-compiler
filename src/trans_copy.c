@@ -3433,6 +3433,15 @@ processed.  This code runs after IL lowering.
 
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 
+void trans_copy_one_time_init(void)
+/*
+One-time initialization for trans_copy.c static variables.
+*/
+{
+  in_trans_copy_setup = FALSE;
+  in_primary_il_reference_rewrite = FALSE;
+}  /* trans_copy_one_time_init */
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
