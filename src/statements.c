@@ -26,6 +26,7 @@ statements.c -- Scanning of statements.
 #include "il.h"
 #include "cmd_line.h"
 #include "folding.h"
+#include "const_ints.h"
 #include "trans_lims.h"
 #include "symbol_tbl.h"
 #include "mem_manage.h"
@@ -1451,8 +1452,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
       if (constant_ptr->kind == (a_constant_repr_kind)ck_integer) {
         for (; cp != NULL; cp = cp->next) {
           if (cp->kind == (a_constant_repr_kind)ck_integer &&
-              cp->variant.integer_value ==
-                constant_ptr->variant.integer_value) {
+              cmp_integer_constants(cp, constant_ptr) == 0) {
             error(ec_case_label_appears_more_than_once);
             goto routine_exit;
           }  /* if */
@@ -1551,8 +1551,7 @@ by *constant_ptr.  constant_ptr is NULL to indicate the default label.
     /* Add a case value at the right spot on the list of constants. */
     prev_cp = NULL;
     for (cp = scp->constant_list;
-         cp != NULL &&
-           cp->variant.integer_value < constant_ptr->variant.integer_value;
+         cp != NULL && cmp_integer_constants(cp, constant_ptr) < 0;
          prev_cp = cp, cp = cp->next) {};
     if (prev_cp == NULL) {
       scp->constant_list = constant_ptr;

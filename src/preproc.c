@@ -25,6 +25,7 @@ preproc.c -- Preprocessing directives.
 #include "expr.h"
 #include "symbol_tbl.h"
 #include "macro.h"
+#include "const_ints.h"
 
 #ifndef ALIAS_DIRECTIVE
 #define ALIAS_DIRECTIVE 0
@@ -250,7 +251,8 @@ truth value.
     some_error_in_curr_directive = TRUE;
   } else {
     /* The constant is guaranteed to be integer. */
-    *condition = temp_const.variant.integer_value != 0;
+    /* Determine whether or not it is zero. */
+    *condition = !eqlit_integer_constant(&temp_const, 0L);
   }  /* if */
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;

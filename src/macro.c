@@ -26,6 +26,7 @@ macro.c -- Macro definition and expansion routines.
 #include "types.h"
 #include "decls.h"
 #include "expr.h"
+#include "const_ints.h"
 
 /*
 Buffer used to contain the characters of a macro being defined, and the
@@ -763,9 +764,9 @@ Return tok_int_constant.
 */
 {
   clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
-  const_for_curr_token.type = integer_type((an_integer_kind)ik_long);
-  const_for_curr_token.variant.integer_value = value;
-  return (tok_int_constant);
+  set_value_of_integer_constant(&const_for_curr_token, value,
+                                integer_type((an_integer_kind)ik_long));
+  return tok_int_constant;
 }  /* make_pp_int_constant */
 
 
@@ -1592,8 +1593,9 @@ end_scan_for_macro_modifs:;
         /* Otherwise, replace the defined operator and its operand with
            an integer constant. */
         /* We assume we don't need to call ensure_arg_raw_text_space. */
-        (void)sprintf(repl_text, "%ldL",
-				 const_for_curr_token.variant.integer_value);
+        (void)strcpy(repl_text,
+                     str_for_integer_constant(&const_for_curr_token));
+        (void)strcat(repl_text, "L");
 #if CHECKING
       } else {
         internal_error("macro_invocation: unknown special predefined macro");
