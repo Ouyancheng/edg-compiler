@@ -3942,6 +3942,7 @@ class, struct, or union.
     /* All field entries for an unnamed fields share the same symbol.  It is
        used for easy identification. */
     field->source_corresp.assoc_info = (char *)unnamed_field_symbol();
+    field->source_corresp.decl_position = locator->source_position;
   } else if (!is_anonymous_union) {
     /* Create the field symbol. */
     member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
