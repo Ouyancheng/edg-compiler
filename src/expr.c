@@ -134,6 +134,13 @@ should be suppressed.
         has_side_effects = TRUE;
       }  /* if */
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case eok_assume:
+      /* __assume(expr) intentionally does nothing, so suppress the
+         warning. */
+      suppress = TRUE;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:;
   }  /* switch */
 
