@@ -629,6 +629,33 @@ EXTERN a_symbol_header_ptr
 			   contains a pointer to a list of symbol headers whose
 			   identifiers hash to that bucket. */
 
+typedef struct a_conversion_header *a_conversion_header_ptr;
+typedef struct a_conversion_header {
+  /* Top level lookup mechanism for symbols that identify user defined
+     conversion functions.  Since such symbols are looked up by return
+     type, they do not appear in the symbol proper.  Each conversion header
+     entry points to a symbol header that points to symbols for all the
+     user-defined conversion functions that return objects of a given type. */
+  a_conversion_header_ptr
+		next;
+			/* Next in a linked list of conversion header
+			   entries; NULL for the last entry on the list. */
+  a_symbol_header_ptr
+		symbol_header;
+			/* Pointer to the symbol header pointing to conversion
+			   functions whose destination type is "type". */
+  a_type_ptr	type;
+			/* Pointer to the type entry by which the symbol
+			   header is looked up. */
+} a_conversion_header;
+
+/*
+List of conversion header entries that serve as a lookup list for
+conversion functions.
+*/
+EXTERN a_conversion_header_ptr
+		conversion_header_list;
+
 /*
 Table of pointers to symbol headers for C++ operator name symbols, for
 names like "operator+".  Indexed by opname kind.
@@ -934,6 +961,10 @@ extern void make_opname_locator(a_token_kind      token,
                                 an_opname_kind    opname,
                                 a_symbol_locator  *locator,
                                 a_source_position *pos);
+
+extern void make_type_conversion_locator(a_type_ptr         type,
+                                         a_symbol_locator   *locator,
+                                         a_source_position  *pos);
 
 extern an_access_specifier access_for_symbol(a_symbol_ptr sym_ptr);
 
