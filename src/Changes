@@ -12,7 +12,7 @@ added by the explicit instantiation directive.  For example:
     static int d;
   };
   template<typename T> int S<T>::d = 0;
-  template __declspec(dllimport) class S<void>;
+  template struct __declspec(dllimport) S<void>;
     // No longer instantiates S<void>::d and therefore no longer issues an
     // error about providing an initializer for a dllimported member.
 
