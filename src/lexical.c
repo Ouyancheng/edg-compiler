@@ -8282,14 +8282,13 @@ static a_symbol_ptr select_dual_lookup_symbol(
 					a_boolean	might_be_template)
 /*
 normal_fund_sym and class_fund_sym are the results of a normal and
-class-qualified
-ID lookup, respectively.  normal_sym and class_sym are the symbols placed
-in the specific_symbol field by those lookups, and which may point to
-projection symbols.  might_be_template is TRUE if the name being
-looked up is followed by a "<".  Reconcile the two symbols according to the
-rules for the dual lookup, issue any diagnostics that might be needed,
-and return the symbol to be used.  Set the specific symbol to the
-associated nonfundamental symbol.
+class-qualified ID lookup, respectively.  normal_sym and class_sym are
+the symbols placed in the specific_symbol field by those lookups, and
+which may point to projection symbols.  might_be_template is TRUE if
+the name being looked up is followed by a "<".  Reconcile the two
+symbols according to the rules for the dual lookup, issue any
+diagnostics that might be needed, and return the symbol to be used.
+Set the specific symbol to the associated nonfundamental symbol.
 */
 {
   a_symbol_ptr	result_sym;
@@ -8353,7 +8352,13 @@ associated nonfundamental symbol.
   } else {
     /* One or both are NULL.  If one is non-NULL, return that one, otherwise
        return a NULL. */
-    result_sym = normal_sym != NULL ? normal_sym : class_sym;
+    if (normal_sym != NULL) {
+      result_sym = normal_fund_sym;
+      specific_symbol = normal_sym;
+    } else {
+      result_sym = class_fund_sym;
+      specific_symbol = class_sym;
+    }  /* if */
   }  /* if */
   locator_for_curr_id.specific_symbol = specific_symbol;
   return result_sym;
