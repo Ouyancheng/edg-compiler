@@ -100,7 +100,8 @@ Error routines.
 /* Macro to test an assertion and generate an internal error if
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
-EXTERN_C void abort(void);
+/* stdlib.h is included is to define abort(). */
+#include <stdlib.h>
 #define assert(test) \
   {									\
     if (!(test)) {							\
