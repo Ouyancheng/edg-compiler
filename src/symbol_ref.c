@@ -1292,6 +1292,9 @@ created for this entity; otherwise, it is NULL.
         sym_ptr->kind == (a_symbol_kind)sk_routine) {
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
       if (is_definition && !C_mode() &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          sym_ptr->variant.routine.ptr->overridden_function == NULL &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           scope_stack[depth_scope_stack].kind ==
                                     (a_scope_kind)sck_class_struct_union &&
           !scope_stack[depth_scope_stack].inside_local_class &&
