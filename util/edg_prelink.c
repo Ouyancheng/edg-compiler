@@ -27,7 +27,7 @@ Prelink utility for template instantiation.
 #endif /* __ANSI__ */
 /* Used to get a prototype for chdir. */
 #include <unistd.h>
-#include "errno.h"
+#include <errno.h>
 
 #if defined(__SUNPRO_CC) && __BSD__
 /* The SunOS 4.1.3 Sun CC header files do not define the system function. */
