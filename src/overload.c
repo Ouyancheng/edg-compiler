@@ -859,7 +859,8 @@ is TRUE.
 {
   an_operand        *orig_arg_operand;
   a_boolean         param_is_reference;
-  a_boolean         param_is_class_type, arg_is_class_type;
+  a_boolean         ref_to_nonconst_bound_to_rvalue = FALSE;
+  a_boolean         param_is_class_type;
   a_boolean         ref_type_qualifiers_dropped, ref_type_qualifiers_added;
   a_std_conv_descr  std_conversion;
   a_boolean         ambiguous;
@@ -937,16 +938,28 @@ is TRUE.
     arg_operand = NULL;
   }  /* if */
   if (param_is_reference) {
+    a_type_qualifier_set param_type_qualifiers, arg_type_qualifiers;
     /* The parameter type is a reference.  Drop the reference and remember
        we have one.  This is the "T --> T&" case.  Note that we're dropping any
        qualifiers above the reference type, but that's okay; they don't really
        mean anything ("int &const a" is meaningless). */
     param_type = type_pointed_to(param_type);
+    param_type_qualifiers = get_type_qualifiers(param_type);
+    arg_type_qualifiers   = get_type_qualifiers(arg_type);
+    if ((param_type_qualifiers & TQ_CONST) == 0 &&
+        arg_operand != NULL &&
+        is_an_rvalue(arg_operand)) {
+      /* The standard doesn't allow binding a reference to non-const to an
+         rvalue.  In the ARM, the binding was allowed in overload resolution
+         and then caused an error later if chosen. */
+      ref_to_nonconst_bound_to_rvalue = TRUE;
+    }  /* if */
     /* Check the type qualifiers to see if they can be reconciled by
        trivial conversions. */
-    if (type_qualifiers_match(param_type, arg_type)) {
+    if (param_type_qualifiers == arg_type_qualifiers) {
       /* The qualifiers are the same: okay. */
-    } else if (any_qualifier_missing(param_type, arg_type)) {
+    } else if (any_qualifier_in_set_missing(param_type_qualifiers,
+                                            arg_type_qualifiers)) {
       /* There are some type qualifiers on the argument type that do not
          appear on the parameter type, so some type qualifiers are being
          dropped. */
@@ -963,7 +976,9 @@ is TRUE.
        qualifiers will be compatible. */
     arg_type = skip_typerefs(arg_type);
     /* Qualifiers on the parameter type are also not significant when dealing
-       with rvalues.  One cannot distinguish f(int) and f(const int). */
+       with rvalues.  One cannot distinguish f(int) and f(const int).
+       In default mode the declaration processing removes the qualifiers,
+       but there might be some in cfront mode. */
     param_type = skip_typerefs(param_type);
     /* See if the operand is an lvalue for a constant-valued variable.
        If so, an lvalue --> rvalue transformation might be useful.
@@ -1000,9 +1015,10 @@ is TRUE.
     arg_summary->match_level = aml_error;
     goto have_level;
   }  /* if */
-  /* If the type qualifiers are not okay, do not check for an exact match
-     or a match with promotions.  Cases other than those do their own
-     checking of type qualifiers. */
+  param_is_class_type = is_immediate_class_type(unqual_param_type);
+  /* If the type qualifiers are not okay, do not check for the simple
+     matches; go directly to user-defined conversions (which do their own
+     variety of checking of type qualifiers). */
   if (!ref_type_qualifiers_dropped) {
     /* Check for an exact match.  This is case [1] in the ARM. */
     /* The "_ignoring_qualifiers" version is called here to deal with
@@ -1011,7 +1027,7 @@ is TRUE.
                                                  unqual_param_type)) {
       /* There is an exact match, possibly involving trivial conversions. */
       arg_summary->match_level = aml_exact;
-      if (!param_is_reference && is_class_struct_union_type(param_type)) {
+      if (!param_is_reference && param_is_class_type) {
         /* The argument and parameter are the same class type, so this
            qualifies as a class copy. */
         check_assertion(arg_operand != NULL);
@@ -1076,60 +1092,58 @@ is TRUE.
       arg_summary->match_level = aml_promotion;
       goto have_level;
     }  /* if */
-  }  /* if */
-  /* Try a match involving standard conversions.  This is case [3] in
-     the ARM. */
-  arg_operand_is_constant = FALSE;
-  arg_operand_constant = NULL;
-  if (arg_operand != NULL && is_an_rvalue(arg_operand)) {
-    /* For a constant argument, get the constant value. */
-    arg_operand_is_constant = is_constant_operand(arg_operand);
-    if (arg_operand_is_constant) {
-      arg_operand_constant = &arg_operand->variant.constant;
-    }  /* if */
-  }  /* if */
-  param_is_class_type = is_immediate_class_type(unqual_param_type);
-  arg_is_class_type = is_immediate_class_type(unqual_arg_type);
-  if (!ref_type_qualifiers_dropped &&
-      impl_conversion_possible(arg_type,
-                               arg_operand_is_constant,
-                               arg_operand_constant,
-                               param_type, /*suppress_extensions=*/TRUE,
-                               ec_incompatible_param, &std_conversion)) {
-    /* Match with standard conversions. */
-    arg_summary->match_level = aml_std_conversion;
-    arg_summary->conversion.std = std_conversion;
-    if (param_is_class_type && arg_is_class_type &&
-        std_conversion.cast_base_class != NULL) {
-      /* The argument is a derived class and the parameter is a base class. */
-      if (param_is_reference) {
-        /* This case falls under the reference standard conversions
-           (ARM 4.7). */
-        /* The operand need not be forced to an rvalue. */
-        check_assertion(arg_operand != NULL);
-        arg_summary->conversion.result_is_an_lvalue= is_an_lvalue(arg_operand);
-      } else {
-        /* This case falls under the aggregate initialization rules (ARM 8.4.1)
-           or the copy constructor rules (ARM 12.8).  Note that this case
-           counts as a standard conversion even if a copy constructor is
-           called. */
-        check_assertion(arg_operand != NULL);
-        set_user_conversion_for_class_copy(arg_operand,
-                                           &arg_summary->conversion,
-                                           param_type);
+    /* Try a match involving standard conversions.  This is case [3] in
+       the ARM. */
+    arg_operand_is_constant = FALSE;
+    arg_operand_constant = NULL;
+    if (arg_operand != NULL && is_an_rvalue(arg_operand)) {
+      /* For a constant argument, get the constant value. */
+      arg_operand_is_constant = is_constant_operand(arg_operand);
+      if (arg_operand_is_constant) {
+        arg_operand_constant = &arg_operand->variant.constant;
       }  /* if */
-    } else if (cfront_2_1_mode && param_is_reference &&
-               std_conversion.cast_base_class == NULL) {
-      /* cfront 2.1 has a bug: when a reference parameter is initialized
-         with something that requires a standard conversion that isn't
-         class-related, the cost is considered to be a user-defined
-         conversion. */
-      /* Note that this case is strange in that the level is
-         aml_user_conversion but arg_summary->conversion does not indicate a
-         user-defined conversion. */
-      arg_summary->match_level = aml_user_conversion;
     }  /* if */
-    goto have_level;
+    if (impl_conversion_possible(arg_type,
+                                 arg_operand_is_constant,
+                                 arg_operand_constant,
+                                 param_type, /*suppress_extensions=*/TRUE,
+                                 ec_incompatible_param, &std_conversion)) {
+      /* Match with standard conversions. */
+      arg_summary->match_level = aml_std_conversion;
+      arg_summary->conversion.std = std_conversion;
+      if (param_is_class_type && std_conversion.cast_base_class != NULL) {
+        /* The argument is a derived class and the parameter is a base
+           class. */
+        if (param_is_reference) {
+          /* This case falls under the reference standard conversions
+             (ARM 4.7). */
+          /* The operand need not be forced to an rvalue. */
+          check_assertion(arg_operand != NULL);
+          arg_summary->conversion.result_is_an_lvalue =
+                                                     is_an_lvalue(arg_operand);
+        } else {
+          /* This case falls under the aggregate initialization rules
+             (ARM 8.4.1) or the copy constructor rules (ARM 12.8).  Note
+             that this case counts as a standard conversion even if a copy
+             constructor is called. */
+          check_assertion(arg_operand != NULL);
+          set_user_conversion_for_class_copy(arg_operand,
+                                             &arg_summary->conversion,
+                                             param_type);
+        }  /* if */
+      } else if (cfront_2_1_mode && param_is_reference &&
+                 std_conversion.cast_base_class == NULL) {
+        /* cfront 2.1 has a bug: when a reference parameter is initialized
+           with something that requires a standard conversion that isn't
+           class-related, the cost is considered to be a user-defined
+           conversion. */
+        /* Note that this case is strange in that the level is
+           aml_user_conversion but arg_summary->conversion does not indicate a
+           user-defined conversion. */
+        arg_summary->match_level = aml_user_conversion;
+      }  /* if */
+      goto have_level;
+    }  /* if */
   }  /* if */
   if (try_user_conversions) {
     a_conv_descr conversion;
@@ -1157,7 +1171,7 @@ is TRUE.
       set_arg_summary_for_user_conversion(arg_summary, &conversion,
                                           orig_param_type, param_is_reference);
       goto have_level;
-    } else if (arg_is_class_type &&
+    } else if (is_immediate_class_type(unqual_arg_type) &&
                (conversion_from_class_possible(orig_arg_operand, param_type,
                                                (a_builtin_type_kind_set)
                                                                       BTK_NONE,
@@ -1184,6 +1198,22 @@ have_level:;
        a tie-breaker later.  User-defined conversions and above work this out
        a different way. */
     arg_summary->conversion.std.type_qualifiers_added = TRUE;
+  }  /* if */
+  if (ref_to_nonconst_bound_to_rvalue && 
+      arg_summary->match_level != aml_none &&
+      (int)arg_summary->match_level < (int)aml_user_conversion &&
+      !any_cfront_mode()) {
+    /* You can't bind a reference to non-const to an rvalue.  This was a
+       post-ARM change (in the ARM, the binding would be okay in overload
+       resolution and would get an error later if chosen).  In non-strict
+       mode we allow such a binding for class rvalues, so allow that
+       here also.  See prep_initializer_operand. */
+    if (!strict_ansi_mode && is_class_struct_union_type(arg_type)) {
+      /* Okay as an extension. */
+    } else {
+      /* Can't bind a reference to non-const to an rvalue. */
+      arg_summary->match_level = aml_none;
+    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -6506,6 +6536,8 @@ initializer has previously been found to be acceptable, and
         /* This is a reference to non-const initialized from a class rvalue
            of the right type.  According to the ARM (8.4.3), this is an error.
            We allow it as an extension. */
+        /* If you change this code, see the similar code in
+           determine_arg_match_level. */
         if (strict_ansi_mode) {
           pos_diagnostic(strict_ansi_error_severity,
                          ec_nonconst_ref_init_from_rvalue,
