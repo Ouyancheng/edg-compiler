@@ -1608,6 +1608,14 @@ called by id_linkage.
           }  /* if */
         }  /* if */
       }  /* if */
+      if ((idlbp->is_block_extern_decl ||
+           idlbp->is_local_class_friend_decl) &&
+          other_decl->decl_scope != scope_stack[depth_scope_stack].number) {
+        /* This is a friend or block-extern declaration and a declaration
+           that cannot possibly match it was found in an enclosing scope.
+           Remember it for a subsequent error message. */
+        idlbp->prior_decl_in_enclosing_scope = other_decl;
+      }  /* if */
       other_decl = NULL;
     }  /* if */
   }  /* if */
@@ -1894,6 +1902,16 @@ specified id-linkage block.
     if (prior_decl == NULL) {
       /* Special case for block extern declarations. */
       prior_decl = idlbp->prior_decl_in_enclosing_scope;
+      if (prior_decl != NULL &&
+          prior_decl->kind != (a_symbol_kind)sk_variable &&
+          prior_decl->kind != (a_symbol_kind)sk_routine &&
+          prior_decl->kind != (a_symbol_kind)sk_function_template &&
+          prior_decl->kind != (a_symbol_kind)sk_overloaded_function) {
+        /* This is a friend or block-extern declaration and a declaration
+           that cannot possibly match it was found in an enclosing scope.
+           It should not be considered a candidate for linked-symbol. */
+        prior_decl = NULL;
+      }  /* if */
     }  /* if */
 #if ASM_FUNCTION_ALLOWED
     if (local_storage_class == (a_storage_class)sc_asm) {
