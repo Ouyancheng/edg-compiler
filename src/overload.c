@@ -8107,7 +8107,7 @@ because of an error.  This routine is used only in C++ mode.
     okay = TRUE;
   } else if (is_template_dependent_context() &&
              (is_or_contains_template_param(source_type) ||
-              is_or_contains_template_param(dest_type))) {
+              class_type->variant.class_struct_union.is_nonreal_class)) {
     /* Assume we can convert to or from an unknown type in a prototype
        instantiation. */
     okay = TRUE;
@@ -8288,7 +8288,8 @@ C++ mode.
   /* This routine is similar to select_overloaded_function. */
   clear_conv_descr(conversion);
   if (is_template_dependent_context() &&
-      (is_or_contains_template_param(source_operand->type) ||
+      (f_skip_typerefs(source_operand->type)->
+                                 variant.class_struct_union.is_nonreal_class ||
        (dest_type != NULL && is_or_contains_template_param(dest_type)))) {
     /* Assume a conversion to or from an unknown type in a prototype
        instantiation is allowed. */
