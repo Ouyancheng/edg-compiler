@@ -902,6 +902,7 @@ to default values.
     case tk_union:
       pte->variant.class_struct_union.field_list = NULL;
       pte->variant.class_struct_union.any_const_member = FALSE;
+      pte->variant.class_struct_union.any_mutable_member = FALSE;
       pte->variant.class_struct_union.any_virtual_base_classes = FALSE;
       pte->variant.class_struct_union.abstract = FALSE;
       pte->variant.class_struct_union.any_virtual_functions = FALSE;

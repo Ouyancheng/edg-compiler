@@ -1006,22 +1006,28 @@ do_struct_union:
                  (char *)ptr->variant.class_struct_union.extra_info,
                  iek_class_type_supplement);
       }  /* if */
-      disp_boolean("any_const_member",
-                  (a_boolean)ptr->variant.class_struct_union.any_const_member);
-      disp_boolean("any_virtual_base_classes",
-                   (a_boolean)ptr->variant.class_struct_union.
-                                                     any_virtual_base_classes);
-      disp_boolean("abstract",
-                   (a_boolean)ptr->variant.class_struct_union.abstract);
-      disp_boolean("any_virtual_functions",
-                   (a_boolean)ptr->variant.class_struct_union.
-                                                        any_virtual_functions);
-      disp_boolean("any_pure_virtual_functions",
-                   (a_boolean)ptr->variant.class_struct_union.
-                                                   any_pure_virtual_functions);
-      disp_boolean("any_virtual_functions_including_in_base_classes",
-                   (a_boolean)ptr->variant.class_struct_union.
-                              any_virtual_functions_including_in_base_classes);
+      if (ptr->variant.class_struct_union.any_const_member) {
+        disp_boolean("any_const_member", TRUE);
+      }  /* if */
+      if (ptr->variant.class_struct_union.any_mutable_member) {
+        disp_boolean("any_mutable_member", TRUE);
+      }  /* if */
+      if (ptr->variant.class_struct_union.any_virtual_base_classes) {
+        disp_boolean("any_virtual_base_classes", TRUE);
+      }  /* if */
+      if (ptr->variant.class_struct_union.abstract) {
+        disp_boolean("abstract", TRUE);
+      }  /* if */
+      if (ptr->variant.class_struct_union.any_virtual_functions) {
+        disp_boolean("any_virtual_functions", TRUE);
+      }  /* if */
+      if (ptr->variant.class_struct_union.any_pure_virtual_functions) {
+        disp_boolean("any_pure_virtual_functions", TRUE);
+      }  /* if */
+      if (ptr->variant.class_struct_union.
+                           any_virtual_functions_including_in_base_classes) {
+        disp_boolean("any_virtual_functions_including_in_base_classes", TRUE);
+      }  /* if */
       if (ptr->variant.class_struct_union.
                        referenced_by_class_instantiation_placeholder_typeref) {
         disp_boolean("referenced_by_class_instantiation_placeholder_typeref",

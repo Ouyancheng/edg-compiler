@@ -3586,6 +3586,10 @@ typedef struct a_type {
                         /* TRUE if any member of the class, struct, or union
                            is const-qualified. */
       a_bit_field
+		any_mutable_member:1;
+			/* TRUE if any member field of the class, struct, or
+			   union is declared "mutable" (C++ only). */
+      a_bit_field
                 any_virtual_base_classes:1;
                         /* TRUE if the class, struct, or union is derived from
 			   one or more virtual base classes, either directly
