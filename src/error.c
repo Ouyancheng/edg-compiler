@@ -342,7 +342,7 @@ error code.
       m = "duplicate parameter name";
       break;
     case ec_id_already_declared:
-      m = "identifier has already been declared in the current scope";
+      m = "name has already been declared in the current scope";
       break;
     case ec_nonstd_forward_def_enum:
       m = "forward-defined enum type is nonstandard";
@@ -370,7 +370,7 @@ error code.
       m = "expression must have (pointer-to-) function type";
       break;
     case ec_exp_definition_of_tag:
-      m = "expected either a definition or a tag identifier";
+      m = "expected either a definition or a tag name";
       break;
     case ec_code_is_unreachable:
       m = "statement is unreachable";
@@ -829,7 +829,7 @@ error code.
       m = "expected a \",\"";
       break;
     case ec_type_identifier_not_allowed:
-      m = "type identifier is not allowed";
+      m = "type name is not allowed";
       break;
     case ec_type_definition_not_allowed:
       m = "type definition is not allowed";
@@ -893,6 +893,9 @@ error code.
       break;
     case ec_dominated_reference_not_allowed:
       m = "dominated base class member name is not allowed";
+      break;
+    case ec_id_must_be_class_name:
+      m = "name followed by \"::\" must be a class name";
       break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
