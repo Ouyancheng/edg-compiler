@@ -198,8 +198,9 @@ member function type "type".  Place the encoded form at *store_at if
 store_at != NULL, and (always) return the length of the encoding.
 */
 {
-  sizeof_t   mangled_name_length = 0;
-  a_type_ptr this_param_type;
+  sizeof_t              mangled_name_length = 0;
+  a_type_ptr            this_param_type;
+  a_type_qualifier_set  qualifiers;
 
   type = skip_typerefs(type);
   this_param_type = type->variant.routine.extra_info->implicit_this_param_type;
@@ -208,11 +209,12 @@ store_at != NULL, and (always) return the length of the encoding.
     this_param_type = type_pointed_to(this_param_type);
     /* Add any qualifiers on the "this" parameter type (actually, the type
        pointed to by the "this" parameter). */
-    if (is_top_level_const_qualified_type(this_param_type)) {
+    qualifiers = get_top_level_type_qualifiers(this_param_type);
+    if (qualifiers & TQ_CONST) {
       mangled_name_length++;
       if (store_at != NULL) *store_at++ = 'C';
     }  /* if */
-    if (is_top_level_volatile_qualified_type(this_param_type)) {
+    if (qualifiers & TQ_VOLATILE) {
       mangled_name_length++;
       if (store_at != NULL) *store_at++ = 'V';
     }  /* if */

@@ -733,8 +733,9 @@ to a type, make the typeinfo variable for the underlying type and set
 *flags_value to indicate a pointer or reference.
 */
 {
-  a_variable_ptr typeinfo_var;
-  a_type_ptr     typeinfo_type;
+  a_variable_ptr        typeinfo_var;
+  a_type_ptr            typeinfo_type;
+  a_type_qualifier_set  qualifiers;
 
   typeinfo_type = type;
   *flags_value = 0;
@@ -749,10 +750,11 @@ to a type, make the typeinfo variable for the underlying type and set
     typeinfo_type = type_pointed_to(typeinfo_type);
     *flags_value |= ETS_IS_POINTER;
     /* Remember the type qualifiers on the type pointed to. */
-    if (is_const_qualified_type(typeinfo_type)) {
+    qualifiers = get_type_qualifiers(typeinfo_type);
+    if (qualifiers & TQ_CONST) {
       *flags_value |= ETS_POINTER_TO_CONST;
     }  /* if */
-    if (is_volatile_qualified_type(typeinfo_type)) {
+    if (qualifiers & TQ_VOLATILE) {
       *flags_value |= ETS_POINTER_TO_VOLATILE;
     }  /* if */
   }  /* if */
