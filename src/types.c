@@ -3611,16 +3611,18 @@ a_boolean expl_conversion_possible(a_type_ptr    source_type,
                                    an_error_code default_warning_code,
                                    an_error_code *warning_suggested)
 /*
-Return TRUE if it is okay to explicitly convert something of type source_type
-to something of type dest_type.  If source_is_constant is TRUE, the source
-is a constant, and source_constant points to the constant value.  (That's
-needed to check for conversions of a null pointer constant to a pointer type.)
-Any type qualifiers on the types themselves are ignored.  If the conversion
-is suspect and should be flagged with a warning, *warning_suggested is
-set to an appropriate error code; normally, it is set to ec_no_error.
-default_warning_code will be copied into *warning_suggested when no
-specific message applies.  In strict mode, if a conversion flagged with
-*warning_suggested is done, the warning is required.
+Return TRUE if it is okay to explicitly convert something of type
+source_type to something of type dest_type in a C-style cast or a
+functional-notation cast.  If source_is_constant is TRUE, the source is
+a constant, and source_constant points to the constant value.
+(That's needed to check for conversions of a null pointer constant to
+a pointer type.)  Any type qualifiers on the types themselves are
+ignored.  If the conversion is suspect and should be flagged with a
+warning, *warning_suggested is set to an appropriate error code;
+normally, it is set to ec_no_error.  default_warning_code will be
+copied into *warning_suggested when no specific message applies.  In
+strict mode, if a conversion flagged with *warning_suggested is done,
+the warning is required.
 
 Any implicit conversion is allowed (see impl_conversion_possible).  Also, the
 explicit conversions allowed in casts (ARM 5.2.3 and 5.4; ANSI C 3.3.4)
@@ -3666,13 +3668,18 @@ conversions (constructors and conversion functions).
     /* This catches incomplete enums for completeness.  The caller probably
        ruled out incomplete types anyway. */
     /* okay = FALSE; -- already set. */
-  } else if (C_mode() && is_integral(source_type) && is_enum(dest_type)) {
-    /* In C, integral --> enum can only be done as an implicit conversion
-       but we check for it again here to avoid the warning. */
-    okay = TRUE;
   } else if (!C_mode() &&
              static_cast_conversion_possible(source_type, dest_type)) {
     /* The conversion can be done as a static_cast in C++. */
+    okay = TRUE;
+  } else if (C_mode() && is_integral(source_type) && is_enum(dest_type)) {
+    /* In C, integral --> enum can be done as an implicit conversion
+       but we check for it again here to avoid the warning. */
+    okay = TRUE;
+  } else if (!C_mode() && is_enum(source_type) && is_enum(dest_type)) {
+    /* In C++, enum --> enum is not a static_cast or a reinterpret_cast,
+       but it can be done by enum --> integral --> enum (two static_casts),
+       so it's okay in an old-style cast. */
     okay = TRUE;
   } else if (reinterpret_cast_conversion_possible(source_type, dest_type,
              warning_suggested)) {
