@@ -9335,14 +9335,18 @@ specified (rather than defaulted to "int").
                         &symbol_ptr, &linkage,
                         &old_type, &ext_sym);
   }  /* if */
+  /* If a lint-style "argsused" or "varargs" comment appeared, record that in
+     the function type.  That will suppress any warnings about unused
+     parameters or variable arguments.  Note that this is done before calling
+     process_curr_construct_pragmas; otherwise the pragmas we're interested
+     in would have been disposed of. */
+  record_lint_argsused_and_varargs_state(symbol_ptr);
+  /* Now do the rest of the pragmas -- i.e., the ones that don't need
+     special processing. */
   process_curr_construct_pragmas(symbol_ptr, (a_statement_ptr)NULL);
   routine_ptr = symbol_ptr->variant.routine.ptr;
   check_assertion(make_unqualified_type(routine_ptr->type) ==
                                                       unqualified_rout_type);
-  /* If a lint-style "argsused" or "varargs" comment appeared, record that in
-     the function type.  That will suppress any warnings about unused
-     parameters or variable arguments. */
-  record_lint_argsused_and_varargs_state(symbol_ptr);
   if (!is_member_function_def &&
       storage_class == (a_storage_class)sc_unspecified &&
       routine_ptr->source_corresp.name != NULL &&
