@@ -1484,6 +1484,13 @@ Do C99 lowering on the indicated statement.
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
       case stmk_empty:
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
+#if UPC_EXTENSIONS_ALLOWED
+      case stmk_upc_notify:
+      case stmk_upc_wait:
+      case stmk_upc_barrier:
+      case stmk_upc_fence:
+      case stmk_upc_forall:
+#endif /* UPC_EXTENSIONS_ALLOWED */
         /* Nothing to lower. */
         break; 
       case stmk_if:
