@@ -45,6 +45,10 @@ typedef struct a_routine_fixup {
 			/* Next in a linked list of routine fixup blocks,
 			   each of which is associated with a particular
 			   member function of a given class. */
+  a_type_ptr	class_type;
+			/* Pointer to the class that is current when the
+			   declaration requiring a fixup was encountered.
+			   Usually the parent class of "symbol". */
   a_symbol_ptr  symbol;
 			/* Pointer to a symbol entry with which the fixup
 			   is associated.  Usually, it is a member function
@@ -140,7 +144,7 @@ unsigned long db_show_class_fixups_used(unsigned long grand_total)
 #endif /* DEBUG */
 
 
-static a_routine_fixup_ptr alloc_routine_fixup(void)
+static a_routine_fixup_ptr alloc_routine_fixup(a_type_ptr  class_type)
 /*
 Allocate (or take from the available-list) a routine fixup entry and
 initialize it.
@@ -162,6 +166,7 @@ initialize it.
   /* Clear the entity. */
   rfp->next = NULL;
   rfp->symbol = NULL;
+  rfp->class_type = class_type;
   rfp->def_arg_expr_fixup_list = NULL;
   clear_func_info(&rfp->func_info);
   /* We don't know whether this cache will be reused or not.  Make it
@@ -195,10 +200,13 @@ with the indicated scope stack entry.
 {
   a_scope_stack_entry  *ssep = &scope_stack[depth_scope_stack];
 
-  check_assertion(ssep->il_scope->kind ==
-                                   (a_scope_kind)sck_class_struct_union);
   check_assertion(rfp->symbol != NULL);
-  
+  check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
+  /* There's only one routine-fixup-list, and it's associated with the
+     outermost enclosing class.  If this is a nested class, move up the
+     scope stack to find the appropriate entry. */
+  while ((ssep-1)->kind == (a_scope_kind)sck_class_struct_union) --ssep;
+  /* Add the entry to the list. */
   if (ssep->last_routine_fixup == NULL) {
     (symbol_supplement_for_class(ssep->assoc_type))->routine_fixup_list = rfp;
   } else {
@@ -646,51 +654,15 @@ routine recursively for each nested class.
 {
   a_routine_fixup_ptr               rfp, next_rfp;
   a_def_arg_expr_fixup_ptr          daefp;
-  a_type_ptr                        tp;
+  a_type_ptr                        curr_scope_class_type = NULL;
   a_class_symbol_supplement_ptr     cssp;
   a_symbol_ptr                      sym;
-  a_template_symbol_supplement_ptr  class_tssp = NULL;
-  a_template_symbol_supplement_ptr  tssp = NULL;
+  a_template_symbol_supplement_ptr  tssp;
   a_boolean                         is_real_template_instantiation = FALSE;
   a_boolean                         is_nonreal_template_instantiation = FALSE;
   a_boolean                         is_friend;
-  a_boolean                         any_function_bodies_to_scan = FALSE;
-  a_boolean                         any_default_args_to_scan = FALSE;
-  a_scope_ptr                       scope;
-  a_routine_ptr                     rp;
 
   db_enter(3, "delayed_scan_fixup_for_class");
-  cssp = symbol_supplement_for_class(class_type);
-  class_tssp = cssp->template_info;
-  rfp = cssp->routine_fixup_list;
-  if (rfp != NULL) {
-    /* Do processing for the current class only if there are tokens cached for
-       delayed scanning ("rewriting"). */
-#if DEBUG
-    if (debug_level >= 3) {
-      fputs("delayed scan fixup for ", f_debug);
-      db_type_name(class_type);
-      fputc('\n', f_debug);
-    }  /* if */
-#endif /* DEBUG */
-    if (cssp->is_nonreal_class) {
-      is_nonreal_template_instantiation = TRUE;
-    } else if (is_template_based) {
-      is_real_template_instantiation = TRUE;
-    }  /* if */
-    /* Determine the kinds of fixup that are required for this class. */
-    for (; rfp != NULL; rfp = rfp->next) {
-      if (!any_function_bodies_to_scan &&
-          rfp->function_body_token_cache.first_token != NULL) {
-        any_function_bodies_to_scan = TRUE;
-        if (any_default_args_to_scan) break;
-      }  /* if */
-      if (!any_default_args_to_scan && rfp->def_arg_expr_fixup_list != NULL) {
-        any_default_args_to_scan = TRUE;
-        if (any_function_bodies_to_scan) break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
   /* Go through all the routine fixup entries created for the class twice,
      once for the default arguments, then for the function bodies.  This
      is desirable to control dependencies, e.g.:
@@ -718,27 +690,53 @@ routine recursively for each nested class.
      argument expression?
   */
 #endif /* if 0 */
-  if (any_default_args_to_scan) {
-    /* Reactivate the class. */ 
-    push_class_and_template_reactivation_scope(class_type, is_template_based);
-    /* First go though the routine fixup entries and scan the default
-       argument expressions. */
-    for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
-      next_rfp = rfp->next;
+  /* First go though the routine fixup entries and scan the default
+     argument expressions. */
+  cssp = symbol_supplement_for_class(class_type);
+  if ((rfp = cssp->routine_fixup_list) != NULL) {
+#if DEBUG
+    if (debug_level >= 3) {
+      fputs("delayed scan fixup for class \"", f_debug);
+      db_type_name(class_type);
+      fputs("\"\n", f_debug);
+    }  /* if */
+#endif /* DEBUG */
+    if (cssp->is_nonreal_class) {
+      is_nonreal_template_instantiation = TRUE;
+    } else if (is_template_based) {
+      is_real_template_instantiation = TRUE;
+    }  /* if */
+    for (; rfp != NULL; rfp = rfp->next) {
       daefp = rfp->def_arg_expr_fixup_list;
       if (daefp != NULL) {
         /* There is at least one default argument associated with this
            function type. */
         sym = rfp->symbol;
+#if DEBUG
+        if (debug_level >= 3) {
+          db_symbol(sym, "scanning default args for ", 2);
+        }  /* if */
+#endif /* DEBUG */
         is_friend = (is_function_symbol(sym) &&
                      (!sym->is_class_member ||
-                      sym->parent.class_type != class_type));
+                      sym->parent.class_type != rfp->class_type));
+        if (curr_scope_class_type != rfp->class_type) {
+          if (curr_scope_class_type != NULL) {
+            /* Pop the reactivated class scope from the scope stack. */
+            pop_class_reactivation_scope();
+          }  /* if  */
+          /* Reactivate the class. */
+          push_class_and_template_reactivation_scope(rfp->class_type,
+                                                     is_template_based);
+          curr_scope_class_type = rfp->class_type;
+        }  /* if */
         if (is_nonreal_template_instantiation) {
           /* Prototype instantiation. */
           if (sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
             a_def_arg_expr_fixup_ptr  daefp_end;
             a_def_arg_expr_fixup_ptr  daefp_tmp = daefp;
             a_cached_token_ptr        first_token_ptr;
+
             /* Make sure that all of the default arguments are at the end of
                the parameter list. */
             first_token_ptr = daefp->cache.tokens.first_token;
@@ -749,9 +747,10 @@ routine recursively for each nested class.
             /* Update the template declaration information to refer to
                the declaration information of the enclosing class
                template. */
+            tssp = symbol_supplement_for_class(rfp->class_type)->template_info;
             while (daefp_tmp != NULL) {
-              check_assertion(class_tssp->cache.decl_info != NULL);
-              daefp_tmp->cache.decl_info = class_tssp->cache.decl_info;
+              check_assertion(tssp->cache.decl_info != NULL);
+              daefp_tmp->cache.decl_info = tssp->cache.decl_info;
               daefp_tmp = daefp_tmp->next;
             }  /* while */
             /* Link the default argument list from the template supplement
@@ -781,9 +780,10 @@ routine recursively for each nested class.
               discard_token_cache(&daefp->cache.tokens);
             }  /* for */
           }  /* if */
-        } else if (is_real_template_instantiation &&
-                   sym->kind == (a_symbol_kind)sk_member_function &&
-                   !is_friend) {
+          continue;
+        }  /* if */
+        if (is_real_template_instantiation &&
+            sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
           /* This is a real template instantiation and the default argument
              list is for a member function of the class being instantiated.
              Use the cache from the template symbol supplement instead of
@@ -838,46 +838,31 @@ routine recursively for each nested class.
           /* Pop the reactivated function prototype scope off the stack. */
           pop_scope();
         }  /* if */
-        if (!any_function_bodies_to_scan) {
-          /* This routine fixup entry will not be needed again.  Return it
-             and any expr fixup entries attached to it to their respective
-             available-lists. */
-          free_routine_fixup(rfp);
-        }  /* if */
       }  /* if */
     }  /* for */
-    /* Pop the reactivated class scope from the scope stack. */
-    pop_class_reactivation_scope();
-  }  /* if */
-  /* Process nested classes, if any -- traverse the types list for the
-     current class to find nested classes for which fixup should be done. */
-  scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
-  if (scope == NULL) {
-    /* Must be an undefined nested class. */
-  } else {
-    for (tp = scope->types; tp != NULL; tp = tp->next) {
-      if (is_immediate_class_type(tp)) {
-        sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
-        if (sym == NULL) {
-          /* Must have been generated by IL lowering -- ignore it. */
-        } else {
-          /* Do the fixup processing on this nested class. */
-          delayed_scan_fixup_for_class(tp, is_template_based);
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  if (any_function_bodies_to_scan) {
-    /* Reactivate the class. */ 
-    push_class_and_template_reactivation_scope(class_type, is_template_based);
     /* Now go through the routine fixup entries a second time to scan inline
        function bodies. */
     for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
       next_rfp = rfp->next;
       if (rfp->function_body_token_cache.first_token != NULL) {
         sym = rfp->symbol;
+#if DEBUG
+        if (debug_level >= 3) {
+          db_symbol(sym, "scanning function body for ", 2);
+        }  /* if */
+#endif /* DEBUG */
         is_friend = (!sym->is_class_member ||
-                     sym->parent.class_type != class_type);
+                     sym->parent.class_type != rfp->class_type);
+        if (curr_scope_class_type != rfp->class_type) {
+          if (curr_scope_class_type != NULL) {
+            /* Pop the reactivated class scope from the scope stack. */
+            pop_class_reactivation_scope();
+          }  /* if  */
+          /* Reactivate the class. */
+          push_class_and_template_reactivation_scope(rfp->class_type,
+                                                     is_template_based);
+          curr_scope_class_type = rfp->class_type;
+        }  /* if */
         if ((is_real_template_instantiation && !is_friend) ||
             (is_nonreal_template_instantiation && is_friend)) {
           /* Discard the token cache for member functions of template
@@ -917,13 +902,14 @@ routine recursively for each nested class.
           rfp->func_info.param_id_list = NULL;
         } else {
           /* Normal case. */
-          /* Let get_token know about the cache. */
-          rescan_cached_tokens(&rfp->function_body_token_cache);
-          /* Scan the function body. */
-          rp = rfp->symbol->variant.routine.ptr;
+          a_routine_ptr  rp = rfp->symbol->variant.routine.ptr;
+
           if (rp->storage_class == (a_storage_class)sc_extern) {
             rp->storage_class = (a_storage_class)sc_unspecified;
           }  /* if */
+          /* Let get_token know about the cache. */
+          rescan_cached_tokens(&rfp->function_body_token_cache);
+          /* Scan the function body. */
           scan_function_body(rp, &rfp->func_info,
                              (SFB_NO_CLASS_REACTIVATION |
                               SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
@@ -940,12 +926,14 @@ routine recursively for each nested class.
          attached to it to their respective available-lists. */
       free_routine_fixup(rfp);
     }  /* for */
-    /* Pop the reactivated class scope from the scope stack. */
-    pop_class_reactivation_scope();
+    if (curr_scope_class_type != NULL) {
+      /* Pop the reactivated class scope from the scope stack. */
+      pop_class_reactivation_scope();
+    }  /* if  */
+    /* The delayed scan fixup entries have been freed, so clear the
+       pointer in the class symbol supplement. */
+    cssp->routine_fixup_list = NULL;
   }  /* if */
-  /* The delayed scan fixup entries have been freed, so clear the
-     pointer in the class symbol supplement. */
-  cssp->routine_fixup_list = NULL;
   db_exit();
 }  /* delayed_scan_fixup_for_class */
 
@@ -8749,13 +8737,14 @@ following the member declaration.
                 onto the fixup list. */
             add_to_routine_fixup_list(curr_routine_fixup);
             /* Make a new one fixup entry for the current declarator. */
-            curr_routine_fixup = alloc_routine_fixup();
+            curr_routine_fixup = alloc_routine_fixup(class_type);
           } else {
             /* The other one can be reused. */
+            check_assertion(curr_routine_fixup->class_type == class_type);
           }  /* if */
-        } else {
+        } else if (!is_member_template_rescan) {
           /* Normal case.  Allocate a new routine fixup entry. */
-          curr_routine_fixup = alloc_routine_fixup();
+          curr_routine_fixup = alloc_routine_fixup(class_type);
         }  /* if */
         add_stop_token(tok_lbrace);
         /* Set the various flags for declarator processing (C++ only). */
@@ -9159,6 +9148,19 @@ class (prototype instantiation of a class template).
   sym = class_member_declaration(class_type, class_state_ptr,
                                  /*is_member_template=*/TRUE,
                                  &skip_semicolon_check, &dummy_type);
+  if (curr_routine_fixup != NULL) {
+    /* If the currently active routine fixup entry has been modified such
+       that a fixup pass over its tokens is required, add it to the routine
+       fixup list for the current class.  Otherwise free it for later use. */
+    if (curr_routine_fixup->
+                  function_body_token_cache.first_token != NULL  ||
+        curr_routine_fixup->def_arg_expr_fixup_list != NULL) {
+      add_to_routine_fixup_list(curr_routine_fixup);
+    } else {
+      free_routine_fixup(curr_routine_fixup);
+    }  /* if */
+    curr_routine_fixup = NULL;
+  }  /* if */
   if (sym == NULL) {
     /* An error has already been issued. */
   } else if (sym->is_error) {
@@ -9182,18 +9184,22 @@ parent type.  A pointer to the member type (the result of calling
 decl_specifiers and declarator) is returned.
 */
 {
-  a_type_ptr         member_template_instance_type = NULL;
-  a_class_def_state  class_state;
-  a_boolean          skip_semicolon_check;
+  a_type_ptr           member_template_instance_type = NULL;
+  a_class_def_state    class_state;
+  a_boolean            skip_semicolon_check;
+  a_routine_fixup_ptr  saved_routine_fixup;
 
   db_enter(3, "rescan_member_template_declaration");
   /* Initialize class_state to default values.  It should have no decisive
      effect on the limited processing that is to be done. */
   initialize_class_def_state(class_type, &class_state);
+  saved_routine_fixup = curr_routine_fixup;
+  curr_routine_fixup = NULL;
   (void)class_member_declaration(class_type, &class_state,
                                  /*is_member_template=*/FALSE,
                                  &skip_semicolon_check,
                                  &member_template_instance_type);
+  curr_routine_fixup = saved_routine_fixup;
   db_exit();
   return member_template_instance_type;
 }  /* rescan_member_template_declaration */

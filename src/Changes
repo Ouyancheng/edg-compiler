@@ -1,5 +1,33 @@
 Version 2.35
 
+2/7/97  Default argument expression dependencies involving nested classes
+
+The error issued on the following (complaining about failing to
+provide a default constructor for X::N) has been eliminated:
+
+  struct X {
+    struct N {
+      N(int i = 0) { }
+    };
+    X (N n = N()) { }        // an error is no longer issued when scanning
+  };                         //   the default argument
+
+The order in which default arguments for member functions should be
+processed is not covered by the Working Paper.  We used to handle the
+enclosing class first and then the nested classes; with this change, we
+process default arguments in the order in which they appear in the class
+definition, regardless of how the parent class is nested.  Although some
+dependencies will remain, the errors will at least be a bit less surprising
+to users; for instance, the following used to be accepted but now gets an
+error:
+
+  struct Y {
+    struct N {
+      N(Y y = Y()) { }      // an error is now issued -- no default
+    };                      //   constructor for Y
+    Y (int i = 0) { }
+  };
+
 2/6/97  Abort during recursive instantiation of function template
 
 An abort has been fixed that could occur when recursive instantiation of a
