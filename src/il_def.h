@@ -2986,8 +2986,30 @@ typedef struct a_constructor_init {
 			   being initialized, represented by a dynamic
 			   initialization entry. */
 } a_constructor_init;
-#endif /* ifdef CIL */
 
+#endif /* ifdef CIL */
+#if ORPHAN_PROCESSING_NEEDED
+
+typedef struct an_orphaned_il_list *an_orphaned_il_list_ptr;
+typedef struct an_orphaned_il_list {
+  /* IL entry which points to the beginning of the list of local types and
+     static variables for a function scope.  These type and variable IL
+     entries will have been allocated in the file scope memory region. */
+  a_type_ptr	orphaned_types;
+			/* Pointer to the orphaned file scope IL type entry
+			   list for a function scope. */
+  a_variable_ptr
+		orphaned_variables;
+			/* Pointer to the orphaned file scope IL variable
+			   entry list for a function scope.  These variables
+			   will be local static variables of the function. */
+  an_orphaned_il_list_ptr
+		next;
+			/* Pointer to the next orphaned IL entry list for 
+			   another function. */
+} an_orphaned_il_list;
+
+#endif /* ORPHAN_PROCESSING_NEEDED */
 
 enum a_scope_kind_tag {
   /* Kinds of scopes. */
@@ -3253,6 +3275,14 @@ EXTERN struct il_header {
                            this table is handled specially by memory management
                            and in writing and reading the IL.  We are counting
                            on default initialization of this field to NULL. */
+#if ORPHAN_PROCESSING_NEEDED
+  an_orphaned_il_list_ptr
+		orphaned_il_list;
+			/* Pointer to the first, if any, orphaned file scope IL
+			   entry list (local types and local static variables
+			   lists) which will need their "next" pointers
+			   specifically updated when pointers are remapped. */
+#endif /* ORPHAN_PROCESSING_NEEDED */
   a_source_language
                 source_language;
                         /* Code for the language in which the source program
