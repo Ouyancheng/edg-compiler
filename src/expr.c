@@ -4314,6 +4314,8 @@ the position to be used for errors.
                             position, /*update_il_entry=*/FALSE);
     /* Mark the routine IL entry referenced. */
     if_evaluating_mark_routine_referenced(delete_routine);
+    /* Mark the routine as called. */
+    delete_routine->called = TRUE;
     /* The deletion is recorded in a dynamic initialization entry.
        The delete routine is used as the "destructor". */
     dyn_init_to_free_storage =
@@ -4672,6 +4674,7 @@ specification allow a variable-sized array as the top type.
 #if NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE
     }  /* if */
 #endif /* NEW_AND_DELETE_FOR_ARRAY_CAN_BE_FOLDED_INTO_RUNTIME_ROUTINE */
+    if (new_routine != NULL) new_routine->called = TRUE;
     /* Mark the "new" routine as referenced, check access to it. */
     overloaded_function_catch_up(proj_function_symbol,
                                  operator_new_symbol,
