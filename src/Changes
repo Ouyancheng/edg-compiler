@@ -1,5 +1,22 @@
 Version 3.1
 
+9/4/02   GNU C compatibility: structs of size zero
+
+The front end already allowed empty structs in GNU C mode, but such structs
+used to have a nonzero size.  Now, such empty structs have size zero.  The
+same is true of unions.  Structs and unions containing only fields of size
+zero (zero-length arrays, zero-length bit fields, and structs of size zero)
+also have size zero.  For example:
+
+  struct E {};  // sizeof(E) == 0
+  struct CE { struct E e; int a[0]; };  // sizeof(CE) == 0
+  union EU { struct CE s; int: 0 };  // sizeof(EU) == 0
+
+Note that in GNU C mode, the size field of a type entry can be zero even
+though the type is complete (both in the case described above and in the
+case of zero-length arrays).  Use the is_incomplete_type macro to determine
+completeness.
+
 9/4/02   Abort in make_global_var_with_prefixed_name
 
 In configurations using an old ABI (e.g., 2.28) and the old driver

@@ -3359,7 +3359,7 @@ the object.
       case abk_variable:
         tp = skip_typerefs(constant->variant.address.variant.variable->type);
         /* Ignore incomplete arrays. */
-        if (tp->size != 0) {
+        if (!is_incomplete_type(tp)) {
           object_size = tp->size;
         }  /* if */
         break;

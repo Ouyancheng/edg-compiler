@@ -1695,7 +1695,7 @@ or enum.  This is always a reference/declaration, never a definition.
   /* When generating ANSI C, a struct/union/enum defined in a function
      prototype gets put out in place (if it has not been promoted out
      of the prototype scope). */
-  if (type->declared_in_function_prototype && type->size != 0
+  if (type->declared_in_function_prototype && !is_incomplete_type(type)
 #if MAINTAIN_NEEDED_FLAGS
       && ((type->kind == (a_type_kind)tk_enum) ||
           class_definition_needed_flag_is_set(type))
@@ -2819,7 +2819,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
       /* Struct or union. */
       /* Output a declaration on the first pass, and a definition on the
          second pass (if the struct/union is defined). */
-      output_defn = (type->size != 0);
+      output_defn = !is_incomplete_type(type);
 #if MAINTAIN_NEEDED_FLAGS
       if (!class_definition_needed_flag_is_set(type)) {
         output_defn = FALSE;

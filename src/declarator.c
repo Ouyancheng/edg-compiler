@@ -702,7 +702,7 @@ property fields).
          in). */
       /* Note that the size of a pointer pointing to an incomplete type
          can be determined, so do that even if the new type is incomplete. */
-      if (temp_type->size == 0 &&
+      if (is_incomplete_type(temp_type) &&
           tkind != (a_type_kind)tk_routine /* For speed. */ &&
           !microsoft_property &&
           (tkind == (a_type_kind)tk_pointer ||

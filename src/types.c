@@ -135,14 +135,18 @@ predicates.
 #define is_template_param(tp) ((tp)->kind == (a_type_kind)tk_template_param)
 
 /* Incomplete types are types that have no size and are not functions.
-   (In GNU C mode, there are zero-sized arrays and they are considered
-   complete.) */
+   (In GNU C mode, there are zero-sized array and class types, and they
+   are considered complete.) */
 #if !GNU_EXTENSIONS_ALLOWED
 #define is_incomplete(tp) ((tp)->size == 0 && !is_function(tp))
 #else /* GNU_EXTENSIONS_ALLOWED */
 #define is_incomplete(tp)                                               \
    ((tp)->size == 0 && !is_function(tp) &&                              \
-    !(is_array(tp) && tp->variant.array.bound_is_zero))
+    !(is_array(tp) && tp->variant.array.bound_is_zero) &&               \
+    !(gcc_mode &&                                                       \
+      (tp->kind == (a_type_kind)tk_struct ||                            \
+       tp->kind == (a_type_kind)tk_union) &&                            \
+      tp->variant.class_struct_union.is_empty_class))
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /* Macro that is TRUE if two type kinds are the same, or are the same except
@@ -264,7 +268,8 @@ a definition.
   check_assertion(is_immediate_class_type(tp));
   ctsp = tp->variant.class_struct_union.extra_info;
   has_body = (tp->variant.class_struct_union.field_list != NULL ||
-              (ctsp != NULL && ctsp->assoc_scope != NULL));
+              (ctsp != NULL && ctsp->assoc_scope != NULL) ||
+              (gcc_mode && tp->variant.class_struct_union.is_empty_class));
   return has_body;
 }  /* class_type_has_body */
 
@@ -1943,8 +1948,9 @@ set, leave it alone.  Also compute and set the alignment requirement.
 
   db_enter(5, "set_type_size");
   size = type_ptr->size;
-  /* If the size is set already, leave it alone. */
-  if (size == 0) {
+  /* If the size is set already (which means the type is considered complete),
+     leave it alone. */
+  if (is_incomplete_type(type_ptr)) {
     alignment = 1;  /* Default */
     switch(type_ptr->kind) {
       case tk_error:

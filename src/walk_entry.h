@@ -319,7 +319,7 @@ the real instantiations that the template generated.
     local_ptr = underlying_array_element_type(local_ptr); \
     local_ptr = skip_typerefs(local_ptr); \
   }  /* if */ \
-  if (is_immediate_class_type(local_ptr) && (local_ptr)->size != 0) { \
+  if (is_immediate_class_type(local_ptr) && !is_incomplete_type(local_ptr)) { \
     set_proper_definition_needed_flag(local_ptr); \
   }  /* if */ \
 }  /* definition_needed_if_class */

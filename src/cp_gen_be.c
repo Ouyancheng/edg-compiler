@@ -5916,7 +5916,7 @@ Generate code for a new or delete operation.
     if (need_type_parens) write_tok_ch('(');
     /* The type is easy to put out except when it is a variable-length array
        type. */
-    if (unqual_type->size != 0) {
+    if (!is_incomplete_type(unqual_type)) {
       /* Normal case. */
       gen_type(type);
     } else {

@@ -6334,7 +6334,8 @@ routine assumes the class type is as complete as it will ever get.
       error_position = class_type->source_corresp.decl_position;
       /* If the class has a definition, the processing of the definition
          should be complete. */
-      check_assertion_str(ctsp->assoc_scope == NULL || class_type->size != 0,
+      check_assertion_str(ctsp->assoc_scope == NULL ||
+                          !is_incomplete_type(class_type),
                         "prelower_class_type: class definition not completed");
 #if IA64_ABI
       /* Compute the virtual base and virtual call offsets for this class. */

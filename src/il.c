@@ -13262,6 +13262,7 @@ entry into one representing a nondefining declaration.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   class_type->variant.class_struct_union.
                        nested_class_defined_outside_of_parent = FALSE;
+  class_type->variant.class_struct_union.is_empty_class = FALSE;
   db_exit();
 }  /* turn_class_definition_into_declaration */
 

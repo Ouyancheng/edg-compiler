@@ -4628,7 +4628,11 @@ typedef struct a_type {
   a_targ_size_t	size;
                         /* sizeof() for this type, or 0 if the type is
                            incomplete.  Also 0 for typeref references, even
-                           if the referenced type is not incomplete. */
+                           if the referenced type is not incomplete.
+                           In GNU C mode, zero-length arrays and empty structs
+                           and unions can have size 0 and be complete at the
+                           same time (the bound_is_zero or is_empty_class
+                           flags must be set in those cases). */
   a_targ_alignment
                 alignment;
                         /* Alignment required for this type.  This is the
@@ -4926,8 +4930,9 @@ typedef struct a_type {
       a_bit_field
 		bound_is_zero:1;
 			/* TRUE if this array actually has a zero bound.
-			   Such bounds are used in GNU C to denote flexible
-			   array members (instead of []). */
+			   This is used in GNU C mode to distinguish zero-
+			   length array types ([0]) from array types with
+			   unspecified bounds ([]). */
       a_bit_field
 		is_static:1;
 			/* TRUE if this array is tagged with the C99 keyword
@@ -5105,7 +5110,8 @@ typedef struct a_type {
 			/* TRUE if this class has no nonstatic data members,
 			   virtual functions, virtual base classes or bases
 			   (direct or indirect) with such things.  Computed in
-			   do_class_layout. */
+			   do_class_layout.  In GNU C mode, this is TRUE for
+			   zero-sized classes. */
       a_bit_field
 		has_zero_init_component:1;
 			/* TRUE if an object of this type has no nontrivial

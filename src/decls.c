@@ -6793,7 +6793,7 @@ the symbol and its linkage (which is always "none").
 
           check_assertion(is_array_type(type_ptr));
           array_type = skip_typerefs(var->type);
-          if (array_type->size == 0) {
+          if (is_incomplete_type(array_type)) {
             /* The static data member was originally declared as an array
                of unknown size.  Make a copy of the original type, using
                the size from the current type.  (We have to do it this way
