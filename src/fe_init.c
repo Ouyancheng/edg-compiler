@@ -262,6 +262,15 @@ Install the keywords in the symbol table.
     }  /* if */
     enter_keyword((a_token_kind)tok_based, "__based");
     enter_keyword((a_token_kind)tok_based, "_based");
+    if (microsoft_16_mode) {
+      /* Enter 16-bit mode keywords. */
+      enter_keyword((a_token_kind)tok_near, "near");
+      enter_keyword((a_token_kind)tok_near, "_near");
+      enter_keyword((a_token_kind)tok_near, "__near");
+      enter_keyword((a_token_kind)tok_far, "far");
+      enter_keyword((a_token_kind)tok_far, "_far");
+      enter_keyword((a_token_kind)tok_far, "__far");
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* "asm" is a C++ keyword that is treated as a keyword in C mode, too,
