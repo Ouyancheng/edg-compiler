@@ -1168,8 +1168,7 @@ class or a derived class thereof (except for error cases).
       if (this_match_summary->match_level != aml_none) {
         /* Anachronism -- calling non-const function with const object. */
 	this_match_summary->const_anachronism = TRUE;
-        this_match_summary->warning_suggested =
-                                           ec_unqual_function_with_qual_object;
+        this_match_summary->warning_suggested = ec_const_function_anachronism;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1522,21 +1521,6 @@ Compare two argument match summary entries and return
       } else {
         /* arg_match2 is a less desirable exact match, and arg_match1 is
            not, so arg_match1 is better. */
-        cmp = 1;
-      }  /* if */
-    } else if (cfront_compatibility_mode &&
-               arg_match1->const_anachronism != arg_match2->const_anachronism){
-      /* In cfront compatibility mode, the anachronism that allows a
-         non-const function to be called for a const object causes matches
-         that are considered worse than the corresponding matches that do
-         not involve the anachronism. */
-      if (arg_match1->const_anachronism) {
-        /* arg_match1 uses the const anachronism and arg_match2 does not,
-           so arg_match2 is better. */
-        cmp = -1;
-      } else {
-        /* arg_match2 uses the const anachronism and arg_match1 does not,
-           so arg_match1 is better. */
         cmp = 1;
       }  /* if */
     } else {
@@ -1960,6 +1944,75 @@ done:
 }  /* function_template_matches_operand_list */
 
 
+static int compare_candidate_functions(a_candidate_function_ptr cfp1,
+                                       a_candidate_function_ptr cfp2)
+/*
+Compare two candidate functions for which the argument matches have been
+determined to be same to see if there is anything about the functions
+themselves or the overall call that makes one function preferable to the
+other.  Return
+
+  +1 if cfp1 is better than cfp2,
+   0 if cfp1 and cfp2 are equally good, or
+  -1 if cfp1 is worse than cfp2.
+
+*/
+{
+  int cmp = 0;
+
+  /* Note that the tests here must be ordered from most significant
+     to least significant. */
+  if (cfp1->is_user_conversion &&
+      cfp1->user_conversion.std_conversion_needed !=
+      cfp2->user_conversion.std_conversion_needed) {
+    /* The fact that a standard conversion is needed after a conversion
+       function can serve as a tie-breaker. */
+    if (cfp1->user_conversion.std_conversion_needed) {
+      /* A standard conversion is needed after cfp1 and none is needed
+         after cfp2, so cfp2 is better. */
+      cmp = -1;
+    } else {
+      /* A standard conversion is needed after cfp2 and none is needed
+         after cfp1, so cfp1 is better. */
+      cmp = 1;
+    }  /* if */
+  } else if (cfp1->is_function_template != cfp2->is_function_template) {
+    /* The fact that one function is a function template and the other
+       is not can serve as a tie-breaker. */
+    if (cfp1->is_function_template) {
+      /* cfp1 is a function template and cfp2 is not, so cfp2 is better. */
+      cmp = -1;
+    } else {
+      /* cfp2 is a function template and cfp1 is not, so cfp1 is better. */
+      cmp = 1;
+    }  /* if */
+  } else {
+    /* Use of the const anachronism (calling a const function for a
+       non-const object) can break a tie.  This must be tested last. */
+    a_boolean const_anachr1 = FALSE, const_anachr2 = FALSE;
+
+    if (cfp1->arg_matches != NULL) {
+      const_anachr1 = cfp1->arg_matches->const_anachronism;
+    }  /* if */
+    if (cfp2->arg_matches != NULL) {
+      const_anachr2 = cfp2->arg_matches->const_anachronism;
+    }  /* if */
+    if (const_anachr1 != const_anachr2) {
+      if (const_anachr1) {
+        /* cfp1 uses the const anachronism and cfp2 does not, so cfp2
+           is better. */
+        cmp = -1;
+      } else {
+        /* cfp2 uses the const anachronism and cfp1 does not, so cfp1
+           is better. */
+        cmp = 1;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return cmp;
+}  /* compare_candidate_functions */
+
+
 static a_boolean match_is_better_on_at_least_one_arg(
                                            a_candidate_function_ptr best_cfp,
                                            a_candidate_function_ptr candidates)
@@ -1969,6 +2022,9 @@ functions in candidates.  Return TRUE if best_cfp's arguments matches are
 a strictly better match for at least one argument for each of the other
 functions (not necessarily the same argument for each function).  This is
 the final test required for overload resolution (see ARM 13.2).
+Note that the candidate function can also be ruled better on the basis
+of something based strictly on the function itself or the call context
+(as judged by compare_candidate_functions).
 */
 {
   a_candidate_function_ptr cfp;
@@ -2004,16 +2060,9 @@ the final test required for overload resolution (see ARM 13.2).
         advance_arg_match(cfp);
       }  /* for */
       /* All the argument matches have the same level. */
-      /* The fact that one function is a function template and the other
-         is not can serve as a tie-breaker. */
-      if (!best_cfp->is_function_template && cfp->is_function_template) {
-        goto check_next_function;
-      }  /* if */
-      /* The fact that a standard conversion is needed after a conversion
-         function can serve as a tie-breaker. */
-      if (best_cfp->is_user_conversion &&
-          !best_cfp->user_conversion.std_conversion_needed &&
-          cfp->user_conversion.std_conversion_needed) {
+      /* See if the "best" function is better than the other for some reason
+         related to the function instead of the arguments. */
+      if (compare_candidate_functions(best_cfp, cfp) > 0) {
         goto check_next_function;
       }  /* if */
       /* The chosen function is not any better than this other function. */
@@ -2052,8 +2101,6 @@ is set to NULL.
   an_arg_match_summary_ptr best_match_for_curr_arg, curr_arg;
   int                      cmp;
   a_boolean                overall_ambiguity = FALSE, any_error_match = FALSE;
-  a_boolean                some_require_std_conversion;
-  a_boolean                some_do_not_require_std_conversion;
 
   db_enter(4, "select_best_candidate_functions");
   *undecidable_because_of_error = FALSE;
@@ -2091,7 +2138,7 @@ is set to NULL.
          how many non-template cases there are, because we have to clear the
          in_best_match_set (etc.) flags on all entries if there's the
          possibility we will find an exact match and branch to
-         create_final_list. */
+         func_winnow. */
       number_in_best_match_set = 0;
       for (cfp = candidates;  cfp != NULL; cfp = cfp->next) {
         cfp->in_best_match_set = FALSE;
@@ -2123,9 +2170,10 @@ end_exact_test:;
              void f(char){}
              void m() {char c; f(c);}
            Whether we have one or several best matches here, the list we have
-           is the proper final list.
+           is the proper list of functions that match best on all
+           arguments.
         */
-        goto create_final_list;
+        goto func_winnow;
       }  /* if */
     }  /* if */
     /* There is no exact match.  Try matching the function templates.
@@ -2251,59 +2299,49 @@ end_exact_test:;
       }  /* for */
       /* Loop to consider the next argument. */
     }  /* while */
+func_winnow:
     /* Here, the intersection of the best-match sets has been made, and
        the candidates with in_best_match_set TRUE are in that set. */
     if (number_in_best_match_set > 1) {
       /* There are two or more functions that are in the best-match set
          for all arguments.  See if any of those are better than the others
-         for some other reason. */
-      /* If there are some function templates and some non-templates in
-         the best-match set, the non-templates are better. */
-      if (number_of_function_templates != 0 && number_of_non_templates != 0) {
-        /* Take the template functions out of the best-match set. */
-        for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-          if (cfp->in_best_match_set) {
-            if (cfp->is_function_template) {
+         for some other reason (for example: one is a function template
+         and the other is not). */
+      best_cfp = NULL;
+      for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
+        /* Look at each function in the best-match set, and see if any
+           of those are better than the others. */
+        if (cfp->in_best_match_set) {
+          if (best_cfp == NULL) {
+            /* First function.  Take it as the best so far by definition. */
+            best_cfp = cfp;
+          } else {
+            /* Compare the current function against the best so far. */
+            cmp = compare_candidate_functions(cfp, best_cfp);
+            if (cmp < 0) {
+              /* The new function is not as good as the best so far.
+                 Take it out of the best-match set. */
               cfp->in_best_match_set = FALSE;
               number_in_best_match_set--;
-              if (number_in_best_match_set == 1) break;
+              if (number_in_best_match_set == 1) goto end_func_winnow;
+            } else if (cmp > 0) {
+              /* The new function is better than the best so far.  Take
+                 all previous functions out of the best-match set. */
+              best_cfp = cfp;
+              for (cfp = candidates; cfp != best_cfp; cfp = cfp->next) {
+                if (cfp->in_best_match_set) {
+                  cfp->in_best_match_set = FALSE;
+                  number_in_best_match_set--;
+                  if (number_in_best_match_set == 1) goto end_func_winnow;
+                }  /* if */
+              }  /* for */
             }  /* if */
           }  /* if */
-        }  /* for */
-      }  /* if */
-      /* If the set of functions being examined is the candidates to do
-         a conversion, and if some of the candidates require a standard
-         conversion after the user-defined conversion and others do not,
-         select the candidates that do not require the user-defined
-         conversion. */
-      if (number_in_best_match_set > 1 && candidates->is_user_conversion) {
-        some_require_std_conversion = FALSE;
-        some_do_not_require_std_conversion = FALSE;
-        for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-          if (cfp->in_best_match_set) {
-            if (cfp->user_conversion.std_conversion_needed) {
-              some_require_std_conversion = TRUE;
-            } else {
-              some_do_not_require_std_conversion = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* for */
-        if (some_require_std_conversion &&
-            some_do_not_require_std_conversion) {
-          /* Eliminate the candidates that require a standard conversion after
-             the user-defined conversion performed by the candidate
-             function. */
-          for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
-            if (cfp->in_best_match_set) {
-              if (cfp->user_conversion.std_conversion_needed) {
-                cfp->in_best_match_set = FALSE;
-                number_in_best_match_set--;
-                if (number_in_best_match_set == 1) break;
-              }  /* if */
-            }  /* if */
-          }  /* for */
         }  /* if */
-      }  /* if */
+      }  /* for */
+      /* Here, we have eliminated any functions that are not as good as the
+         best function. */
+end_func_winnow:;
     }  /* if */
     /* If there is only one function in the overall best-match set, perform
        the additional check that it must be strictly better than every other
@@ -2321,7 +2359,7 @@ end_exact_test:;
       }  /* if */
     } else if (any_error_match && number_in_best_match_set > 1) {
       /* There are some error matches, and we have more than one "best"
-         function. */
+         function, so the problem is undecidable. */
       *undecidable_because_of_error = TRUE;
     }  /* if */
 create_final_list:
@@ -5086,7 +5124,7 @@ is used only in C++ mode.
   if (cfront_compatibility_mode &&
       is_const_qualified_type(operand->type) &&
       !is_const_qualified_type(type_pointed_to(this_param_type))) {
-    pos_warning(ec_unqual_function_with_qual_object, &operand->position);
+    pos_warning(ec_const_function_anachronism, &operand->position);
     /* prep_special_selector_operand (call below) will drop the const. */
   }  /* if */
   /* Make a pointer for the selector, and cast it to a base class
