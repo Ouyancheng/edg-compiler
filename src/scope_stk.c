@@ -623,7 +623,7 @@ assign one now.
   if (ssep->string_literal_table == NULL) {
     initialize_string_literal_table(ssep);
   }  /* if */
-  if (cp->kind == ck_error) {
+  if (cp->kind == (a_constant_repr_kind)ck_error) {
     /* An error constant.  No action is needed. */
   } else if (cp->variant.string.sequence_number != 0) {
     /* A sequence number has already been assigned.  No action is needed. */
@@ -643,7 +643,7 @@ assign one now.
     if (sltep == NULL) {
       /* No entry was found.  Create one now. */
       sltep = alloc_fe_of_type(a_string_literal_table_entry);
-      sltep->constant = alloc_constant(ck_string);
+      sltep->constant = alloc_constant((a_constant_repr_kind)ck_string);
       copy_constant(cp, sltep->constant);
       sltep->sequence_number = ++(ssep->string_literal_sequence_number);
       sltep->next = *bucket;
