@@ -239,6 +239,9 @@ typedef int a_decl_flag_set;
 			/* If this bit is set declarator is called for a
 			   declaration of a template function or a template
 			   static data member. */
+#define DI_IS_TYPEDEF_DECLARATION 0x200
+			/* If this bit is set a storage class of "typedef" has
+			   been encountered. */
 /* Constants defining bits in the output bit vector used in calls to
    declarator. */
 #define DO_NO_OUTPUT_FLAGS 0x0
