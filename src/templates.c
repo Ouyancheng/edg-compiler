@@ -8740,10 +8740,16 @@ to represent the template parameters.
         /* Cache the tokens that make up the default argument expression. */
         prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
                                  &decl_state->param_list_cache);
-        rescan_copy_of_cache(&def_arg_cache);
-        type_name(&default_arg_type);
-        if (is_or_contains_template_param(default_arg_type)) {
+        if (microsoft_mode) {
+          /* The Microsoft compiler doesn't check default arguments until
+             an instantiation is done. */
           def_arg_involves_template_param = TRUE;
+        } else {
+          rescan_copy_of_cache(&def_arg_cache);
+          type_name(&default_arg_type);
+          if (is_or_contains_template_param(default_arg_type)) {
+            def_arg_involves_template_param = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else if (curr_token != tok_template) {
@@ -9455,13 +9461,14 @@ done here.
     a_symbol_ptr param_sym = tpp->param_symbol;
     a_boolean	 param_used;
     if (tpp->has_default_arg) {
-      pos_error(ec_default_template_arg_not_allowed,
-                &param_sym->decl_position);
+      pos_diagnostic(microsoft_mode ? es_warning : es_error,
+                     ec_default_template_arg_not_allowed,
+                     &param_sym->decl_position);
     }  /* if */
     if (is_conversion_operator) {
       /* For conversion operator functions, the template parameters must be
          used in the return type. */
-      param_used =  template_param_used_in_type(
+      param_used = template_param_used_in_type(
                           param_sym, rout_type->variant.routine.return_type);
     } else {
       /* Determine whether all template parameters are used by

@@ -1,5 +1,16 @@
 Version 2.40
 
+11/23/98  Microsoft compatibility: handling of template default arguments
+
+In Microsoft mode, template default arguments are scanned only when
+the default argument value is needed by an instantiation, so certain
+invalid template default arguments are accepted without errors.
+Default template arguments are accepted (and ignored) on function
+template declarations.
+
+  template< class T > class A { };
+  template<class T = A> void f(T);
+
 11/23/98  Needed flag processing for local static initializer
 
 The processing to set the "needed" flag unnecessarily set that flag
