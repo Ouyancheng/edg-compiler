@@ -405,21 +405,25 @@ hidden names in C, so there's no point in maintaining this information).
        If not, change them and create a fixup entry that will cause the
        flags to be reset to their former values at the end of the current
        name context. */
-    /* Note that a hidden name entry can cause a flag to be turned off
-       if an inner scope can use an unqualified name and an outer scope
-       needed to use a qualified name, e.g., for an injected class name. */
+    /* Note that a hidden name entry can cause a flag to be turned off.
+       For example, if an inner scope can use an unqualified name and an
+       outer scope needed to use a qualified name, a hidden name table
+       entry with qualification_needed set to FALSE can turn off that
+       flag.  (This happens, e.g., for an injected class name.) */
     if (hnp->qualification_needed != scp->qualification_needed) {
-      /* The entity must be referred to with a qualified name (e.g., "A::x"
-         or "::y") in the inner scopes. */
+      /* The qualification_needed flag indicates that the entity must
+         be referred to with a qualified name (e.g., "A::x" or "::y").
+         in the current scope. */
       alloc_hidden_name_fixup(hnp->entity);
       fixup_created = TRUE;
       scp->qualification_needed = hnp->qualification_needed;
     }  /* if */
     if (hnp->partially_hidden_by_microsoft_injected_class_name !=
         scp->partially_hidden_by_microsoft_injected_class_name) {
-      /* The entity is partially hidden in Microsoft mode.  It can be
-         referred to without qualification as a qualifier on another name,
-         but otherwise it must be referred to as a qualified name. */
+      /* The partially_hidden... flag indicates that the entity is
+         partially hidden in Microsoft mode.  It can be referred to
+         without qualification as a qualifier on another name,
+         but otherwise it must be referred to with qualification. */
       if (!fixup_created) {
         alloc_hidden_name_fixup(hnp->entity);
         fixup_created = TRUE;
@@ -431,8 +435,9 @@ hidden names in C, so there's no point in maintaining this information).
       a_type_ptr type = (a_type_ptr)(hnp->entity.ptr);
       if (hnp->elaborated_type_specifier_needed !=
           type->elaborated_type_specifier_needed) {
-        /* The entity must be referenced via an elaborated type specifier
-           (e.g., "class X" rather than just "X") in the inner scopes. */
+        /* The elaborated_type_specifier_needed flag indicates that the
+           entity must be referred to with an elaborated type specifier
+           (e.g., "class X" rather than just "X") in the current scope. */
         if (!fixup_created) {
           alloc_hidden_name_fixup(hnp->entity);
           fixup_created = TRUE;
