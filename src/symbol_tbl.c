@@ -278,7 +278,7 @@ and indentation is the indentation desired.
 */
 {
   char				*str, buffer[1000];
-  int				col = 0;
+  int				col = indentation;
   a_type_ptr			type = NULL, temp_type;
   a_variable_ptr		var;
   a_routine_ptr                 rp;
@@ -286,7 +286,7 @@ and indentation is the indentation desired.
 
   if (string != NULL && strlen(string) > 0) {
     fputs(string, f_debug);
-    col = strlen(string);
+    col += strlen(string);
   }  /* if */
 
   str = db_sym_names[(int)sym->kind];
@@ -6064,7 +6064,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
         template symbol. */
     new_sym = template_symbol;
     if (current_instantiation_symbol_if_class_template(&new_sym)) {
-      /* We not have the symbol for the current instantiation of the
+      /* We have the symbol for the current instantiation of the
          class template. */
       goto normal_exit;
     } else {
@@ -6119,8 +6119,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
       }  /* if */
 #endif /* CHECKING */
       constant = fs_constant((a_constant_repr_kind)ck_error);
-      scan_constant_initializer_expression(sym->variant.constant->type,
-                                           constant);
+      scan_template_argument_constant_expression(sym->variant.constant->type,
+                                                 constant);
       add_to_constants_list(constant);
       arg_ptr->variant.constant = constant;
     }  /* if */
