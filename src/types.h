@@ -146,6 +146,8 @@ set *bcp to point to the base class entry that shows the relationship.
   (is_ptr_to_member_type(type_1) && is_ptr_to_member_type(type_2) &&  \
    f_rel_member_pointers(type_1, type_2, downward_cast, bcp))
 
+extern a_boolean type_masks_handler_param_type(a_type_ptr  type_1,
+                                               a_type_ptr  type_2);
 extern void check_fixup_list_for_array_types(void);
 extern void add_if_necessary_to_array_fixup_list(a_type_ptr array_type);
 extern void set_type_size(a_type_ptr type_ptr);

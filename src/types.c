@@ -954,6 +954,38 @@ related_member_pointers.
 }  /* f_rel_member_pointers */
 
 
+a_boolean type_masks_handler_param_type(a_type_ptr  type_1,
+                                        a_type_ptr  type_2)
+/*
+type_1 and type_2 are the types of handlers in a given try block, with
+the handler for type_1 appearing before that of type_2.  Return TRUE
+if type_1 masks type_2 -- i.e., if type_2's handler can never be invoked
+because any exception it can handle would be caught by type_1's handler.
+(See ARM 15.4.)
+*/
+{
+  a_boolean         masked = FALSE;
+  a_base_class_ptr  bcp;
+
+  db_enter(5, "type_masks_handler_param_type");
+  if (identical_types(type_1, type_2)) {
+    masked = TRUE;
+  } else if (is_class_struct_union_type(type_1) &&
+             is_class_struct_union_type(type_2)) {
+    bcp = find_base_class_of(type_2, type_1);
+    masked = (bcp != NULL && is_accessible_base_class(bcp,
+                                                      skip_typerefs(type_2)));
+#if 0
+  } else if (is_pointer_type(type_1) && is_pointer_type(type_2)) {
+    /* Implicit conversions involving pointer types are not yet implemented. */
+#endif /* if 0 */
+  }  /* if */
+
+  db_exit();
+  return masked;
+}  /* type_masks_handler_param_type */
+
+
 void check_fixup_list_for_array_types(void)
 /*
 Check the list of array types to be fixed up, to see if any of their element
