@@ -9476,6 +9476,66 @@ sequence list.
 }  /* add_end_of_construct_source_sequence_entry */
 
 
+void add_source_sequence_entry_for_partial_instantiation(
+                                                char                   *ptr,
+                                                a_byte_il_entry_kind   kind)
+/*
+Add a source sequence secondary declaration entry to represent the
+partial instantiation of the entity specified by the indicated entity.
+*/
+{
+  a_boolean                     new_specialization_syntax;
+  a_src_seq_secondary_decl_ptr  sssdp;
+  a_symbol_ptr                  sym;
+
+  if (!scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_entries_disallowed) {
+    /* Turn on the generation of source sequence entries. */
+    source_sequence_entries_disallowed = FALSE;
+    /* It is assumed that the current scope (e.g., a template instantiation
+       scope) implies that entities are allocated into file scope memory. */
+    check_assertion(curr_il_region_number == FILE_SCOPE_REGION_NUMBER);
+    /* Allocate and initialized the source sequence entry. */
+    sssdp = alloc_src_seq_secondary_decl();
+    sssdp->entity.ptr = ptr;
+    sssdp->entity.kind = kind;
+    switch (kind) {
+      case iek_routine:
+        sssdp->declared_type = ((a_routine_ptr)ptr)->type;
+        break;
+      case iek_type:
+        sssdp->declared_type = (a_type_ptr)ptr;
+        sssdp->autonomous_tag_decl = TRUE;
+        break;
+      case iek_variable:
+        sssdp->declared_type = ((a_variable_ptr)ptr)->type;
+        break;
+#if CHECKING
+      default:
+        unexpected_condition();
+#endif /* CHECKING */
+    }  /* switch */
+    /* This partial instantiation can be triggered anywhere.  Use the
+       position associated with the symbol. */
+    sym = (a_symbol_ptr)source_corresp_for_il_entry(ptr, kind)->assoc_info;
+    sssdp->decl_position = sym->decl_position;
+#if BACKEND_IS_CP_GEN_BE
+    sssdp->specialized_with_new_syntax =
+                            !old_specializations_for_generated_instances;
+#else /* !BACKEND_IS_CP_GEN_BE */
+    sssdp->specialized_with_new_syntax = TRUE;
+#endif /* BACKEND_IS_CP_GEN_BE */
+    /* Add the entry to the source sequence list. */
+    update_source_sequence_list((char *)sssdp,
+                                (an_il_entry_kind)iek_src_seq_secondary_decl,
+                                (a_source_sequence_entry_ptr)NULL);
+    /* Restore the flag that controls whether source sequence entries are
+       generated. */
+    source_sequence_entries_disallowed =
+          scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
+  }  /* if */
+}  /* add_source_sequence_entry_for_partial_instantiation */
+
+
 void remove_from_source_sequence_list(a_source_sequence_entry_ptr  ssep,
                                       a_src_seq_sublist_ptr        *sublist)
 /*

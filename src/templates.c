@@ -531,24 +531,13 @@ itself recursively to process classes nested within this class.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      if (!scope_stack[DEPTH_OF_FILE_SCOPE].
-                                source_sequence_entries_disallowed &&
-          !rout->is_inline) {
-        a_boolean  new_specialization_syntax =
-#if BACKEND_IS_CP_GEN_BE
-                                 !old_specializations_for_generated_instances;
-#else /* !BACKEND_IS_CP_GEN_BE */
-                                 TRUE;
-#endif /* BACKEND_IS_CP_GEN_BE */
-
-        source_sequence_entries_disallowed = FALSE;
-        sym_update_source_sequence_list(sym, &sym->decl_position,
-                                        /*is_primary_decl=*/FALSE,
-                                        (a_source_sequence_entry_ptr)NULL);
-        (void)set_src_seq_secondary_decl_type((char *)rout, rout->type,
-                                              new_specialization_syntax);
-        source_sequence_entries_disallowed =
-           scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
+      if (!rout->is_inline) {
+        /* Add a secondary source sequence entry to represent the partial
+           instantiation -- it will take the form of an explicit
+           specialization. */
+        add_source_sequence_entry_for_partial_instantiation(
+                                           (char *)rout,
+                                           (a_byte_il_entry_kind)iek_routine);
       }  /* if */
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
@@ -578,24 +567,12 @@ itself recursively to process classes nested within this class.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      if (!scope_stack[DEPTH_OF_FILE_SCOPE].
-                                source_sequence_entries_disallowed) {
-        a_boolean  new_specialization_syntax =
-#if BACKEND_IS_CP_GEN_BE
-                                 !old_specializations_for_generated_instances;
-#else /* !BACKEND_IS_CP_GEN_BE */
-                                 TRUE;
-#endif /* BACKEND_IS_CP_GEN_BE */
-
-        source_sequence_entries_disallowed = FALSE;
-        sym_update_source_sequence_list(sym, &sym->decl_position,
-                                        /*is_primary_decl=*/FALSE,
-                                        (a_source_sequence_entry_ptr)NULL);
-        (void)set_src_seq_secondary_decl_type((char *)var, var->type,
-                                              new_specialization_syntax);
-        source_sequence_entries_disallowed =
-           scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
-      }  /* if */
+      /* Add a secondary source sequence entry to represent the partial
+         instantiation -- it will take the form of an explicit
+         specialization. */
+      add_source_sequence_entry_for_partial_instantiation(
+                                           (char *)var,
+                                           (a_byte_il_entry_kind)iek_variable);
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -2726,32 +2703,20 @@ included in the search.
       add_to_types_list(class_type, NO_SCOPE_DEPTH);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      if (!scope_stack[DEPTH_OF_FILE_SCOPE].
-                                source_sequence_entries_disallowed) {
-        a_boolean  new_specialization_syntax =
-#if BACKEND_IS_CP_GEN_BE
-                                 !old_specializations_for_generated_instances;
-#else /* !BACKEND_IS_CP_GEN_BE */
-                                 TRUE;
-#endif /* BACKEND_IS_CP_GEN_BE */
-        a_src_seq_secondary_decl_ptr  sssdp;
-
-        (void)push_template_instantiation_scope(tssp->cache.decl_info,
-                                                (a_type_ptr)NULL,
-                                                (a_routine_ptr)NULL,
-                                                sym, class_template_sym,
-                                                *new_list);
-        source_sequence_entries_disallowed = FALSE;
-        sym_update_source_sequence_list(sym, &sym->decl_position,
-                                        /*is_primary_decl=*/FALSE,
-                                        (a_source_sequence_entry_ptr)NULL);
-        sssdp = set_src_seq_secondary_decl_type((char *)class_type, class_type,
-                                                new_specialization_syntax);
-        sssdp->autonomous_tag_decl = TRUE;
-        source_sequence_entries_disallowed =
-           scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
-        pop_template_instantiation_scope();
-      }  /* if */
+      /* Add a secondary source sequence entry to represent the partial
+         instantiation -- it will take the form of an explicit
+         specialization.  It is necessary to push a template instantiation
+         scope in case we are not currently at file scope; otherwise, the
+         entry appears at the wrong place in the list. */
+      (void)push_template_instantiation_scope(tssp->cache.decl_info,
+                                              (a_type_ptr)NULL,
+                                              (a_routine_ptr)NULL,
+                                              sym, class_template_sym,
+                                              *new_list);
+      add_source_sequence_entry_for_partial_instantiation(
+                                           (char *)class_type,
+                                           (a_byte_il_entry_kind)iek_type);
+      pop_template_instantiation_scope();
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
@@ -4531,23 +4496,12 @@ type based on the template argument list and the template parameter list
   }
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  if (!scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_entries_disallowed &&
-      (!rp->is_inline || tssp->cache.tokens.first_token == NULL)) {
-    a_boolean  new_specialization_syntax =
-#if BACKEND_IS_CP_GEN_BE
-                                 !old_specializations_for_generated_instances;
-#else /* !BACKEND_IS_CP_GEN_BE */
-                                 TRUE;
-#endif /* BACKEND_IS_CP_GEN_BE */
-
-    source_sequence_entries_disallowed = FALSE;
-    sym_update_source_sequence_list(sym, &sym->decl_position,
-                                    /*is_primary_decl=*/FALSE,
-                                    (a_source_sequence_entry_ptr)NULL);
-    (void)set_src_seq_secondary_decl_type((char *)rp, rout_type,
-                                          new_specialization_syntax);
-    source_sequence_entries_disallowed =
-          scope_stack[depth_scope_stack].source_sequence_entries_disallowed;
+  if (!rp->is_inline || tssp->cache.tokens.first_token == NULL) {
+    /* Add a secondary source sequence entry to represent the partial
+       instantiation -- it will take the form of an explicit specialization. */
+    add_source_sequence_entry_for_partial_instantiation(
+                                           (char *)rp,
+                                           (a_byte_il_entry_kind)iek_routine);
   }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
