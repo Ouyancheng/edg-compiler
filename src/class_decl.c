@@ -1139,6 +1139,7 @@ routine entry and return TRUE; otherwise return FALSE.
                 /* A static member function "redeclares" a virtual nonstatic
                    member function from a base class. */
                 pos_error(ec_virtual_static_not_allowed, source_pos);
+                goto next_base_class;                                       
               } else if (!this_param_types_correspond(
                                              rout->type, rp->type,
                                              /*check_as_conversion=*/FALSE,
@@ -1166,8 +1167,8 @@ routine entry and return TRUE; otherwise return FALSE.
                   pos_error(ec_bad_return_type_on_virtual_function_override,
                             source_pos);
                 }  /* if */
+                goto next_base_class;                                       
               }  /* if */
-              goto next_base_class;                                       
             }  /* if */
             if (!overloaded) break;
             sym = sym->next;
