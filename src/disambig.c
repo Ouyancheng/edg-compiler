@@ -319,6 +319,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_struct:
       case tok_union:
       case tok_enum:
+      case tok_typename:
         /* This could be an elaborated type specifier or the start of
            a enum or class specifier.  The prescanning routines can't
            handle enum and class specifiers, but there should be no need
