@@ -1,5 +1,10 @@
 Version 2.37
 
+7/10/97   IL CHANGE: microsoft_mode and microsoft_version added to il_header
+
+When MICROSOFT_EXTENSIONS_ALLOWED is TRUE, the values of global variables
+microsoft_mode and microsoft_version are now recorded in il_header.
+
 7/10/97   C++-generating back end: "this->" suppressed on function calls
 
 "this->" on a member function call, unnecessary because it's implied,
