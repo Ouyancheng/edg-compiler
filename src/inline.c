@@ -928,6 +928,7 @@ If not, *failed is set.
              of copying and inserting the stmk_init.  The only negative to
              that is that it doesn't allow inlining aggregate
              initializations in statement insert mode. */
+          var->initialization_rewritten_as_assignment = TRUE;
           if (dip->kind == (a_dynamic_init_kind)dik_constant) {
             /* Aggregates can't be handled. */
             if (dip->variant.constant->kind ==
