@@ -2050,7 +2050,7 @@ copy_done:;
         mdp->is_manifest_constant = TRUE;
         /* Put the macro constant on the list of constants in the IL, for
            use in generating symbolic debug information. */
-        add_to_constants_list(mdp->constant_value);
+        add_to_constants_list(mdp->constant_value, /*at_file_scope=*/TRUE);
       }  /* if */
     }  /* if */
   }  /* if */

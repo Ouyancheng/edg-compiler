@@ -351,7 +351,8 @@ extern a_boolean expr_tree_contains_template_param_constant(
 
 extern a_constant_ptr alloc_shareable_constant(a_constant *cp);
 
-extern void add_to_constants_list(a_constant_ptr con_ptr);
+extern void add_to_constants_list(a_constant_ptr con_ptr,
+                                  a_boolean      at_file_scope);
 
 extern void empty_shareable_constants_table(void);
 

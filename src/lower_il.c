@@ -3197,7 +3197,7 @@ Promote the constants on the scope list to the file scope.
        constant != NULL;
        constant = next_constant) {
     next_constant = constant->next;
-    add_to_constants_list(constant);
+    add_to_constants_list(constant, /*at_file_scope=*/TRUE);
   }  /* for */
   scope->constants = NULL;
 }  /* promote_constants */

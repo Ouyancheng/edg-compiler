@@ -2877,19 +2877,52 @@ list), and liberate the constants therein by clearing their "next" fields.
 }  /* empty_func_shareable_constants_table */
 
 
-void add_to_constants_list(a_constant_ptr con_ptr)
+static a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr ssep)
 /*
-Add the given constant to the constants list for the file scope (not the
-current scope).  This is used for manifest constant macros and (at the
-end of compilation) for shareable constants.
+Make sure that the scope stack entry pointed to by ssep points to an IL
+scope.  For block scopes, create the scope now if necessary.
+*/
+{
+  a_scope_ptr            sp = ssep->il_scope;
+  a_memory_region_number region_to_switch_back_to;
+
+  if (sp == NULL) {
+    /* There is no IL scope. */
+    if (ssep->kind == (a_scope_kind)sck_block) {
+      /* Create the IL scope in a block scope. */
+      region_to_switch_back_to = curr_il_region_number;
+      switch_il_region(ssep->il_memory_region);
+      ssep->il_scope = sp = alloc_scope((a_scope_kind)sck_block, ssep->number,
+                                        (a_routine_ptr)NULL);
+      switch_il_region(region_to_switch_back_to);
+      /* Add it to the scopes list for the scope enclosing the scope indicated
+         by ssep. */
+      add_to_scopes_list(sp, ssep-1);
+#if CHECKING
+    } else if (ssep->kind != (a_scope_kind)sck_func_prototype) {
+      internal_error("ensure_il_scope_exists: NULL IL scope");
+#endif /* CHECKING */
+    }  /* if */
+  }  /* if */
+  return sp;
+}  /* ensure_il_scope_exists */
+
+
+void add_to_constants_list(a_constant_ptr con_ptr,
+                           a_boolean      at_file_scope)
+/*
+Add the given constant to the constants list for the file scope (for
+manifest constant macros and (at the end of compilation) for shareable
+constants) or the current scope (for member constants, which are not shared).
 */
 {
   a_scope_stack_entry_ptr ssep;
   a_scope_ptr             sp;
 
-  /* Get pointer to current scope entry. */
-  ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
-  sp = ssep->il_scope;
+  /* Get pointer to current or file scope entry. */
+  ssep = &scope_stack[at_file_scope ? DEPTH_OF_FILE_SCOPE : decl_scope_level];
+  /* Create the IL scope if necessary (for block scopes). */
+  sp = ensure_il_scope_exists(ssep);
 #if CHECKING
   if (sp == NULL) internal_error("add_to_constants_list: NULL IL scope");
 #endif /* CHECKING */
@@ -3408,37 +3441,6 @@ variant fields to default values.
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
   set_type_kind(pte, kind);
 }  /* clear_type */
-
-
-static a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr ssep)
-/*
-Make sure that the scope stack entry pointed to by ssep points to an IL
-scope.  For block scopes, create the scope now if necessary.
-*/
-{
-  a_scope_ptr            sp = ssep->il_scope;
-  a_memory_region_number region_to_switch_back_to;
-
-  if (sp == NULL) {
-    /* There is no IL scope. */
-    if (ssep->kind == (a_scope_kind)sck_block) {
-      /* Create the IL scope in a block scope. */
-      region_to_switch_back_to = curr_il_region_number;
-      switch_il_region(ssep->il_memory_region);
-      ssep->il_scope = sp = alloc_scope((a_scope_kind)sck_block, ssep->number,
-                                        (a_routine_ptr)NULL);
-      switch_il_region(region_to_switch_back_to);
-      /* Add it to the scopes list for the scope enclosing the scope indicated
-         by ssep. */
-      add_to_scopes_list(sp, ssep-1);
-#if CHECKING
-    } else if (ssep->kind != (a_scope_kind)sck_func_prototype) {
-      internal_error("ensure_il_scope_exists: NULL IL scope");
-#endif /* CHECKING */
-    }  /* if */
-  }  /* if */
-  return sp;
-}  /* ensure_il_scope_exists */
 
 
 void add_to_types_list(a_type_ptr     type_ptr,
