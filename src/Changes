@@ -405,7 +405,7 @@ The front end failed to issue an error when an inaccessible inherited
 type was used in the qualifier of a qualified name.  This has been
 fixed.
 
-  struct A { A() {}
+  struct A {
     static int i;
     typedef A my_a;
   };
@@ -747,8 +747,8 @@ Spurious errors are no longer issued on the following:
 
 1/11/99   Microsoft compatibility: __declspec on class declaration
 
-__declspec and similar declaration modifiers that can appear between
-the "class" keyword and the class name (e.g., "class __declspec(dllimport) A") 
+__declspec and similar declaration modifiers that can appear between the
+"class" keyword and the class name (e.g., "class __declspec(dllimport) A") 
 are now recorded against the class, and output by the C++-generating back
 end, even when they appear in a declaration instead of a definition
 of the class.
