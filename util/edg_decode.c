@@ -8,54 +8,56 @@
 *                                                                             *
 ******************************************************************************/
 /*
-edg_decode -- Name demangler for C++.
+edg_decode.c -- Name demangler for C++.
 
-Reads input from stdin, writes output to stdout.  Things that look like
-mangled names in the input are demangled.  Everything else is passed
-through unchanged.
+If STANDALONE_UTILITY_PROGRAM is FALSE, this file is compiled as
+a callable function (see decode_identifier).  Otherwise, it is compiled
+as a standalone program.
+
+The standalone program reads input from stdin, writes output to stdout.
+Things that look like mangled names in the input are demangled.
+Everything else is passed through unchanged.
 */
+/*
+If STANDALONE_UTILITY_PROGRAM is FALSE, this file is compiled as
+a callable function.  Otherwise, it is compiled as a standalone program.
+*/
+#ifndef STANDALONE_UTILITY_PROGRAM
+#define STANDALONE_UTILITY_PROGRAM TRUE
+#endif /* STANDALONE_UTILITY_PROGRAM */
+
 #include "basics.h"
 #include "host_envir.h"
-
-/*
-Return TRUE if the given character is one that can start an identifier.
-The set includes "$" as an extension.  This is a macro, and it evaluates
-its argument more than once.
-*/
-#define is_id_start_char(ch)                                          \
-  (ch != EOF &&                                                       \
-   (isalpha((unsigned char)ch) || ch == '_' || ch == '$'))
-
-/*
-Return TRUE if the given character is one that can be part of an identifier
-after the first character.  This is a macro, and it evaluates its argument
-more than once.
-*/
-#define is_id_following_char(ch)                                      \
-  (ch != EOF && (is_id_start_char(ch) || isdigit(ch)))
+#include "target.h"
+#include "edg_decode.h"
+#include "getopt.h"
 
 
-/*
-Maximum size of an identifier.
-*/
-#define MAX_ID_LENGTH 2000
-static char	curr_id[MAX_ID_LENGTH];
-			/* Identifier being processed currently. */
 static unsigned long
-		curr_id_len = 0;
-			/* Current identifier size. */
-static int	ch;
-			/* Current input character. */
-static a_boolean
-		err = FALSE;
-			/* TRUE if any error was encountered. */
+		input_id_len;
+			/* Length of the input identifier, not counting the
+			   final null. */
+static char	*output_id;
+			/* Pointer to buffer for demangled version of
+			   the current identifier. */
+static sizeof_t	output_id_len;
+			/* Length of output_id, not counting the final
+			   null. */
+static sizeof_t	output_id_size;
+			/* Allocated size of output_id. */
 static a_boolean
 		err_in_id;
 			/* TRUE if any error was encountered in the current
 			   identifier. */
+static a_boolean
+		output_overflow_err;
+			/* TRUE if the demangled output overflowed the
+			   output buffer. */
 static unsigned long
-		suppress_id_output = 0;
-			/* If > 0, unmangled id output is suppressed. */
+		suppress_id_output;
+			/* If > 0, demangled id output is suppressed.  This
+			   might be because of an error or just as a way
+			   of avoiding output during some processing. */
 
 
 /*
@@ -66,21 +68,35 @@ static char *demangle_type(char *ptr);
 
 static void write_id_ch(char ch)
 /*
-Write out the indicated character, which is part of the demangled version
-of an identifier.
+Add the indicated character to the demangled version of the current identifier.
 */
 {
-  if (!suppress_id_output) fputc(ch, stdout);
+  if (!suppress_id_output) {
+    /* Test for buffer overflow, leaving room for a terminating null. */
+    if (output_id_len >= output_id_size-1) {
+      /* There's no room for the character in the buffer. */
+      output_overflow_err = TRUE;
+      /* Make sure the (truncated) output is null-terminated. */
+      output_id[output_id_size-1] = '\0';
+      err_in_id = TRUE;
+      suppress_id_output++;
+    } else {
+      output_id[output_id_len++] = ch;
+    }  /* if */
+  }  /* if */
 }  /* write_id_ch */
 
 
 static void write_id_str(char *str)
 /*
-Write out the indicated string, which is part of the demangled version
-of an identifier.
+Add the indicated string to the demangled version of the current identifier.
 */
 {
-  if (!suppress_id_output) fputs(str, stdout);
+  char *p = str;
+
+  if (!suppress_id_output) {
+    for (; *p != '\0'; p++) write_id_ch(*p);
+  }  /* if */
 }  /* write_id_str */
 
 
@@ -89,14 +105,9 @@ static void bad_mangled_name(void)
 A bad name mangling has been encountered.  Record an error.
 */
 {
-  int i;
-
   if (!err_in_id) {
-    err = err_in_id = TRUE;
+    err_in_id = TRUE;
     suppress_id_output++;
-    fputs("[incorrect mangled name:]", stdout);
-    /* Put out the original identifier. */
-    for (i = 0; i < curr_id_len; i++) putchar(curr_id[i]);
   }  /* if */
 }  /* bad_mangled_name */
 
@@ -135,7 +146,7 @@ Return a pointer to the character position following the number.
   }  /* if */
   do {
     n = n*10 + (*p - '0');
-    if (n > curr_id_len) {
+    if (n > input_id_len) {
       /* Bad number. */
       bad_mangled_name();
       goto end_of_routine;
@@ -218,7 +229,7 @@ do not put out any nested type qualifiers, e.g., put out "A::x" as simply "x".
           -----------------Number of levels of qualification.
     */
     p = get_number(p+1, &nquals);
-    if (nquals > curr_id_len) {
+    if (nquals > input_id_len) {
       bad_mangled_name();
       goto end_of_routine;
     }  /* if */
@@ -673,6 +684,7 @@ a pointer to the character position following what was demangled.
 */
 {
   char      *p = ptr, *origname, *uscore, *mname, *end_ptr;
+  char      *restore_uscore = NULL;
   a_boolean special_name = FALSE;
 
   if (p[0] == '_' && p[1] == '_') {
@@ -710,6 +722,7 @@ a pointer to the character position following what was demangled.
   }  /* for */
   /* End the origname at the underscore. */
   *uscore = '\0';
+  restore_uscore = uscore;
   mname = uscore + 2;
   /* Now origname points to the original-name part of the mangled name, and
      mname points to the mangled-name part at the end.
@@ -781,46 +794,100 @@ a pointer to the character position following what was demangled.
     end_ptr = demangle_type_second_part(end_ptr, /*need_paren=*/FALSE);
   }  /* if */
 end_of_routine:
+  /* If we replaced an underscore by a null, restore the underscore now. */
+  if (restore_uscore != NULL) *restore_uscore = '_';
   return end_ptr;
 }  /* demangle_identifier */
 
 
-static void demangle_whole_identifier(void)
+void decode_identifier(char      *id,
+                       char      *output_buffer,
+                       sizeof_t  output_buffer_size,
+                       a_boolean *err,
+                       a_boolean *buffer_overflow_err)
 /*
-Demangle the current identifier and output the demangled form.
+Demangle the identifier id (which is null-terminated), and put the demangled
+form (null-terminated) into the output_buffer provided by the caller.
+output_buffer_size gives the allocated size of output_buffer.  If there
+is some error in the demangling process, *err will be returned TRUE.
+In addition, if the error is that the output buffer is too small,
+*buffer_overflow_err will (also) be returned TRUE.
 */
 {
-  char *p;
+  char *end_ptr;
 
+  /* Set global variables. */
+  input_id_len = strlen(id);
+  output_id = output_buffer;
+  output_id_len = 0;
+  output_id_size = output_buffer_size;
+  err_in_id = FALSE;
+  output_overflow_err = FALSE;
+  suppress_id_output = 0;
   /* Check for special cases. */
-  if (start_of_id_is("__vtbl__", curr_id)) {
+  if (start_of_id_is("__vtbl__", id)) {
     write_id_str("virtual function table for ");
     /* ??? */
-  } else if (start_of_id_is("__CBI__", curr_id)) {
+  } else if (start_of_id_is("__CBI__", id)) {
     write_id_str("can-be-instantiated flag for ");
-    p = demangle_identifier(curr_id+7);
-  } else if (start_of_id_is("__DNI__", curr_id)) {
+    end_ptr = demangle_identifier(id+7);
+  } else if (start_of_id_is("__DNI__", id)) {
     write_id_str("do-not-instantiate flag for ");
-    p = demangle_identifier(curr_id+7);
-  } else if (start_of_id_is("__TIR__", curr_id)) {
+    end_ptr = demangle_identifier(id+7);
+  } else if (start_of_id_is("__TIR__", id)) {
     write_id_str("template-instantiatiation-request flag for ");
-    p = demangle_identifier(curr_id+7);
-  } else if (start_of_id_is("__TID_", curr_id)) {
+    end_ptr = demangle_identifier(id+7);
+  } else if (start_of_id_is("__TID_", id)) {
     write_id_str("type identifier for ");
-    p = demangle_type(curr_id+6);
-  } else if (start_of_id_is("__T_", curr_id)) {
+    end_ptr = demangle_type(id+6);
+  } else if (start_of_id_is("__T_", id)) {
     write_id_str("typeinfo for ");
-    p = demangle_type(curr_id+4);
+    end_ptr = demangle_type(id+4);
   } else {
     /* Normal case: function name, static data member name, or
        name of type or variable promoted out of function. */
-    p = demangle_identifier(curr_id);
+    end_ptr = demangle_identifier(id);
   }  /* if */
   /* Make sure the whole identifier was taken. */
-  if (!err_in_id && *p != '\0') {
-    bad_mangled_name();
-  }  /* if */
-}  /* demangle_whole_identifier */
+  if (!err_in_id && *end_ptr != '\0') bad_mangled_name();
+  /* Add a terminating null. */
+  if (!err_in_id) output_id[output_id_len] = 0;
+  *err = err_in_id;
+  *buffer_overflow_err = output_overflow_err;
+}  /* decode_identifier */
+
+
+/*
+Code for standalone program version follows:
+*/
+#if STANDALONE_UTILITY_PROGRAM
+
+/*
+TRUE if external names have an extra underscore prefix.  Can be
+modified by a command line option.
+*/
+static a_boolean
+		skip_underscore_prefix =
+                                      TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED;
+
+static int	ch;	/* Current input character. */
+
+/*
+Return TRUE if the given character is one that can start an identifier.
+The set includes "$" as an extension.  This is a macro, and it evaluates
+its argument more than once.
+*/
+#define is_id_start_char(ch)                                          \
+  (ch != EOF &&                                                       \
+   (isalpha((unsigned char)ch) || ch == '_' || ch == '$'))
+
+/*
+Return TRUE if the given character is one that can be part of an identifier
+after the first character.  This is a macro, and it evaluates its argument
+more than once.
+*/
+#define is_id_following_char(ch)                                      \
+  (ch != EOF && (is_id_start_char(ch) || isdigit(ch)))
 
 
 static void process_identifier(void)
@@ -830,26 +897,29 @@ identifier, process it, and output it.  On return, the current character
 is the one following the identifier.
 */
 {
-  a_boolean any_mangling = FALSE, too_long_err = FALSE;
-  a_boolean prev_was_underscore;
-  int       i;
+  /* Maximum size of an identifier. */
+#define MAX_ID_LENGTH 3000
+  /* Identifier being processed currently, as read. */
+  static char   orig_id[MAX_ID_LENGTH];
+  /* Demangled form of the current identifier. */
+  static char   demangled_id[MAX_ID_LENGTH];
 
-  err_in_id = FALSE;
-  suppress_id_output = 0;
+  a_boolean     is_mangled_name = FALSE, too_long_err = FALSE;
+  unsigned long i, orig_id_len;
+
+  orig_id_len = 1;
+  orig_id[0] = ch;
   /* Accumulate the identifier. */
-  curr_id_len = 1;
-  curr_id[0] = ch;
   for (;;) {
-    prev_was_underscore = (ch == '_');
     /* Get another character, stop on a non-identifier character. */
     ch = getchar();
     if (!is_id_following_char(ch)) break;
-    if (curr_id_len >= MAX_ID_LENGTH-1) {
+    if (orig_id_len >= MAX_ID_LENGTH-1) {
       /* Identifier is too long. */
       if (!too_long_err) {
         /* First time through. */
         /* Dump the identifier (the part seen so far) in original form. */
-        for (i = 0; i < curr_id_len; i++) putchar(curr_id[i]);
+        for (i = 0; i < orig_id_len; i++) putchar(orig_id[i]);
         too_long_err = TRUE;
       }  /* if */
       /* Keep going to the end of the identifier, passing through the rest
@@ -857,34 +927,76 @@ is the one following the identifier.
       putchar(ch);
     } else {
       /* Add the character to the current identifier. */
-      curr_id[curr_id_len] = ch;
+      orig_id[orig_id_len] = ch;
       /* Keep track of whether "__" appears in the name. */
-      if (ch == '_' && prev_was_underscore) any_mangling = TRUE;
-      curr_id_len++;
+      if (ch == '_' && orig_id_len > 0 && orig_id[orig_id_len-1] == '_') {
+        is_mangled_name = TRUE;
+      }  /* if */
+      orig_id_len++;
     }  /* if */
   }  /* for */
   /* The identifier has been accumulated. */
   if (too_long_err) {
     /* It was too long (it's already been copied unchanged to the output). */
-    /* If it is a mangled name we haven't processed it properly. */
-    if (any_mangling) bad_mangled_name();
   } else {
-    /* The identifier was not too long. */
-    curr_id[curr_id_len] = '\0';
-    if (any_mangling) {
-      /* It needs to be demangled. */
-      demangle_whole_identifier();
+    char *id = orig_id;
+    /* The identifier was not too long.  Add a terminating null. */
+    orig_id[orig_id_len] = '\0';
+    /* If external names are supposed to begin with an underscore, drop the
+       underscore.  Furthermore, an identifier that does not begin with an
+       underscore cannot be an external name, so it shouldn't be demangled. */
+    if (skip_underscore_prefix) {
+      if (id[0] == '_') {
+        id++;
+      } else {
+        is_mangled_name = FALSE;
+      }  /* if */
+    }  /* if */
+    if (is_mangled_name) {
+      a_boolean err, buffer_overflow_err;
+      /* Demangle the identifier. */
+      decode_identifier(id, demangled_id, (sizeof_t)MAX_ID_LENGTH,
+                        &err, &buffer_overflow_err);
+      /* On an error, force output of the original form of the name. */
+      if (err) is_mangled_name = FALSE;
+    }  /* if */
+    if (!is_mangled_name) {
+      /* Output the original form of the identifier. */
+      fputs(orig_id, stdout);
     } else {
-      /* Not a mangled name. */
-      /* Dump the identifier in original form. */
-      for (i = 0; i < curr_id_len; i++) putchar(curr_id[i]);
+      /* Output the demangled form. */
+      fputs(demangled_id, stdout);
     }  /* if */
   }  /* if */
+#undef MAX_ID_LENGTH
 }  /* process_identifier */
 
 
-/*ARGSUSED*/
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+/*
+edg_decode utility program -- demangles names for C++.
+*/
+{
+  int optchar;
+
+  /* Process command-line options. */
+  /* Suppress getopt's error on non-recognized option. */
+  opterr = 0;
+#define OPTION_LIST "u"
+  while ((optchar = getopt(argc, argv, OPTION_LIST)) != EOF) {
+    switch (optchar) {
+      case 'u':
+        /* Specify whether names have an extra underscore that should
+           be ignored.  The option selects the opposite of the default. */
+        skip_underscore_prefix = !TARG_EXTERNAL_NAMES_GET_UNDERSCORE_ADDED;
+        break;
+      default:
+        if (optind >= argc) optind = argc-1;
+        optarg = argv[optind];
+        fprintf(stderr, "Unrecognized option: %s\n", optarg);
+        return RC_ERROR;
+    }  /* switch */
+  }  /* while */
   /* Read and echo characters until end of file.  When the start of an
      identifier is encountered, process it specially. */
   while ((ch = getchar()) != EOF) {
@@ -894,8 +1006,10 @@ int main(int argc, char *argv[]) {
     }  /* if */
     putchar(ch);
   }  /* while */
-  return err ? RC_ERROR : 0;
+  return RC_NORMAL;
 }  /* main */
+
+#endif /* STANDALONE_UTILITY_PROGRAM */
 
 
 /******************************************************************************
