@@ -8864,12 +8864,40 @@ continue_with_declaration:
                    class declarations that contain nonstatic const or reference
                    members and no constructor, but this seems to introduce an
                    unnecessary incompatibility with C. */
+                a_boolean  init_required = FALSE;
+
                 tp = skip_typerefs(tp);
                 if (tp->variant.class_struct_union.any_const_member ||
                     (C_dialect == C_dialect_cplusplus &&
                      symbol_supplement_for_class(tp)->any_ref_member)) {
-                  pos_sy_warning(ec_var_with_uninitialized_field,
-                                 &declarator_pos, symbol_ptr);
+                  /* The class itself has a const or ref member that is not
+                     being initialized. */
+                  init_required = TRUE;
+                } else if (C_dialect == C_dialect_cplusplus) {
+                  /* Check each of the base classes.  Note that we don't
+                     check whether there's a constructor in the base class,
+                     since if there were the derived class would have to have
+                     constructor, too. */
+                  a_base_class_ptr  bcp = base_classes_of(tp);
+
+                  for (; bcp != NULL; bcp = bcp->next) {
+                    tp = bcp->type;
+                    if (tp->variant.class_struct_union.any_const_member ||
+                        symbol_supplement_for_class(tp)->any_ref_member) {
+                      /* One of the base classes has a const or ref member
+                         that is not being initialized. */
+                      init_required = TRUE;
+                      break;
+                    }  /* if */
+                  }  /* for */
+                }  /* if */
+                if (init_required) {
+                  /* Make this a warning except in strict C++ ANSI mode. */
+                  pos_sy_diagnostic((strict_ansi_mode &&
+                                     C_dialect == C_dialect_cplusplus) ?
+                                       strict_ansi_error_severity : es_warning,
+                                    ec_var_with_uninitialized_field,
+                                    &declarator_pos, symbol_ptr);
                 }  /* if */
               }  /* if */
             }  /* if */
