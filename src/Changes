@@ -1,5 +1,11 @@
 Version 2.36
 
+4/28/96   Spurious error on extra comma in initializer
+
+An error is no longer issued for the extra comma in the following:
+
+  char str[] = { "abc", };
+
 4/28/97   is_local_to_function flag may be set incorrectly on instantiations
           of templates defined in namespaces
 
