@@ -264,7 +264,6 @@ enum a_symbol_kind_tag {
   sk_parameter,         /* Parameter name in a function prototype. */
   sk_class_template,    /* Definition of a class template. */
   sk_function_template, /* Definition of a function template. */
-  sk_static_data_member_template, /* Static data member of a class template. */
   sk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -280,8 +279,8 @@ EXTERN char	*symbol_kind_names[(int)sk_last + 1]
    "keyword", "macro", "constant", "type", "class or struct", "union",
    "enum", "variable", "field", "static data member", "member function",
    "routine", "label", "undefined", "extern variable", "extern routine",
-   "projection", "overloaded function", "parameter", "class template",
-   "function template", "static data member template",
+   "projection", "overloaded function", "parameter",
+   "class template", "function template",
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -702,9 +701,9 @@ typedef struct a_static_data_member_def {
                         /* Pointer to the symbol for a static data member of a
 			   template class; this is what is to be defined. */
   a_symbol_ptr  template_sym;
-                        /* Pointer to the sk_static_data_member_template
-			   symbol on the basis of which the static data member
-			   is to be defined. */
+                        /* Pointer to the sk_static_data_member symbol that
+			   identifies the template on the basis of which the
+			   static data member is to be defined. */
   a_template_arg_ptr
                 arg_list;
                         /* Points to the template argument list associated with
@@ -829,7 +828,7 @@ typedef struct a_template_symbol_supplement {
 			   in a function template declaration (the function
 			   parameters not the template parameters). */
     } function;
-    /* When symbol kind = sk_static_data_member_template: */
+    /* When symbol kind = sk_static_data_member: */
     struct {
       a_static_data_member_def_ptr
 		definitions;
@@ -1460,6 +1459,9 @@ extern void make_locator_for_symbol(a_symbol_ptr     sym_ptr,
                                     a_symbol_locator *location);
 
 extern void make_specific_symbol_error_locator(a_symbol_locator *locator);
+
+extern a_template_symbol_supplement_ptr alloc_template_symbol_supplement(
+                                                         a_symbol_kind  kind);
 
 extern a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
 				 a_symbol_locator *location,

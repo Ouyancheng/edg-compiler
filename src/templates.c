@@ -394,7 +394,7 @@ void define_template_static_data_member(a_static_data_member_def_ptr  sdmdp)
   a_template_symbol_supplement_ptr  tssp;
 
   db_enter(3, "define_template_static_data_member");
-  tssp = sdmdp->template_sym->variant.template_info;
+  tssp = sdmdp->template_sym->variant.variable.template_info;
   static_data_member_sym = sdmdp->static_data_member_sym;
 #if CHECKING
   if (!sdmdp->template_sym->defined || tssp->parameters == NULL) {
@@ -1749,7 +1749,8 @@ void find_static_data_member_template(a_symbol_ptr  static_data_member_sym,
        sym != NULL;
        sym = sym->next) {
     if (sym->decl_scope == corresp_prototype_decl_scope &&
-        sym->kind == (a_symbol_kind)sk_static_data_member_template) {
+        sym->kind == (a_symbol_kind)sk_static_data_member &&
+        sym->variant.variable.template_info != NULL) {
       break;
     }  /* if */
   }  /* for */
@@ -1774,7 +1775,7 @@ void find_static_data_member_template(a_symbol_ptr  static_data_member_sym,
   }  /* if */
   sdmdp->arg_list =
              tp->variant.class_struct_union.extra_info->template_arg_list;
-  tssp = sym->variant.template_info;
+  tssp = sym->variant.variable.template_info;
   /* Link the new entry to the start of the definition list of the static
      data member template. */
   sdmdp->next = tssp->variant.static_data_member.definitions;
@@ -2501,7 +2502,7 @@ entry is pushed on the scope stack.
       a_token_cache  local_token_cache, *p_token_cache;
 
       sym = locator.specific_symbol;
-      if (sym->kind != (a_symbol_kind)sk_static_data_member_template) {
+      if (sym->kind != (a_symbol_kind)sk_static_data_member) {
         /* Not a static data member. */
         if (sym->kind == (a_symbol_kind)sk_field) {
           pos_error(ec_nonstatic_member_def_not_allowed,
@@ -2529,7 +2530,7 @@ entry is pushed on the scope stack.
         a_static_data_member_def_ptr  sdmdp;
 
         sym->defined = TRUE;
-        tssp = sym->variant.template_info;
+        tssp = sym->variant.variable.template_info;
         /* Update the param list ptr, which should be non-null when the
            symbol is defined. */
         tssp->parameters = template_param_list;

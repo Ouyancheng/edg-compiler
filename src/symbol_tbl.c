@@ -646,7 +646,6 @@ and indentation is the indentation desired.
       break;
     case sk_class_template:
     case sk_function_template:
-    case sk_static_data_member_template:
       {
         a_template_symbol_supplement_ptr  tssp;
         a_template_param_ptr              tplep;
@@ -744,8 +743,6 @@ and indentation is the indentation desired.
             db_symbol(fiep->routine_sym, "", indentation + 4);
             fiep = fiep->next;
           }  /* while */
-        } else {
-          /* sk_static_data_member_template -- not yet implemented. */
         }  /* if */
         col = 0;
         suppress_newline = TRUE;
@@ -852,12 +849,11 @@ Dump the entire scope stack (for debugging).
         } else {
           char* s;
           switch (ssep->template_sym->kind) {
-            case sk_class_template:    s = "<class-template>";    break;
-            case sk_function_template: s = "<function-template>"; break;
-            case sk_static_data_member_template:
-                                       s = "<static-data-member-template>";
-                                                                  break;
-            default:                   s = "<BAD SYMBOL KIND>";   break;
+            case sk_class_template:      s = "<class-template>";    break;
+            case sk_function_template:   s = "<function-template>"; break;
+            case sk_static_data_member:  s = "<static-data-member-template>";
+                                                                    break;
+            default:                     s = "<BAD SYMBOL KIND>";   break;
           }  /* switch */
           fprintf(f_debug, "%s %s", s, ssep->template_sym->header->identifier);
         }  /* if */
@@ -971,7 +967,7 @@ Allocate a new conversion list entry and return a pointer to it.
   
   db_exit();
   return ptr;
-}  /* alloc_conversion_header */
+}  /* alloc_conversion_list_entry */
 
 
 a_symbol_ptr find_symbol(char             *identifier,
@@ -1107,6 +1103,53 @@ specific symbol which is an error symbol.
 }  /* make_specific_symbol_error_locator */
 
 
+a_template_symbol_supplement_ptr alloc_template_symbol_supplement(
+                                                          a_symbol_kind  kind)
+/*
+Allocate a new template symbol supplement entry, initialize its fields
+appropriately (based on the kind of symbol with which it will be associated),
+and return a pointer to it.
+*/
+{
+  a_template_symbol_supplement_ptr  tssp;
+
+  db_enter(5, "alloc_template_symbol_supplement");
+  /* Allocate a template symbol supplement. */
+  tssp = (a_template_symbol_supplement_ptr)
+                   alloc_fe(sizeof(a_template_symbol_supplement));
+#if DEBUG
+  num_template_symbol_supplements_allocated++;
+#endif /* DEBUG */
+  /* Initialize its fields. */
+  tssp->parameters = NULL;
+  tssp->innermost_instantiation_scope = NO_SCOPE_DEPTH;
+  tssp->declaration_scope = NO_SCOPE_NUMBER;
+  clear_token_cache(&tssp->token_cache);
+  switch (kind) {
+    case sk_class_template:
+      tssp->variant.class_template.instantiations = NULL;
+      tssp->variant.class_template.type_kind = (a_type_kind)tk_error;
+      tssp->variant.class_template.member_function_templates = NULL;
+      tssp->variant.class_template.pending_instantiations = 0;
+      break;
+    case sk_function_template:
+      tssp->variant.function.instantiations = NULL;
+      tssp->variant.function.routine = NULL;
+      break;
+    case sk_static_data_member:
+      tssp->variant.static_data_member.definitions = NULL;
+      break;
+#if CHECKING
+    default:
+      internal_error("alloc_template_symbol_supplement: bad symbol kind");
+#endif /* CHECKING */
+  }  /* switch */
+
+  db_exit();
+  return tssp;
+}  /* alloc_template_symbol_supplement */
+
+
 void set_symbol_kind(register a_symbol_ptr sym_ptr,
 		     a_symbol_kind         sym_kind)
 /*
@@ -1223,37 +1266,8 @@ state.
       break;
     case sk_class_template:
     case sk_function_template:
-    case sk_static_data_member_template:
-      {
-        a_template_symbol_supplement_ptr  tssp;
-        /* Allocate a template symbol supplement. */
-        tssp = (a_template_symbol_supplement_ptr)
-                   alloc_fe(sizeof(a_template_symbol_supplement));
-#if DEBUG
-        num_template_symbol_supplements_allocated++;
-#endif /* DEBUG */
-        sym_ptr->variant.template_info = tssp;
-        /* Initialize fields in the template symbol supplement. */
-        tssp->parameters = NULL;
-        tssp->innermost_instantiation_scope = NO_SCOPE_DEPTH;
-        tssp->declaration_scope = NO_SCOPE_NUMBER;
-        clear_token_cache(&tssp->token_cache);
-        switch (sym_ptr->kind) {
-          case sk_class_template:
-            tssp->variant.class_template.instantiations = NULL;
-            tssp->variant.class_template.type_kind = (a_type_kind)tk_error;
-            tssp->variant.class_template.member_function_templates = NULL;
-            tssp->variant.class_template.pending_instantiations = 0;
-            break;
-          case sk_function_template:
-            tssp->variant.function.instantiations = NULL;
-            tssp->variant.function.routine = NULL;
-            break;
-          case sk_static_data_member_template:
-            tssp->variant.static_data_member.definitions = NULL;
-            break;
-        }  /* switch */
-      }
+      sym_ptr->variant.template_info =
+                             alloc_template_symbol_supplement(sym_ptr->kind);
       break;
 #if CHECKING
     default:
@@ -4999,8 +5013,8 @@ be found.
 
 
 
-static void update_template_param_symbols(a_symbol_ptr       template_sym,
-                                          a_template_arg_ptr arg_list)
+static void update_template_param_symbols(a_template_param_ptr  tpp,
+                                          a_template_arg_ptr    arg_list)
 /*
 Update the symbol entries for template formal parameters to reflect the
 values to be used for a given instantiation.  This routine is called by
@@ -5009,12 +5023,9 @@ by pop_scope in the case of a recursive instantiation to recreate the
 values needed for the previous call.
 */
 {
-  a_template_param_ptr  tpp;
   a_template_arg_ptr    tap = arg_list;
 
   db_enter(4, "update_template_param_symbols");
-  /* Get a pointer to the first template parameter. */
-  tpp = template_sym->variant.template_info->parameters;
   /* Loop through the parameters and arguments.  There must be a
      one-to-one correspondence and the kinds must match.  This was
      verified when the argument list was scanned.  Update the parameter
@@ -5034,18 +5045,14 @@ values needed for the previous call.
 }  /* update_template_param_symbols */
 
 
-static void restore_default_template_params(a_symbol_ptr    template_sym)
+static void restore_default_template_params(a_template_param_ptr  tpp)
 /*
 Update the symbol entries for template formal parameters to their
 "resting values".  These are the initial values supplied when the template
 declaration is scanned and are used as placeholders between instantiations.
 */
 {
-  a_template_param_ptr  tpp;
-
   db_enter(4, "restore_default_template_params");
-  /* Get a pointer to the first template parameter. */
-  tpp = template_sym->variant.template_info->parameters;
   /* Loop through the parameters and and set them to either the original
      template type or the original template constant (as specified by the
      param_type or param_constant field). */
@@ -5252,9 +5259,21 @@ of the template.
       }  /* if */
     }  /* if */
     if (kind == (a_scope_kind)sck_template_instantiation) {
-      a_template_symbol_supplement_ptr  tssp =
-                                          template_sym->variant.template_info;
+      a_template_symbol_supplement_ptr  tssp;
 
+      switch (template_sym->kind) {
+        case sk_class_template:
+        case sk_function_template:
+          tssp = template_sym->variant.template_info;
+          break;
+        case sk_static_data_member:
+          tssp = template_sym->variant.variable.template_info;
+          break;
+#if CHECKING
+        default:
+          internal_error("push_scope: bad template symbol kind");
+#endif /* CHECKING */
+      }  /* switch */
       /* Save the depth of the innermost instantiation scope. */
       depth_of_innermost_instantiation_scope = depth_scope_stack;
       /* Update the symbols of the template parameters to represent the
@@ -5262,7 +5281,7 @@ of the template.
          the type or constant specified by the corresponding template argument.
          The old values do not need to be saved because they can be easily
          recreated by pop_scope. */
-      update_template_param_symbols(template_sym, template_arg_list);
+      update_template_param_symbols(tssp->parameters, template_arg_list);
       /* Save the value of the innermost instantiation for the current
          class template in the scope stack.  This is used by pop_scope to
          restore the parameter values in the case of a recursive
@@ -5974,20 +5993,31 @@ End a name scope by popping an entry off the scope stack.
   if (kind == (a_scope_kind)sck_template_instantiation) {
     a_scope_depth                     prev_depth;
     a_template_symbol_supplement_ptr  tssp;
-    a_symbol_ptr                      template_sym = ssep->template_sym;
+
+    switch (ssep->template_sym->kind) {
+      case sk_class_template:
+      case sk_function_template:
+        tssp = ssep->template_sym->variant.template_info;
+        break;
+      case sk_static_data_member:
+        tssp = ssep->template_sym->variant.variable.template_info;
+        break;
+#if CHECKING
+      default:
+        internal_error("pop_scope: bad template symbol kind");
+#endif /* CHECKING */
+    }  /* switch */
     prev_depth = ssep->depth_of_previous_instantiation;
     if (prev_depth == NO_SCOPE_DEPTH) {
       /* Restore the default values of the parameters. */
-      restore_default_template_params(template_sym);
+      restore_default_template_params(tssp->parameters);
     } else {
-      /* Restore the values from the previous instantiation. */
-      /* Restore the parameters. */
-      update_template_param_symbols(template_sym,
+      /* Restore the parameter values from the previous instantiation. */
+      update_template_param_symbols(tssp->parameters,
                                     scope_stack[prev_depth].template_arg_list);
     }  /* if */
     /* Update the depth of the innermost instantiation in the template
        symbol supplement. */
-    tssp = template_sym->variant.template_info; 
     tssp->innermost_instantiation_scope = prev_depth;
   }  /* if */
   /* Determine the memory region to restore for the outer scope. */
@@ -6904,7 +6934,6 @@ to avoid an 8-character external name clash with symbol_table.)
   name_space_for_symbol_kind[(int)sk_overloaded_function] = nsk_other;
   name_space_for_symbol_kind[(int)sk_class_template]      = nsk_other;
   name_space_for_symbol_kind[(int)sk_function_template]   = nsk_other;
-  name_space_for_symbol_kind[(int)sk_static_data_member_template] = nsk_other;
 #if CHECKING
   /* "undefined" and "routine" must be in the same name space.  See
       decl_default_function. */
