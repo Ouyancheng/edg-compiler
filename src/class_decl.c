@@ -6043,6 +6043,14 @@ next_declaration:
          through its base classes to determine whether it is abstract by
          inheritance and set the flag accordingly. */
       check_abstract_class(class_type);
+      /* Classes with no constructors, no private or protected members, no
+         base classes, and no virtual functions are used to declare
+         "aggregate" objects (ARM 8.4.1). */
+      if (cssp->constructor == NULL && !cssp->any_nonpublic_members &&
+          class_type->
+              variant.class_struct_union.extra_info->base_classes == NULL) {
+        cssp->is_class_aggregate = TRUE;
+      }  /* if */
     }  /* if */
     /* Pop the pseudo-scope created for the fields. */
     pop_scope();
