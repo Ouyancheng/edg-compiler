@@ -699,7 +699,7 @@ scope.
        list so it need not be initialized here. */
   } else {
     fsctp = alloc_fe_of_type(a_function_shareable_constants_table);
-    memzero(fsctp->table, sizeof(fsctp->table));
+    memzero((char *)fsctp->table, sizeof(fsctp->table));
 #if DEBUG
     num_function_shareable_constants_tables_allocated++;
 #endif /* DEBUG */
