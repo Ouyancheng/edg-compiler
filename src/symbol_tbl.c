@@ -4353,7 +4353,7 @@ may an overload symbol instead.
           check_assertion(is_function_symbol(fund_sym));
           rtsp = skip_typerefs(fund_sym->variant.routine.ptr->type)->
                                                variant.routine.extra_info;
-          if (rtsp->has_ellipsis != op_new_has_ellipsis) {
+          if ((a_boolean)rtsp->has_ellipsis != op_new_has_ellipsis) {
             /* There can't be a match unless both were declared with ellipsis
                or neither was. */
             continue;
