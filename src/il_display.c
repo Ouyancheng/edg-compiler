@@ -1133,6 +1133,33 @@ Display the name for the indicated storage class.
   (void)printf("%s\n", s);
 }  /* disp_storage_class_name */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void disp_decl_modifiers(a_decl_modifier  dm)
+/*
+Display the indicated decl modifiers.
+*/
+{
+  if (dm != DM_NONE) {
+    if (dm & DM_DLLIMPORT) {
+      disp_boolean("dllimport", TRUE);
+    }  /* if */
+    if (dm & DM_DLLEXPORT) {
+      disp_boolean("dllexport", TRUE);
+    }  /* if */
+    if (dm & DM_THREAD) {
+      disp_boolean("thread", TRUE);
+    }  /* if */
+    if (dm & DM_NAKED) {
+      disp_boolean("naked", TRUE);
+    }  /* if */
+    if (dm & DM_MICROSOFT_INLINE) {
+      disp_boolean("microsoft_inline", TRUE);
+    }  /* if */
+  }  /* if */
+}  /* disp_decl_modifiers */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void disp_initializer(an_init_kind        kind,
                              an_initializer_ptr  ptr)
@@ -1243,15 +1270,7 @@ Display the indicated variable.
     disp_boolean("superseded_external", TRUE);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ptr->decl_modifiers & DM_DLLIMPORT) {
-    disp_boolean("dllimport", TRUE);
-  }  /* if */
-  if (ptr->decl_modifiers & DM_DLLEXPORT) {
-    disp_boolean("dllexport", TRUE);
-  }  /* if */
-  if (ptr->decl_modifiers & DM_THREAD) {
-    disp_boolean("thread", TRUE);
-  }  /* if */
+  disp_decl_modifiers(ptr->decl_modifiers);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /*ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -1575,18 +1594,7 @@ Display the indicated routine.
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ptr->decl_modifiers & DM_DLLIMPORT) {
-    disp_boolean("dllimport", TRUE);
-  }  /* if */
-  if (ptr->decl_modifiers & DM_DLLEXPORT) {
-    disp_boolean("dllexport", TRUE);
-  }  /* if */
-  if (ptr->decl_modifiers & DM_NAKED) {
-    disp_boolean("naked", TRUE);
-  }  /* if */
-  if (ptr->decl_modifiers & DM_MICROSOFT_INLINE) {
-    disp_boolean("microsoft_inline", TRUE);
-  }  /* if */
+  disp_decl_modifiers(ptr->decl_modifiers);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
@@ -3190,6 +3198,9 @@ Display the indicated class type supplement entry.
                (char *)ptr->virtual_function_info_base_class, iek_base_class);
     }  /* if */
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  disp_decl_modifiers(ptr->decl_modifiers);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     disp_name("anonymous_union_kind");
     switch (ptr->anonymous_union_kind) {

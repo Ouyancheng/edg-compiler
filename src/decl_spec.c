@@ -606,7 +606,9 @@ to indicate whether the class/struct/union is actually defined.
   a_symbol_reference_kind srk_flags;
   a_boolean               delayed_nested_class_def = FALSE;
   a_boolean               namespace_extension_pushed = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_decl_modifier         decl_modifiers = DM_NONE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -1030,9 +1032,14 @@ skip_tag_scan:
     process_curr_construct_pragmas(tag_sym, (a_statement_ptr)NULL);
   }  /* if */
   if (is_class_definition) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (!C_mode()) {
+      class_type->variant.class_struct_union.extra_info->
+                                         decl_modifiers = decl_modifiers;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (scan_class_definition(class_type, effective_decl_level,
-                              is_local_class, delayed_nested_class_def,
-                              decl_modifiers)) {
+                              is_local_class, delayed_nested_class_def)) {
       *defines_something = TRUE;
     } else {
       err = TRUE;

@@ -35,8 +35,7 @@ extern a_boolean scan_class_definition(
                                    a_type_ptr       class_type,
                                    a_scope_depth    effective_decl_level,
                                    a_boolean        is_local_class,
-                                   a_boolean        delayed_nested_class_def,
-                                   a_decl_modifier  class_decl_modifiers);
+                                   a_boolean        delayed_nested_class_def);
 
 extern void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
                                           a_type_ptr    class_type,

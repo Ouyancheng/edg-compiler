@@ -1927,6 +1927,80 @@ EXTERN char *calling_convention_names[(int)cc_last]
 ;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/*
+Determine whether any decl modifiers are being used.  This value is used
+to decide whether the variable and routine entries should include a
+decl modifiers field.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define DECL_MODIFIERS_IN_USE TRUE
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define DECL_MODIFIERS_IN_USE FALSE
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Enumeration of declaration modifiers that are accepted.  The enumeration values
+are used to create bit masks that are used to represent the modifiers.
+*/
+enum a_decl_modifier_tag {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  dmt_dllimport,
+  dmt_dllexport,
+  dmt_thread,
+  dmt_naked,
+  dmt_microsoft_inline,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  dmt_last
+};
+
+#if DECL_MODIFIERS_IN_USE
+EXTERN char *decl_modifier_names[(int)dmt_last + 1]
+#if VAR_INITIALIZERS
+= {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* dmt_dllimport */		"dllimport",
+  /* dmt_dllexport */		"dllexport",
+  /* dmt_thread */		"thread",
+  /* dmt_naked */		"naked",
+  /* dmt_inline */		"__inline",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* dmt_last */		"__last"
+} /* decl_modifier_names */
+#endif /* VAR_INITIALIZERS */
+;
+#endif /* DECL_MODIFIERS_IN_USE */
+
+/*
+A bit set whose values are used to supply additional declarative information
+about variables and routines.
+*/
+#define DM_NONE	0x0
+			/* No decl modifiers. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define DM_DLLIMPORT	(1 << (int)dmt_dllimport)
+			/* TRUE if the declaration includes the
+			   Microsoft __declspec(dllimport) specifier. */
+#define DM_DLLEXPORT	(1 << (int)dmt_dllexport)
+			/* TRUE if the declaration includes the
+			   Microsoft __declspec(dllexport) specifier. */
+#define DM_THREAD	(1 << (int)dmt_thread)
+			/* TRUE if the declaration includes the
+			   Microsoft __declspec(thread) specifier. */
+#define DM_NAKED	(1 << (int)dmt_naked)
+			/* TRUE if the declaration includes the
+			   Microsoft __declspec(naked) specifier. */
+#define DM_MICROSOFT_INLINE						\
+			(1 << (int)dmt_microsoft_inline)
+			/* TRUE if the declaration includes the
+			   Microsoft __inline specifier. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Type used to represent a set of decl modifiers.
+*/
+typedef char	a_decl_modifier;
+typedef a_decl_modifier *a_decl_modifier_ptr;
+
 #endif /* ifdef CIL */
 
 /* Entry containing additional information about a routine type
@@ -2487,6 +2561,14 @@ typedef struct a_class_type_supplement {
 			   necessarily a direct base class, but there are
 			   no virtual steps in its derivation.  This field is
 			   NULL if the virtual function info is not shared. */
+#if DECL_MODIFIERS_IN_USE
+  a_decl_modifier
+		decl_modifiers;
+			/* Additional declaration information supplied by
+			   nonstandard language features such as the
+			   Microsoft storage-class-like __declspec
+			   modifiers. */
+#endif /* DECL_MODIFIERS_IN_USE */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous
@@ -2725,79 +2807,6 @@ typedef struct a_based_type_list_member {
 			   base type. */
 } a_based_type_list_member;
 
-/*
-Determine whether any decl modifiers are being used.  This value is used
-to decide whether the variable and routine entries should include a
-decl modifiers field.
-*/
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define DECL_MODIFIERS_IN_USE TRUE
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define DECL_MODIFIERS_IN_USE FALSE
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-/*
-Enumeration of declaration modifiers that are accepted.  The enumeration values
-are used to create bit masks that are used to represent the modifiers.
-*/
-enum a_decl_modifier_tag {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  dmt_dllimport,
-  dmt_dllexport,
-  dmt_thread,
-  dmt_naked,
-  dmt_microsoft_inline,
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  dmt_last
-};
-
-#if DECL_MODIFIERS_IN_USE
-EXTERN char *decl_modifier_names[(int)dmt_last + 1]
-#if VAR_INITIALIZERS
-= {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  /* dmt_dllimport */		"dllimport",
-  /* dmt_dllexport */		"dllexport",
-  /* dmt_thread */		"thread",
-  /* dmt_naked */		"naked",
-  /* dmt_inline */		"__inline",
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* dmt_last */		"__last"
-} /* decl_modifier_names */
-#endif /* VAR_INITIALIZERS */
-;
-#endif /* DECL_MODIFIERS_IN_USE */
-
-/*
-A bit set whose values are used to supply additional declarative information
-about variables and routines.
-*/
-#define DM_NONE	0x0
-			/* No decl modifiers. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define DM_DLLIMPORT	(1 << (int)dmt_dllimport)
-			/* TRUE if the declaration includes the
-			   Microsoft __declspec(dllimport) specifier. */
-#define DM_DLLEXPORT	(1 << (int)dmt_dllexport)
-			/* TRUE if the declaration includes the
-			   Microsoft __declspec(dllexport) specifier. */
-#define DM_THREAD	(1 << (int)dmt_thread)
-			/* TRUE if the declaration includes the
-			   Microsoft __declspec(thread) specifier. */
-#define DM_NAKED	(1 << (int)dmt_naked)
-			/* TRUE if the declaration includes the
-			   Microsoft __declspec(naked) specifier. */
-#define DM_MICROSOFT_INLINE						\
-			(1 << (int)dmt_microsoft_inline)
-			/* TRUE if the declaration includes the
-			   Microsoft __inline specifier. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-/*
-Type used to represent a set of decl modifiers.
-*/
-typedef char	a_decl_modifier;
-typedef a_decl_modifier *a_decl_modifier_ptr;
 
 typedef struct a_type {
   /* Description of a type. */

@@ -6038,19 +6038,22 @@ done:;
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-static a_decl_modifier merge_decl_modifiers(
-                                     a_decl_modifier    class_decl_modifiers,
-                                     a_decl_modifier    decl_modifiers,
-                                     a_boolean          is_definition,
-                                     a_source_position  *pos)
+static a_decl_modifier merge_decl_modifiers(a_type_ptr         class_type,
+                                            a_decl_modifier    decl_modifiers,
+                                            a_boolean          is_definition,
+                                            a_source_position  *pos)
 /*
-class_decl_modifiers represents the modifiers declared for the class, and
-decl_modifiers represents the modifiers declared for the current member.
-Check for compatibility and return a set of decl-modifier flags based on
-the two.  is_definition is TRUE when this is called for a member function
-definition.  pos is the error position.
+class_type is the type of the current class, for which decl_modifiers may
+have been declared, and decl_modifiers represents the modifiers declared for
+the current member.  Check for compatibility and return a set of
+decl-modifier flags based on the two.  is_definition is TRUE when this is
+called for a member function definition.  pos is the error position.
 */
 {
+  a_decl_modifier  class_decl_modifiers;
+
+  class_decl_modifiers =
+          class_type->variant.class_struct_union.extra_info->decl_modifiers;
   if (class_decl_modifiers != DM_NONE) {
     check_assertion_str(class_decl_modifiers & (DM_DLLIMPORT | DM_DLLEXPORT),
                         "merge_decl_modifiers: unexpected class modifiers");
@@ -6188,14 +6191,10 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
 }  /* find_corresp_prototype_tag_sym */
 
 
-#if !DECL_MODIFIERS_IN_USE
-/* ARGSUSED */ /* class_decl_modifiers is not used in some configurations. */
-#endif /* !DECL_MODIFIERS_IN_USE */
 a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
                                 a_boolean        is_local_class,
-                                a_boolean        delayed_nested_class_def,
-                                a_decl_modifier  class_decl_modifiers)
+                                a_boolean        delayed_nested_class_def)
 /*
 Scan the body of a class definition, including the base classes list.
 class_type points to the type entry of the class, struct, or union whose
@@ -6203,9 +6202,7 @@ definition is to be scanned.  effective_decl_level indicates the name scope
 to which the class declaration belongs.  is_local_class is TRUE if the class
 definition appears inside a function body.  delayed_nested_class_def is TRUE
 if the class is a nested class whose parent class definition has already
-been completed (C++ only).  class_decl_modifiers contains settings of DLL
-attributes that apply to the class as a whole (only when Microsoft extension
-support is enabled).
+been completed (C++ only).
 */
 {
   a_boolean                       err = FALSE;
@@ -7011,7 +7008,7 @@ support is enabled).
 #if MICROSOFT_EXTENSIONS_ALLOWED
               /* If decl-modifiers were declared for the class and/or for the
                  member, check for consistency and use the union of the two. */
-              decl_modifiers = merge_decl_modifiers(class_decl_modifiers,
+              decl_modifiers = merge_decl_modifiers(class_type,
                                                     decl_modifiers,
                                                     function_def_present,
                                                     &decl_start_pos);
@@ -7249,7 +7246,7 @@ support is enabled).
 #if MICROSOFT_EXTENSIONS_ALLOWED
               /* If decl-modifiers were declared for the class and/or for the
                  member, check for consistency and use the union of the two. */
-              decl_modifiers = merge_decl_modifiers(class_decl_modifiers,
+              decl_modifiers = merge_decl_modifiers(class_type,
                                                     decl_modifiers,
                                                     /*is_definition=*/FALSE,
                                                     &decl_start_pos);
