@@ -392,7 +392,7 @@ and hidden_by refer to the same IL entry, no hidden-name entry is produced.
           check_assertion(in_file_scope(entity));
           if (fund_hiding_sym == NULL ||
               !(is_type_symbol(fund_hidden_sym) &&
-                is_type_symbol(fund_hiding_sym) &&
+                fund_hiding_sym->kind == (a_symbol_kind)sk_type &&
                 fund_hiding_sym->variant.type.is_injected_class_name) ||
               !f_identical_types(type_symbol_type(fund_hidden_sym),
                                  type_symbol_type(fund_hiding_sym),
