@@ -9784,7 +9784,8 @@ of which it is a member.
     pos_error(ec_qualifier_in_namespace_member_decl,
               &locator->source_position);
     result = TRUE;
-  } else if (!is_definition && !out_of_class_partial_spec) {
+  } else if (!is_definition && !out_of_class_partial_spec &&
+             !decl_state->is_specialization) {
     /* A declaration using a qualified name.  This is only allowed if it
        is a friend declaration, or for the instantiation of an
        out-of-class declaration of a partial specialization. */

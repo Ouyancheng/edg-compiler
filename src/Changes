@@ -1,5 +1,15 @@
 Version 2.46
 
+11/1/01  Spurious error on class member template specialization declaration
+
+The declaration (not definition) of a specialization of a class member
+template resulted in a spurious error.  This has been fixed.
+
+  template <class T> struct A {
+    template <class U> struct B;
+  };
+  template <> template <class U> struct A<int>::B;
+
 10/17/01 Spurious error when injected class name follows a field selection
 
 The front end produced an incorrect lookup result when the lookup of
