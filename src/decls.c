@@ -2778,6 +2778,12 @@ created; the caller must set it.
                ... Type of "a" is now "int [5]".
              }
              ... Type of "a" must be restored to "int []" at the end of "main".
+           Another example involves local typedefs:
+             int *p;
+             void f() {
+               typedef int *IP;
+               extern IP p;
+             }  // "p" cannot have type "IP" in file scope; restore "int*"
         */
         /* The fixup is only needed if the pre-existing definition is in
            a scope that surrounds the current one.  That's hard to determine,
@@ -2786,9 +2792,14 @@ created; the caller must set it.
            not necessarily the outermost).  A simple way out is to build
            the fixup whenever the current scope is not the file scope.
            That builds more fixups than needed, but it always works. */
-        if (C_dialect == C_dialect_pcc) {
-          /* In pcc mode all symbols with linkage are entered at the
-             file scope, so a fixup is never needed. */
+        if (C_dialect == C_dialect_pcc &&
+            !identical_types(type_ptr, preexisting_type)) {
+          /* In pcc mode all symbols with linkage are entered at the file
+             scope, so a fixup is never needed.  However, that leaves the
+             possibility that the external entity is typed with a function
+             scope typedef (see example above).  To reduce the occurrence
+             of such unaesthetic situations, a fixup is applied if the
+             types are otherwise identical. */
         } else if (decl_scope_level != depth_innermost_namespace_scope) {
           /* Create a fixup entry, which will be processed at the end
              of the current scope (see pop_scope).  Note that the
