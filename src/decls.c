@@ -1724,6 +1724,7 @@ specification is handled later (see check_throw_specification).
   a_throw_specification_ptr  tsp;
   a_throw_spec_type_ptr      tstp, other_tstp, end_of_list = NULL;
   a_source_position          type_pos;
+  a_stop_token_array         save_stop_token_array;
 
   db_enter(4, "scan_throw_specification");
   /* Update the source position for the "throw".  Even if there is no
@@ -1761,15 +1762,26 @@ specification is handled later (see check_throw_specification).
        "throw int" instead of "throw (int)" might be a common mistake. */
     if (exceptions_enabled) error(ec_exp_lparen);
   }  /* if */
+  /* Save the current stop token state, and reinitialize it. */
+  copy_stop_tokens(stop_token_array, save_stop_token_array);
+  clear_stop_tokens();
+  add_stop_token(tok_semicolon);
+  add_stop_token(tok_lbrace);
+  add_stop_token(tok_rparen);
   /* Loop through the types. */
   do {
+    add_stop_token(tok_comma);
     /* Allocate the throw spec type entry. */
     tstp = alloc_throw_spec_type();
     type_pos = pos_curr_token;
     if (!is_decl_start(/*expr_context=*/FALSE,
-                       /*real_declarator_allowed=*/FALSE)) {
+                       /*real_declarator_allowed=*/FALSE) ||
+        !is_decl_not_expr(/*abstract_declarator_allowed=*/TRUE,
+                          /*real_declarator_allowed=*/FALSE)) {
       /* Error. */
       if (exceptions_enabled) pos_error(ec_exp_type_specifier, &type_pos);
+      /* Flush tokens to the comma or right paren. */
+      flush_tokens();
       tstp->type = error_type();
     } else {
       type_name(&tstp->type);
@@ -1800,6 +1812,7 @@ specification is handled later (see check_throw_specification).
         set_used_in_exception_flag(tstp->type);
       }  /* if */
     }  /* if */
+    remove_stop_token(tok_comma);
     /* If the next token is not a comma, it should be a right paren -- but
        check for a few other tokens that (in error cases) should also force
        the loop to terminate. */
@@ -1809,11 +1822,16 @@ specification is handled later (see check_throw_specification).
     }  /* if */
   } while (loop_token(tok_comma));
   /* List should be terminated by a right paren. */
+  remove_stop_token(tok_rparen);
   if (curr_token == tok_rparen) {
     (void)get_token();
   } else {
     if (exceptions_enabled) (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
+  remove_stop_token(tok_lbrace);
+  remove_stop_token(tok_semicolon);
+  /* Restore the stop token state. */
+  copy_stop_tokens(save_stop_token_array, stop_token_array);
 done:;
   db_exit();
 }  /* scan_throw_specification */
