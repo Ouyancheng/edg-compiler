@@ -1088,6 +1088,14 @@ memory or with an IL file.
   check_assertion(scope != NULL);
   rout = (scope->kind == (a_scope_kind)sck_function) ?
                                       scope->variant.routine.ptr : NULL;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode && rout != NULL &&
+      (rout->decl_modifiers & DM_DLLIMPORT)) {
+    /* __declspec(dllimport) functions are deallocated elsewhere. */
+    keep_memory = TRUE;
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
   if (rout != NULL && rout->is_trivial_default_constructor) {
     /* Always free the memory for the generated definition of a trivial
        default constructor.  It is an incidental byproduct of front-end

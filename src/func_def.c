@@ -1016,8 +1016,8 @@ and for the instantiation of template functions.
     }  /* if */
   }  /* if */
   if (microsoft_mode) {
-    /* A dllimport routine does not always cause an error (i.e., if it's
-      "inline"), but its body is ignored by the compiler. */
+    /* A dllimport routine definition may be allowed, but it is thrown away
+       after semantic checking is completed. */
     eliminate_body_if_imported(rout_ptr, scope_ptr);
   }  /* if */
 #if DEBUG
@@ -2138,20 +2138,22 @@ empty statement block.
                    variant.block.extra_info->end_of_block_reachable = FALSE;
     /* Terminate the function scope. */
     pop_scope();
+    if (microsoft_mode) {
+      /* A dllimport routine definition may be allowed, but it is thrown away
+         after semantic checking is completed. */
+      eliminate_body_if_imported(rout_ptr, scope);
+    }  /* if */
     /* Terminate the class reactivation scope. */
     pop_class_reactivation_scope();
     /* Mark the symbol for this routine "defined". */
     ((a_symbol_ptr)rout_ptr->source_corresp.assoc_info)->defined = TRUE;
     if (rout_ptr->is_trivial_default_constructor) {
       /* The memory region for a trivial default constructor has already
-         been freed. */
-      check_assertion(mem_region_table[rout_ptr->assoc_scope] == NULL);
+         been freed.  A dllimport routine will already have had its
+         associated scope entry cleared (in clear_function_body). */
+      check_assertion(rout_ptr->assoc_scope == NULL_region_number ||
+                      mem_region_table[rout_ptr->assoc_scope] == NULL);
       rout_ptr->assoc_scope = NULL_region_number;
-    }  /* if */
-    if (microsoft_mode) {
-      /* A dllimport routine does not always cause an error (i.e., if it's
-        "inline"), but its body is ignored by the compiler. */
-      eliminate_body_if_imported(rout_ptr, scope);
     }  /* if */
   }  /* if */
   db_exit();
