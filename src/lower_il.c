@@ -6722,56 +6722,58 @@ other operand.
 }  /* wrap_throw */
 
 
-static void set_address_taken_for_lvalue_expr(an_expr_node_ptr expr)
+static void rewrite_lvalue_expr_as_rvalue(an_expr_node_ptr expr)
 /*
-Walk through the indicated lvalue expression tree and set the address_taken
-flag on variables that are used as the underlying entity of the lvalue.
+expr points to an expression tree for an lvalue.  Rewrite it as an rvalue that
+has the same side effects.
 */
 {
-  if (is_variable_address_node(expr)) {
-    /* The expression is the address of a variable. */
-    set_lowering_variable_address_taken(expr->variant.variable);
-  } else if (is_constant_node(expr)) {
-    a_constant_ptr con = expr->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_address &&
-        con->variant.address.kind == (an_address_base_kind)abk_variable) {
-      /* The constant is the address of a variable. */
-      set_lowering_variable_address_taken(
-                     expr->variant.constant->variant.address.variant.variable);
-    }  /* if */
-  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-    /* No variable. */
-  } else if (is_operation_node(expr)) {
-    an_expr_operator_kind op = expr->variant.operation.kind;
-    an_expr_node_ptr      operands = expr->variant.operation.operands;
-    an_expr_node_ptr      check_operand = NULL;
+  /* In many cases, the expression for an lvalue could simply be treated
+     as the rvalue address of the lvalue without any rewriting.  However, that
+     doesn't work right for (a) bit field lvalues, and (b) register variables
+     (the address_taken flag was not set on those variables).  And such
+     things can appear under lvalue-returning "?" and "," operations.
+     So eliminate the entire expression if it has no side effects, and
+     otherwise go down through the tree and eliminate subtrees which
+     have no side effects, including the troublesome cases listed above. */
+  if (!node_has_side_effects(expr, (a_boolean *)NULL)) {
+    /* No side effects, so replace the expression tree with one that casts
+       zero to the right pointer type. */
+    a_constant       zero_con;
+    an_expr_node_ptr zero_node;
 
-    if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-      /* Operations that return an lvalue. */
-      if (op == (an_expr_operator_kind)eok_comma) {
-        /* Continue with the second operand. */
-        check_operand = operands->next;
+    make_zero_of_proper_type(expr->type, &zero_con);
+    zero_node = alloc_node_for_constant(&zero_con);
+    overwrite_node(expr, zero_node);
+  } else {
+    /* The expression has some side effect, so at least part of it has to
+       be preserved.  Cases not handled specially here are left alone,
+       using the general "lvalue = rvalue address" equivalence. */
+    if (is_operation_node(expr)) {
+      an_expr_operator_kind op = expr->variant.operation.kind;
+      an_expr_node_ptr      op1 = expr->variant.operation.operands;
+      if (op == (an_expr_operator_kind)eok_padd_subsc ||
+          op == (an_expr_operator_kind)eok_padd ||
+          op == (an_expr_operator_kind)eok_psubtract ||
+          op == (an_expr_operator_kind)eok_field ||
+          op == (an_expr_operator_kind)eok_pm_field ||
+          ((op == (an_expr_operator_kind)eok_cast ||
+            op == (an_expr_operator_kind)eok_base_class_cast) &&
+           expr->variant.operation.compiler_generated)) {
+        /* These operations pass through lvalueness.  Go to the first
+           operand and continue. */
+        rewrite_lvalue_expr_as_rvalue(op1);
       } else if (op == (an_expr_operator_kind)eok_question) {
-        /* Check both the second and third operands. */
-        set_address_taken_for_lvalue_expr(operands->next);
-        set_address_taken_for_lvalue_expr(operands->next->next);
-      } else {
-        /* Others, e.g., pre-increment, assignment.  Continue with the
-           first operand. */
-        check_operand = operands;
+        /* "?" operator.  Process the second and third operands. */
+        rewrite_lvalue_expr_as_rvalue(op1->next);
+        rewrite_lvalue_expr_as_rvalue(op1->next->next);
+      } else if (op == (an_expr_operator_kind)eok_comma) {
+        /* "," operator.  Process the second operand. */
+        rewrite_lvalue_expr_as_rvalue(op1->next);
       }  /* if */
-    } else if (((op == (an_expr_operator_kind)eok_cast ||
-                 op == (an_expr_operator_kind)eok_base_class_cast) &&
-                 expr->variant.operation.compiler_generated) ||
-               op == (an_expr_operator_kind)eok_field) {
-      /* Implicit cast or field selection.  Continue with first operand. */
-      check_operand = operands;
-    }  /* if */
-    if (check_operand != NULL) {
-      set_address_taken_for_lvalue_expr(check_operand);
     }  /* if */
   }  /* if */
-}  /* set_address_taken_for_lvalue_expr */
+}  /* rewrite_lvalue_expr_as_rvalue */
 
 
 void lower_expr(an_expr_node_ptr expr,
@@ -6787,24 +6789,24 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
   unsigned int          is_lvalue_mask, is_bool_controlling_expr_mask;
 
   if (expr->void_expression_lvalue) {
-    /* A void expression left as an lvalue in C++ can be treated as
-       an rvalue that is the address of the lvalue, without any
-       rewriting. */
+    /* A void expression that was left as an lvalue in C++.  Rewrite as
+       an rvalue. */
     expr->void_expression_lvalue = FALSE;
-    /* Since we're actually going to use the lvalue address as an address,
-       set the address_taken flag on variables in it. */
-    set_address_taken_for_lvalue_expr(expr);
     if (is_operation_node(expr) &&
-        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-      an_expr_operator_kind op = expr->variant.operation.kind;
+        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue &&
+        (op = expr->variant.operation.kind,
+         (op != (an_expr_operator_kind)eok_question &&
+          op != (an_expr_operator_kind)eok_comma))) {
+      /* An lvalue-returning assignment or the like.  Changing the operation
+         not to return an lvalue turns the expression into an rvalue, which
+         makes it acceptable as C code.  This can only be done at the
+         top level, however, because it also changes the result type
+         (it drops the "pointer to"). */
       expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
-      if (op != (an_expr_operator_kind)eok_question &&
-          op != (an_expr_operator_kind)eok_comma) {
-        /* For operations like assignments, changing the operation not to
-           return an lvalue changes the result type (it drops the
-           "pointer to"). */
-        expr->type = rvalue_type(type_pointed_to(expr->type));
-      }  /* if */
+      expr->type = rvalue_type(type_pointed_to(expr->type));
+    } else {
+      /* Other cases require more work. */
+      rewrite_lvalue_expr_as_rvalue(expr);
     }  /* if */
   }  /* if */
   lower_os_type(expr->type);
