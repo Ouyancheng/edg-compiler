@@ -7419,13 +7419,23 @@ End a name scope by popping an entry off the scope stack.
     /* Transfer the list of scopes nested within the current scope
        to the IL scope entry if there is one, or otherwise add it to
        the local scopes list for the parent scope.  We are doing this
-       to avoid allocating IL scopes for empty block scopes. */
+       to avoid allocating IL scopes for empty block scopes and empty
+       non-top-level function prototype scopes. */
+    if (il_scope == NULL) {
+      parent_ssep = ssep-1;
+      /* Generate the scope entry if ssep is a top-level function prototype
+         scope, i.e., one that is not nested within another function prototype
+         scope. */
+      if (kind == (a_scope_kind)sck_func_prototype &&
+          parent_ssep->kind != (a_scope_kind)sck_func_prototype) {
+        il_scope = ensure_il_scope_exists(ssep);
+      }  /* if */
+    }  /* if */
     if (il_scope != NULL) {
       /* There is an allocated IL scope entry. */
       il_scope->scopes = ssep->first_scope;
     } else {
       /* Add the list of scopes to the list for the parent scope. */
-      parent_ssep = ssep-1;
       if (parent_ssep->first_scope == NULL) {
         parent_ssep->first_scope = ssep->first_scope;
       } else {
