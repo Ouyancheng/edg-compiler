@@ -4344,6 +4344,55 @@ for cases that are likely to overflow (e.g., _Fract + int).
   }  /* if */
 }  /* check_mixed_integer_fixed_point_arithmetic */
 
+static a_boolean is_compound_assignment_operator(an_expr_operator_kind  op)
+/*
+Return TRUE if and only if the given operator is a compound assignment.
+*/
+{
+  a_boolean  result;
+
+  switch (op) {
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_xadd_assign:
+    case eok_xsubtract_assign:
+    case eok_xmultiply_assign:
+    case eok_xdivide_assign:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case eok_iadd_assign:
+    case eok_isubtract_assign:
+    case eok_imultiply_assign:
+    case eok_idivide_assign:
+    case eok_remainder_assign:
+    case eok_fxadd_assign:
+    case eok_fxsubtract_assign:
+    case eok_fxmultiply_assign:
+    case eok_fxdivide_assign:
+    case eok_fxshiftl_assign:
+    case eok_fxshiftr_assign:
+    case eok_fadd_assign:
+    case eok_fsubtract_assign:
+    case eok_fmultiply_assign:
+    case eok_fdivide_assign:
+    case eok_padd_assign:
+    case eok_psubtract_assign:
+    case eok_shiftl_assign:
+    case eok_shiftr_assign:
+    case eok_and_assign:
+    case eok_or_assign:
+    case eok_xor_assign:
+    case eok_add_assign:
+    case eok_subtract_assign:
+    case eok_multiply_assign:
+    case eok_divide_assign:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_compound_assignment_operator */
+
 
 static void adjust_fixed_point_binary_operands(
                                             an_operand             *operand_1,
@@ -4370,20 +4419,29 @@ adding an integer to fixed-point type.)
       an_operand  *operand_to_adjust;
       a_type_ptr  type;
       if (tp1->variant.fixed_point.is_unsigned) {
-        operand_to_adjust = operand_1;
-        type = tp1;
+        if (is_compound_assignment_operator(op)) {
+          /* The first operand of a compound assignment operation cannot be
+             explicitly adjusted (the adjustment is implicit in that case). */
+          operand_to_adjust = NULL;
+        } else {
+          operand_to_adjust = operand_1;
+          type = tp1;
+        }  /* if */
       } else {
         operand_to_adjust = operand_2;
         type = tp2;
       }  /* if */
-      type = fixed_point_type(type->variant.fixed_point.precision,
-                              /*is_unsigned=*/FALSE,
-                              (a_boolean)type->variant.
-                                            fixed_point.is_fract_type,
-                              (a_boolean)type->variant.fixed_point.saturating);
-      cast_operand(type, operand_to_adjust, /*check_cast_access=*/FALSE,
-                   /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-                   /*reinterpret_semantics=*/FALSE);
+      if (operand_to_adjust != NULL) {
+        type = fixed_point_type(type->variant.fixed_point.precision,
+                                /*is_unsigned=*/FALSE,
+                                (a_boolean)type
+                                          ->variant.fixed_point.is_fract_type,
+                                (a_boolean)type
+                                          ->variant.fixed_point.saturating);
+        cast_operand(type, operand_to_adjust, /*check_cast_access=*/FALSE,
+                     /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
+                     /*reinterpret_semantics=*/FALSE);
+      }  /* if */
     }  /* if */
   } else if (!is_error_type(tp1) && !is_error_type(tp2)) {
     /* A mixed fixed-point/integral operation. */

@@ -1,5 +1,20 @@
 Version 3.5
 
+7/27/04  Embedded C: Conversions on fixed-point compound assignments
+
+In compound assignments with a fixed-point result the front end erroneously
+converted the second operand (the right hand side) to the result type.  Now, a
+conversion is only added if the left hand side has a signed fixed-point type
+and the right hand side has an unsigned fixed-point type (the conversion only
+alters the signedness of the right hand side).  For example:
+
+  void f() {
+    unsigned long _Accum a;
+    short _Fract b;
+    a += b;  // Right hand side is signed: No conversion.
+    b += a;  // Right hand side converted to signed long _Accum.
+  }
+
 7/27/04  C++-generating back end: Abort on GNU C function definition
 
 In GNU C mode, an unprototyped function definition can follow a prototyped

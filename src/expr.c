@@ -12700,11 +12700,25 @@ See section 3.3.16 of the standard.
           {
             operation_type = determine_arithmetic_conversions(operand_1,
                                                               &operand_2);
-            cast_operand(operation_type, &operand_2,
-                         /*check_cast_access=*/TRUE,
-                         /*is_implicit_cast=*/TRUE,
-                         /*is_reinterpret_cast=*/FALSE,
-                         /*reinterpret_semantics=*/FALSE);
+#if FIXED_POINT_ALLOWED
+            if (fixed_point_enabled && is_fixed_point_type(operation_type)) {
+              /* An operation involving at least one fixed-point type and no
+                 floating-point types.  The only conversion that can be made
+                 explicit is adding signedness to the second operand (if
+                 needed). */
+              op = which_binary_operator(operator_token, operation_type);
+              change_binary_operand_types(operation_type,
+                                          operand_1, &operand_2, op);
+            } else
+#endif /* FIXED_POINT_ALLOWED */
+            /* Do not insert code here. */
+            {
+              cast_operand(operation_type, &operand_2,
+                           /*check_cast_access=*/TRUE,
+                           /*is_implicit_cast=*/TRUE,
+                           /*is_reinterpret_cast=*/FALSE,
+                           /*reinterpret_semantics=*/FALSE);
+            }  /* if */
           }  /* if */
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
