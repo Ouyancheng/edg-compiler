@@ -1,5 +1,11 @@
 Version 2.29
 
+4/3/95   Option name changed: --alternate_tokens is now --alternative_tokens
+
+The name of the command line option, and variables in the front end,
+have been changed from "alternate" to "alternative" to match the
+wording in the working paper.
+
 4/3/95   Handling of "detected during" prefix in error context messages
 
 Formerly, the "detected during" prefix was hard-coded in error.c.

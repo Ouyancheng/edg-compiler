@@ -110,7 +110,7 @@ typedef enum /*an_option_kind*/ {
 #if USER_CONTROL_OF_STRUCT_PACKING
   optk_pack_alignment,
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  optk_alternate_tokens,
+  optk_alternative_tokens,
 #if MINIMAL_INLINING
   optk_inlining,
 #endif /* MINIMAL_INLINING */
@@ -496,9 +496,9 @@ EXTERN a_targ_alignment
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
 EXTERN a_boolean
-                alternate_tokens_allowed
+                alternative_tokens_allowed
 #if VAR_INITIALIZERS
-                                         = DEFAULT_ALTERNATE_TOKENS_ALLOWED
+                                         = DEFAULT_ALTERNATIVE_TOKENS_ALLOWED
 #endif /* VAR_INITIALIZERS */
                                                                            ;
                         /* TRUE if the C++ operator keywords (such as

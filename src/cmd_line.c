@@ -394,12 +394,12 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-  add_option_description(optk_alternate_tokens,
-			 "alternate_tokens",
+  add_option_description(optk_alternative_tokens,
+			 "alternative_tokens",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_alternate_tokens,
-			 "no_alternate_tokens",
+  add_option_description(optk_alternative_tokens,
+			 "no_alternative_tokens",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #if MINIMAL_INLINING
@@ -874,7 +874,7 @@ Process the arguments on the command line that invoked the compiler.
           strict_ansi_discretionary_severity = es_warning;
         }  /* if */
 	/* Enable recognition of operator keywords and digraphs. */
-	alternate_tokens_allowed = TRUE;
+	alternative_tokens_allowed = TRUE;
         /* Temporary lifetime is short. */
         long_lifetime_temps = FALSE;
         break;
@@ -1273,10 +1273,10 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-      case optk_alternate_tokens:
+      case optk_alternative_tokens:
         /* Operator keywords (e.g., "not", "and") and digraphs should or
            should not be allowed. */
-        alternate_tokens_allowed = opt_value;
+        alternative_tokens_allowed = opt_value;
         break;
 #if MINIMAL_INLINING
       case optk_inlining:
@@ -1355,8 +1355,8 @@ Process the arguments on the command line that invoked the compiler.
     if (option_kind_used[(int)optk_wchar_t_is_keyword]) {
       command_line_error(ec_cl_wchar_t_option_only_in_cplusplus);
     }  /* if */
-    if (option_kind_used[(int)optk_alternate_tokens]) {
-      command_line_error(ec_cl_alternate_token_option_only_in_cplusplus);
+    if (option_kind_used[(int)optk_alternative_tokens]) {
+      command_line_error(ec_cl_alternative_token_option_only_in_cplusplus);
     }  /* if */
     /* Set wchar_t_is_keyword to FALSE, just in case the default value
        is TRUE.  The value must not be TRUE in C mode. */

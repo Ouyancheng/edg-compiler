@@ -4588,7 +4588,7 @@ and also put that into error_position.
 /*
 Macro that is TRUE if digraph tokens should be recognized.
 */
-#define digraphs_allowed() (!C_mode() && alternate_tokens_allowed)
+#define digraphs_allowed() (!C_mode() && alternative_tokens_allowed)
 
 
 a_token_kind get_token(void)

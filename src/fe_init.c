@@ -287,7 +287,7 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_wchar_t, "wchar_t");
     }  /* if */
     /* Enter C++ keywords used as synonyms for operators. */
-    if (alternate_tokens_allowed) {
+    if (alternative_tokens_allowed) {
       enter_keyword((a_token_kind)tok_and_and,        "and");
       enter_keyword((a_token_kind)tok_and_assign,     "and_eq");
       enter_keyword((a_token_kind)tok_ampersand,      "bitand");

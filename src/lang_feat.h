@@ -406,12 +406,12 @@ only used when DEFINE_MACRO_WHEN_WCHAR_T_IS_KEYWORD is TRUE.
 /*
 Flag that is TRUE if, in C++ mode, operator keywords (e.g., bitand, compl)
 and digraphs are recognized.  This is the default value for the global
-flag alternate_tokens_allowed, the value of which may also be modified
+flag alternative_tokens_allowed, the value of which may also be modified
 using command line options.
 */
-#ifndef DEFAULT_ALTERNATE_TOKENS_ALLOWED
-#define DEFAULT_ALTERNATE_TOKENS_ALLOWED FALSE
-#endif /* ifndef DEFAULT_ALTERNATE_TOKENS_ALLOWED */
+#ifndef DEFAULT_ALTERNATIVE_TOKENS_ALLOWED
+#define DEFAULT_ALTERNATIVE_TOKENS_ALLOWED FALSE
+#endif /* ifndef DEFAULT_ALTERNATIVE_TOKENS_ALLOWED */
 
 /*
 Flag that is TRUE if "&..." should be accepted in the source code.  This
