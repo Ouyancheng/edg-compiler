@@ -1,5 +1,13 @@
 Version 2.44
 
+2/29/00  Spurious error on certain command-line macro definitions
+
+In 2.43, the processing of command-line macro definitions was modified
+to permit the definition of function-style macros on the command line.
+This change resulted in errors when characters that are not permitted
+in tokens were used in macro definitions, such as "-Dx=\\a".  Such
+macro definitions are once again accepted.
+
 2/17/00  Accurate declared_type for parameters of template functions
 
 The declared_type field of parameter variables in the IL definitions of
