@@ -5880,8 +5880,9 @@ expression is surrounded by parentheses if there's some possibility of
 precedence confusion and need_parens is TRUE.
 */
 {
-  an_expr_node_kind kind;
-  a_boolean         processed = FALSE;
+  an_expr_node_kind  kind;
+  a_boolean          processed = FALSE;
+  a_dynamic_init_ptr dip;
 
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   /* If the lvalue address is a constant that came from an expression, go to
@@ -6226,6 +6227,15 @@ precedence confusion and need_parens is TRUE.
     /* A temporary initialization with the address of the temporary used as
        the node value.  Just put out the underlying value. */
     gen_temp_init(node);
+    processed = TRUE;
+  } else if (kind == (an_expr_node_kind)enk_temp_init &&
+             (dip = node->variant.init.dynamic_init)->is_reused_value &&
+             (dip->kind == (a_dynamic_init_kind)dik_expression ||
+              dip->kind ==
+                    (a_dynamic_init_kind)dik_call_returning_class_via_cctor)) {
+    /* A reused-value temporary initialization, which will be elided in
+       the output.  Just put out the underlying value. */
+    gen_lvalue(dip->variant.expression);
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_object_lifetime) {
     /* Ignore an enk_object_lifetime; the thing underneath is processed as
