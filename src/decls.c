@@ -7648,6 +7648,7 @@ and for the instantiation of template functions.
   int                            saved_depth_stmt_stack;
   a_ptrdiff                      saved_container_pos;
   a_reachability_summary         saved_curr_reachability;
+  a_boolean                      is_instantiation;
 
   db_enter(3, "scan_function_body");
   class_type = rout_ptr->source_corresp.class_of_which_a_member;
@@ -7657,8 +7658,9 @@ and for the instantiation of template functions.
     /* Push a class symbol reactivation scope, to make class member names
        visible for processing the function definition. */
     push_class_reactivation_scope(class_type);
-  }  /* if */  
-  scope_number = (func_info == NULL) ?
+  }  /* if */
+  is_instantiation = rout_ptr->is_instantiation;
+  scope_number = (func_info == NULL || is_instantiation) ?
                         NO_SCOPE_NUMBER : func_info->scope_number;
   /* Push the name scope for the routine body. */
   scope_ptr = push_scope((a_scope_kind)sck_function, scope_number,
@@ -7674,7 +7676,7 @@ and for the instantiation of template functions.
                                             (a_storage_class)sc_auto);
   }  /* if */
   if (func_info != NULL) {
-    if (!rout_ptr->is_instantiation) {
+    if (!is_instantiation) {
       /* Parameter symbols that were created in the prototype scope (and then
          removed in pop_scope) have to be reentered in the function scope; they
          will be transformed in to variable symbols.  Also, in C mode, types
@@ -7736,7 +7738,7 @@ and for the instantiation of template functions.
       for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
         /* Declare each parameter identifier to have the associated type
            from the parameter type list. */
-        decl_parameter(param_id, ptp, rout_ptr->is_instantiation);
+        decl_parameter(param_id, ptp, is_instantiation);
 #if CHECKING
         if ((param_id->next == NULL) != (ptp->next == NULL)) {
           internal_error("function_definition: param_id and ptp out of sync");
@@ -7744,7 +7746,7 @@ and for the instantiation of template functions.
 #endif /* CHECKING */
       }  /* for */
     }  /* if */
-    if (!rout_ptr->is_instantiation) {
+    if (!is_instantiation) {
       /* Free the list of parameter ids, now that it is no longer needed. */
       free_param_id_list(&(func_info->param_id_list));
     }  /* if */
