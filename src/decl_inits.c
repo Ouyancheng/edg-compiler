@@ -784,14 +784,9 @@ The syntax is:
          initialization is called for. */
       local_di.variant.aggregate.dynamic_init = di_list;
       initialization_is_dynamic = (di_list != NULL);
-      if (put_init_in_variable) {
-        /* Copy the type back into the variable.  It might have been changed
-           if vp is an incomplete array. */
-        if (vp != NULL && vp_type != vp->type) {
-          put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
-                                      vp_type);
-        }  /* if */
-      }  /* if */
+    } else if (cp->kind == (a_constant_repr_kind)ck_string) {
+      clear_dynamic_init(&local_di, (a_dynamic_init_kind)dik_constant);
+      local_di.variant.constant = cp;
     } else {
 #if CHECKING
       if (cp->kind != (a_constant_repr_kind)ck_error) {
@@ -799,6 +794,14 @@ The syntax is:
       }  /* if */
 #endif /* CHECKING */
       err = TRUE;
+    }  /* if */
+    if (!err && put_init_in_variable) {
+      /* Copy the type back into the variable.  It might have been changed
+         if vp is an incomplete array. */
+      if (vp != NULL && vp_type != vp->type) {
+        put_type_back_into_variable(vp, symbol_ptr, source_pos, linkage,
+                                    vp_type);
+      }  /* if */
     }  /* if */
   } else {
     /* A non-aggregate object is being initialized.  Braces or parens are
