@@ -39,6 +39,7 @@ Clear an output control block to default values.
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
   octl->suppress_local_typedefs   = FALSE;
+  octl->suppress_not_yet_defined_typedefs = FALSE;
   octl->c_generating_back_end     = FALSE;
 #if DEBUG
   octl->debug_output              = FALSE;
@@ -770,12 +771,23 @@ by octl.
 Return TRUE if the indicated typedef is "invisible" now because (a) it's
 local to a function and we're suppressing local typedefs, or
 (b) suppress_const is TRUE (we're suppressing top-level "const") and the
-typedef contains a const qualifier.
+typedef contains a const qualifier, or (c) suppress_not_yet_defined_typedefs
+is TRUE and the typedef definition has not yet been put out in the
+C++-generating back end.
 */
+#if BACK_END_IS_CP_GEN_BE
+#define or_not_yet_defined_typedef(type) ||                           \
+  ((octl)->suppress_not_yet_defined_typedefs &&                       \
+   !(type)->typedef_definition_has_been_put_out)
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define or_not_yet_defined_typedef(type) /* Nothing */
+#endif /* BACK_END_IS_CP_GEN_BE */
+
 #define typedef_is_invisible(type, suppress_const, octl)              \
  (((type)->source_corresp.is_local_to_function &&                     \
    (octl)->suppress_local_typedefs) ||                                \
-  ((suppress_const) && is_const_qualified_type(type)))
+  ((suppress_const) && is_const_qualified_type(type))                 \
+  or_not_yet_defined_typedef(type))                                   \
 
 
 static a_boolean can_use_qualified_array_typedef(

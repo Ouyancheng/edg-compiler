@@ -3193,6 +3193,7 @@ declaration following this one is such a continuation.
                                                         /*typedef_only=*/TRUE,
                                                         /*for_init=*/FALSE);
   }  /* if */
+  type->typedef_definition_has_been_put_out = TRUE;
 }  /* gen_typedef_definition */
 
 
@@ -7107,6 +7108,7 @@ Initialize for the C++/C-generating back end.
   octl.output_vla_expression = gen_vla_expression;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
+  octl.suppress_not_yet_defined_typedefs = TRUE;
 }  /* init_cp_gen_be */
 
 
