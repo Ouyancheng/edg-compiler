@@ -4012,7 +4012,9 @@ them unless wchar_t is char.
     }  /* for */
     cache.first_token->next = NULL;
     cache.last_token = cache.first_token;
+#if DEBUG
     cache.token_count = 1;
+#endif /* DEBUG */
   }  /* if */
   /* Stick the remaining single string literal back onto the input token
      stream (ahead of the non-string-literal token that stopped the loop). */
