@@ -966,11 +966,8 @@ compatibility we do too.)
     mptr_f_field = last_field;
     finish_class_type(mptr_type, &byte_offset);
 #if CHECKING
-    if (mptr_type->size != targ_sizeof_ptr_to_member_function
-#if !USER_CONTROL_OF_STRUCT_PACKING
-        || mptr_type->alignment != targ_alignof_ptr_to_member_function
-#endif /* !USER_CONTROL_OF_STRUCT_PACKING */
-                                                                      ) {
+    if (mptr_type->size != targ_sizeof_ptr_to_member_function ||
+        mptr_type->alignment != targ_alignof_ptr_to_member_function) {
       internal_error(
  "make_mptr_type: target config of pointer-to-member-function is incorrect");
     }  /* if */
@@ -6315,10 +6312,7 @@ are enabled.
   }  /* for */
   if (first_temp != NULL) {
     /* There were some temporaries in the lifetime. */
-    /* Put the list back together again, with the temporaries first.  Note
-       that this ruins the list for use by a "real" back end.  Even if we
-       don't need to clone the temporaries, put them back on the list so that
-       all entries can be found and detached at the end of lowering. */
+    /* Put the list back together again, with the temporaries first. */
     a_dynamic_init_ptr first_nontemp_after_temps =
                     last_temp->destructible_entity_descr->next_in_region_table;
     last_temp->destructible_entity_descr->next_in_region_table = first_nontemp;
