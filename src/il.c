@@ -7125,7 +7125,9 @@ function).
 {
   a_symbol_ptr sym = (a_symbol_ptr)(scp->assoc_info);
 
-  if (sym != NULL) {
+  if (sym != NULL &&
+      /* Don't kick off instantiations while in a prototype instantiation. */
+      !is_template_dependent_context()) {
     if (sym->kind == (a_symbol_kind)sk_static_data_member ||
         sym->kind == (a_symbol_kind)sk_member_function ||
         sym->kind == (a_symbol_kind)sk_routine) {
