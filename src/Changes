@@ -1,5 +1,23 @@
 Version 2.17
 
+4/29/93  Pointers to virtual base class data sections
+
+In a_base_class the field pointer_offset is now defined for all virtual
+base classes, not just for direct base classes, and pointer_base_class may
+be non-NULL for both direct and indirect virtual base classes.  See the
+commentary in il_def.h for a precise description of how these fields are
+used and how they interact with each other.  There were some bugs in this
+area in "default" layout mode -- as opposed to the layout used for cfront
+object code compatibilty.  Those bugs have been fixed.
+
+4/28/93  Spurious error on extern redeclarations
+
+A spurious error was sometimes issued when an array was defined and then
+redeclared with an an incomplete type.  Here's an example:
+
+  static int a[10];
+  extern int a[];              // Spurious error no longer issued
+
 4/28/93  result_is_not_used flag in IL expression nodes
 
 There is now a flag result_is_not_used in expression nodes, which is
