@@ -197,6 +197,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_cdecl:
       case tok_fastcall:
       case tok_stdcall:
+      case tok_unaligned:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         break;
       case tok_class:
