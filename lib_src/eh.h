@@ -155,8 +155,11 @@ typedef a_byte a_region_descr_flag_set;
 			   for arrays and for new allocations that require
 			   a two-argument operator delete call. */
 #define RDF_THIS_PARAM_OFFSET	0x10
-			/* TRUE if the object is a base class of an
-			   object being constructed or destructed. */
+			/* TRUE if the object is at an address relative to
+			   the "this" parameter of the current routine, i.e.,
+			   it's a base class or member being handled in
+			   a constructor or destructor.  Not used in the
+			   portable scheme. */
 
 #define NULL_REGION_NUMBER ((a_region_number)-1)
 			/* The value used when there is no active EH
