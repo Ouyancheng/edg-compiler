@@ -3278,9 +3278,9 @@ entry is pushed on the scope stack.
     internal_error("template_declaration: expected tok_template");
   }  /* if */
 #endif /* CHECKING */
-  /* Move cached #pragma declarations (if any) to the current scope stack
-     entry so they can be examined and acted upon in subsequent processing. */
-  (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
+  /* Note that select_curr_construct_pragmas is called in the caller, even
+     though the matching function, process_curr_construct_pragmas, is called
+     later in this routine. */
   saved_curr_default_args = curr_default_args;
   curr_default_args = NULL;
   *defines_something = FALSE;
