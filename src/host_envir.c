@@ -135,6 +135,13 @@ CLOCK_FREQUENCY is defined properly below.
 #endif /* defined(sun) */
 #endif /* __ANSIC__ */
 
+#if !__MSDOS__
+/* If we are not on MS-DOS, we assume that we are on some sort of
+   Unix system.  Include unistd.h to get declarations for
+   the system calls and library routines. */
+#include <unistd.h>
+#endif /* !__MSDOS__ */
+
 /*
 Determine whether getcwd or getwd should be used to get the current
 directory.  getwd is used on BSD, getcwd on other systems.
@@ -164,19 +171,21 @@ static int getpid(void)
 }
 #endif /* __TURBOC__ */
 #else /* __MSDOS__ */
-#ifdef __cplusplus
-#include <sysent.h>
-#else /* !define(__cplusplus) */
 /* Function definitions for non MS-DOS compilers. */
-/* The SUN does not have the getpid(), unlink(), and time() calls defined 
-   in include files. */
+#ifdef __cplusplus
+#include <time.h>
+#else /* ifndef __cplusplus */
 #if __BSD__
+/* The SUN does not have the getpid(), unlink(), and time() calls defined 
+   in include files. This is only done when not using a C++ compiler.
+   In C++ we assume these are supplied by unistd.h, which is included
+   above. */
 EXTERN_C int getpid(void);
 /* Unlink (delete) a file. */
-EXTERN_C int unlink(char *path);
+EXTERN_C int unlink(const char *path);
 EXTERN_C time_t time(time_t* tloc);
 #endif /* __BSD__ */
-#endif /* __cplusplus */
+#endif /* ifdef __cplusplus */
 #endif /* __MSDOS__ */
 
 /*
@@ -1169,6 +1178,9 @@ is bad (incorrectly formed or has an illegal suffix).
   }  /* if */
 }  /* reopen_error_output_file */
 
+#if __VMS
+EXTERN_C int delete(char *file_name);
+#endif /* __VMS__ */
 
 void delete_file(char *file_name)
 /*
@@ -1180,10 +1192,8 @@ Delete the file with the indicated name.  It shouldn't be open currently.
   status = remove(file_name);
 #else /* __ANSIC__ */
 #if __VMS__
-  EXTERN_C int delete();
   status = delete(file_name);
 #else /* !__VMS__ */
-  EXTERN_C int unlink();
   status = unlink(file_name);
 #endif /* __VMS__ */
 #endif /* __ANSIC__ */
