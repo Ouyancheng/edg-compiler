@@ -1736,21 +1736,23 @@ block is being created to surround a dependent statement in C++.
 
   *block = add_statement((a_statement_kind)stmk_block);
   stmt_update_source_sequence_list(*block);
-  if (cfront_dependent_statement) {
-    /* This is a dependent statement in cfront mode, which is special in
-       that no scope is created for it.  Mark the block for special
-       processing in IL lowering or a back end: anything constructed
-       within the block must also be destroyed therein.  This flag must
-       be set before push_stmt_stack is called. */
-    (*block)->dependent_statement = TRUE;
-  } else if (!dependent_statement) {
+  if (!dependent_statement) {
+    /* This is a block statement introduced by an lbrace (which should be
+       the next token).  Process any pragmas that are meant to bind to the
+       the block statement as a whole. */
     process_curr_construct_pragmas((a_symbol_ptr)NULL, *block);
   } else {
-#if 0
-/* It's not clear what should be done here. */
-#else
-    discard_curr_construct_pragmas();
-#endif /* if 0 */
+    /* This is a dependent statement with no surrounding braces.  Any pragmas
+       that are current will bind to the statement (not to the block), so
+       don't process them yet. */
+    if (cfront_dependent_statement) {
+      /* This is a dependent statement in cfront mode, which is special in
+         that no scope is created for it.  Mark the block for special
+         processing in IL lowering or a back end: anything constructed
+         within the block must also be destroyed therein.  This flag must
+         be set before push_stmt_stack is called. */
+      (*block)->dependent_statement = TRUE;
+    }  /* if */
   }  /* if */
   /* Make the parent pointer in the block point to the nearest enclosing
      compound statement. */
@@ -1825,6 +1827,7 @@ statement no new scope is required.
     start_block_statement(&block, /*dependent_statement=*/TRUE);
     block_added = TRUE;
   }  /* if */
+  /* Now process the dependent statement itself. */
   is_executable = statement();
   if (cfront_compatibility_mode && !is_executable) {
     /* In cfront mode, the dependent statement is not allowed to be a
