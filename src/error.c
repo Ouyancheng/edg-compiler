@@ -780,6 +780,12 @@ error code.
     case ec_member_ref_requires_object:
       m = "a nonstatic member reference must be relative to a specific object";
       break;
+    case ec_nonstatic_member_def_not_allowed:
+      m = "a nonstatic data member cannot be defined outside its class";
+      break;
+    case ec_redefinition_not_allowed:
+      m = "redefinition of this object is not allowed";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:
