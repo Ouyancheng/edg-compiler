@@ -4318,23 +4318,27 @@ if possible.  operator_position indicates the operator position.
 void prep_generic_operand(an_operand *operand)
 /*
 The indicated operand is about to be used as the operand of an expression
-involving template parameter types.  Adjust it as needed: Because the
-generic (typeless) operators used for such expressions assume their
-operands are rvalues, add an eok_lvalue node to the operand to mark it
-as an lvalue if it is an lvalue.
+involving template parameter types.  Adjust it as needed: add an eok_lvalue
+or eok_rvalue node to the operand to mark it as an lvalue or rvalue.
 */
 {
-  if (is_an_lvalue(operand)) {
-    an_expr_node_ptr expr;
-    an_operand       orig_operand;
-    orig_operand = *operand;
+  an_expr_node_ptr expr;
+  an_operand       orig_operand;
+
+  orig_operand = *operand;
+  if (is_an_lvalue(operand) || is_a_function_designator(operand)) {
     expr = make_node_from_operand(operand);
     expr = make_operator_node((an_expr_operator_kind)eok_lvalue,
                               operand->type, expr);
     make_expression_operand(expr, operand->type, operand);
-    operand->state = orig_operand.state;
-    restore_operand_details_incl_ref(operand, &orig_operand);
+  } else if (is_an_rvalue(operand)) {
+    expr = make_node_from_operand(operand);
+    expr = make_operator_node((an_expr_operator_kind)eok_rvalue,
+                              operand->type, expr);
+    make_expression_operand(expr, operand->type, operand);
   }  /* if */
+  operand->state = orig_operand.state;
+  restore_operand_details_incl_ref(operand, &orig_operand);
 }  /* prep_generic_operand */
 
 
