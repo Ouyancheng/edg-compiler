@@ -1140,6 +1140,24 @@ substructure.
 }  /* clear_type_correspondence */
 
 
+static void mark_canonical_instantiation(a_template_symbol_supplement  *tssp,
+                                         a_symbol_ptr                  inst)
+/*
+Record inst as being a canonical instantiation of the template associated with
+tssp.
+*/
+{
+  add_instantiation(tssp, inst);
+  if (is_class_struct_union_symbol(inst)) {
+    a_type_ptr  class_type = type_symbol_type(inst);
+    clear_type_correspondence(class_type, /*visited=*/TRUE);
+  } else if (is_function_symbol(inst)) {
+    a_routine_ptr  routine = inst->variant.routine.ptr;
+    set_no_trans_unit_corresp(iek_routine, routine);
+  }  /* if */
+}  /* mark_canonical_instantiation */
+
+
 static void clear_namespace_correspondence(a_namespace_ptr  nsp,
                                            a_boolean        visited)
 /*
@@ -3067,8 +3085,7 @@ symbol supplement.
     }  /* if */
     if (sym_entry == NULL) {
       /* The instantiation was not found on the canonical list.  Add it now. */
-      add_instantiation(corresp_tssp, inst);
-      set_no_class_type_correspondence(class_type);
+      mark_canonical_instantiation(corresp_tssp, inst);
     } else {
       /* Record the necessary correspondences. */
       a_type_ptr  corresp_type = type_symbol_type(sym_entry->symbol);
@@ -3149,9 +3166,7 @@ symbol supplement.
                                                    inst->instance_sym);
   if (sym_entry == NULL) {
     /* The instantiation was not found on the canonical list.  Add it now. */
-    add_instantiation(corresp_tssp, inst->instance_sym);
-    /* There was no correspondence for that routine. */
-    set_no_trans_unit_corresp(iek_routine, routine);
+    mark_canonical_instantiation(corresp_tssp, inst->instance_sym);
   } else if (routine != sym_entry->symbol->variant.routine.ptr) {
     a_routine_ptr  old_ce = (a_routine_ptr)canonical_il_entry_of(
                                       sym_entry->symbol->variant.routine.ptr);
@@ -3185,7 +3200,7 @@ template.
     if (!secondary_translation_unit_seen()) {
       /* There is no need to look for a matching instantiation in a secondary
          translation unit. */
-      add_instantiation(tssp, inst);
+      mark_canonical_instantiation(tssp, inst);
     } else if (is_class_struct_union_symbol(inst)) {
       a_type_ptr               prim = type_symbol_type(inst);
       if (prim->variant.class_struct_union.is_prototype_instantiation ||
@@ -3195,7 +3210,7 @@ template.
         a_symbol_list_entry_ptr
                          slep = find_class_template_instantiation(tssp, inst);
         if (slep == NULL) {
-          add_instantiation(tssp, inst);
+          mark_canonical_instantiation(tssp, inst);
         } else if (slep->symbol != inst) {
           /* This template class was presumably first instantiated in a
              secondary translation unit, but now it is instantiated in the
@@ -3214,7 +3229,7 @@ template.
        a_symbol_list_entry_ptr
                       slep = find_function_template_instantiation(tssp, inst);
       if (slep == NULL) {
-        add_instantiation(tssp, inst);
+        mark_canonical_instantiation(tssp, inst);
       } else {
         /* This template class was presumably first instantiated in a
            secondary translation unit, but now it is instantiated in the
