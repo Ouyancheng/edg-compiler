@@ -1785,6 +1785,8 @@ returned set to TRUE.
        preceding section of code. */
     pop_class_reactivation_scope();
   } else {
+    /* If an object lifetime was pushed to surround the initialization of
+       a local static variable, pop it now. */
     if (expr_temp_lifetime != NULL) {
       check_assertion(expr_temp_lifetime == curr_object_lifetime);
       if (!is_useless_object_lifetime(expr_temp_lifetime)) {
