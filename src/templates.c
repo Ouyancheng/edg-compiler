@@ -1732,9 +1732,11 @@ static a_boolean function_template_declaration(a_symbol_ptr  *sym)
   a_token_cache                     local_token_cache, *p_token_cache;
   a_template_symbol_supplement_ptr  tssp;
   a_boolean                         err = FALSE;
+  a_source_position                 decl_start_pos;
 
   db_enter(3, "function_template_declaration");
 
+  decl_start_pos = pos_curr_token;
   add_stop_token(tok_semicolon);
   add_stop_token(tok_lbrace);
   add_stop_token(tok_colon);
@@ -1754,6 +1756,9 @@ static a_boolean function_template_declaration(a_symbol_ptr  *sym)
              &do_flags, type, (a_type_ptr)NULL, &locator, &type,
              &bottom_derived_type, &func_info, &dim_expr_ptr);
   if (is_error_locator(locator) || !is_function_type(type)) {
+    if (!is_error_locator(locator)) {
+      pos_error(ec_bad_template_declaration, &decl_start_pos);
+    }  /* if */
     err = TRUE;
     discard_token_cache(&local_token_cache);
     clear_token_cache(&local_token_cache);
