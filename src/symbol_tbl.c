@@ -4754,25 +4754,27 @@ C and C++.
        stack in turn, and looks for a symbol in that scope. */
     active_symbol_list = symbol_list_from_locator(*locator);
     inactive_symbol_list = inactive_symbol_list_from_locator(*locator);
-    /* If there are no classes and no class reactivations on the scope stack,
-       or if the symbol cannot be a member symbol, the fast algorithm can be
-       used.  This is always the case in C. The more complicated (and slower)
-       algorithm must be used to look up the name in the symbol (1) if there
-       are symbols on the inactive list for the name in question -- i.e.,
-       symbols that will not be found with the fast algorithm; and (2) if the
-       present scope stack is such that currently visible symbols might be on
-       an inactive list.  Only symbols for members of classes that go out of
-       scope appear on the inactive list.  Such symbols become visible in
-       only two ways -- they belong to a base class of a class that is
-       currently in scope or they belong to a class that has been reactivated
-       (e.g., for the definition of a member or friend function or the
-       initialization of a static data member).  Note that the slow algorithm
-       is not required for member symbols on the active list because they
-       are found properly on the search of the active list in the fast
-       algorithm.  We don't need to check skip_curr_function_scope when
-       deciding whether to use the fast or slow algorithm because there
-       will always be a class reactivation scope on the stack which will
-       force the slow lookup. */
+    /* If there are no classes, no class reactivations, and no instantiations
+       on the scope stack, or if the symbol cannot be a member symbol, the
+       fast algorithm can be used.  This is always the case in C. The
+       more complicated (and slower) algorithm must be used to look up
+       the name in the symbol (1) if there are symbols on the inactive
+       list for the name in question -- i.e., symbols that will not be
+       found with the fast algorithm; and (2) if the present scope
+       stack is such that currently visible symbols might be on an
+       inactive list.  Only symbols for members of classes that go out
+       of scope appear on the inactive list.  Such symbols become
+       visible in only two ways -- they belong to a base class of a
+       class that is currently in scope or they belong to a class that
+       has been reactivated (e.g., for the definition of a member or
+       friend function or the initialization of a static data member).
+       Note that the slow algorithm is not required for member symbols
+       on the active list because they are found properly on the
+       search of the active list in the fast algorithm.  We don't need
+       to check skip_curr_function_scope when deciding whether to use
+       the fast or slow algorithm because there will always be a class
+       reactivation scope on the stack which will force the slow
+       lookup. */
     ssep = &scope_stack[depth_scope_stack];
 #if CHECKING
     /* IDL_SKIP_CURR_FUNCTION_SCOPE must only be used when the top scope
@@ -4783,8 +4785,9 @@ C and C++.
       }  /* if */
     }  /* if */
 #endif /* CHECKING */
-    if (inactive_symbol_list == NULL ||
-        !ssep->inactive_symbols_may_be_visible) {
+    if ((inactive_symbol_list == NULL ||
+         !ssep->inactive_symbols_may_be_visible) &&
+        depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
       /* Fast algorithm: just search the active symbol list. */
 #if DEBUG
       num_fast_id_lookups++;
@@ -4926,12 +4929,25 @@ C and C++.
 next_scope:
         /* End the loop when we reach the bottom of the scope stack. */
         if (ssep == &scope_stack[DEPTH_OF_FILE_SCOPE]) break;
-        /* If this scope is for a template instantiation, skip directly
-           to the file scope instead of processing the intervening
-           scopes.  Only file scope symbols, template parameters, and
-           symbols defined within the instantiation should be visible. */
+        /* If this scope is for a template instantiation, ignore the scopes
+           between the file scope and the current instantiation scope.  The
+           only processing done on these scopes is to remove their symbols
+           from the active list so that when we reach the file scope we
+           are at the right point in the active list.  Only file scope
+           symbols, template parameters, and symbols defined within the
+           instantiation should be visible. */
         if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
+          a_scope_number  file_scope_number;
           ssep = &scope_stack[DEPTH_OF_FILE_SCOPE];
+          file_scope_number = ssep->number;
+          /* Scan the active list until we find a file scope symbol.  We don't
+             need to worry about prev_active_sym because it is not used
+             for the file scope and there can be no scopes beyond the file
+             scope. */
+          while (active_sym != NULL &&
+                 active_sym->decl_scope != file_scope_number) {
+            active_sym = active_sym->next;
+          }  /* while */
         } else {
           ssep--;
         }  /* if */
