@@ -248,7 +248,15 @@ increase pos_in_temp_text_buffer by the number of characters added.
   if (curr_token == tok_int_constant || curr_token == tok_float_constant ||
       curr_token == tok_string_literal || curr_token == tok_char_constant) {
     /* Write out a string that represents the constant. */
+    if (const_for_curr_token.kind == (a_constant_repr_kind)ck_error) {
+      /* If there was an error in scanning the token, reset the flag to avoid
+         an assertion failure in the subroutine.  This means something like
+         "<error-const>" will be put out in the template string. */
+      octl.gen_compilable_code = FALSE;
+    }  /* if */
     form_constant(&const_for_curr_token, /*need_parens=*/TRUE, &octl);
+    /* Reset the flag, in case it had been changed. */
+    octl.gen_compilable_code = TRUE;
   } else if (curr_token == tok_newline) {
     /* Ignore tok_newline.  It only comes up in pragma token caches, and
        when the sequence number changes the required number of newline
