@@ -8616,6 +8616,9 @@ done here.
   a_boolean		is_constructor;
   a_boolean		usage_check_needed = FALSE;
   an_error_severity	severity;
+#if !NEED_NAME_MANGLING
+  a_boolean		distinct_mangling_for_templates = TRUE;
+#endif /* !NEED_NAME_MANGLING */
 
   is_conversion_operator = is_conversion_function_symbol(sym);
   is_constructor = is_constructor_symbol(sym);
