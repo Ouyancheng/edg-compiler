@@ -179,6 +179,7 @@ typedef enum /*an_option_kind*/ {
   optk_friend_injection,
   optk_nonstandard_using_decl,
   optk_system_include_dir,
+  optk_include_file_suffixes,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1162,6 +1163,18 @@ EXTERN sizeof_t
 			/* Maximum allowed length for a mangled name.
 			   Zero means no limit. */
 #endif /* NEED_NAME_MANGLING */
+
+EXTERN char
+		*include_file_suffixes
+#if VAR_INITIALIZERS
+                                        = DEFAULT_INCLUDE_FILE_SUFFIX_LIST;
+#endif /* VAR_INITIALIZERS */
+                                                                       ;
+			/* The file suffixes to be used when searching for an
+			   include file name specified with no suffix.  This
+			   is a colon-separated list of suffixes (but without
+			   the "." delimiter). */
+
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

@@ -1107,6 +1107,14 @@ that is associated with a given instantiation header file.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
 /*
+The suffixes to be used when searching for an include file name specified
+with no suffix.
+*/
+#ifndef DEFAULT_INCLUDE_FILE_SUFFIX_LIST
+#define DEFAULT_INCLUDE_FILE_SUFFIX_LIST "h:hpp::"
+#endif /* DEFAULT_INCLUDE_FILE_SUFFIX_LIST */
+
+/*
 Flag that is TRUE to generate the trailing include file push/pop codes
 (a la SUN cc) on the ends of the line-identifying directives generated
 in preprocessing output.  see gen_pp_line_info in lexical.c.
@@ -1670,6 +1678,8 @@ is required when using the C generating back end.
 extern void change_non_id_characters(char *str);
 extern char *make_module_id(void);
 #endif /* MODULE_ID_NEEDED */
+
+extern char *suffix_of(char		*file_name);
 
 extern unsigned long extract_wide_char_from_string(char *str);
 

@@ -781,6 +781,9 @@ Initialize the option information table.
   add_option_description(optk_system_include_dir, "sys_include", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_include_file_suffixes, "incl_suffixes", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2013,6 +2016,11 @@ enable_microsoft_mode:
         /* A nonmember using-declaration that specifies an unqualified name
            should or should not be accepted. */
         nonstandard_using_decl_allowed = opt_value;
+        break;
+      case optk_include_file_suffixes:
+        /* Specifies the list of suffixes to be used when searching for an
+           include file name specified with no suffix. */
+        include_file_suffixes = opt_arg;
         break;
       default:
         /* It should not be possible to get here. */

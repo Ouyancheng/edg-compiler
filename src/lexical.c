@@ -294,6 +294,10 @@ static a_file_suffix_ptr
 		 implicit_instantiation_file_suffix_list = NULL;
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
 
+static a_file_suffix_ptr
+		 include_file_suffix_list = NULL;
+			/* List of file suffixes used when searching for a
+			   header file whose name does not include a suffix. */
 
 #if DEBUG
 /*
@@ -3003,6 +3007,162 @@ done:
 }  /* open_file_and_push_input_stack */
 
 
+static FILE *try_to_open_source_file(char	*name_to_try,
+				     char	*file_name)
+/*
+Try to open the source file specified by name_to_try.  file_name is
+the name to be used in an error message.
+*/
+{
+  FILE		*new_input_file;
+  a_boolean	not_found = FALSE;
+  a_boolean	bad_format = FALSE;
+  a_boolean	bad_name = FALSE;
+
+  new_input_file = open_source_file(name_to_try, &not_found,
+                                    &bad_format, &bad_name);
+  /* If not_found is FALSE then either name_to_try is non-NULL
+     (i.e., the input file was opened) or else there was an error
+     on the open.  In either case, stop searching. */
+  if (not_found) {
+    /* Issue a catastrophic error if the file could not be opened
+       because of an error.  Bad format errors are simply ignored as
+       this is typically a result of finding a directory with
+       the specified name. */
+    if (bad_name) {
+      str_catastrophe(ec_illegal_source_file_name, file_name);
+    }  /* if */
+  }  /* if */
+  return new_input_file;
+}  /* try_to_open_source_file */
+
+
+static FILE *search_for_input_file(
+			char				*file_name,
+			a_boolean			use_search_path,
+			a_directory_name_entry_ptr	search_path,
+			a_file_suffix_ptr		suffix_list,
+			a_boolean			replace_suffix,
+			char				**name_found,
+			a_boolean			*system_include_dir)
+/*
+Look for file_name in the list of directories specified by search path.
+
+If replace_suffix is TRUE, the file suffix of file_name is replaced with
+each entry in suffix_list for each directory in search_path.  This is
+used when searching for a source file for implicit inclusion.  When
+replace_suffix is FALSE a suffix_list may still be specified, in which
+case the suffix list is only used if file_name has no suffix.  This
+is used to supply a default suffix for headers specified without a
+suffix.  The path name of the file found is returned in name_found.
+If the directory in which the file was found is a system include
+directory system_include_dir is set to TRUE.
+*/
+{
+  char				*suffix_loc;
+  a_file_suffix_ptr		fsp;
+  a_boolean			done = FALSE;
+  a_directory_name_entry_ptr	curr_directory_name_entry;
+  char				*name_to_try;
+  FILE				*new_input_file = NULL;
+  /* Buffer in which directory names and file names are combined.  Longer
+     names will bypass the buffer and be allocated directly via alloc_il. */
+#define FILE_NAME_BUFFER_SIZE 130
+  char				buffer[FILE_NAME_BUFFER_SIZE];
+  char				*prev_dir_name = NULL;
+
+  /* Determine whether we need to do the suffix replacement processing.
+     This is done when replace_suffix is TRUE or when when file name
+     supplied has no suffix. */
+  replace_suffix = replace_suffix || *suffix_of(file_name) == '\0';
+  if (!use_search_path || is_absolute_file_name(file_name)) {
+    /* File name is absolute, so search path is not used. */
+    name_to_try = file_name;
+    new_input_file = try_to_open_source_file(name_to_try, file_name);
+  } else if (search_path == NULL) {
+    /* No search path, so file can't be found.  Issue a catastrophic error.
+       Use special message to make it clearer, since problem may be that
+       there are no -I options on the command line. */
+    str_catastrophe(ec_empty_include_search_path, file_name);
+  } else {
+    /* Loop through the directory name entries.  The "done" flag will be
+       set if the loop should not be repeated (i.e., an absolute path name
+       was specified. */
+    for (curr_directory_name_entry = search_path;
+         !done && curr_directory_name_entry != NULL;
+         curr_directory_name_entry = curr_directory_name_entry->next) {
+      if (curr_directory_name_entry->dir_name == prev_dir_name) {
+        /* Two directories with the same name are adjacent in the stack.
+          No need to try to open the same file a second time. */
+        continue;
+      }  /* if */
+      prev_dir_name = curr_directory_name_entry->dir_name;
+      /* We need to traverse the search path.  Merge the current entry in
+         the path with the file name and use that name as the base for
+         replacing the suffixes. */
+      name_to_try = combine_dir_and_file_name(
+                                      curr_directory_name_entry->dir_name,
+                                      file_name, buffer,
+                                      FILE_NAME_BUFFER_SIZE);
+      /* Now try to open the modified file. */
+      if (!replace_suffix) {
+        /* We don't need to replace the suffix.  Just try the
+           file/directory combination just constructed. */
+        new_input_file = try_to_open_source_file(name_to_try, file_name);
+      } else {
+        /* We need to replace the suffix.  Go through the list of
+           suffixes. */
+        if (name_to_try == file_name) {
+          if (strlen(file_name) < (sizeof_t)(FILE_NAME_BUFFER_SIZE - 1)) {
+            /* Copy file_name into the buffer.  Its suffix will be replaced
+               in the inner loop. */
+            (void)strcpy(buffer, file_name);
+            name_to_try = buffer;
+          } else {
+            /* Since we're going to try to modify the file name in place, by
+               replacing its current suffix with another, allocate storage
+               for it. */
+            name_to_try = alloc_il((sizeof_t)(strlen(file_name)+1));
+            (void)strcpy(name_to_try, file_name);
+          }  /* if */
+        }  /* if */
+        /* Loop through the linked list of suffixes. */
+        suffix_loc = NULL;
+        for (fsp = suffix_list;
+             fsp != NULL;
+             fsp = fsp->next) {
+          /* Replace the existing suffix with a new one. */
+          name_to_try = replace_file_name_suffix(fsp->suffix,
+                                                 name_to_try, buffer,
+                                                 FILE_NAME_BUFFER_SIZE,
+                                                 &suffix_loc);
+        /* Now try to open the modified file. */
+        new_input_file = try_to_open_source_file(name_to_try, file_name);
+        if (new_input_file != NULL) break;
+      }  /* for */
+    }  /* if */
+    if (new_input_file != NULL) {
+      done = TRUE;
+      *system_include_dir = curr_directory_name_entry->system_include_dir;
+       break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (new_input_file != NULL) {
+    /* If a file was found, return the name in name_found.  If the name
+       is currently in the temporary buffer, make a copy and return a
+       pointer to the copy. */
+    if (name_to_try == buffer) {
+      name_to_try = alloc_il((sizeof_t)(strlen(buffer)+1)); /*lint !e645*/
+      (void)strcpy(name_to_try, buffer);
+    }  /* if */
+    *name_found = name_to_try;
+  }  /* if */
+  return new_input_file;
+#undef FILE_NAME_BUFFER_SIZE
+}  /* search_for_input_file */
+
+
 #if !INSTANTIATION_BY_IMPLICIT_INCLUSION
 /*ARGSUSED*/ /* <-- replace_suffix is used only if instantiation may use
                     implicit inclusion. */
@@ -3032,17 +3192,9 @@ and a catastrophic error will be issued if it is not; otherwise, a NULL
 file pointer will be returned.
 */
 {
-  a_directory_name_entry_ptr  curr_directory_name_entry;
-  char                        *temp_file_name, *prev_dir_name;
+  char                        *temp_file_name;
   FILE                        *new_input_file;
   a_boolean		      system_include_dir = FALSE;
-  a_boolean                   not_found = FALSE,
-                              bad_format = FALSE,
-                              bad_name = FALSE;
-  /* Buffer in which directory names and file names are combined.  Longer
-     names will bypass the buffer and be allocated directly via alloc_il. */
-#define FILE_NAME_BUFFER_SIZE 130
-  char                        buffer[FILE_NAME_BUFFER_SIZE];
   a_directory_name_entry_ptr  search_path;
 
   db_enter(2, "open_file_for_input");
@@ -3063,123 +3215,18 @@ file pointer will be returned.
     new_input_file = stdin;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   } else if (replace_suffix) {
-    char               *suffix_loc;
-    a_file_suffix_ptr  fsp;
-    a_boolean          done = FALSE;
-
-    /* We need to try a set of suffixes till we find a file we can open. */
-    curr_directory_name_entry = search_path;
-    for (;;) {
-      if (is_absolute_file_name(file_name)) {
-        /* Force the name to be copied to the buffer or to new storage. */
-        temp_file_name = file_name;
-        /* Set done to keep from doing the outer loop more than once. */
-        done = TRUE;
-      } else if (search_path == NULL) {
-        /* No search path was provided, so we'll just return NULL. */
-        break;
-      } else {
-        /* We need to traverse the search path.  Merge the current entry in
-           the path with the file name and use that name as the base for
-           replacing the suffixes. */
-        temp_file_name = combine_dir_and_file_name(
-                                        curr_directory_name_entry->dir_name,
-                                        file_name, buffer,
-                                        FILE_NAME_BUFFER_SIZE);
-      }  /* if */
-      if (temp_file_name == file_name) {
-        if (strlen(file_name) < (sizeof_t)(FILE_NAME_BUFFER_SIZE - 1)) {
-          /* Copy file_name into the buffer.  Its suffix will be replaced
-             in the inner loop. */
-          (void)strcpy(buffer, file_name);
-          temp_file_name = buffer;
-        } else {
-          /* Since we're going to try to modify the file name in place, by
-             replacing its current suffix with another, allocate storage
-             for it. */
-          temp_file_name = alloc_il((sizeof_t)(strlen(file_name)+1));
-          (void)strcpy(temp_file_name, file_name);
-        }  /* if */
-      }  /* if */
-      /* Loop through the linked list of suffixes. */
-      suffix_loc = NULL;
-      for (fsp = implicit_instantiation_file_suffix_list;
-           fsp != NULL;
-           fsp = fsp->next) {
-        /* Replace the existing suffix with a new one. */
-        temp_file_name = replace_file_name_suffix(fsp->suffix,
-                                                  temp_file_name, buffer,
-                                                  FILE_NAME_BUFFER_SIZE,
-                                                  &suffix_loc);
-        /* Now try to open the modified file. */
-        new_input_file = open_source_file(temp_file_name, &not_found,
-                                          &bad_format, &bad_name);
-        /* If not_found is FALSE then either temp_file_name is non-NULL
-           (i.e., the input file was opened) or else there was an error
-           on the open.  In either case, stop searching. */
-        if (!not_found) {
-          done = TRUE;
-          system_include_dir = curr_directory_name_entry->system_include_dir;
-          break;
-        }  /* if */
-      }  /* for */
-      /* Test for outer loop. */
-      if (done || (curr_directory_name_entry =
-                         curr_directory_name_entry->next) == NULL) {
-        /* If done is TRUE it is because the file has been found or the
-           directory path is not being searched.  If we are searching the
-           directory path we want to stop after processing the last entry. */
-        break;
-      }  /* if */
-    }  /* for */
+    new_input_file = search_for_input_file(
+                                       file_name, use_search_path, search_path,
+                                       implicit_instantiation_file_suffix_list,
+                                       replace_suffix, &temp_file_name,
+                                       &system_include_dir);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   } else {
-    if (!use_search_path || is_absolute_file_name(file_name)) {
-      /* File name is absolute, so search path is not used. */
-      /* Also used for primary source input file; search current directory. */
-      temp_file_name = file_name;
-      new_input_file = open_source_file(temp_file_name,
-                                        &not_found, &bad_format, &bad_name);
-    } else if (search_path == NULL) {
-      /* No search path, so file can't be found.  Issue a catastrophic error.
-         Use special message to make it clearer, since problem may be that
-         there are no -I options on the command line. */
-      str_catastrophe(ec_empty_include_search_path, file_name);
-    } else {
-      /* File name is relative, use search path. */
-      prev_dir_name = NULL;
-      for (curr_directory_name_entry = search_path;
-           curr_directory_name_entry != NULL;
-           curr_directory_name_entry = curr_directory_name_entry->next) {
-        if (curr_directory_name_entry->dir_name == prev_dir_name) {
-          /* Two directories with the same name are adjacent in the stack.
-             No need to try to open the same file a second time. */
-          continue;
-        }  /* if */
-        /* Try opening the file name with this directory name. */
-        temp_file_name = combine_dir_and_file_name(
-                                        curr_directory_name_entry->dir_name,
-                                        file_name, buffer,
-                                        FILE_NAME_BUFFER_SIZE);
-        /* Now try opening the file.  Exit the loop on success. */
-        new_input_file = open_source_file(temp_file_name, &not_found,
-                                          &bad_format, &bad_name);
-        if (new_input_file != NULL) {
-          /* The file was opened successfully.  Exit the loop. */
-          system_include_dir = curr_directory_name_entry->system_include_dir;
-          break;
-        } else {
-          /* Issue a catastrophic error if the file could not be opened
-             because of an error.  Bad format errors are simply ignored as
-             this is typically a result of finding a directory with
-             the specified name. */
-          if (bad_name) {
-            str_catastrophe(ec_illegal_source_file_name, file_name);
-          }  /* if */
-        }  /* if */
-        /* The file could not be found.  Keep looking. */
-      }  /* while */
-    }  /* if */
+    new_input_file = search_for_input_file(
+                                       file_name, use_search_path, search_path,
+                                       include_file_suffix_list,
+                                       /*replace_suffix=*/FALSE,
+                                       &temp_file_name, &system_include_dir);
     if (new_input_file == NULL) {
       /* The file could not be opened. */
       str_catastrophe(ec_source_file_could_not_be_opened, file_name);
@@ -3190,10 +3237,6 @@ file pointer will be returned.
        there first because many directory/file name combinations might be tried
        before the right one is found.  We don't allocate space for the name 
        until we find a file of that name. */
-    if (temp_file_name == buffer) {
-      temp_file_name = alloc_il((sizeof_t)(strlen(buffer)+1)); /*lint !e645*/
-      (void)strcpy(temp_file_name, buffer);
-    }  /* if */
     *full_file_name = temp_file_name;
     /* Note that *display_name gets the same name as full name.  This is
        a matter of taste. */
@@ -3202,7 +3245,6 @@ file pointer will be returned.
   }  /* if */
   db_exit();
   return new_input_file;
-#undef FILE_NAME_BUFFER_SIZE
 }  /* open_file_for_input */
 
 
@@ -9995,7 +10037,6 @@ scanned is, in fact, an identifier).
 }  /* coalesce_and_lookup_generalized_identifier */
 
 
-#if INSTANTIATION_BY_IMPLICIT_INCLUSION
 static a_file_suffix_ptr alloc_file_suffix(void)
 /*
 Allocate a file suffix entry, initialize it, and return a pointer to it.
@@ -10013,10 +10054,11 @@ Allocate a file suffix entry, initialize it, and return a pointer to it.
 }  /* alloc_file_suffix */
 
 
-static void add_to_instantiation_file_suffix_list(char* suffix,
-                                                  int   length)
+static void add_to_file_suffix_list(a_file_suffix_ptr	*list_ptr,
+				    char*		suffix,
+                                    int			length)
 /*
-Add a new entry to the end of the implicit instantiation file suffix list.
+Add a new entry to the end of the file suffix list specified by list_ptr.
 If the entry is already on the list the new entry is ignored.
 */
 {
@@ -10024,7 +10066,7 @@ If the entry is already on the list the new entry is ignored.
   a_file_suffix_ptr	prev_fsp = NULL;
   a_boolean		found = FALSE;
 
-  fsp = implicit_instantiation_file_suffix_list;
+  fsp = *list_ptr;
   while (fsp != NULL) {
     if (strcmp(fsp->suffix, suffix) == 0) {
       /* The suffix is already on the list. */
@@ -10045,39 +10087,36 @@ If the entry is already on the list the new entry is ignored.
     fsp->suffix[length] = '\0';
     if (prev_fsp == NULL) {
       /* This is the first entry on the list. */
-      implicit_instantiation_file_suffix_list = fsp;
+      *list_ptr = fsp;
     } else {
       prev_fsp->next = fsp;
     }  /* if */
 #if DEBUG
-    if (debug_level >= 5) {
+    if (db_flag_is_set("add_to_file_suffix_list")) {
       fprintf(f_debug, "Added \"%s\" to the suffix list.\n", fsp->suffix);
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
-}  /* add_to_instantiation_file_suffix_list */
+}  /* add_to_file_suffix_list */
 
 
-static void add_list_of_suffixes_to_instantiation_file_suffix_list(char *list)
+static a_file_suffix_ptr conv_string_to_file_suffix_list(char *list)
 /*
-Add the members of a colon separated list of file suffixes to the
-instantiation file suffix list.
+Convert the members of a colon separated list of file suffixes to a
+list of file suffix entries.  Return a pointer to the newly created
+list.
 */
 {
-  char	*ptr = list;
-  char	*start;
-  char	*end;
+  char			*ptr = list;
+  char			*start;
+  char			*end;
+  a_file_suffix_ptr	list_fsp = NULL;
 
   while (*ptr) {
     /* Skip of any spaces. */
     while (*ptr == ' ') ptr++;
     /* See if we've reached the end of the string. */
     if (!*ptr) break;
-    /* Check for a null string entry. */
-    if (*ptr == ':') {
-      ptr++;
-      continue;
-    }  /* if */
     start = ptr;
     /* Find the ending delimiter. */
     ptr = strchr(start, ':');
@@ -10089,13 +10128,13 @@ instantiation file suffix list.
     end = ptr - 1;
     /* Move back past any trailing spaces. */
     while (*end == ' ') end--;
-    add_to_instantiation_file_suffix_list(start, (int)(end - start + 1));
+    add_to_file_suffix_list(&list_fsp, start, (int)(end - start + 1));
     /* If we haven't reached the end of the string, move the pointer past
        the delimiter. */
     if (*ptr) ptr++;
   }  /* while */
-}   /* add_list_of_suffixes_to_instantiation_file_suffix_list */
-#endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  return list_fsp;
+}   /* conv_string_to_file_suffix_list */
 
 
 static void cache_to_compound_stmt(a_token_cache	*p_token_cache,
@@ -10849,9 +10888,13 @@ are handled in lexical_init.)
   num_file_suffixes_allocated = 0;
 #endif /* DEBUG */
   /* Create the instantiation file suffix list. */
-  add_list_of_suffixes_to_instantiation_file_suffix_list
-                                    (DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST);
+  implicit_instantiation_file_suffix_list =
+       conv_string_to_file_suffix_list(DEFAULT_INSTANTIATION_FILE_SUFFIX_LIST);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
+  /* Create the include file suffix list used for header files with
+     no suffix. */
+  include_file_suffix_list =
+                        conv_string_to_file_suffix_list(include_file_suffixes);
   /* Save variables from lexical.h and lexical.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {

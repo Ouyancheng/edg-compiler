@@ -544,6 +544,48 @@ used to represent stdin; it must return  NULL.
 }  /* end_of_directory_name */
 
 
+static char *end_of_base_name(char *file_name)
+/*
+Given a simple file name (with no directory name), return a pointer to
+the last character of the file name before the suffix, if any.
+*/
+{
+  char	*last_dot;
+  char	*name_end;
+
+  if ((last_dot = strrchr(file_name, '.')) == NULL) {
+    /* No suffix, end of base name is the same as end of file name. */
+    name_end = file_name + strlen(file_name) - 1;
+  } else {
+    /* End of base name is before the suffix. */
+    name_end = last_dot - 1;
+  }  /* if */
+  return name_end;
+}  /* end_of_base_name */
+
+
+char *suffix_of(char		*file_name)
+/*
+Find the suffix of "file_name".  Return a pointer to the beginning
+of the suffix.  If the file has no suffix, a pointer to the null-terminator
+of the file name is returned.
+*/
+{
+  char	*ptr;
+
+  ptr = end_of_directory_name(file_name);
+  if (ptr == NULL) {
+    /* There is no directory, use the file name passed in. */
+    ptr = file_name;
+  } else {
+    /* Use the character after the last "/" of the directory name. */
+    ptr++;
+  }  /* if */
+  ptr = end_of_base_name(ptr) + 1;
+  return ptr;
+}  /* suffix_of */
+
+
 #if !STANDALONE_UTILITY_PROGRAM
 char *directory_of(char *file_name)
 /*
@@ -819,71 +861,44 @@ buffer has enough addition space for the possibly enlarged name or if the
 new suffix takes no more space than the suffix it replaces; otherwise
 storage will be allocated for the new name.  This routine may be called
 iteratively.  On second and subsequent calls, suffix_loc points to the
-place in file_name where the suffix begins.
+place in file_name where the suffix begins (the position of the suffix
+delimiter).
 */
 {
-  char       *ch, *new_file_name;
-  a_boolean  suffix_delim_required = FALSE;
+  char       *new_file_name;
   sizeof_t   curr_file_name_size, curr_suffix_length;
   sizeof_t   new_file_name_base_size, new_file_name_size;
+  sizeof_t   new_suffix_length;
 #define SUFFIX_DELIMITER '.'
 
   db_enter(5, "replace_file_name_suffix");
 #if DEBUG
-  if (debug_level >= 5) {
+  if (db_flag_is_set("replace_file_name_suffix")) {
     fprintf(f_debug, "current file_name = \"%s\", new suffix = \"%s\"\n",
             file_name, new_suffix);
   }  /* if */
 #endif /* DEBUG */
   /* Determine the size of file_name, excluding the trailing NULL. */
   curr_file_name_size = strlen(file_name);
+  new_suffix_length = strlen(new_suffix);
   check_assertion(curr_file_name_size > 0);
   check_assertion(file_name[curr_file_name_size] == '\0');
   if (*suffix_loc != NULL) {
     /* This name has already had a new suffix added, so we can use *suffix_loc
        saved from last time. */
     /* Determine the length of the current suffix. */
-    check_assertion(*(*suffix_loc-1) == SUFFIX_DELIMITER);
-    curr_suffix_length = &file_name[curr_file_name_size] - *suffix_loc;
+    check_assertion(**suffix_loc == SUFFIX_DELIMITER ||
+                    **suffix_loc == '\0');
   } else {
-    /* *suffix_loc is NULL, so this is the first attempt to replace the suffice
-       on this file name. */
-    /* Find the start of the suffix by backing up from the end of file_name
-       until the suffix delimiter is located.  Start from the character
-       position immediately before the trailing NULL.   This search is
-       intended to handle file names of the following formats "aaa.xxx",
-       "aaa/bbb.xxx", "aaa.", and "aaa/bbb."; in each case *suffix_loc should
-       point to the character position immediately following the period.  In
-       addition, it should point to the position just past the end of the file
-       name if no delimiter if found before reaching either the start of
-       file_name or a '/' -- i.e., cases like "aaa" and "aaa/bbb", to which
-       the suffix (with delimiter) will simply be appended. */
-    curr_suffix_length = 0;
-    for (ch = &file_name[curr_file_name_size-1]; ch >= file_name; --ch) {
-      if (*ch == SUFFIX_DELIMITER) {
-        /* Make *suffix_loc point just past the delimiter. */
-        *suffix_loc = ch + 1;
-        break;
-      }  /* if */
-      if (*ch == DIRECTORY_SEPARATOR || ch == file_name) {
-        /* file_name has no suffix.  A delimiter character will be added to
-           the end of file_name and then the suffix will be appended. */
-        suffix_delim_required = TRUE;
-        *suffix_loc = &file_name[curr_file_name_size];
-        curr_suffix_length = 0;
-        break;
-      }  /* if */
-      /* Increment curr_suffix_length for each iteration of the loop. */
-      ++curr_suffix_length;
-    }  /* for */
+    *suffix_loc = suffix_of(file_name);
   }  /* if */
+  curr_suffix_length = &file_name[curr_file_name_size] - *suffix_loc;
   /* The base size of the new file name is the size when the current
      file name without its suffix. */
   new_file_name_base_size = curr_file_name_size - curr_suffix_length;
   /* The total size of the new file name is the base size plus the new
-     suffix plus 1 for the delimiter, if required. */
-  new_file_name_size = new_file_name_base_size + strlen(new_suffix) +
-                       (sizeof_t)(suffix_delim_required ? 1 : 0);
+     suffix plus 1 for the delimiter. */
+  new_file_name_size = new_file_name_base_size + new_suffix_length + 1;
   if ((file_name == buffer && new_file_name_size > (sizeof_t)buffer_size) ||
       (file_name != buffer && new_file_name_size > curr_file_name_size)) {
 #if DEBUG
@@ -902,15 +917,17 @@ place in file_name where the suffix begins.
     /* We can do the replacement "in place". */
     new_file_name = file_name;
   }  /* if */
-  if (suffix_delim_required) {
-    /* Add the delimiter, if required. */
+  if (new_suffix_length > 0) {
+    /* Add the delimiter. */
     **suffix_loc = SUFFIX_DELIMITER;
-    (*suffix_loc)++;
+    /* Add the new suffix to new_file_name. */
+    strcpy((*suffix_loc) + 1, new_suffix);
+  } else {
+    /* The new suffix is an empty string.  Just terminate the string. */
+    **suffix_loc = '\0';
   };
-  /* Add the new suffix to new_file_name. */
-  strcpy(*suffix_loc, new_suffix);
 #if DEBUG
-  if (debug_level >= 5) {
+  if (db_flag_is_set("replace_file_name_suffix")) {
     fprintf(f_debug, "new file name = \"%s\"\n", new_file_name);
   }  /* if */
 #endif /* DEBUG */
