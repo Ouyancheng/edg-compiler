@@ -842,8 +842,8 @@ symbol.
            of a "do_not_instantiate" pragma in a source program.  The
            DNI symbol tells the prelinker that it may not assign the
            symbol to be instantiated by any file.  In other words,
-           the user either provide a specific definition of the symbol
-           of must see that it is instantiated using an instantiate
+           the user must either provide a specific definition of the symbol
+           or must ensure that it is instantiated using an instantiate
            pragma or an instantiation mode such as -tused. */
         is_special_symbol = TRUE;
         sym = pl_find_symbol(&psp->name[PL_DO_NOT_INSTANTIATE_PREFIX_LEN],
@@ -1062,7 +1062,7 @@ or removed from the file.  We first go through the existing instantiations
 and find any that need to be removed.  We then go through the symbols
 referenced in the file and see if any of them need to be instantiated.
 If so, they are assigned to the first file found that is capable of
-generating an instantiation.  If the instantiation list if modified
+generating an instantiation.  If the instantiation list is modified
 the file is flagged as requiring recompilation.
 */
 {
@@ -1158,7 +1158,7 @@ the file is flagged as requiring recompilation.
              sym->can_be_instantiated &&
             (sym->referenced || sym->tentative_definition) && !sym->defined) {
           /* Add this symbol to the list of symbols in the info file list.
-             Set the instantiation flag and indicate the the info file has
+             Set the instantiation flag and indicate that the info file has
              been updated and the source file associated with the info
              file must be recompiled. */
           sym->next_in_info_file = pifp->info_list;
@@ -1271,8 +1271,8 @@ Display a symbol.
     fprintf(stderr, " multiple_definition");
   }  /* if */
   if (psp->is_template) fprintf(stderr, " is_template");
-  if (psp->can_be_instantiated) fprintf(stderr, " can_be_instaniated");
-  if (psp->do_not_instantiate) fprintf(stderr, " do_not_instaniate");
+  if (psp->can_be_instantiated) fprintf(stderr, " can_be_instantiated");
+  if (psp->do_not_instantiate) fprintf(stderr, " do_not_instantiate");
   pisp = psp->possible_instantiation_sites;
   if (pisp != NULL) {
     fprintf(stderr, " Instantiation sites:");
@@ -1430,7 +1430,7 @@ int main(int argc, char *argv[])
   /* Add to the symbol table any names that the linker predefines. */
   pl_add_predefined_names();
   /* The command line must include at least two arguments. */
-  if (argc < optind + 2) pl_error("at least two filename must be specified");
+  if (argc < optind + 2) pl_error("at least two filenames must be specified");
   /* Determine the length of the command line. */
   for (arg = optind; arg < argc; arg++) {
     int	arg_size = strlen(argv[arg]);
