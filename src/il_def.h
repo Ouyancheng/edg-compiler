@@ -15,7 +15,7 @@ il_def.h -- Definition of the intermediate language.
 
 /*
 NOTE:  If you modify definitions here, be sure to modify il_walk (routine
-walk_entry_and_subtree et al.) and il_display (all of it) accordingly.
+walk_entry_and_subtree et al.), lower_il, and il_display accordingly.
 This is crucial in cases where a pointer is added, and important in
 other cases.
 */
@@ -802,6 +802,16 @@ typedef struct a_routine_type_supplement {
 			   old-style parameter types; otherwise, it is NULL
 			   (i.e., there is no information on parameter
 			   types). */
+#if DO_IL_LOWERING
+			/* When IL lowering is configured to turn all functions
+			   into old-style functions for cfront compatibility,
+			   the param_type_list is not cleared from what it
+			   was in the prototyped form, the idea being to
+			   preserve as much information as possible.  It can,
+			   however, create what appears to be an old-style
+			   function with no definition that has param_type_list
+			   non-NULL. */
+#endif /* DO_IL_LOWERING */
 #endif /* ifdef CIL */
 #ifdef FIL
                         /* List of parameter types on a function or subroutine
