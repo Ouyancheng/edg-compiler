@@ -372,6 +372,9 @@ it the current translation unit.
        not be done when pushing the primary translation unit. */
     switch_translation_unit(tup);
   }  /* if */
+  /* If this is a secondary translation unit, increment the count of
+     secondary translation units on the stack. */
+  if (tup != translation_units) secondary_trans_units_on_stack++;
   curr_translation_unit_stack_entry = tusep;
 }  /* push_translation_unit_stack */
 
@@ -386,6 +389,11 @@ new top entry the current translation unit.
 
   tusep = curr_translation_unit_stack_entry;
   check_assertion(tusep->translation_unit == curr_translation_unit);
+  /* If this is a secondary translation unit, decrement the count of
+     secondary translation units on the stack. */
+  if (tusep->translation_unit != translation_units) {
+    secondary_trans_units_on_stack--;
+  }  /* if */
   /* Unlink this entry from the stack. */
   curr_translation_unit_stack_entry = tusep->next;
   /* Add the old entry to the list of available stack entries. */

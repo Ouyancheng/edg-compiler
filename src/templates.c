@@ -2074,20 +2074,22 @@ push its translation unit onto the translation unit stack.
 Return TRUE if a translation unit was pushed, FALSE if not.
 */
 {
-  a_boolean			push_needed;
+  a_boolean			push_needed = FALSE;
   a_translation_unit_ptr	tup;
 
-  tup = trans_unit_for_symbol(sym);
-  push_needed = tup != curr_translation_unit;
-  if (push_needed) {
-    push_translation_unit_stack(tup);
-  }  /* if */
-  if (curr_translation_unit_stack_entry->next != NULL &&
-      curr_translation_unit == translation_units) {
-    /* If we are in the primary translation unit, and if there are multiple
-       translation units on the stack, set a flag that indicates that the
-       primary IL may contain references to other translation units. */
-    primary_il_may_reference_other_trans_units = TRUE;
+  if (!sym->is_error) {
+    tup = trans_unit_for_symbol(sym);
+    push_needed = tup != curr_translation_unit;
+    if (push_needed) {
+      push_translation_unit_stack(tup);
+    }  /* if */
+    if (curr_translation_unit == translation_units &&
+        secondary_trans_units_on_stack > 0) {
+      /* If we are in the primary translation unit, and if there are secondary
+         translation units on the stack, set a flag that indicates that the
+         primary IL may contain references to other translation units. */
+      primary_il_may_reference_other_trans_units = TRUE;
+    }  /* if */
   }  /* if */
   return push_needed;
 }  /* push_translation_unit_if_needed */

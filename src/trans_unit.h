@@ -155,6 +155,10 @@ EXTERN a_translation_unit_ptr
 			   entry on the list is the primary translation
 			   unit. */
 
+EXTERN int	secondary_trans_units_on_stack;
+			/* The number of entries on the translation unit
+			   stack that refer to secondary translation units. */
+
 extern void push_translation_unit_stack(a_translation_unit_ptr	tup);
 
 extern void pop_translation_unit_stack(void);
