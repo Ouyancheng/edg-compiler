@@ -53,6 +53,38 @@ for tp is currently in progress.
 }  /* instantiation_in_progress */
 
 
+static void update_instantiation_required_for_static_data_members
+						(a_type_ptr	class_type)
+/*
+Calls update_instantiation_required_flag for all static data members
+declared in the class.  This needs to be called after the class
+instantiation is complete so that the static data member instantiation
+has access to the complete class.  Static data members are eligible
+for a compiler-generated definition only if a template definition
+appears in the source.  However, it still needs to appear on the
+instantiation-required list (because instantiation is required
+required somewhere in the program even if not in the current
+translation unit).
+*/
+{
+  a_variable_ptr		var;
+  a_symbol_ptr			sym;
+  a_template_instance_ptr	tip;
+
+  if (instantiation_mode != tim_none) {
+    var = class_type->variant.class_struct_union.extra_info->
+							assoc_scope->variables;
+    while (var != NULL) {
+      sym = (a_symbol_ptr)var->source_corresp.assoc_info;
+      tip = sym->variant.variable.instance_ptr;
+      check_assertion(tip != NULL);
+      update_instantiation_required_flag(tip, /*value=*/TRUE);
+      var = var->next;
+    }  /* if */
+  }  /* if */
+}  /* update_instantiation_required_for_static_data_members */
+
+
 void f_check_for_uninstantiated_template_class(a_type_ptr  tp)
 /*
 tp is an incomplete type.  If it is a class in need of instantiation or an
@@ -175,6 +207,7 @@ might not be able to if the template itself has not yet been defined.
       (void)scan_class_definition(class_type, DEPTH_OF_FILE_SCOPE,
                                   /*is_local_class=*/FALSE,
                                   /*is_prototype_instantiation=*/FALSE);
+      update_instantiation_required_for_static_data_members(class_type);
       pop_scope();
       /* In the normal case the current token should be end_of_source,
          which was inserted to mark the end of the cached token stream.
@@ -2004,17 +2037,6 @@ Also, add the instance to the definitions list for the template.
   tssp = sym->variant.variable.instance_ptr->template_info;
   tip->next = tssp->variant.static_data_member.definitions;
   tssp->variant.static_data_member.definitions = tip;
-  /* The static data member is eligible for a compiler-generated definition
-     only if a template definition appears in the source.  However, it still
-     needs to appear on the instantiation-required list (because instantiation
-     is required required somewhere in the program even if not in the
-     current translation unit). */
-  if (instantiation_mode != tim_none) {
-    /* Enter the template instance entry onto the instantiations_required
-       list.  If appropriate, the definition will be generated as part of
-       instantiation_wrapup. */
-    update_instantiation_required_flag(tip, /*value=*/TRUE);
-  }  /* if */
   db_exit();
 }  /* find_static_data_member_template */
 
