@@ -5300,6 +5300,8 @@ type is passed in as type_cast_to.  The result is returned in *result.
         a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
         set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_zero);
         make_expression_operand(temp_init_node, temp_init_node->type, result);
+        /* Check for uninitialized reference members within the class. */
+        check_for_missing_initializer((a_symbol_ptr)NULL, type_cast_to);
       } else {
         /* A non-class type followed by (); generate an "undefined" value
            of the type.  We actually use 0, because it can be cast to all
