@@ -748,6 +748,12 @@ support library.
 #ifndef DO_C99_IL_LOWERING
 #define DO_C99_IL_LOWERING (DO_IL_LOWERING && C99_IL_EXTENSIONS_SUPPORTED)
 #endif /* DO_C99_IL_LOWERING */
+#if DO_C99_IL_LOWERING && !C99_IL_EXTENSIONS_SUPPORTED
+ #error -- C99 IL lowering cannot be done if C99 IL extensions not supported
+#endif /* DO_C99_IL_LOWERING && !C99_IL_EXTENSIONS_SUPPORTED */
+#if DO_C99_IL_LOWERING && !DO_IL_LOWERING
+ #error -- C99 IL lowering cannot be done if DO_IL_LOWERING is FALSE
+#endif /* DO_C99_IL_LOWERING && !DO_IL_LOWERING */
 
 /*
 If DO_IL_LOWERING is TRUE, this gives the routine name used for the

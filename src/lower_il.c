@@ -958,8 +958,6 @@ It cannot create bit fields.  field_name may not be NULL.
   *last_field = field_ptr;
 }  /* make_lowered_field */
 
-#endif /* DO_IL_LOWERING */
-#if DO_IL_LOWERING || DO_C99_IL_LOWERING
 
 void finish_class_type(a_type_ptr    class_type)
 /*
@@ -970,8 +968,6 @@ size and alignment.  Works for both structs and unions.
   do_class_layout(class_type);
 }  /* finish_class_type */
 
-#endif /* DO_IL_LOWERING || DO_C99_IL_LOWERING */
-#if DO_IL_LOWERING
 
 a_type_ptr void_star_type(void)
 /*
@@ -1022,8 +1018,6 @@ except that it doesn't actually have a name.
   return vptp_type;
 }  /* make_vptp_type */
 
-#endif /* DO_IL_LOWERING */
-#if DO_IL_LOWERING || DO_C99_IL_LOWERING
 
 void add_to_front_of_file_scope_types_list(a_type_ptr type)
 /*
@@ -1041,8 +1035,6 @@ inside other user-written structs.
   }  /* if */
 }  /* add_to_front_of_file_scope_types_list */
 
-#endif /* DO_IL_LOWERING || DO_C99_IL_LOWERING */
-#if DO_IL_LOWERING
 
 /*
 Pointer to the struct type that defines pointers to member functions,
