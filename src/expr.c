@@ -9971,6 +9971,68 @@ Add the list of accessible base classes to the throw node throw_node
 
 #endif /* !ABI_CHANGES_FOR_RTTI */
 
+a_boolean is_expr_start_token(a_token_kind tok)
+/*
+Return TRUE if the indicated token is one that could start an expression.
+*/
+{
+  a_boolean is_expr_start;
+
+  switch (tok) {
+    case tok_colon_colon:
+    case tok_identifier:
+    case tok_operator:
+    case tok_this:
+    case tok_float_constant:
+    case tok_string_literal:
+    case tok_int_constant:
+    case tok_char_constant:
+    case tok_true:
+    case tok_false:
+    case tok_plus_plus:
+    case tok_minus_minus:
+    case tok_ampersand:
+    case tok_star:
+    case tok_plus:
+    case tok_minus:
+    case tok_compl:
+    case tok_not:
+    case tok_sizeof:
+    case tok_alignof:
+    case tok_typeid:
+    case tok_va_start:
+    case tok_va_arg:
+    case tok_va_end:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_uuidof:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_dynamic_cast:
+    case tok_const_cast:
+    case tok_static_cast:
+    case tok_reinterpret_cast:
+    case tok_intaddr:
+    case tok_new:
+    case tok_delete:
+    case tok_lparen:
+    case tok_typename:
+    case tok_throw:
+      is_expr_start = TRUE;
+      break;
+    default:
+      if (!C_mode() && is_type_keyword(tok)) {
+        /* A type keyword, like "int".  This could be the start of a
+           functional notation type conversion.  Tested using the macro to
+           pick up extensions. */
+        is_expr_start = TRUE;
+      } else {
+        is_expr_start = FALSE;
+      }  /* if */
+      break;
+  }  /* switch */
+  return is_expr_start;
+}  /* is_expr_start_token */
+
+
 static void scan_throw_operator(an_operand *result)
 /*
 Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
@@ -10022,11 +10084,6 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
   (void)get_token();
 
   /* See if the expression is present. */
-#if 0
-  /* This needs to be more sophisticated.  Consider, however
-       throw + 1;
-  */
-#endif /* 0 */
   if (!is_expr_start_token(curr_token)) {
     /* No. */
     expr_present = FALSE;

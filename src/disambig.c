@@ -26,6 +26,7 @@ disambig.c -- Disambiguation of C++ declarations and expressions.
 
 /* Additional header files. */
 #include "disambig.h"
+#include "expr.h"
 
 typedef struct a_disambig_state *a_disambig_state_ptr;
 typedef struct a_disambig_state {

@@ -1,5 +1,12 @@
 Version 2.39
 
+7/26/96   Disambiguation problem
+
+Cases like the following were not disambiguated properly, owing to
+an incomplete implementation of is_expr_start_token.  Now fixed.
+
+  void main() { (int()) == (int()); }
+
 7/26/98   Reduction of memory use in one-instantiation-per-object mode
 
 Certain kinds of programs, when compiled in one-instantiation-per-object

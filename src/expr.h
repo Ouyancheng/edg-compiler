@@ -66,6 +66,8 @@ extern void check_closing_paren_after_expr_list(void);
 
 a_boolean new_or_delete_type_requires_array_handling(a_type_ptr type);
 
+extern a_boolean is_expr_start_token(a_token_kind tok);
+
 extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
 
 extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop);

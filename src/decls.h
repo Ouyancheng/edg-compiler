@@ -81,32 +81,40 @@ a template-id.
          locator_for_curr_id.is_template_id : FALSE)
 
 /*
-Macro to be used in conjunction with is_type_specifier to check for
+Macro to be used in conjunction with is_type_keyword to check for
 Microsoft extensions.
 */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define or_is_microsoft_type_specifier()                              \
+#define or_is_microsoft_type_keyword(tok)                             \
   || (microsoft_mode &&                                               \
-      (curr_token == tok_int8  || curr_token == tok_int16 ||          \
-       curr_token == tok_int32 || curr_token == tok_int64))
+      ((tok) == tok_int8  || (tok) == tok_int16 ||                    \
+       (tok) == tok_int32 || (tok) == tok_int64))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define or_is_microsoft_type_specifier()  /* Nothing */
+#define or_is_microsoft_type_keyword()  /* Nothing */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+/*
+Macro that is TRUE if the indicated token is a type keyword, e.g., int.
+If you change this, see also type_keyword.
+*/
+#define is_type_keyword(tok)                                          \
+  ((tok) == tok_void     || (tok) == tok_char     ||                  \
+   (tok) == tok_short    || (tok) == tok_int      ||                  \
+   (tok) == tok_long     || (tok) == tok_float    ||                  \
+   (tok) == tok_double   || (tok) == tok_signed   ||                  \
+   (tok) == tok_unsigned || (tok) == tok_wchar_t  ||                  \
+   (tok) == tok_bool                                                  \
+   or_is_microsoft_type_keyword(tok))
 
 /*
 Macro that is TRUE if the current token is the start of a type
 specifier (except for the typedef and friend cases).  (3.5.2)
 */
 #define is_type_specifier()                                           \
-  (curr_token == tok_void     || curr_token == tok_char     ||        \
-   curr_token == tok_short    || curr_token == tok_int      ||        \
-   curr_token == tok_long     || curr_token == tok_float    ||        \
-   curr_token == tok_double   || curr_token == tok_signed   ||        \
-   curr_token == tok_unsigned || curr_token == tok_struct   ||        \
-   curr_token == tok_union    || curr_token == tok_enum     ||        \
-   curr_token == tok_class    || curr_token == tok_wchar_t  ||	      \
-   curr_token == tok_bool     || curr_token == tok_typename           \
-   or_is_microsoft_type_specifier())
+ (is_type_keyword(curr_token) ||                                      \
+  curr_token == tok_struct   || curr_token == tok_union    ||         \
+  curr_token == tok_enum     || curr_token == tok_class    ||         \
+  curr_token == tok_typename)
 
 /*
 Macro that is TRUE if the current token is the start of a type qualifier
