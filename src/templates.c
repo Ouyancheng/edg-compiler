@@ -3905,6 +3905,14 @@ to represent the template parameters.
     /* Allocate a template parameter and set its fields based on sym. */
     template_param = alloc_template_param(sym,
                                           def_arg_involves_template_param);
+    if (const_type_involves_template_param) {
+      /* For nontype parameters, the type of the parameter needs
+         to be saved as a token cache if the type uses template
+         parameters. */
+      template_param->variant.constant.type_involves_template_param = TRUE;
+      template_param->token_cache = param_cache;
+      parameter_cache_used = TRUE;
+    }  /* if */
     if (has_default_arg) {
       template_param->has_default_arg = TRUE;
       /* Update the default argument information in the template parameter. */
@@ -3915,15 +3923,6 @@ to represent the template parameters.
         template_param->def_arg_involves_template_param = TRUE;
         template_param->default_arg.token_cache = def_arg_cache;
         def_arg_cache_used = TRUE;
-        if (sym->kind == (a_symbol_kind)sk_constant) {
-          /* For nontype parameters, the type of the parameter may also need
-             to be saved as a token cache if the type uses template
-             parameters. */
-          template_param->variant.constant.type_involves_template_param =
-                                            const_type_involves_template_param;
-          template_param->token_cache = param_cache;
-          parameter_cache_used = TRUE;
-        }  /* if */
       } else {
         /* The default does not use template parameters.  Simply save the
            type or constant that is the default. */
@@ -3959,8 +3958,9 @@ to represent the template parameters.
   if (template_param_list == NULL) {
     error(ec_missing_template_param);
   }  /* if */
-  /* Check for an bypass the ">". */
-  (void)required_token(tok_gt, ec_exp_gt);
+  /* Check for an bypass the ">".  If the closing ">" is missing, an
+     error will have already been issued  above. */
+  if (curr_token == tok_gt) (void)get_token();
   remove_stop_token(tok_gt);
   remove_stop_token(tok_lbrace);
   remove_stop_token(tok_semicolon);
