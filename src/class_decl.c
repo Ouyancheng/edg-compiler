@@ -5242,9 +5242,15 @@ by recursive calls.
                  translation unit. */
               rp->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
-              rp->storage_class = (rp->assoc_scope == NULL) ?
-                                       (a_storage_class)sc_extern :
-                                       (a_storage_class)sc_unspecified;
+              if (rp->assoc_scope == NULL) {
+                /* No routine body. */
+                rp->storage_class = (a_storage_class)sc_extern;
+              } else {
+                /* Routine is defined in this file.  Mark it referenced in
+                   case it's referenced in another file. */
+                rp->storage_class = (a_storage_class)sc_unspecified;
+                rp->source_corresp.referenced = TRUE;
+              }  /* if */
 #if DEBUG
               if (debug_level >= 3) {
                 fputs("external linkage given to member function \"", f_debug);
