@@ -1,5 +1,26 @@
 Version 2.23
 
+4/11/94  Name mangling for local class names
+
+Names of local classes, formerly mangled by preceding the encoding
+of the class name by "Lnn__", are now mangled by appending "__Lnn"
+to the class name itself.  This is closer to what cfront does, though
+still not exactly the same (cfront also puts the mangled name of the
+function in there).  The point of the change is that the new mangled
+form is more amenable to demangling.
+
+  void f() {
+    struct A { int i; } a;
+    extern void g(A);
+    g(a);  // Old mangled name: g__FL1__1A
+           // New mangled name: g__F5A__L1
+           // cfront mangling:  g__F12A__f__Fv__L1
+  }
+
+This has very little practical significance, since local names in
+external function signatures are almost always an indication of a
+coding mistake.
+
 4/10/94  Qualified array types
 
 In terms of the IL representation, to say in C mode that type T is

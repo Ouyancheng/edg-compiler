@@ -255,11 +255,11 @@ store_at != NULL, and (always) return the length of the encoding.
     this_param_type = type_pointed_to(this_param_type);
     /* Add any qualifiers on the "this" parameter type (actually, the type
        pointed to by the "this" parameter). */
-    if (is_const_qualified_type(this_param_type)) {
+    if (is_top_level_const_qualified_type(this_param_type)) {
       mangled_name_length++;
       if (store_at != NULL) *store_at++ = 'C';
     }  /* if */
-    if (is_volatile_qualified_type(this_param_type)) {
+    if (is_top_level_volatile_qualified_type(this_param_type)) {
       mangled_name_length++;
       if (store_at != NULL) *store_at++ = 'V';
     }  /* if */
@@ -746,24 +746,44 @@ the name.
     (void)memcpy(store_at, name, size_t_arg(mangled_name_length));
     store_at += mangled_name_length;
   }  /* if */
-  if (template_arg_list != NULL &&
-      !type->source_corresp.name_has_been_mangled) {
-    /* A template class.  The mangled form of the name is something like
-         abc__pt__3_ii
-                    ^^--- Two template arguments of type int.
-                  ^------ Total length of template argument list string,
-                          including the underscore.
-              ^^--------- Fixed string, indicates "parameterized type".
-         ^^^------------- The name of the class template.
-    */
+  if (!type->source_corresp.name_has_been_mangled) {
+    if (template_arg_list != NULL) {
+      /* A template class.  The mangled form of the name is something like
+           abc__pt__3_ii
+                      ^^--- Two template arguments of type int.
+                    ^------ Total length of template argument list string,
+                            including the underscore.
+                ^^--------- Fixed string, indicates "parameterized type".
+           ^^^------------- The name of the class template.
+      */
 #define PT_STR "__pt__"
-    mangled_name_length += sizeof(PT_STR) - 1;
-    if (store_at != NULL) {
-      (void)strcpy(store_at, PT_STR);
-      store_at += sizeof(PT_STR) - 1;
-    }  /* if */
+      mangled_name_length += sizeof(PT_STR) - 1;
+      if (store_at != NULL) {
+        (void)strcpy(store_at, PT_STR);
+        store_at += sizeof(PT_STR) - 1;
+      }  /* if */
 #undef PT_STR
-    mangled_name_length += mangled_template_arguments(type, store_at);
+      mangled_name_length += mangled_template_arguments(type, store_at);
+    }  /* if */
+    /* If the class is a local class, put out "__Lnn" using the declaration
+       scope number for "nn".  This is not from the ARM.  cfront uses a
+       similar form but it also includes the function mangling in the name
+       and the number is probably different. */
+    /* Don't do this for nested classes. */
+    if (type->source_corresp.class_of_which_a_member == NULL) {
+      a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+      if (assoc_sym->decl_scope != scope_stack[DEPTH_OF_FILE_SCOPE].number) {
+        /* This is a local name. */
+        sizeof_t digits =
+                     digits_to_represent((unsigned long)assoc_sym->decl_scope);
+        mangled_name_length += digits + 3;  /* "__L" */
+        if (store_at != NULL) {
+          (void)sprintf(store_at, "__L%lu",
+                        (unsigned long)assoc_sym->decl_scope);
+          store_at += digits + 3;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   return mangled_name_length;
 }  /* mangled_basic_class_name */
@@ -816,21 +836,6 @@ initial parts of the qualified names.
     /* The type is not a class type (it's a typedef or enum). */
   } else {
     /* Got to the topmost class. */
-    /* If the class is a local class, put out "Lnn__" using the declaration
-       scope number for "nn".  This is not from the ARM.  cfront uses the
-       same form but the numbers are probably different. */
-    { a_symbol_ptr assoc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-      if (assoc_sym->decl_scope != scope_stack[DEPTH_OF_FILE_SCOPE].number) {
-        /* This is a local name. */
-        digits = digits_to_represent((unsigned long)assoc_sym->decl_scope);
-        mangled_name_length += digits + 3;  /* "L" and "__" == 3 characters. */
-        if (store_at != NULL) {
-          (void)sprintf(store_at, "L%lu__",
-                        (unsigned long)assoc_sym->decl_scope);
-          store_at += digits + 3;
-        }  /* if */
-      }  /* if */
-    }
     if (nesting_level > 1) {
       /* More than one level of nesting, so put out the "Qn_". */
       digits = digits_to_represent(nesting_level);
@@ -1882,7 +1887,7 @@ the length of the name.
   }  /* if */
   /* Put out the name on the first derivation step. */
   class_type = dsp->base_class->type;
-  name_length = mangled_type_name(class_type, store_at);
+  name_length = mangled_class_name(class_type, store_at);
   mangled_name_length += name_length;
   if (store_at != NULL) store_at += name_length;
   return mangled_name_length;
