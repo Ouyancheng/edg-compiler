@@ -1851,43 +1851,10 @@ path and access.
     /* Return a different path than the one stored in the base-class-
        derivation entry.  This is because each virtual base class is the
        start of a new segment. */
-#if 0
-    path = make_derivation_step(base_class, (a_derivation_step_ptr)NULL);
-#endif
     path = step;
   }  /* if */
   return path;
 }  /* update_base_class_derivation */
-
-
-static a_boolean check_for_duplicate_virtual_base_class(
-                                        a_type_ptr             new_class,
-                                        a_derivation_step_ptr  path,
-                                        a_base_class_ptr       base_class)
-/*
-*/
-{
-  a_base_class_ptr  bcp;
-  a_boolean         is_duplicate = FALSE;
-
-  for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
-    if (bcp->is_virtual && bcp->type == base_class->type) {
-#if DEBUG
-      if (debug_level >= 3) {
-        fputs("  reencountering virtual base class \"", f_debug);
-        db_type_name(base_class->type);
-        fputs("\" for ", f_debug);
-        db_abbreviated_type(new_class);
-        fputc('\n', f_debug);
-      }  /* if */
-#endif /* DEBUG */
-      (void)update_base_class_derivation(bcp, path,
-                                         base_class->derivation->access);
-      is_duplicate = TRUE;
-    }  /* if */
-  }  /* for */
-  return is_duplicate;
-}  /* check_for_duplicate_virtual_base_class */
 
 
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
@@ -1907,80 +1874,97 @@ duplicate paths.  The copy will be a base class of new_class.
 */
 {
   a_base_class_ptr     new_bcp = NULL, bcp;
+  an_access_specifier  access;
 
   db_enter(3, "add_indirect_base_class");
   /* Record the derivation path from the most derived class to the class that
      is directly derived from the new base class; it will be copied and
      extended to produce the new base class's derivation. */
-  if (base_class_to_copy->is_virtual &&
-      check_for_duplicate_virtual_base_class(new_class, path,
-                                             base_class_to_copy)) {
-    /* The base class to be copied is a virtual base class and a virtual base
-       class referring to the same class type is already on the base classes
-       list for the new class.  No new base class entry needs to be
-       created. */
-  } else {
-#if DEBUG
-    if (debug_level >= 3) {
-      fputs("  creating indirect base class \"", f_debug);
-      db_type_name(base_class_to_copy->type);
-      fputs("\" for ", f_debug);
-      db_abbreviated_type(new_class);
-      fputc('\n', f_debug);
-    }  /* if */
-#endif /* DEBUG */
-    /* Create a new base class entry. */
-    new_bcp = alloc_base_class();
-    new_bcp->type = base_class_to_copy->type;
-    new_bcp->derived_class = new_class;
-    new_bcp->decl_position = directly_derived_bcp->decl_position;
-    new_bcp->direct = FALSE;
-    if (base_class_to_copy->is_virtual) new_bcp->is_virtual = TRUE;
-    path = update_base_class_derivation(new_bcp, path, base_class_to_copy->
-                                                           derivation->access);
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-    if (new_bcp->is_virtual) {
-      /* According to cfront all virtual base classes are complete
-         subobjects. */
-      new_bcp->complete_subobject = TRUE;
-    } else {
-      new_bcp->complete_subobject = base_class_to_copy->complete_subobject;
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-    }  /* if */
-    /* Check for ambiguity. */
+  /* We will mark the derivation's access by copying the access associated
+     with the first derivation of base_class_to_copy, which should also be a
+     direct derivation. */
+  check_assertion(base_class_to_copy->derivation->direct);
+  access = base_class_to_copy->derivation->access;
+  if (base_class_to_copy->is_virtual) {
     for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
-      if (bcp->type == new_bcp->type) {
-        check_assertion(!(bcp->is_virtual && new_bcp->is_virtual));
-        /* Ambiguous base class. */
-        bcp->ambiguous = TRUE;
-        new_bcp->ambiguous = TRUE;
-        break;
+      if (bcp->is_virtual && bcp->type == base_class_to_copy->type) {
+        /* The base class to be copied is a virtual base class and a virtual
+           base class referring to the same class type is already on the base
+           classes list for the new class.  No new base class entry needs to
+           be created. */
+#if DEBUG
+        if (debug_level >= 3) {
+          fputs("  reencountering virtual base class \"", f_debug);
+          db_type_name(bcp->type);
+          fputs("\" for ", f_debug);
+          db_abbreviated_type(new_class);
+          fputc('\n', f_debug);
+        }  /* if */
+#endif /* DEBUG */
+        (void)update_base_class_derivation(bcp, path, access);
+        goto done;
       }  /* if */
     }  /* for */
-    /* Add the base classes of the current indirect base class to the base
-       classes list of the most-derived-class. */
-    for (bcp = base_classes_of(new_bcp->type); bcp != NULL; bcp = bcp->next) {
-      if (!bcp->direct) {
-        continue;
-      } else if (bcp->is_virtual) {
-        /* A virtual base class is marked as "direct" if any of its paths
-           is direct.  However, for our purposes, the "first" path (first in
-           a depth-first left-to-right traversal of the derivation graph)
-           must be direct. */
-        if (!bcp->derivation->direct) continue;
-      }  /* if */
-      add_indirect_base_class(bcp, new_bcp, path, p_end_of_add_list,
-                              new_class);
-    }  /* for */
-    /* Add this to the end of add_list. */
-    if (*p_end_of_add_list == NULL) {
-      new_class->variant.class_struct_union.extra_info->base_classes = new_bcp;
-    } else {
-      (*p_end_of_add_list)->next = new_bcp;
-    }  /* if */
-    *p_end_of_add_list = new_bcp;
   }  /* if */
-
+#if DEBUG
+  if (debug_level >= 3) {
+    fputs("  creating indirect base class \"", f_debug);
+    db_type_name(base_class_to_copy->type);
+    fputs("\" for ", f_debug);
+    db_abbreviated_type(new_class);
+    fputc('\n', f_debug);
+  }  /* if */
+#endif /* DEBUG */
+  /* Create a new base class entry. */
+  new_bcp = alloc_base_class();
+  new_bcp->type = base_class_to_copy->type;
+  new_bcp->derived_class = new_class;
+  new_bcp->decl_position = directly_derived_bcp->decl_position;
+  new_bcp->direct = FALSE;
+  if (base_class_to_copy->is_virtual) new_bcp->is_virtual = TRUE;
+  path = update_base_class_derivation(new_bcp, path, access);
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+  if (new_bcp->is_virtual) {
+    /* According to cfront all virtual base classes are complete
+       subobjects. */
+    new_bcp->complete_subobject = TRUE;
+  } else {
+    new_bcp->complete_subobject = base_class_to_copy->complete_subobject;
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+  }  /* if */
+  /* Check for ambiguity. */
+  for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
+    if (bcp->type == new_bcp->type) {
+      check_assertion(!(bcp->is_virtual && new_bcp->is_virtual));
+      /* Ambiguous base class. */
+      bcp->ambiguous = TRUE;
+      new_bcp->ambiguous = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  /* Add the base classes of the current indirect base class to the base
+     classes list of the most-derived-class. */
+  for (bcp = base_classes_of(new_bcp->type); bcp != NULL; bcp = bcp->next) {
+    if (!bcp->direct) {
+      continue;
+    } else if (bcp->is_virtual) {
+      /* A virtual base class is marked as "direct" if any of its paths
+         is direct.  However, for our purposes, the "first" path (first in
+         a depth-first left-to-right traversal of the derivation graph)
+         must be direct. */
+      if (!bcp->derivation->direct) continue;
+    }  /* if */
+    add_indirect_base_class(bcp, new_bcp, path, p_end_of_add_list, new_class);
+  }  /* for */
+  /* Add this to the end of add_list. */
+  if (*p_end_of_add_list == NULL) {
+    new_class->variant.class_struct_union.extra_info->base_classes = new_bcp;
+  } else {
+    (*p_end_of_add_list)->next = new_bcp;
+  }  /* if */
+  *p_end_of_add_list = new_bcp;
+  /* Branch here for duplicate virtual base class. */
+done:;
   db_exit();
 }  /* add_indirect_base_class */
 
