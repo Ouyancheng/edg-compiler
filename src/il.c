@@ -8623,7 +8623,7 @@ void eliminate_unneeded_il_entries(a_scope_ptr scope)
     }  /* if */
   }  /* for */
   }
-#endif RECORD_HIDDEN_NAMES_IN_IL
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (scope->kind == (a_scope_kind)sck_file) {
     if (!source_sequence_entries_disallowed) {
