@@ -455,7 +455,8 @@ to be kept.
       /* The entry is a routine.  If it has a definition and it is virtual,
          mark the body to be kept too. */
       a_routine_ptr rout = (a_routine_ptr)entry_ptr;
-      if (rout->defined && rout->is_virtual) {
+      if (rout->defined && rout->is_virtual &&
+          mem_region_table[rout->assoc_scope] != NULL) {
         a_scope_ptr scope = il_header.region_scope_entry[rout->assoc_scope];
         check_assertion_str(scope != NULL,
                   "prune_keep_in_il_walk: needed routine scope not in memory");
