@@ -8721,6 +8721,7 @@ TRUE if the declaration following this one is such a continuation.
 #if GNU_EXTENSIONS_ALLOWED
   a_boolean                     marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_boolean                     discard_declaration = FALSE;
 
   *another_decl_in_comma_list = FALSE;
   /* Note that compiler-generated routines don't appear on the source sequence
@@ -8740,6 +8741,14 @@ TRUE if the declaration following this one is such a continuation.
     rout_type = sec_decl->declared_type;
     friend_decl = sec_decl->friend_decl;
     is_specialization = sec_decl->specialized_with_new_syntax;
+    if (is_specialization && !rout->is_specialized && rout->is_inline &&
+        rout->assoc_scope == NULL_region_number) {
+      /* A generated specialization for an inline function, for which
+         there is no full instantiation.  Suppress this declaration because
+         it will get an error if it's used (inline referenced but
+         not defined). */
+      discard_declaration = TRUE;
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     marked_as_gnu_extension = sec_decl->marked_as_gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -8791,6 +8800,10 @@ TRUE if the declaration following this one is such a continuation.
   rtsp = unqual_rout_type->variant.routine.extra_info;
   /* Advance past the source sequence entry for the routine. */
   adv_curr_source_sequence_entry();
+  if (discard_declaration) {
+    /* Discard this declaration. */
+    goto end_of_routine;
+  }  /* if */
   /* Position the output file to the declaration position. */
   set_decl_position(&rout->source_corresp, sec_decl);
   if (!suppress_specifiers) {
@@ -9082,6 +9095,7 @@ TRUE if the declaration following this one is such a continuation.
   if (is_definition) {
     restore_function_state(&state);
   }  /* if */
+end_of_routine:;
 }  /* gen_routine_decl */
 
 
