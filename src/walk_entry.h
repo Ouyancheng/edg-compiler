@@ -208,6 +208,8 @@ the file scope, do not process it (but record an orphan in the latter case).
       case iek_base_class:    s = "base class";              break;
       case iek_class_list_entry:
                               s = "class list entry";        break;
+      case iek_routine_list_entry:
+                              s = "routine list entry";      break;
       case iek_class_type_supplement:
                               s = "class type supplement";   break;
       case iek_constructor_init:
@@ -1088,6 +1090,14 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->class_type, a_type_ptr, iek_type);
       }
       break;
+    case iek_routine_list_entry:
+      {
+        a_routine_list_entry_ptr ptr = (a_routine_list_entry_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_routine_list_entry_ptr,
+                       iek_routine_list_entry);
+        remap_ptr(ptr->routine, a_routine_ptr, iek_routine);
+      }
+      break;
     case iek_class_type_supplement:
       {
         a_class_type_supplement_ptr ptr =
@@ -1110,6 +1120,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_list(ptr->access_adjustments, an_access_adjustment_ptr,
                   iek_access_adjustment);
         walk_list(ptr->befriending_classes, a_class_list_entry_ptr,
+                  iek_class_list_entry);
+        walk_list(ptr->friend_routines, a_routine_list_entry_ptr,
+                  iek_routine_list_entry);
+        walk_list(ptr->friend_classes, a_class_list_entry_ptr,
                   iek_class_list_entry);
         walk_ptr(ptr->assoc_scope, a_scope_ptr, iek_scope);
         walk_list(ptr->template_arg_list, a_template_arg_ptr,

@@ -1150,14 +1150,27 @@ typedef struct a_base_class {
 
 typedef struct a_class_list_entry *a_class_list_entry_ptr;
 typedef struct a_class_list_entry {
-  /* An entry used to represent a member of an arbitrary set of classes.
-     (For example, a list of classes that have befriended a class.) */
+  /* An entry used to represent a member of an arbitrary set of classes,
+     used to list the classes befriended by a given class and the classes
+     befriending a given class or routine. */
   a_class_list_entry_ptr
                 next;
 			/* Next in a linked list of class list entries. */
   a_type_ptr    class_type;
 			/* The tk_class, tk_struct, or tk_union type entry. */
 } a_class_list_entry;
+
+
+typedef struct a_routine_list_entry *a_routine_list_entry_ptr;
+typedef struct a_routine_list_entry {
+  /* An entry used to represent a member of an arbitrary set of routines,
+     used to list the routines declared as friends of a given class. */
+  a_routine_list_entry_ptr
+                next;
+			/* Next in a linked list of routine list entries. */
+  a_routine_ptr routine;
+			/* Pointer to the routine entry. */
+} a_routine_list_entry;
 
 
 enum an_anonymous_union_kind_tag {
@@ -1245,9 +1258,20 @@ typedef struct a_class_type_supplement {
                            Note that the representation is backwards
                            compared to the source language: in the source
                            the befriended class (or routine) is declared in
-                           the befriending class; in the IL the befriending
-                           class is recorded in the befriended class (or
-                           routine). */
+                           the befriending class; here the befriending class
+                           is recorded in the befriended class (or routine). */
+  a_routine_list_entry_ptr
+		friend_routines;
+			/* A linked list of entries identifying routines that
+			   were explicitly declared as friends of the the
+			   current class (i.e., routines that the current class
+			   has befriended). */
+  a_class_list_entry_ptr
+		friend_classes;
+			/* A linked list of entries identifying classes that
+			   were explicitly declared as friends of the the
+			   current class (i.e., classes that the current class
+			   has befriended). */
   a_scope_ptr	assoc_scope;
 			/* The scope for the class type.  In the scope entry,
 			   "routines" gives a linked list of routine entries

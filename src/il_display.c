@@ -1592,6 +1592,24 @@ Display the indicated class list and name.
 }  /* disp_class_list */
 
 
+static void disp_routine_list(char                     *name,
+                              a_routine_list_entry_ptr ptr)
+/*
+Display the indicated routine list and name.
+*/
+{
+  if (ptr == NULL) {
+    disp_ptr(name, (char *)ptr, iek_routine_list_entry);
+  } else {
+    disp_name(name);
+    (void)printf("\n");
+    for (; ptr != NULL; ptr = ptr->next) {
+      disp_ptr("  routine", (char *)ptr->routine, iek_routine);
+    }  /* for */
+  }  /* if */
+}  /* disp_routine_list */
+
+
 static void disp_template_arg_list(char                *name,
                                    a_template_arg_ptr  ptr)
 /*
@@ -2671,6 +2689,8 @@ Display the indicated class type supplement entry.
              iek_access_adjustment);
   }  /* if */
   disp_class_list("befriending_classes", ptr->befriending_classes);
+  disp_routine_list("friend_routines", ptr->friend_routines);
+  disp_class_list("friend_classes", ptr->friend_classes);
   disp_ptr("assoc_scope", (char * )ptr->assoc_scope, iek_scope);
   disp_template_arg_list("template_arg_list", ptr->template_arg_list);
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
