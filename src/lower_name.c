@@ -870,7 +870,8 @@ the usual nesting_level == 1.
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   /* If this a nested type name promoted into the file scope in
      cfront 2.1 mode, do not use the nested form. */
-  if (scp->parent.class_type->
+  if (scp->is_class_member &&
+      scp->parent.class_type->
                            use_cfront_transitional_nested_type_name_mangling) {
     more_levels = FALSE;
   }  /* if */
