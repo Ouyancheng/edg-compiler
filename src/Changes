@@ -1,5 +1,12 @@
 Version 2.44
 
+12/18/99 Front end does not compile when ADDR_OF_BIT_FIELD_ALLOWED is set
+
+When ADDR_OF_BIT_FIELD_ALLOWED is set to TRUE, exprutil.c did not compile
+correctly because it contained a call to cast_node with too few parameters.
+This problem was introduced in version 2.43 when the interface of cast_node
+was updated.  This is now fixed.
+
 12/16/99 Internal error while reading IL for local class member function
 
 With certain configurations of the front end (e.g., the default C++-generating
