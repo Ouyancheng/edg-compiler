@@ -1841,8 +1841,8 @@ Lower the indicated fixed-point increment or decrement operation.
   fxmask_expr->next = op1_for_argument;
   op_node = make_prototyped_runtime_call(routine_name, routine,
                                          fxvalue_type(),
+                                         integer_type(FXMASK_INT_KIND),
                                          fxvalue_type(),
-                                         (a_type_ptr)NULL,
                                          fxmask_expr);
   /* Cast the value returned by the runtime routine to the final
      desired type. */
