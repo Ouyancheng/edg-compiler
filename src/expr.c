@@ -3985,7 +3985,12 @@ specification allow a variable-sized array as the top type.
     make_expression_operand(new_node, ptr_new_type, result);
   }  /* if */
   /* Free the lists if they have not been freed already. */
-  free_arg_operand_list(arg_operand_list);
+  if (arg_operand_list != NULL) {
+    /* This list is only non-NULL if there was an error and the list was not
+       used, so change its references to errors. */
+    change_arg_operand_list_refs_to_error(arg_operand_list);
+    free_arg_operand_list(arg_operand_list);
+  }  /* if */
   free_arg_match_summary_list(arg_match_list);
   /* Set the error position to the starting position. */
   copy_source_position(start_position, error_position);
