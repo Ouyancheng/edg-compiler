@@ -3104,7 +3104,7 @@ Note, moreover, that even if class template X were defined there would be
 no need to actually instantiate X<int> in the example above.
 
 If any_prototype_allowed is TRUE then the prototype instantiations of
-the primary template any any partial specializations are checked
+the primary template and any partial specializations are checked
 before any of the other instantiations.  If it is FALSE the prototype
 instantiations will not be included in the search, except that if
 specific_prototype_allowed is non-NULL then only the specified
