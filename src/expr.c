@@ -1675,7 +1675,8 @@ Syntax:
                                      /*selector_is_object_pointer=*/TRUE,
                                      /*conversion_function_case=*/FALSE,
                                      routine,
-                                     routine_type, &this_match_summary);
+                                     implicit_this_param_type_of(routine_type),
+                                     &this_match_summary);
       if (this_match_summary.match_level != aml_none) {
         /* The types are compatible. */
         /* Issue any needed warning (e.g., cfront anachronism of calling

@@ -292,7 +292,7 @@ extern void selector_match_with_this_param(
                                a_boolean            selector_is_object_pointer,
                                a_boolean            conversion_function_case,
                                a_routine_ptr        rout,
-                               a_type_ptr           routine_type,
+                               a_type_ptr           this_param_type,
                                an_arg_match_summary *arg_summary);
 
 extern a_symbol_ptr select_overloaded_function(
