@@ -283,15 +283,16 @@ Process the source correspondence field pointed to by ptr.
 #endif /* ifdef CFE */
 
 /*
-Clear a pointer (to avoid passing it to the next phase), but only in
-the remap-only mode.
+Clear a pointer (to avoid passing it to the next phase) when remapping
+pointers.
 */
-#undef clear_pointer_if_remapping_only
-#if DO_SUBTREE_WALK
-#define clear_pointer_if_remapping_only(ptr) /* Nothing */
-#else /* !DO_SUBTREE_WALK */
-#define clear_pointer_if_remapping_only(ptr) ((ptr) = NULL)
-#endif /* DO_SUBTREE_WALK */
+#undef clear_pointer_if_remapping
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+#define clear_pointer_if_remapping(ptr) /* Nothing */
+#else /* !(NEEDED_FLAG_WALK && ...) */
+#define clear_pointer_if_remapping(ptr) \
+{ if (walk_remap_func != NULL) (ptr) = NULL; }
+#endif /* NEEDED_FLAG_WALK && ... */
 
 #undef remap_source_sequence_entry
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
@@ -319,7 +320,7 @@ the remap-only mode.
   walk_unmangled_name(ptr); \
   remap_parent(ptr); \
   remap_source_sequence_entry(ptr); \
-  clear_pointer_if_remapping_only((ptr).assoc_info); \
+  clear_pointer_if_remapping((ptr).assoc_info); \
 }  /* walk_source_corresp */
 #endif /* NEEDED_FLAG_WALK */
 
@@ -678,7 +679,7 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_typeref:
             walk_ptr(ptr->variant.typeref.type, a_type_ptr, iek_type);
 #if DO_IL_LOWERING
-            clear_pointer_if_remapping_only(ptr->variant.typeref.orig_type);
+            clear_pointer_if_remapping(ptr->variant.typeref.orig_type);
 #endif /* DO_IL_LOWERING */
             break;
           case tk_ptr_to_member:
@@ -1719,7 +1720,7 @@ do_set_proper_definition_needed_flag:
                               "walk_entry_and_subtree: bad dynamic init kind");
         }  /* switch */
 #if DO_IL_LOWERING
-        clear_pointer_if_remapping_only(ptr->destructible_entity_descr);
+        clear_pointer_if_remapping(ptr->destructible_entity_descr);
 #endif /* DO_IL_LOWERING */
       }
       break;
@@ -1794,7 +1795,7 @@ do_set_proper_definition_needed_flag:
                              an_overriding_virtual_function_ptr,
                              iek_overriding_virtual_function);
 #if DO_IL_LOWERING
-        clear_pointer_if_remapping_only(ptr->virtual_function_table_var);
+        clear_pointer_if_remapping(ptr->virtual_function_table_var);
 #endif /* DO_IL_LOWERING */
       }
       break;
@@ -1876,10 +1877,10 @@ after_entry_from_class:
                     iek_routine);
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if DO_IL_LOWERING
-          clear_pointer_if_remapping_only(ptr->virtual_function_table_var);
-          clear_pointer_if_remapping_only(ptr->type_as_subobject);
+          clear_pointer_if_remapping(ptr->virtual_function_table_var);
+          clear_pointer_if_remapping(ptr->type_as_subobject);
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-          clear_pointer_if_remapping_only(ptr->promoted_local_types);
+          clear_pointer_if_remapping(ptr->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
         }  /* if */
@@ -2313,7 +2314,7 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef remap_source_sequence_entry
 #undef walk_source_corresp
 #undef walk_unmangled_name
-#undef clear_pointer_if_remapping_only
+#undef clear_pointer_if_remapping
 #undef report_bad_init_kind
 #undef walk_initializer
 #undef walk_orphan_entry_list
