@@ -2163,15 +2163,20 @@ that do normal id lookup processing.
          it is found is at the start of a qualified name.  The name is also
          found for certain lookups (which we approximate using the tentative
          type lookup flag) when the name is the name of the current class
-         (but not an injected name from a base class). */
+         (but not an injected name from a base class).  Compilers after
+         version 7.0 continue to ignore the injected class name of template
+         instances.  In Microsoft mode, injected class names are only created
+         for explicitly specialized instances. */
       if (sym != NULL && microsoft_bugs &&
-          microsoft_version < 1300 &&
           !lookup_state->must_be_class_or_namespace) {
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
         if ((!lookup_state->tentative_type_lookup ||
              fund_sym != sym) &&
             is_injected_class_symbol(fundamental_symbol_of(sym))) {
-          sym = NULL;
+          if (microsoft_version < 1300 ||
+             (fund_sym != sym && is_injected_template_symbol(sym))) {
+            sym = NULL;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -2230,12 +2235,20 @@ that do normal id lookup processing.
       if (!is_acceptable_symbol(sym, fund_sym, *lookup_state,
                                 /*invisible_okay=*/TRUE)) {
         sym = NULL;
-      } else if (microsoft_bugs && microsoft_version < 1300) {
+      } else if (microsoft_bugs) {
         /* The Microsoft compiler (versions prior to 7.0) ignores inherited
            injected class names in most cases.  The principal case in which
-           it is found is at the start of a qualified name. */
+           it is found is at the start of a qualified name.   Compilers after
+           version 7.0 continue to ignore the injected class name of template
+           instances.  In Microsoft mode, injected class names are only created
+           for explicitly specialized instances.*/
         if (!lookup_state->must_be_class_or_namespace &&
-            is_injected_class_symbol(fund_sym)) sym = NULL;
+            is_injected_class_symbol(fund_sym)) {
+          if (microsoft_version < 1300 ||
+              is_injected_template_symbol(fund_sym)) {
+            sym = NULL;
+          }  /* if */
+        }  /* if */
       } else if (gpp_mode) {
         /* g++ ignores inherited injected class names from template classes. */
         if (!lookup_state->must_be_class_or_namespace &&

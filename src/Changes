@@ -1,5 +1,23 @@
 Version 3.6
 
+1/10/05  Microsoft compatibility: injected class names and specializations
+
+While the Microsoft compiler does not, in general, create injected class
+names for template instances, it does create them for explicitly specialized
+classes (although such injected class names are not always found by
+name lookup).  We already treated injected class names specially in
+Microsoft bugs mode.  We have updated this treatment to emulate the
+Microsoft behavior with respect to explicitly specialized classes.
+
+  template<class T> struct A;
+
+  template<> struct A<int> {
+    template<class U> A f();
+  };
+
+  A<int> a1;
+  A<int> a2 = a1.f<int>();
+
 1/10/05  Spurious correspondence error on incomplete enum declaration
 
 In C++ mode, an incomplete enum declaration in one translation unit triggered

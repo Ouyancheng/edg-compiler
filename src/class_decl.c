@@ -13560,6 +13560,7 @@ classes.
         /* In C++ the name of the class is entered into the scope of the
            class; enter an sk_type symbol. */
         if (microsoft_bugs &&
+            !class_type->variant.class_struct_union.is_specialized &&
             class_type->variant.class_struct_union.extra_info->
                                                   template_arg_list != NULL) {
           /* In Microsoft bugs mode, template class names are not injected.
