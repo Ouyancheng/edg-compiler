@@ -450,6 +450,14 @@ the file scope, do not process it (but record an orphan in the latter case).
       add_orphaned_file_scope_il_entry(entry_ptr, entry_kind);
       goto end_of_routine;
     }  /* if */
+    /* If walking the IL for a secondary translation unit, do not go into
+       the primary IL.  This is especially important for the needed flag
+       walk -- we don't want to pollute the needed flags in the primary
+       IL. */
+    if (!is_primary_translation_unit &&
+        !in_secondary_trans_unit(entry_ptr)) {
+      goto end_of_routine;
+    }  /* if */
     /* See if this entry has been reached already, and if so, don't process
        it or its subtree.  This is indicated by the il_walk_flag field of the
        entry prefix. */
