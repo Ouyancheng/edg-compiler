@@ -3932,14 +3932,19 @@ points to the template parameter list.
   a_type_ptr			 orig_type = type;
   a_type_ptr			 orig_templ_type = templ_type;
 
-#endif /* DEBUG */
   db_enter(5, "matches_template_type");
+  if (db_flag_is_set("mtt")) {
+    fprintf(f_debug, "matches_template_type starting evaluation of type: ");
+    db_type(orig_type);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   /* When this routine calls itself recursively, the recursive calls
      should not allow conversions or the special unknown implicit
      this parameter checks. */
   new_flags = MTT_NO_FLAGS;
   templ_type = skip_typedefs(templ_type);
-  if (is_class_struct_union_type(templ_type)) {
+  if (is_immediate_class_type(templ_type)) {
     /* If the template type is a proxy class for a template parameter,
        substitute the underlying template parameter for the deduction
        process. */
