@@ -519,8 +519,8 @@ Display a PCH event for debugging purposes.
       unexpected_condition();
   }  /* switch */
   fprintf(f_debug, ", value: %s", pep->value == NULL ? "(NULL)" : pep->value);
-  fprintf(f_debug, ", seq: %0lu, column: %0u\n", pep->position.seq,
-          pep->position.column);
+  fprintf(f_debug, ", seq: %0lu, column: %0lu\n", pep->position.seq,
+          (unsigned long)pep->position.column);
 }  /* db_pch_event */
 #endif /* DEBUG */
 
@@ -794,7 +794,7 @@ variable lists.
 #if DEBUG
       if (debug_level >= 5) {
         fprintf(f_debug, "Saving %5lu bytes at %p, variable %s %s\n",
-                psvp->var_size, address,
+                (unsigned long)psvp->var_size, address,
                 psvp->var_name == NULL
                   ? "(name not available)"
                   : psvp->var_name,
@@ -831,7 +831,7 @@ variable lists.
 #if DEBUG
       if (debug_level >= 5) {
         fprintf(f_debug, "Restoring %5lu bytes at %p, variable %s %s\n",
-                psvp->var_size, address,
+                (unsigned long)psvp->var_size, address,
                 psvp->var_name == NULL
                   ? "(name not available)"
                   : psvp->var_name,
@@ -947,7 +947,7 @@ in exactly the same manner as that in which they were created.
     fwrite_with_check(mbhp, size, f_pch_output);
 #if DEBUG
     if (debug_level >= 4) {
-      fprintf(f_debug, "Writing %lu bytes from %p\n", size,
+      fprintf(f_debug, "Writing %lu bytes from %p\n", (unsigned long)size,
               mbhp);
     }  /* if */
 #endif /* DEBUG */
@@ -974,7 +974,7 @@ file.  See write_a_memory_region for more information.
     pch_read_value(mbhp);
 #if DEBUG
     if (debug_level >= 4) {
-      fprintf(f_debug, "Reading %lu bytes into %p\n", size,
+      fprintf(f_debug, "Reading %lu bytes into %p\n", (unsigned long)size,
               mbhp);
     }  /* if */
 #endif /* DEBUG */
@@ -1129,9 +1129,11 @@ write out the precompiled header file.
        justified "quantitatively". */
     if (curr_ise->include_history == NULL) {
       /* There haven't been any include files. */
+#if PCH_DECL_SEQ_THRESHOLD != 0
     } else if (decl_seq_counter < PCH_DECL_SEQ_THRESHOLD) {
       /* There haven't been enough declarations to justify writing out and
          restoring the header information. */
+#endif /* PCH_DECL_SEQ_THRESHOLD != 0 */
     } else {
       /* Okay -- go ahead and do it. */
       write_precompiled_header_file();
@@ -1428,9 +1430,9 @@ directory.  Return TRUE if an applicable PCH was found.
       fprintf(f_debug, "PCH file %s, applicable: %s",
               file_name, is_applicable ? "TRUE" : "FALSE");
       if (is_applicable) {
-        fprintf(f_debug, ", seq: %0lu, column: %0u\n",
-                last_matching_event->position.seq,
-                last_matching_event->position.column);
+        fprintf(f_debug, ", seq: %0lu, column: %0lu\n",
+                (unsigned long)last_matching_event->position.seq,
+                (unsigned long)last_matching_event->position.column);
       } else {
         fprintf(f_debug, "\n");
         if (db_active) {

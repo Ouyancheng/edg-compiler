@@ -1887,11 +1887,10 @@ should be added.
 #if DEBUG
     if (debug_level >= 5) {
       fprintf(f_debug, "Allocated %lu bytes of mmap memory at %p\n",
-              incremental_size, addr);
+              (unsigned long)incremental_size, addr);
     }  /* if */
 #endif /* DEBUG */
     /* mmap returns (caddr_t)-1 if the operation fails. */
-    if (addr == (caddr_t)-1) perror("mmap error:");
     if (addr == (caddr_t)-1) addr = NULL;
   }  /* if */
   return addr;

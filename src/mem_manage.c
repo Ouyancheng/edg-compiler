@@ -178,7 +178,7 @@ Add an entry to the memory allocation history array.
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "Added mem_alloc_history, addr: %p, size: %lu\n",
-            addr, size);
+            addr, (unsigned long)size);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
@@ -310,7 +310,7 @@ PCH was created.
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "Allocated %lu bytes of mapped memory at %p\n",
-            size, addr);
+            (unsigned long)size, addr);
   }  /* if */
 #endif /* DEBUG */
   return addr;
