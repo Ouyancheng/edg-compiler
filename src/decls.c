@@ -5217,7 +5217,7 @@ to indicate whether an enumeration is actually defined.
               error(ec_enum_value_out_of_int_range);
               err = TRUE;
             } else {
-              incr_integer_constant(&constant);
+              incr_integer_value(&constant.variant.integer_value);
             }  /* if */
           }  /* if */
         }  /* if */
