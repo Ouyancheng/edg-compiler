@@ -1003,64 +1003,6 @@ EXTERN void display_time_used(char		*message,
 			      a_timer_ptr	end_time);
 
 
-/*
-STAT_INFORMATION_INCLUDES_INODE should be TRUE on systems for which the
-structure returned by stat() includes an inode number.  By default, this is
-expected to be TRUE except under MS-DOS.
-*/
-#ifndef STAT_INFORMATION_INCLUDES_INODE
-#if __MSDOS__
-#define STAT_INFORMATION_INCLUDES_INODE FALSE
-#else /* !__MSDOS__ */
-#define STAT_INFORMATION_INCLUDES_INODE TRUE
-#endif /* __MSDOS__ */
-#endif /* ifndef STAT_INFORMATION_INCLUDES_INODE */
-
-/*
-Define a structure that can identify a given file.  On UNIX systems
-this contains a device an inode number.  On systems that don't have
-inode numbers, the identifier contains the length of the file name
-(which is then used as an initial test before comparing the strings).
-On systems that don't have inode numbers, the file name is used to
-determine whether to files are the same.  Note that if the system supports
-file aliases (like UNIX links), the same file would appear as two different
-files when using names but as a single file when using inode numbers.
-*/
-#if STAT_INFORMATION_INCLUDES_INODE
-typedef struct a_file_identifier {
-  dev_t		st_dev;
-  ino_t		st_ino;
-  a_byte_boolean
-		is_stdin;
-} a_file_identifier;
-#else /* !STAT_INFORMATION_INCLUDES_INODE */
-typedef sizeof_t
-		a_file_identifier;
-#endif /* STAT_INFORMATION_INCLUDES_INODE */
-typedef a_file_identifier *a_file_identifier_ptr;
-
-/*
-Macro that compares two file identifiers.
-*/
-#if STAT_INFORMATION_INCLUDES_INODE
-/* When the inode number is available, use the device and inode numbers
-   to do the comparison. */
-#define file_ids_are_equal(name1, id1, name2, id2)			\
-  ((id1).st_dev == (id2).st_dev && (id1).st_ino == (id2).st_ino &&	\
-   (id1).is_stdin == (id2).is_stdin)
-#else /* !STAT_INFORMATION_INCLUDES_INODE */
-/* When the inode number is not available, just compare the strings.
-   In this case, id1 and id2 contain the string lengths which can be used
-   as an initial test that eliminates the need to do a string comparison
-   when the lengths are not the same. */
-#define file_ids_are_equal(name1, id1, name2, id2)			\
-  ((id1) == (id2) && (strcmp((name1), (name2)) == 0))
-#endif /* STAT_INFORMATION_INCLUDES_INODE */
-
-extern void get_file_identifier(char		      *file_name,
-                                a_file_identifier_ptr id);
-
-
 extern char *get_curr_dir_name(void);
 
 #if STANDALONE_UTILITY_PROGRAM

@@ -4270,14 +4270,14 @@ file we simply return.
 				     /*replace_suffix=*/TRUE,
 				     &full_file_name, &display_name);
       if (f_source != NULL) {
-        a_file_inclusion_state fstate;
+        an_include_file_history_ptr	ifhp;
         /* A related source file was found.  Make sure that the name of the
            file found is not the same as the file we started with.  This
            could occur if the user included a .c file that contains a
            template declaration.  Also make sure that this file has not
            previously been included. */
         if (strcmp(full_file_name, sfp->full_name) != 0 &&
-            !find_include_history(full_file_name, &fstate, /*create=*/FALSE)) {
+            !find_include_history(full_file_name, &ifhp, /*create=*/FALSE)) {
 #if DEBUG
           if (debug_level >= 3) {
             fprintf(f_debug, "  Including text from '%s'\n", full_file_name);
@@ -4285,7 +4285,7 @@ file we simply return.
 #endif /* DEBUG */
           /* Push the new file onto the input stack and scan it.  There is
              no "name as written" so a NULL pointer is passed in. */
-	  if (suppress_subsequent_include_of_file(full_file_name, &fstate)) {
+	  if (suppress_subsequent_include_of_file(full_file_name, &ifhp)) {
 	    (void)fclose(f_source);
 #if DEBUG
 	    if (debug_level >= 3) {
@@ -4296,7 +4296,7 @@ file we simply return.
 	  } else {
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
-                             is_system_include, &fstate);
+                             is_system_include, ifhp);
             scan_implicitly_included_template_definition_file();
 	  }  /* if */
         } else {

@@ -438,10 +438,8 @@ typedef struct an_include_file_history {
   char          *full_name;
 			/* Pointer to the full path name of the include
 			   file. */
-  a_file_identifier
-		file_id;
-			/* System dependent structure that is used to
-			   identify a given file. */
+  sizeof_t	name_length;
+			/* Length of full_name. */
   unsigned int	suppress_subsequent_include:1;
 			/* TRUE if this file is potentially one that can
 			   have subsequence includes suppressed. */
@@ -456,24 +454,6 @@ typedef struct an_include_file_history {
 			/* The name of the macro used to guard the include
 			   file against multiple inclusions. */
 } an_include_file_history;
-
-
-/*
-Structure that represents the information about a file to be included.
-This is used to pass information from the routines that inspect the
-include history information to push_input_stack.
-*/
-typedef struct a_file_inclusion_state *a_file_inclusion_state_ptr;
-typedef struct a_file_inclusion_state {
-  a_file_identifier
-		file_id;
-			/* System dependent structure that is used to
-			   identify a given file. */
-  an_include_file_history_ptr
-		include_history;
-			/* Pointer to the include history information for the
-			   file. */
-} a_file_inclusion_state;
 
 
 /*
@@ -497,11 +477,11 @@ The order of these states is important - see near return of get_token().
 
 
 extern a_boolean suppress_subsequent_include_of_file
-				(char                   *full_name,
-				 a_file_inclusion_state *fstate);
+				(char                         *full_name,
+				 an_include_file_history_ptr *ifhp_ptr);
 
 extern a_boolean find_include_history(char                        *full_name,
-	    		              a_file_inclusion_state_ptr  fstate,
+	    		              an_include_file_history_ptr *ifhp_ptr,
 			              a_boolean		          create);
 
 extern a_byte get_ifg_state(void);
@@ -1275,13 +1255,13 @@ extern FILE *open_file_for_input(char                       *file_name,
                                  a_boolean                  replace_suffix,
                                  char                       **full_file_name,
                                  char                       **display_name);
-extern void push_input_stack (FILE      		*new_input_file,
-                              char      		*name_as_written,
-                              char      		*display_name,
-                              char     			 *full_file_name,
-			      a_boolean                  is_include_file,
-			      a_boolean                  is_system_include,
-			      a_file_inclusion_state_ptr fstate);
+extern void push_input_stack (FILE      		  *new_input_file,
+                              char      		  *name_as_written,
+                              char      		  *display_name,
+                              char     			  *full_file_name,
+			      a_boolean                   is_include_file,
+			      a_boolean                   is_system_include,
+			      an_include_file_history_ptr ifhp);
 
 extern void pop_input_stack(void);
 

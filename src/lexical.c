@@ -1909,7 +1909,6 @@ a pointer.
 #endif /* DEBUG */
   ifhp->full_name = NULL;
   ifhp->next = NULL;
-  (void)memzero((char *)&ifhp->file_id, sizeof(a_file_identifier));
   ifhp->suppress_subsequent_include = FALSE;
   ifhp->pragma_once = FALSE;
   ifhp->ifdef_guard = FALSE;
@@ -1920,13 +1919,13 @@ a pointer.
 
 
 a_boolean find_include_history(char                        *full_name,
-	    		       a_file_inclusion_state_ptr  fstate,
+	    		       an_include_file_history_ptr *ifhp_ptr,
 			       a_boolean		   create)
 /*
 Examine the file history to see if "full_name" has been seen before. If
 it has, return a pointer to its history record in ret_hist, otherwise
 if create is TRUE, create a new history record, attach it to the file
-history chain, and return a pointer to the new entry in fstate. Also, set
+history chain, and return a pointer to the new entry in ifhp. Also, set
 first_time if the the latter case.  Return TRUE if the file was
 found in the list.
 */
@@ -1934,17 +1933,15 @@ found in the list.
   an_include_file_history_ptr	ifhp;
   an_include_file_history_ptr	prev_ifhp;
   a_boolean			found = FALSE;
+  sizeof_t			name_length = strlen(full_name);
 
-  /* Get the file identification information for the file that is to
-     be included. */
-  get_file_identifier(full_name, &fstate->file_id);
   /* Loop through the file history list and try to find a entry that
      matches the file passed by the caller. */
   for (ifhp = include_file_history_list, prev_ifhp = NULL;
        ifhp != NULL;
        prev_ifhp = ifhp, ifhp = ifhp->next) {
-    if (file_ids_are_equal(ifhp->full_name, ifhp->file_id,
-                           full_name, fstate->file_id)) {
+    if (name_length == ifhp->name_length &&
+        strcmp(full_name, ifhp->full_name) == 0) {
       /* We've found a match. */
       found = TRUE;
       break;
@@ -1958,15 +1955,15 @@ found in the list.
     /* Append to the tail of the list */
     ifhp = alloc_include_file_history();
     ifhp->full_name = full_name;
+    ifhp->name_length = name_length;
     ifhp->next = NULL;
-    get_file_identifier(full_name, &ifhp->file_id);
     if (prev_ifhp) {
       prev_ifhp->next = ifhp;
     } else {
       include_file_history_list = ifhp;
     }  /* if */
   }  /* if */
-  fstate->include_history = ifhp;
+  *ifhp_ptr = ifhp;
   return found;
 }  /* find_include_history */
 
@@ -2049,8 +2046,8 @@ code that makes it possible to suppress subsequent re-inclusions.
 
 
 a_boolean suppress_subsequent_include_of_file
-				(char                   *full_name,
-				 a_file_inclusion_state *fstate)
+				(char                        *full_name,
+				 an_include_file_history_ptr *ifhp_ptr)
 /*
 Determine whether the specified file has already been included, and if so,
 whether a subsequent include should be suppressed because it will have
@@ -2060,8 +2057,8 @@ no effect.
   a_boolean	result;
   /* Find an existing include file history record for this file, or create
      one if none exists. */
-  (void)find_include_history(full_name, fstate, /*create=*/TRUE);
-  result = suppress_subsequent_include(fstate->include_history);
+  (void)find_include_history(full_name, ifhp_ptr, /*create=*/TRUE);
+  result = suppress_subsequent_include(*ifhp_ptr);
   return result;
 } /* suppress_subsequent_include_of_file */
 
@@ -2131,14 +2128,14 @@ notation and FALSE for all other files.
   char				*full_file_name;
   char				*display_name;
   FILE 				*input_file;
-  a_file_inclusion_state	fstate;
+  an_include_file_history_ptr	ifhp;
 
   db_enter(2, "open_file_and_push_input_stack");
   input_file = open_file_for_input(file_name, search_path,
                                    /*replace_suffix=*/FALSE, &full_file_name,
                                    &display_name);
   check_assertion(input_file != NULL);
-  if (suppress_subsequent_include_of_file(full_file_name, &fstate)) {
+  if (suppress_subsequent_include_of_file(full_file_name, &ifhp)) {
     /* This file contains include guard code.  An inclusion here would
        have no effect, so it should be suppressed. */
     (void)fclose(input_file);
@@ -2162,7 +2159,7 @@ notation and FALSE for all other files.
     goto done;
   }  /* if */
   push_input_stack(input_file, file_name, display_name, full_file_name,
-                   is_include_file, is_system_include, &fstate);
+                   is_include_file, is_system_include, ifhp);
 done:
   db_exit();
 }  /* open_file_and_push_input_stack */
@@ -2356,7 +2353,7 @@ void push_input_stack(FILE     				*new_input_file,
                       char     				*full_file_name,
 		      a_boolean				is_include_file,
 		      a_boolean		 		is_system_include,
-		      a_file_inclusion_state_ptr	fstate)
+		      an_include_file_history_ptr	ifhp)
 /*
 Push the indicated file onto the input stack.
 */
@@ -2429,7 +2426,7 @@ Push the indicated file onto the input stack.
   curr_ise->dir_name = directory_of(full_file_name);
   curr_ise->is_include_file = is_include_file;
   curr_ise->nested_inclusion = (times_name_appears != 0);
-  curr_ise->include_history   = fstate->include_history;
+  curr_ise->include_history   = ifhp;
   curr_ise->ifg_state = IFG_STATE_START;
   curr_ise->saved_any_tokens_fetched =
 				      any_tokens_fetched_from_curr_input_file;
@@ -2718,7 +2715,7 @@ at the next level down.
            could occur if the user included a .c file that contains a
            template declaration. */
         if (strcmp(full_file_name, sfp->full_name) != 0) {
-	  a_file_inclusion_state fstate;
+	  an_include_file_history_ptr	ifhp;
 #if DEBUG
           if (debug_level >= 3) {
             fprintf(f_debug, "  Including text from '%s'\n", full_file_name);
@@ -2726,7 +2723,7 @@ at the next level down.
 #endif /* DEBUG */
           /* Push the new file onto the input stack and scan it.  There is
              no "name as written" so a NULL pointer is passed in. */
-	  if (suppress_subsequent_include_of_file(full_file_name, &fstate)) {
+	  if (suppress_subsequent_include_of_file(full_file_name, &ifhp)) {
             /* This file contains include guard code.  An inclusion here would
                have no effect, so it should be suppressed. */
 	    (void)fclose(f_source);
@@ -2741,7 +2738,7 @@ at the next level down.
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
                              (a_boolean)sfp->included_by_system_include,
-			     &fstate);
+			     ifhp);
           }  /* if */
         }  /* if */
       }  /* if */

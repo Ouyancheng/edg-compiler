@@ -1658,37 +1658,6 @@ Display the difference in CPU time and elapsed time between two timers.
 }  /* display_time_used */
 
 
-void get_file_identifier(char			*file_name,
-			 a_file_identifier_ptr	id)
-/*
-Return an identifier that can be used to determine whether two files
-are the same.  On systems that have inode numbers, the identifier
-contains the device and inode numbers.  On other systems, the file name
-must be used to do the comparison.  On these systems, the file identifier
-is simply used to store the length of the file name.  The length is
-used as an initial test before comparing the strings.
-*/
-{
-#if STAT_INFORMATION_INCLUDES_INODE
-  struct stat	buf;
-  if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
-    id->st_dev = 0;
-    id->st_ino = 0;
-    id->is_stdin = TRUE;
-  } else if (stat(file_name, &buf) == 0) {
-    id->st_dev = buf.st_dev;
-    id->st_ino = buf.st_ino;
-    id->is_stdin = FALSE;
-  } else {
-    unexpected_condition_str2("get_file_identifier:", "stat() failed");
-  }  /* if */  
-#else /* !STAT_INFORMATION_INCLUDES_INODE */
-  /* We are using the file name for comparison.  Just store the length
-     in the identifier to be used as an initial test. */
-  *id = strlen(file_name);
-#endif /* STAT_INFORMATION_INCLUDES_INODE */
-}  /* get_file_identifier */
-
 #if __WIN32__ || __MSDOS__
 static void chdir_with_check(char	*dir_name)
 /*
@@ -1822,7 +1791,7 @@ UNIX Version.
 #ifndef __AIX__
 /* This file should not be included on IBM AIX. */
 #include <sys/dirent.h>
-#endif
+#endif  /* ifndef __AIX__ */
 
 /*ARGSUSED*/ /* <-- Because "curr_dir_name" is not used. */
 char *get_file_name_from_dir(a_boolean	first,
