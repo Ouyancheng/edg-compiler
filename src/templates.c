@@ -3342,6 +3342,52 @@ nothing).
 }  /* equiv_templates */
 
 
+static a_boolean equiv_nontype_template_param_names(
+						a_constant_ptr	con1,
+						a_constant_ptr	con2)
+/*
+Determine whether con1 and con2 are ck_template_param constants that
+refer to equivalent template parameter constants except for the fact
+that their types were declared differently.  This is used in Microsoft
+mode where usage such as the following is accepted:
+
+	template <int I> struct A { void f(); };
+	template <unsigned int I> void A<I>::f(){}
+
+In this case, the template arguments being compared have different types
+(int and unsigned int), but we want them to be treated as equivalent.
+
+Return TRUE if the constants should be considered to match.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (con1->kind == (a_constant_repr_kind)ck_template_param &&
+      con1->variant.template_param.kind ==
+                                  (a_template_param_constant_kind)tpck_param) {
+    /* The first constant is the name of a template parameter. */
+    if (con2->kind == (a_constant_repr_kind)ck_template_param &&
+        con2->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tpck_cast) {
+      /* The second constant is a cast of something.  Remove the cast. */
+      con2 = con2->variant.template_param.variant.constant;
+    }  /* if */
+    if (con2->kind == (a_constant_repr_kind)ck_template_param &&
+        con2->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_param) {
+      /* The thing being cast is the name of a template parameter.
+         Make a copy of the constant under the cast, but use the type of
+         the first constant.  Compare the resulting constants. */
+      a_constant	copy_of_con2;
+      copy_constant(con2, &copy_of_con2);
+      copy_of_con2.type = con1->type;
+      result = eq_constants(con1, &copy_of_con2);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* equiv_nontype_template_param_names */
+
+
 a_boolean equiv_template_arg_lists(
 				a_template_arg_ptr list1,
 				a_template_arg_ptr list2,
@@ -3359,12 +3405,14 @@ the same constant.
   a_boolean		error_matches_anything;
   a_boolean		ignore_unknown_arg_values;
   a_boolean		ignore_qualifiers;
+  a_boolean		is_prototype;
 
   db_enter(4, "equiv_template_arg_lists");
   is_nonreal_member = (options & ETA_IS_NONREAL_MEMBER) != 0;
   error_matches_anything = (options & ETA_ERROR_MATCHES_ANYTHING) != 0;
   ignore_unknown_arg_values = (options & ETA_IGNORE_UNKNOWN_ARG_VALUES) != 0;
   ignore_qualifiers = (options & ETA_MS_IGNORE_QUALIFIERS) != 0;
+  is_prototype = (options & ETA_IS_PROTOTYPE) != 0;
   /* There is no way to produce a NULL template argument list, so the real
      code doesn't need to check for that. */
   check_assertion_str2(is_nonreal_member || (list1 != NULL && list2 != NULL),
@@ -3400,6 +3448,11 @@ the same constant.
         /* Only one is unspecified -- this is a mismatch. */
         equiv = FALSE;
       } else if (eq_constants(con1, con2)) {
+        /* Okay. */
+      } else if (is_prototype &&
+                 equiv_nontype_template_param_names(con1, con2)) {
+        /* Two template parameter names that have a type mismatch but
+           that should be considered equivalent in the current mode. */
         /* Okay. */
       } else if (error_matches_anything &&
                  (is_error_constant(con1) || is_error_constant(con2))) {
@@ -3607,7 +3660,8 @@ prototype instantiation is considered as a potential match.
          in matches it. */
       old_list = prototype_sym->variant.class_struct_union.type->
                      variant.class_struct_union.extra_info->template_arg_list;
-      if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
+      if (equiv_template_arg_lists(old_list, *new_list,
+                                   eta_options | ETA_IS_PROTOTYPE)) {
         /* A match.  Set sym which will suppress any further search. */
         sym = prototype_sym;
       }  /* if */
@@ -3630,7 +3684,8 @@ prototype instantiation is considered as a potential match.
              the list passed in matches it. */
           old_list = ps_prototype_sym->variant.class_struct_union.type->
                       variant.class_struct_union.extra_info->template_arg_list;
-          if (equiv_template_arg_lists(old_list, *new_list, eta_options)) {
+          if (equiv_template_arg_lists(old_list, *new_list,
+                                       eta_options | ETA_IS_PROTOTYPE)) {
 #if DEBUG
             if (debug_level >= 3) db_symbol(sym, "found: ", 2);
 #endif /* DEBUG */
@@ -7650,6 +7705,13 @@ describing any incompatibilities.
       /* Both are constants.  Make sure the values are the same. */
       err = !eq_constants(old_tpp->variant.constant.ptr,
                           new_tpp->variant.constant.ptr);
+      if (err && microsoft_bugs) {
+        /* In Microsoft bugs mode, a member of a class template can be
+           declared using a template parameter with a type that is different
+           that that of associated class template. */
+        err = !equiv_nontype_template_param_names(
+                 old_tpp->variant.constant.ptr, new_tpp->variant.constant.ptr);
+      }  /* if */
     } else {
       /* Template template parameters.  Compare the two templates. */
       check_assertion(old_sym->kind == (a_symbol_kind)sk_class_template);
