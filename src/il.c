@@ -4241,41 +4241,53 @@ scope depth.
     /* Create the IL scope if necessary (for block scopes). */
     sp = ensure_il_scope_exists(ssep);
   }  /* if */
-  /* Variables requiring static allocation go on one list, those for stack
-     and register allocation on another. */
-  if (at_file_scope ||
-      var_ptr->storage_class == (a_storage_class)sc_static ||
-      var_ptr->storage_class == (a_storage_class)sc_extern ||
-      var_ptr->storage_class == (a_storage_class)sc_unspecified) {
+  if (sp == NULL) {
+    /* This can happen for the error case in which a variable is created
+       in an old-style param declaration for which there was no corresponding
+       param-id declaration.  Such variables should not be added to the
+       variables list anyway. */
 #if CHECKING
-    /* Variables with static storage will always be allocated in file scope
-       memory region, regardless of which scope's list they are on. */
-    if (!in_file_scope(var_ptr)) {
-      internal_error("add_to_variables_list: var not in file scope region");
+    if (ssep->kind != (a_scope_kind)sck_func_prototype) {
+      internal_error("add_to_variables_list: NULL IL scope");
     }  /* if */
 #endif /* CHECKING */
-    if (sp->variables == NULL) {
-      sp->variables = var_ptr;
-    } else {
-      ssep->last_variable->next = var_ptr;
-    }  /* if */
-    ssep->last_variable = var_ptr;
   } else {
+    /* Variables requiring static allocation go on one list, those for stack
+       and register allocation on another. */
+    if (at_file_scope ||
+        var_ptr->storage_class == (a_storage_class)sc_static ||
+        var_ptr->storage_class == (a_storage_class)sc_extern ||
+        var_ptr->storage_class == (a_storage_class)sc_unspecified) {
 #if CHECKING
-    /* Variables with nonstatic storage will never be allocated in file scope
-       memory region. */
-    if (in_file_scope(var_ptr)) {
-      internal_error("add_to_variables_list: var in file scope region");
-    }  /* if */
+      /* Variables with static storage will always be allocated in file scope
+         memory region, regardless of which scope's list they are on. */
+      if (!in_file_scope(var_ptr)) {
+        internal_error("add_to_variables_list: var not in file scope region");
+      }  /* if */
 #endif /* CHECKING */
-    if (sp->nonstatic_variables == NULL) {
-      sp->nonstatic_variables = var_ptr;
+      if (sp->variables == NULL) {
+        sp->variables = var_ptr;
+      } else {
+        ssep->last_variable->next = var_ptr;
+      }  /* if */
+      ssep->last_variable = var_ptr;
     } else {
-      ssep->last_nonstatic_variable->next = var_ptr;
+#if CHECKING
+      /* Variables with nonstatic storage will never be allocated in file scope
+         memory region. */
+      if (in_file_scope(var_ptr)) {
+        internal_error("add_to_variables_list: var in file scope region");
+      }  /* if */
+#endif /* CHECKING */
+      if (sp->nonstatic_variables == NULL) {
+        sp->nonstatic_variables = var_ptr;
+      } else {
+        ssep->last_nonstatic_variable->next = var_ptr;
+      }  /* if */
+      ssep->last_nonstatic_variable = var_ptr;
     }  /* if */
-    ssep->last_nonstatic_variable = var_ptr;
+    var_ptr->next = NULL;
   }  /* if */
-  var_ptr->next = NULL;
 }  /* add_to_variables_list */
 
 
