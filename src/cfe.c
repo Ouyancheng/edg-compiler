@@ -38,21 +38,6 @@ Enhanced to support C++ by J. Stephen Adamczyk and R. Michael Anderson,
 #endif /* BACK_END_IS_CP_GEN_BE */
 
 
-static void display_time_used(char		*message,
-			      a_timer_ptr	start_time,
-			      a_timer_ptr	end_time)
-{
-  double	cpu_time;
-  double	real_time;
-
-  if (display_compilation_time) {
-    calc_time_difference(start_time, end_time, &cpu_time, &real_time);
-    fprintf(stderr, "%-30s %10.2f (CPU) %10.2f (elapsed)\n", message,
-            cpu_time, real_time);
-  }  /* if */
-}  /* display_time_used */
-
-
 int main(int argc, char *argv[])
 {
   an_error_severity most_severe_diagnostic = es_none, diagnostic_level;
@@ -62,7 +47,8 @@ int main(int argc, char *argv[])
   a_timer	    be_end_time;
   a_timer	    end_time;
 
-  /* Get the execution starting time. */
+  /* Get the execution starting time.  Do this unconditionally because the
+     timing command line option will not have been processed yet. */
   get_timer(&start_time);
   /* Set handlers for unusual abort signals. */
   set_signal_handlers();
@@ -73,7 +59,7 @@ int main(int argc, char *argv[])
   do {
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
     /* Get the front end starting time. */
-    get_timer(&fe_start_time);
+    if (display_compilation_time) get_timer(&fe_start_time);
     /* Initialize the front end. */
     fe_init();
     if (do_preprocessing_only) {
@@ -85,19 +71,23 @@ int main(int argc, char *argv[])
     }  /* if */
     /* Do wrap-up processing for the front end. */
     fe_wrapup();
-    /* Get the back end starting time. */
-    get_timer(&be_start_time);
-    /* Display the amount of time used by the front end. */
-    display_time_used("Front end time", &fe_start_time, &be_start_time);
+    if (display_compilation_time) {
+      /* Get the back end starting time. */
+      get_timer(&be_start_time);
+      /* Display the amount of time used by the front end. */
+      display_time_used("Front end time", &fe_start_time, &be_start_time);
+    }  /* if */
 
 #if BACK_END_SHOULD_BE_CALLED
     /* Run the back end if required, if there are no errors. */
     if (total_errors == 0 && !suppress_back_end) {
       back_end();
-      /* Get the back end starting time. */
-      get_timer(&be_end_time);
-      /* Display the amount of time used by the back end. */
-      display_time_used("Back end time", &be_start_time, &be_end_time);
+      if (display_compilation_time) {
+        /* Get the back end ending time. */
+        get_timer(&be_end_time);
+        /* Display the amount of time used by the back end. */
+        display_time_used("Back end time", &be_start_time, &be_end_time);
+      }  /* if */
     }  /* if */
 #endif /* BACK_END_SHOULD_BE_CALLED */
 
@@ -130,10 +120,12 @@ int main(int argc, char *argv[])
   most_severe_diagnostic = diagnostic_level;
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
 
-  /* Get the ending time. */
-  get_timer(&end_time);
-  /* Display the amount of time used by the entire compilation. */
-   display_time_used("Total compilation time", &start_time, &end_time);
+  if (display_compilation_time) {
+    /* Get the ending time. */
+    get_timer(&end_time);
+    /* Display the amount of time used by the entire compilation. */
+    display_time_used("Total compilation time", &start_time, &end_time);
+  }  /* if */
 
   /* Exit with the return code appropriate to the highest severity error
      detected. */

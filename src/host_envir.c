@@ -103,6 +103,31 @@ EXTERN_C int abort(void);
 EXTERN_C void exit(int status);
 #endif /* __ANSIC__ */
 
+/*
+Header files needed to use the system routines to get the elapsed clock
+time and CPU time.  The ANSI routines are used when possible; otherwise
+the UNIX routines are assumed to be available.
+
+Note: If you are not using an ANSI C library make sure that
+CLOCK_FREQUENCY is defined properly below.
+*/
+#if __ANSIC__
+#include <time.h>
+#ifndef CLOCKS_PER_SEC
+??=error -- Compiling in __ANSIC__ mode but CLOCKS_PER_SEC is not
+	    defined in time.h.
+#endif /* defined(CLOCKS_PER_SEC) */
+#else /* !__ANSIC__ */
+#include <sys/types.h>
+#include <sys/times.h>
+#ifdef sun
+#include <sys/param.h>
+#define CLOCK_FREQUENCY HZ
+#else /* !defined(sun) */
+#define CLOCK_FREQUENCY 60
+#endif /* defined(sun) */
+#endif /* __ANSIC__ */
+
 #if __MSDOS__
 /* Function definitions for MS-DOS compilers. */
 #if __TURBOC__ || __ZTC__
@@ -123,7 +148,7 @@ static int getpid(void)
 EXTERN_C int getpid(void);
 /* Unlink (delete) a file. */
 EXTERN_C int unlink(char *path);
-EXTERN_C time_t time(time_t tloc);
+EXTERN_C time_t time(time_t* tloc);
 #endif /* __cplusplus */
 #endif /* __MSDOS__ */
 
@@ -1445,7 +1470,7 @@ char *memset(register char *ptr,
 #endif /* __VMS__ */
 
 
-static clock_t get_cpu_time(void)
+static a_cpu_time get_cpu_time(void)
 /*
 Returns the amount of CPU time used by this process (and any child processes)
 since the start of the compilation.  The value is converted to milliseconds.
@@ -1485,12 +1510,12 @@ since the start of the compilation.  The value is converted to milliseconds.
 }  /* get_cpu_time */
 
 
-static time_t get_time(void)
+static a_real_time get_time(void)
 /*
-Return the current wall clock time.
+Return the current wall clock time normalized to seconds.
 */
 {
-  return (time((time_t*)NULL));
+  return ((a_real_time)time((time_t*)NULL));
 }  /* get_time */
 
 
@@ -1504,10 +1529,10 @@ to the caller.
   timer->real_time = get_time();
 }  /* get_timer */
 
-void calc_time_difference(a_timer_ptr	start_time,
-			  a_timer_ptr	end_time,
-			  double	*cpu_time,
-			  double	*real_time)
+static void calc_time_difference(a_timer_ptr	start_time,
+			         a_timer_ptr	end_time,
+			         double		*cpu_time,
+			         double		*real_time)
 /*
 Given a starting and ending timer, return the elapsed time and CPU
 time in seconds.
@@ -1524,6 +1549,22 @@ time in seconds.
   *cpu_time = ((double)(end_time->cpu_time) -
               ((double)start_time->cpu_time)) / 1000;
 }  /* calc_time_difference */
+
+
+void display_time_used(char		*message,
+		       a_timer_ptr	start_time,
+		       a_timer_ptr	end_time)
+/*
+Display the difference in CPU time and elapsed time between two timers.
+*/
+{
+  double	cpu_time;
+  double	real_time;
+
+  calc_time_difference(start_time, end_time, &cpu_time, &real_time);
+  fprintf(stderr, "%-30s %10.2f (CPU) %10.2f (elapsed)\n", message,
+          cpu_time, real_time);
+}  /* display_time_used */
 
 
 /******************************************************************************
