@@ -1,5 +1,11 @@
 Version 2.36
 
+5/8/97    Invalid test in find_function_template_member
+
+A test in find_function_template_member used the incorrect variant
+of a symbol.  This could result in sporadic internal errors.  This
+has been fixed.
+
 5/8/97    Error on use of "this" in a constant expression
 
 An error is now issued on a use of "this" within a constant expression.
