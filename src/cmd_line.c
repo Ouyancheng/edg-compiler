@@ -2553,10 +2553,8 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_list_include_files:
         /* Generate on stdout a list of the names of the #include files
-           processed, but do not compile. */
+           processed. */
         check_assertion(opt_value == TRUE);
-        do_preprocessing_only = TRUE;
-        generate_pp_output = FALSE;
         list_included_files = TRUE;
         list_makefile_dependencies = FALSE;
         break;
@@ -3540,10 +3538,6 @@ enable_microsoft_mode:
       command_line_error(
           ec_cl_list_make_dependencies_incompatible_with_multiple_trans_units);
     }  /* if */
-    if (list_included_files) {
-      command_line_error(
-                   ec_cl_list_includes_incompatible_with_multiple_trans_units);
-    }  /* if */
     if (generate_pp_output) {
       command_line_error(
                        ec_cl_pp_output_incompatible_with_multiple_trans_units);
@@ -3607,7 +3601,8 @@ enable_microsoft_mode:
     suppress_il_lowering = TRUE;
 #endif /* DO_IL_LOWERING */
     if ((list_makefile_dependencies || list_included_files) &&
-        error_threshold == es_warning) {
+        error_threshold == es_warning &&
+        do_preprocessing_only) {
       /* When preprocessing only to list makefile dependencies or
          included files, suppress warnings. */
       error_threshold = es_discretionary_error;

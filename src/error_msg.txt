@@ -1127,7 +1127,7 @@ ec_entity_defined_in_other_trans_unit;;"%n already defined during compilation of
 ec_entity_defined_twice;;"%n already defined in another translation unit"
 ec_based_var_cannot_be_local;;"a non-static local variable may not be used in a __based specification"
 ec_cl_list_make_dependencies_incompatible_with_multiple_trans_units;;"the option to list makefile dependencies may not be specified when compiling more than one translation unit"
-ec_cl_list_includes_incompatible_with_multiple_trans_units;;"the option to list included files may not be specified when compiling more than one translation unit"
+REMOVED;ec_cl_list_includes_incompatible_with_multiple_trans_units;;"the option to list included files may not be specified when compiling more than one translation unit"
 ec_cl_pp_output_incompatible_with_multiple_trans_units;;"the option to generate preprocessed output may not be specified when compiling more than one translation unit"
 ec_field_name_conflicts_with_class;;"a field with the same name as its class cannot be declared in a class with a user-declared constructor"
 ec_cl_implicit_include_incompatible_with_multiple_trans_units;;"\"implicit_include\" cannot be used when compiling more than one translation unit"

@@ -3178,9 +3178,9 @@ to be displayed.
 */
 {
   /* Indent the output by the input stack depth. */
-  unsigned long indent = (unsigned long)(depth - 1);
-  for (; indent > 0; indent--) fputc(' ', f_pp_output);
-  fprintf(f_pp_output, "%s\n", file_name);
+  int indent = depth - 1;
+  check_assertion(indent >= 0);
+  fprintf(stderr, "%*s%s\n", indent, "", file_name);
 }  /* display_included_file_name */
   
 

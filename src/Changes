@@ -1,5 +1,14 @@
 Version 2.46
 
+11/30/01 Change in behavior of -H (list included files) option
+
+Formerly, the -H option (list included files) would cause the front end
+to do preprocessing only.  It appears that most compilers, however, do
+full compilation when the -H option is used.  We now do full compilation
+when the -H option is used.  The output, which used to be directed to
+the preprocessed output file (which default to standard output) is now
+sent to standard error (because that is what other compilers seem to do).
+
 11/28/01 Reduced IL prefix memory use when using 8 byte alignment
 
 When HOST_ALIGNMENT_REQUIRED is 8 bytes, but the alignment required for
