@@ -6486,7 +6486,8 @@ the invalid placeholder corresponding to type is returned.
     }  /* if */
     tp = tp->next;
   }  /* while */
-  check_assertion(num_invalid_placeholders_in_file_scope == 0 || type != NULL);
+  check_assertion(type != NULL ? tp != NULL
+                               : num_invalid_placeholders_in_file_scope == 0);
   return tp;
 }  /* find_and_eliminate_invalid_placeholder_in_file_scope */
 
