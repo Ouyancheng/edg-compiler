@@ -1231,8 +1231,8 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_namespace_ptr, iek_namespace);
         if (ptr->is_namespace_alias) {
-          walk_ptr(ptr->variant.assoc_namespace, a_namespace_ptr,
-                   iek_namespace);
+          remap_ptr(ptr->variant.assoc_namespace, a_namespace_ptr,
+                    iek_namespace);
         } else {
           walk_ptr(ptr->variant.assoc_scope, a_scope_ptr, iek_scope);
         }  /* if */
