@@ -672,6 +672,15 @@ EXTERN a_seq_number
 			   sequence number actually read, as an indication
 			   of a sort of end-of-file line. */
 
+EXTERN a_seq_number
+		seq_number_last_read;
+			/* The sequence number of the physical line last read
+			   from curr_input_stream.  This is often not the
+			   same as the line number in the file.  Once the
+			   end of file on the primary source file has been
+			   passed, this indicates a sequence number one past
+			   the highest sequence number actually read, as an
+			   indication of a sort of end-of-file line. */
 /*
 Variable giving the current character position in the current
 logical source line.  Usually, this points within curr_source_line,

@@ -98,15 +98,6 @@ static int	depth_input_stack;
 			/* Depth of the input stack, minus 1.
 			   input_stack[depth_input_stack] is the active
 			   entry.  -1 if the stack is completely empty. */
-static a_seq_number
-		seq_number_last_read;
-			/* The sequence number of the physical line last read
-			   from curr_input_stream.  This is often not the
-			   same as the line number in the file.  Once the
-			   end of file on the primary source file has been
-			   passed, this indicates a sequence number one past
-			   the highest sequence number actually read, as an
-			   indication of a sort of end-of-file line. */
 static FILE
 		*curr_input_stream;
 			/* The currently active source input stream. */
