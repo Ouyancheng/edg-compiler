@@ -7579,10 +7579,12 @@ caller.
        past the closing right brace. */
     *(decl_state->final_token_ptr) = tok_rbrace;
 #if USER_CONTROL_OF_STRUCT_PACKING
-    /* Recored the current setting of the maximum alignment for local class
-       members (an adjustment may be required for packing). */
-    tssp->variant.function.func_info.max_member_alignment =
+    if (!err) {
+      /* Recored the current setting of the maximum alignment for local class
+         members (an adjustment may be required for packing). */
+      tssp->variant.function.func_info.max_member_alignment =
                              current_max_alignment_for_class_members();
+    }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
   }  /* if */
   if (err) {
