@@ -1,5 +1,21 @@
 Version 2.19
 
+8/5/93  Error recovery on functional-notation cast
+
+Error recovery has been improved on function-notation casts with
+no arguments, e.g., T().
+
+8/5/93  Message reworded
+
+The message about an invalid detination type for a cast has been reworded
+from
+
+  type of cast must be arithmetic, pointer, or void
+
+to
+
+  cast to type "type" is not allowed
+
 8/5/93  IL lowering: reusable copies of expressions
 
 In a number of cases, IL lowering must make a copy of an expression
