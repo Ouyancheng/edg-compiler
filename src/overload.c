@@ -4942,7 +4942,7 @@ equivalent pointer case).
     /* The conversion failed. */
     if (!ambiguous) {
       /* No conversion applies. */
-      if (is_error_type(dest_type)) {
+      if (is_error_type(dest_type) || is_error_type(source_type)) {
         /* Some previous error. */
       } else if (is_incomplete_type(dest_type)) {
         /* Conversion to an incomplete type is not possible (in this
