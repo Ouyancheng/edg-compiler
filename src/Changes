@@ -1,5 +1,17 @@
 Version 3.3
 
+5/13/03  Microsoft/GNU C++ modes: Pure virtual specifier syntax
+
+Normally, pure virtual member functions are declared using the "= 0" suffix,
+where zero must be spelled exactly like "0".  However, Microsoft and GNU
+compilers also accept alternative spellings like "00" and "0L".  This
+relaxed behavior is now emulated in the corresponding C++ modes.  For example:
+
+  struct X {
+    virtual void f1() = 00;  // Accepted in Microsoft and GNU C++ modes.
+    virtual void f2() = 0L;  // Accepted in Microsoft and GNU C++ modes.
+  };
+
 5/13/03  Microsoft compatibility: problem with using-directive bug emulation
 
 In Microsoft bugs mode, when Microsoft version is <= 1200, we emulate a
