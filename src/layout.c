@@ -2328,10 +2328,8 @@ Reserve space at the end of the class object for virtual base classes.
 
       for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
         if (bcp->is_virtual) {
-          /* Record the current offset in the data_section_offset of the
-             virtual base class entry.  This allows for direct access of
-             its fields (rather than through a pointer) as an optimization
-             under certain circumstances. */
+          /* Allocate space for the virtual base class (not including any
+             virtual bases it may itself have). */
           size = bcp->type->variant.class_struct_union.extra_info->
                                              size_without_virtual_base_classes;
           alignment = bcp->type->variant.class_struct_union.extra_info->
