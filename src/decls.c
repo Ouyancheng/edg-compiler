@@ -6671,9 +6671,22 @@ return a pointer to it in *symbol_ptr.
            reenter the symbol into the symbol table; this keeps the typedef
            name from being used in an elaborated type specifier (7.1.3 para 5,
            9.1 para 5). */
-        if (is_class_or_enum) {
-            /* Note that in non-cfront mode this is done only for types that
-               actually do have linkage. */
+        a_type_ptr  unqualified_type = tp;
+        while (unqualified_type->kind == (a_type_kind)tk_typeref &&
+               !typeref_is_typedef(unqualified_type)) {
+          unqualified_type = skip_typerefs(unqualified_type);
+        }  /* while */
+        if (is_class_or_enum ||
+            (!has_name(unqualified_type) &&
+             (is_immediate_class_type(unqualified_type) ||
+              is_immediate_enum_type(unqualified_type)))) {
+          /* We also assign a name to class and enum types when one of their
+             cv-qualified forms has been typedefed: that name is used to
+             mangle functions that make use of these types (a warning will
+             have been issued in such a case because a function with external
+             linkage involves a type with no linkage. */
+          /* Note that in non-cfront mode this is done only for types that
+             actually do have linkage. */
           tp->source_corresp.name = locator->symbol_header->identifier;
         }  /* if */
       }  /* if */
