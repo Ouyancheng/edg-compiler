@@ -263,7 +263,6 @@ compilation, not once per translation unit.
 */
 {
   static a_boolean catch_warning_issued    = FALSE;
-  static a_boolean template_warning_issued = FALSE;
   static a_boolean throw_warning_issued    = FALSE;
   static a_boolean try_warning_issued      = FALSE;
 
@@ -274,12 +273,6 @@ compilation, not once per translation unit.
       if (!catch_warning_issued) {
         err = TRUE;
         catch_warning_issued = TRUE;
-      }  /* if */
-      break;
-    case tok_template:
-      if (!template_warning_issued) {
-        err = TRUE;
-        template_warning_issued = TRUE;
       }  /* if */
       break;
     case tok_throw:
@@ -3894,11 +3887,11 @@ id_scan:
 #if 0
               goto end_id_scan;
 #else
-              /* The keywords defined to support C++ templates and exceptions
+              /* The keywords defined to support C++ exceptions
                  are for the time being ignored and treated as identifiers.
                  However, a warning is issued.  This check will be removed
                  when support is added. */
-              if (ctoken == tok_catch || ctoken == tok_template ||
+              if (ctoken == tok_catch ||
                   ctoken == tok_throw || ctoken == tok_try) {
                 unimplemented_keyword_warning(assoc_symbol);
                 ctoken = tok_identifier;
