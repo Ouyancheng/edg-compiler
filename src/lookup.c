@@ -1045,6 +1045,70 @@ members of the set are from the same scope.
 }  /* symbols_from_same_scope */
 
 
+/* Forward declaration. */
+static a_symbol_ptr add_symbol_to_lookup_set(
+                               a_symbol_ptr		curr_sym,
+                               a_symbol_ptr		new_sym,
+                               a_symbol_locator		*locator,
+                               a_boolean		qualified_lookup,
+                               a_namespace_ptr		qualifier_namespace,
+                               an_id_lookup_options_set	options,
+                               a_boolean		*any_errors);
+
+
+static a_boolean check_for_tag_hiding(
+			a_symbol_ptr			*curr_sym,
+			a_symbol_ptr			fund_curr_sym,
+			a_symbol_ptr			new_sym,
+			a_symbol_locator		*locator,
+			a_namespace_ptr			qualifier_namespace,
+			a_boolean			qualified_lookup,
+			an_id_lookup_options_set	options,
+                        a_boolean			*any_errors)
+/*
+This routine is used by add_symbol_to_lookup_set to detect the case
+in which a tag symbol is hidden by a nontype symbol from the same
+scope.
+
+curr_sym and new_sym are the two symbols, either one of which could be
+a tag or nontag.
+
+In Sun compatibility mode, the symbols need not be from the same scope.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (sun_mode || symbols_from_same_scope(fund_curr_sym, new_sym)) {
+    a_boolean	new_is_tag = is_tag_symbol(new_sym);
+    a_boolean	curr_is_tag = is_tag_symbol(fund_curr_sym);
+    if (new_is_tag != curr_is_tag) {
+      /* Two symbols from the same scope and only one is a nontag.
+         This is okay. */
+      result = TRUE;
+      if (curr_is_tag) {
+        /* The current symbol is a tag and the new one is not. 
+           Prefer the nontag (i.e., the new symbol).  Update the
+           namespace projection symbol to point to the new symbol. */
+        check_assertion_str2((*curr_sym)->kind ==
+                                   (a_symbol_kind)sk_namespace_projection,
+                             "add_symbol_to_lookup_set:",
+                             "expected a namespace projection symbol");
+        /* Reset the namespace projection to NULL, then recall this routine
+           to add the new symbol.  This is done to handle cases where
+           new_sym points to an overload set. */
+        (*curr_sym)->variant.namespace_projection.fundamental_symbol = NULL;
+        *curr_sym = add_symbol_to_lookup_set(
+                             *curr_sym, new_sym, locator, qualified_lookup,
+                             qualifier_namespace, options, any_errors);
+      } else {
+        /* The current symbol is a nontag and the new one is a tag.
+           Simply ignore the new one. */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* check_for_tag_hiding */
+
 static
 a_symbol_ptr add_symbol_to_lookup_set(
                                a_symbol_ptr		curr_sym,
@@ -1118,33 +1182,12 @@ scope lookup.  options specifies the options being used for the lookup.
          and one is a tag and the other a nontag.  Set the error flag.
          It will be cleared later if we determine that this case is okay. */
       err = TRUE;
-      if (symbols_from_same_scope(fund_curr_sym, new_sym)) {
-        a_boolean	new_is_tag = is_tag_symbol(new_sym);
-        a_boolean	curr_is_tag = is_tag_symbol(fund_curr_sym);
-        if (new_is_tag != curr_is_tag) {
-          /* Two symbols from the same scope and only one is a nontag.
-             This is okay. */
-          err = FALSE;
-          if (curr_is_tag) {
-            /* The current symbol is a tag and the new one is not. 
-               Prefer the nontag (i.e., the new symbol).  Update the
-               namespace projection symbol to point to the new symbol. */
-            check_assertion_str2(curr_sym->kind ==
-                                       (a_symbol_kind)sk_namespace_projection,
-                                 "add_symbol_to_lookup_set:",
-                                 "expected a namespace projection symbol");
-            /* Reset the namespace projection to NULL, then recall this routine
-               to add the new symbol.  This is done to handle cases where
-               new_sym points to an overload set. */
-            curr_sym->variant.namespace_projection.fundamental_symbol = NULL;
-            curr_sym = add_symbol_to_lookup_set(
-                                 curr_sym, new_sym, locator, qualified_lookup,
-                                 qualifier_namespace, options, any_errors);
-          } else {
-            /* The current symbol is a nontag and the new one is a tag.
-               Simply ignore the new one. */
-          }  /* if */
-        }  /* if */
+      if (check_for_tag_hiding(&curr_sym, fund_curr_sym, new_sym, locator,
+                               qualifier_namespace, qualified_lookup,
+                               options, any_errors)) {
+        /* curr_sym is set to the appropriate symbol by
+           check_for_tag_hiding. */
+        err = FALSE;
       } else if (is_type_symbol(new_sym) && is_type_symbol(fund_curr_sym) &&
                  identical_types(type_symbol_type(new_sym),
                                  type_symbol_type(fund_curr_sym))) {

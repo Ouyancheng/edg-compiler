@@ -1,5 +1,20 @@
 Version 2.43
 
+11/9/99  Sun compatibility: using-directive non-tag hides tag from other scope
+
+In Sun mode, a non-tag from one scope hides a tag from another scope when
+both are visible as a result of a using-directive (such names should
+be ambiguous because the hiding of a tag name should occur only when both
+names are from the same scope).
+
+  template <class T> struct B { };
+  namespace N {
+    typedef B<char> A; 
+  }
+  using namespace N;
+  class A; 
+  typedef A C;   // Sun mode uses typedef N::A instead of ambiguity
+
 11/8/99  Visibility of declarations designated by member using-declarations
 
 The front end now verifies that declarations designated by member using-
