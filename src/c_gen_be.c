@@ -721,22 +721,22 @@ to be a complete token.
   }
   goto done;
 digit5:
-  digit = num/10000;
+  digit = (int)(num/10000);
   digitch = digit + '0';
   m_write_ch(digitch);
   num = num - digit*10000;
 digit4:
-  digit = num/1000;
+  digit = (int)(num/1000);
   digitch = digit + '0';
   m_write_ch(digitch);
   num = num - digit*1000;
 digit3:
-  digit = num/100;
+  digit = (int)(num/100);
   digitch = digit + '0';
   m_write_ch(digitch);
   num = num - digit*100;
 digit2:
-  digit = num/10;
+  digit = (int)(num/10);
   digitch = digit + '0';
   m_write_ch(digitch);
   num = num - digit*10;
