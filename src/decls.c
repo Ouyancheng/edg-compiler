@@ -5762,16 +5762,6 @@ Returns TRUE if there is an error in the specifiers.
           error(ec_mult_storage_classes);
           err = TRUE;
         } else {
-          if (num_specifiers != 0 && C_dialect != C_dialect_pcc) {
-            /* Storage class specifier other than first is an obsolescent
-               feature (see 3.9.3). */
-            if (*output_flags & DSO_FRIEND) {
-              /* An error is issued when a storage class appears on a friend
-                 declaration, so suppress the warning. */
-            } else {
-              warning(ec_storage_class_not_first);
-            }  /* if */
-          }  /* if */
           if (is_parameter && curr_token != tok_register &&
               (C_dialect != C_dialect_cplusplus || curr_token != tok_auto)) {
             /* For parameters, the only allowed storage class specifiers are
@@ -5786,6 +5776,14 @@ Returns TRUE if there is an error in the specifiers.
             error(ec_bad_member_storage_class);
             err = TRUE;
           } else {
+            if (C_dialect != C_dialect_pcc && !err) {
+              if (num_specifiers > ((*output_flags & DSO_FRIEND) ? 1 : 0) +
+                                   (is_inline ? 1 : 0)) {
+                /* Issue a warning if the storage class is not the first
+                   specifier (except for "inline" or "friend"). */
+                warning(ec_storage_class_not_first);
+              }  /* if */
+            }  /* if */
             switch (curr_token) {
               case tok_typedef:
                 *storage_class = (a_storage_class)sc_typedef;  break;
