@@ -4565,6 +4565,12 @@ on for use in generating cross-reference output describing this declaration.
         typeref_is_typedef(type_ptr) &&
         skip_typerefs(type_ptr)->variant.routine.extra_info->qualifiers
                                                                  != TQ_NONE) {
+      /* Strip the qualifier from the routine type to avoid problems
+         later on. */
+      a_type_ptr  type_for_recovery = alloc_type((a_type_kind)tk_routine);
+      copy_type(skip_typerefs(type_ptr), type_for_recovery);
+      type_for_recovery->variant.routine.extra_info->qualifiers = TQ_NONE;
+      type_ptr = type_for_recovery;
       pos_error(ec_bad_qualified_function_type, &locator->source_position);
     }  /* if */
     /* If this is an overloaded operator, check for errors in the

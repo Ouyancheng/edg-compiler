@@ -1,5 +1,20 @@
 Version 2.46
 
+6/26/01  Abort when attempting to define a function previously declared
+         with a cv-qualified typedef
+
+Declaring an ordinary (i.e., non-member) function with a typedef for a
+cv-qualified function type is an error diagnosed by the front end.
+However, if such a declaration was followed by an attempt to define the
+function (with or without cv-qualifiers), the front end aborted with an
+internal error.
+
+  typedef void FT() const;
+  FT f;       // Error: f cannot be "const"
+  void f() {} // Used to abort
+
+This is now fixed.
+
 6/25/01  Abort on severely malformed class template declaration
 
 In certain cases, the parser can get confused during the initial parse
