@@ -5715,6 +5715,7 @@ the initialization being done is for the value returned from a function.
        list at that level. */
     remove_from_destruction_list(dip);
     temp_init_node->variant.init.static_temp = FALSE;
+    dip->has_temporary_lifetime = TRUE;
     if (initializing_return_value && dip->destructor != NULL) {
       /* In a return, we don't want a dynamic initialization that specifies
          a destructor call (the caller does the destruction);
@@ -6164,17 +6165,21 @@ limited loophole allowed in cfront compatibility mode.
 }  /* is_field_selection_lvalue_operand */
 
 
-static void adjust_top_temporary_for_binding_to_static_reference(
-                                                           an_operand *operand)
+static void adjust_top_temporary_for_binding_to_reference(
+                                                    an_operand *operand,
+                                                    a_boolean  static_lifetime)
 /*
-operand is the initializer expression being bound to a static lifetime
-reference.  It has already been massaged into the right type, and a
-temporary has been generated if necessary.  If the top of the expression
-is a temporary, ensure that the temporary will have static lifetime
-so it will last as long as the reference.  This is needed for cases like
+operand is the initializer expression being bound to a reference.
+It has already been massaged into the right type, and a temporary has
+been generated if necessary.  If the top of the expression is a temporary,
+ensure that the temporary will have an appropriate lifetime so it will
+last as long as the reference.  If static_lifetime is TRUE, the reference
+is static; otherwise, it is automatic.  This is needed for cases like
 
   void f() {
-    static const A& r = A(1) + A(2);
+    static const A& r = A(1) + A(2);  // Lifetime extended to static lifetime
+           const A& s = A(1) + A(2);  // Lifetime extended to scope instead
+                                      //   of just full expression
   }
 
 */
@@ -6185,29 +6190,42 @@ so it will last as long as the reference.  This is needed for cases like
 
   if (is_expression_operand(operand)) {
     node = operand->variant.expression;
-    /* Drop any casts on top of the expression. */
-    while (is_operation_node(node) &&
-           node->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
-      node = node->variant.operation.operands;
+    /* Drop any field selections or implicit casts on top of the expression. */
+    while (is_operation_node(node)) {
+      an_expr_operator_kind op = node->variant.operation.kind;
+      if (((op == (an_expr_operator_kind)eok_cast ||
+            op == (an_expr_operator_kind)eok_base_class_cast) &&
+           node->variant.operation.compiler_generated) ||
+          op == (an_expr_operator_kind)eok_field) {
+        node = node->variant.operation.operands;
+      } else {
+        break;
+      }  /* if */
     }  /* while */
     if (node->kind == (an_expr_node_kind)enk_temp_init) {
-      node->variant.init.static_temp = TRUE;
+      if (static_lifetime) node->variant.init.static_temp = TRUE;
       dip = node->variant.init.dynamic_init;
+      dip->has_temporary_lifetime = FALSE;
       lifetime = dip->lifetime;
       /* The "lifetime != NULL" test here deals with initializations that
          do not need a destructor. */
-      if (lifetime != NULL &&
-          (lifetime->kind != (an_object_lifetime_kind)olk_global_static &&
-           lifetime->kind != (an_object_lifetime_kind)olk_function_static)) {
-        /* The dynamic init for the temporary is attached to a lifetime that
-           is not static, so it must be removed and put into a static
-           lifetime. */
-        remove_from_destruction_list(dip);
-        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/TRUE);
+      if (lifetime != NULL) {
+        an_object_lifetime_kind kind = lifetime->kind;
+        if (static_lifetime ?
+                   (kind != (an_object_lifetime_kind)olk_global_static &&
+                    kind != (an_object_lifetime_kind)olk_function_static) :
+                   (kind == (an_object_lifetime_kind)olk_expr_temporary)) {
+          /* The dynamic init for the temporary is attached to an
+             inappropriate lifetime, so it must be removed and put into another
+             lifetime. */
+          remove_from_destruction_list(dip);
+          record_end_of_lifetime_destruction(dip, static_lifetime,
+                                             /*block_lifetime=*/TRUE);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* adjust_top_temporary_for_binding_to_static_reference */
+}  /* adjust_top_temporary_for_binding_to_reference */
 
 
 void prep_initializer_operand(an_operand    *source_operand,
@@ -6442,11 +6460,10 @@ found to be acceptable, and *conversion describes it.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (static_lifetime) {
-      /* The reference being bound is static, so if the top thing in the
-         initializer is a temporary, make sure the temporary is also static. */
-      adjust_top_temporary_for_binding_to_static_reference(source_operand);
-    }  /* if */
+    /* If the top thing in the initializer is a temporary, make sure the
+       temporary has a lifetime as long as the reference. */
+    adjust_top_temporary_for_binding_to_reference(source_operand,
+                                                  static_lifetime);
   } else {
     /* Normal case (not initializing a reference). */
     prep_conversion_operand(source_operand, dest_type, conversion,
