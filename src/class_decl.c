@@ -2752,14 +2752,7 @@ or struct definition.  The syntax is
       if (is_virtual || bcp_cssp->constructor != NULL) {
         cssp->constructor_required = TRUE;
       }  /* if */
-      if (bcp_cssp->destructor != NULL) {
-        cssp->destructor_required = TRUE;
-        if (!bcp_cssp->destructor->variant.routine.ptr->is_virtual) {
-          /* The base class has a nonvirtual destructor, which is not
-             recommended (see commentary in ARM 12.4). */
-          type_remark(ec_base_class_with_nonvirtual_dtor, base_class_type);
-        }  /* if */
-      }  /* if */
+      if (bcp_cssp->destructor != NULL) cssp->destructor_required = TRUE;
       /* Indicate whether an operator new or operate delete is inherited into
          the current derived class. */
       if (bcp_cssp->has_operator_new) cssp->has_operator_new = TRUE;
@@ -5546,6 +5539,72 @@ The routine body is not generated until it is known to be needed.
 }  /* check_special_member_functions */
 
 
+static a_boolean has_more_than_one_direct_base_class(a_type_ptr  class_type)
+/*
+Return TRUE if the base class list for class_type includes more than one
+entry marked "direct".
+*/
+{
+  a_base_class_ptr  bcp = base_classes_of(class_type);
+  int               count = 0;
+
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct) {
+      if (++count > 1) break;
+    }  /* if */
+  }  /* for */
+  return (count > 1);
+}  /* has_more_than_one_direct_base_class */
+
+
+static void check_base_class_destructors(a_type_ptr  class_type)
+/*
+Issue a diagnostic on any direct base class of class_type that has a
+nonvirtual destructor.  The point is to warn the user in case the program
+should attempt to delete an object of type class_type through a pointer to
+one of its direct base classes.
+*/
+{
+  a_base_class_ptr               bcp;
+  a_class_symbol_supplement_ptr  cssp;
+  a_symbol_ptr                   dtor_sym;
+
+  if ((int)error_threshold > (int)es_remark) {
+    /* Only a remark would have been issued.  Don't bother checking for a
+       diagnosable condition. */
+  } else if ((bcp = base_classes_of(class_type)) != NULL) {
+    /* class_type does have base classes.  Be sure class_type is not an
+       empty wrapper. */
+    cssp = symbol_supplement_for_class(class_type);
+    if (!cssp->any_nonstatic_data_members && cssp->destructor == NULL &&
+        !class_type->variant.class_struct_union.any_virtual_functions &&
+        !class_type->variant.class_struct_union.any_virtual_base_classes &&
+        !has_more_than_one_direct_base_class(class_type)) {
+      /* class_type is just a wrapper around a single direct base class.
+         It introduces no new fields and has no implicit pointers, (so its
+         size will be identical to that of its direct base class) and it has
+         no user-defined destructor.  Therefore calling the base class
+         destructor will have the same effect as calling the derived class
+         destructor, and so the diagnostic would be pointless. */
+    } else {
+      /* The derived class is not a mere wrapper. */
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (bcp->direct) {            
+          dtor_sym = symbol_supplement_for_class(bcp->type)->destructor;
+          if (dtor_sym != NULL &&
+              !dtor_sym->variant.routine.ptr->is_virtual) {
+            /* The base class has a nonvirtual destructor, which is not
+               recommended (see commentary in ARM 12.4). */
+            pos_ty_remark(ec_base_class_with_nonvirtual_dtor,
+                          &bcp->decl_position, bcp->type);
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* check_base_class_destructors */
+
+
 static void project_base_class_conversion_functions(a_type_ptr class_type)
 /*
 Go through all the direct base classes of the current class class_type and
@@ -7389,6 +7448,9 @@ next_declaration:
         }  /* if */
       }  /* if */
       if (!is_nonreal_instantiation) {
+        /* Check to see if a remark should be issued on direct base classes
+           with nonvirtual destructors. */
+        check_base_class_destructors(class_type);
         /* Create compiler-generated default constructor, copy constructor,
            destructor, and assignment operator, if any is needed. */
         check_special_member_functions(class_type);
