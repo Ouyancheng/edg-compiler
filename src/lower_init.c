@@ -1018,6 +1018,20 @@ pointed to by dip is lowered.
   an_expr_operator_kind op;
 
   switch (dip->kind) {
+    case dik_zero:
+      /* Set the entity to zero (default initialization). */
+      { a_constant     zero_constant;
+        a_constant_ptr con;
+        a_type_ptr     entity_type = type_pointed_to(entity_node->type);
+        make_zero_of_proper_type(entity_type, &zero_constant);
+        con = alloc_shareable_constant(&zero_constant);
+        /* Lower the zero constant so that (e.g.) pointer to data member
+           constants become the right integral constants. */
+        mark_as_not_visited(con);
+        lower_constant(con);
+        init_val_node = make_node_for_il_constant(con);
+      }
+      break;
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
       /* The constant has already been lowered. */
@@ -2983,6 +2997,14 @@ code for the dynamic initialization.
 }  /* push_init_expr_lifetime */
 
 
+/*
+Pointer to the routine entry for the runtime routine __memzero.  NULL until
+created.
+*/
+static a_routine_ptr
+		memzero_routine;
+
+
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
                         an_expr_node_ptr       implied_arg_list,
@@ -3151,10 +3173,35 @@ in this routine must be FALSE in that case.
     case dik_none:
       break;
     case dik_zero:
-      /* Initialize a variable to zero. */
-      check_assertion_str(variable != NULL,
-                          "lower_dynamic_init: dik_zero variable missing");
-      /* Do nothing here.  Processing is below. */
+      /* Initialize to zero. */
+      if (variable != NULL) {
+        /* Entire variable initialized to zero.  Do nothing here.
+           Processing is below (setting init_kind to initk_zero). */
+      } else {
+        /* Not entire variable. */
+        a_type_ptr entity_type = type_from_init_pos_descr(ipdp);
+        if (is_aggregate_or_union_type(entity_type) ||
+            is_or_was_ptr_to_member_function_type(entity_type)) {
+          /* Aggregate.  Use a call __memzero(entity_node, size). */
+          an_expr_node_ptr memzero_call;
+          a_targ_size_t    entity_size;
+          entity_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
+                                              /*using_as_dest=*/TRUE);
+          entity_size =
+                     f_skip_typerefs(type_pointed_to(entity_node->type))->size;
+          entity_node = add_cast_if_necessary(entity_node, void_star_type());
+          entity_node->next = node_for_integer_constant((long)entity_size,
+                                                        targ_size_t_int_kind);
+          memzero_call = make_runtime_rout_call("__memzero", &memzero_routine,
+                                                void_type(), entity_node);
+          expr_stmt = insert_expr_statement(memzero_call,
+                                            eff_insert_location);
+          set_stmt_pos_to_code_pos_for_lowering(expr_stmt);
+        } else {
+          /* Setting a scalar to zero; can be done by an assignment. */
+          goto do_assignment;
+        }  /* if */
+      }  /* if */
       break;
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
@@ -5710,6 +5757,7 @@ are handled in il_lower_init.)
       pch_saved_var_array_elem(vec_new_routine),
       pch_saved_var_array_elem(vec_new_eh_routine),
       pch_saved_var_array_elem(array_new_routine),
+      pch_saved_var_array_elem(memzero_routine),
       pch_saved_var_array_elem(needed_destruction_type),
       pch_saved_var_array_elem(needed_destruction_object_field),
       pch_saved_var_array_terminating_elem()
@@ -5733,6 +5781,7 @@ of the front end.
   vec_new_routine = vec_new_eh_routine = NULL;
   array_new_routine = vec_cctor_routine = vec_cctor_eh_routine = NULL;
   vec_delete_routine = array_delete_routine = NULL;
+  memzero_routine = NULL;
   record_needed_destruction_routine = NULL;
   needed_destruction_type = NULL;
   file_scope_init_routine = NULL;
