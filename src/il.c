@@ -344,6 +344,7 @@ Dump an indirect base class entry, for debug purposes.
   if (bcp->is_virtual) fputs(", is_virtual", f_debug);
   if (bcp->ambiguous) fputs(", ambiguous", f_debug);
   if (bcp->inaccessible) fputs (", inaccessible", f_debug);
+  if (bcp->any_virtual_steps_in_derivation) fputs (", virtual steps", f_debug);
   fputs(", path = ", f_debug);
   dsp = bcp->derivation;
   if (dsp == NULL) {
@@ -2027,6 +2028,8 @@ to it.
   bcp->is_virtual     = FALSE;
   bcp->direct	      = FALSE;
   bcp->ambiguous      = FALSE;
+  bcp->any_virtual_steps_in_derivation
+                      = FALSE;
   bcp->inaccessible   = FALSE;
   bcp->access         = (an_access_specifier)as_public;
   bcp->offset         = 0;

@@ -837,6 +837,10 @@ typedef struct a_base_class {
 			/* TRUE if a direct cast from the current class to this
 			   base class would be ambiguous because it appears
 			   more than once in the derivation. */
+  unsigned int	any_virtual_steps_in_derivation:1;
+			/* TRUE if any derivation steps mentioned in the
+			   derivation list for this base class is a virtual
+			   base class. */
   unsigned int	inaccessible:1;
 			/* TRUE if no member of the base class is accessible
 			   in the current class (unless it is a direct base
