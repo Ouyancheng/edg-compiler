@@ -5548,7 +5548,8 @@ there was an error type somewhere in the type.
 }  /* underlying_uuidof_type */
  
 
-static void scan_uuidof_operator(an_operand *result)
+static void scan_uuidof_operator(an_operand *result,
+                                 a_boolean  after_keyword)
 /*
 Scan the C++ __uuidof operator, a Microsoft C++ extension.
 
@@ -5557,6 +5558,8 @@ Syntax:
 	__uuidof ( type-id )
 
 The value of the operation is an lvalue of type "const struct _GUID".
+The current token is the __uuidof, unless after_keyword is TRUE, in
+which case it's the token after __uuidof.
 */
 {
   a_source_position start_position;
@@ -5583,7 +5586,7 @@ The value of the operation is an lvalue of type "const struct _GUID".
     err = TRUE;
   }  /* if */
   /* Advance past __uuidof. */
-  (void)get_token();
+  if (!after_keyword) (void)get_token();
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
   add_matching_stop_token(tok_rparen);
@@ -14235,7 +14238,7 @@ see expr.h).
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
       /* Microsoft __uuidof operation. */
-      scan_uuidof_operator(&local_result);
+      scan_uuidof_operator(&local_result, /*after_keyword=*/FALSE);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -16374,6 +16377,62 @@ class type that can be converted to those types.
   return expr;
 }  /* scan_boolean_controlling_expression */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+char *scan_uuidof_operand(void)
+/*
+Scan the operand of a __uuidof(...) in a Microsoft attribute and return
+the UUID string for the operand, or NULL for an error.  The operand
+is either a type or an expression, and in either case the underlying
+type must have an associated UUID.  The current token is the one following
+the __uuidof keyword.
+*/
+{
+  char                *uuid_str;
+  an_operand          result;
+  an_expr_stack_entry expr_stack_entry;
+
+  db_enter(3, "scan_uuidof_operand");
+  /* Push an entry on the expression stack just for safety.
+     scan_uuidof_operator pushes another one for the expression case. */
+  push_expr_stack((an_expression_kind)ek_normal,
+                  &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  scan_uuidof_operator(&result, /*after_keyword=*/TRUE);
+  if (is_error_operand(&result)) {
+    uuid_str = NULL;
+  } else {
+    a_type_ptr     uuidof_type;
+    a_constant_ptr con;
+    check_assertion(is_constant_operand(&result));
+    con = &result.variant.constant;
+    check_assertion(con->kind == (a_constant_repr_kind)ck_address &&
+                    con->variant.address.kind ==
+                                             (an_address_base_kind)abk_uuidof);
+    uuidof_type = con->variant.address.variant.type;
+    if (uuidof_type == NULL) {
+      /* Null GUID. */
+      uuid_str = "0";
+    } else {
+      uuid_str = uuid_string_of_type(uuidof_type);
+      check_assertion(uuid_str != NULL);
+    }  /* if */
+  }  /* if */
+  pop_expr_stack();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if DEBUG
+  if (debug_level >= 3) {
+    fprintf(f_debug, "uuid_str = %s\n", uuid_str == NULL ? "<null>": uuid_str);
+  }  /* if */
+#endif /* DEBUG */
+  db_exit();
+  return uuid_str;
+}  /* scan_uuidof_operand */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
 
 an_expr_node_ptr scan_upc_forall_affinity(void)

@@ -182,6 +182,10 @@ void scan_microsoft_case_label_constant_expression(a_constant *constant);
 
 extern an_expr_node_ptr scan_boolean_controlling_expression(void);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+extern char *scan_uuidof_operand(void);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if GNU_EXTENSIONS_ALLOWED 
 
 extern a_type_ptr scan_typeof_operator(void);
