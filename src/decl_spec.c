@@ -4646,11 +4646,13 @@ Returns TRUE if there is an error in the specifiers.
         /* restrict type qualifier. */
         if (*qualifiers & TQ_RESTRICT) {
           /* Issue a diagnostic if restrict appears more than once. */
-          es = (C_dialect == C_dialect_cplusplus) ? es_warning : es_error;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          /* In Microsoft mode, duplicate qualifiers result in a warning. */
-          if (microsoft_mode) es = es_warning;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          if (c99_mode || microsoft_mode) {
+            /* In Microsoft and C99 mode, duplicate qualifiers result in a
+               warning. */
+            es = es_warning;
+          } else {
+            es = (C_dialect == C_dialect_cplusplus) ? es_warning : es_error;
+          }  /* if */
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
         } else {
