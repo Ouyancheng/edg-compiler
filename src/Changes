@@ -1,5 +1,14 @@
 Version 2.28
 
+2/24/95  SVR4 C compatibility mode
+
+An option has been added to provide additional compatibility with the
+SVR4 ANSI C compiler.  The default for this mode may be changed by
+setting the configuration flag DEFAULT_SVR4_C_MODE.  This mode may
+also be enabled or disabled on the command line using the --svr4 and
+--no_svr4 options.  A list of the features supported in this mode may
+be found in the External Interface chapter in the internals manual.
+
 2/23/95  Internal error instantiation template with uncallable conversion
 
 When a class contains a conversion operator to a base class, the operator
