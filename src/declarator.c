@@ -3143,7 +3143,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
            connected later.  Note that the size is not set (set_type_size is
            not called) at this point; that's done in add_to_derived_type_list,
            once the type pointed to is known, in case pointers to different
-           types have different sizes.  At that time, the is_incomplete flag
+           types have different sizes.  At that time, the incomplete flag
            will be cleared. */
         a_type_ptr new_type_ptr = alloc_type((a_type_kind)tk_pointer);
         new_type_ptr->variant.pointer.type = complete_type;
