@@ -10216,7 +10216,7 @@ The scope is the top scope in a memory region.
         a_statement_ptr lab_stmt = lab->variant.exec_stmt;
         lab_stmt->variant.label.lifetime = NULL;
       }  /* for */
-    }  /* detach */
+    }  /* if */
   } else {
     /* File scope. */
 #if ORPHAN_PROCESSING_NEEDED
