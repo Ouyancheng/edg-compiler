@@ -50,7 +50,6 @@ static a_dynamic_init_dtor_fixup_ptr
 			   been freed and are available for reuse. */
 
 
-
 #if DEBUG
 /*
 Counts of entries allocated, for debugging purposes.
@@ -1705,7 +1704,8 @@ invalid casts of that kind (e.g., ambiguous).
      because we can't link a previous expression in a list to this
      new expression). */
   (*p_node)->next = NULL;
-  if (related_class_pointers(old_type, new_type, &baseward_cast, &bcp)) {
+  if (!C_mode() &&
+      related_class_pointers(old_type, new_type, &baseward_cast, &bcp)) {
     /* C++ cast from a pointer to a class to a pointer to a related
        (base or derived) class. */
     new_type_pointed_to = type_pointed_to(new_type);
@@ -1721,7 +1721,8 @@ invalid casts of that kind (e.g., ambiguous).
          class is a virtual base of the derived class. */
       add_derived_class_casts(new_type_pointed_to, bcp, p_node, err_pos);
     }  /* if */
-  } else if (related_member_pointers(old_type, new_type, &baseward_cast,
+  } else if (!C_mode() &&
+             related_member_pointers(old_type, new_type, &baseward_cast,
                                      &bcp)) {
     /* C++ cast from pointer-to-member to
        pointer-to-member-of-related-class. */
@@ -1827,6 +1828,7 @@ except for casts to ambiguous or inaccessible base classes.
   an_arg_match_level
                     match_level;
   a_std_conv_descr  std_conversion;
+  a_base_class_ptr  bcp;
 
 #if CHECKING
   if (!is_an_rvalue(operand) && !is_error_operand(operand)) {
@@ -1853,12 +1855,34 @@ except for casts to ambiguous or inaccessible base classes.
           /* Do nothing. */
           break;
         case ok_expression:
-          /* Cast the expression node.  If the expression is a constant,
-             change its type in place.  Otherwise, add a cast expression
-             node. */
-          node = operand->variant.expression;
-          cast_node(&node, new_type, is_implicit_cast, &operand->position);
-          make_expression_operand(node, new_type, operand);
+          /* Check for a special case, the derived --> base (class, not
+             pointer) standard conversion in C++.  This is done at the operand
+             level rather than the expression node level because it's only
+             needed at this level and the routines to do it exist at the
+             operand level. */
+          if (!C_mode() &&
+              is_class_struct_union_type(new_type) &&
+              is_class_struct_union_type(operand->type) &&
+              (bcp = find_base_class_of(operand->type, new_type)) != NULL) {
+            a_boolean is_arrow_operator = TRUE;
+            /* Derived --> base cast in C++. */
+            conv_class_operand_to_object_pointer(operand);
+            base_class_cast_operand(operand, bcp, &is_arrow_operator,
+                                    /*check_cast_access=*/TRUE,
+                                    /*implicit_in_naming=*/FALSE);
+            /* Make an address (an lvalue) for the base class object. */
+            conv_object_pointer_to_lvalue(operand);
+            /* And back to an rvalue. */
+            conv_lvalue_to_rvalue(operand);
+          } else {
+            /* Normal case. */     
+            /* Cast the expression node.  If the expression is a constant,
+               change its type in place.  Otherwise, add a cast expression
+               node. */
+            node = operand->variant.expression;
+            cast_node(&node, new_type, is_implicit_cast, &operand->position);
+            make_expression_operand(node, new_type, operand);
+          }  /* if */
           break;
         case ok_constant:
           /* Cast the constant by changing its type.  In a nonconstant

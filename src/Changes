@@ -26,6 +26,8 @@ not pointer) following a conversion function.
   Z z1, z2;
   int i = (z1 == z2);  // Now okay
 
+A related change in cast_operand produces the proper code for this case.
+
 2/12/95  Dropping type qualifiers when binding a reference
 
 Dropping type qualifiers when binding a reference now disqualifies
