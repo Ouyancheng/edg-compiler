@@ -1170,7 +1170,6 @@ is bad (incorrectly formed or has an illegal suffix).
 }  /* reopen_error_output_file */
 
 
-#if IL_SHOULD_BE_WRITTEN_TO_FILE || AUTOMATIC_TEMPLATE_INSTANTIATION
 void delete_file(char *file_name)
 /*
 Delete the file with the indicated name.  It shouldn't be open currently.
@@ -1192,10 +1191,8 @@ Delete the file with the indicated name.  It shouldn't be open currently.
     str_catastrophe(ec_file_delete_error, file_name);
   }  /* if */
 }  /* delete_file */
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE || AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 
-#if NEED_TEMP_FILES
 #if __MSDOS__
 /*
 Data structure used to keep a list of open temporary files under MS-DOS,
@@ -1344,7 +1341,6 @@ Close and delete all open temporary files.
   }  /* while */
 }  /* close_all_temp_files */
 #endif /* __MSDOS__ */
-#endif /* NEED_TEMP_FILES */
 
 
 #if COMPILE_MULTIPLE_SOURCE_FILES
@@ -1486,7 +1482,7 @@ execution of the front end (for example, SIGINT).
 {
   (void)signal(SIGINT, term_on_signal);
   (void)signal(SIGTERM, term_on_signal);
-#if __MSDOS__ && NEED_TEMP_FILES
+#if __MSDOS__
   /* Under MS-DOS, establish an atexit routine to close and delete all
      temporary files. */
   if (atexit(close_all_temp_files) != 0) {
@@ -1494,7 +1490,7 @@ execution of the front end (for example, SIGINT).
     internal_error("set_signal_handlers: could not set atexit handler");
 #endif /* CHECKING */
   }  /* if */
-#endif /* __MSDOS__ && NEED_TEMP_FILES */
+#endif /* __MSDOS__ */
 }  /* set_signal_handlers */
 
 #ifdef NEED_SIZE_T_ARG_ERROR

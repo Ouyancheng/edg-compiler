@@ -964,26 +964,12 @@ extern void reopen_error_output_file(char          *file_name,
                                      a_boolean     *cannot_open,
                                      a_boolean     *bad_name);
 
-#if IL_SHOULD_BE_WRITTEN_TO_FILE || AUTOMATIC_TEMPLATE_INSTANTIATION
 extern void delete_file(char *file_name);
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-
-/* Temp files are only needed:
-   a)  Within the C-generating back end.
-   b)  When writing an IL file that will be passed to a back end in the
-       same program.
-*/
-#define NEED_TEMP_FILES                                               \
-  ((BACK_END_IS_C_GEN_BE && (STANDALONE_C_GEN_BE ||                   \
-                             BACK_END_SHOULD_BE_CALLED)) ||           \
-   (IL_SHOULD_BE_WRITTEN_TO_FILE && BACK_END_SHOULD_BE_CALLED))
-#if NEED_TEMP_FILES
 
 /* Open a temporary file. */
 extern FILE *open_temp_file(a_boolean binary_file);
 /* Close a temporary file. */
 extern void close_temp_file(FILE *temp_file);
-#endif /* NEED_TEMP_FILES */
 
 /*
 Types used to determine the execution time of the compiler.
