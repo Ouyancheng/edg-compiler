@@ -2416,7 +2416,8 @@ user-defined conversions.
           } else {
             /* The operation was successfully folded to a constant. */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-            if (!curr_expr_kind_is(ek_pp)) {
+            if (!(curr_expr_kind_is(ek_pp) ||
+                  curr_expr_kind_is(ek_template_arg))) {
               /* Record the constant's expression. */
               local_constant.expr = make_node_from_operand(operand);
               add_cast_to_node(&local_constant.expr, new_type,
@@ -4329,7 +4330,8 @@ position.
       } else {
         /* The operation was folded to a constant. */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-        if (!curr_expr_kind_is(ek_pp)) {
+        if (!(curr_expr_kind_is(ek_pp) ||
+              curr_expr_kind_is(ek_template_arg))) {
           /* Record the expression in the constant. */
           result_constant.expr = result_expr.variant.expression;
         }  /* if */
@@ -4461,6 +4463,9 @@ reference entry, or is NULL if none is needed.
       set_variable_address_constant(variable, &result->variant.constant,
                                     /*set_address_taken_flag=*/FALSE);
       result->type = variable_type;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      result->variant.constant.expr = var_lvalue_expr(variable);
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
     result->state = (an_operand_state)os_lvalue;
     /* Start a list of reference entries related to the operand. */
@@ -5685,6 +5690,11 @@ non-NULL return *con_value == NULL.
   if (con_expr_value != NULL) {
     /* The rvalue has a constant value. */
     *constant_case = TRUE;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    con_expr_value = alloc_unshared_constant(con_expr_value);
+    con_expr_value->expr = node->kind == enk_variable_address ?
+                             var_rvalue_expr(node->variant.variable) : node;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     if (con_value != NULL) {
       /* The caller wants the constant instead of an expression node for
          the constant. */
@@ -5827,7 +5837,8 @@ not an lvalue, it is left alone.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
             make_constant_operand(con_var_value, operand);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-            if (!curr_expr_kind_is(ek_pp)) {
+            if (!(curr_expr_kind_is(ek_pp) ||
+                  curr_expr_kind_is(ek_template_arg))) {
               operand->variant.constant.expr = constant_expr;
             }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
@@ -5916,18 +5927,7 @@ not an lvalue, it is left alone.
           if (con_value != NULL) {
             /* The value of the expression is a constant.  Make a constant
                operand instead of the expression operand. */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-            /* Save the expression (variable) that formed the constant, so
-               that we can record it in the new constant operand. */
-            an_expr_node_ptr  expr =
-               var_rvalue_expr(operand->variant.expression->variant.variable);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
             make_constant_operand(con_value, operand);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-            if (!curr_expr_kind_is(ek_pp) && constant_case) {
-              operand->variant.constant.expr = expr;
-            }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
           } else {
             /* The value of the expression is not a constant. */
             operand->variant.expression = node;

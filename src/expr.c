@@ -9225,7 +9225,8 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
         result->variant.constant.null_pointer_constant_ruled_out = TRUE;
       }  /* if */
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-      if (!curr_expr_kind_is(ek_pp)) {
+      if (!(curr_expr_kind_is(ek_pp) ||
+            curr_expr_kind_is(ek_template_arg))) {
         /* Create an expression to be recorded in the constant. */
         an_operand  result_expr;
         do_question_operation(operand_1, &operand_2, &operand_3,
@@ -12051,6 +12052,12 @@ Return the constant in *constant.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  /* There is no point in recording the constant expression for a nontype
+     template parameter, because it can differ from one instantion point to
+     another, and we can record only one set. */
+  constant->expr = NULL;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 #if DEBUG
   if (debug_level >= 3) {

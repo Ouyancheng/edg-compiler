@@ -2712,6 +2712,14 @@ to indicate whether an enumeration is actually defined.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           /* Scan the constant expression. */
           scan_integral_constant_expression(&constant);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+          /* Enumerator constants are stored in file scope memory, and can
+             therefore not point into constants built from local scope
+             entities. */
+          if (constant.expr != NULL && !in_file_scope(constant.expr)) {
+            constant.expr = NULL;
+          }  /* if */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           enum_value_range.end = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
