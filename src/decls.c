@@ -696,13 +696,22 @@ new fields are set properly.
       tp = rout_type->variant.routine.return_type;
       if (!is_error_type(tp) && !is_or_contains_template_param(tp)) {
         if (opname == (an_opname_kind)onk_new) {
-          if (!is_pointer_type(tp) || !is_void_type(type_pointed_to(tp))) {
+          /* Return type must be "void *". */
+          if (!is_pointer_type(tp)) {
             pos_error(ec_bad_return_type_for_op_new,
                       &locator->source_position);
             err = TRUE;
+          } else {
+            tp = type_pointed_to(tp);
+            if (!is_void_type(tp) || is_qualified_type(tp)) {
+              pos_error(ec_bad_return_type_for_op_new,
+                        &locator->source_position);
+              err = TRUE;
+            }  /* if */
           }  /* if */
         } else {
-          if (!is_void_type(tp)) {
+          /* Return type must be "void". */
+          if (!is_void_type(tp) || is_qualified_type(tp)) {
             pos_error(ec_bad_return_type_for_op_delete,
                       &locator->source_position);
             err = TRUE;
