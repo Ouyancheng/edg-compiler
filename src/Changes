@@ -1,5 +1,24 @@
 Version 3.1
 
+11/7/02  Spurious error on using declaration of member of dependent base
+
+Certain kinds of using-declarations naming members of dependent classes
+were incorrectly flagged as errors.  Now fixed.
+
+  template <class T>
+  class X {
+  public:
+  typedef T *ptr;
+  };
+  template <class T>
+  class Y : public X<T> {
+    using X<T>::ptr;
+  };
+  template <class T>
+  class Z : public Y<T> {
+     using X<T>::ptr;  // Formerly got an error
+  };
+
 11/5/02  Incorrect EH cleanup state after local block containing array
 
 A change in 2.30 (see 11/19/01 entry below) introduced a bug in

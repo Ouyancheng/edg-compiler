@@ -10285,18 +10285,16 @@ or implicit) controlling the declaration.
          here. */
       error(ec_template_id_not_allowed);
       err = TRUE;
-    } else if (is_template_param_type(locator_for_curr_id.parent.class_type)) {
-      /* Suppress the base class check and create a dummy base class. */
+    } else if (could_be_dependent_class_type(
+                                      locator_for_curr_id.parent.class_type)) {
+      /* The qualifier is a dependent class.  Suppress the base class check
+         and create a dummy base class. */
       bcp = alloc_base_class();
       bcp->type = declared_sym->parent.class_type;
       bcp->derived_class = class_type;
     } else {
-      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-        if (same_entities(bcp->type, locator_for_curr_id.parent.class_type)) {
-          /* The qualifier is a base class of the current class. */
-          break;
-        }  /* if */
-      }  /* for */
+      bcp = find_base_class_of(class_type,
+                               locator_for_curr_id.parent.class_type);
       if (bcp == NULL) {
         error(ec_bad_base_class);
         err = TRUE;
