@@ -1963,7 +1963,8 @@ specific message applies.  In strict ANSI mode, if a conversion flagged with
 Any implicit conversion is allowed (see impl_conversion_possible).  Also, the
 explicit conversions allowed in casts (ARM 5.2.3 and 5.4; ANSI C 3.3.4)
 are allowed.  Reference conversions have been turned into pointer conversions
-by the time they get here.
+by the time they get here.  Note that this routine does not handle user-defined
+conversions (constructors and conversion functions).
 */
 {
   a_boolean     okay = FALSE, impl_okay;
