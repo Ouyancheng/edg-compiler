@@ -227,6 +227,7 @@ Dump the name from a source correspondence (if any).
 
 void db_template_arg_list(a_template_arg_ptr tap)
 /*
+Dump a list of template arguments, enclosed by angle brackets.
 */
 {
   if (tap != NULL) {
@@ -247,7 +248,8 @@ void db_template_arg_list(a_template_arg_ptr tap)
 
 void db_type_name(a_type_ptr  tp)
 /*
-Dump the name of a type.
+Dump the name of a type.  If it's a class generated on the basis of a
+template, dump the template arguments, too.
 */
 {
   db_name(&tp->source_corresp);
