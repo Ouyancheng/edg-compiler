@@ -100,7 +100,7 @@ cc_command="$EDG_C_TO_OBJ_COMPILER $EDG_C_TO_OBJ_DEFAULT_OPTIONS"
 #
 # Flag that indicates that the generated C file should always be created
 # in the current directory.  This provides compatibility with earlier
-# versions of the front and that don't support the --gen_c_file_name
+# versions of the front end that don't support the --gen_c_file_name
 # option.
 #
 gen_c_in_curr_dir=${EDG_GEN_C_IN_CURR_DIR-0}
