@@ -1,5 +1,12 @@
 Version 2.19
 
+6/22/93  Type qualifiers on a cast to pointer to qualified class type
+
+On a cast of a pointer to a class type to a pointer to a base type,
+forced by an explicit cast or by a implicit conversion for initialization,
+the type qualifiers on the result type are now those of the destination
+type and not those of the source type.
+
 6/21/93  FULL_SOURCE_POS_IN_IL_STATEMENT
 
 A new configuration flag FULL_SOURCE_POS_IN_IL_STATEMENT has been added

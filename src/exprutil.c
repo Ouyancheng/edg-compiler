@@ -789,21 +789,22 @@ Test an expression node to see if it's a bit-field extraction.
 
 
 static void add_base_class_casts(a_base_class_ptr  bcp,
+                                 a_type_ptr        qualifiers_model,
                                  a_boolean         check_cast_access,
                                  a_boolean         is_implicit_cast,
                                  an_expr_node_ptr  *p_node,
                                  a_source_position *err_pos)
 /*
 Add casts to *p_node to change its type from a pointer to a class type to
-a pointer to a base class of that class; bcp indicates the base class.
-Access control is done on the cast if check_cast_access is TRUE.
-is_implicit_cast is TRUE if the cast is implicit; access control checking
-is done on the cast in that case.  *err_pos indicates a source position
-to be used for errors.  This routine is only used in C++ mode.
+a pointer to a base class of that class; bcp indicates the base class
+and qualifiers_model indicates the qualifiers to be placed on that class
+type.  Access control is done on the cast if check_cast_access is TRUE.
+is_implicit_cast is TRUE if the cast is implicit.  *err_pos indicates a
+source position to be used for errors.  This routine is only used in C++ mode.
 */
 {
   a_boolean             access_okay;
-  a_type_ptr            orig_type, curr_type, qual_curr_type;
+  a_type_ptr            curr_type, qual_curr_type;
   a_derivation_step_ptr dsp;
   a_base_class_ptr      base_class;
 
@@ -817,8 +818,8 @@ to be used for errors.  This routine is only used in C++ mode.
        base class.  Check accessibility at each step and generate the
        necessary casts. */
     access_okay = TRUE;
-    orig_type = type_pointed_to((*p_node)->type);
-    curr_type = skip_typerefs(orig_type);
+    curr_type = type_pointed_to((*p_node)->type);
+    curr_type = skip_typerefs(curr_type);
     for (dsp = bcp->derivation; dsp != NULL; dsp = dsp->next) {
       base_class = dsp->base_class;
       /* Check that the base class is accessible from the current class. */
@@ -835,9 +836,10 @@ to be used for errors.  This routine is only used in C++ mode.
       }  /* if */
       /* Add the cast to the next level. */
       curr_type = base_class->type;
-      /* The type should have all the qualifiers of the original type pointed
-         to. */
-      qual_curr_type = make_identically_qualified_type(curr_type, orig_type);
+      /* The type should have all the qualifiers of the qualifiers_model
+         type. */
+      qual_curr_type = make_identically_qualified_type(curr_type,
+                                                       qualifiers_model);
       *p_node = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
                                    make_pointer_type(qual_curr_type), *p_node);
       (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
@@ -1051,15 +1053,17 @@ invalid casts of that kind (e.g., ambiguous).
   if (related_class_pointers(old_type, new_type, &downward_cast, &bcp)) {
     /* C++ cast from a pointer to a class to a pointer to a related
        (base or derived) class. */
+    new_type_pointed_to = type_pointed_to(new_type);
     if (downward_cast) {
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
-      add_base_class_casts(bcp, /*check_cast_access=*/is_implicit_cast,
+      add_base_class_casts(bcp, new_type_pointed_to,
+                           /*check_cast_access=*/is_implicit_cast,
                            is_implicit_cast, p_node, err_pos);
     } else {
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
          class is a virtual base of the derived class. */
-      add_derived_class_casts(type_pointed_to(new_type), bcp, p_node, err_pos);
+      add_derived_class_casts(new_type_pointed_to, bcp, p_node, err_pos);
     }  /* if */
   } else if (related_member_pointers(old_type, new_type, &downward_cast,
                                      &bcp)) {
@@ -1378,7 +1382,8 @@ in C++ mode.
       } else {
         /* Build an expression node or nodes for the cast. */
         node = make_node_from_operand(operand);
-        add_base_class_casts(bcp, check_cast_access, /*is_implicit_cast=*/TRUE,
+        add_base_class_casts(bcp, type_pointed_to(operand->type),
+                             check_cast_access, /*is_implicit_cast=*/TRUE,
                              &node, &orig_operand.position);
         make_expression_operand(node, node->type, operand);
       }  /* if */
