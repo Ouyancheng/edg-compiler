@@ -363,6 +363,19 @@ via branch from the bottom.
   }  /* if */
 }  /* check_loop_unreachable_code */
 
+static a_statement_ptr nearest_enclosing_compound_statement(void)
+/*
+Return a pointer to the nearest enclosing compound statement.
+*/
+{
+  a_struct_stmt_stack_entry_ptr sssep;
+
+  for (sssep = &struct_stmt_stack[depth_stmt_stack];
+       sssep->kind != ssk_compound;
+       sssep--) {}
+  return sssep->statement;
+}  /* nearest_enclosing_compound_statement */
+
 
 static a_label_ptr alloc_temp_label(void)
 /*
@@ -390,6 +403,7 @@ Put out the definition for the indicated label.  If label == NULL, do nothing.
     sp = add_statement((a_statement_kind)stmk_label);
     label->variant.exec_stmt = sp;
     sp->variant.label = label;
+    label->parent_block = nearest_enclosing_compound_statement();
   }  /* if */
   db_exit();
 }  /* define_label */
@@ -695,19 +709,6 @@ asm ( "string" ) ;
   db_exit();
 }  /* asm_statement */
 #endif /* ASM_STATEMENT_ALLOWED */
-
-static a_statement_ptr nearest_enclosing_compound_statement(void)
-/*
-Return a pointer to the nearest enclosing compound statement.
-*/
-{
-  a_struct_stmt_stack_entry_ptr sssep;
-
-  for (sssep = &struct_stmt_stack[depth_stmt_stack];
-       sssep->kind != ssk_compound;
-       sssep--) {}
-  return sssep->statement;
-}  /* nearest_enclosing_compound_statement */
 
 
 static a_struct_stmt_stack_entry_ptr find_enclosing_struct_stmt(
@@ -1761,7 +1762,6 @@ rescan_statement:
         /* Scan the label identifier, and enter it into the symbol table
            if needed. */
         label = scan_label(/*is_definition=*/TRUE);
-        label->parent_block = nearest_enclosing_compound_statement();
         /* See if the label has already been declared. */
         if (label->variant.exec_stmt != NULL) {
           str_error(ec_label_already_defined, label->source_corresp.name);
