@@ -9234,7 +9234,7 @@ or implicit) controlling the declaration.
           }  /* if */
         }  /* if */
         if (err) sym_error(ec_ambiguous_name, declared_sym);
-      } else if (!bcp->direct) {
+      } else if (!(bcp->direct || any_cfront_mode())) {
         /* Base class members designated in a using-declaration must be
            visible in the scope of at least one direct base class. */
         a_base_class_ptr  direct_bcp = base_classes_of(class_type);
