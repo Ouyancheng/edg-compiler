@@ -814,9 +814,14 @@ have been called on it at some previous point.
         if (dtor_routine->assoc_scope == NULL_region_number &&
             (dtor_routine->storage_class == (a_storage_class)sc_static ||
              dtor_routine->compiler_generated ||
-             dtor_routine->pure_virtual)) {
+             dtor_routine->pure_virtual ||
+             (dtor_routine->is_template_function && force_static))) {
           /* The destructor is static or compiler-generated and declared
-             but not defined.  Use a null pointer. */
+             but not defined.  Use a null pointer.  Do that also for
+             a destructor that's a template function, if the typeinfo
+             is static; if the destructor has not been fully instantiated,
+             that means there is no actual use of it (e.g., a throw) in
+             this compilation unit. */
           dtor_routine = NULL;
         }  /* if */
       }  /* if */
