@@ -1366,7 +1366,7 @@ void add_to_text_buffer(a_text_buffer_ptr	buffer,
 			char			*string,
 			sizeof_t		length)
 /*
-Add "length" characters of "string" to the text buffer pointed to "buf".
+Add "length" characters of "string" to the text buffer pointed to "buffer".
 */
 {
   sizeof_t	new_size;
