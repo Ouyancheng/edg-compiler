@@ -876,6 +876,9 @@ error code.
     case ec_declaration_after_statements:
       m = "declaration may not appear after executable statement";
       break;
+    case ec_cast_to_private_base_class:
+      m = "private base class is inaccessible";
+      break;
     /* +++ -- For ease of finding the insert point for new diagnostics. */
     case ec_no_error:
     default:

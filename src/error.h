@@ -314,7 +314,8 @@ typedef enum /*an_error_code*/ {
   ec_no_access_to_name,
   ec_ambiguous_name,
   ec_old_style_parameter_list,
-  ec_declaration_after_statements
+  ec_declaration_after_statements,
+  ec_cast_to_private_base_class
   /* +++ -- For ease of finding the insert point for new diagnostics. */
 } an_error_code;
 
