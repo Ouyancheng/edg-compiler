@@ -1326,8 +1326,9 @@ Make a temporary variable whose type is temp_type in scope scope.
 Return a pointer to it.
 */
 {
-  a_variable_ptr  temp;
-  a_storage_class storage_class;
+  a_variable_ptr          temp;
+  a_storage_class         storage_class;
+  a_scope_stack_entry_ptr ssep;
 
   /* Allocate the variable, using auto storage class in functions and
      blocks, static elsewhere. */
@@ -1340,6 +1341,13 @@ Return a pointer to it.
   temp = alloc_variable(storage_class);
   temp->type = temp_type;
   temp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
+  /* See if the scope we are adding to is active on the scope stack.
+     If so, we have to maintain the "last" pointer too. */
+  for (ssep = scope_stack; ssep <= &scope_stack[depth_scope_stack]; ssep++) {
+    if (ssep->il_scope == scope) goto have_ssep;
+  }  /* for */
+  ssep = NULL;
+have_ssep:
   /* Add the temporary to the scope list (at the front).  We cannot use
      add_to_variables_list because we might be working on an internally-
      generated routine, like a constructor, for which a push_scope is
@@ -1347,9 +1355,15 @@ Return a pointer to it.
   if (storage_class == (a_storage_class)sc_static) {
     temp->next = scope->variables;
     scope->variables = temp;
+    if (ssep != NULL && ssep->last_variable == NULL) {
+      ssep->last_variable = temp;
+    }  /* if */
   } else {
     temp->next = scope->nonstatic_variables;
     scope->nonstatic_variables = temp;
+    if (ssep != NULL && ssep->last_nonstatic_variable == NULL) {
+      ssep->last_nonstatic_variable = temp;
+    }  /* if */
   }  /* if */
   return temp;
 }  /* make_temporary_in_scope */
