@@ -171,9 +171,9 @@ Integer types:
 
 /* Specify the size of the largest integer.  Note that this will constrain
    how targ_sizeof_long and targ_sizeof_long_long are configured at runtime,
-   because TARG_SIZEOF_LARGEST_INTEGER is required to be a compiler time
+   because TARG_SIZEOF_LARGEST_INTEGER is required to be a compile-time
    constant and so cannot be adjusted at run time the way some other target
-   configuration constants are.  Therefore, it should be set to the largest
+   configuration values are.  Therefore, it should be set to the largest
    value a "long int" (or a "long long int") is allowed to have. */
 #ifndef TARG_SIZEOF_LARGEST_INTEGER
 /* By default, a minimum largest value is supplied, and it is expected to be
