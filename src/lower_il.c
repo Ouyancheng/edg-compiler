@@ -6801,7 +6801,7 @@ Do IL lowering of the indicated statement and everything under it.
   a_context            context, dependent_context;
   a_scope_ptr          scope;
   an_insert_location   insert_location;
-  a_statement_ptr      statement_list;
+  a_statement_ptr      statement_list, lab_statement;
   a_statement_ptr      last_statement, body_statement, return_statement;
   a_boolean            make_block;
   an_expr_node_ptr     return_expr;
@@ -6812,6 +6812,7 @@ Do IL lowering of the indicated statement and everything under it.
   a_block_ptr          block;
   an_object_lifetime_ptr
                        saved_curr_object_lifetime, lifetime;
+  a_label_ptr          lab;
 
   if (statement != NULL) {
     /* Track the source position. */
@@ -6843,15 +6844,13 @@ Do IL lowering of the indicated statement and everything under it.
         gen_goto_cleanup_actions(statement);
         break;
       case stmk_label:
-        statement->variant.label.lifetime = NULL;
-        curr_context->latest_label_statement_processed = statement;
+        lab_statement = statement;
+        lab = lab_statement->variant.label.ptr;
+        curr_context->latest_label_statement_processed = lab_statement;
         /* Destroy any expression temporaries whose cleanup is pending.
-           Note that this may change the value of "statement", but "statement"
-           will still point to the label statement. */
-        /* If the statement were a dependent statement, changing the pointer
-           would cause problems later in this routine. */
-        check_assertion(!statement->dependent_statement);
-        gen_label_cleanup_actions(&statement);
+           Note that this may change the value of "lab_statement", but
+           "lab_statement" will still point to the label statement. */
+        gen_label_cleanup_actions(&lab_statement);
         /* Put a marker in the cleanup action list indicating where
            the label occurs.  This is needed when generating destructor
            calls on gotos backward in a block. */
@@ -6859,14 +6858,15 @@ Do IL lowering of the indicated statement and everything under it.
                                  /*applies_on_block_exit=*/FALSE,
                                  /*applies_on_exception_cleanup=*/FALSE,
                                  (an_insert_location *)NULL);
-        cap->variant.label = statement->variant.label.ptr;
+        cap->variant.label = lab;
         if (exceptions_enabled) {
           /* Exceptions are enabled. Reset eh_curr_region. */
-          set_insert_location(statement, &insert_location);
+          set_insert_location(lab_statement, &insert_location);
           set_eh_curr_region(curr_context, &insert_location);
         }  /* if */
-        lifetime = statement->variant.label.ptr->lifetime_following_label;
-        if (lifetime != NULL) curr_object_lifetime = lifetime;
+        /* The label statement might have been moved, so reset the pointer
+           from the a_label entry to the statement. */
+        lab->variant.exec_stmt = lab_statement;
         break;
       case stmk_return:
         return_expr = statement->expr;
@@ -8275,10 +8275,18 @@ region.
   if (!keep_object_lifetime_info_in_lowered_il) {
     eliminate_object_lifetime_tree(scope->lifetime);
     if (scope->kind == (a_scope_kind)sck_function) {
+      a_label_ptr lab;
       eliminate_object_lifetime_tree(
                          scope->variant.routine.lifetime_of_constructor_inits);
       eliminate_object_lifetime_tree(
                          scope->variant.routine.lifetime_of_local_static_vars);
+      /* Clear the object lifetime pointers in all stmk_label statements.
+         They are cleared late (rather than when the label is encountered)
+         because they are needed each time the label is referenced. */
+      for (lab = scope->labels; lab != NULL; lab = lab->next) {
+        a_statement_ptr lab_stmt = lab->variant.exec_stmt;
+        lab_stmt->variant.label.lifetime = NULL;
+      }  /* for */
     } else {
       /* File scope. */
 #if ORPHAN_PROCESSING_NEEDED
