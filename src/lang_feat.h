@@ -1169,6 +1169,7 @@ or when Microsoft extensions (including Microsoft asms) are allowed.
 Check that no mutually exclusive dialect emulations are simultaneously
 enabled.
 */
+#if MICROSOFT_EXTENSIONS_ALLOWED
 #if DEFAULT_MICROSOFT_MODE
 #ifdef DEFAULT_DIALECT_SET
  #error -- CANNOT SET MULTIPLE EXCLUSIVE DIALECTS AS DEFAULTS
@@ -1176,6 +1177,8 @@ enabled.
 #define DEFAULT_DIALECT_SET TRUE
 #endif /* ifdef DEFAULT_DIALECT_SET */
 #endif /* DEFAULT_MICROSOFT_MODE */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 #if DEFAULT_SUN_COMPATIBILITY
 #ifdef DEFAULT_DIALECT_SET
  #error -- CANNOT SET MULTIPLE EXCLUSIVE DIALECTS AS DEFAULTS
