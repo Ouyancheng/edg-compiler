@@ -1345,13 +1345,19 @@ member declaration (allowed in Microsoft mode only).
                                 func_info->declarator_ssep);
       set_routine_declared_type(rp, func_info->declared_type);
     } else {
-      a_src_seq_secondary_decl_ptr  sssdp;
+      /* This is just a redeclaration, and hence the declared type is attached
+         to a secondary source sequence entry (if one was created). */
       record_symbol_declaration(SRK_DECLARATION, sym,
                                 &locator->source_position,
                                 func_info->declarator_ssep);
-      sssdp = (a_src_seq_secondary_decl_ptr)
+      if (func_info->declarator_ssep == NULL) {
+        check_assertion(source_sequence_entries_disallowed);
+      } else {
+        a_src_seq_secondary_decl_ptr  sssdp;
+        sssdp = (a_src_seq_secondary_decl_ptr)
                                        func_info->declarator_ssep->entity.ptr;
-      sssdp->declared_type = func_info->declared_type;
+        sssdp->declared_type = func_info->declared_type;
+      }  /* if */
     }  /* if */
     /* Set the declared-type in the routine entry. */
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
