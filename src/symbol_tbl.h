@@ -848,6 +848,8 @@ extern a_symbol_ptr scope_qualified_id_lookup(
                                          a_scope_number           scope_number,
                                          an_id_lookup_options_set options);
 
+extern a_scope_number class_type_scope_number(a_type_ptr class_type);
+
 /* Begin a name scope. */
 extern a_scope_ptr push_scope(a_scope_kind   kind,
 			      a_scope_number scope_number_for_function,
