@@ -1416,17 +1416,19 @@ derivation path.
 }  /* is_base_of_virtual_base */
 
 
-static a_boolean subobject_conflict(a_type_ptr    class_type,
-                                    a_type_ptr    subobject_type,
-                                    a_targ_size_t offset,
-                                    a_boolean     consider_bases,
-                                    a_boolean     consider_virtual_bases)
+static a_boolean subobject_conflict(a_type_ptr     class_type,
+                                    a_type_ptr     subobject_type,
+                                    a_targ_size_t  offset,
+                                    a_boolean      consider_bases,
+                                    a_boolean      consider_virtual_bases,
+                                    a_boolean      consider_fields)
 /*
 Return TRUE if placing a subobject (whose type is subobject_type) at the
 indicated offset would result in a conflict with some other subobject of
 class_type.  If consider_bases is FALSE, no base classes of the subobject type
 are examined.  If consider_virtual_bases is TRUE, virtual bases of
-subobject_type are considered in addition to direct bases.
+subobject_type are considered in addition to direct bases.  If consider_fields
+is FALSE, field subobjects are ignored while searching for a conflict.
 */
 {
   a_targ_size_t               size, elt, num_array_elts;
@@ -1480,7 +1482,8 @@ subobject_type are considered in addition to direct bases.
               subobject_conflict(class_type, bcp->type, 
                                  offset + bcp->offset,
                                  /*consider_bases=*/TRUE,
-                                 /*consider_virtual_bases=*/FALSE) &&
+                                 /*consider_virtual_bases=*/FALSE,
+                                 /*consider_fields=*/TRUE) &&
               !(emulate_gnu_abi_bugs && !bcp->direct &&
                 is_base_of_virtual_base(bcp))) {
             result = TRUE;
@@ -1489,7 +1492,7 @@ subobject_type are considered in addition to direct bases.
         }  /* for */
       }  /* if */
       /* Go through the fields of the subobject type. */
-      if (!result) {
+      if (!result && consider_fields) {
         for (field = subobject_type->variant.class_struct_union.field_list;
              field != NULL;
              field = field->next) {
@@ -1523,7 +1526,8 @@ subobject_type are considered in addition to direct bases.
                                      offset + field->offset + field_elt *
                                                               field_type->size,
                                      /*consider_bases=*/TRUE,
-                                     /*consider_virtual_bases=*/TRUE)) {
+                                     /*consider_virtual_bases=*/TRUE,
+                                     /*consider_fields=*/TRUE)) {
                 result = TRUE;
                 break;
               }  /* if */
@@ -1550,10 +1554,12 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
 
   class_type = bcp->derived_class;
   base_type = bcp->type;
-  /* See if there is a conflict with base_type itself. */
+  /* See if there is a conflict with base_type itself.  Some GNU compilers
+     ignore the fields of virtual base subobjects. */
   if (subobject_conflict(class_type, base_type, offset,
                          /*consider_bases=*/FALSE,
-                         /*consider_virtual_bases=*/FALSE)) {
+                         /*consider_virtual_bases=*/FALSE,
+                         !(emulate_gnu_abi_bugs && bcp->is_virtual))) {
     result = TRUE;
   } else {
     /* There is no direct conflict.  There might, however, be
@@ -2024,7 +2030,8 @@ there's no overflow TRUE is returned.
           while (subobject_conflict(lob->class_type, field_type,
                                     save_byte_offset,
                                     /*consider_bases=*/TRUE,
-                                    /*consider_virtual_bases=*/TRUE) ||
+                                    /*consider_virtual_bases=*/TRUE,
+                                    /*consider_fields=*/TRUE) ||
                  (emulate_gnu_abi_bugs &&
                   gnu_first_field_conflict(lob->class_type, field,
                                            save_byte_offset))) {
