@@ -2107,11 +2107,11 @@ enum an_expr_operator_kind_tag {
   eok_or,               /* Bitwise or ("|" operator). */
   eok_xor,              /* Exclusive or ("^" operator). */
   eok_comma,            /* The comma operator. */
-  eok_bound_function_ptr,
-			/* Produce a normal function pointer for a C++ bound
-			   function.  This is (only) used to implement a C++
-			   anachronism.  The first operand is a pointer to
-			   a member function (but NOT a pointer-to-member);
+  eok_virtual_function_ptr,
+			/* Produce a normal function pointer for a C++ virtual
+			   member function.  This is (only) used to implement
+			   a C++ anachronism.  The first operand is the address
+			   of a virtual function (NOT a pointer-to-member);
 			   the second is a pointer to a class object.  The
 			   result is a pointer to the selected function. */
 #endif /* ifdef CIL */
@@ -3204,7 +3204,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "[]", "->", "v.", "b->", "bv.", "b.", "->*",
    "<<", ">>",
    "&", "|", "^", ",",
-   "bound func ptr",
+   "virt func ptr",
 #endif /* ifdef CIL */
    "&&", "||",
 #ifdef FIL
