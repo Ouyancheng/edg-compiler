@@ -4805,11 +4805,13 @@ typedef struct a_type {
 			   in the C++-generating end, to deal with a Microsoft
 			   bug. */
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	alignment_set_explicitly:1;
 			/* TRUE if this type differs from the type it
 			   refers to because its alignment has been
 			   explicitly set, via an attribute. */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
   a_bit_field	variables_are_implicitly_referenced:1;
 			/* TRUE if no warnings about unused variables
 			   should be emitted for variables that have

@@ -1313,10 +1313,12 @@ Display the indicated type entry.
   if (ptr->declared_in_function_prototype) {
     disp_boolean("declared_in_function_prototype", TRUE);
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->alignment_set_explicitly) {
     disp_boolean("alignment_set_explicitly", TRUE);
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
   if (ptr->variables_are_implicitly_referenced) {
     disp_boolean("variables_are_implicitly_referenced", TRUE);
   }  /* if */

@@ -1494,8 +1494,10 @@ variant fields to default values.
   pte->typedef_definition_has_been_put_out = FALSE;
   pte->replace_by_generated_typedef = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   pte->alignment_set_explicitly = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
   pte->variables_are_implicitly_referenced = FALSE;
   pte->copy_with_additional_attributes = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */

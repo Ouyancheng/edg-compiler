@@ -4410,8 +4410,8 @@ implement <stdarg.h>, a standard feature.
       copy_source_position(lparen_position, operand.position);
     }  /* if */
     alignof_type = operand.type;
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_mode) {
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+    if (gnu_mode || microsoft_mode) {
       /* If the expression is an lvalue for a variable with an
          explicit alignment, use it.  (GNU C++ versions prior to 3.1
          ignore the explicit alignment; we emulate the more recent
@@ -4434,16 +4434,17 @@ implement <stdarg.h>, a standard feature.
         }  /* if */
       }  /* if */
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   /* Check for the case where alignof_type is a typedef type whose
-     alignment was set explicitly using a GNU attribute. */
+     alignment was set explicitly using a GNU attribute or a Microsoft
+     extended specifier. */
   if (alignof_type->kind == (a_type_kind)tk_typeref &&
       alignof_type->alignment_set_explicitly) {
     alignment = alignof_type->alignment;
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   alignof_type = skip_typerefs(alignof_type);
   /* Instantiate the type if it is a template class. */
   complete_type_is_needed(alignof_type);
@@ -4464,11 +4465,11 @@ implement <stdarg.h>, a standard feature.
                                               make_node_from_operand(&operand);
     }  /* if */
     constant.type = integer_type(targ_size_t_int_kind);
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   } else if (alignment != 0) {
     set_unsigned_integer_constant(&constant, (a_host_large_unsigned)alignment,
                                   targ_size_t_int_kind);
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     set_unsigned_integer_constant(
                      &constant, (a_host_large_unsigned)alignof_type->alignment,

@@ -226,11 +226,11 @@ Return the field alignment for the given type.
       result = float_field_alignments[type->variant.float_kind];
       break;
     case tk_typeref:
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
       if (type->alignment_set_explicitly) {
         result = type->alignment;
       } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
       {
         result = field_alignment_for(skip_typerefs(type));
@@ -4230,14 +4230,14 @@ for handling virtual bases and functions.
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
-#if GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (class_type->alignment_set_explicitly) {
     /* Save the desired alignment and compute the alignment normally.
        Later, we will adjust the computed alignment, if necessary. */
     alignment = class_type->alignment;
     class_type->alignment = 1;
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   clear_layout_block(&lob, class_type);
   if (C_dialect == C_dialect_cplusplus || gcc_mode) {
     compute_empty_class_bit(class_type);
@@ -4307,7 +4307,7 @@ for handling virtual bases and functions.
   if (class_type->alignment_set_explicitly) {
     /* GNU C allows the alignment to be increased.  If the class has the
        "packed" attribute its alignment can also be decreased; otherwise,
-        a reduction in alignment is ignored. */
+       a reduction in alignment is ignored. */
     if (alignment < lob.alignment &&
         !class_type->variant.class_struct_union.is_packed) {
       pos_warning(ec_alignment_reduction_ignored,
