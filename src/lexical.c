@@ -7924,19 +7924,19 @@ id_scan:
 	       processing a pragma that is explicitly designated as requiring
 	       keyword recognition. */
             if (!fetch_pp_tokens &&
-                (!in_preprocessing_directive ||
+                (!in_preprocessing_directive || in_pp_if_expression ||
                  assoc_symbol->variant.keyword.is_preprocessing_op_or_punc ||
                  (caching_pragma_tokens && recognize_keywords_in_pragma))) {
               ctoken = (a_token_kind)assoc_symbol->variant.keyword.token;
-              /* Check for a keyword that is not yet implemented.  If one is
-                 found, issue a diagnostic and treat the keyword as an
-		 identifier. */
-              if (ctoken == tok_unimplemented) {
-                unimplemented_keyword_diagnostic(assoc_symbol);
-                ctoken = tok_identifier;
-	      } else if (ctoken == tok_false || ctoken == tok_true) {
+              if (ctoken == tok_false || ctoken == tok_true) {
                 /* A C++ boolean constant. */
 		scan_boolean_constant(ctoken);
+              } else if (ctoken == tok_unimplemented) {
+                /* Check for a keyword that is not yet implemented.  If one is
+                   found, issue a diagnostic and treat the keyword as an
+		   identifier. */
+                unimplemented_keyword_diagnostic(assoc_symbol);
+                ctoken = tok_identifier;
               } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
                 if (microsoft_mode){
@@ -7966,8 +7966,9 @@ id_scan:
         }  /* while */
         /* The identifier is not a macro and not a keyword.  If we are
            in a preprocessing #if expression, replace the identifier with
-           the value 0L. */
-        if (in_pp_if_expression) {
+           the value 0L.  ("true" and "false" are the exception.) */
+        if (in_pp_if_expression &&
+            !(ctoken == tok_false || ctoken == tok_true)) {
           remark(ec_undefined_preproc_id);
           ctoken = make_pp_int_constant(0L);
         }  /* if */

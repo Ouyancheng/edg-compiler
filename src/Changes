@@ -1,5 +1,16 @@
 Version 3.2
 
+4/29/03  Boolean literals in #if and #elif expressions
+
+The front end used to treat the boolean literals "true" and "false" like any
+other keywords when processing #if and #elif expressions: They were
+transformed into the token "0".  Now their actual value is taken into
+account.
+
+  #if !true
+  #error  No longer triggered since "true" is not turned into "0"
+  #endif
+
 4/29/03  Expression and statement traversal routines
 
 New routines to traverse expression and statement trees have been
