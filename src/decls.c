@@ -2567,6 +2567,7 @@ incompatible_severity.  Return FALSE if there is some error.
         compat = types_are_strictly_compatible(old_type, type_ptr);
         if (!compat &&
             routine_types_are_compatible(old_type, type_ptr, TCF_NO_FLAGS)) {
+          okay = FALSE;
           incompatible_linkage_spec = TRUE;
         }  /* if */
       }  /* if */
