@@ -1728,14 +1728,15 @@ typedef struct an_operator_arrow_block {
 
 static void process_overloaded_operator_arrow(
                                           an_operand                  *operand,
+                                          a_token_sequence_number     tsn,
                                           an_operator_arrow_block_ptr parent)
 /*
 operand is the first operand of a "->" field selection in C++.  See
 whether an operator-> function (or several) applies to convert the
 operand to a class or pointer to class.  If so, do the transformation
-and return the updated operand.  parent points to a list of blocks
-indicating transformations done so far on this operand, as a way to
-catch loops.
+and return the updated operand.  tsn is the token sequence number of the
+"->" token.  parent points to a list of blocks indicating transformations
+done so far on this operand, as a way to catch loops.
 */
 {
   /* Note that we do not use "is_overloadable_type_operand" here.  That's
@@ -1766,7 +1767,7 @@ catch loops.
                                    /*has_predef_meaning=*/TRUE,
                                    operand, (an_operand *)NULL,
                                    &operand->position,
-                                   (a_token_sequence_number)0,
+                                   tsn,
                                    &result, &processed);
     if (processed) {
       /* An operator-> function was found and applied. */
@@ -1784,7 +1785,7 @@ catch loops.
         an_operator_arrow_block block;
         block.parent = parent;
         block.class_type = class_type;
-        process_overloaded_operator_arrow(operand, &block);
+        process_overloaded_operator_arrow(operand, tsn, &block);
       } /* if */
     }  /* if */
   }  /* if */
@@ -1826,6 +1827,8 @@ bound with the function in *bound_function_selector.
   a_source_position     operator_position;
   a_source_position     end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_token_sequence_number
+                        operator_tok_seq_number;
 
   db_enter(4, "scan_field_selection_operator");
 
@@ -1834,6 +1837,7 @@ bound with the function in *bound_function_selector.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operator_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  operator_tok_seq_number = curr_token_sequence_number;
 
   if (curr_expr_kind_is(ek_pp)) {
     /* Field selection not allowed in preprocessor expression. */
@@ -1866,6 +1870,7 @@ bound with the function in *bound_function_selector.
     if (is_arrow_operator && C_dialect == C_dialect_cplusplus) {
       /* Process overloaded operator->, if applicable. */
       process_overloaded_operator_arrow(operand_1,
+                                        operator_tok_seq_number,
                                         (an_operator_arrow_block_ptr)NULL);
     }  /* if */
     { an_expression_kind saved_expr_kind = expr_stack->expression_kind;
