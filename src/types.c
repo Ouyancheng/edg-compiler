@@ -331,7 +331,8 @@ unsigned char are all included.
   return is_char_array;
 }  /* is_char_array_type */
 
-  
+
+#if !STANDALONE_UTILITY_PROGRAM
 a_boolean is_wchar_t_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an array of wchar_t.
@@ -359,6 +360,7 @@ Return TRUE if the given type is an array of wchar_t.
   }  /* if */
   return is_wchar_t_array;
 }  /* is_wchar_t_array_type */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
 a_boolean is_string_type(a_type_ptr tp)
