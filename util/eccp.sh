@@ -667,6 +667,7 @@ check_abbreviation()
 --restrict
 --rtti
 --set_flag
+--short_enums
 --short_lifetime_temps
 --signed_chars
 --special_subscript_cost
@@ -1149,6 +1150,7 @@ process_option()
          --no_stdarg_builtin | \
          --ignore_std | \
 	 --long_long | \
+	 --short_enums | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
