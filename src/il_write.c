@@ -460,7 +460,8 @@ Finish writing the IL file, if there is one.
     /* Write the file index table at the end of the file. */
     index_pos = ftell(f_il_output);
     (void)fwrite((char *)&index_for_il_file[FILE_SCOPE_REGION_NUMBER],
-                 highest_used_region_number*sizeof(a_file_position),
+                 size_t_arg((sizeof_t)highest_used_region_number*
+                            sizeof(a_file_position)),
                  1, f_il_output);
     /* Seek back to just after the "magic" string at the beginning of the
        file. */
