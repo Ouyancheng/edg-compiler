@@ -1,20 +1,31 @@
 Version 2.35
 
-1/20/97 Cfront compatibility: uninitialized const objects
+1/20/97 Cfront and Microsoft compatibility: uninitialized const objects
 
-Two errors on uninitialized const objects were eliminated in cfront mode:
-First, cases involving an empty class:
+Several errors on uninitialized const objects have been eliminated in
+cfront and Microsoft modes.  First, cases involving an empty class:
 
   struct A { };
   struct B : A { };
-  const B b;                   // Okay in cfront mode
+  const B b;                         // Okay in cfront and Microsoft modes
 
-Second, cases involving new expressions with no initializer:
+Second, cases involving new expressions with no initializer (superfluous
+in Microsoft mode, since MSVC++ disallows new expressions involving const
+and volatile):
 
   struct A { virtual void f(); int i; };
   main() {
-    (void)new const A;         // Okay in cfront mode
+    (void)new const A;               // Okay in cfront and Microsoft modes
   }
+
+Third, in Microsoft mode only (since this had already been fixed in cfront
+mode -- see entry for 12/17/96):
+
+  struct A { virtual void f(); };
+  const A a;                         // Okay in Microsoft mode
+  struct B { B(); };
+  struct C : public B { int i; }
+  const C c;                         // Okay in Microsoft mode
 
 1/20/97 Internal error on default template argument with ? : operator
 
