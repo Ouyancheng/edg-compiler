@@ -325,6 +325,11 @@ typedef struct a_required_destructor_call {
   a_required_destructor_call_ptr
 		next;	/* Next entry on a list of required calls, NULL
 			   if last. */
+  a_label_ptr	label_marker;
+			/* If this is non-NULL, this entry does not describe
+			   a required destructor call; it is a marker that
+			   indicates where in the list a label was declared.
+			   the other fields (below) are not meaningful. */
   a_dynamic_init
 		dynamic_init;
 			/* The dynamic initialization entry that describes the
@@ -347,10 +352,6 @@ typedef struct a_required_destructor_call {
 		is_expr_temporary;
 			/* TRUE if the entity to be destroyed is a compiler-
 			   generated expression temporary. */
-  unsigned long
-		label_count;
-			/* The count of label definitions that precede the
-			   point at which this entry was added to the list. */
 } a_required_destructor_call;
 static a_required_destructor_call_ptr
 		avail_required_destructor_calls;
@@ -380,29 +381,22 @@ typedef struct a_context {
 		assoc_switch_clause;
 			/* Points to the current clause of a switch statement
 			   if inside one; NULL otherwise. */
+  a_statement_ptr
+		latest_label_statement_processed;
+			/* The stmk_label statement most recently processed
+			   in (this clause of) the block, or NULL if none
+			   has been processed. */
   a_dynamic_init_ptr
 		latest_dynamic_init_processed;
 			/* Points to the latest stmk_init dynamic
 			   initialization processed in the block.  NULL until
 			   set. */
   a_dynamic_init_ptr
-		dynamic_init_preceding_switch_clause;
+		dynamic_init_preceding_clause;
 			/* A copy of latest_dynamic_init_processed as of
-			   the start of the current switch clause, if
-			   assoc_switch_clause is non-NULL.  NULL otherwise. */
-  unsigned long	label_count;
-			/* The number of labels processed so far in this
-			   block. */
-  a_statement_ptr
-		latest_label_statement_processed;
-			/* The stmk_label statement most recently processed
-			   in the block, or NULL if none has been processed. */
-  a_dynamic_init_ptr
-		dynamic_init_preceding_label;
-			/* A copy of latest_dynamic_init_processed as of
-			   the label most recently processed if
-			   latest_label_statement_processed is non-NULL.
-			   NULL otherwise. */
+			   the start of the current switch clause or the
+			   latest label, whichever is later.  NULL if neither
+			   has appeared. */
 } a_context;
 a_context_ptr	curr_context;
 			/* Current (bottom) end of the context chain. */
@@ -734,11 +728,11 @@ and return a pointer to it.
 #endif /* DEBUG */
   }  /* if */
   rdcp->next = NULL;
+  rdcp->label_marker = NULL;
   clear_dynamic_init(&rdcp->dynamic_init, (a_dynamic_init_kind)dik_none);
   rdcp->first_time_test_var = NULL;
   clear_init_pos_descr(&rdcp->init_pos_descr);
   rdcp->is_expr_temporary = FALSE;
-  rdcp->label_count = 0;
   return rdcp;
 }  /* alloc_required_destructor_call */
 
@@ -779,11 +773,9 @@ is "scope".
   context->scope = scope;
   context->required_destructor_calls = NULL;
   context->assoc_switch_clause = NULL;
-  context->latest_dynamic_init_processed = NULL;
-  context->dynamic_init_preceding_switch_clause = NULL;
-  context->label_count = 0;
   context->latest_label_statement_processed = NULL;
-  context->dynamic_init_preceding_label = NULL;
+  context->latest_dynamic_init_processed = NULL;
+  context->dynamic_init_preceding_clause = NULL;
   /* Keep track of the innermost function context/scope. */
   if (scope->kind == (a_scope_kind)sck_function) {
     nearest_function_context = curr_context;
@@ -7461,7 +7453,6 @@ later will be made conditional on the temporary.
       /* Add the stmk_init statement after the label. */
       stmk_init_stmt->next = label_statement->next;
       label_statement->next = stmk_init_stmt;
-      prev_dip = curr_context->dynamic_init_preceding_label;
     } else if (scp != NULL) {
       /* Switch clause. */
       /* The dynamic init is not at the start of the scope. */
@@ -7469,7 +7460,6 @@ later will be made conditional on the temporary.
       /* Add the stmk_init statement at the beginning of the clause. */
       stmk_init_stmt->next = scp->statements;
       scp->statements = stmk_init_stmt;
-      prev_dip = curr_context->dynamic_init_preceding_switch_clause;
     } else {
       /* Normal case. */
       block = scope->assoc_block;
@@ -7487,6 +7477,7 @@ later will be made conditional on the temporary.
        list.  Note that we do the insert of the statement and the dynamic
        init entry at the front of the list each time, so they end up in
        reverse order of insertion. */
+    prev_dip = curr_context->dynamic_init_preceding_clause;
     if (prev_dip == NULL) {
       dip->next = scope->dynamic_inits;
       scope->dynamic_inits = dip;
@@ -7736,7 +7727,6 @@ do_assignment:;
     dip->destructor = NULL;
     rdcp->init_pos_descr = *ipdp;
     rdcp->is_expr_temporary = is_expr_temporary;
-    rdcp->label_count = curr_context->label_count;
     /* If this is an initialization within an aggregate, we must save the
        init_pos_modifier list.  However, the list runs through the stack,
        so we must make an allocated copy. */
@@ -10237,7 +10227,8 @@ it; otherwise, switch_context is NULL.
     /* Remember information about the current switch clause for use by
        add_conditional_destruction_temp. */
     curr_context->assoc_switch_clause = clause;
-    curr_context->dynamic_init_preceding_switch_clause =
+    curr_context->latest_label_statement_processed = NULL;
+    curr_context->dynamic_init_preceding_clause =
                                    curr_context->latest_dynamic_init_processed;
     lower_constant_list(clause->constant_list);
     lower_statement_list(clause->statements, &last_statement);
@@ -10290,6 +10281,8 @@ it; otherwise, switch_context is NULL.
     remove_temp_required_destructor_calls();
   }  /* for */
   curr_context->assoc_switch_clause = NULL;
+  curr_context->latest_label_statement_processed = NULL;
+  curr_context->dynamic_init_preceding_clause = NULL;
 }  /* lower_switch_clause_list */
 
 
@@ -10436,20 +10429,23 @@ is inserted at *insert_location and *insert_location is updated.
   an_insert_location     insert_location2;
   an_insert_location_ptr effective_insert_loc;
 
-  effective_insert_loc = insert_location;
-  /* If the entity is a local static variable or a conditionally-created
-     temporary, generate an "if" statement to test whether or not the
-     variable was ever initialized.  Only do the destruction if it
-     was. */
-  if (rdcp->first_time_test_var != NULL) {
-    add_last_time_test(rdcp->first_time_test_var, 
-                       insert_location,
-                       &insert_location2);
-    effective_insert_loc = &insert_location2;
+  /* Ignore label markers. */
+  if (rdcp->label_marker == NULL) {
+    effective_insert_loc = insert_location;
+    /* If the entity is a local static variable or a conditionally-created
+       temporary, generate an "if" statement to test whether or not the
+       variable was ever initialized.  Only do the destruction if it
+       was. */
+    if (rdcp->first_time_test_var != NULL) {
+      add_last_time_test(rdcp->first_time_test_var, 
+                         insert_location,
+                         &insert_location2);
+      effective_insert_loc = &insert_location2;
+    }  /* if */
+    lower_destructor_dynamic_init(&rdcp->dynamic_init,
+                                  &rdcp->init_pos_descr,
+                                  effective_insert_loc);
   }  /* if */
-  lower_destructor_dynamic_init(&rdcp->dynamic_init,
-                                &rdcp->init_pos_descr,
-                                effective_insert_loc);
 }  /* gen_one_required_destructor_call */
 
 
@@ -10463,16 +10459,20 @@ can be NULL to indicate the entire list.  The code is inserted at
 *insert_location and *insert_location is updated.
 */
 {
-  a_required_destructor_call_ptr rdcp;
+  a_required_destructor_call_ptr rdcp, rdcp_next;
 
   /* Go through the list of required destructor calls, stopping when the
-     indicated entry if reached.  Recall that the list is built by adding
+     indicated entry is reached.  Recall that the list is built by adding
      to its front, so the entries at the front are the later entries,
      those we want to process and remove. */
   for (rdcp = curr_context->required_destructor_calls;
        rdcp != stop_before;
-       rdcp = rdcp->next) {
+       rdcp = rdcp_next) {
+    rdcp_next = rdcp->next;
     gen_one_required_destructor_call(rdcp, insert_location);
+    /* Free the one entry. */
+    rdcp->next = NULL;
+    free_required_destructor_call_list(rdcp);    
   }  /* for */
   /* Remove the entries from the list. */
   curr_context->required_destructor_calls = stop_before;
@@ -10660,9 +10660,9 @@ Generate any destructor calls required preceding the indicated goto statement.
   an_insert_location insert_location;
   a_boolean          any_label_block_destructor_calls_needed;
   a_boolean          any_exited_block_destructor_calls_needed;
-  unsigned long      label_number;
   a_required_destructor_call_ptr
                      rdcp;
+  a_label_ptr        label;
 
   goto_context = curr_context;
   label_block = statement->variant.label->parent_block;
@@ -10704,32 +10704,25 @@ Generate any destructor calls required preceding the indicated goto statement.
              goto label;  // should destroy x
          }
     */
-    a_statement_ptr label_stmt = statement->variant.label->variant.exec_stmt;
-    a_statement_ptr temp_stmt;
+    a_boolean any_dtor_entries = FALSE;
 
-    /* Determine the label number of the label within its block. */
-    label_number = 0;
-    for (temp_stmt = label_block->variant.block.statements;
-         ;
-         temp_stmt = temp_stmt->next) {
-#if CHECKING
-      if (temp_stmt == NULL) {
-        internal_error("gen_goto_required_destructor_calls: label not found");
-      }  /* if */
-#endif /* CHECKING */
-      if (temp_stmt->kind == (a_statement_kind)stmk_label) {
-        label_number++;
-        if (temp_stmt == label_stmt) break;
-      }  /* if */
-    }  /* for */
-    /* See if any of the required destructions were initialized after the
-       label's definition.  If so, they need to be generated. */
+    /* Look for a label marker in the required destructor list that matches
+       the label we have.  If we find one, the entries preceding the
+       label marker need to be generated. */
+    label = statement->variant.label;
     for (rdcp = goto_context->required_destructor_calls;
          rdcp != NULL;
          rdcp = rdcp->next) {
-      if (rdcp->label_count >= label_number) {
-        any_label_block_destructor_calls_needed = TRUE;
-        break;
+      if (rdcp->label_marker != NULL) {
+        if (rdcp->label_marker == label) {
+          /* Found the label.  If there were any destructor entries seen before
+             this point, there are some destructor calls to be put out. */
+          any_label_block_destructor_calls_needed = any_dtor_entries;
+          break;
+        }  /* if */
+      } else {
+        /* Not a label marker. */
+        any_dtor_entries = TRUE;
       }  /* if */
     }  /* for */
   }  /* if */
@@ -10746,7 +10739,7 @@ Generate any destructor calls required preceding the indicated goto statement.
       /* Generate destructor calls corresponding to any initializations made
          after the label in the same block. */
       for (rdcp = goto_context->required_destructor_calls;
-           rdcp != NULL && rdcp->label_count >= label_number;
+           rdcp->label_marker != label;
            rdcp = rdcp->next) {
         gen_one_required_destructor_call(rdcp, &insert_location);
       }  /* for */
@@ -10798,6 +10791,8 @@ Do IL lowering of the indicated statement and everything under it.
   an_expr_node_ptr   return_expr;
   a_variable_ptr     temp_var;
   a_dynamic_init_ptr dip;
+  a_required_destructor_call_ptr
+                     rdcp;
 
   if (statement != NULL) {
     /* Track the source position for internal errors. */
@@ -10815,13 +10810,13 @@ Do IL lowering of the indicated statement and everything under it.
         gen_goto_required_destructor_calls(statement);
         break;
       case stmk_label:
-        /* Keep track of the number of labels encountered in this block.
-           This is needed when generating destructor calls on gotos
-           backward in a block. */
-        curr_context->label_count++;
-        curr_context->latest_label_statement_processed = statement;
-        curr_context->dynamic_init_preceding_label =
-                                   curr_context->latest_dynamic_init_processed;
+        /* Put a marker in the required destructor list indicating where
+           the label occurs.  This is needed when generating destructor
+           calls on gotos backward in a block. */
+        rdcp = alloc_required_destructor_call();
+        rdcp->label_marker = statement->variant.label;
+        rdcp->next = curr_context->required_destructor_calls;
+        curr_context->required_destructor_calls = rdcp;
         break;
       case stmk_return:
         dip = statement->variant.return_dynamic_init;
