@@ -1690,10 +1690,11 @@ Macro that initializes a lookup state variable.
    whether or not a symbol is acceptable. */
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
    class template, namespace, or template type parameter. */
-#define is_acceptable_symbol(sym, fund_sym, lookup_state)               \
+#define is_acceptable_symbol(sym, fund_sym, lookup_state, invisible_okay)    \
   ((name_space_for_symbol_kind[(int)sym->kind] ==			     \
                                   (lookup_state).required_name_space_kind) && \
    ((!(fund_sym->is_invisible) && (!sym->is_invisible)) ||		\
+    invisible_okay ||							\
     (lookup_state).is_linkage_lookup ||					\
     (lookup_state).is_friend_lookup) &&					\
    (!(lookup_state).must_be_class_or_namespace ||			\
@@ -1775,7 +1776,8 @@ of the lookup is returned to the caller.
     if (nsp == NULL) continue;
     /* Ignore symbols that do not match the lookup requirements. */
     fund_sym = fundamental_symbol_of(new_sym);
-    if (!is_acceptable_symbol(new_sym, fund_sym, *lookup_state)) continue;
+    if (!is_acceptable_symbol(new_sym, fund_sym, *lookup_state,
+                             /*invisible_okay=*/FALSE)) continue;
     /* The namespace symbol supplement contains the scope depth at which
        symbols from a given namespace should be visible.  See if the scope
        depth for this namespace matches the scope pointed to by ssep. */
@@ -1853,7 +1855,8 @@ lookup processing.
 #define is_acceptable_active_symbol(sym, fund_sym)                           \
   (name_space_for_symbol_kind[(int)sym->kind] ==			     \
                                    lookup_state->required_name_space_kind && \
-   is_acceptable_symbol(sym, fund_sym, *lookup_state))
+   is_acceptable_symbol(sym, fund_sym, *lookup_state,			     \
+                        /*invisible_okay=*/FALSE))
 
   if (lookup_state->skip_curr_scope) {
     /* Skip this scope.  Note that we still look for a projected symbol. */
@@ -1980,7 +1983,8 @@ that do normal id lookup processing.
              sym != NULL; sym = sym->next) {
           if (sym->decl_scope == ssep->number) {
             a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-            if (is_acceptable_symbol(sym, fund_sym, *lookup_state)) {
+            if (is_acceptable_symbol(sym, fund_sym, *lookup_state,
+                                     /*invisible_okay=*/FALSE)) {
               /* Found a symbol. */
               /* If this is a template parameter symbol that should not
                  be visible then continue looking for another symbol. */
@@ -2102,7 +2106,10 @@ that do normal id lookup processing.
          returned, in the case of a hidden name lookup).  It must still
          satisfy the constraints for this lookup. */
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-      if (!is_acceptable_symbol(sym, fund_sym, *lookup_state)) {
+      /* An invisible projection symbol can be returned by g++ mode
+         lookups. */
+      if (!is_acceptable_symbol(sym, fund_sym, *lookup_state,
+                                /*invisible_okay=*/TRUE)) {
         sym = NULL;
       } else if (microsoft_bugs) {
         /* The Microsoft compiler ignores inherited injected class names
@@ -2834,7 +2841,8 @@ C and C++.
           sym = NULL;
           break;
         }  /* if */
-        if (is_acceptable_symbol(sym, fund_sym, lookup_state)) {
+        if (is_acceptable_symbol(sym, fund_sym, lookup_state,
+                                 /*invisible_okay=*/FALSE)) {
           /* We found a matching symbol.  If this is a type symbol found
              by a must-be-tag lookup, keep searching for a "real" tag in
              the same scope. */
@@ -2906,7 +2914,8 @@ C and C++.
           if (allow_anachronisms) sym = find_nested_type_symbol(locator);
           if (sym != NULL) {
             a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-            if (is_acceptable_symbol(sym, fund_sym, lookup_state)) {
+            if (is_acceptable_symbol(sym, fund_sym, lookup_state,
+                                     /*invisible_okay=*/FALSE)) {
               locator->is_semivisible_nested_type = TRUE;
             } else {
               sym = NULL;
@@ -2979,7 +2988,8 @@ C and C++.
 	     class of the same name can be used. */
           if (sym != NULL) {
             a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-            if (!is_acceptable_symbol(sym, fund_sym, lookup_state)) {
+            if (!is_acceptable_symbol(sym, fund_sym, lookup_state,
+                                      /*invisible_okay=*/FALSE)) {
               sym = NULL;
             }  /* if */
           }  /* if */
