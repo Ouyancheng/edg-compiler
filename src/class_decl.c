@@ -2918,7 +2918,7 @@ of the function, and again overloading is a possibility.
       }  /* if */
       if (sym != NULL) {
         if (sym->defined && func_info->is_definition) {
-          /* Trying to defined a function that's aleady defined. */
+          /* Trying to defined a function that's already defined. */
           pos_sy_error(ec_function_redefinition,
                        &locator->source_position, sym);
           set_to_error_locator(*locator);

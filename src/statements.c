@@ -604,7 +604,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
           done = TRUE;
           /* Now that the case label has been seen (it's really just serving
              as a marker to tell us to stop searching for initializations),
-             it can be removed from the list.  Therfore the last_case_label
+             it can be removed from the list.  Therefore the last_case_label
              pointer in the current block should be set to to NULL, as should
              the pointers to this case label in the parent chain. */
           block->variant.block.last_case_label = NULL;
@@ -3224,7 +3224,7 @@ is not swallowed by this routine.  This is unusual, but desirable in
 that it gets any error messages (like those for unresolved labels) to 
 come out on the closing "}".  If is_catch_clause is TRUE this being called
 to scan the body of an exception handler.  The scope stack has already been
-pushed, but otherwise this is handled like an ordingary block (except that
+pushed, but otherwise this is handled like an ordinary block (except that
 branching into it is disallowed).
 */
 {

@@ -4159,9 +4159,9 @@ static a_type_ptr traverse_and_modify_type_tree(
                                          a_type_modifier_function_ptr   func,
                                          a_type_tree_traversal_flag_set flags)
 /*
-Travese the type tree represented by type and at each level call func to
+Traverse the type tree represented by type and at each level call func to
 perform optional modification of the subtree.  If the subtree is modified,
-a new tree is to contain it is build.
+a new tree is to contain it is built.
 */
 {
   a_type_ptr              new_type = type;

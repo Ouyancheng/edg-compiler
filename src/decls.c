@@ -5672,7 +5672,7 @@ otherwise it is NULL.  The syntax is:
                  is_function_type(pm_member_type(static_data_member_type))) {
         /* Similar to ptr-to-function case -- for instance:
              void (A::* A::pmf)(int);
-           which again could be initalized. */
+           which again could be initialized. */
       } else {
         /* A left paren (if we find one) should be interpreted as introducing
            an initializer, since this can't be a function declaration. */
