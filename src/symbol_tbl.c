@@ -371,6 +371,7 @@ and indentation is the indentation desired.
   a_variable_ptr		var = NULL;
   a_routine_ptr                 rp;
   a_boolean                     suppress_newline = FALSE;
+  a_symbol_ptr                  apo_sym = NULL;
 
   if (string != NULL && strlen(string) > 0) {
     fputs(string, f_debug);
@@ -502,9 +503,10 @@ and indentation is the indentation desired.
           put_access(fp->source_corresp.access);
         }  /* if */
         (void)sprintf(buffer, "offset");
-        if (sym->variant.field.anonymous_parent_object != NULL) {
+        apo_sym = sym->variant.field.anonymous_parent_object;
+        if (apo_sym != NULL) {
           (void)sprintf(&buffer[strlen(buffer)],
-                        " (relative to anon parent object)");
+                        " (relative to anon parent obj)");
         }  /* if */
         (void)sprintf(&buffer[strlen(buffer)], " = %lu",
                       (unsigned long)fp->offset);
@@ -805,6 +807,12 @@ do_variable:
       db_abbreviated_type(type);
     }  /* if */
     suppress_newline = FALSE;
+  }  /* if */
+  if (apo_sym != NULL) {
+    if (!suppress_newline) (void)fputc('\n', f_debug);
+    fprintf(f_debug, "%*s", indentation, "");
+    db_symbol(apo_sym, "- anon parent object: ", indentation + 2);
+    suppress_newline = TRUE;
   }  /* if */
   /* Recursive calls to db_symbol can create unwanted newlines in the
      output.  Don't output a newline if the last thing we did was
@@ -2658,7 +2666,8 @@ sake of identifying a given field entry as representing an unnamed field.
 
 
 a_symbol_ptr make_anonymous_parent_object_symbol(a_symbol_kind      kind,
-                                                 a_source_position  *pos)
+                                                 a_source_position  *pos,
+                                                 a_scope_number     decl_scope)
 /*
 Return a symbol for a field or variable that serves as the "anonymous
 parent object" for an anonymous union.  Do not enter it in the symbol table.
@@ -2674,7 +2683,7 @@ parent object" for an anonymous union.  Do not enter it in the symbol table.
     anonymous_parent_object_symbol_header->identifier_length = 9;
   }  /* if */
   sym = alloc_symbol(kind, anonymous_parent_object_symbol_header, pos);
-  sym->decl_scope = scope_stack[decl_scope_level].number;
+  sym->decl_scope = decl_scope;
   db_exit();
   return sym;
 }  /* make_anonymous_parent_object_symbol */
