@@ -1,5 +1,25 @@
 Version 2.46
 
+1/24/01  Friend declarations in prototype instantiations
+
+When not doing dependent name lookup, the front end does some special
+processing when looking up unqualified names during the prototype
+instantiation of a class template with a dependent base class.  If the
+name is not found by normal lookup, it essentially considers the name
+to be a member of the dependent base class.  As a result, in the
+example below, the IL for the friend declaration refers to the class
+T::X.  When dependent lookup is being done, the friend declaration
+refers to an X that is associated with the prototype instantiation.
+
+The special processing that is done in default mode is no longer done
+when looking for the name in a friend declaration (i.e., the behavior
+for this case in default mode is now the same as it is when using
+dependent name lookup)
+
+  template <class T> class A : public T {
+    friend class X;
+  };
+
 1/23/01  Prelinker loop when the module-id includes the compilation time
 
 The front end creates a "module-id" that is used to create names that
