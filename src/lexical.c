@@ -6379,10 +6379,8 @@ end_of_token_scan_b:;
      has been called) should call remember_token_start before scanning
      the initial token, and then should branch here after all other
      processing is done. */
-return_from_token_scan:
-  if (start_of_curr_token != NULL) {
-    len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  if (start_of_curr_token != NULL) {
     /* Determine the source position of the end of the token. */
     if (ctoken == tok_end_of_source) {
       /* The end-of-source position must be done specially, because the
@@ -6392,7 +6390,11 @@ return_from_token_scan:
     } else {
       macro_line_loc_to_source_pos(end_of_curr_token, end_pos_curr_token);
     }  /* if */
+  }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+return_from_token_scan:
+  if (start_of_curr_token != NULL) {
+    len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
   }  /* if */
   curr_token_is_inert_macro = is_inert_macro;
 #if DEBUG
