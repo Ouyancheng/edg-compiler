@@ -821,6 +821,15 @@ used in the #pragma directive) is displayed.
 
 #endif /* ifdef CFE */
 
+static void disp_type_qualifiers(a_type_qualifier_set qualifiers)
+/*
+Display a set of type qualifiers (e.g., const, volatile).
+*/
+{
+  form_type_qualifier(qualifiers, /*need_trailing_space=*/FALSE, &octl);
+}  /* disp_type_qualifiers */
+
+
 static void disp_routine_type_supplement(a_routine_type_supplement_ptr ptr)
 /*
 Display a_routine_type_supplement.
@@ -866,6 +875,11 @@ Display a_routine_type_supplement.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->this_class != NULL) {
     disp_ptr("this_class", (char *)ptr->this_class, iek_type);
+  }  /* if */
+  if (ptr->qualifiers != TQ_NONE) {
+    disp_name("qualifiers");
+    disp_type_qualifiers(ptr->qualifiers);
+    (void)printf("\n");
   }  /* if */
   if (ptr->prototype_scope != NULL) {
     disp_ptr("prototype_scope", (char *)ptr->prototype_scope, iek_scope);
@@ -940,15 +954,6 @@ Display the indicated based type list.
     }  /* for */
   }  /* if */
 }  /* disp_based_type_list */
-
-
-static void disp_type_qualifiers(a_type_qualifier_set qualifiers)
-/*
-Display a set of type qualifiers (e.g., const, volatile).
-*/
-{
-  form_type_qualifier(qualifiers, /*need_trailing_space=*/FALSE, &octl);
-}  /* disp_type_qualifiers */
 
 
 static void disp_type(a_type_ptr ptr)
