@@ -1263,6 +1263,7 @@ Syntax:
                is_or_contains_template_param(operand->type)) {
       /* A call in a prototype instantiation. */
       routine_type = NULL;
+      prep_generic_operand(operand);
     } else {
       /* Normal function, or call using pointer-to-member-function. */
       /* Convert to rvalue.  This conversion is needed particularly for the

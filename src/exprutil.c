@@ -5238,7 +5238,8 @@ in *result.
     if (is_ptr_to_member_type(function_node->type)) {
       /* Call using a pointer-to-member-function. */
       function_type = pm_member_type(function_node->type);
-    } else if (is_template_param_type(function_node->type)) {
+    } else if (is_template_dependent_context() &&
+               is_or_contains_template_param(function_node->type)) {
       /* Call in a prototype instantiation. */
       function_type = NULL;
     } else {
