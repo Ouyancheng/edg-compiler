@@ -3426,6 +3426,8 @@ nothing).
   a_boolean				result = FALSE;
 
   if (templ1 != NULL && templ2 != NULL) {
+    templ1 = canonical_template_entry_of(templ1);
+    templ2 = canonical_template_entry_of(templ2);
     tssp1 = template_supplement_for_template(templ1);
     tssp2 = template_supplement_for_template(templ2);
     result = equiv_templates_given_supplement(tssp1, tssp2);

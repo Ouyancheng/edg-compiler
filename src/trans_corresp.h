@@ -19,10 +19,9 @@ trans_corresp.h -- Declarations related to matching entities across
 #ifndef TRANS_CORRESP_H
 #define TRANS_CORRESP_H 1
 
-extern char* f_canonical_il_entry_of(char *il_entry);
+extern a_type_ptr canonical_type_entry_of(a_type_ptr type);
 
-#define canonical_il_entry_of(ptr)                                     \
-  (f_canonical_il_entry_of((char*)ptr))
+extern a_template_ptr canonical_template_entry_of(a_template_ptr templ);
 
 extern void establish_trans_unit_correspondences_for_scope(a_scope_ptr  scope);
 

@@ -2337,14 +2337,14 @@ Otherwise, return FALSE.
   a_type_ptr  new_type_1 = *type_1, new_type_2 = *type_2;
 
   if (il_entry_prefix_of(new_type_1).secondary_trans_unit) {
-    new_type_1 = (a_type_ptr)canonical_il_entry_of(new_type_1);
+    new_type_1 = canonical_type_entry_of(new_type_1);
     if (new_type_1 != *type_1) {
       *type_1 = new_type_1;
       changed = TRUE;
     }  /* if */
   }  /* if */
   if (il_entry_prefix_of(new_type_2).secondary_trans_unit) {
-    new_type_2 = (a_type_ptr)canonical_il_entry_of(new_type_2);
+    new_type_2 = canonical_type_entry_of(new_type_2);
     if (new_type_2 != *type_2) {
       *type_2 = new_type_2;
       changed = TRUE;
@@ -2837,7 +2837,14 @@ for exact pointer equality.
     } else if (type_1 == type_2) {
       /* If the types are now the same, they are compatible. */
       compat = TRUE;
-    } else if (equiv_type_kinds(type_1->kind, type_2->kind)) {
+    } else if (!equiv_type_kinds(type_1->kind, type_2->kind)) {
+      /* The top level kinds are different, so the types are different. */
+      /* compat = FALSE;  -- Already set. */
+    } else if (change_to_canonical_types(&type_1, &type_2)) {
+      /* The types might have come from different translation units: restart
+         the comparison with the canonical entries instead. */
+      compat = f_identical_types(type_1, type_2, flags);
+    } else {
       /* The top level kinds are the same, check further. */
       switch (type_1->kind) {
         case tk_error:
