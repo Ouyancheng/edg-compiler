@@ -55,7 +55,7 @@ Now the diagnostic has been weakened to a warning.
 
 6/27/03  Microsoft mode: __declspec(deprecated)
 
-In Microsoft mode, front end now supports the Microsoft __declspec(deprecated)
+In Microsoft mode, the front end now supports the __declspec(deprecated)
 specifier.  Using an entity marked with this specifier results in a warning
 (unless the use is for an entity that is itself deprecated).  For example:
 

@@ -6362,36 +6362,34 @@ Return TRUE if and only if we're inside the definition of an entity marked as
 deprecated.
 */
 {
-  a_boolean      result = FALSE;
-  a_scope_depth  d = depth_scope_stack;
+  a_boolean                result = FALSE;
+  a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
 
-  while (d > DEPTH_OF_FILE_SCOPE) {
-    switch (scope_stack[d].kind) {
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+    switch (ssep->kind) {
+      case sck_file:
       case sck_namespace:
       case sck_namespace_extension:
         /* Namespace scopes cannot be marked as deprecated. */
         goto done;
       case sck_class_struct_union:
       case sck_class_reactivation:
-        if (scope_stack[d].assoc_type->source_corresp.is_deprecated) {
+        if (ssep->assoc_type->source_corresp.is_deprecated) {
           result = TRUE;
           goto done;
         }  /* if */
         break;
       case sck_function:
-        if (scope_stack[d].assoc_routine->source_corresp.is_deprecated) {
+        if (ssep->assoc_routine->source_corresp.is_deprecated) {
           result = TRUE;
           goto done;
         }  /* if */
         break;
-      case sck_file:
-        unexpected_condition();
       default:
         /* Nothing to do. */
         break;
     }  /* switch */
-    --d;
-  }  /* while */
+  }  /* for */
 done:
   return result;
 }  /* in_deprecated_definition */

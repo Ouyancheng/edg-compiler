@@ -629,7 +629,7 @@ Display the indicated source correspondence entry.
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (scp->is_deprecated) { 
-    disp_boolean("has_gnu_deprecated_attribute", TRUE);
+    disp_boolean("is_deprecated", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   if (scp->externalized) {
