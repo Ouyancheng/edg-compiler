@@ -4760,7 +4760,9 @@ Returns TRUE if there is an error in the specifiers.
           /* Only one "virtual" specifier at at time. */
           diagnostic(microsoft_mode ? es_warning : es_error,
                      ec_dupl_decl_specifier);
-          err = TRUE;
+          if (!microsoft_mode) {
+            err = TRUE;
+          }  /* if */
         } else {
           decl_specifiers_seen |= DS_VIRTUAL;
           *output_flags |= DSO_VIRTUAL;
