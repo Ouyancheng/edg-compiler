@@ -1,5 +1,12 @@
 Version 2.44
 
+7/18/00  C++-generating back end: extraneous casts in template arguments
+
+The C++-generating back end used to add invalid casts to certain template
+argument lists.  To solve this problem, a new flag explicit_cast_applied was
+added to a_constant (IL CHANGE).  It is set for tpck_cast variants of
+ck_template_param constants.
+
 7/18/00  Lookup of names in templates
 
 The front end now implements the special template name lookup rules
