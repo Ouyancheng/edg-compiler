@@ -1334,6 +1334,8 @@ done:
     /* Mark the routine entry. */
     rout->is_virtual = TRUE;
     class_type->variant.class_struct_union.any_virtual_functions = TRUE;
+    class_type->variant.class_struct_union.
+                 any_virtual_functions_including_in_base_classes = TRUE;
     if (virtual_function_number != 0) {
       /* The virtual base class is being shared between the current class
          and one of its base classes.  We reuse the existing number instead
@@ -2663,6 +2665,11 @@ or struct definition.  The syntax is
       if (is_virtual || base_class_type->
                          variant.class_struct_union.any_virtual_base_classes) {
         type_ptr->variant.class_struct_union.any_virtual_base_classes = TRUE;
+      }  /* if */
+      if (base_class_type->variant.class_struct_union.
+                       any_virtual_functions_including_in_base_classes) {
+        type_ptr->variant.class_struct_union.
+                       any_virtual_functions_including_in_base_classes = TRUE;
       }  /* if */
       /* Now create the new base class entry and add it to the end of the
          base classes list. */
