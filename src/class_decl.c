@@ -1049,10 +1049,145 @@ with which bcp shares its virtual function info, return TRUE.
 }  /* shares_virtual_function_info */
 
 
-static a_boolean check_for_virtual_function(a_boolean        virtual_specified,
-                                            a_symbol_ptr     rout_sym,
-                                            a_type_ptr       class_type,
-                                            a_source_position *source_pos)
+/*
+Data structure in which to track partial overriding of an overload set of
+virtual functions.
+*/
+typedef struct a_partial_override_entry *a_partial_override_entry_ptr;
+typedef struct a_partial_override_entry {
+  a_partial_override_entry_ptr
+		next;
+			/* Next in a linked list, or NULL when this is the
+			   last entry on the list. */
+  a_symbol_ptr	overload_set;
+			/* Pointer to an sk_overloaded_function symbol
+			   representing an overload set that includes at
+			   least one virtual function. */
+  unsigned int	virtual_function_count;
+			/* The number of virtual functions in the overload
+			   set. */
+  unsigned int	override_count;
+			/* The number of declarations in the current class
+			   that override virtual functions in the overload
+			   set.  When override_count == virtual_function_count
+			   then the overriding of the members of the overload
+			   set is no longer partial and this record becomes
+			   superfluous. */
+} a_partial_override_entry;
+
+
+/* Available list of partial-override entries. */
+static a_partial_override_entry_ptr avail_partial_override_entries;
+
+
+static a_partial_override_entry_ptr alloc_partial_override_entry(void)
+/*
+Return a pointer to a new partial-override entry, after initializing its
+fields.
+*/
+{
+  a_partial_override_entry_ptr  poep;
+
+  /* Reuse a entry from the available list; otherwise, allocate a new entry. */
+  if (avail_partial_override_entries != NULL) {
+    poep = avail_partial_override_entries;
+    avail_partial_override_entries = avail_partial_override_entries->next;
+  } else {
+    poep = (a_partial_override_entry_ptr)alloc_fe(
+                                            sizeof(a_partial_override_entry));
+  }  /* if */
+  /* Initialize its fields. */
+  poep->next                   = NULL;
+  poep->overload_set           = NULL;
+  poep->virtual_function_count = 0;
+  poep->override_count         = 0;
+
+  return poep;
+}  /* alloc_partial_override_entry */
+
+
+static void free_partial_override_entry(a_partial_override_entry_ptr  poep)
+/*
+Place a partial-override entry on the available list, so it can be reused.
+*/
+{
+  poep->next = avail_partial_override_entries;
+  avail_partial_override_entries = poep;
+}  /* free_partial_override_entry */
+
+
+static void record_partial_override(a_partial_override_entry_ptr *registry_ptr,
+                                    a_symbol_ptr                 overload_sym)
+/*
+A declaration in the current derived class has been seen, and it has the
+effect of overriding a virtual function from a base class.  But the latter is
+a member of an overload set (represented by overload_sym).  Keep track of the
+number of overrides by updating the linked list pointed to by registry_ptr.
+When all the virtual functions in the overload set have been overridden, the
+corresponding entry is removed from the registry.
+*/
+{
+  a_partial_override_entry_ptr  poep, prev_poep;
+  unsigned int                  virtual_function_count;
+  a_symbol_ptr                  sym;
+
+  /* Loop through the current entries in the registry to see if this symbol
+     is already represented on the list. */
+  prev_poep = NULL;
+  for (poep = *registry_ptr; poep != NULL; poep = poep->next) {
+    if (poep->overload_set == overload_sym) {
+      /* It's a match. */
+      break;
+    }  /* if */
+    prev_poep = poep;
+  }  /* for */
+  if (poep == NULL) {
+    /* No matching entry was found in the registry.  Only if there is more
+       than one virtual function in the overload set so we need a partial-
+       override entry. */
+    virtual_function_count = 0;
+    sym = overload_sym->variant.overloaded_function.symbols;
+    for (; sym != NULL; sym = sym->next) {
+      if (sym->variant.routine.ptr->is_virtual) ++virtual_function_count;
+    }  /* for */
+    if (virtual_function_count > 1) {
+      /* There is indeed more than one virtual function in the overload set.
+         Allocate a new entry and set its fields. */
+      poep = alloc_partial_override_entry();
+      poep->overload_set = overload_sym;
+      poep->virtual_function_count = virtual_function_count;
+      poep->override_count = 1;
+      /* Add the new entry to the front of the registry. */
+      poep->next = *registry_ptr;
+      *registry_ptr = poep;
+    }  /* if */
+  } else {
+    /* A matching entry was found. */
+    check_assertion(poep->override_count > 0 &&
+                    poep->override_count < poep->virtual_function_count);
+    /* Increment the override count. */
+    poep->override_count += 1;
+    if (poep->override_count == poep->virtual_function_count) {
+      /* For every virtual function in the overload set an overriding
+         declaration has been recorded.  We don't need this partial override
+         record any longer. */
+      if (prev_poep == NULL) {
+        *registry_ptr = poep->next;
+      } else {
+        prev_poep->next = poep->next;
+      }  /* if */
+      free_partial_override_entry(poep);
+    }  /* if */
+  }
+}  /* record_partial_override */
+
+
+static a_boolean check_for_virtual_function(
+                              a_boolean                     virtual_specified,
+                              a_symbol_ptr                  rout_sym,
+                              a_type_ptr                    class_type,
+                              a_source_position             *source_pos,
+                              a_partial_override_entry_ptr  *registry_ptr)
 /*
 A nonstatic member function, represented by rout_sym, has been declared
 and, depending on the value of virtual_specified, may have been explicitly
@@ -1070,11 +1205,13 @@ routine entry and return TRUE; otherwise return FALSE.
   a_boolean                    is_virtual, overloaded;
   a_boolean                    is_nonreal_instantiation;
   a_base_class_ptr             bcp;
-  a_symbol_ptr                 symbol_list, sym, sym_next;
+  a_symbol_ptr                 symbol_list, sym, sym_next, overload_sym;
   a_routine_ptr                rout, rp;
   a_scope_ptr                  base_class_scope;
   a_class_type_supplement_ptr  ctsp;
   a_virtual_function_number    virtual_function_number = 0;
+  a_boolean                    any_override_candidates = FALSE;
+  a_boolean                    any_overrides = FALSE;
 
   db_enter(4, "check_for_virtual_function");
   is_virtual = virtual_specified;
@@ -1134,8 +1271,10 @@ routine entry and return TRUE; otherwise return FALSE.
           /* Symbol represents a member of bcp's class. */
           if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
             overloaded = TRUE;
+            overload_sym = sym;
             sym = sym->variant.overloaded_function.symbols;
           } else if (sym->kind == (a_symbol_kind)sk_member_function) {
+            overload_sym = NULL;
             overloaded = FALSE;
           } else {
             /* It's a symbol for neither a simple function nor an overloaded
@@ -1152,6 +1291,7 @@ routine entry and return TRUE; otherwise return FALSE.
              first iteration. */
           do {
             rp = sym->variant.routine.ptr;
+            if (rp->is_virtual) any_override_candidates = TRUE;
             /* We are only interested in virtual functions with the same
                type signature.  See first whether the parameter types are
                compatible and whether the implicit "this" param types are
@@ -1186,6 +1326,7 @@ routine entry and return TRUE; otherwise return FALSE.
                                                          rp->type)) {
                   /* Match */
                   is_virtual = TRUE;
+                  any_overrides = TRUE;
                   /* Record the virtual function override in the base class
                      entry.  It can be used later, e.g., for building a virtual
                      function table. */
@@ -1194,6 +1335,14 @@ routine entry and return TRUE; otherwise return FALSE.
                     /* The virtual function table is being shared, so we must
                        use the identical number. */
                     virtual_function_number = rp->virtual_function_number;
+                  }  /* if */
+                  /* If this declaration amounts to an override of a member
+                     of an overload set, record some information about it
+                     in the partial-override-registry.  This allows for a
+                     diagnostic later if the rest of the members are not also
+                     overridden. */
+                  if (registry_ptr != NULL && overload_sym != NULL) {
+                    record_partial_override(registry_ptr, overload_sym);
                   }  /* if */
                 } else {
                   /* Error -- cannot differ in return type only (ARM 10.2). */
@@ -1243,6 +1392,11 @@ done:
     }  /* if */
     rout->virtual_function_number = virtual_function_number;
   }  /* if */
+#if 0
+  if (any_override_candidates && !any_overrides) {
+    pos_sy_warning(ec_nonoverriding_function_decl, source_pos, rout_sym);
+  }  /* if */
+#endif /* if 0 */
   db_exit();
   return is_virtual;
 }  /* check_for_virtual_function */
@@ -3197,8 +3351,8 @@ operator, and add it to the conversion list in the class symbol supplement
 pointed to by cssp.
 */
 {
-  a_conversion_list_entry_ptr    clep;
-  a_symbol_ptr                   sym;
+  a_symbol_list_entry_ptr  slep;
+  a_symbol_ptr             sym;
 
   db_enter(4, "add_to_conversion_list");
 
@@ -3244,25 +3398,26 @@ pointed to by cssp.
   } else {
     /* This is the normal case.  Allocate the new entry and make it point to
        the symbol. */
-    clep = alloc_conversion_list_entry();
-    clep->symbol = orig_sym;
+    slep = alloc_symbol_list_entry();
+    slep->symbol = orig_sym;
     /* Add it to the list associated with the parent class. */
-    clep->next = cssp->conversion_list;
-    cssp->conversion_list = clep;
+    slep->next = cssp->conversion_list;
+    cssp->conversion_list = slep;
   }  /* if */
   db_exit();
 }  /* add_to_conversion_list */
 
 
 static a_symbol_ptr decl_member_function(
-                                   a_symbol_locator        *locator,
-                                   a_type_ptr              class_type,
-                                   a_type_ptr              member_type,
-                                   a_func_info_block_ptr   func_info,
-                                   an_access_specifier     access,
-                                   a_boolean               is_virtual,
-                                   a_boolean               compiler_generated,
-                                   a_special_function_kind spec_kind)
+                                   a_symbol_locator         *locator,
+                                   a_type_ptr               class_type,
+                                   a_type_ptr               member_type,
+                                   a_func_info_block_ptr    func_info,
+                                   an_access_specifier      access,
+                                   a_boolean                is_virtual,
+                                   a_boolean                compiler_generated,
+                                   a_special_function_kind  spec_kind,
+                                   a_partial_override_entry_ptr *registry_ptr)
 
 /*
 For a member function declaration:  create a symbol entry and a routine entry
@@ -3445,7 +3600,7 @@ special function kind (e.g., constructor, destructor), if any.
        either case record the relationship between the current routine and
        its appearance in the base classes of the current class. */
     if (check_for_virtual_function(is_virtual, sym, class_type,
-                                   &locator->source_position)) {
+                                   &locator->source_position, registry_ptr)) {
       /* Classes with virtual functions require constructors. */
       cssp->constructor_required = TRUE;
       /* Classes with virtual functions cannot be constructed or assigned
@@ -4284,7 +4439,8 @@ routine body is generated at this time.
   (void)decl_member_function(&locator, class_type, rout_type, &func_info,
                              (an_access_specifier)as_public,
                              /*is_virtual=*/FALSE,
-                             /*compiler_generated=*/TRUE, sfkind);
+                             /*compiler_generated=*/TRUE, sfkind,
+                             (a_partial_override_entry_ptr *)NULL);
   done_with_func_info(func_info);
   /* It can be that the head of symbols list for the scope has been
      modified (it may have been changed to an sk_overloaded_function, or
@@ -5258,14 +5414,14 @@ static void project_base_class_conversion_functions(a_type_ptr class_type)
 /*
 Go through all the direct base classes of the current class class_type and
 create projection symbols to represent inherited conversion functions.  Also
-create a conversion_list_entry for each new projection symbol and link it to
+create a symbol_list_entry for each new projection symbol and link it to
 the list for the current class.  Only create a new projection symbol if the
 destination type is not yet on the current class's conversion list.
 */
 {
   a_base_class_ptr              bcp;
   a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
-  a_conversion_list_entry_ptr   clep, bcclep;
+  a_symbol_list_entry_ptr       slep, bcslep;
   a_symbol_locator              loc;
   a_boolean                     update = FALSE;
   a_symbol_ptr                  sym;
@@ -5275,13 +5431,13 @@ destination type is not yet on the current class's conversion list.
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct) {
       /* Examine each conversion list entry in the base class. */
-      bcclep = (symbol_supplement_for_class(bcp->type))->conversion_list;
-      for (; bcclep != NULL; bcclep = bcclep->next) {
+      bcslep = (symbol_supplement_for_class(bcp->type))->conversion_list;
+      for (; bcslep != NULL; bcslep = bcslep->next) {
         /* Compare the conversion list entry from the base class with each
            conversion list entry for the current class.  They convert to the
            same type if they have the same header. */
-        for (clep = cssp->conversion_list; clep != NULL; clep = clep->next) {
-          if (clep->symbol->header == bcclep->symbol->header) {
+        for (slep = cssp->conversion_list; slep != NULL; slep = slep->next) {
+          if (slep->symbol->header == bcslep->symbol->header) {
             /* A conversion list entry from the current class already
                already represents a conversion to the type specified by the
                conversion defined in the base class.  Ignore it. */
@@ -5291,7 +5447,7 @@ destination type is not yet on the current class's conversion list.
         /* A new destination type for conversion.  Create a symbol to
            represent its projection into the current class and record it in
            a new conversion list entry. */
-        make_locator_for_symbol(bcclep->symbol, &loc);
+        make_locator_for_symbol(bcslep->symbol, &loc);
         clear_specific_symbol(loc);
         (void)find_projected_symbol(class_type, &loc, /*must_be_tag=*/FALSE,
                                     /*must_be_type_name=*/FALSE,
@@ -5318,10 +5474,10 @@ next_base_class_conversion_list_entry:;
   if (debug_level >= 4) {
     fputs("conversion list for ", f_debug);
     db_type_name(class_type);
-    clep = cssp->conversion_list;
-    fprintf(f_debug, ": %s\n", clep == NULL ? "NULL" : "");
-    for (; clep != NULL; clep = clep->next) {
-      db_symbol(clep->symbol, "  ", 4);
+    slep = cssp->conversion_list;
+    fprintf(f_debug, ": %s\n", slep == NULL ? "NULL" : "");
+    for (; slep != NULL; slep = slep->next) {
+      db_symbol(slep->symbol, "  ", 4);
     }  /* for */
   }  /* if */
 #endif /* DEBUG */
@@ -5766,6 +5922,8 @@ Scan the body of a class definition, including the base classes list.
   a_boolean               is_template_instantiation;
   a_boolean               is_nonreal_instantiation = FALSE;
   a_boolean               error_on_def_in_return_type_already_issued;
+  a_partial_override_entry_ptr
+                          partial_override_registry = NULL;
 
   db_enter(3, "scan_class_definition");
   /* Set a flag to indicate whether we scanning a class template declaration
@@ -6510,7 +6668,8 @@ Scan the body of a class definition, including the base classes list.
                 rout_sym = decl_member_function(
                                    &locator, class_type, local_type,
                                    &func_info, access, virtual_specified,
-                                   /*compiler_generated=*/FALSE, spec_kind);
+                                   /*compiler_generated=*/FALSE, spec_kind,
+                                   &partial_override_registry);
                 if (corresp_prototype_tag_sym != NULL) {
                   /* The class must be the instantiation of a class template
                      (or a class nested within such an instantiation). Bind
@@ -7037,6 +7196,27 @@ next_declaration:
                            &tag_sym->decl_position, tag_sym);
           }  /* if */
         }  /* if */
+      }  /* if */
+      if (partial_override_registry != NULL) {
+        /* Each entry remaining on the partial override registry represents
+           an overload set in a base class, where one or more virtual functions
+           was overridden by a declaration in the current class and one or
+           virtual functions was not overridden.  Though allowed, this could
+           produce subtle inconsistencies in a user program, so issue a
+           warning. */
+        a_partial_override_entry_ptr  poep, next_poep;
+
+        poep = partial_override_registry;
+        do {
+          /* Issue the diagnostic. */
+          pos_sy2_warning(ec_partial_override, &tag_sym->decl_position,
+                          poep->overload_set, tag_sym);
+          /* Return the entry to the available list and advance. */
+          next_poep = poep->next;
+          free_partial_override_entry(poep);
+          poep = next_poep;
+        } while (poep != NULL);
+        partial_override_registry = NULL;
       }  /* if */
     }  /* if */
     /* Process pragmas associated with the closing brace before the current
