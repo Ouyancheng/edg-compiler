@@ -3092,9 +3092,10 @@ typedef struct a_type {
 			   is_placeholder_for_class_instantiation set to
 			   TRUE. */
       a_bit_field
-		referenced_by_nested_class_def_placeholder_typeref:1;
-			/* TRUE if the class is a nested class pointed to by
-			   a nested-class-def placeholder typeref; the type
+		nested_class_defined_outside_of_parent:1;
+			/* TRUE if the class is a nested class defined outside
+			   its parent class.  It will be pointed to by a
+			   nested-class-def placeholder typeref; the type
 			   entry for the associated typeref will be on the
 			   types list of the file scope or a namespace scope
 			   enclosing the parent class and will have

@@ -857,7 +857,7 @@ to default values.
       pte->variant.class_struct_union.
                  referenced_by_class_instantiation_placeholder_typeref = FALSE;
       pte->variant.class_struct_union.
-                 referenced_by_nested_class_def_placeholder_typeref = FALSE;
+                 nested_class_defined_outside_of_parent = FALSE;
       pte->variant.class_struct_union.originally_unnamed = FALSE;
       /* The class type supplement is only allocated in C++ mode. */
       pte->variant.class_struct_union.extra_info = 

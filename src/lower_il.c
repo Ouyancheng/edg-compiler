@@ -8458,7 +8458,7 @@ the insertion.
     next_type = type->next;
     if (is_immediate_class_type(type) &&
         type->variant.class_struct_union.
-                         referenced_by_nested_class_def_placeholder_typeref) {
+                                      nested_class_defined_outside_of_parent) {
       /* This is a nested class that is defined outside of its parent class.
          It will be moved to the file-scope types list at the point of its
          definition, later.  Here, just take it (and its type-as-subobject)
@@ -8736,13 +8736,13 @@ and all subscopes.
 #endif /* DEBUG */
         /* Clear the nested class flag to avoid double processing. */
         nested_type->variant.class_struct_union.
-                    referenced_by_nested_class_def_placeholder_typeref = FALSE;
+                                nested_class_defined_outside_of_parent = FALSE;
         /* Promote the class, and its type-as-subobject if that is present. */
         promote_type_list(nested_type, scope, &insert_pointer);
         /* Put the flag back on in case a back end cares about it for some
            reason. */
         nested_type->variant.class_struct_union.
-                    referenced_by_nested_class_def_placeholder_typeref = TRUE;
+                                nested_class_defined_outside_of_parent = TRUE;
       } else {
         /* Not a class type.  Set the insert location after it. */
         insert_pointer = type;
@@ -8943,7 +8943,7 @@ scope) along with the class members.
                 class, because local types of that should be put out at the
                 point of the definition. */
              !routine_class->variant.class_struct_union.
-                          referenced_by_nested_class_def_placeholder_typeref) {
+                                      nested_class_defined_outside_of_parent) {
         routine_class = routine_class->source_corresp.parent.class_type;
       }  /* while */
       last_class_type = routine_class->variant.class_struct_union.extra_info->

@@ -7901,7 +7901,7 @@ next_declaration:
       placeholder->variant.typeref.type = class_type;
       placeholder->variant.typeref.is_placeholder_for_nested_class_def = TRUE;
       class_type->variant.class_struct_union.
-                    referenced_by_nested_class_def_placeholder_typeref = TRUE;
+                                nested_class_defined_outside_of_parent = TRUE;
       add_to_types_list(placeholder, depth_scope_stack);
     }  /* if */
     remove_stop_token(tok_rbrace);

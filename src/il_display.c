@@ -990,9 +990,8 @@ do_struct_union:
                      TRUE);
       }  /* if */
       if (ptr->variant.class_struct_union.
-                       referenced_by_nested_class_def_placeholder_typeref) {
-        disp_boolean("referenced_by_nested_class_def_placeholder_typeref",
-                     TRUE);
+                                      nested_class_defined_outside_of_parent) {
+        disp_boolean("nested_class_defined_outside_of_parent", TRUE);
       }  /* if */
       if (ptr->variant.class_struct_union.originally_unnamed) {
         disp_boolean("originally_unnamed", TRUE);
