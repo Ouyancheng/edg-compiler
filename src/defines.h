@@ -19,6 +19,8 @@ Note: This is the EDG internal version.  The version shipped as part of
 the release should contain no defines.
 */
 
+#define ALLOW_FLOATING_POINT_TEMPLATE_PARAMETERS 1
+
 #ifdef sun
 /* Options Common to Sun hosted versions. */
 #define COMPILE_MULTIPLE_SOURCE_FILES 1
