@@ -1,5 +1,23 @@
 Version 2.22
 
+2/16/94  Return type of function must be complete when function address taken
+
+It's always been the case that the return type of a function must be
+complete when it is called or defined.  We have now added a check when
+the address of the function is taken:
+
+  struct A;
+  extern struct A f();
+  struct B { int i; };
+  typedef struct B (*PF)();
+  void m () {
+    PF p = (PF)f;  // Error here now
+    p();
+  }
+
+We think this falls under the general requirement of the C standard
+that types must be complete where they're "used."
+
 2/15/94  Eliminated warnings from Novell/USL C compiler
 
 Some changes have been made to eliminate warnings concerning operations
@@ -19,12 +37,12 @@ The following incorrect usage resulted in an assertion failure when
 compiling in cfront (-b) mode (in which a "." can be used in place of
 "::" in qualified names).
 
-typedef int x;
-int main()
-{
-	int i;
-	i = x.a;
-}
+  typedef int x;
+  int main()
+  {
+  	int i;
+  	i = x.a;
+  }
 
 2/14/94  Spurious internal error
 
