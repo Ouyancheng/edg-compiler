@@ -2830,8 +2830,11 @@ for exact pointer equality.
               param_types_are_compatible(type_1, type_2, flags) &&
               ((flags & TCF_IGNORE_IMPLICIT_THIS_PARAM_TYPE) ||
                (rtsp1->qualifiers == rtsp2->qualifiers &&
-                equiv_class_types(rtsp1->this_class, rtsp2->this_class,
-                                  error_matches_anything))) &&
+                ((rtsp1->this_class == NULL) ?
+                    (rtsp2->this_class == NULL) :
+                    (rtsp2->this_class != NULL &&
+                     equiv_class_types(rtsp1->this_class, rtsp2->this_class,
+                                       error_matches_anything))))) &&
               (ignore_calling_conventions ||
                (routine_linkages_are_compatible(
                              (a_name_linkage_kind)rtsp1->routine_name_linkage,
