@@ -863,7 +863,8 @@ in ps_arg_list.
   }  /* if */
   if (matches_template_arg_list(arg_list, templ_tap, ps_arg_list,
                                 templ_param_list)) {
-    if (all_templ_params_have_values(*ps_arg_list, templ_param_list)) {
+    if (verify_template_nontype_args(
+                        *ps_arg_list, (a_symbol_ptr)NULL, templ_param_list)) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -917,7 +918,8 @@ matches both templates, templ_sym1 should be preferred over templ_sym2.
      template1. */
   if (matches_template_arg_list(tap1, tap2, &dummy_arg_list,
                                 templ_param_list)) {
-    if (all_templ_params_have_values(dummy_arg_list, templ_param_list)) {
+    if (verify_template_nontype_args(
+                       dummy_arg_list, (a_symbol_ptr)NULL, templ_param_list)) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -3213,20 +3215,24 @@ may have been deduced.
 }  /* tentatively_matches_template_type */
 
 
-a_boolean verify_function_template_nontype_args(
-                                        a_template_arg_ptr   templ_arg_list,
-                                        a_symbol_ptr         rout_templ_sym,
-                                        a_template_param_ptr templ_param_list)
+a_boolean verify_template_nontype_args(a_template_arg_ptr   templ_arg_list,
+                                       a_symbol_ptr         rout_templ_sym,
+                                       a_template_param_ptr templ_param_list)
 /*
-This routine is used after doing argument deduction for each function
-argument to ensure that any nontype parameter whose type depends on a
+This routine is used after doing argument deduction for each argument to
+ensure that any nontype parameter whose type depends on a
 template parameter is consistent with the deduced value.  Also,
 types are supplied for nontype parameters that are deduced entirely
 from array bounds.  templ_param_list is the template parameter list to
 be used.  If a NULL pointer is provided, the template parameter list
 from the template symbol supplement is used.  The parameter is supplied
 because some calls of this routine occur before the field in the
-template symbol supplement has been set.
+template symbol supplement has been set.  The templ_param_list is also
+passed explicitly when this routine is used to check the nontype
+template arguments of a partial specialization of a class template.  In
+such cases, the rout_templ_sym field is NULL.  For partial specializations
+the only tests that are needed are the check that all parameters have
+values, and the handling of array bounds of unknown type.
 */
 {
   a_boolean				match = TRUE;
@@ -3255,6 +3261,7 @@ template symbol supplement has been set.
       if (tap->is_type) continue;
       if (tpp->variant.constant.type_involves_template_param) {
         /* Rescan the tokens that make up the parameter declaration. */
+        check_assertion(rout_templ_sym != NULL);
         constant_type = rescan_template_constant_parameter
                                    (rout_templ_sym, tpp->param_symbol, tpp,
                                     templ_arg_list, /*do_default_arg=*/FALSE,
@@ -3282,13 +3289,14 @@ template symbol supplement has been set.
            type must match the declared type.  This test is only needed if
            the type involves a template parameter. */
         if (tpp->variant.constant.type_involves_template_param) {
+          check_assertion(rout_templ_sym != NULL);
           match = identical_types(constant_type, tap->variant.constant->type);
         }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
   return match;
-}  /* verify_function_template_nontype_args */
+}  /* verify_template_nontype_args */
 
 
 #if CHECKING
@@ -4005,8 +4013,8 @@ type should not be used in the matching process.
      on other template parameters agree with the types of the deduced
      values. */
   if (match) {
-    match = verify_function_template_nontype_args(*templ_arg_list, templ_sym,
-                                                  templ_param_list);
+    match = verify_template_nontype_args(*templ_arg_list, templ_sym,
+                                         templ_param_list);
   }  /* if */
 done:
   if (!match && *templ_arg_list != NULL) {

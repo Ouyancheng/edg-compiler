@@ -1,5 +1,17 @@
 Version 2.35
 
+1/9/97  Abort when a partial specialization nontype argument is deduced
+        from an array bound
+
+The front end would abort when a nontype argument of a partial specialization
+was deduced only from an array bound.  This has been fixed.
+
+  template <class T> struct A {};
+  template <class T, int N> struct A<T[N]> {
+    A(){}
+  };
+  A<int[10]> a;
+
 1/8/97  Partial lowering of EH: cleanup state for partially-constructed
         aggregates
 

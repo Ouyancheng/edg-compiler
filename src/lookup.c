@@ -1639,8 +1639,8 @@ ambiguous symbol and return a pointer.  If no match is found, return NULL.
                               (a_base_class_ptr*)NULL)) {
       /* Do the wrapup processing to make sure that all of the parameters
          have been deduced. */
-      if (verify_function_template_nontype_args(templ_arg_list, sym,
-                                                (a_template_param_ptr)NULL)) {
+      if (verify_template_nontype_args(templ_arg_list, sym,
+                                       (a_template_param_ptr)NULL)) {
         /* We have a match.  Save the matching template arguments.  If we
            found a previous match, indicate that the lookup is ambiguous
            and exit the loop. */

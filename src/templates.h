@@ -78,7 +78,7 @@ a_boolean tentatively_matches_template_type(
 		  	       a_type_ptr           templ_type,
                                a_template_param_ptr templ_param_list);
 
-extern a_boolean verify_function_template_nontype_args(
+extern a_boolean verify_template_nontype_args(
                                         a_template_arg_ptr   templ_arg_list,
                                         a_symbol_ptr         rout_templ_sym,
                                         a_template_param_ptr templ_param_list);
