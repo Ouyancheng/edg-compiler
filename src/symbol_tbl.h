@@ -657,6 +657,16 @@ typedef struct a_scope_stack_entry {
 			/* Kind of scope (file, function, block, function
 			   prototype, etc.).  See the definition of
 			   a_scope_kind in il_def.h. */
+  an_access_specifier
+		current_access;
+			/* The access control specification that currently
+			   prevails for declarations in the current scope;
+			   as_public by default, but may be otherwise for
+			   C++ class definitions.  (For instance, if an
+                           enumeration is defined as a member type of a class,
+			   the access to be applied to the enumeration
+			   constants may be derived from the setting of this
+			   field.) */
   a_symbol_ptr	symbols,
 		last_symbol;
 			/* First/last pointers to the list of all symbols
