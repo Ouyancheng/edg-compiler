@@ -729,9 +729,51 @@ Write the indicated unsigned number to the output file.  The number is assumed
 to be a complete token.
 */
 {
-  char buffer[50];
-  (void)sprintf(buffer, "%lu", num);
-  m_write_tok_str(buffer);
+  register char         digitch;
+  register unsigned int digit;
+
+  /* Do smaller numbers in a fast way. */
+  if (num <= 9) {
+    ensure_enough_room_on_line(1);
+    goto digit1;
+  }  /* if */
+  if (num <= 99) {
+    ensure_enough_room_on_line(2);
+    goto digit2;
+  }  /* if */
+  if (num <= 999) {
+    ensure_enough_room_on_line(3);
+    goto digit3;
+  }  /* if */
+  if (num <= 9999) {
+    ensure_enough_room_on_line(4);
+    goto digit4;
+  }  /* if */
+  /* General case: */
+  { char buffer[50];
+    (void)sprintf(buffer, "%lu", num);
+    m_write_tok_str(buffer);
+  }
+  goto done;
+digit4:
+  digit = num/1000;
+  digitch = digit + '0';
+  m_write_ch(digitch);
+  num = num - digit*1000;
+digit3:
+  digit = num/100;
+  digitch = digit + '0';
+  m_write_ch(digitch);
+  num = num - digit*100;
+digit2:
+  digit = num/10;
+  digitch = digit + '0';
+  m_write_ch(digitch);
+  num = num - digit*10;
+digit1:
+  digitch = num + '0';
+  m_write_ch(digitch);
+done:;
 }  /* write_unsigned_num */
 
 
